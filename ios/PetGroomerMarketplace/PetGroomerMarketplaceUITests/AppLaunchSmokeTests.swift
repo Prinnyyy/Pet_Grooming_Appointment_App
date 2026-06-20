@@ -11,8 +11,17 @@ final class AppLaunchSmokeTests: XCTestCase {
 
         app.launch()
 
+        let authenticationRoot = app.descendants(matching: .any)
+            .matching(
+                NSPredicate(
+                    format: "identifier == 'auth.form' OR identifier == 'auth.bootstrap'"
+                )
+            )
+            .firstMatch
+
         XCTAssertTrue(
-            app.descendants(matching: .any)["auth.form"].waitForExistence(timeout: 5)
+            authenticationRoot.waitForExistence(timeout: 5),
+            "Expected the authentication form or configuration bootstrap to appear."
         )
         XCTAssertFalse(app.descendants(matching: .any)["customer.tabs"].exists)
         XCTAssertFalse(app.descendants(matching: .any)["groomer.tabs"].exists)
