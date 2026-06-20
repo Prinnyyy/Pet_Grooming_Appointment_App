@@ -34,6 +34,14 @@ TODO
 
 - TODO
 
+## Context Needed Next
+
+- TODO
+
 ## Next Safe Action
+
+TODO
+
+## Compaction Status
 
 TODO

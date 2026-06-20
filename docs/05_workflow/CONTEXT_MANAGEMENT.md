@@ -1,26 +1,43 @@
 # Context Management
 
-## Default Read Budget
+## Read Budget
 
-Read only:
+Default to the smallest useful read:
 
-1. `AGENTS.md`
-2. `docs/00_memory/CURRENT_STATE.md`
-3. `docs/06_tasks/TASK_LEDGER.md` if present
-4. the active task file, if provided
+- Always read `AGENTS.md`.
+- Read the active task file when provided.
+- Read targeted `CURRENT_STATE.md` sections when current state, risk, or backend facts matter.
+- Read `TASK_LEDGER.md` only to choose, verify, or update task status.
+- Read briefs, architecture/backend docs, decisions, feature indexes, and old reports only when directly relevant.
 
-Read briefs, `PROJECT_MEMORY.md`, feature indexes, architecture/backend docs, decisions, and old reports only when directly relevant. Prefer targeted search and narrow reads over repository-wide loading.
+Search only active areas by default. Exclude `docs/05_workflow/archive_subagent_workflow/` and `docs/05_workflow/agent_reports/` unless the user asks for historical workflow context.
 
-## Durable Memory Updates
+## Durable Memory
 
-- Update `CURRENT_STATE.md` only when project state changed.
-- Update `WORKLOG.md` only after meaningful implementation.
-- Update `TASK_LEDGER.md` only when a tracked task status changed.
-- Update `FEATURE_INDEX.md` only when a feature was added, removed, or changed.
-- Update `DECISION_LOG.md` only when a durable architecture/product decision changed.
+Update only facts that changed:
 
-Do not update memory for tiny documentation-only changes unless needed.
+- `CURRENT_STATE.md`: project state, build/test status, current risks, next task.
+- `WORKLOG.md`: meaningful implementation history.
+- `TASK_LEDGER.md`: tracked task status.
+- `FEATURE_INDEX.md`: added, removed, or changed features.
+- `DECISION_LOG.md`: durable architecture/product decisions.
 
-## Context Safety
+Do not store secrets, full source files, huge diffs, generated logs, or unverified assumptions in memory files.
 
-Do not store secrets, full source files, huge diffs, generated logs, or unverified assumptions in memory files. If interrupted, use `INTERRUPTION_RECOVERY.md`; do not reconstruct archived subagent state.
+## Manual Compaction
+
+Prefer manual compaction at clean boundaries instead of automatic compaction mid-task.
+
+- Below 30% context used: usually continue if the next task is small.
+- 30% to 50%: compact before medium, risky, or file-heavy tasks.
+- At or above 50%: write a closeout, then compact before starting the next task.
+
+Do not compact while root-cause analysis, required validation, or important temporary evidence is still unwritten.
+
+Minimum closeout/checkpoint fields:
+- task ID/status,
+- files changed or inspected,
+- validation attempted or deferred,
+- key decisions/evidence,
+- known risks,
+- next context needed.

@@ -1,37 +1,32 @@
 # AGENTS.md
 
-## Project Mission
+## Mission
 
-This repository is an iOS app project. Codex works through small, reversible changes and completes at most one primary task per run.
+This is an iOS app project. Codex makes small, reversible changes and completes one primary task per run.
 
-## Default Codex Workflow
+## Default Workflow
 
-This project uses a lightweight single-agent Codex workflow.
+Use the lightweight single-agent workflow in `docs/05_workflow/SINGLE_AGENT_WORKFLOW.md`.
 
-Default rules:
-- one primary task per run,
-- minimal context reading,
-- no subagents by default,
-- short plan before non-trivial changes,
-- one validation attempt by default,
-- durable memory updates only when meaningful,
-- stop after the requested task is complete.
-
-Detailed workflow:
-- `docs/05_workflow/SINGLE_AGENT_WORKFLOW.md`
-
-Do not spawn `context_librarian`, `task_planner`, `ios_code_mapper`, `supabase_contract_auditor`, `implementation_worker`, `build_validator`, or `final_reviewer`. Multi-agent orchestration remains disabled unless the user explicitly re-enables it in a future request.
+- One primary task; no adjacent features or broad refactors.
+- Minimal context: targeted reads/searches only.
+- No subagents or multi-agent orchestration unless the user explicitly re-enables them.
+- Short plan before non-trivial edits.
+- One validation attempt by mode.
+- Update durable memory only when project state changed.
+- Write a closeout/checkpoint before `/compact`.
+- Stop when the requested task is complete.
 
 ## Minimal Startup Context
 
-Read only:
+Read only what the task needs:
 
 1. `AGENTS.md`
-2. `docs/00_memory/CURRENT_STATE.md`
-3. `docs/06_tasks/TASK_LEDGER.md` if present
-4. the active task file, if provided
+2. the active task file, if provided
+3. targeted sections of `docs/00_memory/CURRENT_STATE.md` when current state or risks matter
+4. `docs/06_tasks/TASK_LEDGER.md` only when choosing or updating task status
 
-Read product briefs, `PROJECT_MEMORY.md`, architecture/backend docs, historical decisions, or old reports only when directly relevant.
+Read product briefs, `PROJECT_MEMORY.md`, architecture/backend docs, historical decisions, archived workflow docs, or old reports only when directly relevant. Do not search `docs/05_workflow/archive_subagent_workflow/` or `docs/05_workflow/agent_reports/` unless the user asks for historical workflow context.
 
 ## Working Rules
 
@@ -43,15 +38,19 @@ Read product briefs, `PROJECT_MEMORY.md`, architecture/backend docs, historical 
 - Do not invent Supabase schema facts or perform destructive database operations.
 - Do not add dependencies, commit, push, or make remote writes without explicit user approval.
 
-## Validation and Completion
+## Validation
 
 - Quick Mode: validate only when directly needed.
 - Standard Mode: make one build attempt by default.
 - Deep Mode: state an explicit validation plan before implementation.
 - UI tests are not default. Unit tests are not default for initialization tasks.
-- If validation fails, report the first real error and stop; do not enter a fix loop without approval.
+- If validation fails, report the first real error and stop unless the user approves a follow-up.
+
+## Completion
+
 - Briefly review the current diff.
 - Update durable memory only when project state meaningfully changed.
+- Before `/compact`, write a concise closeout or checkpoint with status, changed files, validation, risks, and next context.
 - Report the result concisely and stop.
 
 ## Recovery
