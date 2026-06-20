@@ -2,7 +2,7 @@
 
 ## Current Status
 
-T-004 owner-scoped policies are deployed for `profiles`, `customer_profiles`, `groomer_profiles`, and private avatar objects. T-007 deploys `create_my_profile` as a `security invoker` function with an empty search path, authenticated-only execution, atomic shared/marker inserts, and stable immutable-role rejection. Explicit grants, rollback-only owner/cross-user/role/anonymous checks, and MCP security/performance advisors passed. Later resource rules remain planned requirements rather than proof of deployment.
+T-004 owner-scoped profile/avatar policies and T-007 `create_my_profile` are deployed and validated. T-008 explicit column grants, owner-scoped `pets`/`pet_photos` RLS, and private pet-photo Storage policies are also deployed and backend-validated. The Storage DELETE policy is restricted to `authenticated` and exactly matches the behavior-tested owner-only SELECT predicate; actual object deletion uses the Storage API and is exercised by T-009. T-008 security advisor returned no lints. Later resource rules remain planned requirements rather than proof of deployment.
 
 ## RLS Baseline
 

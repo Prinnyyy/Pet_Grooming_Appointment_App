@@ -71,6 +71,8 @@ ios/PetGroomerMarketplace/PetGroomerMarketplace/
 
 Tasks T-001 through T-022 are documented in `docs/06_tasks/T-002_INCREMENTAL_BUILD_ROADMAP.md`. Current completed baseline: **T-007** (role onboarding and authenticated routing). Next planned: **T-008** (pets, pet photos, private Storage, and RLS). One task per run; do not start the next task automatically.
 
+On-demand reference (build plans and longer context, not inlined here) lives in the root-level `CLAUDE_reference/` directory (kept out of `docs/`, which other agents own) — read it when relevant; start at its `CLAUDE_INDEX.md`. Files and folders Claude maintains are named with `CLAUDE` so other agents don't misread them.
+
 ## Claude's Role in This Project
 
 Claude Code 在本项目中的职责是**评审（Review）**，不是实现。

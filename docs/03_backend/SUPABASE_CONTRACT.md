@@ -2,7 +2,7 @@
 
 ## Contract Status
 
-This backend contract is derived from `Fresh_Pet_Groomer_Marketplace_Engineering_Brief.md`. The T-004 profile/avatar foundation and T-007 atomic profile-onboarding RPC are deployed to the fresh Supabase project and mirrored under `supabase/migrations/`; later product objects remain planned. The original project visible through MCP is a legacy project and is not a target for this rebuild.
+This backend contract is derived from `Fresh_Pet_Groomer_Marketplace_Engineering_Brief.md`. The T-004 profile/avatar foundation, T-007 atomic profile-onboarding RPC, and T-008 pet/photo schema and private bucket are deployed to the fresh Supabase project and mirrored under `supabase/migrations/`. T-008 metadata, owner/cross-role access, constraints, Storage upload rules, and DELETE policy metadata are validated under the approved MCP-only boundary. Later product objects remain planned. The original project visible through MCP is a legacy project and is not a target for this rebuild.
 
 Once migrations exist, reviewed migrations and verified deployed metadata are authoritative. This document must remain synchronized with them and must never claim a planned object is deployed.
 
@@ -14,7 +14,7 @@ Once migrations exist, reviewed migrations and verified deployed metadata are au
 - Fresh project: `Pet Groomer Marketplace`, ref `lqmasbuqzvcvtawonjlb`, organization `Prinnyyy`, region `us-west-1`.
 - Project creation: authorized after the user confirmed the MCP-reported US$0/month cost; creation returned `ACTIVE_HEALTHY` on 2026-06-19.
 - Verification performed: project baseline; MCP migration application; schema, grants, RLS, trigger, function, and Storage inspection; rollback-only policy/RPC tests; security and performance advisors.
-- Applied migrations: `20260620105202_t004_profile_foundation`, `20260620105409_t004_optimize_rls_auth_calls`, `20260620172839_t007_create_my_profile`, and corrective `20260620180607_t007_fix_create_my_profile_conflict_target`.
+- Applied migrations: `20260620105202_t004_profile_foundation`, `20260620105409_t004_optimize_rls_auth_calls`, `20260620172839_t007_create_my_profile`, corrective `20260620180607_t007_fix_create_my_profile_conflict_target`, and `20260620192648_t008_pet_data_photo_storage`.
 - Local credential file: `supabase_api_key` exists, was not read, is Git-ignored, and has no authorization to appear in iOS code or documentation content.
 
 All Supabase migration and validation operations must target only the task-authorized fresh project, remain separate from the legacy ref, and use Supabase MCP exclusively. Remote DDL requires explicit authorization and a reviewed migration; MCP `apply_migration` is the only DDL path.
@@ -29,7 +29,7 @@ All Supabase migration and validation operations must target only the task-autho
 
 ## Tables and Roadmap
 
-`profiles`, `customer_profiles`, and `groomer_profiles` are deployed by T-004. Every other row remains planned until its owning task applies and verifies a migration.
+`profiles`, `customer_profiles`, and `groomer_profiles` are deployed by T-004; `pets` and `pet_photos` are deployed and backend-validated by T-008. Every other row remains planned until its owning task applies and verifies a migration.
 
 | Table | Purpose | Key Planned Fields | Access Summary | Roadmap |
 |---|---|---|---|---|
@@ -97,7 +97,7 @@ Function signatures, return shapes, security mode, grants, and error codes are f
 
 ## Storage Buckets and Roadmap
 
-`avatars` is deployed by T-004. Every other bucket remains planned until its owning task applies and verifies its Storage contract.
+`avatars` is deployed by T-004. `pet-photos` is deployed and backend-validated by T-008. Supabase intentionally requires the Storage API for binary deletion, so actual upload/delete integration is an explicit T-009 client acceptance item. Every other bucket remains planned until its owning task applies and verifies its Storage contract.
 
 | Bucket | Default Visibility | Path Contract | Roadmap |
 |---|---|---|---|

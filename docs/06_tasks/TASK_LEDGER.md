@@ -12,8 +12,8 @@ Track tasks here so Codex does not continue automatically.
 | T-005 | Add iOS Supabase client and session boundary | completed | Deep | Xcode dependency, Core infrastructure, config docs | iOS build passed | Supabase 2.46.0 pinned; MCP-sourced local config; no Auth screens or session routing |
 | T-006 | Implement email/password authentication | completed | Deep | Auth repository, AuthenticationStore, Auth views, focused tests | ios-test: 10 unit + 1 UI smoke passed | Default email confirmation; no profile query/creation or role routing |
 | T-007 | Implement role onboarding and entry routing | completed | Deep | onboarding RPC/repository/Store/UI, Account, App routing | MCP rollback tests/advisors, supabase-check, 17 unit + 1 UI test | Corrective migration resolved `42702`; authoritative Customer/Groomer routing; no detailed role profile features |
-| T-008 | Add pet data and photo Storage contract | planned | Deep | pets migration, Storage, RLS, backend docs | explicit backend validation | Backend only |
-| T-009 | Implement customer pet management | planned | Standard | Customer pet feature | one iOS validation attempt | No grooming requests |
+| T-008 | Add pet data and photo Storage contract | completed | Deep | migration `20260620192648` deployed/mirrored; backend docs | MCP metadata/access checks/advisors, supabase-check, diff-check | DELETE policy verified under approved MCP-only boundary; zero test data persisted |
+| T-009 | Implement customer pet management | planned | Standard | Customer pet feature | one iOS validation attempt including Storage API upload/delete smoke | No grooming requests |
 | T-010 | Add groomer profile and portfolio backend | planned | Deep | groomer services, portfolio Storage, RLS | explicit backend validation | Backend only |
 | T-011 | Implement groomer profile management | planned | Standard | Groomer profile, services, portfolio UI | one iOS validation attempt | No request feed |
 | T-012 | Add grooming request and match backend | planned | Deep | requests, matches, RPCs, RLS | explicit backend validation | Backend only |

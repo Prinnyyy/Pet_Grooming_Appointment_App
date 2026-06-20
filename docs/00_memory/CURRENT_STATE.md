@@ -22,8 +22,8 @@ Update this only when project state meaningfully changes.
 - Last test command: `./scripts/ios-test.sh`
 - Test result: passed for T-007 on 2026-06-20 with 17 Swift Testing tests and 1 XCTest UI smoke test (`** TEST SUCCEEDED **`).
 - General check: `./scripts/preflight.sh` and the active-doc placeholder/stale-term scan passed for T-003 on 2026-06-19.
-- Supabase check: `./scripts/supabase-check.sh` passed for T-007 on 2026-06-20.
-- Known failing checks: none reported. The first T-007 RPC validation exposed PostgreSQL `42702`; the separately approved corrective migration fixed the ambiguous conflict target and the complete validation then passed.
+- Supabase check: `./scripts/supabase-check.sh` passed for T-008 on 2026-06-20.
+- Known failing checks: none blocking. T-008's direct SQL Storage-delete probe reached Supabase's expected `storage.protect_delete()` platform guard; the MCP-only closeout instead verified that the authenticated DELETE policy exactly matches the behavior-tested owner-only SELECT predicate. Actual Storage API upload/delete integration remains a T-009 client acceptance item.
 
 ## Current Product State
 
@@ -42,6 +42,7 @@ Update this only when project state meaningfully changes.
 - T-005 iOS Supabase client and session boundary is completed at `docs/06_tasks/T-005_IOS_SUPABASE_CLIENT_SESSION_BOUNDARY.md`.
 - T-006 email/password authentication is completed at `docs/06_tasks/T-006_EMAIL_PASSWORD_AUTHENTICATION.md`.
 - T-007 role onboarding and authenticated routing is completed at `docs/06_tasks/T-007_ROLE_ONBOARDING_AND_ROUTING.md`.
+- T-008 pet data/photo Storage is completed at `docs/06_tasks/T-008_PET_DATA_AND_PHOTO_STORAGE_CONTRACT.md`.
 
 ## Current iOS State
 
@@ -61,10 +62,10 @@ Update this only when project state meaningfully changes.
 - Supabase MCP connectivity was verified read-only on 2026-06-19 with `list_projects`.
 - Visible remote project `Prinnyyy's Project` (ref `swdiiyypysyxbnfrxxsv`) is a legacy project and is explicitly out of scope for the fresh rebuild. Do not inspect, branch, migrate, reset, or otherwise mutate it.
 - The fresh project `Pet Groomer Marketplace` (ref `lqmasbuqzvcvtawonjlb`) was created in organization `Prinnyyy`, region `us-west-1`, after the user confirmed the reported US$0/month cost. It is the only authorized Supabase target for this rebuild.
-- T-004 migrations `20260620105202_t004_profile_foundation` and `20260620105409_t004_optimize_rls_auth_calls`, plus T-007 migrations `20260620172839_t007_create_my_profile` and corrective `20260620180607_t007_fix_create_my_profile_conflict_target`, are applied to the fresh project and mirrored under `supabase/migrations/`.
-- Deployed backend objects are `public.user_role`, `profiles`, `customer_profiles`, `groomer_profiles`, `create_my_profile`, the private `avatars` bucket, and their explicit grants, triggers, owner-scoped RLS/Storage policies, and function privileges.
+- T-004 migrations `20260620105202_t004_profile_foundation` and `20260620105409_t004_optimize_rls_auth_calls`, T-007 migrations `20260620172839_t007_create_my_profile` and corrective `20260620180607_t007_fix_create_my_profile_conflict_target`, and T-008 migration `20260620192648_t008_pet_data_photo_storage` are applied to the fresh project and mirrored under `supabase/migrations/`.
+- Deployed backend objects include `public.user_role`, profile/role tables, `create_my_profile`, `pets`, `pet_photos`, the private `avatars` and `pet-photos` buckets, and their explicit grants, constraints, indexes, triggers, RLS/Storage policies, and function privileges.
 - `create_my_profile` is `security invoker` with an empty search path; anon cannot execute it, authenticated/service_role can execute it, and it rejects anonymous JWTs. It inserts the shared profile before exactly one marker, preserves the first name on same-role retry, and returns `P0001/profile_role_immutable` for role changes.
-- Rollback-only Customer/Groomer/idempotency/immutable-role/cross-user/anonymous tests passed with zero persisted test users. Final MCP security and performance advisors returned no lints.
+- T-004/T-007 rollback-only access/RPC tests passed with zero persisted test users and their final advisors returned no lints. T-008 metadata inspection and corrected owner/cross-user/role/anonymous/constraint/Storage-upload assertions passed with zero persisted validation data. Direct SQL Storage deletion is intentionally blocked by Supabase; MCP inspection confirmed the DELETE policy exactly matches the behavior-tested owner-only SELECT predicate. T-008 security advisor returned no lints. Its single performance INFO about the composite photo foreign key was reviewed as non-blocking because the existing B-tree contains both equality columns.
 - The iOS app performs real Supabase Auth and profile lookup/onboarding operations but no later marketplace-domain operation.
 - Legacy project tables, migrations, RPCs, RLS, and Storage objects were not inspected; no operation targeted the legacy ref.
 - `docs/03_backend/` distinguishes the deployed T-004 foundation from later planned tables, RPCs, RLS rules, and Storage boundaries.
@@ -74,7 +75,7 @@ Update this only when project state meaningfully changes.
 
 - The generated project uses Xcode 26.5 object version 77 and expects a current Xcode toolchain.
 - The fixed iPhone 16 Pro/iOS 18.4 destination may report both arm64 and x86_64 matches; prior validation selected arm64 successfully.
-- Only the T-004 profile/avatar foundation and T-007 profile-onboarding RPC are deployed. All marketplace-domain tables, later RPCs, and later Storage buckets remain unimplemented.
+- T-008 pet tables and private photo bucket are deployed and backend-validated. Actual iOS Storage API upload/delete behavior is not implemented and must be exercised in T-009. All later marketplace-domain tables, RPCs, and Storage buckets remain unimplemented.
 - Default email confirmation requires the user to confirm in a browser and then return to Sign In; automatic native deep-link completion and production SMTP configuration are not part of T-006.
 - All current and future Supabase tasks must use Supabase MCP exclusively. Do not install or invoke the Supabase CLI, `npx supabase`, a local container stack, or direct database tools.
 - Remote schema writes require explicit approval after the task-scoped SQL is reviewed; MCP `apply_migration` is the only authorized DDL path, followed by MCP verification and an exact local migration mirror.
@@ -82,4 +83,4 @@ Update this only when project state meaningfully changes.
 
 ## Next Recommended Task
 
-- T-008 — define pets, pet photos, private Storage, and RLS in a separate Deep task. Do not start it automatically.
+- T-009 — implement customer pet management, including actual Storage API upload/delete behavior. Do not start automatically.

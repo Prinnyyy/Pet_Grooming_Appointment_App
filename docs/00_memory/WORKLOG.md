@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-06-20
+Task: T-008 — deploy the customer pet and private photo Storage backend contract.
+Files changed: Applied/mirrored T-008 migration, task design/plan/intake, backend status docs, task ledger, and durable memory.
+Checks: MCP migration application and metadata inspection passed. The first rollback batch stopped on an empty-row harness assertion. The separately approved corrected batch passed owner, cross-customer, Groomer, anonymous-authenticated, constraint, upload, and inactive-pet assertions before Supabase's expected `storage.protect_delete()` direct-SQL guard. Both transactions rolled back and the safety query confirmed zero test data. MCP inspection verified the DELETE policy exactly matches the behavior-tested owner-only SELECT predicate. Security advisor returned zero lints; the performance advisor's one composite-FK INFO was reviewed as non-blocking because the existing B-tree contains both equality columns. `./scripts/supabase-check.sh` and `git diff --check` passed.
+Result: pets, pet_photos, explicit grants/constraints/indexes/trigger/RLS, and the private 10 MiB pet-photos bucket with owner/path policies are deployed and T-008 is completed under the approved MCP-only validation boundary.
+Risks: Actual binary upload/delete through the Storage API is intentionally deferred to the T-009 iOS integration smoke test.
+Next: T-009 — implement customer pet management and exercise actual Storage API upload/delete; do not start automatically.
+```
+
+```text
+Date: 2026-06-20
 Task: T-007 — implement atomic role onboarding and authenticated role routing.
 Files changed: Two applied/mirrored T-007 migrations, profile domain/repository/Store, onboarding/Account/role-routing views, focused tests, product/architecture/backend docs, task state, and memory.
 Checks: The first RPC check exposed PostgreSQL 42702 and left zero test users; the separately approved corrective migration passed the full rollback-only Customer/Groomer/idempotency/immutable-role/cross-user/anonymous batch. Function metadata and both advisors passed with zero lints; ./scripts/supabase-check.sh passed; the single ./scripts/ios-test.sh attempt passed 17 Swift Testing tests and 1 UI smoke test.

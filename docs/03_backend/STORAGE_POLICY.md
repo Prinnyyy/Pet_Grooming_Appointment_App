@@ -2,7 +2,7 @@
 
 ## Current Status
 
-The private `avatars` bucket is deployed by T-004 with a 5 MiB limit, JPEG/PNG/HEIC/HEIF MIME restrictions, and owner-folder select/insert/update/delete policies. Rollback-only owner/cross-user/anonymous checks passed. All other buckets remain planned and must be created only by their owning Deep Mode backend task.
+The private `avatars` bucket is deployed and validated by T-004. T-008 deploys and validates the private `pet-photos` bucket with a 10 MiB limit, JPEG/PNG/HEIC/HEIF restrictions, UUID filenames, owner/customer/pet paths, and select/insert/update/delete policies. Corrected MCP assertions passed for ownership, upload, visibility, cross-role denial, and inactive-pet denial. Supabase intentionally blocks direct SQL object deletion; MCP metadata confirmed the DELETE policy exactly matches the behavior-tested owner-only SELECT predicate. Actual Storage API upload/delete is verified with the T-009 client integration. Later buckets remain planned.
 
 ## Bucket Roadmap
 
