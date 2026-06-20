@@ -1,10 +1,18 @@
 import SwiftUI
 
 struct GroomerTabView: View {
+    let groomerID: UUID?
+    let profileRepository: (any GroomerProfileRepository)?
     let accountContent: AnyView?
     @State private var selection: GroomerTab = .requests
 
-    init(accountContent: AnyView? = nil) {
+    init(
+        groomerID: UUID? = nil,
+        profileRepository: (any GroomerProfileRepository)? = nil,
+        accountContent: AnyView? = nil
+    ) {
+        self.groomerID = groomerID
+        self.profileRepository = profileRepository
         self.accountContent = accountContent
     }
 
@@ -25,7 +33,15 @@ struct GroomerTabView: View {
 
     @ViewBuilder
     private func destination(for tab: GroomerTab) -> some View {
-        if tab == .account, let accountContent {
+        if tab == .account,
+           let groomerID,
+           let profileRepository {
+            GroomerProfileManagementView(
+                groomerID: groomerID,
+                repository: profileRepository,
+                accountContent: accountContent
+            )
+        } else if tab == .account, let accountContent {
             accountContent
         } else {
             FeaturePlaceholderView(

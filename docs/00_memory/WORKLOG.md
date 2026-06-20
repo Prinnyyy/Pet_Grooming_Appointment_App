@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-06-20
+Task: T-011 — groomer profile, services, and portfolio UI.
+Files changed: Groomer profile models, repository boundary, Supabase repository, store, Account-tab UI, focused tests, task doc, task ledger, product screen inventory, feature/current memory, and worklog.
+Checks: `./scripts/ios-test.sh` passed with 32 Swift Testing tests and 1 XCTest UI smoke test. No Supabase remote validation was run because T-011 changed only iOS client code and docs.
+Result: T-011 is completed. Authenticated groomers can manage their own marketplace profile, service settings, and portfolio metadata/upload/delete path through repository-backed UI in the Groomer Account tab.
+Risks: Portfolio image display is metadata-only; real remote portfolio upload/delete smoke was not run in this task. Request feed, offers, bookings, chat, reviews, and marketplace discovery remain unimplemented.
+Next: T-012 — add grooming request and match backend in a separate Deep task with an explicit Supabase MCP validation plan.
+```
+
+```text
+Date: 2026-06-20
 Task: T-010 — groomer profile and portfolio backend.
 Files changed: T-010 task doc, two local migration mirrors, backend docs, task ledger, feature/current memory, and worklog.
 Checks: MCP primary migration apply passed as `20260620224418`; corrective policy merge passed as `20260620225308`; metadata and rollback-only groomer/customer/Storage access checks passed with zero persisted validation data. Security advisor returned 0 lints. Corrective migration resolved T-010 multiple-permissive SELECT policy WARNs. Remaining performance INFOs were reviewed as non-blocking. `./scripts/supabase-check.sh` and `git diff --check` passed; no iOS build/test was run because this was backend-only.

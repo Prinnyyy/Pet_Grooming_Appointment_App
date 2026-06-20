@@ -4,6 +4,7 @@ struct AuthenticationGateView: View {
     @Bindable var store: AuthenticationStore
     let profileRepository: any ProfileRepository
     let customerPetRepository: any CustomerPetRepository
+    let groomerProfileRepository: any GroomerProfileRepository
 
     var body: some View {
         Group {
@@ -25,7 +26,8 @@ struct AuthenticationGateView: View {
                     session: session,
                     authenticationStore: store,
                     profileRepository: profileRepository,
-                    customerPetRepository: customerPetRepository
+                    customerPetRepository: customerPetRepository,
+                    groomerProfileRepository: groomerProfileRepository
                 )
             }
         }

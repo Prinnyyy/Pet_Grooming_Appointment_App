@@ -11,7 +11,8 @@ struct PetGroomerMarketplaceApp: App {
                 authenticationBootstrapState: composition.authenticationBootstrapState,
                 authenticationStore: composition.authenticationStore,
                 profileRepository: composition.profileRepository,
-                customerPetRepository: composition.customerPetRepository
+                customerPetRepository: composition.customerPetRepository,
+                groomerProfileRepository: composition.groomerProfileRepository
             )
         }
     }

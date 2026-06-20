@@ -4,17 +4,20 @@ struct AuthenticatedEntryView: View {
     let session: AuthSessionSnapshot
     @Bindable var authenticationStore: AuthenticationStore
     private let customerPetRepository: any CustomerPetRepository
+    private let groomerProfileRepository: any GroomerProfileRepository
     @State private var store: AuthenticatedEntryStore
 
     init(
         session: AuthSessionSnapshot,
         authenticationStore: AuthenticationStore,
         profileRepository: any ProfileRepository,
-        customerPetRepository: any CustomerPetRepository
+        customerPetRepository: any CustomerPetRepository,
+        groomerProfileRepository: any GroomerProfileRepository
     ) {
         self.session = session
         self.authenticationStore = authenticationStore
         self.customerPetRepository = customerPetRepository
+        self.groomerProfileRepository = groomerProfileRepository
         _store = State(
             initialValue: AuthenticatedEntryStore(
                 repository: profileRepository
@@ -44,6 +47,8 @@ struct AuthenticatedEntryView: View {
 
             case let .groomer(profile):
                 GroomerTabView(
+                    groomerID: profile.userID,
+                    profileRepository: groomerProfileRepository,
                     accountContent: accountContent(for: profile)
                 )
 

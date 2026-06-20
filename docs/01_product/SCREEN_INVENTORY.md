@@ -16,8 +16,8 @@ Status values are `baseline`, `planned`, and `deferred`. A planned source path i
 | CustomerRequestDetailView | Show owned request, status, and offers | Customer | `grooming_requests`, `groomer_offers` | Request detail view model | `Features/Requests/` / T-013, T-017 | planned |
 | OfferListView | Compare offers for an owned request | Customer | `groomer_offers`, groomer summary | Offer list view model | `Features/Offers/` / T-017 | planned |
 | CustomerBookingListView | Show owned upcoming/completed bookings | Customer | `bookings` | Booking list view model | `Features/Bookings/` / T-019 | planned |
-| GroomerProfileEditorView | Maintain groomer profile and services | Groomer | `groomer_profiles`, `groomer_services` | Groomer profile view model | `Features/Groomer/` / T-011 | planned |
-| GroomerPortfolioView | Manage portfolio images | Groomer | `groomer_portfolio_photos`, Storage | Portfolio view model | `Features/Groomer/` / T-011 | planned |
+| GroomerProfileEditorView | Maintain groomer profile and services | Groomer | `groomer_profiles`, `groomer_services` | `GroomerProfileStore` | `Features/Groomer/Profile/GroomerProfileManagementView.swift` / T-011 | baseline |
+| GroomerPortfolioView | Manage portfolio image metadata and upload/delete path | Groomer | `groomer_portfolio_photos`, Storage | `GroomerProfileStore` | `Features/Groomer/Profile/GroomerProfileManagementView.swift` / T-011 | baseline |
 | MatchedRequestFeedView | Browse assigned open requests | Groomer | `request_matches`, `grooming_requests` | Request feed view model | `Features/Requests/` / T-014 | planned |
 | GroomerRequestDetailView | Review matched request and act | Groomer | Match and request repository | Request detail view model | `Features/Requests/` / T-014 | planned |
 | MakeOfferView | Validate and submit an offer | Groomer | Offer RPC | Offer form view model | `Features/Offers/` / T-016 | planned |
@@ -29,4 +29,4 @@ Status values are `baseline`, `planned`, and `deferred`. A planned source path i
 | DebugPanel | Show safe development diagnostics | Developer only | Sanitized repositories/checks | Debug state | `Features/Debug/` / T-022 | planned |
 | Admin Dashboard | Administrative management | Admin | Not defined | Not defined | No MVP task | deferred |
 
-The current customer and groomer `TabView` files render the authenticated Account destination and generic placeholder content for all other tabs; they remain navigation shells rather than implemented marketplace features.
+The current customer `TabView` renders customer pet management on Home and authenticated Account content. The current groomer `TabView` renders groomer profile/services/portfolio management on Account and generic placeholder content for Requests, Offers, Bookings, and Messages.
