@@ -2,7 +2,7 @@
 
 ## Status
 
-Approved in conversation and revised after external review on 2026-06-20. The revised written spec awaits confirmation before implementation planning.
+Implemented and verified on 2026-06-20. The first deployed RPC migration exposed an ambiguous PL/pgSQL conflict target; the separately approved corrective migration uses the named `profiles_pkey` constraint without changing the approved contract.
 
 ## Goal
 

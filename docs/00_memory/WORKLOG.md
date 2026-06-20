@@ -1,5 +1,15 @@
 # Worklog
 
+```text
+Date: 2026-06-20
+Task: T-007 — implement atomic role onboarding and authenticated role routing.
+Files changed: Two applied/mirrored T-007 migrations, profile domain/repository/Store, onboarding/Account/role-routing views, focused tests, product/architecture/backend docs, task state, and memory.
+Checks: The first RPC check exposed PostgreSQL 42702 and left zero test users; the separately approved corrective migration passed the full rollback-only Customer/Groomer/idempotency/immutable-role/cross-user/anonymous batch. Function metadata and both advisors passed with zero lints; ./scripts/supabase-check.sh passed; the single ./scripts/ios-test.sh attempt passed 17 Swift Testing tests and 1 UI smoke test.
+Result: Authenticated users now load authoritative profiles, complete atomic display-name/role onboarding when missing, enter the correct role shell, and retain Account sign-out access. Runtime fixtures, detailed profiles, pets, and T-008 work were not added.
+Risks: Email confirmation deep links/production SMTP and all marketplace-domain data remain later work; role correction requires a future privileged process because normal onboarding is immutable.
+Next: T-008 — define pets, pet photos, private Storage, and RLS as a separate Deep task; do not start automatically.
+```
+
 Append one short entry after each Codex run.
 
 ## Format

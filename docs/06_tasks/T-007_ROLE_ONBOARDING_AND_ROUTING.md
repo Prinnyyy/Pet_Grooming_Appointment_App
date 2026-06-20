@@ -2,7 +2,12 @@
 
 ## Status
 
-In progress. The design was approved in conversation on 2026-06-20; implementation has not started.
+Completed on 2026-06-20. Migrations `20260620172839_t007_create_my_profile` and
+corrective `20260620180607_t007_fix_create_my_profile_conflict_target` are
+deployed and mirrored. The correction replaced the ambiguous `on conflict (id)`
+target with `profiles_pkey`. Rollback-only RPC/RLS checks, security/performance
+advisors, the static Supabase check, 17 Swift Testing tests, and one UI smoke test
+passed. No test users or profile rows persisted from validation.
 
 ## Primary Task
 
@@ -26,7 +31,7 @@ Allow an authenticated user without a marketplace profile to enter a display nam
 
 ## In Scope
 
-- One reviewed migration for the onboarding RPC and its explicit execute privileges.
+- One reviewed onboarding RPC migration plus its separately approved conflict-target correction, with explicit execute privileges preserved.
 - Profile repository contract and Supabase adapter.
 - Authenticated entry Store with loading, onboarding, Customer, Groomer, and retryable failure states.
 - Role onboarding UI with display-name validation and duplicate-submit protection.

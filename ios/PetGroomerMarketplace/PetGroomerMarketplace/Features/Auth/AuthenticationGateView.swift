@@ -2,6 +2,7 @@ import SwiftUI
 
 struct AuthenticationGateView: View {
     @Bindable var store: AuthenticationStore
+    let profileRepository: any ProfileRepository
 
     var body: some View {
         Group {
@@ -19,7 +20,11 @@ struct AuthenticationGateView: View {
                 AuthenticationView(store: store)
 
             case let .signedIn(session):
-                OnboardingRequiredView(session: session, store: store)
+                AuthenticatedEntryView(
+                    session: session,
+                    authenticationStore: store,
+                    profileRepository: profileRepository
+                )
             }
         }
         .task {

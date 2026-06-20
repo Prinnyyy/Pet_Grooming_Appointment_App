@@ -2,7 +2,7 @@
 
 ## Current Status
 
-T-004 owner-scoped policies are deployed for `profiles`, `customer_profiles`, `groomer_profiles`, and private avatar objects. Explicit Data API grants, cross-user/role/anonymous rollback tests, and MCP security/performance advisors passed. No product RPC exists yet; all later resource rules remain planned requirements rather than proof of deployment.
+T-004 owner-scoped policies are deployed for `profiles`, `customer_profiles`, `groomer_profiles`, and private avatar objects. T-007 deploys `create_my_profile` as a `security invoker` function with an empty search path, authenticated-only execution, atomic shared/marker inserts, and stable immutable-role rejection. Explicit grants, rollback-only owner/cross-user/role/anonymous checks, and MCP security/performance advisors passed. Later resource rules remain planned requirements rather than proof of deployment.
 
 ## RLS Baseline
 
@@ -50,6 +50,7 @@ Prefer invoker security when it can satisfy the operation. If a function genuine
 
 ## Controlled Operations
 
+- `create_my_profile`: creates the authenticated non-anonymous caller's shared profile and exactly one matching role marker atomically; role changes are rejected and same-role retries preserve the stored name.
 - `create_grooming_request`: creates the request and authorized matches from customer-owned pet data.
 - `dismiss_request_match`: changes only the calling groomer's match.
 - `create_groomer_offer` / `withdraw_groomer_offer`: enforce match, state, range, conflict, and active-offer rules.
@@ -60,6 +61,8 @@ Prefer invoker security when it can satisfy the operation. If a function genuine
 
 ## Required Negative Tests
 
+- Anonymous callers cannot execute onboarding; anonymous authenticated JWTs are rejected.
+- A caller cannot switch an existing profile role or read/update another caller's profile.
 - Customer A cannot read or mutate Customer B pets or profile-private data.
 - Groomer A cannot read an unmatched request or mutate Groomer B profile/services.
 - A customer cannot directly insert a booking or request match.

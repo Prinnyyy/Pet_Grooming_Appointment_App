@@ -12,7 +12,7 @@ Launch
 └─ Groomer profile → Groomer Tabs
 ```
 
-Production now restores the Supabase Auth session and supports email/password sign-up, sign-in, and sign-out. Every authenticated user stops at the explicit onboarding-required destination until T-007 adds profile lookup, role creation, and Customer/Groomer routing. Role shell routes remain available only through explicit composition, previews, and tests.
+Production restores the Supabase Auth session, loads the signed-in user's profile, sends a missing profile to role onboarding, and routes an existing or newly created profile to the matching Customer or Groomer tabs. Role creation is authoritative and atomic through `create_my_profile`; explicit shell routes remain available for previews and tests but do not select the production role.
 
 ## Primary Navigation
 

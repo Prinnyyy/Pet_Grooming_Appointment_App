@@ -2,7 +2,7 @@
 
 ## Contract Status
 
-This backend contract is derived from `Fresh_Pet_Groomer_Marketplace_Engineering_Brief.md`. The T-004 profile/avatar foundation is deployed to the fresh Supabase project and mirrored under `supabase/migrations/`; later product objects remain planned. The original project visible through MCP is a legacy project and is not a target for this rebuild.
+This backend contract is derived from `Fresh_Pet_Groomer_Marketplace_Engineering_Brief.md`. The T-004 profile/avatar foundation and T-007 atomic profile-onboarding RPC are deployed to the fresh Supabase project and mirrored under `supabase/migrations/`; later product objects remain planned. The original project visible through MCP is a legacy project and is not a target for this rebuild.
 
 Once migrations exist, reviewed migrations and verified deployed metadata are authoritative. This document must remain synchronized with them and must never claim a planned object is deployed.
 
@@ -13,8 +13,8 @@ Once migrations exist, reviewed migrations and verified deployed metadata are au
 - Legacy project rule: do not inspect, branch, migrate, reset, or mutate; it is not a source for fresh schema or data.
 - Fresh project: `Pet Groomer Marketplace`, ref `lqmasbuqzvcvtawonjlb`, organization `Prinnyyy`, region `us-west-1`.
 - Project creation: authorized after the user confirmed the MCP-reported US$0/month cost; creation returned `ACTIVE_HEALTHY` on 2026-06-19.
-- Verification performed: project baseline; MCP migration application; schema, grants, RLS, trigger, and Storage inspection; rollback-only policy tests; security and performance advisors.
-- Applied migrations: `20260620105202_t004_profile_foundation` and `20260620105409_t004_optimize_rls_auth_calls`.
+- Verification performed: project baseline; MCP migration application; schema, grants, RLS, trigger, function, and Storage inspection; rollback-only policy/RPC tests; security and performance advisors.
+- Applied migrations: `20260620105202_t004_profile_foundation`, `20260620105409_t004_optimize_rls_auth_calls`, `20260620172839_t007_create_my_profile`, and corrective `20260620180607_t007_fix_create_my_profile_conflict_target`.
 - Local credential file: `supabase_api_key` exists, was not read, is Git-ignored, and has no authorization to appear in iOS code or documentation content.
 
 All Supabase migration and validation operations must target only the task-authorized fresh project, remain separate from the legacy ref, and use Supabase MCP exclusively. Remote DDL requires explicit authorization and a reviewed migration; MCP `apply_migration` is the only DDL path.
@@ -71,6 +71,14 @@ All Supabase migration and validation operations must target only the task-autho
 - One review per completed booking, written only by its customer.
 
 Exact SQL types, constraints, indexes, cascading behavior, and enum/check implementation are decided and verified in the owning migration task, not invented in this documentation task.
+
+## Deployed RPCs
+
+| Function | Inputs | Result | Verified Contract | Roadmap |
+|---|---|---|---|---|
+| `create_my_profile` | `p_role user_role`, `p_display_name text` | Caller `id`, authoritative immutable `role`, stored `display_name` | Authenticated non-anonymous caller only; `security invoker`; empty `search_path`; shared profile inserted before matching role marker; same-role retries preserve the first name; different-role retry raises `P0001/profile_role_immutable`; anon has no execute grant | T-007 |
+
+The corrective T-007 migration changes only the profile insert conflict target to the named `profiles_pkey` constraint, avoiding PL/pgSQL output-variable ambiguity while preserving the reviewed contract and privileges.
 
 ## Planned RPCs
 

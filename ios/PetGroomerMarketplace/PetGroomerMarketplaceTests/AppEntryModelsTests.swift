@@ -145,6 +145,233 @@ struct AuthenticationStoreTests {
     }
 }
 
+struct AuthenticatedEntryStoreTests {
+    @Test @MainActor
+    func missingProfileEntersOnboarding() async {
+        let repository = ProfileRepositoryFake(
+            profileResults: [.success(nil)]
+        )
+        let store = AuthenticatedEntryStore(repository: repository)
+
+        await store.load(userID: UUID())
+
+        #expect(store.state == .onboarding)
+        #expect(repository.profileCallCount == 1)
+    }
+
+    @Test @MainActor
+    func existingProfilesEnterTheirAuthoritativeRoutes() async {
+        let customer = MarketplaceProfile(
+            userID: UUID(),
+            role: .customer,
+            displayName: "Customer"
+        )
+        let groomer = MarketplaceProfile(
+            userID: UUID(),
+            role: .groomer,
+            displayName: "Groomer"
+        )
+        let customerStore = AuthenticatedEntryStore(
+            repository: ProfileRepositoryFake(
+                profileResults: [.success(customer)]
+            )
+        )
+        let groomerStore = AuthenticatedEntryStore(
+            repository: ProfileRepositoryFake(
+                profileResults: [.success(groomer)]
+            )
+        )
+
+        await customerStore.load(userID: customer.userID)
+        await groomerStore.load(userID: groomer.userID)
+
+        #expect(customerStore.state == .customer(customer))
+        #expect(groomerStore.state == .groomer(groomer))
+    }
+
+    @Test @MainActor
+    func lookupFailureIsRetryableAndNeverBecomesMissing() async {
+        let repository = ProfileRepositoryFake(
+            profileResults: [
+                .failure(.networkUnavailable),
+                .success(nil),
+            ]
+        )
+        let store = AuthenticatedEntryStore(repository: repository)
+
+        await store.load(userID: UUID())
+        #expect(
+            store.state
+                == .failure(
+                    message: "We could not load your profile. Please try again."
+                )
+        )
+
+        await store.retry()
+
+        #expect(store.state == .onboarding)
+        #expect(repository.profileCallCount == 2)
+    }
+
+    @Test @MainActor
+    func invalidOnboardingInputDoesNotCallRepository() async {
+        let repository = ProfileRepositoryFake()
+        let store = AuthenticatedEntryStore(repository: repository)
+
+        store.displayName = "   "
+        store.selectedRole = .customer
+        await store.submit()
+        #expect(
+            store.errorMessage
+                == "Enter a display name between 1 and 80 characters."
+        )
+
+        store.displayName = "Valid name"
+        store.selectedRole = nil
+        await store.submit()
+        #expect(
+            store.errorMessage == "Choose Customer or Groomer to continue."
+        )
+
+        store.displayName = String(repeating: "a", count: 81)
+        store.selectedRole = .groomer
+        await store.submit()
+
+        #expect(repository.createCallCount == 0)
+    }
+
+    @Test @MainActor
+    func successfulCreationRoutesFromReturnedProfile() async {
+        let authoritativeProfile = MarketplaceProfile(
+            userID: UUID(),
+            role: .groomer,
+            displayName: "Alex"
+        )
+        let repository = ProfileRepositoryFake(
+            createResult: .success(authoritativeProfile)
+        )
+        let store = AuthenticatedEntryStore(repository: repository)
+        store.displayName = " Alex "
+        store.selectedRole = .customer
+
+        await store.submit()
+
+        #expect(store.state == .groomer(authoritativeProfile))
+        #expect(repository.lastCreatedRole == .customer)
+        #expect(repository.lastCreatedDisplayName == "Alex")
+    }
+
+    @Test @MainActor
+    func failedCreationPreservesFormAndAllowsRetry() async {
+        let profile = MarketplaceProfile(
+            userID: UUID(),
+            role: .customer,
+            displayName: "Alex"
+        )
+        let repository = ProfileRepositoryFake(
+            createResult: .failure(.networkUnavailable)
+        )
+        let store = AuthenticatedEntryStore(repository: repository)
+        store.displayName = " Alex "
+        store.selectedRole = .customer
+
+        await store.submit()
+
+        #expect(store.displayName == "Alex")
+        #expect(store.selectedRole == .customer)
+        #expect(store.isSubmitting == false)
+        #expect(store.errorMessage == "Check your connection and try again.")
+
+        repository.createResult = .success(profile)
+        await store.submit()
+
+        #expect(repository.createCallCount == 2)
+        #expect(store.state == .customer(profile))
+    }
+
+    @Test @MainActor
+    func duplicateSubmissionIsIgnored() async {
+        let profile = MarketplaceProfile(
+            userID: UUID(),
+            role: .customer,
+            displayName: "Alex"
+        )
+        let repository = ProfileRepositoryFake()
+        repository.suspendCreate = true
+        let store = AuthenticatedEntryStore(repository: repository)
+        store.displayName = "Alex"
+        store.selectedRole = .customer
+
+        let firstSubmission = Task {
+            await store.submit()
+        }
+        while repository.createCallCount == 0 {
+            await Task.yield()
+        }
+
+        await store.submit()
+
+        #expect(repository.createCallCount == 1)
+        repository.resumeCreate(with: .success(profile))
+        await firstSubmission.value
+        #expect(store.state == .customer(profile))
+    }
+}
+
+@MainActor
+private final class ProfileRepositoryFake: ProfileRepository {
+    var profileResults: [Result<MarketplaceProfile?, ProfileRepositoryError>]
+    var createResult: Result<MarketplaceProfile, ProfileRepositoryError>
+    var suspendCreate = false
+
+    private(set) var profileCallCount = 0
+    private(set) var createCallCount = 0
+    private(set) var lastCreatedRole: UserRole?
+    private(set) var lastCreatedDisplayName: String?
+
+    private var createContinuation:
+        CheckedContinuation<MarketplaceProfile, any Error>?
+
+    init(
+        profileResults: [Result<MarketplaceProfile?, ProfileRepositoryError>] = [],
+        createResult: Result<MarketplaceProfile, ProfileRepositoryError> =
+            .failure(.unavailable)
+    ) {
+        self.profileResults = profileResults
+        self.createResult = createResult
+    }
+
+    func profile(userID: UUID) async throws -> MarketplaceProfile? {
+        profileCallCount += 1
+        guard !profileResults.isEmpty else { return nil }
+        return try profileResults.removeFirst().get()
+    }
+
+    func createProfile(
+        role: UserRole,
+        displayName: String
+    ) async throws -> MarketplaceProfile {
+        createCallCount += 1
+        lastCreatedRole = role
+        lastCreatedDisplayName = displayName
+
+        if suspendCreate {
+            return try await withCheckedThrowingContinuation { continuation in
+                createContinuation = continuation
+            }
+        }
+
+        return try createResult.get()
+    }
+
+    func resumeCreate(
+        with result: Result<MarketplaceProfile, ProfileRepositoryError>
+    ) {
+        createContinuation?.resume(with: result.mapError { $0 as any Error })
+        createContinuation = nil
+    }
+}
+
 @MainActor
 private final class AuthSessionRepositoryFake: AuthSessionRepository {
     private let initialSession: AuthSessionSnapshot?
