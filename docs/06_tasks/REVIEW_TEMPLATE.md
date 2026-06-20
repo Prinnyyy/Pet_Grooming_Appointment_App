@@ -13,7 +13,7 @@ Use this for internal Codex review before reporting completion.
 - [ ] Module boundaries preserved.
 - [ ] Views remain thin.
 - [ ] Backend access remains behind repositories/services.
-- [ ] Local demo mode preserved if applicable.
+- [ ] Preview/test fixtures remain isolated from production composition and success paths.
 
 ## Backend Check
 

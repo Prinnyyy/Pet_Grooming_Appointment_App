@@ -1,14 +1,18 @@
 # Feature Index
 
-This file maps features to docs and source files.
+Use this index to locate only the context needed for one active task. The Fresh Brief is canonical; active working summaries live under `docs/01_product`, architecture under `docs/02_architecture`, and planned backend contracts under `docs/03_backend`.
 
-Codex should use this file to find relevant context without loading the full repository.
-
-| Feature | Product Docs | Architecture Docs | Backend Docs | iOS Files | Status | Notes |
+| Feature | Product Docs | Architecture Docs | Backend Docs | iOS Area | Status | Roadmap |
 |---|---|---|---|---|---|---|
-| App entry routing | `Fresh_Pet_Groomer_Marketplace_Engineering_Brief.md` | `docs/02_architecture/ARCHITECTURE.md` | None | `ios/PetGroomerMarketplace/PetGroomerMarketplace/App/`, `Core/Models/` | baseline complete | Production defaults to authentication; customer/groomer routes are explicit |
-| Authentication bootstrap | `Fresh_Pet_Groomer_Marketplace_Engineering_Brief.md` | `docs/02_architecture/ARCHITECTURE.md` | Planned | `Features/Auth/` | placeholder complete | No real authentication or role onboarding yet |
-| Customer tab shell | `Fresh_Pet_Groomer_Marketplace_Engineering_Brief.md` | `docs/01_product/NAVIGATION_AND_FLOWS.md` | None | `Features/Customer/` | baseline complete | Home, Requests, Bookings, Messages, Account |
-| Groomer tab shell | `Fresh_Pet_Groomer_Marketplace_Engineering_Brief.md` | `docs/01_product/NAVIGATION_AND_FLOWS.md` | None | `Features/Groomer/` | baseline complete | Requests, Offers, Bookings, Messages, Account |
-| Baseline design tokens | `docs/01_product/DESIGN_SYSTEM.md` | `docs/02_architecture/ARCHITECTURE.md` | None | `DesignSystem/` | baseline complete | Minimal semantic colors, spacing, and corner radius |
-| iOS build/test harness | `docs/04_ios/IOS_BUILD_AND_TESTING.md` | None | None | `scripts/ios-build.sh`, `scripts/ios-test.sh`, unit/UI test targets | complete | Existing reports record build, 4 unit tests, 1 UI smoke test, and preflight passing |
+| App entry and role shells | `NAVIGATION_AND_FLOWS.md`, `USER_ROLES.md` | `ARCHITECTURE.md` | None | `App/`, `Core/Models/`, Customer/Groomer tab files | baseline complete | T-001 |
+| Design tokens and placeholder component | `DESIGN_SYSTEM.md` | `ARCHITECTURE.md` | None | `DesignSystem/` | baseline complete | T-001 |
+| Authentication and role onboarding | `PRODUCT_BRIEF.md`, `NAVIGATION_AND_FLOWS.md`, `SCREEN_INVENTORY.md` | `ARCHITECTURE.md`, `DATA_FLOW.md`, `ERROR_HANDLING.md` | `SUPABASE_CONTRACT.md`, `RLS_RPC_POLICY.md` | `Features/Auth/`, planned Onboarding | placeholder only | T-004–T-007 |
+| Customer pets and photos | `SCREEN_INVENTORY.md`, `UX_RULES.md` | `DATA_FLOW.md`, `MODULE_BOUNDARIES.md` | `SUPABASE_CONTRACT.md`, `STORAGE_POLICY.md`, `RLS_RPC_POLICY.md` | planned `Features/Pets/` | planned | T-008–T-009 |
+| Groomer profile, services, and portfolio | `USER_ROLES.md`, `SCREEN_INVENTORY.md` | `MODULE_BOUNDARIES.md` | `SUPABASE_CONTRACT.md`, `STORAGE_POLICY.md`, `RLS_RPC_POLICY.md` | planned Groomer profile feature | planned | T-010–T-011 |
+| Grooming requests and matching | `PRODUCT_BRIEF.md`, `NAVIGATION_AND_FLOWS.md`, `UX_RULES.md` | `DATA_FLOW.md`, `MODULE_BOUNDARIES.md` | `SUPABASE_CONTRACT.md`, `RLS_RPC_POLICY.md` | planned `Features/Requests/` | planned | T-012–T-014 |
+| Groomer offers and customer review | `NAVIGATION_AND_FLOWS.md`, `SCREEN_INVENTORY.md`, `UX_RULES.md` | `DATA_FLOW.md`, `ERROR_HANDLING.md` | `SUPABASE_CONTRACT.md`, `RLS_RPC_POLICY.md` | planned `Features/Offers/` | planned | T-015–T-017 |
+| Offer acceptance and bookings | `PRODUCT_BRIEF.md`, `NAVIGATION_AND_FLOWS.md`, `UX_RULES.md` | `DATA_FLOW.md`, `ERROR_HANDLING.md` | `SUPABASE_CONTRACT.md`, `RLS_RPC_POLICY.md` | planned `Features/Bookings/` | planned | T-018–T-019 |
+| Participant chat | `SCREEN_INVENTORY.md`, `UX_RULES.md` | `DATA_FLOW.md`, `MODULE_BOUNDARIES.md` | `SUPABASE_CONTRACT.md`, `STORAGE_POLICY.md`, `RLS_RPC_POLICY.md` | planned `Features/Chat/` | planned | T-020 |
+| Completion and reviews | `PRODUCT_BRIEF.md`, `SCREEN_INVENTORY.md` | `DATA_FLOW.md`, `ERROR_HANDLING.md` | `SUPABASE_CONTRACT.md`, `RLS_RPC_POLICY.md` | planned `Features/Reviews/` | planned | T-021 |
+| Diagnostics and MVP hardening | `UX_RULES.md`, `SCREEN_INVENTORY.md`, `DESIGN_SYSTEM.md` | `ERROR_HANDLING.md`, `PREVIEW_AND_TEST_FIXTURES.md` | all backend policy docs | planned Debug feature and test targets | planned | T-022 |
+| iOS build/test harness | None | None | None | `scripts/ios-build.sh`, `scripts/ios-test.sh`, unit/UI test targets | complete | T-001 |

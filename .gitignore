@@ -1,2 +1,5 @@
 .DS_Store
 **/.DS_Store
+
+# Local Supabase credentials; never commit.
+supabase_api_key

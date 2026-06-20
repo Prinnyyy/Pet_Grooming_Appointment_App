@@ -18,6 +18,46 @@ Next:
 
 ```text
 Date: 2026-06-19
+Task: Record the Supabase fresh-project boundary and local API-key handling, then pause T-004.
+Files changed: CURRENT_STATE.md, DECISION_LOG.md, SUPABASE_CONTRACT.md, T-002 roadmap, TASK_LEDGER.md, and WORKLOG.md.
+Checks: Documentation diff reviewed only; the API key was not read and no MCP/SQL/project action was performed.
+Result: The visible Supabase project is permanently classified as legacy/out of scope; T-004 requires a separately created new project. The local key file remains Git-ignored.
+Risks: New project organization, cost confirmation, ref, and migration execution path remain undecided.
+Next: Wait for explicit user instruction before any project creation, key use, schema inspection, or migration.
+```
+
+```text
+Date: 2026-06-19
+Task: T-004 environment check — confirm and record the user-connected Supabase MCP.
+Files changed: .gitignore, CURRENT_STATE.md, SUPABASE_CONTRACT.md, TASK_LEDGER.md, and WORKLOG.md.
+Checks: Supabase MCP list_projects completed successfully; no key retrieval, SQL, schema inspection, advisor call, or remote write was performed.
+Result: Prinnyyy's Project (ref swdiiyypysyxbnfrxxsv) is visible and ACTIVE_HEALTHY in us-east-1 on Postgres 17; repository-local Supabase tooling remains absent; the untracked credential-named file was not read and is now ignored.
+Risks: Existing remote schema is not yet inspected; MCP connectivity does not authorize remote DDL; local CLI/container validation remains unavailable.
+Next: Resume T-004 with read-only migration/table/advisor inspection, then obtain an explicit migration execution path before writes.
+```
+
+```text
+Date: 2026-06-19
+Task: T-003 — align active product, architecture, and backend documentation with the Fresh Brief.
+Files changed: docs/01_product/, docs/02_architecture/, docs/03_backend/, T-002 roadmap and review-template alignment, T-003 intake, task ledger, feature/decision/current memory, and worklog.
+Checks: ./scripts/preflight.sh passed; active product/architecture/backend placeholder and stale-term scan passed; current diff reviewed; no build, tests, Supabase command, or remote operation run.
+Result: Request → Offer → Booking is canonical; screen/layer ownership, preview/test-only fixtures, planned schema/RPC/RLS/Storage boundaries, and future task ownership are documented.
+Risks: Backend contracts are planned only and must be verified by T-004+ migrations/tests; favorites remains deferred due missing product behavior.
+Next: T-004 — local Supabase profile/avatar foundation only, using a separate Deep Mode task.
+```
+
+```text
+Date: 2026-06-19
+Task: T-002 — rebuild the implementation roadmap as small, independently authorized tasks.
+Files changed: T-002 incremental roadmap, TASK_LEDGER.md, CURRENT_STATE.md, and WORKLOG.md.
+Checks: ./scripts/preflight.sh passed; current documentation diff reviewed; no build or tests run.
+Result: Fresh Brief set as the roadmap source; T-003 through T-022 are planned with dependencies, boundaries, acceptance, validation, and stop points.
+Risks: Active feature and backend documents still contain placeholders and old terminology until T-003.
+Next: T-003 — align active documentation only; do not initialize Supabase.
+```
+
+```text
+Date: 2026-06-19
 Task: T-001-CLOSEOUT — close the paused SwiftUI baseline from existing reports and current diff.
 Files changed: CURRENT_STATE.md, FEATURE_INDEX.md, WORKLOG.md, TASK_LEDGER.md, T-001 task status, and final report.
 Checks: Existing T-001 reports confirm build, 4 unit tests, 1 UI test, preflight, and diff check passed; no validation was rerun.
