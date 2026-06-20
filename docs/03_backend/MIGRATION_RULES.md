@@ -2,7 +2,7 @@
 
 ## Current State
 
-There is no repository-local `supabase/` migration mirror yet. T-004 is the first task allowed to create one. The authorized fresh project is managed exclusively through Supabase MCP; a local Supabase CLI or container runtime is neither required nor permitted by project policy.
+The repository-local `supabase/migrations/` mirror exists for approved Supabase tasks. The authorized fresh project is managed exclusively through Supabase MCP; a local Supabase CLI or container runtime is neither required nor permitted by project policy.
 
 ## Principles
 

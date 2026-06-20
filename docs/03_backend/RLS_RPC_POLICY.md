@@ -2,7 +2,7 @@
 
 ## Current Status
 
-T-004 owner-scoped profile/avatar policies and T-007 `create_my_profile` are deployed and validated. T-008 explicit column grants, owner-scoped `pets`/`pet_photos` RLS, and private pet-photo Storage policies are also deployed and backend-validated. The Storage DELETE policy is restricted to `authenticated` and exactly matches the behavior-tested owner-only SELECT predicate; the approved T-009 remote smoke exercised actual Storage API object deletion with zero persisted validation data. T-008 security advisor returned no lints. Later resource rules remain planned requirements rather than proof of deployment.
+T-004 owner-scoped profile/avatar policies and T-007 `create_my_profile` are deployed and validated. T-008 explicit column grants, owner-scoped `pets`/`pet_photos` RLS, and private pet-photo Storage policies are also deployed and backend-validated. T-010 groomer profile/services/portfolio grants, RLS, and private portfolio Storage policies are deployed and backend-validated; a corrective migration merged equivalent permissive SELECT policies. The Storage DELETE policies are restricted to `authenticated` and match behavior-tested owner-only predicates. Approved rollback-only checks and the T-009 remote smoke left zero persisted validation data. Security advisor returns no lints. Later request/offer/booking/chat/review rules remain planned requirements rather than proof of deployment.
 
 ## RLS Baseline
 

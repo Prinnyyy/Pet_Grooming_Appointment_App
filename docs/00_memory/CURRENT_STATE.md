@@ -22,8 +22,8 @@ Update this only when project state meaningfully changes.
 - Last test command: `./scripts/ios-test.sh`
 - Test result: passed for T-009 on 2026-06-20 with 24 Swift Testing tests and 1 XCTest UI smoke test (`** TEST SUCCEEDED **`).
 - General check: `./scripts/preflight.sh` and the active-doc placeholder/stale-term scan passed for T-003 on 2026-06-19.
-- Supabase check: `./scripts/supabase-check.sh` passed for T-008 on 2026-06-20.
-- Known failing checks: none blocking. T-009 local iOS validation passed, and the approved remote Storage API upload/delete smoke passed with zero persisted validation data.
+- Supabase check: `./scripts/supabase-check.sh` passed for T-010 on 2026-06-20.
+- Known failing checks: none blocking. T-009 local iOS validation passed, and the approved remote Storage API upload/delete smoke passed with zero persisted validation data. T-010 backend validation passed; no iOS build/test was run because T-010 was backend-only.
 
 ## Current Product State
 
@@ -44,6 +44,7 @@ Update this only when project state meaningfully changes.
 - T-007 role onboarding and authenticated routing is completed at `docs/06_tasks/T-007_ROLE_ONBOARDING_AND_ROUTING.md`.
 - T-008 pet data/photo Storage is completed at `docs/06_tasks/T-008_PET_DATA_AND_PHOTO_STORAGE_CONTRACT.md`.
 - T-009 customer pet management is completed at `docs/06_tasks/T-009_CUSTOMER_PET_MANAGEMENT.md`; approved remote Storage API upload/delete smoke passed and cleaned up all temporary validation data.
+- T-010 groomer profile and portfolio backend is completed at `docs/06_tasks/T-010_GROOMER_PROFILE_PORTFOLIO_BACKEND.md`; the primary migration and corrective select-policy merge migration are applied and mirrored, backend behavior checks passed, and T-010 performance WARNs are resolved.
 
 ## Current iOS State
 
@@ -64,10 +65,10 @@ Update this only when project state meaningfully changes.
 - Supabase MCP connectivity was verified read-only on 2026-06-19 with `list_projects`.
 - Visible remote project `Prinnyyy's Project` (ref `swdiiyypysyxbnfrxxsv`) is a legacy project and is explicitly out of scope for the fresh rebuild. Do not inspect, branch, migrate, reset, or otherwise mutate it.
 - The fresh project `Pet Groomer Marketplace` (ref `lqmasbuqzvcvtawonjlb`) was created in organization `Prinnyyy`, region `us-west-1`, after the user confirmed the reported US$0/month cost. It is the only authorized Supabase target for this rebuild.
-- T-004 migrations `20260620105202_t004_profile_foundation` and `20260620105409_t004_optimize_rls_auth_calls`, T-007 migrations `20260620172839_t007_create_my_profile` and corrective `20260620180607_t007_fix_create_my_profile_conflict_target`, and T-008 migration `20260620192648_t008_pet_data_photo_storage` are applied to the fresh project and mirrored under `supabase/migrations/`.
-- Deployed backend objects include `public.user_role`, profile/role tables, `create_my_profile`, `pets`, `pet_photos`, the private `avatars` and `pet-photos` buckets, and their explicit grants, constraints, indexes, triggers, RLS/Storage policies, and function privileges.
+- T-004 migrations `20260620105202_t004_profile_foundation` and `20260620105409_t004_optimize_rls_auth_calls`, T-007 migrations `20260620172839_t007_create_my_profile` and corrective `20260620180607_t007_fix_create_my_profile_conflict_target`, T-008 migration `20260620192648_t008_pet_data_photo_storage`, T-010 migration `20260620224418_t010_groomer_profile_portfolio_backend`, and corrective T-010 migration `20260620225308_t010_merge_groomer_select_policies` are applied to the fresh project and mirrored under `supabase/migrations/`.
+- Deployed backend objects include `public.user_role`, profile/role tables, `create_my_profile`, `pets`, `pet_photos`, `groomer_services`, `groomer_portfolio_photos`, the private `avatars`, `pet-photos`, and `groomer-portfolio` buckets, and their explicit grants, constraints, indexes, triggers, RLS/Storage policies, and function privileges.
 - `create_my_profile` is `security invoker` with an empty search path; anon cannot execute it, authenticated/service_role can execute it, and it rejects anonymous JWTs. It inserts the shared profile before exactly one marker, preserves the first name on same-role retry, and returns `P0001/profile_role_immutable` for role changes.
-- T-004/T-007 rollback-only access/RPC tests passed with zero persisted test users and their final advisors returned no lints. T-008 metadata inspection and corrected owner/cross-user/role/anonymous/constraint/Storage-upload assertions passed with zero persisted validation data. Direct SQL Storage deletion is intentionally blocked by Supabase; MCP inspection confirmed the DELETE policy exactly matches the behavior-tested owner-only SELECT predicate. T-008 security advisor returned no lints. Its single performance INFO about the composite photo foreign key was reviewed as non-blocking because the existing B-tree contains both equality columns. T-009 approved remote smoke passed the real authenticated REST/RPC/Storage path for pet photo upload/delete and MCP cleanup confirmed zero remaining smoke Auth/profile/pet/photo/object data.
+- T-004/T-007 rollback-only access/RPC tests passed with zero persisted test users and their final advisors returned no lints. T-008 metadata inspection and corrected owner/cross-user/role/anonymous/constraint/Storage-upload assertions passed with zero persisted validation data. Direct SQL Storage deletion is intentionally blocked by Supabase; MCP inspection confirmed the DELETE policy exactly matches the behavior-tested owner-only SELECT predicate. T-008 security advisor returned no lints. Its single performance INFO about the composite photo foreign key was reviewed as non-blocking because the existing B-tree contains both equality columns. T-009 approved remote smoke passed the real authenticated REST/RPC/Storage path for pet photo upload/delete and MCP cleanup confirmed zero remaining smoke Auth/profile/pet/photo/object data. T-010 metadata inspection and rollback-only groomer/customer/Storage checks passed with zero persisted validation data; security advisor returned no lints; corrective select-policy merge removed T-010 performance WARNs. Remaining performance INFOs are non-blocking: the existing T-008 composite-FK advisory and a T-010 unused active-city index expected before groomer discovery queries exist.
 - The iOS app performs real Supabase Auth, profile lookup/onboarding, customer pet CRUD, pet-photo metadata, and private `pet-photos` Storage upload/delete operations through repository boundaries.
 - Legacy project tables, migrations, RPCs, RLS, and Storage objects were not inspected; no operation targeted the legacy ref.
 - `docs/03_backend/` distinguishes the deployed T-004 foundation from later planned tables, RPCs, RLS rules, and Storage boundaries.
@@ -77,7 +78,7 @@ Update this only when project state meaningfully changes.
 
 - The generated project uses Xcode 26.5 object version 77 and expects a current Xcode toolchain.
 - The fixed iPhone 16 Pro/iOS 18.4 destination may report both arm64 and x86_64 matches; prior validation selected arm64 successfully.
-- T-008 pet tables and private photo bucket are deployed and backend-validated. T-009 implements the iOS Storage API upload/delete path and its approved remote upload/delete smoke passed. All later marketplace-domain tables, RPCs, and Storage buckets remain unimplemented.
+- T-008 pet tables/private photo bucket and T-010 groomer profile/services/portfolio backend are deployed and backend-validated. T-009 implements the iOS Storage API upload/delete path for pet photos and its approved remote upload/delete smoke passed. Request/match/offer/booking/chat/review tables, RPCs, and Storage buckets remain unimplemented.
 - Default email confirmation requires the user to confirm in a browser and then return to Sign In; automatic native deep-link completion and production SMTP configuration are not part of T-006.
 - All current and future Supabase tasks must use Supabase MCP exclusively. Do not install or invoke the Supabase CLI, `npx supabase`, a local container stack, or direct database tools.
 - Remote schema writes require explicit approval after the task-scoped SQL is reviewed; MCP `apply_migration` is the only authorized DDL path, followed by MCP verification and an exact local migration mirror.
@@ -85,4 +86,4 @@ Update this only when project state meaningfully changes.
 
 ## Next Recommended Task
 
-- T-010 — add the groomer profile and portfolio backend in a separate Deep task with an explicit Supabase MCP validation plan.
+- T-011 — implement groomer profile, services, and portfolio UI in a separate Standard task; do not start automatically.

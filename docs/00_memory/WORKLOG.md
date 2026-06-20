@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-06-20
+Task: T-010 — groomer profile and portfolio backend.
+Files changed: T-010 task doc, two local migration mirrors, backend docs, task ledger, feature/current memory, and worklog.
+Checks: MCP primary migration apply passed as `20260620224418`; corrective policy merge passed as `20260620225308`; metadata and rollback-only groomer/customer/Storage access checks passed with zero persisted validation data. Security advisor returned 0 lints. Corrective migration resolved T-010 multiple-permissive SELECT policy WARNs. Remaining performance INFOs were reviewed as non-blocking. `./scripts/supabase-check.sh` and `git diff --check` passed; no iOS build/test was run because this was backend-only.
+Result: T-010 is completed. Groomer profile details, services, portfolio metadata, and private authenticated-readable portfolio Storage are deployed under explicit grants/RLS/Storage policies.
+Risks: Groomer profile/services/portfolio iOS UI is not implemented; portfolio binary upload/delete via real Storage API should be exercised during T-011 integration.
+Next: T-011 — implement groomer profile, services, and portfolio UI in a separate Standard task.
+```
+
+```text
+Date: 2026-06-20
 Task: T-009 remote Storage API smoke/closeout.
 Files changed: T-009 task doc, task ledger, feature index, current state, worklog, and targeted backend status wording.
 Checks: Supabase MCP confirmed the fresh project and required bucket/tables. Approved remote smoke passed sign-in, create_my_profile, pet insert, private pet-photos object upload, pet_photos metadata insert, Storage API object delete, metadata delete, and pet soft-delete. MCP cleanup deleted the temporary Auth user and confirmed zero remaining Auth/profile/customer profile/pet/photo/object rows. No build, unit test, UI test, CLI command, migration, or schema change was run.
