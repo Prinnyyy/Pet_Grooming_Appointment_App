@@ -1,10 +1,18 @@
 import SwiftUI
 
 struct CustomerTabView: View {
+    let customerID: UUID?
+    let petRepository: (any CustomerPetRepository)?
     let accountContent: AnyView?
     @State private var selection: CustomerTab = .home
 
-    init(accountContent: AnyView? = nil) {
+    init(
+        customerID: UUID? = nil,
+        petRepository: (any CustomerPetRepository)? = nil,
+        accountContent: AnyView? = nil
+    ) {
+        self.customerID = customerID
+        self.petRepository = petRepository
         self.accountContent = accountContent
     }
 
@@ -25,7 +33,12 @@ struct CustomerTabView: View {
 
     @ViewBuilder
     private func destination(for tab: CustomerTab) -> some View {
-        if tab == .account, let accountContent {
+        if tab == .home, let customerID, let petRepository {
+            CustomerPetsView(
+                customerID: customerID,
+                repository: petRepository
+            )
+        } else if tab == .account, let accountContent {
             accountContent
         } else {
             FeaturePlaceholderView(

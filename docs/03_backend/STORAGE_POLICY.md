@@ -2,7 +2,7 @@
 
 ## Current Status
 
-The private `avatars` bucket is deployed and validated by T-004. T-008 deploys and validates the private `pet-photos` bucket with a 10 MiB limit, JPEG/PNG/HEIC/HEIF restrictions, UUID filenames, owner/customer/pet paths, and select/insert/update/delete policies. Corrected MCP assertions passed for ownership, upload, visibility, cross-role denial, and inactive-pet denial. Supabase intentionally blocks direct SQL object deletion; MCP metadata confirmed the DELETE policy exactly matches the behavior-tested owner-only SELECT predicate. Actual Storage API upload/delete is verified with the T-009 client integration. Later buckets remain planned.
+The private `avatars` bucket is deployed and validated by T-004. T-008 deploys and validates the private `pet-photos` bucket with a 10 MiB limit, JPEG/PNG/HEIC/HEIF restrictions, UUID filenames, owner/customer/pet paths, and select/insert/update/delete policies. Corrected MCP assertions passed for ownership, upload, visibility, cross-role denial, and inactive-pet denial. Supabase intentionally blocks direct SQL object deletion; MCP metadata confirmed the DELETE policy exactly matches the behavior-tested owner-only SELECT predicate. The approved T-009 remote smoke verified actual authenticated Storage API upload/delete and left zero persisted validation data. Later buckets remain planned.
 
 ## Bucket Roadmap
 

@@ -2,6 +2,26 @@
 
 ```text
 Date: 2026-06-20
+Task: T-009 remote Storage API smoke/closeout.
+Files changed: T-009 task doc, task ledger, feature index, current state, worklog, and targeted backend status wording.
+Checks: Supabase MCP confirmed the fresh project and required bucket/tables. Approved remote smoke passed sign-in, create_my_profile, pet insert, private pet-photos object upload, pet_photos metadata insert, Storage API object delete, metadata delete, and pet soft-delete. MCP cleanup deleted the temporary Auth user and confirmed zero remaining Auth/profile/customer profile/pet/photo/object rows. No build, unit test, UI test, CLI command, migration, or schema change was run.
+Result: T-009 is completed with real authenticated Storage API upload/delete coverage and no persisted validation data.
+Risks: Photo display remains metadata-only; signed URL/image download UX is deferred. Groomer-side profile/portfolio remains unimplemented.
+Next: T-010 — add groomer profile and portfolio backend in a separate Deep task.
+```
+
+```text
+Date: 2026-06-20
+Task: T-009 — implement customer pet management in the iOS app.
+Files changed: Customer pet/photo models, customer pet repository contract and Supabase adapter, Customer Home pet UI/Store, route composition, focused tests, T-009 task doc, task ledger, feature index, current state, and worklog.
+Checks: ./scripts/ios-test.sh initially failed on one static-call compile error, then on a Swift 6 actor-isolation test issue; both targeted fixes were separately approved. The final approved ./scripts/ios-test.sh run passed with 24 Swift Testing tests and 1 XCTest UI smoke test. The follow-up remote Storage API smoke later passed and is recorded above.
+Result: Customer Home can load owned pets, add/edit pets, soft-delete pets, upload/delete private pet photos through repository-bound Supabase APIs, and surface loading/empty/error states. No grooming requests or backend migrations were added.
+Risks: Photo display remains metadata-only; signed URL/image download UX is deferred.
+Next: T-010 — add groomer profile and portfolio backend in a separate Deep task.
+```
+
+```text
+Date: 2026-06-20
 Task: T-008 — deploy the customer pet and private photo Storage backend contract.
 Files changed: Applied/mirrored T-008 migration, task design/plan/intake, backend status docs, task ledger, and durable memory.
 Checks: MCP migration application and metadata inspection passed. The first rollback batch stopped on an empty-row harness assertion. The separately approved corrected batch passed owner, cross-customer, Groomer, anonymous-authenticated, constraint, upload, and inactive-pet assertions before Supabase's expected `storage.protect_delete()` direct-SQL guard. Both transactions rolled back and the safety query confirmed zero test data. MCP inspection verified the DELETE policy exactly matches the behavior-tested owner-only SELECT predicate. Security advisor returned zero lints; the performance advisor's one composite-FK INFO was reviewed as non-blocking because the existing B-tree contains both equality columns. `./scripts/supabase-check.sh` and `git diff --check` passed.

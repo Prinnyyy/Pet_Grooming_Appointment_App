@@ -97,7 +97,7 @@ Function signatures, return shapes, security mode, grants, and error codes are f
 
 ## Storage Buckets and Roadmap
 
-`avatars` is deployed by T-004. `pet-photos` is deployed and backend-validated by T-008. Supabase intentionally requires the Storage API for binary deletion, so actual upload/delete integration is an explicit T-009 client acceptance item. Every other bucket remains planned until its owning task applies and verifies its Storage contract.
+`avatars` is deployed by T-004. `pet-photos` is deployed and backend-validated by T-008. Supabase intentionally requires the Storage API for binary deletion; the approved T-009 remote smoke verified actual authenticated upload/delete integration and cleaned up all temporary validation data. Every other bucket remains planned until its owning task applies and verifies its Storage contract.
 
 | Bucket | Default Visibility | Path Contract | Roadmap |
 |---|---|---|---|

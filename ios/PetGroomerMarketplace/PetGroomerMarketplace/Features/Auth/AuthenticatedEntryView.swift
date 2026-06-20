@@ -3,15 +3,18 @@ import SwiftUI
 struct AuthenticatedEntryView: View {
     let session: AuthSessionSnapshot
     @Bindable var authenticationStore: AuthenticationStore
+    private let customerPetRepository: any CustomerPetRepository
     @State private var store: AuthenticatedEntryStore
 
     init(
         session: AuthSessionSnapshot,
         authenticationStore: AuthenticationStore,
-        profileRepository: any ProfileRepository
+        profileRepository: any ProfileRepository,
+        customerPetRepository: any CustomerPetRepository
     ) {
         self.session = session
         self.authenticationStore = authenticationStore
+        self.customerPetRepository = customerPetRepository
         _store = State(
             initialValue: AuthenticatedEntryStore(
                 repository: profileRepository
@@ -34,6 +37,8 @@ struct AuthenticatedEntryView: View {
 
             case let .customer(profile):
                 CustomerTabView(
+                    customerID: profile.userID,
+                    petRepository: customerPetRepository,
                     accountContent: accountContent(for: profile)
                 )
 

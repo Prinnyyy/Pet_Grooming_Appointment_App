@@ -5,6 +5,7 @@ struct AppRootView: View {
     let authenticationBootstrapState: AuthenticationBootstrapState
     let authenticationStore: AuthenticationStore?
     let profileRepository: (any ProfileRepository)?
+    let customerPetRepository: (any CustomerPetRepository)?
     let roleOnboardingContent: AnyView?
 
     init(
@@ -12,22 +13,27 @@ struct AppRootView: View {
         authenticationBootstrapState: AuthenticationBootstrapState = .ready,
         authenticationStore: AuthenticationStore? = nil,
         profileRepository: (any ProfileRepository)? = nil,
+        customerPetRepository: (any CustomerPetRepository)? = nil,
         roleOnboardingContent: AnyView? = nil
     ) {
         self.route = route
         self.authenticationBootstrapState = authenticationBootstrapState
         self.authenticationStore = authenticationStore
         self.profileRepository = profileRepository
+        self.customerPetRepository = customerPetRepository
         self.roleOnboardingContent = roleOnboardingContent
     }
 
     var body: some View {
         switch route {
         case .authentication:
-            if let authenticationStore, let profileRepository {
+            if let authenticationStore,
+               let profileRepository,
+               let customerPetRepository {
                 AuthenticationGateView(
                     store: authenticationStore,
-                    profileRepository: profileRepository
+                    profileRepository: profileRepository,
+                    customerPetRepository: customerPetRepository
                 )
             } else {
                 AuthenticationBootstrapView(state: authenticationBootstrapState)

@@ -3,6 +3,7 @@ import SwiftUI
 struct AuthenticationGateView: View {
     @Bindable var store: AuthenticationStore
     let profileRepository: any ProfileRepository
+    let customerPetRepository: any CustomerPetRepository
 
     var body: some View {
         Group {
@@ -23,7 +24,8 @@ struct AuthenticationGateView: View {
                 AuthenticatedEntryView(
                     session: session,
                     authenticationStore: store,
-                    profileRepository: profileRepository
+                    profileRepository: profileRepository,
+                    customerPetRepository: customerPetRepository
                 )
             }
         }

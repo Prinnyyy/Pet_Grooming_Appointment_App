@@ -10,7 +10,8 @@ struct PetGroomerMarketplaceApp: App {
                 route: .authentication,
                 authenticationBootstrapState: composition.authenticationBootstrapState,
                 authenticationStore: composition.authenticationStore,
-                profileRepository: composition.profileRepository
+                profileRepository: composition.profileRepository,
+                customerPetRepository: composition.customerPetRepository
             )
         }
     }
