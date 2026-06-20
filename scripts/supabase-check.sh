@@ -15,11 +15,13 @@ else
 fi
 
 echo "-- Checking for service-role key exposure patterns --"
-if grep -R "service_role\|SUPABASE_SERVICE_ROLE" . \
-  --exclude-dir=.git \
-  --exclude-dir=DerivedData \
-  --exclude="*.md" >/tmp/codex_supabase_secret_scan.txt 2>/dev/null; then
-  echo "Potential service-role key reference found outside markdown. Inspect before continuing:"
+secret_pattern='SUPABASE_SERVICE_''ROLE(_KEY)?[[:space:]]*[:=]|sb_''secret_[A-Za-z0-9_-]{16,}'
+if rg --files-with-matches "$secret_pattern" . \
+  --hidden \
+  --glob '!*.md' \
+  --glob '!.git/**' \
+  --glob '!DerivedData/**' >/tmp/codex_supabase_secret_scan.txt 2>/dev/null; then
+  echo "Potential service-role key value found outside ignored or markdown files. Inspect before continuing:"
   cat /tmp/codex_supabase_secret_scan.txt
   exit 1
 fi

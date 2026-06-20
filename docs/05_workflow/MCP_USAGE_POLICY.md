@@ -41,21 +41,36 @@ Do not use to alter signing, capabilities, entitlements, or project structure un
 
 ## Supabase MCP
 
-Use when available for:
+Supabase MCP is the exclusive project interface for every Supabase task. Do not install or invoke the Supabase CLI, `npx supabase`, a local Supabase container stack, or direct database tooling for this repository.
 
-- reading local/remote schema metadata,
-- checking table/RPC/policy existence,
-- validating assumptions.
+Use Supabase MCP for:
+
+- organization, cost, and project operations,
+- current documentation lookup,
+- project, migration, table, extension, RPC, policy, and Storage inspection,
+- reviewed migrations through `apply_migration`,
+- focused SQL verification through `execute_sql`,
+- security and performance advisors.
+
+Migration workflow:
+
+1. Draft and review one task-scoped SQL change locally.
+2. Obtain explicit user approval for the remote DDL.
+3. Apply the reviewed SQL only with MCP `apply_migration` against the authorized project ref.
+4. Confirm the recorded version/name with MCP migration inspection.
+5. Store an exact repository-local mirror using the version reported by MCP; never invent or renumber remote migration history.
+6. Validate deployed metadata, positive/negative authorization cases, and advisors through MCP.
+
+`./scripts/supabase-check.sh` is a repository static check only. It does not replace MCP verification and must not invoke a CLI or remote database directly.
 
 Do not use for:
 
-- production writes,
 - destructive schema changes,
 - RLS weakening,
 - migration repair,
 - secret inspection.
 
-Remote Supabase changes require explicit user approval.
+Remote Supabase writes, including non-destructive DDL, require explicit user approval. The MCP OAuth connection is the execution identity; local credential files must not be read or used when MCP can perform the task.
 
 ---
 

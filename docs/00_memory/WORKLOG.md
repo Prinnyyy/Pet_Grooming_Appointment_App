@@ -17,6 +17,56 @@ Next:
 ## Entries
 
 ```text
+Date: 2026-06-20
+Task: T-004 — apply and validate the Supabase profile/avatar foundation on the authorized fresh project.
+Files changed: Two versioned Supabase migration mirrors, the Supabase static checker, T-004 task/review docs, backend contracts, task ledger, current state, feature index, and worklog.
+Checks: MCP migration/metadata inspection passed; rollback-only owner/cross-user/role/anonymous RLS and Storage tests passed; final security and performance advisors returned zero lints. The first static check exposed a validator false positive on SQL role grants; after the targeted pattern correction, ./scripts/supabase-check.sh and git diff --check passed.
+Result: profiles, customer_profiles, groomer_profiles, explicit grants/triggers/RLS, and the private avatars bucket are deployed on lqmasbuqzvcvtawonjlb. No test data persisted.
+Risks: Auth behavior and all product-domain backend objects remain unimplemented; the legacy project remains forbidden.
+Next: T-006 — implement email/password authentication in a separate task; do not start automatically.
+```
+
+```text
+Date: 2026-06-20
+Task: T-005 — add the iOS Supabase client and Auth session boundary while leaving T-004 paused.
+Files changed: Xcode project/package lock, local/tracked xcconfig setup, App composition, Core configuration/Supabase/session files, Auth bootstrap state/view, iOS build docs, T-005 intake, architecture and durable memory.
+Checks: Supabase Swift 2.46.0 verified from current primary sources and pinned exactly; local config obtained through MCP and ignored by Git; project/diff/key scans passed; ./scripts/ios-build.sh passed after a user-interrupted attempt was explicitly resumed; a targeted AppInfo injection correction and rebuild also passed. Tests were not run.
+Result: The app builds with a composed Supabase client and injectable token-free session repository. Missing configuration is visible; no sign-in, routing, schema query, remote write, or fake success was added.
+Risks: T-004 profile/avatar migration remains unapplied, so T-006/T-007 must not assume profile tables exist. Local publishable config is required for a configured runtime state.
+Next: Resume and complete T-004 through explicitly authorized MCP migration/validation before starting authentication behavior.
+```
+
+```text
+Date: 2026-06-19
+Task: Continue T-004 through fresh-project baseline inspection and local migration review.
+Files changed: T-004 SQL draft, migration review, task intake, SUPABASE_CONTRACT.md, CURRENT_STATE.md, TASK_LEDGER.md, and WORKLOG.md.
+Checks: MCP confirmed project health, empty public schema/migration history, absent avatars bucket, and current Storage helper/column shapes; current Supabase docs and changelog were reviewed. No DDL or Storage write was run.
+Result: A task-scoped profile/RLS/private-avatar migration is reviewed locally and ready for an explicit MCP apply_migration authorization.
+Risks: SQL syntax and deployed behavior remain unverified until the authorized migration runs; post-apply positive/negative RLS and Storage checks are still required.
+Next: Obtain explicit approval to apply migration t004_profile_foundation to lqmasbuqzvcvtawonjlb through Supabase MCP only.
+```
+
+```text
+Date: 2026-06-19
+Task: Standardize every Supabase task on Supabase MCP instead of CLI tooling.
+Files changed: MCP usage policy, migration rules, T-004 intake, T-002 roadmap, CURRENT_STATE.md, TASK_LEDGER.md, SUPABASE_CONTRACT.md, DECISION_LOG.md, and WORKLOG.md.
+Checks: Active documentation CLI-reference scan and git diff check only; no SQL, migration, Storage change, build, or test was run.
+Result: MCP is now the exclusive Supabase execution path; reviewed DDL uses MCP apply_migration, verification/advisors use MCP, and remote migration versions are mirrored locally without CLI.
+Risks: Remote DDL still requires explicit approval; the T-004 migration has not yet been drafted or applied.
+Next: Continue T-004 by drafting and reviewing the profile/avatar SQL, then request approval for MCP apply_migration.
+```
+
+```text
+Date: 2026-06-19
+Task: Resume T-004 and create its isolated Supabase project.
+Files changed: T-004 intake, CURRENT_STATE.md, SUPABASE_CONTRACT.md, TASK_LEDGER.md, DECISION_LOG.md, and WORKLOG.md.
+Checks: MCP organization and cost checks completed; user confirmed US$0/month; fresh project creation returned ACTIVE_HEALTHY. No SQL, schema inspection, Storage change, build, or test was run.
+Result: Pet Groomer Marketplace ref lqmasbuqzvcvtawonjlb now exists in us-west-1 as the sole authorized T-004 target; legacy ref remains forbidden.
+Risks: Supabase CLI is absent; local migration generation and remote DDL remain separately gated.
+Next: Obtain authorization for a pinned temporary npx Supabase CLI, draft/review the migration, then request explicit remote-DDL approval.
+```
+
+```text
 Date: 2026-06-19
 Task: Record the Supabase fresh-project boundary and local API-key handling, then pause T-004.
 Files changed: CURRENT_STATE.md, DECISION_LOG.md, SUPABASE_CONTRACT.md, T-002 roadmap, TASK_LEDGER.md, and WORKLOG.md.

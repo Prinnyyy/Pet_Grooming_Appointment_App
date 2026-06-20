@@ -2,7 +2,7 @@
 
 ## Current Status
 
-No policies or functions exist yet. This document defines requirements for T-004 and later backend tasks; it is not proof of deployed security.
+T-004 owner-scoped policies are deployed for `profiles`, `customer_profiles`, `groomer_profiles`, and private avatar objects. Explicit Data API grants, cross-user/role/anonymous rollback tests, and MCP security/performance advisors passed. No product RPC exists yet; all later resource rules remain planned requirements rather than proof of deployment.
 
 ## RLS Baseline
 

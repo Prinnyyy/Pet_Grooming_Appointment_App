@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		A50000012FE7000000000001 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = A50000052FE7000000000005 /* Supabase */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		745AD1362FE615CC006373E9 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -27,6 +31,8 @@
 		745AD1282FE615CA006373E9 /* PetGroomerMarketplace.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PetGroomerMarketplace.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		745AD1352FE615CC006373E9 /* PetGroomerMarketplaceTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PetGroomerMarketplaceTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		745AD13F2FE615CC006373E9 /* PetGroomerMarketplaceUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PetGroomerMarketplaceUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		A50000022FE7000000000002 /* Supabase.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Supabase.xcconfig; sourceTree = "<group>"; };
+		A50000062FE7000000000006 /* AppInfo.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = AppInfo.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -52,6 +58,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A50000012FE7000000000001 /* Supabase in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -78,6 +85,7 @@
 				745AD12A2FE615CA006373E9 /* PetGroomerMarketplace */,
 				745AD1382FE615CC006373E9 /* PetGroomerMarketplaceTests */,
 				745AD1422FE615CC006373E9 /* PetGroomerMarketplaceUITests */,
+				A50000032FE7000000000003 /* Config */,
 				745AD1292FE615CA006373E9 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -90,6 +98,15 @@
 				745AD13F2FE615CC006373E9 /* PetGroomerMarketplaceUITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		A50000032FE7000000000003 /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				A50000062FE7000000000006 /* AppInfo.plist */,
+				A50000022FE7000000000002 /* Supabase.xcconfig */,
+			);
+			path = Config;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -112,6 +129,7 @@
 			);
 			name = PetGroomerMarketplace;
 			packageProductDependencies = (
+				A50000052FE7000000000005 /* Supabase */,
 			);
 			productName = PetGroomerMarketplace;
 			productReference = 745AD1282FE615CA006373E9 /* PetGroomerMarketplace.app */;
@@ -197,6 +215,9 @@
 			minimizedProjectReferenceProxies = 1;
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 745AD1292FE615CA006373E9 /* Products */;
+			packageReferences = (
+				A50000042FE7000000000004 /* XCRemoteSwiftPackageReference "supabase-swift" */,
+			);
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -267,6 +288,25 @@
 			targetProxy = 745AD1402FE615CC006373E9 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		A50000042FE7000000000004 /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/supabase/supabase-swift.git";
+			requirement = {
+				kind = exactVersion;
+				version = 2.46.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		A50000052FE7000000000005 /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A50000042FE7000000000004 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Supabase;
+		};
+/* End XCSwiftPackageProductDependency section */
 
 /* Begin XCBuildConfiguration section */
 		745AD1472FE615CC006373E9 /* Debug */ = {
@@ -390,18 +430,15 @@
 		};
 		745AD14A2FE615CC006373E9 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = A50000022FE7000000000002 /* Supabase.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Config/AppInfo.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -421,18 +458,15 @@
 		};
 		745AD14B2FE615CC006373E9 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = A50000022FE7000000000002 /* Supabase.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Config/AppInfo.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",

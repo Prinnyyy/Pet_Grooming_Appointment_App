@@ -39,6 +39,19 @@ CODEX_IOS_DESTINATION='platform=iOS Simulator,OS=18.4,name=iPhone 16 Pro' \
 
 The same variables are supported by `./scripts/ios-test.sh`.
 
+## Supabase Environment
+
+The tracked `ios/PetGroomerMarketplace/Config/Supabase.xcconfig` contains empty defaults and optionally includes `Supabase.local.xcconfig`. The local file is Git-ignored and populated from the authorized Supabase project through MCP. The tracked `AppInfo.plist` expands these build settings into the runtime bundle.
+
+Required local values:
+
+```text
+SUPABASE_URL = https:/$()/your-project.supabase.co
+SUPABASE_PUBLISHABLE_KEY = sb_publishable_...
+```
+
+Do not use a secret or service-role key. If the local file is absent or invalid, the app still builds and the authentication bootstrap displays a configuration error.
+
 ## Rules
 
 - Keep the shared scheme checked into `xcshareddata/xcschemes`.

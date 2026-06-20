@@ -2,7 +2,7 @@
 
 ## Current Baseline
 
-T-001 provides a SwiftUI application with explicit `AppEntryRoute`, Customer/Groomer tab shells, feature-first folders, semantic design tokens, and test targets. Production always enters the authentication bootstrap. There is no backend client, persistence, repository, view model, or product workflow yet.
+T-001 provides the SwiftUI shell, role routes/tabs, design tokens, and test targets. T-005 adds a pinned Supabase Swift client, safe build-time configuration, app composition, and an Auth session repository boundary. Production still enters the authentication bootstrap; there is no authentication action, session routing, profile query, feature view model, or product workflow yet.
 
 ## Target Architecture
 

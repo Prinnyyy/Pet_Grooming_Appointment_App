@@ -2,11 +2,20 @@ import SwiftUI
 
 struct AppRootView: View {
     let route: AppEntryRoute
+    let authenticationBootstrapState: AuthenticationBootstrapState
+
+    init(
+        route: AppEntryRoute,
+        authenticationBootstrapState: AuthenticationBootstrapState = .ready
+    ) {
+        self.route = route
+        self.authenticationBootstrapState = authenticationBootstrapState
+    }
 
     var body: some View {
         switch route {
         case .authentication:
-            AuthenticationBootstrapView()
+            AuthenticationBootstrapView(state: authenticationBootstrapState)
         case .roleOnboarding:
             RoleOnboardingPlaceholderView()
         case .customer:

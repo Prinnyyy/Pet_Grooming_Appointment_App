@@ -2,21 +2,22 @@
 
 ## Contract Status
 
-This is the planned backend contract derived from `Fresh_Pet_Groomer_Marketplace_Engineering_Brief.md`. The project visible through MCP is a legacy project and is not a target for this rebuild. A separate fresh Supabase project has not yet been created or selected, the repository has no local Supabase configuration or migration files, and no T-004 schema change has been applied.
+This backend contract is derived from `Fresh_Pet_Groomer_Marketplace_Engineering_Brief.md`. The T-004 profile/avatar foundation is deployed to the fresh Supabase project and mirrored under `supabase/migrations/`; later product objects remain planned. The original project visible through MCP is a legacy project and is not a target for this rebuild.
 
 Once migrations exist, reviewed migrations and verified deployed metadata are authoritative. This document must remain synchronized with them and must never claim a planned object is deployed.
 
 ## Environment Boundary
 
-- MCP verification date: 2026-06-19.
+- MCP verification date: 2026-06-20.
 - Legacy project: `Prinnyyy's Project`, ref `swdiiyypysyxbnfrxxsv`.
 - Legacy project rule: do not inspect, branch, migrate, reset, or mutate; it is not a source for fresh schema or data.
-- Fresh project: not created or selected.
-- Verification performed: read-only project listing only.
-- Not performed: key retrieval, SQL execution, schema/table/migration inspection, advisors, DDL, Storage changes, or any other remote write.
+- Fresh project: `Pet Groomer Marketplace`, ref `lqmasbuqzvcvtawonjlb`, organization `Prinnyyy`, region `us-west-1`.
+- Project creation: authorized after the user confirmed the MCP-reported US$0/month cost; creation returned `ACTIVE_HEALTHY` on 2026-06-19.
+- Verification performed: project baseline; MCP migration application; schema, grants, RLS, trigger, and Storage inspection; rollback-only policy tests; security and performance advisors.
+- Applied migrations: `20260620105202_t004_profile_foundation` and `20260620105409_t004_optimize_rls_auth_calls`.
 - Local credential file: `supabase_api_key` exists, was not read, is Git-ignored, and has no authorization to appear in iOS code or documentation content.
 
-Future T-004 work must first create or explicitly select a new project, record its new ref, and keep every migration and validation target separate from the legacy ref. Project creation requires user-approved organization and cost confirmation; remote DDL still requires explicit authorization and a reviewed migration strategy.
+All Supabase migration and validation operations must target only the task-authorized fresh project, remain separate from the legacy ref, and use Supabase MCP exclusively. Remote DDL requires explicit authorization and a reviewed migration; MCP `apply_migration` is the only DDL path.
 
 ## Platform Boundaries
 
@@ -26,13 +27,15 @@ Future T-004 work must first create or explicitly select a new project, record i
 - Storage uses owner/participant-scoped object paths and `storage.objects` policies.
 - The iOS app uses a publishable client key only. Secret/service-role keys are forbidden.
 
-## Planned Tables
+## Tables and Roadmap
+
+`profiles`, `customer_profiles`, and `groomer_profiles` are deployed by T-004. Every other row remains planned until its owning task applies and verifies a migration.
 
 | Table | Purpose | Key Planned Fields | Access Summary | Roadmap |
 |---|---|---|---|---|
-| `profiles` | Map Auth user to one app role and public identity | `id` → Auth user, `role`, `display_name`, `avatar_url`, timestamps | Owner read/update; narrowly defined authenticated profile reads only when a feature requires them | T-004 |
-| `customer_profiles` | Customer location/default service context | `user_id`, `city`, `state`, `zip_code`, `default_notes`, timestamps | Customer owns row; not generally groomer-readable | T-004 |
-| `groomer_profiles` | Groomer business and marketplace summary | `user_id`, business/bio/experience/location/radius, rating summary, active/verified flags, timestamps | Owner update; authenticated read limited to active data needed for matching/offers | T-004, T-010, T-021 |
+| `profiles` | Map Auth user to one app role and shared identity | `id` → Auth user, immutable `role`, `display_name`, private `avatar_path`, timestamps | Owner read/insert; owner updates only display name/avatar path; broader profile presentation deferred | T-004 |
+| `customer_profiles` | Customer onboarding role marker and extension point | `user_id`, timestamps | Customer inserts/reads own matching-role row; detail fields deferred | T-004 |
+| `groomer_profiles` | Groomer onboarding role marker and extension point | `user_id`, timestamps | Groomer inserts/reads own matching-role row; business/details/read expansion deferred | T-004, T-010, T-021 |
 | `pets` | Customer-owned pet profile | `id`, `customer_id`, identity/details/notes, active/delete markers, timestamps | Customer CRUD for owned rows; groomer access only through authorized request snapshot | T-008 |
 | `pet_photos` | Metadata for pet image objects | `id`, `pet_id`, `customer_id`, bucket/path, caption/order/primary, timestamp | Customer-managed for owned pet; direct groomer reads not required | T-008 |
 | `groomer_services` | Groomer's offered services | `id`, `groomer_id`, title/description/price/duration/sizes/active, timestamps | Groomer manages own; authenticated reads only as product flow requires | T-010 |
@@ -84,11 +87,13 @@ Exact SQL types, constraints, indexes, cascading behavior, and enum/check implem
 
 Function signatures, return shapes, security mode, grants, and error codes are finalized in their owning tasks. Cross-record operations must be atomic and explicitly granted only to intended roles.
 
-## Planned Storage Buckets
+## Storage Buckets and Roadmap
+
+`avatars` is deployed by T-004. Every other bucket remains planned until its owning task applies and verifies its Storage contract.
 
 | Bucket | Default Visibility | Path Contract | Roadmap |
 |---|---|---|---|
-| `avatars` | Private; authenticated reads only when profile presentation requires them | `{user_id}/{file_id}.jpg` | T-004 |
+| `avatars` | Private; owner-only in T-004, with broader authorized presentation deferred | `{user_id}/{file_id}.{allowed_image_extension}` | T-004 |
 | `pet-photos` | Private | `{customer_id}/{pet_id}/{file_id}.jpg` | T-008 |
 | `groomer-portfolio` | Authenticated-readable, owner-writable | `{groomer_id}/{file_id}.jpg` | T-010 |
 | `chat-attachments` | Private to conversation participants | `{conversation_id}/{message_id}.jpg` | T-020 |
