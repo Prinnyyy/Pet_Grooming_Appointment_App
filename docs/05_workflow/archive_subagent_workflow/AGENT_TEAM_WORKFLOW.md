@@ -11,62 +11,39 @@ The system is intentionally lightweight. Subagents are used to isolate context-h
 ## Core Principles
 
 1. One primary task per Codex run.
-2. Read durable memory before reading broad source areas.
-3. Use read-only agents for investigation.
-4. Use one implementation worker for code changes.
-5. Validate through scripts.
-6. Review final diff.
-7. Update durable memory.
-8. Stop.
+2. Select Quick, Standard, or Deep Mode using `LIGHTWEIGHT_EXECUTION_POLICY.md`.
+3. Read only the minimum startup context.
+4. Delegate only when delegation reduces uncertainty.
+5. Never use more than one implementation worker.
+6. Stay within the mode's validation and report budget.
+7. Stop after the task.
 
 ---
 
-## Default Flow
+## Default Flows
 
 ```text
-Task intake
-  ↓
-Scope check
-  ↓
-Context gathering
-  ↓
-Task planning
-  ↓
-Code mapping
-  ↓
-Backend contract audit when needed
-  ↓
-Approved patch plan
-  ↓
-Single implementation phase
-  ↓
-Build/test validation
-  ↓
-Final diff review
-  ↓
-Memory update
-  ↓
-Final report
+Quick: scope → edit → targeted check if needed → brief report
+Standard: scope → optional context/code map → one implementation worker → one build validator → optional diff review → report
+Deep: scope → explicit plan → justified specialist audit(s) → one implementation worker → explicit validation/review → report
 ```
 
 ---
 
 ## When to Use Subagents
 
-Use subagents when:
+Use subagents only when:
 
-- the task touches multiple files,
 - source ownership is unclear,
 - backend contract may be involved,
-- build/test output may be noisy,
-- the task is likely to consume too much main context,
-- the user asks for planning before execution,
+- validation output needs isolation,
+- Deep Mode risk needs an independent audit,
 - a previous task was interrupted.
 
 Do not use subagents when:
 
-- the task changes only one obvious line,
-- the change is documentation-only and local,
+- the task is Quick Mode,
+- the user already supplied a clear plan and repository context,
 - the user asks for a quick answer,
 - the cost of delegation exceeds the task complexity.
 
@@ -76,12 +53,11 @@ Do not use subagents when:
 
 Parallelism is allowed only for read-only investigation.
 
-Allowed:
+Read-only investigation may run in parallel when both agents are justified:
 
 ```text
 context_librarian + ios_code_mapper
 context_librarian + supabase_contract_auditor
-build_validator + final_reviewer only after implementation is complete and diff is stable
 ```
 
 Not allowed:
@@ -102,6 +78,10 @@ The main agent may make small documentation updates at the end, but it must not 
 
 ---
 
+## Initialization Rule
+
+Initialization tasks do not use TDD RED/GREEN loops or extensive test suites. They may add a minimal smoke test and make one build attempt. On failure, report the first real error and stop unless the user authorizes a follow-up.
+
 ## Memory Update Rule
 
 At the end of a meaningful task, update:
@@ -119,8 +99,7 @@ Update `docs/07_decisions/DECISION_LOG.md` only if a durable decision changed.
 
 The task is not complete until:
 
-1. the approved patch plan was followed,
-2. build/test validation was attempted or explicitly skipped with reason,
-3. final review completed,
-4. durable memory updated,
-5. final run report written.
+1. the selected mode and scope were respected,
+2. budgeted validation ran or was explicitly unnecessary,
+3. required durable state was updated,
+4. the concise final report was written.

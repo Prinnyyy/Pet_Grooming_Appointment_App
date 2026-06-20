@@ -2,30 +2,35 @@
 
 ## Purpose
 
-This project requires planning before implementation for any non-trivial change.
+Planning depth follows the selected execution mode.
 
 Planning prevents context drift, broad refactors, and interrupted half-implemented tasks.
 
 ---
 
-## When Plan-First Is Required
+## Planning by Mode
 
-Plan-first is required when the task:
+- Quick Mode: a short inline plan is enough.
+- Standard Mode: use the user's clear plan or a concise main-agent plan. Do not spawn `task_planner` by default.
+- Deep Mode: write an explicit approved patch plan before implementation.
 
-- touches more than one source file,
+Use `task_planner` only when the request is ambiguous, too large, high-risk, or lacks an implementation plan. If the user supplied a clear plan, do not spawn it. After one failure or timeout, record it and continue with a smaller safe plan; do not retry in the same run.
+
+Deep plan-first is required when the task:
+
 - touches Supabase,
 - changes product flow,
 - changes navigation,
 - changes authentication or permissions,
 - affects booking, offer, request, profile, review, payment, or media upload flows,
-- involves build failures with unclear cause,
+- involves build failures with unclear cause or a large refactor,
 - is requested after context compression or restart.
 
 ---
 
 ## Plan Format
 
-Before implementation, write:
+For Deep Mode, write:
 
 ```text
 docs/05_workflow/agent_reports/<TASK_ID>/05-approved-patch-plan.md
@@ -94,7 +99,7 @@ Do not start implementation until the first task is small enough.
 
 ## Plan Approval
 
-For normal runs, the main agent may approve its own plan after reading subagent reports.
+For Standard Mode, the main agent may approve a concise plan without subagents.
 
 For high-risk runs, the main agent must stop and ask the user before implementation.
 

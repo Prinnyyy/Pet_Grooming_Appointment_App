@@ -17,7 +17,7 @@ Codex must stop and report when any condition occurs.
 
 ## Technical Stop
 
-- Build fails after two focused repair attempts.
+- The first build or test attempt fails; report the first real error and stop unless the user approves a follow-up.
 - Required scheme/simulator cannot be detected.
 - Supabase schema cannot be verified.
 - Tests fail for reasons unrelated to the current task.

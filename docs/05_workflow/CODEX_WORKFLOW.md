@@ -1,36 +1,14 @@
 # Codex Workflow
 
-## Standard Run
+The default workflow is the lightweight single-agent process defined in `SINGLE_AGENT_WORKFLOW.md`.
 
-1. Read startup context.
-2. Check Superpowers/plugin capabilities.
-3. Confirm one active task.
-4. Select specialist role.
-5. Inspect only relevant files.
-6. Make minimal changes.
-7. Run relevant checks.
-8. Update memory.
-9. Report results.
-10. Stop.
+1. Read minimal context.
+2. Confirm one primary task.
+3. Write a short plan.
+4. Make one focused implementation pass.
+5. Run one appropriate validation attempt.
+6. Review the current diff briefly.
+7. Update durable memory only when meaningful.
+8. Report concisely and stop.
 
-## Task Size Rule
-
-A Codex task should normally fit one of these categories:
-
-- One screen improvement
-- One repository method
-- One backend RPC/migration
-- One bug reproduction and fix
-- One documentation update
-- One build/test repair
-
-If a task touches product flow, backend contract, and multiple screens, split it.
-
-## Interruption Safety
-
-Every task must leave the repository in a recoverable state.
-
-If interrupted:
-- Current changes should be small.
-- Active files should be clear.
-- Handoff notes should be possible from diff + `WORKLOG.md`.
+Subagents, per-agent reports, and multi-agent review chains are disabled by default.

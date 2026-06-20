@@ -24,14 +24,14 @@ Use this for internal Codex review before reporting completion.
 
 ## iOS Check
 
-- [ ] Build script run if code changed.
-- [ ] Tests run if relevant.
+- [ ] The selected Quick/Standard/Deep validation rule was followed.
+- [ ] No repeated build/test fix loop was started without approval.
 - [ ] Loading/error/empty states handled when relevant.
 - [ ] Accessibility considered for UI changes.
 
 ## Memory Check
 
-- [ ] `CURRENT_STATE.md` updated.
+- [ ] `CURRENT_STATE.md` updated only if project state changed.
 - [ ] `FEATURE_INDEX.md` updated if needed.
-- [ ] `WORKLOG.md` appended.
+- [ ] `WORKLOG.md` appended only after meaningful implementation.
 - [ ] `DECISION_LOG.md` updated if needed.

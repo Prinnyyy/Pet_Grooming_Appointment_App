@@ -16,6 +16,14 @@ MCP tools are useful but can expand scope quickly. Use them only when they reduc
 4. Do not use MCP write actions unless explicitly authorized.
 5. If MCP output conflicts with repository files, identify the conflict and prefer repository source unless the repository is stale.
 
+Mode budget:
+
+- Quick Mode: no MCP by default.
+- Standard Mode: use one only when local context cannot answer a task-relevant question or it directly performs budgeted validation.
+- Deep Mode: use targeted MCP tools for explicitly planned backend/platform investigation.
+
+Do not use MCP merely because it is available, and do not let it add scope or validation steps.
+
 ---
 
 ## Xcode MCP

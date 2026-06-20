@@ -11,7 +11,7 @@ Keep this concise. It is an index, not a full project dump.
 - App type: iOS app.
 - Platform: SwiftUI-first iOS project.
 - Backend: Supabase if configured.
-- Development model: Codex-first, single-task runs, serial agent chain.
+- Development model: Codex-first, lightweight single-agent runs.
 
 ## Product Summary
 
@@ -38,7 +38,7 @@ TODO: Add Supabase tables, RPCs, RLS assumptions, and storage buckets when known
 - Keep durable project memory updated.
 - Do not rely on compressed conversation context.
 - Use scripts for checks.
-- Use Superpowers/plugin capabilities when available and relevant.
+- Use Superpowers only when one directly relevant capability is clearly useful.
 
 ## Important Index Links
 
@@ -47,5 +47,5 @@ TODO: Add Supabase tables, RPCs, RLS assumptions, and storage buckets when known
 - Product flows: `docs/01_product/NAVIGATION_AND_FLOWS.md`
 - Architecture: `docs/02_architecture/ARCHITECTURE.md`
 - Backend contract: `docs/03_backend/SUPABASE_CONTRACT.md`
-- Workflow: `docs/05_workflow/CODEX_WORKFLOW.md`
+- Workflow: `docs/05_workflow/SINGLE_AGENT_WORKFLOW.md`
 - Task ledger: `docs/06_tasks/TASK_LEDGER.md`

@@ -3,20 +3,26 @@ set -euo pipefail
 
 echo "== iOS Test =="
 
-if [[ -z "${CODEX_IOS_SCHEME:-}" ]]; then
-  echo "CODEX_IOS_SCHEME is not set. Refusing to guess scheme."
+if ! command -v xcodebuild >/dev/null 2>&1; then
+  echo "xcodebuild not found. Install Xcode or run this on macOS with Xcode available."
   exit 1
 fi
 
-project_file="$(find . -maxdepth 3 -name "*.xcodeproj" | head -n 1 || true)"
-workspace_file="$(find . -maxdepth 3 -name "*.xcworkspace" | head -n 1 || true)"
-destination="${CODEX_IOS_DESTINATION:-platform=iOS Simulator,name=iPhone 16 Pro}"
+project="${CODEX_IOS_PROJECT:-ios/PetGroomerMarketplace/PetGroomerMarketplace.xcodeproj}"
+scheme="${CODEX_IOS_SCHEME:-PetGroomerMarketplace}"
+destination="${CODEX_IOS_DESTINATION:-platform=iOS Simulator,OS=18.4,name=iPhone 16 Pro}"
 
-if [[ -n "$workspace_file" ]]; then
-  xcodebuild -workspace "$workspace_file" -scheme "$CODEX_IOS_SCHEME" -destination "$destination" test
-elif [[ -n "$project_file" ]]; then
-  xcodebuild -project "$project_file" -scheme "$CODEX_IOS_SCHEME" -destination "$destination" test
-else
-  echo "No .xcodeproj or .xcworkspace found."
+if [[ ! -d "$project" ]]; then
+  echo "Xcode project not found: $project"
   exit 1
 fi
+
+echo "Project: $project"
+echo "Scheme: $scheme"
+echo "Destination: $destination"
+
+xcodebuild \
+  -project "$project" \
+  -scheme "$scheme" \
+  -destination "$destination" \
+  test

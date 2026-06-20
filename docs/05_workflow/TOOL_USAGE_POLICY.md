@@ -1,126 +1,37 @@
 # Tool Usage Policy
 
-## Purpose
+## General Rules
 
-This policy defines how Codex should use local tools, scripts, Xcode, Supabase, GitHub, and MCP tools.
-
----
-
-## General Tool Rules
-
-1. Prefer existing project scripts over invented shell commands.
-2. Prefer read-only commands during planning.
-3. Use write commands only during implementation.
+1. Prefer existing project scripts over invented commands.
+2. Use read-only commands during planning.
+3. Keep writes inside the active task scope.
 4. Avoid destructive commands.
-5. Do not use network access unless the task explicitly requires it and the user approves.
-6. Do not read secrets.
-7. Do not log secrets.
-8. Document any command failure in the agent report.
+5. Do not use network access unless the task requires it and the user approves.
+6. Do not read or log secrets.
+7. Do not add validation merely because a tool is available.
 
----
+## Validation
 
-## Xcode / iOS Rules
+- Quick Mode: no validation unless directly needed.
+- Standard Mode: one build attempt by default.
+- Deep Mode: an explicit validation plan is required.
+- UI tests are not default.
+- Unit tests are not default for initialization tasks.
+- If build or test fails, report the first real error and stop.
+- Do not enter fix loops unless the user approves a follow-up task.
 
-Prefer scripts:
+## Xcode and iOS
 
-```text
-scripts/ios-build.sh
-scripts/ios-test.sh
-scripts/agent-preflight.sh
-```
+Prefer documented project scripts when validation is required. Do not alter signing, capabilities, schemes, or project structure unless explicitly requested. Report environment failures separately from code failures.
 
-If Xcode MCP is available, it may be used for:
+## Supabase
 
-- listing schemes,
-- selecting simulator,
-- building,
-- testing,
-- reading structured build errors.
+Read local docs and migrations before making assumptions. Do not reset databases, repair migrations, weaken RLS, bypass protected RPC boundaries, expose service-role keys, or make remote writes without explicit approval.
 
-Rules:
+## Git and GitHub
 
-- Do not manually invent new build commands if scripts exist.
-- Do not change project signing settings unless explicitly requested.
-- Do not modify Xcode project files casually.
-- If build fails due to environment or simulator availability, report it as environment failure, not code failure.
+Read-only commands such as `git status`, `git diff`, and `git log` are allowed. Commit, push, reset, rebase, PR creation, merge, and repository-setting changes require explicit user approval.
 
----
+## File Editing
 
-## Supabase Rules
-
-During planning:
-
-- read local docs,
-- read local migrations,
-- inspect repository code paths,
-- avoid remote commands.
-
-During implementation:
-
-- do not create migrations unless explicitly planned,
-- do not weaken RLS,
-- do not bypass RPC for protected mutations,
-- do not fake Supabase success in app code.
-
-Allowed by default:
-
-```text
-read local files
-inspect migration SQL
-inspect repository code
-run local non-destructive validation scripts
-```
-
-Not allowed by default:
-
-```text
-supabase db reset
-supabase migration repair
-remote production writes
-manual production schema edits
-weakening RLS
-logging service role keys
-```
-
----
-
-## Git / GitHub Rules
-
-Allowed by default:
-
-```text
-git status
-git diff
-git log --oneline
-git branch --show-current
-```
-
-Requires explicit user approval:
-
-```text
-git commit
-git push
-git reset
-git rebase
-gh pr create
-gh pr merge
-```
-
-If GitHub MCP is available, it may be used for:
-
-- reading issues,
-- reading pull requests,
-- summarizing diffs,
-- checking CI status.
-
-Do not create PRs or push branches unless the user explicitly requests it.
-
----
-
-## File Editing Rules
-
-Implementation worker may edit only files listed in the approved patch plan.
-
-If a new file must be added, the implementation worker must state why.
-
-If a file outside the approved list must be edited, stop and update the plan first.
+Edit only files required by the active task. If scope must expand, stop and update the plan before editing.

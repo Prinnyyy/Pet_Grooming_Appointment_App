@@ -18,6 +18,26 @@ Next:
 
 ```text
 Date: 2026-06-19
+Task: T-001-CLOSEOUT — close the paused SwiftUI baseline from existing reports and current diff.
+Files changed: CURRENT_STATE.md, FEATURE_INDEX.md, WORKLOG.md, TASK_LEDGER.md, T-001 task status, and final report.
+Checks: Existing T-001 reports confirm build, 4 unit tests, 1 UI test, preflight, and diff check passed; no validation was rerun.
+Result: Lightweight current-diff review found no blocker; T-001 marked completed.
+Risks: Xcode 26.5 project format and uncommitted working tree remain; backend/auth are not implemented.
+Next: Define the Supabase authentication/profile contract as a separate Deep Mode task.
+```
+
+```text
+Date: 2026-06-19
+Task: WORKFLOW-SLIM-001 — reduce Codex workflow context, delegation, validation, and report budgets.
+Files changed: Workflow policies, agent index/recovery docs, task templates, AGENTS.md reference, task ledger, and final task report.
+Checks: agent-preflight passed; git diff summary reviewed; no build or tests.
+Result: Quick / Standard / Deep modes established; task_planner removed from defaults; initialization and validation loops capped.
+Risks: T-001 remains paused and in progress; no T-001 implementation or closeout was performed.
+Next: Use a separate narrowly scoped prompt to inspect and close T-001 safely.
+```
+
+```text
+Date: 2026-06-19
 Task: Preserve existing AGENTS.md during workspace initialization.
 Files changed: Created AGENTS.md.new; existing AGENTS.md was not overwritten.
 Checks: Initialization preflight pending.

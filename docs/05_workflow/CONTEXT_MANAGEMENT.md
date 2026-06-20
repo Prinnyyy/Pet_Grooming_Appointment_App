@@ -1,52 +1,26 @@
 # Context Management
 
-## Goal
+## Default Read Budget
 
-Prevent degraded decisions after long sessions, context compression, or interrupted runs.
+Read only:
 
-## Durable Context Files
+1. `AGENTS.md`
+2. `docs/00_memory/CURRENT_STATE.md`
+3. `docs/06_tasks/TASK_LEDGER.md` if present
+4. the active task file, if provided
 
-Use these instead of relying on conversation context:
+Read briefs, `PROJECT_MEMORY.md`, feature indexes, architecture/backend docs, decisions, and old reports only when directly relevant. Prefer targeted search and narrow reads over repository-wide loading.
 
-- `PROJECT_MEMORY.md`: stable index
-- `CURRENT_STATE.md`: latest known app state
-- `FEATURE_INDEX.md`: feature-to-file map
-- `DECISION_LOG.md`: architecture/product decisions
-- `WORKLOG.md`: chronological task log
-- `COMPRESSION_RECOVERY.md`: recovery procedure
+## Durable Memory Updates
 
-## Context Pack Pattern
+- Update `CURRENT_STATE.md` only when project state changed.
+- Update `WORKLOG.md` only after meaningful implementation.
+- Update `TASK_LEDGER.md` only when a tracked task status changed.
+- Update `FEATURE_INDEX.md` only when a feature was added, removed, or changed.
+- Update `DECISION_LOG.md` only when a durable architecture/product decision changed.
 
-For each major feature, create a compact context pack when needed:
+Do not update memory for tiny documentation-only changes unless needed.
 
-```text
-docs/00_memory/context_packs/<feature-name>.md
-```
+## Context Safety
 
-A context pack should contain:
-- Feature purpose
-- Relevant source files
-- Relevant backend objects
-- Current known behavior
-- Known bugs
-- Open questions
-
-## What Not To Store
-
-Do not store:
-- Full source files
-- Huge diffs
-- Generated build logs
-- Secrets
-- Temporary speculation
-- Unverified assumptions
-
-## When to Update Memory
-
-Update memory after:
-- New feature behavior
-- New screen
-- New backend contract
-- New architecture decision
-- Important bug fix
-- Build/test status change
+Do not store secrets, full source files, huge diffs, generated logs, or unverified assumptions in memory files. If interrupted, use `INTERRUPTION_RECOVERY.md`; do not reconstruct archived subagent state.

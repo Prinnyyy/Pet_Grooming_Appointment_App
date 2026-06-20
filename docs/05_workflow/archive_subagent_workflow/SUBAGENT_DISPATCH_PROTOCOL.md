@@ -6,9 +6,11 @@ This protocol tells the main Codex agent how to assign work to subagents and how
 
 ---
 
-## Dispatch Requirements
+## Dispatch Threshold
 
-For every non-trivial task, the main agent must create:
+Quick Mode uses no subagents by default. Standard and Deep Mode dispatch only agents whose output will change the implementation or validation decision.
+
+When dispatching, create:
 
 ```text
 docs/05_workflow/agent_reports/<TASK_ID>/
@@ -61,11 +63,23 @@ Do not do anything outside your role.
 
 ---
 
+## Selection Rules
+
+- `context_librarian`: only when relevant context is unclear.
+- `ios_code_mapper`: only when iOS ownership/data flow is unclear.
+- `supabase_contract_auditor`: only when backend impact exists or is uncertain.
+- `task_planner`: only for ambiguous, oversized, high-risk, or unplanned work; never when the user supplied a clear plan.
+- `implementation_worker`: at most one per task.
+- `build_validator`: one budgeted validation phase.
+- `final_reviewer`: optional, current diff only.
+
+If `task_planner` fails or times out once, write one failure note and continue with a smaller safe plan. Do not retry it in the same run.
+
 ## Report File Rule
 
 Every dispatched subagent must write a report file.
 
-Reports must be short and structured.
+Reports must be short, structured, and no more than 30 lines by default.
 
 Subagent reports are durable handoff artifacts, not essays.
 
@@ -73,7 +87,7 @@ Subagent reports are durable handoff artifacts, not essays.
 
 ## Main Agent Readback Rule
 
-Before creating an implementation plan, the main agent must read all report files in:
+Read only reports produced for the current task and needed for the next decision. Do not load unused or historical reports by default.
 
 ```text
 docs/05_workflow/agent_reports/<TASK_ID>/
