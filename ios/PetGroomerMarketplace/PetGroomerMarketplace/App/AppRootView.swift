@@ -3,19 +3,26 @@ import SwiftUI
 struct AppRootView: View {
     let route: AppEntryRoute
     let authenticationBootstrapState: AuthenticationBootstrapState
+    let authenticationStore: AuthenticationStore?
 
     init(
         route: AppEntryRoute,
-        authenticationBootstrapState: AuthenticationBootstrapState = .ready
+        authenticationBootstrapState: AuthenticationBootstrapState = .ready,
+        authenticationStore: AuthenticationStore? = nil
     ) {
         self.route = route
         self.authenticationBootstrapState = authenticationBootstrapState
+        self.authenticationStore = authenticationStore
     }
 
     var body: some View {
         switch route {
         case .authentication:
-            AuthenticationBootstrapView(state: authenticationBootstrapState)
+            if let authenticationStore {
+                AuthenticationGateView(store: authenticationStore)
+            } else {
+                AuthenticationBootstrapView(state: authenticationBootstrapState)
+            }
         case .roleOnboarding:
             RoleOnboardingPlaceholderView()
         case .customer:

@@ -4,10 +4,10 @@ Status values are `baseline`, `planned`, and `deferred`. A planned source path i
 
 | Screen | Purpose | Role | Planned Data Source | State Owner | Source / Task | Status |
 |---|---|---|---|---|---|---|
-| AuthenticationBootstrapView | Honest launch placeholder before Auth exists | Shared | None | View | `Features/Auth/AuthenticationBootstrapView.swift` | baseline |
-| AuthGate | Resolve configuration, session, profile, and role entry | Shared | Auth session, `profiles` | App/Auth state | `Features/Auth/` / T-006–T-007 | planned |
-| SignInView | Email/password sign-in | Shared | Supabase Auth | Auth view model | `Features/Auth/` / T-006 | planned |
-| SignUpView | Email/password account creation | Shared | Supabase Auth | Auth view model | `Features/Auth/` / T-006 | planned |
+| AuthenticationBootstrapView | Blocking missing/invalid Supabase configuration state | Shared | App configuration | View | `Features/Auth/AuthenticationBootstrapView.swift` | baseline |
+| AuthenticationGateView | Restore/observe Auth session and select signed-out or onboarding-required UI | Shared | Supabase Auth session | `AuthenticationStore` | `Features/Auth/AuthenticationGateView.swift` / T-006 | baseline |
+| AuthenticationView | Email/password sign-in and account creation with confirmation notice | Shared | Supabase Auth | `AuthenticationStore` | `Features/Auth/AuthenticationView.swift` / T-006 | baseline |
+| OnboardingRequiredView | Authenticated stop point with sign-out before role/profile setup | Shared | Auth session | `AuthenticationStore` | `Features/Auth/OnboardingRequiredView.swift` / T-006 | baseline |
 | RoleOnboardingView | Select role and create profile rows | Shared | `profiles`, role profile | Onboarding view model | `Features/Auth/` or `Features/Onboarding/` / T-007 | planned |
 | CustomerHomeView | Start request and summarize active work | Customer | Own requests, bookings | Customer home view model | `Features/Customer/` / T-013, T-019 | planned |
 | PetListView | List and manage owned pets | Customer | `pets`, `pet_photos` | Pet list view model | `Features/Pets/` / T-009 | planned |

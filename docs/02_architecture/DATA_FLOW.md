@@ -13,6 +13,8 @@ App launch
 
 Configuration, session, and profile are separate states. Missing configuration is not treated as signed-out, and a signed-in user without a profile is not treated as a Customer or Groomer.
 
+T-006 implements configuration plus Auth session restoration/observation. It intentionally routes every authenticated session to onboarding-required without querying `profiles`; T-007 owns profile lookup and final role routing.
+
 ## Read Flow
 
 ```text

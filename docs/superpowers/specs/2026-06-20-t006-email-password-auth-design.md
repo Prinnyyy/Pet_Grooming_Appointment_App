@@ -2,7 +2,7 @@
 
 ## Status
 
-Approved in conversation on 2026-06-20; awaiting final written-spec review before implementation.
+Approved in conversation and implemented by T-006 on 2026-06-20.
 
 ## Goal
 

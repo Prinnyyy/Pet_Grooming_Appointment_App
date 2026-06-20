@@ -12,7 +12,7 @@ Launch
 └─ Groomer profile → Groomer Tabs
 ```
 
-Production currently stops at the authentication bootstrap. The other routes exist for explicit composition, previews, and tests until T-006 and T-007 implement real session/profile routing.
+Production now restores the Supabase Auth session and supports email/password sign-up, sign-in, and sign-out. Every authenticated user stops at the explicit onboarding-required destination until T-007 adds profile lookup, role creation, and Customer/Groomer routing. Role shell routes remain available only through explicit composition, previews, and tests.
 
 ## Primary Navigation
 

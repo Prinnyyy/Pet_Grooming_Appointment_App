@@ -8,7 +8,8 @@ struct PetGroomerMarketplaceApp: App {
         WindowGroup {
             AppRootView(
                 route: .authentication,
-                authenticationBootstrapState: composition.authenticationBootstrapState
+                authenticationBootstrapState: composition.authenticationBootstrapState,
+                authenticationStore: composition.authenticationStore
             )
         }
     }

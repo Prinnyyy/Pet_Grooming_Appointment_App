@@ -18,6 +18,16 @@ Next:
 
 ```text
 Date: 2026-06-20
+Task: T-006 — implement Supabase email/password authentication and session-driven entry.
+Files changed: Auth repository contract/adapter, AuthenticationStore, Sign In/Create Account/onboarding-required views, App composition/root, focused unit and UI smoke tests, T-006 design/plan/intake, product/architecture docs, task ledger, and durable memory.
+Checks: Current Supabase Swift 2.46.0 APIs and Auth guidance verified; the single ./scripts/ios-test.sh attempt passed with 10 Swift Testing tests and 1 XCTest UI smoke test; final diff/static scans run separately.
+Result: Real sign-up, confirmation-required handling, sign-in, local-scope sign-out, cached-session restoration, and Auth event observation are implemented. Authenticated users stop before role onboarding.
+Risks: No live account was created because the confirmed-email flow requires an inbox; native confirmation deep links and production SMTP are not included. T-007 must implement profile creation and role routing.
+Next: T-007 — role onboarding and authenticated role routing in a separate task.
+```
+
+```text
+Date: 2026-06-20
 Task: T-004 — apply and validate the Supabase profile/avatar foundation on the authorized fresh project.
 Files changed: Two versioned Supabase migration mirrors, the Supabase static checker, T-004 task/review docs, backend contracts, task ledger, current state, feature index, and worklog.
 Checks: MCP migration/metadata inspection passed; rollback-only owner/cross-user/role/anonymous RLS and Storage tests passed; final security and performance advisors returned zero lints. The first static check exposed a validator false positive on SQL role grants; after the targeted pattern correction, ./scripts/supabase-check.sh and git diff --check passed.
