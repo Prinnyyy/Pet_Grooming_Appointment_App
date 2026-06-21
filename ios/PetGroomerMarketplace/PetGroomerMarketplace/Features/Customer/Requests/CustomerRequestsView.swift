@@ -6,13 +6,15 @@ struct CustomerRequestsView: View {
     init(
         customerID: UUID,
         petRepository: any CustomerPetRepository,
-        requestRepository: any CustomerRequestRepository
+        requestRepository: any CustomerRequestRepository,
+        bookingRepository: any BookingRepository
     ) {
         _store = State(
             initialValue: CustomerRequestsStore(
                 customerID: customerID,
                 petRepository: petRepository,
-                requestRepository: requestRepository
+                requestRepository: requestRepository,
+                bookingRepository: bookingRepository
             )
         )
     }
@@ -56,7 +58,7 @@ struct CustomerRequestsView: View {
                             ForEach(store.requests) { request in
                                 NavigationLink {
                                     CustomerRequestDetailView(
-                                        request: request,
+                                        requestID: request.id,
                                         store: store
                                     )
                                 } label: {
@@ -125,73 +127,82 @@ private struct CustomerRequestSummaryRow: View {
 }
 
 private struct CustomerRequestDetailView: View {
-    let request: CustomerGroomingRequest
+    let requestID: UUID
     let store: CustomerRequestsStore
 
     var body: some View {
-        List {
-            Section("Request") {
-                LabeledContent("Status", value: request.status.title)
-                LabeledContent("Service", value: request.serviceType)
-                if let serviceNotes = request.serviceNotes {
-                    Text(serviceNotes)
-                        .foregroundStyle(DesignTokens.Colors.secondaryText)
+        if let request = store.request(withID: requestID) {
+            List {
+                Section("Request") {
+                    LabeledContent("Status", value: request.status.title)
+                    LabeledContent("Service", value: request.serviceType)
+                    if let serviceNotes = request.serviceNotes {
+                        Text(serviceNotes)
+                            .foregroundStyle(DesignTokens.Colors.secondaryText)
+                    }
                 }
-            }
 
-            Section("Pet snapshot") {
-                LabeledContent("Pet", value: request.petSnapshot.name)
-                LabeledContent("Species", value: request.petSnapshot.species)
-                if let breed = request.petSnapshot.breed {
-                    LabeledContent("Breed", value: breed)
-                }
-                if let size = request.petSnapshot.size {
-                    LabeledContent("Size", value: size)
-                }
-                LabeledContent(
-                    "Photos",
-                    value: "\(request.photoSnapshot.count)"
-                )
-            }
-
-            Section("Preferred time") {
-                LabeledContent(
-                    "Start",
-                    value: GroomingRequestDateFormatting.displayString(
-                        from: request.preferredStart
+                Section("Pet snapshot") {
+                    LabeledContent("Pet", value: request.petSnapshot.name)
+                    LabeledContent("Species", value: request.petSnapshot.species)
+                    if let breed = request.petSnapshot.breed {
+                        LabeledContent("Breed", value: breed)
+                    }
+                    if let size = request.petSnapshot.size {
+                        LabeledContent("Size", value: size)
+                    }
+                    LabeledContent(
+                        "Photos",
+                        value: "\(request.photoSnapshot.count)"
                     )
-                )
-                LabeledContent(
-                    "End",
-                    value: GroomingRequestDateFormatting.displayString(
-                        from: request.preferredEnd
+                }
+
+                Section("Preferred time") {
+                    LabeledContent(
+                        "Start",
+                        value: GroomingRequestDateFormatting.displayString(
+                            from: request.preferredStart
+                        )
                     )
+                    LabeledContent(
+                        "End",
+                        value: GroomingRequestDateFormatting.displayString(
+                            from: request.preferredEnd
+                        )
+                    )
+                }
+
+                Section("Location") {
+                    LabeledContent("City", value: request.city)
+                    LabeledContent("State", value: request.state)
+                    LabeledContent("ZIP", value: request.zipCode)
+                }
+
+                CustomerOfferReviewSection(
+                    request: request,
+                    store: store
                 )
-            }
 
-            Section("Location") {
-                LabeledContent("City", value: request.city)
-                LabeledContent("State", value: request.state)
-                LabeledContent("ZIP", value: request.zipCode)
+                if request.status.isOpenForOffers {
+                    Section("Cancellation") {
+                        Text("Request cancellation needs a controlled backend RPC and is not connected yet.")
+                            .foregroundStyle(DesignTokens.Colors.secondaryText)
+                    }
+                }
             }
-
-            CustomerOfferReviewSection(
-                request: request,
-                store: store
+            .navigationTitle(request.petSnapshot.name)
+            .navigationBarTitleDisplayMode(.inline)
+            .accessibilityIdentifier("customer.requests.detail")
+            .task(id: request.id) {
+                await store.loadOffers(for: request)
+            }
+        } else {
+            ContentUnavailableView(
+                "Request unavailable",
+                systemImage: "doc.text.magnifyingglass",
+                description: Text("Refresh requests and try again.")
             )
-
-            if request.status.isOpenForOffers {
-                Section("Cancellation") {
-                    Text("Request cancellation needs a controlled backend RPC and is not connected yet.")
-                        .foregroundStyle(DesignTokens.Colors.secondaryText)
-                }
-            }
-        }
-        .navigationTitle(request.petSnapshot.name)
-        .navigationBarTitleDisplayMode(.inline)
-        .accessibilityIdentifier("customer.requests.detail")
-        .task(id: request.id) {
-            await store.loadOffers(for: request)
+            .navigationTitle("Request")
         }
     }
 }
@@ -234,7 +245,8 @@ private struct CustomerOfferReviewSection: View {
                         NavigationLink {
                             CustomerOfferDetailView(
                                 request: request,
-                                offerReview: offerReview
+                                offerID: offerReview.id,
+                                store: store
                             )
                         } label: {
                             CustomerOfferSummaryRow(offerReview: offerReview)
@@ -253,7 +265,8 @@ private struct CustomerOfferReviewSection: View {
                         NavigationLink {
                             CustomerOfferDetailView(
                                 request: request,
-                                offerReview: offerReview
+                                offerID: offerReview.id,
+                                store: store
                             )
                         } label: {
                             CustomerOfferSummaryRow(offerReview: offerReview)
@@ -312,64 +325,104 @@ private struct CustomerOfferSummaryRow: View {
 
 private struct CustomerOfferDetailView: View {
     let request: CustomerGroomingRequest
-    let offerReview: CustomerOfferReview
+    let offerID: UUID
+    let store: CustomerRequestsStore
+
+    private var offerReview: CustomerOfferReview? {
+        store.offers(for: request).first { $0.id == offerID }
+    }
 
     var body: some View {
-        List {
-            Section("Groomer") {
-                HStack {
-                    LabeledContent("Business", value: offerReview.groomerTitle)
-                    if offerReview.groomerProfile?.isVerified == true {
-                        Image(systemName: "checkmark.seal.fill")
-                            .foregroundStyle(.blue)
-                            .accessibilityLabel("Verified groomer")
+        if let offerReview {
+            List {
+                Section("Groomer") {
+                    HStack {
+                        LabeledContent("Business", value: offerReview.groomerTitle)
+                        if offerReview.groomerProfile?.isVerified == true {
+                            Image(systemName: "checkmark.seal.fill")
+                                .foregroundStyle(.blue)
+                                .accessibilityLabel("Verified groomer")
+                        }
+                    }
+                    LabeledContent("Location", value: offerReview.groomerLocationSummary)
+                    LabeledContent("Rating", value: offerReview.ratingSummary)
+
+                    if let bio = offerReview.groomerProfile?.bio {
+                        Text(bio)
+                            .foregroundStyle(DesignTokens.Colors.secondaryText)
                     }
                 }
-                LabeledContent("Location", value: offerReview.groomerLocationSummary)
-                LabeledContent("Rating", value: offerReview.ratingSummary)
 
-                if let bio = offerReview.groomerProfile?.bio {
-                    Text(bio)
-                        .foregroundStyle(DesignTokens.Colors.secondaryText)
+                Section("Offer") {
+                    LabeledContent("Status", value: offerReview.offer.status.title)
+                    LabeledContent("Price", value: offerReview.offer.priceSummary)
+                    LabeledContent(
+                        "Start",
+                        value: GroomingRequestDateFormatting.displayString(
+                            from: offerReview.offer.proposedStart
+                        )
+                    )
+                    LabeledContent(
+                        "End",
+                        value: GroomingRequestDateFormatting.displayString(
+                            from: offerReview.offer.proposedEnd
+                        )
+                    )
+
+                    if let message = offerReview.offer.message {
+                        Text(message)
+                            .foregroundStyle(DesignTokens.Colors.secondaryText)
+                    }
+                }
+
+                Section("Request") {
+                    LabeledContent("Pet", value: request.petSnapshot.name)
+                    LabeledContent("Service", value: request.serviceType)
+                    LabeledContent("Request status", value: request.status.title)
+                }
+
+                Section("Acceptance") {
+                    if offerReview.offer.status == .pending,
+                       request.status.isOpenForOffers {
+                        Button {
+                            Task {
+                                await store.accept(
+                                    offerReview: offerReview,
+                                    for: request
+                                )
+                            }
+                        } label: {
+                            Label("Accept offer", systemImage: "checkmark.circle")
+                        }
+                        .disabled(store.isAcceptingOffer(offerReview.offer.id))
+                        .accessibilityIdentifier("customer.offers.accept")
+
+                        Text("The backend creates the booking and conversation atomically. If the groomer becomes unavailable, no local booking is created.")
+                            .font(.footnote)
+                            .foregroundStyle(DesignTokens.Colors.secondaryText)
+                    } else if offerReview.offer.status == .acceptedByCustomer {
+                        Text("This offer has been accepted. Check the Bookings tab for the appointment.")
+                            .foregroundStyle(DesignTokens.Colors.secondaryText)
+                    } else if request.status == .booked {
+                        Text("This request is already booked.")
+                            .foregroundStyle(DesignTokens.Colors.secondaryText)
+                    } else {
+                        Text("This offer can no longer be accepted.")
+                            .foregroundStyle(DesignTokens.Colors.secondaryText)
+                    }
                 }
             }
-
-            Section("Offer") {
-                LabeledContent("Status", value: offerReview.offer.status.title)
-                LabeledContent("Price", value: offerReview.offer.priceSummary)
-                LabeledContent(
-                    "Start",
-                    value: GroomingRequestDateFormatting.displayString(
-                        from: offerReview.offer.proposedStart
-                    )
-                )
-                LabeledContent(
-                    "End",
-                    value: GroomingRequestDateFormatting.displayString(
-                        from: offerReview.offer.proposedEnd
-                    )
-                )
-
-                if let message = offerReview.offer.message {
-                    Text(message)
-                        .foregroundStyle(DesignTokens.Colors.secondaryText)
-                }
-            }
-
-            Section("Request") {
-                LabeledContent("Pet", value: request.petSnapshot.name)
-                LabeledContent("Service", value: request.serviceType)
-                LabeledContent("Request status", value: request.status.title)
-            }
-
-            Section("Acceptance") {
-                Text("Accepting an offer requires the T-018 backend transaction and is not connected yet.")
-                    .foregroundStyle(DesignTokens.Colors.secondaryText)
-            }
+            .navigationTitle("Offer")
+            .navigationBarTitleDisplayMode(.inline)
+            .accessibilityIdentifier("customer.offers.detail")
+        } else {
+            ContentUnavailableView(
+                "Offer unavailable",
+                systemImage: "tag.slash",
+                description: Text("Refresh offers and try again.")
+            )
+            .navigationTitle("Offer")
         }
-        .navigationTitle("Offer")
-        .navigationBarTitleDisplayMode(.inline)
-        .accessibilityIdentifier("customer.offers.detail")
     }
 }
 
@@ -519,7 +572,8 @@ private struct CustomerRequestsStatusView: View {
         CustomerRequestsView(
             customerID: UUID(),
             petRepository: CustomerRequestsPreviewPetRepository(),
-            requestRepository: CustomerRequestsPreviewRequestRepository()
+            requestRepository: CustomerRequestsPreviewRequestRepository(),
+            bookingRepository: CustomerRequestsPreviewBookingRepository()
         )
     }
 }
@@ -662,6 +716,36 @@ private final class CustomerRequestsPreviewRequestRepository: CustomerRequestRep
             requestID: UUID(),
             matchCount: 2
         )
+    }
+}
+
+@MainActor
+private final class CustomerRequestsPreviewBookingRepository: BookingRepository {
+    func bookings(
+        participantID: UUID,
+        role: UserRole
+    ) async throws -> [Booking] {
+        []
+    }
+
+    func acceptOffer(
+        offerID: UUID
+    ) async throws -> AcceptGroomerOfferResult {
+        AcceptGroomerOfferResult(
+            bookingID: UUID(),
+            conversationID: UUID(),
+            requestID: UUID(),
+            offerID: offerID,
+            bookingStatus: .confirmed,
+            offerStatus: .acceptedByCustomer,
+            requestStatus: .booked
+        )
+    }
+
+    func cancelBooking(
+        bookingID: UUID
+    ) async throws -> CancelBookingResult {
+        throw BookingRepositoryError.unavailable
     }
 }
 #endif

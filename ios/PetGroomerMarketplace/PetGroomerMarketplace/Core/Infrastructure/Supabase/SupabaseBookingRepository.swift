@@ -1,0 +1,275 @@
+import Foundation
+import Supabase
+
+@MainActor
+final class SupabaseBookingRepository: BookingRepository {
+    private static let bookingColumns = """
+        id,request_id,offer_id,customer_id,groomer_id,scheduled_start,scheduled_end,\
+        price_estimate,status,cancelled_by,cancelled_at,created_at,updated_at
+        """
+
+    private let client: SupabaseClient
+
+    init(client: SupabaseClient) {
+        self.client = client
+    }
+
+    func bookings(
+        participantID: UUID,
+        role: UserRole
+    ) async throws -> [Booking] {
+        do {
+            let participantColumn = switch role {
+            case .customer:
+                "customer_id"
+            case .groomer:
+                "groomer_id"
+            }
+
+            let rows: [BookingRow] = try await client
+                .from("bookings")
+                .select(Self.bookingColumns)
+                .eq(participantColumn, value: participantID.uuidString.lowercased())
+                .order("scheduled_start", ascending: false)
+                .execute()
+                .value
+
+            return rows.map(\.booking)
+        } catch {
+            throw Self.map(error)
+        }
+    }
+
+    func acceptOffer(
+        offerID: UUID
+    ) async throws -> AcceptGroomerOfferResult {
+        do {
+            let rows: [AcceptGroomerOfferRow] = try await client
+                .rpc(
+                    "accept_groomer_offer",
+                    params: AcceptGroomerOfferParameters(offerID: offerID)
+                )
+                .execute()
+                .value
+
+            guard rows.count == 1, let result = rows.first?.result else {
+                throw BookingRepositoryError.unavailable
+            }
+
+            return result
+        } catch let error as BookingRepositoryError {
+            throw error
+        } catch {
+            throw Self.map(error)
+        }
+    }
+
+    func cancelBooking(
+        bookingID: UUID
+    ) async throws -> CancelBookingResult {
+        do {
+            let rows: [CancelBookingRow] = try await client
+                .rpc(
+                    "cancel_booking",
+                    params: CancelBookingParameters(bookingID: bookingID)
+                )
+                .execute()
+                .value
+
+            guard rows.count == 1, let result = rows.first?.result else {
+                throw BookingRepositoryError.unavailable
+            }
+
+            return result
+        } catch let error as BookingRepositoryError {
+            throw error
+        } catch {
+            throw Self.map(error)
+        }
+    }
+
+    private static func map(_ error: any Error) -> BookingRepositoryError {
+        if let repositoryError = error as? BookingRepositoryError {
+            return repositoryError
+        }
+
+        if let postgrestError = error as? PostgrestError {
+            switch postgrestError.code {
+            case "42501", "28000":
+                return .notAllowed
+            case "22023":
+                return .invalidInput
+            case "P0001":
+                switch postgrestError.message {
+                case "customer_profile_required", "groomer_profile_required":
+                    return .notAllowed
+                case "offer_not_found", "invalid_offer":
+                    return .offerNotFound
+                case "offer_not_pending", "offer_expired":
+                    return .offerNoLongerPending
+                case "match_not_offerable", "request_not_open":
+                    return .requestNoLongerOpen
+                case "booking_already_exists":
+                    return .bookingAlreadyExists
+                case "booking_conflict":
+                    return .bookingConflict
+                case "booking_not_found", "invalid_booking":
+                    return .bookingNotFound
+                case "booking_not_cancellable":
+                    return .bookingNotCancellable
+                default:
+                    return .unavailable
+                }
+            default:
+                return .unavailable
+            }
+        }
+
+        if let urlError = error as? URLError {
+            switch urlError.code {
+            case .notConnectedToInternet,
+                 .networkConnectionLost,
+                 .timedOut,
+                 .cannotConnectToHost,
+                 .cannotFindHost,
+                 .dnsLookupFailed:
+                return .networkUnavailable
+            default:
+                return .unavailable
+            }
+        }
+
+        return .unavailable
+    }
+}
+
+private struct BookingRow: Decodable {
+    let id: UUID
+    let requestID: UUID
+    let offerID: UUID
+    let customerID: UUID
+    let groomerID: UUID
+    let scheduledStart: String
+    let scheduledEnd: String
+    let priceEstimate: Double
+    let status: BookingStatus
+    let cancelledBy: UUID?
+    let cancelledAt: String?
+    let createdAt: String
+    let updatedAt: String
+
+    var booking: Booking {
+        Booking(
+            id: id,
+            requestID: requestID,
+            offerID: offerID,
+            customerID: customerID,
+            groomerID: groomerID,
+            scheduledStart: scheduledStart,
+            scheduledEnd: scheduledEnd,
+            priceEstimate: priceEstimate,
+            status: status,
+            cancelledBy: cancelledBy,
+            cancelledAt: cancelledAt,
+            createdAt: createdAt,
+            updatedAt: updatedAt
+        )
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case requestID = "request_id"
+        case offerID = "offer_id"
+        case customerID = "customer_id"
+        case groomerID = "groomer_id"
+        case scheduledStart = "scheduled_start"
+        case scheduledEnd = "scheduled_end"
+        case priceEstimate = "price_estimate"
+        case status
+        case cancelledBy = "cancelled_by"
+        case cancelledAt = "cancelled_at"
+        case createdAt = "created_at"
+        case updatedAt = "updated_at"
+    }
+}
+
+private struct AcceptGroomerOfferRow: Decodable {
+    let bookingID: UUID
+    let conversationID: UUID
+    let requestID: UUID
+    let offerID: UUID
+    let bookingStatus: BookingStatus
+    let offerStatus: GroomerOfferStatus
+    let requestStatus: GroomingRequestStatus
+
+    var result: AcceptGroomerOfferResult {
+        AcceptGroomerOfferResult(
+            bookingID: bookingID,
+            conversationID: conversationID,
+            requestID: requestID,
+            offerID: offerID,
+            bookingStatus: bookingStatus,
+            offerStatus: offerStatus,
+            requestStatus: requestStatus
+        )
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case bookingID = "booking_id"
+        case conversationID = "conversation_id"
+        case requestID = "request_id"
+        case offerID = "offer_id"
+        case bookingStatus = "booking_status"
+        case offerStatus = "offer_status"
+        case requestStatus = "request_status"
+    }
+}
+
+private struct CancelBookingRow: Decodable {
+    let bookingID: UUID
+    let bookingStatus: BookingStatus
+    let cancelledTimestamp: String?
+    let cancelledBy: UUID?
+
+    var result: CancelBookingResult {
+        CancelBookingResult(
+            bookingID: bookingID,
+            bookingStatus: bookingStatus,
+            cancelledTimestamp: cancelledTimestamp,
+            cancelledBy: cancelledBy
+        )
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case bookingID = "booking_id"
+        case bookingStatus = "booking_status"
+        case cancelledTimestamp = "cancelled_timestamp"
+        case cancelledBy = "cancelled_by"
+    }
+}
+
+private struct AcceptGroomerOfferParameters: Encodable {
+    let offerID: UUID
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(offerID.uuidString.lowercased(), forKey: .offerID)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case offerID = "p_offer_id"
+    }
+}
+
+private struct CancelBookingParameters: Encodable {
+    let bookingID: UUID
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(bookingID.uuidString.lowercased(), forKey: .bookingID)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case bookingID = "p_booking_id"
+    }
+}

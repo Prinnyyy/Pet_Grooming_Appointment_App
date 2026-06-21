@@ -9,12 +9,14 @@ final class CustomerRequestsStore {
     private let customerID: UUID
     private let petRepository: any CustomerPetRepository
     private let requestRepository: any CustomerRequestRepository
+    private let bookingRepository: any BookingRepository
 
     private(set) var pets: [CustomerPet] = []
     private(set) var requests: [CustomerGroomingRequest] = []
     private(set) var offerReviewsByRequestID: [UUID: [CustomerOfferReview]] = [:]
     private(set) var offerErrorsByRequestID: [UUID: String] = [:]
     private(set) var loadingOfferRequestIDs: Set<UUID> = []
+    private(set) var acceptingOfferIDs: Set<UUID> = []
     private(set) var isLoading = false
     private(set) var isSubmitting = false
 
@@ -33,7 +35,7 @@ final class CustomerRequestsStore {
     var zipCode = ""
 
     var isBusy: Bool {
-        isLoading || isSubmitting
+        isLoading || isSubmitting || !acceptingOfferIDs.isEmpty
     }
 
     var selectedPet: CustomerPet? {
@@ -45,11 +47,13 @@ final class CustomerRequestsStore {
         customerID: UUID,
         petRepository: any CustomerPetRepository,
         requestRepository: any CustomerRequestRepository,
+        bookingRepository: any BookingRepository,
         now: Date = Date()
     ) {
         self.customerID = customerID
         self.petRepository = petRepository
         self.requestRepository = requestRepository
+        self.bookingRepository = bookingRepository
 
         let defaults = Self.defaultPreferredRange(now: now)
         preferredStart = defaults.start
@@ -95,8 +99,16 @@ final class CustomerRequestsStore {
         offerReviewsByRequestID[request.id] ?? []
     }
 
+    func request(withID id: UUID) -> CustomerGroomingRequest? {
+        requests.first { $0.id == id }
+    }
+
     func offerError(for request: CustomerGroomingRequest) -> String? {
         offerErrorsByRequestID[request.id]
+    }
+
+    func isAcceptingOffer(_ offerID: UUID) -> Bool {
+        acceptingOfferIDs.contains(offerID)
     }
 
     func isLoadingOffers(for request: CustomerGroomingRequest) -> Bool {
@@ -170,6 +182,49 @@ final class CustomerRequestsStore {
         }
     }
 
+    func accept(
+        offerReview: CustomerOfferReview,
+        for request: CustomerGroomingRequest
+    ) async {
+        guard !acceptingOfferIDs.contains(offerReview.offer.id) else { return }
+        guard offerReview.offer.status == .pending else {
+            errorMessage = "This offer can no longer be accepted."
+            return
+        }
+        guard request.status.isOpenForOffers else {
+            errorMessage = "This request can no longer become a booking."
+            return
+        }
+
+        acceptingOfferIDs.insert(offerReview.offer.id)
+        errorMessage = nil
+        noticeMessage = nil
+        defer {
+            acceptingOfferIDs.remove(offerReview.offer.id)
+        }
+
+        do {
+            let result = try await bookingRepository.acceptOffer(
+                offerID: offerReview.offer.id
+            )
+            let didApplyLocalState = applyAcceptanceResult(
+                result,
+                requestID: request.id
+            )
+            await refreshAfterAcceptance(requestID: request.id)
+            noticeMessage = didApplyLocalState
+                ? "Offer accepted. Booking confirmed."
+                : "Offer accepted. Booking confirmed. Refresh this request if the offer state does not update."
+        } catch let error as BookingRepositoryError {
+            errorMessage = message(for: error, action: "accept offer")
+        } catch {
+            errorMessage = message(
+                for: BookingRepositoryError.unavailable,
+                action: "accept offer"
+            )
+        }
+    }
+
     private func makeDraft(now: Date = Date()) throws -> GroomingRequestDraft {
         guard !pets.isEmpty else {
             throw CustomerRequestFormError(
@@ -234,6 +289,62 @@ final class CustomerRequestsStore {
         preferredEnd = defaults.end
     }
 
+    private func applyAcceptanceResult(
+        _ result: AcceptGroomerOfferResult,
+        requestID: UUID
+    ) -> Bool {
+        var didUpdateRequest = false
+        var didUpdateAcceptedOffer = false
+
+        if let index = requests.firstIndex(where: { $0.id == result.requestID }) {
+            requests[index] = requests[index].replacing(status: result.requestStatus)
+            didUpdateRequest = true
+        } else if let index = requests.firstIndex(where: { $0.id == requestID }) {
+            requests[index] = requests[index].replacing(status: result.requestStatus)
+            didUpdateRequest = true
+        }
+
+        let reviews = offerReviewsByRequestID[requestID] ?? []
+        offerReviewsByRequestID[requestID] = Self.displayOrdered(
+            reviews.map { review in
+                let nextStatus: GroomerOfferStatus
+                if review.offer.id == result.offerID {
+                    nextStatus = result.offerStatus
+                    didUpdateAcceptedOffer = true
+                } else if review.offer.status == .pending {
+                    nextStatus = .declinedByCustomer
+                } else {
+                    nextStatus = review.offer.status
+                }
+
+                return CustomerOfferReview(
+                    offer: review.offer.replacing(
+                        status: nextStatus,
+                        withdrawnAt: review.offer.withdrawnAt
+                    ),
+                    groomerProfile: review.groomerProfile
+                )
+            }
+        )
+
+        return didUpdateRequest && didUpdateAcceptedOffer
+    }
+
+    private func refreshAfterAcceptance(requestID: UUID) async {
+        do {
+            requests = try await requestRepository.requests(customerID: customerID)
+            offerReviewsByRequestID[requestID] = Self.displayOrdered(
+                try await requestRepository.offers(
+                    customerID: customerID,
+                    requestID: requestID
+                )
+            )
+            offerErrorsByRequestID[requestID] = nil
+        } catch {
+            offerErrorsByRequestID[requestID] = "Booking confirmed. Refresh this request to see the latest offer state."
+        }
+    }
+
     private func required(
         _ value: String,
         field: String,
@@ -294,6 +405,36 @@ final class CustomerRequestsStore {
             "Check your connection and try again."
         case .unavailable:
             "We could not \(action) grooming requests. Please try again."
+        }
+    }
+
+    private func message(
+        for error: BookingRepositoryError,
+        action: String
+    ) -> String {
+        switch error {
+        case .notAllowed:
+            "This account cannot \(action)."
+        case .offerNotFound:
+            "This offer is no longer available."
+        case .offerNoLongerPending:
+            "This offer can no longer be accepted."
+        case .requestNoLongerOpen:
+            "This request can no longer become a booking."
+        case .bookingAlreadyExists:
+            "This request already has a booking."
+        case .bookingConflict:
+            "That groomer is no longer available at the proposed time."
+        case .bookingNotFound:
+            "This booking is no longer available."
+        case .bookingNotCancellable:
+            "This booking can no longer be cancelled."
+        case .invalidInput:
+            "Check the offer and try again."
+        case .networkUnavailable:
+            "Check your connection and try again."
+        case .unavailable:
+            "We could not \(action). Please try again."
         }
     }
 

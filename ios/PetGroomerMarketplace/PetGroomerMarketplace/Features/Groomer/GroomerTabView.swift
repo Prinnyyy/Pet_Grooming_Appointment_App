@@ -4,6 +4,7 @@ struct GroomerTabView: View {
     let groomerID: UUID?
     let profileRepository: (any GroomerProfileRepository)?
     let requestRepository: (any GroomerRequestRepository)?
+    let bookingRepository: (any BookingRepository)?
     let accountContent: AnyView?
     @State private var selection: GroomerTab = .requests
 
@@ -11,11 +12,13 @@ struct GroomerTabView: View {
         groomerID: UUID? = nil,
         profileRepository: (any GroomerProfileRepository)? = nil,
         requestRepository: (any GroomerRequestRepository)? = nil,
+        bookingRepository: (any BookingRepository)? = nil,
         accountContent: AnyView? = nil
     ) {
         self.groomerID = groomerID
         self.profileRepository = profileRepository
         self.requestRepository = requestRepository
+        self.bookingRepository = bookingRepository
         self.accountContent = accountContent
     }
 
@@ -42,6 +45,14 @@ struct GroomerTabView: View {
             GroomerRequestsView(
                 groomerID: groomerID,
                 repository: requestRepository
+            )
+        } else if tab == .bookings,
+                  let groomerID,
+                  let bookingRepository {
+            BookingsView(
+                participantID: groomerID,
+                role: .groomer,
+                repository: bookingRepository
             )
         } else if tab == .account,
            let groomerID,

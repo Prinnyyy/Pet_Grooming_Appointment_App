@@ -25,6 +25,27 @@ struct CustomerGroomingRequest: Equatable, Hashable, Identifiable, Sendable {
     var locationSummary: String {
         "\(city), \(state) \(zipCode)"
     }
+
+    func replacing(status: GroomingRequestStatus) -> CustomerGroomingRequest {
+        CustomerGroomingRequest(
+            id: id,
+            customerID: customerID,
+            petID: petID,
+            petSnapshot: petSnapshot,
+            photoSnapshot: photoSnapshot,
+            serviceType: serviceType,
+            serviceNotes: serviceNotes,
+            preferredStart: preferredStart,
+            preferredEnd: preferredEnd,
+            city: city,
+            state: state,
+            zipCode: zipCode,
+            status: status,
+            expiresAt: expiresAt,
+            createdAt: createdAt,
+            updatedAt: updatedAt
+        )
+    }
 }
 
 struct GroomingRequestPetSnapshot: Decodable, Equatable, Hashable, Sendable {

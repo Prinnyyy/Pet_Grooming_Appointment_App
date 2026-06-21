@@ -7,6 +7,7 @@ struct AppRootView: View {
     let profileRepository: (any ProfileRepository)?
     let customerPetRepository: (any CustomerPetRepository)?
     let customerRequestRepository: (any CustomerRequestRepository)?
+    let bookingRepository: (any BookingRepository)?
     let groomerProfileRepository: (any GroomerProfileRepository)?
     let groomerRequestRepository: (any GroomerRequestRepository)?
     let roleOnboardingContent: AnyView?
@@ -18,6 +19,7 @@ struct AppRootView: View {
         profileRepository: (any ProfileRepository)? = nil,
         customerPetRepository: (any CustomerPetRepository)? = nil,
         customerRequestRepository: (any CustomerRequestRepository)? = nil,
+        bookingRepository: (any BookingRepository)? = nil,
         groomerProfileRepository: (any GroomerProfileRepository)? = nil,
         groomerRequestRepository: (any GroomerRequestRepository)? = nil,
         roleOnboardingContent: AnyView? = nil
@@ -28,6 +30,7 @@ struct AppRootView: View {
         self.profileRepository = profileRepository
         self.customerPetRepository = customerPetRepository
         self.customerRequestRepository = customerRequestRepository
+        self.bookingRepository = bookingRepository
         self.groomerProfileRepository = groomerProfileRepository
         self.groomerRequestRepository = groomerRequestRepository
         self.roleOnboardingContent = roleOnboardingContent
@@ -40,6 +43,7 @@ struct AppRootView: View {
                let profileRepository,
                let customerPetRepository,
                let customerRequestRepository,
+               let bookingRepository,
                let groomerProfileRepository,
                let groomerRequestRepository {
                 AuthenticationGateView(
@@ -47,6 +51,7 @@ struct AppRootView: View {
                     profileRepository: profileRepository,
                     customerPetRepository: customerPetRepository,
                     customerRequestRepository: customerRequestRepository,
+                    bookingRepository: bookingRepository,
                     groomerProfileRepository: groomerProfileRepository,
                     groomerRequestRepository: groomerRequestRepository
                 )

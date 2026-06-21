@@ -13,6 +13,7 @@ struct PetGroomerMarketplaceApp: App {
                 profileRepository: composition.profileRepository,
                 customerPetRepository: composition.customerPetRepository,
                 customerRequestRepository: composition.customerRequestRepository,
+                bookingRepository: composition.bookingRepository,
                 groomerProfileRepository: composition.groomerProfileRepository,
                 groomerRequestRepository: composition.groomerRequestRepository
             )

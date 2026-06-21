@@ -50,7 +50,7 @@ Sign up or sign in
 → Leave one review
 ```
 
-Publishing calls `create_grooming_request`; acceptance calls `accept_groomer_offer`; review creation calls `create_review`. Failure keeps the user on the actionable screen with recoverable input intact.
+Publishing calls `create_grooming_request`; acceptance calls `accept_groomer_offer` and then refreshes owned request/offer state; review creation calls `create_review`. Failure keeps the user on the actionable screen with recoverable input intact.
 
 ## Groomer Flow
 
@@ -80,7 +80,7 @@ Pending offer
 → Request becomes booked
 ```
 
-The app must not optimistically fabricate a booking before the backend transaction succeeds.
+The app must not optimistically fabricate a booking before the backend transaction succeeds. After acceptance, both role-specific Bookings tabs read participant `bookings` rows through backend RLS.
 
 Booking cancellation changes only the booking status in the MVP contract. It does not reopen the original request, re-enable the accepted offer, or restore competing offers; a customer who needs another appointment starts a new request. Booking completion and reviews remain later lifecycle steps and must not be shown as active actions before their backend RPCs are implemented.
 

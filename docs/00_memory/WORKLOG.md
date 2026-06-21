@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-06-20
+Task: T-019 — booking acceptance and role UI.
+Files changed: Booking models/repository/Supabase adapter/store/UI, Customer Requests offer acceptance wiring, role tab DI, focused tests, task doc, screen inventory, feature/current memory, task ledger, and worklog.
+Checks: Initial `./scripts/ios-test.sh` failed on a missing `role` property in `BookingsView`; approved targeted fix applied. Second run failed on an ambiguous `.unavailable` enum in `CustomerRequestsStore`; approved targeted fix applied. Code-review follow-up validation initially failed on Swift 6 default MainActor isolation for new pure booking reference helpers; fixed with `nonisolated`. Final `./scripts/ios-test.sh` passed with 55 Swift Testing tests and 1 XCTest UI smoke test.
+Result: T-019 is completed. Customers can accept eligible pending offers through the T-018 RPC, both roles can load participant bookings, booking list/detail uses short support references from existing booking data, missing local update targets produce refresh hints, and confirmed bookings can be cancelled through `cancel_booking`.
+Risks: Booking list/detail still lacks rich request/profile summaries because that requires a later query/RLS design. Cancellation does not reopen original requests/offers by design. Chat, completion, and reviews remain unimplemented.
+Next: T-020 — implement booking-participant chat in a separate Deep task with explicit backend validation.
+```
+
+```text
+Date: 2026-06-20
 Task: T-018 review follow-up — clarify cancellation and completion boundaries.
 Files changed: Product flow/UX/role docs, T-018/T-019 roadmap notes, backend contract, current state, and worklog.
 Checks: Documentation/static checks only; no Supabase DDL, iOS build, or iOS tests were needed.

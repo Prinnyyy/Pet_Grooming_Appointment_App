@@ -7,6 +7,7 @@ struct AppComposition {
     let profileRepository: (any ProfileRepository)?
     let customerPetRepository: (any CustomerPetRepository)?
     let customerRequestRepository: (any CustomerRequestRepository)?
+    let bookingRepository: (any BookingRepository)?
     let groomerProfileRepository: (any GroomerProfileRepository)?
     let groomerRequestRepository: (any GroomerRequestRepository)?
     let authenticationStore: AuthenticationStore?
@@ -19,6 +20,7 @@ struct AppComposition {
             let profileRepository = SupabaseProfileRepository(client: client)
             let customerPetRepository = SupabaseCustomerPetRepository(client: client)
             let customerRequestRepository = SupabaseCustomerRequestRepository(client: client)
+            let bookingRepository = SupabaseBookingRepository(client: client)
             let groomerProfileRepository = SupabaseGroomerProfileRepository(client: client)
             let groomerRequestRepository = SupabaseGroomerRequestRepository(client: client)
 
@@ -27,6 +29,7 @@ struct AppComposition {
             self.profileRepository = profileRepository
             self.customerPetRepository = customerPetRepository
             self.customerRequestRepository = customerRequestRepository
+            self.bookingRepository = bookingRepository
             self.groomerProfileRepository = groomerProfileRepository
             self.groomerRequestRepository = groomerRequestRepository
             authenticationStore = AuthenticationStore(repository: authRepository)
@@ -38,6 +41,7 @@ struct AppComposition {
             profileRepository = nil
             customerPetRepository = nil
             customerRequestRepository = nil
+            bookingRepository = nil
             groomerProfileRepository = nil
             groomerRequestRepository = nil
             authenticationStore = nil

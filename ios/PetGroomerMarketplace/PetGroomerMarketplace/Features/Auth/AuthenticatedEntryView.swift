@@ -5,6 +5,7 @@ struct AuthenticatedEntryView: View {
     @Bindable var authenticationStore: AuthenticationStore
     private let customerPetRepository: any CustomerPetRepository
     private let customerRequestRepository: any CustomerRequestRepository
+    private let bookingRepository: any BookingRepository
     private let groomerProfileRepository: any GroomerProfileRepository
     private let groomerRequestRepository: any GroomerRequestRepository
     @State private var store: AuthenticatedEntryStore
@@ -15,6 +16,7 @@ struct AuthenticatedEntryView: View {
         profileRepository: any ProfileRepository,
         customerPetRepository: any CustomerPetRepository,
         customerRequestRepository: any CustomerRequestRepository,
+        bookingRepository: any BookingRepository,
         groomerProfileRepository: any GroomerProfileRepository,
         groomerRequestRepository: any GroomerRequestRepository
     ) {
@@ -22,6 +24,7 @@ struct AuthenticatedEntryView: View {
         self.authenticationStore = authenticationStore
         self.customerPetRepository = customerPetRepository
         self.customerRequestRepository = customerRequestRepository
+        self.bookingRepository = bookingRepository
         self.groomerProfileRepository = groomerProfileRepository
         self.groomerRequestRepository = groomerRequestRepository
         _store = State(
@@ -49,6 +52,7 @@ struct AuthenticatedEntryView: View {
                     customerID: profile.userID,
                     petRepository: customerPetRepository,
                     requestRepository: customerRequestRepository,
+                    bookingRepository: bookingRepository,
                     accountContent: accountContent(for: profile)
                 )
 
@@ -57,6 +61,7 @@ struct AuthenticatedEntryView: View {
                     groomerID: profile.userID,
                     profileRepository: groomerProfileRepository,
                     requestRepository: groomerRequestRepository,
+                    bookingRepository: bookingRepository,
                     accountContent: accountContent(for: profile)
                 )
 

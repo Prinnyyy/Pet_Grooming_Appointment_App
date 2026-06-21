@@ -17,7 +17,8 @@ struct CustomerRequestsStoreTests {
         let store = CustomerRequestsStore(
             customerID: customerID,
             petRepository: petRepository,
-            requestRepository: requestRepository
+            requestRepository: requestRepository,
+            bookingRepository: CustomerRequestBookingRepositoryFake()
         )
 
         await store.load()
@@ -47,7 +48,8 @@ struct CustomerRequestsStoreTests {
         let store = CustomerRequestsStore(
             customerID: customerID,
             petRepository: petRepository,
-            requestRepository: requestRepository
+            requestRepository: requestRepository,
+            bookingRepository: CustomerRequestBookingRepositoryFake()
         )
         await store.load()
 
@@ -82,7 +84,8 @@ struct CustomerRequestsStoreTests {
         let store = CustomerRequestsStore(
             customerID: UUID(),
             petRepository: CustomerRequestPetRepositoryFake(),
-            requestRepository: repository
+            requestRepository: repository,
+            bookingRepository: CustomerRequestBookingRepositoryFake()
         )
 
         await store.publish()
@@ -101,7 +104,8 @@ struct CustomerRequestsStoreTests {
             petRepository: CustomerRequestPetRepositoryFake(
                 petsResult: .success([pet])
             ),
-            requestRepository: repository
+            requestRepository: repository,
+            bookingRepository: CustomerRequestBookingRepositoryFake()
         )
         await store.load()
 
@@ -135,7 +139,8 @@ struct CustomerRequestsStoreTests {
         let store = CustomerRequestsStore(
             customerID: customerID,
             petRepository: petRepository,
-            requestRepository: requestRepository
+            requestRepository: requestRepository,
+            bookingRepository: CustomerRequestBookingRepositoryFake()
         )
         await store.load()
 
@@ -169,7 +174,8 @@ struct CustomerRequestsStoreTests {
         let store = CustomerRequestsStore(
             customerID: customerID,
             petRepository: CustomerRequestPetRepositoryFake(),
-            requestRepository: repository
+            requestRepository: repository,
+            bookingRepository: CustomerRequestBookingRepositoryFake()
         )
 
         await store.loadOffers(for: request)
@@ -203,7 +209,8 @@ struct CustomerRequestsStoreTests {
         let store = CustomerRequestsStore(
             customerID: customerID,
             petRepository: CustomerRequestPetRepositoryFake(),
-            requestRepository: repository
+            requestRepository: repository,
+            bookingRepository: CustomerRequestBookingRepositoryFake()
         )
 
         await store.loadOffers(for: request)
@@ -224,7 +231,8 @@ struct CustomerRequestsStoreTests {
         let store = CustomerRequestsStore(
             customerID: customerID,
             petRepository: CustomerRequestPetRepositoryFake(),
-            requestRepository: repository
+            requestRepository: repository,
+            bookingRepository: CustomerRequestBookingRepositoryFake()
         )
 
         await store.loadOffers(for: request)
@@ -233,6 +241,153 @@ struct CustomerRequestsStoreTests {
         #expect(store.offers(for: request).isEmpty)
         #expect(store.offerError(for: request) == "Check your connection and try again.")
         #expect(store.errorMessage == nil)
+    }
+
+    @Test @MainActor
+    func acceptOfferCallsBookingRPCAndRefreshesRequestAndOffers() async throws {
+        let customerID = UUID()
+        let pet = Self.pet(customerID: customerID)
+        let request = Self.request(customerID: customerID, petID: pet.id)
+        let acceptedOfferID = UUID()
+        let competingOfferID = UUID()
+        let acceptedPending = Self.offerReview(
+            offerID: acceptedOfferID,
+            customerID: customerID,
+            requestID: request.id
+        )
+        let competingPending = Self.offerReview(
+            offerID: competingOfferID,
+            customerID: customerID,
+            requestID: request.id
+        )
+        let acceptedFinal = Self.offerReview(
+            offerID: acceptedOfferID,
+            customerID: customerID,
+            requestID: request.id,
+            status: .acceptedByCustomer
+        )
+        let competingFinal = Self.offerReview(
+            offerID: competingOfferID,
+            customerID: customerID,
+            requestID: request.id,
+            status: .declinedByCustomer
+        )
+        let requestRepository = CustomerRequestRepositoryFake(
+            requestsResult: .success([request]),
+            offersResult: .success([acceptedPending, competingPending])
+        )
+        let bookingRepository = CustomerRequestBookingRepositoryFake(
+            acceptResult: .success(
+                AcceptGroomerOfferResult(
+                    bookingID: UUID(),
+                    conversationID: UUID(),
+                    requestID: request.id,
+                    offerID: acceptedOfferID,
+                    bookingStatus: .confirmed,
+                    offerStatus: .acceptedByCustomer,
+                    requestStatus: .booked
+                )
+            )
+        )
+        let store = CustomerRequestsStore(
+            customerID: customerID,
+            petRepository: CustomerRequestPetRepositoryFake(
+                petsResult: .success([pet])
+            ),
+            requestRepository: requestRepository,
+            bookingRepository: bookingRepository
+        )
+        await store.load()
+        await store.loadOffers(for: request)
+
+        requestRepository.requestsResult = .success([
+            request.replacing(status: .booked),
+        ])
+        requestRepository.offersResult = .success([
+            acceptedFinal,
+            competingFinal,
+        ])
+
+        await store.accept(offerReview: acceptedPending, for: request)
+
+        #expect(bookingRepository.acceptCallCount == 1)
+        #expect(bookingRepository.lastAcceptedOfferID == acceptedOfferID)
+        #expect(requestRepository.requestsCallCount == 2)
+        #expect(requestRepository.offersCallCount == 2)
+        #expect(store.request(withID: request.id)?.status == .booked)
+        let statusesByOfferID = Dictionary(
+            uniqueKeysWithValues: store.offers(for: request).map {
+                ($0.offer.id, $0.offer.status)
+            }
+        )
+        #expect(statusesByOfferID[acceptedOfferID] == .acceptedByCustomer)
+        #expect(statusesByOfferID[competingOfferID] == .declinedByCustomer)
+        #expect(store.noticeMessage == "Offer accepted. Booking confirmed.")
+    }
+
+    @Test @MainActor
+    func acceptOfferConflictExplainsNoLocalBooking() async throws {
+        let customerID = UUID()
+        let request = Self.request(customerID: customerID, petID: UUID())
+        let offerReview = Self.offerReview(
+            customerID: customerID,
+            requestID: request.id
+        )
+        let bookingRepository = CustomerRequestBookingRepositoryFake(
+            acceptResult: .failure(.bookingConflict)
+        )
+        let store = CustomerRequestsStore(
+            customerID: customerID,
+            petRepository: CustomerRequestPetRepositoryFake(),
+            requestRepository: CustomerRequestRepositoryFake(),
+            bookingRepository: bookingRepository
+        )
+
+        await store.accept(offerReview: offerReview, for: request)
+
+        #expect(bookingRepository.acceptCallCount == 1)
+        #expect(
+            store.errorMessage ==
+                "That groomer is no longer available at the proposed time."
+        )
+        #expect(store.noticeMessage == nil)
+    }
+
+    @Test @MainActor
+    func acceptOfferWithMissingLocalStateReportsRefreshHint() async throws {
+        let customerID = UUID()
+        let request = Self.request(customerID: customerID, petID: UUID())
+        let offerReview = Self.offerReview(
+            customerID: customerID,
+            requestID: request.id
+        )
+        let bookingRepository = CustomerRequestBookingRepositoryFake(
+            acceptResult: .success(
+                AcceptGroomerOfferResult(
+                    bookingID: UUID(),
+                    conversationID: UUID(),
+                    requestID: request.id,
+                    offerID: offerReview.offer.id,
+                    bookingStatus: .confirmed,
+                    offerStatus: .acceptedByCustomer,
+                    requestStatus: .booked
+                )
+            )
+        )
+        let store = CustomerRequestsStore(
+            customerID: customerID,
+            petRepository: CustomerRequestPetRepositoryFake(),
+            requestRepository: CustomerRequestRepositoryFake(),
+            bookingRepository: bookingRepository
+        )
+
+        await store.accept(offerReview: offerReview, for: request)
+
+        #expect(bookingRepository.acceptCallCount == 1)
+        #expect(
+            store.noticeMessage ==
+                "Offer accepted. Booking confirmed. Refresh this request if the offer state does not update."
+        )
     }
 
     private static func pet(customerID: UUID) -> CustomerPet {
@@ -289,6 +444,7 @@ struct CustomerRequestsStoreTests {
     }
 
     private static func offerReview(
+        offerID: UUID = UUID(),
         customerID: UUID,
         requestID: UUID,
         status: GroomerOfferStatus = .pending,
@@ -297,7 +453,7 @@ struct CustomerRequestsStoreTests {
         let groomerID = UUID()
         return CustomerOfferReview(
             offer: GroomerOffer(
-                id: UUID(),
+                id: offerID,
                 requestID: requestID,
                 matchID: UUID(),
                 customerID: customerID,
@@ -424,5 +580,41 @@ private final class CustomerRequestRepositoryFake: CustomerRequestRepository {
         lastCustomerID = customerID
         lastDraft = draft
         return try createResult.get()
+    }
+}
+
+@MainActor
+private final class CustomerRequestBookingRepositoryFake: BookingRepository {
+    var acceptResult: Result<AcceptGroomerOfferResult, BookingRepositoryError>
+
+    private(set) var acceptCallCount = 0
+    private(set) var lastAcceptedOfferID: UUID?
+
+    init(
+        acceptResult: Result<AcceptGroomerOfferResult, BookingRepositoryError> =
+            .failure(.unavailable)
+    ) {
+        self.acceptResult = acceptResult
+    }
+
+    func bookings(
+        participantID: UUID,
+        role: UserRole
+    ) async throws -> [Booking] {
+        []
+    }
+
+    func acceptOffer(
+        offerID: UUID
+    ) async throws -> AcceptGroomerOfferResult {
+        acceptCallCount += 1
+        lastAcceptedOfferID = offerID
+        return try acceptResult.get()
+    }
+
+    func cancelBooking(
+        bookingID: UUID
+    ) async throws -> CancelBookingResult {
+        throw BookingRepositoryError.unavailable
     }
 }

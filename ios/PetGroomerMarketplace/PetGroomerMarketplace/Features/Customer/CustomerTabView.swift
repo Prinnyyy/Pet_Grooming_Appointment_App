@@ -4,6 +4,7 @@ struct CustomerTabView: View {
     let customerID: UUID?
     let petRepository: (any CustomerPetRepository)?
     let requestRepository: (any CustomerRequestRepository)?
+    let bookingRepository: (any BookingRepository)?
     let accountContent: AnyView?
     @State private var selection: CustomerTab = .home
 
@@ -11,11 +12,13 @@ struct CustomerTabView: View {
         customerID: UUID? = nil,
         petRepository: (any CustomerPetRepository)? = nil,
         requestRepository: (any CustomerRequestRepository)? = nil,
+        bookingRepository: (any BookingRepository)? = nil,
         accountContent: AnyView? = nil
     ) {
         self.customerID = customerID
         self.petRepository = petRepository
         self.requestRepository = requestRepository
+        self.bookingRepository = bookingRepository
         self.accountContent = accountContent
     }
 
@@ -44,11 +47,21 @@ struct CustomerTabView: View {
         } else if tab == .requests,
                   let customerID,
                   let petRepository,
-                  let requestRepository {
+                  let requestRepository,
+                  let bookingRepository {
             CustomerRequestsView(
                 customerID: customerID,
                 petRepository: petRepository,
-                requestRepository: requestRepository
+                requestRepository: requestRepository,
+                bookingRepository: bookingRepository
+            )
+        } else if tab == .bookings,
+                  let customerID,
+                  let bookingRepository {
+            BookingsView(
+                participantID: customerID,
+                role: .customer,
+                repository: bookingRepository
             )
         } else if tab == .account, let accountContent {
             accountContent
