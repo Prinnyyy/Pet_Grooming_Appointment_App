@@ -5,6 +5,7 @@ struct GroomerTabView: View {
     let profileRepository: (any GroomerProfileRepository)?
     let requestRepository: (any GroomerRequestRepository)?
     let bookingRepository: (any BookingRepository)?
+    let chatRepository: (any ChatRepository)?
     let accountContent: AnyView?
     @State private var selection: GroomerTab = .requests
 
@@ -13,12 +14,14 @@ struct GroomerTabView: View {
         profileRepository: (any GroomerProfileRepository)? = nil,
         requestRepository: (any GroomerRequestRepository)? = nil,
         bookingRepository: (any BookingRepository)? = nil,
+        chatRepository: (any ChatRepository)? = nil,
         accountContent: AnyView? = nil
     ) {
         self.groomerID = groomerID
         self.profileRepository = profileRepository
         self.requestRepository = requestRepository
         self.bookingRepository = bookingRepository
+        self.chatRepository = chatRepository
         self.accountContent = accountContent
     }
 
@@ -53,6 +56,14 @@ struct GroomerTabView: View {
                 participantID: groomerID,
                 role: .groomer,
                 repository: bookingRepository
+            )
+        } else if tab == .messages,
+                  let groomerID,
+                  let chatRepository {
+            ChatConversationsView(
+                participantID: groomerID,
+                role: .groomer,
+                repository: chatRepository
             )
         } else if tab == .account,
            let groomerID,

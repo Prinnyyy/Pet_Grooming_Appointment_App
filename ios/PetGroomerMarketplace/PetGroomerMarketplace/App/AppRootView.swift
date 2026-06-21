@@ -8,6 +8,7 @@ struct AppRootView: View {
     let customerPetRepository: (any CustomerPetRepository)?
     let customerRequestRepository: (any CustomerRequestRepository)?
     let bookingRepository: (any BookingRepository)?
+    let chatRepository: (any ChatRepository)?
     let groomerProfileRepository: (any GroomerProfileRepository)?
     let groomerRequestRepository: (any GroomerRequestRepository)?
     let roleOnboardingContent: AnyView?
@@ -20,6 +21,7 @@ struct AppRootView: View {
         customerPetRepository: (any CustomerPetRepository)? = nil,
         customerRequestRepository: (any CustomerRequestRepository)? = nil,
         bookingRepository: (any BookingRepository)? = nil,
+        chatRepository: (any ChatRepository)? = nil,
         groomerProfileRepository: (any GroomerProfileRepository)? = nil,
         groomerRequestRepository: (any GroomerRequestRepository)? = nil,
         roleOnboardingContent: AnyView? = nil
@@ -31,6 +33,7 @@ struct AppRootView: View {
         self.customerPetRepository = customerPetRepository
         self.customerRequestRepository = customerRequestRepository
         self.bookingRepository = bookingRepository
+        self.chatRepository = chatRepository
         self.groomerProfileRepository = groomerProfileRepository
         self.groomerRequestRepository = groomerRequestRepository
         self.roleOnboardingContent = roleOnboardingContent
@@ -44,6 +47,7 @@ struct AppRootView: View {
                let customerPetRepository,
                let customerRequestRepository,
                let bookingRepository,
+               let chatRepository,
                let groomerProfileRepository,
                let groomerRequestRepository {
                 AuthenticationGateView(
@@ -52,6 +56,7 @@ struct AppRootView: View {
                     customerPetRepository: customerPetRepository,
                     customerRequestRepository: customerRequestRepository,
                     bookingRepository: bookingRepository,
+                    chatRepository: chatRepository,
                     groomerProfileRepository: groomerProfileRepository,
                     groomerRequestRepository: groomerRequestRepository
                 )

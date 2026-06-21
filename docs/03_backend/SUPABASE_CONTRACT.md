@@ -2,7 +2,7 @@
 
 ## Contract Status
 
-This backend contract is derived from `Fresh_Pet_Groomer_Marketplace_Engineering_Brief.md`. The T-004 profile/avatar foundation, T-007 atomic profile-onboarding RPC, T-008 pet/photo schema and private bucket, T-010 groomer profile/services/portfolio backend, T-012 grooming request/match backend, T-015 groomer offer backend, and T-018 booking/conversation backend are deployed to the fresh Supabase project and mirrored under `supabase/migrations/`. T-018 booking metadata, grants, RLS, controlled accept/cancel RPCs, overlap protection, and rollback-only behavior checks are validated under the approved MCP-only boundary. Later chat/review objects remain planned. The original project visible through MCP is a legacy project and is not a target for this rebuild.
+This backend contract is derived from `Fresh_Pet_Groomer_Marketplace_Engineering_Brief.md`. The T-004 profile/avatar foundation, T-007 atomic profile-onboarding RPC, T-008 pet/photo schema and private bucket, T-010 groomer profile/services/portfolio backend, T-012 grooming request/match backend, T-015 groomer offer backend, T-018 booking/conversation backend, and T-020 text-message backend are deployed to the fresh Supabase project and mirrored under `supabase/migrations/`. T-020 message metadata, grants, RLS, and rollback-only participant checks are validated under the approved MCP-only boundary. Later review objects remain planned. The original project visible through MCP is a legacy project and is not a target for this rebuild.
 
 Once migrations exist, reviewed migrations and verified deployed metadata are authoritative. This document must remain synchronized with them and must never claim a planned object is deployed.
 
@@ -14,7 +14,7 @@ Once migrations exist, reviewed migrations and verified deployed metadata are au
 - Fresh project: `Pet Groomer Marketplace`, ref `lqmasbuqzvcvtawonjlb`, organization `Prinnyyy`, region `us-west-1`.
 - Project creation: authorized after the user confirmed the MCP-reported US$0/month cost; creation returned `ACTIVE_HEALTHY` on 2026-06-19.
 - Verification performed: project baseline; MCP migration application; schema, grants, RLS, trigger, function, and Storage inspection; rollback-only policy/RPC tests; security and performance advisors.
-- Applied migrations: `20260620105202_t004_profile_foundation`, `20260620105409_t004_optimize_rls_auth_calls`, `20260620172839_t007_create_my_profile`, corrective `20260620180607_t007_fix_create_my_profile_conflict_target`, `20260620192648_t008_pet_data_photo_storage`, `20260620224418_t010_groomer_profile_portfolio_backend`, corrective `20260620225308_t010_merge_groomer_select_policies`, `20260621000444_t012_grooming_request_match_backend`, corrective `20260621002211_t012_fix_create_grooming_request_conflict_target`, corrective `20260621010315_t012_limit_request_photo_snapshot`, `20260621024848_t015_groomer_offer_backend`, and `20260621044424_t018_offer_acceptance_booking_backend`.
+- Applied migrations: `20260620105202_t004_profile_foundation`, `20260620105409_t004_optimize_rls_auth_calls`, `20260620172839_t007_create_my_profile`, corrective `20260620180607_t007_fix_create_my_profile_conflict_target`, `20260620192648_t008_pet_data_photo_storage`, `20260620224418_t010_groomer_profile_portfolio_backend`, corrective `20260620225308_t010_merge_groomer_select_policies`, `20260621000444_t012_grooming_request_match_backend`, corrective `20260621002211_t012_fix_create_grooming_request_conflict_target`, corrective `20260621010315_t012_limit_request_photo_snapshot`, `20260621024848_t015_groomer_offer_backend`, `20260621044424_t018_offer_acceptance_booking_backend`, and `20260621055915_t020_booking_participant_chat`.
 - Local credential file: `supabase_api_key` exists, was not read, is Git-ignored, and has no authorization to appear in iOS code or documentation content.
 
 All Supabase migration and validation operations must target only the task-authorized fresh project, remain separate from the legacy ref, and use Supabase MCP exclusively. Remote DDL requires explicit authorization and a reviewed migration; MCP `apply_migration` is the only DDL path.
@@ -29,7 +29,7 @@ All Supabase migration and validation operations must target only the task-autho
 
 ## Tables and Roadmap
 
-`profiles`, `customer_profiles`, base `groomer_profiles`, `pets`, `pet_photos`, T-010 groomer profile details, `groomer_services`, `groomer_portfolio_photos`, `grooming_requests`, `request_matches`, `groomer_offers`, `bookings`, and `conversations` are deployed and backend-validated. Every other row remains planned until its owning task applies and verifies a migration.
+`profiles`, `customer_profiles`, base `groomer_profiles`, `pets`, `pet_photos`, T-010 groomer profile details, `groomer_services`, `groomer_portfolio_photos`, `grooming_requests`, `request_matches`, `groomer_offers`, `bookings`, `conversations`, and `messages` are deployed and backend-validated. Every other row remains planned until its owning task applies and verifies a migration.
 
 | Table | Purpose | Key Planned Fields | Access Summary | Roadmap |
 |---|---|---|---|---|
@@ -45,7 +45,7 @@ All Supabase migration and validation operations must target only the task-autho
 | `groomer_offers` | Groomer's proposed time, price, and message | `id`, request/match/customer/groomer references, proposal, status/expiry, timestamps | Groomer reads own; customer reads offers for owned request; create/withdraw/status transitions controlled | T-015 |
 | `bookings` | Durable result of accepted offer | `id`, request/offer/customer/groomer references, scheduled range/prices/status, timestamps | Participants read own; direct client insert and critical status updates denied | T-018 |
 | `conversations` | Participant boundary created with booking | `id`, optional request, booking/customer/groomer references, timestamps | Booking participants only | T-018 |
-| `messages` | Conversation messages and optional attachment metadata | `id`, `conversation_id`, `sender_id`, type/body/bucket/path, timestamps | Conversation participants read; sender must be a participant | T-020 |
+| `messages` | Text-only conversation messages | `id`, `conversation_id`, `sender_id`, `body`, timestamp | Conversation participants read; sender must be a participant; update/delete denied to authenticated clients | T-020 |
 | `reviews` | One customer review for a completed booking | `id`, unique `booking_id`, customer/groomer references, rating/content, timestamp | Eligible customer creates through RPC; intended marketplace reads defined with T-021 | T-021 |
 | `favorites` | Name reserved by the Fresh Brief without a defined flow or fields | No contract approved | No access, migration, repository, or UI authorized | deferred |
 
@@ -105,9 +105,9 @@ Function signatures, return shapes, security mode, grants, and error codes are f
 | `avatars` | Private; owner-only in T-004, with broader authorized presentation deferred | `{user_id}/{file_id}.{allowed_image_extension}` | T-004 |
 | `pet-photos` | Private | `{customer_id}/{pet_id}/{file_id}.jpg` | T-008 |
 | `groomer-portfolio` | Private bucket; authenticated object reads for active groomer portfolio metadata; owner-writable | `{groomer_id}/{file_id}.jpg` | T-010 |
-| `chat-attachments` | Private to conversation participants | `{conversation_id}/{message_id}.jpg` | T-020 |
+| `chat-attachments` | Private to conversation participants | `{conversation_id}/{message_id}.jpg` | deferred beyond T-020 |
 
-Object extension is illustrative; implementation tasks must validate allowed MIME types, sizes, generated file IDs, and actual path/metadata consistency.
+Object extension is illustrative; implementation tasks must validate allowed MIME types, sizes, generated file IDs, and actual path/metadata consistency. T-020 implements text-only messages and does not deploy a chat attachment bucket.
 
 ## Data API Exposure
 

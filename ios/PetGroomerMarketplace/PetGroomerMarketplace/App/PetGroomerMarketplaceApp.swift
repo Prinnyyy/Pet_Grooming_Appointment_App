@@ -14,6 +14,7 @@ struct PetGroomerMarketplaceApp: App {
                 customerPetRepository: composition.customerPetRepository,
                 customerRequestRepository: composition.customerRequestRepository,
                 bookingRepository: composition.bookingRepository,
+                chatRepository: composition.chatRepository,
                 groomerProfileRepository: composition.groomerProfileRepository,
                 groomerRequestRepository: composition.groomerRequestRepository
             )

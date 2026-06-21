@@ -6,6 +6,7 @@ struct AuthenticatedEntryView: View {
     private let customerPetRepository: any CustomerPetRepository
     private let customerRequestRepository: any CustomerRequestRepository
     private let bookingRepository: any BookingRepository
+    private let chatRepository: any ChatRepository
     private let groomerProfileRepository: any GroomerProfileRepository
     private let groomerRequestRepository: any GroomerRequestRepository
     @State private var store: AuthenticatedEntryStore
@@ -17,6 +18,7 @@ struct AuthenticatedEntryView: View {
         customerPetRepository: any CustomerPetRepository,
         customerRequestRepository: any CustomerRequestRepository,
         bookingRepository: any BookingRepository,
+        chatRepository: any ChatRepository,
         groomerProfileRepository: any GroomerProfileRepository,
         groomerRequestRepository: any GroomerRequestRepository
     ) {
@@ -25,6 +27,7 @@ struct AuthenticatedEntryView: View {
         self.customerPetRepository = customerPetRepository
         self.customerRequestRepository = customerRequestRepository
         self.bookingRepository = bookingRepository
+        self.chatRepository = chatRepository
         self.groomerProfileRepository = groomerProfileRepository
         self.groomerRequestRepository = groomerRequestRepository
         _store = State(
@@ -53,6 +56,7 @@ struct AuthenticatedEntryView: View {
                     petRepository: customerPetRepository,
                     requestRepository: customerRequestRepository,
                     bookingRepository: bookingRepository,
+                    chatRepository: chatRepository,
                     accountContent: accountContent(for: profile)
                 )
 
@@ -62,6 +66,7 @@ struct AuthenticatedEntryView: View {
                     profileRepository: groomerProfileRepository,
                     requestRepository: groomerRequestRepository,
                     bookingRepository: bookingRepository,
+                    chatRepository: chatRepository,
                     accountContent: accountContent(for: profile)
                 )
 

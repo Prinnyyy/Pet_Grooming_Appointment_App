@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-06-20
+Task: T-020 — booking participant chat.
+Files changed: T-020 task/reviewed SQL, local migration mirror, chat models/repository/Supabase adapter/store/UI, role tab DI, focused tests, backend/product memory docs, task ledger, feature index, current state, and worklog.
+Checks: MCP migration apply passed as `20260621055915`; metadata and rollback-only message/RLS checks passed with zero persisted validation data after two test-harness corrections. Security advisor returned the existing six intentional SECURITY DEFINER WARNs from prior RPCs. Performance advisor returned existing INFOs plus expected unused-index INFOs for new `messages` indexes before production query traffic. `./scripts/supabase-check.sh` passed. Post-review `./scripts/ios-test.sh` initially failed on Swift 6 return/isolation issues in the new summary helper; targeted fixes applied. Final `./scripts/ios-test.sh` passed with 62 Swift Testing tests and 1 XCTest UI smoke test. `git diff --check` passed.
+Result: T-020 is completed. Customer and groomer Messages tabs now load participant conversations with booking schedule/price context, customers can see active groomer business names when existing RLS permits it, and participants support text-only message reads/sends through `messages` RLS.
+Risks: Groomer-side customer names remain support references until a future customer-profile presentation contract exists. Realtime updates, attachments, typing indicators, read receipts, moderation, push notifications, completion, and reviews remain unimplemented.
+Next: T-021 — implement booking completion and completed-only reviews in a separate Deep task.
+```
+
+```text
+Date: 2026-06-20
 Task: T-019 — booking acceptance and role UI.
 Files changed: Booking models/repository/Supabase adapter/store/UI, Customer Requests offer acceptance wiring, role tab DI, focused tests, task doc, screen inventory, feature/current memory, task ledger, and worklog.
 Checks: Initial `./scripts/ios-test.sh` failed on a missing `role` property in `BookingsView`; approved targeted fix applied. Second run failed on an ambiguous `.unavailable` enum in `CustomerRequestsStore`; approved targeted fix applied. Code-review follow-up validation initially failed on Swift 6 default MainActor isolation for new pure booking reference helpers; fixed with `nonisolated`. Final `./scripts/ios-test.sh` passed with 55 Swift Testing tests and 1 XCTest UI smoke test.

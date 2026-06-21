@@ -2,7 +2,7 @@
 
 ## Current Status
 
-T-004 owner-scoped profile/avatar policies and T-007 `create_my_profile` are deployed and validated. T-008 explicit column grants, owner-scoped `pets`/`pet_photos` RLS, and private pet-photo Storage policies are deployed and backend-validated. T-010 groomer profile/services/portfolio grants, RLS, and private portfolio Storage policies are deployed and backend-validated; a corrective migration merged equivalent permissive SELECT policies. T-012 `grooming_requests`, `request_matches`, `create_grooming_request`, and `dismiss_request_match` are deployed and backend-validated; corrective migrations resolved the request-match conflict-target ambiguity and capped request photo snapshots at 20 metadata rows. T-015 `groomer_offers`, `create_groomer_offer`, and `withdraw_groomer_offer` are deployed and backend-validated. T-018 `bookings`, `conversations`, `accept_groomer_offer`, and `cancel_booking` are deployed and backend-validated, including uniqueness, participant RLS, controlled cancellation, competing-offer closure, and confirmed groomer overlap rejection. The Storage DELETE policies are restricted to `authenticated` and match behavior-tested owner-only predicates. Approved rollback-only checks and remote smokes left zero persisted validation data. Later chat/review rules remain planned requirements rather than proof of deployment.
+T-004 owner-scoped profile/avatar policies and T-007 `create_my_profile` are deployed and validated. T-008 explicit column grants, owner-scoped `pets`/`pet_photos` RLS, and private pet-photo Storage policies are deployed and backend-validated. T-010 groomer profile/services/portfolio grants, RLS, and private portfolio Storage policies are deployed and backend-validated; a corrective migration merged equivalent permissive SELECT policies. T-012 `grooming_requests`, `request_matches`, `create_grooming_request`, and `dismiss_request_match` are deployed and backend-validated; corrective migrations resolved the request-match conflict-target ambiguity and capped request photo snapshots at 20 metadata rows. T-015 `groomer_offers`, `create_groomer_offer`, and `withdraw_groomer_offer` are deployed and backend-validated. T-018 `bookings`, `conversations`, `accept_groomer_offer`, and `cancel_booking` are deployed and backend-validated, including uniqueness, participant RLS, controlled cancellation, competing-offer closure, and confirmed groomer overlap rejection. T-020 `messages` is deployed and backend-validated for text-only participant reads/inserts. The Storage DELETE policies are restricted to `authenticated` and match behavior-tested owner-only predicates. Approved rollback-only checks and remote smokes left zero persisted validation data. Later review rules remain planned requirements rather than proof of deployment.
 
 T-012, T-015, and T-018 intentionally use six `SECURITY DEFINER` RPCs in `public` so authenticated clients can invoke controlled multi-row writes while direct request/match/offer/booking/conversation table inserts, updates, and deletes remain denied. This produces Supabase security advisor WARNs by design. The functions keep an empty `search_path`, revoke `PUBLIC`/`anon` execution, grant only `authenticated`/`service_role`, and perform explicit auth, role, ownership, current-state, range, uniqueness, and conflict checks.
 
@@ -31,7 +31,7 @@ RLS controls rows after a request can access a relation; Postgres grants control
 | `request_matches` | no management | read/update own allowed transition via controlled operation | Insert and system statuses denied |
 | `groomer_offers` | read for owned request | read own | Create/withdraw/accept/status changes controlled by RPC/approved operation |
 | `bookings` | read own | read own | Insert and critical transitions denied |
-| `conversations`, `messages` | booking participant only | booking participant only | Non-participant access denied |
+| `conversations`, `messages` | booking participant only; text message insert as self | booking participant only; text message insert as self | Non-participant access denied; message update/delete denied |
 | `reviews` | read permitted marketplace result; create only when eligible | read applicable review result | Insert/update eligibility controlled |
 
 ## RPC Requirements
@@ -58,6 +58,7 @@ Prefer invoker security when it can satisfy the operation. If a function genuine
 - `create_groomer_offer` / `withdraw_groomer_offer`: enforce match, state, range, conflict, and active-offer rules.
 - `accept_groomer_offer`: atomically creates booking/conversation and closes the request and competing offers.
 - `cancel_booking`: applies only an allowed role-specific cancellation transition.
+- `messages`: direct insert is allowed only for the authenticated conversation participant as `sender_id`; direct update/delete is denied.
 - `complete_booking`: only the booked groomer completes a confirmed booking.
 - `create_review`: only the booked customer reviews a completed booking once.
 
@@ -69,7 +70,7 @@ Prefer invoker security when it can satisfy the operation. If a function genuine
 - Groomer A cannot read an unmatched request or mutate Groomer B profile/services.
 - A customer cannot directly insert a booking or request match.
 - A groomer cannot directly create a booking or accept an offer.
-- A non-participant cannot read conversation messages or chat attachments.
+- A non-participant cannot read or insert conversation messages or chat attachments.
 - A customer cannot review an incomplete or unrelated booking.
 - Direct status edits cannot bypass limits, ownership, uniqueness, or overlap checks.
 

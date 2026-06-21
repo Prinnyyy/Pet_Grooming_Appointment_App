@@ -84,6 +84,19 @@ The app must not optimistically fabricate a booking before the backend transacti
 
 Booking cancellation changes only the booking status in the MVP contract. It does not reopen the original request, re-enable the accepted offer, or restore competing offers; a customer who needs another appointment starts a new request. Booking completion and reviews remain later lifecycle steps and must not be shown as active actions before their backend RPCs are implemented.
 
+## Messaging Flow
+
+```text
+Accepted booking
+→ Backend-created conversation
+→ Customer or groomer opens Messages
+→ Participant conversation list loads through RLS with booking context
+→ Participant opens a conversation
+→ Text messages load and send through `messages`
+```
+
+T-020 messaging is text-only. The list/detail can show booking schedule and price context; customers may also see an active groomer's public business name through the existing `groomer_profiles` read policy. Groomer-side customer names remain support references until a customer profile presentation contract exists. Realtime updates, attachments, typing indicators, read receipts, moderation, and push notifications are not part of the current flow.
+
 ## Navigation Failure Rules
 
 - Missing or invalid backend configuration remains on a visible blocking state.
