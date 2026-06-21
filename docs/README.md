@@ -14,3 +14,13 @@ Use it to avoid relying on long conversation context.
 - `05_workflow/`: lightweight single-agent Codex workflow, context management, and tool policies
 - `06_tasks/`: task ledger, task template, handoff notes, review template
 - `07_decisions/`: ADRs and decision templates
+- `08_design/`: Groomly prototype, design prompt, implementation notes, and extracted design tokens
+- `09_frozen/`: frozen pre-phase snapshots used only for recovery or comparison
+
+## Active Task
+
+The active Groomly foundation sequence is `06_tasks/T-023_GROOMLY_UI_FOUNDATION_SEQUENCE.md`.
+
+The active next executable task is `06_tasks/T-023A_GROOMLY_DESIGN_AUDIT_NOTES.md`.
+
+T-022 remains completed, but its post-MVP next-task suggestions are frozen and must not auto-start. Use `09_frozen/pre_groomly_ui_2026-06-21/` only to recover or compare pre-Groomly context.

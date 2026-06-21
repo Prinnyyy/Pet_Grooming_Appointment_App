@@ -1,0 +1,1163 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<template id="__bundler_thumbnail" data-bg-color="#EBE4D9">
+  <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+    <rect width="1200" height="800" fill="#EBE4D9"/>
+    <circle cx="600" cy="360" r="150" fill="#7ECFC0"/>
+    <text x="600" y="430" font-size="150" text-anchor="middle" font-family="-apple-system,sans-serif">🐶</text>
+    <text x="600" y="600" font-size="76" font-weight="700" text-anchor="middle" fill="#232323" font-family="-apple-system,sans-serif">Groomly</text>
+  </svg>
+</template>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="style... truncated, see below ">
+<style>
+  *{ box-sizing:border-box; }
+  ::-webkit-scrollbar{ width:0; height:0; }
+  @keyframes gm-fadeUp{ from{ opacity:0; transform:translateY(10px);} to{ opacity:1; transform:translateY(0);} }
+  @keyframes gm-fadeIn{ from{ opacity:0;} to{ opacity:1;} }
+  @keyframes gm-sheetUp{ from{ transform:translateY(100%);} to{ transform:translateY(0);} }
+  @keyframes gm-scaleIn{ from{ opacity:0; transform:scale(0.8);} to{ opacity:1; transform:scale(1);} }
+  @keyframes gm-pop{ 0%{ transform:scale(0.6); opacity:0;} 60%{ transform:scale(1.08);} 100%{ transform:scale(1); opacity:1;} }
+  @keyframes gm-bounce{ 0%,100%{ transform:translateY(0);} 30%{ transform:translateY(-8px);} 60%{ transform:translateY(-3px);} }
+  @keyframes gm-draw{ to{ stroke-dashoffset:0; } }
+  @keyframes gm-shimmer{ 0%{ background-position:-200% 0;} 100%{ background-position:200% 0;} }
+  @keyframes gm-pulse{ 0%,100%{ opacity:1;} 50%{ opacity:0.45;} }
+  @keyframes gm-skel{ 0%{ background-position:-200% 0;} 100%{ background-position:200% 0;} }
+  @keyframes gm-float{ 0%,100%{ transform:translateY(0);} 50%{ transform:translateY(-14px);} }
+  .gm-scr::-webkit-scrollbar{ display:none; }
+</style>
+</helmet>
+<div style="min-height:100vh; width:100%; background:linear-gradient(160deg,#EFEAE1,#E7E0D5); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px; padding:28px 16px; font-family:-apple-system,'SF Pro Display','Inter',system-ui,sans-serif;">
+
+  <div style="display:flex; align-items:center; gap:8px; background:#fff; padding:5px; border-radius:999px; box-shadow:0 6px 18px rgba(35,35,35,0.08); border:1px solid #E8E2D8;">
+    <div onClick="{{ goCustomer }}" style="{{ demoCustStyle }}">🐶 Customer</div>
+    <div onClick="{{ goGroomer }}" style="{{ demoGroomStyle }}">✂️ Groomer</div>
+  </div>
+
+  <div style="position:relative; width:390px; height:844px; background:#0c0c0d; border-radius:56px; padding:11px; box-shadow:0 40px 80px -20px rgba(35,35,35,0.45), 0 0 0 2px rgba(255,255,255,0.04) inset;">
+    <div style="position:relative; width:100%; height:100%; background:#FAF7F2; border-radius:46px; overflow:hidden;">
+
+      <!-- status bar -->
+      <div style="position:absolute; top:0; left:0; right:0; height:50px; z-index:40; display:flex; align-items:center; justify-content:space-between; padding:16px 30px 0; pointer-events:none;">
+        <div style="font-size:15px; font-weight:600; color:#232323; letter-spacing:0.2px;">9:41</div>
+        <div style="display:flex; align-items:center; gap:6px; color:#232323;">
+          <svg width="18" height="12" viewBox="0 0 18 12" fill="currentColor"><rect x="0" y="7" width="3" height="5" rx="1"/><rect x="5" y="4" width="3" height="8" rx="1"/><rect x="10" y="1.5" width="3" height="10.5" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1" opacity="0.35"/></svg>
+          <svg width="17" height="12" viewBox="0 0 17 12" fill="currentColor"><path d="M8.5 2.5c2.3 0 4.4.9 6 2.4l1.2-1.3A11 11 0 0 0 8.5.5 11 11 0 0 0 1.3 3.6L2.5 4.9A8.4 8.4 0 0 1 8.5 2.5Z"/><path d="M8.5 6c1.3 0 2.5.5 3.4 1.4l1.2-1.3A7 7 0 0 0 8.5 4 7 7 0 0 0 3.9 6.1l1.2 1.3A4.9 4.9 0 0 1 8.5 6Z"/><circle cx="8.5" cy="10" r="1.7"/></svg>
+          <svg width="26" height="12" viewBox="0 0 26 12" fill="none"><rect x="0.5" y="0.5" width="21" height="11" rx="3" stroke="currentColor" opacity="0.4"/><rect x="2" y="2" width="17" height="8" rx="1.5" fill="currentColor"/><rect x="23" y="4" width="1.6" height="4" rx="0.8" fill="currentColor" opacity="0.5"/></svg>
+        </div>
+      </div>
+
+      <!-- dynamic island -->
+      <div style="position:absolute; top:13px; left:50%; transform:translateX(-50%); width:118px; height:33px; background:#0c0c0d; border-radius:20px; z-index:45;"></div>
+
+      <!-- screen scroller -->
+      <div ref="{{ setScroller }}" class="gm-scr" style="position:absolute; inset:0; overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch;">
+        <sc-if value="{{ scrSplash }}" hint-placeholder-val="{{ true }}">
+          <div style="min-height:844px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:0 40px; background:radial-gradient(120% 80% at 50% 20%, #EAF6F3 0%, #FAF7F2 55%);">
+            <div style="animation:gm-float 4s ease-in-out infinite;">
+              <div style="width:148px; height:148px; border-radius:50%; background:linear-gradient(150deg,#7ECFC0,#A8DADC); display:flex; align-items:center; justify-content:center; box-shadow:0 24px 48px -12px rgba(126,207,192,0.55); animation:gm-pop 0.7s ease both;">
+                <span style="font-size:74px; line-height:1; filter:drop-shadow(0 4px 6px rgba(0,0,0,0.08));">🐶</span>
+              </div>
+            </div>
+            <div style="margin-top:34px; font-size:40px; font-weight:700; color:#232323; letter-spacing:-1px; animation:gm-fadeUp 0.6s 0.15s both;">Groomly</div>
+            <div style="margin-top:12px; font-size:16px; line-height:1.5; color:#6F767E; max-width:260px; animation:gm-fadeUp 0.6s 0.3s both;">Find trusted independent groomers for your pet.</div>
+            <div style="position:absolute; left:40px; right:40px; bottom:0; padding-bottom:50px; animation:gm-fadeUp 0.6s 0.45s both;">
+              <div onClick="{{ toLogin }}" style="width:100%; height:56px; border-radius:18px; background:linear-gradient(135deg,#7ECFC0,#5FBFAE); color:#fff; font-size:17px; font-weight:600; display:flex; align-items:center; justify-content:center; box-shadow:0 14px 28px -8px rgba(126,207,192,0.6); cursor:pointer;">Get Started</div>
+              <div onClick="{{ toLogin }}" style="margin-top:16px; text-align:center; font-size:15px; font-weight:500; color:#6F767E; cursor:pointer;">I already have an account</div>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ scrLogin }}" hint-placeholder-val="{{ true }}">
+          <div style="min-height:844px; padding:96px 24px 40px; animation:gm-fadeIn 0.4s both;">
+            <div style="font-size:30px; font-weight:700; color:#232323; letter-spacing:-0.6px;">Welcome back</div>
+            <div style="margin-top:8px; font-size:15px; color:#6F767E; line-height:1.5;">Sign in to manage grooming requests and bookings.</div>
+            <div style="margin-top:34px; display:flex; flex-direction:column; gap:18px;">
+              <div>
+                <div style="font-size:13px; font-weight:600; color:#6F767E; margin-bottom:8px; padding-left:4px;">Email</div>
+                <div style="height:54px; border-radius:16px; background:#fff; border:1.5px solid #E8E2D8; display:flex; align-items:center; padding:0 16px; font-size:15px; color:#9aa0a6;">lian@example.com</div>
+              </div>
+              <div>
+                <div style="font-size:13px; font-weight:600; color:#6F767E; margin-bottom:8px; padding-left:4px;">Password</div>
+                <div style="height:54px; border-radius:16px; background:#fff; border:1.5px solid #E8E2D8; display:flex; align-items:center; justify-content:space-between; padding:0 16px; font-size:18px; color:#232323; letter-spacing:2px;">••••••••<span style="font-size:13px; color:#7ECFC0; font-weight:600; letter-spacing:0;">Show</span></div>
+              </div>
+            </div>
+            <div onClick="{{ signIn }}" style="margin-top:28px; width:100%; height:56px; border-radius:18px; background:linear-gradient(135deg,#7ECFC0,#5FBFAE); color:#fff; font-size:17px; font-weight:600; display:flex; align-items:center; justify-content:center; box-shadow:0 14px 28px -8px rgba(126,207,192,0.55); cursor:pointer;">Sign In</div>
+            <div onClick="{{ toRole }}" style="margin-top:14px; width:100%; height:56px; border-radius:18px; background:#fff; border:1.5px solid #E8E2D8; color:#232323; font-size:16px; font-weight:600; display:flex; align-items:center; justify-content:center; cursor:pointer;">Create Account</div>
+            <div style="margin-top:34px; display:flex; align-items:center; gap:14px; color:#B9B2A6; font-size:12px; font-weight:600; letter-spacing:1px;"><div style="flex:1; height:1px; background:#E8E2D8;"></div>DEMO<div style="flex:1; height:1px; background:#E8E2D8;"></div></div>
+            <div style="margin-top:18px; display:flex; gap:12px;">
+              <div onClick="{{ goCustomer }}" style="flex:1; height:48px; border-radius:14px; border:1.5px solid #7ECFC0; color:#3a8d7e; background:rgba(126,207,192,0.08); font-size:14px; font-weight:600; display:flex; align-items:center; justify-content:center; gap:6px; cursor:pointer;">🐶 Customer Demo</div>
+              <div onClick="{{ goGroomer }}" style="flex:1; height:48px; border-radius:14px; border:1.5px solid #FF9A8B; color:#c8675a; background:rgba(255,154,139,0.08); font-size:14px; font-weight:600; display:flex; align-items:center; justify-content:center; gap:6px; cursor:pointer;">✂️ Groomer Demo</div>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ scrRole }}" hint-placeholder-val="{{ true }}">
+          <div style="min-height:844px; padding:96px 24px 40px; animation:gm-fadeIn 0.4s both;">
+            <div style="font-size:30px; font-weight:700; color:#232323; letter-spacing:-0.6px;">How will you use Groomly?</div>
+            <div style="margin-top:8px; font-size:15px; color:#6F767E; line-height:1.5;">Choose one role to set up your account.</div>
+            <div style="margin-top:30px; display:flex; flex-direction:column; gap:18px;">
+              <div onClick="{{ goCustomer }}" style="background:#fff; border:2px solid #E8E2D8; border-radius:24px; padding:24px; box-shadow:0 8px 22px rgba(35,35,35,0.05); cursor:pointer;">
+                <div style="width:60px; height:60px; border-radius:18px; background:rgba(126,207,192,0.16); display:flex; align-items:center; justify-content:center;"><svg width="32" height="32" viewBox="0 0 24 24" fill="#3a8d7e"><circle cx="6" cy="9" r="2.1"/><circle cx="10.4" cy="6.2" r="2.1"/><circle cx="13.6" cy="6.2" r="2.1"/><circle cx="18" cy="9" r="2.1"/><path d="M12 11c2.6 0 4.7 2 4.7 4.2 0 1.6-1.4 2.3-3 2.3-.7 0-1.1-.3-1.7-.3s-1 .3-1.7.3c-1.6 0-3-.7-3-2.3C6.3 13 8.4 11 12 11Z"/></svg></div>
+                <div style="margin-top:16px; font-size:19px; font-weight:700; color:#232323;">I'm a pet owner</div>
+                <div style="margin-top:6px; font-size:14px; color:#6F767E; line-height:1.5;">Create grooming requests and book trusted groomers.</div>
+                <div style="margin-top:18px; height:48px; border-radius:14px; background:linear-gradient(135deg,#7ECFC0,#5FBFAE); color:#fff; font-size:15px; font-weight:600; display:flex; align-items:center; justify-content:center;">Continue as Pet Owner</div>
+              </div>
+              <div onClick="{{ goGroomer }}" style="background:#fff; border:2px solid #E8E2D8; border-radius:24px; padding:24px; box-shadow:0 8px 22px rgba(35,35,35,0.05); cursor:pointer;">
+                <div style="width:60px; height:60px; border-radius:18px; background:rgba(255,154,139,0.16); display:flex; align-items:center; justify-content:center;"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#c8675a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.1" y2="15.9"/><line x1="14.5" y1="14.5" x2="20" y2="20"/><line x1="8.1" y1="8.1" x2="12" y2="12"/></svg></div>
+                <div style="margin-top:16px; font-size:19px; font-weight:700; color:#232323;">I'm a groomer</div>
+                <div style="margin-top:6px; font-size:14px; color:#6F767E; line-height:1.5;">Find nearby requests, make offers, and manage bookings.</div>
+                <div style="margin-top:18px; height:48px; border-radius:14px; background:#fff; border:1.5px solid #FF9A8B; color:#c8675a; font-size:15px; font-weight:600; display:flex; align-items:center; justify-content:center;">Continue as Groomer</div>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- ===== CUSTOMER HOME ===== -->
+        <sc-if value="{{ scrHome }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:62px 20px 120px; animation:gm-fadeIn 0.35s both;">
+            <div style="display:flex; align-items:center; justify-content:space-between;">
+              <div style="display:flex; align-items:center; gap:12px;">
+                <div style="width:46px; height:46px; border-radius:50%; background:linear-gradient(150deg,#FCE3D5,#FF9A8B); display:flex; align-items:center; justify-content:center; font-size:24px; box-shadow:0 6px 14px -4px rgba(255,154,139,0.5);">🙂</div>
+                <div>
+                  <div style="font-size:13px; color:#6F767E; font-weight:500;">Welcome back</div>
+                  <div style="font-size:21px; font-weight:700; color:#232323; letter-spacing:-0.4px;">Hi, Lian</div>
+                </div>
+              </div>
+              <div style="width:44px; height:44px; border-radius:50%; background:#fff; border:1px solid #EFEAE1; display:flex; align-items:center; justify-content:center; position:relative; box-shadow:0 4px 12px rgba(35,35,35,0.04);"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#232323" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><div style="position:absolute; top:9px; right:11px; width:8px; height:8px; border-radius:50%; background:#FF9A8B; border:1.5px solid #fff;"></div></div>
+            </div>
+
+            <div onClick="{{ openWizard }}" style="margin-top:22px; border-radius:26px; padding:26px 24px; background:linear-gradient(135deg,#7ECFC0 0%,#A8DADC 100%); position:relative; overflow:hidden; box-shadow:0 18px 36px -12px rgba(126,207,192,0.55); cursor:pointer; animation:gm-fadeUp 0.5s both;">
+              <div style="position:absolute; right:-20px; top:-20px; width:130px; height:130px; border-radius:50%; background:rgba(255,255,255,0.18);"></div>
+              <div style="position:absolute; right:24px; bottom:-10px; font-size:58px; opacity:0.9;">🐾</div>
+              <div style="position:relative;">
+                <div style="font-size:22px; font-weight:700; color:#fff; line-height:1.25; max-width:210px; letter-spacing:-0.4px;">Need grooming for your pet?</div>
+                <div style="margin-top:8px; font-size:13.5px; color:rgba(255,255,255,0.9); line-height:1.5; max-width:215px;">Create one request and compare offers from available groomers.</div>
+                <div style="margin-top:18px; display:inline-flex; align-items:center; gap:8px; background:#fff; color:#3a8d7e; font-size:15px; font-weight:600; padding:12px 20px; border-radius:14px; box-shadow:0 8px 18px -6px rgba(0,0,0,0.15);">✂️ Start Grooming Request</div>
+              </div>
+            </div>
+
+            <div style="margin-top:28px; display:flex; align-items:center; justify-content:space-between;">
+              <div style="font-size:18px; font-weight:700; color:#232323; letter-spacing:-0.3px;">Your pets</div>
+              <div onClick="{{ tabRequests }}" style="display:none;"></div>
+            </div>
+            <div class="gm-scr" style="margin-top:14px; display:flex; gap:14px; overflow-x:auto; padding:2px 0 6px; margin-right:-20px; padding-right:20px;">
+              <sc-for list="{{ pets }}" as="p" hint-placeholder-count="2">
+                <div onClick="{{ p.onSelect }}" style="flex:0 0 150px; background:#fff; border-radius:22px; padding:14px; border:1px solid #EFEAE1; box-shadow:0 6px 16px rgba(35,35,35,0.05);">
+                  <div style="height:96px; border-radius:16px; background:{{ p.bg }}; display:flex; align-items:center; justify-content:center; font-size:52px;">{{ p.emoji }}</div>
+                  <div style="margin-top:12px; font-size:16px; font-weight:700; color:#232323;">{{ p.name }}</div>
+                  <div style="margin-top:2px; font-size:12.5px; color:#6F767E;">{{ p.breed }}</div>
+                  <div style="margin-top:8px; font-size:11px; color:#9aa0a6; display:flex; align-items:center; gap:4px;">⏱ {{ p.last }}</div>
+                </div>
+              </sc-for>
+              <div onClick="{{ openWizard }}" style="flex:0 0 150px; border-radius:22px; border:2px dashed #D8D0C2; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; color:#9aa0a6; min-height:198px;"><div style="width:44px; height:44px; border-radius:50%; background:#F4EFE7; display:flex; align-items:center; justify-content:center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7ECFC0" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></div><span style="font-size:13px; font-weight:600;">Add pet</span></div>
+            </div>
+
+            <div style="margin-top:24px; font-size:18px; font-weight:700; color:#232323; letter-spacing:-0.3px;">Active request</div>
+            <div onClick="{{ tabRequests }}" style="margin-top:14px; background:#fff; border-radius:24px; padding:20px; border:1px solid #EFEAE1; box-shadow:0 8px 22px rgba(35,35,35,0.05); cursor:pointer;">
+              <div style="display:flex; align-items:center; justify-content:space-between;">
+                <div style="display:flex; align-items:center; gap:10px;"><div style="width:40px; height:40px; border-radius:12px; background:#FCE3D5; display:flex; align-items:center; justify-content:center; font-size:22px;">🐩</div><div><div style="font-size:16px; font-weight:700; color:#232323;">Open Request</div><div style="font-size:12.5px; color:#6F767E;">Mochi · Full Groom</div></div></div>
+                <div style="display:flex; align-items:center; gap:6px; background:rgba(242,184,75,0.14); color:#b9842a; padding:6px 12px; border-radius:999px; font-size:11.5px; font-weight:600;"><span style="width:7px; height:7px; border-radius:50%; background:#F2B84B; animation:gm-pulse 1.6s infinite;"></span>Waiting for offers</div>
+              </div>
+              <div style="margin-top:14px; font-size:13.5px; color:#6F767E;">2 groomers are reviewing your request</div>
+              <div style="margin-top:14px; height:44px; border-radius:13px; background:rgba(126,207,192,0.12); color:#3a8d7e; font-size:14px; font-weight:600; display:flex; align-items:center; justify-content:center;">View Request</div>
+            </div>
+
+            <div style="margin-top:24px; font-size:18px; font-weight:700; color:#232323; letter-spacing:-0.3px;">Next booking</div>
+            <div onClick="{{ tabBookings }}" style="margin-top:14px; background:#fff; border-radius:24px; padding:20px; border:1px solid #EFEAE1; box-shadow:0 8px 22px rgba(35,35,35,0.05); cursor:pointer; display:flex; align-items:center; gap:14px;">
+              <div style="width:52px; height:52px; border-radius:16px; background:linear-gradient(150deg,#7ECFC0,#A8DADC); display:flex; align-items:center; justify-content:center; font-size:26px;">👩🏻</div>
+              <div style="flex:1;"><div style="font-size:16px; font-weight:700; color:#232323;">Ava Chen</div><div style="margin-top:3px; font-size:13px; color:#6F767E;">Fri, Jun 19 · 2:30 PM</div></div>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C4BCAE" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- ===== PETS LIST ===== -->
+        <sc-if value="{{ scrPets }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:62px 20px 120px; animation:gm-fadeIn 0.35s both;">
+            <div style="display:flex; align-items:center; gap:14px;"><div onClick="{{ back }}" style="width:40px; height:40px; border-radius:12px; background:#fff; border:1px solid #EFEAE1; display:flex; align-items:center; justify-content:center; cursor:pointer;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#232323" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></div><div style="font-size:26px; font-weight:700; color:#232323; letter-spacing:-0.5px;">Your Pets</div></div>
+            <div style="margin-top:22px; display:flex; flex-direction:column; gap:16px;">
+              <sc-for list="{{ pets }}" as="p" hint-placeholder-count="2">
+                <div style="background:#fff; border-radius:24px; padding:18px; border:1px solid #EFEAE1; box-shadow:0 8px 22px rgba(35,35,35,0.05);">
+                  <div style="display:flex; gap:16px;">
+                    <div style="width:80px; height:80px; border-radius:18px; background:{{ p.bg }}; display:flex; align-items:center; justify-content:center; font-size:44px;">{{ p.emoji }}</div>
+                    <div style="flex:1;">
+                      <div style="font-size:18px; font-weight:700; color:#232323;">{{ p.name }}</div>
+                      <div style="margin-top:2px; font-size:13px; color:#6F767E;">{{ p.breed }} · {{ p.weight }}</div>
+                      <div style="margin-top:10px; display:inline-flex; align-items:center; background:rgba(126,207,192,0.14); color:#3a8d7e; padding:5px 11px; border-radius:999px; font-size:11.5px; font-weight:600;">{{ p.temperament }}</div>
+                    </div>
+                  </div>
+                  <div style="margin-top:16px; display:flex; gap:10px;">
+                    <div onClick="{{ go('addPet') }}" style="flex:1; height:44px; border-radius:13px; background:#F4EFE7; color:#232323; font-size:14px; font-weight:600; display:flex; align-items:center; justify-content:center;">Edit</div>
+                    <div onClick="{{ openWizard }}" style="flex:1.4; height:44px; border-radius:13px; background:linear-gradient(135deg,#7ECFC0,#5FBFAE); color:#fff; font-size:14px; font-weight:600; display:flex; align-items:center; justify-content:center;">Use for Request</div>
+                  </div>
+                </div>
+              </sc-for>
+              <div onClick="{{ go('addPet') }}" style="border-radius:24px; border:2px dashed #D8D0C2; padding:22px; display:flex; align-items:center; justify-content:center; gap:10px; color:#3a8d7e; font-size:15px; font-weight:600; cursor:pointer;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7ECFC0" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Add Pet</div>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- ===== ADD PET ===== -->
+        <sc-if value="{{ scrAddPet }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:62px 20px 120px; animation:gm-fadeIn 0.35s both;">
+            <div style="display:flex; align-items:center; gap:14px;"><div onClick="{{ back }}" style="width:40px; height:40px; border-radius:12px; background:#fff; border:1px solid #EFEAE1; display:flex; align-items:center; justify-content:center; cursor:pointer;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#232323" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></div><div style="font-size:26px; font-weight:700; color:#232323; letter-spacing:-0.5px;">Add Pet</div></div>
+            <div style="margin-top:22px; border-radius:22px; border:2px dashed #D8D0C2; background:#fff; padding:28px; display:flex; flex-direction:column; align-items:center; gap:10px;">
+              <div style="width:54px; height:54px; border-radius:16px; background:rgba(126,207,192,0.14); display:flex; align-items:center; justify-content:center;"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#3a8d7e" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-2.5h6L17 8h3v11H4z"/><circle cx="12" cy="13" r="3.4"/></svg></div>
+              <div style="font-size:14px; font-weight:600; color:#232323;">Add clear photos of your pet</div>
+              <div style="font-size:12px; color:#9aa0a6;">Tap to upload from camera or library</div>
+            </div>
+            <div style="margin-top:20px; display:flex; flex-direction:column; gap:16px;">
+              <div><div style="font-size:13px; font-weight:600; color:#6F767E; margin-bottom:8px; padding-left:4px;">Pet name</div><div style="height:52px; border-radius:15px; background:#fff; border:1.5px solid #E8E2D8; display:flex; align-items:center; padding:0 16px; font-size:15px; color:#232323;">Mochi</div></div>
+              <div style="display:flex; gap:12px;"><div style="flex:1;"><div style="font-size:13px; font-weight:600; color:#6F767E; margin-bottom:8px; padding-left:4px;">Breed</div><div style="height:52px; border-radius:15px; background:#fff; border:1.5px solid #E8E2D8; display:flex; align-items:center; padding:0 16px; font-size:15px; color:#232323;">Toy Poodle</div></div><div style="flex:0.7;"><div style="font-size:13px; font-weight:600; color:#6F767E; margin-bottom:8px; padding-left:4px;">Weight</div><div style="height:52px; border-radius:15px; background:#fff; border:1.5px solid #E8E2D8; display:flex; align-items:center; padding:0 16px; font-size:15px; color:#232323;">12 lbs</div></div></div>
+              <div><div style="font-size:13px; font-weight:600; color:#6F767E; margin-bottom:8px; padding-left:4px;">Temperament</div><div style="display:flex; flex-wrap:wrap; gap:8px;"><sc-for list="{{ handlingOptions }}" as="h" hint-placeholder-count="5"><div style="display:none;"></div></sc-for><div style="padding:9px 15px; border-radius:999px; background:#7ECFC0; color:#fff; font-size:13px; font-weight:600;">Gentle</div><div style="padding:9px 15px; border-radius:999px; background:#fff; border:1.5px solid #E8E2D8; color:#6F767E; font-size:13px; font-weight:600;">Nervous</div><div style="padding:9px 15px; border-radius:999px; background:#fff; border:1.5px solid #E8E2D8; color:#6F767E; font-size:13px; font-weight:600;">Energetic</div><div style="padding:9px 15px; border-radius:999px; background:#fff; border:1.5px solid #E8E2D8; color:#6F767E; font-size:13px; font-weight:600;">Senior</div></div></div>
+              <div><div style="font-size:13px; font-weight:600; color:#6F767E; margin-bottom:8px; padding-left:4px;">Grooming notes</div><div style="min-height:80px; border-radius:15px; background:#fff; border:1.5px solid #E8E2D8; padding:14px 16px; font-size:14px; color:#9aa0a6; line-height:1.5;">e.g. sensitive around paws, prefers a teddy cut…</div></div>
+            </div>
+            <div style="margin-top:24px; display:flex; gap:12px;"><div onClick="{{ back }}" style="flex:1; height:54px; border-radius:18px; background:#fff; border:1.5px solid #E8E2D8; color:#232323; font-size:16px; font-weight:600; display:flex; align-items:center; justify-content:center;">Cancel</div><div onClick="{{ back }}" style="flex:1.5; height:54px; border-radius:18px; background:linear-gradient(135deg,#7ECFC0,#5FBFAE); color:#fff; font-size:16px; font-weight:600; display:flex; align-items:center; justify-content:center; box-shadow:0 12px 24px -8px rgba(126,207,192,0.5);">Save Pet</div></div>
+          </div>
+        </sc-if>
+
+        <!-- ===== CREATE REQUEST WIZARD ===== -->
+        <sc-if value="{{ scrWizard }}" hint-placeholder-val="{{ false }}">
+          <div style="min-height:844px; display:flex; flex-direction:column; background:#FAF7F2;">
+            <div style="padding:60px 20px 16px; background:#FAF7F2; position:sticky; top:0; z-index:5;">
+              <div style="display:flex; align-items:center; gap:14px;">
+                <div onClick="{{ wizBack }}" style="width:40px; height:40px; border-radius:12px; background:#fff; border:1px solid #EFEAE1; display:flex; align-items:center; justify-content:center; cursor:pointer;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#232323" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></div>
+                <div style="flex:1;"><div style="font-size:12px; font-weight:600; color:#9aa0a6;">Grooming Request</div><div style="height:6px; margin-top:7px; background:#EAE3D8; border-radius:3px; overflow:hidden;"><div style="height:100%; width:{{ wizPct }}; background:linear-gradient(90deg,#7ECFC0,#A8DADC); border-radius:3px; transition:width .35s ease;"></div></div></div>
+              </div>
+              <div style="margin-top:12px; display:flex; justify-content:space-between; font-size:11px; font-weight:600;">
+                <span style="color:#3a8d7e;">Pet</span><span style="color:#6F767E;">Service</span><span style="color:#6F767E;">Time</span><span style="color:#6F767E;">Details</span><span style="color:#6F767E;">Review</span>
+              </div>
+            </div>
+            <div style="flex:1; padding:14px 20px 130px;">
+              <!-- Step 1 -->
+              <sc-if value="{{ wiz0 }}" hint-placeholder-val="{{ false }}">
+                <div style="animation:gm-fadeUp 0.4s both;">
+                  <div style="font-size:26px; font-weight:700; color:#232323; letter-spacing:-0.5px;">Who needs grooming?</div>
+                  <div style="margin-top:6px; font-size:14px; color:#6F767E;">Choose the pet this request is for.</div>
+                  <div style="margin-top:20px; display:flex; flex-direction:column; gap:14px;">
+                    <sc-for list="{{ pets }}" as="p" hint-placeholder-count="2">
+                      <div onClick="{{ p.onSelect }}" style="border-radius:22px; padding:16px; display:flex; align-items:center; gap:16px; cursor:pointer; transition:all .2s; {{ p.sel }}">
+                        <div style="width:64px; height:64px; border-radius:16px; background:{{ p.bg }}; display:flex; align-items:center; justify-content:center; font-size:36px;">{{ p.emoji }}</div>
+                        <div style="flex:1;"><div style="font-size:17px; font-weight:700; color:#232323;">{{ p.name }}</div><div style="margin-top:2px; font-size:13px; color:#6F767E;">{{ p.breed }} · {{ p.weight }}</div></div>
+                        <sc-if value="{{ p.selected }}" hint-placeholder-val="{{ false }}"><div style="width:26px; height:26px; border-radius:50%; background:#7ECFC0; display:flex; align-items:center; justify-content:center;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4.5 4.5L19 7"/></svg></div></sc-if>
+                      </div>
+                    </sc-for>
+                    <div onClick="{{ go('addPet') }}" style="border-radius:22px; border:2px dashed #D8D0C2; padding:18px; display:flex; align-items:center; justify-content:center; gap:8px; color:#3a8d7e; font-size:14px; font-weight:600; cursor:pointer;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7ECFC0" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Add a new pet</div>
+                  </div>
+                </div>
+              </sc-if>
+              <!-- Step 2 -->
+              <sc-if value="{{ wiz1 }}" hint-placeholder-val="{{ false }}">
+                <div style="animation:gm-fadeUp 0.4s both;">
+                  <div style="font-size:26px; font-weight:700; color:#232323; letter-spacing:-0.5px;">What service do you need?</div>
+                  <div style="margin-top:18px; display:flex; flex-direction:column; gap:12px;">
+                    <sc-for list="{{ services }}" as="v" hint-placeholder-count="6">
+                      <div onClick="{{ v.onSelect }}" style="border-radius:20px; padding:16px; display:flex; align-items:center; gap:14px; cursor:pointer; transition:all .2s; {{ v.sel }}">
+                        <div style="width:46px; height:46px; border-radius:13px; background:rgba(126,207,192,0.14); display:flex; align-items:center; justify-content:center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3a8d7e" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><line x1="20" y1="4" x2="8.2" y2="15.8"/><line x1="14.5" y1="14.5" x2="20" y2="20"/><line x1="8.2" y1="8.2" x2="12" y2="12"/></svg></div>
+                        <div style="flex:1;"><div style="font-size:16px; font-weight:700; color:#232323;">{{ v.name }}</div><div style="margin-top:2px; font-size:12.5px; color:#6F767E;">{{ v.desc }}</div></div>
+                        <div style="font-size:11px; font-weight:600; color:#3a8d7e; background:rgba(126,207,192,0.14); padding:5px 9px; border-radius:999px; white-space:nowrap;">{{ v.dur }}</div>
+                      </div>
+                    </sc-for>
+                  </div>
+                  <sc-if value="{{ isCustom }}" hint-placeholder-val="{{ false }}"><div style="margin-top:14px; min-height:78px; border-radius:16px; background:#fff; border:1.5px solid #E8E2D8; padding:14px; font-size:14px; color:#9aa0a6;">Describe the custom service you'd like…</div></sc-if>
+                  <div style="margin-top:22px; font-size:15px; font-weight:700; color:#232323;">Dog size</div>
+                  <div style="margin-top:12px; display:flex; gap:10px;"><sc-for list="{{ sizes }}" as="z" hint-placeholder-count="4"><div onClick="{{ z.onSelect }}" style="flex:1; height:46px; border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:600; cursor:pointer; transition:all .2s; {{ z.chip }}">{{ z.label }}</div></sc-for></div>
+                </div>
+              </sc-if>
+              <!-- Step 3 -->
+              <sc-if value="{{ wiz2 }}" hint-placeholder-val="{{ false }}">
+                <div style="animation:gm-fadeUp 0.4s both;">
+                  <div style="font-size:26px; font-weight:700; color:#232323; letter-spacing:-0.5px;">When works best?</div>
+                  <div style="margin-top:6px; font-size:14px; color:#6F767E; line-height:1.5;">Choose a preferred time. Groomers can also suggest alternatives.</div>
+                  <div class="gm-scr" style="margin-top:18px; display:flex; gap:10px; overflow-x:auto; padding-bottom:4px; margin-right:-20px; padding-right:20px;"><sc-for list="{{ days }}" as="d" hint-placeholder-count="7"><div onClick="{{ d.onSelect }}" style="flex:0 0 56px; height:72px; border-radius:18px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; cursor:pointer; transition:all .2s; {{ d.style }}"><span style="font-size:11px; font-weight:600; opacity:0.8;">{{ d.d }}</span><span style="font-size:19px; font-weight:700;">{{ d.n }}</span></div></sc-for></div>
+                  <div style="margin-top:22px; font-size:15px; font-weight:700; color:#232323;">Time window</div>
+                  <div style="margin-top:12px; display:flex; flex-wrap:wrap; gap:10px;"><sc-for list="{{ windows }}" as="w" hint-placeholder-count="4"><div onClick="{{ w.onSelect }}" style="padding:11px 18px; border-radius:999px; font-size:14px; font-weight:600; cursor:pointer; transition:all .2s; {{ w.chip }}">{{ w.label }}</div></sc-for></div>
+                  <div onClick="{{ go('wizard') }}" style="margin-top:22px; background:#fff; border:1.5px solid #E8E2D8; border-radius:18px; padding:16px 18px; display:flex; align-items:center; justify-content:space-between;"><div><div style="font-size:14.5px; font-weight:600; color:#232323;">I'm flexible with time</div><div style="margin-top:3px; font-size:12px; color:#6F767E;">Let groomers suggest nearby times</div></div><div style="width:50px; height:30px; border-radius:999px; background:#7ECFC0; position:relative;"><div style="position:absolute; top:3px; right:3px; width:24px; height:24px; border-radius:50%; background:#fff; box-shadow:0 2px 5px rgba(0,0,0,0.2);"></div></div></div>
+                  <div style="margin-top:24px; font-size:15px; font-weight:700; color:#232323;">Location</div>
+                  <div style="margin-top:12px; display:flex; flex-direction:column; gap:10px;"><sc-for list="{{ locations }}" as="l" hint-placeholder-count="3"><div onClick="{{ l.onSelect }}" style="border-radius:16px; padding:15px 16px; display:flex; align-items:center; gap:13px; cursor:pointer; transition:all .2s; {{ l.sel }}"><span style="font-size:24px;">{{ l.ic }}</span><div style="flex:1; font-size:14.5px; font-weight:600; color:#232323;">{{ l.label }}</div><sc-if value="{{ l.on }}" hint-placeholder-val="{{ false }}"><div style="width:22px; height:22px; border-radius:50%; background:#7ECFC0; display:flex; align-items:center; justify-content:center;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4.5 4.5L19 7"/></svg></div></sc-if></div></sc-for></div>
+                </div>
+              </sc-if>
+              <!-- Step 4 -->
+              <sc-if value="{{ wiz3 }}" hint-placeholder-val="{{ false }}">
+                <div style="animation:gm-fadeUp 0.4s both;">
+                  <div style="font-size:26px; font-weight:700; color:#232323; letter-spacing:-0.5px;">Add helpful details</div>
+                  <div style="margin-top:16px; font-size:13px; font-weight:600; color:#6F767E; padding-left:4px;">Notes to groomers</div>
+                  <textarea value="{{ notes }}" onInput="{{ onNotes }}" style="margin-top:8px; width:100%; min-height:96px; border-radius:16px; background:#fff; border:1.5px solid #E8E2D8; padding:14px; font-size:14px; color:#232323; font-family:inherit; line-height:1.5; resize:none; outline:none;" placeholder="Tell groomers about coat condition, behavior, matting, or style preferences."></textarea>
+                  <div style="margin-top:18px; font-size:15px; font-weight:700; color:#232323;">Style preference</div>
+                  <div style="margin-top:12px; display:flex; flex-wrap:wrap; gap:10px;"><sc-for list="{{ styleOptions }}" as="o" hint-placeholder-count="5"><div onClick="{{ o.onSelect }}" style="padding:10px 16px; border-radius:999px; font-size:13.5px; font-weight:600; cursor:pointer; transition:all .2s; {{ o.chip }}">{{ o.label }}</div></sc-for></div>
+                  <div style="margin-top:22px; font-size:15px; font-weight:700; color:#232323;">Photos</div>
+                  <div style="margin-top:12px; display:flex; gap:12px;"><div style="width:88px; height:88px; border-radius:16px; background:#FCE3D5; display:flex; align-items:center; justify-content:center; font-size:42px;">🐩</div><div style="width:88px; height:88px; border-radius:16px; border:2px dashed #D8D0C2; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px; color:#9aa0a6;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9aa0a6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-2.5h6L17 8h3v11H4z"/><circle cx="12" cy="13" r="3.4"/></svg><span style="font-size:10px; font-weight:600;">Add</span></div></div>
+                  <div style="margin-top:22px; font-size:15px; font-weight:700; color:#232323;">Special handling</div>
+                  <div style="margin-top:12px; display:flex; flex-wrap:wrap; gap:10px;"><sc-for list="{{ handlingOptions }}" as="o" hint-placeholder-count="5"><div onClick="{{ o.onSelect }}" style="padding:10px 16px; border-radius:999px; font-size:13.5px; font-weight:600; cursor:pointer; transition:all .2s; {{ o.chip }}">{{ o.label }}</div></sc-for></div>
+                </div>
+              </sc-if>
+              <!-- Step 5 -->
+              <sc-if value="{{ wiz4 }}" hint-placeholder-val="{{ false }}">
+                <div style="animation:gm-fadeUp 0.4s both;">
+                  <div style="font-size:26px; font-weight:700; color:#232323; letter-spacing:-0.5px;">Review your request</div>
+                  <div style="margin-top:18px; background:#fff; border:1px solid #EFEAE1; border-radius:22px; padding:6px 20px; box-shadow:0 8px 22px rgba(35,35,35,0.05);">
+                    <div style="display:flex; align-items:center; justify-content:space-between; padding:15px 0; border-bottom:1px solid #F2EDE4;"><span style="font-size:13px; color:#6F767E;">Pet</span><span style="font-size:14.5px; font-weight:600; color:#232323;">{{ pet.name }} · {{ pet.breed }}</span></div>
+                    <div style="display:flex; align-items:center; justify-content:space-between; padding:15px 0; border-bottom:1px solid #F2EDE4;"><span style="font-size:13px; color:#6F767E;">Service</span><span style="font-size:14.5px; font-weight:600; color:#232323;">{{ service.name }}</span></div>
+                    <div style="display:flex; align-items:center; justify-content:space-between; padding:15px 0; border-bottom:1px solid #F2EDE4;"><span style="font-size:13px; color:#6F767E;">Preferred time</span><span style="font-size:14.5px; font-weight:600; color:#232323;">{{ day }} · {{ timeWindow }}</span></div>
+                    <div style="display:flex; align-items:center; justify-content:space-between; padding:15px 0; border-bottom:1px solid #F2EDE4;"><span style="font-size:13px; color:#6F767E;">Location</span><span style="font-size:14.5px; font-weight:600; color:#232323;">Mobile · comes to me</span></div>
+                    <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:20px; padding:15px 0;"><span style="font-size:13px; color:#6F767E; white-space:nowrap;">Notes</span><span style="font-size:13px; color:#232323; text-align:right; line-height:1.5;">{{ notes }}</span></div>
+                  </div>
+                  <div style="margin-top:18px; background:rgba(126,207,192,0.1); border-radius:20px; padding:18px;">
+                    <div style="display:flex; align-items:center; gap:8px; font-size:14.5px; font-weight:700; color:#3a8d7e;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3a8d7e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg>How matching works</div>
+                    <div style="margin-top:8px; font-size:13px; color:#3a7a6e; line-height:1.55;">Your request will be shown to groomers who fit your pet, service, and preferred time. Groomers can send offers or suggest another time.</div>
+                  </div>
+                  <div style="margin-top:14px; display:flex; align-items:center; gap:10px; padding:0 4px; font-size:12.5px; color:#6F767E; line-height:1.5;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9aa0a6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>Your contact details stay hidden until you accept an offer.</div>
+                </div>
+              </sc-if>
+            </div>
+            <div style="position:absolute; bottom:0; left:0; right:0; padding:16px 20px 30px; background:linear-gradient(180deg,rgba(250,247,242,0),#FAF7F2 30%); display:flex; gap:12px;">
+              <div onClick="{{ wizBack }}" style="width:90px; height:54px; border-radius:18px; background:#fff; border:1.5px solid #E8E2D8; color:#232323; font-size:16px; font-weight:600; display:flex; align-items:center; justify-content:center;">Back</div>
+              <sc-if value="{{ wiz4 }}" hint-placeholder-val="{{ false }}"><div onClick="{{ publish }}" style="flex:1; height:54px; border-radius:18px; background:linear-gradient(135deg,#7ECFC0,#5FBFAE); color:#fff; font-size:16px; font-weight:600; display:flex; align-items:center; justify-content:center; box-shadow:0 14px 28px -8px rgba(126,207,192,0.55);">Publish Request</div></sc-if>
+              <sc-if value="{{ wizNotLast }}" hint-placeholder-val="{{ true }}"><div onClick="{{ wizNext }}" style="flex:1; height:54px; border-radius:18px; background:linear-gradient(135deg,#7ECFC0,#5FBFAE); color:#fff; font-size:16px; font-weight:600; display:flex; align-items:center; justify-content:center; box-shadow:0 14px 28px -8px rgba(126,207,192,0.55);">Continue</div></sc-if>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- ===== REQUEST STATUS / MATCHING ===== -->
+        <sc-if value="{{ scrStatus }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:62px 20px 120px; animation:gm-fadeIn 0.35s both;">
+            <div style="display:flex; align-items:center; justify-content:space-between;">
+              <div style="font-size:26px; font-weight:700; color:#232323; letter-spacing:-0.5px; max-width:230px; line-height:1.2;">Your request is open</div>
+              <div style="display:flex; align-items:center; gap:6px; background:rgba(126,207,192,0.16); color:#3a8d7e; padding:7px 13px; border-radius:999px; font-size:12px; font-weight:600;"><span style="width:7px; height:7px; border-radius:50%; background:#7ECFC0; animation:gm-pulse 1.4s infinite;"></span>Matching</div>
+            </div>
+            <div style="margin-top:8px; font-size:14px; color:#6F767E;">We're checking available groomers near you.</div>
+
+            <div style="margin-top:24px; background:#fff; border:1px solid #EFEAE1; border-radius:24px; padding:22px 20px; box-shadow:0 8px 22px rgba(35,35,35,0.05);">
+              <sc-for list="{{ timeline }}" as="t" hint-placeholder-count="4">
+                <div style="display:flex; gap:14px;">
+                  <div style="display:flex; flex-direction:column; align-items:center;"><div style="width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; {{ t.dot }}">{{ t.icon }}</div><div style="width:2px; flex:1; background:{{ t.line }}; min-height:18px;"></div></div>
+                  <div style="padding-bottom:18px;"><div style="font-size:14.5px; font-weight:600; color:{{ t.titleColor }};">{{ t.title }}</div><div style="margin-top:2px; font-size:12.5px; color:#9aa0a6;">{{ t.sub }}</div></div>
+                </div>
+              </sc-for>
+            </div>
+
+            <sc-if value="{{ offersReady }}" hint-placeholder-val="{{ false }}">
+              <div onClick="{{ tabRequests }}" style="margin-top:20px; border-radius:22px; padding:18px 20px; background:linear-gradient(135deg,#7ECFC0,#A8DADC); box-shadow:0 14px 30px -10px rgba(126,207,192,0.55); display:flex; align-items:center; justify-content:space-between; animation:gm-fadeUp 0.5s both; cursor:pointer;">
+                <div><div style="font-size:18px; font-weight:700; color:#fff;">2 offers received 🎉</div><div style="margin-top:3px; font-size:13px; color:rgba(255,255,255,0.9);">Groomers are ready for Mochi</div></div>
+                <div onClick="{{ go('offers') }}" style="background:#fff; color:#3a8d7e; font-size:14px; font-weight:600; padding:11px 16px; border-radius:13px; white-space:nowrap;">Compare</div>
+              </div>
+            </sc-if>
+
+            <div style="margin-top:26px; display:flex; align-items:center; justify-content:space-between;"><div style="font-size:17px; font-weight:700; color:#232323;">{{ matchHeadline }}</div></div>
+            <div style="margin-top:14px; display:flex; flex-direction:column; gap:12px;">
+              <sc-for list="{{ matched }}" as="g" hint-placeholder-count="3">
+                <div onClick="{{ g.onView }}" style="background:#fff; border:1px solid #EFEAE1; border-radius:20px; padding:15px; display:flex; align-items:center; gap:13px; box-shadow:0 5px 14px rgba(35,35,35,0.04); animation:gm-fadeUp 0.45s both; cursor:pointer;">
+                  <div style="width:50px; height:50px; border-radius:15px; background:{{ g.bg }}; display:flex; align-items:center; justify-content:center; font-size:26px;">{{ g.emoji }}</div>
+                  <div style="flex:1; min-width:0;"><div style="display:flex; align-items:center; gap:6px;"><span style="font-size:15.5px; font-weight:700; color:#232323;">{{ g.name }}</span><span style="font-size:12px; color:#F2B84B;">★ {{ g.rating }}</span></div><div style="margin-top:2px; font-size:12px; color:#6F767E; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ g.dist }} · {{ g.specialty }}</div></div>
+                  <div style="font-size:10.5px; font-weight:600; padding:5px 10px; border-radius:999px; white-space:nowrap; {{ g.statusChip }}">{{ g.status }}</div>
+                </div>
+              </sc-for>
+            </div>
+
+            <div style="margin-top:24px; display:flex; gap:12px;">
+              <div onClick="{{ openWizard }}" style="flex:1; height:50px; border-radius:16px; background:#fff; border:1.5px solid #E8E2D8; color:#232323; font-size:14.5px; font-weight:600; display:flex; align-items:center; justify-content:center;">Edit Request</div>
+              <div onClick="{{ openCancel }}" style="flex:1; height:50px; border-radius:16px; background:#fff; border:1.5px solid #F4D4D2; color:#c85a5e; font-size:14.5px; font-weight:600; display:flex; align-items:center; justify-content:center;">Cancel Request</div>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- ===== OFFERS LIST ===== -->
+        <sc-if value="{{ scrOffers }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:62px 20px 40px; animation:gm-fadeIn 0.35s both;">
+            <div style="display:flex; align-items:center; gap:14px;"><div onClick="{{ back }}" style="width:40px; height:40px; border-radius:12px; background:#fff; border:1px solid #EFEAE1; display:flex; align-items:center; justify-content:center; cursor:pointer;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#232323" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></div><div><div style="font-size:24px; font-weight:700; color:#232323; letter-spacing:-0.5px;">Offers for Mochi</div><div style="font-size:13px; color:#6F767E; margin-top:2px;">Choose the groomer that works best.</div></div></div>
+            <div class="gm-scr" style="margin-top:18px; display:flex; gap:9px; overflow-x:auto; padding-bottom:4px; margin:18px -20px 0; padding:0 20px 4px;"><sc-for list="{{ offerFilters }}" as="f" hint-placeholder-count="4"><div onClick="{{ f.onSelect }}" style="white-space:nowrap; padding:9px 15px; border-radius:999px; font-size:13px; font-weight:600; cursor:pointer; transition:all .2s; {{ f.chip }}">{{ f.label }}</div></sc-for></div>
+            <div style="margin-top:18px; display:flex; flex-direction:column; gap:16px;">
+              <sc-for list="{{ offers }}" as="g" hint-placeholder-count="3">
+                <div style="background:#fff; border:1px solid #EFEAE1; border-radius:24px; overflow:hidden; box-shadow:0 8px 22px rgba(35,35,35,0.06); animation:gm-fadeUp 0.4s both;">
+                  <sc-if value="{{ g.best }}" hint-placeholder-val="{{ false }}"><div style="background:linear-gradient(90deg,#7ECFC0,#A8DADC); color:#fff; font-size:11px; font-weight:700; padding:6px 18px; letter-spacing:0.5px;">⭐ BEST MATCH FOR MOCHI</div></sc-if>
+                  <div style="padding:18px;">
+                    <div style="display:flex; align-items:center; gap:13px;">
+                      <div style="width:52px; height:52px; border-radius:16px; background:{{ g.bg }}; display:flex; align-items:center; justify-content:center; font-size:28px;">{{ g.emoji }}</div>
+                      <div style="flex:1; min-width:0;"><div style="display:flex; align-items:center; gap:6px;"><span style="font-size:16.5px; font-weight:700; color:#232323;">{{ g.name }}</span><svg width="15" height="15" viewBox="0 0 24 24" fill="#7ECFC0"><path d="M12 2l2.4 1.8 3-.2 1 2.8 2.4 1.8-.9 2.9.9 2.9-2.4 1.8-1 2.8-3-.2L12 22l-2.4-1.8-3 .2-1-2.8L3.2 16l.9-2.9L3.2 10l2.4-1.8 1-2.8 3 .2z"/><path d="M8.5 12l2.2 2.2 4.3-4.3" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div style="margin-top:2px; font-size:12.5px; color:#6F767E;">★ {{ g.rating }} ({{ g.reviews }}) · {{ g.dist }}</div></div>
+                    </div>
+                    <div style="margin-top:16px; display:flex; gap:12px;">
+                      <div style="flex:1; background:#FAF7F2; border-radius:15px; padding:12px 14px;"><div style="font-size:11px; color:#9aa0a6; font-weight:600;">PRICE</div><div style="margin-top:3px; font-size:21px; font-weight:700; color:#232323;">${{ g.price }}</div></div>
+                      <div style="flex:1.4; background:#FAF7F2; border-radius:15px; padding:12px 14px;"><div style="font-size:11px; color:#9aa0a6; font-weight:600;">PROPOSED TIME</div><div style="margin-top:3px; font-size:15px; font-weight:700; color:#232323;">{{ g.time }}</div><div style="font-size:11px; color:#9aa0a6; margin-top:1px;">{{ g.duration }}</div></div>
+                    </div>
+                    <div style="margin-top:13px; background:rgba(126,207,192,0.08); border-radius:14px; padding:12px 14px; font-size:13px; color:#4a5159; line-height:1.5; font-style:italic;">"{{ g.msg }}"</div>
+                    <div style="margin-top:12px; display:flex; flex-wrap:wrap; gap:7px;"><sc-for list="{{ g.tags }}" as="tag" hint-placeholder-count="2"><div style="background:#F2EDE4; color:#6F767E; font-size:11px; font-weight:600; padding:5px 11px; border-radius:999px;">{{ tag }}</div></sc-for></div>
+                    <div style="margin-top:16px; display:flex; gap:10px;">
+                      <div onClick="{{ g.onView }}" style="flex:1; height:46px; border-radius:14px; background:#F4EFE7; color:#232323; font-size:14px; font-weight:600; display:flex; align-items:center; justify-content:center;">View Details</div>
+                      <div onClick="{{ g.onAccept }}" style="flex:1.2; height:46px; border-radius:14px; background:linear-gradient(135deg,#7ECFC0,#5FBFAE); color:#fff; font-size:14px; font-weight:600; display:flex; align-items:center; justify-content:center; box-shadow:0 8px 18px -6px rgba(126,207,192,0.5);">Accept Offer</div>
+                    </div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- ===== OFFER DETAIL ===== -->
+        <sc-if value="{{ scrOfferDetail }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:62px 20px 40px; animation:gm-fadeIn 0.35s both;">
+            <div onClick="{{ back }}" style="width:40px; height:40px; border-radius:12px; background:#fff; border:1px solid #EFEAE1; display:flex; align-items:center; justify-content:center; cursor:pointer;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#232323" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></div>
+            <div style="margin-top:18px; display:flex; align-items:center; gap:16px;">
+              <div style="width:72px; height:72px; border-radius:22px; background:{{ sel.bg }}; display:flex; align-items:center; justify-content:center; font-size:38px;">{{ sel.emoji }}</div>
+              <div style="flex:1;"><div style="display:flex; align-items:center; gap:7px;"><span style="font-size:21px; font-weight:700; color:#232323;">{{ sel.name }}</span><span style="background:rgba(126,207,192,0.16); color:#3a8d7e; font-size:10px; font-weight:700; padding:3px 8px; border-radius:999px;">✓ Verified</span></div><div style="margin-top:4px; font-size:13px; color:#6F767E;">★ {{ sel.rating }} ({{ sel.reviews }} reviews) · {{ sel.dist }}</div><div style="margin-top:5px; font-size:12.5px; color:#3a8d7e; font-weight:600;">{{ sel.specialty }}</div></div>
+            </div>
+            <div style="margin-top:20px; background:#fff; border:1px solid #EFEAE1; border-radius:22px; padding:6px 20px; box-shadow:0 8px 22px rgba(35,35,35,0.05);">
+              <div style="display:flex; align-items:center; justify-content:space-between; padding:15px 0; border-bottom:1px solid #F2EDE4;"><span style="font-size:13px; color:#6F767E;">Price estimate</span><span style="font-size:19px; font-weight:700; color:#232323;">${{ sel.price }}</span></div>
+              <div style="display:flex; align-items:center; justify-content:space-between; padding:15px 0; border-bottom:1px solid #F2EDE4;"><span style="font-size:13px; color:#6F767E;">Proposed time</span><span style="font-size:14.5px; font-weight:600; color:#232323;">{{ sel.time }}</span></div>
+              <div style="display:flex; align-items:center; justify-content:space-between; padding:15px 0; border-bottom:1px solid #F2EDE4;"><span style="font-size:13px; color:#6F767E;">Duration</span><span style="font-size:14.5px; font-weight:600; color:#232323;">{{ sel.duration }}</span></div>
+              <div style="display:flex; align-items:center; justify-content:space-between; padding:15px 0;"><span style="font-size:13px; color:#6F767E;">Service</span><span style="font-size:14.5px; font-weight:600; color:#232323;">Full Groom</span></div>
+            </div>
+            <div style="margin-top:18px; font-size:15px; font-weight:700; color:#232323;">Message from {{ sel.name }}</div>
+            <div style="margin-top:10px; background:rgba(126,207,192,0.08); border-radius:16px; padding:16px; font-size:14px; color:#4a5159; line-height:1.55;">"{{ sel.msg }}"</div>
+            <div style="margin-top:20px; font-size:15px; font-weight:700; color:#232323;">Recent work</div>
+            <div style="margin-top:12px; display:flex; gap:10px;">
+              <div style="flex:1; height:96px; border-radius:16px; background:repeating-linear-gradient(45deg,#EDE6DA,#EDE6DA 8px,#F4EFE7 8px,#F4EFE7 16px); display:flex; align-items:flex-end; padding:8px;"><span style="font-size:9px; font-family:ui-monospace,monospace; color:#A99F8E;">before</span></div>
+              <div style="flex:1; height:96px; border-radius:16px; background:repeating-linear-gradient(45deg,#E0EFEB,#E0EFEB 8px,#EDF6F3 8px,#EDF6F3 16px); display:flex; align-items:flex-end; padding:8px;"><span style="font-size:9px; font-family:ui-monospace,monospace; color:#8FB6AC;">after</span></div>
+              <div style="flex:1; height:96px; border-radius:16px; background:repeating-linear-gradient(45deg,#F2E2DC,#F2E2DC 8px,#FBEEE9 8px,#FBEEE9 16px); display:flex; align-items:flex-end; padding:8px;"><span style="font-size:9px; font-family:ui-monospace,monospace; color:#C9A89D;">poodle</span></div>
+            </div>
+            <div style="margin-top:18px; display:flex; align-items:flex-start; gap:9px; font-size:12px; color:#6F767E; line-height:1.5;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9aa0a6" stroke-width="1.8" style="flex-shrink:0; margin-top:1px;"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01" stroke-linecap="round"/></svg>Free cancellation up to 24 hours before your appointment.</div>
+            <div onClick="{{ acceptSelected }}" style="margin-top:22px; height:54px; border-radius:18px; background:linear-gradient(135deg,#7ECFC0,#5FBFAE); color:#fff; font-size:16px; font-weight:600; display:flex; align-items:center; justify-content:center; box-shadow:0 14px 28px -8px rgba(126,207,192,0.55); cursor:pointer;">Accept Offer</div>
+            <div style="margin-top:12px; display:flex; gap:10px;">
+              <div onClick="{{ toChat }}" style="flex:1; height:50px; border-radius:16px; background:#fff; border:1.5px solid #E8E2D8; color:#232323; font-size:14px; font-weight:600; display:flex; align-items:center; justify-content:center;">Message</div>
+              <div onClick="{{ toProfile }}" style="flex:1; height:50px; border-radius:16px; background:#fff; border:1.5px solid #E8E2D8; color:#232323; font-size:14px; font-weight:600; display:flex; align-items:center; justify-content:center;">View Profile</div>
+            </div>
+            <div onClick="{{ declineOffer }}" style="margin-top:14px; text-align:center; font-size:13.5px; font-weight:600; color:#9aa0a6; cursor:pointer;">Decline this offer</div>
+          </div>
+        </sc-if>
+
+        <!-- ===== GROOMER PROFILE (customer view) ===== -->
+        <sc-if value="{{ scrProfile }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:62px 20px 40px; animation:gm-fadeIn 0.35s both;">
+            <div onClick="{{ back }}" style="width:40px; height:40px; border-radius:12px; background:#fff; border:1px solid #EFEAE1; display:flex; align-items:center; justify-content:center; cursor:pointer;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#232323" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></div>
+            <div style="margin-top:18px; display:flex; flex-direction:column; align-items:center; text-align:center;">
+              <div style="width:90px; height:90px; border-radius:28px; background:{{ sel.bg }}; display:flex; align-items:center; justify-content:center; font-size:46px; box-shadow:0 12px 26px -8px rgba(0,0,0,0.15);">{{ sel.emoji }}</div>
+              <div style="margin-top:14px; display:flex; align-items:center; gap:7px;"><span style="font-size:22px; font-weight:700; color:#232323;">{{ sel.name }}</span><span style="background:rgba(126,207,192,0.16); color:#3a8d7e; font-size:10px; font-weight:700; padding:3px 8px; border-radius:999px;">✓ Verified</span></div>
+              <div style="margin-top:5px; font-size:13px; color:#6F767E;">★ {{ sel.rating }} ({{ sel.reviews }}) · {{ sel.dist }} away</div>
+            </div>
+            <div style="margin-top:18px; font-size:14px; color:#4a5159; line-height:1.6; text-align:center;">Independent groomer with 8+ years of experience. I keep every session calm and gentle, with extra patience for nervous pups.</div>
+            <div style="margin-top:20px; font-size:15px; font-weight:700; color:#232323;">Specialties</div>
+            <div style="margin-top:12px; display:flex; flex-wrap:wrap; gap:8px;">
+              <div style="background:rgba(126,207,192,0.14); color:#3a8d7e; font-size:12.5px; font-weight:600; padding:7px 13px; border-radius:999px;">Poodles</div>
+              <div style="background:rgba(126,207,192,0.14); color:#3a8d7e; font-size:12.5px; font-weight:600; padding:7px 13px; border-radius:999px;">Doodles</div>
+              <div style="background:rgba(126,207,192,0.14); color:#3a8d7e; font-size:12.5px; font-weight:600; padding:7px 13px; border-radius:999px;">Senior dogs</div>
+              <div style="background:rgba(126,207,192,0.14); color:#3a8d7e; font-size:12.5px; font-weight:600; padding:7px 13px; border-radius:999px;">Nervous pets</div>
+            </div>
+            <div style="margin-top:22px; font-size:15px; font-weight:700; color:#232323;">Portfolio</div>
+            <div style="margin-top:12px; display:grid; grid-template-columns:repeat(3,1fr); gap:8px;">
+              <div style="aspect-ratio:1; border-radius:14px; background:repeating-linear-gradient(45deg,#EDE6DA,#EDE6DA 7px,#F4EFE7 7px,#F4EFE7 14px);"></div>
+              <div style="aspect-ratio:1; border-radius:14px; background:repeating-linear-gradient(45deg,#E0EFEB,#E0EFEB 7px,#EDF6F3 7px,#EDF6F3 14px);"></div>
+              <div style="aspect-ratio:1; border-radius:14px; background:repeating-linear-gradient(45deg,#F2E2DC,#F2E2DC 7px,#FBEEE9 7px,#FBEEE9 14px);"></div>
+              <div style="aspect-ratio:1; border-radius:14px; background:repeating-linear-gradient(45deg,#E7E0F2,#E7E0F2 7px,#F1ECF9 7px,#F1ECF9 14px);"></div>
+              <div style="aspect-ratio:1; border-radius:14px; background:repeating-linear-gradient(45deg,#EDE6DA,#EDE6DA 7px,#F4EFE7 7px,#F4EFE7 14px);"></div>
+              <div style="aspect-ratio:1; border-radius:14px; background:repeating-linear-gradient(45deg,#E0EFEB,#E0EFEB 7px,#EDF6F3 7px,#EDF6F3 14px);"></div>
+            </div>
+            <div style="margin-top:22px; font-size:15px; font-weight:700; color:#232323;">Reviews</div>
+            <div style="margin-top:12px; background:#fff; border:1px solid #EFEAE1; border-radius:18px; padding:16px;"><div style="display:flex; align-items:center; gap:8px;"><div style="width:34px; height:34px; border-radius:50%; background:#FCE3D5; display:flex; align-items:center; justify-content:center; font-size:18px;">🙂</div><div><div style="font-size:13.5px; font-weight:700; color:#232323;">Jordan P.</div><div style="font-size:11px; color:#F2B84B;">★★★★★</div></div></div><div style="margin-top:10px; font-size:13px; color:#4a5159; line-height:1.55;">So gentle with my anxious poodle. The teddy cut came out perfect!</div></div>
+            <div style="margin-top:22px; display:flex; gap:10px;">
+              <div onClick="{{ go('offers') }}" style="flex:1.4; height:54px; border-radius:18px; background:linear-gradient(135deg,#7ECFC0,#5FBFAE); color:#fff; font-size:15px; font-weight:600; display:flex; align-items:center; justify-content:center; box-shadow:0 12px 24px -8px rgba(126,207,192,0.5);">Start Request with Ava</div>
+              <div onClick="{{ toChat }}" style="flex:1; height:54px; border-radius:18px; background:#fff; border:1.5px solid #E8E2D8; color:#232323; font-size:15px; font-weight:600; display:flex; align-items:center; justify-content:center;">Message</div>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- ===== BOOKING CONFIRMATION ===== -->
+        <sc-if value="{{ scrConfirm }}" hint-placeholder-val="{{ false }}">
+          <div style="min-height:844px; padding:90px 24px 40px; display:flex; flex-direction:column; align-items:center; text-align:center; background:radial-gradient(120% 60% at 50% 0%, #EAF6F3 0%, #FAF7F2 50%);">
+            <div style="position:relative;">
+              <div style="width:104px; height:104px; border-radius:50%; background:linear-gradient(150deg,#6CBF84,#7ECFC0); display:flex; align-items:center; justify-content:center; box-shadow:0 18px 38px -10px rgba(108,191,132,0.6); animation:gm-pop 0.6s ease both;"><svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4.5 4.5L19 7"/></svg></div>
+              <div style="position:absolute; top:-6px; left:-14px; font-size:22px; animation:gm-float 3s ease-in-out infinite;">🐾</div>
+              <div style="position:absolute; bottom:-2px; right:-18px; font-size:18px; animation:gm-float 3.4s ease-in-out infinite;">🐾</div>
+            </div>
+            <div style="margin-top:24px; font-size:28px; font-weight:700; color:#232323; letter-spacing:-0.6px; animation:gm-fadeUp 0.5s 0.1s both;">Booking confirmed</div>
+            <div style="margin-top:8px; font-size:14px; color:#6F767E; animation:gm-fadeUp 0.5s 0.2s both;">{{ sel.name }} is all set to groom Mochi.</div>
+            <div style="margin-top:26px; width:100%; background:#fff; border:1px solid #EFEAE1; border-radius:24px; padding:6px 20px; box-shadow:0 12px 30px rgba(35,35,35,0.07); text-align:left; animation:gm-fadeUp 0.5s 0.3s both;">
+              <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 0; border-bottom:1px solid #F2EDE4;"><span style="font-size:13px; color:#6F767E;">Pet</span><span style="font-size:14.5px; font-weight:600; color:#232323;">Mochi</span></div>
+              <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 0; border-bottom:1px solid #F2EDE4;"><span style="font-size:13px; color:#6F767E;">Groomer</span><span style="font-size:14.5px; font-weight:600; color:#232323;">{{ sel.name }}</span></div>
+              <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 0; border-bottom:1px solid #F2EDE4;"><span style="font-size:13px; color:#6F767E;">Date & time</span><span style="font-size:14.5px; font-weight:600; color:#232323;">{{ sel.time }}</span></div>
+              <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 0; border-bottom:1px solid #F2EDE4;"><span style="font-size:13px; color:#6F767E;">Price estimate</span><span style="font-size:14.5px; font-weight:600; color:#232323;">${{ sel.price }}</span></div>
+              <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 0;"><span style="font-size:13px; color:#6F767E;">Booking ID</span><span style="font-size:13px; font-weight:600; color:#9aa0a6; font-family:ui-monospace,monospace;">GRM-4827</span></div>
+            </div>
+            <div style="margin-top:24px; width:100%; animation:gm-fadeUp 0.5s 0.4s both;">
+              <div onClick="{{ toChat }}" style="height:54px; border-radius:18px; background:linear-gradient(135deg,#7ECFC0,#5FBFAE); color:#fff; font-size:16px; font-weight:600; display:flex; align-items:center; justify-content:center; box-shadow:0 14px 28px -8px rgba(126,207,192,0.55);">Message Groomer</div>
+              <div style="margin-top:12px; display:flex; gap:10px;"><div onClick="{{ tabBookings }}" style="flex:1; height:50px; border-radius:16px; background:#fff; border:1.5px solid #E8E2D8; color:#232323; font-size:15px; font-weight:600; display:flex; align-items:center; justify-content:center;">View Booking</div><div onClick="{{ tabHome }}" style="flex:1; height:50px; border-radius:16px; background:#fff; border:1.5px solid #E8E2D8; color:#232323; font-size:15px; font-weight:600; display:flex; align-items:center; justify-content:center;">Home</div></div>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- ===== CUSTOMER BOOKINGS ===== -->
+        <sc-if value="{{ scrBookings }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:62px 20px 120px; animation:gm-fadeIn 0.35s both;">
+            <div style="font-size:26px; font-weight:700; color:#232323; letter-spacing:-0.5px;">Bookings</div>
+            <div style="margin-top:18px; display:flex; gap:6px; background:#F1ECE3; border-radius:14px; padding:5px;"><div onClick="{{ bkUpcoming }}" style="flex:1; height:40px; border-radius:11px; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:600; cursor:pointer; {{ bkUpStyle }}">Upcoming</div><div onClick="{{ bkPast }}" style="flex:1; height:40px; border-radius:11px; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:600; cursor:pointer; {{ bkPastStyle }}">Past</div></div>
+            <sc-if value="{{ isUpcoming }}" hint-placeholder-val="{{ true }}">
+              <div onClick="{{ go('bookingDetail') }}" style="margin-top:18px; background:#fff; border:1px solid #EFEAE1; border-radius:24px; padding:18px; box-shadow:0 8px 22px rgba(35,35,35,0.05); cursor:pointer;">
+                <div style="display:flex; align-items:center; justify-content:space-between;"><div style="display:flex; align-items:center; gap:6px; background:rgba(108,191,132,0.16); color:#3f9159; padding:6px 12px; border-radius:999px; font-size:11.5px; font-weight:600;"><span style="width:6px; height:6px; border-radius:50%; background:#6CBF84;"></span>Confirmed</div><span style="font-size:12px; color:#9aa0a6;">Fri, Jun 19</span></div>
+                <div style="margin-top:14px; display:flex; align-items:center; gap:13px;"><div style="width:54px; height:54px; border-radius:16px; background:linear-gradient(150deg,#7ECFC0,#A8DADC); display:flex; align-items:center; justify-content:center; font-size:28px;">👩🏻</div><div style="flex:1;"><div style="font-size:16.5px; font-weight:700; color:#232323;">Ava Chen</div><div style="margin-top:2px; font-size:13px; color:#6F767E;">Mochi · Full Groom · 2:30 PM</div></div><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C4BCAE" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></div>
+              </div>
+            </sc-if>
+            <sc-if value="{{ isPast }}" hint-placeholder-val="{{ false }}">
+              <div onClick="{{ go('bookingDetail') }}" style="margin-top:18px; background:#fff; border:1px solid #EFEAE1; border-radius:24px; padding:18px; box-shadow:0 8px 22px rgba(35,35,35,0.05); cursor:pointer;">
+                <div style="display:flex; align-items:center; justify-content:space-between;"><div style="display:flex; align-items:center; gap:6px; background:#F2EDE4; color:#6F767E; padding:6px 12px; border-radius:999px; font-size:11.5px; font-weight:600;">Completed</div><span style="font-size:12px; color:#9aa0a6;">May 28</span></div>
+                <div style="margin-top:14px; display:flex; align-items:center; gap:13px;"><div style="width:54px; height:54px; border-radius:16px; background:#FCE3D5; display:flex; align-items:center; justify-content:center; font-size:28px;">👩🏽</div><div style="flex:1;"><div style="font-size:16.5px; font-weight:700; color:#232323;">Mia Rodriguez</div><div style="margin-top:2px; font-size:13px; color:#6F767E;">Mochi · Bath & Brush</div></div><div style="font-size:11px; color:#F2B84B;">★★★★★</div></div>
+              </div>
+            </sc-if>
+          </div>
+        </sc-if>
+
+        <!-- ===== BOOKING DETAIL ===== -->
+        <sc-if value="{{ scrBookingDetail }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:62px 20px 40px; animation:gm-fadeIn 0.35s both;">
+            <div style="display:flex; align-items:center; gap:14px;"><div onClick="{{ back }}" style="width:40px; height:40px; border-radius:12px; background:#fff; border:1px solid #EFEAE1; display:flex; align-items:center; justify-content:center; cursor:pointer;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#232323" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></div><div style="font-size:24px; font-weight:700; color:#232323; letter-spacing:-0.5px;">Booking Detail</div></div>
+            <div style="margin-top:18px; background:#fff; border:1px solid #EFEAE1; border-radius:24px; padding:20px; box-shadow:0 8px 22px rgba(35,35,35,0.05);">
+              <div style="display:flex; align-items:center; gap:14px;"><div style="width:58px; height:58px; border-radius:17px; background:linear-gradient(150deg,#7ECFC0,#A8DADC); display:flex; align-items:center; justify-content:center; font-size:30px;">👩🏻</div><div style="flex:1;"><div style="font-size:18px; font-weight:700; color:#232323;">Ava Chen</div><div style="margin-top:2px; font-size:12.5px; color:#6F767E;">★ 4.9 · Poodle specialist</div></div><div style="display:flex; align-items:center; gap:5px; background:rgba(108,191,132,0.16); color:#3f9159; padding:6px 11px; border-radius:999px; font-size:11px; font-weight:600;">Confirmed</div></div>
+            </div>
+            <div style="margin-top:16px; background:#fff; border:1px solid #EFEAE1; border-radius:22px; padding:6px 20px;">
+              <div style="display:flex; align-items:center; justify-content:space-between; padding:15px 0; border-bottom:1px solid #F2EDE4;"><span style="font-size:13px; color:#6F767E;">Pet</span><span style="font-size:14.5px; font-weight:600; color:#232323;">Mochi · Toy Poodle</span></div>
+              <div style="display:flex; align-items:center; justify-content:space-between; padding:15px 0; border-bottom:1px solid #F2EDE4;"><span style="font-size:13px; color:#6F767E;">Service</span><span style="font-size:14.5px; font-weight:600; color:#232323;">Full Groom</span></div>
+              <div style="display:flex; align-items:center; justify-content:space-between; padding:15px 0; border-bottom:1px solid #F2EDE4;"><span style="font-size:13px; color:#6F767E;">Time</span><span style="font-size:14.5px; font-weight:600; color:#232323;">Fri, Jun 19 · 2:30 PM</span></div>
+              <div style="display:flex; align-items:center; justify-content:space-between; padding:15px 0; border-bottom:1px solid #F2EDE4;"><span style="font-size:13px; color:#6F767E;">Location</span><span style="font-size:14.5px; font-weight:600; color:#232323;">Mobile · comes to you</span></div>
+              <div style="display:flex; align-items:center; justify-content:space-between; padding:15px 0;"><span style="font-size:13px; color:#6F767E;">Price estimate</span><span style="font-size:16px; font-weight:700; color:#232323;">$85</span></div>
+            </div>
+            <div style="margin-top:18px; font-size:15px; font-weight:700; color:#232323;">Progress</div>
+            <div style="margin-top:12px; background:#fff; border:1px solid #EFEAE1; border-radius:22px; padding:20px;">
+              <sc-for list="{{ bookingTimeline }}" as="t" hint-placeholder-count="4"><div style="display:flex; gap:14px;"><div style="display:flex; flex-direction:column; align-items:center;"><div style="width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:13px; {{ t.dot }}">{{ t.icon }}</div><div style="width:2px; flex:1; background:{{ t.line }}; min-height:16px;"></div></div><div style="padding-bottom:14px;"><div style="font-size:14px; font-weight:600; color:{{ t.titleColor }};">{{ t.title }}</div></div></div></sc-for>
+            </div>
+            <div style="margin-top:20px; display:flex; gap:10px;">
+              <div onClick="{{ toChat }}" style="flex:1; height:52px; border-radius:16px; background:linear-gradient(135deg,#7ECFC0,#5FBFAE); color:#fff; font-size:15px; font-weight:600; display:flex; align-items:center; justify-content:center;">Message</div>
+              <div onClick="{{ openCancelBooking }}" style="flex:1; height:52px; border-radius:16px; background:#fff; border:1.5px solid #E8E2D8; color:#232323; font-size:15px; font-weight:600; display:flex; align-items:center; justify-content:center;">Reschedule</div>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- ===== MESSAGES LIST ===== -->
+        <sc-if value="{{ scrMessages }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:62px 20px 120px; animation:gm-fadeIn 0.35s both;">
+            <div style="font-size:26px; font-weight:700; color:#232323; letter-spacing:-0.5px;">Messages</div>
+            <div onClick="{{ toChat }}" style="margin-top:18px; background:#fff; border:1px solid #EFEAE1; border-radius:20px; padding:16px; display:flex; align-items:center; gap:13px; box-shadow:0 6px 16px rgba(35,35,35,0.04); cursor:pointer;">
+              <div style="width:52px; height:52px; border-radius:16px; background:linear-gradient(150deg,#7ECFC0,#A8DADC); display:flex; align-items:center; justify-content:center; font-size:27px;">👩🏻</div>
+              <div style="flex:1; min-width:0;"><div style="display:flex; align-items:center; justify-content:space-between;"><span style="font-size:15.5px; font-weight:700; color:#232323;">Ava Chen</span><span style="font-size:11px; color:#9aa0a6;">2m</span></div><div style="margin-top:3px; font-size:13px; color:#6F767E; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">She'll be in great hands 💛</div></div>
+            </div>
+            <div style="margin-top:12px; background:#fff; border:1px solid #EFEAE1; border-radius:20px; padding:16px; display:flex; align-items:center; gap:13px; opacity:0.75;">
+              <div style="width:52px; height:52px; border-radius:16px; background:#FCE3D5; display:flex; align-items:center; justify-content:center; font-size:27px;">👩🏽</div>
+              <div style="flex:1; min-width:0;"><div style="display:flex; align-items:center; justify-content:space-between;"><span style="font-size:15.5px; font-weight:700; color:#232323;">Mia Rodriguez</span><span style="font-size:11px; color:#9aa0a6;">3d</span></div><div style="margin-top:3px; font-size:13px; color:#6F767E; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Thanks again for booking!</div></div>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- ===== CHAT ===== -->
+        <sc-if value="{{ scrChat }}" hint-placeholder-val="{{ false }}">
+          <div style="min-height:844px; display:flex; flex-direction:column; background:#FAF7F2;">
+            <div style="padding:58px 18px 14px; background:rgba(255,255,255,0.92); backdrop-filter:blur(16px); border-bottom:1px solid #EFEAE1; position:sticky; top:0; z-index:5;">
+              <div style="display:flex; align-items:center; gap:12px;"><div onClick="{{ back }}" style="width:38px; height:38px; border-radius:11px; display:flex; align-items:center; justify-content:center; cursor:pointer;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#232323" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></div><div style="width:40px; height:40px; border-radius:13px; background:linear-gradient(150deg,#7ECFC0,#A8DADC); display:flex; align-items:center; justify-content:center; font-size:22px;">👩🏻</div><div style="flex:1;"><div style="font-size:16px; font-weight:700; color:#232323;">Ava Chen</div><div style="font-size:11.5px; color:#3f9159;">● Online</div></div></div>
+            </div>
+            <div style="flex:1; padding:16px 18px 100px; display:flex; flex-direction:column; gap:12px;">
+              <div onClick="{{ go('bookingDetail') }}" style="background:#fff; border:1px solid #EFEAE1; border-radius:16px; padding:13px; display:flex; align-items:center; gap:11px; cursor:pointer; box-shadow:0 4px 12px rgba(35,35,35,0.04);"><div style="width:38px; height:38px; border-radius:11px; background:#FCE3D5; display:flex; align-items:center; justify-content:center; font-size:20px;">🐩</div><div style="flex:1;"><div style="font-size:13.5px; font-weight:700; color:#232323;">Mochi · Full Groom</div><div style="font-size:11.5px; color:#6F767E;">Fri, Jun 19 · 2:30 PM</div></div><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C4BCAE" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></div>
+              <sc-for list="{{ messages }}" as="m" hint-placeholder-count="4">
+                <sc-if value="{{ m.isSys }}" hint-placeholder-val="{{ false }}"><div style="align-self:center; background:rgba(126,207,192,0.16); color:#3a8d7e; font-size:11.5px; font-weight:600; padding:7px 14px; border-radius:999px; margin:2px 0;">✓ {{ m.text }}</div></sc-if>
+                <sc-if value="{{ m.isMe }}" hint-placeholder-val="{{ false }}"><div style="align-self:flex-end; max-width:78%; background:linear-gradient(135deg,#7ECFC0,#5FBFAE); color:#fff; font-size:14px; line-height:1.45; padding:11px 15px; border-radius:20px 20px 6px 20px; box-shadow:0 4px 12px -4px rgba(126,207,192,0.5); animation:gm-fadeUp 0.3s both;">{{ m.text }}</div></sc-if>
+                <sc-if value="{{ m.isThem }}" hint-placeholder-val="{{ false }}"><div style="align-self:flex-start; max-width:78%; background:#fff; color:#232323; font-size:14px; line-height:1.45; padding:11px 15px; border-radius:20px 20px 20px 6px; border:1px solid #EFEAE1; box-shadow:0 3px 10px rgba(35,35,35,0.04); animation:gm-fadeUp 0.3s both;">{{ m.text }}</div></sc-if>
+              </sc-for>
+            </div>
+            <div style="position:absolute; bottom:0; left:0; right:0; padding:12px 16px 30px; background:rgba(255,255,255,0.95); backdrop-filter:blur(16px); border-top:1px solid #EFEAE1; display:flex; align-items:center; gap:10px;">
+              <div style="width:42px; height:42px; border-radius:50%; background:#F4EFE7; display:flex; align-items:center; justify-content:center; flex-shrink:0;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6F767E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></div>
+              <input value="{{ draft }}" onInput="{{ onDraft }}" placeholder="Message Ava…" style="flex:1; height:46px; border-radius:23px; background:#F4EFE7; border:none; outline:none; padding:0 18px; font-size:14.5px; color:#232323; font-family:inherit;" />
+              <div onClick="{{ sendMsg }}" style="width:46px; height:46px; border-radius:50%; background:linear-gradient(135deg,#7ECFC0,#5FBFAE); display:flex; align-items:center; justify-content:center; flex-shrink:0; cursor:pointer; box-shadow:0 6px 14px -4px rgba(126,207,192,0.5);"><svg width="20" height="20" viewBox="0 0 24 24" fill="#fff"><path d="M3 11l18-8-8 18-2-7-8-3z"/></svg></div>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- ===== CUSTOMER ACCOUNT ===== -->
+        <sc-if value="{{ scrAccount }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:62px 20px 120px; animation:gm-fadeIn 0.35s both;">
+            <div style="font-size:26px; font-weight:700; color:#232323; letter-spacing:-0.5px;">Account</div>
+            <div style="margin-top:18px; background:#fff; border:1px solid #EFEAE1; border-radius:24px; padding:20px; display:flex; align-items:center; gap:15px; box-shadow:0 8px 22px rgba(35,35,35,0.05);">
+              <div style="width:60px; height:60px; border-radius:20px; background:linear-gradient(150deg,#FCE3D5,#FF9A8B); display:flex; align-items:center; justify-content:center; font-size:30px;">🙂</div>
+              <div style="flex:1;"><div style="font-size:19px; font-weight:700; color:#232323;">Lian</div><div style="margin-top:2px; font-size:13px; color:#6F767E;">lian@example.com</div><div style="margin-top:7px; display:inline-flex; background:rgba(126,207,192,0.16); color:#3a8d7e; font-size:11px; font-weight:600; padding:4px 10px; border-radius:999px;">🐶 Pet Owner</div></div>
+            </div>
+            <div style="margin-top:18px; background:#fff; border:1px solid #EFEAE1; border-radius:22px; overflow:hidden;">
+              <div onClick="{{ tabRequests }}" style="display:flex; align-items:center; gap:13px; padding:16px 18px; border-bottom:1px solid #F2EDE4; cursor:pointer;"><span style="font-size:19px;">🐾</span><span style="flex:1; font-size:14.5px; font-weight:600; color:#232323;">My Pets</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C4BCAE" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></div>
+              <div onClick="{{ tabBookings }}" style="display:flex; align-items:center; gap:13px; padding:16px 18px; border-bottom:1px solid #F2EDE4; cursor:pointer;"><span style="font-size:19px;">📅</span><span style="flex:1; font-size:14.5px; font-weight:600; color:#232323;">Booking History</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C4BCAE" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></div>
+              <div style="display:flex; align-items:center; gap:13px; padding:16px 18px; cursor:pointer;"><span style="font-size:19px;">💳</span><span style="flex:1; font-size:14.5px; font-weight:600; color:#232323;">Payment Methods</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C4BCAE" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></div>
+            </div>
+            <div style="margin-top:22px; font-size:13px; font-weight:600; color:#9aa0a6; padding-left:6px;">DEMO CONTROLS</div>
+            <div style="margin-top:10px; background:#fff; border:1px solid #EFEAE1; border-radius:22px; padding:18px;">
+              <div style="font-size:14px; font-weight:600; color:#232323;">Switch role for demo</div>
+              <div style="margin-top:4px; font-size:12px; color:#9aa0a6; line-height:1.5;">In the real product, your role is set by your account.</div>
+              <div onClick="{{ goGroomer }}" style="margin-top:14px; height:48px; border-radius:14px; background:rgba(255,154,139,0.1); border:1.5px solid #FF9A8B; color:#c8675a; font-size:14.5px; font-weight:600; display:flex; align-items:center; justify-content:center; gap:7px; cursor:pointer;">✂️ Switch to Groomer Mode</div>
+            </div>
+            <div onClick="{{ go('splash') }}" style="margin-top:18px; text-align:center; font-size:14px; font-weight:600; color:#c85a5e; cursor:pointer;">Sign Out</div>
+          </div>
+        </sc-if>
+
+        <!-- ===== GROOMER HOME ===== -->
+        <sc-if value="{{ scrGHome }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:62px 20px 120px; animation:gm-fadeIn 0.35s both;">
+            <div style="display:flex; align-items:center; justify-content:space-between;">
+              <div style="display:flex; align-items:center; gap:12px;"><div style="width:46px; height:46px; border-radius:50%; background:linear-gradient(150deg,#7ECFC0,#A8DADC); display:flex; align-items:center; justify-content:center; font-size:24px;">👩🏻</div><div><div style="font-size:13px; color:#6F767E; font-weight:500;">Good morning</div><div style="font-size:21px; font-weight:700; color:#232323; letter-spacing:-0.4px;">Ava Chen</div></div></div>
+              <div style="width:44px; height:44px; border-radius:50%; background:#fff; border:1px solid #EFEAE1; display:flex; align-items:center; justify-content:center; position:relative;"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#232323" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><div style="position:absolute; top:9px; right:11px; width:8px; height:8px; border-radius:50%; background:#FF9A8B; border:1.5px solid #fff;"></div></div>
+            </div>
+            <div style="margin-top:22px; display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+              <div style="background:#fff; border:1px solid #EFEAE1; border-radius:20px; padding:16px; box-shadow:0 5px 14px rgba(35,35,35,0.04);"><div style="font-size:28px; font-weight:700; color:#232323;">4</div><div style="margin-top:2px; font-size:12.5px; color:#6F767E;">New requests</div></div>
+              <div style="background:#fff; border:1px solid #EFEAE1; border-radius:20px; padding:16px; box-shadow:0 5px 14px rgba(35,35,35,0.04);"><div style="font-size:28px; font-weight:700; color:#c8675a;">1</div><div style="margin-top:2px; font-size:12.5px; color:#6F767E;">Offers pending</div></div>
+              <div style="background:#fff; border:1px solid #EFEAE1; border-radius:20px; padding:16px; box-shadow:0 5px 14px rgba(35,35,35,0.04);"><div style="font-size:28px; font-weight:700; color:#3a8d7e;">3</div><div style="margin-top:2px; font-size:12.5px; color:#6F767E;">Upcoming bookings</div></div>
+              <div style="background:#fff; border:1px solid #EFEAE1; border-radius:20px; padding:16px; box-shadow:0 5px 14px rgba(35,35,35,0.04);"><div style="font-size:28px; font-weight:700; color:#b9842a;">4.9★</div><div style="margin-top:2px; font-size:12.5px; color:#6F767E;">Your rating</div></div>
+            </div>
+            <div style="margin-top:24px; font-size:18px; font-weight:700; color:#232323;">Today's schedule</div>
+            <div onClick="{{ tabSchedule }}" style="margin-top:14px; background:#fff; border:1px solid #EFEAE1; border-radius:22px; padding:18px; box-shadow:0 8px 22px rgba(35,35,35,0.05); display:flex; align-items:center; gap:14px; cursor:pointer;"><div style="text-align:center;"><div style="font-size:11px; color:#9aa0a6; font-weight:600;">NEXT</div><div style="font-size:17px; font-weight:700; color:#232323;">2:30</div><div style="font-size:10px; color:#9aa0a6;">PM</div></div><div style="width:1px; height:44px; background:#EFEAE1;"></div><div style="width:46px; height:46px; border-radius:14px; background:#FCE3D5; display:flex; align-items:center; justify-content:center; font-size:24px;">🐩</div><div style="flex:1;"><div style="font-size:15.5px; font-weight:700; color:#232323;">Mochi</div><div style="font-size:12.5px; color:#6F767E;">Full Groom · Lian</div></div></div>
+            <div onClick="{{ tabBoard }}" style="margin-top:22px; border-radius:24px; padding:24px; background:linear-gradient(135deg,#FF9A8B,#FFB3A3); position:relative; overflow:hidden; box-shadow:0 16px 32px -12px rgba(255,154,139,0.55); cursor:pointer;"><div style="position:absolute; right:18px; bottom:-6px; font-size:54px; opacity:0.85;">✂️</div><div style="position:relative;"><div style="font-size:20px; font-weight:700; color:#fff; max-width:200px; line-height:1.25;">4 open requests near you</div><div style="margin-top:6px; font-size:13px; color:rgba(255,255,255,0.92);">Find pets that match your specialties.</div><div style="margin-top:16px; display:inline-flex; background:#fff; color:#c8675a; font-size:14px; font-weight:600; padding:11px 18px; border-radius:13px;">Browse Open Requests</div></div></div>
+          </div>
+        </sc-if>
+
+        <!-- ===== OPEN REQUESTS BOARD ===== -->
+        <sc-if value="{{ scrGBoard }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:62px 20px 120px; animation:gm-fadeIn 0.35s both;">
+            <div style="font-size:24px; font-weight:700; color:#232323; letter-spacing:-0.5px;">Open Requests Near You</div>
+            <div class="gm-scr" style="margin-top:16px; display:flex; gap:9px; overflow-x:auto; padding-bottom:4px; margin:16px -20px 0; padding:0 20px 4px;">
+              <div style="white-space:nowrap; padding:9px 15px; border-radius:999px; font-size:13px; font-weight:600; background:#232323; color:#fff;">Best match</div>
+              <div style="white-space:nowrap; padding:9px 15px; border-radius:999px; font-size:13px; font-weight:600; background:#fff; color:#6F767E; border:1.5px solid #E8E2D8;">Today</div>
+              <div style="white-space:nowrap; padding:9px 15px; border-radius:999px; font-size:13px; font-weight:600; background:#fff; color:#6F767E; border:1.5px solid #E8E2D8;">Poodles</div>
+              <div style="white-space:nowrap; padding:9px 15px; border-radius:999px; font-size:13px; font-weight:600; background:#fff; color:#6F767E; border:1.5px solid #E8E2D8;">Small dogs</div>
+              <div style="white-space:nowrap; padding:9px 15px; border-radius:999px; font-size:13px; font-weight:600; background:#fff; color:#6F767E; border:1.5px solid #E8E2D8;">Nearby</div>
+            </div>
+            <sc-if value="{{ boardEmpty }}" hint-placeholder-val="{{ false }}">
+              <div style="margin-top:60px; display:flex; flex-direction:column; align-items:center; text-align:center; padding:0 20px;"><div style="width:88px; height:88px; border-radius:50%; background:rgba(126,207,192,0.12); display:flex; align-items:center; justify-content:center; font-size:44px;">🐾</div><div style="margin-top:18px; font-size:18px; font-weight:700; color:#232323;">No matching requests right now</div><div style="margin-top:8px; font-size:14px; color:#6F767E; line-height:1.5; max-width:250px;">New nearby requests will appear here as pet owners publish them.</div></div>
+            </sc-if>
+            <div style="margin-top:18px; display:flex; flex-direction:column; gap:14px;">
+              <sc-for list="{{ board }}" as="r" hint-placeholder-count="4">
+                <div style="background:#fff; border:1px solid #EFEAE1; border-radius:22px; padding:18px; box-shadow:0 6px 16px rgba(35,35,35,0.05); animation:gm-fadeUp 0.4s both;">
+                  <div style="display:flex; gap:13px;">
+                    <div style="width:58px; height:58px; border-radius:16px; background:{{ r.bg }}; display:flex; align-items:center; justify-content:center; font-size:30px;">{{ r.emoji }}</div>
+                    <div style="flex:1; min-width:0;"><div style="font-size:16.5px; font-weight:700; color:#232323;">{{ r.pet }}</div><div style="margin-top:2px; font-size:12.5px; color:#6F767E;">{{ r.breed }} · {{ r.size }}</div><div style="margin-top:7px; display:inline-flex; align-items:center; gap:5px; background:rgba(126,207,192,0.14); color:#3a8d7e; font-size:11px; font-weight:600; padding:4px 10px; border-radius:999px;">✓ {{ r.match }}</div></div>
+                  </div>
+                  <div style="margin-top:14px; display:flex; gap:8px; flex-wrap:wrap;"><div style="background:#FAF7F2; color:#4a5159; font-size:12px; font-weight:600; padding:7px 12px; border-radius:10px;">{{ r.service }}</div><div style="background:#FAF7F2; color:#4a5159; font-size:12px; font-weight:600; padding:7px 12px; border-radius:10px;">🕑 {{ r.time }}</div><div style="background:#FAF7F2; color:#4a5159; font-size:12px; font-weight:600; padding:7px 12px; border-radius:10px;">📍 {{ r.dist }}</div></div>
+                  <div style="margin-top:12px; font-size:13px; color:#6F767E; line-height:1.45; font-style:italic;">"{{ r.note }}"</div>
+                  <div style="margin-top:16px; display:flex; gap:10px;">
+                    <div onClick="{{ r.onNotFit }}" style="flex:1; height:46px; border-radius:14px; background:#fff; border:1.5px solid #E8E2D8; color:#6F767E; font-size:14px; font-weight:600; display:flex; align-items:center; justify-content:center;">Not a Fit</div>
+                    <div onClick="{{ r.onView }}" style="flex:1.5; height:46px; border-radius:14px; background:linear-gradient(135deg,#FF9A8B,#F58575); color:#fff; font-size:14px; font-weight:600; display:flex; align-items:center; justify-content:center; box-shadow:0 8px 18px -6px rgba(255,154,139,0.5);">View Request</div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- ===== GROOMER REQUEST DETAIL ===== -->
+        <sc-if value="{{ scrGRequest }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:62px 20px 40px; animation:gm-fadeIn 0.35s both;">
+            <div style="display:flex; align-items:center; gap:14px;"><div onClick="{{ back }}" style="width:40px; height:40px; border-radius:12px; background:#fff; border:1px solid #EFEAE1; display:flex; align-items:center; justify-content:center; cursor:pointer;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#232323" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></div><div style="font-size:22px; font-weight:700; color:#232323; letter-spacing:-0.5px;">Request Detail</div></div>
+            <div style="margin-top:18px; background:#fff; border:1px solid #EFEAE1; border-radius:24px; padding:20px; box-shadow:0 8px 22px rgba(35,35,35,0.05);">
+              <div style="display:flex; align-items:center; gap:15px;"><div style="width:72px; height:72px; border-radius:20px; background:{{ activeReq.bg }}; display:flex; align-items:center; justify-content:center; font-size:38px;">{{ activeReq.emoji }}</div><div style="flex:1;"><div style="font-size:20px; font-weight:700; color:#232323;">{{ activeReq.pet }}</div><div style="margin-top:2px; font-size:13px; color:#6F767E;">{{ activeReq.breed }} · {{ activeReq.size }}</div></div></div>
+              <div style="margin-top:16px; display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                <div style="background:#FAF7F2; border-radius:14px; padding:12px 14px;"><div style="font-size:11px; color:#9aa0a6; font-weight:600;">SERVICE</div><div style="margin-top:3px; font-size:14px; font-weight:700; color:#232323;">{{ activeReq.service }}</div></div>
+                <div style="background:#FAF7F2; border-radius:14px; padding:12px 14px;"><div style="font-size:11px; color:#9aa0a6; font-weight:600;">PREFERRED TIME</div><div style="margin-top:3px; font-size:14px; font-weight:700; color:#232323;">{{ activeReq.time }}</div></div>
+              </div>
+            </div>
+            <div style="margin-top:18px; font-size:15px; font-weight:700; color:#232323;">Customer notes</div>
+            <div style="margin-top:10px; background:#fff; border:1px solid #EFEAE1; border-radius:16px; padding:16px; font-size:13.5px; color:#4a5159; line-height:1.55;">"{{ activeReq.note }}"</div>
+            <div style="margin-top:18px; font-size:15px; font-weight:700; color:#232323;">Photos</div>
+            <div style="margin-top:12px; display:flex; gap:10px;"><div style="width:90px; height:90px; border-radius:16px; background:{{ activeReq.bg }}; display:flex; align-items:center; justify-content:center; font-size:44px;">{{ activeReq.emoji }}</div><div style="width:90px; height:90px; border-radius:16px; background:repeating-linear-gradient(45deg,#EDE6DA,#EDE6DA 7px,#F4EFE7 7px,#F4EFE7 14px);"></div></div>
+            <div style="margin-top:18px; background:rgba(126,207,192,0.1); border-radius:18px; padding:16px;"><div style="display:flex; align-items:center; gap:7px; font-size:14px; font-weight:700; color:#3a8d7e;">✨ Match insights</div><div style="margin-top:10px; display:flex; flex-direction:column; gap:8px;"><div style="display:flex; align-items:center; gap:8px; font-size:13px; color:#3a7a6e;"><span style="color:#6CBF84;">✓</span> Matches your service area</div><div style="display:flex; align-items:center; gap:8px; font-size:13px; color:#3a7a6e;"><span style="color:#6CBF84;">✓</span> Time is available on your schedule</div><div style="display:flex; align-items:center; gap:8px; font-size:13px; color:#3a7a6e;"><span style="color:#6CBF84;">✓</span> Matches your poodle specialty</div></div></div>
+            <div onClick="{{ makeOffer }}" style="margin-top:22px; height:54px; border-radius:18px; background:linear-gradient(135deg,#FF9A8B,#F58575); color:#fff; font-size:16px; font-weight:600; display:flex; align-items:center; justify-content:center; box-shadow:0 14px 28px -8px rgba(255,154,139,0.5); cursor:pointer;">Make an Offer</div>
+            <div style="margin-top:12px; display:flex; gap:10px;">
+              <div onClick="{{ suggestTime }}" style="flex:1; height:50px; border-radius:16px; background:#fff; border:1.5px solid #E8E2D8; color:#232323; font-size:13.5px; font-weight:600; display:flex; align-items:center; justify-content:center;">Suggest Time</div>
+              <div onClick="{{ toGChat }}" style="flex:1; height:50px; border-radius:16px; background:#fff; border:1.5px solid #E8E2D8; color:#232323; font-size:13.5px; font-weight:600; display:flex; align-items:center; justify-content:center;">Message</div>
+            </div>
+            <div onClick="{{ notFitActive }}" style="margin-top:14px; text-align:center; font-size:13.5px; font-weight:600; color:#9aa0a6; cursor:pointer;">Not a fit for me</div>
+          </div>
+        </sc-if>
+
+        <!-- ===== MAKE OFFER / SUGGEST TIME ===== -->
+        <sc-if value="{{ scrGOffer }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:62px 20px 40px; animation:gm-fadeIn 0.35s both;">
+            <div style="display:flex; align-items:center; gap:14px;"><div onClick="{{ back }}" style="width:40px; height:40px; border-radius:12px; background:#fff; border:1px solid #EFEAE1; display:flex; align-items:center; justify-content:center; cursor:pointer;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#232323" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></div><div style="font-size:24px; font-weight:700; color:#232323; letter-spacing:-0.5px;">{{ offerTitle }}</div></div>
+            <div style="margin-top:8px; font-size:13.5px; color:#6F767E; line-height:1.5;">{{ offerSubtitle }}</div>
+            <div style="margin-top:18px; background:#fff; border:1px solid #EFEAE1; border-radius:18px; padding:14px; display:flex; align-items:center; gap:12px;"><div style="width:44px; height:44px; border-radius:13px; background:{{ activeReq.bg }}; display:flex; align-items:center; justify-content:center; font-size:24px;">{{ activeReq.emoji }}</div><div style="flex:1;"><div style="font-size:14.5px; font-weight:700; color:#232323;">{{ activeReq.pet }} · {{ activeReq.service }}</div><div style="font-size:12px; color:#6F767E;">Requested {{ activeReq.time }}</div></div></div>
+            <div style="margin-top:20px; font-size:14px; font-weight:700; color:#232323;">Proposed time</div>
+            <div style="margin-top:10px; display:flex; flex-wrap:wrap; gap:10px;"><sc-for list="{{ offerTimes }}" as="t" hint-placeholder-count="3"><div onClick="{{ t.onSelect }}" style="padding:11px 16px; border-radius:14px; font-size:13.5px; font-weight:600; cursor:pointer; transition:all .2s; {{ t.style }}">{{ t.label }}</div></sc-for></div>
+            <div style="margin-top:20px; display:flex; gap:12px;">
+              <div style="flex:1;"><div style="font-size:14px; font-weight:700; color:#232323;">Price ($)</div><input value="{{ offerForm.price }}" onInput="{{ onOfferPrice }}" placeholder="85" inputmode="numeric" style="margin-top:8px; width:100%; height:50px; border-radius:14px; background:#fff; border:1.5px solid #E8E2D8; padding:0 16px; font-size:16px; font-weight:600; color:#232323; outline:none; font-family:inherit;" /></div>
+              <div style="flex:1;"><div style="font-size:14px; font-weight:700; color:#232323;">Duration</div><div style="margin-top:8px; height:50px; border-radius:14px; background:#fff; border:1.5px solid #E8E2D8; display:flex; align-items:center; padding:0 16px; font-size:15px; font-weight:600; color:#232323;">~2 hr</div></div>
+            </div>
+            <div style="margin-top:20px; font-size:14px; font-weight:700; color:#232323;">Message to customer</div>
+            <textarea value="{{ offerMessage }}" onInput="{{ onOfferMsg }}" placeholder="{{ offerMsgPlaceholder }}" style="margin-top:8px; width:100%; min-height:90px; border-radius:14px; background:#fff; border:1.5px solid #E8E2D8; padding:14px; font-size:14px; color:#232323; line-height:1.5; resize:none; outline:none; font-family:inherit;"></textarea>
+            <div style="margin-top:20px; font-size:14px; font-weight:700; color:#232323;">Included services</div>
+            <div style="margin-top:12px; display:flex; flex-direction:column; gap:10px;"><sc-for list="{{ includedOptions }}" as="o" hint-placeholder-count="5"><div onClick="{{ o.onToggle }}" style="display:flex; align-items:center; gap:12px; cursor:pointer;"><sc-if value="{{ o.on }}" hint-placeholder-val="{{ true }}"><div style="width:24px; height:24px; border-radius:8px; background:#6CBF84; display:flex; align-items:center; justify-content:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4.5 4.5L19 7"/></svg></div></sc-if><sc-if value="{{ o.off }}" hint-placeholder-val="{{ false }}"><div style="width:24px; height:24px; border-radius:8px; background:#fff; border:1.5px solid #D8D0C2;"></div></sc-if><span style="font-size:14.5px; color:#232323; font-weight:500;">{{ o.label }}</span></div></sc-for></div>
+            <sc-if value="{{ hasOfferError }}" hint-placeholder-val="{{ false }}">
+              <div style="margin-top:18px; background:rgba(229,107,111,0.1); border:1px solid rgba(229,107,111,0.3); border-radius:14px; padding:14px; display:flex; align-items:center; gap:10px; animation:gm-fadeUp 0.3s both;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#E56B6F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg><span style="font-size:13px; color:#c85a5e; font-weight:500; line-height:1.4;">{{ offerError }}</span></div>
+            </sc-if>
+            <div onClick="{{ sendOffer }}" style="margin-top:22px; height:54px; border-radius:18px; background:linear-gradient(135deg,#FF9A8B,#F58575); color:#fff; font-size:16px; font-weight:600; display:flex; align-items:center; justify-content:center; box-shadow:0 14px 28px -8px rgba(255,154,139,0.5); cursor:pointer;">{{ offerSendLabel }}</div>
+          </div>
+        </sc-if>
+
+        <!-- ===== MY OFFERS (groomer) ===== -->
+        <sc-if value="{{ scrGOffers }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:62px 20px 120px; animation:gm-fadeIn 0.35s both;">
+            <div style="font-size:26px; font-weight:700; color:#232323; letter-spacing:-0.5px;">My Offers</div>
+            <div style="margin-top:18px; display:flex; gap:6px; background:#F1ECE3; border-radius:14px; padding:5px;"><div onClick="{{ gPending }}" style="flex:1; height:40px; border-radius:11px; display:flex; align-items:center; justify-content:center; font-size:13.5px; font-weight:600; cursor:pointer; {{ gPendStyle }}">Pending</div><div onClick="{{ gAccepted }}" style="flex:1; height:40px; border-radius:11px; display:flex; align-items:center; justify-content:center; font-size:13.5px; font-weight:600; cursor:pointer; {{ gAcceptStyle }}">Accepted</div><div onClick="{{ gExpired }}" style="flex:1; height:40px; border-radius:11px; display:flex; align-items:center; justify-content:center; font-size:13.5px; font-weight:600; cursor:pointer; {{ gExpireStyle }}">Expired</div></div>
+            <sc-if value="{{ isGPending }}" hint-placeholder-val="{{ true }}">
+              <div onClick="{{ openRequestActive }}" style="margin-top:18px; background:#fff; border:1px solid #EFEAE1; border-radius:22px; padding:18px; box-shadow:0 6px 16px rgba(35,35,35,0.05); cursor:pointer;">
+                <div style="display:flex; align-items:center; justify-content:space-between;"><div style="display:flex; align-items:center; gap:12px;"><div style="width:48px; height:48px; border-radius:14px; background:{{ activeReq.bg }}; display:flex; align-items:center; justify-content:center; font-size:26px;">{{ activeReq.emoji }}</div><div><div style="font-size:15.5px; font-weight:700; color:#232323;">{{ activeReq.pet }} · {{ activeReq.service }}</div><div style="font-size:12px; color:#6F767E; margin-top:1px;">{{ offerForm.time }}</div></div></div><div style="font-size:18px; font-weight:700; color:#232323;">${{ offerForm.price }}</div></div>
+                <div style="margin-top:14px; display:flex; align-items:center; justify-content:space-between;"><div style="display:flex; align-items:center; gap:6px; background:rgba(242,184,75,0.16); color:#b9842a; padding:6px 12px; border-radius:999px; font-size:11.5px; font-weight:600;"><span style="width:6px; height:6px; border-radius:50%; background:#F2B84B; animation:gm-pulse 1.6s infinite;"></span>Waiting for customer</div><div style="font-size:13px; font-weight:600; color:#c85a5e;">Withdraw</div></div>
+              </div>
+            </sc-if>
+            <sc-if value="{{ isGAccepted }}" hint-placeholder-val="{{ false }}">
+              <div onClick="{{ tabSchedule }}" style="margin-top:18px; background:#fff; border:1px solid #EFEAE1; border-radius:22px; padding:18px; box-shadow:0 6px 16px rgba(35,35,35,0.05); cursor:pointer;"><div style="display:flex; align-items:center; gap:12px;"><div style="width:48px; height:48px; border-radius:14px; background:#FCE3D5; display:flex; align-items:center; justify-content:center; font-size:26px;">🐩</div><div style="flex:1;"><div style="font-size:15.5px; font-weight:700; color:#232323;">Mochi · Full Groom</div><div style="font-size:12px; color:#6F767E;">Fri · 2:30 PM</div></div><div style="display:flex; align-items:center; gap:5px; background:rgba(108,191,132,0.16); color:#3f9159; padding:6px 11px; border-radius:999px; font-size:11px; font-weight:600;">Accepted</div></div></div>
+            </sc-if>
+            <sc-if value="{{ isGExpired }}" hint-placeholder-val="{{ false }}">
+              <div style="margin-top:60px; display:flex; flex-direction:column; align-items:center; text-align:center;"><div style="width:80px; height:80px; border-radius:50%; background:rgba(111,118,126,0.08); display:flex; align-items:center; justify-content:center; font-size:38px;">⏳</div><div style="margin-top:16px; font-size:16px; font-weight:700; color:#232323;">No expired offers</div><div style="margin-top:6px; font-size:13.5px; color:#6F767E;">Offers you don't hear back on appear here.</div></div>
+            </sc-if>
+          </div>
+        </sc-if>
+
+        <!-- ===== GROOMER SCHEDULE ===== -->
+        <sc-if value="{{ scrGSchedule }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:62px 20px 120px; animation:gm-fadeIn 0.35s both;">
+            <div style="font-size:26px; font-weight:700; color:#232323; letter-spacing:-0.5px;">Schedule</div>
+            <div class="gm-scr" style="margin-top:16px; display:flex; gap:9px; overflow-x:auto; margin:16px -20px 0; padding:0 20px 4px;">
+              <div style="flex:0 0 52px; height:66px; border-radius:16px; background:#fff; border:1.5px solid #E8E2D8; display:flex; flex-direction:column; align-items:center; justify-content:center;"><span style="font-size:10px; color:#9aa0a6; font-weight:600;">THU</span><span style="font-size:18px; font-weight:700; color:#232323;">18</span></div>
+              <div style="flex:0 0 52px; height:66px; border-radius:16px; background:linear-gradient(150deg,#FF9A8B,#F58575); display:flex; flex-direction:column; align-items:center; justify-content:center; box-shadow:0 8px 18px -6px rgba(255,154,139,0.5);"><span style="font-size:10px; color:rgba(255,255,255,0.85); font-weight:600;">FRI</span><span style="font-size:18px; font-weight:700; color:#fff;">19</span></div>
+              <div style="flex:0 0 52px; height:66px; border-radius:16px; background:#fff; border:1.5px solid #E8E2D8; display:flex; flex-direction:column; align-items:center; justify-content:center;"><span style="font-size:10px; color:#9aa0a6; font-weight:600;">SAT</span><span style="font-size:18px; font-weight:700; color:#232323;">20</span></div>
+              <div style="flex:0 0 52px; height:66px; border-radius:16px; background:#fff; border:1.5px solid #E8E2D8; display:flex; flex-direction:column; align-items:center; justify-content:center;"><span style="font-size:10px; color:#9aa0a6; font-weight:600;">SUN</span><span style="font-size:18px; font-weight:700; color:#232323;">21</span></div>
+            </div>
+            <div style="margin-top:22px; display:flex; gap:14px;">
+              <div style="display:flex; flex-direction:column; align-items:flex-end; gap:60px; padding-top:6px;"><span style="font-size:12px; color:#9aa0a6; font-weight:600;">11 AM</span><span style="font-size:12px; color:#9aa0a6; font-weight:600;">1 PM</span><span style="font-size:12px; color:#FF9A8B; font-weight:700;">2:30</span><span style="font-size:12px; color:#9aa0a6; font-weight:600;">4 PM</span></div>
+              <div style="flex:1; position:relative; border-left:2px solid #EFEAE1; padding-left:14px;">
+                <div style="position:absolute; left:-7px; top:128px; width:12px; height:12px; border-radius:50%; background:#FF9A8B; border:2px solid #fff; box-shadow:0 0 0 3px rgba(255,154,139,0.2);"></div>
+                <div style="position:absolute; left:-1px; top:134px; right:0; height:2px; background:rgba(255,154,139,0.3);"></div>
+                <div onClick="{{ go('bookingDetail') }}" style="margin-top:132px; background:#fff; border:1px solid #EFEAE1; border-left:4px solid #7ECFC0; border-radius:16px; padding:15px; box-shadow:0 6px 16px rgba(35,35,35,0.05); cursor:pointer;">
+                  <div style="display:flex; align-items:center; justify-content:space-between;"><span style="font-size:14.5px; font-weight:700; color:#232323;">2:30 – 4:30 PM</span><div style="background:rgba(108,191,132,0.16); color:#3f9159; font-size:10.5px; font-weight:600; padding:4px 9px; border-radius:999px;">Confirmed</div></div>
+                  <div style="margin-top:10px; display:flex; align-items:center; gap:11px;"><div style="width:42px; height:42px; border-radius:13px; background:#FCE3D5; display:flex; align-items:center; justify-content:center; font-size:22px;">🐩</div><div style="flex:1;"><div style="font-size:14.5px; font-weight:700; color:#232323;">Mochi · Full Groom</div><div style="font-size:12px; color:#6F767E;">Lian · Mobile</div></div></div>
+                  <div style="margin-top:12px; display:flex; gap:9px;"><div onClick="{{ toGChat }}" style="flex:1; height:40px; border-radius:11px; background:#F4EFE7; color:#232323; font-size:13px; font-weight:600; display:flex; align-items:center; justify-content:center;">Message</div><div onClick="{{ openComplete }}" style="flex:1; height:40px; border-radius:11px; background:#6CBF84; color:#fff; font-size:13px; font-weight:600; display:flex; align-items:center; justify-content:center;">Complete</div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- ===== GROOMER PROFILE EDITOR ===== -->
+        <sc-if value="{{ scrGProfile }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:62px 20px 40px; animation:gm-fadeIn 0.35s both;">
+            <div style="font-size:26px; font-weight:700; color:#232323; letter-spacing:-0.5px;">Edit Profile</div>
+            <div style="margin-top:18px; display:flex; flex-direction:column; gap:16px;">
+              <div><div style="font-size:13px; font-weight:600; color:#6F767E; margin-bottom:8px; padding-left:4px;">Display name</div><div style="height:52px; border-radius:15px; background:#fff; border:1.5px solid #E8E2D8; display:flex; align-items:center; padding:0 16px; font-size:15px; color:#232323;">Ava Chen</div></div>
+              <div><div style="font-size:13px; font-weight:600; color:#6F767E; margin-bottom:8px; padding-left:4px;">Bio</div><div style="min-height:72px; border-radius:15px; background:#fff; border:1.5px solid #E8E2D8; padding:13px 16px; font-size:14px; color:#232323; line-height:1.5;">Independent groomer with 8+ years of experience. Calm, gentle handling for nervous pups.</div></div>
+              <div style="display:flex; gap:12px;"><div style="flex:1;"><div style="font-size:13px; font-weight:600; color:#6F767E; margin-bottom:8px; padding-left:4px;">Experience</div><div style="height:52px; border-radius:15px; background:#fff; border:1.5px solid #E8E2D8; display:flex; align-items:center; padding:0 16px; font-size:15px; color:#232323;">8 years</div></div><div style="flex:1;"><div style="font-size:13px; font-weight:600; color:#6F767E; margin-bottom:8px; padding-left:4px;">Service radius</div><div style="height:52px; border-radius:15px; background:#fff; border:1.5px solid #E8E2D8; display:flex; align-items:center; padding:0 16px; font-size:15px; color:#232323;">10 mi</div></div></div>
+              <div><div style="font-size:13px; font-weight:600; color:#6F767E; margin-bottom:8px; padding-left:4px;">Specialties</div><div style="display:flex; flex-wrap:wrap; gap:8px;"><div style="padding:9px 14px; border-radius:999px; background:#7ECFC0; color:#fff; font-size:13px; font-weight:600;">Poodles ✕</div><div style="padding:9px 14px; border-radius:999px; background:#7ECFC0; color:#fff; font-size:13px; font-weight:600;">Doodles ✕</div><div style="padding:9px 14px; border-radius:999px; background:#7ECFC0; color:#fff; font-size:13px; font-weight:600;">Senior dogs ✕</div><div style="padding:9px 14px; border-radius:999px; background:#fff; border:1.5px solid #E8E2D8; color:#3a8d7e; font-size:13px; font-weight:600;">+ Add</div></div></div>
+              <div><div style="font-size:13px; font-weight:600; color:#6F767E; margin-bottom:8px; padding-left:4px;">Base prices</div><div style="background:#fff; border:1px solid #EFEAE1; border-radius:16px; padding:4px 16px;"><div style="display:flex; align-items:center; justify-content:space-between; padding:13px 0; border-bottom:1px solid #F2EDE4;"><span style="font-size:14px; color:#232323;">Full Groom</span><span style="font-size:14px; font-weight:700; color:#232323;">$85</span></div><div style="display:flex; align-items:center; justify-content:space-between; padding:13px 0; border-bottom:1px solid #F2EDE4;"><span style="font-size:14px; color:#232323;">Bath & Brush</span><span style="font-size:14px; font-weight:700; color:#232323;">$55</span></div><div style="display:flex; align-items:center; justify-content:space-between; padding:13px 0;"><span style="font-size:14px; color:#232323;">Nail Trim</span><span style="font-size:14px; font-weight:700; color:#232323;">$20</span></div></div></div>
+              <div style="background:#fff; border:1px solid #EFEAE1; border-radius:16px; padding:16px 18px; display:flex; align-items:center; justify-content:space-between;"><div><div style="font-size:14.5px; font-weight:600; color:#232323;">Accepting new clients</div><div style="margin-top:2px; font-size:12px; color:#6F767E;">Show your profile in matching</div></div><div style="width:50px; height:30px; border-radius:999px; background:#6CBF84; position:relative;"><div style="position:absolute; top:3px; right:3px; width:24px; height:24px; border-radius:50%; background:#fff; box-shadow:0 2px 5px rgba(0,0,0,0.2);"></div></div></div>
+            </div>
+            <div style="margin-top:22px; display:flex; gap:12px;"><div onClick="{{ tabGAccount }}" style="flex:1; height:54px; border-radius:18px; background:#fff; border:1.5px solid #E8E2D8; color:#232323; font-size:15px; font-weight:600; display:flex; align-items:center; justify-content:center;">Preview</div><div onClick="{{ tabGAccount }}" style="flex:1.4; height:54px; border-radius:18px; background:linear-gradient(135deg,#FF9A8B,#F58575); color:#fff; font-size:15px; font-weight:600; display:flex; align-items:center; justify-content:center;">Save Profile</div></div>
+          </div>
+        </sc-if>
+
+        <!-- ===== GROOMER MESSAGES ===== -->
+        <sc-if value="{{ scrGMessages }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:62px 20px 120px; animation:gm-fadeIn 0.35s both;">
+            <div style="font-size:26px; font-weight:700; color:#232323; letter-spacing:-0.5px;">Messages</div>
+            <div onClick="{{ toGChat }}" style="margin-top:18px; background:#fff; border:1px solid #EFEAE1; border-radius:20px; padding:16px; display:flex; align-items:center; gap:13px; box-shadow:0 6px 16px rgba(35,35,35,0.04); cursor:pointer;"><div style="width:52px; height:52px; border-radius:16px; background:linear-gradient(150deg,#FCE3D5,#FF9A8B); display:flex; align-items:center; justify-content:center; font-size:27px;">🙂</div><div style="flex:1; min-width:0;"><div style="display:flex; align-items:center; justify-content:space-between;"><span style="font-size:15.5px; font-weight:700; color:#232323;">Lian</span><span style="font-size:11px; color:#9aa0a6;">2m</span></div><div style="margin-top:3px; font-size:13px; color:#6F767E; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Low and slow is perfect, thank you!</div></div></div>
+          </div>
+        </sc-if>
+
+        <!-- ===== GROOMER CHAT ===== -->
+        <sc-if value="{{ scrGChat }}" hint-placeholder-val="{{ false }}">
+          <div style="min-height:844px; display:flex; flex-direction:column; background:#FAF7F2;">
+            <div style="padding:58px 18px 14px; background:rgba(255,255,255,0.92); backdrop-filter:blur(16px); border-bottom:1px solid #EFEAE1; position:sticky; top:0; z-index:5;"><div style="display:flex; align-items:center; gap:12px;"><div onClick="{{ back }}" style="width:38px; height:38px; border-radius:11px; display:flex; align-items:center; justify-content:center; cursor:pointer;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#232323" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></div><div style="width:40px; height:40px; border-radius:13px; background:linear-gradient(150deg,#FCE3D5,#FF9A8B); display:flex; align-items:center; justify-content:center; font-size:22px;">🙂</div><div style="flex:1;"><div style="font-size:16px; font-weight:700; color:#232323;">Lian</div><div style="font-size:11.5px; color:#6F767E;">Mochi's owner</div></div></div></div>
+            <div style="flex:1; padding:16px 18px 100px; display:flex; flex-direction:column; gap:12px;">
+              <div style="align-self:center; background:rgba(126,207,192,0.16); color:#3a8d7e; font-size:11.5px; font-weight:600; padding:7px 14px; border-radius:999px;">✓ Booking confirmed</div>
+              <div style="align-self:flex-end; max-width:78%; background:linear-gradient(135deg,#FF9A8B,#F58575); color:#fff; font-size:14px; line-height:1.45; padding:11px 15px; border-radius:20px 20px 6px 20px;">Hi Lian! So excited to groom Mochi on Friday. Anything I should know about her dryer anxiety?</div>
+              <div style="align-self:flex-start; max-width:78%; background:#fff; color:#232323; font-size:14px; line-height:1.45; padding:11px 15px; border-radius:20px 20px 20px 6px; border:1px solid #EFEAE1;">She gets nervous with loud dryers — low and slow is perfect. Thank you!</div>
+              <div style="align-self:flex-end; max-width:78%; background:linear-gradient(135deg,#FF9A8B,#F58575); color:#fff; font-size:14px; line-height:1.45; padding:11px 15px; border-radius:20px 20px 6px 20px;">Got it 💛 I use a quiet dryer and take lots of breaks. She'll be in great hands.</div>
+            </div>
+            <div style="position:absolute; bottom:0; left:0; right:0; padding:12px 16px 30px; background:rgba(255,255,255,0.95); backdrop-filter:blur(16px); border-top:1px solid #EFEAE1; display:flex; align-items:center; gap:10px;"><div style="width:42px; height:42px; border-radius:50%; background:#F4EFE7; display:flex; align-items:center; justify-content:center; flex-shrink:0;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6F767E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></div><div style="flex:1; height:46px; border-radius:23px; background:#F4EFE7; display:flex; align-items:center; padding:0 18px; font-size:14.5px; color:#9aa0a6;">Message Lian…</div><div style="width:46px; height:46px; border-radius:50%; background:linear-gradient(135deg,#FF9A8B,#F58575); display:flex; align-items:center; justify-content:center; flex-shrink:0;"><svg width="20" height="20" viewBox="0 0 24 24" fill="#fff"><path d="M3 11l18-8-8 18-2-7-8-3z"/></svg></div></div>
+          </div>
+        </sc-if>
+
+        <!-- ===== GROOMER ACCOUNT ===== -->
+        <sc-if value="{{ scrGAccount }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:62px 20px 120px; animation:gm-fadeIn 0.35s both;">
+            <div style="font-size:26px; font-weight:700; color:#232323; letter-spacing:-0.5px;">Account</div>
+            <div style="margin-top:18px; background:#fff; border:1px solid #EFEAE1; border-radius:24px; padding:20px; display:flex; align-items:center; gap:15px; box-shadow:0 8px 22px rgba(35,35,35,0.05);"><div style="width:60px; height:60px; border-radius:20px; background:linear-gradient(150deg,#7ECFC0,#A8DADC); display:flex; align-items:center; justify-content:center; font-size:30px;">👩🏻</div><div style="flex:1;"><div style="font-size:19px; font-weight:700; color:#232323;">Ava Chen</div><div style="margin-top:2px; font-size:13px; color:#6F767E;">★ 4.9 · 212 reviews</div><div style="margin-top:7px; display:inline-flex; background:rgba(255,154,139,0.16); color:#c8675a; font-size:11px; font-weight:600; padding:4px 10px; border-radius:999px;">✂️ Groomer</div></div></div>
+            <div style="margin-top:18px; background:#fff; border:1px solid #EFEAE1; border-radius:22px; overflow:hidden;">
+              <div onClick="{{ go('gProfile') }}" style="display:flex; align-items:center; gap:13px; padding:16px 18px; border-bottom:1px solid #F2EDE4; cursor:pointer;"><span style="font-size:19px;">✏️</span><span style="flex:1; font-size:14.5px; font-weight:600; color:#232323;">Edit Profile</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C4BCAE" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></div>
+              <div onClick="{{ tabSchedule }}" style="display:flex; align-items:center; gap:13px; padding:16px 18px; border-bottom:1px solid #F2EDE4; cursor:pointer;"><span style="font-size:19px;">📅</span><span style="flex:1; font-size:14.5px; font-weight:600; color:#232323;">Availability</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C4BCAE" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></div>
+              <div style="display:flex; align-items:center; gap:13px; padding:16px 18px; cursor:pointer;"><span style="font-size:19px;">💰</span><span style="flex:1; font-size:14.5px; font-weight:600; color:#232323;">Payouts</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C4BCAE" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></div>
+            </div>
+            <div style="margin-top:22px; font-size:13px; font-weight:600; color:#9aa0a6; padding-left:6px;">DEMO CONTROLS</div>
+            <div style="margin-top:10px; background:#fff; border:1px solid #EFEAE1; border-radius:22px; padding:18px;"><div style="font-size:14px; font-weight:600; color:#232323;">Switch role for demo</div><div style="margin-top:4px; font-size:12px; color:#9aa0a6; line-height:1.5;">In the real product, your role is set by your account.</div><div onClick="{{ goCustomer }}" style="margin-top:14px; height:48px; border-radius:14px; background:rgba(126,207,192,0.1); border:1.5px solid #7ECFC0; color:#3a8d7e; font-size:14.5px; font-weight:600; display:flex; align-items:center; justify-content:center; gap:7px; cursor:pointer;">🐶 Switch to Customer Mode</div></div>
+            <div onClick="{{ go('splash') }}" style="margin-top:18px; text-align:center; font-size:14px; font-weight:600; color:#c85a5e; cursor:pointer;">Sign Out</div>
+          </div>
+        </sc-if>
+
+        <!-- MORE-SCREENS -->
+      </div>
+
+      <!-- customer tab bar -->
+      <sc-if value="{{ showCustTabs }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute; bottom:0; left:0; right:0; z-index:30; background:rgba(255,255,255,0.92); backdrop-filter:blur(18px); border-top:1px solid #EFEAE1; padding:10px 14px 26px; display:flex; justify-content:space-around; align-items:flex-end;">
+          <div onClick="{{ tabHome }}" style="display:flex; flex-direction:column; align-items:center; gap:5px; flex:1; cursor:pointer; color:{{ tc.home }};"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20h14V9.5"/></svg><span style="font-size:10.5px; font-weight:600;">Home</span></div>
+          <div onClick="{{ tabRequests }}" style="display:flex; flex-direction:column; align-items:center; gap:5px; flex:1; cursor:pointer; color:{{ tc.req }};"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="3"/><path d="M9 8h6M9 12h6M9 16h3"/></svg><span style="font-size:10.5px; font-weight:600;">Requests</span></div>
+          <div onClick="{{ tabBookings }}" style="display:flex; flex-direction:column; align-items:center; gap:5px; flex:1; cursor:pointer; color:{{ tc.book }};"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 9h18M8 3v4M16 3v4"/></svg><span style="font-size:10.5px; font-weight:600;">Bookings</span></div>
+          <div onClick="{{ tabMessages }}" style="display:flex; flex-direction:column; align-items:center; gap:5px; flex:1; cursor:pointer; color:{{ tc.msg }};"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v12H8l-4 3.5z"/></svg><span style="font-size:10.5px; font-weight:600;">Messages</span></div>
+          <div onClick="{{ tabAccount }}" style="display:flex; flex-direction:column; align-items:center; gap:5px; flex:1; cursor:pointer; color:{{ tc.acct }};"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4.5 20c1.2-3.7 4.1-5.5 7.5-5.5s6.3 1.8 7.5 5.5"/></svg><span style="font-size:10.5px; font-weight:600;">Account</span></div>
+        </div>
+      </sc-if>
+
+      <!-- groomer tab bar -->
+      <sc-if value="{{ showGroomTabs }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute; bottom:0; left:0; right:0; z-index:30; background:rgba(255,255,255,0.92); backdrop-filter:blur(18px); border-top:1px solid #EFEAE1; padding:10px 14px 26px; display:flex; justify-content:space-around; align-items:flex-end;">
+          <div onClick="{{ tabBoard }}" style="display:flex; flex-direction:column; align-items:center; gap:5px; flex:1; cursor:pointer; color:{{ gtc.board }};"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="7" height="7" rx="2"/><rect x="13" y="4" width="7" height="7" rx="2"/><rect x="4" y="13" width="7" height="7" rx="2"/><rect x="13" y="13" width="7" height="7" rx="2"/></svg><span style="font-size:10.5px; font-weight:600;">Board</span></div>
+          <div onClick="{{ tabGOffers }}" style="display:flex; flex-direction:column; align-items:center; gap:5px; flex:1; cursor:pointer; color:{{ gtc.off }};"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12V7a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h6"/><path d="M8 9h8M8 13h5"/><path d="m16 18 2 2 4-4"/></svg><span style="font-size:10.5px; font-weight:600;">Offers</span></div>
+          <div onClick="{{ tabSchedule }}" style="display:flex; flex-direction:column; align-items:center; gap:5px; flex:1; cursor:pointer; color:{{ gtc.sched }};"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg><span style="font-size:10.5px; font-weight:600;">Schedule</span></div>
+          <div onClick="{{ tabGMessages }}" style="display:flex; flex-direction:column; align-items:center; gap:5px; flex:1; cursor:pointer; color:{{ gtc.msg }};"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v12H8l-4 3.5z"/></svg><span style="font-size:10.5px; font-weight:600;">Messages</span></div>
+          <div onClick="{{ tabGAccount }}" style="display:flex; flex-direction:column; align-items:center; gap:5px; flex:1; cursor:pointer; color:{{ gtc.acct }};"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4.5 20c1.2-3.7 4.1-5.5 7.5-5.5s6.3 1.8 7.5 5.5"/></svg><span style="font-size:10.5px; font-weight:600;">Account</span></div>
+        </div>
+      </sc-if>
+
+      <!-- toast -->
+      <sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute; bottom:108px; left:50%; transform:translateX(-50%); z-index:60; background:#232323; color:#fff; padding:13px 22px; border-radius:14px; font-size:14px; font-weight:600; box-shadow:0 16px 30px -8px rgba(0,0,0,0.4); display:flex; align-items:center; gap:9px; animation:gm-fadeUp 0.3s both; white-space:nowrap;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7ECFC0" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4.5 4.5L19 7"/></svg>{{ toast }}</div>
+      </sc-if>
+
+      <!-- bottom sheet host -->
+      <sc-if value="{{ hasSheet }}" hint-placeholder-val="{{ false }}">
+        <div onClick="{{ closeSheet }}" style="position:absolute; inset:0; z-index:50; background:rgba(35,35,35,0.45); animation:gm-fadeIn 0.25s both; display:flex; flex-direction:column; justify-content:flex-end;">
+          <div onClick="{{ stop }}" style="background:#fff; border-radius:28px 28px 0 0; padding:10px 22px 34px; animation:gm-sheetUp 0.32s cubic-bezier(0.2,0.8,0.2,1) both;">
+            <div style="width:40px; height:5px; border-radius:3px; background:#E8E2D8; margin:6px auto 18px;"></div>
+            <!-- SHEET-CONTENT -->
+            <sc-if value="{{ sheetGeneric }}" hint-placeholder-val="{{ false }}">
+              <div style="font-size:20px; font-weight:700; color:#232323;">{{ sheetTitle }}</div>
+              <div style="margin-top:8px; font-size:14px; color:#6F767E; line-height:1.55;">{{ sheetBody }}</div>
+              <div onClick="{{ sheetConfirm }}" style="margin-top:22px; height:54px; border-radius:18px; background:{{ sheetBtnBg }}; color:#fff; font-size:16px; font-weight:600; display:flex; align-items:center; justify-content:center; cursor:pointer;">{{ sheetBtnLabel }}</div>
+              <div onClick="{{ closeSheet }}" style="margin-top:10px; height:50px; border-radius:18px; color:#6F767E; font-size:15px; font-weight:600; display:flex; align-items:center; justify-content:center; cursor:pointer;">Keep it open</div>
+            </sc-if>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- home indicator -->
+      <div style="position:absolute; bottom:9px; left:50%; transform:translateX(-50%); width:134px; height:5px; border-radius:3px; background:#232323; opacity:0.32; z-index:55;"></div>
+
+    </div>
+  </div>
+  <div style="font-size:12px; color:#B0A99C; letter-spacing:0.3px;">Groomly · interactive concept prototype</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:480,&quot;height&quot;:1000}}">
+class Component extends DCLogic {
+  state = {
+    screen: 'splash',
+    mode: 'customer',
+    history: [],
+    // wizard
+    wizStep: 0,
+    pet: 'mochi',
+    service: 'full',
+    size: 'small',
+    day: 'Fri 19',
+    timeWindow: 'Afternoon',
+    flexible: true,
+    locationType: 'mobile',
+    notes: 'Mochi needs a teddy-style trim. She is nervous around loud dryers.',
+    styleChips: ['Teddy Cut'],
+    handling: ['Nervous pet'],
+    // flow
+    offersReady: false,
+    selectedOffer: 'ava',
+    bookingsTab: 'upcoming',
+    offersTab: 'pending',
+    offerFilter: 'Best match',
+    // groomer
+    dismissed: [],
+    offerSent: false,
+    offerForm: { time: '', price: '', duration: '~2 hr', message: '', included: ['Bath','Haircut','Nail trim','Ear cleaning'] },
+    offerError: null,
+    suggestMode: false,
+    activeRequest: 'r1',
+    // chat
+    draft: '',
+    messages: [
+      { from:'system', text:'Offer accepted · Booking confirmed' },
+      { from:'them', text:"Hi Lian! So excited to groom Mochi on Friday. Anything I should know about her dryer anxiety?" },
+      { from:'me', text:'Thank you! She gets nervous with loud high-velocity dryers — low and slow is perfect.' },
+      { from:'them', text:'Got it 💛 I use a quiet dryer and take lots of breaks. She will be in great hands.' },
+    ],
+    // ui
+    sheet: null,
+    toast: null,
+  };
+
+  PETS = [
+    { id:'mochi', name:'Mochi', breed:'Toy Poodle', weight:'12 lbs', temperament:'Gentle but nervous', last:'3 weeks ago', emoji:'🐩', bg:'#FCE3D5' },
+    { id:'biscuit', name:'Biscuit', breed:'Pomeranian', weight:'8 lbs', temperament:'Energetic', last:'6 weeks ago', emoji:'🦊', bg:'#DDEEEA' },
+  ];
+  SERVICES = [
+    { id:'full', name:'Full Groom', desc:'Bath, haircut, nail trim, ear cleaning', dur:'~2 hr' },
+    { id:'bath', name:'Bath & Brush', desc:'Bath, blow dry, brushing', dur:'~1 hr' },
+    { id:'cut', name:'Haircut Only', desc:'Trim and style shaping', dur:'~1 hr' },
+    { id:'nail', name:'Nail Trim', desc:'Quick clip and file', dur:'~20 min' },
+    { id:'shed', name:'De-shedding', desc:'Deshed treatment + blow out', dur:'~1.5 hr' },
+    { id:'custom', name:'Custom Request', desc:'Describe exactly what you need', dur:'Varies' },
+  ];
+  GROOMERS = [
+    { id:'ava', name:'Ava Chen', rating:4.9, reviews:212, dist:'2.4 mi', specialty:'Poodles · Teddy cuts', tags:['Poodle specialist','Gentle handling'], price:85, time:'Fri · 2:30 PM', duration:'~2 hr', verified:true, suggested:false, status:'Offer sent', bg:'#7ECFC0', emoji:'👩🏻', msg:"Hi! I would love to help with Mochi's teddy trim. I specialize in poodle cuts and gentle, low-stress handling." },
+    { id:'mia', name:'Mia Rodriguez', rating:4.8, reviews:168, dist:'4.1 mi', specialty:'Gentle handling · Senior dogs', tags:['Senior care','Mobile service'], price:95, time:'Sat · 10:00 AM', duration:'~2 hr', verified:true, suggested:false, status:'Offer sent', bg:'#FF9A8B', emoji:'👩🏽', msg:"I have lots of experience with nervous pups and keep everything calm and slow. Saturday morning works great." },
+    { id:'daniel', name:'Daniel Kim', rating:4.7, reviews:97, dist:'3.2 mi', specialty:'Mobile grooming', tags:['Mobile service','Flexible time'], price:90, time:'Fri · 5:00 PM', duration:'~1.5 hr', verified:true, suggested:true, status:'Suggested another time', bg:'#A8DADC', emoji:'👨🏻', msg:"I am not free at 2 PM, but I can come to you Friday at 5 PM. I bring everything in my mobile van." },
+  ];
+  REQUESTS = [
+    { id:'r1', pet:'Mochi', breed:'Toy Poodle', service:'Full Groom', time:'Fri · 2–4 PM', dist:'2.4 mi', note:'Teddy-style trim. Nervous around loud dryers.', match:'Matches your poodle specialty', size:'Small', emoji:'🐩', bg:'#FCE3D5', flexible:false },
+    { id:'r2', pet:'Biscuit', breed:'Goldendoodle', service:'Bath & Brush', time:'Sat · Morning', dist:'3.1 mi', note:'Heavy shedding, needs de-matting around the ears.', match:'Within your service area', size:'Large', emoji:'🐕', bg:'#E7E0F2', flexible:false },
+    { id:'r3', pet:'Luna', breed:'Shih Tzu', service:'Haircut Only', time:'Flexible', dist:'1.8 mi', note:'First grooming visit, a little shy.', match:'Flexible time', size:'Small', emoji:'🐶', bg:'#DDEEEA', flexible:true },
+    { id:'r4', pet:'Cooper', breed:'Cocker Spaniel', service:'Full Groom', time:'Sun · Afternoon', dist:'5.0 mi', note:'Ear cleaning and feathering trim around legs.', match:'Within your service area', size:'Medium', emoji:'🐕‍🦺', bg:'#FCE9D5', flexible:false },
+  ];
+
+  componentDidMount(){ window.__gm = (screen, mode) => this.setState({ screen, mode: mode || this.state.mode, offersReady: screen==='offers'?true:this.state.offersReady, offerForm: this.state.offerForm.price?this.state.offerForm:{...this.state.offerForm, time:'Fri · 5:00 PM', price:'85'}, offerSent:true }); }
+
+  // ---- navigation ----
+  go = (screen) => { this.setState(s => ({ history:[...s.history, s.screen], screen })); this.toTop(); };
+  back = () => { this.setState(s => { const h=[...s.history]; const prev = h.pop() ?? 'home'; return { history:h, screen:prev }; }); this.toTop(); };
+  tab = (screen) => { this.setState({ screen, history:[] }); this.toTop(); };
+  toTop = () => { requestAnimationFrame(() => { if (this.scroller) this.scroller.scrollTop = 0; }); };
+  setScroller = (el) => { this.scroller = el; };
+  stop = (e) => { if (e && e.stopPropagation) e.stopPropagation(); };
+
+  goCustomer = () => { this.setState({ mode:'customer', screen:'home', history:[] }); this.toTop(); };
+  goGroomer = () => { this.setState({ mode:'groomer', screen:'gHome', history:[] }); this.toTop(); };
+
+  set = (patch) => this.setState(patch);
+  toggleArr = (key, val) => this.setState(s => { const a = new Set(s[key]); a.has(val) ? a.delete(val) : a.add(val); return { [key]:[...a] }; });
+
+  // ---- wizard ----
+  wizNext = () => this.setState(s => ({ wizStep: Math.min(4, s.wizStep+1) }));
+  wizBack = () => this.setState(s => { if (s.wizStep===0) { const h=[...s.history]; const prev=h.pop()??'home'; return { history:h, screen:prev }; } return { wizStep: s.wizStep-1 }; });
+  openWizard = () => { this.setState(s => ({ history:[...s.history, s.screen], screen:'wizard', wizStep:0 })); this.toTop(); };
+
+  publish = () => {
+    this.setState(s => ({ history:[...s.history,'home'], screen:'status', offersReady:false }));
+    this.toTop();
+    clearTimeout(this._matchT);
+    this._matchT = setTimeout(() => this.setState({ offersReady:true }), 2200);
+  };
+
+  acceptOffer = (id) => { this.setState({ selectedOffer:id, sheet:null }); this.go('confirm'); };
+  openAccept = (id) => this.setState({ selectedOffer:id, sheet:'accept' });
+  confirmAccept = () => { this.setState({ sheet:null }); this.go('confirm'); };
+
+  // ---- groomer ----
+  notFit = (id) => { this.setState({ sheet:'notfit', activeRequest:id }); };
+  confirmNotFit = () => this.setState(s => ({ dismissed:[...s.dismissed, s.activeRequest], sheet:null }));
+  openRequest = (id) => { this.setState({ activeRequest:id }); this.go('gRequest'); };
+  openMakeOffer = (suggest) => { this.setState({ suggestMode: !!suggest, offerError:null, offerForm:{ time:'', price:'', duration:'~2 hr', message:'', included:['Bath','Haircut','Nail trim','Ear cleaning'] } }); this.go('gOffer'); };
+  setOffer = (key, val) => this.setState(s => ({ offerForm:{ ...s.offerForm, [key]:val }, offerError:null }));
+  toggleIncluded = (val) => this.setState(s => { const a=new Set(s.offerForm.included); a.has(val)?a.delete(val):a.add(val); return { offerForm:{ ...s.offerForm, included:[...a] } }; });
+  sendOffer = () => {
+    const f = this.state.offerForm;
+    if (!f.time) { this.setState({ offerError:'Choose a proposed time to continue.' }); return; }
+    if (f.time === 'Fri · 2:30 PM') { this.setState({ offerError:'This time conflicts with another booking on your schedule.' }); return; }
+    if (!f.price) { this.setState({ offerError:'Add a price estimate so the customer knows what to expect.' }); return; }
+    this.setState({ offerSent:true, offerError:null });
+    this.toast(this.state.suggestMode ? 'Time suggestion sent' : 'Offer sent');
+    this.go('gOffers');
+  };
+
+  // ---- chat ----
+  onDraft = (e) => this.setState({ draft: e.target.value });
+  sendMsg = () => { const t=this.state.draft.trim(); if(!t) return; this.setState(s => ({ messages:[...s.messages, { from:'me', text:t }], draft:'' })); requestAnimationFrame(() => { if(this.scroller) this.scroller.scrollTop = this.scroller.scrollHeight; }); };
+
+  onNotes = (e) => this.setState({ notes: e.target.value });
+
+  // ---- sheets / toast ----
+  closeSheet = () => this.setState({ sheet:null });
+  toast = (msg) => { this.setState({ toast:msg }); clearTimeout(this._toastT); this._toastT = setTimeout(() => this.setState({ toast:null }), 2200); };
+  openCancel = () => this.setState({ sheet:'cancel' });
+
+  fmtPet(id){ return this.PETS.find(p=>p.id===id) || this.PETS[0]; }
+  fmtService(id){ return this.SERVICES.find(s=>s.id===id) || this.SERVICES[0]; }
+  fmtGroomer(id){ return this.GROOMERS.find(g=>g.id===id) || this.GROOMERS[0]; }
+
+  renderVals() {
+    const s = this.state;
+    const scr = (n) => s.screen === n;
+    const mint = '#7ECFC0', gray = '#9aa0a6';
+
+    // demo toggle pills
+    const pill = (on, c) => `padding:8px 16px; border-radius:999px; font-size:13px; font-weight:600; cursor:pointer; transition:all .2s; ${on ? `background:${c}; color:#fff;` : 'background:transparent; color:#6F767E;'}`;
+
+    // tab colors
+    const customerScreens = ['home','status','bookings','messages','account'];
+    const tabMap = { home:'home', status:'req', bookings:'book', messages:'msg', account:'acct' };
+    const tc = { home:gray, req:gray, book:gray, msg:gray, acct:gray };
+    if (tabMap[s.screen]) tc[tabMap[s.screen]] = mint;
+
+    const gTabMap = { gBoard:'board', gOffers:'off', gSchedule:'sched', gMessages:'msg', gAccount:'acct' };
+    const gtc = { board:gray, off:gray, sched:gray, msg:gray, acct:gray };
+    if (gTabMap[s.screen]) gtc[gTabMap[s.screen]] = '#FF9A8B';
+
+    const selCard = (on) => on
+      ? 'background:#fff; border:2px solid #7ECFC0; box-shadow:0 10px 26px -8px rgba(126,207,192,0.4);'
+      : 'background:#fff; border:2px solid #E8E2D8; box-shadow:0 4px 14px rgba(35,35,35,0.04);';
+    const chip = (on, c) => on
+      ? `background:${c}; color:#fff; border:1.5px solid ${c};`
+      : 'background:#fff; color:#6F767E; border:1.5px solid #E8E2D8;';
+
+    const pets = this.PETS.map(p => ({ ...p, selected: s.pet===p.id, sel: selCard(s.pet===p.id), onSelect: () => this.set({ pet:p.id }) }));
+    const services = this.SERVICES.map(v => ({ ...v, selected: s.service===v.id, sel: selCard(s.service===v.id), onSelect: () => this.set({ service:v.id }) }));
+
+    const sizes = ['Small','Medium','Large','XL'].map(z => ({ label:z, chip: chip(s.size===z.toLowerCase()||s.size===z, '#7ECFC0'), onSelect: () => this.set({ size:z }) }));
+    const days = [['Wed','17'],['Thu','18'],['Fri','19'],['Sat','20'],['Sun','21'],['Mon','22'],['Tue','23']].map(([d,n]) => {
+      const id = d+' '+n; const on = s.day===id;
+      return { d, n, on, style: on ? 'background:linear-gradient(150deg,#7ECFC0,#5FBFAE); color:#fff; box-shadow:0 8px 18px -6px rgba(126,207,192,0.5);' : 'background:#fff; color:#232323; border:1.5px solid #E8E2D8;', onSelect: () => this.set({ day:id }) };
+    });
+    const windows = ['Morning','Afternoon','Evening','Flexible'].map(w => ({ label:w, on:s.timeWindow===w, chip: chip(s.timeWindow===w, '#7ECFC0'), onSelect: () => this.set({ timeWindow:w }) }));
+    const locations = [['mobile','Mobile groomer comes to me','🚐'],['visit','I can visit the groomer','🏠'],['either','Either is fine','✨']].map(([id,label,ic]) => ({ id, label, ic, on:s.locationType===id, sel: selCard(s.locationType===id), onSelect: () => this.set({ locationType:id }) }));
+    const styleOptions = ['Teddy Cut','Lamb Cut','Short Trim','Breed Standard','Not sure'].map(o => ({ label:o, on:s.styleChips.includes(o), chip: chip(s.styleChips.includes(o), '#FF9A8B'), onSelect: () => this.toggleArr('styleChips', o) }));
+    const handlingOptions = ['Nervous pet','Senior pet','Matting','Skin sensitivity','First visit'].map(o => ({ label:o, on:s.handling.includes(o), chip: chip(s.handling.includes(o), '#F2B84B'), onSelect: () => this.toggleArr('handling', o) }));
+
+    const pet = this.fmtPet(s.pet);
+    const service = this.fmtService(s.service);
+    const sel = this.fmtGroomer(s.selectedOffer);
+
+    // offers list (filtered/ordered)
+    let offerList = [...this.GROOMERS];
+    if (s.offerFilter==='Earliest time') offerList.sort((a,b)=>a.time.localeCompare(b.time));
+    if (s.offerFilter==='Lowest price') offerList.sort((a,b)=>a.price-b.price);
+    if (s.offerFilter==='Highest rating') offerList.sort((a,b)=>b.rating-a.rating);
+    const offers = offerList.map((g,i) => ({ ...g, best: i===0 && s.offerFilter==='Best match', onView: () => { this.set({ selectedOffer:g.id }); this.go('offerDetail'); }, onAccept: () => this.openAccept(g.id) }));
+    const offerFilters = ['Best match','Earliest time','Lowest price','Highest rating'].map(f => ({ label:f, on:s.offerFilter===f, chip: chip(s.offerFilter===f, '#232323'), onSelect: () => this.set({ offerFilter:f }) }));
+
+    // groomer board
+    const board = this.REQUESTS.filter(r => !s.dismissed.includes(r.id)).map(r => ({ ...r, onView: () => this.openRequest(r.id), onNotFit: () => this.notFit(r.id) }));
+    const activeReq = this.REQUESTS.find(r=>r.id===s.activeRequest) || this.REQUESTS[0];
+
+    // offer times for make-offer
+    const offerTimes = ['Fri · 2:30 PM','Fri · 5:00 PM','Sat · 10:00 AM'].map(t => ({ label:t, on:s.offerForm.time===t, conflict: t==='Fri · 2:30 PM', style: s.offerForm.time===t ? 'background:#FF9A8B; color:#fff; border:1.5px solid #FF9A8B;' : 'background:#fff; color:#232323; border:1.5px solid #E8E2D8;', onSelect: () => this.setOffer('time', t) }));
+    const includedOptions = ['Bath','Haircut','Nail trim','Ear cleaning','Brushing'].map(o => ({ label:o, on:s.offerForm.included.includes(o), off:!s.offerForm.included.includes(o), onToggle: () => this.toggleIncluded(o) }));
+
+    const messages = s.messages.map(m => ({ ...m, isMe:m.from==='me', isThem:m.from==='them', isSys:m.from==='system' }));
+    const tabPill = (on) => on ? 'background:#fff; color:#232323; box-shadow:0 3px 8px rgba(35,35,35,0.08);' : 'background:transparent; color:#6F767E;';
+    const bookingTimeline = [
+      { title:'Request published', icon:'✓', dot:'background:#6CBF84; color:#fff;', line:'#6CBF84', titleColor:'#232323' },
+      { title:'Offer accepted', icon:'✓', dot:'background:#6CBF84; color:#fff;', line:'#6CBF84', titleColor:'#232323' },
+      { title:'Appointment confirmed', icon:'✓', dot:'background:#6CBF84; color:#fff;', line:'#EAE3D8', titleColor:'#232323' },
+      { title:'Service completed', icon:'', dot:'background:#EEE7DB; color:#C4BCAE;', line:'transparent', titleColor:'#9aa0a6' },
+    ];
+
+    // status timeline
+    const dDone='background:#6CBF84; color:#fff;', dActive='background:#7ECFC0; color:#fff; animation:gm-pulse 1.4s infinite;', dPend='background:#EEE7DB; color:#C4BCAE;';
+    const timeline = s.offersReady ? [
+      { title:'Request published', sub:'2 min ago', icon:'✓', dot:dDone, line:'#6CBF84', titleColor:'#232323' },
+      { title:'Matching groomers', sub:'5 groomers matched', icon:'✓', dot:dDone, line:'#6CBF84', titleColor:'#232323' },
+      { title:'Offers received', sub:'2 offers ready to compare', icon:'✓', dot:dDone, line:'#EAE3D8', titleColor:'#232323' },
+      { title:'Booking confirmed', sub:'Accept an offer to book', icon:'', dot:dPend, line:'transparent', titleColor:'#9aa0a6' },
+    ] : [
+      { title:'Request published', sub:'Just now', icon:'✓', dot:dDone, line:'#6CBF84', titleColor:'#232323' },
+      { title:'Matching groomers', sub:'Finding the best fit nearby', icon:'', dot:dActive, line:'#EAE3D8', titleColor:'#232323' },
+      { title:'Offers received', sub:'Waiting for groomers to respond', icon:'', dot:dPend, line:'#EAE3D8', titleColor:'#9aa0a6' },
+      { title:'Booking confirmed', sub:'Accept an offer to book', icon:'', dot:dPend, line:'transparent', titleColor:'#9aa0a6' },
+    ];
+    const matched = this.GROOMERS.map(g => {
+      const status = s.offersReady ? g.status : 'Reviewing';
+      const sc = status==='Offer sent' ? 'background:rgba(108,191,132,0.16); color:#3f9159;' : status==='Suggested another time' ? 'background:rgba(242,184,75,0.2); color:#b9842a;' : 'background:#F2EDE4; color:#9aa0a6;';
+      return { ...g, status, statusChip:sc, onView: () => { if (s.offersReady) { this.set({ selectedOffer:g.id }); this.go('offerDetail'); } } };
+    });
+
+    // sheet config
+    let sheetCfg = { generic:false, title:'', body:'', btn:'', btnBg:'#E56B6F', confirm:this.closeSheet };
+    if (s.sheet==='notfit') sheetCfg = { generic:true, title:'Mark as Not a Fit?', body:"We'll quietly remove this request from your board. The customer won't see a rejection — they'll keep getting matched with other groomers.", btn:'Mark Not a Fit', btnBg:'#6F767E', confirm:this.confirmNotFit };
+    if (s.sheet==='cancel') sheetCfg = { generic:true, title:'Cancel this request?', body:"Your open request will be withdrawn and any groomers reviewing it will be notified. You can always create a new one.", btn:'Cancel Request', btnBg:'#E56B6F', confirm:() => { this.setState({ sheet:null }); this.tab('home'); } };
+    if (s.sheet==='accept') { const g=this.fmtGroomer(s.selectedOffer); sheetCfg = { generic:true, title:`Accept ${g.name}'s offer?`, body:`You'll book ${g.name} for ${pet.name}'s ${service.name} at ${g.time} for $${g.price}. Your contact details are shared only after you accept.`, btn:'Accept & Confirm Booking', btnBg:'#6CBF84', confirm:this.confirmAccept }; }
+    if (s.sheet==='cancelBooking') sheetCfg = { generic:true, title:'Cancel this booking?', body:'Ava will be notified right away. Free cancellation up to 24 hours before your appointment.', btn:'Cancel Booking', btnBg:'#E56B6F', confirm:() => { this.setState({ sheet:null }); this.tab('bookings'); } };
+    if (s.sheet==='complete') sheetCfg = { generic:true, title:'Mark service complete?', body:"This will close out the appointment and invite the customer to leave a review.", btn:'Mark Complete', btnBg:'#6CBF84', confirm:() => { this.setState({ sheet:null }); this.toast('Booking completed'); } };
+
+    return {
+      ...s,
+      // entry / screen flags
+      scrSplash: scr('splash'), scrLogin: scr('login'), scrRole: scr('role'),
+      scrHome: scr('home'), scrPets: scr('pets'), scrAddPet: scr('addPet'),
+      scrWizard: scr('wizard'), scrStatus: scr('status'), scrOffers: scr('offers'),
+      scrOfferDetail: scr('offerDetail'), scrProfile: scr('profile'), scrConfirm: scr('confirm'),
+      scrBookings: scr('bookings'), scrBookingDetail: scr('bookingDetail'),
+      scrMessages: scr('messages'), scrChat: scr('chat'), scrAccount: scr('account'),
+      scrGHome: scr('gHome'), scrGBoard: scr('gBoard'), scrGRequest: scr('gRequest'),
+      scrGOffer: scr('gOffer'), scrGOffers: scr('gOffers'), scrGSchedule: scr('gSchedule'),
+      scrGProfile: scr('gProfile'), scrGMessages: scr('gMessages'), scrGChat: scr('gChat'), scrGAccount: scr('gAccount'),
+      // wizard step flags
+      wiz0: s.wizStep===0, wiz1: s.wizStep===1, wiz2: s.wizStep===2, wiz3: s.wizStep===3, wiz4: s.wizStep===4,
+      wizNotLast: s.wizStep < 4,
+      wizPct: ((s.wizStep+1)/5*100)+'%',
+      timeline, matched, matchHeadline: '5 groomers match your request',
+      isCustom: s.service==='custom',
+      isFlexible: s.flexible,
+      // tabs
+      showCustTabs: s.mode==='customer' && customerScreens.includes(s.screen),
+      showGroomTabs: s.mode==='groomer' && (['gHome','gBoard','gOffers','gSchedule','gMessages','gAccount'].includes(s.screen)),
+      tc, gtc,
+      // demo pills
+      demoCustStyle: pill(s.mode==='customer', '#7ECFC0'),
+      demoGroomStyle: pill(s.mode==='groomer', '#FF9A8B'),
+      // data
+      pets, services, sizes, days, windows, locations, styleOptions, handlingOptions,
+      offers, offerFilters, board, offerTimes, includedOptions, messages,
+      pet, service, sel,
+      offersReady: s.offersReady,
+      offerCount: s.offersReady ? 2 : 0,
+      boardEmpty: board.length===0,
+      // offer form
+      offerError: s.offerError, hasOfferError: !!s.offerError,
+      offerMessage: typeof s.offerForm.message === 'string' ? s.offerForm.message : '',
+      offerTitle: s.suggestMode ? 'Suggest another time' : 'Make an Offer',
+      offerSubtitle: s.suggestMode ? 'The requested time does not work, but you can offer an alternative.' : "Send a clear offer so the customer can compare and choose.",
+      offerSendLabel: s.suggestMode ? 'Send Time Suggestion' : 'Send Offer',
+      offerMsgPlaceholder: s.suggestMode ? "I'm not available at the requested time, but I can do Friday at 5 PM." : "Hi! I can help with Mochi's full groom. I specialize in poodle cuts and gentle handling.",
+      activeReq,
+      // chat
+      chatGroomer: this.fmtGroomer('ava'),
+      // sheet
+      hasSheet: !!s.sheet, sheetGeneric: sheetCfg.generic,
+      sheetTitle: sheetCfg.title, sheetBody: sheetCfg.body, sheetBtnLabel: sheetCfg.btn, sheetBtnBg: sheetCfg.btnBg, sheetConfirm: sheetCfg.confirm,
+      hasToast: !!s.toast,
+      // handlers
+      setScroller: this.setScroller, stop: this.stop, back: this.back, closeSheet: this.closeSheet,
+      goCustomer: this.goCustomer, goGroomer: this.goGroomer,
+      toLogin: () => this.go('login'), toRole: () => this.go('role'),
+      signIn: this.goCustomer,
+      tabHome: () => this.tab('home'), tabRequests: () => this.tab('status'), tabBookings: () => this.tab('bookings'), tabMessages: () => this.tab('messages'), tabAccount: () => this.tab('account'),
+      tabBoard: () => this.tab('gBoard'), tabGOffers: () => this.tab('gOffers'), tabSchedule: () => this.tab('gSchedule'), tabGMessages: () => this.tab('gMessages'), tabGAccount: () => this.tab('gAccount'),
+      openWizard: this.openWizard, wizNext: this.wizNext, wizBack: this.wizBack, publish: this.publish,
+      go: (n) => () => this.go(n),
+      openCancel: this.openCancel,
+      openCancelBooking: () => this.setState({ sheet:'cancelBooking' }),
+      bookingTimeline,
+      isUpcoming: s.bookingsTab==='upcoming', isPast: s.bookingsTab==='past',
+      bkUpStyle: tabPill(s.bookingsTab==='upcoming'), bkPastStyle: tabPill(s.bookingsTab==='past'),
+      bkUpcoming: () => this.set({ bookingsTab:'upcoming' }), bkPast: () => this.set({ bookingsTab:'past' }),
+      acceptSelected: () => this.openAccept(s.selectedOffer),
+      declineOffer: () => { this.toast('Offer declined'); this.back(); },
+      toChat: () => this.go('chat'), toProfile: () => this.go('profile'),
+      makeOffer: () => this.openMakeOffer(false), suggestTime: () => this.openMakeOffer(true),
+      notFitActive: () => this.notFit(s.activeRequest),
+      onOfferPrice: (e) => this.setOffer('price', e.target.value),
+      onOfferMsg: (e) => this.setOffer('message', e.target.value),
+      gPending: () => this.set({ offersTab:'pending' }), gAccepted: () => this.set({ offersTab:'accepted' }), gExpired: () => this.set({ offersTab:'expired' }),
+      gPendStyle: tabPill(s.offersTab==='pending'), gAcceptStyle: tabPill(s.offersTab==='accepted'), gExpireStyle: tabPill(s.offersTab==='expired'),
+      isGPending: s.offersTab==='pending', isGAccepted: s.offersTab==='accepted', isGExpired: s.offersTab==='expired',
+      openComplete: () => this.setState({ sheet:'complete' }),
+      toGChat: () => this.go('gChat'),
+      openRequestActive: () => this.openRequest(s.activeRequest),
+      openMakeOffer: this.openMakeOffer, sendOffer: this.sendOffer,
+      onNotes: this.onNotes, onDraft: this.onDraft, sendMsg: this.sendMsg,
+      toFindRequests: () => this.tab('gBoard'),
+    };
+  }
+}
+</script>
+</body>
+</html>

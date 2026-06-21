@@ -2,6 +2,12 @@
 
 Status values are `baseline`, `planned`, and `deferred`. A planned source path is a placement contract, not an existing file.
 
+## Groomly UI Phase
+
+T-023 starts the Groomly UI phase with design audit, implementation notes, design tokens, and shared SwiftUI DesignSystem primitives only. Later Groomly slices may restyle the baseline screens below, but their data sources, state owners, role ownership, loading/empty/error states, and repository boundaries remain unchanged unless a separate task explicitly authorizes a behavior change.
+
+Visual adaptation must preserve the current Open Request -> Groomer Offer -> Customer Confirmation -> Booking model. If a Groomly prototype screen implies a deferred feature or backend change, record it as visual inspiration only and stop before implementing it.
+
 | Screen | Purpose | Role | Planned Data Source | State Owner | Source / Task | Status |
 |---|---|---|---|---|---|---|
 | AuthenticationBootstrapView | Blocking missing/invalid Supabase configuration state | Shared | App configuration | View | `Features/Auth/AuthenticationBootstrapView.swift` | baseline |

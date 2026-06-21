@@ -2,6 +2,36 @@
 
 ```text
 Date: 2026-06-21
+Task: Trim active markdown context for T-023A.
+Files changed: CLAUDE.md, AGENTS.md, CURRENT_STATE.md, STOP_CONDITIONS.md, and worklog.
+Checks: `git diff --check` passed. No ios-build needed because this is documentation-only.
+Result: Active entry docs now point to the T-023A required context and avoid repeatedly loading backend history, frozen snapshots, old task files, or full worklog history for the next task.
+Risks: Historical details remain available in task docs, backend docs, worklog, and the pre-Groomly freeze snapshot; future backend tasks must deliberately read those sources when needed.
+Next: Execute T-023A only.
+```
+
+```text
+Date: 2026-06-21
+Task: Split T-023 Groomly UI foundation into smaller child tasks.
+Files changed: T-023 parent sequence doc, new T-023A/T-023B/T-023C/T-023D1/T-023D2 task docs, task ledger, current state, feature index, root/project active-task references, design system wording, and Groomly stop condition wording.
+Checks: `git diff --check` passed. No ios-build was run because this run only splits task documents and active-task references.
+Result: T-023 is now a parent sequence, and T-023A Groomly design audit notes is the only active next executable task. T-023B/C/D1/D2 are blocked until the previous child task is completed. T-023D2 must lead to creating T-024 before any feature-screen edits.
+Risks: docs/08_design/ remains user-provided and untracked. The child sequence must be followed in order to avoid mixing docs-only audit work with SwiftUI token/component changes.
+Next: Execute T-023A only.
+```
+
+```text
+Date: 2026-06-21
+Task: Groomly UI documentation rule switch and T-023 intake.
+Files changed: Freeze snapshot under docs/09_frozen/pre_groomly_ui_2026-06-21/, root AGENTS/CLAUDE/README docs, product UI rules, SwiftUI state rules, stop conditions, task ledger, current state, feature index, and new T-023 task file.
+Checks: git diff --check passed. No ios-build was run because this run changed documentation/rules only; T-023 requires the next implementation run to execute ./scripts/ios-build.sh after design tokens and SwiftUI DesignSystem primitives are changed.
+Result: T-022 remains completed, its post-MVP next-task suggestions are frozen and recoverable from the snapshot. Superseded by the later T-023 split: T-023 is now a parent sequence and T-023A is the active next executable task.
+Risks: docs/08_design/ remains user-provided and untracked. The Groomly prototype may show unsupported or deferred features; T-023 must treat those as visual inspiration only and stop before backend/schema/product-flow changes.
+Next: Execute T-023 Slice 1 only; do not start Slice 2-8 or non-Groomly post-MVP tasks.
+```
+
+```text
+Date: 2026-06-21
 Task: T-022 — MVP hardening and acceptance.
 Files changed: Safe Debug Panel, Account debug entry, Debug diagnostics test, T-022 task doc, screen inventory, feature index, current state, task ledger, and worklog.
 Checks: MCP rollback-only core flow/RLS/conflict validation passed on fresh project `lqmasbuqzvcvtawonjlb` with zero persisted validation data. Security advisor remained at the eight expected controlled SECURITY DEFINER WARNs; performance advisor returned existing non-blocking INFOs. `./scripts/supabase-check.sh` passed. Initial `./scripts/ios-test.sh` failed because the new diagnostics test accessed MainActor-isolated app types from a nonisolated test method; approved targeted fix added `@MainActor`. Final `./scripts/ios-test.sh`, `./scripts/preflight.sh`, and `git diff --check` passed.

@@ -25,6 +25,37 @@
 - Hide completion and review actions until their backend transitions exist.
 - Do not show actions that are invalid for the current request, match, offer, or booking status.
 
+## Groomly UI Copy Rules
+
+Use warm marketplace-oriented language during the Groomly UI phase.
+
+Preferred terms:
+
+- Groomly
+- Find a groomer
+- Start a grooming request
+- Publish request
+- Open requests
+- Make offer
+- Review offers
+- Accept offer
+- Booking confirmed
+- Not a fit
+- Waiting for offers
+- No offers yet
+
+Avoid old or misleading terms:
+
+- Task card
+- Send task
+- Reject customer
+- Reject task
+- Recipient
+- Submission
+- Card exchange
+
+For groomer dismissals, use private, neutral wording such as "Not a fit". Do not show customer-facing rejection language. Customers should stay in a neutral waiting or no-offers state.
+
 ## Privacy
 
 - Before booking, show a groomer only the pet/service/time/approximate-location information needed to decide whether to offer.

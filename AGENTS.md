@@ -17,6 +17,22 @@ Use the lightweight single-agent workflow in `docs/05_workflow/SINGLE_AGENT_WORK
 - Write a closeout/checkpoint before `/compact`.
 - Stop when the requested task is complete.
 
+## Active Groomly UI Phase
+
+The active Groomly foundation sequence is `docs/06_tasks/T-023_GROOMLY_UI_FOUNDATION_SEQUENCE.md`.
+
+The active next executable task is `docs/06_tasks/T-023A_GROOMLY_DESIGN_AUDIT_NOTES.md`.
+
+- T-022 remains completed, but its post-MVP next-task suggestions are frozen and must not auto-start.
+- Use the Groomly design source in `docs/08_design/` only as a visual and interaction reference.
+- Run only one T-023 child task per Codex run: T-023A, then T-023B, then T-023C, then T-023D1, then T-023D2.
+- Start with T-023A only: design audit and `UI_IMPLEMENTATION_NOTES.md`.
+- For T-023A startup, use the task file's Required Context list. Do not read backend docs, old task files, frozen snapshots, full worklog history, or full current-state history unless the user explicitly asks.
+- Do not redesign feature screens, implement Slice 2-8, or start non-Groomly post-MVP work unless the user explicitly requests it.
+- Do not copy HTML/CSS/React code directly into SwiftUI.
+- Product correctness and the existing Open Request -> Groomer Offer -> Customer Confirmation -> Booking model take priority over visual matching.
+- If prototype content requires backend/schema/RLS/RPC changes or deferred features, stop and report.
+
 ## Minimal Startup Context
 
 Read only what the task needs:
