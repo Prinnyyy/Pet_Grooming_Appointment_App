@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-06-21
+Task: T-023A - Groomly design audit notes.
+Files changed: Created docs/08_design/UI_IMPLEMENTATION_NOTES.md; updated CURRENT_STATE.md, WORKLOG.md, and TASK_LEDGER.md.
+Checks: `test -f docs/08_design/UI_IMPLEMENTATION_NOTES.md` passed. `git diff --check` passed. No ios-build needed because this task is documentation-only and changed no Swift/project files.
+Result: T-023A is completed. The notes identify the Groomly design sources, brand, visual direction, colors, typography, spacing/radius/shadow patterns, major screens, reusable components, role-specific screens, preserved current app states, prototype-to-SwiftUI mapping, deferred/unsupported ideas, and asset risks. User confirmed Groomly.zip has already been extracted as docs/08_design/Groomly/. Post-review follow-up clarified that `DesignTokens.swift` is only a later SwiftUI target and that T-023B should collapse observed colors into conservative semantic tokens.
+Risks: The prototype includes deferred or unsupported concepts including request cancellation, reschedule, payments, payouts, availability/schedule, standalone groomer offers, richer media, and demo role switching. These remain visual inspiration only unless a later task explicitly authorizes product/backend work.
+Next: Execute T-023B only.
+```
+
+```text
+Date: 2026-06-21
 Task: Trim active markdown context for T-023A.
 Files changed: CLAUDE.md, AGENTS.md, CURRENT_STATE.md, STOP_CONDITIONS.md, and worklog.
 Checks: `git diff --check` passed. No ios-build needed because this is documentation-only.

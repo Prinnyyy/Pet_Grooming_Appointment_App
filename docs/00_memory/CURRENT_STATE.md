@@ -10,9 +10,9 @@ Update this only when project state meaningfully changes.
 ## Current Task Fast Path
 
 - Active sequence: `docs/06_tasks/T-023_GROOMLY_UI_FOUNDATION_SEQUENCE.md`.
-- Active next executable task: `docs/06_tasks/T-023A_GROOMLY_DESIGN_AUDIT_NOTES.md`.
-- T-023A is documentation-only: inspect Groomly design files, create `docs/08_design/UI_IMPLEMENTATION_NOTES.md`, run `git diff --check`, update memory, and stop.
-- Do not create `design_tokens.json`, edit Swift, run `ios-build.sh`, read backend docs, read frozen snapshots, or start T-023B/C/D1/D2 during T-023A.
+- Active next executable task: `docs/06_tasks/T-023B_GROOMLY_DESIGN_TOKENS_JSON.md`.
+- T-023A is completed. `docs/08_design/UI_IMPLEMENTATION_NOTES.md` now records the Groomly design audit, prototype-to-SwiftUI mapping, deferred prototype ideas, and asset risks.
+- T-023B is the next child task. Read its task file before executing it; do not edit Swift, run `ios-build.sh`, read backend docs, read frozen snapshots, or start T-023C/D1/D2 during T-023B.
 - After T-023D2 eventually completes, create a new T-024 screen-specific task file before editing any feature screen.
 
 ## Current Branch
@@ -38,7 +38,7 @@ Update this only when project state meaningfully changes.
 - Production routing uses real Supabase Auth, authoritative profile loading, and customer/groomer role separation. No production path fabricates a session/profile.
 - Implemented iOS areas include Auth, role onboarding, customer pets, customer requests/offers, groomer requests/offers, bookings, participant text chat, groomer profile/services/portfolio metadata, Account, and a sanitized Debug Panel.
 - Active product model remains Open Request -> Groomer Offer -> Customer Confirmation -> Booking. Do not reintroduce task-card push flow.
-- Groomly UI adaptation is now the active next phase. Design sources are `docs/08_design/Groomly.html`, `docs/08_design/Groomly/`, and `docs/08_design/Apply Groomly Design Prototype to Existing SwiftUI App.md`.
+- Groomly UI adaptation is now the active next phase. Design sources are `docs/08_design/Groomly.html`, `docs/08_design/Groomly/`, `docs/08_design/UI_IMPLEMENTATION_NOTES.md`, and `docs/08_design/Apply Groomly Design Prototype to Existing SwiftUI App.md`.
 
 ## Current Workflow State
 
@@ -46,7 +46,7 @@ Update this only when project state meaningfully changes.
 - Pre-Groomly rule/task context is frozen at `docs/09_frozen/pre_groomly_ui_2026-06-21/` for recovery only; do not read it during T-023A.
 - T-001 through T-022 are completed. T-022 post-MVP next-task suggestions are frozen and must not auto-start.
 - T-023 is split into five child tasks: T-023A design audit notes, T-023B design tokens JSON, T-023C SwiftUI token foundation, T-023D1 action primitives, and T-023D2 feedback primitives.
-- Only T-023A is currently executable. T-023B/C/D1/D2 are blocked until the previous child task is completed and recorded.
+- T-023A is completed. Only T-023B is currently executable. T-023C/D1/D2 are blocked until the previous child task is completed and recorded.
 
 ## Current iOS State
 
@@ -74,4 +74,4 @@ Update this only when project state meaningfully changes.
 
 ## Next Recommended Task
 
-- T-023A - Groomly design audit notes. Inspect the Groomly design files, create `docs/08_design/UI_IMPLEMENTATION_NOTES.md`, run `git diff --check`, update memory, and stop.
+- T-023B - Groomly design tokens JSON. Use the completed design audit notes and Groomly design files to create `docs/08_design/design_tokens.json`, update memory, and stop.
