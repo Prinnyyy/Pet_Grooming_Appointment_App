@@ -155,6 +155,10 @@ nonisolated enum GroomingRequestDateFormatting {
         )
     }
 
+    static func parsedDate(from value: String) -> Date? {
+        date(from: value)
+    }
+
     private static func serverFormatter() -> ISO8601DateFormatter {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime]

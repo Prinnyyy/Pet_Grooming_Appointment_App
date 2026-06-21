@@ -3,6 +3,7 @@ import Foundation
 struct GroomerMatchedRequest: Equatable, Hashable, Identifiable, Sendable {
     let match: GroomerRequestMatch
     let request: GroomerMatchedGroomingRequest
+    let offer: GroomerOffer?
 
     var id: UUID {
         match.id
@@ -22,6 +23,24 @@ struct GroomerMatchedRequest: Equatable, Hashable, Identifiable, Sendable {
         }
 
         return match.status.title
+    }
+
+    var canCreateOffer: Bool {
+        request.status.isOpenForOffers
+            && match.status.isOfferable
+            && offer?.status != .pending
+    }
+
+    func replacing(
+        matchStatus: RequestMatchStatus? = nil,
+        requestStatus: GroomingRequestStatus? = nil,
+        offer: GroomerOffer?
+    ) -> GroomerMatchedRequest {
+        GroomerMatchedRequest(
+            match: match.replacing(status: matchStatus ?? match.status),
+            request: request.replacing(status: requestStatus ?? request.status),
+            offer: offer
+        )
     }
 }
 
@@ -113,10 +132,156 @@ nonisolated enum RequestMatchStatus:
             false
         }
     }
+
+    var isOfferable: Bool {
+        switch self {
+        case .visible, .viewed:
+            true
+        case .dismissed, .offered, .hidden, .expired:
+            false
+        }
+    }
 }
 
 struct DismissRequestMatchResult: Equatable, Sendable {
     let matchID: UUID
     let status: RequestMatchStatus
     let dismissedAt: String
+}
+
+struct GroomerOffer: Equatable, Hashable, Identifiable, Sendable {
+    let id: UUID
+    let requestID: UUID
+    let matchID: UUID
+    let customerID: UUID
+    let groomerID: UUID
+    let proposedStart: String
+    let proposedEnd: String
+    let priceEstimate: Double
+    let message: String?
+    let status: GroomerOfferStatus
+    let expiresAt: String
+    let withdrawnAt: String?
+    let createdAt: String?
+    let updatedAt: String?
+
+    var priceSummary: String {
+        priceEstimate.formatted(
+            .currency(code: "USD").precision(.fractionLength(2))
+        )
+    }
+
+    func replacing(
+        status: GroomerOfferStatus,
+        withdrawnAt: String?
+    ) -> GroomerOffer {
+        GroomerOffer(
+            id: id,
+            requestID: requestID,
+            matchID: matchID,
+            customerID: customerID,
+            groomerID: groomerID,
+            proposedStart: proposedStart,
+            proposedEnd: proposedEnd,
+            priceEstimate: priceEstimate,
+            message: message,
+            status: status,
+            expiresAt: expiresAt,
+            withdrawnAt: withdrawnAt,
+            createdAt: createdAt,
+            updatedAt: updatedAt
+        )
+    }
+}
+
+nonisolated enum GroomerOfferStatus:
+    String,
+    Codable,
+    CaseIterable,
+    Hashable,
+    Sendable
+{
+    case pending
+    case acceptedByCustomer = "accepted_by_customer"
+    case declinedByCustomer = "declined_by_customer"
+    case withdrawnByGroomer = "withdrawn_by_groomer"
+    case expired
+
+    var title: String {
+        switch self {
+        case .pending:
+            "Pending"
+        case .acceptedByCustomer:
+            "Accepted"
+        case .declinedByCustomer:
+            "Declined"
+        case .withdrawnByGroomer:
+            "Withdrawn"
+        case .expired:
+            "Expired"
+        }
+    }
+}
+
+struct GroomerOfferDraft: Equatable, Sendable {
+    let requestID: UUID
+    let proposedStart: Date
+    let proposedEnd: Date
+    let priceEstimate: Double
+    let message: String?
+}
+
+struct CreateGroomerOfferResult: Equatable, Sendable {
+    let offerID: UUID
+    let offerStatus: GroomerOfferStatus
+    let requestStatus: GroomingRequestStatus
+}
+
+struct WithdrawGroomerOfferResult: Equatable, Sendable {
+    let offerID: UUID
+    let offerStatus: GroomerOfferStatus
+    let withdrawnTimestamp: String
+    let requestStatus: GroomingRequestStatus
+}
+
+extension GroomerRequestMatch {
+    func replacing(status: RequestMatchStatus) -> GroomerRequestMatch {
+        GroomerRequestMatch(
+            id: id,
+            requestID: requestID,
+            groomerID: groomerID,
+            customerID: customerID,
+            matchScore: matchScore,
+            matchReason: matchReason,
+            dismissReason: dismissReason,
+            status: status,
+            viewedAt: viewedAt,
+            dismissedAt: dismissedAt,
+            createdAt: createdAt,
+            updatedAt: updatedAt
+        )
+    }
+}
+
+extension GroomerMatchedGroomingRequest {
+    func replacing(status: GroomingRequestStatus) -> GroomerMatchedGroomingRequest {
+        GroomerMatchedGroomingRequest(
+            id: id,
+            customerID: customerID,
+            petID: petID,
+            petSnapshot: petSnapshot,
+            photoSnapshot: photoSnapshot,
+            serviceType: serviceType,
+            serviceNotes: serviceNotes,
+            preferredStart: preferredStart,
+            preferredEnd: preferredEnd,
+            city: city,
+            state: state,
+            zipCode: zipCode,
+            status: status,
+            expiresAt: expiresAt,
+            createdAt: createdAt,
+            updatedAt: updatedAt
+        )
+    }
 }

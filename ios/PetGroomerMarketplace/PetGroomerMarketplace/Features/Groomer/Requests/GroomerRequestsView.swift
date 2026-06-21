@@ -36,11 +36,8 @@ struct GroomerRequestsView: View {
                             ForEach(store.matchedRequests) { matchedRequest in
                                 NavigationLink {
                                     GroomerRequestDetailView(
-                                        matchedRequest: matchedRequest,
-                                        isDismissing: store.isDismissing,
-                                        onDismiss: {
-                                            await store.dismiss(matchedRequest)
-                                        }
+                                        matchID: matchedRequest.id,
+                                        store: store
                                     )
                                 } label: {
                                     GroomerRequestSummaryRow(
@@ -87,9 +84,9 @@ private struct GroomerRequestSummaryRow: View {
 
                 Spacer()
 
-                Text(matchedRequest.matchSummary)
+                Text(statusSummary)
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(.green)
+                    .foregroundStyle(statusColor)
             }
 
             Text(matchedRequest.locationSummary)
@@ -104,96 +101,228 @@ private struct GroomerRequestSummaryRow: View {
         }
         .padding(.vertical, 4)
     }
+
+    private var statusSummary: String {
+        if let offer = matchedRequest.offer {
+            return "Offer \(offer.status.title.lowercased())"
+        }
+
+        return matchedRequest.matchSummary
+    }
+
+    private var statusColor: Color {
+        if matchedRequest.offer?.status == .pending {
+            return .orange
+        }
+
+        return matchedRequest.request.status.isOpenForOffers ? .green : .secondary
+    }
 }
 
 private struct GroomerRequestDetailView: View {
-    let matchedRequest: GroomerMatchedRequest
-    let isDismissing: Bool
-    let onDismiss: @MainActor () async -> Void
+    let matchID: UUID
+    let store: GroomerRequestsStore
+
+    @State private var didInitializeOfferForm = false
+    @State private var proposedStart = Date().addingTimeInterval(24 * 60 * 60)
+    @State private var proposedEnd = Date().addingTimeInterval(26 * 60 * 60)
+    @State private var priceEstimateText = ""
+    @State private var message = ""
 
     var body: some View {
-        List {
-            Section("Match") {
-                LabeledContent("Status", value: matchedRequest.match.status.title)
-                if let score = matchedRequest.match.matchScore {
-                    LabeledContent("Score", value: "\(Int(score.rounded()))")
+        if let matchedRequest = store.matchedRequest(withID: matchID) {
+            List {
+                Section("Match") {
+                    LabeledContent("Status", value: matchedRequest.match.status.title)
+                    if let score = matchedRequest.match.matchScore {
+                        LabeledContent("Score", value: "\(Int(score.rounded()))")
+                    }
+                    if let reason = matchedRequest.match.matchReason {
+                        Text(reason)
+                            .foregroundStyle(DesignTokens.Colors.secondaryText)
+                    }
                 }
-                if let reason = matchedRequest.match.matchReason {
-                    Text(reason)
-                        .foregroundStyle(DesignTokens.Colors.secondaryText)
+
+                Section("Request") {
+                    LabeledContent(
+                        "Request status",
+                        value: matchedRequest.request.status.title
+                    )
+                    LabeledContent("Service", value: matchedRequest.request.serviceType)
+                    if let notes = matchedRequest.request.serviceNotes {
+                        Text(notes)
+                            .foregroundStyle(DesignTokens.Colors.secondaryText)
+                    }
+                }
+
+                Section("Pet snapshot") {
+                    LabeledContent("Pet", value: matchedRequest.request.petSnapshot.name)
+                    LabeledContent(
+                        "Species",
+                        value: matchedRequest.request.petSnapshot.species
+                    )
+                    if let breed = matchedRequest.request.petSnapshot.breed {
+                        LabeledContent("Breed", value: breed)
+                    }
+                    if let size = matchedRequest.request.petSnapshot.size {
+                        LabeledContent("Size", value: size)
+                    }
+                    LabeledContent(
+                        "Photos",
+                        value: "\(matchedRequest.request.photoSnapshot.count)"
+                    )
+                }
+
+                Section("Preferred time") {
+                    LabeledContent(
+                        "Start",
+                        value: GroomingRequestDateFormatting.displayString(
+                            from: matchedRequest.request.preferredStart
+                        )
+                    )
+                    LabeledContent(
+                        "End",
+                        value: GroomingRequestDateFormatting.displayString(
+                            from: matchedRequest.request.preferredEnd
+                        )
+                    )
+                }
+
+                Section("Location") {
+                    LabeledContent("City", value: matchedRequest.request.city)
+                    LabeledContent("State", value: matchedRequest.request.state)
+                    LabeledContent("ZIP", value: matchedRequest.request.zipCode)
+                }
+
+                offerSection(for: matchedRequest)
+
+                Section("Actions") {
+                    Button(role: .destructive) {
+                        Task {
+                            await store.dismiss(matchedRequest)
+                        }
+                    } label: {
+                        Label("Dismiss match", systemImage: "xmark.circle")
+                    }
+                    .disabled(
+                        store.isDismissing || !matchedRequest.match.status.isDismissible
+                    )
+                    .accessibilityIdentifier("groomer.requests.dismiss")
+
+                    if !matchedRequest.match.status.isDismissible {
+                        Text("Matches with an active or completed offer cannot be dismissed.")
+                            .font(.footnote)
+                            .foregroundStyle(DesignTokens.Colors.secondaryText)
+                    }
                 }
             }
-
-            Section("Request") {
-                LabeledContent(
-                    "Request status",
-                    value: matchedRequest.request.status.title
-                )
-                LabeledContent("Service", value: matchedRequest.request.serviceType)
-                if let notes = matchedRequest.request.serviceNotes {
-                    Text(notes)
-                        .foregroundStyle(DesignTokens.Colors.secondaryText)
-                }
+            .navigationTitle(matchedRequest.request.petSnapshot.name)
+            .navigationBarTitleDisplayMode(.inline)
+            .accessibilityIdentifier("groomer.requests.detail")
+            .task(id: matchedRequest.request.id) {
+                initializeOfferFormIfNeeded(for: matchedRequest)
             }
+        } else {
+            ContentUnavailableView(
+                "Request unavailable",
+                systemImage: "tray",
+                description: Text("Refresh matched requests and try again.")
+            )
+            .navigationTitle("Request")
+        }
+    }
 
-            Section("Pet snapshot") {
-                LabeledContent("Pet", value: matchedRequest.request.petSnapshot.name)
+    @ViewBuilder
+    private func offerSection(for matchedRequest: GroomerMatchedRequest) -> some View {
+        Section("Offer") {
+            if let offer = matchedRequest.offer {
+                LabeledContent("Status", value: offer.status.title)
+                LabeledContent("Price", value: offer.priceSummary)
                 LabeledContent(
-                    "Species",
-                    value: matchedRequest.request.petSnapshot.species
-                )
-                if let breed = matchedRequest.request.petSnapshot.breed {
-                    LabeledContent("Breed", value: breed)
-                }
-                if let size = matchedRequest.request.petSnapshot.size {
-                    LabeledContent("Size", value: size)
-                }
-                LabeledContent(
-                    "Photos",
-                    value: "\(matchedRequest.request.photoSnapshot.count)"
-                )
-            }
-
-            Section("Preferred time") {
-                LabeledContent(
-                    "Start",
+                    "Proposed start",
                     value: GroomingRequestDateFormatting.displayString(
-                        from: matchedRequest.request.preferredStart
+                        from: offer.proposedStart
                     )
                 )
                 LabeledContent(
-                    "End",
+                    "Proposed end",
                     value: GroomingRequestDateFormatting.displayString(
-                        from: matchedRequest.request.preferredEnd
+                        from: offer.proposedEnd
                     )
                 )
+                if let message = offer.message {
+                    Text(message)
+                        .foregroundStyle(DesignTokens.Colors.secondaryText)
+                }
+
+                if offer.status == .pending {
+                    Button(role: .destructive) {
+                        Task {
+                            await store.withdrawOffer(for: matchedRequest)
+                        }
+                    } label: {
+                        Label("Withdraw offer", systemImage: "arrow.uturn.backward.circle")
+                    }
+                    .disabled(store.isWithdrawingOffer)
+                    .accessibilityIdentifier("groomer.offers.withdraw")
+                }
             }
 
-            Section("Location") {
-                LabeledContent("City", value: matchedRequest.request.city)
-                LabeledContent("State", value: matchedRequest.request.state)
-                LabeledContent("ZIP", value: matchedRequest.request.zipCode)
-            }
+            if matchedRequest.canCreateOffer {
+                DatePicker(
+                    "Proposed start",
+                    selection: $proposedStart,
+                    displayedComponents: [.date, .hourAndMinute]
+                )
 
-            Section("Actions") {
-                Button(role: .destructive) {
+                DatePicker(
+                    "Proposed end",
+                    selection: $proposedEnd,
+                    displayedComponents: [.date, .hourAndMinute]
+                )
+
+                TextField("Price estimate", text: $priceEstimateText)
+                    .keyboardType(.decimalPad)
+                    .accessibilityIdentifier("groomer.offers.price")
+
+                TextField("Message", text: $message, axis: .vertical)
+                    .lineLimit(3...6)
+                    .accessibilityIdentifier("groomer.offers.message")
+
+                Button {
                     Task {
-                        await onDismiss()
+                        await store.submitOffer(
+                            for: matchedRequest,
+                            proposedStart: proposedStart,
+                            proposedEnd: proposedEnd,
+                            priceEstimateText: priceEstimateText,
+                            message: message
+                        )
                     }
                 } label: {
-                    Label("Dismiss match", systemImage: "xmark.circle")
+                    Label("Submit offer", systemImage: "paperplane")
                 }
-                .disabled(isDismissing || !matchedRequest.match.status.isDismissible)
-                .accessibilityIdentifier("groomer.requests.dismiss")
-
-                Text("Offer creation is planned for T-016 and is not connected in this task.")
+                .disabled(store.isSubmittingOffer)
+                .accessibilityIdentifier("groomer.offers.submit")
+            } else if matchedRequest.offer?.status != .pending {
+                Text("This request can no longer receive a new offer from this account.")
                     .font(.footnote)
                     .foregroundStyle(DesignTokens.Colors.secondaryText)
             }
         }
-        .navigationTitle(matchedRequest.request.petSnapshot.name)
-        .navigationBarTitleDisplayMode(.inline)
-        .accessibilityIdentifier("groomer.requests.detail")
+    }
+
+    private func initializeOfferFormIfNeeded(
+        for matchedRequest: GroomerMatchedRequest
+    ) {
+        guard !didInitializeOfferForm else { return }
+
+        let range = GroomerRequestsStore.defaultOfferRange(
+            for: matchedRequest.request
+        )
+        proposedStart = range.start
+        proposedEnd = range.end
+        didInitializeOfferForm = true
     }
 }
 
@@ -204,6 +333,16 @@ private struct GroomerRequestsStatusView: View {
         VStack(spacing: 8) {
             if store.isDismissing {
                 ProgressView("Dismissing…")
+                    .font(.footnote)
+            }
+
+            if store.isSubmittingOffer {
+                ProgressView("Submitting offer…")
+                    .font(.footnote)
+            }
+
+            if store.isWithdrawingOffer {
+                ProgressView("Withdrawing offer…")
                     .font(.footnote)
             }
 
@@ -283,7 +422,8 @@ private final class GroomerRequestsPreviewRepository: GroomerRequestRepository {
                 expiresAt: "2026-06-22T12:00:00Z",
                 createdAt: "2026-06-20T12:00:00Z",
                 updatedAt: "2026-06-20T12:00:00Z"
-            )
+            ),
+            offer: nil
         )
     ]
 
@@ -300,6 +440,27 @@ private final class GroomerRequestsPreviewRepository: GroomerRequestRepository {
             matchID: matchID,
             status: .dismissed,
             dismissedAt: "2026-06-20T13:00:00Z"
+        )
+    }
+
+    func createOffer(
+        draft: GroomerOfferDraft
+    ) async throws -> CreateGroomerOfferResult {
+        CreateGroomerOfferResult(
+            offerID: UUID(),
+            offerStatus: .pending,
+            requestStatus: .hasOffers
+        )
+    }
+
+    func withdrawOffer(
+        offerID: UUID
+    ) async throws -> WithdrawGroomerOfferResult {
+        WithdrawGroomerOfferResult(
+            offerID: offerID,
+            offerStatus: .withdrawnByGroomer,
+            withdrawnTimestamp: "2026-06-20T14:00:00Z",
+            requestStatus: .open
         )
     }
 }

@@ -11,6 +11,10 @@ final class SupabaseGroomerRequestRepository: GroomerRequestRepository {
         id,customer_id,pet_id,pet_snapshot,photo_snapshot,service_type,service_notes,\
         preferred_start,preferred_end,city,state,zip_code,status,expires_at,created_at,updated_at
         """
+    private static let offerColumns = """
+        id,request_id,match_id,customer_id,groomer_id,proposed_start,proposed_end,\
+        price_estimate,message,status,expires_at,withdrawn_at,created_at,updated_at
+        """
 
     private let client: SupabaseClient
 
@@ -53,6 +57,20 @@ final class SupabaseGroomerRequestRepository: GroomerRequestRepository {
                 uniqueKeysWithValues: requestRows.map { ($0.id, $0.request) }
             )
 
+            let offerRows: [GroomerOfferRow] = try await client
+                .from("groomer_offers")
+                .select(Self.offerColumns)
+                .eq("groomer_id", value: groomerID.uuidString.lowercased())
+                .in("request_id", values: requestIDs)
+                .order("created_at", ascending: false)
+                .execute()
+                .value
+
+            var latestOffersByRequestID: [UUID: GroomerOffer] = [:]
+            for row in offerRows where latestOffersByRequestID[row.requestID] == nil {
+                latestOffersByRequestID[row.requestID] = row.offer
+            }
+
             return matchRows.compactMap { row in
                 guard let request = requestsByID[row.requestID] else {
                     return nil
@@ -60,7 +78,8 @@ final class SupabaseGroomerRequestRepository: GroomerRequestRepository {
 
                 return GroomerMatchedRequest(
                     match: row.match,
-                    request: request
+                    request: request,
+                    offer: latestOffersByRequestID[row.requestID]
                 )
             }
         } catch {
@@ -96,6 +115,54 @@ final class SupabaseGroomerRequestRepository: GroomerRequestRepository {
         }
     }
 
+    func createOffer(
+        draft: GroomerOfferDraft
+    ) async throws -> CreateGroomerOfferResult {
+        do {
+            let rows: [CreateGroomerOfferRow] = try await client
+                .rpc(
+                    "create_groomer_offer",
+                    params: CreateGroomerOfferParameters(draft: draft)
+                )
+                .execute()
+                .value
+
+            guard rows.count == 1, let result = rows.first?.result else {
+                throw GroomerRequestRepositoryError.unavailable
+            }
+
+            return result
+        } catch let error as GroomerRequestRepositoryError {
+            throw error
+        } catch {
+            throw Self.map(error)
+        }
+    }
+
+    func withdrawOffer(
+        offerID: UUID
+    ) async throws -> WithdrawGroomerOfferResult {
+        do {
+            let rows: [WithdrawGroomerOfferRow] = try await client
+                .rpc(
+                    "withdraw_groomer_offer",
+                    params: WithdrawGroomerOfferParameters(offerID: offerID)
+                )
+                .execute()
+                .value
+
+            guard rows.count == 1, let result = rows.first?.result else {
+                throw GroomerRequestRepositoryError.unavailable
+            }
+
+            return result
+        } catch let error as GroomerRequestRepositoryError {
+            throw error
+        } catch {
+            throw Self.map(error)
+        }
+    }
+
     private static func map(_ error: any Error) -> GroomerRequestRepositoryError {
         if let repositoryError = error as? GroomerRequestRepositoryError {
             return repositoryError
@@ -113,8 +180,18 @@ final class SupabaseGroomerRequestRepository: GroomerRequestRepository {
                     return .notAllowed
                 case "match_not_found":
                     return .matchNotFound
-                case "match_not_dismissible", "request_not_open":
+                case "match_not_dismissible":
                     return .noLongerDismissible
+                case "request_not_open":
+                    return .requestNoLongerOpen
+                case "match_not_offerable":
+                    return .noLongerOfferable
+                case "active_offer_exists":
+                    return .activeOfferExists
+                case "offer_not_found", "invalid_offer":
+                    return .offerNotFound
+                case "offer_not_withdrawable":
+                    return .noLongerWithdrawable
                 default:
                     return .unavailable
                 }
@@ -138,6 +215,59 @@ final class SupabaseGroomerRequestRepository: GroomerRequestRepository {
         }
 
         return .unavailable
+    }
+}
+
+private struct GroomerOfferRow: Decodable {
+    let id: UUID
+    let requestID: UUID
+    let matchID: UUID
+    let customerID: UUID
+    let groomerID: UUID
+    let proposedStart: String
+    let proposedEnd: String
+    let priceEstimate: Double
+    let message: String?
+    let status: GroomerOfferStatus
+    let expiresAt: String
+    let withdrawnAt: String?
+    let createdAt: String?
+    let updatedAt: String?
+
+    var offer: GroomerOffer {
+        GroomerOffer(
+            id: id,
+            requestID: requestID,
+            matchID: matchID,
+            customerID: customerID,
+            groomerID: groomerID,
+            proposedStart: proposedStart,
+            proposedEnd: proposedEnd,
+            priceEstimate: priceEstimate,
+            message: message,
+            status: status,
+            expiresAt: expiresAt,
+            withdrawnAt: withdrawnAt,
+            createdAt: createdAt,
+            updatedAt: updatedAt
+        )
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case requestID = "request_id"
+        case matchID = "match_id"
+        case customerID = "customer_id"
+        case groomerID = "groomer_id"
+        case proposedStart = "proposed_start"
+        case proposedEnd = "proposed_end"
+        case priceEstimate = "price_estimate"
+        case message
+        case status
+        case expiresAt = "expires_at"
+        case withdrawnAt = "withdrawn_at"
+        case createdAt = "created_at"
+        case updatedAt = "updated_at"
     }
 }
 
@@ -288,5 +418,96 @@ private struct DismissRequestMatchParameters: Encodable {
     private enum CodingKeys: String, CodingKey {
         case matchID = "p_match_id"
         case reason = "p_reason"
+    }
+}
+
+private struct CreateGroomerOfferRow: Decodable {
+    let offerID: UUID
+    let offerStatus: GroomerOfferStatus
+    let requestStatus: GroomingRequestStatus
+
+    var result: CreateGroomerOfferResult {
+        CreateGroomerOfferResult(
+            offerID: offerID,
+            offerStatus: offerStatus,
+            requestStatus: requestStatus
+        )
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case offerID = "offer_id"
+        case offerStatus = "offer_status"
+        case requestStatus = "request_status"
+    }
+}
+
+private struct WithdrawGroomerOfferRow: Decodable {
+    let offerID: UUID
+    let offerStatus: GroomerOfferStatus
+    let withdrawnTimestamp: String
+    let requestStatus: GroomingRequestStatus
+
+    var result: WithdrawGroomerOfferResult {
+        WithdrawGroomerOfferResult(
+            offerID: offerID,
+            offerStatus: offerStatus,
+            withdrawnTimestamp: withdrawnTimestamp,
+            requestStatus: requestStatus
+        )
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case offerID = "offer_id"
+        case offerStatus = "offer_status"
+        case withdrawnTimestamp = "withdrawn_timestamp"
+        case requestStatus = "request_status"
+    }
+}
+
+private struct CreateGroomerOfferParameters: Encodable {
+    let draft: GroomerOfferDraft
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(
+            draft.requestID.uuidString.lowercased(),
+            forKey: .requestID
+        )
+        try container.encode(
+            GroomingRequestDateFormatting.serverString(from: draft.proposedStart),
+            forKey: .proposedStart
+        )
+        try container.encode(
+            GroomingRequestDateFormatting.serverString(from: draft.proposedEnd),
+            forKey: .proposedEnd
+        )
+        try container.encode(draft.priceEstimate, forKey: .priceEstimate)
+
+        if let message = draft.message {
+            try container.encode(message, forKey: .message)
+        } else {
+            try container.encodeNil(forKey: .message)
+        }
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case requestID = "p_request_id"
+        case proposedStart = "p_proposed_start"
+        case proposedEnd = "p_proposed_end"
+        case priceEstimate = "p_price_estimate"
+        case message = "p_message"
+    }
+}
+
+private struct WithdrawGroomerOfferParameters: Encodable {
+    let offerID: UUID
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(offerID.uuidString.lowercased(), forKey: .offerID)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case offerID = "p_offer_id"
     }
 }

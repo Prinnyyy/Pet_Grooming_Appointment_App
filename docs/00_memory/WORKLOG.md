@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-06-20
+Task: T-016 — groomer offer creation UI.
+Files changed: Groomer request/offer models, repository boundary, Supabase adapter, Groomer Requests Store/UI, focused tests, task doc, screen inventory, task ledger, feature/current memory, and worklog.
+Checks: Initial `./scripts/ios-test.sh` failed on a Swift naming collision in the offer submission parameter; after approved targeted correction, `./scripts/ios-test.sh` passed with 44 Swift Testing tests and 1 XCTest UI smoke test. No Supabase remote validation was run because this was iOS-only against the already validated T-015 backend.
+Result: T-016 is completed. Groomers can see latest own offer status on matched requests, submit a valid offer through `create_groomer_offer`, withdraw a pending offer through `withdraw_groomer_offer`, and receive validation/backend errors without SwiftUI views directly touching Supabase.
+Risks: Customer offer review, offer acceptance, booking conflict checks, chat, and reviews remain unimplemented. The separate Groomer Offers tab remains a placeholder; offer creation currently lives in matched request detail.
+Next: T-017 — implement customer offer review in a separate Standard task.
+```
+
+```text
+Date: 2026-06-20
 Task: T-015 — groomer offer backend.
 Files changed: T-015 task doc, reviewed SQL draft, local migration mirror, backend contract/RLS docs, task ledger, feature/current memory, and worklog.
 Checks: MCP migration apply passed as `20260621024848`; metadata and rollback-only offer/RLS/RPC checks passed with zero persisted validation data. Security advisor returned four intentional SECURITY DEFINER WARNs for controlled T-012/T-015 RPCs; performance advisor returned reviewed INFOs. `./scripts/supabase-check.sh` and `git diff --check` passed; no iOS build/test was run because this was backend-only.
