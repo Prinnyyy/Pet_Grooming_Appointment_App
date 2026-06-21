@@ -34,7 +34,7 @@ Initial prototype color evidence:
 | Warning | `#F2B84B` |
 | Error | `#E56B6F` |
 
-During T-023A, confirm these values against `Groomly.html` and `docs/08_design/Groomly/` in `UI_IMPLEMENTATION_NOTES.md`. During T-023B, record exact or inferred tokens in `docs/08_design/design_tokens.json`.
+T-023A confirmed these values against `Groomly.html` and `docs/08_design/Groomly/` in `UI_IMPLEMENTATION_NOTES.md`. T-023B records the selected exact or inferred token source in `docs/08_design/design_tokens.json`. T-023C is responsible for translating that JSON into SwiftUI `DesignTokens` without changing feature screens; mobile prototype `px` values should map 1:1 to SwiftUI `pt`, while chip and circular radius tokens should become `Capsule`/`Circle` shapes rather than raw CSS radius constants.
 
 ## Principles
 

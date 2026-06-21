@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-06-21
+Task: T-023B - Groomly design tokens JSON.
+Files changed: Created docs/08_design/design_tokens.json; updated docs/01_product/DESIGN_SYSTEM.md, CURRENT_STATE.md, WORKLOG.md, and TASK_LEDGER.md.
+Checks: `python3 -m json.tool docs/08_design/design_tokens.json >/tmp/groomly_design_tokens_lint.json` passed. `git diff --check` passed. No ios-build needed because this task is documentation/data-only and changed no Swift/project files.
+Result: T-023B is completed. The token JSON collapses the T-023A audit into conservative Groomly color, spacing, radius, shadow, and typography tokens, with extracted versus inferred status labeled for later SwiftUI translation. Post-review follow-up clarified that T-023C should map mobile prototype px values 1:1 to SwiftUI pt and use Capsule/Circle shapes for chip/circular radius tokens.
+Risks: The JSON is design data only; SwiftUI token implementation, action primitives, feedback primitives, and feature-screen restyling remain unstarted. Deferred prototype concepts remain visual inspiration only unless a later task explicitly authorizes product/backend work.
+Next: Execute T-023C only.
+```
+
+```text
+Date: 2026-06-21
 Task: T-023A - Groomly design audit notes.
 Files changed: Created docs/08_design/UI_IMPLEMENTATION_NOTES.md; updated CURRENT_STATE.md, WORKLOG.md, and TASK_LEDGER.md.
 Checks: `test -f docs/08_design/UI_IMPLEMENTATION_NOTES.md` passed. `git diff --check` passed. No ios-build needed because this task is documentation-only and changed no Swift/project files.

@@ -1,0 +1,255 @@
+{
+  "metadata": {
+    "brand": "Groomly",
+    "source": [
+      "docs/08_design/UI_IMPLEMENTATION_NOTES.md",
+      "docs/08_design/Groomly.html",
+      "docs/08_design/Groomly/",
+      "docs/08_design/Groomly/Groomly.dc.html"
+    ],
+    "extractionStatus": "mixed-extracted-and-inferred",
+    "notes": "Values are selected from the Groomly prototype and T-023A audit. Near-neighbor prototype colors remain audit evidence; this JSON collapses them into conservative semantic tokens for later SwiftUI work. For T-023C, numeric px values from the mobile prototype should map 1:1 to SwiftUI pt; do not apply a second scale conversion."
+  },
+  "colors": {
+    "notes": "Color values are extracted from Groomly.html or Groomly/Groomly.dc.html. Semantic token names are inferred from repeated usage and the T-023A audit.",
+    "appBackground": {
+      "value": "#FAF7F2",
+      "status": "extracted",
+      "source": "Groomly phone surface background",
+      "note": "Use for the primary in-app background, not the outer device-frame backdrop."
+    },
+    "surface": {
+      "value": "#FFFFFF",
+      "status": "extracted",
+      "source": "Repeated card, input, and button surfaces"
+    },
+    "surfaceRaised": {
+      "value": "#FFFFFF",
+      "status": "extracted",
+      "source": "Raised cards use white fill plus shadow",
+      "note": "Elevation comes from the shadow token rather than a different fill."
+    },
+    "border": {
+      "value": "#E8E2D8",
+      "status": "extracted",
+      "source": "Repeated input, outline button, and selected-card borders"
+    },
+    "borderSoft": {
+      "value": "#EFEAE1",
+      "status": "extracted",
+      "source": "Repeated softer card and icon-button borders"
+    },
+    "textPrimary": {
+      "value": "#232323",
+      "status": "extracted",
+      "source": "Primary titles, labels, and icons"
+    },
+    "textSecondary": {
+      "value": "#6F767E",
+      "status": "extracted",
+      "source": "Body support copy, subtitles, and inactive tabs"
+    },
+    "textTertiary": {
+      "value": "#9AA0A6",
+      "status": "extracted",
+      "source": "Metadata, placeholders, disabled text, and inactive timeline labels"
+    },
+    "customerPrimary": {
+      "value": "#7ECFC0",
+      "status": "extracted",
+      "source": "Customer primary actions, progress, selected states, and active tabs"
+    },
+    "customerPrimaryDark": {
+      "value": "#5FBFAE",
+      "status": "extracted",
+      "source": "Customer primary button gradients"
+    },
+    "groomerAccent": {
+      "value": "#FF9A8B",
+      "status": "extracted",
+      "source": "Groomer mode accent, badges, and coral controls"
+    },
+    "groomerAccentDark": {
+      "value": "#F58575",
+      "status": "extracted",
+      "source": "Groomer/coral gradient dark stop"
+    },
+    "success": {
+      "value": "#6CBF84",
+      "status": "extracted",
+      "source": "Completed timeline dots and accepted/confirmed states"
+    },
+    "warning": {
+      "value": "#F2B84B",
+      "status": "extracted",
+      "source": "Waiting/reviewing status dots and chips"
+    },
+    "error": {
+      "value": "#E56B6F",
+      "status": "extracted",
+      "source": "Destructive confirmation and error states"
+    }
+  },
+  "spacing": {
+    "notes": "Values are extracted from repeated gap, margin, and padding declarations. Scale names are inferred for SwiftUI token use. In T-023C, map these mobile prototype px values 1:1 to SwiftUI pt.",
+    "xs": {
+      "value": 4,
+      "unit": "px",
+      "status": "extracted",
+      "source": "Observed as small icon/text gap and minor padding"
+    },
+    "sm": {
+      "value": 8,
+      "unit": "px",
+      "status": "extracted",
+      "source": "Frequent gaps, label spacing, and compact vertical offsets"
+    },
+    "md": {
+      "value": 12,
+      "unit": "px",
+      "status": "extracted",
+      "source": "Frequent gaps and compact section spacing"
+    },
+    "lg": {
+      "value": 16,
+      "unit": "px",
+      "status": "extracted",
+      "source": "Frequent padding, field insets, and standard control spacing"
+    },
+    "xl": {
+      "value": 24,
+      "unit": "px",
+      "status": "extracted",
+      "source": "Screen/card spacing and major vertical offsets"
+    },
+    "screenHorizontal": {
+      "value": 20,
+      "unit": "px",
+      "status": "extracted",
+      "source": "Most authenticated screens use 20px horizontal padding"
+    },
+    "screenHorizontalLarge": {
+      "value": 24,
+      "unit": "px",
+      "status": "extracted",
+      "source": "Auth and role screens use 24px horizontal padding"
+    }
+  },
+  "radius": {
+    "notes": "Values are extracted from repeated border-radius declarations. In T-023C, map numeric px values 1:1 to SwiftUI pt. Treat chip=999 as a Capsule shape and circular=50% as a Circle shape rather than hard-coding those raw CSS values.",
+    "card": {
+      "value": 24,
+      "unit": "px",
+      "status": "extracted",
+      "source": "Repeated main card radius"
+    },
+    "button": {
+      "value": 18,
+      "unit": "px",
+      "status": "extracted",
+      "source": "Primary button radius for 54-56px controls"
+    },
+    "input": {
+      "value": 16,
+      "unit": "px",
+      "status": "extracted",
+      "source": "Repeated input and textarea radius"
+    },
+    "chip": {
+      "value": 999,
+      "unit": "px",
+      "status": "extracted",
+      "source": "Pill and chip border radius",
+      "swiftUIDirection": "Use Capsule() or an equivalent capsule shape instead of hard-coding 999."
+    },
+    "circular": {
+      "value": "50%",
+      "unit": "css-percent",
+      "status": "extracted",
+      "source": "Avatar, icon badge, and circular button radius",
+      "swiftUIDirection": "Use Circle() or an equivalent circular clip shape instead of translating 50% to a numeric radius."
+    },
+    "bottomSheet": {
+      "value": "28px 28px 0 0",
+      "unit": "css-radius",
+      "status": "extracted",
+      "source": "Bottom sheet top-corner radius"
+    }
+  },
+  "shadow": {
+    "notes": "Shadow CSS values are extracted from repeated prototype declarations. SwiftUI mapping should preserve softness and low opacity rather than copy CSS syntax directly into views.",
+    "softCard": {
+      "value": "0 8px 22px rgba(35,35,35,0.05)",
+      "status": "extracted",
+      "source": "Most common card shadow"
+    },
+    "smallCard": {
+      "value": "0 6px 16px rgba(35,35,35,0.05)",
+      "status": "extracted",
+      "source": "Smaller pet and compact card shadow"
+    },
+    "primaryAction": {
+      "value": "0 14px 28px -8px rgba(126,207,192,0.55)",
+      "status": "extracted",
+      "source": "Customer primary action shadow"
+    },
+    "groomerAction": {
+      "value": "0 14px 28px -8px rgba(255,154,139,0.5)",
+      "status": "extracted",
+      "source": "Groomer/coral action shadow"
+    }
+  },
+  "typography": {
+    "notes": "Font sizes and weights are extracted from the prototype. SwiftUI semantic-style guidance is inferred from T-023A and the product design-system rule to prefer native SF/Dynamic Type. In T-023C, map numeric prototype px sizes 1:1 to SwiftUI pt only where fixed token sizes are explicitly introduced.",
+    "fontFamily": {
+      "prototype": "-apple-system, 'SF Pro Display', 'Inter', system-ui, sans-serif",
+      "swiftUIDirection": "Prefer native SF semantic text styles; use Inter only as web prototype evidence.",
+      "status": "mixed-extracted-and-inferred"
+    },
+    "largeTitle": {
+      "size": 30,
+      "unit": "px",
+      "weight": 700,
+      "letterSpacing": -0.6,
+      "swiftUIDirection": "Major screen titles; map conservatively to prominent SwiftUI title styling with bold weight.",
+      "status": "mixed-extracted-and-inferred",
+      "source": "Auth and role screen titles"
+    },
+    "title": {
+      "size": 26,
+      "unit": "px",
+      "weight": 700,
+      "letterSpacing": -0.5,
+      "swiftUIDirection": "In-flow screen titles and wizard step titles.",
+      "status": "mixed-extracted-and-inferred",
+      "source": "Repeated customer/groomer screen headings"
+    },
+    "headline": {
+      "size": 18,
+      "unit": "px",
+      "weight": 700,
+      "letterSpacing": -0.3,
+      "swiftUIDirection": "Section headings and important card titles.",
+      "status": "mixed-extracted-and-inferred",
+      "source": "Repeated section headings and card titles"
+    },
+    "body": {
+      "size": 15,
+      "unit": "px",
+      "weight": 400,
+      "lineHeight": 1.5,
+      "swiftUIDirection": "Primary and supporting body copy; use regular or medium weight based on hierarchy.",
+      "status": "mixed-extracted-and-inferred",
+      "source": "Frequent supporting copy and form text"
+    },
+    "caption": {
+      "size": 12.5,
+      "unit": "px",
+      "weight": 500,
+      "lineHeight": 1.4,
+      "swiftUIDirection": "Metadata and compact support text; use semibold only for chips, labels, or status text.",
+      "status": "mixed-extracted-and-inferred",
+      "source": "Metadata, chip, label, and status text sizes"
+    }
+  }
+}
