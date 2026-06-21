@@ -36,6 +36,23 @@ struct AuthenticatedAccountView: View {
                         .accessibilityIdentifier("auth.error")
                 }
 
+                #if DEBUG
+                NavigationLink {
+                    DebugPanelView(
+                        diagnostics: DebugDiagnostics.current(
+                            session: session,
+                            profile: profile
+                        )
+                    )
+                } label: {
+                    Label("Debug Panel", systemImage: "ladybug")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.large)
+                .accessibilityIdentifier("debug.panel.link")
+                #endif
+
                 Button(role: .destructive) {
                     Task {
                         await authenticationStore.signOut()

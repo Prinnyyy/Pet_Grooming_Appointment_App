@@ -27,7 +27,7 @@ Status values are `baseline`, `planned`, and `deferred`. A planned source path i
 | ChatView | Participant-only text booking chat with booking support context | Shared | `messages`, `bookings` | `ChatStore` | `Features/Chat/ChatView.swift` / T-020 | baseline |
 | BookingReviewSection | Submit or display one review for a completed booking inside booking detail | Customer | `create_review`, `reviews` | `BookingsStore` | `Features/Bookings/BookingsView.swift` / T-021 | baseline |
 | AuthenticatedAccountView | Show minimal authenticated identity/role and sign out | Shared | Auth session, loaded profile | `AuthenticationStore` | `Features/Auth/AuthenticatedAccountView.swift` / T-007 | baseline |
-| DebugPanel | Show safe development diagnostics | Developer only | Sanitized repositories/checks | Debug state | `Features/Debug/` / T-022 | planned |
+| DebugPanel | Show safe development diagnostics without tokens, passwords, full keys, or full user identifiers | Developer only | Sanitized app/session/config values | `DebugDiagnostics` | `Features/Debug/` / T-022 | baseline |
 | Admin Dashboard | Administrative management | Admin | Not defined | Not defined | No MVP task | deferred |
 
 The current customer `TabView` renders customer pet management on Home, request wizard/list/detail/offer acceptance on Requests, participant bookings on Bookings, participant text chat on Messages, and authenticated Account content. The current groomer `TabView` renders matched request feed/detail/dismiss/offer creation on Requests, participant bookings on Bookings, participant text chat on Messages, groomer profile/services/portfolio management on Account, and generic placeholder content for Offers.

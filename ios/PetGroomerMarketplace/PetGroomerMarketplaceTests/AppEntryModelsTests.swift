@@ -45,6 +45,55 @@ struct TabModelsTests {
     }
 }
 
+struct DebugDiagnosticsTests {
+    @Test @MainActor
+    func diagnosticsHideSecretsAndUseSupportReferences() throws {
+        let userID = try #require(
+            UUID(uuidString: "11111111-2222-3333-4444-555555555555")
+        )
+        let configuration = try SupabaseConfiguration.parse(
+            urlValue: "https://lqmasbuqzvcvtawonjlb.supabase.co",
+            publishableKeyValue: "sb_publishable_full_key_value_must_not_render"
+        )
+
+        let diagnostics = DebugDiagnostics.make(
+            session: AuthSessionSnapshot(
+                userID: userID,
+                email: "owner@example.com"
+            ),
+            profile: MarketplaceProfile(
+                userID: userID,
+                role: .customer,
+                displayName: "Owner"
+            ),
+            configuration: configuration,
+            bundleIdentifier: "com.prinnyyy.PetGroomerMarketplace",
+            buildConfiguration: "Debug"
+        )
+        let renderedValues = [
+            diagnostics.buildConfiguration,
+            diagnostics.bundleIdentifier,
+            diagnostics.role,
+            diagnostics.userReference,
+            diagnostics.emailDomain ?? "",
+            diagnostics.supabaseScheme,
+            diagnostics.supabaseHost,
+            diagnostics.publishableKeyStatus,
+            diagnostics.sensitiveDataNotice,
+        ].joined(separator: "\n")
+
+        #expect(diagnostics.userReference == "11111111")
+        #expect(diagnostics.emailDomain == "example.com")
+        #expect(renderedValues.contains("owner") == false)
+        #expect(
+            renderedValues.contains(
+                "sb_publishable_full_key_value_must_not_render"
+            ) == false
+        )
+        #expect(diagnostics.publishableKeyStatus == "Configured; value hidden")
+    }
+}
+
 struct AuthenticationStoreTests {
     @Test @MainActor
     func restoresExistingSession() async {

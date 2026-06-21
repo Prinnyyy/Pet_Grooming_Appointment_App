@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-06-21
+Task: T-022 — MVP hardening and acceptance.
+Files changed: Safe Debug Panel, Account debug entry, Debug diagnostics test, T-022 task doc, screen inventory, feature index, current state, task ledger, and worklog.
+Checks: MCP rollback-only core flow/RLS/conflict validation passed on fresh project `lqmasbuqzvcvtawonjlb` with zero persisted validation data. Security advisor remained at the eight expected controlled SECURITY DEFINER WARNs; performance advisor returned existing non-blocking INFOs. `./scripts/supabase-check.sh` passed. Initial `./scripts/ios-test.sh` failed because the new diagnostics test accessed MainActor-isolated app types from a nonisolated test method; approved targeted fix added `@MainActor`. Final `./scripts/ios-test.sh`, `./scripts/preflight.sh`, and `git diff --check` passed.
+Result: T-022 is completed. The MVP is accepted at the current backend/iOS contract level; Debug Panel exposes only sanitized build/session/config diagnostics and no tokens, passwords, full keys, or full user identifiers.
+Risks: Request cancellation/rebooking, richer participant summaries, realtime chat, attachments, production Auth/email setup, moderation, payments, and App Store readiness remain post-MVP decisions.
+Next: Choose the next post-MVP task deliberately; do not auto-start adjacent work.
+```
+
+```text
+Date: 2026-06-21
 Task: T-021 — booking completion and customer review.
 Files changed: T-021 primary/corrective migrations, Booking model/repository/Supabase adapter/store/UI, focused BookingStore tests, task doc, backend/product docs, feature index, task ledger, current state, and worklog.
 Checks: First `./scripts/ios-test.sh` attempt failed during build before tests ran. After the approved nil-check fix, the approved rerun failed on the design-token namespace. After the approved `DesignTokens.CornerRadius` fix, `./scripts/ios-test.sh` passed with the Swift Testing suite and 1 XCTest UI smoke test. Approved MCP migration apply succeeded as `20260621065954_t021_completion_reviews`; metadata/RLS/RPC inspection and advisors ran. Rollback-only behavior validation exposed PostgreSQL `42702` in `create_review`; approved corrective migration `20260621070826_t021_fix_create_review_returning_ambiguity` was applied. Final rollback-only completion/review/RLS/RPC validation passed with zero persisted validation data. Final advisors show 8 expected controlled SECURITY DEFINER WARNs plus non-blocking performance INFOs, including new `reviews` unused-index INFOs before production traffic. `./scripts/supabase-check.sh` and `git diff --check` passed.
