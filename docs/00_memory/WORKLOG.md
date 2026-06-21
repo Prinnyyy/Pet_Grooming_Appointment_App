@@ -2,6 +2,26 @@
 
 ```text
 Date: 2026-06-20
+Task: T-012 follow-up — cap request photo snapshots at 20.
+Files changed: Added corrective migration mirror, updated T-012 task doc, backend contract/RLS docs, task ledger, current state, and worklog.
+Checks: MCP corrective migration apply passed as `20260621010315`; rollback-only 21-photo regression passed with `photo_snapshot` stored at 20 rows and zero persisted validation data. Security advisor still shows the two intentional T-012 SECURITY DEFINER WARNs; performance advisor remains INFO-only. `./scripts/supabase-check.sh` and `git diff --check` passed.
+Result: `create_grooming_request` no longer fails when a pet has more than 20 photo metadata rows; it snapshots the first 20 ordered by primary flag, sort order, and creation time.
+Risks: Request wizard/feed UI is still unimplemented. T-012 performance INFOs remain deferred until T-013/T-014 query paths exist.
+Next: T-013 — implement the customer grooming request wizard in a separate Standard task.
+```
+
+```text
+Date: 2026-06-20
+Task: T-012 — grooming request and match backend.
+Files changed: T-012 task doc, two local migration mirrors, backend contract/RLS docs, task ledger, feature/current memory, and worklog.
+Checks: MCP primary migration apply passed as `20260621000444`; corrective conflict-target migration passed as `20260621002211`; metadata and rollback-only request/match/RLS/RPC checks passed with zero persisted validation data. Security advisor returned two intentional SECURITY DEFINER WARNs for the controlled RPCs; performance advisor returned reviewed INFOs. `./scripts/supabase-check.sh` and `git diff --check` passed; no iOS build/test was run because this was backend-only.
+Result: T-012 is completed. Customers can create backend-authoritative grooming requests with frozen pet/photo snapshots and eligible groomer matches; groomers can read only own matched requests and dismiss own visible/viewed matches.
+Risks: Request wizard/feed UI is not implemented. T-012 performance INFOs may be revisited if T-013/T-014 query plans require composite FK indexes. The two SECURITY DEFINER RPC WARNs are intentional but should be re-reviewed before any broader RPC expansion.
+Next: T-013 — implement the customer grooming request wizard in a separate Standard task.
+```
+
+```text
+Date: 2026-06-20
 Task: T-011 — groomer profile, services, and portfolio UI.
 Files changed: Groomer profile models, repository boundary, Supabase repository, store, Account-tab UI, focused tests, task doc, task ledger, product screen inventory, feature/current memory, and worklog.
 Checks: `./scripts/ios-test.sh` passed with 32 Swift Testing tests and 1 XCTest UI smoke test. No Supabase remote validation was run because T-011 changed only iOS client code and docs.
