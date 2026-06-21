@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-06-20
+Task: T-014 — groomer matched request feed.
+Files changed: Groomer request models, repository boundary, Supabase adapter, Groomer Requests tab Store/UI, focused tests, task doc, task ledger, screen inventory, feature/current memory, and worklog.
+Checks: `./scripts/ios-test.sh` passed with 41 Swift Testing tests and 1 XCTest UI smoke test. `git diff --check` passed. No Supabase remote validation was run because T-014 changed only iOS client code and docs.
+Result: T-014 is completed. Groomers can load active own matched requests, inspect frozen request/pet details, refresh, and dismiss visible/viewed matches through `dismiss_request_match` without SwiftUI views directly touching Supabase.
+Risks: Offer creation remains unimplemented until T-015/T-016. Customer request cancellation remains blocked until a backend cancel RPC exists.
+Next: T-015 — add groomer offer backend in a separate Deep task with explicit Supabase MCP validation.
+```
+
+```text
+Date: 2026-06-20
 Task: T-013 — customer grooming request wizard.
 Files changed: Customer request models, repository boundary, Supabase adapter, Customer Requests tab Store/UI, focused tests, task doc, task ledger, screen inventory, feature/current memory, and worklog.
 Checks: First `./scripts/ios-test.sh` attempt failed on a new test variable typo; after approved targeted correction, `./scripts/ios-test.sh` passed. Post-review follow-up validation also passed with 37 Swift Testing tests and 1 XCTest UI smoke test.

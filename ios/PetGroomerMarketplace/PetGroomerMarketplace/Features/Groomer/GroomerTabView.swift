@@ -3,16 +3,19 @@ import SwiftUI
 struct GroomerTabView: View {
     let groomerID: UUID?
     let profileRepository: (any GroomerProfileRepository)?
+    let requestRepository: (any GroomerRequestRepository)?
     let accountContent: AnyView?
     @State private var selection: GroomerTab = .requests
 
     init(
         groomerID: UUID? = nil,
         profileRepository: (any GroomerProfileRepository)? = nil,
+        requestRepository: (any GroomerRequestRepository)? = nil,
         accountContent: AnyView? = nil
     ) {
         self.groomerID = groomerID
         self.profileRepository = profileRepository
+        self.requestRepository = requestRepository
         self.accountContent = accountContent
     }
 
@@ -33,7 +36,14 @@ struct GroomerTabView: View {
 
     @ViewBuilder
     private func destination(for tab: GroomerTab) -> some View {
-        if tab == .account,
+        if tab == .requests,
+           let groomerID,
+           let requestRepository {
+            GroomerRequestsView(
+                groomerID: groomerID,
+                repository: requestRepository
+            )
+        } else if tab == .account,
            let groomerID,
            let profileRepository {
             GroomerProfileManagementView(

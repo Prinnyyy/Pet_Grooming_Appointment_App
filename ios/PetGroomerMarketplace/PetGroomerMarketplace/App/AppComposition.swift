@@ -8,6 +8,7 @@ struct AppComposition {
     let customerPetRepository: (any CustomerPetRepository)?
     let customerRequestRepository: (any CustomerRequestRepository)?
     let groomerProfileRepository: (any GroomerProfileRepository)?
+    let groomerRequestRepository: (any GroomerRequestRepository)?
     let authenticationStore: AuthenticationStore?
 
     init(bundle: Bundle = .main) {
@@ -19,6 +20,7 @@ struct AppComposition {
             let customerPetRepository = SupabaseCustomerPetRepository(client: client)
             let customerRequestRepository = SupabaseCustomerRequestRepository(client: client)
             let groomerProfileRepository = SupabaseGroomerProfileRepository(client: client)
+            let groomerRequestRepository = SupabaseGroomerRequestRepository(client: client)
 
             authenticationBootstrapState = .ready
             authSessionRepository = authRepository
@@ -26,6 +28,7 @@ struct AppComposition {
             self.customerPetRepository = customerPetRepository
             self.customerRequestRepository = customerRequestRepository
             self.groomerProfileRepository = groomerProfileRepository
+            self.groomerRequestRepository = groomerRequestRepository
             authenticationStore = AuthenticationStore(repository: authRepository)
         } catch {
             authenticationBootstrapState = .configurationError(
@@ -36,6 +39,7 @@ struct AppComposition {
             customerPetRepository = nil
             customerRequestRepository = nil
             groomerProfileRepository = nil
+            groomerRequestRepository = nil
             authenticationStore = nil
         }
     }

@@ -8,6 +8,7 @@ struct AppRootView: View {
     let customerPetRepository: (any CustomerPetRepository)?
     let customerRequestRepository: (any CustomerRequestRepository)?
     let groomerProfileRepository: (any GroomerProfileRepository)?
+    let groomerRequestRepository: (any GroomerRequestRepository)?
     let roleOnboardingContent: AnyView?
 
     init(
@@ -18,6 +19,7 @@ struct AppRootView: View {
         customerPetRepository: (any CustomerPetRepository)? = nil,
         customerRequestRepository: (any CustomerRequestRepository)? = nil,
         groomerProfileRepository: (any GroomerProfileRepository)? = nil,
+        groomerRequestRepository: (any GroomerRequestRepository)? = nil,
         roleOnboardingContent: AnyView? = nil
     ) {
         self.route = route
@@ -27,6 +29,7 @@ struct AppRootView: View {
         self.customerPetRepository = customerPetRepository
         self.customerRequestRepository = customerRequestRepository
         self.groomerProfileRepository = groomerProfileRepository
+        self.groomerRequestRepository = groomerRequestRepository
         self.roleOnboardingContent = roleOnboardingContent
     }
 
@@ -37,13 +40,15 @@ struct AppRootView: View {
                let profileRepository,
                let customerPetRepository,
                let customerRequestRepository,
-               let groomerProfileRepository {
+               let groomerProfileRepository,
+               let groomerRequestRepository {
                 AuthenticationGateView(
                     store: authenticationStore,
                     profileRepository: profileRepository,
                     customerPetRepository: customerPetRepository,
                     customerRequestRepository: customerRequestRepository,
-                    groomerProfileRepository: groomerProfileRepository
+                    groomerProfileRepository: groomerProfileRepository,
+                    groomerRequestRepository: groomerRequestRepository
                 )
             } else {
                 AuthenticationBootstrapView(state: authenticationBootstrapState)

@@ -6,6 +6,7 @@ struct AuthenticationGateView: View {
     let customerPetRepository: any CustomerPetRepository
     let customerRequestRepository: any CustomerRequestRepository
     let groomerProfileRepository: any GroomerProfileRepository
+    let groomerRequestRepository: any GroomerRequestRepository
 
     var body: some View {
         Group {
@@ -29,7 +30,8 @@ struct AuthenticationGateView: View {
                     profileRepository: profileRepository,
                     customerPetRepository: customerPetRepository,
                     customerRequestRepository: customerRequestRepository,
-                    groomerProfileRepository: groomerProfileRepository
+                    groomerProfileRepository: groomerProfileRepository,
+                    groomerRequestRepository: groomerRequestRepository
                 )
             }
         }

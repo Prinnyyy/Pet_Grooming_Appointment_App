@@ -6,6 +6,7 @@ struct AuthenticatedEntryView: View {
     private let customerPetRepository: any CustomerPetRepository
     private let customerRequestRepository: any CustomerRequestRepository
     private let groomerProfileRepository: any GroomerProfileRepository
+    private let groomerRequestRepository: any GroomerRequestRepository
     @State private var store: AuthenticatedEntryStore
 
     init(
@@ -14,13 +15,15 @@ struct AuthenticatedEntryView: View {
         profileRepository: any ProfileRepository,
         customerPetRepository: any CustomerPetRepository,
         customerRequestRepository: any CustomerRequestRepository,
-        groomerProfileRepository: any GroomerProfileRepository
+        groomerProfileRepository: any GroomerProfileRepository,
+        groomerRequestRepository: any GroomerRequestRepository
     ) {
         self.session = session
         self.authenticationStore = authenticationStore
         self.customerPetRepository = customerPetRepository
         self.customerRequestRepository = customerRequestRepository
         self.groomerProfileRepository = groomerProfileRepository
+        self.groomerRequestRepository = groomerRequestRepository
         _store = State(
             initialValue: AuthenticatedEntryStore(
                 repository: profileRepository
@@ -53,6 +56,7 @@ struct AuthenticatedEntryView: View {
                 GroomerTabView(
                     groomerID: profile.userID,
                     profileRepository: groomerProfileRepository,
+                    requestRepository: groomerRequestRepository,
                     accountContent: accountContent(for: profile)
                 )
 
