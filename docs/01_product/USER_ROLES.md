@@ -4,7 +4,7 @@
 
 | Role | Description | Allowed MVP Actions | Primary Areas |
 |---|---|---|---|
-| Customer | Authenticated pet owner | Manage own profile and pets; publish/cancel own open requests; read offers for own requests; accept one offer through RPC; read own bookings and conversations; review own completed booking through RPC | Home, Requests, Bookings, Messages, Account |
+| Customer | Authenticated pet owner | Manage own profile and pets; publish own requests; read offers for own requests; accept one offer through RPC; read and cancel own confirmed bookings through RPC; review own completed booking through RPC after T-021 | Home, Requests, Bookings, Messages, Account |
 | Groomer | Authenticated independent groomer | Manage own profile, services, and portfolio; read assigned matched requests; dismiss matches; create/withdraw own offers through controlled backend operations; read own bookings and conversations; complete own confirmed bookings through RPC | Requests, Offers, Bookings, Messages, Account |
 | Admin | Deferred role | No MVP client permissions or screens | None |
 
@@ -15,6 +15,7 @@
 - Role and ownership permissions are enforced by RLS and RPCs, not by hidden buttons or client state.
 - Authorization must not trust user-editable authentication metadata. Backend profile ownership and validated server-side data are authoritative.
 - Customer and groomer shells must never be entered because of preview fixtures or locally fabricated session success.
+- Customer request cancellation is deferred until a dedicated request-cancel RPC exists. Booking cancellation does not reopen the original request or offers.
 
 ## Privacy Rules
 

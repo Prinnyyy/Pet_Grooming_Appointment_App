@@ -2,6 +2,36 @@
 
 ```text
 Date: 2026-06-20
+Task: T-018 review follow-up — clarify cancellation and completion boundaries.
+Files changed: Product flow/UX/role docs, T-018/T-019 roadmap notes, backend contract, current state, and worklog.
+Checks: Documentation/static checks only; no Supabase DDL, iOS build, or iOS tests were needed.
+Result: The docs now explicitly state that T-018 booking cancellation does not reopen the original request or offers, request cancellation remains deferred, and `completed` is reserved until T-021.
+Risks: T-019 must reflect cancelled bookings as final outcomes for the original request and guide users to create a new request for replacement appointments.
+Next: Commit and push the T-018 backend plus review follow-up.
+```
+
+```text
+Date: 2026-06-20
+Task: T-018 — offer acceptance and booking backend.
+Files changed: T-018 reviewed SQL/task doc, local migration mirror, backend contract/RLS docs, task ledger, feature/current memory, and worklog.
+Checks: MCP migration apply passed as `20260621044424`; metadata and rollback-only booking/RLS/RPC checks passed with zero persisted validation data. Security advisor returned six intentional SECURITY DEFINER WARNs for controlled T-012/T-015/T-018 RPCs. Performance advisor returned reviewed INFOs for existing and T-018 composite-FK/unused-index cases. `./scripts/supabase-check.sh` and `git diff --check` passed; no iOS build/test was run because this was backend-only.
+Result: T-018 is completed. Customers can atomically accept one pending offer into one confirmed booking and one conversation; competing offers close, request matches hide, confirmed groomer time overlaps are rejected, boundary-touching bookings are allowed, and participants can cancel confirmed bookings.
+Risks: Booking acceptance/list/detail UI is not wired in iOS until T-019. `cancel_booking` does not reopen requests or offers. Chat messages, attachments, completion, and reviews remain unimplemented.
+Next: T-019 — implement booking acceptance and role-specific booking UI in a separate Standard task.
+```
+
+```text
+Date: 2026-06-20
+Task: T-018 — draft offer acceptance and booking backend SQL.
+Files changed: T-018 task doc, reviewed SQL draft, task ledger, current state, and worklog.
+Checks: Supabase changelog/docs were reviewed; MCP read-only checks confirmed the fresh target migration history, existing T-012/T-015 objects, and `btree_gist` availability. No remote DDL was applied.
+Result: T-018 is in progress. The reviewed SQL draft defines bookings, conversations, participant RLS, `accept_groomer_offer`, `cancel_booking`, uniqueness, and groomer time-overlap protection.
+Risks: Remote migration, backend validation, local migration mirror, backend docs, and final closeout remain pending explicit user approval for MCP `apply_migration`.
+Next: Approve or revise `docs/06_tasks/T-018_OFFER_ACCEPTANCE_BOOKING_REVIEWED_SQL.sql`, then continue T-018.
+```
+
+```text
+Date: 2026-06-20
 Task: T-017 — customer offer review.
 Files changed: Customer request/offer review model, customer request repository boundary, Supabase adapter, Customer Requests Store/UI, focused tests, task doc, screen inventory, task ledger, feature/current memory, and worklog.
 Checks: `./scripts/ios-test.sh` passed with 47 Swift Testing tests and 1 XCTest UI smoke test. No Supabase remote validation was run because this was iOS-only against the already validated T-015 read contract.

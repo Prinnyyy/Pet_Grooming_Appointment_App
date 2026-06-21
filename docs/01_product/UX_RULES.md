@@ -21,6 +21,8 @@
 - A groomer may dismiss an assigned request privately. The customer remains in a neutral waiting state.
 - A groomer has at most one active offer per request and may withdraw it according to backend rules.
 - A customer can accept only one offer. The UI must wait for the atomic backend result before showing a booking.
+- A cancelled booking remains a cancellation outcome for that booking; do not imply that the original request or accepted offer reopened.
+- Hide completion and review actions until their backend transitions exist.
 - Do not show actions that are invalid for the current request, match, offer, or booking status.
 
 ## Privacy

@@ -82,6 +82,8 @@ Pending offer
 
 The app must not optimistically fabricate a booking before the backend transaction succeeds.
 
+Booking cancellation changes only the booking status in the MVP contract. It does not reopen the original request, re-enable the accepted offer, or restore competing offers; a customer who needs another appointment starts a new request. Booking completion and reviews remain later lifecycle steps and must not be shown as active actions before their backend RPCs are implemented.
+
 ## Navigation Failure Rules
 
 - Missing or invalid backend configuration remains on a visible blocking state.

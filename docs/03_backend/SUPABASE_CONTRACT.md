@@ -2,7 +2,7 @@
 
 ## Contract Status
 
-This backend contract is derived from `Fresh_Pet_Groomer_Marketplace_Engineering_Brief.md`. The T-004 profile/avatar foundation, T-007 atomic profile-onboarding RPC, T-008 pet/photo schema and private bucket, T-010 groomer profile/services/portfolio backend, T-012 grooming request/match backend, and T-015 groomer offer backend are deployed to the fresh Supabase project and mirrored under `supabase/migrations/`. T-015 offer metadata, grants, RLS, controlled create/withdraw RPCs, and rollback-only behavior checks are validated under the approved MCP-only boundary. Later booking/chat/review objects remain planned. The original project visible through MCP is a legacy project and is not a target for this rebuild.
+This backend contract is derived from `Fresh_Pet_Groomer_Marketplace_Engineering_Brief.md`. The T-004 profile/avatar foundation, T-007 atomic profile-onboarding RPC, T-008 pet/photo schema and private bucket, T-010 groomer profile/services/portfolio backend, T-012 grooming request/match backend, T-015 groomer offer backend, and T-018 booking/conversation backend are deployed to the fresh Supabase project and mirrored under `supabase/migrations/`. T-018 booking metadata, grants, RLS, controlled accept/cancel RPCs, overlap protection, and rollback-only behavior checks are validated under the approved MCP-only boundary. Later chat/review objects remain planned. The original project visible through MCP is a legacy project and is not a target for this rebuild.
 
 Once migrations exist, reviewed migrations and verified deployed metadata are authoritative. This document must remain synchronized with them and must never claim a planned object is deployed.
 
@@ -14,7 +14,7 @@ Once migrations exist, reviewed migrations and verified deployed metadata are au
 - Fresh project: `Pet Groomer Marketplace`, ref `lqmasbuqzvcvtawonjlb`, organization `Prinnyyy`, region `us-west-1`.
 - Project creation: authorized after the user confirmed the MCP-reported US$0/month cost; creation returned `ACTIVE_HEALTHY` on 2026-06-19.
 - Verification performed: project baseline; MCP migration application; schema, grants, RLS, trigger, function, and Storage inspection; rollback-only policy/RPC tests; security and performance advisors.
-- Applied migrations: `20260620105202_t004_profile_foundation`, `20260620105409_t004_optimize_rls_auth_calls`, `20260620172839_t007_create_my_profile`, corrective `20260620180607_t007_fix_create_my_profile_conflict_target`, `20260620192648_t008_pet_data_photo_storage`, `20260620224418_t010_groomer_profile_portfolio_backend`, corrective `20260620225308_t010_merge_groomer_select_policies`, `20260621000444_t012_grooming_request_match_backend`, corrective `20260621002211_t012_fix_create_grooming_request_conflict_target`, corrective `20260621010315_t012_limit_request_photo_snapshot`, and `20260621024848_t015_groomer_offer_backend`.
+- Applied migrations: `20260620105202_t004_profile_foundation`, `20260620105409_t004_optimize_rls_auth_calls`, `20260620172839_t007_create_my_profile`, corrective `20260620180607_t007_fix_create_my_profile_conflict_target`, `20260620192648_t008_pet_data_photo_storage`, `20260620224418_t010_groomer_profile_portfolio_backend`, corrective `20260620225308_t010_merge_groomer_select_policies`, `20260621000444_t012_grooming_request_match_backend`, corrective `20260621002211_t012_fix_create_grooming_request_conflict_target`, corrective `20260621010315_t012_limit_request_photo_snapshot`, `20260621024848_t015_groomer_offer_backend`, and `20260621044424_t018_offer_acceptance_booking_backend`.
 - Local credential file: `supabase_api_key` exists, was not read, is Git-ignored, and has no authorization to appear in iOS code or documentation content.
 
 All Supabase migration and validation operations must target only the task-authorized fresh project, remain separate from the legacy ref, and use Supabase MCP exclusively. Remote DDL requires explicit authorization and a reviewed migration; MCP `apply_migration` is the only DDL path.
@@ -29,7 +29,7 @@ All Supabase migration and validation operations must target only the task-autho
 
 ## Tables and Roadmap
 
-`profiles`, `customer_profiles`, base `groomer_profiles`, `pets`, `pet_photos`, T-010 groomer profile details, `groomer_services`, `groomer_portfolio_photos`, `grooming_requests`, `request_matches`, and `groomer_offers` are deployed and backend-validated. Every other row remains planned until its owning task applies and verifies a migration.
+`profiles`, `customer_profiles`, base `groomer_profiles`, `pets`, `pet_photos`, T-010 groomer profile details, `groomer_services`, `groomer_portfolio_photos`, `grooming_requests`, `request_matches`, `groomer_offers`, `bookings`, and `conversations` are deployed and backend-validated. Every other row remains planned until its owning task applies and verifies a migration.
 
 | Table | Purpose | Key Planned Fields | Access Summary | Roadmap |
 |---|---|---|---|---|
@@ -56,7 +56,7 @@ All Supabase migration and validation operations must target only the task-autho
 | Grooming request | `open`, `has_offers`, `booked`, `cancelled`, `expired` | Client cannot freely update status; transitions follow RPC/controlled mutation rules |
 | Request match | `visible`, `viewed`, `dismissed`, `offered`, `hidden`, `expired` | Match creation and system hiding are backend-controlled |
 | Groomer offer | `pending`, `accepted_by_customer`, `declined_by_customer`, `withdrawn_by_groomer`, `expired` | Acceptance and competing-offer closure occur atomically |
-| Booking MVP | `confirmed`, `completed`, `cancelled_by_customer`, `cancelled_by_groomer` | `pending_confirmation`, `in_progress`, `no_show`, and `disputed` are reserved but not authorized for MVP behavior |
+| Booking MVP | `confirmed`, `completed`, `cancelled_by_customer`, `cancelled_by_groomer` | T-018 writes `confirmed` and cancellation statuses only; `completed` is reserved until T-021, and `pending_confirmation`, `in_progress`, `no_show`, and `disputed` are not authorized for MVP behavior |
 
 ## Planned Invariants
 
@@ -68,6 +68,7 @@ All Supabase migration and validation operations must target only the task-autho
 - A request and an offer can each create at most one booking.
 - Active groomer bookings must not overlap: `start_a < end_b AND start_b < end_a`. Touching boundaries are allowed.
 - One conversation is created for the accepted booking flow.
+- T-018 booking cancellation does not reopen the original request or any offer; a replacement appointment requires a new request until a future explicit rebooking flow is designed.
 - One review per completed booking, written only by its customer.
 
 Exact SQL types, constraints, indexes, cascading behavior, and enum/check implementation are decided and verified in the owning migration task, not invented in this documentation task.
@@ -81,15 +82,15 @@ Exact SQL types, constraints, indexes, cascading behavior, and enum/check implem
 | `dismiss_request_match` | `p_match_id uuid`, optional reason | Match ID, `dismissed` status, dismissed timestamp | Authenticated non-anonymous groomer only; `security definer`; empty `search_path`; validates role, match ownership, dismissible match status, and open/unexpired request state; only the calling groomer's match changes | T-012 |
 | `create_groomer_offer` | `p_request_id uuid`, proposed range, price estimate, optional message | Offer ID, offer status, request status | Authenticated non-anonymous groomer only; `security definer`; empty `search_path`; validates role, visible/viewed match ownership, open/unexpired request state, future proposed range, price bounds/scale, message length, and no active pending offer; creates the offer, marks the match `offered`, and marks the request `has_offers` atomically | T-015 |
 | `withdraw_groomer_offer` | `p_offer_id uuid` | Offer ID, offer status, withdrawn timestamp, request status | Authenticated non-anonymous groomer only; `security definer`; empty `search_path`; validates role, offer ownership, pending/withdrawn state, and open/unexpired request state; withdraws the offer, resets the match to `viewed`, and returns the request to `open` when no pending offers remain | T-015 |
+| `accept_groomer_offer` | `p_offer_id uuid` | Booking ID, conversation ID, request ID, offer ID, booking/offer/request statuses | Authenticated non-anonymous customer only; `security definer`; empty `search_path`; validates customer role, offer ownership, pending/unexpired offer, open/unexpired request, offered match, booking uniqueness, and confirmed groomer time conflicts; creates one confirmed booking and one conversation, accepts the selected offer, declines competing pending offers, hides matches, and marks the request `booked` atomically | T-018 |
+| `cancel_booking` | `p_booking_id uuid` | Booking ID, booking status, cancellation timestamp, cancelling user | Authenticated non-anonymous booking participant only; `security definer`; empty `search_path`; validates customer/groomer role from database state, permits only confirmed booking cancellation, returns already-cancelled participant retries idempotently, rejects `completed`, and does not reopen the request or offers | T-018 |
 
-The corrective T-007 migration changes only the profile insert conflict target to the named `profiles_pkey` constraint. T-012 corrective migrations change the request-match insert conflict target to the named `request_matches_request_groomer_key` constraint and cap request photo snapshots at 20 metadata rows. The conflict-target corrections avoid PL/pgSQL output-variable ambiguity while preserving the reviewed contract and privileges.
+The corrective T-007 migration changes only the profile insert conflict target to the named `profiles_pkey` constraint. T-012 corrective migrations change the request-match insert conflict target to the named `request_matches_request_groomer_key` constraint and cap request photo snapshots at 20 metadata rows. The T-018 migration installs `btree_gist` and adds a `[scheduled_start, scheduled_end)` exclusion constraint for confirmed groomer bookings so overlaps are rejected while boundary-touching times are allowed. The conflict-target corrections avoid PL/pgSQL output-variable ambiguity while preserving the reviewed contract and privileges.
 
 ## Planned RPCs
 
 | Function | Inputs | Result | Required Server Checks | Roadmap |
 |---|---|---|---|---|
-| `accept_groomer_offer` | offer ID | Booking ID | Customer owns request; pending offer/current request; booking uniqueness; conflict recheck; atomic booking/conversation/status updates | T-018 |
-| `cancel_booking` | booking ID, actor-intended cancellation | Updated booking result | Participant identity; role-specific transition; current cancellable status | T-018/T-019 |
 | `complete_booking` | booking ID | Updated booking result | Booked groomer; confirmed status; valid transition | T-021 |
 | `create_review` | booking ID, rating, content | Review ID | Booked customer; completed booking; rating validity; uniqueness | T-021 |
 

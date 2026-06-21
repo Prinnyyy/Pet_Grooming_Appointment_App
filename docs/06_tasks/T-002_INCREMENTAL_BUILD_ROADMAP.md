@@ -213,7 +213,7 @@ T-003 resolved the placeholder product/navigation/screen documents, standardized
 - **Depends on:** T-018.
 - **Goal:** Enable customer acceptance and implement role-specific booking lists/details and valid participant cancellation backed by the same booking state.
 - **Boundary:** Acceptance UI and booking display only; no chat, completion, or reviews.
-- **Acceptance:** Customer acceptance refreshes request/offer state; both users see the same booking; conflict errors are explained without local fake writes.
+- **Acceptance:** Customer acceptance refreshes request/offer state; both users see the same booking; conflict errors are explained without local fake writes; cancelled bookings do not imply that the original request or offers reopened.
 - **Validation:** One iOS build attempt plus focused acceptance and booking-state tests.
 - **Stop:** Stop after booking visibility is consistent; do not add chat.
 
