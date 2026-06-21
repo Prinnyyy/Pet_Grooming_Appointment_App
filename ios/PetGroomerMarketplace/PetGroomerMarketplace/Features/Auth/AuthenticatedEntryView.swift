@@ -4,6 +4,7 @@ struct AuthenticatedEntryView: View {
     let session: AuthSessionSnapshot
     @Bindable var authenticationStore: AuthenticationStore
     private let customerPetRepository: any CustomerPetRepository
+    private let customerRequestRepository: any CustomerRequestRepository
     private let groomerProfileRepository: any GroomerProfileRepository
     @State private var store: AuthenticatedEntryStore
 
@@ -12,11 +13,13 @@ struct AuthenticatedEntryView: View {
         authenticationStore: AuthenticationStore,
         profileRepository: any ProfileRepository,
         customerPetRepository: any CustomerPetRepository,
+        customerRequestRepository: any CustomerRequestRepository,
         groomerProfileRepository: any GroomerProfileRepository
     ) {
         self.session = session
         self.authenticationStore = authenticationStore
         self.customerPetRepository = customerPetRepository
+        self.customerRequestRepository = customerRequestRepository
         self.groomerProfileRepository = groomerProfileRepository
         _store = State(
             initialValue: AuthenticatedEntryStore(
@@ -42,6 +45,7 @@ struct AuthenticatedEntryView: View {
                 CustomerTabView(
                     customerID: profile.userID,
                     petRepository: customerPetRepository,
+                    requestRepository: customerRequestRepository,
                     accountContent: accountContent(for: profile)
                 )
 

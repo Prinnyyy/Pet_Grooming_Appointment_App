@@ -12,6 +12,7 @@ struct PetGroomerMarketplaceApp: App {
                 authenticationStore: composition.authenticationStore,
                 profileRepository: composition.profileRepository,
                 customerPetRepository: composition.customerPetRepository,
+                customerRequestRepository: composition.customerRequestRepository,
                 groomerProfileRepository: composition.groomerProfileRepository
             )
         }

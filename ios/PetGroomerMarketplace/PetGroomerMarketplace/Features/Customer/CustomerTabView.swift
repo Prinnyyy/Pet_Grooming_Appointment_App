@@ -3,16 +3,19 @@ import SwiftUI
 struct CustomerTabView: View {
     let customerID: UUID?
     let petRepository: (any CustomerPetRepository)?
+    let requestRepository: (any CustomerRequestRepository)?
     let accountContent: AnyView?
     @State private var selection: CustomerTab = .home
 
     init(
         customerID: UUID? = nil,
         petRepository: (any CustomerPetRepository)? = nil,
+        requestRepository: (any CustomerRequestRepository)? = nil,
         accountContent: AnyView? = nil
     ) {
         self.customerID = customerID
         self.petRepository = petRepository
+        self.requestRepository = requestRepository
         self.accountContent = accountContent
     }
 
@@ -37,6 +40,15 @@ struct CustomerTabView: View {
             CustomerPetsView(
                 customerID: customerID,
                 repository: petRepository
+            )
+        } else if tab == .requests,
+                  let customerID,
+                  let petRepository,
+                  let requestRepository {
+            CustomerRequestsView(
+                customerID: customerID,
+                petRepository: petRepository,
+                requestRepository: requestRepository
             )
         } else if tab == .account, let accountContent {
             accountContent

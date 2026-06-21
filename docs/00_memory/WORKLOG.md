@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-06-20
+Task: T-013 — customer grooming request wizard.
+Files changed: Customer request models, repository boundary, Supabase adapter, Customer Requests tab Store/UI, focused tests, task doc, task ledger, screen inventory, feature/current memory, and worklog.
+Checks: First `./scripts/ios-test.sh` attempt failed on a new test variable typo; after approved targeted correction, `./scripts/ios-test.sh` passed. Post-review follow-up validation also passed with 37 Swift Testing tests and 1 XCTest UI smoke test.
+Result: T-013 is completed. Customers can load owned pets/requests, compose a request, publish through `create_grooming_request`, see match count feedback, and view owned request details without direct Supabase calls from SwiftUI views. Post-review, near-immediate preferred starts are rejected with a 5-minute minimum lead time before repository submission.
+Risks: Customer request cancellation is blocked because T-012 exposes no customer cancel RPC and grants `grooming_requests` as SELECT-only to authenticated clients. Groomer feed, offers, bookings, chat, and reviews remain unimplemented.
+Next: T-014 — implement groomer matched request feed/detail/dismiss in a separate Standard task.
+```
+
+```text
+Date: 2026-06-20
 Task: T-012 follow-up — cap request photo snapshots at 20.
 Files changed: Added corrective migration mirror, updated T-012 task doc, backend contract/RLS docs, task ledger, current state, and worklog.
 Checks: MCP corrective migration apply passed as `20260621010315`; rollback-only 21-photo regression passed with `photo_snapshot` stored at 20 rows and zero persisted validation data. Security advisor still shows the two intentional T-012 SECURITY DEFINER WARNs; performance advisor remains INFO-only. `./scripts/supabase-check.sh` and `git diff --check` passed.
