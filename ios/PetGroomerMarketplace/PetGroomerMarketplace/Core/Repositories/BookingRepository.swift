@@ -9,6 +9,10 @@ enum BookingRepositoryError: Error, Equatable, Sendable {
     case bookingConflict
     case bookingNotFound
     case bookingNotCancellable
+    case bookingNotCompletable
+    case bookingNotCompleted
+    case reviewAlreadyExists
+    case invalidReview
     case invalidInput
     case networkUnavailable
     case unavailable
@@ -28,4 +32,13 @@ protocol BookingRepository: AnyObject {
     func cancelBooking(
         bookingID: UUID
     ) async throws -> CancelBookingResult
+
+    func completeBooking(
+        bookingID: UUID
+    ) async throws -> CompleteBookingResult
+
+    func createReview(
+        bookingID: UUID,
+        draft: BookingReviewDraft
+    ) async throws -> CreateReviewResult
 }

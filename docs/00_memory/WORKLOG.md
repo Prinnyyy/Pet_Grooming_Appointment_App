@@ -1,6 +1,16 @@
 # Worklog
 
 ```text
+Date: 2026-06-21
+Task: T-021 — booking completion and customer review.
+Files changed: T-021 primary/corrective migrations, Booking model/repository/Supabase adapter/store/UI, focused BookingStore tests, task doc, backend/product docs, feature index, task ledger, current state, and worklog.
+Checks: First `./scripts/ios-test.sh` attempt failed during build before tests ran. After the approved nil-check fix, the approved rerun failed on the design-token namespace. After the approved `DesignTokens.CornerRadius` fix, `./scripts/ios-test.sh` passed with the Swift Testing suite and 1 XCTest UI smoke test. Approved MCP migration apply succeeded as `20260621065954_t021_completion_reviews`; metadata/RLS/RPC inspection and advisors ran. Rollback-only behavior validation exposed PostgreSQL `42702` in `create_review`; approved corrective migration `20260621070826_t021_fix_create_review_returning_ambiguity` was applied. Final rollback-only completion/review/RLS/RPC validation passed with zero persisted validation data. Final advisors show 8 expected controlled SECURITY DEFINER WARNs plus non-blocking performance INFOs, including new `reviews` unused-index INFOs before production traffic. `./scripts/supabase-check.sh` and `git diff --check` passed.
+Result: T-021 is completed. Groomers can complete confirmed bookings, customers can create exactly one review for completed own bookings, participant review reads are RLS-scoped, direct authenticated review insert is denied, groomer rating summary updates atomically, and the Bookings UI now leads with appointment time/price/status before support references.
+Risks: Realtime updates, chat attachments, moderation, review editing/deletion, public review browsing, disputes, refunds, and rebooking remain out of scope. Request cancellation is still blocked until a dedicated backend RPC exists. Eliminating theoretical rating-average rounding drift and adding backend-enforced service-time completion gating require a separate approved SQL corrective task.
+Next: T-022 — MVP hardening, empty/error/loading state pass, Debug Panel, RLS negative tests, conflict boundary tests, and core E2E acceptance.
+```
+
+```text
 Date: 2026-06-20
 Task: T-020 — booking participant chat.
 Files changed: T-020 task/reviewed SQL, local migration mirror, chat models/repository/Supabase adapter/store/UI, role tab DI, focused tests, backend/product memory docs, task ledger, feature index, current state, and worklog.

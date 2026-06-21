@@ -12,8 +12,11 @@ struct Booking: Equatable, Hashable, Identifiable, Sendable {
     let status: BookingStatus
     let cancelledBy: UUID?
     let cancelledAt: String?
+    let completedAt: String?
+    let completedBy: UUID?
     let createdAt: String
     let updatedAt: String
+    let review: BookingReview?
 
     nonisolated var priceSummary: String {
         priceEstimate.formatted(
@@ -41,6 +44,22 @@ struct Booking: Equatable, Hashable, Identifiable, Sendable {
         status == .confirmed
     }
 
+    nonisolated func canComplete(for role: UserRole) -> Bool {
+        role == .groomer && status == .confirmed
+    }
+
+    nonisolated func canReview(for role: UserRole) -> Bool {
+        guard role == .customer, status == .completed else {
+            return false
+        }
+
+        if case nil = review {
+            return true
+        }
+
+        return false
+    }
+
     nonisolated func participantReferenceCode(for role: UserRole) -> String {
         switch role {
         case .customer:
@@ -62,7 +81,10 @@ struct Booking: Equatable, Hashable, Identifiable, Sendable {
     nonisolated func replacing(
         status: BookingStatus,
         cancelledBy: UUID?,
-        cancelledAt: String?
+        cancelledAt: String?,
+        completedAt: String? = nil,
+        completedBy: UUID? = nil,
+        review: BookingReview? = nil
     ) -> Booking {
         Booking(
             id: id,
@@ -76,14 +98,54 @@ struct Booking: Equatable, Hashable, Identifiable, Sendable {
             status: status,
             cancelledBy: cancelledBy,
             cancelledAt: cancelledAt,
+            completedAt: completedAt,
+            completedBy: completedBy,
             createdAt: createdAt,
-            updatedAt: updatedAt
+            updatedAt: updatedAt,
+            review: review
+        )
+    }
+
+    nonisolated func adding(review: BookingReview) -> Booking {
+        replacing(
+            status: status,
+            cancelledBy: cancelledBy,
+            cancelledAt: cancelledAt,
+            completedAt: completedAt,
+            completedBy: completedBy,
+            review: review
         )
     }
 
     nonisolated private static func referenceCode(for id: UUID) -> String {
         String(id.uuidString.prefix(8)).uppercased()
     }
+}
+
+struct BookingReview: Equatable, Hashable, Identifiable, Sendable {
+    let id: UUID
+    let bookingID: UUID
+    let customerID: UUID
+    let groomerID: UUID
+    let rating: Int
+    let content: String?
+    let createdAt: String
+
+    nonisolated var ratingSummary: String {
+        "\(rating)/5"
+    }
+
+    nonisolated var displayContent: String {
+        guard let content, !content.isEmpty else {
+            return "No written review."
+        }
+        return content
+    }
+}
+
+struct BookingReviewDraft: Equatable, Sendable {
+    let rating: Int
+    let content: String?
 }
 
 nonisolated enum BookingStatus:
@@ -136,4 +198,17 @@ struct CancelBookingResult: Equatable, Sendable {
     let bookingStatus: BookingStatus
     let cancelledTimestamp: String?
     let cancelledBy: UUID?
+}
+
+struct CompleteBookingResult: Equatable, Sendable {
+    let bookingID: UUID
+    let bookingStatus: BookingStatus
+    let completedTimestamp: String?
+    let completedBy: UUID?
+}
+
+struct CreateReviewResult: Equatable, Sendable {
+    let review: BookingReview
+    let groomerRatingAverage: Double
+    let groomerRatingCount: Int
 }

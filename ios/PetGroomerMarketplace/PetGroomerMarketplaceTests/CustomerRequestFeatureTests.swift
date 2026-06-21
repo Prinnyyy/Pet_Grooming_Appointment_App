@@ -617,4 +617,17 @@ private final class CustomerRequestBookingRepositoryFake: BookingRepository {
     ) async throws -> CancelBookingResult {
         throw BookingRepositoryError.unavailable
     }
+
+    func completeBooking(
+        bookingID: UUID
+    ) async throws -> CompleteBookingResult {
+        throw BookingRepositoryError.unavailable
+    }
+
+    func createReview(
+        bookingID: UUID,
+        draft: BookingReviewDraft
+    ) async throws -> CreateReviewResult {
+        throw BookingRepositoryError.unavailable
+    }
 }

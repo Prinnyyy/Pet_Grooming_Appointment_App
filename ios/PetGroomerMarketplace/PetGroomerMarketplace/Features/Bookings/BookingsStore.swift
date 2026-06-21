@@ -11,12 +11,14 @@ final class BookingsStore {
     private(set) var bookings: [Booking] = []
     private(set) var isLoading = false
     private(set) var isCancelling = false
+    private(set) var isCompleting = false
+    private(set) var isSubmittingReview = false
 
     var errorMessage: String?
     var noticeMessage: String?
 
     var isBusy: Bool {
-        isLoading || isCancelling
+        isLoading || isCancelling || isCompleting || isSubmittingReview
     }
 
     init(
@@ -82,6 +84,93 @@ final class BookingsStore {
         }
     }
 
+    func complete(_ booking: Booking) async {
+        guard !isCompleting else { return }
+        guard booking.canComplete(for: role) else {
+            errorMessage = "This booking can no longer be completed by this account."
+            return
+        }
+
+        isCompleting = true
+        errorMessage = nil
+        noticeMessage = nil
+        defer { isCompleting = false }
+
+        do {
+            let result = try await repository.completeBooking(bookingID: booking.id)
+            let updatedBooking = booking.replacing(
+                status: result.bookingStatus,
+                cancelledBy: booking.cancelledBy,
+                cancelledAt: booking.cancelledAt,
+                completedAt: result.completedTimestamp,
+                completedBy: result.completedBy,
+                review: booking.review
+            )
+
+            if replace(updatedBooking) {
+                noticeMessage = "Booking completed. The customer can now leave one review."
+            } else {
+                noticeMessage = "Booking completed. Refresh bookings to see the latest state."
+            }
+        } catch let error as BookingRepositoryError {
+            errorMessage = message(for: error, action: "complete")
+        } catch {
+            errorMessage = message(for: .unavailable, action: "complete")
+        }
+    }
+
+    func createReview(
+        for booking: Booking,
+        rating: Int,
+        content: String
+    ) async {
+        guard !isSubmittingReview else { return }
+        guard booking.canReview(for: role) else {
+            errorMessage = "This booking can no longer be reviewed by this account."
+            return
+        }
+        guard (1...5).contains(rating) else {
+            errorMessage = "Choose a rating from 1 to 5."
+            return
+        }
+
+        let trimmedContent = content.trimmingCharacters(
+            in: .whitespacesAndNewlines
+        )
+        guard trimmedContent.count <= 2000 else {
+            errorMessage = "Review text must be 2,000 characters or fewer."
+            return
+        }
+
+        isSubmittingReview = true
+        errorMessage = nil
+        noticeMessage = nil
+        defer { isSubmittingReview = false }
+
+        let draft = BookingReviewDraft(
+            rating: rating,
+            content: trimmedContent.isEmpty ? nil : trimmedContent
+        )
+
+        do {
+            let result = try await repository.createReview(
+                bookingID: booking.id,
+                draft: draft
+            )
+            let updatedBooking = booking.adding(review: result.review)
+
+            if replace(updatedBooking) {
+                noticeMessage = "Review submitted. Thank you for your feedback."
+            } else {
+                noticeMessage = "Review submitted. Refresh bookings to see the latest state."
+            }
+        } catch let error as BookingRepositoryError {
+            errorMessage = message(for: error, action: "review")
+        } catch {
+            errorMessage = message(for: .unavailable, action: "review")
+        }
+    }
+
     @discardableResult
     private func replace(_ booking: Booking) -> Bool {
         guard let index = bookings.firstIndex(where: { $0.id == booking.id }) else {
@@ -113,6 +202,14 @@ final class BookingsStore {
             "This booking is no longer available."
         case .bookingNotCancellable:
             "This booking can no longer be cancelled."
+        case .bookingNotCompletable:
+            "This booking can no longer be completed."
+        case .bookingNotCompleted:
+            "This booking must be completed before it can be reviewed."
+        case .reviewAlreadyExists:
+            "This booking already has a review."
+        case .invalidReview:
+            "Choose a 1–5 rating and keep review text under 2,000 characters."
         case .invalidInput:
             "Check the booking and try again."
         case .networkUnavailable:

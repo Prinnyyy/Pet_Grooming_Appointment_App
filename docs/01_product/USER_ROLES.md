@@ -4,7 +4,7 @@
 
 | Role | Description | Allowed MVP Actions | Primary Areas |
 |---|---|---|---|
-| Customer | Authenticated pet owner | Manage own profile and pets; publish own requests; read offers for own requests; accept one offer through RPC; read and cancel own confirmed bookings through RPC; review own completed booking through RPC after T-021 | Home, Requests, Bookings, Messages, Account |
+| Customer | Authenticated pet owner | Manage own profile and pets; publish own requests; read offers for own requests; accept one offer through RPC; read and cancel own confirmed bookings through RPC; review own completed booking once through RPC | Home, Requests, Bookings, Messages, Account |
 | Groomer | Authenticated independent groomer | Manage own profile, services, and portfolio; read assigned matched requests; dismiss matches; create/withdraw own offers through controlled backend operations; read own bookings and conversations; complete own confirmed bookings through RPC | Requests, Offers, Bookings, Messages, Account |
 | Admin | Deferred role | No MVP client permissions or screens | None |
 

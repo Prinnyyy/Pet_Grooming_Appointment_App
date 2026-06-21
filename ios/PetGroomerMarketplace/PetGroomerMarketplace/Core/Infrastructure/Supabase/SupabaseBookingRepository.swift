@@ -5,7 +5,11 @@ import Supabase
 final class SupabaseBookingRepository: BookingRepository {
     private static let bookingColumns = """
         id,request_id,offer_id,customer_id,groomer_id,scheduled_start,scheduled_end,\
-        price_estimate,status,cancelled_by,cancelled_at,created_at,updated_at
+        price_estimate,status,cancelled_by,cancelled_at,completed_at,completed_by,\
+        created_at,updated_at
+        """
+    private static let reviewColumns = """
+        id,booking_id,customer_id,groomer_id,rating,content,created_at
         """
 
     private let client: SupabaseClient
@@ -34,7 +38,13 @@ final class SupabaseBookingRepository: BookingRepository {
                 .execute()
                 .value
 
-            return rows.map(\.booking)
+            let reviewMap = try await reviewsByBookingID(
+                bookingIDs: rows.map(\.id)
+            )
+
+            return rows.map { row in
+                row.booking(review: reviewMap[row.id])
+            }
         } catch {
             throw Self.map(error)
         }
@@ -88,6 +98,58 @@ final class SupabaseBookingRepository: BookingRepository {
         }
     }
 
+    func completeBooking(
+        bookingID: UUID
+    ) async throws -> CompleteBookingResult {
+        do {
+            let rows: [CompleteBookingRow] = try await client
+                .rpc(
+                    "complete_booking",
+                    params: CompleteBookingParameters(bookingID: bookingID)
+                )
+                .execute()
+                .value
+
+            guard rows.count == 1, let result = rows.first?.result else {
+                throw BookingRepositoryError.unavailable
+            }
+
+            return result
+        } catch let error as BookingRepositoryError {
+            throw error
+        } catch {
+            throw Self.map(error)
+        }
+    }
+
+    func createReview(
+        bookingID: UUID,
+        draft: BookingReviewDraft
+    ) async throws -> CreateReviewResult {
+        do {
+            let rows: [CreateReviewRow] = try await client
+                .rpc(
+                    "create_review",
+                    params: CreateReviewParameters(
+                        bookingID: bookingID,
+                        draft: draft
+                    )
+                )
+                .execute()
+                .value
+
+            guard rows.count == 1, let result = rows.first?.result else {
+                throw BookingRepositoryError.unavailable
+            }
+
+            return result
+        } catch let error as BookingRepositoryError {
+            throw error
+        } catch {
+            throw Self.map(error)
+        }
+    }
+
     private static func map(_ error: any Error) -> BookingRepositoryError {
         if let repositoryError = error as? BookingRepositoryError {
             return repositoryError
@@ -98,7 +160,12 @@ final class SupabaseBookingRepository: BookingRepository {
             case "42501", "28000":
                 return .notAllowed
             case "22023":
-                return .invalidInput
+                switch postgrestError.message {
+                case "invalid_rating", "invalid_review_content":
+                    return .invalidReview
+                default:
+                    return .invalidInput
+                }
             case "P0001":
                 switch postgrestError.message {
                 case "customer_profile_required", "groomer_profile_required":
@@ -117,9 +184,17 @@ final class SupabaseBookingRepository: BookingRepository {
                     return .bookingNotFound
                 case "booking_not_cancellable":
                     return .bookingNotCancellable
+                case "booking_not_completable":
+                    return .bookingNotCompletable
+                case "booking_not_completed":
+                    return .bookingNotCompleted
+                case "review_already_exists":
+                    return .reviewAlreadyExists
                 default:
                     return .unavailable
                 }
+            case "23514":
+                return .invalidReview
             default:
                 return .unavailable
             }
@@ -141,6 +216,24 @@ final class SupabaseBookingRepository: BookingRepository {
 
         return .unavailable
     }
+
+    private func reviewsByBookingID(
+        bookingIDs: [UUID]
+    ) async throws -> [UUID: BookingReview] {
+        let ids = Array(Set(bookingIDs)).map { $0.uuidString.lowercased() }
+        guard !ids.isEmpty else { return [:] }
+
+        let rows: [BookingReviewRow] = try await client
+            .from("reviews")
+            .select(Self.reviewColumns)
+            .in("booking_id", values: ids)
+            .execute()
+            .value
+
+        return Dictionary(
+            uniqueKeysWithValues: rows.map { ($0.bookingID, $0.review) }
+        )
+    }
 }
 
 private struct BookingRow: Decodable {
@@ -155,10 +248,12 @@ private struct BookingRow: Decodable {
     let status: BookingStatus
     let cancelledBy: UUID?
     let cancelledAt: String?
+    let completedAt: String?
+    let completedBy: UUID?
     let createdAt: String
     let updatedAt: String
 
-    var booking: Booking {
+    func booking(review: BookingReview?) -> Booking {
         Booking(
             id: id,
             requestID: requestID,
@@ -171,8 +266,11 @@ private struct BookingRow: Decodable {
             status: status,
             cancelledBy: cancelledBy,
             cancelledAt: cancelledAt,
+            completedAt: completedAt,
+            completedBy: completedBy,
             createdAt: createdAt,
-            updatedAt: updatedAt
+            updatedAt: updatedAt,
+            review: review
         )
     }
 
@@ -188,8 +286,42 @@ private struct BookingRow: Decodable {
         case status
         case cancelledBy = "cancelled_by"
         case cancelledAt = "cancelled_at"
+        case completedAt = "completed_at"
+        case completedBy = "completed_by"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
+    }
+}
+
+private struct BookingReviewRow: Decodable {
+    let id: UUID
+    let bookingID: UUID
+    let customerID: UUID
+    let groomerID: UUID
+    let rating: Int
+    let content: String?
+    let createdAt: String
+
+    var review: BookingReview {
+        BookingReview(
+            id: id,
+            bookingID: bookingID,
+            customerID: customerID,
+            groomerID: groomerID,
+            rating: rating,
+            content: content,
+            createdAt: createdAt
+        )
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case bookingID = "booking_id"
+        case customerID = "customer_id"
+        case groomerID = "groomer_id"
+        case rating
+        case content
+        case createdAt = "created_at"
     }
 }
 
@@ -248,6 +380,69 @@ private struct CancelBookingRow: Decodable {
     }
 }
 
+private struct CompleteBookingRow: Decodable {
+    let bookingID: UUID
+    let bookingStatus: BookingStatus
+    let completedTimestamp: String?
+    let completedBy: UUID?
+
+    var result: CompleteBookingResult {
+        CompleteBookingResult(
+            bookingID: bookingID,
+            bookingStatus: bookingStatus,
+            completedTimestamp: completedTimestamp,
+            completedBy: completedBy
+        )
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case bookingID = "booking_id"
+        case bookingStatus = "booking_status"
+        case completedTimestamp = "completed_timestamp"
+        case completedBy = "completed_by"
+    }
+}
+
+private struct CreateReviewRow: Decodable {
+    let reviewID: UUID
+    let bookingID: UUID
+    let customerID: UUID
+    let groomerID: UUID
+    let rating: Int
+    let content: String?
+    let createdAt: String
+    let groomerRatingAverage: Double
+    let groomerRatingCount: Int
+
+    var result: CreateReviewResult {
+        CreateReviewResult(
+            review: BookingReview(
+                id: reviewID,
+                bookingID: bookingID,
+                customerID: customerID,
+                groomerID: groomerID,
+                rating: rating,
+                content: content,
+                createdAt: createdAt
+            ),
+            groomerRatingAverage: groomerRatingAverage,
+            groomerRatingCount: groomerRatingCount
+        )
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case reviewID = "review_id"
+        case bookingID = "booking_id"
+        case customerID = "customer_id"
+        case groomerID = "groomer_id"
+        case rating
+        case content
+        case createdAt = "created_at"
+        case groomerRatingAverage = "groomer_rating_avg"
+        case groomerRatingCount = "groomer_rating_count"
+    }
+}
+
 private struct AcceptGroomerOfferParameters: Encodable {
     let offerID: UUID
 
@@ -271,5 +466,41 @@ private struct CancelBookingParameters: Encodable {
 
     private enum CodingKeys: String, CodingKey {
         case bookingID = "p_booking_id"
+    }
+}
+
+private struct CompleteBookingParameters: Encodable {
+    let bookingID: UUID
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(bookingID.uuidString.lowercased(), forKey: .bookingID)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case bookingID = "p_booking_id"
+    }
+}
+
+private struct CreateReviewParameters: Encodable {
+    let bookingID: UUID
+    let draft: BookingReviewDraft
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(bookingID.uuidString.lowercased(), forKey: .bookingID)
+        try container.encode(draft.rating, forKey: .rating)
+
+        if let content = draft.content {
+            try container.encode(content, forKey: .content)
+        } else {
+            try container.encodeNil(forKey: .content)
+        }
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case bookingID = "p_booking_id"
+        case rating = "p_rating"
+        case content = "p_content"
     }
 }

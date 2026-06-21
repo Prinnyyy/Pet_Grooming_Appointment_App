@@ -80,6 +80,113 @@ struct BookingsStoreTests {
     }
 
     @Test @MainActor
+    func groomerCompletesConfirmedBooking() async throws {
+        let groomerID = UUID()
+        let booking = Self.booking(groomerID: groomerID)
+        let repository = BookingRepositoryFake(
+            bookingsResult: .success([booking]),
+            completeResult: .success(
+                CompleteBookingResult(
+                    bookingID: booking.id,
+                    bookingStatus: .completed,
+                    completedTimestamp: "2026-06-22T18:05:00Z",
+                    completedBy: groomerID
+                )
+            )
+        )
+        let store = BookingsStore(
+            participantID: groomerID,
+            role: .groomer,
+            repository: repository
+        )
+        await store.load()
+
+        await store.complete(booking)
+
+        #expect(repository.completeCallCount == 1)
+        #expect(repository.lastCompletedBookingID == booking.id)
+        #expect(store.bookings.first?.status == .completed)
+        #expect(store.bookings.first?.completedAt == "2026-06-22T18:05:00Z")
+        #expect(store.bookings.first?.completedBy == groomerID)
+        #expect(
+            store.noticeMessage ==
+                "Booking completed. The customer can now leave one review."
+        )
+    }
+
+    @Test @MainActor
+    func customerSubmitsReviewForCompletedBooking() async throws {
+        let customerID = UUID()
+        let booking = Self.booking(
+            customerID: customerID,
+            status: .completed,
+            completedAt: "2026-06-22T18:05:00Z"
+        )
+        let review = BookingReview(
+            id: UUID(),
+            bookingID: booking.id,
+            customerID: booking.customerID,
+            groomerID: booking.groomerID,
+            rating: 5,
+            content: "Great service",
+            createdAt: "2026-06-22T19:00:00Z"
+        )
+        let repository = BookingRepositoryFake(
+            bookingsResult: .success([booking]),
+            reviewResult: .success(
+                CreateReviewResult(
+                    review: review,
+                    groomerRatingAverage: 5,
+                    groomerRatingCount: 1
+                )
+            )
+        )
+        let store = BookingsStore(
+            participantID: customerID,
+            role: .customer,
+            repository: repository
+        )
+        await store.load()
+
+        await store.createReview(
+            for: booking,
+            rating: 5,
+            content: "  Great service\n"
+        )
+
+        #expect(repository.reviewCallCount == 1)
+        #expect(repository.lastReviewedBookingID == booking.id)
+        #expect(repository.lastReviewDraft == BookingReviewDraft(
+            rating: 5,
+            content: "Great service"
+        ))
+        #expect(store.bookings.first?.review == review)
+        #expect(
+            store.noticeMessage ==
+                "Review submitted. Thank you for your feedback."
+        )
+    }
+
+    @Test @MainActor
+    func invalidReviewDoesNotCallRepository() async throws {
+        let booking = Self.booking(status: .completed)
+        let repository = BookingRepositoryFake(
+            bookingsResult: .success([booking])
+        )
+        let store = BookingsStore(
+            participantID: booking.customerID,
+            role: .customer,
+            repository: repository
+        )
+        await store.load()
+
+        await store.createReview(for: booking, rating: 6, content: "")
+
+        #expect(repository.reviewCallCount == 0)
+        #expect(store.errorMessage == "Choose a rating from 1 to 5.")
+    }
+
+    @Test @MainActor
     func cancelMissingLocalBookingReportsRefreshNotice() async throws {
         let customerID = UUID()
         let booking = Self.booking(customerID: customerID)
@@ -134,7 +241,9 @@ struct BookingsStoreTests {
         offerID: UUID = UUID(),
         customerID: UUID = UUID(),
         groomerID: UUID = UUID(),
-        status: BookingStatus = .confirmed
+        status: BookingStatus = .confirmed,
+        completedAt: String? = nil,
+        review: BookingReview? = nil
     ) -> Booking {
         Booking(
             id: id,
@@ -148,8 +257,11 @@ struct BookingsStoreTests {
             status: status,
             cancelledBy: nil,
             cancelledAt: nil,
+            completedAt: completedAt,
+            completedBy: completedAt == nil ? nil : groomerID,
             createdAt: "2026-06-20T12:00:00Z",
-            updatedAt: "2026-06-20T12:00:00Z"
+            updatedAt: "2026-06-20T12:00:00Z",
+            review: review
         )
     }
 }
@@ -158,20 +270,33 @@ struct BookingsStoreTests {
 private final class BookingRepositoryFake: BookingRepository {
     var bookingsResult: Result<[Booking], BookingRepositoryError>
     var cancelResult: Result<CancelBookingResult, BookingRepositoryError>
+    var completeResult: Result<CompleteBookingResult, BookingRepositoryError>
+    var reviewResult: Result<CreateReviewResult, BookingRepositoryError>
 
     private(set) var bookingsCallCount = 0
     private(set) var cancelCallCount = 0
+    private(set) var completeCallCount = 0
+    private(set) var reviewCallCount = 0
     private(set) var lastParticipantID: UUID?
     private(set) var lastRole: UserRole?
     private(set) var lastCancelledBookingID: UUID?
+    private(set) var lastCompletedBookingID: UUID?
+    private(set) var lastReviewedBookingID: UUID?
+    private(set) var lastReviewDraft: BookingReviewDraft?
 
     init(
         bookingsResult: Result<[Booking], BookingRepositoryError> = .success([]),
         cancelResult: Result<CancelBookingResult, BookingRepositoryError> =
+            .failure(.unavailable),
+        completeResult: Result<CompleteBookingResult, BookingRepositoryError> =
+            .failure(.unavailable),
+        reviewResult: Result<CreateReviewResult, BookingRepositoryError> =
             .failure(.unavailable)
     ) {
         self.bookingsResult = bookingsResult
         self.cancelResult = cancelResult
+        self.completeResult = completeResult
+        self.reviewResult = reviewResult
     }
 
     func bookings(
@@ -196,5 +321,23 @@ private final class BookingRepositoryFake: BookingRepository {
         cancelCallCount += 1
         lastCancelledBookingID = bookingID
         return try cancelResult.get()
+    }
+
+    func completeBooking(
+        bookingID: UUID
+    ) async throws -> CompleteBookingResult {
+        completeCallCount += 1
+        lastCompletedBookingID = bookingID
+        return try completeResult.get()
+    }
+
+    func createReview(
+        bookingID: UUID,
+        draft: BookingReviewDraft
+    ) async throws -> CreateReviewResult {
+        reviewCallCount += 1
+        lastReviewedBookingID = bookingID
+        lastReviewDraft = draft
+        return try reviewResult.get()
     }
 }

@@ -86,7 +86,7 @@ private struct BookingSummaryRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .firstTextBaseline) {
-                Text(title)
+                Text("Appointment")
                     .font(.headline)
 
                 Spacer()
@@ -96,23 +96,19 @@ private struct BookingSummaryRow: View {
                     .foregroundStyle(booking.status == .confirmed ? .green : .secondary)
             }
 
-            Text("Booking ref \(booking.referenceCode)")
-                .font(.caption)
-                .foregroundStyle(DesignTokens.Colors.secondaryText)
-
             Text(booking.scheduledTimeSummary)
                 .font(.subheadline)
                 .foregroundStyle(DesignTokens.Colors.secondaryText)
 
-            Text(booking.priceSummary)
+            Text("\(booking.priceSummary) • \(booking.participantSummary(for: role))")
                 .font(.caption.weight(.semibold))
+                .foregroundStyle(DesignTokens.Colors.secondaryText)
+
+            Text("Support ref \(booking.referenceCode)")
+                .font(.caption2)
                 .foregroundStyle(DesignTokens.Colors.secondaryText)
         }
         .padding(.vertical, 4)
-    }
-
-    private var title: String {
-        booking.participantSummary(for: role)
     }
 }
 
@@ -124,9 +120,8 @@ private struct BookingDetailView: View {
     var body: some View {
         if let booking = store.booking(withID: bookingID) {
             List {
-                Section("Booking") {
+                Section("Appointment") {
                     LabeledContent("Status", value: booking.status.title)
-                    LabeledContent("Participant", value: booking.participantSummary(for: role))
                     LabeledContent("Price", value: booking.priceSummary)
                     LabeledContent(
                         "Start",
@@ -142,6 +137,13 @@ private struct BookingDetailView: View {
                     )
                 }
 
+                Section("Participant") {
+                    LabeledContent("Counterparty", value: booking.participantSummary(for: role))
+                    Text("Names and richer pet context require a later participant summary contract; this screen only shows stable booking facts and support references for now.")
+                        .font(.footnote)
+                        .foregroundStyle(DesignTokens.Colors.secondaryText)
+                }
+
                 Section("Support references") {
                     LabeledContent("Booking", value: booking.referenceCode)
                     LabeledContent("Request", value: booking.requestReferenceCode)
@@ -150,12 +152,32 @@ private struct BookingDetailView: View {
                 }
 
                 Section("Conversation") {
-                    Text("Messaging is reserved for T-020 and is not connected yet.")
+                    Text("Use the Messages tab for participant chat tied to this booking.")
                         .foregroundStyle(DesignTokens.Colors.secondaryText)
                 }
 
                 Section("Lifecycle") {
                     if booking.status == .confirmed {
+                        if role == .groomer {
+                            Button {
+                                Task {
+                                    await store.complete(booking)
+                                }
+                            } label: {
+                                Label("Mark service completed", systemImage: "checkmark.seal")
+                            }
+                            .disabled(store.isCompleting)
+                            .accessibilityIdentifier("bookings.complete")
+
+                            Text("Completion closes the service lifecycle and lets the customer leave one review.")
+                                .font(.footnote)
+                                .foregroundStyle(DesignTokens.Colors.secondaryText)
+                        } else {
+                            Text("The groomer can mark this booking completed after the service.")
+                                .font(.footnote)
+                                .foregroundStyle(DesignTokens.Colors.secondaryText)
+                        }
+
                         Button(role: .destructive) {
                             Task {
                                 await store.cancel(booking)
@@ -182,8 +204,33 @@ private struct BookingDetailView: View {
                             )
                         }
                     } else {
-                        Text("Completion and reviews are reserved for T-021.")
+                        Text("This booking is completed.")
                             .foregroundStyle(DesignTokens.Colors.secondaryText)
+
+                        if let completedAt = booking.completedAt {
+                            LabeledContent(
+                                "Completed",
+                                value: GroomingRequestDateFormatting.displayString(
+                                    from: completedAt
+                                )
+                            )
+                        }
+                    }
+                }
+
+                if booking.status == .completed {
+                    Section("Review") {
+                        if let review = booking.review {
+                            BookingReviewDisplay(review: review)
+                        } else if booking.canReview(for: role) {
+                            BookingReviewForm(
+                                booking: booking,
+                                store: store
+                            )
+                        } else {
+                            Text("Waiting for the customer to leave a review.")
+                                .foregroundStyle(DesignTokens.Colors.secondaryText)
+                        }
                     }
                 }
             }
@@ -214,6 +261,74 @@ private struct BookingDetailView: View {
     }
 }
 
+private struct BookingReviewDisplay: View {
+    let review: BookingReview
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            LabeledContent("Rating", value: review.ratingSummary)
+
+            Text(review.displayContent)
+                .foregroundStyle(DesignTokens.Colors.secondaryText)
+
+            LabeledContent(
+                "Submitted",
+                value: GroomingRequestDateFormatting.displayString(
+                    from: review.createdAt
+                )
+            )
+            .font(.footnote)
+        }
+        .accessibilityIdentifier("bookings.review.display")
+    }
+}
+
+private struct BookingReviewForm: View {
+    let booking: Booking
+    let store: BookingsStore
+    @State private var rating = 5
+    @State private var content = ""
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Picker("Rating", selection: $rating) {
+                ForEach(1...5, id: \.self) { value in
+                    Text("\(value)").tag(value)
+                }
+            }
+            .pickerStyle(.segmented)
+            .accessibilityIdentifier("bookings.review.rating")
+
+            TextEditor(text: $content)
+                .frame(minHeight: 96)
+                .overlay {
+                    RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.card)
+                        .stroke(.quaternary)
+                }
+                .accessibilityIdentifier("bookings.review.content")
+
+            Text("Optional review text, up to 2,000 characters.")
+                .font(.footnote)
+                .foregroundStyle(DesignTokens.Colors.secondaryText)
+
+            Button {
+                Task {
+                    await store.createReview(
+                        for: booking,
+                        rating: rating,
+                        content: content
+                    )
+                }
+            } label: {
+                Label("Submit review", systemImage: "star.bubble")
+            }
+            .buttonStyle(.borderedProminent)
+            .disabled(store.isSubmittingReview)
+            .accessibilityIdentifier("bookings.review.submit")
+        }
+    }
+}
+
 private struct BookingsStatusView: View {
     let store: BookingsStore
 
@@ -221,6 +336,16 @@ private struct BookingsStatusView: View {
         VStack(spacing: 8) {
             if store.isCancelling {
                 ProgressView("Cancelling…")
+                    .font(.footnote)
+            }
+
+            if store.isCompleting {
+                ProgressView("Completing…")
+                    .font(.footnote)
+            }
+
+            if store.isSubmittingReview {
+                ProgressView("Submitting review…")
                     .font(.footnote)
             }
 
@@ -269,8 +394,11 @@ private final class BookingsPreviewRepository: BookingRepository {
             status: .confirmed,
             cancelledBy: nil,
             cancelledAt: nil,
+            completedAt: nil,
+            completedBy: nil,
             createdAt: "2026-06-20T12:00:00Z",
-            updatedAt: "2026-06-20T12:00:00Z"
+            updatedAt: "2026-06-20T12:00:00Z",
+            review: nil
         ),
     ]
 
@@ -300,6 +428,45 @@ private final class BookingsPreviewRepository: BookingRepository {
             bookingStatus: .cancelledByCustomer,
             cancelledTimestamp: "2026-06-20T13:00:00Z",
             cancelledBy: bookings[0].customerID
+        )
+    }
+
+    func completeBooking(
+        bookingID: UUID
+    ) async throws -> CompleteBookingResult {
+        bookings[0] = bookings[0].replacing(
+            status: .completed,
+            cancelledBy: nil,
+            cancelledAt: nil,
+            completedAt: "2026-06-22T18:05:00Z",
+            completedBy: bookings[0].groomerID
+        )
+        return CompleteBookingResult(
+            bookingID: bookingID,
+            bookingStatus: .completed,
+            completedTimestamp: "2026-06-22T18:05:00Z",
+            completedBy: bookings[0].groomerID
+        )
+    }
+
+    func createReview(
+        bookingID: UUID,
+        draft: BookingReviewDraft
+    ) async throws -> CreateReviewResult {
+        let review = BookingReview(
+            id: UUID(),
+            bookingID: bookingID,
+            customerID: bookings[0].customerID,
+            groomerID: bookings[0].groomerID,
+            rating: draft.rating,
+            content: draft.content,
+            createdAt: "2026-06-22T19:00:00Z"
+        )
+        bookings[0] = bookings[0].adding(review: review)
+        return CreateReviewResult(
+            review: review,
+            groomerRatingAverage: Double(draft.rating),
+            groomerRatingCount: 1
         )
     }
 }

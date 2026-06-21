@@ -82,7 +82,7 @@ Pending offer
 
 The app must not optimistically fabricate a booking before the backend transaction succeeds. After acceptance, both role-specific Bookings tabs read participant `bookings` rows through backend RLS.
 
-Booking cancellation changes only the booking status in the MVP contract. It does not reopen the original request, re-enable the accepted offer, or restore competing offers; a customer who needs another appointment starts a new request. Booking completion and reviews remain later lifecycle steps and must not be shown as active actions before their backend RPCs are implemented.
+Booking cancellation changes only the booking status in the MVP contract. It does not reopen the original request, re-enable the accepted offer, or restore competing offers; a customer who needs another appointment starts a new request. Booking completion is available only to the booked groomer for confirmed bookings, and one customer review is available only after the booking is completed.
 
 ## Messaging Flow
 

@@ -429,6 +429,14 @@ final class CustomerRequestsStore {
             "This booking is no longer available."
         case .bookingNotCancellable:
             "This booking can no longer be cancelled."
+        case .bookingNotCompletable:
+            "This booking can no longer be completed."
+        case .bookingNotCompleted:
+            "This booking must be completed before it can be reviewed."
+        case .reviewAlreadyExists:
+            "This booking already has a review."
+        case .invalidReview:
+            "Check the review and try again."
         case .invalidInput:
             "Check the offer and try again."
         case .networkUnavailable:
