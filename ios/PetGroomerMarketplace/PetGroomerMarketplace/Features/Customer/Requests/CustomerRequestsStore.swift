@@ -12,6 +12,9 @@ final class CustomerRequestsStore {
 
     private(set) var pets: [CustomerPet] = []
     private(set) var requests: [CustomerGroomingRequest] = []
+    private(set) var offerReviewsByRequestID: [UUID: [CustomerOfferReview]] = [:]
+    private(set) var offerErrorsByRequestID: [UUID: String] = [:]
+    private(set) var loadingOfferRequestIDs: Set<UUID> = []
     private(set) var isLoading = false
     private(set) var isSubmitting = false
 
@@ -86,6 +89,44 @@ final class CustomerRequestsStore {
     func cancelWizard() {
         isShowingWizard = false
         errorMessage = nil
+    }
+
+    func offers(for request: CustomerGroomingRequest) -> [CustomerOfferReview] {
+        offerReviewsByRequestID[request.id] ?? []
+    }
+
+    func offerError(for request: CustomerGroomingRequest) -> String? {
+        offerErrorsByRequestID[request.id]
+    }
+
+    func isLoadingOffers(for request: CustomerGroomingRequest) -> Bool {
+        loadingOfferRequestIDs.contains(request.id)
+    }
+
+    func loadOffers(for request: CustomerGroomingRequest) async {
+        guard !loadingOfferRequestIDs.contains(request.id) else { return }
+
+        loadingOfferRequestIDs.insert(request.id)
+        offerErrorsByRequestID[request.id] = nil
+        defer {
+            loadingOfferRequestIDs.remove(request.id)
+        }
+
+        do {
+            offerReviewsByRequestID[request.id] = Self.displayOrdered(
+                try await requestRepository.offers(
+                    customerID: customerID,
+                    requestID: request.id
+                )
+            )
+        } catch let error as CustomerRequestRepositoryError {
+            offerErrorsByRequestID[request.id] = message(for: error, action: "load offers")
+        } catch {
+            offerErrorsByRequestID[request.id] = message(
+                for: CustomerRequestRepositoryError.unavailable,
+                action: "load offers"
+            )
+        }
     }
 
     func publish() async {
@@ -260,6 +301,25 @@ final class CustomerRequestsStore {
         let start = now.addingTimeInterval(24 * 60 * 60)
         let end = start.addingTimeInterval(2 * 60 * 60)
         return (start, end)
+    }
+
+    private static func displayOrdered(
+        _ offerReviews: [CustomerOfferReview]
+    ) -> [CustomerOfferReview] {
+        offerReviews.sorted { lhs, rhs in
+            if lhs.isPending != rhs.isPending {
+                return lhs.isPending
+            }
+
+            let lhsTimestamp = lhs.offer.createdAt ?? lhs.offer.updatedAt ?? ""
+            let rhsTimestamp = rhs.offer.createdAt ?? rhs.offer.updatedAt ?? ""
+
+            if lhsTimestamp != rhsTimestamp {
+                return lhsTimestamp > rhsTimestamp
+            }
+
+            return lhs.id.uuidString < rhs.id.uuidString
+        }
     }
 }
 

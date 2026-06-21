@@ -7,6 +7,12 @@ final class SupabaseCustomerRequestRepository: CustomerRequestRepository {
         id,customer_id,pet_id,pet_snapshot,photo_snapshot,service_type,service_notes,\
         preferred_start,preferred_end,city,state,zip_code,status,expires_at,created_at,updated_at
         """
+    private static let offerColumns = """
+        id,request_id,match_id,customer_id,groomer_id,proposed_start,proposed_end,\
+        price_estimate,message,status,expires_at,withdrawn_at,created_at,updated_at
+        """
+    private static let groomerProfileColumns =
+        "user_id,business_name,bio,years_experience,base_city,base_state,service_radius_miles,rating_avg,rating_count,is_active,is_verified"
 
     private let client: SupabaseClient
 
@@ -25,6 +31,47 @@ final class SupabaseCustomerRequestRepository: CustomerRequestRepository {
                 .value
 
             return rows.map(\.request)
+        } catch {
+            throw Self.map(error)
+        }
+    }
+
+    func offers(
+        customerID: UUID,
+        requestID: UUID
+    ) async throws -> [CustomerOfferReview] {
+        do {
+            let offerRows: [CustomerOfferRow] = try await client
+                .from("groomer_offers")
+                .select(Self.offerColumns)
+                .eq("customer_id", value: customerID.uuidString.lowercased())
+                .eq("request_id", value: requestID.uuidString.lowercased())
+                .order("created_at", ascending: false)
+                .execute()
+                .value
+
+            guard !offerRows.isEmpty else { return [] }
+
+            let groomerIDs = Set(offerRows.map(\.groomerID))
+                .map { $0.uuidString.lowercased() }
+
+            let profileRows: [CustomerOfferGroomerProfileRow] = try await client
+                .from("groomer_profiles")
+                .select(Self.groomerProfileColumns)
+                .in("user_id", values: groomerIDs)
+                .execute()
+                .value
+
+            let profilesByID = Dictionary(
+                uniqueKeysWithValues: profileRows.map { ($0.userID, $0.profile) }
+            )
+
+            return offerRows.map { row in
+                CustomerOfferReview(
+                    offer: row.offer,
+                    groomerProfile: profilesByID[row.groomerID]
+                )
+            }
         } catch {
             throw Self.map(error)
         }
@@ -173,6 +220,103 @@ private struct CreateGroomingRequestRow: Decodable {
     private enum CodingKeys: String, CodingKey {
         case requestID = "request_id"
         case matchCount = "match_count"
+    }
+}
+
+private struct CustomerOfferRow: Decodable {
+    let id: UUID
+    let requestID: UUID
+    let matchID: UUID
+    let customerID: UUID
+    let groomerID: UUID
+    let proposedStart: String
+    let proposedEnd: String
+    let priceEstimate: Double
+    let message: String?
+    let status: GroomerOfferStatus
+    let expiresAt: String
+    let withdrawnAt: String?
+    let createdAt: String?
+    let updatedAt: String?
+
+    var offer: GroomerOffer {
+        GroomerOffer(
+            id: id,
+            requestID: requestID,
+            matchID: matchID,
+            customerID: customerID,
+            groomerID: groomerID,
+            proposedStart: proposedStart,
+            proposedEnd: proposedEnd,
+            priceEstimate: priceEstimate,
+            message: message,
+            status: status,
+            expiresAt: expiresAt,
+            withdrawnAt: withdrawnAt,
+            createdAt: createdAt,
+            updatedAt: updatedAt
+        )
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case requestID = "request_id"
+        case matchID = "match_id"
+        case customerID = "customer_id"
+        case groomerID = "groomer_id"
+        case proposedStart = "proposed_start"
+        case proposedEnd = "proposed_end"
+        case priceEstimate = "price_estimate"
+        case message
+        case status
+        case expiresAt = "expires_at"
+        case withdrawnAt = "withdrawn_at"
+        case createdAt = "created_at"
+        case updatedAt = "updated_at"
+    }
+}
+
+private struct CustomerOfferGroomerProfileRow: Decodable {
+    let userID: UUID
+    let businessName: String?
+    let bio: String?
+    let yearsExperience: Int?
+    let baseCity: String?
+    let baseState: String?
+    let serviceRadiusMiles: Int?
+    let ratingAverage: Double
+    let ratingCount: Int
+    let isActive: Bool
+    let isVerified: Bool
+
+    var profile: GroomerProfile {
+        GroomerProfile(
+            userID: userID,
+            businessName: businessName,
+            bio: bio,
+            yearsExperience: yearsExperience,
+            baseCity: baseCity,
+            baseState: baseState,
+            serviceRadiusMiles: serviceRadiusMiles,
+            ratingAverage: ratingAverage,
+            ratingCount: ratingCount,
+            isActive: isActive,
+            isVerified: isVerified
+        )
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case userID = "user_id"
+        case businessName = "business_name"
+        case bio
+        case yearsExperience = "years_experience"
+        case baseCity = "base_city"
+        case baseState = "base_state"
+        case serviceRadiusMiles = "service_radius_miles"
+        case ratingAverage = "rating_avg"
+        case ratingCount = "rating_count"
+        case isActive = "is_active"
+        case isVerified = "is_verified"
     }
 }
 

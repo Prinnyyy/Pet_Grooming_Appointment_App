@@ -55,7 +55,10 @@ struct CustomerRequestsView: View {
                         Section("Your requests") {
                             ForEach(store.requests) { request in
                                 NavigationLink {
-                                    CustomerRequestDetailView(request: request)
+                                    CustomerRequestDetailView(
+                                        request: request,
+                                        store: store
+                                    )
                                 } label: {
                                     CustomerRequestSummaryRow(request: request)
                                 }
@@ -123,6 +126,7 @@ private struct CustomerRequestSummaryRow: View {
 
 private struct CustomerRequestDetailView: View {
     let request: CustomerGroomingRequest
+    let store: CustomerRequestsStore
 
     var body: some View {
         List {
@@ -171,6 +175,11 @@ private struct CustomerRequestDetailView: View {
                 LabeledContent("ZIP", value: request.zipCode)
             }
 
+            CustomerOfferReviewSection(
+                request: request,
+                store: store
+            )
+
             if request.status.isOpenForOffers {
                 Section("Cancellation") {
                     Text("Request cancellation needs a controlled backend RPC and is not connected yet.")
@@ -181,6 +190,186 @@ private struct CustomerRequestDetailView: View {
         .navigationTitle(request.petSnapshot.name)
         .navigationBarTitleDisplayMode(.inline)
         .accessibilityIdentifier("customer.requests.detail")
+        .task(id: request.id) {
+            await store.loadOffers(for: request)
+        }
+    }
+}
+
+private struct CustomerOfferReviewSection: View {
+    let request: CustomerGroomingRequest
+    let store: CustomerRequestsStore
+
+    private var offers: [CustomerOfferReview] {
+        store.offers(for: request)
+    }
+
+    private var pendingOffers: [CustomerOfferReview] {
+        offers.filter(\.isPending)
+    }
+
+    private var historicalOffers: [CustomerOfferReview] {
+        offers.filter { !$0.isPending }
+    }
+
+    var body: some View {
+        Group {
+            Section("Offers") {
+                if store.isLoadingOffers(for: request), offers.isEmpty {
+                    ProgressView("Loading offers…")
+                        .accessibilityIdentifier("customer.offers.loading")
+                } else if let errorMessage = store.offerError(for: request) {
+                    Text(errorMessage)
+                        .foregroundStyle(.red)
+                        .accessibilityIdentifier("customer.offers.error")
+                } else if offers.isEmpty {
+                    ContentUnavailableView(
+                        "No offers yet",
+                        systemImage: "tag",
+                        description: Text("Matched groomers can submit offers while this request is open.")
+                    )
+                    .accessibilityIdentifier("customer.offers.empty")
+                } else if !pendingOffers.isEmpty {
+                    ForEach(pendingOffers) { offerReview in
+                        NavigationLink {
+                            CustomerOfferDetailView(
+                                request: request,
+                                offerReview: offerReview
+                            )
+                        } label: {
+                            CustomerOfferSummaryRow(offerReview: offerReview)
+                        }
+                    }
+                    .accessibilityIdentifier("customer.offers.pending-list")
+                } else {
+                    Text("There are no pending offers for this request.")
+                        .foregroundStyle(DesignTokens.Colors.secondaryText)
+                }
+            }
+
+            if !historicalOffers.isEmpty {
+                Section("Offer history") {
+                    ForEach(historicalOffers) { offerReview in
+                        NavigationLink {
+                            CustomerOfferDetailView(
+                                request: request,
+                                offerReview: offerReview
+                            )
+                        } label: {
+                            CustomerOfferSummaryRow(offerReview: offerReview)
+                                .foregroundStyle(DesignTokens.Colors.secondaryText)
+                        }
+                    }
+                    .accessibilityIdentifier("customer.offers.history-list")
+                }
+            }
+
+            Section {
+                Button {
+                    Task {
+                        await store.loadOffers(for: request)
+                    }
+                } label: {
+                    Label("Refresh offers", systemImage: "arrow.clockwise")
+                }
+                .disabled(store.isLoadingOffers(for: request))
+                .accessibilityIdentifier("customer.offers.refresh")
+            }
+        }
+    }
+}
+
+private struct CustomerOfferSummaryRow: View {
+    let offerReview: CustomerOfferReview
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(offerReview.groomerTitle)
+                    .font(.headline)
+
+                Spacer()
+
+                Text(offerReview.offer.status.title)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(offerReview.offer.status == .pending ? .green : .secondary)
+            }
+
+            Text(offerReview.offer.priceSummary)
+                .font(.subheadline.weight(.semibold))
+
+            Text(offerReview.proposedTimeSummary)
+                .font(.caption)
+                .foregroundStyle(DesignTokens.Colors.secondaryText)
+
+            Text(offerReview.groomerLocationSummary)
+                .font(.caption)
+                .foregroundStyle(DesignTokens.Colors.secondaryText)
+        }
+        .padding(.vertical, 4)
+    }
+}
+
+private struct CustomerOfferDetailView: View {
+    let request: CustomerGroomingRequest
+    let offerReview: CustomerOfferReview
+
+    var body: some View {
+        List {
+            Section("Groomer") {
+                HStack {
+                    LabeledContent("Business", value: offerReview.groomerTitle)
+                    if offerReview.groomerProfile?.isVerified == true {
+                        Image(systemName: "checkmark.seal.fill")
+                            .foregroundStyle(.blue)
+                            .accessibilityLabel("Verified groomer")
+                    }
+                }
+                LabeledContent("Location", value: offerReview.groomerLocationSummary)
+                LabeledContent("Rating", value: offerReview.ratingSummary)
+
+                if let bio = offerReview.groomerProfile?.bio {
+                    Text(bio)
+                        .foregroundStyle(DesignTokens.Colors.secondaryText)
+                }
+            }
+
+            Section("Offer") {
+                LabeledContent("Status", value: offerReview.offer.status.title)
+                LabeledContent("Price", value: offerReview.offer.priceSummary)
+                LabeledContent(
+                    "Start",
+                    value: GroomingRequestDateFormatting.displayString(
+                        from: offerReview.offer.proposedStart
+                    )
+                )
+                LabeledContent(
+                    "End",
+                    value: GroomingRequestDateFormatting.displayString(
+                        from: offerReview.offer.proposedEnd
+                    )
+                )
+
+                if let message = offerReview.offer.message {
+                    Text(message)
+                        .foregroundStyle(DesignTokens.Colors.secondaryText)
+                }
+            }
+
+            Section("Request") {
+                LabeledContent("Pet", value: request.petSnapshot.name)
+                LabeledContent("Service", value: request.serviceType)
+                LabeledContent("Request status", value: request.status.title)
+            }
+
+            Section("Acceptance") {
+                Text("Accepting an offer requires the T-018 backend transaction and is not connected yet.")
+                    .foregroundStyle(DesignTokens.Colors.secondaryText)
+            }
+        }
+        .navigationTitle("Offer")
+        .navigationBarTitleDisplayMode(.inline)
+        .accessibilityIdentifier("customer.offers.detail")
     }
 }
 
@@ -422,6 +611,45 @@ private final class CustomerRequestsPreviewRequestRepository: CustomerRequestRep
                 expiresAt: "2026-06-22T12:00:00Z",
                 createdAt: "2026-06-20T12:00:00Z",
                 updatedAt: "2026-06-20T12:00:00Z"
+            ),
+        ]
+    }
+
+    func offers(
+        customerID: UUID,
+        requestID: UUID
+    ) async throws -> [CustomerOfferReview] {
+        [
+            CustomerOfferReview(
+                offer: GroomerOffer(
+                    id: UUID(),
+                    requestID: requestID,
+                    matchID: UUID(),
+                    customerID: customerID,
+                    groomerID: UUID(),
+                    proposedStart: "2026-06-22T16:30:00Z",
+                    proposedEnd: "2026-06-22T18:00:00Z",
+                    priceEstimate: 125,
+                    message: "I can do a calm full groom.",
+                    status: .pending,
+                    expiresAt: "2026-06-22T12:00:00Z",
+                    withdrawnAt: nil,
+                    createdAt: "2026-06-20T13:00:00Z",
+                    updatedAt: "2026-06-20T13:00:00Z"
+                ),
+                groomerProfile: GroomerProfile(
+                    userID: UUID(),
+                    businessName: "Fresh Paws Grooming",
+                    bio: "Low-stress grooming for small dogs.",
+                    yearsExperience: 5,
+                    baseCity: "Seattle",
+                    baseState: "WA",
+                    serviceRadiusMiles: 12,
+                    ratingAverage: 0,
+                    ratingCount: 0,
+                    isActive: true,
+                    isVerified: false
+                )
             ),
         ]
     }

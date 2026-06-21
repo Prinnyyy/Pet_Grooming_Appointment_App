@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-06-20
+Task: T-017 — customer offer review.
+Files changed: Customer request/offer review model, customer request repository boundary, Supabase adapter, Customer Requests Store/UI, focused tests, task doc, screen inventory, task ledger, feature/current memory, and worklog.
+Checks: `./scripts/ios-test.sh` passed with 47 Swift Testing tests and 1 XCTest UI smoke test. No Supabase remote validation was run because this was iOS-only against the already validated T-015 read contract.
+Result: T-017 is completed. Customers can open an owned request, load received offers, refresh offer state, compare pending offers before historical offers, and inspect read-only offer details without SwiftUI views directly touching Supabase.
+Risks: Offer acceptance, booking creation, conflict checks, customer-side decline, chat, and reviews remain unimplemented. Missing/unreadable groomer profile summaries fall back to a generic groomer label while keeping the readable offer visible; offer/profile reads remain eventually consistent until a future backend aggregation is justified.
+Next: T-018 — add atomic offer acceptance and booking transaction in a separate Deep task.
+```
+
+```text
+Date: 2026-06-20
 Task: T-016 — groomer offer creation UI.
 Files changed: Groomer request/offer models, repository boundary, Supabase adapter, Groomer Requests Store/UI, focused tests, task doc, screen inventory, task ledger, feature/current memory, and worklog.
 Checks: Initial `./scripts/ios-test.sh` failed on a Swift naming collision in the offer submission parameter; after approved targeted correction, `./scripts/ios-test.sh` passed with 44 Swift Testing tests and 1 XCTest UI smoke test. No Supabase remote validation was run because this was iOS-only against the already validated T-015 backend.

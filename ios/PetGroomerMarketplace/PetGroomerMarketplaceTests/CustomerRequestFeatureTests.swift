@@ -155,6 +155,86 @@ struct CustomerRequestsStoreTests {
         #expect(store.errorMessage == "You can have at most 3 open grooming requests.")
     }
 
+    @Test @MainActor
+    func loadOffersPopulatesOfferReviewsForRequest() async throws {
+        let customerID = UUID()
+        let request = Self.request(customerID: customerID, petID: UUID())
+        let offerReview = Self.offerReview(
+            customerID: customerID,
+            requestID: request.id
+        )
+        let repository = CustomerRequestRepositoryFake(
+            offersResult: .success([offerReview])
+        )
+        let store = CustomerRequestsStore(
+            customerID: customerID,
+            petRepository: CustomerRequestPetRepositoryFake(),
+            requestRepository: repository
+        )
+
+        await store.loadOffers(for: request)
+
+        #expect(repository.offersCallCount == 1)
+        #expect(repository.lastOfferCustomerID == customerID)
+        #expect(repository.lastOfferRequestID == request.id)
+        #expect(store.offers(for: request) == [offerReview])
+        #expect(store.offerError(for: request) == nil)
+    }
+
+    @Test @MainActor
+    func loadOffersOrdersPendingBeforeHistoricalOffers() async throws {
+        let customerID = UUID()
+        let request = Self.request(customerID: customerID, petID: UUID())
+        let withdrawnOffer = Self.offerReview(
+            customerID: customerID,
+            requestID: request.id,
+            status: .withdrawnByGroomer,
+            createdAt: "2026-06-20T14:00:00Z"
+        )
+        let pendingOffer = Self.offerReview(
+            customerID: customerID,
+            requestID: request.id,
+            status: .pending,
+            createdAt: "2026-06-20T13:00:00Z"
+        )
+        let repository = CustomerRequestRepositoryFake(
+            offersResult: .success([withdrawnOffer, pendingOffer])
+        )
+        let store = CustomerRequestsStore(
+            customerID: customerID,
+            petRepository: CustomerRequestPetRepositoryFake(),
+            requestRepository: repository
+        )
+
+        await store.loadOffers(for: request)
+
+        #expect(store.offers(for: request).map(\.offer.status) == [
+            .pending,
+            .withdrawnByGroomer,
+        ])
+    }
+
+    @Test @MainActor
+    func loadOffersFailureIsScopedToRequest() async throws {
+        let customerID = UUID()
+        let request = Self.request(customerID: customerID, petID: UUID())
+        let repository = CustomerRequestRepositoryFake(
+            offersResult: .failure(.networkUnavailable)
+        )
+        let store = CustomerRequestsStore(
+            customerID: customerID,
+            petRepository: CustomerRequestPetRepositoryFake(),
+            requestRepository: repository
+        )
+
+        await store.loadOffers(for: request)
+
+        #expect(repository.offersCallCount == 1)
+        #expect(store.offers(for: request).isEmpty)
+        #expect(store.offerError(for: request) == "Check your connection and try again.")
+        #expect(store.errorMessage == nil)
+    }
+
     private static func pet(customerID: UUID) -> CustomerPet {
         CustomerPet(
             id: UUID(),
@@ -205,6 +285,46 @@ struct CustomerRequestsStoreTests {
             expiresAt: "2026-06-22T12:00:00Z",
             createdAt: "2026-06-20T12:00:00Z",
             updatedAt: "2026-06-20T12:00:00Z"
+        )
+    }
+
+    private static func offerReview(
+        customerID: UUID,
+        requestID: UUID,
+        status: GroomerOfferStatus = .pending,
+        createdAt: String = "2026-06-20T13:00:00Z"
+    ) -> CustomerOfferReview {
+        let groomerID = UUID()
+        return CustomerOfferReview(
+            offer: GroomerOffer(
+                id: UUID(),
+                requestID: requestID,
+                matchID: UUID(),
+                customerID: customerID,
+                groomerID: groomerID,
+                proposedStart: "2026-06-22T16:30:00Z",
+                proposedEnd: "2026-06-22T18:30:00Z",
+                priceEstimate: 125,
+                message: "I can help.",
+                status: status,
+                expiresAt: "2026-06-22T12:00:00Z",
+                withdrawnAt: nil,
+                createdAt: createdAt,
+                updatedAt: createdAt
+            ),
+            groomerProfile: GroomerProfile(
+                userID: groomerID,
+                businessName: "Fresh Paws Grooming",
+                bio: "Gentle grooming.",
+                yearsExperience: 5,
+                baseCity: "Seattle",
+                baseState: "WA",
+                serviceRadiusMiles: 12,
+                ratingAverage: 4.8,
+                ratingCount: 18,
+                isActive: true,
+                isVerified: true
+            )
         )
     }
 }
@@ -259,25 +379,41 @@ private final class CustomerRequestPetRepositoryFake: CustomerPetRepository {
 @MainActor
 private final class CustomerRequestRepositoryFake: CustomerRequestRepository {
     var requestsResult: Result<[CustomerGroomingRequest], CustomerRequestRepositoryError>
+    var offersResult: Result<[CustomerOfferReview], CustomerRequestRepositoryError>
     var createResult: Result<GroomingRequestPublishResult, CustomerRequestRepositoryError>
 
     private(set) var requestsCallCount = 0
+    private(set) var offersCallCount = 0
     private(set) var createCallCount = 0
     private(set) var lastCustomerID: UUID?
+    private(set) var lastOfferCustomerID: UUID?
+    private(set) var lastOfferRequestID: UUID?
     private(set) var lastDraft: GroomingRequestDraft?
 
     init(
         requestsResult: Result<[CustomerGroomingRequest], CustomerRequestRepositoryError> = .success([]),
+        offersResult: Result<[CustomerOfferReview], CustomerRequestRepositoryError> = .success([]),
         createResult: Result<GroomingRequestPublishResult, CustomerRequestRepositoryError> =
             .failure(.unavailable)
     ) {
         self.requestsResult = requestsResult
+        self.offersResult = offersResult
         self.createResult = createResult
     }
 
     func requests(customerID: UUID) async throws -> [CustomerGroomingRequest] {
         requestsCallCount += 1
         return try requestsResult.get()
+    }
+
+    func offers(
+        customerID: UUID,
+        requestID: UUID
+    ) async throws -> [CustomerOfferReview] {
+        offersCallCount += 1
+        lastOfferCustomerID = customerID
+        lastOfferRequestID = requestID
+        return try offersResult.get()
     }
 
     func createRequest(

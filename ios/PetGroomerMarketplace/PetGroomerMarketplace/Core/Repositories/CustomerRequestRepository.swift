@@ -13,6 +13,11 @@ enum CustomerRequestRepositoryError: Error, Equatable, Sendable {
 protocol CustomerRequestRepository: AnyObject {
     func requests(customerID: UUID) async throws -> [CustomerGroomingRequest]
 
+    func offers(
+        customerID: UUID,
+        requestID: UUID
+    ) async throws -> [CustomerOfferReview]
+
     func createRequest(
         customerID: UUID,
         draft: GroomingRequestDraft

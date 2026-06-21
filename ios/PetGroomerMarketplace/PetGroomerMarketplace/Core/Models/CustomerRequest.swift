@@ -139,6 +139,57 @@ struct GroomingRequestPublishResult: Equatable, Sendable {
     let matchCount: Int
 }
 
+struct CustomerOfferReview: Equatable, Identifiable, Sendable {
+    let offer: GroomerOffer
+    let groomerProfile: GroomerProfile?
+
+    var id: UUID {
+        offer.id
+    }
+
+    var groomerTitle: String {
+        groomerProfile?.businessName ?? "Groomer"
+    }
+
+    var groomerLocationSummary: String {
+        let parts = [
+            groomerProfile?.baseCity,
+            groomerProfile?.baseState,
+        ]
+        .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+        .filter { !$0.isEmpty }
+
+        return parts.isEmpty ? "Location unavailable" : parts.joined(separator: ", ")
+    }
+
+    var ratingSummary: String {
+        guard let groomerProfile else {
+            return "Rating unavailable"
+        }
+
+        guard groomerProfile.ratingCount > 0 else {
+            return "No reviews yet"
+        }
+
+        let average = groomerProfile.ratingAverage.formatted(
+            .number.precision(.fractionLength(1))
+        )
+        return "\(average) · \(groomerProfile.ratingCount) reviews"
+    }
+
+    var proposedTimeSummary: String {
+        "\(GroomingRequestDateFormatting.displayString(from: offer.proposedStart)) – \(GroomingRequestDateFormatting.displayString(from: offer.proposedEnd))"
+    }
+
+    var statusSummary: String {
+        "\(offer.status.title) · \(offer.priceSummary)"
+    }
+
+    var isPending: Bool {
+        offer.status == .pending
+    }
+}
+
 nonisolated enum GroomingRequestDateFormatting {
     static func serverString(from date: Date) -> String {
         serverFormatter().string(from: date)
