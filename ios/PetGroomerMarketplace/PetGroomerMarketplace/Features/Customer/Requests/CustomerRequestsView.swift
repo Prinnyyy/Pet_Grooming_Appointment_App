@@ -2,7 +2,7 @@ import SwiftUI
 
 struct CustomerRequestsView: View {
     @State private var store: CustomerRequestsStore
-    @State private var isShowingCancelUnavailable = false
+    @State private var pendingCancelRequest: CustomerGroomingRequest?
 
     init(
         customerID: UUID,
@@ -43,15 +43,38 @@ struct CustomerRequestsView: View {
         .safeAreaInset(edge: .bottom) {
             CustomerRequestsStatusView(store: store)
         }
-        .alert("Cancellation is not connected yet", isPresented: $isShowingCancelUnavailable) {
-            Button("OK", role: .cancel) {}
+        .alert("Cancel this request?", isPresented: isCancelAlertPresented) {
+            Button("Keep Request", role: .cancel) {
+                pendingCancelRequest = nil
+            }
+
+            Button("Cancel Request", role: .destructive) {
+                guard let request = pendingCancelRequest else { return }
+                pendingCancelRequest = nil
+                Task {
+                    await store.cancel(request)
+                }
+            }
         } message: {
-            Text("Request cancellation needs a controlled backend RPC before it can safely change request state.")
+            Text("This closes the request and any pending offers. Confirmed bookings are managed from Bookings.")
         }
         .toolbar(.hidden, for: .navigationBar)
         .task {
             await store.load()
         }
+    }
+
+    private var isCancelAlertPresented: Binding<Bool> {
+        Binding(
+            get: {
+                pendingCancelRequest != nil
+            },
+            set: { isPresented in
+                if !isPresented {
+                    pendingCancelRequest = nil
+                }
+            }
+        )
     }
 
     @ViewBuilder
@@ -76,7 +99,9 @@ struct CustomerRequestsView: View {
                         CustomerRequestProgressCarousel(
                             requests: store.requests,
                             store: store,
-                            isShowingCancelUnavailable: $isShowingCancelUnavailable
+                            onCancelRequest: { request in
+                                pendingCancelRequest = request
+                            }
                         )
                         .accessibilityIdentifier("customer.requests.progress-carousel")
                     }
@@ -141,7 +166,7 @@ private struct CustomerRequestsRootHeader: View {
 private struct CustomerRequestProgressCarousel: View {
     let requests: [CustomerGroomingRequest]
     let store: CustomerRequestsStore
-    @Binding var isShowingCancelUnavailable: Bool
+    let onCancelRequest: (CustomerGroomingRequest) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
@@ -151,7 +176,7 @@ private struct CustomerRequestProgressCarousel: View {
                         CustomerRequestProgressCard(
                             request: request,
                             store: store,
-                            isShowingCancelUnavailable: $isShowingCancelUnavailable
+                            onCancelRequest: onCancelRequest
                         )
                         .containerRelativeFrame(.horizontal) { length, _ in
                             length - (DesignTokens.Spacing.screenHorizontal * 2)
@@ -181,7 +206,7 @@ private struct CustomerRequestProgressCarousel: View {
 private struct CustomerRequestProgressCard: View {
     let request: CustomerGroomingRequest
     let store: CustomerRequestsStore
-    @Binding var isShowingCancelUnavailable: Bool
+    let onCancelRequest: (CustomerGroomingRequest) -> Void
 
     var body: some View {
         GroomlyCard(padding: DesignTokens.Spacing.xl) {
@@ -196,7 +221,7 @@ private struct CustomerRequestProgressCard: View {
                 CustomerRequestActionRow(
                     request: request,
                     store: store,
-                    isShowingCancelUnavailable: $isShowingCancelUnavailable
+                    onCancelRequest: onCancelRequest
                 )
             }
         }
@@ -516,16 +541,16 @@ private extension CustomerRequestTimelineStep {
 private struct CustomerRequestActionRow: View {
     let request: CustomerGroomingRequest
     let store: CustomerRequestsStore
-    @Binding var isShowingCancelUnavailable: Bool
+    let onCancelRequest: (CustomerGroomingRequest) -> Void
 
     var body: some View {
         HStack(spacing: DesignTokens.Spacing.md) {
-            editLink
+            detailLink
             cancelButton
         }
     }
 
-    private var editLink: some View {
+    private var detailLink: some View {
         NavigationLink {
             CustomerRequestDetailView(
                 requestID: request.id,
@@ -533,28 +558,28 @@ private struct CustomerRequestActionRow: View {
             )
         } label: {
             CustomerRequestActionLabel(
-                title: request.primaryActionTitle,
-                systemImage: request.primaryActionSystemImage,
+                title: "Detail",
+                systemImage: "doc.text.magnifyingglass",
                 tone: .neutral
             )
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(request.primaryActionTitle)
-        .accessibilityIdentifier(request.status.isOpenForOffers ? "customer.requests.edit" : "customer.requests.detail")
+        .accessibilityLabel("Request Detail")
+        .accessibilityIdentifier("customer.requests.detail")
     }
 
     private var cancelButton: some View {
         Button {
-            isShowingCancelUnavailable = true
+            onCancelRequest(request)
         } label: {
             CustomerRequestActionLabel(
-                title: "Cancel",
-                systemImage: "xmark.circle",
+                title: store.isCancelling(request) ? "Cancelling" : "Cancel",
+                systemImage: store.isCancelling(request) ? "hourglass" : "xmark.circle",
                 tone: .destructive
             )
         }
         .buttonStyle(.plain)
-        .disabled(!request.status.isOpenForOffers)
+        .disabled(!request.status.isOpenForOffers || store.isCancelling(request))
         .accessibilityLabel("Cancel Request")
         .accessibilityIdentifier("customer.requests.cancel")
     }
@@ -636,18 +661,6 @@ private extension CustomerGroomingRequest {
         case .expired:
             "Expired request"
         }
-    }
-
-    var primaryActionTitle: String {
-        if status.isOpenForOffers {
-            return "Edit Request"
-        }
-
-        return "Detail"
-    }
-
-    var primaryActionSystemImage: String {
-        status.isOpenForOffers ? "square.and.pencil" : "doc.text.magnifyingglass"
     }
 
     var progressTimeSummary: String {
@@ -872,13 +885,13 @@ struct CustomerRequestDetailView: View {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                 DetailCardHeader(
                     title: "Cancellation",
-                    subtitle: "Request cancellation needs a controlled backend RPC and is not connected yet.",
-                    systemImage: "lock.fill"
+                    subtitle: "Unconfirmed requests can be cancelled from their Requests card before booking.",
+                    systemImage: "xmark.circle.fill"
                 ) {
                     GroomlyStatusChip(
-                        "Deferred",
-                        systemImage: "lock",
-                        tone: .neutral
+                        "Available",
+                        systemImage: "checkmark.circle.fill",
+                        tone: .customer
                     )
                 }
             }
@@ -1981,6 +1994,16 @@ private final class CustomerRequestsPreviewRequestRepository: CustomerRequestRep
         GroomingRequestPublishResult(
             requestID: UUID(),
             matchCount: 2
+        )
+    }
+
+    func cancelRequest(
+        requestID: UUID
+    ) async throws -> CancelGroomingRequestResult {
+        CancelGroomingRequestResult(
+            requestID: requestID,
+            requestStatus: .cancelled,
+            cancelledTimestamp: "2026-06-20T14:00:00Z"
         )
     }
 }

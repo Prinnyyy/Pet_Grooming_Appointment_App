@@ -2,6 +2,28 @@
 
 ```text
 Date: 2026-06-22
+Task: T-044 review follow-up.
+Files changed: supabase/migrations/20260622142020_t044_cancel_grooming_request.sql, CustomerRequestsStore.swift, T-044_GROOMLY_CUSTOMER_REQUEST_CANCEL.md, and WORKLOG.md.
+Checks: `git diff --check`, `./scripts/supabase-check.sh`, `./scripts/ios-build.sh`, and `./scripts/ios-test.sh` passed.
+Simulator launch: XcodeBuildMCP `build_run_sim` passed on `iPhone 17` simulator (`B9639233-9E78-41C9-A372-330D36C38DA7`). App launched successfully for inspection. Screenshot: `/var/folders/bc/xmbw6w1d06s61ns9_j2fnll00000gn/T/screenshot_optimized_611f4550-f654-4653-a288-7436c6ff1f47.jpg`.
+Result: Applied the immediate non-contract review fixes: changed the new RPC migration body to `create or replace function` for safer development replay, removed an extra blank line in `CustomerRequestsStore`, and documented why a separate `cancelled_at` schema change remains out of scope.
+Risks: No runtime behavior change intended. The migration was already deployed remotely before this follow-up; this local edit preserves the same function signature/body semantics for fresh or replayed environments.
+Next: Commit and push per user request.
+```
+
+```text
+Date: 2026-06-22
+Task: T-044 - Groomly customer request cancellation.
+Files changed: Added docs/06_tasks/T-044_GROOMLY_CUSTOMER_REQUEST_CANCEL.md and supabase/migrations/20260622142020_t044_cancel_grooming_request.sql; updated Customer request model/repository/Supabase adapter/Store/View, Customer Home preview repository, CustomerRequestFeatureTests, SUPABASE_CONTRACT.md, RLS_RPC_POLICY.md, FEATURE_INDEX.md, CURRENT_STATE.md, WORKLOG.md, and TASK_LEDGER.md.
+Checks: Remote Supabase `apply_migration` succeeded on fresh project `lqmasbuqzvcvtawonjlb`. Remote function/grant inspection confirmed `cancel_grooming_request(p_request_id uuid)` exists as `SECURITY DEFINER` with execute grants for `authenticated`, `service_role`, and owner `postgres`, with no `anon` grant. Rollback-only behavior validation passed for open/offer-state request cancellation, pending-offer decline, match hiding, booked-request rejection, and zero persisted validation rows. Supabase security advisor shows the expected authenticated SECURITY DEFINER WARN for the new controlled RPC plus existing controlled RPC WARNs; performance advisor shows existing INFOs. `./scripts/supabase-check.sh`, `git diff --check`, `./scripts/ios-build.sh`, and `./scripts/ios-test.sh` passed.
+Simulator launch: XcodeBuildMCP `build_run_sim` passed on `iPhone 17` simulator (`B9639233-9E78-41C9-A372-330D36C38DA7`). App launched successfully for inspection. Screenshot: `/var/folders/bc/xmbw6w1d06s61ns9_j2fnll00000gn/T/screenshot_optimized_297ba9f4-87b8-40b8-941d-a05341dc81bb.jpg`.
+Result: Customer Requests cards now use a fixed `Detail` button. `Cancel` is enabled only for `open` and `has_offers` requests, asks for confirmation, calls the deployed `cancel_grooming_request` RPC through the Store/repository path, updates local request state to `cancelled`, and leaves booked/cancelled/expired requests disabled.
+Risks: The new RPC intentionally adds one more authenticated SECURITY DEFINER advisor WARN, matching the existing controlled-RPC pattern. Booking cancellation remains separate in `cancel_booking`; request cancellation does not cancel confirmed bookings.
+Next: App is running in Simulator for inspection. Wait for explicit user direction before adding request edit persistence, rebooking, customer-side matched groomer display, or broader request lifecycle changes.
+```
+
+```text
+Date: 2026-06-22
 Task: T-043 - Groomly customer Requests carousel edge refinement.
 Files changed: Added docs/06_tasks/T-043_GROOMLY_CUSTOMER_REQUESTS_CAROUSEL_EDGE_REFINEMENT.md; updated CustomerRequestsView.swift, CURRENT_STATE.md, WORKLOG.md, and TASK_LEDGER.md.
 Checks: `git diff --check` passed. `./scripts/ios-build.sh` passed.
@@ -17,8 +39,8 @@ Task: T-042 - Groomly customer Requests carousel refinement.
 Files changed: Added docs/06_tasks/T-042_GROOMLY_CUSTOMER_REQUESTS_CAROUSEL_REFINEMENT.md; updated CustomerRequestsView.swift, CURRENT_STATE.md, WORKLOG.md, and TASK_LEDGER.md.
 Checks: `git diff --check` passed. `./scripts/ios-build.sh` passed after the final button-label adjustment.
 Simulator launch: XcodeBuildMCP `build_run_sim` passed on `iPhone 17` simulator (`B9639233-9E78-41C9-A372-330D36C38DA7`). Runtime UI reached the Customer Requests tab; current account data displayed one `booked` request with a request-summary progress card, completed timeline, `Detail`, and disabled `Cancel`. `Detail` opened the existing request detail and returned. Final screenshot: `/var/folders/bc/xmbw6w1d06s61ns9_j2fnll00000gn/T/screenshot_optimized_36367e8b-24ef-43ed-a5e9-589f8d8e512b.jpg`.
-Result: Customer Requests no longer shows a start grooming request module. The root now renders request progress as horizontally scrollable per-request cards, with request summary, timeline, and buttons inside each card so actions travel with the selected quest. Button text is status-derived: open/offer states use `Edit Request`; confirmed/closed states use `Detail`.
-Risks: Live simulator data had only one request, so the two-request carousel shape was covered by DEBUG preview mock data and build validation rather than live backend data. Edit still routes to existing request detail only; cancel remains unavailable without backend RPC/repository support.
+Result: Customer Requests no longer shows a start grooming request module. The root now renders request progress as horizontally scrollable per-request cards, with request summary, timeline, and buttons inside each card so actions travel with the selected quest. At the time of T-042, unconfirmed states still used request-edit wording; T-044 superseded that with a fixed `Detail` action and real cancel support.
+Risks: Live simulator data had only one request, so the two-request carousel shape was covered by DEBUG preview mock data and build validation rather than live backend data. The request-edit placeholder and unavailable cancel behavior were later superseded by T-044.
 Next: App is running on the Customer Requests tab in Simulator for inspection. Wait for explicit user direction before adding request edit persistence, cancellation backend behavior, or matched-groomer display.
 ```
 
@@ -27,9 +49,9 @@ Date: 2026-06-22
 Task: T-041 - Groomly customer Requests status screenshot UI.
 Files changed: Added docs/06_tasks/T-041_GROOMLY_CUSTOMER_REQUESTS_STATUS_SCREENSHOT_UI.md; updated CustomerRequestsView.swift, CURRENT_STATE.md, WORKLOG.md, and TASK_LEDGER.md.
 Checks: `./scripts/ios-build.sh` passed. `git diff --check` passed. One intermediate build failed on a missing explicit `return` in the new timeline helper; that was fixed before the final passing validation.
-Simulator launch: XcodeBuildMCP `build_run_sim` passed on `iPhone 17` simulator (`B9639233-9E78-41C9-A372-330D36C38DA7`). Runtime UI reached the Customer Requests tab; the current account data displayed the `Booked` state, the status timeline rendered all four steps complete, and `Edit Request` opened the existing request detail. Final screenshot: `/var/folders/bc/xmbw6w1d06s61ns9_j2fnll00000gn/T/screenshot_optimized_926709ac-ee77-4f06-83af-65a5e6e1d968.jpg`.
+Simulator launch: XcodeBuildMCP `build_run_sim` passed on `iPhone 17` simulator (`B9639233-9E78-41C9-A372-330D36C38DA7`). Runtime UI reached the Customer Requests tab; the current account data displayed the `Booked` state, the status timeline rendered all four steps complete, and the then-current edit/detail placeholder opened the existing request detail. Final screenshot: `/var/folders/bc/xmbw6w1d06s61ns9_j2fnll00000gn/T/screenshot_optimized_926709ac-ee77-4f06-83af-65a5e6e1d968.jpg`.
 Result: Customer Requests now opens as a prototype-inspired status-first page with a synced request hero, status chip, vertical timeline, action row, preserved request creation entry, and optional other-request access. The prototype matched-groomer list was ignored per user request/current support.
-Risks: Edit is routed to existing request detail only; no update flow was added. Cancel does not mutate request state because customer request cancellation still needs a backend RPC/repository path. Runtime data covered `booked`; other status mappings are code-backed but not represented by the current simulator account data.
+Risks: At the time of T-041, the edit placeholder routed to existing request detail only and customer request cancellation had no backend path. T-044 superseded both points with a fixed `Detail` action and `cancel_grooming_request` RPC support. Runtime data covered `booked`; other status mappings are code-backed but not represented by the current simulator account data.
 Next: App is running on the Customer Requests tab in Simulator for inspection. Wait for explicit user direction before adding matched-groomer display, request edit persistence, or request cancellation backend behavior.
 ```
 
@@ -385,7 +407,7 @@ Date: 2026-06-20
 Task: T-018 review follow-up — clarify cancellation and completion boundaries.
 Files changed: Product flow/UX/role docs, T-018/T-019 roadmap notes, backend contract, current state, and worklog.
 Checks: Documentation/static checks only; no Supabase DDL, iOS build, or iOS tests were needed.
-Result: The docs now explicitly state that T-018 booking cancellation does not reopen the original request or offers, request cancellation remains deferred, and `completed` is reserved until T-021.
+Result: The docs clarified that T-018 booking cancellation does not reopen the original request or offers, that customer-initiated request cancellation was deferred at that time, and that `completed` is reserved until T-021. The request-cancellation point was later superseded by T-044.
 Risks: T-019 must reflect cancelled bookings as final outcomes for the original request and guide users to create a new request for replacement appointments.
 Next: Commit and push the T-018 backend plus review follow-up.
 ```

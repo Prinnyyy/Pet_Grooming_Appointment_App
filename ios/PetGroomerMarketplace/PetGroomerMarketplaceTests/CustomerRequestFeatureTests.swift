@@ -161,6 +161,68 @@ struct CustomerRequestsStoreTests {
     }
 
     @Test @MainActor
+    func cancelOpenRequestCallsRepositoryAndUpdatesLocalState() async throws {
+        let customerID = UUID()
+        let pet = Self.pet(customerID: customerID)
+        let request = Self.request(customerID: customerID, petID: pet.id)
+        let requestRepository = CustomerRequestRepositoryFake(
+            requestsResult: .success([request]),
+            cancelResult: .success(
+                CancelGroomingRequestResult(
+                    requestID: request.id,
+                    requestStatus: .cancelled,
+                    cancelledTimestamp: "2026-06-22T14:00:00Z"
+                )
+            )
+        )
+        let store = CustomerRequestsStore(
+            customerID: customerID,
+            petRepository: CustomerRequestPetRepositoryFake(
+                petsResult: .success([pet])
+            ),
+            requestRepository: requestRepository,
+            bookingRepository: CustomerRequestBookingRepositoryFake()
+        )
+        await store.load()
+
+        await store.cancel(request)
+
+        #expect(requestRepository.cancelCallCount == 1)
+        #expect(requestRepository.lastCancelRequestID == request.id)
+        #expect(store.requests.first?.status == .cancelled)
+        #expect(store.noticeMessage == "Request cancelled.")
+    }
+
+    @Test @MainActor
+    func cancelBookedRequestDoesNotCallRepository() async throws {
+        let customerID = UUID()
+        let pet = Self.pet(customerID: customerID)
+        let request = Self.request(
+            customerID: customerID,
+            petID: pet.id,
+            status: .booked
+        )
+        let requestRepository = CustomerRequestRepositoryFake(
+            requestsResult: .success([request])
+        )
+        let store = CustomerRequestsStore(
+            customerID: customerID,
+            petRepository: CustomerRequestPetRepositoryFake(
+                petsResult: .success([pet])
+            ),
+            requestRepository: requestRepository,
+            bookingRepository: CustomerRequestBookingRepositoryFake()
+        )
+        await store.load()
+
+        await store.cancel(request)
+
+        #expect(requestRepository.cancelCallCount == 0)
+        #expect(store.requests.first?.status == .booked)
+        #expect(store.errorMessage == "This request can no longer be cancelled.")
+    }
+
+    @Test @MainActor
     func loadOffersPopulatesOfferReviewsForRequest() async throws {
         let customerID = UUID()
         let request = Self.request(customerID: customerID, petID: UUID())
@@ -409,7 +471,8 @@ struct CustomerRequestsStoreTests {
 
     private static func request(
         customerID: UUID,
-        petID: UUID
+        petID: UUID,
+        status: GroomingRequestStatus = .open
     ) -> CustomerGroomingRequest {
         CustomerGroomingRequest(
             id: UUID(),
@@ -436,7 +499,7 @@ struct CustomerRequestsStoreTests {
             city: "Seattle",
             state: "WA",
             zipCode: "98101",
-            status: .open,
+            status: status,
             expiresAt: "2026-06-22T12:00:00Z",
             createdAt: "2026-06-20T12:00:00Z",
             updatedAt: "2026-06-20T12:00:00Z"
@@ -537,24 +600,30 @@ private final class CustomerRequestRepositoryFake: CustomerRequestRepository {
     var requestsResult: Result<[CustomerGroomingRequest], CustomerRequestRepositoryError>
     var offersResult: Result<[CustomerOfferReview], CustomerRequestRepositoryError>
     var createResult: Result<GroomingRequestPublishResult, CustomerRequestRepositoryError>
+    var cancelResult: Result<CancelGroomingRequestResult, CustomerRequestRepositoryError>
 
     private(set) var requestsCallCount = 0
     private(set) var offersCallCount = 0
     private(set) var createCallCount = 0
+    private(set) var cancelCallCount = 0
     private(set) var lastCustomerID: UUID?
     private(set) var lastOfferCustomerID: UUID?
     private(set) var lastOfferRequestID: UUID?
+    private(set) var lastCancelRequestID: UUID?
     private(set) var lastDraft: GroomingRequestDraft?
 
     init(
         requestsResult: Result<[CustomerGroomingRequest], CustomerRequestRepositoryError> = .success([]),
         offersResult: Result<[CustomerOfferReview], CustomerRequestRepositoryError> = .success([]),
         createResult: Result<GroomingRequestPublishResult, CustomerRequestRepositoryError> =
+            .failure(.unavailable),
+        cancelResult: Result<CancelGroomingRequestResult, CustomerRequestRepositoryError> =
             .failure(.unavailable)
     ) {
         self.requestsResult = requestsResult
         self.offersResult = offersResult
         self.createResult = createResult
+        self.cancelResult = cancelResult
     }
 
     func requests(customerID: UUID) async throws -> [CustomerGroomingRequest] {
@@ -580,6 +649,14 @@ private final class CustomerRequestRepositoryFake: CustomerRequestRepository {
         lastCustomerID = customerID
         lastDraft = draft
         return try createResult.get()
+    }
+
+    func cancelRequest(
+        requestID: UUID
+    ) async throws -> CancelGroomingRequestResult {
+        cancelCallCount += 1
+        lastCancelRequestID = requestID
+        return try cancelResult.get()
     }
 }
 

@@ -17,6 +17,7 @@ final class CustomerRequestsStore {
     private(set) var offerErrorsByRequestID: [UUID: String] = [:]
     private(set) var loadingOfferRequestIDs: Set<UUID> = []
     private(set) var acceptingOfferIDs: Set<UUID> = []
+    private(set) var cancellingRequestIDs: Set<UUID> = []
     private(set) var isLoading = false
     private(set) var isSubmitting = false
 
@@ -35,7 +36,7 @@ final class CustomerRequestsStore {
     var zipCode = ""
 
     var isBusy: Bool {
-        isLoading || isSubmitting || !acceptingOfferIDs.isEmpty
+        isLoading || isSubmitting || !acceptingOfferIDs.isEmpty || !cancellingRequestIDs.isEmpty
     }
 
     var selectedPet: CustomerPet? {
@@ -113,6 +114,10 @@ final class CustomerRequestsStore {
 
     func isLoadingOffers(for request: CustomerGroomingRequest) -> Bool {
         loadingOfferRequestIDs.contains(request.id)
+    }
+
+    func isCancelling(_ request: CustomerGroomingRequest) -> Bool {
+        cancellingRequestIDs.contains(request.id)
     }
 
     func loadOffers(for request: CustomerGroomingRequest) async {
@@ -221,6 +226,41 @@ final class CustomerRequestsStore {
             errorMessage = message(
                 for: BookingRepositoryError.unavailable,
                 action: "accept offer"
+            )
+        }
+    }
+
+    func cancel(_ request: CustomerGroomingRequest) async {
+        guard !cancellingRequestIDs.contains(request.id) else { return }
+        guard request.status.isOpenForOffers else {
+            errorMessage = "This request can no longer be cancelled."
+            return
+        }
+
+        cancellingRequestIDs.insert(request.id)
+        errorMessage = nil
+        noticeMessage = nil
+        defer {
+            cancellingRequestIDs.remove(request.id)
+        }
+
+        do {
+            let result = try await requestRepository.cancelRequest(
+                requestID: request.id
+            )
+            let didApplyLocalState = applyCancellationResult(
+                result,
+                requestID: request.id
+            )
+            noticeMessage = didApplyLocalState
+                ? "Request cancelled."
+                : "Request cancelled. Refresh requests to see the latest state."
+        } catch let error as CustomerRequestRepositoryError {
+            errorMessage = message(for: error, action: "cancel")
+        } catch {
+            errorMessage = message(
+                for: CustomerRequestRepositoryError.unavailable,
+                action: "cancel"
             )
         }
     }
@@ -345,6 +385,47 @@ final class CustomerRequestsStore {
         }
     }
 
+    private func applyCancellationResult(
+        _ result: CancelGroomingRequestResult,
+        requestID: UUID
+    ) -> Bool {
+        var didUpdateRequest = false
+
+        if let index = requests.firstIndex(where: { $0.id == result.requestID }) {
+            requests[index] = requests[index].replacing(
+                status: result.requestStatus,
+                updatedAt: result.cancelledTimestamp
+            )
+            didUpdateRequest = true
+        } else if let index = requests.firstIndex(where: { $0.id == requestID }) {
+            requests[index] = requests[index].replacing(
+                status: result.requestStatus,
+                updatedAt: result.cancelledTimestamp
+            )
+            didUpdateRequest = true
+        }
+
+        let reviews = offerReviewsByRequestID[requestID] ?? []
+        offerReviewsByRequestID[requestID] = Self.displayOrdered(
+            reviews.map { review in
+                let nextStatus: GroomerOfferStatus = review.offer.status == .pending
+                    ? .declinedByCustomer
+                    : review.offer.status
+
+                return CustomerOfferReview(
+                    offer: review.offer.replacing(
+                        status: nextStatus,
+                        withdrawnAt: review.offer.withdrawnAt
+                    ),
+                    groomerProfile: review.groomerProfile
+                )
+            }
+        )
+        offerErrorsByRequestID[requestID] = nil
+
+        return didUpdateRequest
+    }
+
     private func required(
         _ value: String,
         field: String,
@@ -397,6 +478,10 @@ final class CustomerRequestsStore {
             "This account cannot \(action) grooming requests."
         case .requestLimitExceeded:
             "You can have at most 3 open grooming requests."
+        case .requestNotFound:
+            "This request is no longer available."
+        case .requestNotCancellable:
+            "This request can no longer be cancelled."
         case .petNotFound:
             "Choose an active pet and try again."
         case .invalidInput:

@@ -1293,6 +1293,16 @@ private final class CustomerHomePreviewRequestRepository: CustomerRequestReposit
             matchCount: 2
         )
     }
+
+    func cancelRequest(
+        requestID: UUID
+    ) async throws -> CancelGroomingRequestResult {
+        CancelGroomingRequestResult(
+            requestID: requestID,
+            requestStatus: .cancelled,
+            cancelledTimestamp: "2026-06-20T14:00:00Z"
+        )
+    }
 }
 
 @MainActor

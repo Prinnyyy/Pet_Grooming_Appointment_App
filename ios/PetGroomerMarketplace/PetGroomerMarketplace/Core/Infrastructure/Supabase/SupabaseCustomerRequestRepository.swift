@@ -102,6 +102,30 @@ final class SupabaseCustomerRequestRepository: CustomerRequestRepository {
         }
     }
 
+    func cancelRequest(
+        requestID: UUID
+    ) async throws -> CancelGroomingRequestResult {
+        do {
+            let rows: [CancelGroomingRequestRow] = try await client
+                .rpc(
+                    "cancel_grooming_request",
+                    params: CancelGroomingRequestParameters(requestID: requestID)
+                )
+                .execute()
+                .value
+
+            guard rows.count == 1, let result = rows.first?.result else {
+                throw CustomerRequestRepositoryError.unavailable
+            }
+
+            return result
+        } catch let error as CustomerRequestRepositoryError {
+            throw error
+        } catch {
+            throw Self.map(error)
+        }
+    }
+
     private static func map(_ error: any Error) -> CustomerRequestRepositoryError {
         if let repositoryError = error as? CustomerRequestRepositoryError {
             return repositoryError
@@ -117,6 +141,10 @@ final class SupabaseCustomerRequestRepository: CustomerRequestRepository {
                 switch postgrestError.message {
                 case "open_request_limit_exceeded":
                     return .requestLimitExceeded
+                case "request_not_found":
+                    return .requestNotFound
+                case "request_not_cancellable":
+                    return .requestNotCancellable
                 case "pet_not_found":
                     return .petNotFound
                 case "customer_profile_required":
@@ -220,6 +248,26 @@ private struct CreateGroomingRequestRow: Decodable {
     private enum CodingKeys: String, CodingKey {
         case requestID = "request_id"
         case matchCount = "match_count"
+    }
+}
+
+private struct CancelGroomingRequestRow: Decodable {
+    let requestID: UUID
+    let requestStatus: GroomingRequestStatus
+    let cancelledTimestamp: String
+
+    var result: CancelGroomingRequestResult {
+        CancelGroomingRequestResult(
+            requestID: requestID,
+            requestStatus: requestStatus,
+            cancelledTimestamp: cancelledTimestamp
+        )
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case requestID = "request_id"
+        case requestStatus = "request_status"
+        case cancelledTimestamp = "cancelled_timestamp"
     }
 }
 
@@ -354,5 +402,18 @@ private struct CreateGroomingRequestParameters: Encodable {
         case city = "p_city"
         case state = "p_state"
         case zipCode = "p_zip_code"
+    }
+}
+
+private struct CancelGroomingRequestParameters: Encodable {
+    let requestID: UUID
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(requestID.uuidString.lowercased(), forKey: .requestID)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case requestID = "p_request_id"
     }
 }

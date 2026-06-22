@@ -26,7 +26,10 @@ struct CustomerGroomingRequest: Equatable, Hashable, Identifiable, Sendable {
         "\(city), \(state) \(zipCode)"
     }
 
-    func replacing(status: GroomingRequestStatus) -> CustomerGroomingRequest {
+    func replacing(
+        status: GroomingRequestStatus,
+        updatedAt: String? = nil
+    ) -> CustomerGroomingRequest {
         CustomerGroomingRequest(
             id: id,
             customerID: customerID,
@@ -43,7 +46,7 @@ struct CustomerGroomingRequest: Equatable, Hashable, Identifiable, Sendable {
             status: status,
             expiresAt: expiresAt,
             createdAt: createdAt,
-            updatedAt: updatedAt
+            updatedAt: updatedAt ?? self.updatedAt
         )
     }
 }
@@ -158,6 +161,12 @@ struct GroomingRequestDraft: Equatable, Sendable {
 struct GroomingRequestPublishResult: Equatable, Sendable {
     let requestID: UUID
     let matchCount: Int
+}
+
+struct CancelGroomingRequestResult: Equatable, Sendable {
+    let requestID: UUID
+    let requestStatus: GroomingRequestStatus
+    let cancelledTimestamp: String
 }
 
 struct CustomerOfferReview: Equatable, Identifiable, Sendable {

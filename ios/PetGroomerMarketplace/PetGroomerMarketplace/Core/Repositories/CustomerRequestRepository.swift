@@ -3,6 +3,8 @@ import Foundation
 enum CustomerRequestRepositoryError: Error, Equatable, Sendable {
     case notAllowed
     case requestLimitExceeded
+    case requestNotFound
+    case requestNotCancellable
     case petNotFound
     case invalidInput
     case networkUnavailable
@@ -22,4 +24,8 @@ protocol CustomerRequestRepository: AnyObject {
         customerID: UUID,
         draft: GroomingRequestDraft
     ) async throws -> GroomingRequestPublishResult
+
+    func cancelRequest(
+        requestID: UUID
+    ) async throws -> CancelGroomingRequestResult
 }
