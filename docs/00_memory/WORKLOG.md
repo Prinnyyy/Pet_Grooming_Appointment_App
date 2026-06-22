@@ -2,6 +2,28 @@
 
 ```text
 Date: 2026-06-22
+Task: T-039 - Groomly sign-in two-field spacing.
+Files changed: Added docs/06_tasks/T-039_GROOMLY_SIGN_IN_TWO_FIELD_SPACING.md; updated AuthenticationView.swift, CURRENT_STATE.md, WORKLOG.md, and TASK_LEDGER.md.
+Checks: `./scripts/ios-build.sh` passed. `git diff --check` passed.
+Simulator launch: XcodeBuildMCP `build_run_sim` passed on `iPhone 17` simulator (`B9639233-9E78-41C9-A372-330D36C38DA7`). Entered sign-in from `auth.already-have-account`; runtime UI snapshot confirmed the sign-in form was reachable. Screenshot validation was skipped per user request.
+Result: The sign-in page keeps the same header-to-fields top spacing, while the two-field sign-in state now uses tighter fields-to-actions spacing. The three-field create-account state keeps its previous spacing.
+Risks: Visual signed-out Auth spacing change only. Auth behavior, Supabase, repositories, RoleOnboarding, backend, schema, RLS, Storage, navigation, and product flow were not changed.
+Next: App is running on the sign-in page in Simulator for inspection. Wait for explicit user direction before making more UI or product-flow changes.
+```
+
+```text
+Date: 2026-06-22
+Task: T-038 - Groomly sign-in screenshot UI.
+Files changed: Added docs/06_tasks/T-038_GROOMLY_SIGN_IN_SCREENSHOT_UI.md; updated AuthenticationView.swift, CURRENT_STATE.md, WORKLOG.md, and TASK_LEDGER.md.
+Checks: `./scripts/ios-build.sh` passed. `git diff --check` passed. Residual scan found no old auth mode Picker, `GroomlyCard`-wrapped auth form, DEMO module, `LandingAudience`, or `auth.audience` code in AuthenticationView.swift.
+Simulator launch: XcodeBuildMCP `build_run_sim` passed on `iPhone 17` simulator (`B9639233-9E78-41C9-A372-330D36C38DA7`). Entered sign-in from `auth.already-have-account`; runtime snapshot confirmed `Welcome back`, Email, Password, Show, Sign In, and Create Account. Screenshot: `/var/folders/bc/xmbw6w1d06s61ns9_j2fnll00000gn/T/screenshot_optimized_204d35be-2b26-438f-94ca-4cf930754e23.jpg`.
+Result: The sign-in page now follows the prototype hierarchy with a left-aligned header, labeled email/password inputs, local Show/Hide password control, primary Sign In, and secondary Create Account. The bottom DEMO module and pre-auth Customer/Groomer toggle were not implemented.
+Risks: Visual signed-out Auth UI change only. Supabase Auth, repositories, profile role persistence, RoleOnboarding, backend, schema, RLS, Storage, and authenticated app navigation were not changed.
+Next: App is running on the sign-in page in Simulator for inspection. Wait for explicit user direction before making more UI or product-flow changes.
+```
+
+```text
+Date: 2026-06-22
 Task: T-037 - Groomly signed-out landing role toggle removal.
 Files changed: Added docs/06_tasks/T-037_GROOMLY_SIGNED_OUT_LANDING_ROLE_TOGGLE_REMOVAL.md; updated AuthenticationView.swift, CURRENT_STATE.md, WORKLOG.md, and TASK_LEDGER.md.
 Checks: `./scripts/ios-build.sh` passed. `git diff --check` passed. Residual scan found no `LandingAudience`, `selectedAudience`, `audienceSelector`, or `auth.audience` references in AuthenticationView.swift.

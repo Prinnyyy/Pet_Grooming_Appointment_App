@@ -8,6 +8,7 @@ struct AuthenticationView: View {
     @State private var heroHasEntered = false
     @State private var bubblesAreFloating = false
     @State private var didStartLandingMotion = false
+    @State private var isPasswordVisible = false
 
     var body: some View {
         ZStack {
@@ -180,14 +181,43 @@ struct AuthenticationView: View {
     }
 
     private var authFormSurface: some View {
-        ScrollView {
-            VStack(spacing: DesignTokens.Spacing.large) {
-                formTopBar
-                header
-                form
+        GeometryReader { proxy in
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 0) {
+                    formTopBar
+
+                    Spacer(
+                        minLength: max(
+                            proxy.size.height * 0.1,
+                            DesignTokens.Spacing.xl + DesignTokens.Spacing.lg
+                        )
+                    )
+
+                    formHeader
+
+                    Spacer(minLength: DesignTokens.Spacing.xl + DesignTokens.Spacing.lg)
+
+                    authFields
+
+                    Spacer(minLength: fieldsToActionsSpacing)
+
+                    authActions
+
+                    feedback
+                        .padding(.top, DesignTokens.Spacing.lg)
+
+                    Spacer(
+                        minLength: max(
+                            proxy.safeAreaInsets.bottom + DesignTokens.Spacing.lg,
+                            DesignTokens.Spacing.xl
+                        )
+                    )
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(minHeight: proxy.size.height, alignment: .top)
+                .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+                .padding(.top, DesignTokens.Spacing.md)
             }
-            .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-            .padding(.vertical, DesignTokens.Spacing.xl)
         }
         .scrollDismissesKeyboard(.interactively)
         .accessibilityIdentifier("auth.form")
@@ -200,109 +230,133 @@ struct AuthenticationView: View {
                     surface = .landing
                 }
             } label: {
-                Label("Home", systemImage: "chevron.left")
-                    .font(DesignTokens.Typography.body.weight(.semibold))
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 16, weight: .bold))
                     .foregroundStyle(DesignTokens.Colors.textPrimary)
-                    .labelStyle(.titleAndIcon)
+                    .frame(width: 42, height: 42)
+                    .background(DesignTokens.Colors.surface.opacity(0.82))
+                    .clipShape(DesignTokens.Shapes.circular)
+                    .overlay {
+                        Circle()
+                            .stroke(DesignTokens.Colors.borderSoft, lineWidth: 1)
+                    }
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("auth.back-to-landing")
+            .accessibilityLabel("Home")
 
             Spacer()
         }
     }
 
-    private var header: some View {
-        VStack(spacing: DesignTokens.Spacing.lg) {
-            Text("🐶")
-                .font(.system(size: 42))
-                .frame(
-                    width: DesignTokens.Spacing.xl + DesignTokens.Spacing.xl + DesignTokens.Spacing.lg,
-                    height: DesignTokens.Spacing.xl + DesignTokens.Spacing.xl + DesignTokens.Spacing.lg
-                )
-                .background(DesignTokens.Colors.customerPrimary.opacity(0.78))
-                .clipShape(DesignTokens.Shapes.circular)
-                .accessibilityHidden(true)
+    private var formHeader: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            Text(formTitle)
+                .font(.system(size: 42, weight: .black, design: .rounded))
+                .foregroundStyle(DesignTokens.Colors.primaryText)
+                .lineLimit(2)
+                .minimumScaleFactor(0.82)
 
-            VStack(spacing: DesignTokens.Spacing.xs) {
-                Text(store.mode == .signUp ? "Create your Groomly account" : "Welcome back")
-                    .font(DesignTokens.Typography.largeTitle.weight(.bold))
-                    .multilineTextAlignment(.center)
-                    .foregroundStyle(DesignTokens.Colors.primaryText)
-
-                Text(formSubtitle)
-                    .font(DesignTokens.Typography.body)
-                    .multilineTextAlignment(.center)
-                    .foregroundStyle(DesignTokens.Colors.secondaryText)
-            }
+            Text(formSubtitle)
+                .font(.system(size: 19, weight: .medium, design: .rounded))
+                .foregroundStyle(DesignTokens.Colors.secondaryText)
+                .lineSpacing(4)
+                .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(.top, DesignTokens.Spacing.lg)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private var form: some View {
-        VStack(spacing: DesignTokens.Spacing.md) {
-            GroomlyCard {
-                VStack(spacing: DesignTokens.Spacing.lg) {
-                    Picker("Authentication mode", selection: $store.mode) {
-                        ForEach(AuthenticationMode.allCases) { mode in
-                            Text(mode.rawValue).tag(mode)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                    .tint(DesignTokens.Colors.customerPrimaryDark)
-                    .disabled(store.isSubmitting)
-
-                    VStack(spacing: DesignTokens.Spacing.md) {
-                        TextField("Email", text: $store.email)
-                            .textContentType(.emailAddress)
-                            .keyboardType(.emailAddress)
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
-                            .submitLabel(.next)
-                            .groomlyFormField()
-                            .accessibilityIdentifier("auth.email")
-
-                        SecureField("Password", text: $store.password)
-                            .textContentType(
-                                store.mode == .signUp ? .newPassword : .password
-                            )
-                            .submitLabel(store.mode == .signUp ? .next : .go)
-                            .groomlyFormField()
-                            .accessibilityIdentifier("auth.password")
-
-                        if store.mode == .signUp {
-                            SecureField(
-                                "Confirm password",
-                                text: $store.passwordConfirmation
-                            )
-                            .textContentType(.newPassword)
-                            .submitLabel(.go)
-                            .groomlyFormField()
-                            .accessibilityIdentifier("auth.password-confirmation")
-                        }
-                    }
-
-                    Button {
-                        Task {
-                            await store.submit()
-                        }
-                    } label: {
-                        HStack(spacing: DesignTokens.Spacing.sm) {
-                            if store.isSubmitting {
-                                ProgressView()
-                                    .tint(DesignTokens.Colors.surface)
-                            }
-                            Text(store.isSubmitting ? "Please wait…" : store.mode.rawValue)
-                        }
-                    }
-                    .buttonStyle(GroomlyPrimaryButtonStyle(accent: .customer))
-                    .disabled(store.isSubmitting)
-                    .accessibilityIdentifier("auth.submit")
-                }
+    private var authFields: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
+            labeledField("Email") {
+                TextField("lian@example.com", text: $store.email)
+                    .textContentType(.emailAddress)
+                    .keyboardType(.emailAddress)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .submitLabel(.next)
+                    .groomlyFormField()
+                    .accessibilityIdentifier("auth.email")
             }
 
-            feedback
+            labeledField("Password") {
+                passwordInput
+                    .accessibilityIdentifier("auth.password")
+            }
+
+            if store.mode == .signUp {
+                labeledField("Confirm password") {
+                    SecureField("••••••••", text: $store.passwordConfirmation)
+                        .textContentType(.newPassword)
+                        .submitLabel(.go)
+                        .groomlyFormField()
+                        .accessibilityIdentifier("auth.password-confirmation")
+                }
+            }
         }
+        .frame(maxWidth: .infinity)
+    }
+
+    private var passwordInput: some View {
+        HStack(spacing: DesignTokens.Spacing.md) {
+            Group {
+                if isPasswordVisible {
+                    TextField("••••••••", text: $store.password)
+                } else {
+                    SecureField("••••••••", text: $store.password)
+                }
+            }
+            .textContentType(store.mode == .signUp ? .newPassword : .password)
+            .textInputAutocapitalization(.never)
+            .autocorrectionDisabled()
+            .submitLabel(store.mode == .signUp ? .next : .go)
+
+            Button {
+                withAnimation(.easeOut(duration: 0.14)) {
+                    isPasswordVisible.toggle()
+                }
+            } label: {
+                Text(isPasswordVisible ? "Hide" : "Show")
+                    .font(DesignTokens.Typography.body.weight(.bold))
+                    .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("auth.password-visibility")
+        }
+        .groomlyFormField()
+    }
+
+    private var authActions: some View {
+        VStack(spacing: DesignTokens.Spacing.lg) {
+            Button {
+                Task {
+                    await store.submit()
+                }
+            } label: {
+                HStack(spacing: DesignTokens.Spacing.sm) {
+                    if store.isSubmitting {
+                        ProgressView()
+                            .tint(DesignTokens.Colors.surface)
+                    }
+                    Text(store.isSubmitting ? "Please wait…" : store.mode.rawValue)
+                }
+                .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(GroomlyPrimaryButtonStyle(accent: .customer))
+            .disabled(store.isSubmitting)
+            .accessibilityIdentifier("auth.submit")
+
+            Button {
+                switchAuthMode()
+            } label: {
+                Text(secondaryActionTitle)
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(GroomlySecondaryButtonStyle(accent: .neutral))
+            .disabled(store.isSubmitting)
+            .accessibilityIdentifier("auth.mode-secondary")
+        }
+        .frame(maxWidth: .infinity)
     }
 
     @ViewBuilder
@@ -329,19 +383,68 @@ struct AuthenticationView: View {
         }
     }
 
+    private var formTitle: String {
+        switch store.mode {
+        case .signIn:
+            "Welcome back"
+        case .signUp:
+            "Create account"
+        }
+    }
+
     private var formSubtitle: String {
         switch store.mode {
         case .signIn:
-            "Sign in to continue to your Groomly profile."
+            "Sign in to manage grooming requests and bookings."
         case .signUp:
             "Start with email and password. Profile setup continues after sign-in."
         }
     }
 
+    private var secondaryActionTitle: String {
+        switch store.mode {
+        case .signIn:
+            "Create Account"
+        case .signUp:
+            "Sign In"
+        }
+    }
+
+    private var fieldsToActionsSpacing: CGFloat {
+        switch store.mode {
+        case .signIn:
+            DesignTokens.Spacing.lg
+        case .signUp:
+            DesignTokens.Spacing.xl + DesignTokens.Spacing.md
+        }
+    }
+
+    private func labeledField<Content: View>(
+        _ title: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            Text(title)
+                .font(DesignTokens.Typography.body.weight(.bold))
+                .foregroundStyle(DesignTokens.Colors.secondaryText)
+
+            content()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
     private func openForm(_ mode: AuthenticationMode) {
         store.mode = mode
+        isPasswordVisible = false
         withAnimation(.spring(response: 0.36, dampingFraction: 0.88)) {
             surface = .form
+        }
+    }
+
+    private func switchAuthMode() {
+        isPasswordVisible = false
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.9)) {
+            store.mode = store.mode == .signIn ? .signUp : .signIn
         }
     }
 
