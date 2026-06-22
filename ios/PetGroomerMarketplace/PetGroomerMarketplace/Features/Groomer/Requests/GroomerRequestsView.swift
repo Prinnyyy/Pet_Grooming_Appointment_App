@@ -428,86 +428,212 @@ private struct GroomerRequestDetailView: View {
     @ViewBuilder
     private func offerSection(for matchedRequest: GroomerMatchedRequest) -> some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            GroomlySectionHeader("Offer")
+            GroomlySectionHeader(
+                "Offer",
+                subtitle: offerSectionSubtitle(for: matchedRequest)
+            )
 
-            GroomlyCard {
+            if let offer = matchedRequest.offer {
+                offerStatusCard(offer, for: matchedRequest)
+            }
+
+            if matchedRequest.canCreateOffer {
+                offerFormCard(for: matchedRequest)
+            } else if matchedRequest.offer?.status != .pending {
+                offerUnavailableCard()
+            }
+        }
+    }
+
+    private func offerSectionSubtitle(
+        for matchedRequest: GroomerMatchedRequest
+    ) -> String {
+        if let offer = matchedRequest.offer {
+            return offer.status.groomerDescription
+        }
+
+        if matchedRequest.canCreateOffer {
+            return "Suggest a time, price, and short note for this request."
+        }
+
+        return "This request is not accepting a new offer from this account."
+    }
+
+    private func offerStatusCard(
+        _ offer: GroomerOffer,
+        for matchedRequest: GroomerMatchedRequest
+    ) -> some View {
+        GroomlyCard {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                        Text("Your offer")
+                            .font(DesignTokens.Typography.headline)
+                            .foregroundStyle(DesignTokens.Colors.textPrimary)
+
+                        Text(offer.status.groomerDescription)
+                            .font(DesignTokens.Typography.caption)
+                            .foregroundStyle(DesignTokens.Colors.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                    GroomlyStatusChip(
+                        offer.status.title,
+                        systemImage: offer.status.groomerSystemImage,
+                        tone: offer.status.groomerTone
+                    )
+                }
+
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                    if let offer = matchedRequest.offer {
-                        LabeledContent("Status", value: offer.status.title)
-                        LabeledContent("Price", value: offer.priceSummary)
-                        LabeledContent(
-                            "Proposed start",
-                            value: GroomingRequestDateFormatting.displayString(
-                                from: offer.proposedStart
-                            )
-                        )
-                        LabeledContent(
-                            "Proposed end",
-                            value: GroomingRequestDateFormatting.displayString(
-                                from: offer.proposedEnd
-                            )
-                        )
-                        if let message = offer.message {
-                            Text(message)
-                                .foregroundStyle(DesignTokens.Colors.secondaryText)
-                        }
+                    DetailMetadataRow(
+                        title: "Price",
+                        value: offer.priceSummary,
+                        systemImage: "dollarsign.circle"
+                    )
+                    DetailMetadataRow(
+                        title: "Proposed start",
+                        value: GroomingRequestDateFormatting.displayString(
+                            from: offer.proposedStart
+                        ),
+                        systemImage: "calendar"
+                    )
+                    DetailMetadataRow(
+                        title: "Proposed end",
+                        value: GroomingRequestDateFormatting.displayString(
+                            from: offer.proposedEnd
+                        ),
+                        systemImage: "clock"
+                    )
+                }
 
-                        if offer.status == .pending {
-                            Button(role: .destructive) {
-                                Task {
-                                    await store.withdrawOffer(for: matchedRequest)
-                                }
-                            } label: {
-                                Label("Withdraw offer", systemImage: "arrow.uturn.backward.circle")
-                            }
-                            .disabled(store.isWithdrawingOffer)
-                            .accessibilityIdentifier("groomer.offers.withdraw")
+                if let message = offer.message {
+                    OfferMessageBlock(message: message)
+                }
+
+                if offer.status == .pending {
+                    Button(role: .destructive) {
+                        Task {
+                            await store.withdrawOffer(for: matchedRequest)
                         }
+                    } label: {
+                        Label("Withdraw offer", systemImage: "arrow.uturn.backward.circle")
                     }
-
-                    if matchedRequest.canCreateOffer {
-                        DatePicker(
-                            "Proposed start",
-                            selection: $proposedStart,
-                            displayedComponents: [.date, .hourAndMinute]
-                        )
-
-                        DatePicker(
-                            "Proposed end",
-                            selection: $proposedEnd,
-                            displayedComponents: [.date, .hourAndMinute]
-                        )
-
-                        TextField("Price estimate", text: $priceEstimateText)
-                            .keyboardType(.decimalPad)
-                            .accessibilityIdentifier("groomer.offers.price")
-
-                        TextField("Message", text: $message, axis: .vertical)
-                            .lineLimit(3...6)
-                            .accessibilityIdentifier("groomer.offers.message")
-
-                        Button {
-                            Task {
-                                await store.submitOffer(
-                                    for: matchedRequest,
-                                    proposedStart: proposedStart,
-                                    proposedEnd: proposedEnd,
-                                    priceEstimateText: priceEstimateText,
-                                    message: message
-                                )
-                            }
-                        } label: {
-                            Label("Submit offer", systemImage: "paperplane")
-                        }
-                        .disabled(store.isSubmittingOffer)
-                        .accessibilityIdentifier("groomer.offers.submit")
-                    } else if matchedRequest.offer?.status != .pending {
-                        Text("This request can no longer receive a new offer from this account.")
-                            .font(.footnote)
-                            .foregroundStyle(DesignTokens.Colors.secondaryText)
-                    }
+                    .buttonStyle(GroomlySecondaryButtonStyle(accent: .neutral))
+                    .disabled(store.isWithdrawingOffer)
+                    .accessibilityIdentifier("groomer.offers.withdraw")
                 }
             }
+        }
+    }
+
+    private func offerFormCard(
+        for matchedRequest: GroomerMatchedRequest
+    ) -> some View {
+        GroomlyCard {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                        Text("Make an offer")
+                            .font(DesignTokens.Typography.headline)
+                            .foregroundStyle(DesignTokens.Colors.textPrimary)
+
+                        Text("Use the customer's preferred window as the starting point.")
+                            .font(DesignTokens.Typography.caption)
+                            .foregroundStyle(DesignTokens.Colors.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                    GroomlyStatusChip(
+                        "Ready",
+                        systemImage: "paperplane.fill",
+                        tone: .groomer
+                    )
+                }
+
+                OfferDatePickerField(
+                    title: "Proposed start",
+                    selection: $proposedStart
+                )
+
+                OfferDatePickerField(
+                    title: "Proposed end",
+                    selection: $proposedEnd
+                )
+
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                    Text("Price estimate")
+                        .font(DesignTokens.Typography.caption)
+                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+
+                    TextField("Price estimate", text: $priceEstimateText)
+                        .keyboardType(.decimalPad)
+                        .groomlyFormField()
+                        .tint(DesignTokens.Colors.groomerAccentDark)
+                        .accessibilityIdentifier("groomer.offers.price")
+                }
+
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                    Text("Message")
+                        .font(DesignTokens.Typography.caption)
+                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+
+                    TextField("Message", text: $message, axis: .vertical)
+                        .lineLimit(3...6)
+                        .groomlyFormField()
+                        .tint(DesignTokens.Colors.groomerAccentDark)
+                        .accessibilityIdentifier("groomer.offers.message")
+                }
+
+                Button {
+                    Task {
+                        await store.submitOffer(
+                            for: matchedRequest,
+                            proposedStart: proposedStart,
+                            proposedEnd: proposedEnd,
+                            priceEstimateText: priceEstimateText,
+                            message: message
+                        )
+                    }
+                } label: {
+                    if store.isSubmittingOffer {
+                        HStack(spacing: DesignTokens.Spacing.sm) {
+                            ProgressView()
+                                .tint(DesignTokens.Colors.surface)
+                            Text("Submitting offer…")
+                        }
+                    } else {
+                        Label("Submit offer", systemImage: "paperplane")
+                    }
+                }
+                .buttonStyle(GroomlyPrimaryButtonStyle(accent: .groomer))
+                .disabled(store.isSubmittingOffer)
+                .accessibilityIdentifier("groomer.offers.submit")
+            }
+        }
+    }
+
+    private func offerUnavailableCard() -> some View {
+        GroomlyCard {
+            HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
+                Image(systemName: "lock.fill")
+                    .font(DesignTokens.Typography.caption.weight(.semibold))
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                    .frame(
+                        width: DesignTokens.Spacing.xl,
+                        height: DesignTokens.Spacing.xl
+                    )
+                    .background(DesignTokens.Colors.borderSoft.opacity(0.55))
+                    .clipShape(DesignTokens.Shapes.circular)
+                    .accessibilityHidden(true)
+
+                Text("This request can no longer receive a new offer from this account.")
+                    .font(DesignTokens.Typography.caption)
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .accessibilityElement(children: .combine)
         }
     }
 
@@ -613,6 +739,67 @@ private struct DetailMetadataRow: View {
     }
 }
 
+private struct OfferDatePickerField: View {
+    let title: String
+    @Binding var selection: Date
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            Text(title)
+                .font(DesignTokens.Typography.caption)
+                .foregroundStyle(DesignTokens.Colors.textSecondary)
+
+            DatePicker(
+                title,
+                selection: $selection,
+                displayedComponents: [.date, .hourAndMinute]
+            )
+            .labelsHidden()
+            .tint(DesignTokens.Colors.groomerAccentDark)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.horizontal, DesignTokens.Spacing.lg)
+        .padding(.vertical, DesignTokens.Spacing.md)
+        .background {
+            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input, style: .continuous)
+                .fill(DesignTokens.Colors.surface)
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input, style: .continuous)
+                .stroke(DesignTokens.Colors.borderSoft, lineWidth: 1)
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct OfferMessageBlock: View {
+    let message: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            Label("Message", systemImage: "text.bubble")
+                .font(DesignTokens.Typography.caption.weight(.semibold))
+                .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
+
+            Text(message)
+                .font(DesignTokens.Typography.body)
+                .foregroundStyle(DesignTokens.Colors.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(DesignTokens.Spacing.lg)
+        .background {
+            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input, style: .continuous)
+                .fill(DesignTokens.Colors.borderSoft.opacity(0.35))
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input, style: .continuous)
+                .stroke(DesignTokens.Colors.borderSoft, lineWidth: 1)
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
 private extension GroomingRequestStatus {
     var groomerTone: GroomlyStatusChip.Tone {
         isOpenForOffers ? .groomer : .neutral
@@ -626,6 +813,51 @@ private extension GroomingRequestStatus {
 private extension RequestMatchStatus {
     var groomerSystemImage: String {
         isDismissible ? "sparkles" : "checkmark"
+    }
+}
+
+private extension GroomerOfferStatus {
+    var groomerTone: GroomlyStatusChip.Tone {
+        switch self {
+        case .pending:
+            .warning
+        case .acceptedByCustomer:
+            .success
+        case .declinedByCustomer, .expired:
+            .error
+        case .withdrawnByGroomer:
+            .neutral
+        }
+    }
+
+    var groomerSystemImage: String {
+        switch self {
+        case .pending:
+            "paperplane.fill"
+        case .acceptedByCustomer:
+            "checkmark.seal.fill"
+        case .declinedByCustomer:
+            "xmark.circle.fill"
+        case .withdrawnByGroomer:
+            "arrow.uturn.backward.circle"
+        case .expired:
+            "clock.badge.exclamationmark"
+        }
+    }
+
+    var groomerDescription: String {
+        switch self {
+        case .pending:
+            "Your offer is waiting for customer confirmation."
+        case .acceptedByCustomer:
+            "This offer was accepted and is ready for booking follow-up."
+        case .declinedByCustomer:
+            "The customer declined this offer."
+        case .withdrawnByGroomer:
+            "You withdrew this offer."
+        case .expired:
+            "This offer expired before the customer accepted it."
+        }
     }
 }
 

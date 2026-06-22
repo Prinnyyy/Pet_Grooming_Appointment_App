@@ -1,6 +1,6 @@
 # T-030 - Groomly Groomer Offer Form and Status UI
 
-- State: planned.
+- State: completed.
 - Mode: Standard.
 - Depends on: completed T-029.
 
@@ -51,6 +51,12 @@ Run:
 ./scripts/ios-build.sh
 git diff --check
 ```
+
+Status:
+
+- `./scripts/ios-build.sh` passed on 2026-06-22.
+- Post-review `./scripts/ios-test.sh` passed on 2026-06-22.
+- `git diff --check` passed on 2026-06-22.
 
 ## Acceptance
 
