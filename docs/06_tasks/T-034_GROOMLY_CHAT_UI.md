@@ -1,6 +1,6 @@
 # T-034 - Groomly Chat UI
 
-- State: planned.
+- State: completed.
 - Mode: Standard.
 - Depends on: completed T-033.
 
@@ -50,12 +50,24 @@ Run:
 git diff --check
 ```
 
+Status:
+
+- `./scripts/ios-build.sh` passed on 2026-06-22.
+- Post-review `./scripts/ios-test.sh` passed on 2026-06-22.
+- `git diff --check` passed on 2026-06-22.
+
 ## Acceptance
 
 - Conversation list, chat thread, message rows, composer, and chat status states use Groomly styling.
 - Existing load, selection, text input, send, disabled, retry, and error behavior is preserved.
 - No Store, repository, model, backend, Supabase, script, asset, booking, request, account, debug, or tab-routing file is changed.
 - Next planned task remains T-035.
+
+Completion notes:
+
+- `ChatConversationsView`, conversation rows, `ChatThreadView`, message rows, composer, and chat status feedback now use Groomly background, cards, section headers, loading/empty/error primitives, role-appropriate customer/groomer accents, message bubbles, form styling, and primary send action styling.
+- Existing `store.loadConversations()`, conversation selection, `store.loadMessages(for:)`, text draft input, `store.sendMessage(in:body:)`, notice/error, busy, and disabled flows remain owned by `ChatStore`.
+- No Store, repository, model, backend, Supabase, script, asset, booking, request, account, debug, tab-routing, realtime, attachment, or message persistence behavior was changed.
 
 ## Stop Conditions
 

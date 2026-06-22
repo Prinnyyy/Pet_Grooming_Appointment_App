@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-06-22
+Task: T-034 - Groomly Chat UI.
+Files changed: Updated ChatView.swift, docs/06_tasks/T-034_GROOMLY_CHAT_UI.md, AGENTS.md, CLAUDE.md, README.md, docs/README.md, docs/01_product/DESIGN_SYSTEM.md, docs/01_product/SCREEN_INVENTORY.md, CURRENT_STATE.md, FEATURE_INDEX.md, WORKLOG.md, and TASK_LEDGER.md.
+Checks: `./scripts/ios-build.sh` passed. Post-review `./scripts/ios-test.sh` passed. `git diff --check` passed.
+Result: T-034 is completed. Participant conversation lists, conversation rows, chat thread context, message bubbles, composer, and chat status feedback now use Groomly background, cards, section headers, loading/empty/error primitives, role-appropriate customer/groomer accents, message bubbles, form styling, and primary send action styling while preserving load, selection, message loading, text input, send, notice/error, busy/disabled states, Store ownership, repositories, models, text-only behavior, participant access assumptions, and backend behavior.
+Risks: This was a visual-only Chat slice. Realtime subscriptions, attachments, images, typing indicators, push notifications, read receipts, message editing/deletion, booking/request/account/debug/tab routing, backend, repositories, Stores, models, scripts, and assets remain untouched.
+Next: Execute T-035 Groomly Account/Tabs/Debug final UI only.
+```
+
+```text
+Date: 2026-06-22
 Task: T-033 - Groomly Bookings UI.
 Files changed: Updated BookingsView.swift, docs/06_tasks/T-033_GROOMLY_BOOKINGS_UI.md, AGENTS.md, CLAUDE.md, README.md, docs/README.md, docs/01_product/DESIGN_SYSTEM.md, docs/01_product/SCREEN_INVENTORY.md, CURRENT_STATE.md, FEATURE_INDEX.md, WORKLOG.md, and TASK_LEDGER.md.
 Checks: `./scripts/ios-build.sh` first failed on a local generic nested-type reference, then passed after the single correction. Post-review `./scripts/ios-test.sh` passed. `git diff --check` passed.
