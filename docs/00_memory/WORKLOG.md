@@ -2,6 +2,50 @@
 
 ```text
 Date: 2026-06-22
+Task: T-047 follow-up - Groomly customer request quest action card polish.
+Files changed: CustomerRequestsView.swift, CustomerRequestFeatureTests.swift, T-047_GROOMLY_CUSTOMER_REQUEST_BOOKED_CARD_LAYOUT.md, CURRENT_STATE.md, FEATURE_INDEX.md, WORKLOG.md, and TASK_LEDGER.md.
+Checks: `xcodebuild ... -only-testing:PetGroomerMarketplaceTests/CustomerRequestsStoreTests` failed before implementation on the new headline/time presentation expectations, then passed after implementation. `git diff --check` passed. `./scripts/ios-build.sh` passed.
+Simulator launch: XcodeBuildMCP `build_run_sim` passed on `iPhone 17` simulator (`B9639233-9E78-41C9-A372-330D36C38DA7`). App launched successfully for inspection. Screenshot: `/var/folders/bc/xmbw6w1d06s61ns9_j2fnll00000gn/T/screenshot_optimized_21a2af42-0578-4de8-bdab-6dd390783648.jpg`.
+Result: Quest action cards now center the first card in the carousel, use larger explicit two-line headlines (`Open\nrequest`, `Booking\nconfirmed`), render time ranges as `start -\nend`, and route Detail, Cancel, and View Booking through the same action label structure with tone-specific styling.
+Risks: No backend change. Runtime visual parity still depends on live data containing the specific active/booked states, but presentation tests cover the text/layout data feeding those states.
+Next: App is running in Simulator for inspection. Wait for explicit user direction before further Customer Requests visual tuning or persistence changes.
+```
+
+```text
+Date: 2026-06-22
+Task: T-047 - Groomly customer request booked card layout.
+Files changed: Added docs/06_tasks/T-047_GROOMLY_CUSTOMER_REQUEST_BOOKED_CARD_LAYOUT.md; updated CustomerRequestsView.swift, CustomerRequestFeatureTests.swift, CURRENT_STATE.md, FEATURE_INDEX.md, WORKLOG.md, and TASK_LEDGER.md.
+Checks: Targeted TDD red check failed on missing CustomerRequestProgressCardPresentation before implementation. Targeted booked handoff presentation test passed after implementation. `git diff --check` passed. `./scripts/ios-build.sh` passed.
+Simulator launch: XcodeBuildMCP `build_run_sim` passed on `iPhone 17` simulator (`B9639233-9E78-41C9-A372-330D36C38DA7`). App launched successfully for inspection. Screenshot: `/var/folders/bc/xmbw6w1d06s61ns9_j2fnll00000gn/T/screenshot_optimized_944098b2-cb6c-45d1-be79-9e4a1d32606b.jpg`.
+Result: Booked handoff quest cards now share the same quest action card layout metrics as unconfirmed cards. The booked state shows `Booking confirmed`, the original quest title, confirmed booking time, request address, green confirmed border, and one `View Booking` CTA while preserving T-046 same-device acknowledgement persistence.
+Risks: Runtime visual parity still depends on test data containing both unconfirmed and booked handoff cards. Handoff acknowledgement remains local device state only until a future backend/model task persists it across devices.
+Next: App is running in Simulator for inspection. Wait for explicit user direction before changing backend persistence, booking lifecycle, or adjacent Customer Requests features.
+```
+
+```text
+Date: 2026-06-22
+Task: T-046 - Groomly customer request handoff card fusion.
+Files changed: Added docs/06_tasks/T-046_GROOMLY_CUSTOMER_REQUEST_HANDOFF_CARD_FUSION.md; updated CustomerRequestsStore.swift, CustomerRequestsView.swift, CustomerRequestFeatureTests.swift, CURRENT_STATE.md, FEATURE_INDEX.md, WORKLOG.md, and TASK_LEDGER.md.
+Checks: Targeted TDD red check failed on the missing Store init parameter before implementation. Targeted CustomerRequestsStore tests passed after implementation. `git diff --check`, `./scripts/ios-build.sh`, and `./scripts/ios-test.sh` passed.
+Simulator launch: XcodeBuildMCP `build_run_sim` passed on `iPhone 17` simulator (`B9639233-9E78-41C9-A372-330D36C38DA7`). App launched successfully for inspection. Screenshot: `/var/folders/bc/xmbw6w1d06s61ns9_j2fnll00000gn/T/screenshot_optimized_ccbc9736-7014-4da9-887a-aaeb1ef7cbfd.jpg`.
+Result: The separate booking handoff card style was removed. Booked requests with matching confirmed bookings now render through the quest action card with retained pet avatar, handoff title/body text, Booking chip, compact completed timeline, green confirmed border, and a single `View Booking` CTA. Opening `View Booking` persists local acknowledgement for that customer, so the handoff remains hidden after app restart on the same device.
+Risks: Handoff acknowledgement is local device state only; reinstall, cleared app data, or another device can still show it again until a future backend/model task adds persisted customer-scoped acknowledgement.
+Next: App is running in Simulator for inspection. Wait for explicit user direction before adding cross-device handoff persistence or any booking/request backend changes.
+```
+
+```text
+Date: 2026-06-22
+Task: T-045 - Groomly customer request booking handoff.
+Files changed: Added docs/06_tasks/T-045_GROOMLY_CUSTOMER_REQUEST_BOOKING_HANDOFF.md; updated BookingsStore.swift, CustomerRequestsStore.swift, CustomerRequestsView.swift, CustomerRequestFeatureTests.swift, CURRENT_STATE.md, FEATURE_INDEX.md, WORKLOG.md, and TASK_LEDGER.md.
+Checks: Targeted TDD red check failed on the missing new Store API before implementation. Targeted CustomerRequestsStore tests passed after implementation. `git diff --check`, `./scripts/ios-build.sh`, and `./scripts/ios-test.sh` passed.
+Simulator launch: XcodeBuildMCP `build_run_sim` passed on `iPhone 17` simulator (`B9639233-9E78-41C9-A372-330D36C38DA7`). App launched successfully for inspection. Screenshot: `/var/folders/bc/xmbw6w1d06s61ns9_j2fnll00000gn/T/screenshot_optimized_dd6ed701-2f0a-4011-bd05-9a9bb245a263.jpg`.
+Result: Customer Requests now renders only `open`/`has_offers` active request cards plus `booked` request handoff cards when an existing confirmed booking with matching `requestID` is available. `View Booking` opens existing Booking detail and removes the handoff from the current UI session only. Cancel remains request-only for unconfirmed requests.
+Risks: Handoff acknowledgement is not persisted and will reappear in a fresh session/device until a future backend/model task adds a persisted acknowledgement such as `request_booking_handoff_acknowledged_at` or a small acknowledgement table.
+Next: App is running in Simulator for inspection. Wait for explicit user direction before adding persistent handoff acknowledgement or any booking/request lifecycle backend changes.
+```
+
+```text
+Date: 2026-06-22
 Task: T-044 review follow-up.
 Files changed: supabase/migrations/20260622142020_t044_cancel_grooming_request.sql, CustomerRequestsStore.swift, T-044_GROOMLY_CUSTOMER_REQUEST_CANCEL.md, and WORKLOG.md.
 Checks: `git diff --check`, `./scripts/supabase-check.sh`, `./scripts/ios-build.sh`, and `./scripts/ios-test.sh` passed.

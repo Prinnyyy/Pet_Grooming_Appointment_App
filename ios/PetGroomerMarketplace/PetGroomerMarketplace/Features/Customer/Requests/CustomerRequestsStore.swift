@@ -10,14 +10,18 @@ final class CustomerRequestsStore {
     private let petRepository: any CustomerPetRepository
     private let requestRepository: any CustomerRequestRepository
     private let bookingRepository: any BookingRepository
+    private let handoffAcknowledgementDefaults: UserDefaults
+    private let handoffAcknowledgementStorageKey: String
 
     private(set) var pets: [CustomerPet] = []
     private(set) var requests: [CustomerGroomingRequest] = []
+    private(set) var bookings: [Booking] = []
     private(set) var offerReviewsByRequestID: [UUID: [CustomerOfferReview]] = [:]
     private(set) var offerErrorsByRequestID: [UUID: String] = [:]
     private(set) var loadingOfferRequestIDs: Set<UUID> = []
     private(set) var acceptingOfferIDs: Set<UUID> = []
     private(set) var cancellingRequestIDs: Set<UUID> = []
+    private(set) var acknowledgedBookingHandoffRequestIDs: Set<UUID> = []
     private(set) var isLoading = false
     private(set) var isSubmitting = false
 
@@ -44,21 +48,54 @@ final class CustomerRequestsStore {
         return pets.first { $0.id == selectedPetID }
     }
 
+    var activeRequests: [CustomerGroomingRequest] {
+        requests.filter(\.status.isOpenForOffers)
+    }
+
+    var bookingHandoffs: [CustomerRequestBookingHandoff] {
+        var confirmedBookingsByRequestID: [UUID: Booking] = [:]
+        for booking in bookings where booking.status == .confirmed {
+            confirmedBookingsByRequestID[booking.requestID] = confirmedBookingsByRequestID[booking.requestID] ?? booking
+        }
+
+        return requests.compactMap { request in
+            guard request.status == .booked,
+                  !acknowledgedBookingHandoffRequestIDs.contains(request.id),
+                  let booking = confirmedBookingsByRequestID[request.id] else {
+                return nil
+            }
+
+            return CustomerRequestBookingHandoff(
+                request: request,
+                booking: booking
+            )
+        }
+    }
+
     init(
         customerID: UUID,
         petRepository: any CustomerPetRepository,
         requestRepository: any CustomerRequestRepository,
         bookingRepository: any BookingRepository,
+        handoffAcknowledgementDefaults: UserDefaults = .standard,
         now: Date = Date()
     ) {
         self.customerID = customerID
         self.petRepository = petRepository
         self.requestRepository = requestRepository
         self.bookingRepository = bookingRepository
+        self.handoffAcknowledgementDefaults = handoffAcknowledgementDefaults
+        handoffAcknowledgementStorageKey = Self.handoffAcknowledgementStorageKey(
+            customerID: customerID
+        )
 
         let defaults = Self.defaultPreferredRange(now: now)
         preferredStart = defaults.start
         preferredEnd = defaults.end
+        acknowledgedBookingHandoffRequestIDs = Self.loadAcknowledgedBookingHandoffRequestIDs(
+            defaults: handoffAcknowledgementDefaults,
+            key: handoffAcknowledgementStorageKey
+        )
     }
 
     func load() async {
@@ -69,6 +106,10 @@ final class CustomerRequestsStore {
         do {
             pets = try await petRepository.pets(customerID: customerID)
             requests = try await requestRepository.requests(customerID: customerID)
+            bookings = try await bookingRepository.bookings(
+                participantID: customerID,
+                role: .customer
+            )
 
             if selectedPetID == nil {
                 selectedPetID = pets.first?.id
@@ -77,6 +118,8 @@ final class CustomerRequestsStore {
             errorMessage = message(for: error, action: "load")
         } catch let error as CustomerRequestRepositoryError {
             errorMessage = message(for: error, action: "load")
+        } catch let error as BookingRepositoryError {
+            errorMessage = message(for: error, action: "load bookings")
         } catch {
             errorMessage = message(for: CustomerRequestRepositoryError.unavailable, action: "load")
         }
@@ -118,6 +161,21 @@ final class CustomerRequestsStore {
 
     func isCancelling(_ request: CustomerGroomingRequest) -> Bool {
         cancellingRequestIDs.contains(request.id)
+    }
+
+    func acknowledgeBookingHandoff(for handoff: CustomerRequestBookingHandoff) {
+        let insertion = acknowledgedBookingHandoffRequestIDs.insert(handoff.request.id)
+        guard insertion.inserted else { return }
+        persistAcknowledgedBookingHandoffRequestIDs()
+    }
+
+    func bookingDetailStore(for booking: Booking) -> BookingsStore {
+        BookingsStore(
+            participantID: customerID,
+            role: .customer,
+            repository: bookingRepository,
+            initialBookings: [booking]
+        )
     }
 
     func loadOffers(for request: CustomerGroomingRequest) async {
@@ -379,6 +437,10 @@ final class CustomerRequestsStore {
                     requestID: requestID
                 )
             )
+            bookings = try await bookingRepository.bookings(
+                participantID: customerID,
+                role: .customer
+            )
             offerErrorsByRequestID[requestID] = nil
         } catch {
             offerErrorsByRequestID[requestID] = "Booking confirmed. Refresh this request to see the latest offer state."
@@ -555,8 +617,41 @@ final class CustomerRequestsStore {
             return lhs.id.uuidString < rhs.id.uuidString
         }
     }
+
+    private func persistAcknowledgedBookingHandoffRequestIDs() {
+        let encodedRequestIDs = acknowledgedBookingHandoffRequestIDs
+            .map(\.uuidString)
+            .sorted()
+        handoffAcknowledgementDefaults.set(
+            encodedRequestIDs,
+            forKey: handoffAcknowledgementStorageKey
+        )
+    }
+
+    private static func loadAcknowledgedBookingHandoffRequestIDs(
+        defaults: UserDefaults,
+        key: String
+    ) -> Set<UUID> {
+        Set(
+            (defaults.stringArray(forKey: key) ?? [])
+                .compactMap { UUID(uuidString: $0) }
+        )
+    }
+
+    private static func handoffAcknowledgementStorageKey(customerID: UUID) -> String {
+        "groomly.customerRequests.bookingHandoffAcknowledgements.\(customerID.uuidString)"
+    }
 }
 
 private struct CustomerRequestFormError: Error {
     let message: String
+}
+
+struct CustomerRequestBookingHandoff: Equatable, Hashable, Identifiable, Sendable {
+    let request: CustomerGroomingRequest
+    let booking: Booking
+
+    var id: UUID {
+        request.id
+    }
 }

@@ -3,6 +3,7 @@ import SwiftUI
 struct CustomerRequestsView: View {
     @State private var store: CustomerRequestsStore
     @State private var pendingCancelRequest: CustomerGroomingRequest?
+    @State private var selectedBookingHandoff: CustomerRequestBookingHandoff?
 
     init(
         customerID: UUID,
@@ -58,6 +59,13 @@ struct CustomerRequestsView: View {
         } message: {
             Text("This closes the request and any pending offers. Confirmed bookings are managed from Bookings.")
         }
+        .navigationDestination(item: $selectedBookingHandoff) { handoff in
+            BookingDetailView(
+                bookingID: handoff.booking.id,
+                role: .customer,
+                store: store.bookingDetailStore(for: handoff.booking)
+            )
+        }
         .toolbar(.hidden, for: .navigationBar)
         .task {
             await store.load()
@@ -90,15 +98,20 @@ struct CustomerRequestsView: View {
         } else {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
-                    CustomerRequestsRootHeader(requestCount: store.requests.count)
+                    CustomerRequestsRootHeader(cardCount: visibleCardCount)
 
-                    if store.requests.isEmpty {
+                    if visibleCardCount == 0 {
                         CustomerRequestsEmptyDashboard()
                             .accessibilityIdentifier("customer.requests.empty")
                     } else {
                         CustomerRequestProgressCarousel(
-                            requests: store.requests,
+                            activeRequests: store.activeRequests,
+                            bookingHandoffs: store.bookingHandoffs,
                             store: store,
+                            onViewBooking: { handoff in
+                                selectedBookingHandoff = handoff
+                                store.acknowledgeBookingHandoff(for: handoff)
+                            },
                             onCancelRequest: { request in
                                 pendingCancelRequest = request
                             }
@@ -117,10 +130,14 @@ struct CustomerRequestsView: View {
             .accessibilityIdentifier("customer.requests.list")
         }
     }
+
+    private var visibleCardCount: Int {
+        store.activeRequests.count + store.bookingHandoffs.count
+    }
 }
 
 private struct CustomerRequestsRootHeader: View {
-    let requestCount: Int
+    let cardCount: Int
 
     var body: some View {
         HStack(alignment: .top, spacing: DesignTokens.Spacing.lg) {
@@ -139,10 +156,10 @@ private struct CustomerRequestsRootHeader: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
-            if requestCount > 0 {
+            if cardCount > 0 {
                 GroomlyStatusChip(
-                    "\(requestCount)",
-                    systemImage: requestCount == 1 ? "doc.text.fill" : "rectangle.stack.fill",
+                    "\(cardCount)",
+                    systemImage: cardCount == 1 ? "doc.text.fill" : "rectangle.stack.fill",
                     tone: .customer
                 )
                 .padding(.top, DesignTokens.Spacing.sm)
@@ -151,35 +168,52 @@ private struct CustomerRequestsRootHeader: View {
     }
 
     private var subtitle: String {
-        if requestCount > 1 {
-            return "Swipe between active and past quests. Each card keeps its own status, summary, and actions together."
+        if cardCount > 1 {
+            return "Swipe between active quests and booking handoffs. Each card keeps the next action clear."
         }
 
-        if requestCount == 1 {
-            return "Track this quest's details, progress, and available actions."
+        if cardCount == 1 {
+            return "Track the next action for this grooming flow."
         }
 
-        return "Published grooming quests will appear here after you start them from Home."
+        return "Open quests and newly confirmed booking handoffs will appear here."
     }
 }
 
 private struct CustomerRequestProgressCarousel: View {
-    let requests: [CustomerGroomingRequest]
+    let activeRequests: [CustomerGroomingRequest]
+    let bookingHandoffs: [CustomerRequestBookingHandoff]
     let store: CustomerRequestsStore
+    let onViewBooking: (CustomerRequestBookingHandoff) -> Void
     let onCancelRequest: (CustomerGroomingRequest) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
             ScrollView(.horizontal) {
                 LazyHStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
-                    ForEach(requests) { request in
+                    ForEach(activeRequests) { request in
                         CustomerRequestProgressCard(
                             request: request,
+                            handoff: nil,
                             store: store,
+                            onViewBooking: onViewBooking,
                             onCancelRequest: onCancelRequest
                         )
                         .containerRelativeFrame(.horizontal) { length, _ in
-                            length - (DesignTokens.Spacing.screenHorizontal * 2)
+                            length
+                        }
+                    }
+
+                    ForEach(bookingHandoffs) { handoff in
+                        CustomerRequestProgressCard(
+                            request: handoff.request,
+                            handoff: handoff,
+                            store: store,
+                            onViewBooking: onViewBooking,
+                            onCancelRequest: onCancelRequest
+                        )
+                        .containerRelativeFrame(.horizontal) { length, _ in
+                            length
                         }
                     }
                 }
@@ -192,7 +226,7 @@ private struct CustomerRequestProgressCarousel: View {
             .scrollClipDisabled()
             .scrollTargetBehavior(.viewAligned)
 
-            if requests.count > 1 {
+            if cardCount > 1 {
                 Label("Swipe to review another request", systemImage: "arrow.left.and.right")
                     .font(DesignTokens.Typography.caption)
                     .foregroundStyle(DesignTokens.Colors.textTertiary)
@@ -201,42 +235,174 @@ private struct CustomerRequestProgressCarousel: View {
             }
         }
     }
+
+    private var cardCount: Int {
+        activeRequests.count + bookingHandoffs.count
+    }
 }
 
 private struct CustomerRequestProgressCard: View {
     let request: CustomerGroomingRequest
+    let handoff: CustomerRequestBookingHandoff?
     let store: CustomerRequestsStore
+    let onViewBooking: (CustomerRequestBookingHandoff) -> Void
     let onCancelRequest: (CustomerGroomingRequest) -> Void
 
     var body: some View {
-        GroomlyCard(padding: DesignTokens.Spacing.xl) {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                CustomerRequestBriefHeader(request: request)
+        GroomlyCard(
+            isSelected: presentation.isConfirmedHandoff,
+            padding: CustomerRequestProgressCardLayout.padding
+        ) {
+            VStack(alignment: .leading, spacing: CustomerRequestProgressCardLayout.contentSpacing) {
+                CustomerRequestBriefHeader(
+                    request: request,
+                    presentation: presentation
+                )
 
                 Divider()
                     .overlay(DesignTokens.Colors.borderSoft)
 
-                CustomerRequestTimelineList(request: request)
-
-                CustomerRequestActionRow(
+                CustomerRequestTimelineList(
                     request: request,
-                    store: store,
-                    onCancelRequest: onCancelRequest
+                    density: CustomerRequestProgressCardLayout.timelineDensity
                 )
+
+                if let handoff {
+                    CustomerRequestBookingHandoffAction(
+                        handoff: handoff,
+                        onViewBooking: onViewBooking
+                    )
+                } else {
+                    CustomerRequestActionRow(
+                        request: request,
+                        store: store,
+                        onCancelRequest: onCancelRequest
+                    )
+                }
             }
         }
+        .accessibilityIdentifier(
+            isBookingHandoff
+                ? "customer.requests.booking-handoff"
+                : "customer.requests.progress-card"
+        )
+    }
+
+    private var isBookingHandoff: Bool {
+        handoff != nil
+    }
+
+    private var presentation: CustomerRequestProgressCardPresentation {
+        CustomerRequestProgressCardPresentation(
+            request: request,
+            handoff: handoff
+        )
+    }
+}
+
+private enum CustomerRequestProgressCardLayout {
+    static let padding = DesignTokens.Spacing.lg
+    static let contentSpacing = DesignTokens.Spacing.md
+    static let timelineDensity = CustomerRequestTimelineDensity.regular
+}
+
+struct CustomerRequestProgressCardPresentation {
+    struct InfoLine: Equatable {
+        let systemImage: String
+        let text: String
+    }
+
+    let headline: String
+    let subtitle: String
+    let chipTitle: String
+    let chipSystemImage: String
+    let chipTone: GroomlyStatusChip.Tone
+    let infoLines: [InfoLine]
+    let isConfirmedHandoff: Bool
+
+    init(
+        request: CustomerGroomingRequest,
+        handoff: CustomerRequestBookingHandoff?
+    ) {
+        isConfirmedHandoff = handoff != nil
+
+        if let handoff {
+            headline = "Booking\nconfirmed"
+            subtitle = request.title
+            chipTitle = "Booking"
+            chipSystemImage = "checkmark.seal.fill"
+            chipTone = .success
+            infoLines = [
+                InfoLine(
+                    systemImage: "calendar",
+                    text: Self.twoLineDisplayRange(
+                        from: handoff.booking.scheduledStart,
+                        to: handoff.booking.scheduledEnd
+                    )
+                ),
+                InfoLine(
+                    systemImage: "mappin.and.ellipse",
+                    text: request.locationSummary
+                ),
+            ]
+        } else {
+            headline = request.progressCardHeadline
+            subtitle = request.title
+            chipTitle = request.dashboardChipTitle
+            chipSystemImage = request.dashboardChipSystemImage
+            chipTone = request.dashboardChipTone
+            infoLines = [
+                InfoLine(
+                    systemImage: "calendar",
+                    text: Self.twoLineDisplayRange(
+                        from: request.preferredStart,
+                        to: request.preferredEnd
+                    )
+                ),
+                InfoLine(
+                    systemImage: "mappin.and.ellipse",
+                    text: request.locationSummary
+                ),
+            ]
+        }
+    }
+
+    private static func twoLineDisplayRange(from start: String, to end: String) -> String {
+        "\(GroomingRequestDateFormatting.displayString(from: start)) -\n\(GroomingRequestDateFormatting.displayString(from: end))"
+    }
+}
+
+private struct CustomerRequestBookingHandoffAction: View {
+    let handoff: CustomerRequestBookingHandoff
+    let onViewBooking: (CustomerRequestBookingHandoff) -> Void
+
+    var body: some View {
+        Button {
+            onViewBooking(handoff)
+        } label: {
+            CustomerRequestActionLabel(
+                title: "View Booking",
+                systemImage: "arrow.right",
+                tone: .primary
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("View Booking")
+        .accessibilityIdentifier("customer.requests.booking-handoff.view-booking")
     }
 }
 
 private struct CustomerRequestTimelineList: View {
     let request: CustomerGroomingRequest
+    let density: CustomerRequestTimelineDensity
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             ForEach(Array(steps.enumerated()), id: \.element.id) { index, step in
                 CustomerRequestTimelineRow(
                     step: step,
-                    isLast: index == steps.count - 1
+                    isLast: index == steps.count - 1,
+                    density: density
                 )
             }
         }
@@ -285,6 +451,7 @@ private struct CustomerRequestTimelineList: View {
 
 private struct CustomerRequestBriefHeader: View {
     let request: CustomerGroomingRequest
+    let presentation: CustomerRequestProgressCardPresentation
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
@@ -297,35 +464,37 @@ private struct CustomerRequestBriefHeader: View {
                     .accessibilityHidden(true)
 
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                    Text(request.progressHeadline)
-                        .font(DesignTokens.Typography.headline)
+                    Text(presentation.headline)
+                        .font(.system(size: 28, weight: .heavy, design: .rounded))
                         .foregroundStyle(DesignTokens.Colors.textPrimary)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.86)
+                        .lineSpacing(1)
                         .fixedSize(horizontal: false, vertical: true)
 
-                    Text(request.title)
+                    Text(presentation.subtitle)
                         .font(DesignTokens.Typography.body)
                         .foregroundStyle(DesignTokens.Colors.textSecondary)
                         .lineLimit(2)
+                        .minimumScaleFactor(0.92)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
                 GroomlyStatusChip(
-                    request.dashboardChipTitle,
-                    systemImage: request.dashboardChipSystemImage,
-                    tone: request.dashboardChipTone
+                    presentation.chipTitle,
+                    systemImage: presentation.chipSystemImage,
+                    tone: presentation.chipTone
                 )
             }
 
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                CustomerRequestBriefInfoLine(
-                    systemImage: "calendar",
-                    text: request.progressTimeSummary
-                )
-                CustomerRequestBriefInfoLine(
-                    systemImage: "mappin.and.ellipse",
-                    text: request.locationSummary
-                )
+                ForEach(Array(presentation.infoLines.enumerated()), id: \.offset) { _, infoLine in
+                    CustomerRequestBriefInfoLine(
+                        systemImage: infoLine.systemImage,
+                        text: infoLine.text
+                    )
+                }
             }
         }
         .accessibilityElement(children: .combine)
@@ -345,9 +514,78 @@ private struct CustomerRequestBriefInfoLine: View {
                 .accessibilityHidden(true)
 
             Text(text)
-                .font(DesignTokens.Typography.caption)
+                .font(.footnote.weight(.semibold))
                 .foregroundStyle(DesignTokens.Colors.textSecondary)
+                .lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+}
+
+private enum CustomerRequestTimelineDensity: Equatable {
+    case regular
+    case compact
+
+    var markerSize: CGFloat {
+        switch self {
+        case .regular:
+            38
+        case .compact:
+            34
+        }
+    }
+
+    var connectorHeight: CGFloat {
+        switch self {
+        case .regular:
+            30
+        case .compact:
+            24
+        }
+    }
+
+    var connectorWidth: CGFloat {
+        switch self {
+        case .regular:
+            3
+        case .compact:
+            2
+        }
+    }
+
+    var horizontalSpacing: CGFloat {
+        switch self {
+        case .regular:
+            DesignTokens.Spacing.md
+        case .compact:
+            DesignTokens.Spacing.md
+        }
+    }
+
+    var titleFont: Font {
+        switch self {
+        case .regular:
+            DesignTokens.Typography.body.weight(.bold)
+        case .compact:
+            DesignTokens.Typography.body.weight(.bold)
+        }
+    }
+
+    var subtitleFont: Font {
+        switch self {
+        case .regular:
+            DesignTokens.Typography.caption
+        case .compact:
+            DesignTokens.Typography.caption
+        }
+    }
+
+    var textTopPadding: CGFloat {
+        switch self {
+        case .regular:
+            2
+        case .compact:
+            2
         }
     }
 }
@@ -355,31 +593,35 @@ private struct CustomerRequestBriefInfoLine: View {
 private struct CustomerRequestTimelineRow: View {
     let step: CustomerRequestTimelineStep
     let isLast: Bool
+    let density: CustomerRequestTimelineDensity
 
     var body: some View {
-        HStack(alignment: .top, spacing: DesignTokens.Spacing.lg) {
+        HStack(alignment: .top, spacing: density.horizontalSpacing) {
             VStack(spacing: 0) {
                 marker
 
                 if !isLast {
                     Rectangle()
                         .fill(step.connectorColor)
-                        .frame(width: 3, height: 48)
+                        .frame(
+                            width: density.connectorWidth,
+                            height: density.connectorHeight
+                        )
                 }
             }
 
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                 Text(step.title)
-                    .font(DesignTokens.Typography.headline)
+                    .font(density.titleFont)
                     .foregroundStyle(step.titleColor)
                     .fixedSize(horizontal: false, vertical: true)
 
                 Text(step.subtitle)
-                    .font(DesignTokens.Typography.body)
+                    .font(density.subtitleFont)
                     .foregroundStyle(step.subtitleColor)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            .padding(.top, DesignTokens.Spacing.xs)
+            .padding(.top, density.textTopPadding)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
@@ -389,19 +631,27 @@ private struct CustomerRequestTimelineRow: View {
         ZStack {
             Circle()
                 .fill(step.markerColor)
-                .frame(width: 44, height: 44)
+                .frame(width: density.markerSize, height: density.markerSize)
 
             if step.state == .complete {
                 Image(systemName: "checkmark")
-                    .font(.headline.weight(.bold))
+                    .font(completeMarkerFont)
                     .foregroundStyle(DesignTokens.Colors.surface)
             } else if step.state == .stopped {
                 Image(systemName: "xmark")
-                    .font(.subheadline.weight(.bold))
+                    .font(stoppedMarkerFont)
                     .foregroundStyle(DesignTokens.Colors.surface)
             }
         }
         .accessibilityHidden(true)
+    }
+
+    private var completeMarkerFont: Font {
+        density == .compact ? .subheadline.weight(.bold) : .headline.weight(.bold)
+    }
+
+    private var stoppedMarkerFont: Font {
+        density == .compact ? .caption.weight(.bold) : .subheadline.weight(.bold)
     }
 }
 
@@ -587,11 +837,14 @@ private struct CustomerRequestActionRow: View {
 
 private struct CustomerRequestActionLabel: View {
     enum Tone {
+        case primary
         case neutral
         case destructive
 
         var foreground: Color {
             switch self {
+            case .primary:
+                DesignTokens.Colors.customerPrimaryDark
             case .neutral:
                 DesignTokens.Colors.textPrimary
             case .destructive:
@@ -601,10 +854,21 @@ private struct CustomerRequestActionLabel: View {
 
         var border: Color {
             switch self {
+            case .primary:
+                DesignTokens.Colors.customerPrimary.opacity(0.46)
             case .neutral:
                 DesignTokens.Colors.border
             case .destructive:
                 DesignTokens.Colors.error.opacity(0.34)
+            }
+        }
+
+        var background: Color {
+            switch self {
+            case .primary:
+                DesignTokens.Colors.customerPrimary.opacity(0.15)
+            case .neutral, .destructive:
+                DesignTokens.Colors.surface
             }
         }
     }
@@ -625,7 +889,7 @@ private struct CustomerRequestActionLabel: View {
             .padding(.horizontal, DesignTokens.Spacing.md)
             .background {
                 RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous)
-                    .fill(DesignTokens.Colors.surface)
+                    .fill(tone.background)
             }
             .overlay {
                 RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous)
@@ -648,23 +912,19 @@ private struct CustomerRequestsEmptyDashboard: View {
 }
 
 private extension CustomerGroomingRequest {
-    var progressHeadline: String {
+    var progressCardHeadline: String {
         switch status {
         case .open:
-            "Open request"
+            "Open\nrequest"
         case .hasOffers:
-            "Offers ready"
+            "Offers\nready"
         case .booked:
-            "Confirmed quest"
+            "Confirmed\nquest"
         case .cancelled:
-            "Cancelled request"
+            "Cancelled\nrequest"
         case .expired:
-            "Expired request"
+            "Expired\nrequest"
         }
-    }
-
-    var progressTimeSummary: String {
-        "\(GroomingRequestDateFormatting.displayString(from: preferredStart)) – \(GroomingRequestDateFormatting.displayString(from: preferredEnd))"
     }
 
     var avatarBackground: LinearGradient {

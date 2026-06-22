@@ -24,11 +24,13 @@ final class BookingsStore {
     init(
         participantID: UUID,
         role: UserRole,
-        repository: any BookingRepository
+        repository: any BookingRepository,
+        initialBookings: [Booking] = []
     ) {
         self.participantID = participantID
         self.role = role
         self.repository = repository
+        bookings = initialBookings
     }
 
     func booking(withID id: UUID) -> Booking? {

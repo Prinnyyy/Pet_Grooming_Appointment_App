@@ -223,6 +223,271 @@ struct CustomerRequestsStoreTests {
     }
 
     @Test @MainActor
+    func activeRequestsIncludeOnlyOpenAndOfferStates() async throws {
+        let customerID = UUID()
+        let pet = Self.pet(customerID: customerID)
+        let openRequest = Self.request(
+            customerID: customerID,
+            petID: pet.id,
+            status: .open
+        )
+        let offerRequest = Self.request(
+            customerID: customerID,
+            petID: pet.id,
+            status: .hasOffers
+        )
+        let bookedRequest = Self.request(
+            customerID: customerID,
+            petID: pet.id,
+            status: .booked
+        )
+        let cancelledRequest = Self.request(
+            customerID: customerID,
+            petID: pet.id,
+            status: .cancelled
+        )
+        let expiredRequest = Self.request(
+            customerID: customerID,
+            petID: pet.id,
+            status: .expired
+        )
+        let store = CustomerRequestsStore(
+            customerID: customerID,
+            petRepository: CustomerRequestPetRepositoryFake(
+                petsResult: .success([pet])
+            ),
+            requestRepository: CustomerRequestRepositoryFake(
+                requestsResult: .success([
+                    openRequest,
+                    offerRequest,
+                    bookedRequest,
+                    cancelledRequest,
+                    expiredRequest,
+                ])
+            ),
+            bookingRepository: CustomerRequestBookingRepositoryFake()
+        )
+
+        await store.load()
+
+        #expect(store.activeRequests.map(\.id) == [
+            openRequest.id,
+            offerRequest.id,
+        ])
+    }
+
+    @Test @MainActor
+    func bookedRequestWithConfirmedBookingCreatesSessionHandoff() async throws {
+        let customerID = UUID()
+        let pet = Self.pet(customerID: customerID)
+        let bookedRequest = Self.request(
+            customerID: customerID,
+            petID: pet.id,
+            status: .booked
+        )
+        let booking = Self.booking(
+            requestID: bookedRequest.id,
+            customerID: customerID,
+            status: .confirmed
+        )
+        let bookingRepository = CustomerRequestBookingRepositoryFake(
+            bookingsResult: .success([booking])
+        )
+        let store = CustomerRequestsStore(
+            customerID: customerID,
+            petRepository: CustomerRequestPetRepositoryFake(
+                petsResult: .success([pet])
+            ),
+            requestRepository: CustomerRequestRepositoryFake(
+                requestsResult: .success([bookedRequest])
+            ),
+            bookingRepository: bookingRepository
+        )
+
+        await store.load()
+
+        #expect(bookingRepository.bookingsCallCount == 1)
+        #expect(bookingRepository.lastBookingsParticipantID == customerID)
+        #expect(bookingRepository.lastBookingsRole == .customer)
+        #expect(store.activeRequests.isEmpty)
+        #expect(store.bookingHandoffs.map(\.request.id) == [bookedRequest.id])
+        #expect(store.bookingHandoffs.first?.booking.id == booking.id)
+
+        store.acknowledgeBookingHandoff(for: store.bookingHandoffs[0])
+
+        #expect(store.bookingHandoffs.isEmpty)
+        #expect(store.requests.first?.status == .booked)
+    }
+
+    @Test @MainActor
+    func acknowledgedBookingHandoffPersistsAcrossStoreReloads() async throws {
+        let customerID = UUID()
+        let suiteName = "CustomerRequestsStoreTests.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suiteName))
+        defer {
+            defaults.removePersistentDomain(forName: suiteName)
+        }
+
+        let pet = Self.pet(customerID: customerID)
+        let bookedRequest = Self.request(
+            customerID: customerID,
+            petID: pet.id,
+            status: .booked
+        )
+        let booking = Self.booking(
+            requestID: bookedRequest.id,
+            customerID: customerID,
+            status: .confirmed
+        )
+        let firstStore = CustomerRequestsStore(
+            customerID: customerID,
+            petRepository: CustomerRequestPetRepositoryFake(
+                petsResult: .success([pet])
+            ),
+            requestRepository: CustomerRequestRepositoryFake(
+                requestsResult: .success([bookedRequest])
+            ),
+            bookingRepository: CustomerRequestBookingRepositoryFake(
+                bookingsResult: .success([booking])
+            ),
+            handoffAcknowledgementDefaults: defaults
+        )
+
+        await firstStore.load()
+        let handoff = try #require(firstStore.bookingHandoffs.first)
+        firstStore.acknowledgeBookingHandoff(for: handoff)
+
+        let secondStore = CustomerRequestsStore(
+            customerID: customerID,
+            petRepository: CustomerRequestPetRepositoryFake(
+                petsResult: .success([pet])
+            ),
+            requestRepository: CustomerRequestRepositoryFake(
+                requestsResult: .success([bookedRequest])
+            ),
+            bookingRepository: CustomerRequestBookingRepositoryFake(
+                bookingsResult: .success([booking])
+            ),
+            handoffAcknowledgementDefaults: defaults
+        )
+
+        await secondStore.load()
+
+        #expect(secondStore.bookingHandoffs.isEmpty)
+        #expect(secondStore.acknowledgedBookingHandoffRequestIDs.contains(bookedRequest.id))
+    }
+
+    @Test @MainActor
+    func bookedRequestHandoffsRequireConfirmedBooking() async throws {
+        let customerID = UUID()
+        let pet = Self.pet(customerID: customerID)
+        let completedRequest = Self.request(
+            customerID: customerID,
+            petID: pet.id,
+            status: .booked
+        )
+        let cancelledRequest = Self.request(
+            customerID: customerID,
+            petID: pet.id,
+            status: .booked
+        )
+        let bookingRepository = CustomerRequestBookingRepositoryFake(
+            bookingsResult: .success([
+                Self.booking(
+                    requestID: completedRequest.id,
+                    customerID: customerID,
+                    status: .completed
+                ),
+                Self.booking(
+                    requestID: cancelledRequest.id,
+                    customerID: customerID,
+                    status: .cancelledByCustomer
+                ),
+            ])
+        )
+        let store = CustomerRequestsStore(
+            customerID: customerID,
+            petRepository: CustomerRequestPetRepositoryFake(
+                petsResult: .success([pet])
+            ),
+            requestRepository: CustomerRequestRepositoryFake(
+                requestsResult: .success([
+                    completedRequest,
+                    cancelledRequest,
+                ])
+            ),
+            bookingRepository: bookingRepository
+        )
+
+        await store.load()
+
+        #expect(store.activeRequests.isEmpty)
+        #expect(store.bookingHandoffs.isEmpty)
+    }
+
+    @Test @MainActor
+    func bookedHandoffCardPresentationKeepsQuestSummaryAndAddsAddress() async throws {
+        let customerID = UUID()
+        let pet = Self.pet(customerID: customerID)
+        let bookedRequest = Self.request(
+            customerID: customerID,
+            petID: pet.id,
+            status: .booked
+        )
+        let booking = Self.booking(
+            requestID: bookedRequest.id,
+            customerID: customerID,
+            status: .confirmed
+        )
+        let presentation = CustomerRequestProgressCardPresentation(
+            request: bookedRequest,
+            handoff: CustomerRequestBookingHandoff(
+                request: bookedRequest,
+                booking: booking
+            )
+        )
+
+        #expect(presentation.headline == "Booking\nconfirmed")
+        #expect(presentation.subtitle == "Full groom for Mochi")
+        #expect(presentation.infoLines == [
+            CustomerRequestProgressCardPresentation.InfoLine(
+                systemImage: "calendar",
+                text: Self.twoLineDisplayRange(
+                    from: booking.scheduledStart,
+                    to: booking.scheduledEnd
+                )
+            ),
+            CustomerRequestProgressCardPresentation.InfoLine(
+                systemImage: "mappin.and.ellipse",
+                text: "Seattle, WA 98101"
+            ),
+        ])
+    }
+
+    @Test @MainActor
+    func openRequestCardPresentationUsesTwoLineHeadlineAndTimeRange() async throws {
+        let customerID = UUID()
+        let request = Self.request(
+            customerID: customerID,
+            petID: UUID(),
+            status: .open
+        )
+        let presentation = CustomerRequestProgressCardPresentation(
+            request: request,
+            handoff: nil
+        )
+
+        #expect(presentation.headline == "Open\nrequest")
+        #expect(presentation.infoLines.first == CustomerRequestProgressCardPresentation.InfoLine(
+            systemImage: "calendar",
+            text: Self.twoLineDisplayRange(
+                from: request.preferredStart,
+                to: request.preferredEnd
+            )
+        ))
+    }
+
+    @Test @MainActor
     func loadOffersPopulatesOfferReviewsForRequest() async throws {
         let customerID = UUID()
         let request = Self.request(customerID: customerID, petID: UUID())
@@ -506,6 +771,10 @@ struct CustomerRequestsStoreTests {
         )
     }
 
+    private static func twoLineDisplayRange(from start: String, to end: String) -> String {
+        "\(GroomingRequestDateFormatting.displayString(from: start)) -\n\(GroomingRequestDateFormatting.displayString(from: end))"
+    }
+
     private static func offerReview(
         offerID: UUID = UUID(),
         customerID: UUID,
@@ -544,6 +813,31 @@ struct CustomerRequestsStoreTests {
                 isActive: true,
                 isVerified: true
             )
+        )
+    }
+
+    private static func booking(
+        requestID: UUID,
+        customerID: UUID,
+        status: BookingStatus = .confirmed
+    ) -> Booking {
+        Booking(
+            id: UUID(),
+            requestID: requestID,
+            offerID: UUID(),
+            customerID: customerID,
+            groomerID: UUID(),
+            scheduledStart: "2026-06-24T16:00:00Z",
+            scheduledEnd: "2026-06-24T18:00:00Z",
+            priceEstimate: 128,
+            status: status,
+            cancelledBy: nil,
+            cancelledAt: nil,
+            completedAt: nil,
+            completedBy: nil,
+            createdAt: "2026-06-22T16:00:00Z",
+            updatedAt: "2026-06-22T16:00:00Z",
+            review: nil
         )
     }
 }
@@ -662,15 +956,21 @@ private final class CustomerRequestRepositoryFake: CustomerRequestRepository {
 
 @MainActor
 private final class CustomerRequestBookingRepositoryFake: BookingRepository {
+    var bookingsResult: Result<[Booking], BookingRepositoryError>
     var acceptResult: Result<AcceptGroomerOfferResult, BookingRepositoryError>
 
+    private(set) var bookingsCallCount = 0
     private(set) var acceptCallCount = 0
+    private(set) var lastBookingsParticipantID: UUID?
+    private(set) var lastBookingsRole: UserRole?
     private(set) var lastAcceptedOfferID: UUID?
 
     init(
+        bookingsResult: Result<[Booking], BookingRepositoryError> = .success([]),
         acceptResult: Result<AcceptGroomerOfferResult, BookingRepositoryError> =
             .failure(.unavailable)
     ) {
+        self.bookingsResult = bookingsResult
         self.acceptResult = acceptResult
     }
 
@@ -678,7 +978,10 @@ private final class CustomerRequestBookingRepositoryFake: BookingRepository {
         participantID: UUID,
         role: UserRole
     ) async throws -> [Booking] {
-        []
+        bookingsCallCount += 1
+        lastBookingsParticipantID = participantID
+        lastBookingsRole = role
+        return try bookingsResult.get()
     }
 
     func acceptOffer(
