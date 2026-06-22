@@ -21,15 +21,18 @@ Use the lightweight single-agent workflow in `docs/05_workflow/SINGLE_AGENT_WORK
 
 The Groomly foundation sequence `docs/06_tasks/T-023_GROOMLY_UI_FOUNDATION_SEQUENCE.md` is completed.
 
-The completed first screen slice is `docs/06_tasks/T-024_GROOMLY_AUTH_ONBOARDING_UI.md`.
+The completed screen slices are:
 
-The active next executable task is to create a new T-025 screen-specific Groomly task file before editing additional non-Auth feature screens.
+- `docs/06_tasks/T-024_GROOMLY_AUTH_ONBOARDING_UI.md`
+- `docs/06_tasks/T-025_GROOMLY_CUSTOMER_PETS_UI.md`
+
+The active next executable task is to create a new T-026 Customer Requests Groomly task file before editing additional request screens.
 
 - T-022 remains completed, but its post-MVP next-task suggestions are frozen and must not auto-start.
 - Use the Groomly design source in `docs/08_design/` only as a visual and interaction reference.
-- T-023A through T-023D2 and T-024 are completed. Do not rerun or extend them unless the user explicitly requests a review follow-up.
+- T-023A through T-023D2, T-024, and T-025 are completed. Do not rerun or extend them unless the user explicitly requests a review follow-up.
 - Run only one screen-specific Groomly task per Codex run.
-- Do not redesign additional feature screens, implement other slices, or start non-Groomly post-MVP work unless the user explicitly requests the next task.
+- Do not redesign additional feature screens, implement T-026, or start non-Groomly post-MVP work unless the user explicitly requests the next task.
 - Do not copy HTML/CSS/React code directly into SwiftUI.
 - Product correctness and the existing Open Request -> Groomer Offer -> Customer Confirmation -> Booking model take priority over visual matching.
 - If prototype content requires backend/schema/RLS/RPC changes or deferred features, stop and report.

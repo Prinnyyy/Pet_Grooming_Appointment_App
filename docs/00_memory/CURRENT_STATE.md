@@ -9,8 +9,8 @@ Update this only when project state meaningfully changes.
 
 ## Current Task Fast Path
 
-- Active Groomly screen slice: `docs/06_tasks/T-024_GROOMLY_AUTH_ONBOARDING_UI.md`.
-- Active next executable task: create a new T-025 screen-specific Groomly task file before editing additional non-Auth feature screens.
+- Latest completed Groomly screen slice: `docs/06_tasks/T-025_GROOMLY_CUSTOMER_PETS_UI.md`.
+- Active next executable task: create a new T-026 Customer Requests Groomly task file before editing request screens.
 - T-023A is completed. `docs/08_design/UI_IMPLEMENTATION_NOTES.md` records the Groomly design audit, prototype-to-SwiftUI mapping, deferred prototype ideas, and asset risks.
 - T-023B is completed. `docs/08_design/design_tokens.json` is the Groomly token source for colors, spacing, radius, shadow, and typography, with extracted versus inferred values labeled.
 - T-023C is completed. `DesignSystem/DesignTokens.swift` now exposes the Groomly SwiftUI token foundation while preserving existing baseline token names.
@@ -18,6 +18,7 @@ Update this only when project state meaningfully changes.
 - T-023D2 is completed. `DesignSystem/GroomlyFeedbackPrimitives.swift` now provides feedback, loading, empty-state, and section-header primitives without wiring them into feature screens.
 - T-023A through T-023D2 are the completed Groomly UI foundation sequence.
 - T-024 is completed. Auth bootstrap, AuthGate session loading, Sign In, Sign Up, profile loading/error, and Role Onboarding now use Groomly tokens/primitives without changing auth, session, profile, backend, or role-routing behavior.
+- T-025 is completed. Customer Home/Pets now uses Groomly background, cards, loading, empty, error, notice, status, button, and form styling without changing pet Store, repository, model, photo metadata, upload/delete, or Storage behavior.
 
 ## Current Branch
 
@@ -29,7 +30,7 @@ Update this only when project state meaningfully changes.
 ## Current Build Status
 
 - Last build command: `./scripts/ios-build.sh`.
-- Last known build result: passed for T-024 on 2026-06-22.
+- Last known build result: passed for T-025 on 2026-06-22.
 - Last test command: `./scripts/ios-test.sh`.
 - Last known test result: passed for T-024 review follow-up on 2026-06-22.
 - Last general check: `./scripts/preflight.sh` passed for T-022 on 2026-06-21.
@@ -50,7 +51,7 @@ Update this only when project state meaningfully changes.
 - Pre-Groomly rule/task context is frozen at `docs/09_frozen/pre_groomly_ui_2026-06-21/` for recovery only; do not read it during Groomly foundation child tasks unless explicitly needed for recovery.
 - T-001 through T-022 are completed. T-022 post-MVP next-task suggestions are frozen and must not auto-start.
 - T-023 is split into five child tasks: T-023A design audit notes, T-023B design tokens JSON, T-023C SwiftUI token foundation, T-023D1 action primitives, and T-023D2 feedback primitives.
-- T-023A, T-023B, T-023C, T-023D1, T-023D2, and T-024 are completed. Create a T-025 screen-specific task file before editing additional non-Auth feature screens.
+- T-023A, T-023B, T-023C, T-023D1, T-023D2, T-024, and T-025 are completed. Create a T-026 Customer Requests Groomly task file before editing request screens.
 
 ## Current iOS State
 
@@ -63,6 +64,7 @@ Update this only when project state meaningfully changes.
 - `DesignSystem/GroomlyFeedbackPrimitives.swift` contains `GroomlyErrorBanner`, `GroomlyLoadingView`, `GroomlyEmptyState`, and `GroomlySectionHeader`; loading and empty-state primitives support customer/groomer accents for role-specific screens.
 - `DesignSystem/GroomlyFormPrimitives.swift` contains `.groomlyFormField()` for token-based Auth/form inputs.
 - T-024 wires Groomly primitives into Auth bootstrap, AuthGate loading, Sign In, Sign Up, profile loading/error, and Role Onboarding only.
+- T-025 wires Groomly primitives into Customer Home/Pets, including the pet list, pet cards, photo metadata rows, loading/empty/error/notice states, and add/edit pet form styling only.
 - SwiftUI views do not access Supabase directly; backend access remains behind repository boundaries.
 
 ## Current Backend State
@@ -70,7 +72,7 @@ Update this only when project state meaningfully changes.
 - Authorized Supabase project: `Pet Groomer Marketplace`, ref `lqmasbuqzvcvtawonjlb`.
 - Legacy project `swdiiyypysyxbnfrxxsv` is out of scope; do not inspect or mutate it.
 - Backend objects needed for the MVP are deployed through T-022 and mirrored under `supabase/migrations/`.
-- T-023B, T-023C, T-023D1, T-023D2, and T-024 required no backend reads or writes. Future backend work must use Supabase MCP only and requires explicit user approval for remote schema writes.
+- T-023B, T-023C, T-023D1, T-023D2, T-024, and T-025 required no backend reads or writes. Future backend work must use Supabase MCP only and requires explicit user approval for remote schema writes.
 - The local `supabase_api_key` file is ignored and must not be read or embedded in code/docs.
 
 ## Known Risks
@@ -82,4 +84,4 @@ Update this only when project state meaningfully changes.
 
 ## Next Recommended Task
 
-- Create T-025 as the next screen-specific Groomly task file before editing additional non-Auth feature screens. Do not auto-start Customer, Groomer, Bookings, Chat, Account, Debug, or backend work.
+- Create T-026 as the next Customer Requests Groomly task file before editing request screens. Do not auto-start Customer Requests, Groomer, Bookings, Chat, Account, Debug, or backend work.

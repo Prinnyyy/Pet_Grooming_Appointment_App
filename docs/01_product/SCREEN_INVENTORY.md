@@ -1,6 +1,6 @@
 # Screen Inventory
 
-Status values are `baseline`, `planned`, and `deferred`. A planned source path is a placement contract, not an existing file.
+Status values are `baseline`, `groomly adapted`, `planned`, and `deferred`. A planned source path is a placement contract, not an existing file.
 
 ## Groomly UI Phase
 
@@ -10,14 +10,14 @@ Visual adaptation must preserve the current Open Request -> Groomer Offer -> Cus
 
 | Screen | Purpose | Role | Planned Data Source | State Owner | Source / Task | Status |
 |---|---|---|---|---|---|---|
-| AuthenticationBootstrapView | Blocking missing/invalid Supabase configuration state | Shared | App configuration | View | `Features/Auth/AuthenticationBootstrapView.swift` | baseline |
-| AuthenticationGateView | Restore/observe Auth session and select signed-out or authenticated entry UI | Shared | Supabase Auth session | `AuthenticationStore` | `Features/Auth/AuthenticationGateView.swift` / T-006–T-007 | baseline |
-| AuthenticationView | Email/password sign-in and account creation with confirmation notice | Shared | Supabase Auth | `AuthenticationStore` | `Features/Auth/AuthenticationView.swift` / T-006 | baseline |
-| AuthenticatedEntryView | Load authoritative profile and select onboarding, Customer tabs, Groomer tabs, or retryable failure | Shared | `profiles` | `AuthenticatedEntryStore` | `Features/Auth/AuthenticatedEntryView.swift` / T-007 | baseline |
-| RoleOnboardingView | Enter display name, select immutable role, and create profile rows | Shared | `create_my_profile` | `AuthenticatedEntryStore` | `Features/Auth/RoleOnboardingView.swift` / T-007 | baseline |
-| CustomerHomeView | Start request and summarize active work | Customer | Own requests, bookings | Customer home view model | `Features/Customer/` / T-013, T-019 | planned |
-| PetListView | List and manage owned pets | Customer | `pets`, `pet_photos` | Pet list view model | `Features/Pets/` / T-009 | planned |
-| PetEditorView | Create/edit pet and upload photos | Customer | `pets`, `pet_photos`, Storage | Pet editor view model | `Features/Pets/` / T-009 | planned |
+| AuthenticationBootstrapView | Blocking missing/invalid Supabase configuration state | Shared | App configuration | View | `Features/Auth/AuthenticationBootstrapView.swift` / T-024 | groomly adapted |
+| AuthenticationGateView | Restore/observe Auth session and select signed-out or authenticated entry UI | Shared | Supabase Auth session | `AuthenticationStore` | `Features/Auth/AuthenticationGateView.swift` / T-006–T-007, T-024 | groomly adapted |
+| AuthenticationView | Email/password sign-in and account creation with confirmation notice | Shared | Supabase Auth | `AuthenticationStore` | `Features/Auth/AuthenticationView.swift` / T-006, T-024 | groomly adapted |
+| AuthenticatedEntryView | Load authoritative profile and select onboarding, Customer tabs, Groomer tabs, or retryable failure | Shared | `profiles` | `AuthenticatedEntryStore` | `Features/Auth/AuthenticatedEntryView.swift` / T-007, T-024 | groomly adapted |
+| RoleOnboardingView | Enter display name, select immutable role, and create profile rows | Shared | `create_my_profile` | `AuthenticatedEntryStore` | `Features/Auth/RoleOnboardingView.swift` / T-007, T-024 | groomly adapted |
+| CustomerHomeView | Customer home surface for pet management before requests | Customer | Own pets and pet photos | `CustomerPetsStore` | `Features/Customer/Pets/CustomerPetsView.swift` / T-009, T-025 | groomly adapted |
+| PetListView | List and manage owned pets | Customer | `pets`, `pet_photos` | `CustomerPetsStore` | `Features/Customer/Pets/CustomerPetsView.swift` / T-009, T-025 | groomly adapted |
+| PetEditorView | Create/edit pet and upload photos | Customer | `pets`, `pet_photos`, Storage | `CustomerPetsStore` | `Features/Customer/Pets/CustomerPetsView.swift` / T-009, T-025 | groomly adapted |
 | RequestWizardView | Compose and publish one request | Customer | Pet repository, request RPC | `CustomerRequestsStore` | `Features/Customer/Requests/CustomerRequestsView.swift` / T-013 | baseline |
 | CustomerRequestDetailView | Show owned request status, frozen pet snapshot, time, location, received offers, and offer acceptance entry point | Customer | `grooming_requests`, `groomer_offers`, active `groomer_profiles` summaries, `accept_groomer_offer` | `CustomerRequestsStore` | `Features/Customer/Requests/CustomerRequestsView.swift` / T-013, T-017, T-019 | baseline |
 | CustomerOfferReviewSection | Compare pending offers, separate offer history, and open offer details inside owned request detail | Customer | `groomer_offers`, active `groomer_profiles` summaries | `CustomerRequestsStore` | `Features/Customer/Requests/CustomerRequestsView.swift` / T-017 | baseline |

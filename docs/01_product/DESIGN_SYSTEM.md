@@ -6,7 +6,7 @@ The MVP should feel friendly, calm, and pet-focused without becoming visually bu
 
 ## Groomly UI Phase
 
-The Groomly design files in `docs/08_design/` are the active visual reference for the UI phase. T-023 completed the foundation sequence: T-023A design audit notes, T-023B design tokens JSON, T-023C SwiftUI token foundation, T-023D1 action primitives, and T-023D2 feedback primitives. T-024 is the first screen-specific slice and applies Groomly styling to Auth and Role Onboarding only.
+The Groomly design files in `docs/08_design/` are the active visual reference for the UI phase. T-023 completed the foundation sequence: T-023A design audit notes, T-023B design tokens JSON, T-023C SwiftUI token foundation, T-023D1 action primitives, and T-023D2 feedback primitives. T-024 applies Groomly styling to Auth and Role Onboarding. T-025 applies Groomly styling to Customer Home/Pets only.
 
 Use Groomly for:
 
@@ -81,7 +81,7 @@ Defined in `DesignSystem/GroomlyActionPrimitives.swift`:
 | `GroomlyCard` | Reusable raised white content surface for compact summaries | normal or selected border state, configurable token-based padding |
 | `GroomlyStatusChip` | Compact semantic status label | neutral, customer, groomer, success, warning, or error tone; optional SF Symbol icon with text fallback; warning uses primary text on amber for contrast |
 
-These primitives are not wired into feature screens yet. Calling screens remain responsible for loading text, duplicate-submit protection, error recovery, navigation, and business actions through their existing Store/repository boundaries.
+These primitives are wired into screen-specific slices only when a task explicitly authorizes that screen. Calling screens remain responsible for loading text, duplicate-submit protection, error recovery, navigation, and business actions through their existing Store/repository boundaries.
 
 ## Implemented SwiftUI Feedback Primitives
 
@@ -94,7 +94,7 @@ Defined in `DesignSystem/GroomlyFeedbackPrimitives.swift`:
 | `GroomlyEmptyState` | Present an empty result or first-use state without adding product behavior | caller-provided title/message, customer or groomer accent, optional SF Symbol icon, optional caller-owned action view; text-only fallback supported |
 | `GroomlySectionHeader` | Provide consistent section title/subtitle structure before grouped content | caller-provided title/subtitle and optional trailing view |
 
-These primitives are not wired into feature screens yet. They do not own loading, retry, navigation, data fetching, or business logic; those responsibilities remain with the existing Store/repository boundaries when a later screen-specific task applies them.
+These primitives are wired into screen-specific slices only when a task explicitly authorizes that screen. They do not own loading, retry, navigation, data fetching, or business logic; those responsibilities remain with the existing Store/repository boundaries.
 
 ## Implemented SwiftUI Form Primitive
 
@@ -109,6 +109,7 @@ Defined in `DesignSystem/GroomlyFormPrimitives.swift`:
 | Task | Screens | Status |
 |---|---|---|
 | T-024 Auth and Onboarding UI | Auth bootstrap ready/configuration error, AuthGate session loading, Sign In, Sign Up, profile loading/error, Role Onboarding | implemented; no repository, Store, session, profile RPC, backend, or role-routing changes |
+| T-025 Customer Pets/Home UI | Customer Home/Pets list, pet cards, photo metadata rows, loading/empty/error/notice states, add/edit pet form styling | implemented; no pet Store, repository, model, Storage, backend, or tab-routing changes |
 
 ## Typography
 
@@ -124,12 +125,12 @@ Defined in `DesignSystem/GroomlyFormPrimitives.swift`:
 | `GroomlyPrimaryButtonStyle` | Submit the screen's main mutation | normal, pressed, disabled; loading and error recovery supplied by calling screen state | implemented |
 | `GroomlySecondaryButtonStyle` | Present supporting actions without competing with the primary decision | normal, pressed, disabled | implemented |
 | Form field | Collect validated input | normal, disabled; focused uses system input behavior; invalid/error copy supplied by caller | implemented as `.groomlyFormField()` |
-| `GroomlyCard` | Present pet, request, offer, or booking summary | normal, selected when applicable | implemented, not wired into screens |
-| `GroomlyStatusChip` | Present request, offer, or booking state | semantic text label, optional icon, and tone | implemented, not wired into screens |
-| `GroomlyErrorBanner` | Explain recoverable failure | caller-provided title/message, optional icon, optional caller-owned action | implemented, not wired into screens |
-| `GroomlyLoadingView` | Explain in-progress loading without owning async state | caller-provided title/message and customer or groomer accent | implemented, not wired into screens |
-| `GroomlyEmptyState` | Explain missing content or first-use state | caller-provided title/message, customer or groomer accent, optional icon, optional caller-owned action | implemented, not wired into screens |
-| `GroomlySectionHeader` | Introduce grouped content consistently | title, optional subtitle, optional trailing view | implemented, not wired into screens |
+| `GroomlyCard` | Present pet, request, offer, or booking summary | normal, selected when applicable | implemented; used only by authorized screen slices |
+| `GroomlyStatusChip` | Present request, offer, or booking state | semantic text label, optional icon, and tone | implemented; used only by authorized screen slices |
+| `GroomlyErrorBanner` | Explain recoverable failure | caller-provided title/message, optional icon, optional caller-owned action | implemented; used only by authorized screen slices |
+| `GroomlyLoadingView` | Explain in-progress loading without owning async state | caller-provided title/message and customer or groomer accent | implemented; used only by authorized screen slices |
+| `GroomlyEmptyState` | Explain missing content or first-use state | caller-provided title/message, customer or groomer accent, optional icon, optional caller-owned action | implemented; used only by authorized screen slices |
+| `GroomlySectionHeader` | Introduce grouped content consistently | title, optional subtitle, optional trailing view | implemented; used only by authorized screen slices |
 
 ## Rules
 

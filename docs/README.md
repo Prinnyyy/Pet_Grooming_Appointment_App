@@ -19,8 +19,13 @@ Use it to avoid relying on long conversation context.
 
 ## Active Task
 
-The active Groomly foundation sequence is `06_tasks/T-023_GROOMLY_UI_FOUNDATION_SEQUENCE.md`.
+The completed Groomly foundation sequence is `06_tasks/T-023_GROOMLY_UI_FOUNDATION_SEQUENCE.md`.
 
-The active next executable task is `06_tasks/T-023A_GROOMLY_DESIGN_AUDIT_NOTES.md`.
+Completed screen slices:
+
+- `06_tasks/T-024_GROOMLY_AUTH_ONBOARDING_UI.md`
+- `06_tasks/T-025_GROOMLY_CUSTOMER_PETS_UI.md`
+
+The active next executable task is to create a new T-026 Customer Requests Groomly task file before editing request screens.
 
 T-022 remains completed, but its post-MVP next-task suggestions are frozen and must not auto-start. Use `09_frozen/pre_groomly_ui_2026-06-21/` only to recover or compare pre-Groomly context.

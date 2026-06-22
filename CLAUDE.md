@@ -12,15 +12,16 @@ The completed Groomly foundation sequence is:
 docs/06_tasks/T-023_GROOMLY_UI_FOUNDATION_SEQUENCE.md
 ```
 
-The completed first screen-specific Groomly slice is:
+The completed screen-specific Groomly slices are:
 
 ```text
 docs/06_tasks/T-024_GROOMLY_AUTH_ONBOARDING_UI.md
+docs/06_tasks/T-025_GROOMLY_CUSTOMER_PETS_UI.md
 ```
 
-The only active next executable task is to create a new T-025 screen-specific Groomly task file before editing additional non-Auth feature screens.
+The only active next executable task is to create a new T-026 Customer Requests Groomly task file before editing request screens.
 
-Do not start T-025 implementation, backend work, or other post-MVP tasks automatically.
+Do not start T-026 implementation, backend work, or other post-MVP tasks automatically.
 
 ## Claude's Role
 

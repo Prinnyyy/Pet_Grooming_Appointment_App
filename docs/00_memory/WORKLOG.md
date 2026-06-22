@@ -2,12 +2,22 @@
 
 ```text
 Date: 2026-06-22
+Task: T-025 - Groomly Customer Pets/Home UI.
+Files changed: Added docs/06_tasks/T-025_GROOMLY_CUSTOMER_PETS_UI.md; updated CustomerPetsView.swift, AGENTS.md, CLAUDE.md, README.md, docs/README.md, docs/01_product/DESIGN_SYSTEM.md, docs/01_product/SCREEN_INVENTORY.md, CURRENT_STATE.md, FEATURE_INDEX.md, WORKLOG.md, and TASK_LEDGER.md.
+Checks: `./scripts/ios-build.sh` passed. `git diff --check` passed.
+Result: T-025 is completed. Customer Home/Pets now uses Groomly background, cards, loading, empty, error, notice, status, button, and form-field styling. Existing pet loading, create/edit, soft-delete, photo upload/delete, notice/error, busy/disabled, Store, repository, model, Storage, and tab behavior were preserved.
+Risks: This was a visual-only Customer Pets/Home slice. Customer Requests, offers, bookings, chat, account, debug, groomer screens, backend, repositories, Stores, models, scripts, assets, remote image rendering, and signed URLs remain untouched.
+Next: Create a new T-026 Customer Requests Groomly task file before editing request screens.
+```
+
+```text
+Date: 2026-06-22
 Task: T-024 - Groomly Auth and Onboarding UI.
 Files changed: Added docs/06_tasks/T-024_GROOMLY_AUTH_ONBOARDING_UI.md and ios/PetGroomerMarketplace/PetGroomerMarketplace/DesignSystem/GroomlyFormPrimitives.swift; updated Auth SwiftUI views, AGENTS.md, CLAUDE.md, README.md, docs/01_product/DESIGN_SYSTEM.md, CURRENT_STATE.md, WORKLOG.md, and TASK_LEDGER.md.
 Checks: `./scripts/ios-build.sh` passed. Post-review `./scripts/ios-test.sh` passed. `git diff --check` passed.
 Result: T-024 is completed. Auth bootstrap, AuthGate session loading, Sign In, Sign Up, profile loading/error, and Role Onboarding now use Groomly tokens/primitives and the new `.groomlyFormField()` helper. Existing Store calls, auth/session/profile routing, submit guards, error states, and sign-out behavior were preserved. Post-review follow-up confirmed no active README ownership conflict in current docs and restored typographic ellipses in new Auth loading/submitting strings.
 Risks: This was a visual-only Auth/Onboarding slice. Customer, groomer, pet, request, offer, booking, chat, account, debug, backend, repository, Store, model, Supabase, script, and asset work remain untouched.
-Next: Create a new T-025 screen-specific Groomly task file before editing additional non-Auth feature screens.
+Next: Superseded by completed T-025; current next action is to create T-026 before editing request screens.
 ```
 
 ```text
