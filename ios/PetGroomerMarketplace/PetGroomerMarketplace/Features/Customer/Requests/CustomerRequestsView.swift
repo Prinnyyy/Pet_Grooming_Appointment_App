@@ -219,7 +219,7 @@ private struct CustomerRequestSummaryRow: View {
     }
 }
 
-private struct CustomerRequestDetailView: View {
+struct CustomerRequestDetailView: View {
     let requestID: UUID
     let store: CustomerRequestsStore
 
@@ -949,7 +949,7 @@ private extension GroomerOfferStatus {
     }
 }
 
-private struct CustomerRequestWizardView: View {
+struct CustomerRequestWizardView: View {
     @Bindable var store: CustomerRequestsStore
 
     var body: some View {
@@ -1239,7 +1239,7 @@ private struct WizardReviewRow: View {
     }
 }
 
-private struct CustomerRequestsStatusView: View {
+struct CustomerRequestsStatusView: View {
     let store: CustomerRequestsStore
 
     var body: some View {

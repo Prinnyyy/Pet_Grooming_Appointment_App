@@ -2,6 +2,7 @@ import SwiftUI
 
 struct CustomerTabView: View {
     let customerID: UUID?
+    let customerDisplayName: String?
     let petRepository: (any CustomerPetRepository)?
     let requestRepository: (any CustomerRequestRepository)?
     let bookingRepository: (any BookingRepository)?
@@ -11,6 +12,7 @@ struct CustomerTabView: View {
 
     init(
         customerID: UUID? = nil,
+        customerDisplayName: String? = nil,
         petRepository: (any CustomerPetRepository)? = nil,
         requestRepository: (any CustomerRequestRepository)? = nil,
         bookingRepository: (any BookingRepository)? = nil,
@@ -18,6 +20,7 @@ struct CustomerTabView: View {
         accountContent: AnyView? = nil
     ) {
         self.customerID = customerID
+        self.customerDisplayName = customerDisplayName
         self.petRepository = petRepository
         self.requestRepository = requestRepository
         self.bookingRepository = bookingRepository
@@ -47,10 +50,17 @@ struct CustomerTabView: View {
 
     @ViewBuilder
     private func destination(for tab: CustomerTab) -> some View {
-        if tab == .home, let customerID, let petRepository {
+        if tab == .home,
+           let customerID,
+           let petRepository,
+           let requestRepository,
+           let bookingRepository {
             CustomerPetsView(
                 customerID: customerID,
-                repository: petRepository
+                displayName: customerDisplayName,
+                repository: petRepository,
+                requestRepository: requestRepository,
+                bookingRepository: bookingRepository
             )
         } else if tab == .requests,
                   let customerID,

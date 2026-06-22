@@ -53,6 +53,7 @@ struct AuthenticatedEntryView: View {
             case let .customer(profile):
                 CustomerTabView(
                     customerID: profile.userID,
+                    customerDisplayName: profile.displayName,
                     petRepository: customerPetRepository,
                     requestRepository: customerRequestRepository,
                     bookingRepository: bookingRepository,

@@ -9,7 +9,7 @@ Update this only when project state meaningfully changes.
 
 ## Current Task Fast Path
 
-- Latest completed Groomly signed-out Auth task: `docs/06_tasks/T-039_GROOMLY_SIGN_IN_TWO_FIELD_SPACING.md`.
+- Latest completed Groomly screenshot task: `docs/06_tasks/T-040_GROOMLY_CUSTOMER_HOME_SCREENSHOT_UI.md`.
 - Groomly UI sequence: `docs/06_tasks/T-026_TO_T-035_GROOMLY_UI_COMPLETION_SEQUENCE.md` is completed for implemented MVP screens.
 - Completed Groomly UI phase archive marker: `docs/09_frozen/groomly_ui_completed_2026-06-22/FREEZE_README.md`.
 - Active next executable Groomly task: none currently defined; future UI work starts from a user-uploaded screenshot.
@@ -40,6 +40,7 @@ Update this only when project state meaningfully changes.
 - T-037 is completed. The incorrect pre-auth Customer/Groomer toggle and `LandingAudience`-driven derivative UI states were removed; the signed-out landing now uses one dog/Groomly identity, stronger bubble drift, and rebalanced logo/title/CTA layout without changing Auth, profile, backend, or role-routing behavior.
 - T-038 is completed. The sign-in page now follows the prototype hierarchy with a left-aligned `Welcome back` header, labeled email/password fields, local Show/Hide password control, primary `Sign In`, and secondary `Create Account`; the bottom DEMO module and pre-auth Customer/Groomer toggle were not implemented.
 - T-039 is completed. The two-field sign-in state now tightens only the fields-to-actions spacing while preserving the header-to-fields top anchor and leaving the three-field create-account spacing unchanged.
+- T-040 is completed. Customer Home now uses the prototype-inspired dashboard order with a profile display-name welcome header, static notification button, mint request CTA, horizontal pets carousel, add pet tile, active request summary, and next booking summary. It reuses existing pet/request/booking stores and existing pet form, request wizard/detail, and booking detail; notification behavior, avatar URLs, and booking participant names remain unimplemented model/backend gaps.
 
 ## Current Branch
 
@@ -51,8 +52,8 @@ Update this only when project state meaningfully changes.
 ## Current Build Status
 
 - Last build command: `./scripts/ios-build.sh`.
-- Last known build result: passed for T-039 on 2026-06-22.
-- Last simulator launch: XcodeBuildMCP `build_run_sim` passed on `iPhone 17` simulator (`B9639233-9E78-41C9-A372-330D36C38DA7`) on 2026-06-22; sign-in was opened from `auth.already-have-account` and reached `auth.form`. Screenshot validation was skipped per user request.
+- Last known build result: passed for T-040 on 2026-06-22.
+- Last simulator launch: XcodeBuildMCP `build_run_sim` passed on `iPhone 17` simulator (`B9639233-9E78-41C9-A372-330D36C38DA7`) on 2026-06-22; runtime UI reached `customer.home`. Interaction smoke opened and cancelled the request wizard, opened and cancelled the add pet form, opened request detail, opened booking detail, and returned to Customer Home. Screenshot: `/var/folders/bc/xmbw6w1d06s61ns9_j2fnll00000gn/T/screenshot_optimized_b75979de-dae9-42a5-a68f-a5e9dfc271ff.jpg`.
 - Last test command: `./scripts/ios-test.sh`.
 - Last known test result: passed for T-035 review follow-up on 2026-06-22.
 - Last general check: `./scripts/preflight.sh` passed for T-035 review follow-up on 2026-06-22.
@@ -95,6 +96,7 @@ Update this only when project state meaningfully changes.
 - T-037 removes the mistakenly implemented pre-auth Customer/Groomer selector and all `LandingAudience`-derived variants from `AuthenticationView`. The signed-out landing now has a single dog/Groomly hero, more visible bubble drift, rebalanced logo/title/CTA spacing, and fixed customer-accent styling only as a brand treatment.
 - T-038 redesigns the `AuthenticationView` sign-in form from the login screenshot: left-aligned title/subtitle, labeled email/password fields, a local Show/Hide password toggle, primary Sign In, and secondary Create Account. The old auth mode segmented picker was removed from the form surface, while `AuthenticationStore.mode` and `submit()` remain the behavioral path.
 - T-039 preserves the sign-in form's header-to-fields top spacing and tightens only `fieldsToActionsSpacing` for the two-field `.signIn` state. The `.signUp` three-field spacing remains unchanged.
+- T-040 redesigns Customer Home from the uploaded customer-home screenshots: `CustomerTabView` now passes `MarketplaceProfile.displayName` into Home; `CustomerPetsView` owns existing pet/request/booking stores to render the welcome header, static notification button, request CTA, horizontal pet carousel, add pet tile, active request summary, and next booking summary; `CustomerRequestWizardView`, `CustomerRequestDetailView`, `CustomerRequestsStatusView`, and `BookingDetailView` were made module-internal for reuse from Home without new data paths.
 - T-025 wires Groomly primitives into Customer Home/Pets, including the pet list, pet cards, photo metadata rows, loading/empty/error/notice states, and add/edit pet form styling only.
 - T-026 wires Groomly primitives into the Customer Requests tab shell, request list, summary rows, loading/empty/error states, new-request entry card, and bottom status feedback only.
 - T-027 wires Groomly primitives into the Customer Request wizard form, field cards, review summary, wizard error banner, and publish action only.
@@ -113,7 +115,7 @@ Update this only when project state meaningfully changes.
 - Authorized Supabase project: `Pet Groomer Marketplace`, ref `lqmasbuqzvcvtawonjlb`.
 - Legacy project `swdiiyypysyxbnfrxxsv` is out of scope; do not inspect or mutate it.
 - Backend objects needed for the MVP are deployed through T-022 and mirrored under `supabase/migrations/`.
-- T-023B, T-023C, T-023D1, T-023D2, and T-024 through T-039 required no backend reads or writes. Future backend work must use Supabase MCP only and requires explicit user approval for remote schema writes.
+- T-023B, T-023C, T-023D1, T-023D2, and T-024 through T-040 required no backend reads or writes. Future backend work must use Supabase MCP only and requires explicit user approval for remote schema writes.
 - The local `supabase_api_key` file is ignored and must not be read or embedded in code/docs.
 
 ## Known Risks

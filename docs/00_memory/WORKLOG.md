@@ -2,6 +2,17 @@
 
 ```text
 Date: 2026-06-22
+Task: T-040 - Groomly customer Home screenshot UI.
+Files changed: Added docs/06_tasks/T-040_GROOMLY_CUSTOMER_HOME_SCREENSHOT_UI.md; updated AuthenticatedEntryView.swift, CustomerTabView.swift, CustomerPetsView.swift, CustomerRequestsView.swift, BookingsView.swift, CURRENT_STATE.md, WORKLOG.md, and TASK_LEDGER.md.
+Checks: `./scripts/ios-build.sh` passed. `git diff --check` passed.
+Simulator launch: XcodeBuildMCP `build_run_sim` passed on `iPhone 17` simulator (`B9639233-9E78-41C9-A372-330D36C38DA7`). Runtime UI snapshot reached `customer.home`; Start Grooming Request opened the existing request wizard, Add pet opened the existing pet form, View Request opened existing request detail, and Next booking opened existing booking detail. Final screenshot: `/var/folders/bc/xmbw6w1d06s61ns9_j2fnll00000gn/T/screenshot_optimized_b75979de-dae9-42a5-a68f-a5e9dfc271ff.jpg`.
+Result: Customer Home now follows the prototype-inspired dashboard order: welcome header with profile display name and static notification button, mint request CTA, horizontal pet carousel with add tile, active request summary, and next booking summary. Existing pet, request, and booking stores/repositories remain the behavior paths.
+Risks: Notification behavior, avatar URLs, and booking groomer names are not implemented because current backend/model contracts do not support them. Next booking shows existing groomer reference/time instead of an invented name.
+Next: App is running on Customer Home in Simulator for inspection. Wait for explicit user direction before changing adjacent customer tabs or backend-backed notification/avatar/participant-name features.
+```
+
+```text
+Date: 2026-06-22
 Task: T-039 - Groomly sign-in two-field spacing.
 Files changed: Added docs/06_tasks/T-039_GROOMLY_SIGN_IN_TWO_FIELD_SPACING.md; updated AuthenticationView.swift, CURRENT_STATE.md, WORKLOG.md, and TASK_LEDGER.md.
 Checks: `./scripts/ios-build.sh` passed. `git diff --check` passed.

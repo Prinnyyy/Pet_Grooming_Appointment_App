@@ -165,7 +165,7 @@ private struct BookingSummaryRow: View {
     }
 }
 
-private struct BookingDetailView: View {
+struct BookingDetailView: View {
     let bookingID: UUID
     let role: UserRole
     let store: BookingsStore
