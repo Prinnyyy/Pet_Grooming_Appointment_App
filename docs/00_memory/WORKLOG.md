@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-06-22
+Task: T-033 - Groomly Bookings UI.
+Files changed: Updated BookingsView.swift, docs/06_tasks/T-033_GROOMLY_BOOKINGS_UI.md, AGENTS.md, CLAUDE.md, README.md, docs/README.md, docs/01_product/DESIGN_SYSTEM.md, docs/01_product/SCREEN_INVENTORY.md, CURRENT_STATE.md, FEATURE_INDEX.md, WORKLOG.md, and TASK_LEDGER.md.
+Checks: `./scripts/ios-build.sh` first failed on a local generic nested-type reference, then passed after the single correction. Post-review `./scripts/ios-test.sh` passed. `git diff --check` passed.
+Result: T-033 is completed. Shared customer/groomer booking lists, booking summary rows, booking detail sections, cancellation/completion controls, customer review display/form, and bottom booking status feedback now use Groomly background, cards, section headers, status chips, feedback primitives, form styling, and role-appropriate customer/groomer accents while preserving load, refresh, selection, cancel, complete, review submission, notices, errors, busy/disabled states, Store ownership, repositories, models, status semantics, and backend behavior.
+Risks: This was a visual-only Bookings slice. Request/offer screens, chat, account, debug, tabs, backend, repositories, Stores, models, scripts, assets, rescheduling, payments, push notifications, and review moderation/editing remain untouched.
+Next: Execute T-034 Groomly Chat UI only.
+```
+
+```text
+Date: 2026-06-22
 Task: T-032 - Groomly Groomer Portfolio UI.
 Files changed: Updated GroomerProfileManagementView.swift, docs/06_tasks/T-032_GROOMLY_GROOMER_PORTFOLIO_UI.md, AGENTS.md, CLAUDE.md, README.md, docs/README.md, docs/01_product/DESIGN_SYSTEM.md, docs/01_product/SCREEN_INVENTORY.md, CURRENT_STATE.md, FEATURE_INDEX.md, WORKLOG.md, and TASK_LEDGER.md.
 Checks: `./scripts/ios-build.sh` passed. Post-review `./scripts/ios-test.sh` passed. `git diff --check` passed.

@@ -32,9 +32,10 @@ Completed screen slices:
 - `06_tasks/T-030_GROOMLY_GROOMER_OFFER_FORM_STATUS_UI.md`
 - `06_tasks/T-031_GROOMLY_GROOMER_PROFILE_SERVICES_UI.md`
 - `06_tasks/T-032_GROOMLY_GROOMER_PORTFOLIO_UI.md`
+- `06_tasks/T-033_GROOMLY_BOOKINGS_UI.md`
 
 The planned remaining Groomly UI sequence is `06_tasks/T-026_TO_T-035_GROOMLY_UI_COMPLETION_SEQUENCE.md`.
 
-The active next executable task is `06_tasks/T-033_GROOMLY_BOOKINGS_UI.md`.
+The active next executable task is `06_tasks/T-034_GROOMLY_CHAT_UI.md`.
 
 T-022 remains completed, but its post-MVP next-task suggestions are frozen and must not auto-start. Use `09_frozen/pre_groomly_ui_2026-06-21/` only to recover or compare pre-Groomly context.

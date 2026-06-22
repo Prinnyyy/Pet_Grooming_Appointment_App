@@ -9,10 +9,10 @@ Update this only when project state meaningfully changes.
 
 ## Current Task Fast Path
 
-- Latest completed Groomly screen slice: `docs/06_tasks/T-032_GROOMLY_GROOMER_PORTFOLIO_UI.md`.
+- Latest completed Groomly screen slice: `docs/06_tasks/T-033_GROOMLY_BOOKINGS_UI.md`.
 - Planned remaining Groomly UI sequence: `docs/06_tasks/T-026_TO_T-035_GROOMLY_UI_COMPLETION_SEQUENCE.md`.
-- Active next executable task: `docs/06_tasks/T-033_GROOMLY_BOOKINGS_UI.md`.
-- Planned sequence after T-033: T-034 Chat and T-035 Account/Tabs/Debug final audit.
+- Active next executable task: `docs/06_tasks/T-034_GROOMLY_CHAT_UI.md`.
+- Planned sequence after T-034: T-035 Account/Tabs/Debug final audit.
 - T-023A is completed. `docs/08_design/UI_IMPLEMENTATION_NOTES.md` records the Groomly design audit, prototype-to-SwiftUI mapping, deferred prototype ideas, and asset risks.
 - T-023B is completed. `docs/08_design/design_tokens.json` is the Groomly token source for colors, spacing, radius, shadow, and typography, with extracted versus inferred values labeled.
 - T-023C is completed. `DesignSystem/DesignTokens.swift` now exposes the Groomly SwiftUI token foundation while preserving existing baseline token names.
@@ -28,7 +28,8 @@ Update this only when project state meaningfully changes.
 - T-030 is completed. Groomer offer creation fields, existing offer status blocks, withdraw action, closed-offer notice, and submit action now use Groomly styling without changing create/withdraw semantics, validation, Store ownership, repositories, models, or backend behavior.
 - T-031 is completed. Groomer profile form, services list, service create/edit sheet, and profile/service status feedback now use Groomly styling without changing profile/service validation, Store ownership, repositories, models, portfolio Storage behavior, or backend behavior.
 - T-032 is completed. Groomer portfolio metadata rows, upload action, delete action, empty state, and upload progress feedback now use Groomly styling without changing portfolio Storage metadata behavior, Store ownership, repositories, models, signed URL support, or backend behavior.
-- T-033 through T-035 are planned as the remaining Groomly UI completion sequence. Execute them in order and do not skip ahead unless the user explicitly replans.
+- T-033 is completed. Shared customer/groomer booking lists, booking detail, lifecycle actions, review display/form, and booking status feedback now use Groomly styling without changing booking Store, repository, model, backend, status semantics, or role behavior.
+- T-034 through T-035 are planned as the remaining Groomly UI completion sequence. Execute them in order and do not skip ahead unless the user explicitly replans.
 
 ## Current Branch
 
@@ -40,9 +41,9 @@ Update this only when project state meaningfully changes.
 ## Current Build Status
 
 - Last build command: `./scripts/ios-build.sh`.
-- Last known build result: passed for T-032 on 2026-06-22.
+- Last known build result: passed for T-033 on 2026-06-22 after one local generic-type reference fix.
 - Last test command: `./scripts/ios-test.sh`.
-- Last known test result: passed for T-030 through T-032 review follow-up on 2026-06-22.
+- Last known test result: passed for T-033 review follow-up on 2026-06-22.
 - Last general check: `./scripts/preflight.sh` passed for T-022 on 2026-06-21.
 - Known failing checks: none recorded after T-022.
 - Historical per-task validation details live in the relevant `docs/06_tasks/T-*.md` files and `docs/00_memory/WORKLOG.md`.
@@ -61,7 +62,7 @@ Update this only when project state meaningfully changes.
 - Pre-Groomly rule/task context is frozen at `docs/09_frozen/pre_groomly_ui_2026-06-21/` for recovery only; do not read it during Groomly foundation child tasks unless explicitly needed for recovery.
 - T-001 through T-022 are completed. T-022 post-MVP next-task suggestions are frozen and must not auto-start.
 - T-023 is split into five child tasks: T-023A design audit notes, T-023B design tokens JSON, T-023C SwiftUI token foundation, T-023D1 action primitives, and T-023D2 feedback primitives.
-- T-023A, T-023B, T-023C, T-023D1, T-023D2, T-024, T-025, T-026, T-027, T-028, T-029, T-030, T-031, and T-032 are completed. T-033 through T-035 are planned as the remaining Groomly UI sequence; execute T-033 next.
+- T-023A, T-023B, T-023C, T-023D1, T-023D2, T-024, T-025, T-026, T-027, T-028, T-029, T-030, T-031, T-032, and T-033 are completed. T-034 through T-035 are planned as the remaining Groomly UI sequence; execute T-034 next.
 
 ## Current iOS State
 
@@ -82,7 +83,8 @@ Update this only when project state meaningfully changes.
 - T-030 wires Groomly primitives into the Groomer offer creation form, existing offer status blocks, withdraw action, closed-offer notice, and submit action only.
 - T-031 wires Groomly primitives into Groomer profile form, services list, service create/edit sheet, and profile/service status feedback only.
 - T-032 wires Groomly primitives into Groomer portfolio metadata rows, upload/delete controls, empty state, and upload progress feedback only; remote portfolio image rendering remains deferred.
-- T-033 through T-035 are planned to adapt the remaining bookings, chat, account, tabs, and debug surfaces.
+- T-033 wires Groomly primitives into shared customer/groomer booking lists, booking detail sections, cancellation/completion controls, review display/form, and booking status feedback only.
+- T-034 through T-035 are planned to adapt the remaining chat, account, tabs, and debug surfaces.
 - SwiftUI views do not access Supabase directly; backend access remains behind repository boundaries.
 
 ## Current Backend State
@@ -90,7 +92,7 @@ Update this only when project state meaningfully changes.
 - Authorized Supabase project: `Pet Groomer Marketplace`, ref `lqmasbuqzvcvtawonjlb`.
 - Legacy project `swdiiyypysyxbnfrxxsv` is out of scope; do not inspect or mutate it.
 - Backend objects needed for the MVP are deployed through T-022 and mirrored under `supabase/migrations/`.
-- T-023B, T-023C, T-023D1, T-023D2, T-024, T-025, T-026, T-027, T-028, T-029, T-030, T-031, and T-032 required no backend reads or writes. Future backend work must use Supabase MCP only and requires explicit user approval for remote schema writes.
+- T-023B, T-023C, T-023D1, T-023D2, T-024, T-025, T-026, T-027, T-028, T-029, T-030, T-031, T-032, and T-033 required no backend reads or writes. Future backend work must use Supabase MCP only and requires explicit user approval for remote schema writes.
 - The local `supabase_api_key` file is ignored and must not be read or embedded in code/docs.
 
 ## Known Risks
@@ -102,4 +104,4 @@ Update this only when project state meaningfully changes.
 
 ## Next Recommended Task
 
-- Execute `docs/06_tasks/T-033_GROOMLY_BOOKINGS_UI.md` next. Do not skip ahead to T-034 through T-035, and do not start backend or post-MVP feature work.
+- Execute `docs/06_tasks/T-034_GROOMLY_CHAT_UI.md` next. Do not skip ahead to T-035, and do not start backend or post-MVP feature work.

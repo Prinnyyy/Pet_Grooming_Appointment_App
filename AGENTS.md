@@ -32,15 +32,16 @@ The completed screen slices are:
 - `docs/06_tasks/T-030_GROOMLY_GROOMER_OFFER_FORM_STATUS_UI.md`
 - `docs/06_tasks/T-031_GROOMLY_GROOMER_PROFILE_SERVICES_UI.md`
 - `docs/06_tasks/T-032_GROOMLY_GROOMER_PORTFOLIO_UI.md`
+- `docs/06_tasks/T-033_GROOMLY_BOOKINGS_UI.md`
 
 The planned remaining Groomly UI sequence is `docs/06_tasks/T-026_TO_T-035_GROOMLY_UI_COMPLETION_SEQUENCE.md`.
 
-The active next executable task is `docs/06_tasks/T-033_GROOMLY_BOOKINGS_UI.md`.
+The active next executable task is `docs/06_tasks/T-034_GROOMLY_CHAT_UI.md`.
 
 - T-022 remains completed, but its post-MVP next-task suggestions are frozen and must not auto-start.
 - Use the Groomly design source in `docs/08_design/` only as a visual and interaction reference.
-- T-023A through T-023D2 and T-024 through T-032 are completed. Do not rerun or extend them unless the user explicitly requests a review follow-up.
-- T-026 through T-032 are completed. T-033 through T-035 are planned. Execute them in order unless the user explicitly replans the sequence.
+- T-023A through T-023D2 and T-024 through T-033 are completed. Do not rerun or extend them unless the user explicitly requests a review follow-up.
+- T-026 through T-033 are completed. T-034 through T-035 are planned. Execute them in order unless the user explicitly replans the sequence.
 - Run only one screen-specific Groomly task per Codex run.
 - Do not redesign additional feature screens, skip ahead to later Groomly tasks, or start non-Groomly post-MVP work unless the user explicitly requests it.
 - Do not copy HTML/CSS/React code directly into SwiftUI.

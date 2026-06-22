@@ -1,6 +1,6 @@
 # T-033 - Groomly Bookings UI
 
-- State: planned.
+- State: completed.
 - Mode: Standard.
 - Depends on: completed T-032.
 
@@ -52,12 +52,24 @@ Run:
 git diff --check
 ```
 
+Status:
+
+- `./scripts/ios-build.sh` passed on 2026-06-22 after one local generic-type reference fix.
+- Post-review `./scripts/ios-test.sh` passed on 2026-06-22.
+- `git diff --check` passed on 2026-06-22.
+
 ## Acceptance
 
 - Bookings list, booking detail, cancellation/completion controls, and review form/display use Groomly styling.
 - Existing load, retry, selection, cancellation, completion, review submission/display, busy, disabled, notice, and error behavior is preserved.
 - No Store, repository, model, backend, Supabase, script, asset, request, chat, account, debug, or tab-routing file is changed.
 - Next planned task remains T-034.
+
+Completion notes:
+
+- `BookingsView`, booking summary rows, booking detail sections, lifecycle actions, review display/form, and bottom status feedback now use Groomly background, cards, section headers, status chips, feedback primitives, form styling, and role-appropriate accents.
+- Existing `store.load()`, booking selection, `store.cancel(_:)`, groomer `store.complete(_:)`, customer review submission, notice/error, busy, and disabled flows remain owned by `BookingsStore`.
+- No Store, repository, model, backend, Supabase, script, asset, request, chat, account, debug, tab-routing, or booking-status semantics were changed.
 
 ## Stop Conditions
 

@@ -20,42 +20,11 @@ struct BookingsView: View {
     }
 
     var body: some View {
-        Group {
-            if store.isLoading, store.bookings.isEmpty {
-                ProgressView("Loading bookings…")
-                    .accessibilityIdentifier("bookings.loading")
-            } else {
-                List {
-                    if store.bookings.isEmpty {
-                        Section {
-                            ContentUnavailableView(
-                                "No bookings yet",
-                                systemImage: "calendar.badge.clock",
-                                description: Text("Confirmed appointments will appear here after an offer is accepted.")
-                            )
-                            .accessibilityIdentifier("bookings.empty")
-                        }
-                    } else {
-                        Section("Bookings") {
-                            ForEach(store.bookings) { booking in
-                                NavigationLink {
-                                    BookingDetailView(
-                                        bookingID: booking.id,
-                                        role: role,
-                                        store: store
-                                    )
-                                } label: {
-                                    BookingSummaryRow(
-                                        booking: booking,
-                                        role: role
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-                .accessibilityIdentifier("bookings.list")
-            }
+        ZStack {
+            DesignTokens.Colors.background
+                .ignoresSafeArea()
+
+            bookingsContent
         }
         .navigationTitle("Bookings")
         .toolbar {
@@ -71,10 +40,68 @@ struct BookingsView: View {
             }
         }
         .safeAreaInset(edge: .bottom) {
-            BookingsStatusView(store: store)
+            BookingsStatusView(
+                store: store,
+                role: role
+            )
         }
         .task {
             await store.load()
+        }
+    }
+
+    @ViewBuilder
+    private var bookingsContent: some View {
+        if store.isLoading, store.bookings.isEmpty {
+            GroomlyLoadingView(
+                title: "Loading bookings…",
+                message: "Fetching confirmed appointments for your account.",
+                accent: role.loadingAccent
+            )
+            .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+            .accessibilityIdentifier("bookings.loading")
+        } else {
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                    GroomlySectionHeader(
+                        "Bookings",
+                        subtitle: role.bookingsSubtitle
+                    )
+
+                    if store.bookings.isEmpty {
+                        GroomlyEmptyState(
+                            title: "No bookings yet",
+                            message: "Confirmed appointments will appear here after an offer is accepted.",
+                            systemImage: "calendar.badge.clock",
+                            accent: role.emptyStateAccent
+                        )
+                        .accessibilityIdentifier("bookings.empty")
+                    } else {
+                        LazyVStack(spacing: DesignTokens.Spacing.md) {
+                            ForEach(store.bookings) { booking in
+                                NavigationLink {
+                                    BookingDetailView(
+                                        bookingID: booking.id,
+                                        role: role,
+                                        store: store
+                                    )
+                                } label: {
+                                    BookingSummaryRow(
+                                        booking: booking,
+                                        role: role
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    }
+                }
+                .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+                .padding(.top, DesignTokens.Spacing.lg)
+                .padding(.bottom, DesignTokens.Spacing.xl + DesignTokens.Spacing.xl)
+            }
+            .scrollContentBackground(.hidden)
+            .accessibilityIdentifier("bookings.list")
         }
     }
 }
@@ -84,31 +111,57 @@ private struct BookingSummaryRow: View {
     let role: UserRole
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(alignment: .firstTextBaseline) {
-                Text("Appointment")
-                    .font(.headline)
+        GroomlyCard {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
+                    Image(systemName: "calendar.badge.clock")
+                        .font(DesignTokens.Typography.headline)
+                        .foregroundStyle(role.primaryColor)
+                        .frame(
+                            width: DesignTokens.Spacing.xl + DesignTokens.Spacing.xl,
+                            height: DesignTokens.Spacing.xl + DesignTokens.Spacing.xl
+                        )
+                        .background(role.primaryColor.opacity(0.14))
+                        .clipShape(DesignTokens.Shapes.circular)
+                        .accessibilityHidden(true)
 
-                Spacer()
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                        Text("Appointment")
+                            .font(DesignTokens.Typography.headline)
+                            .foregroundStyle(DesignTokens.Colors.textPrimary)
 
-                Text(booking.status.title)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(booking.status == .confirmed ? .green : .secondary)
+                        Text(booking.scheduledTimeSummary)
+                            .font(DesignTokens.Typography.body)
+                            .foregroundStyle(DesignTokens.Colors.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                    GroomlyStatusChip(
+                        booking.status.title,
+                        systemImage: booking.status.chipIcon,
+                        tone: booking.status.chipTone(for: role)
+                    )
+                }
+
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                    BookingMetadataRow(
+                        systemImage: "creditcard",
+                        text: booking.priceSummary
+                    )
+
+                    BookingMetadataRow(
+                        systemImage: role == .groomer ? "person" : "scissors",
+                        text: booking.participantSummary(for: role)
+                    )
+
+                    BookingMetadataRow(
+                        systemImage: "number",
+                        text: "Support ref \(booking.referenceCode)"
+                    )
+                }
             }
-
-            Text(booking.scheduledTimeSummary)
-                .font(.subheadline)
-                .foregroundStyle(DesignTokens.Colors.secondaryText)
-
-            Text("\(booking.priceSummary) • \(booking.participantSummary(for: role))")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(DesignTokens.Colors.secondaryText)
-
-            Text("Support ref \(booking.referenceCode)")
-                .font(.caption2)
-                .foregroundStyle(DesignTokens.Colors.secondaryText)
         }
-        .padding(.vertical, 4)
     }
 }
 
@@ -119,130 +172,135 @@ private struct BookingDetailView: View {
 
     var body: some View {
         if let booking = store.booking(withID: bookingID) {
-            List {
-                Section("Appointment") {
-                    LabeledContent("Status", value: booking.status.title)
-                    LabeledContent("Price", value: booking.priceSummary)
-                    LabeledContent(
-                        "Start",
-                        value: GroomingRequestDateFormatting.displayString(
-                            from: booking.scheduledStart
+            ZStack {
+                DesignTokens.Colors.background
+                    .ignoresSafeArea()
+
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                        GroomlySectionHeader(
+                            "Appointment",
+                            subtitle: "Stable booking facts and support references."
                         )
-                    )
-                    LabeledContent(
-                        "End",
-                        value: GroomingRequestDateFormatting.displayString(
-                            from: booking.scheduledEnd
-                        )
-                    )
-                }
 
-                Section("Participant") {
-                    LabeledContent("Counterparty", value: booking.participantSummary(for: role))
-                    Text("Names and richer pet context require a later participant summary contract; this screen only shows stable booking facts and support references for now.")
-                        .font(.footnote)
-                        .foregroundStyle(DesignTokens.Colors.secondaryText)
-                }
+                        GroomlyCard {
+                            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                                HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
+                                    Text("Booking \(booking.referenceCode)")
+                                        .font(DesignTokens.Typography.headline)
+                                        .foregroundStyle(DesignTokens.Colors.textPrimary)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
 
-                Section("Support references") {
-                    LabeledContent("Booking", value: booking.referenceCode)
-                    LabeledContent("Request", value: booking.requestReferenceCode)
-                    LabeledContent("Offer", value: booking.offerReferenceCode)
-                    LabeledContent(participantLabel, value: booking.participantReferenceCode(for: role))
-                }
-
-                Section("Conversation") {
-                    Text("Use the Messages tab for participant chat tied to this booking.")
-                        .foregroundStyle(DesignTokens.Colors.secondaryText)
-                }
-
-                Section("Lifecycle") {
-                    if booking.status == .confirmed {
-                        if role == .groomer {
-                            Button {
-                                Task {
-                                    await store.complete(booking)
+                                    GroomlyStatusChip(
+                                        booking.status.title,
+                                        systemImage: booking.status.chipIcon,
+                                        tone: booking.status.chipTone(for: role)
+                                    )
                                 }
-                            } label: {
-                                Label("Mark service completed", systemImage: "checkmark.seal")
-                            }
-                            .disabled(store.isCompleting)
-                            .accessibilityIdentifier("bookings.complete")
 
-                            Text("Completion closes the service lifecycle and lets the customer leave one review.")
-                                .font(.footnote)
-                                .foregroundStyle(DesignTokens.Colors.secondaryText)
-                        } else {
-                            Text("The groomer can mark this booking completed after the service.")
-                                .font(.footnote)
-                                .foregroundStyle(DesignTokens.Colors.secondaryText)
-                        }
-
-                        Button(role: .destructive) {
-                            Task {
-                                await store.cancel(booking)
-                            }
-                        } label: {
-                            Label("Cancel booking", systemImage: "xmark.circle")
-                        }
-                        .disabled(store.isCancelling)
-                        .accessibilityIdentifier("bookings.cancel")
-
-                        Text("Cancellation closes this booking only. The original request and offers do not reopen.")
-                            .font(.footnote)
-                            .foregroundStyle(DesignTokens.Colors.secondaryText)
-                    } else if booking.status.isCancellation {
-                        Text("This booking was cancelled. Create a new request if a replacement appointment is needed.")
-                            .foregroundStyle(DesignTokens.Colors.secondaryText)
-
-                        if let cancelledAt = booking.cancelledAt {
-                            LabeledContent(
-                                "Cancelled",
-                                value: GroomingRequestDateFormatting.displayString(
-                                    from: cancelledAt
+                                BookingFactRow("Price", value: booking.priceSummary)
+                                BookingFactRow(
+                                    "Start",
+                                    value: GroomingRequestDateFormatting.displayString(
+                                        from: booking.scheduledStart
+                                    )
                                 )
+                                BookingFactRow(
+                                    "End",
+                                    value: GroomingRequestDateFormatting.displayString(
+                                        from: booking.scheduledEnd
+                                    )
+                                )
+                            }
+                        }
+
+                        GroomlySectionHeader("Participant")
+
+                        GroomlyCard {
+                            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                                BookingFactRow(
+                                    "Counterparty",
+                                    value: booking.participantSummary(for: role)
+                                )
+
+                                Text("Names and richer pet context require a later participant summary contract; this screen only shows stable booking facts and support references for now.")
+                                    .font(DesignTokens.Typography.caption)
+                                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
+
+                        GroomlySectionHeader("Support references")
+
+                        GroomlyCard {
+                            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                                BookingFactRow("Booking", value: booking.referenceCode)
+                                BookingFactRow("Request", value: booking.requestReferenceCode)
+                                BookingFactRow("Offer", value: booking.offerReferenceCode)
+                                BookingFactRow(
+                                    participantLabel,
+                                    value: booking.participantReferenceCode(for: role)
+                                )
+                            }
+                        }
+
+                        GroomlySectionHeader("Conversation")
+
+                        GroomlyCard {
+                            BookingMetadataRow(
+                                systemImage: "message",
+                                text: "Use the Messages tab for participant chat tied to this booking."
                             )
                         }
-                    } else {
-                        Text("This booking is completed.")
-                            .foregroundStyle(DesignTokens.Colors.secondaryText)
 
-                        if let completedAt = booking.completedAt {
-                            LabeledContent(
-                                "Completed",
-                                value: GroomingRequestDateFormatting.displayString(
-                                    from: completedAt
+                        BookingLifecycleCard(
+                            booking: booking,
+                            role: role,
+                            store: store
+                        )
+
+                        if booking.status == .completed {
+                            GroomlySectionHeader("Review")
+
+                            if let review = booking.review {
+                                BookingReviewDisplay(review: review)
+                            } else if booking.canReview(for: role) {
+                                BookingReviewForm(
+                                    booking: booking,
+                                    store: store,
+                                    accent: role.primaryButtonAccent
                                 )
-                            )
+                            } else {
+                                GroomlyCard {
+                                    BookingMetadataRow(
+                                        systemImage: "star",
+                                        text: "Waiting for the customer to leave a review."
+                                    )
+                                }
+                            }
                         }
                     }
-                }
-
-                if booking.status == .completed {
-                    Section("Review") {
-                        if let review = booking.review {
-                            BookingReviewDisplay(review: review)
-                        } else if booking.canReview(for: role) {
-                            BookingReviewForm(
-                                booking: booking,
-                                store: store
-                            )
-                        } else {
-                            Text("Waiting for the customer to leave a review.")
-                                .foregroundStyle(DesignTokens.Colors.secondaryText)
-                        }
-                    }
+                    .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+                    .padding(.top, DesignTokens.Spacing.lg)
+                    .padding(.bottom, DesignTokens.Spacing.xl + DesignTokens.Spacing.xl)
                 }
             }
             .navigationTitle("Booking \(booking.referenceCode)")
             .navigationBarTitleDisplayMode(.inline)
             .accessibilityIdentifier("bookings.detail")
         } else {
-            ContentUnavailableView(
-                "Booking unavailable",
-                systemImage: "calendar.badge.exclamationmark",
-                description: Text("Refresh bookings and try again.")
-            )
+            ZStack {
+                DesignTokens.Colors.background
+                    .ignoresSafeArea()
+
+                GroomlyEmptyState(
+                    title: "Booking unavailable",
+                    message: "Refresh bookings and try again.",
+                    systemImage: "calendar.badge.exclamationmark",
+                    accent: role.emptyStateAccent
+                )
+                .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+            }
             .navigationTitle("Booking")
         }
     }
@@ -255,9 +313,90 @@ private struct BookingDetailView: View {
             "Customer"
         }
     }
+}
 
-    private var booking: Booking? {
-        store.booking(withID: bookingID)
+private struct BookingLifecycleCard: View {
+    let booking: Booking
+    let role: UserRole
+    let store: BookingsStore
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            GroomlySectionHeader("Lifecycle")
+
+            GroomlyCard {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                    if booking.status == .confirmed {
+                        if role == .groomer {
+                            Button {
+                                Task {
+                                    await store.complete(booking)
+                                }
+                            } label: {
+                                Label("Mark service completed", systemImage: "checkmark.seal")
+                            }
+                            .buttonStyle(GroomlyPrimaryButtonStyle(accent: role.primaryButtonAccent))
+                            .disabled(store.isCompleting)
+                            .accessibilityIdentifier("bookings.complete")
+
+                            Text("Completion closes the service lifecycle and lets the customer leave one review.")
+                                .font(DesignTokens.Typography.caption)
+                                .foregroundStyle(DesignTokens.Colors.textSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        } else {
+                            BookingMetadataRow(
+                                systemImage: "checkmark.seal",
+                                text: "The groomer can mark this booking completed after the service."
+                            )
+                        }
+
+                        Button(role: .destructive) {
+                            Task {
+                                await store.cancel(booking)
+                            }
+                        } label: {
+                            Label("Cancel booking", systemImage: "xmark.circle")
+                        }
+                        .buttonStyle(GroomlySecondaryButtonStyle(accent: .neutral))
+                        .disabled(store.isCancelling)
+                        .accessibilityIdentifier("bookings.cancel")
+
+                        Text("Cancellation closes this booking only. The original request and offers do not reopen.")
+                            .font(DesignTokens.Typography.caption)
+                            .foregroundStyle(DesignTokens.Colors.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    } else if booking.status.isCancellation {
+                        BookingMetadataRow(
+                            systemImage: "xmark.circle",
+                            text: "This booking was cancelled. Create a new request if a replacement appointment is needed."
+                        )
+
+                        if let cancelledAt = booking.cancelledAt {
+                            BookingFactRow(
+                                "Cancelled",
+                                value: GroomingRequestDateFormatting.displayString(
+                                    from: cancelledAt
+                                )
+                            )
+                        }
+                    } else {
+                        BookingMetadataRow(
+                            systemImage: "checkmark.circle",
+                            text: "This booking is completed."
+                        )
+
+                        if let completedAt = booking.completedAt {
+                            BookingFactRow(
+                                "Completed",
+                                value: GroomingRequestDateFormatting.displayString(
+                                    from: completedAt
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -265,19 +404,30 @@ private struct BookingReviewDisplay: View {
     let review: BookingReview
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            LabeledContent("Rating", value: review.ratingSummary)
+        GroomlyCard {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                HStack(spacing: DesignTokens.Spacing.sm) {
+                    Image(systemName: "star.fill")
+                        .foregroundStyle(DesignTokens.Colors.warning)
+                        .accessibilityHidden(true)
 
-            Text(review.displayContent)
-                .foregroundStyle(DesignTokens.Colors.secondaryText)
+                    Text(review.ratingSummary)
+                        .font(DesignTokens.Typography.headline)
+                        .foregroundStyle(DesignTokens.Colors.textPrimary)
+                }
 
-            LabeledContent(
-                "Submitted",
-                value: GroomingRequestDateFormatting.displayString(
-                    from: review.createdAt
+                Text(review.displayContent)
+                    .font(DesignTokens.Typography.body)
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                BookingFactRow(
+                    "Submitted",
+                    value: GroomingRequestDateFormatting.displayString(
+                        from: review.createdAt
+                    )
                 )
-            )
-            .font(.footnote)
+            }
         }
         .accessibilityIdentifier("bookings.review.display")
     }
@@ -286,85 +436,236 @@ private struct BookingReviewDisplay: View {
 private struct BookingReviewForm: View {
     let booking: Booking
     let store: BookingsStore
+    let accent: GroomlyPrimaryButtonStyle.Accent
     @State private var rating = 5
     @State private var content = ""
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Picker("Rating", selection: $rating) {
-                ForEach(1...5, id: \.self) { value in
-                    Text("\(value)").tag(value)
+        GroomlyCard {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                Picker("Rating", selection: $rating) {
+                    ForEach(1...5, id: \.self) { value in
+                        Text("\(value)").tag(value)
+                    }
                 }
+                .pickerStyle(.segmented)
+                .tint(DesignTokens.Colors.customerPrimary)
+                .accessibilityIdentifier("bookings.review.rating")
+
+                TextEditor(text: $content)
+                    .frame(minHeight: 96)
+                    .scrollContentBackground(.hidden)
+                    .groomlyFormField()
+                    .accessibilityIdentifier("bookings.review.content")
+
+                Text("Optional review text, up to 2,000 characters.")
+                    .font(DesignTokens.Typography.caption)
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+
+                Button {
+                    Task {
+                        await store.createReview(
+                            for: booking,
+                            rating: rating,
+                            content: content
+                        )
+                    }
+                } label: {
+                    Label("Submit review", systemImage: "star.bubble")
+                }
+                .buttonStyle(GroomlyPrimaryButtonStyle(accent: accent))
+                .disabled(store.isSubmittingReview)
+                .accessibilityIdentifier("bookings.review.submit")
             }
-            .pickerStyle(.segmented)
-            .accessibilityIdentifier("bookings.review.rating")
-
-            TextEditor(text: $content)
-                .frame(minHeight: 96)
-                .overlay {
-                    RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.card)
-                        .stroke(.quaternary)
-                }
-                .accessibilityIdentifier("bookings.review.content")
-
-            Text("Optional review text, up to 2,000 characters.")
-                .font(.footnote)
-                .foregroundStyle(DesignTokens.Colors.secondaryText)
-
-            Button {
-                Task {
-                    await store.createReview(
-                        for: booking,
-                        rating: rating,
-                        content: content
-                    )
-                }
-            } label: {
-                Label("Submit review", systemImage: "star.bubble")
-            }
-            .buttonStyle(.borderedProminent)
-            .disabled(store.isSubmittingReview)
-            .accessibilityIdentifier("bookings.review.submit")
         }
     }
 }
 
 private struct BookingsStatusView: View {
     let store: BookingsStore
+    let role: UserRole
 
     var body: some View {
-        VStack(spacing: 8) {
-            if store.isCancelling {
-                ProgressView("Cancelling…")
-                    .font(.footnote)
-            }
+        if hasStatus {
+            VStack(spacing: DesignTokens.Spacing.sm) {
+                if store.isCancelling {
+                    progressRow("Cancelling…")
+                }
 
-            if store.isCompleting {
-                ProgressView("Completing…")
-                    .font(.footnote)
-            }
+                if store.isCompleting {
+                    progressRow("Completing…")
+                }
 
-            if store.isSubmittingReview {
-                ProgressView("Submitting review…")
-                    .font(.footnote)
-            }
+                if store.isSubmittingReview {
+                    progressRow("Submitting review…")
+                }
 
-            if let noticeMessage = store.noticeMessage {
-                Text(noticeMessage)
-                    .font(.footnote)
-                    .foregroundStyle(DesignTokens.Colors.secondaryText)
-            }
+                if let noticeMessage = store.noticeMessage {
+                    HStack(spacing: DesignTokens.Spacing.sm) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(DesignTokens.Colors.success)
+                            .accessibilityHidden(true)
 
-            if let errorMessage = store.errorMessage {
-                Text(errorMessage)
-                    .font(.footnote)
-                    .foregroundStyle(.red)
+                        Text(noticeMessage)
+                            .font(DesignTokens.Typography.caption)
+                            .foregroundStyle(DesignTokens.Colors.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .accessibilityElement(children: .combine)
+                }
+
+                if let errorMessage = store.errorMessage {
+                    GroomlyErrorBanner(
+                        title: "Booking update failed",
+                        message: errorMessage
+                    )
+                }
             }
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+            .padding(.vertical, DesignTokens.Spacing.sm)
+            .background(.ultraThinMaterial)
+        }
+    }
+
+    private var hasStatus: Bool {
+        store.isCancelling ||
+            store.isCompleting ||
+            store.isSubmittingReview ||
+            store.noticeMessage != nil ||
+            store.errorMessage != nil
+    }
+
+    private func progressRow(_ title: String) -> some View {
+        HStack(spacing: DesignTokens.Spacing.sm) {
+            ProgressView()
+                .tint(role.primaryColor)
+
+            Text(title)
+                .font(DesignTokens.Typography.caption)
+                .foregroundStyle(DesignTokens.Colors.textSecondary)
         }
         .frame(maxWidth: .infinity)
-        .padding(.horizontal, DesignTokens.Spacing.standard)
-        .padding(.vertical, 8)
-        .background(.thinMaterial)
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct BookingFactRow: View {
+    let title: String
+    let value: String
+
+    init(_ title: String, value: String) {
+        self.title = title
+        self.value = value
+    }
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.md) {
+            Text(title)
+                .font(DesignTokens.Typography.caption)
+                .foregroundStyle(DesignTokens.Colors.textSecondary)
+
+            Spacer(minLength: DesignTokens.Spacing.md)
+
+            Text(value)
+                .font(DesignTokens.Typography.body.weight(.semibold))
+                .foregroundStyle(DesignTokens.Colors.textPrimary)
+                .multilineTextAlignment(.trailing)
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct BookingMetadataRow: View {
+    let systemImage: String
+    let text: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: DesignTokens.Spacing.sm) {
+            Image(systemName: systemImage)
+                .font(DesignTokens.Typography.caption)
+                .foregroundStyle(DesignTokens.Colors.textTertiary)
+                .frame(width: DesignTokens.Spacing.lg)
+                .accessibilityHidden(true)
+
+            Text(text)
+                .font(DesignTokens.Typography.caption)
+                .foregroundStyle(DesignTokens.Colors.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private extension UserRole {
+    var primaryButtonAccent: GroomlyPrimaryButtonStyle.Accent {
+        switch self {
+        case .customer:
+            .customer
+        case .groomer:
+            .groomer
+        }
+    }
+
+    var loadingAccent: GroomlyLoadingView.Accent {
+        switch self {
+        case .customer:
+            .customer
+        case .groomer:
+            .groomer
+        }
+    }
+
+    var emptyStateAccent: GroomlyEmptyState<EmptyView>.Accent {
+        switch self {
+        case .customer:
+            .customer
+        case .groomer:
+            .groomer
+        }
+    }
+
+    var primaryColor: Color {
+        switch self {
+        case .customer:
+            DesignTokens.Colors.customerPrimaryDark
+        case .groomer:
+            DesignTokens.Colors.groomerAccentDark
+        }
+    }
+
+    var bookingsSubtitle: String {
+        switch self {
+        case .customer:
+            "Track confirmed appointments and review completed services."
+        case .groomer:
+            "Review confirmed appointments and close completed services."
+        }
+    }
+}
+
+private extension BookingStatus {
+    var chipIcon: String {
+        switch self {
+        case .confirmed:
+            "calendar.badge.checkmark"
+        case .completed:
+            "checkmark.circle.fill"
+        case .cancelledByCustomer, .cancelledByGroomer:
+            "xmark.circle.fill"
+        }
+    }
+
+    func chipTone(for role: UserRole) -> GroomlyStatusChip.Tone {
+        switch self {
+        case .confirmed:
+            role == .groomer ? .groomer : .customer
+        case .completed:
+            .success
+        case .cancelledByCustomer, .cancelledByGroomer:
+            .error
+        }
     }
 }
 
