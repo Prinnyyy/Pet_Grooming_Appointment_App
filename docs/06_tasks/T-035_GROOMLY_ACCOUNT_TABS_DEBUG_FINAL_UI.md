@@ -1,6 +1,6 @@
 # T-035 - Groomly Account, Tabs, Debug, and Final UI Completion Audit
 
-- State: planned.
+- State: completed.
 - Mode: Standard.
 - Depends on: completed T-034.
 
@@ -60,12 +60,28 @@ git diff --check
 
 Run broader tests only if the task changes behavior-bearing code, which should generally be avoided.
 
+Status:
+
+- `./scripts/ios-build.sh` passed on 2026-06-22.
+- Post-review `./scripts/ios-test.sh` passed on 2026-06-22.
+- Post-review `./scripts/preflight.sh` passed on 2026-06-22.
+- `git diff --check` passed on 2026-06-22.
+
 ## Acceptance
 
 - Remaining Account, tab shell, and Debug surfaces use Groomly styling without changing behavior.
 - `SCREEN_INVENTORY.md` shows implemented screens as `groomly adapted`, with Admin Dashboard still `deferred`.
 - `DESIGN_SYSTEM.md`, `CURRENT_STATE.md`, `TASK_LEDGER.md`, entry docs, and worklog record the Groomly UI phase as complete.
 - No backend, repository, Store, model, Supabase, script, asset, product-flow, or deferred feature work is introduced.
+
+Completion notes:
+
+- `AuthenticatedAccountView`, customer/groomer tab shells, `FeaturePlaceholderView`, and `DebugPanelView` now use Groomly tokens/primitives and role-appropriate customer/groomer accents.
+- Sign-out, tab selection, tab destination ownership, debug diagnostic data sources, and development-only Debug Panel access remain unchanged.
+- Account email display is masked to avoid exposing a full user identifier, while Debug Panel continues to use sanitized short user references and hidden key status only.
+- `SCREEN_INVENTORY.md` marks all implemented screens as `groomly adapted`; Admin Dashboard remains `deferred`.
+- No Store, repository, model, backend, Supabase, script, asset, route, product-flow, admin, or deferred prototype feature work was changed.
+- Post-review sequence-level regression ran `./scripts/ios-test.sh` and `./scripts/preflight.sh`; the SwiftUI display-string scan found no remaining Swift source string literals using `"..."`, so no cross-screen cosmetic ellipsis edit was needed.
 
 ## Stop Conditions
 

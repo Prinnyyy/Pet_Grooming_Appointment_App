@@ -4,7 +4,7 @@ Status values are `baseline`, `groomly adapted`, `planned`, and `deferred`. A pl
 
 ## Groomly UI Phase
 
-T-023 starts the Groomly UI phase with design audit, implementation notes, design tokens, and shared SwiftUI DesignSystem primitives only. T-026 through T-035 are the planned remaining Groomly UI sequence for the baseline screens below, but their data sources, state owners, role ownership, loading/empty/error states, and repository boundaries remain unchanged unless a separate task explicitly authorizes a behavior change.
+T-023 started the Groomly UI phase with design audit, implementation notes, design tokens, and shared SwiftUI DesignSystem primitives only. T-024 through T-035 completed the implemented MVP screen adaptation, but their data sources, state owners, role ownership, loading/empty/error states, and repository boundaries remain unchanged unless a separate task explicitly authorizes a behavior change.
 
 Visual adaptation must preserve the current Open Request -> Groomer Offer -> Customer Confirmation -> Booking model. If a Groomly prototype screen implies a deferred feature or backend change, record it as visual inspiration only and stop before implementing it.
 
@@ -33,11 +33,11 @@ Visual adaptation must preserve the current Open Request -> Groomer Offer -> Cus
 | ConversationListView | Show booking conversations with participant-readable booking context | Shared | `conversations`, `bookings`, active `groomer_profiles` summaries where RLS permits | `ChatStore` | `Features/Chat/ChatView.swift` / T-020, T-034 | groomly adapted |
 | ChatView | Participant-only text booking chat with booking support context | Shared | `messages`, `bookings` | `ChatStore` | `Features/Chat/ChatView.swift` / T-020, T-034 | groomly adapted |
 | BookingReviewSection | Submit or display one review for a completed booking inside booking detail | Customer | `create_review`, `reviews` | `BookingsStore` | `Features/Bookings/BookingsView.swift` / T-021, T-033 | groomly adapted |
-| AuthenticatedAccountView | Show minimal authenticated identity/role and sign out | Shared | Auth session, loaded profile | `AuthenticationStore` | `Features/Auth/AuthenticatedAccountView.swift` / T-007, planned T-035 | planned |
-| CustomerTabView | Customer role root tab shell and disconnected placeholder fallback | Customer | Injected customer repositories and account content | View | `Features/Customer/CustomerTabView.swift` / T-001, T-007, planned T-035 | planned |
-| GroomerTabView | Groomer role root tab shell and disconnected placeholder fallback | Groomer | Injected groomer repositories and account content | View | `Features/Groomer/GroomerTabView.swift` / T-001, T-007, planned T-035 | planned |
-| FeaturePlaceholderView | Honest disconnected placeholder fallback for unavailable injected tab content | Shared | None | View | `DesignSystem/FeaturePlaceholderView.swift` / T-001, planned T-035 | planned |
-| DebugPanel | Show safe development diagnostics without tokens, passwords, full keys, or full user identifiers | Developer only | Sanitized app/session/config values | `DebugDiagnostics` | `Features/Debug/` / T-022, planned T-035 | planned |
+| AuthenticatedAccountView | Show minimal authenticated identity/role and sign out | Shared | Auth session, loaded profile | `AuthenticationStore` | `Features/Auth/AuthenticatedAccountView.swift` / T-007, T-035 | groomly adapted |
+| CustomerTabView | Customer role root tab shell and disconnected placeholder fallback | Customer | Injected customer repositories and account content | View | `Features/Customer/CustomerTabView.swift` / T-001, T-007, T-035 | groomly adapted |
+| GroomerTabView | Groomer role root tab shell and disconnected placeholder fallback | Groomer | Injected groomer repositories and account content | View | `Features/Groomer/GroomerTabView.swift` / T-001, T-007, T-035 | groomly adapted |
+| FeaturePlaceholderView | Honest disconnected placeholder fallback for unavailable injected tab content | Shared | None | View | `DesignSystem/FeaturePlaceholderView.swift` / T-001, T-035 | groomly adapted |
+| DebugPanel | Show safe development diagnostics without tokens, passwords, full keys, or full user identifiers | Developer only | Sanitized app/session/config values | `DebugDiagnostics` | `Features/Debug/` / T-022, T-035 | groomly adapted |
 | Admin Dashboard | Administrative management | Admin | Not defined | Not defined | No MVP task | deferred |
 
 The current customer `TabView` renders customer pet management on Home, request wizard/list/detail/offer acceptance on Requests, participant bookings on Bookings, participant text chat on Messages, and authenticated Account content. The current groomer `TabView` renders matched request feed/detail/dismiss/offer creation on Requests, participant bookings on Bookings, participant text chat on Messages, groomer profile/services/portfolio management on Account, and generic placeholder content for Offers.

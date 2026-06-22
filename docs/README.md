@@ -34,9 +34,10 @@ Completed screen slices:
 - `06_tasks/T-032_GROOMLY_GROOMER_PORTFOLIO_UI.md`
 - `06_tasks/T-033_GROOMLY_BOOKINGS_UI.md`
 - `06_tasks/T-034_GROOMLY_CHAT_UI.md`
+- `06_tasks/T-035_GROOMLY_ACCOUNT_TABS_DEBUG_FINAL_UI.md`
 
-The planned remaining Groomly UI sequence is `06_tasks/T-026_TO_T-035_GROOMLY_UI_COMPLETION_SEQUENCE.md`.
+The Groomly UI completion sequence `06_tasks/T-026_TO_T-035_GROOMLY_UI_COMPLETION_SEQUENCE.md` is completed for implemented MVP screens.
 
-The active next executable task is `06_tasks/T-035_GROOMLY_ACCOUNT_TABS_DEBUG_FINAL_UI.md`.
+No active next Groomly UI task is currently defined.
 
 T-022 remains completed, but its post-MVP next-task suggestions are frozen and must not auto-start. Use `09_frozen/pre_groomly_ui_2026-06-21/` only to recover or compare pre-Groomly context.

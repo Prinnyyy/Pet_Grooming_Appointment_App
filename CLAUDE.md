@@ -26,21 +26,16 @@ docs/06_tasks/T-031_GROOMLY_GROOMER_PROFILE_SERVICES_UI.md
 docs/06_tasks/T-032_GROOMLY_GROOMER_PORTFOLIO_UI.md
 docs/06_tasks/T-033_GROOMLY_BOOKINGS_UI.md
 docs/06_tasks/T-034_GROOMLY_CHAT_UI.md
+docs/06_tasks/T-035_GROOMLY_ACCOUNT_TABS_DEBUG_FINAL_UI.md
 ```
 
-The planned remaining Groomly UI sequence is:
+The Groomly UI completion sequence is completed:
 
 ```text
 docs/06_tasks/T-026_TO_T-035_GROOMLY_UI_COMPLETION_SEQUENCE.md
 ```
 
-The only active next executable task is:
-
-```text
-docs/06_tasks/T-035_GROOMLY_ACCOUNT_TABS_DEBUG_FINAL_UI.md
-```
-
-Do not start later/post-Groomly tasks, backend work, or other post-MVP tasks automatically.
+No active next Groomly UI task is currently defined. Do not start later/post-Groomly tasks, backend work, Admin Dashboard work, or other post-MVP tasks automatically.
 
 ## Claude's Role
 

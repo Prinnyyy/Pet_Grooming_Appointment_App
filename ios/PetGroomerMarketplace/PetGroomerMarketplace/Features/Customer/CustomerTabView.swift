@@ -30,6 +30,7 @@ struct CustomerTabView: View {
             ForEach(CustomerTab.allCases) { tab in
                 NavigationStack {
                     destination(for: tab)
+                        .background(DesignTokens.Colors.background)
                 }
                 .tabItem {
                     Label(tab.title, systemImage: tab.systemImage)
@@ -37,6 +38,10 @@ struct CustomerTabView: View {
                 .tag(tab)
             }
         }
+        .tint(DesignTokens.Colors.customerPrimaryDark)
+        .background(DesignTokens.Colors.background.ignoresSafeArea())
+        .toolbarBackground(DesignTokens.Colors.surface, for: .tabBar)
+        .toolbarBackground(.visible, for: .tabBar)
         .accessibilityIdentifier("customer.tabs")
     }
 
@@ -80,7 +85,8 @@ struct CustomerTabView: View {
             FeaturePlaceholderView(
                 title: tab.title,
                 message: "Customer \(tab.title.lowercased()) is not connected yet.",
-                systemImage: tab.systemImage
+                systemImage: tab.systemImage,
+                accent: .customer
             )
         }
     }

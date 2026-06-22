@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-06-22
+Task: T-035 - Groomly Account, Tabs, Debug, and Final UI Completion Audit.
+Files changed: Updated AuthenticatedAccountView.swift, CustomerTabView.swift, GroomerTabView.swift, FeaturePlaceholderView.swift, DebugPanelView.swift, docs/06_tasks/T-035_GROOMLY_ACCOUNT_TABS_DEBUG_FINAL_UI.md, docs/06_tasks/T-026_TO_T-035_GROOMLY_UI_COMPLETION_SEQUENCE.md, AGENTS.md, CLAUDE.md, README.md, docs/README.md, docs/01_product/DESIGN_SYSTEM.md, docs/01_product/SCREEN_INVENTORY.md, CURRENT_STATE.md, FEATURE_INDEX.md, WORKLOG.md, and TASK_LEDGER.md.
+Checks: `./scripts/ios-build.sh` passed. Post-review `./scripts/ios-test.sh` passed. Post-review `./scripts/preflight.sh` passed. `git diff --check` passed.
+Result: T-035 is completed. Authenticated Account, customer/groomer tab shells, disconnected placeholder fallback, and the sanitized Debug Panel now use Groomly background, cards, section headers, status chips, empty/error primitives, and role-appropriate customer/groomer accents while preserving sign-out, tab selection, tab destination ownership, debug diagnostic data sources, development-only debug access, repositories, models, and backend behavior. Account email is masked to avoid displaying a full user identifier.
+Risks: This was a visual-only final Groomly UI slice. Admin Dashboard, backend, repositories, Stores, models, scripts, assets, route changes, product-flow changes, debug secrets, and deferred prototype features remain untouched.
+Next: No remaining Groomly UI screen task is defined. Wait for explicit user direction before starting post-MVP, backend, or Admin Dashboard work.
+```
+
+```text
+Date: 2026-06-22
 Task: T-034 - Groomly Chat UI.
 Files changed: Updated ChatView.swift, docs/06_tasks/T-034_GROOMLY_CHAT_UI.md, AGENTS.md, CLAUDE.md, README.md, docs/README.md, docs/01_product/DESIGN_SYSTEM.md, docs/01_product/SCREEN_INVENTORY.md, CURRENT_STATE.md, FEATURE_INDEX.md, WORKLOG.md, and TASK_LEDGER.md.
 Checks: `./scripts/ios-build.sh` passed. Post-review `./scripts/ios-test.sh` passed. `git diff --check` passed.

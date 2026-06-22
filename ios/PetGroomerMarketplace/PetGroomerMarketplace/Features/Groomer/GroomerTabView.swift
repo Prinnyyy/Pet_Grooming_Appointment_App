@@ -30,6 +30,7 @@ struct GroomerTabView: View {
             ForEach(GroomerTab.allCases) { tab in
                 NavigationStack {
                     destination(for: tab)
+                        .background(DesignTokens.Colors.background)
                 }
                 .tabItem {
                     Label(tab.title, systemImage: tab.systemImage)
@@ -37,6 +38,10 @@ struct GroomerTabView: View {
                 .tag(tab)
             }
         }
+        .tint(DesignTokens.Colors.groomerAccentDark)
+        .background(DesignTokens.Colors.background.ignoresSafeArea())
+        .toolbarBackground(DesignTokens.Colors.surface, for: .tabBar)
+        .toolbarBackground(.visible, for: .tabBar)
         .accessibilityIdentifier("groomer.tabs")
     }
 
@@ -79,7 +84,8 @@ struct GroomerTabView: View {
             FeaturePlaceholderView(
                 title: tab.title,
                 message: "Groomer \(tab.title.lowercased()) is not connected yet.",
-                systemImage: tab.systemImage
+                systemImage: tab.systemImage,
+                accent: .groomer
             )
         }
     }

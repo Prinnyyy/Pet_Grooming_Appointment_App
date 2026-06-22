@@ -1,35 +1,51 @@
 import SwiftUI
 
 struct FeaturePlaceholderView: View {
+    enum Accent {
+        case customer
+        case groomer
+
+        var emptyStateAccent: GroomlyEmptyState<EmptyView>.Accent {
+            switch self {
+            case .customer:
+                .customer
+            case .groomer:
+                .groomer
+            }
+        }
+    }
+
     let title: String
     let message: String
     let systemImage: String
+    let accent: Accent
+
+    init(
+        title: String,
+        message: String,
+        systemImage: String,
+        accent: Accent = .customer
+    ) {
+        self.title = title
+        self.message = message
+        self.systemImage = systemImage
+        self.accent = accent
+    }
 
     var body: some View {
         ZStack {
             DesignTokens.Colors.background
                 .ignoresSafeArea()
 
-            VStack(spacing: DesignTokens.Spacing.standard) {
-                Image(systemName: systemImage)
-                    .font(.largeTitle)
-                    .foregroundStyle(.tint)
-
-                Text(title)
-                    .font(.title2.bold())
-                    .foregroundStyle(DesignTokens.Colors.primaryText)
-
-                Text(message)
-                    .multilineTextAlignment(.center)
-                    .foregroundStyle(DesignTokens.Colors.secondaryText)
-            }
-            .padding(DesignTokens.Spacing.large)
-            .background(DesignTokens.Colors.surface)
-            .clipShape(
-                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.card)
+            GroomlyEmptyState(
+                title: title,
+                message: message,
+                systemImage: systemImage,
+                accent: accent.emptyStateAccent
             )
             .padding(DesignTokens.Spacing.standard)
         }
         .navigationTitle(title)
+        .navigationBarTitleDisplayMode(.inline)
     }
 }

@@ -1,6 +1,6 @@
 # T-026 to T-035 - Groomly UI Completion Sequence
 
-- State: planned.
+- State: completed.
 - Mode: Sequence.
 - Depends on: completed T-025 Groomly Customer Pets/Home UI.
 
@@ -21,7 +21,7 @@ Finish the Groomly UI adaptation for all remaining implemented screens through a
 | 7 | `T-032_GROOMLY_GROOMER_PORTFOLIO_UI.md` | Groomer portfolio metadata and upload/delete UI | Portfolio section uses Groomly cards/feedback/actions without image rendering changes |
 | 8 | `T-033_GROOMLY_BOOKINGS_UI.md` | Shared customer/groomer bookings list, detail, cancellation, completion, review | Bookings and review surfaces use Groomly styling |
 | 9 | `T-034_GROOMLY_CHAT_UI.md` | Conversation list, chat thread, composer | Participant text chat uses Groomly message and composer styling |
-| 10 | `T-035_GROOMLY_ACCOUNT_TABS_DEBUG_FINAL_UI.md` | Account, customer/groomer tabs, debug panel, final inventory/docs audit | Remaining baseline UI is adapted or explicitly deferred |
+| 10 | `T-035_GROOMLY_ACCOUNT_TABS_DEBUG_FINAL_UI.md` | Account, customer/groomer tabs, debug panel, final inventory/docs audit | Remaining implemented baseline UI adapted; Admin Dashboard explicitly deferred |
 
 ## Global Rules
 

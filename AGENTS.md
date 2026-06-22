@@ -34,17 +34,17 @@ The completed screen slices are:
 - `docs/06_tasks/T-032_GROOMLY_GROOMER_PORTFOLIO_UI.md`
 - `docs/06_tasks/T-033_GROOMLY_BOOKINGS_UI.md`
 - `docs/06_tasks/T-034_GROOMLY_CHAT_UI.md`
+- `docs/06_tasks/T-035_GROOMLY_ACCOUNT_TABS_DEBUG_FINAL_UI.md`
 
-The planned remaining Groomly UI sequence is `docs/06_tasks/T-026_TO_T-035_GROOMLY_UI_COMPLETION_SEQUENCE.md`.
+The Groomly UI completion sequence `docs/06_tasks/T-026_TO_T-035_GROOMLY_UI_COMPLETION_SEQUENCE.md` is completed for implemented MVP screens.
 
-The active next executable task is `docs/06_tasks/T-035_GROOMLY_ACCOUNT_TABS_DEBUG_FINAL_UI.md`.
+There is no active next Groomly UI task currently defined.
 
 - T-022 remains completed, but its post-MVP next-task suggestions are frozen and must not auto-start.
 - Use the Groomly design source in `docs/08_design/` only as a visual and interaction reference.
-- T-023A through T-023D2 and T-024 through T-034 are completed. Do not rerun or extend them unless the user explicitly requests a review follow-up.
-- T-026 through T-034 are completed. T-035 is planned. Execute it next unless the user explicitly replans the sequence.
-- Run only one screen-specific Groomly task per Codex run.
-- Do not redesign additional feature screens, skip ahead to later Groomly tasks, or start non-Groomly post-MVP work unless the user explicitly requests it.
+- T-023A through T-023D2 and T-024 through T-035 are completed. Do not rerun or extend them unless the user explicitly requests a review follow-up.
+- Run only one primary task per Codex run.
+- Do not redesign additional feature screens, start Admin Dashboard work, or start non-Groomly post-MVP work unless the user explicitly requests it.
 - Do not copy HTML/CSS/React code directly into SwiftUI.
 - Product correctness and the existing Open Request -> Groomer Offer -> Customer Confirmation -> Booking model take priority over visual matching.
 - If prototype content requires backend/schema/RLS/RPC changes or deferred features, stop and report.
