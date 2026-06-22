@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-06-21
+Task: T-023C - Groomly SwiftUI token foundation.
+Files changed: Updated ios/PetGroomerMarketplace/PetGroomerMarketplace/DesignSystem/DesignTokens.swift, docs/01_product/DESIGN_SYSTEM.md, CURRENT_STATE.md, WORKLOG.md, and TASK_LEDGER.md.
+Checks: `./scripts/ios-build.sh` passed. `git diff --check` passed.
+Result: T-023C is completed. DesignTokens now centralizes Groomly colors, spacing, radii/shapes, shadows, and Dynamic Type-friendly typography while preserving the existing baseline token names used by current screens. Post-review follow-up clarified fixed warm light-theme token scope and the fact that `ShadowStyle.spread` preserves CSS source evidence only.
+Risks: T-023C changed token definitions only. Action primitives, feedback primitives, and feature-screen restyling remain unstarted. Chip and circular radius values are SwiftUI shape tokens, not numeric CSS radius constants, and future primitives must not pass `spread` directly to SwiftUI `.shadow`.
+Next: Execute T-023D1 only.
+```
+
+```text
+Date: 2026-06-21
 Task: T-023B - Groomly design tokens JSON.
 Files changed: Created docs/08_design/design_tokens.json; updated docs/01_product/DESIGN_SYSTEM.md, CURRENT_STATE.md, WORKLOG.md, and TASK_LEDGER.md.
 Checks: `python3 -m json.tool docs/08_design/design_tokens.json >/tmp/groomly_design_tokens_lint.json` passed. `git diff --check` passed. No ios-build needed because this task is documentation/data-only and changed no Swift/project files.
