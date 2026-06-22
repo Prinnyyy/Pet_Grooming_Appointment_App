@@ -83,6 +83,19 @@ Defined in `DesignSystem/GroomlyActionPrimitives.swift`:
 
 These primitives are not wired into feature screens yet. Calling screens remain responsible for loading text, duplicate-submit protection, error recovery, navigation, and business actions through their existing Store/repository boundaries.
 
+## Implemented SwiftUI Feedback Primitives
+
+Defined in `DesignSystem/GroomlyFeedbackPrimitives.swift`:
+
+| Primitive | Purpose | States and Inputs |
+|---|---|---|
+| `GroomlyErrorBanner` | Present recoverable error feedback inside a screen or overlay slot | caller-provided title/message, optional SF Symbol icon, optional caller-owned action view; text-only fallback supported |
+| `GroomlyLoadingView` | Present a compact branded loading state for a section or screen surface | caller-provided title/message, customer or groomer accent, token-tinted `ProgressView`, no async ownership |
+| `GroomlyEmptyState` | Present an empty result or first-use state without adding product behavior | caller-provided title/message, customer or groomer accent, optional SF Symbol icon, optional caller-owned action view; text-only fallback supported |
+| `GroomlySectionHeader` | Provide consistent section title/subtitle structure before grouped content | caller-provided title/subtitle and optional trailing view |
+
+These primitives are not wired into feature screens yet. They do not own loading, retry, navigation, data fetching, or business logic; those responsibilities remain with the existing Store/repository boundaries when a later screen-specific task applies them.
+
 ## Typography
 
 - Use SwiftUI semantic text styles and Dynamic Type.
@@ -99,7 +112,10 @@ These primitives are not wired into feature screens yet. Calling screens remain 
 | Form field | Collect validated input | normal, focused, invalid, disabled | planned with Auth/forms |
 | `GroomlyCard` | Present pet, request, offer, or booking summary | normal, selected when applicable | implemented, not wired into screens |
 | `GroomlyStatusChip` | Present request, offer, or booking state | semantic text label, optional icon, and tone | implemented, not wired into screens |
-| Empty/error state | Explain missing content or recoverable failure | message, optional retry/action | planned by feature |
+| `GroomlyErrorBanner` | Explain recoverable failure | caller-provided title/message, optional icon, optional caller-owned action | implemented, not wired into screens |
+| `GroomlyLoadingView` | Explain in-progress loading without owning async state | caller-provided title/message and customer or groomer accent | implemented, not wired into screens |
+| `GroomlyEmptyState` | Explain missing content or first-use state | caller-provided title/message, customer or groomer accent, optional icon, optional caller-owned action | implemented, not wired into screens |
+| `GroomlySectionHeader` | Introduce grouped content consistently | title, optional subtitle, optional trailing view | implemented, not wired into screens |
 
 ## Rules
 

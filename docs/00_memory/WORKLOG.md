@@ -1,6 +1,16 @@
 # Worklog
 
 ```text
+Date: 2026-06-22
+Task: T-023D2 - Groomly SwiftUI feedback primitives.
+Files changed: Added ios/PetGroomerMarketplace/PetGroomerMarketplace/DesignSystem/GroomlyFeedbackPrimitives.swift; updated docs/01_product/DESIGN_SYSTEM.md, CURRENT_STATE.md, WORKLOG.md, and TASK_LEDGER.md.
+Checks: `./scripts/ios-build.sh` passed. `git diff --check` passed.
+Result: T-023D2 is completed. The DesignSystem now contains GroomlyErrorBanner, GroomlyLoadingView, GroomlyEmptyState, and GroomlySectionHeader built on centralized DesignTokens and the existing D1 card/shadow primitives without wiring them into feature screens. Post-review follow-up added customer/groomer accent parameters to GroomlyLoadingView and GroomlyEmptyState so T-024 can preserve role-specific visual tone. T-023A through T-023D2 are now the completed Groomly UI foundation sequence.
+Risks: Feedback copy, retry behavior, loading ownership, navigation, data fetching, and business actions remain owned by existing feature Stores/screens. No feature-screen redesign has started.
+Next: Create a new T-024 screen-specific Groomly task file before editing any feature screen.
+```
+
+```text
 Date: 2026-06-21
 Task: T-023D1 - Groomly SwiftUI action primitives.
 Files changed: Added ios/PetGroomerMarketplace/PetGroomerMarketplace/DesignSystem/GroomlyActionPrimitives.swift; updated docs/01_product/DESIGN_SYSTEM.md, CURRENT_STATE.md, WORKLOG.md, and TASK_LEDGER.md.
