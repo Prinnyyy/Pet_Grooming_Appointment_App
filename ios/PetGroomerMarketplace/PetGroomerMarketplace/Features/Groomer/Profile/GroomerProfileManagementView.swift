@@ -22,18 +22,32 @@ struct GroomerProfileManagementView: View {
     var body: some View {
         @Bindable var store = store
 
-        Group {
+        ZStack {
+            DesignTokens.Colors.background
+                .ignoresSafeArea()
+
             if store.isLoading, store.profile == nil {
-                ProgressView("Loading groomer profile…")
-                    .accessibilityIdentifier("groomer.profile.loading")
+                GroomlyLoadingView(
+                    title: "Loading groomer profile…",
+                    message: "We are preparing your profile, services, and portfolio settings.",
+                    accent: .groomer
+                )
+                .accessibilityIdentifier("groomer.profile.loading")
+                .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
             } else {
                 ScrollView {
-                    VStack(spacing: DesignTokens.Spacing.standard) {
+                    LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                        GroomlySectionHeader(
+                            "Groomer profile",
+                            subtitle: "Keep your business details and service menu ready for matched requests."
+                        )
+
                         GroomerProfileFormSection(store: store)
                         GroomerServicesSection(store: store)
                         GroomerPortfolioSection(store: store)
                     }
-                    .padding(DesignTokens.Spacing.standard)
+                    .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+                    .padding(.vertical, DesignTokens.Spacing.lg)
                 }
                 .accessibilityIdentifier("groomer.profile.management")
             }
@@ -67,84 +81,102 @@ private struct GroomerProfileFormSection: View {
     @Bindable var store: GroomerProfileStore
 
     var body: some View {
-        GroomerCard {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.standard) {
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Marketplace profile")
-                            .font(.headline)
-                        Text("Complete these fields before making your profile active.")
-                            .font(.footnote)
-                            .foregroundStyle(DesignTokens.Colors.secondaryText)
-                    }
-
-                    Spacer()
-
-                    if let profile = store.profile {
-                        Label(
-                            profile.isActive ? "Active" : "Hidden",
-                            systemImage: profile.isActive ? "checkmark.circle" : "eye.slash"
-                        )
-                        .font(.caption)
-                        .foregroundStyle(
-                            profile.isActive
-                                ? Color.green
-                                : DesignTokens.Colors.secondaryText
-                        )
-                    }
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            GroomlySectionHeader(
+                "Marketplace profile",
+                subtitle: "Complete these fields before making your profile active."
+            ) {
+                if let profile = store.profile {
+                    GroomlyStatusChip(
+                        profile.isActive ? "Active" : "Hidden",
+                        systemImage: profile.isActive ? "checkmark.circle.fill" : "eye.slash",
+                        tone: profile.isActive ? .success : .neutral
+                    )
                 }
+            }
 
-                TextField("Business name", text: $store.businessName)
+            GroomlyCard {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                    GroomerProfileTextField(
+                        title: "Business name",
+                        text: $store.businessName,
+                        prompt: "Business name"
+                    )
                     .textContentType(.organizationName)
 
-                TextField("Bio", text: $store.bio, axis: .vertical)
+                    GroomerProfileTextField(
+                        title: "Bio",
+                        text: $store.bio,
+                        prompt: "Bio",
+                        axis: .vertical
+                    )
                     .lineLimit(3...6)
 
-                TextField("Years of experience", text: $store.yearsExperience)
-                    .keyboardType(.numberPad)
-
-                HStack {
-                    TextField("City", text: $store.baseCity)
-                    TextField("State", text: $store.baseState)
-                }
-
-                TextField("Service radius in miles", text: $store.serviceRadiusMiles)
-                    .keyboardType(.numberPad)
-
-                Toggle("Profile visible to authenticated customers", isOn: $store.isActive)
-
-                if let profile = store.profile,
-                   profile.ratingCount > 0 {
-                    Label(
-                        "\(profile.ratingAverage, specifier: "%.2f") from \(profile.ratingCount) review\(profile.ratingCount == 1 ? "" : "s")",
-                        systemImage: "star.fill"
+                    GroomerProfileTextField(
+                        title: "Years of experience",
+                        text: $store.yearsExperience,
+                        prompt: "Years of experience"
                     )
-                    .font(.footnote)
-                    .foregroundStyle(DesignTokens.Colors.secondaryText)
-                }
+                    .keyboardType(.numberPad)
 
-                if store.profile?.isVerified == true {
-                    Label("Verified", systemImage: "checkmark.seal.fill")
-                        .font(.footnote)
-                        .foregroundStyle(.green)
-                }
+                    HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
+                        GroomerProfileTextField(
+                            title: "City",
+                            text: $store.baseCity,
+                            prompt: "City"
+                        )
 
-                Button {
-                    Task {
-                        await store.saveProfile()
+                        GroomerProfileTextField(
+                            title: "State",
+                            text: $store.baseState,
+                            prompt: "State"
+                        )
                     }
-                } label: {
-                    HStack {
-                        if store.isSaving {
-                            ProgressView()
+
+                    GroomerProfileTextField(
+                        title: "Service radius in miles",
+                        text: $store.serviceRadiusMiles,
+                        prompt: "Service radius in miles"
+                    )
+                    .keyboardType(.numberPad)
+
+                    GroomlyToggleRow(
+                        title: "Profile visible to authenticated customers",
+                        subtitle: "Customers can discover and receive offers from active groomer profiles.",
+                        systemImage: "eye",
+                        isOn: $store.isActive
+                    )
+
+                    if let profile = store.profile {
+                        ProfileBadges(profile: profile)
+                    }
+
+                    Button {
+                        Task {
+                            await store.saveProfile()
                         }
-                        Text(store.isSaving ? "Saving…" : "Save Profile")
+                    } label: {
+                        if store.isSaving {
+                            HStack(spacing: DesignTokens.Spacing.sm) {
+                                ProgressView()
+                                    .tint(DesignTokens.Colors.surface)
+                                Text("Saving…")
+                            }
+                        } else {
+                            Label("Save Profile", systemImage: "checkmark.circle")
+                        }
                     }
-                    .frame(maxWidth: .infinity)
+                    .buttonStyle(GroomlyPrimaryButtonStyle(accent: .groomer))
+                    .disabled(store.isBusy)
+                    .accessibilityIdentifier("groomer.profile.save")
+
+                    if store.profile == nil {
+                        Text("Save your profile once these details are ready.")
+                            .font(DesignTokens.Typography.caption)
+                            .foregroundStyle(DesignTokens.Colors.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
-                .buttonStyle(.borderedProminent)
-                .disabled(store.isBusy)
-                .accessibilityIdentifier("groomer.profile.save")
             }
         }
     }
@@ -154,46 +186,44 @@ private struct GroomerServicesSection: View {
     @Bindable var store: GroomerProfileStore
 
     var body: some View {
-        GroomerCard {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.standard) {
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Services")
-                            .font(.headline)
-                        Text("Empty size selection means the service accepts all pet sizes.")
-                            .font(.footnote)
-                            .foregroundStyle(DesignTokens.Colors.secondaryText)
-                    }
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            GroomlySectionHeader(
+                "Services",
+                subtitle: "Empty size selection means the service accepts all pet sizes."
+            ) {
+                Button {
+                    store.startCreateService()
+                } label: {
+                    Label("Add Service", systemImage: "plus")
+                }
+                .buttonStyle(GroomlySecondaryButtonStyle(accent: .groomer, isFullWidth: false))
+                .disabled(store.isBusy)
+                .accessibilityIdentifier("groomer.services.add")
+            }
 
-                    Spacer()
-
+            if store.services.isEmpty {
+                GroomlyEmptyState(
+                    title: "No services yet",
+                    message: "Add services before responding to future requests.",
+                    systemImage: "scissors",
+                    accent: .groomer
+                ) {
                     Button {
                         store.startCreateService()
                     } label: {
                         Label("Add Service", systemImage: "plus")
                     }
+                    .buttonStyle(GroomlySecondaryButtonStyle(accent: .groomer))
                     .disabled(store.isBusy)
-                    .accessibilityIdentifier("groomer.services.add")
                 }
-
-                if store.services.isEmpty {
-                    ContentUnavailableView(
-                        "No services yet",
-                        systemImage: "scissors",
-                        description: Text("Add services before responding to future requests.")
-                    )
-                    .frame(minHeight: 140)
-                    .accessibilityIdentifier("groomer.services.empty")
-                } else {
+                .accessibilityIdentifier("groomer.services.empty")
+            } else {
+                VStack(spacing: DesignTokens.Spacing.md) {
                     ForEach(store.services) { service in
                         GroomerServiceRow(
                             service: service,
                             store: store
                         )
-
-                        if service.id != store.services.last?.id {
-                            Divider()
-                        }
                     }
                 }
             }
@@ -206,54 +236,209 @@ private struct GroomerServiceRow: View {
     @Bindable var store: GroomerProfileStore
 
     var body: some View {
-        HStack(alignment: .top) {
-            VStack(alignment: .leading, spacing: 6) {
-                HStack {
-                    Text(service.title)
-                        .font(.subheadline.bold())
+        GroomlyCard {
+            HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                    HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
+                        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                            Text(service.title)
+                                .font(DesignTokens.Typography.headline)
+                                .foregroundStyle(DesignTokens.Colors.textPrimary)
+                                .fixedSize(horizontal: false, vertical: true)
 
-                    if !service.isActive {
-                        Text("Hidden")
-                            .font(.caption)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 2)
-                            .background(.quaternary)
-                            .clipShape(Capsule())
+                            Text("$\(service.basePrice, specifier: "%.2f") • \(service.durationMinutes) min")
+                                .font(DesignTokens.Typography.caption)
+                                .foregroundStyle(DesignTokens.Colors.textSecondary)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                        GroomlyStatusChip(
+                            service.isActive ? "Visible" : "Hidden",
+                            systemImage: service.isActive ? "eye.fill" : "eye.slash",
+                            tone: service.isActive ? .success : .neutral
+                        )
+                    }
+
+                    Label(service.acceptedPetSizeSummary, systemImage: "pawprint")
+                        .font(DesignTokens.Typography.caption)
+                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+
+                    if let description = service.description {
+                        Text(description)
+                            .font(DesignTokens.Typography.body)
+                            .foregroundStyle(DesignTokens.Colors.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 }
 
-                Text("$\(service.basePrice, specifier: "%.2f") • \(service.durationMinutes) min")
-                    .font(.footnote)
-                    .foregroundStyle(DesignTokens.Colors.secondaryText)
-
-                Text(service.acceptedPetSizeSummary)
-                    .font(.footnote)
-                    .foregroundStyle(DesignTokens.Colors.secondaryText)
-
-                if let description = service.description {
-                    Text(description)
-                        .font(.footnote)
-                        .foregroundStyle(DesignTokens.Colors.secondaryText)
-                }
-            }
-
-            Spacer()
-
-            Menu {
-                Button("Edit") {
-                    store.startEditService(service)
-                }
-
-                Button("Delete", role: .destructive) {
-                    Task {
-                        await store.deleteService(service)
+                Menu {
+                    Button("Edit") {
+                        store.startEditService(service)
                     }
+
+                    Button("Delete", role: .destructive) {
+                        Task {
+                            await store.deleteService(service)
+                        }
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                        .font(DesignTokens.Typography.title)
+                        .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
+                        .accessibilityLabel("Service actions")
                 }
-            } label: {
-                Image(systemName: "ellipsis.circle")
-                    .accessibilityLabel("Service actions")
+                .disabled(store.isBusy)
             }
-            .disabled(store.isBusy)
+        }
+    }
+}
+
+private struct GroomerProfileTextField: View {
+    let title: String
+    @Binding var text: String
+    let prompt: String
+    let axis: Axis
+
+    init(
+        title: String,
+        text: Binding<String>,
+        prompt: String,
+        axis: Axis = .horizontal
+    ) {
+        self.title = title
+        _text = text
+        self.prompt = prompt
+        self.axis = axis
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            Text(title)
+                .font(DesignTokens.Typography.caption)
+                .foregroundStyle(DesignTokens.Colors.textSecondary)
+
+            TextField(prompt, text: $text, axis: axis)
+                .groomlyFormField()
+                .tint(DesignTokens.Colors.groomerAccentDark)
+        }
+    }
+}
+
+private struct GroomlyToggleRow: View {
+    let title: String
+    let subtitle: String?
+    let systemImage: String
+    @Binding var isOn: Bool
+
+    init(
+        title: String,
+        subtitle: String? = nil,
+        systemImage: String,
+        isOn: Binding<Bool>
+    ) {
+        self.title = title
+        self.subtitle = subtitle
+        self.systemImage = systemImage
+        _isOn = isOn
+    }
+
+    var body: some View {
+        HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
+            Image(systemName: systemImage)
+                .font(DesignTokens.Typography.caption.weight(.semibold))
+                .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
+                .frame(
+                    width: DesignTokens.Spacing.xl,
+                    height: DesignTokens.Spacing.xl
+                )
+                .background(DesignTokens.Colors.groomerAccent.opacity(0.14))
+                .clipShape(DesignTokens.Shapes.circular)
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                Text(title)
+                    .font(DesignTokens.Typography.body.weight(.semibold))
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+
+                if let subtitle {
+                    Text(subtitle)
+                        .font(DesignTokens.Typography.caption)
+                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Toggle(title, isOn: $isOn)
+                .labelsHidden()
+                .tint(DesignTokens.Colors.groomerAccent)
+        }
+        .padding(DesignTokens.Spacing.md)
+        .background {
+            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input, style: .continuous)
+                .fill(DesignTokens.Colors.borderSoft.opacity(0.35))
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input, style: .continuous)
+                .stroke(DesignTokens.Colors.borderSoft, lineWidth: 1)
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct GroomerServiceSizeToggleRow: View {
+    let size: GroomerServicePetSize
+    @Binding var isOn: Bool
+
+    var body: some View {
+        HStack(spacing: DesignTokens.Spacing.md) {
+            Image(systemName: "pawprint")
+                .font(DesignTokens.Typography.caption.weight(.semibold))
+                .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
+                .frame(
+                    width: DesignTokens.Spacing.xl,
+                    height: DesignTokens.Spacing.xl
+                )
+                .background(DesignTokens.Colors.groomerAccent.opacity(0.14))
+                .clipShape(DesignTokens.Shapes.circular)
+                .accessibilityHidden(true)
+
+            Text(size.title)
+                .font(DesignTokens.Typography.body.weight(.semibold))
+                .foregroundStyle(DesignTokens.Colors.textPrimary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            Toggle(size.title, isOn: $isOn)
+                .labelsHidden()
+                .tint(DesignTokens.Colors.groomerAccent)
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct ProfileBadges: View {
+    let profile: GroomerProfile
+
+    var body: some View {
+        if profile.ratingCount > 0 || profile.isVerified {
+            HStack(spacing: DesignTokens.Spacing.sm) {
+                if profile.ratingCount > 0 {
+                    GroomlyStatusChip(
+                        "\(profile.ratingAverage.formatted(.number.precision(.fractionLength(2)))) from \(profile.ratingCount) review\(profile.ratingCount == 1 ? "" : "s")",
+                        systemImage: "star.fill",
+                        tone: .warning
+                    )
+                }
+
+                if profile.isVerified {
+                    GroomlyStatusChip(
+                        "Verified",
+                        systemImage: "checkmark.seal.fill",
+                        tone: .success
+                    )
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 }
@@ -356,56 +541,105 @@ private struct GroomerServiceFormView: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section("Service") {
-                    TextField("Title", text: $store.serviceTitle)
+            ZStack {
+                DesignTokens.Colors.background
+                    .ignoresSafeArea()
 
-                    TextField("Description", text: $store.serviceDescription, axis: .vertical)
-                        .lineLimit(2...4)
+                ScrollView {
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                        GroomlySectionHeader(
+                            store.serviceFormTitle,
+                            subtitle: "Define the service customers can review when you make offers."
+                        )
 
-                    TextField("Base price", text: $store.serviceBasePrice)
-                        .keyboardType(.decimalPad)
+                        GroomlyCard {
+                            VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                                GroomerProfileTextField(
+                                    title: "Title",
+                                    text: $store.serviceTitle,
+                                    prompt: "Title"
+                                )
 
-                    TextField("Duration in minutes", text: $store.serviceDurationMinutes)
-                        .keyboardType(.numberPad)
+                                GroomerProfileTextField(
+                                    title: "Description",
+                                    text: $store.serviceDescription,
+                                    prompt: "Description",
+                                    axis: .vertical
+                                )
+                                .lineLimit(2...4)
 
-                    Toggle("Visible to customers", isOn: $store.serviceIsActive)
-                }
+                                GroomerProfileTextField(
+                                    title: "Base price",
+                                    text: $store.serviceBasePrice,
+                                    prompt: "Base price"
+                                )
+                                .keyboardType(.decimalPad)
 
-                Section {
-                    ForEach(GroomerServicePetSize.allCases) { size in
-                        Toggle(
-                            size.title,
-                            isOn: Binding(
-                                get: {
-                                    store.selectedServiceSizes.contains(size)
-                                },
-                                set: { isSelected in
-                                    if isSelected {
-                                        store.selectedServiceSizes.insert(size)
-                                    } else {
-                                        store.selectedServiceSizes.remove(size)
+                                GroomerProfileTextField(
+                                    title: "Duration in minutes",
+                                    text: $store.serviceDurationMinutes,
+                                    prompt: "Duration in minutes"
+                                )
+                                .keyboardType(.numberPad)
+
+                                GroomlyToggleRow(
+                                    title: "Visible to customers",
+                                    subtitle: "Hidden services stay saved but do not appear as active options.",
+                                    systemImage: "eye",
+                                    isOn: $store.serviceIsActive
+                                )
+                            }
+                        }
+
+                        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                            GroomlySectionHeader(
+                                "Accepted pet sizes",
+                                subtitle: "Leave all sizes off when this service accepts every pet size."
+                            )
+
+                            GroomlyCard {
+                                VStack(spacing: DesignTokens.Spacing.md) {
+                                    ForEach(GroomerServicePetSize.allCases) { size in
+                                        GroomerServiceSizeToggleRow(
+                                            size: size,
+                                            isOn: Binding(
+                                                get: {
+                                                    store.selectedServiceSizes.contains(size)
+                                                },
+                                                set: { isSelected in
+                                                    if isSelected {
+                                                        store.selectedServiceSizes.insert(size)
+                                                    } else {
+                                                        store.selectedServiceSizes.remove(size)
+                                                    }
+                                                }
+                                            )
+                                        )
+
+                                        if size.id != GroomerServicePetSize.allCases.last?.id {
+                                            Divider()
+                                                .overlay(DesignTokens.Colors.divider)
+                                        }
                                     }
                                 }
-                            )
-                        )
-                    }
-                } header: {
-                    Text("Accepted pet sizes")
-                } footer: {
-                    Text("Leave all sizes off when this service accepts every pet size.")
-                }
+                            }
+                        }
 
-                if let errorMessage = store.errorMessage {
-                    Section {
-                        Text(errorMessage)
-                            .foregroundStyle(.red)
+                        if let errorMessage = store.errorMessage {
+                            GroomlyErrorBanner(
+                                title: "Service could not be saved",
+                                message: errorMessage
+                            )
+                            .accessibilityIdentifier("groomer.services.form-error")
+                        }
                     }
-                    .accessibilityIdentifier("groomer.services.form-error")
+                    .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+                    .padding(.vertical, DesignTokens.Spacing.lg)
                 }
             }
             .navigationTitle(store.serviceFormTitle)
             .navigationBarTitleDisplayMode(.inline)
+            .scrollDismissesKeyboard(.interactively)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
@@ -432,31 +666,59 @@ private struct GroomerProfileStatusView: View {
     let store: GroomerProfileStore
 
     var body: some View {
-        VStack(spacing: 8) {
-            if store.isSaving || store.isUploading {
-                ProgressView(store.isUploading ? "Uploading…" : "Saving…")
-                    .font(.footnote)
-            }
+        if hasStatus {
+            VStack(spacing: DesignTokens.Spacing.sm) {
+                if store.isSaving || store.isUploading {
+                    HStack(spacing: DesignTokens.Spacing.sm) {
+                        ProgressView()
+                            .tint(DesignTokens.Colors.groomerAccent)
 
-            if let noticeMessage = store.noticeMessage {
-                Text(noticeMessage)
-                    .font(.footnote)
-                    .foregroundStyle(DesignTokens.Colors.secondaryText)
-            }
+                        Text(store.isUploading ? "Uploading…" : "Saving…")
+                            .font(DesignTokens.Typography.caption)
+                            .foregroundStyle(DesignTokens.Colors.textSecondary)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .accessibilityElement(children: .combine)
+                }
 
-            if let errorMessage = store.errorMessage,
-               !store.isShowingServiceForm {
-                Text(errorMessage)
-                    .font(.footnote)
-                    .foregroundStyle(.red)
+                if let noticeMessage = store.noticeMessage {
+                    HStack(spacing: DesignTokens.Spacing.sm) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(DesignTokens.Colors.success)
+                            .accessibilityHidden(true)
+
+                        Text(noticeMessage)
+                            .font(DesignTokens.Typography.caption)
+                            .foregroundStyle(DesignTokens.Colors.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .accessibilityElement(children: .combine)
+                }
+
+                if let errorMessage = store.errorMessage,
+                   !store.isShowingServiceForm {
+                    GroomlyErrorBanner(
+                        title: "Profile update failed",
+                        message: errorMessage
+                    )
+                }
             }
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+            .padding(.vertical, DesignTokens.Spacing.sm)
+            .background(.ultraThinMaterial)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.horizontal, DesignTokens.Spacing.standard)
-        .padding(.vertical, 8)
-        .background(.thinMaterial)
+    }
+
+    private var hasStatus: Bool {
+        store.isSaving ||
+            store.isUploading ||
+            store.noticeMessage != nil ||
+            (store.errorMessage != nil && !store.isShowingServiceForm)
     }
 }
+
 
 private struct GroomerCard<Content: View>: View {
     private let content: Content
@@ -466,13 +728,9 @@ private struct GroomerCard<Content: View>: View {
     }
 
     var body: some View {
-        content
-            .padding(DesignTokens.Spacing.standard)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(DesignTokens.Colors.surface)
-            .clipShape(
-                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.card)
-            )
+        GroomlyCard {
+            content
+        }
     }
 }
 

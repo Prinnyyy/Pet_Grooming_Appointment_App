@@ -1,6 +1,6 @@
 # T-031 - Groomly Groomer Profile and Services UI
 
-- State: planned.
+- State: completed.
 - Mode: Standard.
 - Depends on: completed T-030.
 
@@ -52,6 +52,12 @@ Run:
 ./scripts/ios-build.sh
 git diff --check
 ```
+
+Status:
+
+- `./scripts/ios-build.sh` passed on 2026-06-22 after one local string-format correction.
+- Post-review `./scripts/ios-test.sh` passed on 2026-06-22.
+- `git diff --check` passed on 2026-06-22.
 
 ## Acceptance
 
