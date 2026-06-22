@@ -65,10 +65,23 @@ Groomly semantic token groups now include:
 | Colors | `appBackground`, `surfaceRaised`, `border`, `borderSoft`, `divider`, `textPrimary`, `textSecondary`, `textTertiary`, `customerPrimary`, `customerPrimaryDark`, `customerPrimaryPressed`, `groomerAccent`, `groomerAccentDark`, `groomerAccentPressed`, `success`, `warning`, `error` |
 | Spacing | `xs`, `sm`, `md`, `lg`, `xl`, `screenHorizontal`, `screenHorizontalLarge` |
 | Radius and shape | `CornerRadius.card`, `button`, `input`, `bottomSheet`; JSON `chip` and `circular` map to `Shapes.chip` and `Shapes.circular` so SwiftUI uses `Capsule`/`Circle` instead of CSS radius constants |
-| Shadow | `Shadows.softCard`, `smallCard`, `primaryAction`, `groomerAction` using a lightweight `ShadowStyle` value; `spread` preserves CSS source evidence because SwiftUI `.shadow` has no direct spread parameter |
+| Shadow | `Shadows.softCard`, `smallCard`, `primaryAction`, `groomerAction` using a lightweight `ShadowStyle` value; the shared `.groomlyShadow(...)` modifier approximates CSS `spread` through shadow radius because SwiftUI `.shadow` has no direct spread parameter |
 | Typography | `Typography.largeTitle`, `title`, `headline`, `body`, `caption` using SwiftUI semantic `Font` styles for Dynamic Type |
 
 New tokens must be introduced through `DesignTokens` rather than embedded independently in screens.
+
+## Implemented SwiftUI Action Primitives
+
+Defined in `DesignSystem/GroomlyActionPrimitives.swift`:
+
+| Primitive | Purpose | States and Inputs |
+|---|---|---|
+| `GroomlyPrimaryButtonStyle` | Full-width or inline primary action styling for the main decision point | customer or groomer accent, pressed, disabled; callers may use `Label` with SF Symbols or text-only `Text` |
+| `GroomlySecondaryButtonStyle` | Outline/secondary action styling for supporting commands | customer, groomer, or neutral accent, pressed, disabled; callers may use SF Symbols through `Label` |
+| `GroomlyCard` | Reusable raised white content surface for compact summaries | normal or selected border state, configurable token-based padding |
+| `GroomlyStatusChip` | Compact semantic status label | neutral, customer, groomer, success, warning, or error tone; optional SF Symbol icon with text fallback; warning uses primary text on amber for contrast |
+
+These primitives are not wired into feature screens yet. Calling screens remain responsible for loading text, duplicate-submit protection, error recovery, navigation, and business actions through their existing Store/repository boundaries.
 
 ## Typography
 
@@ -81,10 +94,11 @@ New tokens must be introduced through `DesignTokens` rather than embedded indepe
 | Component | Purpose | Required States | Current Status |
 |---|---|---|---|
 | `FeaturePlaceholderView` | Honest baseline for unimplemented tab content | Static placeholder | implemented |
-| Primary action button | Submit the screen's main mutation | normal, loading, disabled, error recovery | planned with first form feature |
+| `GroomlyPrimaryButtonStyle` | Submit the screen's main mutation | normal, pressed, disabled; loading and error recovery supplied by calling screen state | implemented |
+| `GroomlySecondaryButtonStyle` | Present supporting actions without competing with the primary decision | normal, pressed, disabled | implemented |
 | Form field | Collect validated input | normal, focused, invalid, disabled | planned with Auth/forms |
-| Content card | Present pet, request, offer, or booking summary | normal, selected when applicable | planned by feature |
-| Status chip | Present request, offer, or booking state | semantic label and color | planned by feature |
+| `GroomlyCard` | Present pet, request, offer, or booking summary | normal, selected when applicable | implemented, not wired into screens |
+| `GroomlyStatusChip` | Present request, offer, or booking state | semantic text label, optional icon, and tone | implemented, not wired into screens |
 | Empty/error state | Explain missing content or recoverable failure | message, optional retry/action | planned by feature |
 
 ## Rules

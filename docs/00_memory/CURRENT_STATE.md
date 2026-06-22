@@ -10,11 +10,12 @@ Update this only when project state meaningfully changes.
 ## Current Task Fast Path
 
 - Active sequence: `docs/06_tasks/T-023_GROOMLY_UI_FOUNDATION_SEQUENCE.md`.
-- Active next executable task: `docs/06_tasks/T-023D1_GROOMLY_ACTION_PRIMITIVES.md`.
+- Active next executable task: `docs/06_tasks/T-023D2_GROOMLY_SWIFTUI_FEEDBACK_PRIMITIVES.md`.
 - T-023A is completed. `docs/08_design/UI_IMPLEMENTATION_NOTES.md` records the Groomly design audit, prototype-to-SwiftUI mapping, deferred prototype ideas, and asset risks.
 - T-023B is completed. `docs/08_design/design_tokens.json` is the Groomly token source for colors, spacing, radius, shadow, and typography, with extracted versus inferred values labeled.
 - T-023C is completed. `DesignSystem/DesignTokens.swift` now exposes the Groomly SwiftUI token foundation while preserving existing baseline token names.
-- T-023D1 is the next child task. Read its task file before executing it; do not start T-023D2 or feature-screen redesign during T-023D1.
+- T-023D1 is completed. `DesignSystem/GroomlyActionPrimitives.swift` now provides the D1 button, card, and status-chip primitives without wiring them into feature screens.
+- T-023D2 is the next child task. Read its task file before executing it; do not start feature-screen redesign during T-023D2.
 - After T-023D2 eventually completes, create a new T-024 screen-specific task file before editing any feature screen.
 
 ## Current Branch
@@ -27,7 +28,7 @@ Update this only when project state meaningfully changes.
 ## Current Build Status
 
 - Last build command: `./scripts/ios-build.sh`.
-- Last known build result: passed for T-023C on 2026-06-21.
+- Last known build result: passed for T-023D1 on 2026-06-21.
 - Last test command: `./scripts/ios-test.sh`.
 - Last known test result: passed for T-022 on 2026-06-21.
 - Last general check: `./scripts/preflight.sh` passed for T-022 on 2026-06-21.
@@ -48,7 +49,7 @@ Update this only when project state meaningfully changes.
 - Pre-Groomly rule/task context is frozen at `docs/09_frozen/pre_groomly_ui_2026-06-21/` for recovery only; do not read it during Groomly foundation child tasks unless explicitly needed for recovery.
 - T-001 through T-022 are completed. T-022 post-MVP next-task suggestions are frozen and must not auto-start.
 - T-023 is split into five child tasks: T-023A design audit notes, T-023B design tokens JSON, T-023C SwiftUI token foundation, T-023D1 action primitives, and T-023D2 feedback primitives.
-- T-023A, T-023B, and T-023C are completed. Only T-023D1 is currently executable. T-023D2 is blocked until T-023D1 is completed and recorded.
+- T-023A, T-023B, T-023C, and T-023D1 are completed. Only T-023D2 is currently executable. After T-023D2, create a T-024 screen-specific task file before editing any feature screen.
 
 ## Current iOS State
 
@@ -56,7 +57,8 @@ Update this only when project state meaningfully changes.
 - Targets: app, Swift Testing unit tests, and XCTest UI tests; shared scheme `PetGroomerMarketplace`.
 - Baseline: Swift 6, minimum iOS 18.0, bundle ID `com.prinnyyy.PetGroomerMarketplace`.
 - Structure: feature-first App, Core models/configuration/infrastructure/repositories, DesignSystem, Auth bootstrap, Customer tabs, Customer pets, Customer requests, Bookings, Chat, Debug, Groomer tabs, Groomer requests, and Groomer profile management.
-- `DesignSystem/DesignTokens.swift` contains the Groomly SwiftUI token foundation for colors, spacing, radii/shapes, shadows, and Dynamic Type-friendly typography. T-023D1 must build action primitives on top of these tokens without redesigning feature screens.
+- `DesignSystem/DesignTokens.swift` contains the Groomly SwiftUI token foundation for colors, spacing, radii/shapes, shadows, and Dynamic Type-friendly typography.
+- `DesignSystem/GroomlyActionPrimitives.swift` contains `GroomlyPrimaryButtonStyle`, `GroomlySecondaryButtonStyle`, `GroomlyCard`, `GroomlyStatusChip`, and the shared `.groomlyShadow(...)` modifier for DesignSystem primitives. T-023D2 must add feedback primitives without redesigning feature screens.
 - SwiftUI views do not access Supabase directly; backend access remains behind repository boundaries.
 
 ## Current Backend State
@@ -64,7 +66,7 @@ Update this only when project state meaningfully changes.
 - Authorized Supabase project: `Pet Groomer Marketplace`, ref `lqmasbuqzvcvtawonjlb`.
 - Legacy project `swdiiyypysyxbnfrxxsv` is out of scope; do not inspect or mutate it.
 - Backend objects needed for the MVP are deployed through T-022 and mirrored under `supabase/migrations/`.
-- T-023B and T-023C required no backend reads or writes. Future backend work must use Supabase MCP only and requires explicit user approval for remote schema writes.
+- T-023B, T-023C, and T-023D1 required no backend reads or writes. Future backend work must use Supabase MCP only and requires explicit user approval for remote schema writes.
 - The local `supabase_api_key` file is ignored and must not be read or embedded in code/docs.
 
 ## Known Risks
@@ -76,4 +78,4 @@ Update this only when project state meaningfully changes.
 
 ## Next Recommended Task
 
-- T-023D1 - Groomly SwiftUI action primitives. Build action primitives on top of the T-023C token foundation only; do not create feedback primitives or redesign feature screens.
+- T-023D2 - Groomly SwiftUI feedback primitives. Build feedback primitives on top of the existing tokens and D1 action primitives only; do not redesign feature screens.

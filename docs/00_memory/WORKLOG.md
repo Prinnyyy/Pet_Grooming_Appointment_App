@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-06-21
+Task: T-023D1 - Groomly SwiftUI action primitives.
+Files changed: Added ios/PetGroomerMarketplace/PetGroomerMarketplace/DesignSystem/GroomlyActionPrimitives.swift; updated docs/01_product/DESIGN_SYSTEM.md, CURRENT_STATE.md, WORKLOG.md, and TASK_LEDGER.md.
+Checks: `./scripts/ios-build.sh` passed. `git diff --check` passed.
+Result: T-023D1 is completed. The DesignSystem now contains GroomlyPrimaryButtonStyle, GroomlySecondaryButtonStyle, GroomlyCard, and GroomlyStatusChip built on centralized DesignTokens without wiring them into feature screens. Post-review follow-up promoted `.groomlyShadow(...)` for D2 reuse, applies `ShadowStyle.spread` as a stable radius adjustment, and documents the warning chip contrast choice.
+Risks: Loading copy, duplicate-submit protection, navigation, business actions, and error recovery remain owned by existing feature Stores/screens. Feedback, loading, empty-state, and section-header primitives remain unstarted for T-023D2.
+Next: Execute T-023D2 only.
+```
+
+```text
+Date: 2026-06-21
 Task: T-023C - Groomly SwiftUI token foundation.
 Files changed: Updated ios/PetGroomerMarketplace/PetGroomerMarketplace/DesignSystem/DesignTokens.swift, docs/01_product/DESIGN_SYSTEM.md, CURRENT_STATE.md, WORKLOG.md, and TASK_LEDGER.md.
 Checks: `./scripts/ios-build.sh` passed. `git diff --check` passed.
