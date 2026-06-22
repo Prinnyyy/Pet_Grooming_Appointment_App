@@ -2,6 +2,7 @@ import SwiftUI
 
 struct CustomerRequestsView: View {
     @State private var store: CustomerRequestsStore
+    @State private var isShowingCancelUnavailable = false
 
     init(
         customerID: UUID,
@@ -20,8 +21,6 @@ struct CustomerRequestsView: View {
     }
 
     var body: some View {
-        @Bindable var store = store
-
         ZStack {
             DesignTokens.Colors.background
                 .ignoresSafeArea()
@@ -44,9 +43,12 @@ struct CustomerRequestsView: View {
         .safeAreaInset(edge: .bottom) {
             CustomerRequestsStatusView(store: store)
         }
-        .sheet(isPresented: $store.isShowingWizard) {
-            CustomerRequestWizardView(store: store)
+        .alert("Cancellation is not connected yet", isPresented: $isShowingCancelUnavailable) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Request cancellation needs a controlled backend RPC before it can safely change request state.")
         }
+        .toolbar(.hidden, for: .navigationBar)
         .task {
             await store.load()
         }
@@ -64,158 +66,661 @@ struct CustomerRequestsView: View {
             .accessibilityIdentifier("customer.requests.loading")
         } else {
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                    GroomlySectionHeader(
-                        "Grooming requests",
-                        subtitle: "Track open requests and review groomer responses from one place."
-                    )
-
-                    CustomerRequestsStartCard(store: store)
+                LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
+                    CustomerRequestsRootHeader(requestCount: store.requests.count)
 
                     if store.requests.isEmpty {
-                        GroomlyEmptyState(
-                            title: "No requests yet",
-                            message: "Create a request when your pet is ready for grooming.",
-                            systemImage: "doc.badge.plus",
-                            accent: .customer
-                        )
-                        .accessibilityIdentifier("customer.requests.empty")
+                        CustomerRequestsEmptyDashboard()
+                            .accessibilityIdentifier("customer.requests.empty")
                     } else {
-                        LazyVStack(spacing: DesignTokens.Spacing.md) {
-                            ForEach(store.requests) { request in
-                                NavigationLink {
-                                    CustomerRequestDetailView(
-                                        requestID: request.id,
-                                        store: store
-                                    )
-                                } label: {
-                                    CustomerRequestSummaryRow(request: request)
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
+                        CustomerRequestProgressCarousel(
+                            requests: store.requests,
+                            store: store,
+                            isShowingCancelUnavailable: $isShowingCancelUnavailable
+                        )
+                        .accessibilityIdentifier("customer.requests.progress-carousel")
                     }
                 }
                 .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-                .padding(.top, DesignTokens.Spacing.lg)
-                .padding(.bottom, DesignTokens.Spacing.xl + DesignTokens.Spacing.xl)
+                .padding(.top, DesignTokens.Spacing.xl)
+                .padding(.bottom, DesignTokens.Spacing.xl * 4)
             }
             .scrollContentBackground(.hidden)
+            .refreshable {
+                await store.load()
+            }
             .accessibilityIdentifier("customer.requests.list")
         }
     }
 }
 
-private struct CustomerRequestsStartCard: View {
-    @Bindable var store: CustomerRequestsStore
+private struct CustomerRequestsRootHeader: View {
+    let requestCount: Int
 
     var body: some View {
-        GroomlyCard {
+        HStack(alignment: .top, spacing: DesignTokens.Spacing.lg) {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
-                    Image(systemName: "scissors")
-                        .font(DesignTokens.Typography.headline)
-                        .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
-                        .frame(
-                            width: DesignTokens.Spacing.xl + DesignTokens.Spacing.xl,
-                            height: DesignTokens.Spacing.xl + DesignTokens.Spacing.xl
-                        )
-                        .background(DesignTokens.Colors.customerPrimary.opacity(0.16))
-                        .clipShape(DesignTokens.Shapes.circular)
-                        .accessibilityHidden(true)
+                Text("Your requests")
+                    .font(DesignTokens.Typography.largeTitle)
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.82)
+                    .fixedSize(horizontal: false, vertical: true)
 
-                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                        Text("Start a grooming request")
-                            .font(DesignTokens.Typography.headline)
-                            .foregroundStyle(DesignTokens.Colors.textPrimary)
+                Text(subtitle)
+                    .font(DesignTokens.Typography.body)
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
 
-                        Text(promptText)
-                            .font(DesignTokens.Typography.body)
-                            .foregroundStyle(DesignTokens.Colors.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                }
-
-                Button {
-                    store.startCreate()
-                } label: {
-                    Label("Start grooming request", systemImage: "plus.circle")
-                }
-                .buttonStyle(GroomlyPrimaryButtonStyle())
-                .disabled(store.isBusy || store.pets.isEmpty)
-                .accessibilityIdentifier("customer.requests.start")
-
-                if store.pets.isEmpty {
-                    GroomlyStatusChip(
-                        "Add a pet on Home first",
-                        systemImage: "pawprint",
-                        tone: .warning
-                    )
-                }
+            if requestCount > 0 {
+                GroomlyStatusChip(
+                    "\(requestCount)",
+                    systemImage: requestCount == 1 ? "doc.text.fill" : "rectangle.stack.fill",
+                    tone: .customer
+                )
+                .padding(.top, DesignTokens.Spacing.sm)
             }
         }
     }
 
-    private var promptText: String {
-        if store.pets.isEmpty {
-            return "Add a pet on the Home tab before publishing a request."
+    private var subtitle: String {
+        if requestCount > 1 {
+            return "Swipe between active and past quests. Each card keeps its own status, summary, and actions together."
         }
 
-        return "Share the service, time window, and location so matched groomers can make offers."
+        if requestCount == 1 {
+            return "Track this quest's details, progress, and available actions."
+        }
+
+        return "Published grooming quests will appear here after you start them from Home."
     }
 }
 
-private struct CustomerRequestSummaryRow: View {
+private struct CustomerRequestProgressCarousel: View {
+    let requests: [CustomerGroomingRequest]
+    let store: CustomerRequestsStore
+    @Binding var isShowingCancelUnavailable: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            ScrollView(.horizontal) {
+                LazyHStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
+                    ForEach(requests) { request in
+                        CustomerRequestProgressCard(
+                            request: request,
+                            store: store,
+                            isShowingCancelUnavailable: $isShowingCancelUnavailable
+                        )
+                        .containerRelativeFrame(.horizontal) { length, _ in
+                            length - (DesignTokens.Spacing.screenHorizontal * 2)
+                        }
+                    }
+                }
+                .scrollTargetLayout()
+            }
+            .contentMargins(.horizontal, DesignTokens.Spacing.screenHorizontal, for: .scrollContent)
+            .padding(.horizontal, -DesignTokens.Spacing.screenHorizontal)
+            .padding(.vertical, DesignTokens.Spacing.sm)
+            .scrollIndicators(.hidden)
+            .scrollClipDisabled()
+            .scrollTargetBehavior(.viewAligned)
+
+            if requests.count > 1 {
+                Label("Swipe to review another request", systemImage: "arrow.left.and.right")
+                    .font(DesignTokens.Typography.caption)
+                    .foregroundStyle(DesignTokens.Colors.textTertiary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .accessibilityIdentifier("customer.requests.carousel-hint")
+            }
+        }
+    }
+}
+
+private struct CustomerRequestProgressCard: View {
+    let request: CustomerGroomingRequest
+    let store: CustomerRequestsStore
+    @Binding var isShowingCancelUnavailable: Bool
+
+    var body: some View {
+        GroomlyCard(padding: DesignTokens.Spacing.xl) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                CustomerRequestBriefHeader(request: request)
+
+                Divider()
+                    .overlay(DesignTokens.Colors.borderSoft)
+
+                CustomerRequestTimelineList(request: request)
+
+                CustomerRequestActionRow(
+                    request: request,
+                    store: store,
+                    isShowingCancelUnavailable: $isShowingCancelUnavailable
+                )
+            }
+        }
+    }
+}
+
+private struct CustomerRequestTimelineList: View {
     let request: CustomerGroomingRequest
 
     var body: some View {
-        GroomlyCard {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
-                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                        Text(request.title)
-                            .font(DesignTokens.Typography.headline)
-                            .foregroundStyle(DesignTokens.Colors.textPrimary)
-                            .fixedSize(horizontal: false, vertical: true)
-
-                        Text(request.locationSummary)
-                            .font(DesignTokens.Typography.body)
-                            .foregroundStyle(DesignTokens.Colors.secondaryText)
-                    }
-
-                    Spacer(minLength: DesignTokens.Spacing.md)
-
-                    GroomlyStatusChip(
-                        request.status.title,
-                        systemImage: statusSystemImage,
-                        tone: statusTone
-                    )
-                }
-
-                HStack(spacing: DesignTokens.Spacing.sm) {
-                    Image(systemName: "calendar")
-                        .foregroundStyle(DesignTokens.Colors.textTertiary)
-                        .accessibilityHidden(true)
-
-                    Text(timeSummary)
-                        .font(DesignTokens.Typography.caption)
-                        .foregroundStyle(DesignTokens.Colors.secondaryText)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(Array(steps.enumerated()), id: \.element.id) { index, step in
+                CustomerRequestTimelineRow(
+                    step: step,
+                    isLast: index == steps.count - 1
+                )
             }
         }
     }
 
-    private var statusTone: GroomlyStatusChip.Tone {
-        request.status.isOpenForOffers ? .customer : .neutral
+    private var steps: [CustomerRequestTimelineStep] {
+        switch request.status {
+        case .open:
+            [
+                .published(createdAt: request.createdAt, state: .complete),
+                .matching(state: .active),
+                .offers(state: .upcoming),
+                .booking(state: .upcoming),
+            ]
+        case .hasOffers:
+            [
+                .published(createdAt: request.createdAt, state: .complete),
+                .matching(title: "Matched groomers", subtitle: "Groomers can now send offers", state: .complete),
+                .offers(state: .active),
+                .booking(state: .upcoming),
+            ]
+        case .booked:
+            [
+                .published(createdAt: request.createdAt, state: .complete),
+                .matching(title: "Matched groomers", subtitle: "A groomer offer was selected", state: .complete),
+                .offers(state: .complete),
+                .booking(state: .complete),
+            ]
+        case .cancelled:
+            [
+                .published(createdAt: request.createdAt, state: .complete),
+                .matching(title: "Request cancelled", subtitle: "This request is closed", state: .stopped),
+                .offers(state: .upcoming),
+                .booking(state: .upcoming),
+            ]
+        case .expired:
+            [
+                .published(createdAt: request.createdAt, state: .complete),
+                .matching(title: "Request expired", subtitle: "Create a new request to keep looking", state: .stopped),
+                .offers(state: .upcoming),
+                .booking(state: .upcoming),
+            ]
+        }
+    }
+}
+
+private struct CustomerRequestBriefHeader: View {
+    let request: CustomerGroomingRequest
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
+                Text(request.petSnapshot.displayEmoji)
+                    .font(.system(size: 30))
+                    .frame(width: 56, height: 56)
+                    .background(request.avatarBackground)
+                    .clipShape(DesignTokens.Shapes.circular)
+                    .accessibilityHidden(true)
+
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                    Text(request.progressHeadline)
+                        .font(DesignTokens.Typography.headline)
+                        .foregroundStyle(DesignTokens.Colors.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Text(request.title)
+                        .font(DesignTokens.Typography.body)
+                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                GroomlyStatusChip(
+                    request.dashboardChipTitle,
+                    systemImage: request.dashboardChipSystemImage,
+                    tone: request.dashboardChipTone
+                )
+            }
+
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                CustomerRequestBriefInfoLine(
+                    systemImage: "calendar",
+                    text: request.progressTimeSummary
+                )
+                CustomerRequestBriefInfoLine(
+                    systemImage: "mappin.and.ellipse",
+                    text: request.locationSummary
+                )
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct CustomerRequestBriefInfoLine: View {
+    let systemImage: String
+    let text: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: DesignTokens.Spacing.sm) {
+            Image(systemName: systemImage)
+                .font(DesignTokens.Typography.caption)
+                .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
+                .frame(width: 18)
+                .accessibilityHidden(true)
+
+            Text(text)
+                .font(DesignTokens.Typography.caption)
+                .foregroundStyle(DesignTokens.Colors.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+}
+
+private struct CustomerRequestTimelineRow: View {
+    let step: CustomerRequestTimelineStep
+    let isLast: Bool
+
+    var body: some View {
+        HStack(alignment: .top, spacing: DesignTokens.Spacing.lg) {
+            VStack(spacing: 0) {
+                marker
+
+                if !isLast {
+                    Rectangle()
+                        .fill(step.connectorColor)
+                        .frame(width: 3, height: 48)
+                }
+            }
+
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                Text(step.title)
+                    .font(DesignTokens.Typography.headline)
+                    .foregroundStyle(step.titleColor)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Text(step.subtitle)
+                    .font(DesignTokens.Typography.body)
+                    .foregroundStyle(step.subtitleColor)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(.top, DesignTokens.Spacing.xs)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
     }
 
-    private var statusSystemImage: String {
-        request.status.isOpenForOffers ? "clock" : "checkmark"
+    @ViewBuilder
+    private var marker: some View {
+        ZStack {
+            Circle()
+                .fill(step.markerColor)
+                .frame(width: 44, height: 44)
+
+            if step.state == .complete {
+                Image(systemName: "checkmark")
+                    .font(.headline.weight(.bold))
+                    .foregroundStyle(DesignTokens.Colors.surface)
+            } else if step.state == .stopped {
+                Image(systemName: "xmark")
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(DesignTokens.Colors.surface)
+            }
+        }
+        .accessibilityHidden(true)
+    }
+}
+
+private struct CustomerRequestTimelineStep: Identifiable {
+    let id: String
+    let title: String
+    let subtitle: String
+    let state: CustomerRequestTimelineStepState
+
+    static func published(
+        createdAt: String,
+        state: CustomerRequestTimelineStepState
+    ) -> CustomerRequestTimelineStep {
+        CustomerRequestTimelineStep(
+            id: "published",
+            title: "Request published",
+            subtitle: publishedSubtitle(from: createdAt),
+            state: state
+        )
     }
 
-    private var timeSummary: String {
-        "\(GroomingRequestDateFormatting.displayString(from: request.preferredStart)) – \(GroomingRequestDateFormatting.displayString(from: request.preferredEnd))"
+    static func matching(
+        title: String = "Matching groomers",
+        subtitle: String = "Finding the best fit nearby",
+        state: CustomerRequestTimelineStepState
+    ) -> CustomerRequestTimelineStep {
+        CustomerRequestTimelineStep(
+            id: "matching",
+            title: title,
+            subtitle: subtitle,
+            state: state
+        )
+    }
+
+    static func offers(state: CustomerRequestTimelineStepState) -> CustomerRequestTimelineStep {
+        let subtitle = switch state {
+        case .complete:
+            "Offer accepted"
+        case .active:
+            "Review groomer offers"
+        case .upcoming:
+            "Waiting for groomers to respond"
+        case .stopped:
+            "No offer activity"
+        }
+
+        return CustomerRequestTimelineStep(
+            id: "offers",
+            title: "Offers received",
+            subtitle: subtitle,
+            state: state
+        )
+    }
+
+    static func booking(state: CustomerRequestTimelineStepState) -> CustomerRequestTimelineStep {
+        CustomerRequestTimelineStep(
+            id: "booking",
+            title: "Booking confirmed",
+            subtitle: state == .complete ? "Your appointment is booked" : "Accept an offer to book",
+            state: state
+        )
+    }
+
+    private static func publishedSubtitle(from createdAt: String) -> String {
+        guard let date = GroomingRequestDateFormatting.parsedDate(from: createdAt) else {
+            return "Published"
+        }
+
+        let elapsed = Date().timeIntervalSince(date)
+        if elapsed >= 0, elapsed < 60 * 60 {
+            return "Just now"
+        }
+
+        if Calendar.current.isDateInToday(date) {
+            return "Today"
+        }
+
+        return date.formatted(date: .abbreviated, time: .omitted)
+    }
+}
+
+private enum CustomerRequestTimelineStepState {
+    case complete
+    case active
+    case upcoming
+    case stopped
+}
+
+private extension CustomerRequestTimelineStep {
+    var markerColor: Color {
+        switch state {
+        case .complete:
+            DesignTokens.Colors.success
+        case .active:
+            DesignTokens.Colors.customerPrimary
+        case .upcoming:
+            DesignTokens.Colors.borderSoft
+        case .stopped:
+            DesignTokens.Colors.error
+        }
+    }
+
+    var connectorColor: Color {
+        switch state {
+        case .complete:
+            DesignTokens.Colors.success.opacity(0.9)
+        case .active:
+            DesignTokens.Colors.customerPrimary.opacity(0.55)
+        case .upcoming:
+            DesignTokens.Colors.borderSoft
+        case .stopped:
+            DesignTokens.Colors.borderSoft
+        }
+    }
+
+    var titleColor: Color {
+        switch state {
+        case .complete, .active:
+            DesignTokens.Colors.textPrimary
+        case .upcoming:
+            DesignTokens.Colors.textTertiary
+        case .stopped:
+            DesignTokens.Colors.error
+        }
+    }
+
+    var subtitleColor: Color {
+        switch state {
+        case .complete, .active:
+            DesignTokens.Colors.textSecondary
+        case .upcoming, .stopped:
+            DesignTokens.Colors.textTertiary
+        }
+    }
+}
+
+private struct CustomerRequestActionRow: View {
+    let request: CustomerGroomingRequest
+    let store: CustomerRequestsStore
+    @Binding var isShowingCancelUnavailable: Bool
+
+    var body: some View {
+        HStack(spacing: DesignTokens.Spacing.md) {
+            editLink
+            cancelButton
+        }
+    }
+
+    private var editLink: some View {
+        NavigationLink {
+            CustomerRequestDetailView(
+                requestID: request.id,
+                store: store
+            )
+        } label: {
+            CustomerRequestActionLabel(
+                title: request.primaryActionTitle,
+                systemImage: request.primaryActionSystemImage,
+                tone: .neutral
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(request.primaryActionTitle)
+        .accessibilityIdentifier(request.status.isOpenForOffers ? "customer.requests.edit" : "customer.requests.detail")
+    }
+
+    private var cancelButton: some View {
+        Button {
+            isShowingCancelUnavailable = true
+        } label: {
+            CustomerRequestActionLabel(
+                title: "Cancel",
+                systemImage: "xmark.circle",
+                tone: .destructive
+            )
+        }
+        .buttonStyle(.plain)
+        .disabled(!request.status.isOpenForOffers)
+        .accessibilityLabel("Cancel Request")
+        .accessibilityIdentifier("customer.requests.cancel")
+    }
+}
+
+private struct CustomerRequestActionLabel: View {
+    enum Tone {
+        case neutral
+        case destructive
+
+        var foreground: Color {
+            switch self {
+            case .neutral:
+                DesignTokens.Colors.textPrimary
+            case .destructive:
+                DesignTokens.Colors.error
+            }
+        }
+
+        var border: Color {
+            switch self {
+            case .neutral:
+                DesignTokens.Colors.border
+            case .destructive:
+                DesignTokens.Colors.error.opacity(0.34)
+            }
+        }
+    }
+
+    @Environment(\.isEnabled) private var isEnabled
+
+    let title: String
+    let systemImage: String
+    let tone: Tone
+
+    var body: some View {
+        Label(title, systemImage: systemImage)
+            .font(DesignTokens.Typography.body.weight(.bold))
+            .foregroundStyle(isEnabled ? tone.foreground : DesignTokens.Colors.textTertiary)
+            .lineLimit(1)
+            .minimumScaleFactor(0.82)
+            .frame(maxWidth: .infinity, minHeight: 56)
+            .padding(.horizontal, DesignTokens.Spacing.md)
+            .background {
+                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous)
+                    .fill(DesignTokens.Colors.surface)
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous)
+                    .stroke(isEnabled ? tone.border : DesignTokens.Colors.borderSoft, lineWidth: 1.2)
+            }
+            .opacity(isEnabled ? 1 : 0.58)
+            .contentShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous))
+    }
+}
+
+private struct CustomerRequestsEmptyDashboard: View {
+    var body: some View {
+        GroomlyEmptyState(
+            title: "No requests yet",
+            message: "Start a grooming quest from Home. Published requests and their progress will appear here.",
+            systemImage: "doc.text.magnifyingglass",
+            accent: .customer
+        )
+    }
+}
+
+private extension CustomerGroomingRequest {
+    var progressHeadline: String {
+        switch status {
+        case .open:
+            "Open request"
+        case .hasOffers:
+            "Offers ready"
+        case .booked:
+            "Confirmed quest"
+        case .cancelled:
+            "Cancelled request"
+        case .expired:
+            "Expired request"
+        }
+    }
+
+    var primaryActionTitle: String {
+        if status.isOpenForOffers {
+            return "Edit Request"
+        }
+
+        return "Detail"
+    }
+
+    var primaryActionSystemImage: String {
+        status.isOpenForOffers ? "square.and.pencil" : "doc.text.magnifyingglass"
+    }
+
+    var progressTimeSummary: String {
+        "\(GroomingRequestDateFormatting.displayString(from: preferredStart)) – \(GroomingRequestDateFormatting.displayString(from: preferredEnd))"
+    }
+
+    var avatarBackground: LinearGradient {
+        LinearGradient(
+            colors: [
+                DesignTokens.Colors.customerPrimary.opacity(0.28),
+                DesignTokens.Colors.groomerAccent.opacity(0.20),
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+
+    var dashboardChipTitle: String {
+        switch status {
+        case .open:
+            "Matching"
+        case .hasOffers:
+            "Offers ready"
+        case .booked:
+            "Booked"
+        case .cancelled:
+            "Cancelled"
+        case .expired:
+            "Expired"
+        }
+    }
+
+    var dashboardChipSystemImage: String {
+        switch status {
+        case .open:
+            "circle.fill"
+        case .hasOffers:
+            "tag.fill"
+        case .booked:
+            "checkmark.circle.fill"
+        case .cancelled:
+            "xmark.circle.fill"
+        case .expired:
+            "hourglass"
+        }
+    }
+
+    var dashboardChipTone: GroomlyStatusChip.Tone {
+        switch status {
+        case .open:
+            .customer
+        case .hasOffers:
+            .warning
+        case .booked:
+            .success
+        case .cancelled, .expired:
+            .neutral
+        }
+    }
+}
+
+private extension GroomingRequestPetSnapshot {
+    var displayEmoji: String {
+        switch species.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
+        case let value where value.contains("cat"):
+            "🐱"
+        case let value where value.contains("bird"):
+            "🐦"
+        case let value where value.contains("rabbit") || value.contains("bunny"):
+            "🐰"
+        default:
+            "🐶"
+        }
     }
 }
 
@@ -1396,6 +1901,36 @@ private final class CustomerRequestsPreviewRequestRepository: CustomerRequestRep
                 expiresAt: "2026-06-22T12:00:00Z",
                 createdAt: "2026-06-20T12:00:00Z",
                 updatedAt: "2026-06-20T12:00:00Z"
+            ),
+            CustomerGroomingRequest(
+                id: UUID(),
+                customerID: customerID,
+                petID: UUID(),
+                petSnapshot: GroomingRequestPetSnapshot(
+                    id: UUID(),
+                    name: "Biscuit",
+                    species: "Dog",
+                    breed: "Pomeranian",
+                    size: "Small",
+                    weightLbs: 12,
+                    birthday: nil,
+                    temperament: "Bright",
+                    medicalNotes: nil,
+                    groomingNotes: nil,
+                    snapshotAt: "2026-06-18T12:00:00Z"
+                ),
+                photoSnapshot: [],
+                serviceType: "Bath and trim",
+                serviceNotes: nil,
+                preferredStart: "2026-06-24T17:00:00Z",
+                preferredEnd: "2026-06-24T18:30:00Z",
+                city: "Seattle",
+                state: "WA",
+                zipCode: "98103",
+                status: .booked,
+                expiresAt: "2026-06-23T12:00:00Z",
+                createdAt: "2026-06-18T12:00:00Z",
+                updatedAt: "2026-06-21T12:00:00Z"
             ),
         ]
     }

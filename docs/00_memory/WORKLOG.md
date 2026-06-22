@@ -2,6 +2,39 @@
 
 ```text
 Date: 2026-06-22
+Task: T-043 - Groomly customer Requests carousel edge refinement.
+Files changed: Added docs/06_tasks/T-043_GROOMLY_CUSTOMER_REQUESTS_CAROUSEL_EDGE_REFINEMENT.md; updated CustomerRequestsView.swift, CURRENT_STATE.md, WORKLOG.md, and TASK_LEDGER.md.
+Checks: `git diff --check` passed. `./scripts/ios-build.sh` passed.
+Simulator launch: XcodeBuildMCP `build_run_sim` passed on `iPhone 17` simulator (`B9639233-9E78-41C9-A372-330D36C38DA7`). Runtime UI reached the Customer Requests tab with two requests visible in the carousel. Horizontal `scroll-left` succeeded after one invalid oversized gesture attempt; the second request card moved into view with only screen-edge clipping. Final screenshot: `/var/folders/bc/xmbw6w1d06s61ns9_j2fnll00000gn/T/screenshot_optimized_ed1f0e7d-dbb8-4c8d-b2cd-73b31316a54c.jpg`.
+Result: The Customer Requests carousel now bleeds to the screen edge while keeping card content aligned to the page margin. ScrollView clipping is disabled so card shadows are no longer cut into an inner rectangular viewport.
+Risks: Visual-only container refinement. Card content, request status mapping, dynamic buttons, detail navigation, and cancel unavailable behavior were preserved.
+Next: App is running on the Customer Requests tab in Simulator for inspection. Wait for explicit user direction before changing card content, request edit persistence, cancellation behavior, or matched-groomer display.
+```
+
+```text
+Date: 2026-06-22
+Task: T-042 - Groomly customer Requests carousel refinement.
+Files changed: Added docs/06_tasks/T-042_GROOMLY_CUSTOMER_REQUESTS_CAROUSEL_REFINEMENT.md; updated CustomerRequestsView.swift, CURRENT_STATE.md, WORKLOG.md, and TASK_LEDGER.md.
+Checks: `git diff --check` passed. `./scripts/ios-build.sh` passed after the final button-label adjustment.
+Simulator launch: XcodeBuildMCP `build_run_sim` passed on `iPhone 17` simulator (`B9639233-9E78-41C9-A372-330D36C38DA7`). Runtime UI reached the Customer Requests tab; current account data displayed one `booked` request with a request-summary progress card, completed timeline, `Detail`, and disabled `Cancel`. `Detail` opened the existing request detail and returned. Final screenshot: `/var/folders/bc/xmbw6w1d06s61ns9_j2fnll00000gn/T/screenshot_optimized_36367e8b-24ef-43ed-a5e9-589f8d8e512b.jpg`.
+Result: Customer Requests no longer shows a start grooming request module. The root now renders request progress as horizontally scrollable per-request cards, with request summary, timeline, and buttons inside each card so actions travel with the selected quest. Button text is status-derived: open/offer states use `Edit Request`; confirmed/closed states use `Detail`.
+Risks: Live simulator data had only one request, so the two-request carousel shape was covered by DEBUG preview mock data and build validation rather than live backend data. Edit still routes to existing request detail only; cancel remains unavailable without backend RPC/repository support.
+Next: App is running on the Customer Requests tab in Simulator for inspection. Wait for explicit user direction before adding request edit persistence, cancellation backend behavior, or matched-groomer display.
+```
+
+```text
+Date: 2026-06-22
+Task: T-041 - Groomly customer Requests status screenshot UI.
+Files changed: Added docs/06_tasks/T-041_GROOMLY_CUSTOMER_REQUESTS_STATUS_SCREENSHOT_UI.md; updated CustomerRequestsView.swift, CURRENT_STATE.md, WORKLOG.md, and TASK_LEDGER.md.
+Checks: `./scripts/ios-build.sh` passed. `git diff --check` passed. One intermediate build failed on a missing explicit `return` in the new timeline helper; that was fixed before the final passing validation.
+Simulator launch: XcodeBuildMCP `build_run_sim` passed on `iPhone 17` simulator (`B9639233-9E78-41C9-A372-330D36C38DA7`). Runtime UI reached the Customer Requests tab; the current account data displayed the `Booked` state, the status timeline rendered all four steps complete, and `Edit Request` opened the existing request detail. Final screenshot: `/var/folders/bc/xmbw6w1d06s61ns9_j2fnll00000gn/T/screenshot_optimized_926709ac-ee77-4f06-83af-65a5e6e1d968.jpg`.
+Result: Customer Requests now opens as a prototype-inspired status-first page with a synced request hero, status chip, vertical timeline, action row, preserved request creation entry, and optional other-request access. The prototype matched-groomer list was ignored per user request/current support.
+Risks: Edit is routed to existing request detail only; no update flow was added. Cancel does not mutate request state because customer request cancellation still needs a backend RPC/repository path. Runtime data covered `booked`; other status mappings are code-backed but not represented by the current simulator account data.
+Next: App is running on the Customer Requests tab in Simulator for inspection. Wait for explicit user direction before adding matched-groomer display, request edit persistence, or request cancellation backend behavior.
+```
+
+```text
+Date: 2026-06-22
 Task: T-040 - Groomly customer Home screenshot UI.
 Files changed: Added docs/06_tasks/T-040_GROOMLY_CUSTOMER_HOME_SCREENSHOT_UI.md; updated AuthenticatedEntryView.swift, CustomerTabView.swift, CustomerPetsView.swift, CustomerRequestsView.swift, BookingsView.swift, CURRENT_STATE.md, WORKLOG.md, and TASK_LEDGER.md.
 Checks: `./scripts/ios-build.sh` passed. `git diff --check` passed.
