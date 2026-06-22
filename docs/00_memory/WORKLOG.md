@@ -2,6 +2,70 @@
 
 ```text
 Date: 2026-06-22
+Task: T-037 - Groomly signed-out landing role toggle removal.
+Files changed: Added docs/06_tasks/T-037_GROOMLY_SIGNED_OUT_LANDING_ROLE_TOGGLE_REMOVAL.md; updated AuthenticationView.swift, CURRENT_STATE.md, WORKLOG.md, and TASK_LEDGER.md.
+Checks: `./scripts/ios-build.sh` passed. `git diff --check` passed. Residual scan found no `LandingAudience`, `selectedAudience`, `audienceSelector`, or `auth.audience` references in AuthenticationView.swift.
+Simulator launch: XcodeBuildMCP `build_run_sim` passed on `iPhone 17` simulator (`B9639233-9E78-41C9-A372-330D36C38DA7`); runtime UI snapshot confirmed `auth.landing` was visible. Screenshot: `/var/folders/bc/xmbw6w1d06s61ns9_j2fnll00000gn/T/screenshot_optimized_b60a48e6-2c72-4917-8b1c-a9e74198032b.jpg`.
+Result: The signed-out landing no longer shows or owns a pre-auth Customer/Groomer toggle. `LandingAudience`-driven derivative UI states were removed, the landing now uses one dog/Groomly identity, bubbles have more visible drift, and the logo/title/buttons were rebalanced while preserving existing sign-up/sign-in form routing.
+Risks: Visual signed-out Auth UI change only. Supabase Auth, repositories, profile role persistence, RoleOnboarding, backend, schema, RLS, Storage, and authenticated app navigation were not changed.
+Next: App is running in Simulator for inspection. Wait for explicit user direction before making more UI or product-flow changes.
+```
+
+```text
+Date: 2026-06-22
+Task: WORKFLOW-LIGHTWEIGHT-GATES-001 - Replace rigid completion gate with adaptive workflow gates.
+Files changed: Added docs/06_tasks/WORKFLOW-LIGHTWEIGHT-GATES-001.md; updated AGENTS.md, SINGLE_AGENT_WORKFLOW.md, STOP_CONDITIONS.md, TASK_INTAKE_TEMPLATE.md, SCREENSHOT_UI_REWORK_TASK_TEMPLATE.md, WORKFLOW-COMPLETION-GATE-001.md, CURRENT_STATE.md, WORKLOG.md, and TASK_LEDGER.md.
+Checks: `git diff --check` passed.
+Simulator launch: Skipped because this was workflow documentation only and did not affect app/UI behavior.
+Result: Mandatory all-task completion gate was replaced with adaptive Micro/Quick/Standard/Deep gates. Task closeout, durable memory updates, validation, and simulator launch now depend on task risk instead of being forced for every request.
+Risks: Workflow-only change; no iOS app behavior, build script, Supabase, backend, repository, model, dependency, or Xcode project settings changed.
+Next: Use Micro/Quick/Standard/Deep gates so small tasks stay lightweight and simulator launch is reserved for visible app/UI work, screenshot tasks, or explicit user inspection requests.
+```
+
+```text
+Date: 2026-06-22
+Task: WORKFLOW-SCREENSHOT-IGNORE-EXTERNAL-ROLE-TOGGLE-001 - Ignore external top role toggle in screenshot analysis.
+Files changed: Added docs/06_tasks/WORKFLOW-SCREENSHOT-IGNORE-EXTERNAL-ROLE-TOGGLE-001.md; updated AGENTS.md, SINGLE_AGENT_WORKFLOW.md, SCREENSHOT_UI_REWORK_TASK_TEMPLATE.md, CURRENT_STATE.md, WORKLOG.md, and TASK_LEDGER.md.
+Checks: `git diff --check` passed.
+Simulator launch: Existing XcodeBuildMCP simulator session on `iPhone 17` (`B9639233-9E78-41C9-A372-330D36C38DA7`) confirmed `auth.landing` was visible.
+Result: Future screenshot analysis now ignores the long oval Customer/Groomer toggle located above the visible app screen frame. It is treated as an external prototype/control annotation, not an app module to map, classify, or implement.
+Risks: Workflow-only rule change; no app UI, Auth, role onboarding, backend, repository, model, or product behavior changed.
+Next: Apply this screenshot ignore rule on all future uploaded screenshots.
+```
+
+```text
+Date: 2026-06-22
+Task: WORKFLOW-COMPLETION-GATE-001 - Require task closeout, basic validation, and simulator launch.
+Files changed: Added docs/06_tasks/WORKFLOW-COMPLETION-GATE-001.md; updated AGENTS.md, SINGLE_AGENT_WORKFLOW.md, STOP_CONDITIONS.md, TASK_INTAKE_TEMPLATE.md, SCREENSHOT_UI_REWORK_TASK_TEMPLATE.md, T-036_GROOMLY_SIGNED_OUT_LANDING_SCREENSHOT_UI.md, CURRENT_STATE.md, WORKLOG.md, and TASK_LEDGER.md.
+Checks: `git diff --check` passed.
+Simulator launch: XcodeBuildMCP `build_run_sim` passed on `iPhone 17` simulator (`B9639233-9E78-41C9-A372-330D36C38DA7`); runtime UI snapshot confirmed `auth.landing` was visible.
+Result: Completion is now standardized: every future task must record the completion process in its corresponding task markdown file, run basic validation, launch the iOS app in Simulator for user inspection, and record validation/simulator status before final reporting.
+Risks: Workflow-only change; no app logic, backend, Supabase, repository, model, dependency, validation script, or Xcode project settings changed.
+Next: Use this completion gate for every future task unless the user explicitly waives simulator launch for a non-app task.
+```
+
+```text
+Date: 2026-06-22
+Task: T-036 - Groomly signed-out landing screenshot UI.
+Files changed: Added docs/06_tasks/T-036_GROOMLY_SIGNED_OUT_LANDING_SCREENSHOT_UI.md; updated AuthenticationView.swift, AppLaunchSmokeTests.swift, CURRENT_STATE.md, WORKLOG.md, and TASK_LEDGER.md.
+Checks: `./scripts/ios-build.sh` passed. `git diff --check` passed.
+Result: T-036 is completed. The signed-out AuthenticationView now opens on a screenshot-driven landing surface with a visual-only Customer/Groomer audience switcher, a circular hero that drops into place, subtle floating bubbles, Groomly title/copy, and CTAs into the existing create-account and sign-in form flow. Existing AuthenticationStore validation, Supabase Auth repository calls, signed-in routing, and post-auth RoleOnboarding role persistence remain unchanged.
+Risks: This was a visual-only signed-out entry rework. The pre-auth audience selector is intentionally not persisted and does not preselect profile role; authenticated profile creation still happens only through RoleOnboardingView.
+Next: Wait for the next explicit screenshot or task request before starting additional UI, backend, or product-flow work.
+```
+
+```text
+Date: 2026-06-22
+Task: GROOMLY-SCREENSHOT-RULES-001 - Screenshot-driven Groomly UI rework rules.
+Files changed: Updated AGENTS.md, SINGLE_AGENT_WORKFLOW.md, STOP_CONDITIONS.md, TASK_INTAKE_TEMPLATE.md, SCREENSHOT_UI_REWORK_TASK_TEMPLATE.md, CURRENT_STATE.md, TASK_LEDGER.md, SCREEN_INVENTORY.md, DESIGN_SYSTEM.md, WORKLOG.md, and docs/09_frozen/groomly_ui_completed_2026-06-22/FREEZE_README.md.
+Checks: `git diff --check` passed.
+Result: Completed Groomly T-023 through T-035 UI work is now archived as historical context, and future UI rework is defined as one screenshot-driven task at a time. Each screenshot task must analyze visible modules, map existing behavior to current SwiftUI/Store/repository/model paths, classify new features, and stop for approval before implementing new feature/backend/navigation/role scope.
+Risks: Documentation-only change; no Swift, backend, Supabase, dependency, product-flow, or validation-script changes.
+Next: Wait for the user to upload one screenshot, then create the next available screenshot-driven Groomly UI task from docs/06_tasks/SCREENSHOT_UI_REWORK_TASK_TEMPLATE.md.
+```
+
+```text
+Date: 2026-06-22
 Task: T-035 - Groomly Account, Tabs, Debug, and Final UI Completion Audit.
 Files changed: Updated AuthenticatedAccountView.swift, CustomerTabView.swift, GroomerTabView.swift, FeaturePlaceholderView.swift, DebugPanelView.swift, docs/06_tasks/T-035_GROOMLY_ACCOUNT_TABS_DEBUG_FINAL_UI.md, docs/06_tasks/T-026_TO_T-035_GROOMLY_UI_COMPLETION_SEQUENCE.md, AGENTS.md, CLAUDE.md, README.md, docs/README.md, docs/01_product/DESIGN_SYSTEM.md, docs/01_product/SCREEN_INVENTORY.md, CURRENT_STATE.md, FEATURE_INDEX.md, WORKLOG.md, and TASK_LEDGER.md.
 Checks: `./scripts/ios-build.sh` passed. Post-review `./scripts/ios-test.sh` passed. Post-review `./scripts/preflight.sh` passed. `git diff --check` passed.

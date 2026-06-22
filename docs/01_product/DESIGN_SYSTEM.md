@@ -8,6 +8,8 @@ The MVP should feel friendly, calm, and pet-focused without becoming visually bu
 
 The Groomly design files in `docs/08_design/` are the active visual reference for the completed UI phase. T-023 completed the foundation sequence: T-023A design audit notes, T-023B design tokens JSON, T-023C SwiftUI token foundation, T-023D1 action primitives, and T-023D2 feedback primitives. T-024 applies Groomly styling to Auth and Role Onboarding. T-025 applies Groomly styling to Customer Home/Pets. T-026 applies Groomly styling to the Customer Requests list/status shell only. T-027 applies Groomly styling to the Customer Request wizard only. T-028 applies Groomly styling to Customer Request detail and offer review only. T-029 applies Groomly styling to the Groomer Requests feed and detail shell only. T-030 applies Groomly styling to the Groomer offer form and status blocks only. T-031 applies Groomly styling to the Groomer profile and services management surfaces only. T-032 applies Groomly styling to the Groomer portfolio metadata/upload/delete surface only. T-033 applies Groomly styling to shared booking lists, details, lifecycle actions, and review surfaces only. T-034 applies Groomly styling to participant text chat only. T-035 applies Groomly styling to Account, customer/groomer tab shells, placeholder fallback, and the sanitized Debug Panel, completing the Groomly UI phase for implemented MVP screens.
 
+The completed T-023 through T-035 Groomly UI phase is archived as historical context. Future Groomly UI rework is screenshot-driven and must start from `docs/06_tasks/SCREENSHOT_UI_REWORK_TASK_TEMPLATE.md` rather than reopening completed screen-slice tasks.
+
 Use Groomly for:
 
 - warm off-white app backgrounds;
@@ -19,6 +21,13 @@ Use Groomly for:
 - calm empty, loading, and error states.
 
 Do not use Groomly to change product flow, backend contracts, repository boundaries, or role routing.
+
+For screenshot-driven rework, classify each visible module before implementation:
+
+- `visual-only`: apply layout, spacing, color, typography, copy, icon, and state presentation changes using existing state.
+- `existing-feature rewire`: connect a new visual module to existing Store, repository, model, and backend contracts.
+- `reusable UI primitive`: add a small pure DesignSystem helper only when it removes duplication and carries no business logic.
+- `new feature`: stop and request approval before adding persistence, schema, RLS, RPC, Storage behavior, repository contracts, navigation models, role capabilities, or deferred features.
 
 Initial prototype color evidence:
 

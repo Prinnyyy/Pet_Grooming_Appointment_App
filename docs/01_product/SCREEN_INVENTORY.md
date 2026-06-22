@@ -6,7 +6,7 @@ Status values are `baseline`, `groomly adapted`, `planned`, and `deferred`. A pl
 
 T-023 started the Groomly UI phase with design audit, implementation notes, design tokens, and shared SwiftUI DesignSystem primitives only. T-024 through T-035 completed the implemented MVP screen adaptation, but their data sources, state owners, role ownership, loading/empty/error states, and repository boundaries remain unchanged unless a separate task explicitly authorizes a behavior change.
 
-Visual adaptation must preserve the current Open Request -> Groomer Offer -> Customer Confirmation -> Booking model. If a Groomly prototype screen implies a deferred feature or backend change, record it as visual inspiration only and stop before implementing it.
+The completed Groomly UI phase is archived as historical context. Future UI work is screenshot-driven: each screenshot task must map visible modules to this inventory, existing SwiftUI views, and existing Store/repository/model paths before editing. Visual adaptation must preserve the current Open Request -> Groomer Offer -> Customer Confirmation -> Booking model. If a screenshot or Groomly prototype screen implies a deferred feature, backend change, new navigation model, or new role capability, record it as visual inspiration only and stop before implementing it.
 
 | Screen | Purpose | Role | Planned Data Source | State Owner | Source / Task | Status |
 |---|---|---|---|---|---|---|
@@ -41,3 +41,7 @@ Visual adaptation must preserve the current Open Request -> Groomer Offer -> Cus
 | Admin Dashboard | Administrative management | Admin | Not defined | Not defined | No MVP task | deferred |
 
 The current customer `TabView` renders customer pet management on Home, request wizard/list/detail/offer acceptance on Requests, participant bookings on Bookings, participant text chat on Messages, and authenticated Account content. The current groomer `TabView` renders matched request feed/detail/dismiss/offer creation on Requests, participant bookings on Bookings, participant text chat on Messages, groomer profile/services/portfolio management on Account, and generic placeholder content for Offers.
+
+## Screenshot Rework Mapping Rule
+
+For each uploaded screenshot, classify every visible module as `visual-only`, `existing-feature rewire`, `reusable UI primitive`, or `new feature`. Existing features must use the Planned Data Source and State Owner listed above. New features require a stop report and explicit approval before implementation.
