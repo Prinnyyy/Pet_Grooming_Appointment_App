@@ -17,11 +17,25 @@ The completed screen-specific Groomly slices are:
 ```text
 docs/06_tasks/T-024_GROOMLY_AUTH_ONBOARDING_UI.md
 docs/06_tasks/T-025_GROOMLY_CUSTOMER_PETS_UI.md
+docs/06_tasks/T-026_GROOMLY_CUSTOMER_REQUESTS_LIST_STATUS_UI.md
+docs/06_tasks/T-027_GROOMLY_CUSTOMER_REQUEST_WIZARD_UI.md
+docs/06_tasks/T-028_GROOMLY_CUSTOMER_REQUEST_DETAIL_OFFERS_UI.md
+docs/06_tasks/T-029_GROOMLY_GROOMER_REQUESTS_FEED_DETAIL_UI.md
 ```
 
-The only active next executable task is to create a new T-026 Customer Requests Groomly task file before editing request screens.
+The planned remaining Groomly UI sequence is:
 
-Do not start T-026 implementation, backend work, or other post-MVP tasks automatically.
+```text
+docs/06_tasks/T-026_TO_T-035_GROOMLY_UI_COMPLETION_SEQUENCE.md
+```
+
+The only active next executable task is:
+
+```text
+docs/06_tasks/T-030_GROOMLY_GROOMER_OFFER_FORM_STATUS_UI.md
+```
+
+Do not skip ahead to T-031 or later tasks, start backend work, or start other post-MVP tasks automatically.
 
 ## Claude's Role
 
@@ -35,6 +49,7 @@ For the next Groomly screen-specific task, read only:
 
 - `AGENTS.md`
 - the selected task file under `docs/06_tasks/`
+- `docs/06_tasks/T-026_TO_T-035_GROOMLY_UI_COMPLETION_SEQUENCE.md` when executing T-026 through T-035
 - targeted sections of `docs/00_memory/CURRENT_STATE.md`
 - `docs/06_tasks/TASK_LEDGER.md` only when choosing or updating task status
 - `docs/08_design/Apply Groomly Design Prototype to Existing SwiftUI App.md`

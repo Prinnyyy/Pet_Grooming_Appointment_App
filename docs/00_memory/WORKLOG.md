@@ -2,12 +2,62 @@
 
 ```text
 Date: 2026-06-22
+Task: T-029 - Groomly Groomer Requests Feed and Detail UI.
+Files changed: Updated GroomerRequestsView.swift, docs/06_tasks/T-029_GROOMLY_GROOMER_REQUESTS_FEED_DETAIL_UI.md, AGENTS.md, CLAUDE.md, README.md, docs/README.md, docs/01_product/DESIGN_SYSTEM.md, docs/01_product/SCREEN_INVENTORY.md, CURRENT_STATE.md, FEATURE_INDEX.md, WORKLOG.md, and TASK_LEDGER.md.
+Checks: `./scripts/ios-build.sh` initially failed on a local helper type-name typo, then passed after correction. Post-review `./scripts/ios-test.sh` passed. `git diff --check` passed.
+Result: T-029 is completed. Groomer matched-request feed, summary rows, detail metadata shell, dismiss action, loading/empty/error states, and bottom status feedback now use Groomly tokens/primitives with groomer accent while preserving load, refresh, selection, dismiss, offer eligibility, Store ownership, repositories, models, and backend behavior.
+Risks: This was a visual-only Groomer Requests feed/detail shell slice. Offer create/withdraw form and status body styling remains mounted but intentionally deferred to T-030; groomer profile/portfolio, bookings, chat, account, debug, backend, repositories, Stores, models, scripts, and assets remain untouched.
+Next: Execute T-030 Groomly Groomer Offer Form/Status UI only.
+```
+
+```text
+Date: 2026-06-22
+Task: T-028 - Groomly Customer Request Detail and Offers UI.
+Files changed: Updated CustomerRequestsView.swift, docs/06_tasks/T-028_GROOMLY_CUSTOMER_REQUEST_DETAIL_OFFERS_UI.md, AGENTS.md, CLAUDE.md, README.md, docs/README.md, docs/01_product/DESIGN_SYSTEM.md, docs/01_product/SCREEN_INVENTORY.md, CURRENT_STATE.md, FEATURE_INDEX.md, WORKLOG.md, and TASK_LEDGER.md.
+Checks: `./scripts/ios-build.sh` passed. `git diff --check` passed.
+Result: T-028 is completed. Customer-owned request detail, offer review pending/history groups, offer detail, and offer acceptance entry now use Groomly cards, section headers, status chips, feedback primitives, and tokenized metadata rows while preserving offer loading, refresh, selection, acceptance busy state, Store ownership, repositories, request/offer/booking contracts, and backend behavior.
+Risks: This was a visual-only Customer Request detail/offers slice. Groomer request feed/detail, groomer offer form/status, bookings, chat, account, debug, backend, repositories, Stores, models, scripts, and assets remain untouched.
+Next: Execute T-029 Groomly Groomer Requests Feed/Detail UI only.
+```
+
+```text
+Date: 2026-06-22
+Task: T-027 - Groomly Customer Request Wizard UI.
+Files changed: Updated CustomerRequestsView.swift, docs/06_tasks/T-027_GROOMLY_CUSTOMER_REQUEST_WIZARD_UI.md, AGENTS.md, CLAUDE.md, README.md, docs/README.md, docs/01_product/DESIGN_SYSTEM.md, docs/01_product/SCREEN_INVENTORY.md, CURRENT_STATE.md, FEATURE_INDEX.md, WORKLOG.md, and TASK_LEDGER.md.
+Checks: `./scripts/ios-build.sh` passed. `git diff --check` passed.
+Result: T-027 is completed. Customer Request wizard now uses Groomly background, cards, field styling, section header, review summary, error banner, and primary publish action while preserving NavigationStack, Cancel/Publish actions, disabled/submitting states, interactive dismissal, validation, Store ownership, request RPC inputs, repositories, models, and backend behavior.
+Risks: This was a visual-only request wizard slice. Customer request detail, offer review/detail/acceptance, groomer screens, bookings, chat, account, debug, backend, repositories, Stores, models, scripts, and assets remain untouched.
+Next: Execute T-028 Customer Request Detail and Offers UI only.
+```
+
+```text
+Date: 2026-06-22
+Task: T-026 - Groomly Customer Requests List/Status UI.
+Files changed: Updated CustomerRequestsView.swift, docs/06_tasks/T-026_GROOMLY_CUSTOMER_REQUESTS_LIST_STATUS_UI.md, AGENTS.md, CLAUDE.md, README.md, docs/README.md, docs/01_product/DESIGN_SYSTEM.md, docs/01_product/SCREEN_INVENTORY.md, CURRENT_STATE.md, FEATURE_INDEX.md, WORKLOG.md, and TASK_LEDGER.md.
+Checks: `./scripts/ios-build.sh` passed. `git diff --check` passed.
+Result: T-026 is completed. Customer Requests tab shell, request list, request summary rows, loading/empty/error states, new-request entry card, and bottom status feedback now use Groomly tokens/primitives. Existing request loading, refresh, retry-through-refresh, wizard opening, detail navigation, Store ownership, repositories, models, offers, bookings, and backend behavior were preserved.
+Risks: This was a visual-only Customer Requests list/status slice. Request wizard body, request detail, offer review/detail/acceptance, groomer screens, bookings, chat, account, debug, backend, repositories, Stores, models, scripts, and assets remain untouched.
+Next: Execute T-027 Customer Request Wizard UI only.
+```
+
+```text
+Date: 2026-06-22
+Task: Plan remaining Groomly UI completion sequence after T-025.
+Files changed: Added docs/06_tasks/T-026_TO_T-035_GROOMLY_UI_COMPLETION_SEQUENCE.md and T-026 through T-035 task files; updated AGENTS.md, CLAUDE.md, README.md, docs/README.md, DESIGN_SYSTEM.md, SCREEN_INVENTORY.md, CURRENT_STATE.md, FEATURE_INDEX.md, WORKLOG.md, and TASK_LEDGER.md.
+Checks: `git diff --check` passed. No ios-build needed because no Swift/project files are changed.
+Result: Remaining Groomly UI work is now planned as a fixed ordered queue from T-026 Customer Requests List/Status through T-035 Account/Tabs/Debug final audit. The active next executable task is T-026, with T-027 through T-035 already scoped.
+Risks: Planned tasks are visual-only contracts. Future execution must still stop if a screen restyle requires backend/schema/RLS/RPC, Store, repository, model, routing, deferred prototype features, signed URL image rendering, or asset licensing decisions.
+Next: Execute T-026 only.
+```
+
+```text
+Date: 2026-06-22
 Task: T-025 - Groomly Customer Pets/Home UI.
 Files changed: Added docs/06_tasks/T-025_GROOMLY_CUSTOMER_PETS_UI.md; updated CustomerPetsView.swift, AGENTS.md, CLAUDE.md, README.md, docs/README.md, docs/01_product/DESIGN_SYSTEM.md, docs/01_product/SCREEN_INVENTORY.md, CURRENT_STATE.md, FEATURE_INDEX.md, WORKLOG.md, and TASK_LEDGER.md.
 Checks: `./scripts/ios-build.sh` passed. `git diff --check` passed.
 Result: T-025 is completed. Customer Home/Pets now uses Groomly background, cards, loading, empty, error, notice, status, button, and form-field styling. Existing pet loading, create/edit, soft-delete, photo upload/delete, notice/error, busy/disabled, Store, repository, model, Storage, and tab behavior were preserved.
 Risks: This was a visual-only Customer Pets/Home slice. Customer Requests, offers, bookings, chat, account, debug, groomer screens, backend, repositories, Stores, models, scripts, assets, remote image rendering, and signed URLs remain untouched.
-Next: Create a new T-026 Customer Requests Groomly task file before editing request screens.
+Next: Superseded by the planned T-026 through T-035 Groomly UI sequence; execute T-026 next.
 ```
 
 ```text
@@ -17,7 +67,7 @@ Files changed: Added docs/06_tasks/T-024_GROOMLY_AUTH_ONBOARDING_UI.md and ios/P
 Checks: `./scripts/ios-build.sh` passed. Post-review `./scripts/ios-test.sh` passed. `git diff --check` passed.
 Result: T-024 is completed. Auth bootstrap, AuthGate session loading, Sign In, Sign Up, profile loading/error, and Role Onboarding now use Groomly tokens/primitives and the new `.groomlyFormField()` helper. Existing Store calls, auth/session/profile routing, submit guards, error states, and sign-out behavior were preserved. Post-review follow-up confirmed no active README ownership conflict in current docs and restored typographic ellipses in new Auth loading/submitting strings.
 Risks: This was a visual-only Auth/Onboarding slice. Customer, groomer, pet, request, offer, booking, chat, account, debug, backend, repository, Store, model, Supabase, script, and asset work remain untouched.
-Next: Superseded by completed T-025; current next action is to create T-026 before editing request screens.
+Next: Superseded by completed T-025 and the planned T-026 through T-035 Groomly UI sequence; execute T-026 next.
 ```
 
 ```text

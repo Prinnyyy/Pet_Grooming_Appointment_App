@@ -22,54 +22,11 @@ struct CustomerRequestsView: View {
     var body: some View {
         @Bindable var store = store
 
-        Group {
-            if store.isLoading, store.pets.isEmpty, store.requests.isEmpty {
-                ProgressView("Loading requests…")
-                    .accessibilityIdentifier("customer.requests.loading")
-            } else {
-                List {
-                    Section {
-                        Button {
-                            store.startCreate()
-                        } label: {
-                            Label("Start grooming request", systemImage: "plus.circle")
-                        }
-                        .disabled(store.isBusy || store.pets.isEmpty)
-                        .accessibilityIdentifier("customer.requests.start")
+        ZStack {
+            DesignTokens.Colors.background
+                .ignoresSafeArea()
 
-                        if store.pets.isEmpty {
-                            Text("Add a pet on the Home tab before publishing a request.")
-                                .font(.footnote)
-                                .foregroundStyle(DesignTokens.Colors.secondaryText)
-                        }
-                    }
-
-                    if store.requests.isEmpty {
-                        Section {
-                            ContentUnavailableView(
-                                "No requests yet",
-                                systemImage: "doc.badge.plus",
-                                description: Text("Create a request when your pet is ready for grooming.")
-                            )
-                            .accessibilityIdentifier("customer.requests.empty")
-                        }
-                    } else {
-                        Section("Your requests") {
-                            ForEach(store.requests) { request in
-                                NavigationLink {
-                                    CustomerRequestDetailView(
-                                        requestID: request.id,
-                                        store: store
-                                    )
-                                } label: {
-                                    CustomerRequestSummaryRow(request: request)
-                                }
-                            }
-                        }
-                    }
-                }
-                .accessibilityIdentifier("customer.requests.list")
-            }
+            requestsContent
         }
         .navigationTitle("Requests")
         .toolbar {
@@ -94,35 +51,171 @@ struct CustomerRequestsView: View {
             await store.load()
         }
     }
+
+    @ViewBuilder
+    private var requestsContent: some View {
+        if store.isLoading, store.pets.isEmpty, store.requests.isEmpty {
+            GroomlyLoadingView(
+                title: "Loading requests…",
+                message: "Fetching your pet's grooming requests.",
+                accent: .customer
+            )
+            .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+            .accessibilityIdentifier("customer.requests.loading")
+        } else {
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                    GroomlySectionHeader(
+                        "Grooming requests",
+                        subtitle: "Track open requests and review groomer responses from one place."
+                    )
+
+                    CustomerRequestsStartCard(store: store)
+
+                    if store.requests.isEmpty {
+                        GroomlyEmptyState(
+                            title: "No requests yet",
+                            message: "Create a request when your pet is ready for grooming.",
+                            systemImage: "doc.badge.plus",
+                            accent: .customer
+                        )
+                        .accessibilityIdentifier("customer.requests.empty")
+                    } else {
+                        LazyVStack(spacing: DesignTokens.Spacing.md) {
+                            ForEach(store.requests) { request in
+                                NavigationLink {
+                                    CustomerRequestDetailView(
+                                        requestID: request.id,
+                                        store: store
+                                    )
+                                } label: {
+                                    CustomerRequestSummaryRow(request: request)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    }
+                }
+                .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+                .padding(.top, DesignTokens.Spacing.lg)
+                .padding(.bottom, DesignTokens.Spacing.xl + DesignTokens.Spacing.xl)
+            }
+            .scrollContentBackground(.hidden)
+            .accessibilityIdentifier("customer.requests.list")
+        }
+    }
+}
+
+private struct CustomerRequestsStartCard: View {
+    @Bindable var store: CustomerRequestsStore
+
+    var body: some View {
+        GroomlyCard {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
+                    Image(systemName: "scissors")
+                        .font(DesignTokens.Typography.headline)
+                        .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
+                        .frame(
+                            width: DesignTokens.Spacing.xl + DesignTokens.Spacing.xl,
+                            height: DesignTokens.Spacing.xl + DesignTokens.Spacing.xl
+                        )
+                        .background(DesignTokens.Colors.customerPrimary.opacity(0.16))
+                        .clipShape(DesignTokens.Shapes.circular)
+                        .accessibilityHidden(true)
+
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                        Text("Start a grooming request")
+                            .font(DesignTokens.Typography.headline)
+                            .foregroundStyle(DesignTokens.Colors.textPrimary)
+
+                        Text(promptText)
+                            .font(DesignTokens.Typography.body)
+                            .foregroundStyle(DesignTokens.Colors.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+
+                Button {
+                    store.startCreate()
+                } label: {
+                    Label("Start grooming request", systemImage: "plus.circle")
+                }
+                .buttonStyle(GroomlyPrimaryButtonStyle())
+                .disabled(store.isBusy || store.pets.isEmpty)
+                .accessibilityIdentifier("customer.requests.start")
+
+                if store.pets.isEmpty {
+                    GroomlyStatusChip(
+                        "Add a pet on Home first",
+                        systemImage: "pawprint",
+                        tone: .warning
+                    )
+                }
+            }
+        }
+    }
+
+    private var promptText: String {
+        if store.pets.isEmpty {
+            return "Add a pet on the Home tab before publishing a request."
+        }
+
+        return "Share the service, time window, and location so matched groomers can make offers."
+    }
 }
 
 private struct CustomerRequestSummaryRow: View {
     let request: CustomerGroomingRequest
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(alignment: .firstTextBaseline) {
-                Text(request.title)
-                    .font(.headline)
+        GroomlyCard {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                        Text(request.title)
+                            .font(DesignTokens.Typography.headline)
+                            .foregroundStyle(DesignTokens.Colors.textPrimary)
+                            .fixedSize(horizontal: false, vertical: true)
 
-                Spacer()
+                        Text(request.locationSummary)
+                            .font(DesignTokens.Typography.body)
+                            .foregroundStyle(DesignTokens.Colors.secondaryText)
+                    }
 
-                Text(request.status.title)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(request.status.isOpenForOffers ? .green : .secondary)
+                    Spacer(minLength: DesignTokens.Spacing.md)
+
+                    GroomlyStatusChip(
+                        request.status.title,
+                        systemImage: statusSystemImage,
+                        tone: statusTone
+                    )
+                }
+
+                HStack(spacing: DesignTokens.Spacing.sm) {
+                    Image(systemName: "calendar")
+                        .foregroundStyle(DesignTokens.Colors.textTertiary)
+                        .accessibilityHidden(true)
+
+                    Text(timeSummary)
+                        .font(DesignTokens.Typography.caption)
+                        .foregroundStyle(DesignTokens.Colors.secondaryText)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
-
-            Text(request.locationSummary)
-                .font(.subheadline)
-                .foregroundStyle(DesignTokens.Colors.secondaryText)
-
-            Text(
-                "\(GroomingRequestDateFormatting.displayString(from: request.preferredStart)) – \(GroomingRequestDateFormatting.displayString(from: request.preferredEnd))"
-            )
-            .font(.caption)
-            .foregroundStyle(DesignTokens.Colors.secondaryText)
         }
-        .padding(.vertical, 4)
+    }
+
+    private var statusTone: GroomlyStatusChip.Tone {
+        request.status.isOpenForOffers ? .customer : .neutral
+    }
+
+    private var statusSystemImage: String {
+        request.status.isOpenForOffers ? "clock" : "checkmark"
+    }
+
+    private var timeSummary: String {
+        "\(GroomingRequestDateFormatting.displayString(from: request.preferredStart)) – \(GroomingRequestDateFormatting.displayString(from: request.preferredEnd))"
     }
 }
 
@@ -132,63 +225,35 @@ private struct CustomerRequestDetailView: View {
 
     var body: some View {
         if let request = store.request(withID: requestID) {
-            List {
-                Section("Request") {
-                    LabeledContent("Status", value: request.status.title)
-                    LabeledContent("Service", value: request.serviceType)
-                    if let serviceNotes = request.serviceNotes {
-                        Text(serviceNotes)
-                            .foregroundStyle(DesignTokens.Colors.secondaryText)
-                    }
-                }
+            ZStack {
+                DesignTokens.Colors.background
+                    .ignoresSafeArea()
 
-                Section("Pet snapshot") {
-                    LabeledContent("Pet", value: request.petSnapshot.name)
-                    LabeledContent("Species", value: request.petSnapshot.species)
-                    if let breed = request.petSnapshot.breed {
-                        LabeledContent("Breed", value: breed)
-                    }
-                    if let size = request.petSnapshot.size {
-                        LabeledContent("Size", value: size)
-                    }
-                    LabeledContent(
-                        "Photos",
-                        value: "\(request.photoSnapshot.count)"
-                    )
-                }
-
-                Section("Preferred time") {
-                    LabeledContent(
-                        "Start",
-                        value: GroomingRequestDateFormatting.displayString(
-                            from: request.preferredStart
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                        GroomlySectionHeader(
+                            "Request details",
+                            subtitle: "Review the request and compare groomer offers before booking."
                         )
-                    )
-                    LabeledContent(
-                        "End",
-                        value: GroomingRequestDateFormatting.displayString(
-                            from: request.preferredEnd
+
+                        requestCard(request)
+                        petSnapshotCard(request)
+                        scheduleLocationCard(request)
+
+                        CustomerOfferReviewSection(
+                            request: request,
+                            store: store
                         )
-                    )
-                }
 
-                Section("Location") {
-                    LabeledContent("City", value: request.city)
-                    LabeledContent("State", value: request.state)
-                    LabeledContent("ZIP", value: request.zipCode)
-                }
-
-                CustomerOfferReviewSection(
-                    request: request,
-                    store: store
-                )
-
-                if request.status.isOpenForOffers {
-                    Section("Cancellation") {
-                        Text("Request cancellation needs a controlled backend RPC and is not connected yet.")
-                            .foregroundStyle(DesignTokens.Colors.secondaryText)
+                        if request.status.isOpenForOffers {
+                            cancellationNotice
+                        }
                     }
+                    .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+                    .padding(.top, DesignTokens.Spacing.lg)
+                    .padding(.bottom, DesignTokens.Spacing.xl)
                 }
+                .scrollContentBackground(.hidden)
             }
             .navigationTitle(request.petSnapshot.name)
             .navigationBarTitleDisplayMode(.inline)
@@ -197,12 +262,121 @@ private struct CustomerRequestDetailView: View {
                 await store.loadOffers(for: request)
             }
         } else {
-            ContentUnavailableView(
-                "Request unavailable",
-                systemImage: "doc.text.magnifyingglass",
-                description: Text("Refresh requests and try again.")
-            )
+            ZStack {
+                DesignTokens.Colors.background
+                    .ignoresSafeArea()
+
+                GroomlyEmptyState(
+                    title: "Request unavailable",
+                    message: "Refresh requests and try again.",
+                    systemImage: "doc.text.magnifyingglass",
+                    accent: .customer
+                )
+                .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+            }
             .navigationTitle("Request")
+        }
+    }
+
+    private func requestCard(_ request: CustomerGroomingRequest) -> some View {
+        GroomlyCard {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                DetailCardHeader(
+                    title: request.serviceType,
+                    subtitle: request.locationSummary,
+                    systemImage: "doc.text.fill"
+                ) {
+                    GroomlyStatusChip(
+                        request.status.title,
+                        systemImage: request.status.detailSystemImage,
+                        tone: request.status.detailTone
+                    )
+                }
+
+                if let serviceNotes = request.serviceNotes {
+                    Text(serviceNotes)
+                        .font(DesignTokens.Typography.body)
+                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+    }
+
+    private func petSnapshotCard(_ request: CustomerGroomingRequest) -> some View {
+        GroomlyCard {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                DetailCardHeader(
+                    title: "Pet snapshot",
+                    subtitle: "Frozen request context from the selected pet.",
+                    systemImage: "pawprint.fill"
+                )
+
+                DetailMetadataRow(title: "Pet", value: request.petSnapshot.name, systemImage: "heart.fill")
+                DetailMetadataRow(title: "Species", value: request.petSnapshot.species, systemImage: "tag.fill")
+
+                if let breed = request.petSnapshot.breed {
+                    DetailMetadataRow(title: "Breed", value: breed, systemImage: "list.bullet")
+                }
+
+                if let size = request.petSnapshot.size {
+                    DetailMetadataRow(title: "Size", value: size, systemImage: "ruler")
+                }
+
+                DetailMetadataRow(
+                    title: "Photos",
+                    value: "\(request.photoSnapshot.count)",
+                    systemImage: "photo.on.rectangle"
+                )
+            }
+        }
+    }
+
+    private func scheduleLocationCard(_ request: CustomerGroomingRequest) -> some View {
+        GroomlyCard {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                DetailCardHeader(
+                    title: "Preferred time and location",
+                    subtitle: "The window and area groomers used for this offer.",
+                    systemImage: "calendar"
+                )
+
+                DetailMetadataRow(
+                    title: "Start",
+                    value: GroomingRequestDateFormatting.displayString(
+                        from: request.preferredStart
+                    ),
+                    systemImage: "clock"
+                )
+                DetailMetadataRow(
+                    title: "End",
+                    value: GroomingRequestDateFormatting.displayString(
+                        from: request.preferredEnd
+                    ),
+                    systemImage: "clock.badge.checkmark"
+                )
+                DetailMetadataRow(title: "City", value: request.city, systemImage: "building.2")
+                DetailMetadataRow(title: "State", value: request.state, systemImage: "map")
+                DetailMetadataRow(title: "ZIP", value: request.zipCode, systemImage: "number")
+            }
+        }
+    }
+
+    private var cancellationNotice: some View {
+        GroomlyCard {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                DetailCardHeader(
+                    title: "Cancellation",
+                    subtitle: "Request cancellation needs a controlled backend RPC and is not connected yet.",
+                    systemImage: "lock.fill"
+                ) {
+                    GroomlyStatusChip(
+                        "Deferred",
+                        systemImage: "lock",
+                        tone: .neutral
+                    )
+                }
+            }
         }
     }
 }
@@ -224,69 +398,114 @@ private struct CustomerOfferReviewSection: View {
     }
 
     var body: some View {
-        Group {
-            Section("Offers") {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            GroomlySectionHeader(
+                "Offers",
+                subtitle: "Compare pending offers and review previous offer activity."
+            )
+
+            Group {
                 if store.isLoadingOffers(for: request), offers.isEmpty {
-                    ProgressView("Loading offers…")
+                    GroomlyLoadingView(
+                        title: "Loading offers…",
+                        message: "Checking for groomer responses.",
+                        accent: .customer
+                    )
                         .accessibilityIdentifier("customer.offers.loading")
                 } else if let errorMessage = store.offerError(for: request) {
-                    Text(errorMessage)
-                        .foregroundStyle(.red)
+                    GroomlyErrorBanner(
+                        title: "We could not load offers",
+                        message: errorMessage
+                    ) {
+                        Button {
+                            Task {
+                                await store.loadOffers(for: request)
+                            }
+                        } label: {
+                            Label("Refresh offers", systemImage: "arrow.clockwise")
+                        }
+                        .buttonStyle(GroomlySecondaryButtonStyle())
+                        .disabled(store.isLoadingOffers(for: request))
+                    }
                         .accessibilityIdentifier("customer.offers.error")
                 } else if offers.isEmpty {
-                    ContentUnavailableView(
-                        "No offers yet",
+                    GroomlyEmptyState(
+                        title: "No offers yet",
+                        message: "Matched groomers can submit offers while this request is open.",
                         systemImage: "tag",
-                        description: Text("Matched groomers can submit offers while this request is open.")
+                        accent: .customer
                     )
                     .accessibilityIdentifier("customer.offers.empty")
-                } else if !pendingOffers.isEmpty {
-                    ForEach(pendingOffers) { offerReview in
-                        NavigationLink {
-                            CustomerOfferDetailView(
-                                request: request,
-                                offerID: offerReview.id,
-                                store: store
-                            )
-                        } label: {
-                            CustomerOfferSummaryRow(offerReview: offerReview)
-                        }
-                    }
-                    .accessibilityIdentifier("customer.offers.pending-list")
                 } else {
-                    Text("There are no pending offers for this request.")
-                        .foregroundStyle(DesignTokens.Colors.secondaryText)
-                }
-            }
-
-            if !historicalOffers.isEmpty {
-                Section("Offer history") {
-                    ForEach(historicalOffers) { offerReview in
-                        NavigationLink {
-                            CustomerOfferDetailView(
-                                request: request,
-                                offerID: offerReview.id,
-                                store: store
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                        if !pendingOffers.isEmpty {
+                            offerGroup(
+                                title: "Pending offers",
+                                offers: pendingOffers,
+                                isHistorical: false
                             )
-                        } label: {
-                            CustomerOfferSummaryRow(offerReview: offerReview)
-                                .foregroundStyle(DesignTokens.Colors.secondaryText)
+                            .accessibilityIdentifier("customer.offers.pending-list")
+                        } else {
+                            GroomlyCard {
+                                Text("There are no pending offers for this request.")
+                                    .font(DesignTokens.Typography.body)
+                                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
+
+                        if !historicalOffers.isEmpty {
+                            offerGroup(
+                                title: "Offer history",
+                                offers: historicalOffers,
+                                isHistorical: true
+                            )
+                            .accessibilityIdentifier("customer.offers.history-list")
                         }
                     }
-                    .accessibilityIdentifier("customer.offers.history-list")
                 }
             }
 
-            Section {
-                Button {
-                    Task {
-                        await store.loadOffers(for: request)
-                    }
-                } label: {
-                    Label("Refresh offers", systemImage: "arrow.clockwise")
+            Button {
+                Task {
+                    await store.loadOffers(for: request)
                 }
-                .disabled(store.isLoadingOffers(for: request))
-                .accessibilityIdentifier("customer.offers.refresh")
+            } label: {
+                Label("Refresh offers", systemImage: "arrow.clockwise")
+            }
+            .buttonStyle(GroomlySecondaryButtonStyle())
+            .disabled(store.isLoadingOffers(for: request))
+            .accessibilityIdentifier("customer.offers.refresh")
+        }
+    }
+
+    private func offerGroup(
+        title: String,
+        offers: [CustomerOfferReview],
+        isHistorical: Bool
+    ) -> some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            Text(title)
+                .font(DesignTokens.Typography.caption.weight(.semibold))
+                .foregroundStyle(DesignTokens.Colors.textSecondary)
+                .textCase(.uppercase)
+
+            LazyVStack(spacing: DesignTokens.Spacing.md) {
+                ForEach(offers) { offerReview in
+                    NavigationLink {
+                        CustomerOfferDetailView(
+                            request: request,
+                            offerID: offerReview.id,
+                            store: store
+                        )
+                    } label: {
+                        CustomerOfferSummaryRow(
+                            offerReview: offerReview,
+                            isHistorical: isHistorical
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
             }
         }
     }
@@ -294,32 +513,47 @@ private struct CustomerOfferReviewSection: View {
 
 private struct CustomerOfferSummaryRow: View {
     let offerReview: CustomerOfferReview
+    var isHistorical = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(alignment: .firstTextBaseline) {
-                Text(offerReview.groomerTitle)
-                    .font(.headline)
+        GroomlyCard {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                        Text(offerReview.groomerTitle)
+                            .font(DesignTokens.Typography.headline)
+                            .foregroundStyle(DesignTokens.Colors.textPrimary)
+                            .fixedSize(horizontal: false, vertical: true)
 
-                Spacer()
+                        Text(offerReview.groomerLocationSummary)
+                            .font(DesignTokens.Typography.caption)
+                            .foregroundStyle(DesignTokens.Colors.textSecondary)
+                    }
 
-                Text(offerReview.offer.status.title)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(offerReview.offer.status == .pending ? .green : .secondary)
+                    Spacer(minLength: DesignTokens.Spacing.md)
+
+                    GroomlyStatusChip(
+                        offerReview.offer.status.title,
+                        systemImage: offerReview.offer.status.detailSystemImage,
+                        tone: offerReview.offer.status.detailTone
+                    )
+                }
+
+                HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.md) {
+                    Text(offerReview.offer.priceSummary)
+                        .font(DesignTokens.Typography.headline)
+                        .foregroundStyle(isHistorical ? DesignTokens.Colors.textSecondary : DesignTokens.Colors.textPrimary)
+
+                    Spacer(minLength: DesignTokens.Spacing.md)
+
+                    Text(offerReview.proposedTimeSummary)
+                        .font(DesignTokens.Typography.caption)
+                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+                        .multilineTextAlignment(.trailing)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
-
-            Text(offerReview.offer.priceSummary)
-                .font(.subheadline.weight(.semibold))
-
-            Text(offerReview.proposedTimeSummary)
-                .font(.caption)
-                .foregroundStyle(DesignTokens.Colors.secondaryText)
-
-            Text(offerReview.groomerLocationSummary)
-                .font(.caption)
-                .foregroundStyle(DesignTokens.Colors.secondaryText)
         }
-        .padding(.vertical, 4)
     }
 }
 
@@ -334,94 +568,383 @@ private struct CustomerOfferDetailView: View {
 
     var body: some View {
         if let offerReview {
-            List {
-                Section("Groomer") {
-                    HStack {
-                        LabeledContent("Business", value: offerReview.groomerTitle)
-                        if offerReview.groomerProfile?.isVerified == true {
-                            Image(systemName: "checkmark.seal.fill")
-                                .foregroundStyle(.blue)
-                                .accessibilityLabel("Verified groomer")
-                        }
-                    }
-                    LabeledContent("Location", value: offerReview.groomerLocationSummary)
-                    LabeledContent("Rating", value: offerReview.ratingSummary)
+            ZStack {
+                DesignTokens.Colors.background
+                    .ignoresSafeArea()
 
-                    if let bio = offerReview.groomerProfile?.bio {
-                        Text(bio)
-                            .foregroundStyle(DesignTokens.Colors.secondaryText)
-                    }
-                }
-
-                Section("Offer") {
-                    LabeledContent("Status", value: offerReview.offer.status.title)
-                    LabeledContent("Price", value: offerReview.offer.priceSummary)
-                    LabeledContent(
-                        "Start",
-                        value: GroomingRequestDateFormatting.displayString(
-                            from: offerReview.offer.proposedStart
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                        GroomlySectionHeader(
+                            "Offer",
+                            subtitle: "Review the groomer proposal before accepting."
                         )
-                    )
-                    LabeledContent(
-                        "End",
-                        value: GroomingRequestDateFormatting.displayString(
-                            from: offerReview.offer.proposedEnd
-                        )
-                    )
 
-                    if let message = offerReview.offer.message {
-                        Text(message)
-                            .foregroundStyle(DesignTokens.Colors.secondaryText)
+                        groomerCard(offerReview)
+                        offerCard(offerReview)
+                        requestCard(offerReview)
+                        acceptanceCard(offerReview)
                     }
+                    .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+                    .padding(.top, DesignTokens.Spacing.lg)
+                    .padding(.bottom, DesignTokens.Spacing.xl)
                 }
-
-                Section("Request") {
-                    LabeledContent("Pet", value: request.petSnapshot.name)
-                    LabeledContent("Service", value: request.serviceType)
-                    LabeledContent("Request status", value: request.status.title)
-                }
-
-                Section("Acceptance") {
-                    if offerReview.offer.status == .pending,
-                       request.status.isOpenForOffers {
-                        Button {
-                            Task {
-                                await store.accept(
-                                    offerReview: offerReview,
-                                    for: request
-                                )
-                            }
-                        } label: {
-                            Label("Accept offer", systemImage: "checkmark.circle")
-                        }
-                        .disabled(store.isAcceptingOffer(offerReview.offer.id))
-                        .accessibilityIdentifier("customer.offers.accept")
-
-                        Text("The backend creates the booking and conversation atomically. If the groomer becomes unavailable, no local booking is created.")
-                            .font(.footnote)
-                            .foregroundStyle(DesignTokens.Colors.secondaryText)
-                    } else if offerReview.offer.status == .acceptedByCustomer {
-                        Text("This offer has been accepted. Check the Bookings tab for the appointment.")
-                            .foregroundStyle(DesignTokens.Colors.secondaryText)
-                    } else if request.status == .booked {
-                        Text("This request is already booked.")
-                            .foregroundStyle(DesignTokens.Colors.secondaryText)
-                    } else {
-                        Text("This offer can no longer be accepted.")
-                            .foregroundStyle(DesignTokens.Colors.secondaryText)
-                    }
-                }
+                .scrollContentBackground(.hidden)
             }
             .navigationTitle("Offer")
             .navigationBarTitleDisplayMode(.inline)
             .accessibilityIdentifier("customer.offers.detail")
         } else {
-            ContentUnavailableView(
-                "Offer unavailable",
-                systemImage: "tag.slash",
-                description: Text("Refresh offers and try again.")
-            )
+            ZStack {
+                DesignTokens.Colors.background
+                    .ignoresSafeArea()
+
+                GroomlyEmptyState(
+                    title: "Offer unavailable",
+                    message: "Refresh offers and try again.",
+                    systemImage: "tag.slash",
+                    accent: .customer
+                )
+                .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+            }
             .navigationTitle("Offer")
+        }
+    }
+
+    private func groomerCard(_ offerReview: CustomerOfferReview) -> some View {
+        GroomlyCard {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                DetailCardHeader(
+                    title: offerReview.groomerTitle,
+                    subtitle: offerReview.groomerLocationSummary,
+                    systemImage: "person.crop.circle.fill"
+                ) {
+                    if offerReview.groomerProfile?.isVerified == true {
+                        GroomlyStatusChip(
+                            "Verified",
+                            systemImage: "checkmark.seal.fill",
+                            tone: .success
+                        )
+                        .accessibilityLabel("Verified groomer")
+                    }
+                }
+
+                DetailMetadataRow(
+                    title: "Rating",
+                    value: offerReview.ratingSummary,
+                    systemImage: "star.fill"
+                )
+
+                if let bio = offerReview.groomerProfile?.bio {
+                    Text(bio)
+                        .font(DesignTokens.Typography.body)
+                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+    }
+
+    private func offerCard(_ offerReview: CustomerOfferReview) -> some View {
+        GroomlyCard {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                DetailCardHeader(
+                    title: offerReview.offer.priceSummary,
+                    subtitle: offerReview.proposedTimeSummary,
+                    systemImage: "tag.fill"
+                ) {
+                    GroomlyStatusChip(
+                        offerReview.offer.status.title,
+                        systemImage: offerReview.offer.status.detailSystemImage,
+                        tone: offerReview.offer.status.detailTone
+                    )
+                }
+
+                DetailMetadataRow(
+                    title: "Start",
+                    value: GroomingRequestDateFormatting.displayString(
+                        from: offerReview.offer.proposedStart
+                    ),
+                    systemImage: "clock"
+                )
+                DetailMetadataRow(
+                    title: "End",
+                    value: GroomingRequestDateFormatting.displayString(
+                        from: offerReview.offer.proposedEnd
+                    ),
+                    systemImage: "clock.badge.checkmark"
+                )
+
+                if let message = offerReview.offer.message {
+                    Text(message)
+                        .font(DesignTokens.Typography.body)
+                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+    }
+
+    private func requestCard(_ offerReview: CustomerOfferReview) -> some View {
+        GroomlyCard {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                DetailCardHeader(
+                    title: request.petSnapshot.name,
+                    subtitle: request.serviceType,
+                    systemImage: "pawprint.fill"
+                ) {
+                    GroomlyStatusChip(
+                        request.status.title,
+                        systemImage: request.status.detailSystemImage,
+                        tone: request.status.detailTone
+                    )
+                }
+
+                DetailMetadataRow(
+                    title: "Requested time",
+                    value: requestTimeSummary,
+                    systemImage: "calendar"
+                )
+            }
+        }
+    }
+
+    private func acceptanceCard(_ offerReview: CustomerOfferReview) -> some View {
+        GroomlyCard {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                DetailCardHeader(
+                    title: "Acceptance",
+                    subtitle: acceptanceMessage(for: offerReview),
+                    systemImage: "checkmark.circle.fill"
+                )
+
+                if let errorMessage = store.errorMessage {
+                    GroomlyErrorBanner(
+                        title: "We could not accept this offer",
+                        message: errorMessage
+                    )
+                }
+
+                if offerReview.offer.status == .pending,
+                   request.status.isOpenForOffers {
+                    Button {
+                        Task {
+                            await store.accept(
+                                offerReview: offerReview,
+                                for: request
+                            )
+                        }
+                    } label: {
+                        Label(
+                            store.isAcceptingOffer(offerReview.offer.id) ? "Accepting…" : "Accept offer",
+                            systemImage: "checkmark.circle"
+                        )
+                    }
+                    .buttonStyle(GroomlyPrimaryButtonStyle())
+                    .disabled(store.isAcceptingOffer(offerReview.offer.id))
+                    .accessibilityIdentifier("customer.offers.accept")
+
+                    Text("The backend creates the booking and conversation atomically. If the groomer becomes unavailable, no local booking is created.")
+                        .font(DesignTokens.Typography.caption)
+                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else {
+                    GroomlyStatusChip(
+                        acceptanceStatusTitle(for: offerReview),
+                        systemImage: acceptanceStatusSystemImage(for: offerReview),
+                        tone: acceptanceStatusTone(for: offerReview)
+                    )
+                }
+            }
+        }
+    }
+
+    private func acceptanceMessage(for offerReview: CustomerOfferReview) -> String {
+        if offerReview.offer.status == .pending,
+           request.status.isOpenForOffers {
+            return "Accepting creates the booking and booking chat through the existing backend transaction."
+        } else if offerReview.offer.status == .acceptedByCustomer {
+            return "This offer has been accepted. Check the Bookings tab for the appointment."
+        } else if request.status == .booked {
+            return "This request is already booked."
+        } else {
+            return "This offer can no longer be accepted."
+        }
+    }
+
+    private func acceptanceStatusTitle(for offerReview: CustomerOfferReview) -> String {
+        if offerReview.offer.status == .acceptedByCustomer {
+            return "Accepted"
+        } else if request.status == .booked {
+            return "Booked"
+        } else {
+            return "Unavailable"
+        }
+    }
+
+    private func acceptanceStatusSystemImage(for offerReview: CustomerOfferReview) -> String {
+        if offerReview.offer.status == .acceptedByCustomer || request.status == .booked {
+            return "checkmark.circle.fill"
+        }
+
+        return "xmark.circle"
+    }
+
+    private func acceptanceStatusTone(for offerReview: CustomerOfferReview) -> GroomlyStatusChip.Tone {
+        if offerReview.offer.status == .acceptedByCustomer || request.status == .booked {
+            return .success
+        }
+
+        return .neutral
+    }
+
+    private var requestTimeSummary: String {
+        "\(GroomingRequestDateFormatting.displayString(from: request.preferredStart)) – \(GroomingRequestDateFormatting.displayString(from: request.preferredEnd))"
+    }
+}
+
+private struct DetailCardHeader<Trailing: View>: View {
+    let title: String
+    let subtitle: String
+    let systemImage: String
+    private let trailing: Trailing
+
+    init(
+        title: String,
+        subtitle: String,
+        systemImage: String,
+        @ViewBuilder trailing: () -> Trailing
+    ) {
+        self.title = title
+        self.subtitle = subtitle
+        self.systemImage = systemImage
+        self.trailing = trailing()
+    }
+
+    var body: some View {
+        HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
+            Image(systemName: systemImage)
+                .font(DesignTokens.Typography.headline)
+                .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
+                .frame(
+                    width: DesignTokens.Spacing.xl + DesignTokens.Spacing.md,
+                    height: DesignTokens.Spacing.xl + DesignTokens.Spacing.md
+                )
+                .background(DesignTokens.Colors.customerPrimary.opacity(0.14))
+                .clipShape(DesignTokens.Shapes.circular)
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                Text(title)
+                    .font(DesignTokens.Typography.headline)
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Text(subtitle)
+                    .font(DesignTokens.Typography.caption)
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            trailing
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
+extension DetailCardHeader where Trailing == EmptyView {
+    init(
+        title: String,
+        subtitle: String,
+        systemImage: String
+    ) {
+        self.title = title
+        self.subtitle = subtitle
+        self.systemImage = systemImage
+        trailing = EmptyView()
+    }
+}
+
+private struct DetailMetadataRow: View {
+    let title: String
+    let value: String
+    let systemImage: String
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.md) {
+            Label {
+                Text(title)
+                    .font(DesignTokens.Typography.caption.weight(.semibold))
+            } icon: {
+                Image(systemName: systemImage)
+                    .font(DesignTokens.Typography.caption)
+            }
+            .foregroundStyle(DesignTokens.Colors.textSecondary)
+
+            Spacer(minLength: DesignTokens.Spacing.md)
+
+            Text(value)
+                .font(DesignTokens.Typography.body.weight(.semibold))
+                .foregroundStyle(DesignTokens.Colors.textPrimary)
+                .multilineTextAlignment(.trailing)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.vertical, DesignTokens.Spacing.xs)
+    }
+}
+
+private extension GroomingRequestStatus {
+    var detailTone: GroomlyStatusChip.Tone {
+        switch self {
+        case .open, .hasOffers:
+            .customer
+        case .booked:
+            .success
+        case .cancelled, .expired:
+            .neutral
+        }
+    }
+
+    var detailSystemImage: String {
+        switch self {
+        case .open:
+            "clock"
+        case .hasOffers:
+            "tag"
+        case .booked:
+            "checkmark.circle"
+        case .cancelled:
+            "xmark.circle"
+        case .expired:
+            "hourglass"
+        }
+    }
+}
+
+private extension GroomerOfferStatus {
+    var detailTone: GroomlyStatusChip.Tone {
+        switch self {
+        case .pending:
+            .customer
+        case .acceptedByCustomer:
+            .success
+        case .declinedByCustomer, .withdrawnByGroomer, .expired:
+            .neutral
+        }
+    }
+
+    var detailSystemImage: String {
+        switch self {
+        case .pending:
+            "clock"
+        case .acceptedByCustomer:
+            "checkmark.circle"
+        case .declinedByCustomer:
+            "xmark.circle"
+        case .withdrawnByGroomer:
+            "arrow.uturn.backward"
+        case .expired:
+            "hourglass"
         }
     }
 }
@@ -431,75 +954,50 @@ private struct CustomerRequestWizardView: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section("Pet") {
-                    Picker("Pet", selection: $store.selectedPetID) {
-                        ForEach(store.pets) { pet in
-                            Text(pet.name)
-                                .tag(Optional(pet.id))
+            ZStack {
+                DesignTokens.Colors.background
+                    .ignoresSafeArea()
+
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                        GroomlySectionHeader(
+                            "Request details",
+                            subtitle: "Share the basics so matched groomers can make accurate offers."
+                        )
+
+                        petCard
+                        serviceCard
+                        preferredTimeCard
+                        locationCard
+                        reviewCard
+
+                        if let errorMessage = store.errorMessage {
+                            GroomlyErrorBanner(
+                                title: "Check request details",
+                                message: errorMessage
+                            )
+                            .accessibilityIdentifier("customer.requests.form-error")
                         }
+
+                        Button {
+                            publish()
+                        } label: {
+                            Label(
+                                store.isSubmitting ? "Publishing…" : "Publish request",
+                                systemImage: "paperplane.fill"
+                            )
+                        }
+                        .buttonStyle(GroomlyPrimaryButtonStyle())
+                        .disabled(store.isSubmitting || store.pets.isEmpty)
                     }
+                    .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+                    .padding(.top, DesignTokens.Spacing.lg)
+                    .padding(.bottom, DesignTokens.Spacing.xl)
                 }
-
-                Section("Service") {
-                    TextField("Service type", text: $store.serviceType)
-                        .textContentType(.none)
-
-                    TextField("Notes", text: $store.serviceNotes, axis: .vertical)
-                        .lineLimit(3...6)
-                }
-
-                Section("Preferred time") {
-                    DatePicker(
-                        "Start",
-                        selection: $store.preferredStart,
-                        displayedComponents: [.date, .hourAndMinute]
-                    )
-
-                    DatePicker(
-                        "End",
-                        selection: $store.preferredEnd,
-                        displayedComponents: [.date, .hourAndMinute]
-                    )
-                }
-
-                Section("Location") {
-                    TextField("City", text: $store.city)
-                        .textContentType(.addressCity)
-
-                    TextField("State", text: $store.state)
-                        .textContentType(.addressState)
-
-                    TextField("ZIP code", text: $store.zipCode)
-                        .textContentType(.postalCode)
-                        .keyboardType(.numbersAndPunctuation)
-                }
-
-                Section("Review") {
-                    LabeledContent(
-                        "Pet",
-                        value: store.selectedPet?.name ?? "Choose a pet"
-                    )
-                    LabeledContent(
-                        "Service",
-                        value: store.serviceType.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                            ? "Required"
-                            : store.serviceType.trimmingCharacters(in: .whitespacesAndNewlines)
-                    )
-                    LabeledContent(
-                        "Location",
-                        value: reviewLocation
-                    )
-                }
-
-                if let errorMessage = store.errorMessage {
-                    Section {
-                        Text(errorMessage)
-                            .foregroundStyle(.red)
-                    }
-                    .accessibilityIdentifier("customer.requests.form-error")
-                }
+                .scrollContentBackground(.hidden)
+                .scrollDismissesKeyboard(.interactively)
             }
+            .tint(DesignTokens.Colors.customerPrimaryDark)
             .navigationTitle("New Request")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -512,9 +1010,7 @@ private struct CustomerRequestWizardView: View {
 
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Publish") {
-                        Task {
-                            await store.publish()
-                        }
+                        publish()
                     }
                     .disabled(store.isSubmitting || store.pets.isEmpty)
                     .accessibilityIdentifier("customer.requests.publish")
@@ -522,6 +1018,147 @@ private struct CustomerRequestWizardView: View {
             }
         }
         .interactiveDismissDisabled(store.isSubmitting)
+    }
+
+    private var petCard: some View {
+        GroomlyCard {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                WizardCardHeader(
+                    title: "Pet",
+                    subtitle: "Choose the pet this request is for.",
+                    systemImage: "pawprint.fill"
+                )
+
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                    Picker("Pet", selection: $store.selectedPetID) {
+                        ForEach(store.pets) { pet in
+                            Text(pet.name)
+                                .tag(Optional(pet.id))
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .groomlyFormField()
+
+                    if store.pets.isEmpty {
+                        GroomlyStatusChip(
+                            "Add a pet on Home first",
+                            systemImage: "pawprint",
+                            tone: .warning
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    private var serviceCard: some View {
+        GroomlyCard {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                WizardCardHeader(
+                    title: "Service",
+                    subtitle: "Describe the grooming help your pet needs.",
+                    systemImage: "scissors"
+                )
+
+                TextField("Service type", text: $store.serviceType)
+                    .textContentType(.none)
+                    .groomlyFormField()
+
+                TextField("Notes", text: $store.serviceNotes, axis: .vertical)
+                    .lineLimit(3...6)
+                    .groomlyFormField()
+            }
+        }
+    }
+
+    private var preferredTimeCard: some View {
+        GroomlyCard {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                WizardCardHeader(
+                    title: "Preferred time",
+                    subtitle: "Pick the service window you want groomers to offer around.",
+                    systemImage: "calendar"
+                )
+
+                DatePicker(
+                    "Start",
+                    selection: $store.preferredStart,
+                    displayedComponents: [.date, .hourAndMinute]
+                )
+                .font(DesignTokens.Typography.body)
+                .foregroundStyle(DesignTokens.Colors.textPrimary)
+                .groomlyFormField()
+
+                DatePicker(
+                    "End",
+                    selection: $store.preferredEnd,
+                    displayedComponents: [.date, .hourAndMinute]
+                )
+                .font(DesignTokens.Typography.body)
+                .foregroundStyle(DesignTokens.Colors.textPrimary)
+                .groomlyFormField()
+            }
+        }
+    }
+
+    private var locationCard: some View {
+        GroomlyCard {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                WizardCardHeader(
+                    title: "Location",
+                    subtitle: "Use the city, state, and ZIP where the appointment should happen.",
+                    systemImage: "mappin.and.ellipse"
+                )
+
+                TextField("City", text: $store.city)
+                    .textContentType(.addressCity)
+                    .groomlyFormField()
+
+                TextField("State", text: $store.state)
+                    .textContentType(.addressState)
+                    .groomlyFormField()
+
+                TextField("ZIP code", text: $store.zipCode)
+                    .textContentType(.postalCode)
+                    .keyboardType(.numbersAndPunctuation)
+                    .groomlyFormField()
+            }
+        }
+    }
+
+    private var reviewCard: some View {
+        GroomlyCard {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                WizardCardHeader(
+                    title: "Review",
+                    subtitle: "Check the request before publishing it to matched groomers.",
+                    systemImage: "checklist"
+                )
+
+                WizardReviewRow(
+                    title: "Pet",
+                    value: store.selectedPet?.name ?? "Choose a pet",
+                    isMissing: store.selectedPet == nil
+                )
+
+                WizardReviewRow(
+                    title: "Service",
+                    value: serviceSummary,
+                    isMissing: serviceSummary == "Required"
+                )
+
+                WizardReviewRow(
+                    title: "Location",
+                    value: reviewLocation,
+                    isMissing: reviewLocation == "Required"
+                )
+            }
+        }
+    }
+
+    private var serviceSummary: String {
+        let service = store.serviceType.trimmingCharacters(in: .whitespacesAndNewlines)
+        return service.isEmpty ? "Required" : service
     }
 
     private var reviewLocation: String {
@@ -534,35 +1171,129 @@ private struct CustomerRequestWizardView: View {
 
         return parts.isEmpty ? "Required" : parts.joined(separator: ", ")
     }
+
+    private func publish() {
+        Task {
+            await store.publish()
+        }
+    }
+}
+
+private struct WizardCardHeader: View {
+    let title: String
+    let subtitle: String
+    let systemImage: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
+            Image(systemName: systemImage)
+                .font(DesignTokens.Typography.headline)
+                .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
+                .frame(width: 36, height: 36)
+                .background(DesignTokens.Colors.customerPrimary.opacity(0.14))
+                .clipShape(DesignTokens.Shapes.circular)
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                Text(title)
+                    .font(DesignTokens.Typography.headline)
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+
+                Text(subtitle)
+                    .font(DesignTokens.Typography.caption)
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+}
+
+private struct WizardReviewRow: View {
+    let title: String
+    let value: String
+    let isMissing: Bool
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.md) {
+            Text(title)
+                .font(DesignTokens.Typography.caption.weight(.semibold))
+                .foregroundStyle(DesignTokens.Colors.textSecondary)
+
+            Spacer(minLength: DesignTokens.Spacing.md)
+
+            if isMissing {
+                GroomlyStatusChip(
+                    value,
+                    systemImage: "exclamationmark.circle",
+                    tone: .warning
+                )
+            } else {
+                Text(value)
+                    .font(DesignTokens.Typography.body.weight(.semibold))
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+                    .multilineTextAlignment(.trailing)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(.vertical, DesignTokens.Spacing.xs)
+    }
 }
 
 private struct CustomerRequestsStatusView: View {
     let store: CustomerRequestsStore
 
     var body: some View {
-        VStack(spacing: 8) {
-            if store.isSubmitting {
-                ProgressView("Publishing…")
-                    .font(.footnote)
-            }
+        if hasStatus {
+            VStack(spacing: DesignTokens.Spacing.sm) {
+                if store.isSubmitting {
+                    GroomlyCard(padding: DesignTokens.Spacing.md) {
+                        HStack(spacing: DesignTokens.Spacing.sm) {
+                            ProgressView()
+                                .tint(DesignTokens.Colors.customerPrimary)
 
-            if let noticeMessage = store.noticeMessage {
-                Text(noticeMessage)
-                    .font(.footnote)
-                    .foregroundStyle(DesignTokens.Colors.secondaryText)
-            }
+                            Text("Publishing…")
+                                .font(DesignTokens.Typography.caption)
+                                .foregroundStyle(DesignTokens.Colors.secondaryText)
+                        }
+                    }
+                }
 
-            if let errorMessage = store.errorMessage,
-               !store.isShowingWizard {
-                Text(errorMessage)
-                    .font(.footnote)
-                    .foregroundStyle(.red)
+                if let noticeMessage = store.noticeMessage {
+                    GroomlyCard(padding: DesignTokens.Spacing.md) {
+                        HStack(alignment: .top, spacing: DesignTokens.Spacing.sm) {
+                            GroomlyStatusChip(
+                                "Published",
+                                systemImage: "checkmark",
+                                tone: .success
+                            )
+
+                            Text(noticeMessage)
+                                .font(DesignTokens.Typography.caption)
+                                .foregroundStyle(DesignTokens.Colors.secondaryText)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
+
+                if let errorMessage = store.errorMessage,
+                   !store.isShowingWizard {
+                    GroomlyErrorBanner(
+                        title: "We could not update requests",
+                        message: errorMessage
+                    )
+                }
             }
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, DesignTokens.Spacing.standard)
+            .padding(.vertical, DesignTokens.Spacing.sm)
+            .background(.ultraThinMaterial)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.horizontal, DesignTokens.Spacing.standard)
-        .padding(.vertical, 8)
-        .background(.thinMaterial)
+    }
+
+    private var hasStatus: Bool {
+        store.isSubmitting
+            || store.noticeMessage != nil
+            || (store.errorMessage != nil && !store.isShowingWizard)
     }
 }
 

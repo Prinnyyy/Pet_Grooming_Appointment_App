@@ -30,7 +30,7 @@ In scope:
 - Replace the default pet `List` presentation with a Groomly `ScrollView`/stack/card composition.
 - Preserve the existing add/edit pet sheet, save/cancel toolbar actions, disabled states, and `interactiveDismissDisabled` behavior.
 - Preserve pet photo metadata display, photo upload action, photo delete action, loading state, notice state, error state, and accessibility identifiers.
-- Update active project docs so T-025 is completed and the next action is to create a T-026 Customer Requests Groomly task file.
+- Update active project docs so T-025 is completed and the remaining Groomly UI work can continue from T-026.
 
 Out of scope:
 
@@ -68,7 +68,7 @@ Run only one build attempt by default. If the build fails, fix only errors clear
 - No Store, repository, model, backend, Supabase, script, or asset file is changed.
 - `./scripts/ios-build.sh` passes or the first real build error is reported under stop rules.
 - `git diff --check` passes.
-- Current state and task ledger point to creating T-026 instead of auto-starting it.
+- Current state and task ledger point to the next authorized Groomly UI task instead of auto-starting unrelated work.
 
 ## Stop Conditions
 

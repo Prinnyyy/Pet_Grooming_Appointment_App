@@ -6,7 +6,7 @@ The MVP should feel friendly, calm, and pet-focused without becoming visually bu
 
 ## Groomly UI Phase
 
-The Groomly design files in `docs/08_design/` are the active visual reference for the UI phase. T-023 completed the foundation sequence: T-023A design audit notes, T-023B design tokens JSON, T-023C SwiftUI token foundation, T-023D1 action primitives, and T-023D2 feedback primitives. T-024 applies Groomly styling to Auth and Role Onboarding. T-025 applies Groomly styling to Customer Home/Pets only.
+The Groomly design files in `docs/08_design/` are the active visual reference for the UI phase. T-023 completed the foundation sequence: T-023A design audit notes, T-023B design tokens JSON, T-023C SwiftUI token foundation, T-023D1 action primitives, and T-023D2 feedback primitives. T-024 applies Groomly styling to Auth and Role Onboarding. T-025 applies Groomly styling to Customer Home/Pets. T-026 applies Groomly styling to the Customer Requests list/status shell only. T-027 applies Groomly styling to the Customer Request wizard only. T-028 applies Groomly styling to Customer Request detail and offer review only. T-029 applies Groomly styling to the Groomer Requests feed and detail shell only. T-030 through T-035 are planned in `docs/06_tasks/T-026_TO_T-035_GROOMLY_UI_COMPLETION_SEQUENCE.md` to complete the remaining implemented UI surfaces.
 
 Use Groomly for:
 
@@ -110,6 +110,16 @@ Defined in `DesignSystem/GroomlyFormPrimitives.swift`:
 |---|---|---|
 | T-024 Auth and Onboarding UI | Auth bootstrap ready/configuration error, AuthGate session loading, Sign In, Sign Up, profile loading/error, Role Onboarding | implemented; no repository, Store, session, profile RPC, backend, or role-routing changes |
 | T-025 Customer Pets/Home UI | Customer Home/Pets list, pet cards, photo metadata rows, loading/empty/error/notice states, add/edit pet form styling | implemented; no pet Store, repository, model, Storage, backend, or tab-routing changes |
+| T-026 Customer Requests List/Status UI | Customer request tab shell, request list, summary rows, loading/empty/error states | implemented; no wizard/detail/offers/backend changes |
+| T-027 Customer Request Wizard UI | Publish-request form and sheet/navigation surface | implemented; no request contract/backend changes |
+| T-028 Customer Request Detail and Offers UI | Owned request detail, pending/history offer review, offer detail, offer acceptance entry | implemented; preserve request -> offer -> booking behavior |
+| T-029 Groomer Requests Feed and Detail UI | Matched request feed, summary rows, detail shell, dismiss action, status states | implemented; offer form/status reserved for T-030 |
+| T-030 Groomer Offer Form and Status UI | Offer create/withdraw form, pending/withdrawn/accepted status blocks | planned; no offer RPC/backend changes |
+| T-031 Groomer Profile and Services UI | Groomer profile form, status, services list, service form sheet | planned; portfolio reserved for T-032 |
+| T-032 Groomer Portfolio UI | Portfolio metadata rows, upload/delete states, empty/loading/error surfaces | planned; no signed URL or Storage policy changes |
+| T-033 Bookings UI | Shared customer/groomer booking lists, booking detail, cancellation, completion, review form/display | planned; preserve role-specific booking behavior |
+| T-034 Chat UI | Conversation list, chat thread, message rows, composer, chat status states | planned; text-only chat remains |
+| T-035 Account, Tabs, Debug, and Final Audit | Authenticated account, customer/groomer tab shells, placeholder fallback, debug panel, final docs/inventory audit | planned; no new product features |
 
 ## Typography
 

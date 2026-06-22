@@ -25,14 +25,21 @@ The completed screen slices are:
 
 - `docs/06_tasks/T-024_GROOMLY_AUTH_ONBOARDING_UI.md`
 - `docs/06_tasks/T-025_GROOMLY_CUSTOMER_PETS_UI.md`
+- `docs/06_tasks/T-026_GROOMLY_CUSTOMER_REQUESTS_LIST_STATUS_UI.md`
+- `docs/06_tasks/T-027_GROOMLY_CUSTOMER_REQUEST_WIZARD_UI.md`
+- `docs/06_tasks/T-028_GROOMLY_CUSTOMER_REQUEST_DETAIL_OFFERS_UI.md`
+- `docs/06_tasks/T-029_GROOMLY_GROOMER_REQUESTS_FEED_DETAIL_UI.md`
 
-The active next executable task is to create a new T-026 Customer Requests Groomly task file before editing additional request screens.
+The planned remaining Groomly UI sequence is `docs/06_tasks/T-026_TO_T-035_GROOMLY_UI_COMPLETION_SEQUENCE.md`.
+
+The active next executable task is `docs/06_tasks/T-030_GROOMLY_GROOMER_OFFER_FORM_STATUS_UI.md`.
 
 - T-022 remains completed, but its post-MVP next-task suggestions are frozen and must not auto-start.
 - Use the Groomly design source in `docs/08_design/` only as a visual and interaction reference.
-- T-023A through T-023D2, T-024, and T-025 are completed. Do not rerun or extend them unless the user explicitly requests a review follow-up.
+- T-023A through T-023D2 and T-024 through T-029 are completed. Do not rerun or extend them unless the user explicitly requests a review follow-up.
+- T-026 through T-029 are completed. T-030 through T-035 are planned. Execute them in order unless the user explicitly replans the sequence.
 - Run only one screen-specific Groomly task per Codex run.
-- Do not redesign additional feature screens, implement T-026, or start non-Groomly post-MVP work unless the user explicitly requests the next task.
+- Do not redesign additional feature screens, skip ahead to later Groomly tasks, or start non-Groomly post-MVP work unless the user explicitly requests it.
 - Do not copy HTML/CSS/React code directly into SwiftUI.
 - Product correctness and the existing Open Request -> Groomer Offer -> Customer Confirmation -> Booking model take priority over visual matching.
 - If prototype content requires backend/schema/RLS/RPC changes or deferred features, stop and report.
