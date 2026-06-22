@@ -36,6 +36,9 @@ docs/06_tasks/T-026_GROOMLY_CUSTOMER_REQUESTS_LIST_STATUS_UI.md
 docs/06_tasks/T-027_GROOMLY_CUSTOMER_REQUEST_WIZARD_UI.md
 docs/06_tasks/T-028_GROOMLY_CUSTOMER_REQUEST_DETAIL_OFFERS_UI.md
 docs/06_tasks/T-029_GROOMLY_GROOMER_REQUESTS_FEED_DETAIL_UI.md
+docs/06_tasks/T-030_GROOMLY_GROOMER_OFFER_FORM_STATUS_UI.md
+docs/06_tasks/T-031_GROOMLY_GROOMER_PROFILE_SERVICES_UI.md
+docs/06_tasks/T-032_GROOMLY_GROOMER_PORTFOLIO_UI.md
 ```
 
 The planned remaining Groomly UI sequence is:
@@ -44,7 +47,7 @@ The planned remaining Groomly UI sequence is:
 docs/06_tasks/T-026_TO_T-035_GROOMLY_UI_COMPLETION_SEQUENCE.md
 ```
 
-The active next executable task is `docs/06_tasks/T-030_GROOMLY_GROOMER_OFFER_FORM_STATUS_UI.md`. Run one screen-specific Groomly task per Codex run, in sequence. Do not change backend contracts, product flow, or deferred features during UI slices.
+The active next executable task is `docs/06_tasks/T-033_GROOMLY_BOOKINGS_UI.md`. Run one screen-specific Groomly task per Codex run, in sequence. Do not change backend contracts, product flow, or deferred features during UI slices.
 
 ## Main References
 
@@ -59,7 +62,10 @@ The active next executable task is `docs/06_tasks/T-030_GROOMLY_GROOMER_OFFER_FO
 - Completed Customer Request Wizard slice: `docs/06_tasks/T-027_GROOMLY_CUSTOMER_REQUEST_WIZARD_UI.md`
 - Completed Customer Request Detail/Offers slice: `docs/06_tasks/T-028_GROOMLY_CUSTOMER_REQUEST_DETAIL_OFFERS_UI.md`
 - Completed Groomer Requests Feed/Detail slice: `docs/06_tasks/T-029_GROOMLY_GROOMER_REQUESTS_FEED_DETAIL_UI.md`
-- Next Groomly UI slice: `docs/06_tasks/T-030_GROOMLY_GROOMER_OFFER_FORM_STATUS_UI.md`
+- Completed Groomer Offer Form/Status slice: `docs/06_tasks/T-030_GROOMLY_GROOMER_OFFER_FORM_STATUS_UI.md`
+- Completed Groomer Profile/Services slice: `docs/06_tasks/T-031_GROOMLY_GROOMER_PROFILE_SERVICES_UI.md`
+- Completed Groomer Portfolio slice: `docs/06_tasks/T-032_GROOMLY_GROOMER_PORTFOLIO_UI.md`
+- Next Groomly UI slice: `docs/06_tasks/T-033_GROOMLY_BOOKINGS_UI.md`
 - Groomly design prompt: `docs/08_design/Apply Groomly Design Prototype to Existing SwiftUI App.md`
 - Groomly prototype: `docs/08_design/Groomly.html`
 - Existing SwiftUI design tokens: `ios/PetGroomerMarketplace/PetGroomerMarketplace/DesignSystem/DesignTokens.swift`

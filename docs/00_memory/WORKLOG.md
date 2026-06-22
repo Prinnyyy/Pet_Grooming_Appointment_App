@@ -2,6 +2,36 @@
 
 ```text
 Date: 2026-06-22
+Task: T-032 - Groomly Groomer Portfolio UI.
+Files changed: Updated GroomerProfileManagementView.swift, docs/06_tasks/T-032_GROOMLY_GROOMER_PORTFOLIO_UI.md, AGENTS.md, CLAUDE.md, README.md, docs/README.md, docs/01_product/DESIGN_SYSTEM.md, docs/01_product/SCREEN_INVENTORY.md, CURRENT_STATE.md, FEATURE_INDEX.md, WORKLOG.md, and TASK_LEDGER.md.
+Checks: `./scripts/ios-build.sh` passed. Post-review `./scripts/ios-test.sh` passed. `git diff --check` passed.
+Result: T-032 is completed. Groomer portfolio metadata rows, upload action, delete action, empty state, and upload progress feedback now use Groomly section headers, cards, feedback primitives, tokenized metadata rows, and groomer-accent action styling while preserving PhotosPicker selection, local transferable loading, content-type detection, Store upload/delete calls, busy/disabled states, notices, errors, repositories, models, Storage paths, and backend behavior.
+Risks: This was a visual-only Groomer portfolio slice. Remote portfolio thumbnails, signed URLs, image caching, Storage policies, bookings, chat, account, debug, backend, repositories, Stores, models, scripts, and assets remain untouched.
+Next: Execute T-033 Groomly Bookings UI only.
+```
+
+```text
+Date: 2026-06-22
+Task: T-031 - Groomly Groomer Profile and Services UI.
+Files changed: Updated GroomerProfileManagementView.swift, docs/06_tasks/T-031_GROOMLY_GROOMER_PROFILE_SERVICES_UI.md, AGENTS.md, CLAUDE.md, README.md, docs/README.md, docs/01_product/DESIGN_SYSTEM.md, docs/01_product/SCREEN_INVENTORY.md, CURRENT_STATE.md, FEATURE_INDEX.md, WORKLOG.md, and TASK_LEDGER.md.
+Checks: `./scripts/ios-build.sh` first failed on a local `String` interpolation format issue, then passed after the single correction. Post-review `./scripts/ios-test.sh` passed. `git diff --check` passed.
+Result: T-031 is completed. Groomer profile form, services list, service create/edit sheet, and profile/service bottom status feedback now use Groomly background, cards, form fields, status chips, empty/error feedback, and groomer-accent actions while preserving profile load/save, service create/edit/delete, sheet state, validation, disabled/busy state, Store ownership, repositories, models, and backend behavior.
+Risks: This was a visual-only Groomer profile/services slice. Portfolio upload/delete body behavior remains mounted and intentionally deferred to T-032; requests/offers, bookings, chat, account, debug, backend, repositories, Stores, models, scripts, and assets remain untouched.
+Next: Execute T-032 Groomly Groomer Portfolio UI only.
+```
+
+```text
+Date: 2026-06-22
+Task: T-030 - Groomly Groomer Offer Form and Status UI.
+Files changed: Updated GroomerRequestsView.swift, docs/06_tasks/T-030_GROOMLY_GROOMER_OFFER_FORM_STATUS_UI.md, AGENTS.md, CLAUDE.md, README.md, docs/README.md, docs/01_product/DESIGN_SYSTEM.md, docs/01_product/SCREEN_INVENTORY.md, CURRENT_STATE.md, FEATURE_INDEX.md, WORKLOG.md, and TASK_LEDGER.md.
+Checks: `./scripts/ios-build.sh` passed. Post-review `./scripts/ios-test.sh` passed. `git diff --check` passed.
+Result: T-030 is completed. Groomer offer creation fields, existing offer status blocks, withdraw action, closed-offer notice, and submit action now use Groomly cards, form fields, status chips, and groomer-accent actions while preserving create/withdraw calls, validation, disabled/busy state, Store ownership, repositories, models, and backend behavior.
+Risks: This was a visual-only Groomer offer form/status slice. Groomer profile/services, portfolio, bookings, chat, account, debug, backend, repositories, Stores, models, scripts, and assets remain untouched.
+Next: Execute T-031 Groomly Groomer Profile/Services UI only.
+```
+
+```text
+Date: 2026-06-22
 Task: T-029 - Groomly Groomer Requests Feed and Detail UI.
 Files changed: Updated GroomerRequestsView.swift, docs/06_tasks/T-029_GROOMLY_GROOMER_REQUESTS_FEED_DETAIL_UI.md, AGENTS.md, CLAUDE.md, README.md, docs/README.md, docs/01_product/DESIGN_SYSTEM.md, docs/01_product/SCREEN_INVENTORY.md, CURRENT_STATE.md, FEATURE_INDEX.md, WORKLOG.md, and TASK_LEDGER.md.
 Checks: `./scripts/ios-build.sh` initially failed on a local helper type-name typo, then passed after correction. Post-review `./scripts/ios-test.sh` passed. `git diff --check` passed.

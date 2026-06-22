@@ -1,6 +1,6 @@
 # T-032 - Groomly Groomer Portfolio UI
 
-- State: planned.
+- State: completed.
 - Mode: Standard.
 - Depends on: completed T-031.
 
@@ -52,12 +52,24 @@ Run:
 git diff --check
 ```
 
+Status:
+
+- `./scripts/ios-build.sh` passed on 2026-06-22.
+- Post-review `./scripts/ios-test.sh` passed on 2026-06-22.
+- `git diff --check` passed on 2026-06-22.
+
 ## Acceptance
 
 - Groomer portfolio section uses Groomly cards, feedback, metadata rows, and action styling.
 - Existing portfolio upload/delete metadata behavior, disabled states, notices, and errors are preserved.
 - No Store, repository, model, backend, Supabase, script, asset, request, booking, chat, debug, or tab-routing file is changed.
 - Next planned task remains T-033.
+
+Completion notes:
+
+- `GroomerPortfolioSection` now uses `GroomlySectionHeader`, `GroomlyEmptyState`, `GroomlyCard`, token-based metadata rows, an inline upload progress card, and groomer-accent upload styling.
+- Existing `PhotosPicker` selection, local data loading, content-type detection, `store.uploadPortfolioPhoto(data:contentType:)`, `store.deletePortfolioPhoto(_:)`, busy/disabled states, notices, and errors remain owned by the existing view/Store flow.
+- Remote image rendering, signed URLs, Storage policies, repositories, models, backend, scripts, assets, request screens, bookings, chat, debug, and tab routing were not changed.
 
 ## Stop Conditions
 

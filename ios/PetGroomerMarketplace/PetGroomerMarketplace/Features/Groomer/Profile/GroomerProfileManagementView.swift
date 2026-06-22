@@ -448,62 +448,33 @@ private struct GroomerPortfolioSection: View {
     @State private var selectedPhotoItem: PhotosPickerItem?
 
     var body: some View {
-        GroomerCard {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.standard) {
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Portfolio")
-                            .font(.headline)
-                        Text("Images upload to the private groomer-portfolio bucket.")
-                            .font(.footnote)
-                            .foregroundStyle(DesignTokens.Colors.secondaryText)
-                    }
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            GroomlySectionHeader(
+                "Portfolio",
+                subtitle: "Images upload to the private groomer-portfolio bucket and stay metadata-only here."
+            ) {
+                addPhotoPicker(isFullWidth: false)
+            }
 
-                    Spacer()
+            if store.isUploading {
+                GroomerPortfolioUpdatingCard()
+            }
 
-                    PhotosPicker(
-                        selection: $selectedPhotoItem,
-                        matching: .images
-                    ) {
-                        Label("Add Photo", systemImage: "plus.circle")
-                    }
-                    .disabled(store.isBusy)
-                    .accessibilityIdentifier("groomer.portfolio.add")
-                }
-
-                if store.portfolioPhotos.isEmpty {
-                    ContentUnavailableView(
-                        "No portfolio photos",
-                        systemImage: "photo.on.rectangle",
-                        description: Text("Add work examples after completing your profile.")
-                    )
-                    .frame(minHeight: 140)
-                    .accessibilityIdentifier("groomer.portfolio.empty")
-                } else {
+            if store.portfolioPhotos.isEmpty {
+                GroomlyEmptyState(
+                    title: "No portfolio photos",
+                    message: "Add work examples after completing your profile. This screen shows stored metadata only.",
+                    systemImage: "photo.on.rectangle",
+                    accent: .groomer
+                )
+                .accessibilityIdentifier("groomer.portfolio.empty")
+            } else {
+                VStack(spacing: DesignTokens.Spacing.md) {
                     ForEach(store.sortedPortfolioPhotos()) { photo in
-                        HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(photo.fileName)
-                                    .font(.footnote)
-                                    .lineLimit(1)
-
-                                if let caption = photo.caption {
-                                    Text(caption)
-                                        .font(.caption)
-                                        .foregroundStyle(DesignTokens.Colors.secondaryText)
-                                }
-                            }
-
-                            Spacer()
-
-                            Button("Delete", role: .destructive) {
-                                Task {
-                                    await store.deletePortfolioPhoto(photo)
-                                }
-                            }
-                            .font(.caption)
-                            .disabled(store.isBusy)
-                        }
+                        GroomerPortfolioPhotoRow(
+                            photo: photo,
+                            store: store
+                        )
                     }
                 }
             }
@@ -533,6 +504,150 @@ private struct GroomerPortfolioSection: View {
             data: data,
             contentType: contentType
         )
+    }
+
+    private func addPhotoPicker(isFullWidth: Bool) -> some View {
+        PhotosPicker(
+            selection: $selectedPhotoItem,
+            matching: .images
+        ) {
+            Label("Add Photo", systemImage: "plus")
+        }
+        .buttonStyle(GroomlySecondaryButtonStyle(accent: .groomer, isFullWidth: isFullWidth))
+        .disabled(store.isBusy)
+        .accessibilityIdentifier("groomer.portfolio.add")
+    }
+}
+
+private struct GroomerPortfolioUpdatingCard: View {
+    var body: some View {
+        GroomlyCard(padding: DesignTokens.Spacing.md) {
+            HStack(spacing: DesignTokens.Spacing.md) {
+                ProgressView()
+                    .tint(DesignTokens.Colors.groomerAccent)
+
+                Text("Updating portfolio metadata…")
+                    .font(DesignTokens.Typography.caption)
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityElement(children: .combine)
+        }
+    }
+}
+
+private struct GroomerPortfolioPhotoRow: View {
+    let photo: GroomerPortfolioPhoto
+    @Bindable var store: GroomerProfileStore
+
+    var body: some View {
+        GroomlyCard(padding: DesignTokens.Spacing.md) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
+                    Image(systemName: "photo.on.rectangle")
+                        .font(DesignTokens.Typography.caption.weight(.semibold))
+                        .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
+                        .frame(
+                            width: DesignTokens.Spacing.xl,
+                            height: DesignTokens.Spacing.xl
+                        )
+                        .background(DesignTokens.Colors.groomerAccent.opacity(0.14))
+                        .clipShape(DesignTokens.Shapes.circular)
+                        .accessibilityHidden(true)
+
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                        Text(photo.fileName)
+                            .font(DesignTokens.Typography.body.weight(.semibold))
+                            .foregroundStyle(DesignTokens.Colors.textPrimary)
+                            .lineLimit(1)
+
+                        if let caption = photo.caption {
+                            Text(caption)
+                                .font(DesignTokens.Typography.caption)
+                                .foregroundStyle(DesignTokens.Colors.textSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        } else {
+                            Text("No caption metadata")
+                                .font(DesignTokens.Typography.caption)
+                                .foregroundStyle(DesignTokens.Colors.textTertiary)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                    Button(role: .destructive) {
+                        Task {
+                            await store.deletePortfolioPhoto(photo)
+                        }
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                    .font(DesignTokens.Typography.caption.weight(.semibold))
+                    .foregroundStyle(DesignTokens.Colors.error)
+                    .padding(.horizontal, DesignTokens.Spacing.md)
+                    .padding(.vertical, DesignTokens.Spacing.sm)
+                    .background(DesignTokens.Colors.error.opacity(0.08))
+                    .overlay {
+                        DesignTokens.Shapes.chip
+                            .stroke(DesignTokens.Colors.error.opacity(0.26), lineWidth: 1)
+                    }
+                    .clipShape(DesignTokens.Shapes.chip)
+                    .disabled(store.isBusy)
+                }
+
+                Divider()
+                    .overlay(DesignTokens.Colors.divider)
+
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                    GroomerPortfolioMetadataRow(
+                        title: "Bucket",
+                        value: photo.storageBucket,
+                        systemImage: "shippingbox"
+                    )
+
+                    GroomerPortfolioMetadataRow(
+                        title: "Storage path",
+                        value: photo.storagePath,
+                        systemImage: "folder"
+                    )
+
+                    GroomerPortfolioMetadataRow(
+                        title: "Sort order",
+                        value: "\(photo.sortOrder)",
+                        systemImage: "arrow.up.arrow.down"
+                    )
+                }
+            }
+        }
+    }
+}
+
+private struct GroomerPortfolioMetadataRow: View {
+    let title: String
+    let value: String
+    let systemImage: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: DesignTokens.Spacing.sm) {
+            Image(systemName: systemImage)
+                .font(DesignTokens.Typography.caption)
+                .foregroundStyle(DesignTokens.Colors.textTertiary)
+                .frame(width: DesignTokens.Spacing.lg)
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                Text(title)
+                    .font(DesignTokens.Typography.caption.weight(.semibold))
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+
+                Text(value)
+                    .font(DesignTokens.Typography.caption)
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                    .lineLimit(2)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -716,21 +831,6 @@ private struct GroomerProfileStatusView: View {
             store.isUploading ||
             store.noticeMessage != nil ||
             (store.errorMessage != nil && !store.isShowingServiceForm)
-    }
-}
-
-
-private struct GroomerCard<Content: View>: View {
-    private let content: Content
-
-    init(@ViewBuilder content: () -> Content) {
-        self.content = content()
-    }
-
-    var body: some View {
-        GroomlyCard {
-            content
-        }
     }
 }
 
