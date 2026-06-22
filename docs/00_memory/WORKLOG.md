@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-06-22
+Task: T-024 - Groomly Auth and Onboarding UI.
+Files changed: Added docs/06_tasks/T-024_GROOMLY_AUTH_ONBOARDING_UI.md and ios/PetGroomerMarketplace/PetGroomerMarketplace/DesignSystem/GroomlyFormPrimitives.swift; updated Auth SwiftUI views, AGENTS.md, CLAUDE.md, README.md, docs/01_product/DESIGN_SYSTEM.md, CURRENT_STATE.md, WORKLOG.md, and TASK_LEDGER.md.
+Checks: `./scripts/ios-build.sh` passed. Post-review `./scripts/ios-test.sh` passed. `git diff --check` passed.
+Result: T-024 is completed. Auth bootstrap, AuthGate session loading, Sign In, Sign Up, profile loading/error, and Role Onboarding now use Groomly tokens/primitives and the new `.groomlyFormField()` helper. Existing Store calls, auth/session/profile routing, submit guards, error states, and sign-out behavior were preserved. Post-review follow-up confirmed no active README ownership conflict in current docs and restored typographic ellipses in new Auth loading/submitting strings.
+Risks: This was a visual-only Auth/Onboarding slice. Customer, groomer, pet, request, offer, booking, chat, account, debug, backend, repository, Store, model, Supabase, script, and asset work remain untouched.
+Next: Create a new T-025 screen-specific Groomly task file before editing additional non-Auth feature screens.
+```
+
+```text
+Date: 2026-06-22
 Task: T-023D2 - Groomly SwiftUI feedback primitives.
 Files changed: Added ios/PetGroomerMarketplace/PetGroomerMarketplace/DesignSystem/GroomlyFeedbackPrimitives.swift; updated docs/01_product/DESIGN_SYSTEM.md, CURRENT_STATE.md, WORKLOG.md, and TASK_LEDGER.md.
 Checks: `./scripts/ios-build.sh` passed. `git diff --check` passed.

@@ -14,7 +14,8 @@ struct AuthenticationView: View {
                         header
                         form
                     }
-                    .padding(DesignTokens.Spacing.standard)
+                    .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+                    .padding(.vertical, DesignTokens.Spacing.xl)
                 }
                 .scrollDismissesKeyboard(.interactively)
             }
@@ -25,98 +26,120 @@ struct AuthenticationView: View {
     }
 
     private var header: some View {
-        VStack(spacing: DesignTokens.Spacing.standard) {
+        VStack(spacing: DesignTokens.Spacing.lg) {
             Image(systemName: "pawprint.circle.fill")
-                .font(.system(.largeTitle, design: .rounded, weight: .semibold))
-                .foregroundStyle(.tint)
+                .font(DesignTokens.Typography.largeTitle.weight(.semibold))
+                .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
+                .frame(
+                    width: DesignTokens.Spacing.xl + DesignTokens.Spacing.xl + DesignTokens.Spacing.lg,
+                    height: DesignTokens.Spacing.xl + DesignTokens.Spacing.xl + DesignTokens.Spacing.lg
+                )
+                .background(DesignTokens.Colors.customerPrimary.opacity(0.16))
+                .clipShape(DesignTokens.Shapes.circular)
                 .accessibilityHidden(true)
 
-            Text("Pet Groomer Marketplace")
-                .font(.title.bold())
-                .multilineTextAlignment(.center)
-                .foregroundStyle(DesignTokens.Colors.primaryText)
+            VStack(spacing: DesignTokens.Spacing.xs) {
+                Text("Groomly")
+                    .font(DesignTokens.Typography.largeTitle.weight(.bold))
+                    .multilineTextAlignment(.center)
+                    .foregroundStyle(DesignTokens.Colors.primaryText)
 
-            Text("Sign in to manage grooming requests, offers, and bookings.")
-                .multilineTextAlignment(.center)
-                .foregroundStyle(DesignTokens.Colors.secondaryText)
+                Text("Find trusted independent groomers for your pet.")
+                    .font(DesignTokens.Typography.body)
+                    .multilineTextAlignment(.center)
+                    .foregroundStyle(DesignTokens.Colors.secondaryText)
+            }
         }
-        .padding(.top, DesignTokens.Spacing.large)
+        .padding(.top, DesignTokens.Spacing.lg)
     }
 
     private var form: some View {
-        VStack(spacing: DesignTokens.Spacing.standard) {
-            Picker("Authentication mode", selection: $store.mode) {
-                ForEach(AuthenticationMode.allCases) { mode in
-                    Text(mode.rawValue).tag(mode)
-                }
-            }
-            .pickerStyle(.segmented)
-            .disabled(store.isSubmitting)
-
-            TextField("Email", text: $store.email)
-                .textContentType(.emailAddress)
-                .keyboardType(.emailAddress)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .submitLabel(.next)
-                .accessibilityIdentifier("auth.email")
-
-            SecureField("Password", text: $store.password)
-                .textContentType(
-                    store.mode == .signUp ? .newPassword : .password
-                )
-                .submitLabel(store.mode == .signUp ? .next : .go)
-                .accessibilityIdentifier("auth.password")
-
-            if store.mode == .signUp {
-                SecureField(
-                    "Confirm password",
-                    text: $store.passwordConfirmation
-                )
-                .textContentType(.newPassword)
-                .submitLabel(.go)
-                .accessibilityIdentifier("auth.password-confirmation")
-            }
-
-            if let noticeMessage = store.noticeMessage {
-                Label(noticeMessage, systemImage: "envelope.badge")
-                    .font(.footnote)
-                    .foregroundStyle(.tint)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .accessibilityIdentifier("auth.notice")
-            }
-
-            if let errorMessage = store.errorMessage {
-                Label(errorMessage, systemImage: "exclamationmark.circle")
-                    .font(.footnote)
-                    .foregroundStyle(.red)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .accessibilityIdentifier("auth.error")
-            }
-
-            Button {
-                Task {
-                    await store.submit()
-                }
-            } label: {
-                HStack {
-                    if store.isSubmitting {
-                        ProgressView()
+        VStack(spacing: DesignTokens.Spacing.md) {
+            GroomlyCard {
+                VStack(spacing: DesignTokens.Spacing.lg) {
+                    Picker("Authentication mode", selection: $store.mode) {
+                        ForEach(AuthenticationMode.allCases) { mode in
+                            Text(mode.rawValue).tag(mode)
+                        }
                     }
-                    Text(store.isSubmitting ? "Please wait…" : store.mode.rawValue)
+                    .pickerStyle(.segmented)
+                    .tint(DesignTokens.Colors.customerPrimaryDark)
+                    .disabled(store.isSubmitting)
+
+                    VStack(spacing: DesignTokens.Spacing.md) {
+                        TextField("Email", text: $store.email)
+                            .textContentType(.emailAddress)
+                            .keyboardType(.emailAddress)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .submitLabel(.next)
+                            .groomlyFormField()
+                            .accessibilityIdentifier("auth.email")
+
+                        SecureField("Password", text: $store.password)
+                            .textContentType(
+                                store.mode == .signUp ? .newPassword : .password
+                            )
+                            .submitLabel(store.mode == .signUp ? .next : .go)
+                            .groomlyFormField()
+                            .accessibilityIdentifier("auth.password")
+
+                        if store.mode == .signUp {
+                            SecureField(
+                                "Confirm password",
+                                text: $store.passwordConfirmation
+                            )
+                            .textContentType(.newPassword)
+                            .submitLabel(.go)
+                            .groomlyFormField()
+                            .accessibilityIdentifier("auth.password-confirmation")
+                        }
+                    }
+
+                    Button {
+                        Task {
+                            await store.submit()
+                        }
+                    } label: {
+                        HStack(spacing: DesignTokens.Spacing.sm) {
+                            if store.isSubmitting {
+                                ProgressView()
+                                    .tint(DesignTokens.Colors.surface)
+                            }
+                            Text(store.isSubmitting ? "Please wait…" : store.mode.rawValue)
+                        }
+                    }
+                    .buttonStyle(GroomlyPrimaryButtonStyle())
+                    .disabled(store.isSubmitting)
+                    .accessibilityIdentifier("auth.submit")
                 }
-                .frame(maxWidth: .infinity)
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
-            .disabled(store.isSubmitting)
-            .accessibilityIdentifier("auth.submit")
+
+            feedback
         }
-        .textFieldStyle(.roundedBorder)
-        .padding(DesignTokens.Spacing.standard)
-        .background(DesignTokens.Colors.surface)
-        .clipShape(
-            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.card)
-        )
+    }
+
+    @ViewBuilder
+    private var feedback: some View {
+        if let noticeMessage = store.noticeMessage {
+            Label(noticeMessage, systemImage: "envelope.badge")
+                .font(DesignTokens.Typography.caption.weight(.semibold))
+                .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(DesignTokens.Spacing.md)
+                .background(DesignTokens.Colors.customerPrimary.opacity(0.14))
+                .clipShape(
+                    RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input, style: .continuous)
+                )
+                .accessibilityIdentifier("auth.notice")
+        }
+
+        if let errorMessage = store.errorMessage {
+            GroomlyErrorBanner(
+                title: "Authentication error",
+                message: errorMessage
+            )
+            .accessibilityIdentifier("auth.error")
+        }
     }
 }

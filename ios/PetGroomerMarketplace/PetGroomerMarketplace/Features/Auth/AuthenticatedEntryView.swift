@@ -84,7 +84,11 @@ struct AuthenticatedEntryView: View {
             DesignTokens.Colors.background
                 .ignoresSafeArea()
 
-            ProgressView("Loading profile…")
+            GroomlyLoadingView(
+                title: "Loading profile…",
+                message: "Preparing your Groomly workspace."
+            )
+            .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
                 .accessibilityIdentifier("profile.loading")
         }
     }
@@ -96,32 +100,32 @@ struct AuthenticatedEntryView: View {
                     .ignoresSafeArea()
 
                 VStack(spacing: DesignTokens.Spacing.standard) {
-                    Image(systemName: "exclamationmark.triangle")
-                        .font(.largeTitle)
-                        .foregroundStyle(.red)
-                        .accessibilityHidden(true)
+                    GroomlyErrorBanner(
+                        title: "Profile unavailable",
+                        message: message
+                    ) {
+                        VStack(spacing: DesignTokens.Spacing.md) {
+                            Button {
+                                Task {
+                                    await store.retry()
+                                }
+                            } label: {
+                                Label("Retry", systemImage: "arrow.clockwise")
+                            }
+                            .buttonStyle(GroomlyPrimaryButtonStyle())
 
-                    Text("Profile unavailable")
-                        .font(.title2.bold())
-
-                    Text(message)
-                        .multilineTextAlignment(.center)
-                        .foregroundStyle(DesignTokens.Colors.secondaryText)
-
-                    Button("Retry") {
-                        Task {
-                            await store.retry()
+                            Button(role: .destructive) {
+                                signOut()
+                            } label: {
+                                Label("Sign Out", systemImage: "rectangle.portrait.and.arrow.right")
+                            }
+                            .buttonStyle(GroomlySecondaryButtonStyle(accent: .neutral))
+                            .disabled(authenticationStore.isSubmitting)
+                            .accessibilityIdentifier("auth.sign-out")
                         }
                     }
-                    .buttonStyle(.borderedProminent)
-
-                    Button("Sign Out", role: .destructive) {
-                        signOut()
-                    }
-                    .disabled(authenticationStore.isSubmitting)
-                    .accessibilityIdentifier("auth.sign-out")
                 }
-                .padding(DesignTokens.Spacing.large)
+                .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
             }
             .navigationTitle("Account")
             .navigationBarTitleDisplayMode(.inline)

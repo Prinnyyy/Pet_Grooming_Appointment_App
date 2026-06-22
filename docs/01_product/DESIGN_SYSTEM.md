@@ -6,7 +6,7 @@ The MVP should feel friendly, calm, and pet-focused without becoming visually bu
 
 ## Groomly UI Phase
 
-The Groomly design files in `docs/08_design/` are the active visual reference for the next UI phase. T-023 is split into five small foundation tasks before feature screens are redesigned: T-023A design audit notes, T-023B design tokens JSON, T-023C SwiftUI token foundation, T-023D1 action primitives, and T-023D2 feedback primitives.
+The Groomly design files in `docs/08_design/` are the active visual reference for the UI phase. T-023 completed the foundation sequence: T-023A design audit notes, T-023B design tokens JSON, T-023C SwiftUI token foundation, T-023D1 action primitives, and T-023D2 feedback primitives. T-024 is the first screen-specific slice and applies Groomly styling to Auth and Role Onboarding only.
 
 Use Groomly for:
 
@@ -96,6 +96,20 @@ Defined in `DesignSystem/GroomlyFeedbackPrimitives.swift`:
 
 These primitives are not wired into feature screens yet. They do not own loading, retry, navigation, data fetching, or business logic; those responsibilities remain with the existing Store/repository boundaries when a later screen-specific task applies them.
 
+## Implemented SwiftUI Form Primitive
+
+Defined in `DesignSystem/GroomlyFormPrimitives.swift`:
+
+| Primitive | Purpose | States and Inputs |
+|---|---|---|
+| `.groomlyFormField()` | Present text and secure fields with Groomly input radius, border, fill, tint, and minimum height | normal and disabled; validation and error copy remain caller-owned |
+
+## Groomly Screen Slice Status
+
+| Task | Screens | Status |
+|---|---|---|
+| T-024 Auth and Onboarding UI | Auth bootstrap ready/configuration error, AuthGate session loading, Sign In, Sign Up, profile loading/error, Role Onboarding | implemented; no repository, Store, session, profile RPC, backend, or role-routing changes |
+
 ## Typography
 
 - Use SwiftUI semantic text styles and Dynamic Type.
@@ -109,7 +123,7 @@ These primitives are not wired into feature screens yet. They do not own loading
 | `FeaturePlaceholderView` | Honest baseline for unimplemented tab content | Static placeholder | implemented |
 | `GroomlyPrimaryButtonStyle` | Submit the screen's main mutation | normal, pressed, disabled; loading and error recovery supplied by calling screen state | implemented |
 | `GroomlySecondaryButtonStyle` | Present supporting actions without competing with the primary decision | normal, pressed, disabled | implemented |
-| Form field | Collect validated input | normal, focused, invalid, disabled | planned with Auth/forms |
+| Form field | Collect validated input | normal, disabled; focused uses system input behavior; invalid/error copy supplied by caller | implemented as `.groomlyFormField()` |
 | `GroomlyCard` | Present pet, request, offer, or booking summary | normal, selected when applicable | implemented, not wired into screens |
 | `GroomlyStatusChip` | Present request, offer, or booking state | semantic text label, optional icon, and tone | implemented, not wired into screens |
 | `GroomlyErrorBanner` | Explain recoverable failure | caller-provided title/message, optional icon, optional caller-owned action | implemented, not wired into screens |

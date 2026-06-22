@@ -8,34 +8,41 @@ struct AuthenticationBootstrapView: View {
             DesignTokens.Colors.background
                 .ignoresSafeArea()
 
-            VStack(spacing: DesignTokens.Spacing.standard) {
-                Image(systemName: systemImage)
-                    .font(.largeTitle)
-                    .foregroundStyle(iconStyle)
+            VStack(spacing: DesignTokens.Spacing.xl) {
+                VStack(spacing: DesignTokens.Spacing.md) {
+                    Image(systemName: systemImage)
+                        .font(DesignTokens.Typography.largeTitle.weight(.semibold))
+                        .foregroundStyle(iconStyle)
+                        .frame(
+                            width: DesignTokens.Spacing.xl + DesignTokens.Spacing.xl + DesignTokens.Spacing.lg,
+                            height: DesignTokens.Spacing.xl + DesignTokens.Spacing.xl + DesignTokens.Spacing.lg
+                        )
+                        .background(iconBackground)
+                        .clipShape(DesignTokens.Shapes.circular)
+                        .accessibilityHidden(true)
 
-                Text("Pet Groomer Marketplace")
-                    .font(.title.bold())
-                    .multilineTextAlignment(.center)
-                    .foregroundStyle(DesignTokens.Colors.primaryText)
+                    VStack(spacing: DesignTokens.Spacing.xs) {
+                        Text("Groomly")
+                            .font(DesignTokens.Typography.largeTitle.weight(.bold))
+                            .multilineTextAlignment(.center)
+                            .foregroundStyle(DesignTokens.Colors.primaryText)
 
-                Text(statusMessage)
-                    .multilineTextAlignment(.center)
-                    .foregroundStyle(DesignTokens.Colors.secondaryText)
+                        Text(statusMessage)
+                            .font(DesignTokens.Typography.body)
+                            .multilineTextAlignment(.center)
+                            .foregroundStyle(DesignTokens.Colors.secondaryText)
+                    }
+                }
 
                 if case let .configurationError(message) = state {
-                    Text(message)
-                        .font(.footnote)
-                        .multilineTextAlignment(.center)
-                        .foregroundStyle(.red)
-                        .accessibilityIdentifier("auth.bootstrap.configuration-error")
+                    GroomlyErrorBanner(
+                        title: "Configuration unavailable",
+                        message: message
+                    )
+                    .accessibilityIdentifier("auth.bootstrap.configuration-error")
                 }
             }
-            .padding(DesignTokens.Spacing.large)
-            .background(DesignTokens.Colors.surface)
-            .clipShape(
-                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.card)
-            )
-            .padding(DesignTokens.Spacing.standard)
+            .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
             .accessibilityElement(children: .contain)
             .accessibilityIdentifier("auth.bootstrap")
         }
@@ -53,16 +60,25 @@ struct AuthenticationBootstrapView: View {
     private var iconStyle: Color {
         switch state {
         case .ready:
-            .accentColor
+            DesignTokens.Colors.customerPrimaryDark
         case .configurationError:
-            .red
+            DesignTokens.Colors.error
+        }
+    }
+
+    private var iconBackground: Color {
+        switch state {
+        case .ready:
+            DesignTokens.Colors.customerPrimary.opacity(0.16)
+        case .configurationError:
+            DesignTokens.Colors.error.opacity(0.12)
         }
     }
 
     private var statusMessage: String {
         switch state {
         case .ready:
-            "Authentication infrastructure is ready. Sign-in arrives in T-006."
+            "Find trusted independent groomers for your pet."
         case .configurationError:
             "Supabase configuration is unavailable."
         }

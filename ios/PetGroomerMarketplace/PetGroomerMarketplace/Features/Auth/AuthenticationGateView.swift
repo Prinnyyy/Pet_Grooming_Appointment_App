@@ -18,7 +18,11 @@ struct AuthenticationGateView: View {
                     DesignTokens.Colors.background
                         .ignoresSafeArea()
 
-                    ProgressView("Restoring session…")
+                    GroomlyLoadingView(
+                        title: "Restoring session…",
+                        message: "Checking your secure Groomly session."
+                    )
+                    .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
                         .accessibilityIdentifier("auth.loading")
                 }
 
