@@ -9,6 +9,7 @@ struct CustomerTabView: View {
     let chatRepository: (any ChatRepository)?
     let accountContent: AnyView?
     @State private var selection: CustomerTab = .home
+    @State private var focusedRequestID: UUID?
     @State private var feedbackCenter = GroomlyFeedbackCenter()
 
     init(
@@ -65,7 +66,13 @@ struct CustomerTabView: View {
                 displayName: customerDisplayName,
                 repository: petRepository,
                 requestRepository: requestRepository,
-                bookingRepository: bookingRepository
+                bookingRepository: bookingRepository,
+                onActiveRequestSelected: { requestID in
+                    focusedRequestID = requestID
+                    withAnimation(.easeInOut(duration: 0.22)) {
+                        selection = .requests
+                    }
+                }
             )
         } else if tab == .requests,
                   let customerID,
@@ -76,7 +83,8 @@ struct CustomerTabView: View {
                 customerID: customerID,
                 petRepository: petRepository,
                 requestRepository: requestRepository,
-                bookingRepository: bookingRepository
+                bookingRepository: bookingRepository,
+                focusedRequestID: $focusedRequestID
             )
         } else if tab == .bookings,
                   let customerID,

@@ -28,6 +28,22 @@ struct CustomerPet: Equatable, Identifiable, Sendable {
         guard let size else { return nil }
         return CustomerPetSizeCode(storedValue: size)?.title ?? size
     }
+
+    var displayWeightAndSize: String? {
+        let sizeTitle = displaySize
+            ?? weightLbs.map { CustomerPetSizeCode.code(forWeightLbs: $0).title }
+
+        guard let weightLbs else {
+            return sizeTitle
+        }
+
+        let roundedWeight = Int(weightLbs.rounded())
+        let weightTitle = "\(roundedWeight)lb"
+        guard let sizeTitle, !sizeTitle.isEmpty else {
+            return weightTitle
+        }
+        return "\(weightTitle) • \(sizeTitle)"
+    }
 }
 
 struct CustomerPetDraft: Equatable, Sendable {
@@ -130,9 +146,15 @@ nonisolated enum CustomerPetBreed: String, CaseIterable, Identifiable, Sendable 
     }
 
     static func options(for species: CustomerPetSpecies) -> [Self] {
-        allCases.filter { option in
+        let matchingOptions = allCases.filter { option in
             option.species == nil || option.species == species
         }
+        let sortedOptions = matchingOptions
+            .filter { $0 != .unspecified }
+            .sorted { lhs, rhs in
+                lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
+            }
+        return [.unspecified] + sortedOptions
     }
 
     init?(storedValue: String) {
@@ -206,6 +228,14 @@ nonisolated enum CustomerPetTemperament: String, CaseIterable, Identifiable, Sen
 
     var id: Self { self }
     var title: String { rawValue }
+
+    static var displayOptions: [Self] {
+        [.notSure] + allCases
+            .filter { $0 != .notSure }
+            .sorted { lhs, rhs in
+                lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
+            }
+    }
 
     init?(storedValue: String) {
         let normalized = storedValue.trimmingCharacters(in: .whitespacesAndNewlines)

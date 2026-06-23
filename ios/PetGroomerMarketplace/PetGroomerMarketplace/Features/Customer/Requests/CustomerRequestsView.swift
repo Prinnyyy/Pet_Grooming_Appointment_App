@@ -7,13 +7,16 @@ struct CustomerRequestsView: View {
     @State private var store: CustomerRequestsStore
     @State private var pendingCancelRequest: CustomerGroomingRequest?
     @State private var selectedBookingHandoff: CustomerRequestBookingHandoff?
+    @Binding private var focusedRequestID: UUID?
 
     init(
         customerID: UUID,
         petRepository: any CustomerPetRepository,
         requestRepository: any CustomerRequestRepository,
-        bookingRepository: any BookingRepository
+        bookingRepository: any BookingRepository,
+        focusedRequestID: Binding<UUID?> = .constant(nil)
     ) {
+        _focusedRequestID = focusedRequestID
         _store = State(
             initialValue: CustomerRequestsStore(
                 customerID: customerID,
@@ -110,6 +113,7 @@ struct CustomerRequestsView: View {
                         CustomerRequestProgressCarousel(
                             cards: store.visibleActionCards,
                             store: store,
+                            focusedRequestID: $focusedRequestID,
                             onViewBooking: { handoff in
                                 selectedBookingHandoff = handoff
                                 store.acknowledgeBookingHandoff(for: handoff)
@@ -185,34 +189,47 @@ private struct CustomerRequestsRootHeader: View {
 private struct CustomerRequestProgressCarousel: View {
     let cards: [CustomerRequestActionCardItem]
     let store: CustomerRequestsStore
+    @Binding var focusedRequestID: UUID?
     let onViewBooking: (CustomerRequestBookingHandoff) -> Void
     let onCancelRequest: (CustomerGroomingRequest) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            ScrollView(.horizontal) {
-                LazyHStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
-                    ForEach(cards) { card in
-                        CustomerRequestProgressCard(
-                            request: card.request,
-                            handoff: card.handoff,
-                            store: store,
-                            onViewBooking: onViewBooking,
-                            onCancelRequest: onCancelRequest
-                        )
-                        .containerRelativeFrame(.horizontal) { length, _ in
-                            length
+            ScrollViewReader { proxy in
+                ScrollView(.horizontal) {
+                    LazyHStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
+                        ForEach(cards) { card in
+                            CustomerRequestProgressCard(
+                                request: card.request,
+                                handoff: card.handoff,
+                                store: store,
+                                onViewBooking: onViewBooking,
+                                onCancelRequest: onCancelRequest
+                            )
+                            .containerRelativeFrame(.horizontal) { length, _ in
+                                length
+                            }
+                            .id(card.request.id)
                         }
                     }
+                    .scrollTargetLayout()
                 }
-                .scrollTargetLayout()
+                .contentMargins(.horizontal, DesignTokens.Spacing.screenHorizontal, for: .scrollContent)
+                .padding(.horizontal, -DesignTokens.Spacing.screenHorizontal)
+                .padding(.vertical, DesignTokens.Spacing.sm)
+                .scrollIndicators(.hidden)
+                .scrollClipDisabled()
+                .scrollTargetBehavior(.viewAligned)
+                .onAppear {
+                    scrollToFocusedRequest(using: proxy)
+                }
+                .onChange(of: focusedRequestID) { _, _ in
+                    scrollToFocusedRequest(using: proxy)
+                }
+                .onChange(of: cards.map(\.request.id)) { _, _ in
+                    scrollToFocusedRequest(using: proxy)
+                }
             }
-            .contentMargins(.horizontal, DesignTokens.Spacing.screenHorizontal, for: .scrollContent)
-            .padding(.horizontal, -DesignTokens.Spacing.screenHorizontal)
-            .padding(.vertical, DesignTokens.Spacing.sm)
-            .scrollIndicators(.hidden)
-            .scrollClipDisabled()
-            .scrollTargetBehavior(.viewAligned)
 
             if cardCount > 1 {
                 Label("Swipe to Review Another Request", systemImage: "arrow.left.and.right")
@@ -227,17 +244,35 @@ private struct CustomerRequestProgressCarousel: View {
     private var cardCount: Int {
         cards.count
     }
+
+    private func scrollToFocusedRequest(using proxy: ScrollViewProxy) {
+        guard let requestID = focusedRequestID,
+              cards.contains(where: { $0.request.id == requestID }) else {
+            return
+        }
+
+        withAnimation(.smooth(duration: 0.35)) {
+            proxy.scrollTo(requestID, anchor: .center)
+        }
+        focusedRequestID = nil
+    }
 }
 
 struct CustomerRequestActionCardSummaryCarousel: View {
     let cards: [CustomerRequestActionCardItem]
+    let onSelectRequest: (UUID) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
             ScrollView(.horizontal) {
                 LazyHStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
                     ForEach(cards) { card in
-                        CustomerRequestActionCardSummary(card: card)
+                        Button {
+                            onSelectRequest(card.request.id)
+                        } label: {
+                            CustomerRequestActionCardSummary(card: card)
+                        }
+                        .buttonStyle(.plain)
                             .containerRelativeFrame(.horizontal) { length, _ in
                                 length
                             }
@@ -528,9 +563,9 @@ private struct CustomerRequestBriefHeader: View {
                     Text(presentation.subtitle)
                         .font(DesignTokens.Typography.body)
                         .foregroundStyle(DesignTokens.Colors.textSecondary)
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.92)
-                        .fixedSize(horizontal: false, vertical: true)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.72)
+                        .layoutPriority(1)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -1790,73 +1825,6 @@ private extension GroomerOfferStatus {
     }
 }
 
-enum CustomerRequestWizardStep: Int, CaseIterable, Identifiable {
-    case pet
-    case service
-    case time
-    case details
-    case review
-
-    var id: Self { self }
-
-    var title: String {
-        switch self {
-        case .pet:
-            "Pet"
-        case .service:
-            "Service"
-        case .time:
-            "Time"
-        case .details:
-            "Details"
-        case .review:
-            "Review"
-        }
-    }
-
-    var headline: String {
-        switch self {
-        case .pet:
-            "Who Needs Grooming?"
-        case .service:
-            "What Service Do You Need?"
-        case .time:
-            "When Works Best?"
-        case .details:
-            "Add Helpful Details"
-        case .review:
-            "Review Your Request"
-        }
-    }
-
-    var subtitle: String? {
-        switch self {
-        case .pet:
-            "Choose the pet this request is for."
-        case .service:
-            nil
-        case .time:
-            "Choose a preferred time. Groomers can also suggest alternatives."
-        case .details:
-            nil
-        case .review:
-            nil
-        }
-    }
-
-    var progress: Double {
-        Double(rawValue + 1) / Double(Self.allCases.count)
-    }
-
-    var previous: Self? {
-        Self(rawValue: rawValue - 1)
-    }
-
-    var next: Self? {
-        Self(rawValue: rawValue + 1)
-    }
-}
-
 typealias CustomerRequestServiceOption = GroomingServiceType
 
 enum CustomerRequestTimeWindowOption: String, CaseIterable, Identifiable {
@@ -2004,6 +1972,7 @@ struct CustomerRequestWizardView: View {
     @State private var selectedTimeWindow: CustomerRequestTimeWindowOption = .afternoon
     @State private var isFlexibleWithTime = false
     @State private var selectedRequestPhotoItem: PhotosPickerItem?
+    @State private var invalidFields: Set<CustomerRequestWizardValidationField> = []
 
     init(
         store: CustomerRequestsStore,
@@ -2111,9 +2080,11 @@ struct CustomerRequestWizardView: View {
             ForEach(store.pets) { pet in
                 CustomerRequestPetChoiceCard(
                     pet: pet,
-                    isSelected: store.selectedPetID == pet.id
+                    isSelected: store.selectedPetID == pet.id,
+                    isInvalid: invalidFields.contains(.pet)
                 ) {
                     store.selectedPetID = pet.id
+                    clearInvalidField(.pet)
                 }
             }
 
@@ -2142,6 +2113,7 @@ struct CustomerRequestWizardView: View {
                 ) {
                     selectedServiceOption = option
                     store.serviceType = option
+                    clearInvalidField(.service)
                 }
             }
         }
@@ -2153,6 +2125,7 @@ struct CustomerRequestWizardView: View {
                 selectedDate: selectedDate
             ) { date in
                 selectedDate = date
+                clearInvalidField(.timeWindow)
                 applySelectedTimeWindow()
             }
 
@@ -2163,18 +2136,27 @@ struct CustomerRequestWizardView: View {
 
                 CustomerRequestTimeWindowGrid(
                     selectedTimeWindow: selectedTimeWindow,
-                    isFlexibleWithTime: isFlexibleWithTime
+                    isFlexibleWithTime: isFlexibleWithTime,
+                    isInvalid: invalidFields.contains(.timeWindow)
                 ) { option in
                     selectedTimeWindow = option
                     isFlexibleWithTime = false
+                    clearInvalidField(.timeWindow)
                     applySelectedTimeWindow()
                 }
 
                 if selectedTimeWindow == .detailed && !isFlexibleWithTime {
                     CustomerRequestDetailedTimeFields(
                         preferredStart: $store.preferredStart,
-                        preferredEnd: $store.preferredEnd
+                        preferredEnd: $store.preferredEnd,
+                        isInvalid: invalidFields.contains(.timeWindow)
                     )
+                    .onChange(of: store.preferredStart) { _, _ in
+                        clearInvalidField(.timeWindow)
+                    }
+                    .onChange(of: store.preferredEnd) { _, _ in
+                        clearInvalidField(.timeWindow)
+                    }
                     .transition(.opacity.combined(with: .move(edge: .top)))
                 }
 
@@ -2183,6 +2165,7 @@ struct CustomerRequestWizardView: View {
                         get: { isFlexibleWithTime },
                         set: { newValue in
                             isFlexibleWithTime = newValue
+                            clearInvalidField(.timeWindow)
                             applySelectedTimeWindow()
                         }
                     )
@@ -2216,7 +2199,9 @@ struct CustomerRequestWizardView: View {
                 stateCode: $store.stateCode,
                 zipCode: $store.zipCode,
                 locationMode: store.locationMode,
-                travelRangeMiles: $store.travelRadiusMiles
+                travelRangeMiles: $store.travelRadiusMiles,
+                invalidFields: invalidFields,
+                clearInvalidField: clearInvalidField
             )
         }
     }
@@ -2230,7 +2215,13 @@ struct CustomerRequestWizardView: View {
 
                 TextField("Share coat goals, sensitivities, or handling notes.", text: $store.serviceNotes, axis: .vertical)
                     .lineLimit(5...8)
-                    .groomlyFormField()
+                    .groomlyFormField(isInvalid: invalidFields.contains(.notes))
+                    .onTapGesture {
+                        clearInvalidField(.notes)
+                    }
+                    .onChange(of: store.serviceNotes) { _, _ in
+                        clearInvalidField(.notes)
+                    }
             }
 
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
@@ -2305,20 +2296,7 @@ struct CustomerRequestWizardView: View {
     }
 
     private var canContinue: Bool {
-        guard !store.isSubmitting else { return false }
-
-        switch currentStep {
-        case .pet:
-            return store.selectedPetID != nil
-        case .service:
-            return true
-        case .time:
-            return store.preferredEnd > store.preferredStart
-        case .details:
-            return true
-        case .review:
-            return !store.pets.isEmpty
-        }
+        !store.isSubmitting && store.validateWizardStep(currentStep).isValid
     }
 
     private var reviewPresentation: CustomerRequestWizardReviewPresentation {
@@ -2390,7 +2368,15 @@ struct CustomerRequestWizardView: View {
     }
 
     private func continueForward() {
-        guard canContinue else { return }
+        let validation = store.validateWizardStep(currentStep)
+        guard validation.isValid else {
+            invalidFields = validation.fields
+            store.errorMessage = validation.message
+            return
+        }
+
+        invalidFields = []
+        store.errorMessage = nil
 
         if currentStep == .review {
             publish()
@@ -2456,6 +2442,15 @@ struct CustomerRequestWizardView: View {
 
         store.preferredStart = range.start
         store.preferredEnd = range.end
+    }
+
+    private func clearInvalidField(_ field: CustomerRequestWizardValidationField) {
+        guard invalidFields.remove(field) != nil else { return }
+
+        if invalidFields.isEmpty,
+           store.errorMessage == CustomerRequestWizardStepValidation.requiredFieldsMessage {
+            store.errorMessage = nil
+        }
     }
 }
 
@@ -2595,8 +2590,12 @@ private struct CustomerRequestWizardBottomBar: View {
             Button(action: continueAction) {
                 Text(primaryTitle)
             }
-            .buttonStyle(GroomlyPrimaryButtonStyle())
-            .disabled(!canContinue)
+            .buttonStyle(
+                CustomerRequestWizardPrimaryButtonStyle(
+                    isVisuallyEnabled: canContinue && !isSubmitting
+                )
+            )
+            .disabled(isSubmitting)
             .accessibilityIdentifier(
                 currentStep == .review
                     ? "customer.requests.publish"
@@ -2628,9 +2627,69 @@ private struct CustomerRequestWizardBottomBar: View {
     }
 }
 
+private struct CustomerRequestWizardPrimaryButtonStyle: ButtonStyle {
+    let isVisuallyEnabled: Bool
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(DesignTokens.Typography.body.weight(.semibold))
+            .foregroundStyle(
+                isVisuallyEnabled
+                    ? DesignTokens.Colors.surface
+                    : DesignTokens.Colors.textTertiary
+            )
+            .frame(maxWidth: .infinity, minHeight: 44)
+            .padding(.horizontal, DesignTokens.Spacing.lg)
+            .padding(.vertical, DesignTokens.Spacing.md)
+            .background {
+                RoundedRectangle(
+                    cornerRadius: DesignTokens.CornerRadius.button,
+                    style: .continuous
+                )
+                .fill(backgroundGradient(isPressed: configuration.isPressed))
+            }
+            .groomlyShadow(
+                DesignTokens.Shadows.primaryAction,
+                isVisible: isVisuallyEnabled
+            )
+            .scaleEffect(configuration.isPressed && isVisuallyEnabled ? 0.98 : 1)
+            .opacity(isVisuallyEnabled ? 1 : 0.72)
+            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+            .animation(.easeOut(duration: 0.12), value: isVisuallyEnabled)
+    }
+
+    private func backgroundGradient(isPressed: Bool) -> LinearGradient {
+        let colors: [Color]
+
+        if isVisuallyEnabled {
+            colors = isPressed
+                ? [
+                    DesignTokens.Colors.customerPrimaryDark,
+                    DesignTokens.Colors.customerPrimary,
+                ]
+                : [
+                    DesignTokens.Colors.customerPrimary,
+                    DesignTokens.Colors.customerPrimaryDark,
+                ]
+        } else {
+            colors = [
+                DesignTokens.Colors.borderSoft,
+                DesignTokens.Colors.borderSoft,
+            ]
+        }
+
+        return LinearGradient(
+            colors: colors,
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+}
+
 private struct CustomerRequestPetChoiceCard: View {
     let pet: CustomerPet
     let isSelected: Bool
+    let isInvalid: Bool
     let action: () -> Void
 
     var body: some View {
@@ -2678,14 +2737,30 @@ private struct CustomerRequestPetChoiceCard: View {
                     style: .continuous
                 )
                 .stroke(
-                    isSelected ? DesignTokens.Colors.customerPrimary : DesignTokens.Colors.border,
-                    lineWidth: isSelected ? 2 : 1
+                    borderColor,
+                    lineWidth: isSelected || isInvalid ? 2 : 1
                 )
             }
+            .shadow(
+                color: isInvalid ? DesignTokens.Colors.error.opacity(0.26) : .clear,
+                radius: isInvalid ? 11 : 0,
+                x: 0,
+                y: 0
+            )
             .groomlyShadow(DesignTokens.Shadows.smallCard)
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("customer.requests.wizard.pet-card")
+    }
+
+    private var borderColor: Color {
+        if isInvalid {
+            return DesignTokens.Colors.error
+        }
+
+        return isSelected
+            ? DesignTokens.Colors.customerPrimary
+            : DesignTokens.Colors.border
     }
 
     private var subtitle: String {
@@ -2875,6 +2950,7 @@ private struct CustomerRequestDateStrip: View {
 private struct CustomerRequestTimeWindowGrid: View {
     let selectedTimeWindow: CustomerRequestTimeWindowOption
     let isFlexibleWithTime: Bool
+    let isInvalid: Bool
     let action: (CustomerRequestTimeWindowOption) -> Void
 
     var body: some View {
@@ -2911,19 +2987,39 @@ private struct CustomerRequestTimeWindowGrid: View {
                         )
                         .overlay {
                             Capsule()
-                                .stroke(DesignTokens.Colors.border, lineWidth: 1)
+                                .stroke(
+                                    borderColor(for: option),
+                                    lineWidth: isInvalid ? 1.6 : 1
+                                )
                         }
+                        .shadow(
+                            color: isInvalid && selectedTimeWindow == option
+                                ? DesignTokens.Colors.error.opacity(0.22)
+                                : .clear,
+                            radius: isInvalid && selectedTimeWindow == option ? 8 : 0,
+                            x: 0,
+                            y: 0
+                        )
                 }
                 .buttonStyle(.plain)
             }
         }
         .opacity(isFlexibleWithTime ? 0.56 : 1)
     }
+
+    private func borderColor(for option: CustomerRequestTimeWindowOption) -> Color {
+        if isInvalid, selectedTimeWindow == option, !isFlexibleWithTime {
+            return DesignTokens.Colors.error
+        }
+
+        return DesignTokens.Colors.border
+    }
 }
 
 private struct CustomerRequestDetailedTimeFields: View {
     @Binding var preferredStart: Date
     @Binding var preferredEnd: Date
+    let isInvalid: Bool
 
     var body: some View {
         VStack(spacing: DesignTokens.Spacing.md) {
@@ -2933,7 +3029,7 @@ private struct CustomerRequestDetailedTimeFields: View {
                 displayedComponents: [.hourAndMinute]
             )
             .font(DesignTokens.Typography.body.weight(.semibold))
-            .groomlyFormField()
+            .groomlyFormField(isInvalid: isInvalid)
 
             DatePicker(
                 "End Time",
@@ -2941,7 +3037,7 @@ private struct CustomerRequestDetailedTimeFields: View {
                 displayedComponents: [.hourAndMinute]
             )
             .font(DesignTokens.Typography.body.weight(.semibold))
-            .groomlyFormField()
+            .groomlyFormField(isInvalid: isInvalid)
         }
     }
 }
@@ -3040,14 +3136,20 @@ private struct CustomerRequestAddressFields: View {
     @Binding var zipCode: String
     let locationMode: CustomerRequestLocationMode
     @Binding var travelRangeMiles: Int
+    let invalidFields: Set<CustomerRequestWizardValidationField>
+    let clearInvalidField: (CustomerRequestWizardValidationField) -> Void
     @StateObject private var addressSearch = CustomerRequestAddressSearch()
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
             TextField("Street Address", text: $streetAddress)
                 .textContentType(.streetAddressLine1)
-                .groomlyFormField()
+                .groomlyFormField(isInvalid: invalidFields.contains(.streetAddress))
+                .onTapGesture {
+                    clearInvalidField(.streetAddress)
+                }
                 .onChange(of: streetAddress) { _, newValue in
+                    clearInvalidField(.streetAddress)
                     addressSearch.update(
                         street: newValue,
                         city: city,
@@ -3098,12 +3200,19 @@ private struct CustomerRequestAddressFields: View {
             HStack(spacing: DesignTokens.Spacing.md) {
                 TextField("City", text: $city)
                     .textContentType(.addressCity)
-                    .groomlyFormField()
+                    .groomlyFormField(isInvalid: invalidFields.contains(.city))
+                    .onTapGesture {
+                        clearInvalidField(.city)
+                    }
+                    .onChange(of: city) { _, _ in
+                        clearInvalidField(.city)
+                    }
 
                 Menu {
                     ForEach(USStateCode.allCases) { state in
                         Button(state.rawValue) {
                             stateCode = state
+                            clearInvalidField(.state)
                         }
                     }
                 } label: {
@@ -3121,15 +3230,24 @@ private struct CustomerRequestAddressFields: View {
                             .font(.caption.weight(.bold))
                             .foregroundStyle(DesignTokens.Colors.textSecondary)
                     }
-                    .groomlyFormField()
+                    .groomlyFormField(isInvalid: invalidFields.contains(.state))
                 }
+                    .onTapGesture {
+                        clearInvalidField(.state)
+                    }
                     .frame(width: 92)
             }
 
             TextField("ZIP Code", text: $zipCode)
                 .textContentType(.postalCode)
                 .keyboardType(.numbersAndPunctuation)
-                .groomlyFormField()
+                .groomlyFormField(isInvalid: invalidFields.contains(.zipCode))
+                .onTapGesture {
+                    clearInvalidField(.zipCode)
+                }
+                .onChange(of: zipCode) { _, _ in
+                    clearInvalidField(.zipCode)
+                }
 
             if locationMode == .customerComesToGroomer {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
@@ -3186,14 +3304,57 @@ private struct CustomerRequestAddressFields: View {
             city = address.city
             stateCode = address.stateCode
             zipCode = address.zipCode
+            clearInvalidField(.streetAddress)
+            clearInvalidField(.city)
+            clearInvalidField(.state)
+            clearInvalidField(.zipCode)
         }
     }
 }
 
-private struct CustomerRequestAddressSuggestion: Identifiable, Hashable {
+struct CustomerRequestAddressSuggestion: Identifiable, Hashable {
     let id: String
     let title: String
     let subtitle: String
+}
+
+struct CustomerRequestAddressCompletion<Completion> {
+    let title: String
+    let subtitle: String
+    let completion: Completion
+}
+
+enum CustomerRequestAddressSuggestionBuilder {
+    static func build<Completion>(
+        from completions: [CustomerRequestAddressCompletion<Completion>],
+        limit: Int = 5
+    ) -> (
+        suggestions: [CustomerRequestAddressSuggestion],
+        completionsByID: [String: Completion]
+    ) {
+        var seenKeys: Set<String> = []
+        var suggestions: [CustomerRequestAddressSuggestion] = []
+        var completionsByID: [String: Completion] = [:]
+
+        for completion in completions where suggestions.count < limit {
+            let title = completion.title.trimmingCharacters(in: .whitespacesAndNewlines)
+            let subtitle = completion.subtitle.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !title.isEmpty else { continue }
+
+            let key = "\(title)|\(subtitle)"
+            guard seenKeys.insert(key).inserted else { continue }
+
+            let suggestion = CustomerRequestAddressSuggestion(
+                id: key,
+                title: title,
+                subtitle: subtitle
+            )
+            suggestions.append(suggestion)
+            completionsByID[suggestion.id] = completion.completion
+        }
+
+        return (suggestions, completionsByID)
+    }
 }
 
 private struct CustomerRequestResolvedAddress {
@@ -3244,20 +3405,19 @@ private final class CustomerRequestAddressSearch:
     }
 
     func completerDidUpdateResults(_ completer: MKLocalSearchCompleter) {
-        let pairs = completer.results.prefix(5).map { completion in
-            let suggestion = CustomerRequestAddressSuggestion(
-                id: "\(completion.title)|\(completion.subtitle)",
-                title: completion.title,
-                subtitle: completion.subtitle
-            )
-            return (suggestion, completion)
-        }
+        let result = CustomerRequestAddressSuggestionBuilder.build(
+            from: completer.results.map { completion in
+                CustomerRequestAddressCompletion(
+                    title: completion.title,
+                    subtitle: completion.subtitle,
+                    completion: completion
+                )
+            }
+        )
 
         DispatchQueue.main.async {
-            self.suggestions = pairs.map(\.0)
-            self.completionsByID = Dictionary(
-                uniqueKeysWithValues: pairs.map { ($0.0.id, $0.1) }
-            )
+            self.suggestions = result.suggestions
+            self.completionsByID = result.completionsByID
         }
     }
 

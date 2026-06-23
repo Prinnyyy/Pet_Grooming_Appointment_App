@@ -10,6 +10,7 @@ final class SupabaseChatRepository: ChatRepository {
         "id,scheduled_start,scheduled_end,price_estimate,status,completed_at"
     private static let groomerSummaryColumns = "user_id,business_name"
     private static let messageColumns = "id,conversation_id,sender_id,body,created_at"
+    private static let latestMessageColumns = "id,conversation_id,body,created_at"
 
     private let client: SupabaseClient
 
@@ -33,12 +34,15 @@ final class SupabaseChatRepository: ChatRepository {
                 .from("conversations")
                 .select(Self.conversationColumns)
                 .eq(participantColumn, value: participantID.uuidString.lowercased())
-                .order("created_at", ascending: false)
+                .order("updated_at", ascending: false)
                 .execute()
                 .value
 
             let bookingSummaries = await bookingSummaries(
                 for: rows.map(\.bookingID)
+            )
+            let latestMessageBodies = await latestMessageBodies(
+                for: rows.map(\.id)
             )
             let groomerBusinessNames = switch role {
             case .customer:
@@ -50,7 +54,8 @@ final class SupabaseChatRepository: ChatRepository {
             return rows.map { row in
                 row.conversation(
                     bookingSummary: bookingSummaries[row.bookingID],
-                    groomerBusinessName: groomerBusinessNames[row.groomerID]
+                    groomerBusinessName: groomerBusinessNames[row.groomerID],
+                    latestMessageBody: latestMessageBodies[row.id]
                 )
             }
         } catch {
@@ -192,6 +197,32 @@ final class SupabaseChatRepository: ChatRepository {
         }
     }
 
+    private func latestMessageBodies(
+        for conversationIDs: [UUID]
+    ) async -> [UUID: String] {
+        let ids = uniqueLowercaseStrings(from: conversationIDs)
+        guard !ids.isEmpty else { return [:] }
+
+        do {
+            let rows: [ChatLatestMessageRow] = try await client
+                .from("messages")
+                .select(Self.latestMessageColumns)
+                .in("conversation_id", values: ids)
+                .order("created_at", ascending: false)
+                .order("id", ascending: false)
+                .execute()
+                .value
+
+            var bodiesByConversationID: [UUID: String] = [:]
+            for row in rows where bodiesByConversationID[row.conversationID] == nil {
+                bodiesByConversationID[row.conversationID] = row.body
+            }
+            return bodiesByConversationID
+        } catch {
+            return [:]
+        }
+    }
+
     private func uniqueLowercaseStrings(from ids: [UUID]) -> [String] {
         Array(Set(ids)).map { $0.uuidString.lowercased() }
     }
@@ -208,7 +239,8 @@ private struct ChatConversationRow: Decodable {
 
     func conversation(
         bookingSummary: ChatBookingSummary?,
-        groomerBusinessName: String?
+        groomerBusinessName: String?,
+        latestMessageBody: String?
     ) -> ChatConversation {
         ChatConversation(
             id: id,
@@ -222,6 +254,7 @@ private struct ChatConversationRow: Decodable {
             bookingStatus: bookingSummary?.status,
             completedAt: bookingSummary?.completedAt,
             groomerBusinessName: groomerBusinessName,
+            latestMessageBody: latestMessageBody,
             createdAt: createdAt,
             updatedAt: updatedAt
         )
@@ -287,6 +320,20 @@ private struct ChatGroomerSummaryRow: Decodable {
     private enum CodingKeys: String, CodingKey {
         case userID = "user_id"
         case businessName = "business_name"
+    }
+}
+
+private struct ChatLatestMessageRow: Decodable {
+    let id: UUID
+    let conversationID: UUID
+    let body: String
+    let createdAt: String
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case conversationID = "conversation_id"
+        case body
+        case createdAt = "created_at"
     }
 }
 

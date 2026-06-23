@@ -94,11 +94,13 @@ struct BookingsView: View {
     }
 
     private var visibleBookings: [Booking] {
-        store.bookings.filter(selectedScope.contains)
+        store.bookings
+            .filter(selectedScope.contains)
+            .sortedByScheduledStart(ascending: selectedScope == .upcoming)
     }
 }
 
-private struct BookingSummaryRow: View {
+struct BookingSummaryRow: View {
     let booking: Booking
     let role: UserRole
 
@@ -158,6 +160,25 @@ private struct BookingAvatar: View {
             .background(role.primaryColor.opacity(0.24))
             .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
             .accessibilityHidden(true)
+    }
+}
+
+extension Array where Element == Booking {
+    func sortedByScheduledStart(ascending: Bool) -> [Booking] {
+        sorted { lhs, rhs in
+            let lhsDate = GroomingRequestDateFormatting.parsedDate(
+                from: lhs.scheduledStart
+            ) ?? .distantFuture
+            let rhsDate = GroomingRequestDateFormatting.parsedDate(
+                from: rhs.scheduledStart
+            ) ?? .distantFuture
+
+            if lhsDate == rhsDate {
+                return lhs.id.uuidString < rhs.id.uuidString
+            }
+
+            return ascending ? lhsDate < rhsDate : lhsDate > rhsDate
+        }
     }
 }
 

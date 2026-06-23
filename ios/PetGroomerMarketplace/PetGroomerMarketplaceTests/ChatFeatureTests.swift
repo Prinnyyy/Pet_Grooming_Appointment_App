@@ -71,6 +71,45 @@ struct ChatStoreTests {
     }
 
     @Test @MainActor
+    func conversationPreviewUsesKnownLatestMessageBody() async throws {
+        let conversation = Self.conversation(latestMessageBody: " See you Friday. ")
+        let store = ChatStore(
+            participantID: conversation.customerID,
+            role: .customer,
+            repository: ChatRepositoryFake()
+        )
+
+        #expect(store.previewText(for: conversation) == "See you Friday.")
+    }
+
+    @Test @MainActor
+    func conversationPreviewPrefersLoadedLatestMessageBody() async throws {
+        let conversation = Self.conversation(latestMessageBody: "Original preview")
+        let older = Self.message(
+            id: UUID(uuidString: "11111111-1111-4111-8111-111111111111")!,
+            conversationID: conversation.id,
+            body: "Earlier note"
+        )
+        let latest = Self.message(
+            id: UUID(uuidString: "22222222-2222-4222-8222-222222222222")!,
+            conversationID: conversation.id,
+            body: "Latest body"
+        )
+        let repository = ChatRepositoryFake(
+            messagesResult: .success([older, latest])
+        )
+        let store = ChatStore(
+            participantID: conversation.customerID,
+            role: .customer,
+            repository: repository
+        )
+
+        await store.loadMessages(for: conversation)
+
+        #expect(store.previewText(for: conversation) == "Latest body")
+    }
+
+    @Test @MainActor
     func completedConversationOlderThanSevenDaysDoesNotSend() async throws {
         let conversation = Self.conversation(
             status: .completed,
@@ -175,7 +214,8 @@ struct ChatStoreTests {
         priceEstimate: Double? = nil,
         status: BookingStatus? = nil,
         completedAt: String? = nil,
-        groomerBusinessName: String? = nil
+        groomerBusinessName: String? = nil,
+        latestMessageBody: String? = nil
     ) -> ChatConversation {
         ChatConversation(
             id: id,
@@ -189,6 +229,7 @@ struct ChatStoreTests {
             bookingStatus: status,
             completedAt: completedAt,
             groomerBusinessName: groomerBusinessName,
+            latestMessageBody: latestMessageBody,
             createdAt: "2026-06-21T05:00:00Z",
             updatedAt: "2026-06-21T05:00:00Z"
         )

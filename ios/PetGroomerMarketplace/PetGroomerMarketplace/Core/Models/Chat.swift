@@ -12,6 +12,7 @@ struct ChatConversation: Equatable, Hashable, Identifiable, Sendable {
     let bookingStatus: BookingStatus?
     let completedAt: String?
     let groomerBusinessName: String?
+    let latestMessageBody: String?
     let createdAt: String
     let updatedAt: String
 
@@ -27,6 +28,7 @@ struct ChatConversation: Equatable, Hashable, Identifiable, Sendable {
         bookingStatus: BookingStatus? = nil,
         completedAt: String? = nil,
         groomerBusinessName: String? = nil,
+        latestMessageBody: String? = nil,
         createdAt: String,
         updatedAt: String
     ) {
@@ -41,6 +43,7 @@ struct ChatConversation: Equatable, Hashable, Identifiable, Sendable {
         self.bookingStatus = bookingStatus
         self.completedAt = completedAt
         self.groomerBusinessName = groomerBusinessName
+        self.latestMessageBody = latestMessageBody
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }

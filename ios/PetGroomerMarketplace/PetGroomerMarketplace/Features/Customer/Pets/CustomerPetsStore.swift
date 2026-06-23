@@ -103,8 +103,12 @@ final class CustomerPetsStore {
 
     func cancelForm() {
         isShowingPetForm = false
-        editingPetID = nil
-        resetForm()
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: 300_000_000)
+            guard let self, !self.isShowingPetForm else { return }
+            self.editingPetID = nil
+            self.resetForm()
+        }
     }
 
     func updateFormSpecies(_ species: CustomerPetSpecies) {

@@ -1,13 +1,15 @@
 import SwiftUI
 
 extension View {
-    func groomlyFormField() -> some View {
-        modifier(GroomlyFormFieldModifier())
+    func groomlyFormField(isInvalid: Bool = false) -> some View {
+        modifier(GroomlyFormFieldModifier(isInvalid: isInvalid))
     }
 }
 
 private struct GroomlyFormFieldModifier: ViewModifier {
     @Environment(\.isEnabled) private var isEnabled
+
+    let isInvalid: Bool
 
     func body(content: Content) -> some View {
         content
@@ -23,8 +25,14 @@ private struct GroomlyFormFieldModifier: ViewModifier {
             }
             .overlay {
                 RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input, style: .continuous)
-                    .stroke(borderColor, lineWidth: 1)
+                    .stroke(borderColor, lineWidth: isInvalid ? 1.6 : 1)
             }
+            .shadow(
+                color: isInvalid ? DesignTokens.Colors.error.opacity(0.28) : .clear,
+                radius: isInvalid ? 9 : 0,
+                x: 0,
+                y: 0
+            )
             .opacity(isEnabled ? 1 : 0.64)
     }
 
@@ -33,6 +41,10 @@ private struct GroomlyFormFieldModifier: ViewModifier {
     }
 
     private var borderColor: Color {
-        isEnabled ? DesignTokens.Colors.borderSoft : DesignTokens.Colors.borderSoft.opacity(0.7)
+        if isInvalid {
+            return DesignTokens.Colors.error
+        }
+
+        return isEnabled ? DesignTokens.Colors.borderSoft : DesignTokens.Colors.borderSoft.opacity(0.7)
     }
 }

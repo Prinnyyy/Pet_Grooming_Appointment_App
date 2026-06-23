@@ -80,7 +80,8 @@ struct ChatConversationsView: View {
                                 } label: {
                                     ChatConversationRow(
                                         conversation: conversation,
-                                        role: role
+                                        role: role,
+                                        store: store
                                     )
                                 }
                                 .buttonStyle(.plain)
@@ -100,6 +101,7 @@ struct ChatConversationsView: View {
 private struct ChatConversationRow: View {
     let conversation: ChatConversation
     let role: UserRole
+    let store: ChatStore
 
     var body: some View {
         GroomlyCard {
@@ -116,7 +118,7 @@ private struct ChatConversationRow: View {
                         .lineLimit(1)
                         .minimumScaleFactor(0.82)
 
-                    Text(conversation.previewLine)
+                    Text(store.previewText(for: conversation))
                         .font(DesignTokens.Typography.body)
                         .foregroundStyle(DesignTokens.Colors.textSecondary)
                         .lineLimit(2)
@@ -184,6 +186,7 @@ private struct CustomerMessagesTitle: View {
 }
 
 private struct ChatThreadView: View {
+    @Environment(\.dismiss) private var dismiss
     let participantID: UUID
     let role: UserRole
     let conversation: ChatConversation
@@ -195,17 +198,30 @@ private struct ChatThreadView: View {
             DesignTokens.Colors.background
                 .ignoresSafeArea()
 
-            threadContent
+            VStack(spacing: 0) {
+                ChatThreadHeader(
+                    title: conversation.listTitle(for: role),
+                    subtitle: store.canSendMessages(in: conversation) ? "Active Chat" : "Read Only",
+                    role: role,
+                    dismiss: dismiss
+                )
+
+                Divider()
+                    .overlay(DesignTokens.Colors.borderSoft)
+
+                threadContent
+            }
         }
-        .navigationTitle("Booking \(conversation.bookingReferenceCode)")
-        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true)
+        .toolbar(.hidden, for: .navigationBar)
         .safeAreaInset(edge: .bottom) {
             ChatComposerView(
                 draft: $draft,
                 isSending: store.isSendingMessage(for: conversation.id),
                 isReadOnly: !store.canSendMessages(in: conversation),
                 readOnlyMessage: conversation.readOnlyReason,
-                accent: role.groomlyPrimaryAccent,
+                accentColor: role.chatAccentColor,
+                placeholder: "Message \(conversation.shortRecipientName(for: role))...",
                 send: {
                     let body = draft
                     await store.sendMessage(in: conversation, body: body)
@@ -230,46 +246,175 @@ private struct ChatThreadView: View {
 
     @ViewBuilder
     private var threadContent: some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                GroomlySectionHeader(
-                    conversation.participantSummary(for: role),
-                    subtitle: conversation.bookingContextSummary
-                )
-
-                if !store.canSendMessages(in: conversation) {
-                    ChatReadOnlyBanner(message: conversation.readOnlyReason)
-                }
-
-                if store.isLoadingMessages(for: conversation.id),
-                   store.messages(for: conversation.id).isEmpty {
-                    GroomlyLoadingView(
-                        title: "Loading Messages…",
-                        message: "Opening this booking conversation.",
-                        accent: role.groomlyLoadingAccent
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                    ChatBookingContextCard(
+                        conversation: conversation,
+                        role: role
                     )
-                    .accessibilityIdentifier("chat.messages.loading")
-                } else if store.messages(for: conversation.id).isEmpty {
-                    GroomlyEmptyState(
-                        title: "No Messages Yet",
-                        message: "Send the first message for this booking.",
-                        systemImage: "bubble.left.and.bubble.right",
-                        accent: role.groomlyEmptyAccent
+
+                    ChatBookingStatusPill(
+                        conversation: conversation,
+                        role: role
                     )
-                    .accessibilityIdentifier("chat.messages.empty")
-                } else {
-                    ForEach(store.messages(for: conversation.id)) { message in
-                        ChatMessageRow(
-                            message: message,
-                            isOutgoing: message.isSentBy(participantID),
-                            role: role
-                        )
+                        .frame(maxWidth: .infinity, alignment: .center)
+
+                    if !store.canSendMessages(in: conversation) {
+                        ChatReadOnlyBanner(message: conversation.readOnlyReason)
                     }
+
+                    if store.isLoadingMessages(for: conversation.id),
+                       store.messages(for: conversation.id).isEmpty {
+                        GroomlyLoadingView(
+                            title: "Loading Messages...",
+                            message: "Opening this booking conversation.",
+                            accent: role.groomlyLoadingAccent
+                        )
+                        .accessibilityIdentifier("chat.messages.loading")
+                    } else if store.messages(for: conversation.id).isEmpty {
+                        GroomlyEmptyState(
+                            title: "No Messages Yet",
+                            message: "Send the first message for this booking.",
+                            systemImage: "bubble.left.and.bubble.right",
+                            accent: role.groomlyEmptyAccent
+                        )
+                        .accessibilityIdentifier("chat.messages.empty")
+                    } else {
+                        ForEach(store.messages(for: conversation.id)) { message in
+                            ChatMessageRow(
+                                message: message,
+                                isOutgoing: message.isSentBy(participantID),
+                                role: role
+                            )
+                            .id(message.id)
+                        }
+                    }
+
+                    Color.clear
+                        .frame(height: 1)
+                        .id("chat-thread-bottom")
+                }
+                .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+                .padding(.top, DesignTokens.Spacing.lg)
+                .padding(.bottom, DesignTokens.Spacing.xl * 2)
+            }
+            .onChange(of: store.messages(for: conversation.id).count) { _, _ in
+                withAnimation(.easeOut(duration: 0.2)) {
+                    proxy.scrollTo("chat-thread-bottom", anchor: .bottom)
                 }
             }
-            .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-            .padding(.vertical, DesignTokens.Spacing.lg)
+            .onAppear {
+                proxy.scrollTo("chat-thread-bottom", anchor: .bottom)
+            }
         }
+    }
+}
+
+private struct ChatThreadHeader: View {
+    let title: String
+    let subtitle: String
+    let role: UserRole
+    let dismiss: DismissAction
+
+    var body: some View {
+        HStack(spacing: DesignTokens.Spacing.lg) {
+            Button {
+                dismiss()
+            } label: {
+                Image(systemName: "chevron.left")
+                    .font(.title3.weight(.bold))
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Back")
+
+            ChatConversationAvatar(title: title, role: role)
+                .frame(width: 64, height: 64)
+
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                Text(title)
+                    .font(.title2.weight(.bold))
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.82)
+
+                HStack(spacing: DesignTokens.Spacing.xs) {
+                    Circle()
+                        .fill(role.chatAccentColor)
+                        .frame(width: 9, height: 9)
+                        .accessibilityHidden(true)
+
+                    Text(subtitle)
+                        .font(DesignTokens.Typography.body.weight(.semibold))
+                        .foregroundStyle(role.chatAccentColor)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+        .padding(.top, DesignTokens.Spacing.lg)
+        .padding(.bottom, DesignTokens.Spacing.md)
+        .background(DesignTokens.Colors.surface.opacity(0.92))
+    }
+}
+
+private struct ChatBookingContextCard: View {
+    let conversation: ChatConversation
+    let role: UserRole
+
+    var body: some View {
+        GroomlyCard(padding: DesignTokens.Spacing.md) {
+            HStack(spacing: DesignTokens.Spacing.md) {
+                Image(systemName: "calendar.badge.clock")
+                    .font(.title3.weight(.bold))
+                    .foregroundStyle(role.chatAccentColor)
+                    .frame(width: 54, height: 54)
+                    .background(role.chatAccentColor.opacity(0.16))
+                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    .accessibilityHidden(true)
+
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                    Text("Grooming Appointment")
+                        .font(DesignTokens.Typography.headline.weight(.bold))
+                        .foregroundStyle(DesignTokens.Colors.textPrimary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.82)
+
+                    Text(conversation.threadAppointmentSummary)
+                        .font(DesignTokens.Typography.body)
+                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                Image(systemName: "chevron.right")
+                    .font(DesignTokens.Typography.headline.weight(.semibold))
+                    .foregroundStyle(DesignTokens.Colors.textTertiary)
+                    .accessibilityHidden(true)
+            }
+        }
+    }
+}
+
+private struct ChatBookingStatusPill: View {
+    let conversation: ChatConversation
+    let role: UserRole
+
+    var body: some View {
+        Label(conversation.threadStatusText, systemImage: conversation.threadStatusIcon)
+            .font(DesignTokens.Typography.caption.weight(.bold))
+            .foregroundStyle(role.chatAccentColor)
+            .lineLimit(1)
+            .padding(.horizontal, DesignTokens.Spacing.lg)
+            .padding(.vertical, DesignTokens.Spacing.sm)
+            .background {
+                Capsule()
+                    .fill(role.chatAccentColor.opacity(0.16))
+            }
     }
 }
 
@@ -281,33 +426,30 @@ private struct ChatMessageRow: View {
     var body: some View {
         HStack(alignment: .bottom) {
             if isOutgoing {
-                Spacer(minLength: DesignTokens.Spacing.xl + DesignTokens.Spacing.lg)
+                Spacer(minLength: 82)
             }
 
             VStack(alignment: isOutgoing ? .trailing : .leading, spacing: DesignTokens.Spacing.xs) {
                 Text(message.body)
-                    .font(DesignTokens.Typography.body)
+                    .font(.body.weight(.medium))
                     .foregroundStyle(isOutgoing ? DesignTokens.Colors.surface : DesignTokens.Colors.textPrimary)
                     .padding(.horizontal, DesignTokens.Spacing.lg)
                     .padding(.vertical, DesignTokens.Spacing.md)
                     .background {
-                        RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input, style: .continuous)
+                        RoundedRectangle(cornerRadius: 22, style: .continuous)
                             .fill(isOutgoing ? role.chatAccentColor : DesignTokens.Colors.surfaceRaised)
                     }
                     .overlay {
-                        RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input, style: .continuous)
+                        RoundedRectangle(cornerRadius: 22, style: .continuous)
                             .stroke(isOutgoing ? Color.clear : DesignTokens.Colors.borderSoft, lineWidth: 1)
                     }
                     .groomlyShadow(DesignTokens.Shadows.smallCard, isVisible: !isOutgoing)
-
-                Text(message.sentAtSummary)
-                    .font(DesignTokens.Typography.caption)
-                    .foregroundStyle(DesignTokens.Colors.textSecondary)
             }
+            .frame(maxWidth: 330, alignment: isOutgoing ? .trailing : .leading)
             .accessibilityElement(children: .combine)
 
             if !isOutgoing {
-                Spacer(minLength: DesignTokens.Spacing.xl + DesignTokens.Spacing.lg)
+                Spacer(minLength: 82)
             }
         }
     }
@@ -318,7 +460,8 @@ private struct ChatComposerView: View {
     let isSending: Bool
     let isReadOnly: Bool
     let readOnlyMessage: String
-    let accent: GroomlyPrimaryButtonStyle.Accent
+    let accentColor: Color
+    let placeholder: String
     let send: () async -> Void
 
     var body: some View {
@@ -346,9 +489,21 @@ private struct ChatComposerView: View {
                 .accessibilityIdentifier("chat.message.read-only")
             } else {
                 HStack(alignment: .bottom, spacing: DesignTokens.Spacing.md) {
-                    TextField("Message", text: $draft, axis: .vertical)
+                    Image(systemName: "plus")
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+                        .frame(width: 52, height: 52)
+                        .background(DesignTokens.Colors.borderSoft.opacity(0.72))
+                        .clipShape(DesignTokens.Shapes.circular)
+                        .accessibilityLabel("Attachments unavailable")
+
+                    TextField(placeholder, text: $draft, axis: .vertical)
+                        .font(DesignTokens.Typography.body)
                         .lineLimit(1...4)
-                        .groomlyFormField()
+                        .padding(.horizontal, DesignTokens.Spacing.lg)
+                        .padding(.vertical, DesignTokens.Spacing.md)
+                        .background(DesignTokens.Colors.borderSoft.opacity(0.62))
+                        .clipShape(Capsule())
                         .accessibilityIdentifier("chat.message.body")
 
                     Button {
@@ -356,15 +511,30 @@ private struct ChatComposerView: View {
                             await send()
                         }
                     } label: {
-                        if isSending {
-                            ProgressView()
-                                .tint(DesignTokens.Colors.surface)
-                        } else {
-                            Label("Send", systemImage: "paperplane.fill")
+                        ZStack {
+                            Circle()
+                                .fill(accentColor)
+                                .frame(width: 56, height: 56)
+                                .groomlyShadow(DesignTokens.Shadows.primaryAction)
+
+                            if isSending {
+                                ProgressView()
+                                    .tint(DesignTokens.Colors.surface)
+                            } else {
+                                Image(systemName: "paperplane.fill")
+                                    .font(.title3.weight(.bold))
+                                    .foregroundStyle(DesignTokens.Colors.surface)
+                                    .offset(x: -1, y: 1)
+                            }
                         }
                     }
-                    .buttonStyle(GroomlyPrimaryButtonStyle(accent: accent, isFullWidth: false))
-                    .disabled(isSending)
+                    .buttonStyle(.plain)
+                    .disabled(isSending || draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .opacity(
+                        isSending || !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                            ? 1
+                            : 0.58
+                    )
                     .accessibilityIdentifier("chat.message.send")
                 }
             }
@@ -444,13 +614,14 @@ private extension ChatConversation {
         }
     }
 
-    var previewLine: String {
-        if isReadOnly() {
-            return "Booking chat is read-only."
-        }
+    func shortRecipientName(for role: UserRole) -> String {
+        let title = listTitle(for: role)
+        return title.split(separator: " ").first.map(String.init) ?? title
+    }
 
+    var threadAppointmentSummary: String {
         if let scheduledTimeSummary {
-            return "\(bookingStatusTitle) · \(scheduledTimeSummary)"
+            return scheduledTimeSummary
         }
 
         if let priceSummary {
@@ -458,6 +629,30 @@ private extension ChatConversation {
         }
 
         return bookingStatusTitle
+    }
+
+    var threadStatusText: String {
+        switch bookingStatus {
+        case .confirmed:
+            "Offer Accepted · Booking Confirmed"
+        case .completed:
+            "Booking Completed"
+        case .cancelledByCustomer, .cancelledByGroomer:
+            "Booking Cancelled"
+        case nil:
+            "Booking Chat"
+        }
+    }
+
+    var threadStatusIcon: String {
+        switch bookingStatus {
+        case .confirmed, .completed:
+            "checkmark"
+        case .cancelledByCustomer, .cancelledByGroomer:
+            "xmark"
+        case nil:
+            "message"
+        }
     }
 }
 

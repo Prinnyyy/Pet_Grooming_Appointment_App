@@ -66,6 +66,24 @@ struct CustomerPetsStoreTests {
         #expect(CustomerPetSizeCode.code(forWeightLbs: 101) == .giant)
     }
 
+    @Test
+    func breedOptionsKeepUnspecifiedFirstAndAlphabetizeRemaining() {
+        let dogOptions = CustomerPetBreed.options(for: .dog)
+        let dogTitles = dogOptions.map(\.title)
+
+        #expect(dogOptions.first == .unspecified)
+        #expect(dogOptions.contains(.siberianHusky))
+        #expect(Array(dogTitles.dropFirst()) == dogTitles.dropFirst().sorted())
+    }
+
+    @Test
+    func temperamentOptionsKeepNotSureFirstAndAlphabetizeRemaining() {
+        let titles = CustomerPetTemperament.displayOptions.map(\.title)
+
+        #expect(CustomerPetTemperament.displayOptions.first == .notSure)
+        #expect(Array(titles.dropFirst()) == titles.dropFirst().sorted())
+    }
+
     @Test @MainActor
     func invalidPetFormDoesNotCallRepository() async {
         let repository = CustomerPetRepositoryFake()

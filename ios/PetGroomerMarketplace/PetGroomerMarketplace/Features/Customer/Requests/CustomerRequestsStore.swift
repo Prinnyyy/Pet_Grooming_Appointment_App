@@ -1,6 +1,100 @@
 import Foundation
 import Observation
 
+enum CustomerRequestWizardStep: Int, CaseIterable, Identifiable {
+    case pet
+    case service
+    case time
+    case details
+    case review
+
+    var id: Self { self }
+
+    var title: String {
+        switch self {
+        case .pet:
+            "Pet"
+        case .service:
+            "Service"
+        case .time:
+            "Time"
+        case .details:
+            "Details"
+        case .review:
+            "Review"
+        }
+    }
+
+    var headline: String {
+        switch self {
+        case .pet:
+            "Who Needs Grooming?"
+        case .service:
+            "What Service Do You Need?"
+        case .time:
+            "When Works Best?"
+        case .details:
+            "Add Helpful Details"
+        case .review:
+            "Review Your Request"
+        }
+    }
+
+    var subtitle: String? {
+        switch self {
+        case .pet:
+            "Choose the pet this request is for."
+        case .service:
+            nil
+        case .time:
+            "Choose a preferred time. Groomers can also suggest alternatives."
+        case .details:
+            nil
+        case .review:
+            nil
+        }
+    }
+
+    var progress: Double {
+        Double(rawValue + 1) / Double(Self.allCases.count)
+    }
+
+    var previous: Self? {
+        Self(rawValue: rawValue - 1)
+    }
+
+    var next: Self? {
+        Self(rawValue: rawValue + 1)
+    }
+}
+
+enum CustomerRequestWizardValidationField: Hashable {
+    case pet
+    case service
+    case timeWindow
+    case notes
+    case streetAddress
+    case city
+    case state
+    case zipCode
+}
+
+struct CustomerRequestWizardStepValidation: Equatable {
+    static let requiredFieldsMessage =
+        "Complete the highlighted required fields before continuing."
+
+    let fields: Set<CustomerRequestWizardValidationField>
+    let message: String?
+
+    var isValid: Bool {
+        fields.isEmpty
+    }
+
+    static var valid: Self {
+        Self(fields: [], message: nil)
+    }
+}
+
 @MainActor
 @Observable
 final class CustomerRequestsStore {
@@ -371,6 +465,29 @@ final class CustomerRequestsStore {
         }
     }
 
+    func validateWizardStep(
+        _ step: CustomerRequestWizardStep,
+        now: Date = Date()
+    ) -> CustomerRequestWizardStepValidation {
+        switch step {
+        case .pet:
+            return validatePetStep()
+        case .service:
+            return .valid
+        case .time:
+            return validateTimeAndLocationStep(now: now)
+        case .details:
+            return validateDetailsStep()
+        case .review:
+            for requiredStep in CustomerRequestWizardStep.allCases where requiredStep != .review {
+                let validation = validateWizardStep(requiredStep, now: now)
+                guard validation.isValid else { return validation }
+            }
+
+            return .valid
+        }
+    }
+
     private func makeDraft(now: Date = Date()) throws -> GroomingRequestDraft {
         guard !pets.isEmpty else {
             throw CustomerRequestFormError(
@@ -429,6 +546,74 @@ final class CustomerRequestsStore {
             zipCode: zipCode,
             travelRadiusMiles: travelRadius
         )
+    }
+
+    private func validatePetStep() -> CustomerRequestWizardStepValidation {
+        guard !pets.isEmpty else {
+            return CustomerRequestWizardStepValidation(
+                fields: [.pet],
+                message: "Add a pet before continuing."
+            )
+        }
+
+        guard let selectedPetID,
+              pets.contains(where: { $0.id == selectedPetID }) else {
+            return CustomerRequestWizardStepValidation(
+                fields: [.pet],
+                message: "Choose a pet before continuing."
+            )
+        }
+
+        return .valid
+    }
+
+    private func validateTimeAndLocationStep(
+        now: Date
+    ) -> CustomerRequestWizardStepValidation {
+        var fields: Set<CustomerRequestWizardValidationField> = []
+
+        let earliestPreferredStart = now.addingTimeInterval(
+            Self.minimumPreferredStartLeadTime
+        )
+        if preferredStart < earliestPreferredStart || preferredEnd <= preferredStart {
+            fields.insert(.timeWindow)
+        }
+
+        let street = streetAddress.trimmingCharacters(in: .whitespacesAndNewlines)
+        if street.isEmpty || !Self.hasStreetAddressNumberAndName(street) {
+            fields.insert(.streetAddress)
+        }
+
+        if city.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            fields.insert(.city)
+        }
+
+        if stateCode == nil {
+            fields.insert(.state)
+        }
+
+        if !Self.isValidZipCode(zipCode) {
+            fields.insert(.zipCode)
+        }
+
+        guard !fields.isEmpty else { return .valid }
+
+        return CustomerRequestWizardStepValidation(
+            fields: fields,
+            message: CustomerRequestWizardStepValidation.requiredFieldsMessage
+        )
+    }
+
+    private func validateDetailsStep() -> CustomerRequestWizardStepValidation {
+        let notes = serviceNotes.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard notes.count <= 2000 else {
+            return CustomerRequestWizardStepValidation(
+                fields: [.notes],
+                message: "Service notes must be 2,000 characters or fewer."
+            )
+        }
+
+        return .valid
     }
 
     private func resetForm(now: Date = Date()) {
@@ -579,8 +764,7 @@ final class CustomerRequestsStore {
 
     private func zipCodeValue(_ value: String) throws -> String {
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        let pattern = #"^[0-9]{5}(-[0-9]{4})?$"#
-        guard trimmed.range(of: pattern, options: .regularExpression) != nil else {
+        guard Self.isValidZipCode(trimmed) else {
             throw CustomerRequestFormError(message: "Enter a valid 5-digit ZIP code.")
         }
         return trimmed
@@ -588,16 +772,25 @@ final class CustomerRequestsStore {
 
     private func streetAddressValue(_ value: String) throws -> String {
         let trimmed = try required(value, field: "Street address", range: 1...160)
-        let hasStreetNumber = trimmed.range(of: #"[0-9]"#, options: .regularExpression) != nil
-        let hasStreetName = trimmed.range(of: #"[A-Za-z]"#, options: .regularExpression) != nil
-
-        guard hasStreetNumber, hasStreetName else {
+        guard Self.hasStreetAddressNumberAndName(trimmed) else {
             throw CustomerRequestFormError(
                 message: "Enter a street address with a street number and name."
             )
         }
 
         return trimmed
+    }
+
+    private static func hasStreetAddressNumberAndName(_ value: String) -> Bool {
+        let hasStreetNumber = value.range(of: #"[0-9]"#, options: .regularExpression) != nil
+        let hasStreetName = value.range(of: #"[A-Za-z]"#, options: .regularExpression) != nil
+        return hasStreetNumber && hasStreetName
+    }
+
+    private static func isValidZipCode(_ value: String) -> Bool {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        let pattern = #"^[0-9]{5}(-[0-9]{4})?$"#
+        return trimmed.range(of: pattern, options: .regularExpression) != nil
     }
 
     private func message(

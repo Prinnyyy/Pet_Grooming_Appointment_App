@@ -869,6 +869,69 @@ struct CustomerRequestsStoreTests {
     }
 
     @Test @MainActor
+    func requestWizardTimeStepRequiresCompleteAddressBeforeContinuing() async throws {
+        let customerID = UUID()
+        let pet = Self.pet(customerID: customerID)
+        let store = CustomerRequestsStore(
+            customerID: customerID,
+            petRepository: CustomerRequestPetRepositoryFake(
+                petsResult: .success([pet])
+            ),
+            requestRepository: CustomerRequestRepositoryFake(),
+            bookingRepository: CustomerRequestBookingRepositoryFake()
+        )
+        await store.load()
+        store.startCreate()
+        store.preferredStart = Date().addingTimeInterval(60 * 60)
+        store.preferredEnd = Date().addingTimeInterval(3 * 60 * 60)
+        store.streetAddress = "760"
+        store.city = ""
+        store.stateCode = nil
+        store.zipCode = ""
+
+        let validation = store.validateWizardStep(.time)
+
+        #expect(validation.isValid == false)
+        #expect(validation.message == "Complete the highlighted required fields before continuing.")
+        #expect(validation.fields == [
+            .streetAddress,
+            .city,
+            .state,
+            .zipCode,
+        ])
+    }
+
+    @Test @MainActor
+    func requestWizardAddressSuggestionsDeduplicateRepeatedMapResults() {
+        let result = CustomerRequestAddressSuggestionBuilder.build(
+            from: [
+                CustomerRequestAddressCompletion(
+                    title: "760 Market Street",
+                    subtitle: "San Francisco, CA",
+                    completion: "first"
+                ),
+                CustomerRequestAddressCompletion(
+                    title: "760 Market Street",
+                    subtitle: "San Francisco, CA",
+                    completion: "duplicate"
+                ),
+                CustomerRequestAddressCompletion(
+                    title: "760 2nd Street",
+                    subtitle: "San Francisco, CA",
+                    completion: "second"
+                ),
+            ]
+        )
+
+        #expect(result.suggestions.map(\.title) == [
+            "760 Market Street",
+            "760 2nd Street",
+        ])
+        #expect(result.completionsByID[result.suggestions[0].id] == "first")
+        #expect(result.completionsByID[result.suggestions[1].id] == "second")
+    }
+
+    @Test @MainActor
     func bookedHandoffCardPresentationKeepsQuestSummaryAndAddsAddress() async throws {
         let customerID = UUID()
         let pet = Self.pet(customerID: customerID)

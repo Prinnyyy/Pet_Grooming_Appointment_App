@@ -2,6 +2,28 @@
 
 ```text
 Date: 2026-06-23
+Task: T-054 - Groomly request wizard address crash and required validation.
+Files changed: GroomlyFormPrimitives, CustomerRequestsStore/View, CustomerRequestFeatureTests, T-054 task doc, TASK_LEDGER.md, CURRENT_STATE.md, FEATURE_INDEX.md, WORKLOG.md.
+Checks: Red targeted CustomerRequestsStore tests failed before implementation because wizard validation/address suggestion builder APIs did not exist; targeted CustomerRequestsStore tests passed after implementation; git diff --check passed; ./scripts/ios-build.sh passed.
+Simulator launch: XcodeBuildMCP build_run_sim passed on iPhone 17 simulator (B9639233-9E78-41C9-A372-330D36C38DA7). Manual smoke opened Start Grooming Request, reached Time/Location, typed `760` into street address, confirmed suggestions appeared without white-screen/freeze/crash, and tapped gray Continue to show the required-fields message.
+Result: Customer request address autocomplete now de-duplicates MapKit candidates before storing completion lookups. The wizard blocks missing required fields before page navigation, leaves gray Continue tappable for feedback, and highlights missing required controls with a red glow that clears on interaction.
+Risks: MapKit suggestions remain network/service-dependent. Required-field glow is client-side UI feedback; backend request RPC/constraints were not changed.
+Next: App is running in Simulator for inspection. Wait for user feedback before further request wizard or backend validation changes.
+```
+
+```text
+Date: 2026-06-23
+Task: T-053 - Groomly customer Home, pet, request, booking, and chat fixes.
+Files changed: CustomerPet model, CustomerPetsStore/View, CustomerRequestsView, CustomerTabView, BookingsView, Chat model/repository/store/view, ChatFeatureTests, CustomerPetFeatureTests, T-053 task doc, TASK_LEDGER.md, CURRENT_STATE.md, FEATURE_INDEX.md, WORKLOG.md.
+Checks: Targeted ChatStore tests passed; targeted CustomerPetsStore and CustomerPetPhotoPath tests passed; git diff --check passed; ./scripts/ios-build.sh passed.
+Simulator launch: XcodeBuildMCP build_run_sim passed on iPhone 17 simulator (B9639233-9E78-41C9-A372-330D36C38DA7). Runtime launch had no errors and one existing warning in SupabaseAuthSessionRepository.swift:17. Screenshot confirmation: /var/folders/bc/xmbw6w1d06s61ns9_j2fnll00000gn/T/screenshot_optimized_efbf131c-e359-40ef-8f68-9dc80a1e1fa0.jpg.
+Result: Add/Edit Pet now puts Photos first, sorts fixed breed/temperament options with the fallback first, labels care-note fields, and avoids the edit-cancel flash. Home pet cards show weight/size. Home Active Request cards can switch to Requests and focus the matching carousel card. Home Next Booking reuses the Bookings summary row, Bookings sort by scheduled time, Messages show latest message bodies, and Chat thread follows the uploaded prototype within current model limits.
+Risks: Chat thread appointment context cannot show exact pet/service text until a future approved chat/booking/request contract exposes those fields. Husky is represented by the existing Siberian Husky taxonomy value to avoid diverging from the local T-050 pet contract draft.
+Next: App is running in Simulator for inspection. Wait for user feedback before further screenshot rework or chat/booking contract changes.
+```
+
+```text
+Date: 2026-06-23
 Task: T-052 - Groomly customer pet, booking, and message refinement.
 Files changed: CustomerPetsView, BookingsView, ChatView, T-052 task doc, TASK_LEDGER.md, CURRENT_STATE.md, FEATURE_INDEX.md, WORKLOG.md.
 Checks: git diff --check passed; ./scripts/ios-build.sh passed.

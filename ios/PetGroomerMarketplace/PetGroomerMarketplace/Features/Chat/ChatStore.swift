@@ -52,6 +52,19 @@ final class ChatStore {
         conversation.canSendMessages(now: now())
     }
 
+    func previewText(for conversation: ChatConversation) -> String {
+        if let body = messagesByConversationID[conversation.id]?.last?.body,
+           let normalized = Self.normalizedPreview(body) {
+            return normalized
+        }
+
+        if let normalized = Self.normalizedPreview(conversation.latestMessageBody) {
+            return normalized
+        }
+
+        return "No Messages Yet"
+    }
+
     func loadConversations() async {
         isLoadingConversations = true
         errorMessage = nil
@@ -140,6 +153,14 @@ final class ChatStore {
             return $0.createdAt < $1.createdAt
         }
         messagesByConversationID[message.conversationID] = messages
+    }
+
+    private static func normalizedPreview(_ value: String?) -> String? {
+        let normalized = value?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+            ?? ""
+        return normalized.isEmpty ? nil : normalized
     }
 
     private func message(
