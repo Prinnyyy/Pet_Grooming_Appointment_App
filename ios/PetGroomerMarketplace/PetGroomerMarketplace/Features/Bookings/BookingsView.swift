@@ -3,6 +3,7 @@ import SwiftUI
 struct BookingsView: View {
     private let role: UserRole
     @State private var store: BookingsStore
+    @State private var selectedScope: BookingListScope = .upcoming
 
     init(
         participantID: UUID,
@@ -26,83 +27,74 @@ struct BookingsView: View {
 
             bookingsContent
         }
-        .navigationTitle("Bookings")
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    Task {
-                        await store.load()
-                    }
-                } label: {
-                    Label("Refresh", systemImage: "arrow.clockwise")
-                }
-                .disabled(store.isBusy)
-            }
-        }
+        .navigationTitle("")
+        .navigationBarTitleDisplayMode(.inline)
         .safeAreaInset(edge: .bottom) {
             BookingsStatusView(
                 store: store,
                 role: role
             )
         }
+        .refreshable {
+            await store.load()
+        }
         .task {
             await store.load()
         }
     }
 
-    @ViewBuilder
     private var bookingsContent: some View {
-        if store.isLoading, store.bookings.isEmpty {
-            GroomlyLoadingView(
-                title: "Loading Bookings…",
-                message: "Fetching confirmed appointments for your account.",
-                accent: role.loadingAccent
-            )
-            .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-            .accessibilityIdentifier("bookings.loading")
-        } else {
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                    GroomlySectionHeader(
-                        "Bookings",
-                        subtitle: role.bookingsSubtitle
-                    )
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                CustomerTabTitle("Bookings")
 
-                    if store.bookings.isEmpty {
-                        GroomlyEmptyState(
-                            title: "No Bookings Yet",
-                            message: "Confirmed appointments will appear here after an offer is accepted.",
-                            systemImage: "calendar.badge.clock",
-                            accent: role.emptyStateAccent
-                        )
-                        .accessibilityIdentifier("bookings.empty")
-                    } else {
-                        LazyVStack(spacing: DesignTokens.Spacing.md) {
-                            ForEach(store.bookings) { booking in
-                                NavigationLink {
-                                    BookingDetailView(
-                                        bookingID: booking.id,
-                                        role: role,
-                                        store: store
-                                    )
-                                } label: {
-                                    BookingSummaryRow(
-                                        booking: booking,
-                                        role: role
-                                    )
-                                }
-                                .buttonStyle(.plain)
+                BookingScopeControl(selection: $selectedScope)
+
+                if store.isLoading, store.bookings.isEmpty {
+                    GroomlyLoadingView(
+                        title: "Loading Bookings...",
+                        message: "Fetching confirmed appointments for your account.",
+                        accent: role.loadingAccent
+                    )
+                    .accessibilityIdentifier("bookings.loading")
+                } else if visibleBookings.isEmpty {
+                    GroomlyEmptyState(
+                        title: selectedScope.emptyTitle,
+                        message: selectedScope.emptyMessage,
+                        systemImage: "calendar.badge.clock",
+                        accent: role.emptyStateAccent
+                    )
+                    .accessibilityIdentifier("bookings.empty")
+                } else {
+                    LazyVStack(spacing: DesignTokens.Spacing.md) {
+                        ForEach(visibleBookings) { booking in
+                            NavigationLink {
+                                BookingDetailView(
+                                    bookingID: booking.id,
+                                    role: role,
+                                    store: store
+                                )
+                            } label: {
+                                BookingSummaryRow(
+                                    booking: booking,
+                                    role: role
+                                )
                             }
+                            .buttonStyle(.plain)
                         }
                     }
                 }
-                .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-                .padding(.top, DesignTokens.Spacing.lg)
-                .padding(.bottom, DesignTokens.Spacing.xl + DesignTokens.Spacing.xl)
             }
-            .scrollContentBackground(.hidden)
-            .accessibilityIdentifier("bookings.list")
+            .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+            .padding(.top, DesignTokens.Spacing.xl)
+            .padding(.bottom, DesignTokens.Spacing.xl + DesignTokens.Spacing.xl)
         }
+        .scrollContentBackground(.hidden)
+        .accessibilityIdentifier("bookings.list")
+    }
+
+    private var visibleBookings: [Booking] {
+        store.bookings.filter(selectedScope.contains)
     }
 }
 
@@ -113,54 +105,220 @@ private struct BookingSummaryRow: View {
     var body: some View {
         GroomlyCard {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
-                    Image(systemName: "calendar.badge.clock")
-                        .font(DesignTokens.Typography.headline)
-                        .foregroundStyle(role.primaryColor)
-                        .frame(
-                            width: DesignTokens.Spacing.xl + DesignTokens.Spacing.xl,
-                            height: DesignTokens.Spacing.xl + DesignTokens.Spacing.xl
-                        )
-                        .background(role.primaryColor.opacity(0.14))
-                        .clipShape(DesignTokens.Shapes.circular)
-                        .accessibilityHidden(true)
-
-                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                        Text("Appointment")
-                            .font(DesignTokens.Typography.headline)
-                            .foregroundStyle(DesignTokens.Colors.textPrimary)
-
-                        Text(booking.scheduledTimeSummary)
-                            .font(DesignTokens.Typography.body)
-                            .foregroundStyle(DesignTokens.Colors.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
+                HStack(alignment: .center) {
                     GroomlyStatusChip(
                         booking.status.title,
                         systemImage: booking.status.chipIcon,
                         tone: booking.status.chipTone(for: role)
                     )
+
+                    Spacer(minLength: DesignTokens.Spacing.md)
+
+                    Text(BookingListDateFormatting.day(from: booking.scheduledStart))
+                        .font(DesignTokens.Typography.caption)
+                        .foregroundStyle(DesignTokens.Colors.textSecondary)
                 }
 
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                    BookingMetadataRow(
-                        systemImage: "creditcard",
-                        text: booking.priceSummary
-                    )
+                HStack(alignment: .center, spacing: DesignTokens.Spacing.lg) {
+                    BookingAvatar(role: role)
 
-                    BookingMetadataRow(
-                        systemImage: role == .groomer ? "person" : "scissors",
-                        text: booking.participantSummary(for: role)
-                    )
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                        Text(booking.partnerDisplayTitle(for: role))
+                            .font(.title3.weight(.bold))
+                            .foregroundStyle(DesignTokens.Colors.textPrimary)
+                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
 
-                    BookingMetadataRow(
-                        systemImage: "number",
-                        text: "Support ref \(booking.referenceCode)"
-                    )
+                        Text(booking.listContextSummary)
+                            .font(DesignTokens.Typography.body)
+                            .foregroundStyle(DesignTokens.Colors.textSecondary)
+                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                    Image(systemName: "chevron.right")
+                        .font(DesignTokens.Typography.headline)
+                        .foregroundStyle(DesignTokens.Colors.textTertiary)
+                        .accessibilityHidden(true)
                 }
             }
+        }
+    }
+}
+
+private struct BookingAvatar: View {
+    let role: UserRole
+
+    var body: some View {
+        Image(systemName: role == .customer ? "person.fill" : "person.crop.square.fill")
+            .font(.title2.weight(.bold))
+            .foregroundStyle(role.primaryColor)
+            .frame(width: 64, height: 64)
+            .background(role.primaryColor.opacity(0.24))
+            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .accessibilityHidden(true)
+    }
+}
+
+private enum BookingListScope: String, CaseIterable, Identifiable {
+    case upcoming
+    case past
+
+    var id: Self { self }
+
+    var title: String {
+        switch self {
+        case .upcoming:
+            "Upcoming"
+        case .past:
+            "Past"
+        }
+    }
+
+    var emptyTitle: String {
+        switch self {
+        case .upcoming:
+            "No Upcoming Bookings"
+        case .past:
+            "No Past Bookings"
+        }
+    }
+
+    var emptyMessage: String {
+        switch self {
+        case .upcoming:
+            "Confirmed appointments will appear here after an offer is accepted."
+        case .past:
+            "Completed and cancelled appointments will appear here."
+        }
+    }
+
+    func contains(_ booking: Booking) -> Bool {
+        switch self {
+        case .upcoming:
+            booking.status == .confirmed
+        case .past:
+            booking.status != .confirmed
+        }
+    }
+}
+
+private struct BookingScopeControl: View {
+    @Binding var selection: BookingListScope
+
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(BookingListScope.allCases) { scope in
+                Button {
+                    withAnimation(.easeInOut(duration: 0.18)) {
+                        selection = scope
+                    }
+                } label: {
+                    Text(scope.title)
+                        .font(DesignTokens.Typography.headline)
+                        .foregroundStyle(
+                            selection == scope
+                                ? DesignTokens.Colors.textPrimary
+                                : DesignTokens.Colors.textSecondary
+                        )
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, DesignTokens.Spacing.md)
+                        .background {
+                            if selection == scope {
+                                RoundedRectangle(
+                                    cornerRadius: DesignTokens.CornerRadius.input,
+                                    style: .continuous
+                                )
+                                .fill(DesignTokens.Colors.surface)
+                                .groomlyShadow(DesignTokens.Shadows.smallCard)
+                            }
+                        }
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(DesignTokens.Spacing.xs)
+        .background {
+            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.card, style: .continuous)
+                .fill(DesignTokens.Colors.borderSoft.opacity(0.72))
+        }
+        .accessibilityElement(children: .contain)
+    }
+}
+
+private struct CustomerTabTitle: View {
+    let title: String
+
+    init(_ title: String) {
+        self.title = title
+    }
+
+    var body: some View {
+        Text(title)
+            .font(.system(size: 36, weight: .bold))
+            .foregroundStyle(DesignTokens.Colors.textPrimary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.top, DesignTokens.Spacing.sm)
+    }
+}
+
+private enum BookingListDateFormatting {
+    static func day(from value: String) -> String {
+        format(value, pattern: "EEE, MMM d")
+    }
+
+    static func time(from value: String) -> String {
+        format(value, pattern: "h:mm a")
+    }
+
+    private static func format(_ value: String, pattern: String) -> String {
+        guard let date = GroomingRequestDateFormatting.parsedDate(from: value) else {
+            return value
+        }
+
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = pattern
+        return formatter.string(from: date)
+    }
+}
+
+private extension Booking {
+    var listContextSummary: String {
+        "\(BookingListDateFormatting.time(from: scheduledStart)) · \(priceSummary)"
+    }
+
+    var timeWindowSummary: String {
+        "\(BookingListDateFormatting.time(from: scheduledStart)) - \(BookingListDateFormatting.time(from: scheduledEnd))"
+    }
+
+    var detailTitle: String {
+        switch status {
+        case .confirmed:
+            "Booking Confirmed"
+        case .completed:
+            "Booking Completed"
+        case .cancelledByCustomer, .cancelledByGroomer:
+            "Booking Cancelled"
+        }
+    }
+
+    func partnerDisplayTitle(for role: UserRole) -> String {
+        switch role {
+        case .customer:
+            "Assigned Groomer"
+        case .groomer:
+            "Booking Customer"
+        }
+    }
+
+    func detailSubtitle(for role: UserRole) -> String {
+        switch role {
+        case .customer:
+            "Your appointment is managed from Bookings."
+        case .groomer:
+            "This appointment is managed from Bookings."
         }
     }
 }
@@ -178,78 +336,32 @@ struct BookingDetailView: View {
 
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                        GroomlySectionHeader(
-                            "Appointment",
-                            subtitle: "Stable booking facts and support references."
+                        BookingDetailHeroCard(
+                            booking: booking,
+                            role: role
                         )
 
-                        GroomlyCard {
-                            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                                HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
-                                    Text("Booking \(booking.referenceCode)")
-                                        .font(DesignTokens.Typography.headline)
-                                        .foregroundStyle(DesignTokens.Colors.textPrimary)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-
-                                    GroomlyStatusChip(
-                                        booking.status.title,
-                                        systemImage: booking.status.chipIcon,
-                                        tone: booking.status.chipTone(for: role)
-                                    )
-                                }
-
-                                BookingFactRow("Price", value: booking.priceSummary)
-                                BookingFactRow(
-                                    "Start",
-                                    value: GroomingRequestDateFormatting.displayString(
-                                        from: booking.scheduledStart
-                                    )
-                                )
-                                BookingFactRow(
-                                    "End",
-                                    value: GroomingRequestDateFormatting.displayString(
-                                        from: booking.scheduledEnd
-                                    )
-                                )
-                            }
+                        BookingDetailInfoCard(
+                            title: "Appointment",
+                            systemImage: "calendar.badge.clock"
+                        ) {
+                            BookingDetailFactRow("Date", value: BookingListDateFormatting.day(from: booking.scheduledStart))
+                            BookingDetailFactRow("Time", value: booking.timeWindowSummary)
+                            BookingDetailFactRow("Price", value: booking.priceSummary)
                         }
 
-                        GroomlySectionHeader("Participant")
+                        BookingPartnerOverviewCard(
+                            booking: booking,
+                            role: role
+                        )
 
-                        GroomlyCard {
-                            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                                BookingFactRow(
-                                    "Counterparty",
-                                    value: booking.participantSummary(for: role)
-                                )
-
-                                Text("Names and richer pet context require a later participant summary contract; this screen only shows stable booking facts and support references for now.")
-                                    .font(DesignTokens.Typography.caption)
-                                    .foregroundStyle(DesignTokens.Colors.textSecondary)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-                        }
-
-                        GroomlySectionHeader("Support References")
-
-                        GroomlyCard {
-                            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                                BookingFactRow("Booking", value: booking.referenceCode)
-                                BookingFactRow("Request", value: booking.requestReferenceCode)
-                                BookingFactRow("Offer", value: booking.offerReferenceCode)
-                                BookingFactRow(
-                                    participantLabel,
-                                    value: booking.participantReferenceCode(for: role)
-                                )
-                            }
-                        }
-
-                        GroomlySectionHeader("Conversation")
-
-                        GroomlyCard {
+                        BookingDetailInfoCard(
+                            title: "Conversation",
+                            systemImage: "message.fill"
+                        ) {
                             BookingMetadataRow(
                                 systemImage: "message",
-                                text: "Use the Messages tab for participant chat tied to this booking."
+                                text: "Messages for this appointment stay connected to the booking."
                             )
                         }
 
@@ -285,7 +397,7 @@ struct BookingDetailView: View {
                     .padding(.bottom, DesignTokens.Spacing.xl + DesignTokens.Spacing.xl)
                 }
             }
-            .navigationTitle("Booking \(booking.referenceCode)")
+            .navigationTitle("Booking")
             .navigationBarTitleDisplayMode(.inline)
             .accessibilityIdentifier("bookings.detail")
         } else {
@@ -304,14 +416,162 @@ struct BookingDetailView: View {
             .navigationTitle("Booking")
         }
     }
+}
 
-    private var participantLabel: String {
-        switch role {
-        case .customer:
-            "Groomer"
-        case .groomer:
-            "Customer"
+private struct BookingDetailHeroCard: View {
+    let booking: Booking
+    let role: UserRole
+
+    var body: some View {
+        GroomlyCard {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                HStack(alignment: .center) {
+                    GroomlyStatusChip(
+                        booking.status.title,
+                        systemImage: booking.status.chipIcon,
+                        tone: booking.status.chipTone(for: role)
+                    )
+
+                    Spacer(minLength: DesignTokens.Spacing.md)
+
+                    Text("Order #\(booking.referenceCode)")
+                        .font(DesignTokens.Typography.caption.weight(.bold))
+                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+                }
+
+                HStack(alignment: .center, spacing: DesignTokens.Spacing.lg) {
+                    BookingAvatar(role: role)
+
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                        Text(booking.detailTitle)
+                            .font(.title2.weight(.bold))
+                            .foregroundStyle(DesignTokens.Colors.textPrimary)
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        Text(booking.detailSubtitle(for: role))
+                            .font(DesignTokens.Typography.body)
+                            .foregroundStyle(DesignTokens.Colors.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
         }
+    }
+}
+
+private struct BookingDetailInfoCard<Content: View>: View {
+    let title: String
+    let systemImage: String
+    let content: Content
+
+    init(
+        title: String,
+        systemImage: String,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.title = title
+        self.systemImage = systemImage
+        self.content = content()
+    }
+
+    var body: some View {
+        GroomlyCard {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                HStack(spacing: DesignTokens.Spacing.md) {
+                    Image(systemName: systemImage)
+                        .font(DesignTokens.Typography.body.weight(.bold))
+                        .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
+                        .frame(width: 38, height: 38)
+                        .background(DesignTokens.Colors.customerPrimary.opacity(0.15))
+                        .clipShape(DesignTokens.Shapes.circular)
+                        .accessibilityHidden(true)
+
+                    Text(title)
+                        .font(DesignTokens.Typography.headline)
+                        .foregroundStyle(DesignTokens.Colors.textPrimary)
+                }
+
+                content
+            }
+        }
+    }
+}
+
+private struct BookingPartnerOverviewCard: View {
+    let booking: Booking
+    let role: UserRole
+
+    var body: some View {
+        BookingDetailInfoCard(
+            title: role == .customer ? "Groomer" : "Customer",
+            systemImage: "person.fill"
+        ) {
+            HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
+                BookingAvatar(role: role)
+                    .frame(width: 56, height: 56)
+
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                    Text(booking.partnerDisplayTitle(for: role))
+                        .font(.title3.weight(.bold))
+                        .foregroundStyle(DesignTokens.Colors.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Text(role == .customer ? "Confirmed grooming provider" : "Booking customer")
+                        .font(DesignTokens.Typography.body)
+                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            HStack(spacing: DesignTokens.Spacing.sm) {
+                BookingMiniChip(title: "Chat Ready", systemImage: "message")
+                BookingMiniChip(title: booking.status.title, systemImage: booking.status.chipIcon)
+            }
+        }
+    }
+}
+
+private struct BookingMiniChip: View {
+    let title: String
+    let systemImage: String
+
+    var body: some View {
+        Label(title, systemImage: systemImage)
+            .font(DesignTokens.Typography.caption.weight(.bold))
+            .foregroundStyle(DesignTokens.Colors.textSecondary)
+            .lineLimit(1)
+            .padding(.horizontal, DesignTokens.Spacing.sm)
+            .padding(.vertical, DesignTokens.Spacing.xs)
+            .background(DesignTokens.Colors.borderSoft.opacity(0.72))
+            .clipShape(Capsule())
+    }
+}
+
+private struct BookingDetailFactRow: View {
+    let title: String
+    let value: String
+
+    init(_ title: String, value: String) {
+        self.title = title
+        self.value = value
+    }
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.md) {
+            Text(title)
+                .font(DesignTokens.Typography.body)
+                .foregroundStyle(DesignTokens.Colors.textSecondary)
+
+            Spacer(minLength: DesignTokens.Spacing.md)
+
+            Text(value)
+                .font(DesignTokens.Typography.body.weight(.bold))
+                .foregroundStyle(DesignTokens.Colors.textPrimary)
+                .multilineTextAlignment(.trailing)
+        }
+        .accessibilityElement(children: .combine)
     }
 }
 

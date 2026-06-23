@@ -7,6 +7,7 @@ final class ChatStore {
     private let participantID: UUID
     private let role: UserRole
     private let repository: any ChatRepository
+    private let now: () -> Date
 
     private(set) var conversations: [ChatConversation] = []
     private(set) var messagesByConversationID: [UUID: [ChatMessage]] = [:]
@@ -26,11 +27,13 @@ final class ChatStore {
     init(
         participantID: UUID,
         role: UserRole,
-        repository: any ChatRepository
+        repository: any ChatRepository,
+        now: @escaping () -> Date = Date.init
     ) {
         self.participantID = participantID
         self.role = role
         self.repository = repository
+        self.now = now
     }
 
     func messages(for conversationID: UUID) -> [ChatMessage] {
@@ -43,6 +46,10 @@ final class ChatStore {
 
     func isSendingMessage(for conversationID: UUID) -> Bool {
         sendingConversationIDs.contains(conversationID)
+    }
+
+    func canSendMessages(in conversation: ChatConversation) -> Bool {
+        conversation.canSendMessages(now: now())
     }
 
     func loadConversations() async {
@@ -84,6 +91,12 @@ final class ChatStore {
         body: String
     ) async {
         guard !sendingConversationIDs.contains(conversation.id) else { return }
+
+        guard canSendMessages(in: conversation) else {
+            errorMessage = conversation.readOnlyReason
+            noticeMessage = nil
+            return
+        }
 
         let normalizedBody = body.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !normalizedBody.isEmpty else {

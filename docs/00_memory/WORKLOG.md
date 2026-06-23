@@ -2,6 +2,28 @@
 
 ```text
 Date: 2026-06-23
+Task: T-052 - Groomly customer pet, booking, and message refinement.
+Files changed: CustomerPetsView, BookingsView, ChatView, T-052 task doc, TASK_LEDGER.md, CURRENT_STATE.md, FEATURE_INDEX.md, WORKLOG.md.
+Checks: git diff --check passed; ./scripts/ios-build.sh passed.
+Simulator launch: XcodeBuildMCP build_run_sim passed on iPhone 17 simulator (B9639233-9E78-41C9-A372-330D36C38DA7) with no diagnostics warnings or errors. Screenshot confirmation: /var/folders/bc/xmbw6w1d06s61ns9_j2fnll00000gn/T/screenshot_optimized_2e765cce-bf0f-4a0a-ab58-21890e953bdf.jpg.
+Result: Add/Edit Pet now share a custom card-based form over existing pet form state; booking summary/detail surfaces were reworked to hide request/offer/participant technical IDs and keep only one order number; Messages conversation cards now follow the prototype-like avatar/title/preview/time hierarchy without fake latest-message content.
+Risks: True groomer personal information on Booking detail remains unavailable in the current Booking repository/model contract. Showing groomer business name, photo, rating, address, or profile summary requires a future approved contract/repository task.
+Next: App is running in Simulator for inspection. Wait for user feedback before further screenshot rework or booking participant contract work.
+```
+
+```text
+Date: 2026-06-23
+Task: T-051 - Groomly customer Bookings, Messages, and Account screenshot UI.
+Files changed: BookingsView, Chat model/repository/store/view, AuthenticatedAccountView, ChatFeatureTests, T-051 task doc, TASK_LEDGER.md, CURRENT_STATE.md, FEATURE_INDEX.md, WORKLOG.md.
+Checks: Red targeted ChatStore test failed before implementation because booking completion chat-lock support did not exist; targeted ChatStore tests passed after implementation; git diff --check passed; ./scripts/ios-build.sh passed.
+Simulator launch: XcodeBuildMCP build_run_sim passed on iPhone 17 simulator (B9639233-9E78-41C9-A372-330D36C38DA7) with no diagnostics warnings or errors. Screenshot confirmation: /var/folders/bc/xmbw6w1d06s61ns9_j2fnll00000gn/T/screenshot_optimized_72b7c21c-cddf-4a43-840c-863005df5e96.jpg.
+Result: Customer Bookings now uses the screenshot-style large title, Upcoming/Past filter, and compact booking cards; Messages uses compact conversation cards and completed booking conversations become read-only after 7 days while history remains visible; Account now keeps only the profile card/sign-out surface and shows Pet Owner without the dog emoji.
+Risks: The chat expiry send lock is client-side only; backend messages RLS/RPC was not changed and would require explicit backend authorization to enforce server-side.
+Next: App is running in Simulator for inspection. Wait for user feedback before further screenshot rework or backend-enforced chat expiry.
+```
+
+```text
+Date: 2026-06-23
 Task: T-050 review follow-up - pet size mapping function grant.
 Files changed: T-050 local Supabase migration, T-050 task doc, TASK_LEDGER.md, CURRENT_STATE.md, WORKLOG.md.
 Checks: git diff --check passed; ./scripts/ios-test.sh passed.

@@ -71,6 +71,31 @@ struct ChatStoreTests {
     }
 
     @Test @MainActor
+    func completedConversationOlderThanSevenDaysDoesNotSend() async throws {
+        let conversation = Self.conversation(
+            status: .completed,
+            completedAt: "2026-06-01T18:00:00Z"
+        )
+        let repository = ChatRepositoryFake()
+        let store = ChatStore(
+            participantID: conversation.customerID,
+            role: .customer,
+            repository: repository,
+            now: { Date(timeIntervalSince1970: 1_781_028_000) }
+        )
+
+        #expect(store.canSendMessages(in: conversation) == false)
+
+        await store.sendMessage(in: conversation, body: "Hello")
+
+        #expect(repository.sendCallCount == 0)
+        #expect(
+            store.errorMessage ==
+                "This conversation is read-only because the booking ended more than 7 days ago."
+        )
+    }
+
+    @Test @MainActor
     func blankMessageDoesNotCallRepository() async throws {
         let conversation = Self.conversation()
         let repository = ChatRepositoryFake()
@@ -148,6 +173,8 @@ struct ChatStoreTests {
         scheduledStart: String? = nil,
         scheduledEnd: String? = nil,
         priceEstimate: Double? = nil,
+        status: BookingStatus? = nil,
+        completedAt: String? = nil,
         groomerBusinessName: String? = nil
     ) -> ChatConversation {
         ChatConversation(
@@ -159,6 +186,8 @@ struct ChatStoreTests {
             scheduledStart: scheduledStart,
             scheduledEnd: scheduledEnd,
             priceEstimate: priceEstimate,
+            bookingStatus: status,
+            completedAt: completedAt,
             groomerBusinessName: groomerBusinessName,
             createdAt: "2026-06-21T05:00:00Z",
             updatedAt: "2026-06-21T05:00:00Z"

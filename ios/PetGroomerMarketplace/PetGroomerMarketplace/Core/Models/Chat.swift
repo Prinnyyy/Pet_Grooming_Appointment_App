@@ -9,6 +9,8 @@ struct ChatConversation: Equatable, Hashable, Identifiable, Sendable {
     let scheduledStart: String?
     let scheduledEnd: String?
     let priceEstimate: Double?
+    let bookingStatus: BookingStatus?
+    let completedAt: String?
     let groomerBusinessName: String?
     let createdAt: String
     let updatedAt: String
@@ -22,6 +24,8 @@ struct ChatConversation: Equatable, Hashable, Identifiable, Sendable {
         scheduledStart: String? = nil,
         scheduledEnd: String? = nil,
         priceEstimate: Double? = nil,
+        bookingStatus: BookingStatus? = nil,
+        completedAt: String? = nil,
         groomerBusinessName: String? = nil,
         createdAt: String,
         updatedAt: String
@@ -34,6 +38,8 @@ struct ChatConversation: Equatable, Hashable, Identifiable, Sendable {
         self.scheduledStart = scheduledStart
         self.scheduledEnd = scheduledEnd
         self.priceEstimate = priceEstimate
+        self.bookingStatus = bookingStatus
+        self.completedAt = completedAt
         self.groomerBusinessName = groomerBusinessName
         self.createdAt = createdAt
         self.updatedAt = updatedAt
@@ -74,6 +80,24 @@ struct ChatConversation: Equatable, Hashable, Identifiable, Sendable {
         return parts.joined(separator: " • ")
     }
 
+    nonisolated var bookingStatusTitle: String {
+        bookingStatus?.title ?? "Booking"
+    }
+
+    nonisolated func canSendMessages(now: Date = Date()) -> Bool {
+        !isReadOnly(now: now)
+    }
+
+    nonisolated func isReadOnly(now: Date = Date()) -> Bool {
+        guard bookingStatus == .completed else { return false }
+        guard let closedDate = messageCloseReferenceDate else { return false }
+        return now.timeIntervalSince(closedDate) >= Self.messageReadOnlyDelay
+    }
+
+    nonisolated var readOnlyReason: String {
+        "This conversation is read-only because the booking ended more than 7 days ago."
+    }
+
     nonisolated func participantReferenceCode(for role: UserRole) -> String {
         switch role {
         case .customer:
@@ -98,6 +122,23 @@ struct ChatConversation: Equatable, Hashable, Identifiable, Sendable {
     nonisolated private static func referenceCode(for id: UUID) -> String {
         String(id.uuidString.prefix(8)).uppercased()
     }
+
+    nonisolated private var messageCloseReferenceDate: Date? {
+        if let completedAt,
+           let date = GroomingRequestDateFormatting.parsedDate(from: completedAt) {
+            return date
+        }
+
+        if let scheduledEnd,
+           let date = GroomingRequestDateFormatting.parsedDate(from: scheduledEnd) {
+            return date
+        }
+
+        return nil
+    }
+
+    nonisolated private static let messageReadOnlyDelay: TimeInterval =
+        7 * 24 * 60 * 60
 
     nonisolated private static func normalized(_ value: String?) -> String? {
         let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""

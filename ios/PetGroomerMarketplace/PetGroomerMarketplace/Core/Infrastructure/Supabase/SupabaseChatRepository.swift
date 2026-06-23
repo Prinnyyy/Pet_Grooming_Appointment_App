@@ -7,7 +7,7 @@ final class SupabaseChatRepository: ChatRepository {
         id,booking_id,request_id,customer_id,groomer_id,created_at,updated_at
         """
     private static let bookingSummaryColumns =
-        "id,scheduled_start,scheduled_end,price_estimate"
+        "id,scheduled_start,scheduled_end,price_estimate,status,completed_at"
     private static let groomerSummaryColumns = "user_id,business_name"
     private static let messageColumns = "id,conversation_id,sender_id,body,created_at"
 
@@ -219,6 +219,8 @@ private struct ChatConversationRow: Decodable {
             scheduledStart: bookingSummary?.scheduledStart,
             scheduledEnd: bookingSummary?.scheduledEnd,
             priceEstimate: bookingSummary?.priceEstimate,
+            bookingStatus: bookingSummary?.status,
+            completedAt: bookingSummary?.completedAt,
             groomerBusinessName: groomerBusinessName,
             createdAt: createdAt,
             updatedAt: updatedAt
@@ -240,6 +242,8 @@ private struct ChatBookingSummary: Sendable {
     let scheduledStart: String
     let scheduledEnd: String
     let priceEstimate: Double
+    let status: BookingStatus
+    let completedAt: String?
 }
 
 private struct ChatBookingSummaryRow: Decodable {
@@ -247,12 +251,16 @@ private struct ChatBookingSummaryRow: Decodable {
     let scheduledStart: String
     let scheduledEnd: String
     let priceEstimate: Double
+    let status: BookingStatus
+    let completedAt: String?
 
     var summary: ChatBookingSummary {
         ChatBookingSummary(
             scheduledStart: scheduledStart,
             scheduledEnd: scheduledEnd,
-            priceEstimate: priceEstimate
+            priceEstimate: priceEstimate,
+            status: status,
+            completedAt: completedAt
         )
     }
 
@@ -261,6 +269,8 @@ private struct ChatBookingSummaryRow: Decodable {
         case scheduledStart = "scheduled_start"
         case scheduledEnd = "scheduled_end"
         case priceEstimate = "price_estimate"
+        case status
+        case completedAt = "completed_at"
     }
 }
 
