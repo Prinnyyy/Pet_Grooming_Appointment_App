@@ -498,6 +498,175 @@ struct CustomerRequestsStoreTests {
     }
 
     @Test @MainActor
+    func homeRequestHeroStaysEnabledWhileRequestsReloadWhenPetsExist() {
+        let loadingWithPet = CustomerHomeRequestHeroPresentation(
+            hasPets: true,
+            isRequestStoreBusy: true
+        )
+        let emptyPets = CustomerHomeRequestHeroPresentation(
+            hasPets: false,
+            isRequestStoreBusy: false
+        )
+
+        #expect(loadingWithPet.isStartRequestDisabled == false)
+        #expect(emptyPets.isStartRequestDisabled == true)
+    }
+
+    @Test @MainActor
+    func homeActiveRequestPresentationUsesAllCardsAndNeverShowsLoadingCard() {
+        let customerID = UUID()
+        let openRequest = Self.request(
+            customerID: customerID,
+            petID: UUID(),
+            status: .open
+        )
+        let offerRequest = Self.request(
+            customerID: customerID,
+            petID: UUID(),
+            status: .hasOffers
+        )
+        let cards = [
+            CustomerRequestActionCardItem(request: openRequest, handoff: nil),
+            CustomerRequestActionCardItem(request: offerRequest, handoff: nil),
+        ]
+        let populated = CustomerHomeActiveRequestPresentation(
+            cards: cards,
+            isLoading: true
+        )
+        let emptyLoading = CustomerHomeActiveRequestPresentation(
+            cards: [],
+            isLoading: true
+        )
+
+        #expect(populated.cards == cards)
+        #expect(populated.shouldShowCarousel == true)
+        #expect(populated.shouldShowEmptyText == false)
+        #expect(populated.shouldShowLoadingCard == false)
+        #expect(emptyLoading.cards.isEmpty)
+        #expect(emptyLoading.shouldShowCarousel == false)
+        #expect(emptyLoading.shouldShowEmptyText == true)
+        #expect(emptyLoading.shouldShowLoadingCard == false)
+    }
+
+    @Test @MainActor
+    func requestEmptyCopyIsSharedByHomeAndRequests() {
+        #expect(CustomerRequestEmptyCopy.title == "No Active Request")
+        #expect(
+            CustomerRequestEmptyCopy.message ==
+                "Open quests and newly confirmed booking handoffs will appear here."
+        )
+    }
+
+    @Test @MainActor
+    func requestWizardStepsMatchPrototypeProgression() {
+        #expect(CustomerRequestWizardStep.allCases.map(\.title) == [
+            "Pet",
+            "Service",
+            "Time",
+            "Details",
+            "Review",
+        ])
+        #expect(CustomerRequestWizardStep.pet.progress == 0.2)
+        #expect(CustomerRequestWizardStep.review.progress == 1)
+    }
+
+    @Test @MainActor
+    func requestWizardServiceOptionsMapToExistingServiceTypeField() {
+        #expect(CustomerRequestServiceOption.allCases.count == 6)
+        #expect(CustomerRequestServiceOption.fullGroom.title == "Full Groom")
+        #expect(CustomerRequestServiceOption.fullGroom.serviceType == "Full Groom")
+        #expect(CustomerRequestServiceOption.bathAndBrush.serviceType == "Bath & Brush")
+        #expect(CustomerRequestServiceOption.customRequest.subtitle == "Describe exactly what you need")
+    }
+
+    @Test @MainActor
+    func requestWizardTimeWindowsApplyPresetRangesToSelectedDate() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try #require(TimeZone(secondsFromGMT: 0))
+        let selectedDate = try #require(Self.isoDate("2026-06-19T12:00:00Z"))
+
+        let morning = try #require(
+            CustomerRequestTimeWindowOption.morning.range(
+                on: selectedDate,
+                calendar: calendar
+            )
+        )
+        let afternoon = try #require(
+            CustomerRequestTimeWindowOption.afternoon.range(
+                on: selectedDate,
+                calendar: calendar
+            )
+        )
+        let evening = try #require(
+            CustomerRequestTimeWindowOption.evening.range(
+                on: selectedDate,
+                calendar: calendar
+            )
+        )
+
+        #expect(Self.hourMinute(morning.start, calendar: calendar) == [6, 0])
+        #expect(Self.hourMinute(morning.end, calendar: calendar) == [11, 59])
+        #expect(Self.hourMinute(afternoon.start, calendar: calendar) == [12, 0])
+        #expect(Self.hourMinute(afternoon.end, calendar: calendar) == [16, 59])
+        #expect(Self.hourMinute(evening.start, calendar: calendar) == [17, 0])
+        #expect(Self.hourMinute(evening.end, calendar: calendar) == [21, 0])
+        #expect(
+            CustomerRequestTimeWindowOption.detailed.range(
+                on: selectedDate,
+                calendar: calendar
+            ) == nil
+        )
+    }
+
+    @Test @MainActor
+    func requestWizardFlexibleTimeUsesAllDayWindow() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try #require(TimeZone(secondsFromGMT: 0))
+        let selectedDate = try #require(Self.isoDate("2026-06-19T12:00:00Z"))
+
+        let flexible = CustomerRequestTimeWindowOption.flexibleRange(
+            on: selectedDate,
+            calendar: calendar
+        )
+
+        #expect(Self.hourMinute(flexible.start, calendar: calendar) == [0, 0])
+        #expect(Self.hourMinute(flexible.end, calendar: calendar) == [23, 59])
+    }
+
+    @Test @MainActor
+    func requestWizardTravelRangeClampsToSupportedMiles() {
+        #expect(CustomerRequestTravelRange.clampedMiles(3) == 5)
+        #expect(CustomerRequestTravelRange.clampedMiles(42) == 42)
+        #expect(CustomerRequestTravelRange.clampedMiles(120) == 100)
+    }
+
+    @Test @MainActor
+    func requestWizardReviewSummaryUsesCurrentRequestFields() {
+        let summary = CustomerRequestWizardReviewPresentation(
+            pet: "Mochi · Toy Poodle",
+            service: "Full Groom",
+            preferredTime: "Fri 19 · Afternoon",
+            location: "Mobile · Seattle, WA 98101",
+            notes: "Mochi needs a teddy-style trim."
+        )
+
+        #expect(summary.rows.map(\.title) == [
+            "Pet",
+            "Service",
+            "Preferred Time",
+            "Location",
+            "Notes",
+        ])
+        #expect(summary.rows.map(\.value) == [
+            "Mochi · Toy Poodle",
+            "Full Groom",
+            "Fri 19 · Afternoon",
+            "Mobile · Seattle, WA 98101",
+            "Mochi needs a teddy-style trim.",
+        ])
+    }
+
+    @Test @MainActor
     func bookedHandoffCardPresentationKeepsQuestSummaryAndAddsAddress() async throws {
         let customerID = UUID()
         let pet = Self.pet(customerID: customerID)
@@ -875,6 +1044,18 @@ struct CustomerRequestsStoreTests {
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.dateFormat = "MMM d 'at' h:mm a"
         return formatter.string(from: date)
+    }
+
+    private static func isoDate(_ value: String) -> Date? {
+        ISO8601DateFormatter().date(from: value)
+    }
+
+    private static func hourMinute(_ date: Date, calendar: Calendar) -> [Int] {
+        let components = calendar.dateComponents([.hour, .minute], from: date)
+        return [
+            components.hour ?? -1,
+            components.minute ?? -1,
+        ]
     }
 
     private static func offerReview(

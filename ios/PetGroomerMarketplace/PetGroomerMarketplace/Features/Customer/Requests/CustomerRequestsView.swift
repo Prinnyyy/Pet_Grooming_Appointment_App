@@ -226,6 +226,40 @@ private struct CustomerRequestProgressCarousel: View {
     }
 }
 
+struct CustomerRequestActionCardSummaryCarousel: View {
+    let cards: [CustomerRequestActionCardItem]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            ScrollView(.horizontal) {
+                LazyHStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
+                    ForEach(cards) { card in
+                        CustomerRequestActionCardSummary(card: card)
+                            .containerRelativeFrame(.horizontal) { length, _ in
+                                length
+                            }
+                    }
+                }
+                .scrollTargetLayout()
+            }
+            .contentMargins(.horizontal, DesignTokens.Spacing.screenHorizontal, for: .scrollContent)
+            .padding(.horizontal, -DesignTokens.Spacing.screenHorizontal)
+            .padding(.vertical, DesignTokens.Spacing.sm)
+            .scrollIndicators(.hidden)
+            .scrollClipDisabled()
+            .scrollTargetBehavior(.viewAligned)
+
+            if cards.count > 1 {
+                Label("Swipe to Review Another Request", systemImage: "arrow.left.and.right")
+                    .font(DesignTokens.Typography.caption)
+                    .foregroundStyle(DesignTokens.Colors.textTertiary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .accessibilityIdentifier("customer.requests.summary-carousel-hint")
+            }
+        }
+    }
+}
+
 struct CustomerRequestActionCardSummary: View {
     let card: CustomerRequestActionCardItem
 
@@ -924,12 +958,17 @@ private struct CustomerRequestActionLabel: View {
 private struct CustomerRequestsEmptyDashboard: View {
     var body: some View {
         GroomlyEmptyState(
-            title: "No Requests Yet",
-            message: "Start a grooming quest from Home. Published requests and their progress will appear here.",
+            title: CustomerRequestEmptyCopy.title,
+            message: CustomerRequestEmptyCopy.message,
             systemImage: "doc.text.magnifyingglass",
             accent: .customer
         )
     }
+}
+
+enum CustomerRequestEmptyCopy {
+    static let title = "No Active Request"
+    static let message = "Open quests and newly confirmed booking handoffs will appear here."
 }
 
 private extension CustomerGroomingRequest {
@@ -1748,8 +1787,284 @@ private extension GroomerOfferStatus {
     }
 }
 
+enum CustomerRequestWizardStep: Int, CaseIterable, Identifiable {
+    case pet
+    case service
+    case time
+    case details
+    case review
+
+    var id: Self { self }
+
+    var title: String {
+        switch self {
+        case .pet:
+            "Pet"
+        case .service:
+            "Service"
+        case .time:
+            "Time"
+        case .details:
+            "Details"
+        case .review:
+            "Review"
+        }
+    }
+
+    var headline: String {
+        switch self {
+        case .pet:
+            "Who Needs Grooming?"
+        case .service:
+            "What Service Do You Need?"
+        case .time:
+            "When Works Best?"
+        case .details:
+            "Add Helpful Details"
+        case .review:
+            "Review Your Request"
+        }
+    }
+
+    var subtitle: String? {
+        switch self {
+        case .pet:
+            "Choose the pet this request is for."
+        case .service:
+            nil
+        case .time:
+            "Choose a preferred time. Groomers can also suggest alternatives."
+        case .details:
+            nil
+        case .review:
+            nil
+        }
+    }
+
+    var progress: Double {
+        Double(rawValue + 1) / Double(Self.allCases.count)
+    }
+
+    var previous: Self? {
+        Self(rawValue: rawValue - 1)
+    }
+
+    var next: Self? {
+        Self(rawValue: rawValue + 1)
+    }
+}
+
+enum CustomerRequestServiceOption: String, CaseIterable, Identifiable {
+    case fullGroom
+    case bathAndBrush
+    case haircutOnly
+    case nailTrim
+    case deShedding
+    case customRequest
+
+    var id: Self { self }
+
+    var title: String {
+        switch self {
+        case .fullGroom:
+            "Full Groom"
+        case .bathAndBrush:
+            "Bath & Brush"
+        case .haircutOnly:
+            "Haircut Only"
+        case .nailTrim:
+            "Nail Trim"
+        case .deShedding:
+            "De-shedding"
+        case .customRequest:
+            "Custom Request"
+        }
+    }
+
+    var subtitle: String {
+        switch self {
+        case .fullGroom:
+            "Bath, haircut, nail trim, ear cleaning"
+        case .bathAndBrush:
+            "Bath, blow dry, brushing"
+        case .haircutOnly:
+            "Trim and style shaping"
+        case .nailTrim:
+            "Quick clip and file"
+        case .deShedding:
+            "Deshed treatment and blow out"
+        case .customRequest:
+            "Describe exactly what you need"
+        }
+    }
+
+    var serviceType: String {
+        title
+    }
+}
+
+enum CustomerRequestTimeWindowOption: String, CaseIterable, Identifiable {
+    case morning
+    case afternoon
+    case evening
+    case detailed
+
+    var id: Self { self }
+
+    var title: String {
+        switch self {
+        case .morning:
+            "Morning"
+        case .afternoon:
+            "Afternoon"
+        case .evening:
+            "Evening"
+        case .detailed:
+            "Detailed Time"
+        }
+    }
+
+    func range(
+        on date: Date,
+        calendar: Calendar = .current
+    ) -> (start: Date, end: Date)? {
+        switch self {
+        case .morning:
+            Self.range(
+                on: date,
+                startHour: 6,
+                startMinute: 0,
+                endHour: 11,
+                endMinute: 59,
+                calendar: calendar
+            )
+        case .afternoon:
+            Self.range(
+                on: date,
+                startHour: 12,
+                startMinute: 0,
+                endHour: 16,
+                endMinute: 59,
+                calendar: calendar
+            )
+        case .evening:
+            Self.range(
+                on: date,
+                startHour: 17,
+                startMinute: 0,
+                endHour: 21,
+                endMinute: 0,
+                calendar: calendar
+            )
+        case .detailed:
+            nil
+        }
+    }
+
+    static func flexibleRange(
+        on date: Date,
+        calendar: Calendar = .current
+    ) -> (start: Date, end: Date) {
+        range(
+            on: date,
+            startHour: 0,
+            startMinute: 0,
+            endHour: 23,
+            endMinute: 59,
+            calendar: calendar
+        )
+    }
+
+    private static func range(
+        on date: Date,
+        startHour: Int,
+        startMinute: Int,
+        endHour: Int,
+        endMinute: Int,
+        calendar: Calendar
+    ) -> (start: Date, end: Date) {
+        let start = calendar.date(
+            bySettingHour: startHour,
+            minute: startMinute,
+            second: 0,
+            of: date
+        ) ?? date
+        let end = calendar.date(
+            bySettingHour: endHour,
+            minute: endMinute,
+            second: 0,
+            of: date
+        ) ?? start.addingTimeInterval(60 * 60)
+        return (start, end)
+    }
+}
+
+enum CustomerRequestTravelRange {
+    static let minimumMiles = 5
+    static let maximumMiles = 100
+
+    static func clampedMiles(_ value: Double) -> Int {
+        min(
+            maximumMiles,
+            max(minimumMiles, Int(value.rounded()))
+        )
+    }
+}
+
+struct CustomerRequestWizardReviewPresentation: Equatable {
+    struct Row: Equatable, Identifiable {
+        let title: String
+        let value: String
+
+        var id: String { title }
+    }
+
+    let rows: [Row]
+
+    init(
+        pet: String,
+        service: String,
+        preferredTime: String,
+        location: String,
+        notes: String
+    ) {
+        rows = [
+            Row(title: "Pet", value: pet),
+            Row(title: "Service", value: service),
+            Row(title: "Preferred Time", value: preferredTime),
+            Row(title: "Location", value: location),
+            Row(title: "Notes", value: notes),
+        ]
+    }
+}
+
 struct CustomerRequestWizardView: View {
     @Bindable var store: CustomerRequestsStore
+
+    private let onAddPet: (() -> Void)?
+    @State private var currentStep: CustomerRequestWizardStep = .pet
+    @State private var selectedServiceOption: CustomerRequestServiceOption?
+    @State private var selectedDate: Date
+    @State private var selectedTimeWindow: CustomerRequestTimeWindowOption = .afternoon
+    @State private var isFlexibleWithTime = false
+    @State private var locationMode: CustomerRequestLocationMode = .comeToMe
+    @State private var streetAddress = ""
+    @State private var travelRangeMiles: Double = 15
+    @State private var hasPhotoPlaceholder = false
+
+    init(
+        store: CustomerRequestsStore,
+        onAddPet: (() -> Void)? = nil
+    ) {
+        self.store = store
+        self.onAddPet = onAddPet
+        _selectedDate = State(initialValue: store.preferredStart)
+        _selectedServiceOption = State(
+            initialValue: CustomerRequestServiceOption.allCases.first {
+                $0.serviceType == store.serviceType
+            }
+        )
+    }
 
     var body: some View {
         NavigationStack {
@@ -1758,17 +2073,29 @@ struct CustomerRequestWizardView: View {
                     .ignoresSafeArea()
 
                 ScrollView {
-                    LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                        GroomlySectionHeader(
-                            "Request Details",
-                            subtitle: "Share the basics so matched groomers can make accurate offers."
+                    LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
+                        CustomerRequestWizardHeader(
+                            currentStep: currentStep,
+                            backAction: back
                         )
 
-                        petCard
-                        serviceCard
-                        preferredTimeCard
-                        locationCard
-                        reviewCard
+                        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                            Text(currentStep.headline)
+                                .font(DesignTokens.Typography.largeTitle)
+                                .foregroundStyle(DesignTokens.Colors.textPrimary)
+                                .lineLimit(2)
+                                .minimumScaleFactor(0.72)
+                                .fixedSize(horizontal: false, vertical: true)
+
+                            if let subtitle = currentStep.subtitle {
+                                Text(subtitle)
+                                    .font(DesignTokens.Typography.body)
+                                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
+
+                        stepContent
 
                         if let errorMessage = store.errorMessage {
                             GroomlyErrorBanner(
@@ -1777,198 +2104,338 @@ struct CustomerRequestWizardView: View {
                             )
                             .accessibilityIdentifier("customer.requests.form-error")
                         }
-
-                        Button {
-                            publish()
-                        } label: {
-                            Label(
-                                store.isSubmitting ? "Publishing…" : "Publish Request",
-                                systemImage: "paperplane.fill"
-                            )
-                        }
-                        .buttonStyle(GroomlyPrimaryButtonStyle())
-                        .disabled(store.isSubmitting || store.pets.isEmpty)
                     }
                     .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
                     .padding(.top, DesignTokens.Spacing.lg)
-                    .padding(.bottom, DesignTokens.Spacing.xl)
+                    .padding(.bottom, 128)
                 }
                 .scrollContentBackground(.hidden)
                 .scrollDismissesKeyboard(.interactively)
             }
-            .tint(DesignTokens.Colors.customerPrimaryDark)
-            .navigationTitle("New Request")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        store.cancelWizard()
-                    }
-                    .disabled(store.isSubmitting)
-                }
-
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Publish") {
-                        publish()
-                    }
-                    .disabled(store.isSubmitting || store.pets.isEmpty)
-                    .accessibilityIdentifier("customer.requests.publish")
-                }
+            .safeAreaInset(edge: .bottom) {
+                CustomerRequestWizardBottomBar(
+                    currentStep: currentStep,
+                    isSubmitting: store.isSubmitting,
+                    canContinue: canContinue,
+                    backAction: back,
+                    continueAction: continueForward
+                )
             }
+            .tint(DesignTokens.Colors.customerPrimaryDark)
+            .toolbar(.hidden, for: .navigationBar)
         }
         .interactiveDismissDisabled(store.isSubmitting)
+        .presentationDetents([.large])
+        .presentationDragIndicator(.hidden)
+        .onAppear {
+            applyInitialDefaults()
+        }
+        .accessibilityIdentifier("customer.requests.wizard")
     }
 
-    private var petCard: some View {
-        GroomlyCard {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                WizardCardHeader(
-                    title: "Pet",
-                    subtitle: "Choose the pet this request is for.",
-                    systemImage: "pawprint.fill"
+    @ViewBuilder
+    private var stepContent: some View {
+        switch currentStep {
+        case .pet:
+            petStep
+        case .service:
+            serviceStep
+        case .time:
+            timeStep
+        case .details:
+            detailsStep
+        case .review:
+            reviewStep
+        }
+    }
+
+    private var petStep: some View {
+        VStack(spacing: DesignTokens.Spacing.lg) {
+            ForEach(store.pets) { pet in
+                CustomerRequestPetChoiceCard(
+                    pet: pet,
+                    isSelected: store.selectedPetID == pet.id
+                ) {
+                    store.selectedPetID = pet.id
+                }
+            }
+
+            CustomerRequestAddPetButton {
+                addPet()
+            }
+            .disabled(onAddPet == nil)
+
+            if store.pets.isEmpty {
+                GroomlyStatusChip(
+                    "Add a Pet Before Continuing",
+                    systemImage: "pawprint",
+                    tone: .warning
                 )
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+    }
 
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                    Picker("Pet", selection: $store.selectedPetID) {
-                        ForEach(store.pets) { pet in
-                            Text(pet.name)
-                                .tag(Optional(pet.id))
+    private var serviceStep: some View {
+        VStack(spacing: DesignTokens.Spacing.md) {
+            ForEach(CustomerRequestServiceOption.allCases) { option in
+                CustomerRequestServiceOptionCard(
+                    option: option,
+                    isSelected: selectedServiceOption == option
+                ) {
+                    selectedServiceOption = option
+                    store.serviceType = option.serviceType
+                }
+            }
+        }
+    }
+
+    private var timeStep: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
+            CustomerRequestDateStrip(
+                selectedDate: selectedDate
+            ) { date in
+                selectedDate = date
+                applySelectedTimeWindow()
+            }
+
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                Text("Time Window")
+                    .font(DesignTokens.Typography.headline)
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+
+                CustomerRequestTimeWindowGrid(
+                    selectedTimeWindow: selectedTimeWindow,
+                    isFlexibleWithTime: isFlexibleWithTime
+                ) { option in
+                    selectedTimeWindow = option
+                    isFlexibleWithTime = false
+                    applySelectedTimeWindow()
+                }
+
+                if selectedTimeWindow == .detailed && !isFlexibleWithTime {
+                    CustomerRequestDetailedTimeFields(
+                        preferredStart: $store.preferredStart,
+                        preferredEnd: $store.preferredEnd
+                    )
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+                }
+
+                CustomerRequestFlexibleTimeToggle(
+                    isOn: Binding(
+                        get: { isFlexibleWithTime },
+                        set: { newValue in
+                            isFlexibleWithTime = newValue
+                            applySelectedTimeWindow()
                         }
-                    }
-                    .pickerStyle(.menu)
-                    .groomlyFormField()
+                    )
+                )
+            }
 
-                    if store.pets.isEmpty {
-                        GroomlyStatusChip(
-                            "Add a Pet on Home First",
-                            systemImage: "pawprint",
-                            tone: .warning
-                        )
+            locationSection
+        }
+        .animation(.easeInOut(duration: 0.2), value: selectedTimeWindow)
+        .animation(.easeInOut(duration: 0.2), value: isFlexibleWithTime)
+    }
+
+    private var locationSection: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            Text("Location")
+                .font(DesignTokens.Typography.headline)
+                .foregroundStyle(DesignTokens.Colors.textPrimary)
+
+            ForEach(CustomerRequestLocationMode.allCases) { mode in
+                CustomerRequestLocationModeCard(
+                    mode: mode,
+                    isSelected: locationMode == mode
+                ) {
+                    locationMode = mode
+                }
+            }
+
+            CustomerRequestAddressFields(
+                streetAddress: $streetAddress,
+                city: $store.city,
+                state: $store.state,
+                zipCode: $store.zipCode,
+                locationMode: locationMode,
+                travelRangeMiles: $travelRangeMiles
+            )
+        }
+    }
+
+    private var detailsStep: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                Text("Notes To Groomers")
+                    .font(DesignTokens.Typography.headline)
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+
+                TextField("Share coat goals, sensitivities, or handling notes.", text: $store.serviceNotes, axis: .vertical)
+                    .lineLimit(5...8)
+                    .groomlyFormField()
+            }
+
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                Text("Photos")
+                    .font(DesignTokens.Typography.headline)
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+
+                HStack(spacing: DesignTokens.Spacing.md) {
+                    if let pet = store.selectedPet {
+                        CustomerRequestPhotoPreviewTile(pet: pet)
+                    }
+
+                    CustomerRequestAddPhotoTile(isSelected: hasPhotoPlaceholder) {
+                        hasPhotoPlaceholder.toggle()
                     }
                 }
             }
         }
     }
 
-    private var serviceCard: some View {
-        GroomlyCard {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                WizardCardHeader(
-                    title: "Service",
-                    subtitle: "Describe the grooming help your pet needs.",
-                    systemImage: "scissors"
-                )
+    private var reviewStep: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
+            GroomlyCard(padding: DesignTokens.Spacing.xl) {
+                VStack(spacing: 0) {
+                    ForEach(reviewPresentation.rows) { row in
+                        CustomerRequestWizardReviewRow(row: row)
 
-                TextField("Service Type", text: $store.serviceType)
-                    .textContentType(.none)
-                    .groomlyFormField()
-
-                TextField("Notes", text: $store.serviceNotes, axis: .vertical)
-                    .lineLimit(3...6)
-                    .groomlyFormField()
+                        if row.id != reviewPresentation.rows.last?.id {
+                            Divider()
+                                .overlay(DesignTokens.Colors.borderSoft)
+                        }
+                    }
+                }
             }
+
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                Label("How Matching Works", systemImage: "info.circle")
+                    .font(DesignTokens.Typography.headline)
+                    .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
+
+                Text("Your request will be shown to groomers who fit your pet, service, and preferred time. Groomers can send offers or suggest another time.")
+                    .font(DesignTokens.Typography.body)
+                    .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(DesignTokens.Spacing.lg)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(DesignTokens.Colors.customerPrimary.opacity(0.12))
+            .clipShape(
+                RoundedRectangle(
+                    cornerRadius: DesignTokens.CornerRadius.card,
+                    style: .continuous
+                )
+            )
+
+            Label(
+                "Your contact details stay hidden until you accept an offer.",
+                systemImage: "lock"
+            )
+            .font(DesignTokens.Typography.body)
+            .foregroundStyle(DesignTokens.Colors.textSecondary)
+            .fixedSize(horizontal: false, vertical: true)
         }
     }
 
-    private var preferredTimeCard: some View {
-        GroomlyCard {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                WizardCardHeader(
-                    title: "Preferred Time",
-                    subtitle: "Pick the service window you want groomers to offer around.",
-                    systemImage: "calendar"
-                )
+    private var canContinue: Bool {
+        guard !store.isSubmitting else { return false }
 
-                DatePicker(
-                    "Start",
-                    selection: $store.preferredStart,
-                    displayedComponents: [.date, .hourAndMinute]
-                )
-                .font(DesignTokens.Typography.body)
-                .foregroundStyle(DesignTokens.Colors.textPrimary)
-                .groomlyFormField()
-
-                DatePicker(
-                    "End",
-                    selection: $store.preferredEnd,
-                    displayedComponents: [.date, .hourAndMinute]
-                )
-                .font(DesignTokens.Typography.body)
-                .foregroundStyle(DesignTokens.Colors.textPrimary)
-                .groomlyFormField()
-            }
+        switch currentStep {
+        case .pet:
+            return store.selectedPetID != nil
+        case .service:
+            return !store.serviceType.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        case .time:
+            return store.preferredEnd > store.preferredStart
+        case .details:
+            return true
+        case .review:
+            return !store.pets.isEmpty
         }
     }
 
-    private var locationCard: some View {
-        GroomlyCard {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                WizardCardHeader(
-                    title: "Location",
-                    subtitle: "Use the city, state, and ZIP where the appointment should happen.",
-                    systemImage: "mappin.and.ellipse"
-                )
+    private var reviewPresentation: CustomerRequestWizardReviewPresentation {
+        CustomerRequestWizardReviewPresentation(
+            pet: reviewPetSummary,
+            service: requiredSummary(store.serviceType),
+            preferredTime: reviewPreferredTimeSummary,
+            location: reviewLocationSummary,
+            notes: notesSummary
+        )
+    }
 
-                TextField("City", text: $store.city)
-                    .textContentType(.addressCity)
-                    .groomlyFormField()
-
-                TextField("State", text: $store.state)
-                    .textContentType(.addressState)
-                    .groomlyFormField()
-
-                TextField("ZIP Code", text: $store.zipCode)
-                    .textContentType(.postalCode)
-                    .keyboardType(.numbersAndPunctuation)
-                    .groomlyFormField()
-            }
+    private var reviewPetSummary: String {
+        guard let pet = store.selectedPet else {
+            return "Choose A Pet"
         }
-    }
 
-    private var reviewCard: some View {
-        GroomlyCard {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                WizardCardHeader(
-                    title: "Review",
-                    subtitle: "Check the request before publishing it to matched groomers.",
-                    systemImage: "checklist"
-                )
-
-                WizardReviewRow(
-                    title: "Pet",
-                    value: store.selectedPet?.name ?? "Choose a pet",
-                    isMissing: store.selectedPet == nil
-                )
-
-                WizardReviewRow(
-                    title: "Service",
-                    value: serviceSummary,
-                    isMissing: serviceSummary == "Required"
-                )
-
-                WizardReviewRow(
-                    title: "Location",
-                    value: reviewLocation,
-                    isMissing: reviewLocation == "Required"
-                )
-            }
+        let breed = pet.breed?.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let breed, !breed.isEmpty {
+            return "\(pet.name) · \(breed)"
         }
+
+        return "\(pet.name) · \(pet.species)"
     }
 
-    private var serviceSummary: String {
-        let service = store.serviceType.trimmingCharacters(in: .whitespacesAndNewlines)
-        return service.isEmpty ? "Required" : service
+    private var reviewPreferredTimeSummary: String {
+        let day = CustomerRequestWizardDateFormatting.daySummary(selectedDate)
+        if isFlexibleWithTime {
+            return "\(day) · Flexible"
+        }
+
+        if selectedTimeWindow == .detailed {
+            return CustomerRequestWizardDateFormatting.compactRange(
+                from: store.preferredStart,
+                to: store.preferredEnd
+            )
+        }
+
+        return "\(day) · \(selectedTimeWindow.title)"
     }
 
-    private var reviewLocation: String {
-        let parts = [
+    private var reviewLocationSummary: String {
+        let location = [
             store.city.trimmingCharacters(in: .whitespacesAndNewlines),
             store.state.trimmingCharacters(in: .whitespacesAndNewlines),
             store.zipCode.trimmingCharacters(in: .whitespacesAndNewlines),
         ]
         .filter { !$0.isEmpty }
+        .joined(separator: ", ")
 
-        return parts.isEmpty ? "Required" : parts.joined(separator: ", ")
+        let prefix = locationMode == .comeToMe ? "Mobile" : "Visit"
+        return location.isEmpty ? "\(prefix) · Required" : "\(prefix) · \(location)"
+    }
+
+    private var notesSummary: String {
+        let notes = store.serviceNotes.trimmingCharacters(in: .whitespacesAndNewlines)
+        return notes.isEmpty ? "No Notes Added" : notes
+    }
+
+    private func requiredSummary(_ value: String) -> String {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? "Required" : trimmed
+    }
+
+    private func back() {
+        guard !store.isSubmitting else { return }
+
+        if let previous = currentStep.previous {
+            currentStep = previous
+        } else {
+            store.cancelWizard()
+        }
+    }
+
+    private func continueForward() {
+        guard canContinue else { return }
+
+        if currentStep == .review {
+            publish()
+        } else if let next = currentStep.next {
+            currentStep = next
+        }
     }
 
     private func publish() {
@@ -1976,65 +2443,843 @@ struct CustomerRequestWizardView: View {
             await store.publish()
         }
     }
+
+    private func addPet() {
+        guard let onAddPet else { return }
+        onAddPet()
+    }
+
+    private func applyInitialDefaults() {
+        if selectedServiceOption == nil,
+           let option = CustomerRequestServiceOption.allCases.first(
+               where: { $0.serviceType == store.serviceType }
+           ) {
+            selectedServiceOption = option
+        }
+
+        if store.serviceType.isEmpty {
+            selectedServiceOption = .fullGroom
+            store.serviceType = CustomerRequestServiceOption.fullGroom.serviceType
+        }
+
+        applySelectedTimeWindow()
+    }
+
+    private func applySelectedTimeWindow() {
+        if isFlexibleWithTime {
+            let range = CustomerRequestTimeWindowOption.flexibleRange(on: selectedDate)
+            store.preferredStart = range.start
+            store.preferredEnd = range.end
+            return
+        }
+
+        guard let range = selectedTimeWindow.range(on: selectedDate) else {
+            store.preferredStart = CustomerRequestWizardDateFormatting.date(
+                matchingTimeOf: store.preferredStart,
+                on: selectedDate
+            )
+            store.preferredEnd = CustomerRequestWizardDateFormatting.date(
+                matchingTimeOf: store.preferredEnd,
+                on: selectedDate
+            )
+            return
+        }
+
+        store.preferredStart = range.start
+        store.preferredEnd = range.end
+    }
 }
 
-private struct WizardCardHeader: View {
-    let title: String
-    let subtitle: String
-    let systemImage: String
+private enum CustomerRequestLocationMode: CaseIterable, Identifiable {
+    case comeToMe
+    case visitGroomer
 
-    var body: some View {
-        HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
-            Image(systemName: systemImage)
-                .font(DesignTokens.Typography.headline)
-                .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
-                .frame(width: 36, height: 36)
-                .background(DesignTokens.Colors.customerPrimary.opacity(0.14))
-                .clipShape(DesignTokens.Shapes.circular)
-                .accessibilityHidden(true)
+    var id: Self { self }
 
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                Text(title)
-                    .font(DesignTokens.Typography.headline)
-                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+    var icon: String {
+        switch self {
+        case .comeToMe:
+            "🚐"
+        case .visitGroomer:
+            "🏠"
+        }
+    }
 
-                Text(subtitle)
-                    .font(DesignTokens.Typography.caption)
-                    .foregroundStyle(DesignTokens.Colors.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
+    var title: String {
+        switch self {
+        case .comeToMe:
+            "Mobile Groomer Comes To Me"
+        case .visitGroomer:
+            "I Can Visit The Groomer"
         }
     }
 }
 
-private struct WizardReviewRow: View {
-    let title: String
-    let value: String
-    let isMissing: Bool
+private enum CustomerRequestWizardDateFormatting {
+    static func daySummary(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "EEE d"
+        return formatter.string(from: date)
+    }
+
+    static func compactRange(from start: Date, to end: Date) -> String {
+        "\(compactDateTime(start)) - \(compactDateTime(end))"
+    }
+
+    static func compactDateTime(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "MMM d 'at' h:mm a"
+        return formatter.string(from: date)
+    }
+
+    static func date(
+        matchingTimeOf source: Date,
+        on selectedDate: Date,
+        calendar: Calendar = .current
+    ) -> Date {
+        let time = calendar.dateComponents([.hour, .minute], from: source)
+        return calendar.date(
+            bySettingHour: time.hour ?? 12,
+            minute: time.minute ?? 0,
+            second: 0,
+            of: selectedDate
+        ) ?? selectedDate
+    }
+}
+
+private struct CustomerRequestWizardHeader: View {
+    let currentStep: CustomerRequestWizardStep
+    let backAction: () -> Void
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.md) {
-            Text(title)
-                .font(DesignTokens.Typography.caption.weight(.semibold))
-                .foregroundStyle(DesignTokens.Colors.textSecondary)
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            HStack(spacing: DesignTokens.Spacing.md) {
+                Button(action: backAction) {
+                    Image(systemName: "chevron.left")
+                        .font(.title3.weight(.bold))
+                        .foregroundStyle(DesignTokens.Colors.textPrimary)
+                        .frame(width: 54, height: 54)
+                        .background(DesignTokens.Colors.surface)
+                        .clipShape(
+                            RoundedRectangle(
+                                cornerRadius: DesignTokens.CornerRadius.input,
+                                style: .continuous
+                            )
+                        )
+                        .overlay {
+                            RoundedRectangle(
+                                cornerRadius: DesignTokens.CornerRadius.input,
+                                style: .continuous
+                            )
+                            .stroke(DesignTokens.Colors.borderSoft, lineWidth: 1)
+                        }
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Back")
 
-            Spacer(minLength: DesignTokens.Spacing.md)
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                    Text("Grooming Request")
+                        .font(DesignTokens.Typography.body.weight(.bold))
+                        .foregroundStyle(DesignTokens.Colors.textTertiary)
 
-            if isMissing {
-                GroomlyStatusChip(
-                    value,
-                    systemImage: "exclamationmark.circle",
-                    tone: .warning
+                    GeometryReader { proxy in
+                        ZStack(alignment: .leading) {
+                            Capsule()
+                                .fill(DesignTokens.Colors.border.opacity(0.8))
+
+                            Capsule()
+                                .fill(
+                                    LinearGradient(
+                                        colors: [
+                                            DesignTokens.Colors.customerPrimary,
+                                            DesignTokens.Colors.customerPrimary.opacity(0.6),
+                                        ],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .frame(width: proxy.size.width * currentStep.progress)
+                        }
+                    }
+                    .frame(height: 8)
+                }
+            }
+
+            HStack {
+                ForEach(CustomerRequestWizardStep.allCases) { step in
+                    Text(step.title)
+                        .font(DesignTokens.Typography.caption.weight(.bold))
+                        .foregroundStyle(labelColor(for: step))
+                        .frame(maxWidth: .infinity)
+                }
+            }
+            .padding(.top, DesignTokens.Spacing.xs)
+        }
+    }
+
+    private func labelColor(for step: CustomerRequestWizardStep) -> Color {
+        if step == currentStep {
+            return DesignTokens.Colors.customerPrimaryDark
+        }
+
+        if step.rawValue < currentStep.rawValue {
+            return DesignTokens.Colors.textPrimary
+        }
+
+        return DesignTokens.Colors.textSecondary
+    }
+}
+
+private struct CustomerRequestWizardBottomBar: View {
+    let currentStep: CustomerRequestWizardStep
+    let isSubmitting: Bool
+    let canContinue: Bool
+    let backAction: () -> Void
+    let continueAction: () -> Void
+
+    var body: some View {
+        HStack(spacing: DesignTokens.Spacing.md) {
+            Button("Back", action: backAction)
+                .buttonStyle(GroomlySecondaryButtonStyle(accent: .neutral))
+                .frame(width: 132)
+                .disabled(isSubmitting)
+
+            Button(action: continueAction) {
+                Text(primaryTitle)
+            }
+            .buttonStyle(GroomlyPrimaryButtonStyle())
+            .disabled(!canContinue)
+            .accessibilityIdentifier(
+                currentStep == .review
+                    ? "customer.requests.publish"
+                    : "customer.requests.wizard.continue"
+            )
+        }
+        .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+        .padding(.top, DesignTokens.Spacing.md)
+        .padding(.bottom, DesignTokens.Spacing.md)
+        .background(
+            LinearGradient(
+                colors: [
+                    DesignTokens.Colors.background.opacity(0.2),
+                    DesignTokens.Colors.background,
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea()
+        )
+    }
+
+    private var primaryTitle: String {
+        if isSubmitting {
+            return "Publishing..."
+        }
+
+        return currentStep == .review ? "Publish Request" : "Continue"
+    }
+}
+
+private struct CustomerRequestPetChoiceCard: View {
+    let pet: CustomerPet
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: DesignTokens.Spacing.lg) {
+                CustomerRequestWizardPetAvatar(pet: pet, size: 84)
+
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                    Text(pet.name)
+                        .font(.title3.weight(.bold))
+                        .foregroundStyle(DesignTokens.Colors.textPrimary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.82)
+
+                    Text(subtitle)
+                        .font(DesignTokens.Typography.body)
+                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.82)
+                }
+
+                Spacer(minLength: DesignTokens.Spacing.sm)
+
+                if isSelected {
+                    Image(systemName: "checkmark")
+                        .font(.headline.weight(.bold))
+                        .foregroundStyle(DesignTokens.Colors.surface)
+                        .frame(width: 42, height: 42)
+                        .background(DesignTokens.Colors.customerPrimary)
+                        .clipShape(Circle())
+                }
+            }
+            .padding(DesignTokens.Spacing.lg)
+            .frame(maxWidth: .infinity, minHeight: 128, alignment: .leading)
+            .background(DesignTokens.Colors.surface)
+            .clipShape(
+                RoundedRectangle(
+                    cornerRadius: DesignTokens.CornerRadius.card,
+                    style: .continuous
                 )
-            } else {
-                Text(value)
-                    .font(DesignTokens.Typography.body.weight(.semibold))
-                    .foregroundStyle(DesignTokens.Colors.textPrimary)
-                    .multilineTextAlignment(.trailing)
-                    .fixedSize(horizontal: false, vertical: true)
+            )
+            .overlay {
+                RoundedRectangle(
+                    cornerRadius: DesignTokens.CornerRadius.card,
+                    style: .continuous
+                )
+                .stroke(
+                    isSelected ? DesignTokens.Colors.customerPrimary : DesignTokens.Colors.border,
+                    lineWidth: isSelected ? 2 : 1
+                )
+            }
+            .groomlyShadow(DesignTokens.Shadows.smallCard)
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("customer.requests.wizard.pet-card")
+    }
+
+    private var subtitle: String {
+        let breed = pet.breed?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let breedText = breed?.isEmpty == false ? breed ?? pet.species : pet.species
+        if let weight = pet.weightLbs {
+            return "\(breedText) · \(weight.formatted(.number.precision(.fractionLength(0...1)))) lbs"
+        }
+
+        return breedText
+    }
+}
+
+private struct CustomerRequestAddPetButton: View {
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: DesignTokens.Spacing.md) {
+                Image(systemName: "plus")
+                    .font(.title3.weight(.semibold))
+
+                Text("Add A New Pet")
+                    .font(DesignTokens.Typography.body.weight(.bold))
+            }
+            .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
+            .frame(maxWidth: .infinity, minHeight: 78)
+            .background(DesignTokens.Colors.surface.opacity(0.5))
+            .clipShape(
+                RoundedRectangle(
+                    cornerRadius: DesignTokens.CornerRadius.card,
+                    style: .continuous
+                )
+            )
+            .overlay {
+                RoundedRectangle(
+                    cornerRadius: DesignTokens.CornerRadius.card,
+                    style: .continuous
+                )
+                .stroke(
+                    DesignTokens.Colors.border,
+                    style: StrokeStyle(lineWidth: 1.5, dash: [6, 4])
+                )
             }
         }
-        .padding(.vertical, DesignTokens.Spacing.xs)
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("customer.requests.wizard.add-pet")
+    }
+}
+
+private struct CustomerRequestServiceOptionCard: View {
+    let option: CustomerRequestServiceOption
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: DesignTokens.Spacing.lg) {
+                Image(systemName: "scissors")
+                    .font(.title3.weight(.bold))
+                    .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
+                    .frame(width: 64, height: 64)
+                    .background(DesignTokens.Colors.customerPrimary.opacity(0.12))
+                    .clipShape(
+                        RoundedRectangle(
+                            cornerRadius: DesignTokens.CornerRadius.input,
+                            style: .continuous
+                        )
+                    )
+
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                    Text(option.title)
+                        .font(.title3.weight(.bold))
+                        .foregroundStyle(DesignTokens.Colors.textPrimary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.78)
+
+                    Text(option.subtitle)
+                        .font(DesignTokens.Typography.body)
+                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Spacer(minLength: DesignTokens.Spacing.xs)
+            }
+            .padding(DesignTokens.Spacing.lg)
+            .frame(maxWidth: .infinity, minHeight: 104, alignment: .leading)
+            .background(DesignTokens.Colors.surface)
+            .clipShape(
+                RoundedRectangle(
+                    cornerRadius: DesignTokens.CornerRadius.card,
+                    style: .continuous
+                )
+            )
+            .overlay {
+                RoundedRectangle(
+                    cornerRadius: DesignTokens.CornerRadius.card,
+                    style: .continuous
+                )
+                .stroke(
+                    isSelected ? DesignTokens.Colors.customerPrimary : DesignTokens.Colors.border,
+                    lineWidth: isSelected ? 2 : 1
+                )
+            }
+            .groomlyShadow(DesignTokens.Shadows.smallCard)
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("customer.requests.wizard.service-card")
+    }
+}
+
+private struct CustomerRequestDateStrip: View {
+    let selectedDate: Date
+    let onSelect: (Date) -> Void
+
+    var body: some View {
+        ScrollView(.horizontal) {
+            LazyHStack(spacing: DesignTokens.Spacing.md) {
+                ForEach(dateOptions, id: \.self) { date in
+                    Button {
+                        onSelect(date)
+                    } label: {
+                        VStack(spacing: DesignTokens.Spacing.xs) {
+                            Text(dayName(date))
+                                .font(DesignTokens.Typography.caption.weight(.bold))
+
+                            Text(dayNumber(date))
+                                .font(.title2.weight(.bold))
+                        }
+                        .foregroundStyle(isSelected(date) ? DesignTokens.Colors.surface : DesignTokens.Colors.textPrimary)
+                        .frame(width: 76, height: 92)
+                        .background(
+                            RoundedRectangle(
+                                cornerRadius: DesignTokens.CornerRadius.button,
+                                style: .continuous
+                            )
+                            .fill(isSelected(date) ? DesignTokens.Colors.customerPrimary : DesignTokens.Colors.surface)
+                        )
+                        .overlay {
+                            RoundedRectangle(
+                                cornerRadius: DesignTokens.CornerRadius.button,
+                                style: .continuous
+                            )
+                            .stroke(
+                                isSelected(date) ? DesignTokens.Colors.customerPrimary : DesignTokens.Colors.border,
+                                lineWidth: 1.2
+                            )
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.vertical, DesignTokens.Spacing.xs)
+        }
+        .scrollIndicators(.hidden)
+        .padding(.horizontal, -DesignTokens.Spacing.screenHorizontal)
+        .contentMargins(.horizontal, DesignTokens.Spacing.screenHorizontal, for: .scrollContent)
+    }
+
+    private var dateOptions: [Date] {
+        let calendar = Calendar.current
+        let start = calendar.startOfDay(for: Date())
+        return (0..<7).compactMap {
+            calendar.date(byAdding: .day, value: $0, to: start)
+        }
+    }
+
+    private func isSelected(_ date: Date) -> Bool {
+        Calendar.current.isDate(date, inSameDayAs: selectedDate)
+    }
+
+    private func dayName(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "EEE"
+        return formatter.string(from: date)
+    }
+
+    private func dayNumber(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "d"
+        return formatter.string(from: date)
+    }
+}
+
+private struct CustomerRequestTimeWindowGrid: View {
+    let selectedTimeWindow: CustomerRequestTimeWindowOption
+    let isFlexibleWithTime: Bool
+    let action: (CustomerRequestTimeWindowOption) -> Void
+
+    var body: some View {
+        LazyVGrid(
+            columns: [
+                GridItem(.flexible(), spacing: DesignTokens.Spacing.md),
+                GridItem(.flexible(), spacing: DesignTokens.Spacing.md),
+            ],
+            alignment: .leading,
+            spacing: DesignTokens.Spacing.md
+        ) {
+            ForEach(CustomerRequestTimeWindowOption.allCases) { option in
+                Button {
+                    action(option)
+                } label: {
+                    Text(option.title)
+                        .font(DesignTokens.Typography.body.weight(.bold))
+                        .foregroundStyle(
+                            selectedTimeWindow == option && !isFlexibleWithTime
+                                ? DesignTokens.Colors.surface
+                                : DesignTokens.Colors.textSecondary
+                        )
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.78)
+                        .frame(maxWidth: .infinity, minHeight: 52)
+                        .padding(.horizontal, DesignTokens.Spacing.sm)
+                        .background(
+                            Capsule()
+                                .fill(
+                                    selectedTimeWindow == option && !isFlexibleWithTime
+                                        ? DesignTokens.Colors.customerPrimary
+                                        : DesignTokens.Colors.surface
+                                )
+                        )
+                        .overlay {
+                            Capsule()
+                                .stroke(DesignTokens.Colors.border, lineWidth: 1)
+                        }
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .opacity(isFlexibleWithTime ? 0.56 : 1)
+    }
+}
+
+private struct CustomerRequestDetailedTimeFields: View {
+    @Binding var preferredStart: Date
+    @Binding var preferredEnd: Date
+
+    var body: some View {
+        VStack(spacing: DesignTokens.Spacing.md) {
+            DatePicker(
+                "Start Time",
+                selection: $preferredStart,
+                displayedComponents: [.hourAndMinute]
+            )
+            .font(DesignTokens.Typography.body.weight(.semibold))
+            .groomlyFormField()
+
+            DatePicker(
+                "End Time",
+                selection: $preferredEnd,
+                displayedComponents: [.hourAndMinute]
+            )
+            .font(DesignTokens.Typography.body.weight(.semibold))
+            .groomlyFormField()
+        }
+    }
+}
+
+private struct CustomerRequestFlexibleTimeToggle: View {
+    @Binding var isOn: Bool
+
+    var body: some View {
+        Toggle(isOn: $isOn) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                Text("I'm Flexible With Time")
+                    .font(DesignTokens.Typography.body.weight(.bold))
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+
+                Text("Let groomers suggest nearby times")
+                    .font(DesignTokens.Typography.caption)
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+            }
+        }
+        .tint(DesignTokens.Colors.customerPrimary)
+        .padding(DesignTokens.Spacing.lg)
+        .background(DesignTokens.Colors.surface)
+        .clipShape(
+            RoundedRectangle(
+                cornerRadius: DesignTokens.CornerRadius.card,
+                style: .continuous
+            )
+        )
+        .overlay {
+            RoundedRectangle(
+                cornerRadius: DesignTokens.CornerRadius.card,
+                style: .continuous
+            )
+            .stroke(DesignTokens.Colors.border, lineWidth: 1)
+        }
+    }
+}
+
+private struct CustomerRequestLocationModeCard: View {
+    let mode: CustomerRequestLocationMode
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: DesignTokens.Spacing.md) {
+                Text(mode.icon)
+                    .font(.title2)
+                    .frame(width: 44)
+
+                Text(mode.title)
+                    .font(DesignTokens.Typography.body.weight(.bold))
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.82)
+
+                Spacer()
+
+                if isSelected {
+                    Image(systemName: "checkmark")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(DesignTokens.Colors.surface)
+                        .frame(width: 34, height: 34)
+                        .background(DesignTokens.Colors.customerPrimary)
+                        .clipShape(Circle())
+                }
+            }
+            .padding(DesignTokens.Spacing.lg)
+            .frame(maxWidth: .infinity, minHeight: 76)
+            .background(DesignTokens.Colors.surface)
+            .clipShape(
+                RoundedRectangle(
+                    cornerRadius: DesignTokens.CornerRadius.card,
+                    style: .continuous
+                )
+            )
+            .overlay {
+                RoundedRectangle(
+                    cornerRadius: DesignTokens.CornerRadius.card,
+                    style: .continuous
+                )
+                .stroke(
+                    isSelected ? DesignTokens.Colors.customerPrimary : DesignTokens.Colors.border,
+                    lineWidth: isSelected ? 2 : 1
+                )
+            }
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+private struct CustomerRequestAddressFields: View {
+    @Binding var streetAddress: String
+    @Binding var city: String
+    @Binding var state: String
+    @Binding var zipCode: String
+    let locationMode: CustomerRequestLocationMode
+    @Binding var travelRangeMiles: Double
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            TextField("Street Address", text: $streetAddress)
+                .textContentType(.streetAddressLine1)
+                .groomlyFormField()
+
+            HStack(spacing: DesignTokens.Spacing.md) {
+                TextField("City", text: $city)
+                    .textContentType(.addressCity)
+                    .groomlyFormField()
+
+                TextField("State", text: $state)
+                    .textContentType(.addressState)
+                    .groomlyFormField()
+                    .frame(width: 92)
+            }
+
+            TextField("ZIP Code", text: $zipCode)
+                .textContentType(.postalCode)
+                .keyboardType(.numbersAndPunctuation)
+                .groomlyFormField()
+
+            if locationMode == .visitGroomer {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                    HStack {
+                        Text("Travel Range")
+                            .font(DesignTokens.Typography.body.weight(.bold))
+                            .foregroundStyle(DesignTokens.Colors.textPrimary)
+
+                        Spacer()
+
+                        Text("\(CustomerRequestTravelRange.clampedMiles(travelRangeMiles)) mi")
+                            .font(DesignTokens.Typography.body.weight(.bold))
+                            .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
+                    }
+
+                    Slider(
+                        value: $travelRangeMiles,
+                        in: Double(CustomerRequestTravelRange.minimumMiles)...Double(CustomerRequestTravelRange.maximumMiles),
+                        step: 1
+                    )
+                    .tint(DesignTokens.Colors.customerPrimary)
+
+                    Text("Choose how far you can travel to a groomer's location.")
+                        .font(DesignTokens.Typography.caption)
+                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+                }
+                .padding(DesignTokens.Spacing.lg)
+                .background(DesignTokens.Colors.surface)
+                .clipShape(
+                    RoundedRectangle(
+                        cornerRadius: DesignTokens.CornerRadius.card,
+                        style: .continuous
+                    )
+                )
+                .overlay {
+                    RoundedRectangle(
+                        cornerRadius: DesignTokens.CornerRadius.card,
+                        style: .continuous
+                    )
+                    .stroke(DesignTokens.Colors.border, lineWidth: 1)
+                }
+            }
+        }
+        .transition(.opacity.combined(with: .move(edge: .top)))
+    }
+}
+
+private struct CustomerRequestPhotoPreviewTile: View {
+    let pet: CustomerPet
+
+    var body: some View {
+        CustomerRequestWizardPetAvatar(pet: pet, size: 112)
+            .clipShape(
+                RoundedRectangle(
+                    cornerRadius: DesignTokens.CornerRadius.input,
+                    style: .continuous
+                )
+            )
+    }
+}
+
+private struct CustomerRequestAddPhotoTile: View {
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: DesignTokens.Spacing.sm) {
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "camera")
+                    .font(.title2.weight(.semibold))
+                    .foregroundStyle(
+                        isSelected ? DesignTokens.Colors.customerPrimaryDark : DesignTokens.Colors.textTertiary
+                    )
+
+                Text(isSelected ? "Added" : "Add")
+                    .font(DesignTokens.Typography.caption.weight(.bold))
+                    .foregroundStyle(DesignTokens.Colors.textTertiary)
+            }
+            .frame(width: 112, height: 112)
+            .background(DesignTokens.Colors.surface.opacity(0.4))
+            .clipShape(
+                RoundedRectangle(
+                    cornerRadius: DesignTokens.CornerRadius.input,
+                    style: .continuous
+                )
+            )
+            .overlay {
+                RoundedRectangle(
+                    cornerRadius: DesignTokens.CornerRadius.input,
+                    style: .continuous
+                )
+                .stroke(
+                    DesignTokens.Colors.border,
+                    style: StrokeStyle(lineWidth: 1.5, dash: [6, 4])
+                )
+            }
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+private struct CustomerRequestWizardPetAvatar: View {
+    let pet: CustomerPet
+    let size: CGFloat
+
+    var body: some View {
+        Text(avatar)
+            .font(.system(size: size * 0.5))
+            .frame(width: size, height: size)
+            .background(avatarBackground)
+            .clipShape(
+                RoundedRectangle(
+                    cornerRadius: DesignTokens.CornerRadius.input,
+                    style: .continuous
+                )
+            )
+            .accessibilityHidden(true)
+    }
+
+    private var avatar: String {
+        let searchText = "\(pet.breed ?? "") \(pet.species)".lowercased()
+        if searchText.contains("poodle") {
+            return "🐩"
+        } else if searchText.contains("cat") {
+            return "🐱"
+        } else if searchText.contains("bird") {
+            return "🐦"
+        } else if searchText.contains("rabbit") {
+            return "🐰"
+        } else if searchText.contains("dog") {
+            return "🐶"
+        }
+
+        return "🐾"
+    }
+
+    private var avatarBackground: Color {
+        let palette = [
+            DesignTokens.Colors.groomerAccent.opacity(0.22),
+            DesignTokens.Colors.customerPrimary.opacity(0.22),
+            DesignTokens.Colors.warning.opacity(0.18),
+        ]
+        return palette[abs(pet.name.hashValue) % palette.count]
+    }
+}
+
+private struct CustomerRequestWizardReviewRow: View {
+    let row: CustomerRequestWizardReviewPresentation.Row
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.lg) {
+            Text(row.title)
+                .font(DesignTokens.Typography.body)
+                .foregroundStyle(DesignTokens.Colors.textSecondary)
+                .frame(maxWidth: 132, alignment: .leading)
+
+            Text(row.value)
+                .font(DesignTokens.Typography.body.weight(.bold))
+                .foregroundStyle(DesignTokens.Colors.textPrimary)
+                .multilineTextAlignment(.trailing)
+                .frame(maxWidth: .infinity, alignment: .trailing)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.vertical, DesignTokens.Spacing.md)
     }
 }
 

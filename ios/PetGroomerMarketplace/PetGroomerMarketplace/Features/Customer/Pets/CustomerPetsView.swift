@@ -63,7 +63,12 @@ struct CustomerPetsView: View {
             CustomerPetFormView(store: petStore)
         }
         .sheet(isPresented: $requestStore.isShowingWizard) {
-            CustomerRequestWizardView(store: requestStore)
+            CustomerRequestWizardView(store: requestStore) {
+                requestStore.cancelWizard()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                    petStore.startCreate()
+                }
+            }
         }
         .task {
             await loadHome()
@@ -80,15 +85,14 @@ struct CustomerPetsView: View {
                 )
 
                 CustomerHomeRequestHero(
-                    isDisabled: petStore.pets.isEmpty || requestStore.isBusy,
+                    isDisabled: requestHeroPresentation.isStartRequestDisabled,
                     action: startGroomingRequest
                 )
 
                 CustomerHomePetsSection(store: petStore)
 
                 CustomerHomeActiveRequestSection(
-                    card: visibleActionCard,
-                    store: requestStore
+                    presentation: activeRequestPresentation
                 )
 
                 CustomerHomeNextBookingSection(
@@ -103,8 +107,18 @@ struct CustomerPetsView: View {
         .scrollContentBackground(.hidden)
     }
 
-    private var visibleActionCard: CustomerRequestActionCardItem? {
-        requestStore.visibleActionCards.first
+    private var requestHeroPresentation: CustomerHomeRequestHeroPresentation {
+        CustomerHomeRequestHeroPresentation(
+            hasPets: !petStore.pets.isEmpty,
+            isRequestStoreBusy: requestStore.isBusy
+        )
+    }
+
+    private var activeRequestPresentation: CustomerHomeActiveRequestPresentation {
+        CustomerHomeActiveRequestPresentation(
+            cards: requestStore.visibleActionCards,
+            isLoading: requestStore.isLoading
+        )
     }
 
     private var nextBooking: Booking? {
@@ -135,6 +149,32 @@ struct CustomerPetsView: View {
     }
 }
 
+struct CustomerHomeRequestHeroPresentation: Equatable {
+    let hasPets: Bool
+    let isRequestStoreBusy: Bool
+
+    var isStartRequestDisabled: Bool {
+        !hasPets
+    }
+}
+
+struct CustomerHomeActiveRequestPresentation: Equatable {
+    let cards: [CustomerRequestActionCardItem]
+    let isLoading: Bool
+
+    var shouldShowCarousel: Bool {
+        !cards.isEmpty
+    }
+
+    var shouldShowEmptyText: Bool {
+        cards.isEmpty
+    }
+
+    var shouldShowLoadingCard: Bool {
+        false
+    }
+}
+
 private struct CustomerHomeHeader: View {
     let displayName: String
     let notificationAction: () -> Void
@@ -158,15 +198,15 @@ private struct CustomerHomeHeader: View {
                 .accessibilityLabel("Customer avatar")
 
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                Text("Welcome Back")
-                    .font(DesignTokens.Typography.body.weight(.semibold))
-                    .foregroundStyle(DesignTokens.Colors.secondaryText)
-
                 Text("Hi, \(displayName)")
                     .font(.largeTitle.weight(.bold))
                     .foregroundStyle(DesignTokens.Colors.textPrimary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
+
+                Text("Welcome Back")
+                    .font(DesignTokens.Typography.body.weight(.semibold))
+                    .foregroundStyle(DesignTokens.Colors.secondaryText)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -271,6 +311,9 @@ private struct CustomerHomeRequestHero: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .frame(minHeight: 230)
+        .clipShape(
+            RoundedRectangle(cornerRadius: 32, style: .continuous)
+        )
         .accessibilityElement(children: .contain)
     }
 }
@@ -464,8 +507,7 @@ private struct CustomerHomeAddPetTile: View {
 }
 
 private struct CustomerHomeActiveRequestSection: View {
-    let card: CustomerRequestActionCardItem?
-    let store: CustomerRequestsStore
+    let presentation: CustomerHomeActiveRequestPresentation
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
@@ -473,23 +515,16 @@ private struct CustomerHomeActiveRequestSection: View {
                 .font(.title2.weight(.bold))
                 .foregroundStyle(DesignTokens.Colors.textPrimary)
 
-            if store.isLoading, card == nil {
-                GroomlyLoadingView(
-                    title: "Loading Request…",
-                    message: "Checking your active grooming request.",
-                    accent: .customer
-                )
-                .accessibilityIdentifier("customer.home.active-request.loading")
-            } else if let card {
-                CustomerRequestActionCardSummary(card: card)
-                    .accessibilityIdentifier("customer.home.active-request.card")
+            if presentation.shouldShowCarousel {
+                CustomerRequestActionCardSummaryCarousel(cards: presentation.cards)
+                    .accessibilityIdentifier("customer.home.active-request.carousel")
             } else {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                    Text("No Active Request")
+                    Text(CustomerRequestEmptyCopy.title)
                         .font(DesignTokens.Typography.headline.weight(.bold))
                         .foregroundStyle(DesignTokens.Colors.textPrimary)
 
-                    Text("Open quests and newly confirmed booking handoffs will appear here.")
+                    Text(CustomerRequestEmptyCopy.message)
                         .font(DesignTokens.Typography.body)
                         .foregroundStyle(DesignTokens.Colors.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)

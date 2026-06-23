@@ -2,6 +2,28 @@
 
 ```text
 Date: 2026-06-22
+Task: T-048 - Groomly customer new request wizard rework.
+Files changed: Added T-048 task doc; updated CustomerRequestsView.swift, CustomerPetsView.swift, CustomerRequestFeatureTests.swift, CURRENT_STATE.md, FEATURE_INDEX.md, WORKLOG.md, and TASK_LEDGER.md.
+Checks: TDD red check failed before implementation because the wizard presentation helpers did not exist. Targeted TDD green check passed for `requestWizardStepsMatchPrototypeProgression`, `requestWizardServiceOptionsMapToExistingServiceTypeField`, `requestWizardTimeWindowsApplyPresetRangesToSelectedDate`, `requestWizardFlexibleTimeUsesAllDayWindow`, `requestWizardTravelRangeClampsToSupportedMiles`, and `requestWizardReviewSummaryUsesCurrentRequestFields`. `./scripts/ios-build.sh` passed. Final `git diff --check` passed.
+Simulator launch: XcodeBuildMCP `build_run_sim` passed on `iPhone 17` simulator (`B9639233-9E78-41C9-A372-330D36C38DA7`) with no diagnostics warnings or errors. App launched successfully for inspection. Screenshot: `/var/folders/bc/xmbw6w1d06s61ns9_j2fnll00000gn/T/screenshot_optimized_558715fe-96de-4a6c-8cba-597f9215838c.jpg`.
+Result: Customer new request now uses a five-step Pet/Service/Time/Details/Review wizard. Pet cards, Add Pet, service selection, date chips, time windows, detailed time, flexible all-day time, notes, and review summary are wired to existing app state where supported. Location mode/address/range and photo tiles were implemented as UI-only placeholders without model/backend/repository changes.
+Risks: Location mode, street address, visit range, and request photos do not affect persisted request data or matching yet. A future backend/model task is required before those controls can become durable product behavior.
+Next: App is running in Simulator for inspection. Wait for explicit user direction before adding persistent location/photo support or changing request backend contracts.
+```
+
+```text
+Date: 2026-06-22
+Task: T-047 fifth follow-up - Customer Home active request carousel and empty-copy polish.
+Files changed: CustomerPetsView.swift; CustomerRequestsView.swift; CustomerRequestFeatureTests.swift; T-047 task doc; CURRENT_STATE.md; FEATURE_INDEX.md; WORKLOG.md; TASK_LEDGER.md.
+Checks: TDD red checks failed before implementation because `CustomerHomeRequestHeroPresentation`, `CustomerHomeActiveRequestPresentation`, and `CustomerRequestEmptyCopy` did not exist. Targeted TDD green check passed for `CustomerRequestsStoreTests/homeRequestHeroStaysEnabledWhileRequestsReloadWhenPetsExist`, `homeActiveRequestPresentationUsesAllCardsAndNeverShowsLoadingCard`, and `requestEmptyCopyIsSharedByHomeAndRequests`. Targeted scan found no old Requests empty copy, Home first-card-only active request path, or Home active-request loading card identifier. `./scripts/ios-build.sh` passed. Final `git diff --check` passed.
+Simulator launch: XcodeBuildMCP `build_run_sim` passed on `iPhone 17` simulator (`B9639233-9E78-41C9-A372-330D36C38DA7`) with no diagnostics warnings or errors. App launched successfully for inspection. Screenshot: `/var/folders/bc/xmbw6w1d06s61ns9_j2fnll00000gn/T/screenshot_optimized_015aeb39-3733-44a2-b8ce-a507ced874d8.jpg`.
+Result: Customer Home now shows `Hi, [displayName]` above `Welcome Back`, clips the request hero paw decoration inside the rounded card, keeps the Start Grooming Request CTA from reacting to request-store busy/loading state, and renders Active Request cards through the same horizontally swipeable summary carousel pattern as Requests. Empty Home Active Request no longer displays a transient rounded loading card, and Customer Requests now reuses the same `No Active Request` title/message copy as Home.
+Risks: Home summary cards intentionally omit the Requests card timeline and action buttons; request actions remain in Customer Requests. No backend or persistence changes were made.
+Next: App is running in Simulator for inspection. Wait for explicit user direction before further Customer Home/Requests changes.
+```
+
+```text
+Date: 2026-06-22
 Task: T-047 fourth follow-up - Customer Home active request sync and global toast placement.
 Files changed: CustomerRequestsStore.swift; CustomerRequestsView.swift; CustomerPetsView.swift; GroomlyFeedbackPrimitives.swift; CustomerTabView.swift; GroomerTabView.swift; CustomerRequestFeatureTests.swift; AppEntryModelsTests.swift; T-047 task doc; CURRENT_STATE.md; FEATURE_INDEX.md; WORKLOG.md; TASK_LEDGER.md.
 Checks: TDD red check failed before implementation because `GroomlyGlobalFeedbackOverlay.bottomTabBarClearance` did not exist. Targeted TDD green check passed for `CustomerRequestsStoreTests/visibleActionCardsMirrorRequestsDashboardFilteringForHome` and `GroomlyFeedbackCenterTests/globalNoticeOverlayKeepsClearanceAboveTabBar`. Targeted scan found no old Home active-card component, old `requestStore.requests.first` fallback, or global feedback bottom safe-area inset use. `./scripts/ios-build.sh` passed. Final `git diff --check` passed.

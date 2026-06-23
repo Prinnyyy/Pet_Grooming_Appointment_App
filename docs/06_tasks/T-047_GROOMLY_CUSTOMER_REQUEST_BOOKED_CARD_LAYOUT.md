@@ -46,6 +46,15 @@ Fourth follow-up Home sync and toast placement request:
 - When the Requests page has no visible quest action card, Customer Home must also show no quest action card and instead show no-request text.
 - The bottom global toast should be repositioned so it no longer covers the tab bar.
 
+Fifth follow-up Customer Home carousel and polish request:
+
+- Swap the Customer Home welcome header text order so `Hi, [user name]` appears above `Welcome Back`.
+- Make Customer Home `Active Request` a horizontally swipeable card column that reuses the Requests page quest-card swipe behavior.
+- Prevent the Home `Start Grooming Request` button from briefly flashing disabled/gray when switching pages.
+- Clip the decorative paw prints inside the `Need Grooming for Your Pet?` hero card's rounded mask.
+- Prevent an empty rounded loading card from briefly appearing in Home `Active Request` when there are no quest action cards.
+- Change Customer Requests empty state from `No Requests Yet` to the same text used by Customer Home `Active Request`: `No Active Request`.
+
 ## Existing Capability Audit
 
 - T-046 already renders booked handoffs through `CustomerRequestProgressCard`; no separate card route needs to remain.
@@ -89,10 +98,16 @@ Fourth follow-up Home sync and toast placement request:
 - Third follow-up: Chat thread view also forwards `ChatStore.noticeMessage`, so send-success feedback appears without requiring the user to return to the conversation list.
 - Fourth follow-up: `CustomerRequestsStore.visibleActionCards` now centralizes the Requests/Home visible-card filter by combining unconfirmed `open`/`has_offers` requests with unacknowledged booked handoffs backed by confirmed bookings.
 - Fourth follow-up: `CustomerRequestActionCardItem` represents one visible quest action card and carries either an active request or an optional booking handoff.
-- Fourth follow-up: `CustomerRequestProgressCarousel` now renders from `visibleActionCards`, and Customer Home uses the same first visible card for its `Active Request` module.
+- Fourth follow-up: `CustomerRequestProgressCarousel` now renders from `visibleActionCards`, establishing the shared visible-card source later reused by Customer Home.
 - Fourth follow-up: Customer Home's active card uses `CustomerRequestActionCardSummary`, which reuses the quest action card shell/header/presentation but omits the timeline and buttons.
 - Fourth follow-up: Customer Home no longer falls back to cancelled, expired, or arbitrary non-visible requests. If `visibleActionCards` is empty, the module displays no-request text only.
 - Fourth follow-up: `GroomlyGlobalFeedbackOverlay` now renders as a tab-shell bottom overlay with an explicit `bottomTabBarClearance` and disabled hit testing, instead of occupying the tab shell bottom safe-area inset.
+- Fifth follow-up: Customer Home now renders all `visibleActionCards` through `CustomerRequestActionCardSummaryCarousel`, using the same horizontal ScrollView content margins, disabled scroll clipping, and view-aligned paging pattern as the Requests carousel.
+- Fifth follow-up: `CustomerHomeActiveRequestPresentation` removes the previous loading-card branch for an empty active-request section, so no blank rounded loading card flashes while requests reload.
+- Fifth follow-up: `CustomerHomeRequestHeroPresentation` gates the `Start Grooming Request` button only on whether pets exist; request-store busy/loading state no longer turns the CTA gray during tab/page switches.
+- Fifth follow-up: Customer Home's welcome header now places `Hi, [displayName]` above `Welcome Back`.
+- Fifth follow-up: the request hero's decorative paw prints are clipped by the hero's rounded rectangle mask.
+- Fifth follow-up: `CustomerRequestEmptyCopy` now centralizes the shared empty title/message for Customer Home and Customer Requests; Customer Requests now shows `No Active Request`.
 
 ## Files Changed
 
@@ -178,10 +193,21 @@ Fourth follow-up validation:
 - Simulator screenshot: `/var/folders/bc/xmbw6w1d06s61ns9_j2fnll00000gn/T/screenshot_optimized_6ca15fda-57cd-4667-a6ed-1fb45e85db0d.jpg`.
 - Final `git diff --check` passed after documentation and memory updates.
 
+Fifth follow-up validation:
+
+- TDD red check: `xcodebuild ... -only-testing:PetGroomerMarketplaceTests/CustomerRequestsStoreTests/homeRequestHeroStaysEnabledWhileRequestsReloadWhenPetsExist -only-testing:PetGroomerMarketplaceTests/CustomerRequestsStoreTests/homeActiveRequestPresentationUsesAllCardsAndNeverShowsLoadingCard` failed before implementation because `CustomerHomeRequestHeroPresentation` and `CustomerHomeActiveRequestPresentation` did not exist.
+- Additional red check: `xcodebuild ... -only-testing:PetGroomerMarketplaceTests/CustomerRequestsStoreTests/requestEmptyCopyIsSharedByHomeAndRequests` failed before implementation because `CustomerRequestEmptyCopy` did not exist.
+- Targeted green check: `xcodebuild ... -only-testing:PetGroomerMarketplaceTests/CustomerRequestsStoreTests/homeRequestHeroStaysEnabledWhileRequestsReloadWhenPetsExist -only-testing:PetGroomerMarketplaceTests/CustomerRequestsStoreTests/homeActiveRequestPresentationUsesAllCardsAndNeverShowsLoadingCard -only-testing:PetGroomerMarketplaceTests/CustomerRequestsStoreTests/requestEmptyCopyIsSharedByHomeAndRequests` passed.
+- Targeted scan found no remaining old `No Requests Yet` copy, Home first-card-only `visibleActionCard` path, Home active-request loading card identifier, or old `Start a grooming quest` empty copy in Swift files.
+- `./scripts/ios-build.sh` passed.
+- XcodeBuildMCP `build_run_sim` passed on `iPhone 17` simulator (`B9639233-9E78-41C9-A372-330D36C38DA7`) with no diagnostics warnings or errors. App launched successfully for inspection. Process id: `9792`.
+- Simulator screenshot: `/var/folders/bc/xmbw6w1d06s61ns9_j2fnll00000gn/T/screenshot_optimized_015aeb39-3733-44a2-b8ce-a507ced874d8.jpg`.
+- Final `git diff --check` passed after documentation and memory updates.
+
 ## Risks And Follow-Up
 
 - The card layout is now structurally shared, but visual verification still depends on available runtime data containing booked and unconfirmed cards.
 - Same-device handoff acknowledgement remains local `UserDefaults` state from T-046. It still does not survive reinstall, app data clearing, or cross-device use.
 - Global notice persistence is intentionally in-memory UI state only. It survives tab/page switches in the current app session but is not persisted across app termination.
-- Home shows only the first visible quest action card from the same source as Requests. If multiple active cards exist, the Requests tab remains the place to swipe through all cards.
+- Customer Home now shows the same visible quest action card set as a summary carousel, but card actions still live only in Customer Requests.
 - No Supabase changes were made in this task.
