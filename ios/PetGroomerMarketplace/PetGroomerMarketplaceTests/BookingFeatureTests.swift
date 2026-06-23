@@ -235,6 +235,38 @@ struct BookingsStoreTests {
         #expect(booking.participantSummary(for: .groomer) == "Customer ref 12345678")
     }
 
+    @Test
+    func bookingPresentationUsesGroomerNameAndAppointmentLocationContext() {
+        let booking = Self.booking(
+            serviceType: .bathAndBrush,
+            groomerBusinessName: " Ava Chen ",
+            locationMode: .groomerComesToCustomer,
+            customerStreetAddress: "123 Pine Street",
+            customerCity: "Seattle",
+            customerState: "WA",
+            customerZipCode: "98101"
+        )
+
+        #expect(booking.partnerDisplayTitle(for: .customer) == "Ava Chen")
+        #expect(booking.appointmentServiceTitle == "Bath & Brush")
+        #expect(booking.appointmentLocationTitle == "Groomer Comes To Customer")
+        #expect(booking.appointmentAddressSummary == "123 Pine Street, Seattle, WA 98101")
+    }
+
+    @Test
+    func bookingPresentationUsesGroomerLocationFallbackWhenCustomerVisits() {
+        let booking = Self.booking(
+            groomerBusinessName: nil,
+            groomerBaseCity: "Austin",
+            groomerBaseState: "TX",
+            locationMode: .customerComesToGroomer
+        )
+
+        #expect(booking.partnerDisplayTitle(for: .customer) == "Groomer Name")
+        #expect(booking.appointmentLocationTitle == "Customer Comes To Groomer")
+        #expect(booking.appointmentAddressSummary == "Austin, TX")
+    }
+
     private static func booking(
         id: UUID = UUID(),
         requestID: UUID = UUID(),
@@ -243,7 +275,16 @@ struct BookingsStoreTests {
         groomerID: UUID = UUID(),
         status: BookingStatus = .confirmed,
         completedAt: String? = nil,
-        review: BookingReview? = nil
+        review: BookingReview? = nil,
+        serviceType: GroomingServiceType? = nil,
+        groomerBusinessName: String? = nil,
+        groomerBaseCity: String? = nil,
+        groomerBaseState: String? = nil,
+        locationMode: GroomingLocationMode? = nil,
+        customerStreetAddress: String? = nil,
+        customerCity: String? = nil,
+        customerState: String? = nil,
+        customerZipCode: String? = nil
     ) -> Booking {
         Booking(
             id: id,
@@ -261,7 +302,16 @@ struct BookingsStoreTests {
             completedBy: completedAt == nil ? nil : groomerID,
             createdAt: "2026-06-20T12:00:00Z",
             updatedAt: "2026-06-20T12:00:00Z",
-            review: review
+            review: review,
+            serviceType: serviceType,
+            groomerBusinessName: groomerBusinessName,
+            groomerBaseCity: groomerBaseCity,
+            groomerBaseState: groomerBaseState,
+            locationMode: locationMode,
+            customerStreetAddress: customerStreetAddress,
+            customerCity: customerCity,
+            customerState: customerState,
+            customerZipCode: customerZipCode
         )
     }
 }

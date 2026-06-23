@@ -10,6 +10,7 @@ struct CustomerTabView: View {
     let accountContent: AnyView?
     @State private var selection: CustomerTab = .home
     @State private var focusedRequestID: UUID?
+    @State private var focusedConversationBookingID: UUID?
     @State private var feedbackCenter = GroomlyFeedbackCenter()
 
     init(
@@ -72,7 +73,8 @@ struct CustomerTabView: View {
                     withAnimation(.easeInOut(duration: 0.22)) {
                         selection = .requests
                     }
-                }
+                },
+                onBookingChatSelected: openBookingChat
             )
         } else if tab == .requests,
                   let customerID,
@@ -84,7 +86,8 @@ struct CustomerTabView: View {
                 petRepository: petRepository,
                 requestRepository: requestRepository,
                 bookingRepository: bookingRepository,
-                focusedRequestID: $focusedRequestID
+                focusedRequestID: $focusedRequestID,
+                onBookingChatSelected: openBookingChat
             )
         } else if tab == .bookings,
                   let customerID,
@@ -92,7 +95,8 @@ struct CustomerTabView: View {
             BookingsView(
                 participantID: customerID,
                 role: .customer,
-                repository: bookingRepository
+                repository: bookingRepository,
+                onOpenChat: openBookingChat
             )
         } else if tab == .messages,
                   let customerID,
@@ -100,7 +104,8 @@ struct CustomerTabView: View {
             ChatConversationsView(
                 participantID: customerID,
                 role: .customer,
-                repository: chatRepository
+                repository: chatRepository,
+                focusedBookingID: $focusedConversationBookingID
             )
         } else if tab == .account, let accountContent {
             accountContent
@@ -111,6 +116,13 @@ struct CustomerTabView: View {
                 systemImage: tab.systemImage,
                 accent: .customer
             )
+        }
+    }
+
+    private func openBookingChat(_ booking: Booking) {
+        focusedConversationBookingID = booking.id
+        withAnimation(.easeInOut(duration: 0.22)) {
+            selection = .messages
         }
     }
 }

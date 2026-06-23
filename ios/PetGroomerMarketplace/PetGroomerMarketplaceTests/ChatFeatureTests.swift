@@ -110,6 +110,36 @@ struct ChatStoreTests {
     }
 
     @Test @MainActor
+    func conversationLookupFindsLoadedBookingConversation() async throws {
+        let bookingID = UUID()
+        let conversation = Self.conversation(bookingID: bookingID)
+        let store = ChatStore(
+            participantID: conversation.customerID,
+            role: .customer,
+            repository: ChatRepositoryFake(
+                conversationsResult: .success([conversation])
+            )
+        )
+
+        await store.loadConversations()
+
+        #expect(store.conversation(forBookingID: bookingID) == conversation)
+    }
+
+    @Test @MainActor
+    func missingBookingConversationReportsSafeUnavailableMessage() async throws {
+        let store = ChatStore(
+            participantID: UUID(),
+            role: .customer,
+            repository: ChatRepositoryFake()
+        )
+
+        store.reportMissingConversationForBooking()
+
+        #expect(store.errorMessage == "Booking chat is not available yet.")
+    }
+
+    @Test @MainActor
     func completedConversationOlderThanSevenDaysDoesNotSend() async throws {
         let conversation = Self.conversation(
             status: .completed,

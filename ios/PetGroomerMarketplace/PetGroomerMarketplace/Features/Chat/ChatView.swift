@@ -3,15 +3,19 @@ import SwiftUI
 struct ChatConversationsView: View {
     private let participantID: UUID
     private let role: UserRole
+    @Binding private var focusedBookingID: UUID?
     @State private var store: ChatStore
+    @State private var focusedConversation: ChatConversation?
 
     init(
         participantID: UUID,
         role: UserRole,
-        repository: any ChatRepository
+        repository: any ChatRepository,
+        focusedBookingID: Binding<UUID?> = .constant(nil)
     ) {
         self.participantID = participantID
         self.role = role
+        _focusedBookingID = focusedBookingID
         _store = State(
             initialValue: ChatStore(
                 participantID: participantID,
@@ -33,11 +37,44 @@ struct ChatConversationsView: View {
         .safeAreaInset(edge: .bottom) {
             ChatStatusView(store: store)
         }
+        .navigationDestination(item: $focusedConversation) { conversation in
+            ChatThreadView(
+                participantID: participantID,
+                role: role,
+                conversation: conversation,
+                store: store
+            )
+        }
         .refreshable {
             await store.loadConversations()
+            openFocusedConversationIfPossible()
         }
         .task {
             await store.loadConversations()
+            openFocusedConversationIfPossible()
+        }
+        .onChange(of: focusedBookingID) { _, _ in
+            guard focusedBookingID != nil else { return }
+            if store.conversations.isEmpty {
+                Task {
+                    await store.loadConversations()
+                    openFocusedConversationIfPossible()
+                }
+            } else {
+                openFocusedConversationIfPossible()
+            }
+        }
+    }
+
+    private func openFocusedConversationIfPossible() {
+        guard let bookingID = focusedBookingID else { return }
+
+        if let conversation = store.conversation(forBookingID: bookingID) {
+            focusedConversation = conversation
+            focusedBookingID = nil
+        } else if !store.isLoadingConversations {
+            store.reportMissingConversationForBooking()
+            focusedBookingID = nil
         }
     }
 

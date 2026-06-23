@@ -2,15 +2,18 @@ import SwiftUI
 
 struct BookingsView: View {
     private let role: UserRole
+    private let onOpenChat: (Booking) -> Void
     @State private var store: BookingsStore
     @State private var selectedScope: BookingListScope = .upcoming
 
     init(
         participantID: UUID,
         role: UserRole,
-        repository: any BookingRepository
+        repository: any BookingRepository,
+        onOpenChat: @escaping (Booking) -> Void = { _ in }
     ) {
         self.role = role
+        self.onOpenChat = onOpenChat
         _store = State(
             initialValue: BookingsStore(
                 participantID: participantID,
@@ -72,7 +75,8 @@ struct BookingsView: View {
                                 BookingDetailView(
                                     bookingID: booking.id,
                                     role: role,
-                                    store: store
+                                    store: store,
+                                    onOpenChat: onOpenChat
                                 )
                             } label: {
                                 BookingSummaryRow(
@@ -325,15 +329,6 @@ private extension Booking {
         }
     }
 
-    func partnerDisplayTitle(for role: UserRole) -> String {
-        switch role {
-        case .customer:
-            "Assigned Groomer"
-        case .groomer:
-            "Booking Customer"
-        }
-    }
-
     func detailSubtitle(for role: UserRole) -> String {
         switch role {
         case .customer:
@@ -348,6 +343,19 @@ struct BookingDetailView: View {
     let bookingID: UUID
     let role: UserRole
     let store: BookingsStore
+    let onOpenChat: (Booking) -> Void
+
+    init(
+        bookingID: UUID,
+        role: UserRole,
+        store: BookingsStore,
+        onOpenChat: @escaping (Booking) -> Void = { _ in }
+    ) {
+        self.bookingID = bookingID
+        self.role = role
+        self.store = store
+        self.onOpenChat = onOpenChat
+    }
 
     var body: some View {
         if let booking = store.booking(withID: bookingID) {
@@ -366,30 +374,18 @@ struct BookingDetailView: View {
                             title: "Appointment",
                             systemImage: "calendar.badge.clock"
                         ) {
+                            BookingDetailFactRow("Service", value: booking.appointmentServiceTitle)
                             BookingDetailFactRow("Date", value: BookingListDateFormatting.day(from: booking.scheduledStart))
                             BookingDetailFactRow("Time", value: booking.timeWindowSummary)
+                            BookingDetailFactRow("Service Location", value: booking.appointmentLocationTitle)
+                            BookingDetailFactRow("Address", value: booking.appointmentAddressSummary)
                             BookingDetailFactRow("Price", value: booking.priceSummary)
                         }
 
                         BookingPartnerOverviewCard(
                             booking: booking,
-                            role: role
-                        )
-
-                        BookingDetailInfoCard(
-                            title: "Conversation",
-                            systemImage: "message.fill"
-                        ) {
-                            BookingMetadataRow(
-                                systemImage: "message",
-                                text: "Messages for this appointment stay connected to the booking."
-                            )
-                        }
-
-                        BookingLifecycleCard(
-                            booking: booking,
                             role: role,
-                            store: store
+                            onOpenChat: onOpenChat
                         )
 
                         if booking.status == .completed {
@@ -522,6 +518,7 @@ private struct BookingDetailInfoCard<Content: View>: View {
 private struct BookingPartnerOverviewCard: View {
     let booking: Booking
     let role: UserRole
+    let onOpenChat: (Booking) -> Void
 
     var body: some View {
         BookingDetailInfoCard(
@@ -550,6 +547,14 @@ private struct BookingPartnerOverviewCard: View {
                 BookingMiniChip(title: "Chat Ready", systemImage: "message")
                 BookingMiniChip(title: booking.status.title, systemImage: booking.status.chipIcon)
             }
+
+            Button {
+                onOpenChat(booking)
+            } label: {
+                Label("Open Chat", systemImage: "message.fill")
+            }
+            .buttonStyle(GroomlyPrimaryButtonStyle(accent: role.primaryButtonAccent))
+            .accessibilityIdentifier("bookings.detail.open-chat")
         }
     }
 }
@@ -593,91 +598,6 @@ private struct BookingDetailFactRow: View {
                 .multilineTextAlignment(.trailing)
         }
         .accessibilityElement(children: .combine)
-    }
-}
-
-private struct BookingLifecycleCard: View {
-    let booking: Booking
-    let role: UserRole
-    let store: BookingsStore
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            GroomlySectionHeader("Lifecycle")
-
-            GroomlyCard {
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                    if booking.status == .confirmed {
-                        if role == .groomer {
-                            Button {
-                                Task {
-                                    await store.complete(booking)
-                                }
-                            } label: {
-                                Label("Mark Service Completed", systemImage: "checkmark.seal")
-                            }
-                            .buttonStyle(GroomlyPrimaryButtonStyle(accent: role.primaryButtonAccent))
-                            .disabled(store.isCompleting)
-                            .accessibilityIdentifier("bookings.complete")
-
-                            Text("Completion closes the service lifecycle and lets the customer leave one review.")
-                                .font(DesignTokens.Typography.caption)
-                                .foregroundStyle(DesignTokens.Colors.textSecondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                        } else {
-                            BookingMetadataRow(
-                                systemImage: "checkmark.seal",
-                                text: "The groomer can mark this booking completed after the service."
-                            )
-                        }
-
-                        Button(role: .destructive) {
-                            Task {
-                                await store.cancel(booking)
-                            }
-                        } label: {
-                            Label("Cancel Booking", systemImage: "xmark.circle")
-                        }
-                        .buttonStyle(GroomlySecondaryButtonStyle(accent: .neutral))
-                        .disabled(store.isCancelling)
-                        .accessibilityIdentifier("bookings.cancel")
-
-                        Text("Cancellation closes this booking only. The original request and offers do not reopen.")
-                            .font(DesignTokens.Typography.caption)
-                            .foregroundStyle(DesignTokens.Colors.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    } else if booking.status.isCancellation {
-                        BookingMetadataRow(
-                            systemImage: "xmark.circle",
-                            text: "This booking was cancelled. Create a new request if a replacement appointment is needed."
-                        )
-
-                        if let cancelledAt = booking.cancelledAt {
-                            BookingFactRow(
-                                "Cancelled",
-                                value: GroomingRequestDateFormatting.displayString(
-                                    from: cancelledAt
-                                )
-                            )
-                        }
-                    } else {
-                        BookingMetadataRow(
-                            systemImage: "checkmark.circle",
-                            text: "This booking is completed."
-                        )
-
-                        if let completedAt = booking.completedAt {
-                            BookingFactRow(
-                                "Completed",
-                                value: GroomingRequestDateFormatting.displayString(
-                                    from: completedAt
-                                )
-                            )
-                        }
-                    }
-                }
-            }
-        }
     }
 }
 

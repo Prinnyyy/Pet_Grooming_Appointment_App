@@ -8,15 +8,18 @@ struct CustomerRequestsView: View {
     @State private var pendingCancelRequest: CustomerGroomingRequest?
     @State private var selectedBookingHandoff: CustomerRequestBookingHandoff?
     @Binding private var focusedRequestID: UUID?
+    private let onBookingChatSelected: (Booking) -> Void
 
     init(
         customerID: UUID,
         petRepository: any CustomerPetRepository,
         requestRepository: any CustomerRequestRepository,
         bookingRepository: any BookingRepository,
-        focusedRequestID: Binding<UUID?> = .constant(nil)
+        focusedRequestID: Binding<UUID?> = .constant(nil),
+        onBookingChatSelected: @escaping (Booking) -> Void = { _ in }
     ) {
         _focusedRequestID = focusedRequestID
+        self.onBookingChatSelected = onBookingChatSelected
         _store = State(
             initialValue: CustomerRequestsStore(
                 customerID: customerID,
@@ -69,7 +72,8 @@ struct CustomerRequestsView: View {
             BookingDetailView(
                 bookingID: handoff.booking.id,
                 role: .customer,
-                store: store.bookingDetailStore(for: handoff.booking)
+                store: store.bookingDetailStore(for: handoff.booking),
+                onOpenChat: onBookingChatSelected
             )
         }
         .toolbar(.hidden, for: .navigationBar)
@@ -2174,8 +2178,6 @@ struct CustomerRequestWizardView: View {
 
             locationSection
         }
-        .animation(.easeInOut(duration: 0.2), value: selectedTimeWindow)
-        .animation(.easeInOut(duration: 0.2), value: isFlexibleWithTime)
     }
 
     private var locationSection: some View {
@@ -2493,15 +2495,22 @@ private enum CustomerRequestWizardDateFormatting {
 private struct CustomerRequestWizardHeader: View {
     let currentStep: CustomerRequestWizardStep
     let backAction: () -> Void
+    private let progressLayout = CustomerRequestWizardProgressLayout(
+        backButtonWidth: 54,
+        horizontalSpacing: DesignTokens.Spacing.md
+    )
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            HStack(spacing: DesignTokens.Spacing.md) {
+            HStack(spacing: progressLayout.horizontalSpacing) {
                 Button(action: backAction) {
                     Image(systemName: "chevron.left")
                         .font(.title3.weight(.bold))
                         .foregroundStyle(DesignTokens.Colors.textPrimary)
-                        .frame(width: 54, height: 54)
+                        .frame(
+                            width: progressLayout.backButtonWidth,
+                            height: progressLayout.backButtonWidth
+                        )
                         .background(DesignTokens.Colors.surface)
                         .clipShape(
                             RoundedRectangle(
@@ -2545,18 +2554,18 @@ private struct CustomerRequestWizardHeader: View {
                         }
                     }
                     .frame(height: 8)
-                }
-            }
 
-            HStack {
-                ForEach(CustomerRequestWizardStep.allCases) { step in
-                    Text(step.title)
-                        .font(DesignTokens.Typography.caption.weight(.bold))
-                        .foregroundStyle(labelColor(for: step))
-                        .frame(maxWidth: .infinity)
+                    HStack {
+                        ForEach(CustomerRequestWizardStep.allCases) { step in
+                            Text(step.title)
+                                .font(DesignTokens.Typography.caption.weight(.bold))
+                                .foregroundStyle(labelColor(for: step))
+                                .frame(maxWidth: .infinity)
+                        }
+                    }
+                    .padding(.top, DesignTokens.Spacing.xs)
                 }
             }
-            .padding(.top, DesignTokens.Spacing.xs)
         }
     }
 
@@ -2570,6 +2579,19 @@ private struct CustomerRequestWizardHeader: View {
         }
 
         return DesignTokens.Colors.textSecondary
+    }
+}
+
+struct CustomerRequestWizardProgressLayout: Equatable {
+    let backButtonWidth: CGFloat
+    let horizontalSpacing: CGFloat
+
+    var progressTrackLeadingOffset: CGFloat {
+        backButtonWidth + horizontalSpacing
+    }
+
+    var shouldLabelRowShareProgressTrackWidth: Bool {
+        true
     }
 }
 
@@ -3373,6 +3395,7 @@ private final class CustomerRequestAddressSearch:
 
     private let completer = MKLocalSearchCompleter()
     private var completionsByID: [String: MKLocalSearchCompletion] = [:]
+    private var lastQueryFragment = ""
 
     override init() {
         super.init()
@@ -3389,7 +3412,7 @@ private final class CustomerRequestAddressSearch:
         guard trimmedStreet.count >= 3 else {
             suggestions = []
             completionsByID = [:]
-            completer.queryFragment = ""
+            updateQueryFragmentIfNeeded("")
             return
         }
 
@@ -3401,6 +3424,12 @@ private final class CustomerRequestAddressSearch:
         .filter { !$0.isEmpty }
         .joined(separator: ", ")
 
+        updateQueryFragmentIfNeeded(query)
+    }
+
+    private func updateQueryFragmentIfNeeded(_ query: String) {
+        guard query != lastQueryFragment else { return }
+        lastQueryFragment = query
         completer.queryFragment = query
     }
 

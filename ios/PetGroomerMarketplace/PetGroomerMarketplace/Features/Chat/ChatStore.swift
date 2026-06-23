@@ -65,6 +65,14 @@ final class ChatStore {
         return "No Messages Yet"
     }
 
+    func conversation(forBookingID bookingID: UUID) -> ChatConversation? {
+        conversations.first { $0.bookingID == bookingID }
+    }
+
+    func reportMissingConversationForBooking() {
+        errorMessage = "Booking chat is not available yet."
+    }
+
     func loadConversations() async {
         isLoadingConversations = true
         errorMessage = nil

@@ -11,6 +11,9 @@ final class SupabaseBookingRepository: BookingRepository {
     private static let reviewColumns = """
         id,booking_id,customer_id,groomer_id,rating,content,created_at
         """
+    private static let groomerSummaryColumns = "user_id,business_name,base_city,base_state"
+    private static let requestLocationColumns =
+        "id,service_type,location_mode,street_address,city,state,zip_code"
 
     private let client: SupabaseClient
 
@@ -41,9 +44,19 @@ final class SupabaseBookingRepository: BookingRepository {
             let reviewMap = try await reviewsByBookingID(
                 bookingIDs: rows.map(\.id)
             )
+            let groomerSummaries = await groomerSummaries(
+                for: rows.map(\.groomerID)
+            )
+            let requestLocations = await requestLocations(
+                for: rows.map(\.requestID)
+            )
 
             return rows.map { row in
-                row.booking(review: reviewMap[row.id])
+                row.booking(
+                    review: reviewMap[row.id],
+                    groomerSummary: groomerSummaries[row.groomerID],
+                    requestLocation: requestLocations[row.requestID]
+                )
             }
         } catch {
             throw Self.map(error)
@@ -234,6 +247,54 @@ final class SupabaseBookingRepository: BookingRepository {
             uniqueKeysWithValues: rows.map { ($0.bookingID, $0.review) }
         )
     }
+
+    private func groomerSummaries(
+        for groomerIDs: [UUID]
+    ) async -> [UUID: BookingGroomerSummary] {
+        let ids = uniqueLowercaseStrings(from: groomerIDs)
+        guard !ids.isEmpty else { return [:] }
+
+        do {
+            let rows: [BookingGroomerSummaryRow] = try await client
+                .from("groomer_profiles")
+                .select(Self.groomerSummaryColumns)
+                .in("user_id", values: ids)
+                .execute()
+                .value
+
+            return Dictionary(
+                uniqueKeysWithValues: rows.map { ($0.userID, $0.summary) }
+            )
+        } catch {
+            return [:]
+        }
+    }
+
+    private func requestLocations(
+        for requestIDs: [UUID]
+    ) async -> [UUID: BookingRequestLocation] {
+        let ids = uniqueLowercaseStrings(from: requestIDs)
+        guard !ids.isEmpty else { return [:] }
+
+        do {
+            let rows: [BookingRequestLocationRow] = try await client
+                .from("grooming_requests")
+                .select(Self.requestLocationColumns)
+                .in("id", values: ids)
+                .execute()
+                .value
+
+            return Dictionary(
+                uniqueKeysWithValues: rows.map { ($0.id, $0.location) }
+            )
+        } catch {
+            return [:]
+        }
+    }
+
+    private func uniqueLowercaseStrings(from ids: [UUID]) -> [String] {
+        Array(Set(ids)).map { $0.uuidString.lowercased() }
+    }
 }
 
 private struct BookingRow: Decodable {
@@ -253,7 +314,11 @@ private struct BookingRow: Decodable {
     let createdAt: String
     let updatedAt: String
 
-    func booking(review: BookingReview?) -> Booking {
+    func booking(
+        review: BookingReview?,
+        groomerSummary: BookingGroomerSummary?,
+        requestLocation: BookingRequestLocation?
+    ) -> Booking {
         Booking(
             id: id,
             requestID: requestID,
@@ -270,7 +335,16 @@ private struct BookingRow: Decodable {
             completedBy: completedBy,
             createdAt: createdAt,
             updatedAt: updatedAt,
-            review: review
+            review: review,
+            serviceType: requestLocation?.serviceType,
+            groomerBusinessName: groomerSummary?.businessName,
+            groomerBaseCity: groomerSummary?.baseCity,
+            groomerBaseState: groomerSummary?.baseState,
+            locationMode: requestLocation?.locationMode,
+            customerStreetAddress: requestLocation?.streetAddress,
+            customerCity: requestLocation?.city,
+            customerState: requestLocation?.state,
+            customerZipCode: requestLocation?.zipCode
         )
     }
 
@@ -290,6 +364,74 @@ private struct BookingRow: Decodable {
         case completedBy = "completed_by"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
+    }
+}
+
+private struct BookingGroomerSummary: Sendable {
+    let businessName: String?
+    let baseCity: String?
+    let baseState: String?
+}
+
+private struct BookingGroomerSummaryRow: Decodable {
+    let userID: UUID
+    let businessName: String?
+    let baseCity: String?
+    let baseState: String?
+
+    var summary: BookingGroomerSummary {
+        BookingGroomerSummary(
+            businessName: businessName,
+            baseCity: baseCity,
+            baseState: baseState
+        )
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case userID = "user_id"
+        case businessName = "business_name"
+        case baseCity = "base_city"
+        case baseState = "base_state"
+    }
+}
+
+private struct BookingRequestLocation: Sendable {
+    let serviceType: GroomingServiceType
+    let locationMode: GroomingLocationMode
+    let streetAddress: String
+    let city: String
+    let state: String
+    let zipCode: String
+}
+
+private struct BookingRequestLocationRow: Decodable {
+    let id: UUID
+    let serviceType: GroomingServiceType
+    let locationMode: GroomingLocationMode
+    let streetAddress: String
+    let city: String
+    let state: String
+    let zipCode: String
+
+    var location: BookingRequestLocation {
+        BookingRequestLocation(
+            serviceType: serviceType,
+            locationMode: locationMode,
+            streetAddress: streetAddress,
+            city: city,
+            state: state,
+            zipCode: zipCode
+        )
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case serviceType = "service_type"
+        case locationMode = "location_mode"
+        case streetAddress = "street_address"
+        case city
+        case state
+        case zipCode = "zip_code"
     }
 }
 

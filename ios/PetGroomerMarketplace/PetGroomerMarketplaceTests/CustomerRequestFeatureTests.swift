@@ -751,6 +751,39 @@ struct CustomerRequestsStoreTests {
     }
 
     @Test @MainActor
+    func homeNextBookingPresentationUsesInlineEmptyTextInsteadOfCard() {
+        let booking = Self.booking(
+            requestID: UUID(),
+            customerID: UUID()
+        )
+        let populated = CustomerHomeNextBookingPresentation(
+            booking: booking,
+            isLoading: false
+        )
+        let emptyLoading = CustomerHomeNextBookingPresentation(
+            booking: nil,
+            isLoading: true
+        )
+        let emptyLoaded = CustomerHomeNextBookingPresentation(
+            booking: nil,
+            isLoading: false
+        )
+
+        #expect(populated.shouldShowBooking == true)
+        #expect(populated.shouldShowLoading == false)
+        #expect(populated.shouldShowEmptyText == false)
+        #expect(populated.shouldShowEmptyCard == false)
+        #expect(emptyLoading.shouldShowBooking == false)
+        #expect(emptyLoading.shouldShowLoading == false)
+        #expect(emptyLoading.shouldShowEmptyText == true)
+        #expect(emptyLoading.shouldShowEmptyCard == false)
+        #expect(emptyLoaded.shouldShowBooking == false)
+        #expect(emptyLoaded.shouldShowLoading == false)
+        #expect(emptyLoaded.shouldShowEmptyText == true)
+        #expect(emptyLoaded.shouldShowEmptyCard == false)
+    }
+
+    @Test @MainActor
     func requestEmptyCopyIsSharedByHomeAndRequests() {
         #expect(CustomerRequestEmptyCopy.title == "No Active Request")
         #expect(
@@ -770,6 +803,17 @@ struct CustomerRequestsStoreTests {
         ])
         #expect(CustomerRequestWizardStep.pet.progress == 0.2)
         #expect(CustomerRequestWizardStep.review.progress == 1)
+    }
+
+    @Test @MainActor
+    func requestWizardProgressLabelsUseProgressTrackWidth() {
+        let layout = CustomerRequestWizardProgressLayout(
+            backButtonWidth: 54,
+            horizontalSpacing: 16
+        )
+
+        #expect(layout.progressTrackLeadingOffset == 70)
+        #expect(layout.shouldLabelRowShareProgressTrackWidth == true)
     }
 
     @Test @MainActor

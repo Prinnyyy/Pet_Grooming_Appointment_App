@@ -2,6 +2,39 @@
 
 ```text
 Date: 2026-06-23
+Task: T-057 - Groomly booking detail appointment and groomer card refinement.
+Files changed: Booking model, SupabaseBookingRepository, BookingsView, BookingFeatureTests, T-057 task doc, TASK_LEDGER.md, CURRENT_STATE.md, WORKLOG.md.
+Checks: Red targeted Booking presentation test failed before implementation because serviceType and appointmentServiceTitle did not exist; targeted Booking presentation test passed after implementation; git diff --check passed; ./scripts/ios-build.sh passed.
+Simulator launch: XcodeBuildMCP build_run_sim passed on iPhone 17 simulator (B9639233-9E78-41C9-A372-330D36C38DA7). Runtime diagnostics had no errors and one existing warning in SupabaseAuthSessionRepository.swift:17. Screenshot confirmation: /var/folders/bc/xmbw6w1d06s61ns9_j2fnll00000gn/T/screenshot_optimized_0f8ec295-361f-4d4a-a8a4-46ece496133c.jpg.
+Result: Booking detail Appointment now shows Service above Date using request service_type from the existing grooming_requests enrichment query. The separate Chat card is removed and the Open Chat button now lives inside the Groomer module. The visible Lifecycle module is removed from Booking detail.
+Risks: Removing Lifecycle removes the visible detail-page cancellation/completion controls. Underlying BookingsStore and repository methods remain intact because this was a UI removal request, not a domain deletion.
+Next: App is running in Simulator for inspection. Wait for user feedback before relocating booking lifecycle actions elsewhere.
+```
+
+```text
+Date: 2026-06-23
+Task: T-056 - Groomly booking chat and Next Booking polish.
+Files changed: Booking model, SupabaseBookingRepository, BookingsView, ChatStore/View, CustomerTabView, CustomerPetsView, CustomerRequestsView, focused Booking/Chat/Home tests, T-056 task doc, TASK_LEDGER.md, CURRENT_STATE.md, WORKLOG.md.
+Checks: Red targeted tests failed before implementation because booking presentation/chat focus APIs did not exist; targeted Booking/Chat/Home presentation tests passed after implementation; git diff --check passed; ./scripts/ios-build.sh passed.
+Simulator launch: XcodeBuildMCP build_run_sim passed on iPhone 17 simulator (B9639233-9E78-41C9-A372-330D36C38DA7). Runtime diagnostics had no errors and one existing warning in SupabaseAuthSessionRepository.swift:17. Screenshot confirmation: /var/folders/bc/xmbw6w1d06s61ns9_j2fnll00000gn/T/screenshot_optimized_21f51c5b-b973-4edd-b6c4-2b87b56a3d17.jpg.
+Result: Customer Home Next Booking no longer flashes a transient empty card. Booking cards/details use groomer-name presentation from groomer profile summary enrichment, booking detail includes service-location and address rows, and the Open Chat button switches to Messages and opens the existing booking conversation by bookingID.
+Risks: Booking detail does not create conversations after the fact because the backend contract creates conversations during offer acceptance and does not expose a safe authenticated insert path. Street-level groomer address is not currently stored, so customer-visits-groomer bookings show groomer base city/state or a pending-address fallback.
+Next: App is running in Simulator for inspection. Wait for user feedback before adding backend-backed groomer addresses or after-the-fact conversation creation.
+```
+
+```text
+Date: 2026-06-23
+Task: T-055 - Groomly customer Home Next Booking and request wizard stability.
+Files changed: CustomerPetsView, CustomerRequestsView, CustomerRequestFeatureTests, T-055 task doc, TASK_LEDGER.md, CURRENT_STATE.md, WORKLOG.md.
+Checks: Red targeted CustomerRequestsStore tests failed before implementation because the Home Next Booking presentation and wizard progress layout metrics did not exist; targeted CustomerRequestsStore tests passed after implementation; git diff --check passed; ./scripts/ios-build.sh passed.
+Simulator launch: XcodeBuildMCP build_run_sim passed on iPhone 17 simulator (B9639233-9E78-41C9-A372-330D36C38DA7) with no MCP diagnostics errors. Screenshot confirmation: /var/folders/bc/xmbw6w1d06s61ns9_j2fnll00000gn/T/screenshot_optimized_12af9905-ba0b-4323-bd08-84f7da666325.jpg.
+Result: Home Next Booking now uses inline empty text instead of an empty card when there is no confirmed booking. The request wizard progress labels share the progress-track width, Time/Location flexible-time toggling no longer animates the whole long form, and address autocomplete skips redundant query fragments.
+Risks: Logs showed no app crash report for the freeze; this fix targets the identified SwiftUI layout/animation churn and MapKit query churn. Future freeze reports with crash/hang artifacts should be investigated from those logs before changing behavior again.
+Next: App is running in Simulator for inspection. Wait for user feedback before further wizard or backend changes.
+```
+
+```text
+Date: 2026-06-23
 Task: T-054 - Groomly request wizard address crash and required validation.
 Files changed: GroomlyFormPrimitives, CustomerRequestsStore/View, CustomerRequestFeatureTests, T-054 task doc, TASK_LEDGER.md, CURRENT_STATE.md, FEATURE_INDEX.md, WORKLOG.md.
 Checks: Red targeted CustomerRequestsStore tests failed before implementation because wizard validation/address suggestion builder APIs did not exist; targeted CustomerRequestsStore tests passed after implementation; git diff --check passed; ./scripts/ios-build.sh passed.

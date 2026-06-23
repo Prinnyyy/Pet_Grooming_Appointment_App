@@ -4,6 +4,7 @@ import SwiftUI
 struct CustomerPetsView: View {
     private let displayName: String
     private let onActiveRequestSelected: (UUID) -> Void
+    private let onBookingChatSelected: (Booking) -> Void
     @State private var petStore: CustomerPetsStore
     @State private var requestStore: CustomerRequestsStore
     @State private var bookingStore: BookingsStore
@@ -14,13 +15,15 @@ struct CustomerPetsView: View {
         repository: any CustomerPetRepository,
         requestRepository: any CustomerRequestRepository,
         bookingRepository: any BookingRepository,
-        onActiveRequestSelected: @escaping (UUID) -> Void = { _ in }
+        onActiveRequestSelected: @escaping (UUID) -> Void = { _ in },
+        onBookingChatSelected: @escaping (Booking) -> Void = { _ in }
     ) {
         let trimmedName = displayName?.trimmingCharacters(
             in: .whitespacesAndNewlines
         ) ?? ""
         self.displayName = trimmedName.isEmpty ? "there" : trimmedName
         self.onActiveRequestSelected = onActiveRequestSelected
+        self.onBookingChatSelected = onBookingChatSelected
         _petStore = State(
             initialValue: CustomerPetsStore(
                 customerID: customerID,
@@ -100,8 +103,9 @@ struct CustomerPetsView: View {
                 )
 
                 CustomerHomeNextBookingSection(
-                    booking: nextBooking,
-                    store: bookingStore
+                    presentation: nextBookingPresentation,
+                    store: bookingStore,
+                    onOpenChat: onBookingChatSelected
                 )
             }
             .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
@@ -130,6 +134,13 @@ struct CustomerPetsView: View {
             .filter { $0.status == .confirmed }
             .sortedByScheduledStart(ascending: true)
             .first
+    }
+
+    private var nextBookingPresentation: CustomerHomeNextBookingPresentation {
+        CustomerHomeNextBookingPresentation(
+            booking: nextBooking,
+            isLoading: bookingStore.isLoading
+        )
     }
 
     @MainActor
@@ -166,6 +177,27 @@ struct CustomerHomeActiveRequestPresentation: Equatable {
     }
 
     var shouldShowLoadingCard: Bool {
+        false
+    }
+}
+
+struct CustomerHomeNextBookingPresentation: Equatable {
+    let booking: Booking?
+    let isLoading: Bool
+
+    var shouldShowBooking: Bool {
+        booking != nil
+    }
+
+    var shouldShowLoading: Bool {
+        false
+    }
+
+    var shouldShowEmptyText: Bool {
+        booking == nil
+    }
+
+    var shouldShowEmptyCard: Bool {
         false
     }
 }
@@ -526,16 +558,10 @@ private struct CustomerHomeActiveRequestSection: View {
                 )
                     .accessibilityIdentifier("customer.home.active-request.carousel")
             } else {
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                    Text(CustomerRequestEmptyCopy.title)
-                        .font(DesignTokens.Typography.headline.weight(.bold))
-                        .foregroundStyle(DesignTokens.Colors.textPrimary)
-
-                    Text(CustomerRequestEmptyCopy.message)
-                        .font(DesignTokens.Typography.body)
-                        .foregroundStyle(DesignTokens.Colors.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+                CustomerHomeInlineEmptyText(
+                    title: CustomerRequestEmptyCopy.title,
+                    message: CustomerRequestEmptyCopy.message
+                )
                 .padding(.vertical, DesignTokens.Spacing.sm)
                 .accessibilityIdentifier("customer.home.active-request.empty")
             }
@@ -544,8 +570,9 @@ private struct CustomerHomeActiveRequestSection: View {
 }
 
 private struct CustomerHomeNextBookingSection: View {
-    let booking: Booking?
+    let presentation: CustomerHomeNextBookingPresentation
     let store: BookingsStore
+    let onOpenChat: (Booking) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
@@ -553,19 +580,20 @@ private struct CustomerHomeNextBookingSection: View {
                 .font(.title2.weight(.bold))
                 .foregroundStyle(DesignTokens.Colors.textPrimary)
 
-            if store.isLoading, booking == nil {
+            if presentation.shouldShowLoading {
                 GroomlyLoadingView(
                     title: "Loading Booking…",
                     message: "Checking confirmed appointments.",
                     accent: .customer
                 )
                 .accessibilityIdentifier("customer.home.next-booking.loading")
-            } else if let booking {
+            } else if let booking = presentation.booking {
                 NavigationLink {
                     BookingDetailView(
                         bookingID: booking.id,
                         role: .customer,
-                        store: store
+                        store: store,
+                        onOpenChat: onOpenChat
                     )
                 } label: {
                     BookingSummaryRow(
@@ -576,13 +604,12 @@ private struct CustomerHomeNextBookingSection: View {
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("customer.home.next-booking.view")
             } else {
-                GroomlyCard {
-                    CustomerHomeDetailHeader(
-                        title: "No Booking Yet",
-                        subtitle: "Accepted offers will appear here as upcoming appointments.",
-                        systemImage: "calendar.badge.clock"
-                    )
-                }
+                CustomerHomeInlineEmptyText(
+                    title: "No Upcoming Booking",
+                    message: "Accepted offers will appear here as upcoming appointments."
+                )
+                .padding(.vertical, DesignTokens.Spacing.sm)
+                .accessibilityIdentifier("customer.home.next-booking.empty")
             }
         }
     }
@@ -610,35 +637,21 @@ private struct CustomerHomeStatusView: View {
     }
 }
 
-private struct CustomerHomeDetailHeader: View {
+private struct CustomerHomeInlineEmptyText: View {
     let title: String
-    let subtitle: String
-    let systemImage: String
+    let message: String
 
     var body: some View {
-        HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
-            Image(systemName: systemImage)
-                .font(DesignTokens.Typography.headline)
-                .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
-                .frame(width: 44, height: 44)
-                .background(DesignTokens.Colors.customerPrimary.opacity(0.14))
-                .clipShape(DesignTokens.Shapes.circular)
-                .accessibilityHidden(true)
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+            Text(title)
+                .font(DesignTokens.Typography.headline.weight(.bold))
+                .foregroundStyle(DesignTokens.Colors.textPrimary)
 
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                Text(title)
-                    .font(DesignTokens.Typography.headline.weight(.bold))
-                    .foregroundStyle(DesignTokens.Colors.textPrimary)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                Text(subtitle)
-                    .font(DesignTokens.Typography.body)
-                    .foregroundStyle(DesignTokens.Colors.secondaryText)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            Text(message)
+                .font(DesignTokens.Typography.body)
+                .foregroundStyle(DesignTokens.Colors.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
-        .accessibilityElement(children: .combine)
     }
 }
 

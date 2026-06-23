@@ -17,6 +17,69 @@ struct Booking: Equatable, Hashable, Identifiable, Sendable {
     let createdAt: String
     let updatedAt: String
     let review: BookingReview?
+    let serviceType: GroomingServiceType?
+    let groomerBusinessName: String?
+    let groomerBaseCity: String?
+    let groomerBaseState: String?
+    let locationMode: GroomingLocationMode?
+    let customerStreetAddress: String?
+    let customerCity: String?
+    let customerState: String?
+    let customerZipCode: String?
+
+    nonisolated init(
+        id: UUID,
+        requestID: UUID,
+        offerID: UUID,
+        customerID: UUID,
+        groomerID: UUID,
+        scheduledStart: String,
+        scheduledEnd: String,
+        priceEstimate: Double,
+        status: BookingStatus,
+        cancelledBy: UUID?,
+        cancelledAt: String?,
+        completedAt: String?,
+        completedBy: UUID?,
+        createdAt: String,
+        updatedAt: String,
+        review: BookingReview?,
+        serviceType: GroomingServiceType? = nil,
+        groomerBusinessName: String? = nil,
+        groomerBaseCity: String? = nil,
+        groomerBaseState: String? = nil,
+        locationMode: GroomingLocationMode? = nil,
+        customerStreetAddress: String? = nil,
+        customerCity: String? = nil,
+        customerState: String? = nil,
+        customerZipCode: String? = nil
+    ) {
+        self.id = id
+        self.requestID = requestID
+        self.offerID = offerID
+        self.customerID = customerID
+        self.groomerID = groomerID
+        self.scheduledStart = scheduledStart
+        self.scheduledEnd = scheduledEnd
+        self.priceEstimate = priceEstimate
+        self.status = status
+        self.cancelledBy = cancelledBy
+        self.cancelledAt = cancelledAt
+        self.completedAt = completedAt
+        self.completedBy = completedBy
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+        self.review = review
+        self.serviceType = serviceType
+        self.groomerBusinessName = groomerBusinessName
+        self.groomerBaseCity = groomerBaseCity
+        self.groomerBaseState = groomerBaseState
+        self.locationMode = locationMode
+        self.customerStreetAddress = customerStreetAddress
+        self.customerCity = customerCity
+        self.customerState = customerState
+        self.customerZipCode = customerZipCode
+    }
 
     nonisolated var priceSummary: String {
         priceEstimate.formatted(
@@ -78,6 +141,41 @@ struct Booking: Equatable, Hashable, Identifiable, Sendable {
         }
     }
 
+    nonisolated func partnerDisplayTitle(for role: UserRole) -> String {
+        switch role {
+        case .customer:
+            normalized(groomerBusinessName) ?? "Groomer Name"
+        case .groomer:
+            "Booking Customer"
+        }
+    }
+
+    nonisolated var appointmentServiceTitle: String {
+        serviceType?.title ?? "Service Details"
+    }
+
+    nonisolated var appointmentLocationTitle: String {
+        switch locationMode {
+        case .groomerComesToCustomer:
+            "Groomer Comes To Customer"
+        case .customerComesToGroomer:
+            "Customer Comes To Groomer"
+        case nil:
+            "Location Details"
+        }
+    }
+
+    nonisolated var appointmentAddressSummary: String {
+        switch locationMode {
+        case .groomerComesToCustomer:
+            customerAddressSummary ?? "Customer address unavailable"
+        case .customerComesToGroomer:
+            groomerLocationSummary ?? "Groomer address pending"
+        case nil:
+            customerAddressSummary ?? groomerLocationSummary ?? "Address unavailable"
+        }
+    }
+
     nonisolated func replacing(
         status: BookingStatus,
         cancelledBy: UUID?,
@@ -102,7 +200,16 @@ struct Booking: Equatable, Hashable, Identifiable, Sendable {
             completedBy: completedBy,
             createdAt: createdAt,
             updatedAt: updatedAt,
-            review: review
+            review: review,
+            serviceType: serviceType,
+            groomerBusinessName: groomerBusinessName,
+            groomerBaseCity: groomerBaseCity,
+            groomerBaseState: groomerBaseState,
+            locationMode: locationMode,
+            customerStreetAddress: customerStreetAddress,
+            customerCity: customerCity,
+            customerState: customerState,
+            customerZipCode: customerZipCode
         )
     }
 
@@ -119,6 +226,38 @@ struct Booking: Equatable, Hashable, Identifiable, Sendable {
 
     nonisolated private static func referenceCode(for id: UUID) -> String {
         String(id.uuidString.prefix(8)).uppercased()
+    }
+
+    nonisolated private var customerAddressSummary: String? {
+        let parts = [
+            normalized(customerStreetAddress),
+            normalized(customerCity),
+            normalized(customerState),
+            normalized(customerZipCode),
+        ]
+        guard parts.allSatisfy({ $0 != nil }) else { return nil }
+        return "\(parts[0]!), \(parts[1]!), \(parts[2]!) \(parts[3]!)"
+    }
+
+    nonisolated private var groomerLocationSummary: String? {
+        let city = normalized(groomerBaseCity)
+        let state = normalized(groomerBaseState)
+
+        return switch (city, state) {
+        case let (.some(city), .some(state)):
+            "\(city), \(state)"
+        case let (.some(city), nil):
+            city
+        case let (nil, .some(state)):
+            state
+        case (nil, nil):
+            nil
+        }
+    }
+
+    nonisolated private func normalized(_ value: String?) -> String? {
+        let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return trimmed.isEmpty ? nil : trimmed
     }
 }
 
