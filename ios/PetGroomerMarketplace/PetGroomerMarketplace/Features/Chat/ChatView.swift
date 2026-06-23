@@ -54,7 +54,7 @@ struct ChatConversationsView: View {
         if store.isLoadingConversations, store.conversations.isEmpty {
             ScrollView {
                 GroomlyLoadingView(
-                    title: "Loading conversations…",
+                    title: "Loading Conversations…",
                     message: "Checking accepted bookings for participant chats.",
                     accent: role.groomlyLoadingAccent
                 )
@@ -67,7 +67,7 @@ struct ChatConversationsView: View {
                 LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
                     if store.conversations.isEmpty {
                         GroomlyEmptyState(
-                            title: "No conversations yet",
+                            title: "No Conversations Yet",
                             message: "Accepted bookings create participant conversations.",
                             systemImage: "message",
                             accent: role.groomlyEmptyAccent
@@ -185,6 +185,12 @@ private struct ChatThreadView: View {
         .task(id: conversation.id) {
             await store.loadMessages(for: conversation)
         }
+        .background {
+            GroomlyNoticeForwarder(message: store.noticeMessage) { message in
+                guard store.noticeMessage == message else { return }
+                store.noticeMessage = nil
+            }
+        }
         .scrollDismissesKeyboard(.interactively)
         .accessibilityIdentifier("chat.thread")
     }
@@ -201,14 +207,14 @@ private struct ChatThreadView: View {
                 if store.isLoadingMessages(for: conversation.id),
                    store.messages(for: conversation.id).isEmpty {
                     GroomlyLoadingView(
-                        title: "Loading messages…",
+                        title: "Loading Messages…",
                         message: "Opening this booking conversation.",
                         accent: role.groomlyLoadingAccent
                     )
                     .accessibilityIdentifier("chat.messages.loading")
                 } else if store.messages(for: conversation.id).isEmpty {
                     GroomlyEmptyState(
-                        title: "No messages yet",
+                        title: "No Messages Yet",
                         message: "Send the first message for this booking.",
                         systemImage: "bubble.left.and.bubble.right",
                         accent: role.groomlyEmptyAccent
@@ -318,41 +324,21 @@ private struct ChatStatusView: View {
     let store: ChatStore
 
     var body: some View {
-        VStack(spacing: DesignTokens.Spacing.sm) {
-            if let noticeMessage = store.noticeMessage {
-                ChatNoticeView(message: noticeMessage)
+        VStack(spacing: 0) {
+            GroomlyNoticeForwarder(message: store.noticeMessage) { message in
+                guard store.noticeMessage == message else { return }
+                store.noticeMessage = nil
             }
 
             if let errorMessage = store.errorMessage {
                 GroomlyErrorBanner(
-                    title: "Message update failed",
+                    title: "Message Update Failed",
                     message: errorMessage
                 )
+                .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+                .padding(.vertical, DesignTokens.Spacing.sm)
+                .animation(.easeInOut(duration: 0.24), value: store.errorMessage)
             }
-        }
-        .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-        .padding(.vertical, DesignTokens.Spacing.sm)
-        .background(.ultraThinMaterial)
-    }
-}
-
-private struct ChatNoticeView: View {
-    let message: String
-
-    var body: some View {
-        GroomlyCard(padding: DesignTokens.Spacing.md) {
-            HStack(alignment: .top, spacing: DesignTokens.Spacing.sm) {
-                Image(systemName: "checkmark.circle.fill")
-                    .font(DesignTokens.Typography.body.weight(.semibold))
-                    .foregroundStyle(DesignTokens.Colors.success)
-                    .accessibilityHidden(true)
-
-                Text(message)
-                    .font(DesignTokens.Typography.caption)
-                    .foregroundStyle(DesignTokens.Colors.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .accessibilityElement(children: .combine)
         }
     }
 }

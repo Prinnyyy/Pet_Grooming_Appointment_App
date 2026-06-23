@@ -48,7 +48,7 @@ struct GroomerRequestsView: View {
         if store.isLoading, store.matchedRequests.isEmpty {
             ScrollView {
                 GroomlyLoadingView(
-                    title: "Loading matched requests…",
+                    title: "Loading Matched Requests…",
                     message: "We are checking active customer requests that match your services.",
                     accent: .groomer
                 )
@@ -60,14 +60,14 @@ struct GroomerRequestsView: View {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
                     GroomlySectionHeader(
-                        "Matched requests",
+                        "Matched Requests",
                         subtitle: "Review open requests that fit your profile before making an offer."
                     )
 
                     if store.matchedRequests.isEmpty {
                         if let errorMessage = store.errorMessage {
                             GroomlyErrorBanner(
-                                title: "Requests unavailable",
+                                title: "Requests Unavailable",
                                 message: errorMessage
                             ) {
                                 Button {
@@ -75,7 +75,7 @@ struct GroomerRequestsView: View {
                                         await store.load()
                                     }
                                 } label: {
-                                    Label("Try again", systemImage: "arrow.clockwise")
+                                    Label("Try Again", systemImage: "arrow.clockwise")
                                 }
                                 .buttonStyle(GroomlySecondaryButtonStyle(accent: .groomer))
                                 .disabled(store.isBusy)
@@ -83,7 +83,7 @@ struct GroomerRequestsView: View {
                             .accessibilityIdentifier("groomer.requests.error")
                         } else {
                             GroomlyEmptyState(
-                                title: "No matched requests",
+                                title: "No Matched Requests",
                                 message: "New active customer requests will appear here when they match your profile and services.",
                                 systemImage: "tray",
                                 accent: .groomer
@@ -245,7 +245,7 @@ private struct GroomerRequestDetailView: View {
                     .ignoresSafeArea()
 
                 GroomlyEmptyState(
-                    title: "Request unavailable",
+                    title: "Request Unavailable",
                     message: "Refresh matched requests and try again.",
                     systemImage: "tray",
                     accent: .groomer
@@ -350,7 +350,7 @@ private struct GroomerRequestDetailView: View {
     private func petSnapshotCard(
         for matchedRequest: GroomerMatchedRequest
     ) -> some View {
-        DetailShellCard(title: "Pet snapshot") {
+        DetailShellCard(title: "Pet Snapshot") {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                 DetailMetadataRow(
                     title: "Pet",
@@ -388,7 +388,7 @@ private struct GroomerRequestDetailView: View {
     private func scheduleLocationCard(
         for matchedRequest: GroomerMatchedRequest
     ) -> some View {
-        DetailShellCard(title: "Schedule and location") {
+        DetailShellCard(title: "Schedule and Location") {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                 DetailMetadataRow(
                     title: "Start",
@@ -467,7 +467,7 @@ private struct GroomerRequestDetailView: View {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                 HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
                     VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                        Text("Your offer")
+                        Text("Your Offer")
                             .font(DesignTokens.Typography.headline)
                             .foregroundStyle(DesignTokens.Colors.textPrimary)
 
@@ -492,14 +492,14 @@ private struct GroomerRequestDetailView: View {
                         systemImage: "dollarsign.circle"
                     )
                     DetailMetadataRow(
-                        title: "Proposed start",
+                        title: "Proposed Start",
                         value: GroomingRequestDateFormatting.displayString(
                             from: offer.proposedStart
                         ),
                         systemImage: "calendar"
                     )
                     DetailMetadataRow(
-                        title: "Proposed end",
+                        title: "Proposed End",
                         value: GroomingRequestDateFormatting.displayString(
                             from: offer.proposedEnd
                         ),
@@ -517,7 +517,7 @@ private struct GroomerRequestDetailView: View {
                             await store.withdrawOffer(for: matchedRequest)
                         }
                     } label: {
-                        Label("Withdraw offer", systemImage: "arrow.uturn.backward.circle")
+                        Label("Withdraw Offer", systemImage: "arrow.uturn.backward.circle")
                     }
                     .buttonStyle(GroomlySecondaryButtonStyle(accent: .neutral))
                     .disabled(store.isWithdrawingOffer)
@@ -534,7 +534,7 @@ private struct GroomerRequestDetailView: View {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
                 HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
                     VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                        Text("Make an offer")
+                        Text("Make an Offer")
                             .font(DesignTokens.Typography.headline)
                             .foregroundStyle(DesignTokens.Colors.textPrimary)
 
@@ -553,21 +553,21 @@ private struct GroomerRequestDetailView: View {
                 }
 
                 OfferDatePickerField(
-                    title: "Proposed start",
+                    title: "Proposed Start",
                     selection: $proposedStart
                 )
 
                 OfferDatePickerField(
-                    title: "Proposed end",
+                    title: "Proposed End",
                     selection: $proposedEnd
                 )
 
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                    Text("Price estimate")
+                    Text("Price Estimate")
                         .font(DesignTokens.Typography.caption)
                         .foregroundStyle(DesignTokens.Colors.textSecondary)
 
-                    TextField("Price estimate", text: $priceEstimateText)
+                    TextField("Price Estimate", text: $priceEstimateText)
                         .keyboardType(.decimalPad)
                         .groomlyFormField()
                         .tint(DesignTokens.Colors.groomerAccentDark)
@@ -601,10 +601,10 @@ private struct GroomerRequestDetailView: View {
                         HStack(spacing: DesignTokens.Spacing.sm) {
                             ProgressView()
                                 .tint(DesignTokens.Colors.surface)
-                            Text("Submitting offer…")
+                            Text("Submitting Offer…")
                         }
                     } else {
-                        Label("Submit offer", systemImage: "paperplane")
+                        Label("Submit Offer", systemImage: "paperplane")
                     }
                 }
                 .buttonStyle(GroomlyPrimaryButtonStyle(accent: .groomer))
@@ -647,7 +647,7 @@ private struct GroomerRequestDetailView: View {
                         await store.dismiss(matchedRequest)
                     }
                 } label: {
-                    Label("Dismiss match", systemImage: "xmark.circle")
+                    Label("Dismiss Match", systemImage: "xmark.circle")
                 }
                 .buttonStyle(GroomlySecondaryButtonStyle(accent: .neutral))
                 .disabled(
@@ -865,69 +865,56 @@ private struct GroomerRequestsStatusView: View {
     let store: GroomerRequestsStore
 
     var body: some View {
-        if hasStatus {
-            VStack(spacing: DesignTokens.Spacing.sm) {
-                if store.isDismissing {
-                    progressRow("Dismissing…")
-                }
-
-                if store.isSubmittingOffer {
-                    progressRow("Submitting offer…")
-                }
-
-                if store.isWithdrawingOffer {
-                    progressRow("Withdrawing offer…")
-                }
-
-                if let noticeMessage = store.noticeMessage {
-                    HStack(spacing: DesignTokens.Spacing.sm) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundStyle(DesignTokens.Colors.success)
-                            .accessibilityHidden(true)
-
-                        Text(noticeMessage)
-                            .font(DesignTokens.Typography.caption)
-                            .foregroundStyle(DesignTokens.Colors.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .accessibilityElement(children: .combine)
-                }
-
-                if let errorMessage = store.errorMessage {
-                    GroomlyErrorBanner(
-                        title: "Request update failed",
-                        message: errorMessage
-                    )
-                }
+        VStack(spacing: 0) {
+            GroomlyNoticeForwarder(message: store.noticeMessage) { message in
+                guard store.noticeMessage == message else { return }
+                store.noticeMessage = nil
             }
-            .frame(maxWidth: .infinity)
-            .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-            .padding(.vertical, DesignTokens.Spacing.sm)
-            .background(.ultraThinMaterial)
+
+            if hasInlineStatus {
+                inlineStatus
+            }
         }
     }
 
-    private var hasStatus: Bool {
+    private var inlineStatus: some View {
+        VStack(spacing: DesignTokens.Spacing.sm) {
+            if store.isDismissing {
+                progressRow("Dismissing…")
+            }
+
+            if store.isSubmittingOffer {
+                progressRow("Submitting Offer…")
+            }
+
+            if store.isWithdrawingOffer {
+                progressRow("Withdrawing Offer…")
+            }
+
+            if let errorMessage = store.errorMessage {
+                GroomlyErrorBanner(
+                    title: "Request Update Failed",
+                    message: errorMessage
+                )
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+        .padding(.vertical, DesignTokens.Spacing.sm)
+        .animation(.easeInOut(duration: 0.24), value: hasInlineStatus)
+    }
+
+    private var hasInlineStatus: Bool {
         store.isDismissing ||
             store.isSubmittingOffer ||
             store.isWithdrawingOffer ||
-            store.noticeMessage != nil ||
             store.errorMessage != nil
     }
 
     private func progressRow(_ title: String) -> some View {
-        HStack(spacing: DesignTokens.Spacing.sm) {
-            ProgressView()
-                .tint(DesignTokens.Colors.groomerAccent)
-
-            Text(title)
-                .font(DesignTokens.Typography.caption)
-                .foregroundStyle(DesignTokens.Colors.textSecondary)
-        }
-        .frame(maxWidth: .infinity)
-        .accessibilityElement(children: .combine)
+        GroomlyStatusProgressToast(title, tint: DesignTokens.Colors.groomerAccent)
     }
+
 }
 
 #if DEBUG

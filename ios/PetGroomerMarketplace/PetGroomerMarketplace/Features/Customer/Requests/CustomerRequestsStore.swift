@@ -72,6 +72,14 @@ final class CustomerRequestsStore {
         }
     }
 
+    var visibleActionCards: [CustomerRequestActionCardItem] {
+        activeRequests.map {
+            CustomerRequestActionCardItem(request: $0, handoff: nil)
+        } + bookingHandoffs.map {
+            CustomerRequestActionCardItem(request: $0.request, handoff: $0)
+        }
+    }
+
     init(
         customerID: UUID,
         petRepository: any CustomerPetRepository,
@@ -161,6 +169,14 @@ final class CustomerRequestsStore {
 
     func isCancelling(_ request: CustomerGroomingRequest) -> Bool {
         cancellingRequestIDs.contains(request.id)
+    }
+
+    func clearNotice(ifCurrent message: String? = nil) {
+        if let message {
+            guard noticeMessage == message else { return }
+        }
+
+        noticeMessage = nil
     }
 
     func acknowledgeBookingHandoff(for handoff: CustomerRequestBookingHandoff) {
@@ -653,5 +669,18 @@ struct CustomerRequestBookingHandoff: Equatable, Hashable, Identifiable, Sendabl
 
     var id: UUID {
         request.id
+    }
+}
+
+struct CustomerRequestActionCardItem: Equatable, Hashable, Identifiable, Sendable {
+    let request: CustomerGroomingRequest
+    let handoff: CustomerRequestBookingHandoff?
+
+    var id: UUID {
+        request.id
+    }
+
+    var isBookingHandoff: Bool {
+        handoff != nil
     }
 }

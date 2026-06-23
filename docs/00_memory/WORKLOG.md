@@ -2,6 +2,39 @@
 
 ```text
 Date: 2026-06-22
+Task: T-047 fourth follow-up - Customer Home active request sync and global toast placement.
+Files changed: CustomerRequestsStore.swift; CustomerRequestsView.swift; CustomerPetsView.swift; GroomlyFeedbackPrimitives.swift; CustomerTabView.swift; GroomerTabView.swift; CustomerRequestFeatureTests.swift; AppEntryModelsTests.swift; T-047 task doc; CURRENT_STATE.md; FEATURE_INDEX.md; WORKLOG.md; TASK_LEDGER.md.
+Checks: TDD red check failed before implementation because `GroomlyGlobalFeedbackOverlay.bottomTabBarClearance` did not exist. Targeted TDD green check passed for `CustomerRequestsStoreTests/visibleActionCardsMirrorRequestsDashboardFilteringForHome` and `GroomlyFeedbackCenterTests/globalNoticeOverlayKeepsClearanceAboveTabBar`. Targeted scan found no old Home active-card component, old `requestStore.requests.first` fallback, or global feedback bottom safe-area inset use. `./scripts/ios-build.sh` passed. Final `git diff --check` passed.
+Simulator launch: XcodeBuildMCP `build_run_sim` passed on `iPhone 17` simulator (`B9639233-9E78-41C9-A372-330D36C38DA7`) with no diagnostics warnings or errors. App launched successfully for inspection. Screenshot: `/var/folders/bc/xmbw6w1d06s61ns9_j2fnll00000gn/T/screenshot_optimized_6ca15fda-57cd-4667-a6ed-1fb45e85db0d.jpg`.
+Result: Requests and Customer Home now share `CustomerRequestsStore.visibleActionCards` as the single visible quest action card source. Home renders the first visible card through `CustomerRequestActionCardSummary`, reusing the Requests card shell/header/presentation without the progress timeline or buttons, and shows no-request text when the Requests page has no visible card. The global success toast now renders as a tab-shell bottom overlay with explicit tab-bar clearance and no hit testing, so it stays visually above the bottom menu.
+Risks: Customer Home intentionally shows only the first visible quest action card; the Requests tab remains the surface for swiping through multiple active cards. No backend or persistence changes were made.
+Next: App is running in Simulator for inspection. Wait for explicit user direction before further Customer Home/Requests changes.
+```
+
+```text
+Date: 2026-06-22
+Task: T-047 third follow-up - global bottom success notice module.
+Files changed: GroomlyFeedbackPrimitives.swift; CustomerTabView.swift; GroomerTabView.swift; CustomerRequestsView.swift; CustomerPetsView.swift; BookingsView.swift; GroomerRequestsView.swift; GroomerProfileManagementView.swift; ChatView.swift; AppEntryModelsTests.swift; T-047 task doc; CURRENT_STATE.md; FEATURE_INDEX.md; WORKLOG.md; TASK_LEDGER.md.
+Checks: TDD red check failed before implementation because `GroomlyFeedbackCenter` did not exist. GroomlyFeedbackCenterTests passed after adding the global center, 2-second countdown constant, and token-based replacement/clear behavior. Repository scan found no remaining page-level success toast or 3-second notice timer. `./scripts/ios-build.sh` passed after moving notice ownership to the tab shell, then passed again after removing one redundant `await` warning. Final `git diff --check` passed.
+Simulator launch: XcodeBuildMCP `build_run_sim` passed on `iPhone 17` simulator (`B9639233-9E78-41C9-A372-330D36C38DA7`) with no diagnostics warnings or errors. App launched successfully for inspection. Screenshot: `/var/folders/bc/xmbw6w1d06s61ns9_j2fnll00000gn/T/screenshot_optimized_7a4c6238-985e-44e2-8a30-56e2ec80995c.jpg`.
+Result: Bottom success notices are now global tab-shell UI state. Customer and Groomer tab shells install `GroomlyFeedbackCenter` and render `GroomlyGlobalFeedbackOverlay`; feature pages forward store notices through zero-size `GroomlyNoticeForwarder` views and clear page-local notice copies, so switching pages no longer removes the active notice and returning to a page does not replay stale messages. New notices replace current notices and restart the 2-second countdown.
+Risks: Global notice state is intentionally in-memory only. It survives tab/page switches during the current app session, but it is not persisted across app termination.
+Next: App is running in Simulator for inspection. Wait for explicit user direction before further global feedback or Customer Requests changes.
+```
+
+```text
+Date: 2026-06-22
+Task: T-047 second follow-up - quest card cancel toast, date format, and title polish.
+Files changed: GroomlyFeedbackPrimitives.swift; AuthenticatedEntryView.swift; AuthenticationView.swift; BookingsView.swift; ChatView.swift; CustomerPetsView.swift; CustomerRequestsStore.swift; CustomerRequestsView.swift; GroomerProfileManagementView.swift; GroomerRequestsView.swift; CustomerRequestFeatureTests.swift; T-047 task doc; CURRENT_STATE.md; FEATURE_INDEX.md; WORKLOG.md; TASK_LEDGER.md.
+Checks: TDD red check failed before implementation because `CustomerRequestsStore.clearNotice(ifCurrent:)` did not exist. CustomerRequestsStoreTests passed after adding the notice clear guard and compact/Title Case presentation expectations. `git diff --check` passed before documentation updates and again after documentation updates. `./scripts/ios-build.sh` passed after the cross-page SwiftUI updates.
+Simulator launch: XcodeBuildMCP `build_run_sim` passed on `iPhone 17` simulator (`B9639233-9E78-41C9-A372-330D36C38DA7`). App launched successfully for inspection. Screenshot: `/var/folders/bc/xmbw6w1d06s61ns9_j2fnll00000gn/T/screenshot_optimized_81971db6-f8b1-456b-b616-f282751eeea6.jpg`.
+Result: Customer Requests quest-card time ranges now omit the year and stay single-line. Request-cancel notices use a rounded `GroomlyNoticeToast`, avoid clearing newer messages, and were later superseded by the third follow-up's global 2-second notice center. Bottom status/notice surfaces in Customer Requests, Customer Home/Pets, Bookings, Groomer Requests, Groomer Profile, and Chat now use shared rounded toast/progress primitives without a full-width rectangular material background. Visible title-like text touched by this pass was moved to Title Case.
+Risks: The original local notice dismissal was view-driven UI state and was later replaced by global in-memory tab-shell feedback; errors remain persistent until the next Store action. No backend or persistence change was made.
+Next: App is running in Simulator for inspection. Wait for explicit user direction before further Customer Requests or global title polish.
+```
+
+```text
+Date: 2026-06-22
 Task: T-047 follow-up - Groomly customer request quest action card polish.
 Files changed: CustomerRequestsView.swift, CustomerRequestFeatureTests.swift, T-047_GROOMLY_CUSTOMER_REQUEST_BOOKED_CARD_LAYOUT.md, CURRENT_STATE.md, FEATURE_INDEX.md, WORKLOG.md, and TASK_LEDGER.md.
 Checks: `xcodebuild ... -only-testing:PetGroomerMarketplaceTests/CustomerRequestsStoreTests` failed before implementation on the new headline/time presentation expectations, then passed after implementation. `git diff --check` passed. `./scripts/ios-build.sh` passed.

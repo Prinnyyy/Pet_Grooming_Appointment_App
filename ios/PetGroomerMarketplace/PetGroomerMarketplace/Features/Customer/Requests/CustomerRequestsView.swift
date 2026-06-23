@@ -89,7 +89,7 @@ struct CustomerRequestsView: View {
     private var requestsContent: some View {
         if store.isLoading, store.pets.isEmpty, store.requests.isEmpty {
             GroomlyLoadingView(
-                title: "Loading requests…",
+                title: "Loading Requests…",
                 message: "Fetching your pet's grooming requests.",
                 accent: .customer
             )
@@ -105,8 +105,7 @@ struct CustomerRequestsView: View {
                             .accessibilityIdentifier("customer.requests.empty")
                     } else {
                         CustomerRequestProgressCarousel(
-                            activeRequests: store.activeRequests,
-                            bookingHandoffs: store.bookingHandoffs,
+                            cards: store.visibleActionCards,
                             store: store,
                             onViewBooking: { handoff in
                                 selectedBookingHandoff = handoff
@@ -132,7 +131,7 @@ struct CustomerRequestsView: View {
     }
 
     private var visibleCardCount: Int {
-        store.activeRequests.count + store.bookingHandoffs.count
+        store.visibleActionCards.count
     }
 }
 
@@ -142,7 +141,7 @@ private struct CustomerRequestsRootHeader: View {
     var body: some View {
         HStack(alignment: .top, spacing: DesignTokens.Spacing.lg) {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                Text("Your requests")
+                Text("Your Requests")
                     .font(DesignTokens.Typography.largeTitle)
                     .foregroundStyle(DesignTokens.Colors.textPrimary)
                     .lineLimit(2)
@@ -181,8 +180,7 @@ private struct CustomerRequestsRootHeader: View {
 }
 
 private struct CustomerRequestProgressCarousel: View {
-    let activeRequests: [CustomerGroomingRequest]
-    let bookingHandoffs: [CustomerRequestBookingHandoff]
+    let cards: [CustomerRequestActionCardItem]
     let store: CustomerRequestsStore
     let onViewBooking: (CustomerRequestBookingHandoff) -> Void
     let onCancelRequest: (CustomerGroomingRequest) -> Void
@@ -191,23 +189,10 @@ private struct CustomerRequestProgressCarousel: View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
             ScrollView(.horizontal) {
                 LazyHStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
-                    ForEach(activeRequests) { request in
+                    ForEach(cards) { card in
                         CustomerRequestProgressCard(
-                            request: request,
-                            handoff: nil,
-                            store: store,
-                            onViewBooking: onViewBooking,
-                            onCancelRequest: onCancelRequest
-                        )
-                        .containerRelativeFrame(.horizontal) { length, _ in
-                            length
-                        }
-                    }
-
-                    ForEach(bookingHandoffs) { handoff in
-                        CustomerRequestProgressCard(
-                            request: handoff.request,
-                            handoff: handoff,
+                            request: card.request,
+                            handoff: card.handoff,
                             store: store,
                             onViewBooking: onViewBooking,
                             onCancelRequest: onCancelRequest
@@ -227,7 +212,7 @@ private struct CustomerRequestProgressCarousel: View {
             .scrollTargetBehavior(.viewAligned)
 
             if cardCount > 1 {
-                Label("Swipe to review another request", systemImage: "arrow.left.and.right")
+                Label("Swipe to Review Another Request", systemImage: "arrow.left.and.right")
                     .font(DesignTokens.Typography.caption)
                     .foregroundStyle(DesignTokens.Colors.textTertiary)
                     .frame(maxWidth: .infinity, alignment: .center)
@@ -237,7 +222,27 @@ private struct CustomerRequestProgressCarousel: View {
     }
 
     private var cardCount: Int {
-        activeRequests.count + bookingHandoffs.count
+        cards.count
+    }
+}
+
+struct CustomerRequestActionCardSummary: View {
+    let card: CustomerRequestActionCardItem
+
+    var body: some View {
+        GroomlyCard(
+            isSelected: card.isBookingHandoff,
+            padding: CustomerRequestProgressCardLayout.padding
+        ) {
+            CustomerRequestBriefHeader(
+                request: card.request,
+                presentation: CustomerRequestProgressCardPresentation(
+                    request: card.request,
+                    handoff: card.handoff
+                )
+            )
+        }
+        .accessibilityIdentifier("customer.requests.progress-card.summary")
     }
 }
 
@@ -327,7 +332,7 @@ struct CustomerRequestProgressCardPresentation {
         isConfirmedHandoff = handoff != nil
 
         if let handoff {
-            headline = "Booking\nconfirmed"
+            headline = "Booking\nConfirmed"
             subtitle = request.title
             chipTitle = "Booking"
             chipSystemImage = "checkmark.seal.fill"
@@ -335,7 +340,7 @@ struct CustomerRequestProgressCardPresentation {
             infoLines = [
                 InfoLine(
                     systemImage: "calendar",
-                    text: Self.twoLineDisplayRange(
+                    text: Self.compactDisplayRange(
                         from: handoff.booking.scheduledStart,
                         to: handoff.booking.scheduledEnd
                     )
@@ -354,7 +359,7 @@ struct CustomerRequestProgressCardPresentation {
             infoLines = [
                 InfoLine(
                     systemImage: "calendar",
-                    text: Self.twoLineDisplayRange(
+                    text: Self.compactDisplayRange(
                         from: request.preferredStart,
                         to: request.preferredEnd
                     )
@@ -367,8 +372,19 @@ struct CustomerRequestProgressCardPresentation {
         }
     }
 
-    private static func twoLineDisplayRange(from start: String, to end: String) -> String {
-        "\(GroomingRequestDateFormatting.displayString(from: start)) -\n\(GroomingRequestDateFormatting.displayString(from: end))"
+    private static func compactDisplayRange(from start: String, to end: String) -> String {
+        "\(compactDisplayString(from: start)) - \(compactDisplayString(from: end))"
+    }
+
+    private static func compactDisplayString(from value: String) -> String {
+        guard let date = GroomingRequestDateFormatting.parsedDate(from: value) else {
+            return value
+        }
+
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "MMM d 'at' h:mm a"
+        return formatter.string(from: date)
     }
 }
 
@@ -420,28 +436,28 @@ private struct CustomerRequestTimelineList: View {
         case .hasOffers:
             [
                 .published(createdAt: request.createdAt, state: .complete),
-                .matching(title: "Matched groomers", subtitle: "Groomers can now send offers", state: .complete),
+                .matching(title: "Matched Groomers", subtitle: "Groomers can now send offers", state: .complete),
                 .offers(state: .active),
                 .booking(state: .upcoming),
             ]
         case .booked:
             [
                 .published(createdAt: request.createdAt, state: .complete),
-                .matching(title: "Matched groomers", subtitle: "A groomer offer was selected", state: .complete),
+                .matching(title: "Matched Groomers", subtitle: "A groomer offer was selected", state: .complete),
                 .offers(state: .complete),
                 .booking(state: .complete),
             ]
         case .cancelled:
             [
                 .published(createdAt: request.createdAt, state: .complete),
-                .matching(title: "Request cancelled", subtitle: "This request is closed", state: .stopped),
+                .matching(title: "Request Cancelled", subtitle: "This request is closed", state: .stopped),
                 .offers(state: .upcoming),
                 .booking(state: .upcoming),
             ]
         case .expired:
             [
                 .published(createdAt: request.createdAt, state: .complete),
-                .matching(title: "Request expired", subtitle: "Create a new request to keep looking", state: .stopped),
+                .matching(title: "Request Expired", subtitle: "Create a new request to keep looking", state: .stopped),
                 .offers(state: .upcoming),
                 .booking(state: .upcoming),
             ]
@@ -516,9 +532,14 @@ private struct CustomerRequestBriefInfoLine: View {
             Text(text)
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(DesignTokens.Colors.textSecondary)
-                .lineLimit(2)
+                .lineLimit(lineLimit)
+                .minimumScaleFactor(systemImage == "calendar" ? 0.74 : 0.92)
                 .fixedSize(horizontal: false, vertical: true)
         }
+    }
+
+    private var lineLimit: Int {
+        systemImage == "calendar" ? 1 : 2
     }
 }
 
@@ -667,14 +688,14 @@ private struct CustomerRequestTimelineStep: Identifiable {
     ) -> CustomerRequestTimelineStep {
         CustomerRequestTimelineStep(
             id: "published",
-            title: "Request published",
+            title: "Request Published",
             subtitle: publishedSubtitle(from: createdAt),
             state: state
         )
     }
 
     static func matching(
-        title: String = "Matching groomers",
+        title: String = "Matching Groomers",
         subtitle: String = "Finding the best fit nearby",
         state: CustomerRequestTimelineStepState
     ) -> CustomerRequestTimelineStep {
@@ -700,7 +721,7 @@ private struct CustomerRequestTimelineStep: Identifiable {
 
         return CustomerRequestTimelineStep(
             id: "offers",
-            title: "Offers received",
+            title: "Offers Received",
             subtitle: subtitle,
             state: state
         )
@@ -709,7 +730,7 @@ private struct CustomerRequestTimelineStep: Identifiable {
     static func booking(state: CustomerRequestTimelineStepState) -> CustomerRequestTimelineStep {
         CustomerRequestTimelineStep(
             id: "booking",
-            title: "Booking confirmed",
+            title: "Booking Confirmed",
             subtitle: state == .complete ? "Your appointment is booked" : "Accept an offer to book",
             state: state
         )
@@ -903,7 +924,7 @@ private struct CustomerRequestActionLabel: View {
 private struct CustomerRequestsEmptyDashboard: View {
     var body: some View {
         GroomlyEmptyState(
-            title: "No requests yet",
+            title: "No Requests Yet",
             message: "Start a grooming quest from Home. Published requests and their progress will appear here.",
             systemImage: "doc.text.magnifyingglass",
             accent: .customer
@@ -915,15 +936,15 @@ private extension CustomerGroomingRequest {
     var progressCardHeadline: String {
         switch status {
         case .open:
-            "Open\nrequest"
+            "Open\nRequest"
         case .hasOffers:
-            "Offers\nready"
+            "Offers\nReady"
         case .booked:
-            "Confirmed\nquest"
+            "Confirmed\nQuest"
         case .cancelled:
-            "Cancelled\nrequest"
+            "Cancelled\nRequest"
         case .expired:
-            "Expired\nrequest"
+            "Expired\nRequest"
         }
     }
 
@@ -943,7 +964,7 @@ private extension CustomerGroomingRequest {
         case .open:
             "Matching"
         case .hasOffers:
-            "Offers ready"
+            "Offers Ready"
         case .booked:
             "Booked"
         case .cancelled:
@@ -1010,7 +1031,7 @@ struct CustomerRequestDetailView: View {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
                         GroomlySectionHeader(
-                            "Request details",
+                            "Request Details",
                             subtitle: "Review the request and compare groomer offers before booking."
                         )
 
@@ -1045,7 +1066,7 @@ struct CustomerRequestDetailView: View {
                     .ignoresSafeArea()
 
                 GroomlyEmptyState(
-                    title: "Request unavailable",
+                    title: "Request Unavailable",
                     message: "Refresh requests and try again.",
                     systemImage: "doc.text.magnifyingglass",
                     accent: .customer
@@ -1085,7 +1106,7 @@ struct CustomerRequestDetailView: View {
         GroomlyCard {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                 DetailCardHeader(
-                    title: "Pet snapshot",
+                    title: "Pet Snapshot",
                     subtitle: "Frozen request context from the selected pet.",
                     systemImage: "pawprint.fill"
                 )
@@ -1114,7 +1135,7 @@ struct CustomerRequestDetailView: View {
         GroomlyCard {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                 DetailCardHeader(
-                    title: "Preferred time and location",
+                    title: "Preferred Time and Location",
                     subtitle: "The window and area groomers used for this offer.",
                     systemImage: "calendar"
                 )
@@ -1185,14 +1206,14 @@ private struct CustomerOfferReviewSection: View {
             Group {
                 if store.isLoadingOffers(for: request), offers.isEmpty {
                     GroomlyLoadingView(
-                        title: "Loading offers…",
+                        title: "Loading Offers…",
                         message: "Checking for groomer responses.",
                         accent: .customer
                     )
                         .accessibilityIdentifier("customer.offers.loading")
                 } else if let errorMessage = store.offerError(for: request) {
                     GroomlyErrorBanner(
-                        title: "We could not load offers",
+                        title: "We Could Not Load Offers",
                         message: errorMessage
                     ) {
                         Button {
@@ -1200,7 +1221,7 @@ private struct CustomerOfferReviewSection: View {
                                 await store.loadOffers(for: request)
                             }
                         } label: {
-                            Label("Refresh offers", systemImage: "arrow.clockwise")
+                            Label("Refresh Offers", systemImage: "arrow.clockwise")
                         }
                         .buttonStyle(GroomlySecondaryButtonStyle())
                         .disabled(store.isLoadingOffers(for: request))
@@ -1208,7 +1229,7 @@ private struct CustomerOfferReviewSection: View {
                         .accessibilityIdentifier("customer.offers.error")
                 } else if offers.isEmpty {
                     GroomlyEmptyState(
-                        title: "No offers yet",
+                        title: "No Offers Yet",
                         message: "Matched groomers can submit offers while this request is open.",
                         systemImage: "tag",
                         accent: .customer
@@ -1218,7 +1239,7 @@ private struct CustomerOfferReviewSection: View {
                     VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                         if !pendingOffers.isEmpty {
                             offerGroup(
-                                title: "Pending offers",
+                                title: "Pending Offers",
                                 offers: pendingOffers,
                                 isHistorical: false
                             )
@@ -1234,7 +1255,7 @@ private struct CustomerOfferReviewSection: View {
 
                         if !historicalOffers.isEmpty {
                             offerGroup(
-                                title: "Offer history",
+                                title: "Offer History",
                                 offers: historicalOffers,
                                 isHistorical: true
                             )
@@ -1249,7 +1270,7 @@ private struct CustomerOfferReviewSection: View {
                     await store.loadOffers(for: request)
                 }
             } label: {
-                Label("Refresh offers", systemImage: "arrow.clockwise")
+                Label("Refresh Offers", systemImage: "arrow.clockwise")
             }
             .buttonStyle(GroomlySecondaryButtonStyle())
             .disabled(store.isLoadingOffers(for: request))
@@ -1377,7 +1398,7 @@ private struct CustomerOfferDetailView: View {
                     .ignoresSafeArea()
 
                 GroomlyEmptyState(
-                    title: "Offer unavailable",
+                    title: "Offer Unavailable",
                     message: "Refresh offers and try again.",
                     systemImage: "tag.slash",
                     accent: .customer
@@ -1478,7 +1499,7 @@ private struct CustomerOfferDetailView: View {
                 }
 
                 DetailMetadataRow(
-                    title: "Requested time",
+                    title: "Requested Time",
                     value: requestTimeSummary,
                     systemImage: "calendar"
                 )
@@ -1497,7 +1518,7 @@ private struct CustomerOfferDetailView: View {
 
                 if let errorMessage = store.errorMessage {
                     GroomlyErrorBanner(
-                        title: "We could not accept this offer",
+                        title: "We Could Not Accept This Offer",
                         message: errorMessage
                     )
                 }
@@ -1513,7 +1534,7 @@ private struct CustomerOfferDetailView: View {
                         }
                     } label: {
                         Label(
-                            store.isAcceptingOffer(offerReview.offer.id) ? "Accepting…" : "Accept offer",
+                            store.isAcceptingOffer(offerReview.offer.id) ? "Accepting…" : "Accept Offer",
                             systemImage: "checkmark.circle"
                         )
                     }
@@ -1739,7 +1760,7 @@ struct CustomerRequestWizardView: View {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
                         GroomlySectionHeader(
-                            "Request details",
+                            "Request Details",
                             subtitle: "Share the basics so matched groomers can make accurate offers."
                         )
 
@@ -1751,7 +1772,7 @@ struct CustomerRequestWizardView: View {
 
                         if let errorMessage = store.errorMessage {
                             GroomlyErrorBanner(
-                                title: "Check request details",
+                                title: "Check Request Details",
                                 message: errorMessage
                             )
                             .accessibilityIdentifier("customer.requests.form-error")
@@ -1761,7 +1782,7 @@ struct CustomerRequestWizardView: View {
                             publish()
                         } label: {
                             Label(
-                                store.isSubmitting ? "Publishing…" : "Publish request",
+                                store.isSubmitting ? "Publishing…" : "Publish Request",
                                 systemImage: "paperplane.fill"
                             )
                         }
@@ -1819,7 +1840,7 @@ struct CustomerRequestWizardView: View {
 
                     if store.pets.isEmpty {
                         GroomlyStatusChip(
-                            "Add a pet on Home first",
+                            "Add a Pet on Home First",
                             systemImage: "pawprint",
                             tone: .warning
                         )
@@ -1838,7 +1859,7 @@ struct CustomerRequestWizardView: View {
                     systemImage: "scissors"
                 )
 
-                TextField("Service type", text: $store.serviceType)
+                TextField("Service Type", text: $store.serviceType)
                     .textContentType(.none)
                     .groomlyFormField()
 
@@ -1853,7 +1874,7 @@ struct CustomerRequestWizardView: View {
         GroomlyCard {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                 WizardCardHeader(
-                    title: "Preferred time",
+                    title: "Preferred Time",
                     subtitle: "Pick the service window you want groomers to offer around.",
                     systemImage: "calendar"
                 )
@@ -1896,7 +1917,7 @@ struct CustomerRequestWizardView: View {
                     .textContentType(.addressState)
                     .groomlyFormField()
 
-                TextField("ZIP code", text: $store.zipCode)
+                TextField("ZIP Code", text: $store.zipCode)
                     .textContentType(.postalCode)
                     .keyboardType(.numbersAndPunctuation)
                     .groomlyFormField()
@@ -2021,56 +2042,42 @@ struct CustomerRequestsStatusView: View {
     let store: CustomerRequestsStore
 
     var body: some View {
-        if hasStatus {
-            VStack(spacing: DesignTokens.Spacing.sm) {
-                if store.isSubmitting {
-                    GroomlyCard(padding: DesignTokens.Spacing.md) {
-                        HStack(spacing: DesignTokens.Spacing.sm) {
-                            ProgressView()
-                                .tint(DesignTokens.Colors.customerPrimary)
-
-                            Text("Publishing…")
-                                .font(DesignTokens.Typography.caption)
-                                .foregroundStyle(DesignTokens.Colors.secondaryText)
-                        }
-                    }
-                }
-
-                if let noticeMessage = store.noticeMessage {
-                    GroomlyCard(padding: DesignTokens.Spacing.md) {
-                        HStack(alignment: .top, spacing: DesignTokens.Spacing.sm) {
-                            GroomlyStatusChip(
-                                "Published",
-                                systemImage: "checkmark",
-                                tone: .success
-                            )
-
-                            Text(noticeMessage)
-                                .font(DesignTokens.Typography.caption)
-                                .foregroundStyle(DesignTokens.Colors.secondaryText)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                    }
-                }
-
-                if let errorMessage = store.errorMessage,
-                   !store.isShowingWizard {
-                    GroomlyErrorBanner(
-                        title: "We could not update requests",
-                        message: errorMessage
-                    )
-                }
+        VStack(spacing: 0) {
+            GroomlyNoticeForwarder(message: store.noticeMessage) { message in
+                store.clearNotice(ifCurrent: message)
             }
-            .frame(maxWidth: .infinity)
-            .padding(.horizontal, DesignTokens.Spacing.standard)
-            .padding(.vertical, DesignTokens.Spacing.sm)
-            .background(.ultraThinMaterial)
+
+            if hasInlineStatus {
+                inlineStatus
+            }
         }
     }
 
-    private var hasStatus: Bool {
+    private var inlineStatus: some View {
+        VStack(spacing: DesignTokens.Spacing.sm) {
+            if store.isSubmitting {
+                GroomlyStatusProgressToast(
+                    "Publishing…",
+                    tint: DesignTokens.Colors.customerPrimary
+                )
+            }
+
+            if let errorMessage = store.errorMessage,
+               !store.isShowingWizard {
+                GroomlyErrorBanner(
+                    title: "We Could Not Update Requests",
+                    message: errorMessage
+                )
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, DesignTokens.Spacing.standard)
+        .padding(.vertical, DesignTokens.Spacing.sm)
+        .animation(.easeInOut(duration: 0.24), value: hasInlineStatus)
+    }
+
+    private var hasInlineStatus: Bool {
         store.isSubmitting
-            || store.noticeMessage != nil
             || (store.errorMessage != nil && !store.isShowingWizard)
     }
 }

@@ -376,7 +376,7 @@ struct AuthenticationView: View {
 
         if let errorMessage = store.errorMessage {
             GroomlyErrorBanner(
-                title: "Authentication error",
+                title: "Authentication Error",
                 message: errorMessage
             )
             .accessibilityIdentifier("auth.error")
@@ -386,9 +386,9 @@ struct AuthenticationView: View {
     private var formTitle: String {
         switch store.mode {
         case .signIn:
-            "Welcome back"
+            "Welcome Back"
         case .signUp:
-            "Create account"
+            "Create Account"
         }
     }
 

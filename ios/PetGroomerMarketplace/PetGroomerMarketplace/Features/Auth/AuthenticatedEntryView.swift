@@ -86,7 +86,7 @@ struct AuthenticatedEntryView: View {
                 .ignoresSafeArea()
 
             GroomlyLoadingView(
-                title: "Loading profile…",
+                title: "Loading Profile…",
                 message: "Preparing your Groomly workspace."
             )
             .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
@@ -102,7 +102,7 @@ struct AuthenticatedEntryView: View {
 
                 VStack(spacing: DesignTokens.Spacing.standard) {
                     GroomlyErrorBanner(
-                        title: "Profile unavailable",
+                        title: "Profile Unavailable",
                         message: message
                     ) {
                         VStack(spacing: DesignTokens.Spacing.md) {

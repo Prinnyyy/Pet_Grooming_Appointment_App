@@ -8,6 +8,7 @@ struct GroomerTabView: View {
     let chatRepository: (any ChatRepository)?
     let accountContent: AnyView?
     @State private var selection: GroomerTab = .requests
+    @State private var feedbackCenter = GroomlyFeedbackCenter()
 
     init(
         groomerID: UUID? = nil,
@@ -42,6 +43,10 @@ struct GroomerTabView: View {
         .background(DesignTokens.Colors.background.ignoresSafeArea())
         .toolbarBackground(DesignTokens.Colors.surface, for: .tabBar)
         .toolbarBackground(.visible, for: .tabBar)
+        .environment(\.groomlyFeedbackCenter, feedbackCenter)
+        .overlay(alignment: .bottom) {
+            GroomlyGlobalFeedbackOverlay(center: feedbackCenter)
+        }
         .accessibilityIdentifier("groomer.tabs")
     }
 

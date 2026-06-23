@@ -45,6 +45,37 @@ struct TabModelsTests {
     }
 }
 
+struct GroomlyFeedbackCenterTests {
+    @Test @MainActor
+    func noticeCountdownUsesTwoSeconds() {
+        #expect(GroomlyFeedbackCenter.noticeDismissDelayNanoseconds == 2_000_000_000)
+    }
+
+    @Test @MainActor
+    func globalNoticeOverlayKeepsClearanceAboveTabBar() {
+        #expect(GroomlyGlobalFeedbackOverlay.bottomTabBarClearance >= 72)
+    }
+
+    @Test @MainActor
+    func newNoticeReplacesExistingNoticeAndMakesPreviousCountdownStale() {
+        let center = GroomlyFeedbackCenter()
+
+        let firstID = center.showNotice("Request Cancelled.")
+        let secondID = center.showNotice("Message Sent.")
+
+        #expect(firstID != secondID)
+        #expect(center.notice?.id == secondID)
+        #expect(center.notice?.message == "Message Sent.")
+
+        center.clearNotice(id: firstID)
+        #expect(center.notice?.id == secondID)
+        #expect(center.notice?.message == "Message Sent.")
+
+        center.clearNotice(id: secondID)
+        #expect(center.notice == nil)
+    }
+}
+
 struct DebugDiagnosticsTests {
     @Test @MainActor
     func diagnosticsHideSecretsAndUseSupportReferences() throws {

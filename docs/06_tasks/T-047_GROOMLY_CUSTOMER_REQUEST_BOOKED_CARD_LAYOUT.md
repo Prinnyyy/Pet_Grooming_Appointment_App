@@ -24,6 +24,28 @@ Follow-up refinement request:
 - Unify the visual style of `Detail`, `Cancel`, and `View Booking`.
 - Continue optimizing the quest action card layout so it feels visually balanced.
 
+Second follow-up bugfix request:
+
+- After cancelling a quest action card, the bottom `Request cancelled` prompt must retract after 3 seconds with a fade.
+- The bottom prompt must not have a full-width rectangular background outside the rounded toast itself.
+- The bottom prompt text needs clearer title/detail layout.
+- The same bottom prompt issue exists on other pages and should be checked uniformly.
+- Title-like app text should use Title Case.
+- Quest action card date ranges should omit the year and stop forcing a line break, e.g. `Jun 23 at 7:27 PM - Jun 23 at 9:27 PM`.
+
+Third follow-up global notice request:
+
+- The bottom text notice is a global module, not a single-page module.
+- Switching pages must not make the current notice disappear; it should stay in place while its countdown continues.
+- A new notice replaces the current notice and restarts the countdown.
+- The countdown duration is 2 seconds.
+
+Fourth follow-up Home sync and toast placement request:
+
+- Customer Home `Active Request` should reuse the Requests page quest action card module as a summary card, without progress timeline or action buttons.
+- When the Requests page has no visible quest action card, Customer Home must also show no quest action card and instead show no-request text.
+- The bottom global toast should be repositioned so it no longer covers the tab bar.
+
 ## Existing Capability Audit
 
 - T-046 already renders booked handoffs through `CustomerRequestProgressCard`; no separate card route needs to remain.
@@ -55,10 +77,38 @@ Follow-up refinement request:
 - Follow-up: request-card headlines now use explicit two-line strings such as `Open\nrequest` and `Booking\nconfirmed`, rendered with a larger rounded heavy title.
 - Follow-up: active and booked time ranges now format as `start -\nend`.
 - Follow-up: `View Booking`, `Detail`, and `Cancel` now all render through `CustomerRequestActionLabel`, with tone-only color differences instead of unrelated button structures.
+- Second follow-up: Customer Requests card time ranges now use a compact no-year single-line format (`MMM d at h:mm a - MMM d at h:mm a`) and no longer insert a manual newline.
+- Second follow-up: `CustomerRequestsStore.clearNotice(ifCurrent:)` originally guarded the page-local dismiss task; the third follow-up superseded that view-local timer with the global 2-second `GroomlyFeedbackCenter` token.
+- Second follow-up: `GroomlyNoticeToast` and `GroomlyStatusProgressToast` were added to the feedback design primitives for bottom status surfaces.
+- Second follow-up: bottom notice/status surfaces were checked and updated in Customer Requests, Customer Home/Pets, Bookings, Groomer Requests, Groomer Profile, and Chat. The old full-width `.ultraThinMaterial` status backgrounds were removed from these status views; only the rounded toast/progress card carries material.
+- Second follow-up: visible title-like text touched by this pass was updated to Title Case across the affected screens, including auth loading/error titles, Customer Home section titles, request card/timeline titles, booking/chat/groomer request status titles, and groomer profile field titles.
+- Third follow-up: bottom success notices now use `GroomlyFeedbackCenter` as a global tab-shell state owner instead of being owned by each page status view.
+- Third follow-up: `CustomerTabView` and `GroomerTabView` install the feedback center in the environment and render `GroomlyGlobalFeedbackOverlay` at the shell level, so switching tabs no longer removes the active notice.
+- Third follow-up: feature status views now use zero-size `GroomlyNoticeForwarder` instances to forward store `noticeMessage` values into the global center and clear the page-local copy, preventing stale notices from reappearing when returning to a page.
+- Third follow-up: global notice dismissal is token-based and set to 2 seconds. When a newer notice appears, the older countdown token can no longer clear it.
+- Third follow-up: Chat thread view also forwards `ChatStore.noticeMessage`, so send-success feedback appears without requiring the user to return to the conversation list.
+- Fourth follow-up: `CustomerRequestsStore.visibleActionCards` now centralizes the Requests/Home visible-card filter by combining unconfirmed `open`/`has_offers` requests with unacknowledged booked handoffs backed by confirmed bookings.
+- Fourth follow-up: `CustomerRequestActionCardItem` represents one visible quest action card and carries either an active request or an optional booking handoff.
+- Fourth follow-up: `CustomerRequestProgressCarousel` now renders from `visibleActionCards`, and Customer Home uses the same first visible card for its `Active Request` module.
+- Fourth follow-up: Customer Home's active card uses `CustomerRequestActionCardSummary`, which reuses the quest action card shell/header/presentation but omits the timeline and buttons.
+- Fourth follow-up: Customer Home no longer falls back to cancelled, expired, or arbitrary non-visible requests. If `visibleActionCards` is empty, the module displays no-request text only.
+- Fourth follow-up: `GroomlyGlobalFeedbackOverlay` now renders as a tab-shell bottom overlay with an explicit `bottomTabBarClearance` and disabled hit testing, instead of occupying the tab shell bottom safe-area inset.
 
 ## Files Changed
 
 - `ios/PetGroomerMarketplace/PetGroomerMarketplace/Features/Customer/Requests/CustomerRequestsView.swift`
+- `ios/PetGroomerMarketplace/PetGroomerMarketplace/Features/Customer/Requests/CustomerRequestsStore.swift`
+- `ios/PetGroomerMarketplace/PetGroomerMarketplace/DesignSystem/GroomlyFeedbackPrimitives.swift`
+- `ios/PetGroomerMarketplace/PetGroomerMarketplace/Features/Auth/AuthenticatedEntryView.swift`
+- `ios/PetGroomerMarketplace/PetGroomerMarketplace/Features/Auth/AuthenticationView.swift`
+- `ios/PetGroomerMarketplace/PetGroomerMarketplace/Features/Bookings/BookingsView.swift`
+- `ios/PetGroomerMarketplace/PetGroomerMarketplace/Features/Chat/ChatView.swift`
+- `ios/PetGroomerMarketplace/PetGroomerMarketplace/Features/Customer/CustomerTabView.swift`
+- `ios/PetGroomerMarketplace/PetGroomerMarketplace/Features/Customer/Pets/CustomerPetsView.swift`
+- `ios/PetGroomerMarketplace/PetGroomerMarketplace/Features/Groomer/Profile/GroomerProfileManagementView.swift`
+- `ios/PetGroomerMarketplace/PetGroomerMarketplace/Features/Groomer/Requests/GroomerRequestsView.swift`
+- `ios/PetGroomerMarketplace/PetGroomerMarketplace/Features/Groomer/GroomerTabView.swift`
+- `ios/PetGroomerMarketplace/PetGroomerMarketplaceTests/AppEntryModelsTests.swift`
 - `ios/PetGroomerMarketplace/PetGroomerMarketplaceTests/CustomerRequestFeatureTests.swift`
 - `docs/06_tasks/T-047_GROOMLY_CUSTOMER_REQUEST_BOOKED_CARD_LAYOUT.md`
 - `docs/06_tasks/TASK_LEDGER.md`
@@ -96,8 +146,42 @@ Follow-up validation:
 - Follow-up XcodeBuildMCP `build_run_sim` passed on `iPhone 17` simulator (`B9639233-9E78-41C9-A372-330D36C38DA7`). App launched successfully for inspection.
 - Follow-up simulator screenshot: `/var/folders/bc/xmbw6w1d06s61ns9_j2fnll00000gn/T/screenshot_optimized_21a2af42-0578-4de8-bdab-6dd390783648.jpg`.
 
+Second follow-up validation:
+
+- TDD red check: `xcodebuild ... -only-testing:PetGroomerMarketplaceTests/CustomerRequestsStoreTests` failed before implementation because `CustomerRequestsStore.clearNotice(ifCurrent:)` did not exist.
+- TDD green check: `xcodebuild ... -only-testing:PetGroomerMarketplaceTests/CustomerRequestsStoreTests` passed after adding the notice clear guard, compact date formatting expectations, and Title Case card presentation expectations.
+- `git diff --check` passed before documentation updates.
+- `./scripts/ios-build.sh` passed after cross-page bottom status/toast and Title Case updates.
+- Repository scan found no remaining `.background(.ultraThinMaterial)`, `ChatNoticeView`, `CustomerRequestsNoticeToast`, or `twoLineDisplayRange` uses in Swift files.
+- Final `git diff --check` passed after documentation and memory updates.
+- Final XcodeBuildMCP `build_run_sim` passed on `iPhone 17` simulator (`B9639233-9E78-41C9-A372-330D36C38DA7`). App launched successfully for inspection.
+- Final simulator screenshot: `/var/folders/bc/xmbw6w1d06s61ns9_j2fnll00000gn/T/screenshot_optimized_81971db6-f8b1-456b-b616-f282751eeea6.jpg`.
+
+Third follow-up validation:
+
+- TDD red check: `xcodebuild ... -only-testing:PetGroomerMarketplaceTests/GroomlyFeedbackCenterTests` failed before implementation because `GroomlyFeedbackCenter` did not exist.
+- TDD green check: `xcodebuild ... -only-testing:PetGroomerMarketplaceTests/GroomlyFeedbackCenterTests` passed after adding the global center, 2-second countdown constant, and token-based replacement/clear behavior.
+- Repository scan found no remaining page-level `GroomlyNoticeToast`, `noticeDismissDelay`, `dismissNoticeAfterDelay`, `.task(id: store.noticeMessage)`, `noticeMessage != nil`, or `3_000_000_000` uses in Swift files outside the global feedback primitive.
+- `./scripts/ios-build.sh` passed after moving notice ownership to the tab shell.
+- Final `git diff --check` passed after documentation and memory updates.
+- Final `./scripts/ios-build.sh` passed after removing one redundant `await` warning from `GroomlyNoticeForwarder`.
+- Final XcodeBuildMCP `build_run_sim` passed on `iPhone 17` simulator (`B9639233-9E78-41C9-A372-330D36C38DA7`) with no diagnostics warnings or errors. App launched successfully for inspection.
+- Final simulator screenshot: `/var/folders/bc/xmbw6w1d06s61ns9_j2fnll00000gn/T/screenshot_optimized_7a4c6238-985e-44e2-8a30-56e2ec80995c.jpg`.
+
+Fourth follow-up validation:
+
+- TDD red check: `xcodebuild ... -only-testing:PetGroomerMarketplaceTests/CustomerRequestsStoreTests/visibleActionCardsMirrorRequestsDashboardFilteringForHome -only-testing:PetGroomerMarketplaceTests/GroomlyFeedbackCenterTests/globalNoticeOverlayKeepsClearanceAboveTabBar` failed before implementation because `GroomlyGlobalFeedbackOverlay.bottomTabBarClearance` did not exist.
+- TDD green check: the same targeted test command passed after adding `visibleActionCards`, the shared Home summary card, and the tab-bar clearance constant.
+- Targeted scan found no remaining old Home active-card component, old `requestStore.requests.first` fallback, or `GroomlyGlobalFeedbackOverlay` bottom safe-area inset use in Swift files.
+- `./scripts/ios-build.sh` passed after the Home/Requests shared-card and toast placement changes.
+- XcodeBuildMCP `build_run_sim` passed on `iPhone 17` simulator (`B9639233-9E78-41C9-A372-330D36C38DA7`) with no diagnostics warnings or errors. App launched successfully for inspection.
+- Simulator screenshot: `/var/folders/bc/xmbw6w1d06s61ns9_j2fnll00000gn/T/screenshot_optimized_6ca15fda-57cd-4667-a6ed-1fb45e85db0d.jpg`.
+- Final `git diff --check` passed after documentation and memory updates.
+
 ## Risks And Follow-Up
 
 - The card layout is now structurally shared, but visual verification still depends on available runtime data containing booked and unconfirmed cards.
 - Same-device handoff acknowledgement remains local `UserDefaults` state from T-046. It still does not survive reinstall, app data clearing, or cross-device use.
+- Global notice persistence is intentionally in-memory UI state only. It survives tab/page switches in the current app session but is not persisted across app termination.
+- Home shows only the first visible quest action card from the same source as Requests. If multiple active cards exist, the Requests tab remains the place to swipe through all cards.
 - No Supabase changes were made in this task.

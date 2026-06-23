@@ -426,6 +426,78 @@ struct CustomerRequestsStoreTests {
     }
 
     @Test @MainActor
+    func visibleActionCardsMirrorRequestsDashboardFilteringForHome() async throws {
+        let customerID = UUID()
+        let pet = Self.pet(customerID: customerID)
+        let openRequest = Self.request(
+            customerID: customerID,
+            petID: pet.id,
+            status: .open
+        )
+        let offerRequest = Self.request(
+            customerID: customerID,
+            petID: pet.id,
+            status: .hasOffers
+        )
+        let bookedRequest = Self.request(
+            customerID: customerID,
+            petID: pet.id,
+            status: .booked
+        )
+        let cancelledRequest = Self.request(
+            customerID: customerID,
+            petID: pet.id,
+            status: .cancelled
+        )
+        let expiredRequest = Self.request(
+            customerID: customerID,
+            petID: pet.id,
+            status: .expired
+        )
+        let confirmedBooking = Self.booking(
+            requestID: bookedRequest.id,
+            customerID: customerID,
+            status: .confirmed
+        )
+        let store = CustomerRequestsStore(
+            customerID: customerID,
+            petRepository: CustomerRequestPetRepositoryFake(
+                petsResult: .success([pet])
+            ),
+            requestRepository: CustomerRequestRepositoryFake(
+                requestsResult: .success([
+                    openRequest,
+                    offerRequest,
+                    bookedRequest,
+                    cancelledRequest,
+                    expiredRequest,
+                ])
+            ),
+            bookingRepository: CustomerRequestBookingRepositoryFake(
+                bookingsResult: .success([confirmedBooking])
+            )
+        )
+
+        await store.load()
+
+        #expect(store.visibleActionCards.map(\.request.id) == [
+            openRequest.id,
+            offerRequest.id,
+            bookedRequest.id,
+        ])
+        #expect(store.visibleActionCards.first?.handoff == nil)
+        #expect(store.visibleActionCards.last?.handoff?.booking.id == confirmedBooking.id)
+
+        let handoff = try #require(store.visibleActionCards.last?.handoff)
+        store.acknowledgeBookingHandoff(for: handoff)
+
+        #expect(store.visibleActionCards.map(\.request.id) == [
+            openRequest.id,
+            offerRequest.id,
+        ])
+    }
+
+    @Test @MainActor
     func bookedHandoffCardPresentationKeepsQuestSummaryAndAddsAddress() async throws {
         let customerID = UUID()
         let pet = Self.pet(customerID: customerID)
@@ -447,12 +519,12 @@ struct CustomerRequestsStoreTests {
             )
         )
 
-        #expect(presentation.headline == "Booking\nconfirmed")
+        #expect(presentation.headline == "Booking\nConfirmed")
         #expect(presentation.subtitle == "Full groom for Mochi")
         #expect(presentation.infoLines == [
             CustomerRequestProgressCardPresentation.InfoLine(
                 systemImage: "calendar",
-                text: Self.twoLineDisplayRange(
+                text: Self.compactDisplayRange(
                     from: booking.scheduledStart,
                     to: booking.scheduledEnd
                 )
@@ -465,7 +537,7 @@ struct CustomerRequestsStoreTests {
     }
 
     @Test @MainActor
-    func openRequestCardPresentationUsesTwoLineHeadlineAndTimeRange() async throws {
+    func openRequestCardPresentationUsesTitleCaseHeadlineAndCompactTimeRange() async throws {
         let customerID = UUID()
         let request = Self.request(
             customerID: customerID,
@@ -477,14 +549,33 @@ struct CustomerRequestsStoreTests {
             handoff: nil
         )
 
-        #expect(presentation.headline == "Open\nrequest")
+        #expect(presentation.headline == "Open\nRequest")
         #expect(presentation.infoLines.first == CustomerRequestProgressCardPresentation.InfoLine(
             systemImage: "calendar",
-            text: Self.twoLineDisplayRange(
+            text: Self.compactDisplayRange(
                 from: request.preferredStart,
                 to: request.preferredEnd
             )
         ))
+        #expect(presentation.infoLines.first?.text.contains("2026") == false)
+        #expect(presentation.infoLines.first?.text.contains("\n") == false)
+    }
+
+    @Test @MainActor
+    func clearNoticeOnlyDismissesMatchingMessage() async throws {
+        let store = CustomerRequestsStore(
+            customerID: UUID(),
+            petRepository: CustomerRequestPetRepositoryFake(),
+            requestRepository: CustomerRequestRepositoryFake(),
+            bookingRepository: CustomerRequestBookingRepositoryFake()
+        )
+
+        store.noticeMessage = "Request cancelled."
+        store.clearNotice(ifCurrent: "Offer accepted. Booking confirmed.")
+        #expect(store.noticeMessage == "Request cancelled.")
+
+        store.clearNotice(ifCurrent: "Request cancelled.")
+        #expect(store.noticeMessage == nil)
     }
 
     @Test @MainActor
@@ -771,8 +862,19 @@ struct CustomerRequestsStoreTests {
         )
     }
 
-    private static func twoLineDisplayRange(from start: String, to end: String) -> String {
-        "\(GroomingRequestDateFormatting.displayString(from: start)) -\n\(GroomingRequestDateFormatting.displayString(from: end))"
+    private static func compactDisplayRange(from start: String, to end: String) -> String {
+        "\(compactDisplayString(from: start)) - \(compactDisplayString(from: end))"
+    }
+
+    private static func compactDisplayString(from value: String) -> String {
+        guard let date = GroomingRequestDateFormatting.parsedDate(from: value) else {
+            return value
+        }
+
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "MMM d 'at' h:mm a"
+        return formatter.string(from: date)
     }
 
     private static func offerReview(

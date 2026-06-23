@@ -28,7 +28,7 @@ struct GroomerProfileManagementView: View {
 
             if store.isLoading, store.profile == nil {
                 GroomlyLoadingView(
-                    title: "Loading groomer profile…",
+                    title: "Loading Groomer Profile…",
                     message: "We are preparing your profile, services, and portfolio settings.",
                     accent: .groomer
                 )
@@ -38,7 +38,7 @@ struct GroomerProfileManagementView: View {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
                         GroomlySectionHeader(
-                            "Groomer profile",
+                            "Groomer Profile",
                             subtitle: "Keep your business details and service menu ready for matched requests."
                         )
 
@@ -83,7 +83,7 @@ private struct GroomerProfileFormSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
             GroomlySectionHeader(
-                "Marketplace profile",
+                "Marketplace Profile",
                 subtitle: "Complete these fields before making your profile active."
             ) {
                 if let profile = store.profile {
@@ -98,9 +98,9 @@ private struct GroomerProfileFormSection: View {
             GroomlyCard {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
                     GroomerProfileTextField(
-                        title: "Business name",
+                        title: "Business Name",
                         text: $store.businessName,
-                        prompt: "Business name"
+                        prompt: "Business Name"
                     )
                     .textContentType(.organizationName)
 
@@ -113,9 +113,9 @@ private struct GroomerProfileFormSection: View {
                     .lineLimit(3...6)
 
                     GroomerProfileTextField(
-                        title: "Years of experience",
+                        title: "Years of Experience",
                         text: $store.yearsExperience,
-                        prompt: "Years of experience"
+                        prompt: "Years of Experience"
                     )
                     .keyboardType(.numberPad)
 
@@ -134,14 +134,14 @@ private struct GroomerProfileFormSection: View {
                     }
 
                     GroomerProfileTextField(
-                        title: "Service radius in miles",
+                        title: "Service Radius in Miles",
                         text: $store.serviceRadiusMiles,
-                        prompt: "Service radius in miles"
+                        prompt: "Service Radius in Miles"
                     )
                     .keyboardType(.numberPad)
 
                     GroomlyToggleRow(
-                        title: "Profile visible to authenticated customers",
+                        title: "Profile Visible to Authenticated Customers",
                         subtitle: "Customers can discover and receive offers from active groomer profiles.",
                         systemImage: "eye",
                         isOn: $store.isActive
@@ -203,7 +203,7 @@ private struct GroomerServicesSection: View {
 
             if store.services.isEmpty {
                 GroomlyEmptyState(
-                    title: "No services yet",
+                    title: "No Services Yet",
                     message: "Add services before responding to future requests.",
                     systemImage: "scissors",
                     accent: .groomer
@@ -462,7 +462,7 @@ private struct GroomerPortfolioSection: View {
 
             if store.portfolioPhotos.isEmpty {
                 GroomlyEmptyState(
-                    title: "No portfolio photos",
+                    title: "No Portfolio Photos",
                     message: "Add work examples after completing your profile. This screen shows stored metadata only.",
                     systemImage: "photo.on.rectangle",
                     accent: .groomer
@@ -568,7 +568,7 @@ private struct GroomerPortfolioPhotoRow: View {
                                 .foregroundStyle(DesignTokens.Colors.textSecondary)
                                 .fixedSize(horizontal: false, vertical: true)
                         } else {
-                            Text("No caption metadata")
+                            Text("No Caption Metadata")
                                 .font(DesignTokens.Typography.caption)
                                 .foregroundStyle(DesignTokens.Colors.textTertiary)
                         }
@@ -606,13 +606,13 @@ private struct GroomerPortfolioPhotoRow: View {
                     )
 
                     GroomerPortfolioMetadataRow(
-                        title: "Storage path",
+                        title: "Storage Path",
                         value: photo.storagePath,
                         systemImage: "folder"
                     )
 
                     GroomerPortfolioMetadataRow(
-                        title: "Sort order",
+                        title: "Sort Order",
                         value: "\(photo.sortOrder)",
                         systemImage: "arrow.up.arrow.down"
                     )
@@ -684,21 +684,21 @@ private struct GroomerServiceFormView: View {
                                 .lineLimit(2...4)
 
                                 GroomerProfileTextField(
-                                    title: "Base price",
+                                    title: "Base Price",
                                     text: $store.serviceBasePrice,
-                                    prompt: "Base price"
+                                    prompt: "Base Price"
                                 )
                                 .keyboardType(.decimalPad)
 
                                 GroomerProfileTextField(
-                                    title: "Duration in minutes",
+                                    title: "Duration in Minutes",
                                     text: $store.serviceDurationMinutes,
-                                    prompt: "Duration in minutes"
+                                    prompt: "Duration in Minutes"
                                 )
                                 .keyboardType(.numberPad)
 
                                 GroomlyToggleRow(
-                                    title: "Visible to customers",
+                                    title: "Visible to Customers",
                                     subtitle: "Hidden services stay saved but do not appear as active options.",
                                     systemImage: "eye",
                                     isOn: $store.serviceIsActive
@@ -742,7 +742,7 @@ private struct GroomerServiceFormView: View {
 
                         if let errorMessage = store.errorMessage {
                             GroomlyErrorBanner(
-                                title: "Service could not be saved",
+                                title: "Service Could Not Be Saved",
                                 message: errorMessage
                             )
                             .accessibilityIdentifier("groomer.services.form-error")
@@ -781,55 +781,44 @@ private struct GroomerProfileStatusView: View {
     let store: GroomerProfileStore
 
     var body: some View {
-        if hasStatus {
-            VStack(spacing: DesignTokens.Spacing.sm) {
-                if store.isSaving || store.isUploading {
-                    HStack(spacing: DesignTokens.Spacing.sm) {
-                        ProgressView()
-                            .tint(DesignTokens.Colors.groomerAccent)
-
-                        Text(store.isUploading ? "Uploading…" : "Saving…")
-                            .font(DesignTokens.Typography.caption)
-                            .foregroundStyle(DesignTokens.Colors.textSecondary)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .accessibilityElement(children: .combine)
-                }
-
-                if let noticeMessage = store.noticeMessage {
-                    HStack(spacing: DesignTokens.Spacing.sm) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundStyle(DesignTokens.Colors.success)
-                            .accessibilityHidden(true)
-
-                        Text(noticeMessage)
-                            .font(DesignTokens.Typography.caption)
-                            .foregroundStyle(DesignTokens.Colors.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .accessibilityElement(children: .combine)
-                }
-
-                if let errorMessage = store.errorMessage,
-                   !store.isShowingServiceForm {
-                    GroomlyErrorBanner(
-                        title: "Profile update failed",
-                        message: errorMessage
-                    )
-                }
+        VStack(spacing: 0) {
+            GroomlyNoticeForwarder(message: store.noticeMessage) { message in
+                guard store.noticeMessage == message else { return }
+                store.noticeMessage = nil
             }
-            .frame(maxWidth: .infinity)
-            .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-            .padding(.vertical, DesignTokens.Spacing.sm)
-            .background(.ultraThinMaterial)
+
+            if hasInlineStatus {
+                inlineStatus
+            }
         }
     }
 
-    private var hasStatus: Bool {
+    private var inlineStatus: some View {
+        VStack(spacing: DesignTokens.Spacing.sm) {
+            if store.isSaving || store.isUploading {
+                GroomlyStatusProgressToast(
+                    store.isUploading ? "Uploading…" : "Saving…",
+                    tint: DesignTokens.Colors.groomerAccent
+                )
+            }
+
+            if let errorMessage = store.errorMessage,
+               !store.isShowingServiceForm {
+                GroomlyErrorBanner(
+                    title: "Profile Update Failed",
+                    message: errorMessage
+                )
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+        .padding(.vertical, DesignTokens.Spacing.sm)
+        .animation(.easeInOut(duration: 0.24), value: hasInlineStatus)
+    }
+
+    private var hasInlineStatus: Bool {
         store.isSaving ||
             store.isUploading ||
-            store.noticeMessage != nil ||
             (store.errorMessage != nil && !store.isShowingServiceForm)
     }
 }

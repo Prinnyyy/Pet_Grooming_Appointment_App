@@ -87,9 +87,8 @@ struct CustomerPetsView: View {
                 CustomerHomePetsSection(store: petStore)
 
                 CustomerHomeActiveRequestSection(
-                    request: activeRequest,
-                    store: requestStore,
-                    startRequestAction: startGroomingRequest
+                    card: visibleActionCard,
+                    store: requestStore
                 )
 
                 CustomerHomeNextBookingSection(
@@ -104,9 +103,8 @@ struct CustomerPetsView: View {
         .scrollContentBackground(.hidden)
     }
 
-    private var activeRequest: CustomerGroomingRequest? {
-        requestStore.requests.first { $0.status.isOpenForOffers }
-            ?? requestStore.requests.first
+    private var visibleActionCard: CustomerRequestActionCardItem? {
+        requestStore.visibleActionCards.first
     }
 
     private var nextBooking: Booking? {
@@ -160,7 +158,7 @@ private struct CustomerHomeHeader: View {
                 .accessibilityLabel("Customer avatar")
 
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                Text("Welcome back")
+                Text("Welcome Back")
                     .font(DesignTokens.Typography.body.weight(.semibold))
                     .foregroundStyle(DesignTokens.Colors.secondaryText)
 
@@ -240,7 +238,7 @@ private struct CustomerHomeRequestHero: View {
 
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                    Text("Need grooming for\nyour pet?")
+                    Text("Need Grooming for\nYour Pet?")
                         .font(.title.weight(.bold))
                         .foregroundStyle(.white)
                         .fixedSize(horizontal: false, vertical: true)
@@ -282,13 +280,13 @@ private struct CustomerHomePetsSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            Text("Your pets")
+            Text("Your Pets")
                 .font(.title2.weight(.bold))
                 .foregroundStyle(DesignTokens.Colors.textPrimary)
 
             if store.isLoading, store.pets.isEmpty {
                 GroomlyLoadingView(
-                    title: "Loading pets…",
+                    title: "Loading Pets…",
                     message: "Fetching your saved pet profiles.",
                     accent: .customer
                 )
@@ -437,7 +435,7 @@ private struct CustomerHomeAddPetTile: View {
                     .background(DesignTokens.Colors.surfaceRaised)
                     .clipShape(DesignTokens.Shapes.circular)
 
-                Text("Add pet")
+                Text("Add Pet")
                     .font(DesignTokens.Typography.body.weight(.bold))
                     .foregroundStyle(DesignTokens.Colors.textTertiary)
             }
@@ -466,163 +464,39 @@ private struct CustomerHomeAddPetTile: View {
 }
 
 private struct CustomerHomeActiveRequestSection: View {
-    let request: CustomerGroomingRequest?
+    let card: CustomerRequestActionCardItem?
     let store: CustomerRequestsStore
-    let startRequestAction: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            Text("Active request")
+            Text("Active Request")
                 .font(.title2.weight(.bold))
                 .foregroundStyle(DesignTokens.Colors.textPrimary)
 
-            if store.isLoading, request == nil {
+            if store.isLoading, card == nil {
                 GroomlyLoadingView(
-                    title: "Loading request…",
+                    title: "Loading Request…",
                     message: "Checking your active grooming request.",
                     accent: .customer
                 )
                 .accessibilityIdentifier("customer.home.active-request.loading")
-            } else if let request {
-                CustomerHomeActiveRequestCard(
-                    request: request,
-                    store: store
-                )
+            } else if let card {
+                CustomerRequestActionCardSummary(card: card)
+                    .accessibilityIdentifier("customer.home.active-request.card")
             } else {
-                GroomlyCard {
-                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                        CustomerHomeDetailHeader(
-                            title: "No active request",
-                            subtitle: "Create a grooming request when your pet is ready.",
-                            systemImage: "doc.badge.plus"
-                        )
-
-                        Button(action: startRequestAction) {
-                            Label("Start Request", systemImage: "scissors")
-                        }
-                        .buttonStyle(GroomlyPrimaryButtonStyle())
-                        .accessibilityIdentifier("customer.home.active-request.start")
-                    }
-                }
-            }
-        }
-    }
-}
-
-private struct CustomerHomeActiveRequestCard: View {
-    let request: CustomerGroomingRequest
-    let store: CustomerRequestsStore
-
-    var body: some View {
-        GroomlyCard {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
-                    Text(petAvatar)
-                        .font(.system(size: 30))
-                        .frame(width: 54, height: 54)
-                        .background(DesignTokens.Colors.groomerAccent.opacity(0.2))
-                        .clipShape(
-                            RoundedRectangle(
-                                cornerRadius: DesignTokens.CornerRadius.input,
-                                style: .continuous
-                            )
-                        )
-                        .accessibilityHidden(true)
-
-                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                        Text("Open Request")
-                            .font(DesignTokens.Typography.title.weight(.bold))
-                            .foregroundStyle(DesignTokens.Colors.textPrimary)
-                            .lineLimit(2)
-
-                        Text("\(request.petSnapshot.name) · \(request.serviceType)")
-                            .font(DesignTokens.Typography.body)
-                            .foregroundStyle(DesignTokens.Colors.secondaryText)
-                            .lineLimit(2)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                    GroomlyStatusChip(
-                        statusTitle,
-                        systemImage: statusIcon,
-                        tone: request.status.isOpenForOffers ? .warning : .neutral
-                    )
-                }
-
-                Text(requestPrompt)
-                    .font(DesignTokens.Typography.body)
-                    .foregroundStyle(DesignTokens.Colors.secondaryText)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                NavigationLink {
-                    CustomerRequestDetailView(
-                        requestID: request.id,
-                        store: store
-                    )
-                } label: {
-                    Text("View Request")
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                    Text("No Active Request")
                         .font(DesignTokens.Typography.headline.weight(.bold))
-                        .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 54)
-                        .background(DesignTokens.Colors.customerPrimary.opacity(0.12))
-                        .clipShape(
-                            RoundedRectangle(
-                                cornerRadius: DesignTokens.CornerRadius.input,
-                                style: .continuous
-                            )
-                        )
+                        .foregroundStyle(DesignTokens.Colors.textPrimary)
+
+                    Text("Open quests and newly confirmed booking handoffs will appear here.")
+                        .font(DesignTokens.Typography.body)
+                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("customer.home.active-request.view")
+                .padding(.vertical, DesignTokens.Spacing.sm)
+                .accessibilityIdentifier("customer.home.active-request.empty")
             }
-        }
-    }
-
-    private var petAvatar: String {
-        let searchText = "\(request.petSnapshot.breed ?? "") \(request.petSnapshot.species)"
-            .lowercased()
-
-        if searchText.contains("poodle") {
-            return "🐩"
-        } else if searchText.contains("cat") {
-            return "🐱"
-        } else if searchText.contains("dog") {
-            return "🐶"
-        }
-
-        return "🐾"
-    }
-
-    private var statusTitle: String {
-        switch request.status {
-        case .open:
-            "Waiting for offers"
-        case .hasOffers:
-            "Offers ready"
-        case .booked:
-            "Booked"
-        case .cancelled:
-            "Cancelled"
-        case .expired:
-            "Expired"
-        }
-    }
-
-    private var statusIcon: String {
-        request.status.isOpenForOffers ? "clock.fill" : "checkmark.circle"
-    }
-
-    private var requestPrompt: String {
-        switch request.status {
-        case .open:
-            "Matched groomers can review your request and send offers."
-        case .hasOffers:
-            "You have groomer responses waiting in the request detail."
-        case .booked:
-            "This request has become a booking."
-        case .cancelled, .expired:
-            "This request is closed."
         }
     }
 }
@@ -633,13 +507,13 @@ private struct CustomerHomeNextBookingSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            Text("Next booking")
+            Text("Next Booking")
                 .font(.title2.weight(.bold))
                 .foregroundStyle(DesignTokens.Colors.textPrimary)
 
             if store.isLoading, booking == nil {
                 GroomlyLoadingView(
-                    title: "Loading booking…",
+                    title: "Loading Booking…",
                     message: "Checking confirmed appointments.",
                     accent: .customer
                 )
@@ -659,7 +533,7 @@ private struct CustomerHomeNextBookingSection: View {
             } else {
                 GroomlyCard {
                     CustomerHomeDetailHeader(
-                        title: "No booking yet",
+                        title: "No Booking Yet",
                         subtitle: "Accepted offers will appear here as upcoming appointments.",
                         systemImage: "calendar.badge.clock"
                     )
@@ -720,33 +594,19 @@ private struct CustomerHomeStatusView: View {
     let bookingStore: BookingsStore
 
     var body: some View {
-        if hasStatus {
-            VStack(spacing: 0) {
-                CustomerPetsStatusView(store: petStore)
-                CustomerRequestsStatusView(store: requestStore)
+        VStack(spacing: DesignTokens.Spacing.sm) {
+            CustomerPetsStatusView(store: petStore)
+            CustomerRequestsStatusView(store: requestStore)
 
-                if let errorMessage = bookingStore.errorMessage {
-                    GroomlyErrorBanner(
-                        title: "We could not load bookings",
-                        message: errorMessage
-                    )
-                    .padding(.horizontal, DesignTokens.Spacing.standard)
-                    .padding(.vertical, DesignTokens.Spacing.sm)
-                    .background(.ultraThinMaterial)
-                }
+            if let errorMessage = bookingStore.errorMessage {
+                GroomlyErrorBanner(
+                    title: "We Could Not Load Bookings",
+                    message: errorMessage
+                )
+                .padding(.horizontal, DesignTokens.Spacing.standard)
+                .padding(.vertical, DesignTokens.Spacing.sm)
             }
         }
-    }
-
-    private var hasStatus: Bool {
-        petStore.isSaving
-            || petStore.isUploading
-            || petStore.noticeMessage != nil
-            || (petStore.errorMessage != nil && !petStore.isShowingPetForm)
-            || requestStore.isSubmitting
-            || requestStore.noticeMessage != nil
-            || (requestStore.errorMessage != nil && !requestStore.isShowingWizard)
-            || bookingStore.errorMessage != nil
     }
 }
 
@@ -1014,7 +874,7 @@ private struct CustomerPetFormView: View {
                 if let errorMessage = store.errorMessage {
                     Section {
                         GroomlyErrorBanner(
-                            title: "Check pet details",
+                            title: "Check Pet Details",
                             message: errorMessage
                         )
                     }
@@ -1054,57 +914,44 @@ private struct CustomerPetsStatusView: View {
     let store: CustomerPetsStore
 
     var body: some View {
-        if hasStatus {
-            VStack(spacing: DesignTokens.Spacing.sm) {
-                if store.isSaving || store.isUploading {
-                    GroomlyCard(padding: DesignTokens.Spacing.md) {
-                        HStack(spacing: DesignTokens.Spacing.sm) {
-                            ProgressView()
-                                .tint(DesignTokens.Colors.customerPrimary)
-
-                            Text(store.isUploading ? "Uploading…" : "Saving…")
-                                .font(DesignTokens.Typography.caption)
-                                .foregroundStyle(DesignTokens.Colors.secondaryText)
-                        }
-                    }
-                }
-
-                if let noticeMessage = store.noticeMessage {
-                    GroomlyCard(padding: DesignTokens.Spacing.md) {
-                        HStack(alignment: .top, spacing: DesignTokens.Spacing.sm) {
-                            GroomlyStatusChip(
-                                "Saved",
-                                systemImage: "checkmark",
-                                tone: .success
-                            )
-
-                            Text(noticeMessage)
-                                .font(DesignTokens.Typography.caption)
-                                .foregroundStyle(DesignTokens.Colors.secondaryText)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                    }
-                }
-
-                if let errorMessage = store.errorMessage,
-                   !store.isShowingPetForm {
-                    GroomlyErrorBanner(
-                        title: "We could not update your pets",
-                        message: errorMessage
-                    )
-                }
+        VStack(spacing: 0) {
+            GroomlyNoticeForwarder(message: store.noticeMessage) { message in
+                guard store.noticeMessage == message else { return }
+                store.noticeMessage = nil
             }
-            .frame(maxWidth: .infinity)
-            .padding(.horizontal, DesignTokens.Spacing.standard)
-            .padding(.vertical, DesignTokens.Spacing.sm)
-            .background(.ultraThinMaterial)
+
+            if hasInlineStatus {
+                inlineStatus
+            }
         }
     }
 
-    private var hasStatus: Bool {
+    private var inlineStatus: some View {
+        VStack(spacing: DesignTokens.Spacing.sm) {
+            if store.isSaving || store.isUploading {
+                GroomlyStatusProgressToast(
+                    store.isUploading ? "Uploading…" : "Saving…",
+                    tint: DesignTokens.Colors.customerPrimary
+                )
+            }
+
+            if let errorMessage = store.errorMessage,
+               !store.isShowingPetForm {
+                GroomlyErrorBanner(
+                    title: "We Could Not Update Your Pets",
+                    message: errorMessage
+                )
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, DesignTokens.Spacing.standard)
+        .padding(.vertical, DesignTokens.Spacing.sm)
+        .animation(.easeInOut(duration: 0.24), value: hasInlineStatus)
+    }
+
+    private var hasInlineStatus: Bool {
         store.isSaving
             || store.isUploading
-            || store.noticeMessage != nil
             || (store.errorMessage != nil && !store.isShowingPetForm)
     }
 }

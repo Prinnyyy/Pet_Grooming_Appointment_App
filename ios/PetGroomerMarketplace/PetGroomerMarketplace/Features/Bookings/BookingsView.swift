@@ -54,7 +54,7 @@ struct BookingsView: View {
     private var bookingsContent: some View {
         if store.isLoading, store.bookings.isEmpty {
             GroomlyLoadingView(
-                title: "Loading bookings…",
+                title: "Loading Bookings…",
                 message: "Fetching confirmed appointments for your account.",
                 accent: role.loadingAccent
             )
@@ -70,7 +70,7 @@ struct BookingsView: View {
 
                     if store.bookings.isEmpty {
                         GroomlyEmptyState(
-                            title: "No bookings yet",
+                            title: "No Bookings Yet",
                             message: "Confirmed appointments will appear here after an offer is accepted.",
                             systemImage: "calendar.badge.clock",
                             accent: role.emptyStateAccent
@@ -230,7 +230,7 @@ struct BookingDetailView: View {
                             }
                         }
 
-                        GroomlySectionHeader("Support references")
+                        GroomlySectionHeader("Support References")
 
                         GroomlyCard {
                             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
@@ -294,7 +294,7 @@ struct BookingDetailView: View {
                     .ignoresSafeArea()
 
                 GroomlyEmptyState(
-                    title: "Booking unavailable",
+                    title: "Booking Unavailable",
                     message: "Refresh bookings and try again.",
                     systemImage: "calendar.badge.exclamationmark",
                     accent: role.emptyStateAccent
@@ -333,7 +333,7 @@ private struct BookingLifecycleCard: View {
                                     await store.complete(booking)
                                 }
                             } label: {
-                                Label("Mark service completed", systemImage: "checkmark.seal")
+                                Label("Mark Service Completed", systemImage: "checkmark.seal")
                             }
                             .buttonStyle(GroomlyPrimaryButtonStyle(accent: role.primaryButtonAccent))
                             .disabled(store.isCompleting)
@@ -355,7 +355,7 @@ private struct BookingLifecycleCard: View {
                                 await store.cancel(booking)
                             }
                         } label: {
-                            Label("Cancel booking", systemImage: "xmark.circle")
+                            Label("Cancel Booking", systemImage: "xmark.circle")
                         }
                         .buttonStyle(GroomlySecondaryButtonStyle(accent: .neutral))
                         .disabled(store.isCancelling)
@@ -471,7 +471,7 @@ private struct BookingReviewForm: View {
                         )
                     }
                 } label: {
-                    Label("Submit review", systemImage: "star.bubble")
+                    Label("Submit Review", systemImage: "star.bubble")
                 }
                 .buttonStyle(GroomlyPrimaryButtonStyle(accent: accent))
                 .disabled(store.isSubmittingReview)
@@ -486,69 +486,56 @@ private struct BookingsStatusView: View {
     let role: UserRole
 
     var body: some View {
-        if hasStatus {
-            VStack(spacing: DesignTokens.Spacing.sm) {
-                if store.isCancelling {
-                    progressRow("Cancelling…")
-                }
-
-                if store.isCompleting {
-                    progressRow("Completing…")
-                }
-
-                if store.isSubmittingReview {
-                    progressRow("Submitting review…")
-                }
-
-                if let noticeMessage = store.noticeMessage {
-                    HStack(spacing: DesignTokens.Spacing.sm) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundStyle(DesignTokens.Colors.success)
-                            .accessibilityHidden(true)
-
-                        Text(noticeMessage)
-                            .font(DesignTokens.Typography.caption)
-                            .foregroundStyle(DesignTokens.Colors.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .accessibilityElement(children: .combine)
-                }
-
-                if let errorMessage = store.errorMessage {
-                    GroomlyErrorBanner(
-                        title: "Booking update failed",
-                        message: errorMessage
-                    )
-                }
+        VStack(spacing: 0) {
+            GroomlyNoticeForwarder(message: store.noticeMessage) { message in
+                guard store.noticeMessage == message else { return }
+                store.noticeMessage = nil
             }
-            .frame(maxWidth: .infinity)
-            .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-            .padding(.vertical, DesignTokens.Spacing.sm)
-            .background(.ultraThinMaterial)
+
+            if hasInlineStatus {
+                inlineStatus
+            }
         }
     }
 
-    private var hasStatus: Bool {
+    private var inlineStatus: some View {
+        VStack(spacing: DesignTokens.Spacing.sm) {
+            if store.isCancelling {
+                progressRow("Cancelling…")
+            }
+
+            if store.isCompleting {
+                progressRow("Completing…")
+            }
+
+            if store.isSubmittingReview {
+                progressRow("Submitting Review…")
+            }
+
+            if let errorMessage = store.errorMessage {
+                GroomlyErrorBanner(
+                    title: "Booking Update Failed",
+                    message: errorMessage
+                )
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+        .padding(.vertical, DesignTokens.Spacing.sm)
+        .animation(.easeInOut(duration: 0.24), value: hasInlineStatus)
+    }
+
+    private var hasInlineStatus: Bool {
         store.isCancelling ||
             store.isCompleting ||
             store.isSubmittingReview ||
-            store.noticeMessage != nil ||
             store.errorMessage != nil
     }
 
     private func progressRow(_ title: String) -> some View {
-        HStack(spacing: DesignTokens.Spacing.sm) {
-            ProgressView()
-                .tint(role.primaryColor)
-
-            Text(title)
-                .font(DesignTokens.Typography.caption)
-                .foregroundStyle(DesignTokens.Colors.textSecondary)
-        }
-        .frame(maxWidth: .infinity)
-        .accessibilityElement(children: .combine)
+        GroomlyStatusProgressToast(title, tint: role.primaryColor)
     }
+
 }
 
 private struct BookingFactRow: View {
