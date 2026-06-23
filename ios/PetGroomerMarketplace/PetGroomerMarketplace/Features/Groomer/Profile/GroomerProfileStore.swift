@@ -12,6 +12,7 @@ final class GroomerProfileStore {
     private(set) var profile: GroomerProfile?
     private(set) var services: [GroomerService] = []
     private(set) var portfolioPhotos: [GroomerPortfolioPhoto] = []
+    private(set) var availabilityWindows: [GroomerAvailabilityWindow] = []
     private(set) var isLoading = false
     private(set) var isSaving = false
     private(set) var isUploading = false
@@ -38,6 +39,9 @@ final class GroomerProfileStore {
     var serviceDurationMinutes = ""
     var selectedServiceSizes: Set<GroomerServicePetSize> = []
     var serviceIsActive = true
+    var availabilityDayStates: [GroomerAvailabilityDayState] =
+        GroomerAvailabilityDayState.defaultStates()
+    var availabilityTimezone = TimeZone.current.identifier
 
     var serviceFormTitle: String {
         editingServiceID == nil ? "Add Service" : "Edit Service"
@@ -64,11 +68,14 @@ final class GroomerProfileStore {
             let loadedProfile = try await repository.profile(groomerID: groomerID)
             let loadedServices = try await repository.services(groomerID: groomerID)
             let loadedPhotos = try await repository.portfolioPhotos(groomerID: groomerID)
+            let loadedAvailability = try await repository.availabilityWindows(groomerID: groomerID)
 
             profile = loadedProfile
             services = loadedServices
             portfolioPhotos = loadedPhotos
+            availabilityWindows = loadedAvailability
             populateProfileForm(with: loadedProfile)
+            populateAvailabilityForm(with: loadedAvailability)
         } catch let error as GroomerProfileRepositoryError {
             errorMessage = message(for: error, action: "load")
         } catch {
@@ -267,6 +274,56 @@ final class GroomerProfileStore {
         }
     }
 
+    func setAvailability(
+        day: GroomerAvailabilityWeekday,
+        isEnabled: Bool,
+        startMinutes: Int,
+        endMinutes: Int
+    ) {
+        guard let index = availabilityDayStates.firstIndex(where: { $0.weekday == day }) else {
+            return
+        }
+
+        availabilityDayStates[index].isEnabled = isEnabled
+        availabilityDayStates[index].startMinutes = startMinutes
+        availabilityDayStates[index].endMinutes = endMinutes
+    }
+
+    func saveAvailability() async {
+        guard !isSaving else { return }
+
+        errorMessage = nil
+        noticeMessage = nil
+
+        let drafts: [GroomerAvailabilityDraft]
+        do {
+            drafts = try makeAvailabilityDrafts()
+        } catch let error as GroomerProfileFormError {
+            errorMessage = error.message
+            return
+        } catch {
+            errorMessage = "Check your availability and try again."
+            return
+        }
+
+        isSaving = true
+        defer { isSaving = false }
+
+        do {
+            let updatedWindows = try await repository.replaceAvailability(
+                groomerID: groomerID,
+                drafts: drafts
+            )
+            availabilityWindows = updatedWindows
+            populateAvailabilityForm(with: updatedWindows)
+            noticeMessage = "Availability saved."
+        } catch let error as GroomerProfileRepositoryError {
+            errorMessage = message(for: error, action: "save availability")
+        } catch {
+            errorMessage = message(for: .unavailable, action: "save availability")
+        }
+    }
+
     private func populateProfileForm(with profile: GroomerProfile) {
         businessName = profile.businessName ?? ""
         bio = profile.bio ?? ""
@@ -277,6 +334,25 @@ final class GroomerProfileStore {
         serviceRadiusMiles = profile.serviceRadiusMiles.map(String.init) ?? ""
         serviceLocationMode = profile.serviceLocationMode
         isActive = profile.isActive
+    }
+
+    private func populateAvailabilityForm(with windows: [GroomerAvailabilityWindow]) {
+        var states = GroomerAvailabilityDayState.defaultStates()
+        for window in windows {
+            guard let index = states.firstIndex(where: { $0.weekday == window.weekday }) else {
+                continue
+            }
+            states[index] = GroomerAvailabilityDayState(
+                weekday: window.weekday,
+                isEnabled: window.isEnabled,
+                startMinutes: window.startMinutes,
+                endMinutes: window.endMinutes
+            )
+        }
+        availabilityDayStates = states
+        if let timezone = windows.first?.timezone {
+            availabilityTimezone = timezone
+        }
     }
 
     private func resetServiceForm() {
@@ -361,6 +437,33 @@ final class GroomerProfileStore {
             },
             isActive: serviceIsActive
         )
+    }
+
+    private func makeAvailabilityDrafts() throws -> [GroomerAvailabilityDraft] {
+        try availabilityDayStates
+            .sorted { $0.weekday.rawValue < $1.weekday.rawValue }
+            .map { state in
+                guard state.startMinutes >= 0,
+                      state.endMinutes <= 23 * 60 + 59 else {
+                    throw GroomerProfileFormError(
+                        message: "\(state.weekday.title) availability must stay within one day."
+                    )
+                }
+
+                if state.isEnabled, state.endMinutes <= state.startMinutes {
+                    throw GroomerProfileFormError(
+                        message: "\(state.weekday.title) availability needs an end time after the start time."
+                    )
+                }
+
+                return GroomerAvailabilityDraft(
+                    weekday: state.weekday,
+                    startMinutes: state.startMinutes,
+                    endMinutes: state.endMinutes,
+                    isEnabled: state.isEnabled,
+                    timezone: availabilityTimezone
+                )
+            }
     }
 
     private func required(
@@ -473,4 +576,30 @@ final class GroomerProfileStore {
 
 private struct GroomerProfileFormError: Error {
     let message: String
+}
+
+struct GroomerAvailabilityDayState: Equatable, Identifiable {
+    let weekday: GroomerAvailabilityWeekday
+    var isEnabled: Bool
+    var startMinutes: Int
+    var endMinutes: Int
+
+    var id: GroomerAvailabilityWeekday { weekday }
+
+    var summary: String {
+        isEnabled
+            ? "\(GroomerAvailabilityWindow.displayTime(fromMinutes: startMinutes)) - \(GroomerAvailabilityWindow.displayTime(fromMinutes: endMinutes))"
+            : "Unavailable"
+    }
+
+    static func defaultStates() -> [GroomerAvailabilityDayState] {
+        GroomerAvailabilityWeekday.allCases.map {
+            GroomerAvailabilityDayState(
+                weekday: $0,
+                isEnabled: false,
+                startMinutes: 9 * 60,
+                endMinutes: 17 * 60
+            )
+        }
+    }
 }

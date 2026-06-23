@@ -4,11 +4,13 @@ import SwiftUI
 struct GroomerProfileManagementView: View {
     @State private var store: GroomerProfileStore
     let accountContent: AnyView?
+    let onSignOut: (() -> Void)?
 
     init(
         groomerID: UUID,
         repository: any GroomerProfileRepository,
-        accountContent: AnyView? = nil
+        accountContent: AnyView? = nil,
+        onSignOut: (() -> Void)? = nil
     ) {
         _store = State(
             initialValue: GroomerProfileStore(
@@ -17,6 +19,7 @@ struct GroomerProfileManagementView: View {
             )
         )
         self.accountContent = accountContent
+        self.onSignOut = onSignOut
     }
 
     var body: some View {
@@ -36,35 +39,22 @@ struct GroomerProfileManagementView: View {
                 .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
             } else {
                 ScrollView {
-                    LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                        GroomlySectionHeader(
-                            "Groomer Profile",
-                            subtitle: "Keep your business details and service menu ready for matched requests."
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                        GroomerAccountHomeView(
+                            store: store,
+                            accountContent: accountContent,
+                            onSignOut: onSignOut
                         )
-
-                        GroomerProfileFormSection(store: store)
-                        GroomerServicesSection(store: store)
-                        GroomerPortfolioSection(store: store)
                     }
                     .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-                    .padding(.vertical, DesignTokens.Spacing.lg)
+                    .padding(.top, DesignTokens.Spacing.xl)
+                    .padding(.bottom, 120)
                 }
-                .accessibilityIdentifier("groomer.profile.management")
+                .accessibilityIdentifier("groomer.account.home")
             }
         }
-        .navigationTitle("Groomer Profile")
-        .toolbar {
-            if let accountContent {
-                ToolbarItem(placement: .topBarTrailing) {
-                    NavigationLink {
-                        accountContent
-                    } label: {
-                        Label("Account", systemImage: "person.crop.circle")
-                    }
-                    .accessibilityIdentifier("groomer.profile.account")
-                }
-            }
-        }
+        .navigationTitle("")
+        .navigationBarTitleDisplayMode(.inline)
         .safeAreaInset(edge: .bottom) {
             GroomerProfileStatusView(store: store)
         }
@@ -75,6 +65,395 @@ struct GroomerProfileManagementView: View {
             await store.load()
         }
     }
+}
+
+private struct GroomerAccountHomeView: View {
+    @Bindable var store: GroomerProfileStore
+    let accountContent: AnyView?
+    let onSignOut: (() -> Void)?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+            Text("Account")
+                .font(.system(size: 36, weight: .bold))
+                .foregroundStyle(DesignTokens.Colors.textPrimary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.top, DesignTokens.Spacing.sm)
+
+            GroomerAccountProfileCard(profile: store.profile)
+
+            VStack(spacing: 0) {
+                GroomerAccountMenuLink(
+                    title: "Edit Profile",
+                    systemImage: "pencil",
+                    isFirst: true
+                ) {
+                    GroomerProfileEditorView(store: store)
+                }
+
+                Divider()
+                    .overlay(DesignTokens.Colors.divider)
+                    .padding(.leading, 72)
+
+                GroomerAccountMenuLink(
+                    title: "Availability",
+                    systemImage: "calendar",
+                    isLast: true
+                ) {
+                    GroomerAvailabilityEditorView(store: store)
+                }
+            }
+            .background(DesignTokens.Colors.surface)
+            .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    .stroke(DesignTokens.Colors.borderSoft, lineWidth: 1)
+            }
+
+            signOutControl
+                .padding(.top, DesignTokens.Spacing.lg)
+        }
+    }
+
+    @ViewBuilder
+    private var signOutControl: some View {
+        if let onSignOut {
+            Button(role: .destructive) {
+                onSignOut()
+            } label: {
+                Text("Sign Out")
+                    .font(DesignTokens.Typography.headline)
+                    .foregroundStyle(DesignTokens.Colors.error)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, DesignTokens.Spacing.md)
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("groomer.account.sign-out")
+        } else if let accountContent {
+            NavigationLink {
+                accountContent
+            } label: {
+                Text("Sign Out")
+                    .font(DesignTokens.Typography.headline)
+                    .foregroundStyle(DesignTokens.Colors.error)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, DesignTokens.Spacing.md)
+            }
+            .buttonStyle(.plain)
+        }
+    }
+}
+
+private struct GroomerAccountProfileCard: View {
+    let profile: GroomerProfile?
+
+    var body: some View {
+        GroomlyCard(padding: DesignTokens.Spacing.lg) {
+            HStack(spacing: DesignTokens.Spacing.lg) {
+                Text("👩🏻")
+                    .font(.system(size: 34))
+                    .frame(width: 84, height: 84)
+                    .background(
+                        LinearGradient(
+                            colors: [
+                                DesignTokens.Colors.groomerAccent.opacity(0.28),
+                                DesignTokens.Colors.customerPrimary.opacity(0.34),
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                    .accessibilityHidden(true)
+
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                    Text(profile?.businessName ?? "Groomer Profile")
+                        .font(.system(size: 25, weight: .bold))
+                        .foregroundStyle(DesignTokens.Colors.textPrimary)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Text(ratingSummary)
+                        .font(DesignTokens.Typography.body)
+                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+
+                    GroomlyStatusChip(
+                        "Groomer",
+                        systemImage: "scissors",
+                        tone: .groomer
+                    )
+                    .padding(.top, DesignTokens.Spacing.xs)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    private var ratingSummary: String {
+        guard let profile, profile.ratingCount > 0 else {
+            return "★ New profile"
+        }
+
+        return "★ \(profile.ratingAverage.formatted(.number.precision(.fractionLength(1)))) · \(profile.ratingCount) review\(profile.ratingCount == 1 ? "" : "s")"
+    }
+}
+
+private struct GroomerAccountMenuLink<Destination: View>: View {
+    let title: String
+    let systemImage: String
+    var isFirst = false
+    var isLast = false
+    @ViewBuilder let destination: () -> Destination
+
+    var body: some View {
+        NavigationLink {
+            destination()
+        } label: {
+            HStack(spacing: DesignTokens.Spacing.md) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
+                    .frame(width: 36)
+                    .accessibilityHidden(true)
+
+                Text(title)
+                    .font(.system(size: 21, weight: .bold))
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(DesignTokens.Colors.textTertiary)
+                    .accessibilityHidden(true)
+            }
+            .padding(.horizontal, DesignTokens.Spacing.lg)
+            .padding(.vertical, 24)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+private struct GroomerProfileEditorView: View {
+    @Bindable var store: GroomerProfileStore
+
+    var body: some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                GroomlySectionHeader(
+                    "Edit Profile",
+                    subtitle: "Update the profile details, service menu, and portfolio customers see before they book."
+                )
+
+                GroomerProfileFormSection(store: store)
+                GroomerServicesSection(store: store)
+                GroomerPortfolioSection(store: store)
+            }
+            .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+            .padding(.top, DesignTokens.Spacing.lg)
+            .padding(.bottom, 120)
+        }
+        .background(DesignTokens.Colors.background.ignoresSafeArea())
+        .navigationTitle("Edit Profile")
+        .navigationBarTitleDisplayMode(.inline)
+        .scrollDismissesKeyboard(.interactively)
+        .accessibilityIdentifier("groomer.profile.edit")
+    }
+}
+
+private struct GroomerAvailabilityEditorView: View {
+    @Bindable var store: GroomerProfileStore
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                GroomlySectionHeader(
+                    "Availability",
+                    subtitle: "Choose the days and hours customers can request appointments with you."
+                )
+
+                GroomlyCard {
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                        HStack(spacing: DesignTokens.Spacing.md) {
+                            Image(systemName: "clock")
+                                .font(DesignTokens.Typography.headline)
+                                .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
+                                .frame(width: 42, height: 42)
+                                .background(DesignTokens.Colors.groomerAccent.opacity(0.14))
+                                .clipShape(Circle())
+
+                            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                                Text("Weekly Schedule")
+                                    .font(DesignTokens.Typography.headline)
+                                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+
+                                Text(store.availabilityTimezone)
+                                    .font(DesignTokens.Typography.caption)
+                                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                                    .lineLimit(1)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+
+                        VStack(spacing: DesignTokens.Spacing.md) {
+                            ForEach($store.availabilityDayStates) { $dayState in
+                                GroomerAvailabilityDayRow(dayState: $dayState)
+                            }
+                        }
+                    }
+                }
+
+                Button {
+                    Task {
+                        await store.saveAvailability()
+                    }
+                } label: {
+                    if store.isSaving {
+                        HStack(spacing: DesignTokens.Spacing.sm) {
+                            ProgressView()
+                                .tint(DesignTokens.Colors.surface)
+                            Text("Saving…")
+                        }
+                    } else {
+                        Label("Save Availability", systemImage: "checkmark.circle")
+                    }
+                }
+                .buttonStyle(GroomlyPrimaryButtonStyle(accent: .groomer))
+                .disabled(store.isBusy)
+                .accessibilityIdentifier("groomer.availability.save")
+
+                if let errorMessage = store.errorMessage {
+                    GroomlyErrorBanner(
+                        title: "Availability Could Not Be Saved",
+                        message: errorMessage
+                    )
+                    .accessibilityIdentifier("groomer.availability.error")
+                }
+            }
+            .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+            .padding(.top, DesignTokens.Spacing.lg)
+            .padding(.bottom, 120)
+        }
+        .background(DesignTokens.Colors.background.ignoresSafeArea())
+        .navigationTitle("Availability")
+        .navigationBarTitleDisplayMode(.inline)
+        .accessibilityIdentifier("groomer.availability.edit")
+    }
+}
+
+private struct GroomerAvailabilityDayRow: View {
+    @Binding var dayState: GroomerAvailabilityDayState
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            HStack(spacing: DesignTokens.Spacing.md) {
+                Text(dayState.weekday.shortTitle)
+                    .font(DesignTokens.Typography.body.weight(.bold))
+                    .foregroundStyle(
+                        dayState.isEnabled
+                            ? DesignTokens.Colors.groomerAccentDark
+                            : DesignTokens.Colors.textSecondary
+                    )
+                    .frame(width: 44, height: 44)
+                    .background(
+                        dayState.isEnabled
+                            ? DesignTokens.Colors.groomerAccent.opacity(0.16)
+                            : DesignTokens.Colors.borderSoft.opacity(0.5)
+                    )
+                    .clipShape(Circle())
+
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                    Text(dayState.weekday.title)
+                        .font(DesignTokens.Typography.body.weight(.semibold))
+                        .foregroundStyle(DesignTokens.Colors.textPrimary)
+
+                    Text(dayState.summary)
+                        .font(DesignTokens.Typography.caption)
+                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                Toggle(dayState.weekday.title, isOn: $dayState.isEnabled)
+                    .labelsHidden()
+                    .tint(DesignTokens.Colors.groomerAccent)
+            }
+
+            if dayState.isEnabled {
+                HStack(spacing: DesignTokens.Spacing.md) {
+                    GroomerAvailabilityTimeMenu(
+                        title: "Start",
+                        minutes: $dayState.startMinutes
+                    )
+
+                    GroomerAvailabilityTimeMenu(
+                        title: "End",
+                        minutes: $dayState.endMinutes
+                    )
+                }
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+        .padding(DesignTokens.Spacing.md)
+        .background(DesignTokens.Colors.surface)
+        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input, style: .continuous)
+                .stroke(
+                    dayState.isEnabled
+                        ? DesignTokens.Colors.groomerAccent.opacity(0.5)
+                        : DesignTokens.Colors.borderSoft,
+                    lineWidth: dayState.isEnabled ? 1.5 : 1
+                )
+        }
+        .animation(.easeInOut(duration: 0.18), value: dayState.isEnabled)
+    }
+}
+
+private struct GroomerAvailabilityTimeMenu: View {
+    let title: String
+    @Binding var minutes: Int
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+            Text(title)
+                .font(DesignTokens.Typography.caption)
+                .foregroundStyle(DesignTokens.Colors.textSecondary)
+
+            Menu {
+                ForEach(Self.timeOptions, id: \.self) { option in
+                    Button(GroomerAvailabilityWindow.displayTime(fromMinutes: option)) {
+                        minutes = option
+                    }
+                }
+            } label: {
+                HStack {
+                    Text(GroomerAvailabilityWindow.displayTime(fromMinutes: minutes))
+                        .font(DesignTokens.Typography.body.weight(.semibold))
+                        .foregroundStyle(DesignTokens.Colors.textPrimary)
+                        .lineLimit(1)
+
+                    Spacer(minLength: DesignTokens.Spacing.xs)
+
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+                }
+                .padding(.horizontal, DesignTokens.Spacing.md)
+                .padding(.vertical, DesignTokens.Spacing.sm)
+                .background(DesignTokens.Colors.borderSoft.opacity(0.36))
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private static let timeOptions: [Int] = stride(
+        from: 6 * 60,
+        through: 22 * 60,
+        by: 30
+    )
+    .map { $0 }
 }
 
 private struct GroomerProfileFormSection: View {
@@ -1002,6 +1381,7 @@ private final class GroomerProfilePreviewRepository: GroomerProfileRepository {
     private var storedProfile: GroomerProfile
     private var storedServices: [GroomerService]
     private var storedPhotos: [GroomerPortfolioPhoto] = []
+    private var storedAvailability: [GroomerAvailabilityWindow] = []
 
     init() {
         storedProfile = GroomerProfile(
@@ -1031,6 +1411,26 @@ private final class GroomerProfilePreviewRepository: GroomerProfileRepository {
                 isActive: true
             ),
         ]
+        storedAvailability = [
+            GroomerAvailabilityWindow(
+                id: UUID(),
+                groomerID: groomerID,
+                weekday: .monday,
+                startMinutes: 9 * 60,
+                endMinutes: 17 * 60,
+                isEnabled: true,
+                timezone: TimeZone.current.identifier
+            ),
+            GroomerAvailabilityWindow(
+                id: UUID(),
+                groomerID: groomerID,
+                weekday: .tuesday,
+                startMinutes: 9 * 60,
+                endMinutes: 17 * 60,
+                isEnabled: true,
+                timezone: TimeZone.current.identifier
+            ),
+        ]
     }
 
     func profile(groomerID: UUID) async throws -> GroomerProfile {
@@ -1043,6 +1443,10 @@ private final class GroomerProfilePreviewRepository: GroomerProfileRepository {
 
     func portfolioPhotos(groomerID: UUID) async throws -> [GroomerPortfolioPhoto] {
         storedPhotos
+    }
+
+    func availabilityWindows(groomerID: UUID) async throws -> [GroomerAvailabilityWindow] {
+        storedAvailability
     }
 
     func updateProfile(
@@ -1124,5 +1528,23 @@ private final class GroomerProfilePreviewRepository: GroomerProfileRepository {
     }
 
     func deletePortfolioPhoto(_ photo: GroomerPortfolioPhoto) async throws {}
+
+    func replaceAvailability(
+        groomerID: UUID,
+        drafts: [GroomerAvailabilityDraft]
+    ) async throws -> [GroomerAvailabilityWindow] {
+        storedAvailability = drafts.map {
+            GroomerAvailabilityWindow(
+                id: UUID(),
+                groomerID: groomerID,
+                weekday: $0.weekday,
+                startMinutes: $0.startMinutes,
+                endMinutes: $0.endMinutes,
+                isEnabled: $0.isEnabled,
+                timezone: $0.timezone
+            )
+        }
+        return storedAvailability
+    }
 }
 #endif

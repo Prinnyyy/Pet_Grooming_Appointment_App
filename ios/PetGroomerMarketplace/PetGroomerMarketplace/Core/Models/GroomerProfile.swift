@@ -96,6 +96,94 @@ struct GroomerPortfolioPhoto: Equatable, Identifiable, Sendable {
     }
 }
 
+nonisolated enum GroomerAvailabilityWeekday:
+    Int,
+    Codable,
+    CaseIterable,
+    Hashable,
+    Identifiable,
+    Sendable
+{
+    case monday = 1
+    case tuesday = 2
+    case wednesday = 3
+    case thursday = 4
+    case friday = 5
+    case saturday = 6
+    case sunday = 7
+
+    var id: Self { self }
+
+    var title: String {
+        switch self {
+        case .monday:
+            "Monday"
+        case .tuesday:
+            "Tuesday"
+        case .wednesday:
+            "Wednesday"
+        case .thursday:
+            "Thursday"
+        case .friday:
+            "Friday"
+        case .saturday:
+            "Saturday"
+        case .sunday:
+            "Sunday"
+        }
+    }
+
+    var shortTitle: String {
+        switch self {
+        case .monday:
+            "Mon"
+        case .tuesday:
+            "Tue"
+        case .wednesday:
+            "Wed"
+        case .thursday:
+            "Thu"
+        case .friday:
+            "Fri"
+        case .saturday:
+            "Sat"
+        case .sunday:
+            "Sun"
+        }
+    }
+}
+
+struct GroomerAvailabilityWindow: Equatable, Identifiable, Sendable {
+    let id: UUID
+    let groomerID: UUID
+    let weekday: GroomerAvailabilityWeekday
+    let startMinutes: Int
+    let endMinutes: Int
+    let isEnabled: Bool
+    let timezone: String
+
+    var timeRangeSummary: String {
+        "\(Self.displayTime(fromMinutes: startMinutes)) - \(Self.displayTime(fromMinutes: endMinutes))"
+    }
+
+    static func displayTime(fromMinutes minutes: Int) -> String {
+        let clampedMinutes = max(0, min(minutes, 23 * 60 + 59))
+        let hour = clampedMinutes / 60
+        let minute = clampedMinutes % 60
+        let period = hour >= 12 ? "PM" : "AM"
+        let displayHour = hour % 12 == 0 ? 12 : hour % 12
+        return "\(displayHour):\(String(format: "%02d", minute)) \(period)"
+    }
+}
+
+struct GroomerAvailabilityDraft: Equatable, Sendable {
+    let weekday: GroomerAvailabilityWeekday
+    let startMinutes: Int
+    let endMinutes: Int
+    let isEnabled: Bool
+    let timezone: String
+}
+
 nonisolated enum GroomerPortfolioPhotoContentType:
     String,
     CaseIterable,

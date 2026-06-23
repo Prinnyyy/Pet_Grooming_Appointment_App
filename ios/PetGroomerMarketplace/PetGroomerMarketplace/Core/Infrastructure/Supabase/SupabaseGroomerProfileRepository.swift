@@ -9,6 +9,8 @@ final class SupabaseGroomerProfileRepository: GroomerProfileRepository {
         "id,groomer_id,service_type,title,description,base_price,duration_minutes,accepted_pet_sizes,is_active"
     private static let portfolioColumns =
         "id,groomer_id,storage_bucket,storage_path,caption,sort_order"
+    private static let availabilityColumns =
+        "id,groomer_id,weekday,start_time,end_time,is_enabled,timezone"
     fileprivate static let bucketID = "groomer-portfolio"
 
     private let client: SupabaseClient
@@ -66,6 +68,22 @@ final class SupabaseGroomerProfileRepository: GroomerProfileRepository {
                 .value
 
             return rows.map(\.photo)
+        } catch {
+            throw Self.map(error)
+        }
+    }
+
+    func availabilityWindows(groomerID: UUID) async throws -> [GroomerAvailabilityWindow] {
+        do {
+            let rows: [GroomerAvailabilityWindowRow] = try await client
+                .from("groomer_availability_windows")
+                .select(Self.availabilityColumns)
+                .eq("groomer_id", value: groomerID.uuidString.lowercased())
+                .order("weekday")
+                .execute()
+                .value
+
+            return rows.compactMap(\.window)
         } catch {
             throw Self.map(error)
         }
@@ -230,6 +248,38 @@ final class SupabaseGroomerProfileRepository: GroomerProfileRepository {
         }
     }
 
+    func replaceAvailability(
+        groomerID: UUID,
+        drafts: [GroomerAvailabilityDraft]
+    ) async throws -> [GroomerAvailabilityWindow] {
+        do {
+            try await client
+                .from("groomer_availability_windows")
+                .delete()
+                .eq("groomer_id", value: groomerID.uuidString.lowercased())
+                .execute()
+
+            let rows: [GroomerAvailabilityWindowRow] = try await client
+                .from("groomer_availability_windows")
+                .insert(
+                    drafts.map {
+                        GroomerAvailabilityWindowInsertRow(
+                            groomerID: groomerID,
+                            draft: $0
+                        )
+                    }
+                )
+                .select(Self.availabilityColumns)
+                .order("weekday")
+                .execute()
+                .value
+
+            return rows.compactMap(\.window)
+        } catch {
+            throw Self.map(error)
+        }
+    }
+
     private static func normalized(_ value: String?) -> String? {
         let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         return trimmed.isEmpty ? nil : trimmed
@@ -381,6 +431,56 @@ private struct GroomerPortfolioPhotoRow: Decodable {
     }
 }
 
+private struct GroomerAvailabilityWindowRow: Decodable {
+    let id: UUID
+    let groomerID: UUID
+    let weekday: Int
+    let startTime: String
+    let endTime: String
+    let isEnabled: Bool
+    let timezone: String
+
+    var window: GroomerAvailabilityWindow? {
+        guard let weekday = GroomerAvailabilityWeekday(rawValue: weekday),
+              let startMinutes = Self.minutes(fromTime: startTime),
+              let endMinutes = Self.minutes(fromTime: endTime) else {
+            return nil
+        }
+
+        return GroomerAvailabilityWindow(
+            id: id,
+            groomerID: groomerID,
+            weekday: weekday,
+            startMinutes: startMinutes,
+            endMinutes: endMinutes,
+            isEnabled: isEnabled,
+            timezone: timezone
+        )
+    }
+
+    private static func minutes(fromTime value: String) -> Int? {
+        let parts = value.split(separator: ":")
+        guard parts.count >= 2,
+              let hour = Int(parts[0]),
+              let minute = Int(parts[1]),
+              (0...23).contains(hour),
+              (0...59).contains(minute) else {
+            return nil
+        }
+        return hour * 60 + minute
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case groomerID = "groomer_id"
+        case weekday
+        case startTime = "start_time"
+        case endTime = "end_time"
+        case isEnabled = "is_enabled"
+        case timezone
+    }
+}
+
 private struct GroomerProfileUpdateRow: Encodable {
     let draft: GroomerProfileDraft
 
@@ -515,5 +615,36 @@ private struct GroomerPortfolioPhotoInsertRow: Encodable {
         case storageBucket = "storage_bucket"
         case storagePath = "storage_path"
         case caption
+    }
+}
+
+private struct GroomerAvailabilityWindowInsertRow: Encodable {
+    let groomerID: UUID
+    let draft: GroomerAvailabilityDraft
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(groomerID.uuidString.lowercased(), forKey: .groomerID)
+        try container.encode(draft.weekday.rawValue, forKey: .weekday)
+        try container.encode(Self.timeString(fromMinutes: draft.startMinutes), forKey: .startTime)
+        try container.encode(Self.timeString(fromMinutes: draft.endMinutes), forKey: .endTime)
+        try container.encode(draft.isEnabled, forKey: .isEnabled)
+        try container.encode(draft.timezone, forKey: .timezone)
+    }
+
+    private static func timeString(fromMinutes minutes: Int) -> String {
+        let clampedMinutes = max(0, min(minutes, 23 * 60 + 59))
+        let hour = clampedMinutes / 60
+        let minute = clampedMinutes % 60
+        return "\(String(format: "%02d", hour)):\(String(format: "%02d", minute)):00"
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case groomerID = "groomer_id"
+        case weekday
+        case startTime = "start_time"
+        case endTime = "end_time"
+        case isEnabled = "is_enabled"
+        case timezone
     }
 }

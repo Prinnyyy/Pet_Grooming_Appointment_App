@@ -68,7 +68,8 @@ struct AuthenticatedEntryView: View {
                     requestRepository: groomerRequestRepository,
                     bookingRepository: bookingRepository,
                     chatRepository: chatRepository,
-                    accountContent: accountContent(for: profile)
+                    accountContent: accountContent(for: profile),
+                    onSignOut: signOut
                 )
 
             case let .failure(message):

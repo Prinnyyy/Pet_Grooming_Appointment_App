@@ -2,6 +2,18 @@
 
 ```text
 Date: 2026-06-23
+Task: T-058 - Groomly groomer Account, Edit Profile, and Availability.
+Files changed: Groomer profile model/repository/Supabase adapter/store/view, AuthenticatedEntryView, GroomerTab/GroomerTabView, AppEntry/GroomerProfile tests, Supabase migration, backend contract/RLS docs, task ledger, CURRENT_STATE.md, WORKLOG.md, and T-058 task doc.
+Checks: Red targeted GroomerProfileStore test failed before implementation because availability models did not exist; targeted GroomerProfileStore tests passed after implementation; full GroomerProfileStoreTests passed; git diff --check passed; ./scripts/ios-build.sh passed; ./scripts/ios-test.sh passed.
+Supabase: MCP migration 20260623223830_t058_groomer_availability_windows applied to project lqmasbuqzvcvtawonjlb. MCP checks confirmed the table exists, RLS is enabled, owner-only select/insert/update/delete policies exist, updated_at trigger exists, authenticated/service_role grants exist, and anon has no table grant.
+Simulator launch: XcodeBuildMCP build_run_sim passed on iPhone 17 simulator (B9639233-9E78-41C9-A372-330D36C38DA7) with no MCP diagnostics errors.
+Result: Groomer Account now matches the requested screenshot surface without Payouts or Demo Controls. Edit Profile contains currently editable non-availability profile/service/portfolio fields, Availability is a dedicated weekly schedule editor backed by the deployed availability table, and groomer tab labels now show Board and Schedule while preserving existing feature ownership.
+Risks: Availability is editable/persisted but not yet used for request matching or booking conflict checks. Only one window per weekday is supported. Availability replacement uses delete-then-insert direct table writes rather than an atomic RPC.
+Next: App is running in Simulator for inspection. Wait for user feedback before connecting availability to matching, booking conflicts, multi-window schedules, or blackout dates.
+```
+
+```text
+Date: 2026-06-23
 Task: T-057 - Groomly booking detail appointment and groomer card refinement.
 Files changed: Booking model, SupabaseBookingRepository, BookingsView, BookingFeatureTests, T-057 task doc, TASK_LEDGER.md, CURRENT_STATE.md, WORKLOG.md.
 Checks: Red targeted Booking presentation test failed before implementation because serviceType and appointmentServiceTitle did not exist; targeted Booking presentation test passed after implementation; git diff --check passed; ./scripts/ios-build.sh passed.

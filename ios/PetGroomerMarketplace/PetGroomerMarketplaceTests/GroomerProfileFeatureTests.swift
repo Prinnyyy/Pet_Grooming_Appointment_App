@@ -28,10 +28,12 @@ struct GroomerProfileStoreTests {
         let profile = Self.profile(groomerID: groomerID)
         let service = Self.service(groomerID: groomerID)
         let photo = Self.photo(groomerID: groomerID)
+        let availability = Self.availability(groomerID: groomerID)
         let repository = GroomerProfileRepositoryFake(
             profileResult: .success(profile),
             servicesResult: .success([service]),
-            portfolioResult: .success([photo])
+            portfolioResult: .success([photo]),
+            availabilityResult: .success([availability])
         )
         let store = GroomerProfileStore(
             groomerID: groomerID,
@@ -43,8 +45,62 @@ struct GroomerProfileStoreTests {
         #expect(store.profile == profile)
         #expect(store.services == [service])
         #expect(store.portfolioPhotos == [photo])
+        #expect(store.availabilityWindows == [availability])
         #expect(store.businessName == "Fresh Coat")
         #expect(store.isActive)
+    }
+
+    @Test @MainActor
+    func saveAvailabilityNormalizesEnabledWindowsAndSendsCanonicalOrder() async {
+        let groomerID = UUID()
+        let repository = GroomerProfileRepositoryFake()
+        let store = GroomerProfileStore(
+            groomerID: groomerID,
+            repository: repository
+        )
+        store.setAvailability(
+            day: .friday,
+            isEnabled: true,
+            startMinutes: 13 * 60,
+            endMinutes: 17 * 60
+        )
+        store.setAvailability(
+            day: .monday,
+            isEnabled: true,
+            startMinutes: 9 * 60,
+            endMinutes: 12 * 60
+        )
+
+        await store.saveAvailability()
+
+        #expect(repository.replaceAvailabilityCallCount == 1)
+        #expect(repository.lastAvailabilityDrafts.map(\.weekday) == GroomerAvailabilityWeekday.allCases)
+
+        let enabledDrafts = repository.lastAvailabilityDrafts.filter(\.isEnabled)
+        #expect(enabledDrafts.map(\.weekday) == [.monday, .friday])
+        #expect(enabledDrafts.map(\.startMinutes) == [540, 780])
+        #expect(enabledDrafts.map(\.endMinutes) == [720, 1020])
+        #expect(store.noticeMessage == "Availability saved.")
+    }
+
+    @Test @MainActor
+    func invalidAvailabilityWindowDoesNotCallRepository() async {
+        let repository = GroomerProfileRepositoryFake()
+        let store = GroomerProfileStore(
+            groomerID: UUID(),
+            repository: repository
+        )
+        store.setAvailability(
+            day: .tuesday,
+            isEnabled: true,
+            startMinutes: 14 * 60,
+            endMinutes: 14 * 60
+        )
+
+        await store.saveAvailability()
+
+        #expect(repository.replaceAvailabilityCallCount == 0)
+        #expect(store.errorMessage == "Tuesday availability needs an end time after the start time.")
     }
 
     @Test @MainActor
@@ -262,6 +318,18 @@ struct GroomerProfileStoreTests {
             sortOrder: 0
         )
     }
+
+    private static func availability(groomerID: UUID) -> GroomerAvailabilityWindow {
+        GroomerAvailabilityWindow(
+            id: UUID(),
+            groomerID: groomerID,
+            weekday: .monday,
+            startMinutes: 9 * 60,
+            endMinutes: 17 * 60,
+            isEnabled: true,
+            timezone: "America/Los_Angeles"
+        )
+    }
 }
 
 @MainActor
@@ -269,12 +337,14 @@ private final class GroomerProfileRepositoryFake: GroomerProfileRepository {
     var profileResult: Result<GroomerProfile, GroomerProfileRepositoryError>
     var servicesResult: Result<[GroomerService], GroomerProfileRepositoryError>
     var portfolioResult: Result<[GroomerPortfolioPhoto], GroomerProfileRepositoryError>
+    var availabilityResult: Result<[GroomerAvailabilityWindow], GroomerProfileRepositoryError>
     var updateProfileResult: Result<GroomerProfile, GroomerProfileRepositoryError>?
     var createServiceResult: Result<GroomerService, GroomerProfileRepositoryError>?
     var updateServiceResult: Result<GroomerService, GroomerProfileRepositoryError>?
     var deleteServiceResult: Result<Void, GroomerProfileRepositoryError>
     var uploadResult: Result<GroomerPortfolioPhoto, GroomerProfileRepositoryError>
     var deletePhotoResult: Result<Void, GroomerProfileRepositoryError>
+    var replaceAvailabilityResult: Result<[GroomerAvailabilityWindow], GroomerProfileRepositoryError>?
 
     private(set) var updateProfileCallCount = 0
     private(set) var createServiceCallCount = 0
@@ -282,8 +352,10 @@ private final class GroomerProfileRepositoryFake: GroomerProfileRepository {
     private(set) var deleteServiceCallCount = 0
     private(set) var uploadCallCount = 0
     private(set) var deletePhotoCallCount = 0
+    private(set) var replaceAvailabilityCallCount = 0
     private(set) var lastProfileDraft: GroomerProfileDraft?
     private(set) var lastServiceDraft: GroomerServiceDraft?
+    private(set) var lastAvailabilityDrafts: [GroomerAvailabilityDraft] = []
 
     init(
         profileResult: Result<GroomerProfile, GroomerProfileRepositoryError> =
@@ -291,6 +363,8 @@ private final class GroomerProfileRepositoryFake: GroomerProfileRepository {
         servicesResult: Result<[GroomerService], GroomerProfileRepositoryError> =
             .success([]),
         portfolioResult: Result<[GroomerPortfolioPhoto], GroomerProfileRepositoryError> =
+            .success([]),
+        availabilityResult: Result<[GroomerAvailabilityWindow], GroomerProfileRepositoryError> =
             .success([]),
         updateProfileResult: Result<GroomerProfile, GroomerProfileRepositoryError>? = nil,
         createServiceResult: Result<GroomerService, GroomerProfileRepositoryError>? = nil,
@@ -300,17 +374,20 @@ private final class GroomerProfileRepositoryFake: GroomerProfileRepository {
         uploadResult: Result<GroomerPortfolioPhoto, GroomerProfileRepositoryError> =
             .failure(.unavailable),
         deletePhotoResult: Result<Void, GroomerProfileRepositoryError> =
-            .success(())
+            .success(()),
+        replaceAvailabilityResult: Result<[GroomerAvailabilityWindow], GroomerProfileRepositoryError>? = nil
     ) {
         self.profileResult = profileResult
         self.servicesResult = servicesResult
         self.portfolioResult = portfolioResult
+        self.availabilityResult = availabilityResult
         self.updateProfileResult = updateProfileResult
         self.createServiceResult = createServiceResult
         self.updateServiceResult = updateServiceResult
         self.deleteServiceResult = deleteServiceResult
         self.uploadResult = uploadResult
         self.deletePhotoResult = deletePhotoResult
+        self.replaceAvailabilityResult = replaceAvailabilityResult
     }
 
     func profile(groomerID: UUID) async throws -> GroomerProfile {
@@ -323,6 +400,10 @@ private final class GroomerProfileRepositoryFake: GroomerProfileRepository {
 
     func portfolioPhotos(groomerID: UUID) async throws -> [GroomerPortfolioPhoto] {
         try portfolioResult.get()
+    }
+
+    func availabilityWindows(groomerID: UUID) async throws -> [GroomerAvailabilityWindow] {
+        try availabilityResult.get()
     }
 
     func updateProfile(
@@ -418,5 +499,29 @@ private final class GroomerProfileRepositoryFake: GroomerProfileRepository {
     func deletePortfolioPhoto(_ photo: GroomerPortfolioPhoto) async throws {
         deletePhotoCallCount += 1
         try deletePhotoResult.get()
+    }
+
+    func replaceAvailability(
+        groomerID: UUID,
+        drafts: [GroomerAvailabilityDraft]
+    ) async throws -> [GroomerAvailabilityWindow] {
+        replaceAvailabilityCallCount += 1
+        lastAvailabilityDrafts = drafts
+
+        if let replaceAvailabilityResult {
+            return try replaceAvailabilityResult.get()
+        }
+
+        return drafts.map {
+            GroomerAvailabilityWindow(
+                id: UUID(),
+                groomerID: groomerID,
+                weekday: $0.weekday,
+                startMinutes: $0.startMinutes,
+                endMinutes: $0.endMinutes,
+                isEnabled: $0.isEnabled,
+                timezone: $0.timezone
+            )
+        }
     }
 }
