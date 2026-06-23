@@ -4,6 +4,21 @@ import Testing
 
 struct CustomerRequestsStoreTests {
     @Test @MainActor
+    func fixedGroomingServiceTypesUseStableBackendValuesAndTitles() {
+        #expect(GroomingServiceType.allCases.map(\.rawValue) == [
+            "full_groom",
+            "bath_and_brush",
+            "haircut_only",
+            "nail_trim",
+            "de_shedding",
+            "custom_request",
+        ])
+        #expect(GroomingServiceType.fullGroom.title == "Full Groom")
+        #expect(GroomingServiceType.bathAndBrush.title == "Bath & Brush")
+        #expect(GroomingServiceType.customRequest.subtitle == "Describe exactly what you need")
+    }
+
+    @Test @MainActor
     func loadPopulatesPetsRequestsAndDefaultSelection() async throws {
         let customerID = UUID()
         let pet = Self.pet(customerID: customerID)
@@ -54,12 +69,13 @@ struct CustomerRequestsStoreTests {
         await store.load()
 
         store.startCreate()
-        store.serviceType = " Full groom "
+        store.serviceType = .fullGroom
         store.serviceNotes = "   "
         store.preferredStart = Date().addingTimeInterval(60 * 60)
         store.preferredEnd = Date().addingTimeInterval(3 * 60 * 60)
+        store.streetAddress = " 123 Pine Street "
         store.city = " Seattle "
-        store.state = " WA "
+        store.stateCode = .washington
         store.zipCode = " 98101 "
 
         await store.publish()
@@ -68,14 +84,198 @@ struct CustomerRequestsStoreTests {
         #expect(requestRepository.requestsCallCount == 2)
         #expect(requestRepository.lastCustomerID == customerID)
         #expect(requestRepository.lastDraft?.petID == pet.id)
-        #expect(requestRepository.lastDraft?.serviceType == "Full groom")
+        #expect(requestRepository.lastDraft?.serviceType == .fullGroom)
         #expect(requestRepository.lastDraft?.serviceNotes == nil)
+        #expect(requestRepository.lastDraft?.streetAddress == "123 Pine Street")
         #expect(requestRepository.lastDraft?.city == "Seattle")
-        #expect(requestRepository.lastDraft?.state == "WA")
+        #expect(requestRepository.lastDraft?.stateCode == .washington)
         #expect(requestRepository.lastDraft?.zipCode == "98101")
         #expect(store.isShowingWizard == false)
         #expect(store.noticeMessage == "Request published. 2 groomers matched.")
         #expect(store.publishResult?.matchCount == 2)
+    }
+
+    @Test @MainActor
+    func publishPersistsFixedServiceLocationAddressAndTravelRange() async throws {
+        let customerID = UUID()
+        let pet = Self.pet(customerID: customerID)
+        let requestID = UUID()
+        let requestRepository = CustomerRequestRepositoryFake(
+            createResult: .success(
+                GroomingRequestPublishResult(
+                    requestID: requestID,
+                    matchCount: 1
+                )
+            )
+        )
+        let store = CustomerRequestsStore(
+            customerID: customerID,
+            petRepository: CustomerRequestPetRepositoryFake(
+                petsResult: .success([pet])
+            ),
+            requestRepository: requestRepository,
+            bookingRepository: CustomerRequestBookingRepositoryFake()
+        )
+        await store.load()
+
+        store.startCreate()
+        store.serviceType = .bathAndBrush
+        store.serviceNotes = " Use hypoallergenic shampoo. "
+        store.preferredStart = Date().addingTimeInterval(60 * 60)
+        store.preferredEnd = Date().addingTimeInterval(3 * 60 * 60)
+        store.locationMode = .customerComesToGroomer
+        store.streetAddress = " 123 Pine St "
+        store.city = " Seattle "
+        store.stateCode = .washington
+        store.zipCode = " 98101 "
+        store.travelRadiusMiles = 42
+
+        await store.publish()
+
+        #expect(requestRepository.createCallCount == 1)
+        #expect(requestRepository.lastDraft?.serviceType == .bathAndBrush)
+        #expect(requestRepository.lastDraft?.serviceNotes == "Use hypoallergenic shampoo.")
+        #expect(requestRepository.lastDraft?.locationMode == .customerComesToGroomer)
+        #expect(requestRepository.lastDraft?.streetAddress == "123 Pine St")
+        #expect(requestRepository.lastDraft?.city == "Seattle")
+        #expect(requestRepository.lastDraft?.stateCode == .washington)
+        #expect(requestRepository.lastDraft?.zipCode == "98101")
+        #expect(requestRepository.lastDraft?.travelRadiusMiles == 42)
+    }
+
+    @Test @MainActor
+    func publishMobileRequestOmitsTravelRangeAndRequiresValidUSAddress() async throws {
+        let customerID = UUID()
+        let pet = Self.pet(customerID: customerID)
+        let requestRepository = CustomerRequestRepositoryFake()
+        let store = CustomerRequestsStore(
+            customerID: customerID,
+            petRepository: CustomerRequestPetRepositoryFake(
+                petsResult: .success([pet])
+            ),
+            requestRepository: requestRepository,
+            bookingRepository: CustomerRequestBookingRepositoryFake()
+        )
+        await store.load()
+
+        store.startCreate()
+        store.serviceType = .fullGroom
+        store.preferredStart = Date().addingTimeInterval(60 * 60)
+        store.preferredEnd = Date().addingTimeInterval(3 * 60 * 60)
+        store.locationMode = .groomerComesToCustomer
+        store.streetAddress = "123 Pine St"
+        store.city = "Seattle"
+        store.stateCode = .washington
+        store.zipCode = "98101"
+        store.travelRadiusMiles = 88
+
+        await store.publish()
+
+        #expect(requestRepository.createCallCount == 1)
+        #expect(requestRepository.lastDraft?.travelRadiusMiles == nil)
+
+        store.startCreate()
+        store.serviceType = .fullGroom
+        store.preferredStart = Date().addingTimeInterval(60 * 60)
+        store.preferredEnd = Date().addingTimeInterval(3 * 60 * 60)
+        store.locationMode = .groomerComesToCustomer
+        store.streetAddress = "123 Pine St"
+        store.city = "Seattle"
+        store.stateCode = .washington
+        store.zipCode = "9810"
+
+        await store.publish()
+
+        #expect(requestRepository.createCallCount == 1)
+        #expect(store.errorMessage == "Enter a valid 5-digit ZIP code.")
+
+        store.startCreate()
+        store.serviceType = .fullGroom
+        store.preferredStart = Date().addingTimeInterval(60 * 60)
+        store.preferredEnd = Date().addingTimeInterval(3 * 60 * 60)
+        store.locationMode = .groomerComesToCustomer
+        store.streetAddress = "Pine Street"
+        store.city = "Seattle"
+        store.stateCode = .washington
+        store.zipCode = "98101"
+
+        await store.publish()
+
+        #expect(requestRepository.createCallCount == 1)
+        #expect(store.errorMessage == "Enter a street address with a street number and name.")
+    }
+
+    @Test @MainActor
+    func publishUploadsSelectedRequestPhotosAfterRequestCreation() async throws {
+        let customerID = UUID()
+        let pet = Self.pet(customerID: customerID)
+        let requestID = UUID()
+        let uploadedPhoto = GroomingRequestPhoto(
+            id: UUID(),
+            requestID: requestID,
+            customerID: customerID,
+            storageBucket: "request-photos",
+            storagePath: "customer/request/photo.jpg",
+            caption: nil,
+            sortOrder: 0,
+            createdAt: "2026-06-22T20:00:00Z"
+        )
+        let requestRepository = CustomerRequestRepositoryFake(
+            createResult: .success(
+                GroomingRequestPublishResult(
+                    requestID: requestID,
+                    matchCount: 0
+                )
+            ),
+            uploadRequestPhotoResult: .success(uploadedPhoto)
+        )
+        let store = CustomerRequestsStore(
+            customerID: customerID,
+            petRepository: CustomerRequestPetRepositoryFake(
+                petsResult: .success([pet])
+            ),
+            requestRepository: requestRepository,
+            bookingRepository: CustomerRequestBookingRepositoryFake()
+        )
+        await store.load()
+
+        store.startCreate()
+        store.serviceType = .fullGroom
+        store.preferredStart = Date().addingTimeInterval(60 * 60)
+        store.preferredEnd = Date().addingTimeInterval(3 * 60 * 60)
+        store.locationMode = .groomerComesToCustomer
+        store.streetAddress = "123 Pine St"
+        store.city = "Seattle"
+        store.stateCode = .washington
+        store.zipCode = "98101"
+        store.addPendingPhoto(data: Data([0x01, 0x02]), contentType: .jpeg)
+
+        await store.publish()
+
+        #expect(requestRepository.createCallCount == 1)
+        #expect(requestRepository.uploadRequestPhotoCallCount == 1)
+        #expect(requestRepository.lastUploadRequestID == requestID)
+        #expect(requestRepository.lastUploadData == Data([0x01, 0x02]))
+        #expect(requestRepository.lastUploadContentType == .jpeg)
+        #expect(store.pendingRequestPhotos.isEmpty)
+    }
+
+    @Test @MainActor
+    func oversizedRequestPhotoIsRejectedBeforePublish() async throws {
+        let store = CustomerRequestsStore(
+            customerID: UUID(),
+            petRepository: CustomerRequestPetRepositoryFake(),
+            requestRepository: CustomerRequestRepositoryFake(),
+            bookingRepository: CustomerRequestBookingRepositoryFake()
+        )
+
+        store.addPendingPhoto(
+            data: Data(count: CustomerRequestsStore.maximumRequestPhotoBytes + 1),
+            contentType: .jpeg
+        )
+
+        #expect(store.pendingRequestPhotos.isEmpty)
+        #expect(store.errorMessage == "Choose a request photo smaller than 10 MB.")
     }
 
     @Test @MainActor
@@ -110,11 +310,12 @@ struct CustomerRequestsStoreTests {
         await store.load()
 
         store.startCreate()
-        store.serviceType = "Bath"
+        store.serviceType = .bathAndBrush
         store.preferredStart = Date().addingTimeInterval(60)
         store.preferredEnd = Date().addingTimeInterval(2 * 60 * 60)
+        store.streetAddress = "123 Pine Street"
         store.city = "Seattle"
-        store.state = "WA"
+        store.stateCode = .washington
         store.zipCode = "98101"
 
         await store.publish()
@@ -145,18 +346,19 @@ struct CustomerRequestsStoreTests {
         await store.load()
 
         store.startCreate()
-        store.serviceType = "Bath"
+        store.serviceType = .bathAndBrush
         store.preferredStart = Date().addingTimeInterval(60 * 60)
         store.preferredEnd = Date().addingTimeInterval(2 * 60 * 60)
+        store.streetAddress = "123 Pine Street"
         store.city = "Seattle"
-        store.state = "WA"
+        store.stateCode = .washington
         store.zipCode = "98101"
 
         await store.publish()
 
         #expect(requestRepository.createCallCount == 1)
         #expect(store.isShowingWizard)
-        #expect(store.serviceType == "Bath")
+        #expect(store.serviceType == .bathAndBrush)
         #expect(store.errorMessage == "You can have at most 3 open grooming requests.")
     }
 
@@ -574,8 +776,8 @@ struct CustomerRequestsStoreTests {
     func requestWizardServiceOptionsMapToExistingServiceTypeField() {
         #expect(CustomerRequestServiceOption.allCases.count == 6)
         #expect(CustomerRequestServiceOption.fullGroom.title == "Full Groom")
-        #expect(CustomerRequestServiceOption.fullGroom.serviceType == "Full Groom")
-        #expect(CustomerRequestServiceOption.bathAndBrush.serviceType == "Bath & Brush")
+        #expect(CustomerRequestServiceOption.fullGroom.rawValue == "full_groom")
+        #expect(CustomerRequestServiceOption.bathAndBrush.rawValue == "bath_and_brush")
         #expect(CustomerRequestServiceOption.customRequest.subtitle == "Describe exactly what you need")
     }
 
@@ -689,7 +891,7 @@ struct CustomerRequestsStoreTests {
         )
 
         #expect(presentation.headline == "Booking\nConfirmed")
-        #expect(presentation.subtitle == "Full groom for Mochi")
+        #expect(presentation.subtitle == "Full Groom for Mochi")
         #expect(presentation.infoLines == [
             CustomerRequestProgressCardPresentation.InfoLine(
                 systemImage: "calendar",
@@ -1017,13 +1219,16 @@ struct CustomerRequestsStoreTests {
                 snapshotAt: "2026-06-20T12:00:00Z"
             ),
             photoSnapshot: [],
-            serviceType: "Full groom",
+            serviceType: .fullGroom,
             serviceNotes: nil,
             preferredStart: "2026-06-22T16:00:00Z",
             preferredEnd: "2026-06-22T18:00:00Z",
+            locationMode: .groomerComesToCustomer,
+            streetAddress: "123 Pine Street",
             city: "Seattle",
             state: "WA",
             zipCode: "98101",
+            travelRadiusMiles: nil,
             status: status,
             expiresAt: "2026-06-22T12:00:00Z",
             createdAt: "2026-06-20T12:00:00Z",
@@ -1091,6 +1296,7 @@ struct CustomerRequestsStoreTests {
                 baseCity: "Seattle",
                 baseState: "WA",
                 serviceRadiusMiles: 12,
+                serviceLocationMode: .groomerComesToCustomer,
                 ratingAverage: 4.8,
                 ratingCount: 18,
                 isActive: true,
@@ -1177,22 +1383,31 @@ private final class CustomerRequestRepositoryFake: CustomerRequestRepository {
     var requestsResult: Result<[CustomerGroomingRequest], CustomerRequestRepositoryError>
     var offersResult: Result<[CustomerOfferReview], CustomerRequestRepositoryError>
     var createResult: Result<GroomingRequestPublishResult, CustomerRequestRepositoryError>
+    var uploadRequestPhotoResult: Result<GroomingRequestPhoto, CustomerRequestRepositoryError>
     var cancelResult: Result<CancelGroomingRequestResult, CustomerRequestRepositoryError>
 
     private(set) var requestsCallCount = 0
     private(set) var offersCallCount = 0
     private(set) var createCallCount = 0
+    private(set) var uploadRequestPhotoCallCount = 0
     private(set) var cancelCallCount = 0
     private(set) var lastCustomerID: UUID?
     private(set) var lastOfferCustomerID: UUID?
     private(set) var lastOfferRequestID: UUID?
     private(set) var lastCancelRequestID: UUID?
     private(set) var lastDraft: GroomingRequestDraft?
+    private(set) var lastUploadCustomerID: UUID?
+    private(set) var lastUploadRequestID: UUID?
+    private(set) var lastUploadData: Data?
+    private(set) var lastUploadContentType: GroomingRequestPhotoContentType?
+    private(set) var lastUploadCaption: String?
 
     init(
         requestsResult: Result<[CustomerGroomingRequest], CustomerRequestRepositoryError> = .success([]),
         offersResult: Result<[CustomerOfferReview], CustomerRequestRepositoryError> = .success([]),
         createResult: Result<GroomingRequestPublishResult, CustomerRequestRepositoryError> =
+            .failure(.unavailable),
+        uploadRequestPhotoResult: Result<GroomingRequestPhoto, CustomerRequestRepositoryError> =
             .failure(.unavailable),
         cancelResult: Result<CancelGroomingRequestResult, CustomerRequestRepositoryError> =
             .failure(.unavailable)
@@ -1200,6 +1415,7 @@ private final class CustomerRequestRepositoryFake: CustomerRequestRepository {
         self.requestsResult = requestsResult
         self.offersResult = offersResult
         self.createResult = createResult
+        self.uploadRequestPhotoResult = uploadRequestPhotoResult
         self.cancelResult = cancelResult
     }
 
@@ -1226,6 +1442,22 @@ private final class CustomerRequestRepositoryFake: CustomerRequestRepository {
         lastCustomerID = customerID
         lastDraft = draft
         return try createResult.get()
+    }
+
+    func uploadRequestPhoto(
+        customerID: UUID,
+        requestID: UUID,
+        data: Data,
+        contentType: GroomingRequestPhotoContentType,
+        caption: String?
+    ) async throws -> GroomingRequestPhoto {
+        uploadRequestPhotoCallCount += 1
+        lastUploadCustomerID = customerID
+        lastUploadRequestID = requestID
+        lastUploadData = data
+        lastUploadContentType = contentType
+        lastUploadCaption = caption
+        return try uploadRequestPhotoResult.get()
     }
 
     func cancelRequest(

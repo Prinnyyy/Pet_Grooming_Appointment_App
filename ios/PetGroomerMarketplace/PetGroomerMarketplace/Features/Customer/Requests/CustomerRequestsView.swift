@@ -1,3 +1,6 @@
+import Combine
+import MapKit
+import PhotosUI
 import SwiftUI
 
 struct CustomerRequestsView: View {
@@ -381,7 +384,7 @@ struct CustomerRequestProgressCardPresentation {
                 ),
                 InfoLine(
                     systemImage: "mappin.and.ellipse",
-                    text: request.locationSummary
+                    text: request.compactLocationSummary
                 ),
             ]
         } else {
@@ -400,7 +403,7 @@ struct CustomerRequestProgressCardPresentation {
                 ),
                 InfoLine(
                     systemImage: "mappin.and.ellipse",
-                    text: request.locationSummary
+                    text: request.compactLocationSummary
                 ),
             ]
         }
@@ -1120,7 +1123,7 @@ struct CustomerRequestDetailView: View {
         GroomlyCard {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                 DetailCardHeader(
-                    title: request.serviceType,
+                    title: request.serviceType.title,
                     subtitle: request.locationSummary,
                     systemImage: "doc.text.fill"
                 ) {
@@ -1527,7 +1530,7 @@ private struct CustomerOfferDetailView: View {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                 DetailCardHeader(
                     title: request.petSnapshot.name,
-                    subtitle: request.serviceType,
+                    subtitle: request.serviceType.title,
                     systemImage: "pawprint.fill"
                 ) {
                     GroomlyStatusChip(
@@ -1854,54 +1857,7 @@ enum CustomerRequestWizardStep: Int, CaseIterable, Identifiable {
     }
 }
 
-enum CustomerRequestServiceOption: String, CaseIterable, Identifiable {
-    case fullGroom
-    case bathAndBrush
-    case haircutOnly
-    case nailTrim
-    case deShedding
-    case customRequest
-
-    var id: Self { self }
-
-    var title: String {
-        switch self {
-        case .fullGroom:
-            "Full Groom"
-        case .bathAndBrush:
-            "Bath & Brush"
-        case .haircutOnly:
-            "Haircut Only"
-        case .nailTrim:
-            "Nail Trim"
-        case .deShedding:
-            "De-shedding"
-        case .customRequest:
-            "Custom Request"
-        }
-    }
-
-    var subtitle: String {
-        switch self {
-        case .fullGroom:
-            "Bath, haircut, nail trim, ear cleaning"
-        case .bathAndBrush:
-            "Bath, blow dry, brushing"
-        case .haircutOnly:
-            "Trim and style shaping"
-        case .nailTrim:
-            "Quick clip and file"
-        case .deShedding:
-            "Deshed treatment and blow out"
-        case .customRequest:
-            "Describe exactly what you need"
-        }
-    }
-
-    var serviceType: String {
-        title
-    }
-}
+typealias CustomerRequestServiceOption = GroomingServiceType
 
 enum CustomerRequestTimeWindowOption: String, CaseIterable, Identifiable {
     case morning
@@ -2047,10 +2003,7 @@ struct CustomerRequestWizardView: View {
     @State private var selectedDate: Date
     @State private var selectedTimeWindow: CustomerRequestTimeWindowOption = .afternoon
     @State private var isFlexibleWithTime = false
-    @State private var locationMode: CustomerRequestLocationMode = .comeToMe
-    @State private var streetAddress = ""
-    @State private var travelRangeMiles: Double = 15
-    @State private var hasPhotoPlaceholder = false
+    @State private var selectedRequestPhotoItem: PhotosPickerItem?
 
     init(
         store: CustomerRequestsStore,
@@ -2060,9 +2013,7 @@ struct CustomerRequestWizardView: View {
         self.onAddPet = onAddPet
         _selectedDate = State(initialValue: store.preferredStart)
         _selectedServiceOption = State(
-            initialValue: CustomerRequestServiceOption.allCases.first {
-                $0.serviceType == store.serviceType
-            }
+            initialValue: store.serviceType
         )
     }
 
@@ -2130,6 +2081,12 @@ struct CustomerRequestWizardView: View {
         .onAppear {
             applyInitialDefaults()
         }
+        .onChange(of: selectedRequestPhotoItem) { _, newItem in
+            guard let newItem else { return }
+            Task {
+                await addPendingRequestPhoto(newItem)
+            }
+        }
         .accessibilityIdentifier("customer.requests.wizard")
     }
 
@@ -2184,7 +2141,7 @@ struct CustomerRequestWizardView: View {
                     isSelected: selectedServiceOption == option
                 ) {
                     selectedServiceOption = option
-                    store.serviceType = option.serviceType
+                    store.serviceType = option
                 }
             }
         }
@@ -2247,19 +2204,19 @@ struct CustomerRequestWizardView: View {
             ForEach(CustomerRequestLocationMode.allCases) { mode in
                 CustomerRequestLocationModeCard(
                     mode: mode,
-                    isSelected: locationMode == mode
+                    isSelected: store.locationMode == mode
                 ) {
-                    locationMode = mode
+                    store.locationMode = mode
                 }
             }
 
             CustomerRequestAddressFields(
-                streetAddress: $streetAddress,
+                streetAddress: $store.streetAddress,
                 city: $store.city,
-                state: $store.state,
+                stateCode: $store.stateCode,
                 zipCode: $store.zipCode,
-                locationMode: locationMode,
-                travelRangeMiles: $travelRangeMiles
+                locationMode: store.locationMode,
+                travelRangeMiles: $store.travelRadiusMiles
             )
         }
     }
@@ -2282,13 +2239,21 @@ struct CustomerRequestWizardView: View {
                     .foregroundStyle(DesignTokens.Colors.textPrimary)
 
                 HStack(spacing: DesignTokens.Spacing.md) {
+                    let pendingPhotoCount = store.pendingRequestPhotos.count
+
                     if let pet = store.selectedPet {
                         CustomerRequestPhotoPreviewTile(pet: pet)
                     }
 
-                    CustomerRequestAddPhotoTile(isSelected: hasPhotoPlaceholder) {
-                        hasPhotoPlaceholder.toggle()
+                    PhotosPicker(
+                        selection: $selectedRequestPhotoItem,
+                        matching: .images
+                    ) {
+                        CustomerRequestAddPhotoTile(
+                            photoCount: pendingPhotoCount
+                        )
                     }
+                    .buttonStyle(.plain)
                 }
             }
         }
@@ -2346,7 +2311,7 @@ struct CustomerRequestWizardView: View {
         case .pet:
             return store.selectedPetID != nil
         case .service:
-            return !store.serviceType.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            return true
         case .time:
             return store.preferredEnd > store.preferredStart
         case .details:
@@ -2359,7 +2324,7 @@ struct CustomerRequestWizardView: View {
     private var reviewPresentation: CustomerRequestWizardReviewPresentation {
         CustomerRequestWizardReviewPresentation(
             pet: reviewPetSummary,
-            service: requiredSummary(store.serviceType),
+            service: store.serviceType.title,
             preferredTime: reviewPreferredTimeSummary,
             location: reviewLocationSummary,
             notes: notesSummary
@@ -2397,25 +2362,21 @@ struct CustomerRequestWizardView: View {
 
     private var reviewLocationSummary: String {
         let location = [
+            store.streetAddress.trimmingCharacters(in: .whitespacesAndNewlines),
             store.city.trimmingCharacters(in: .whitespacesAndNewlines),
-            store.state.trimmingCharacters(in: .whitespacesAndNewlines),
+            store.stateCode?.rawValue ?? "",
             store.zipCode.trimmingCharacters(in: .whitespacesAndNewlines),
         ]
         .filter { !$0.isEmpty }
         .joined(separator: ", ")
 
-        let prefix = locationMode == .comeToMe ? "Mobile" : "Visit"
+        let prefix = store.locationMode == .groomerComesToCustomer ? "Mobile" : "Visit"
         return location.isEmpty ? "\(prefix) · Required" : "\(prefix) · \(location)"
     }
 
     private var notesSummary: String {
         let notes = store.serviceNotes.trimmingCharacters(in: .whitespacesAndNewlines)
         return notes.isEmpty ? "No Notes Added" : notes
-    }
-
-    private func requiredSummary(_ value: String) -> String {
-        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? "Required" : trimmed
     }
 
     private func back() {
@@ -2449,19 +2410,27 @@ struct CustomerRequestWizardView: View {
         onAddPet()
     }
 
+    private func addPendingRequestPhoto(_ item: PhotosPickerItem) async {
+        defer { selectedRequestPhotoItem = nil }
+
+        guard let data = try? await item.loadTransferable(type: Data.self) else {
+            store.errorMessage = "We could not read that photo."
+            return
+        }
+
+        let contentType = item.supportedContentTypes
+            .lazy
+            .compactMap(GroomingRequestPhotoContentType.init(uniformType:))
+            .first ?? .jpeg
+
+        store.addPendingPhoto(
+            data: data,
+            contentType: contentType
+        )
+    }
+
     private func applyInitialDefaults() {
-        if selectedServiceOption == nil,
-           let option = CustomerRequestServiceOption.allCases.first(
-               where: { $0.serviceType == store.serviceType }
-           ) {
-            selectedServiceOption = option
-        }
-
-        if store.serviceType.isEmpty {
-            selectedServiceOption = .fullGroom
-            store.serviceType = CustomerRequestServiceOption.fullGroom.serviceType
-        }
-
+        selectedServiceOption = store.serviceType
         applySelectedTimeWindow()
     }
 
@@ -2490,30 +2459,7 @@ struct CustomerRequestWizardView: View {
     }
 }
 
-private enum CustomerRequestLocationMode: CaseIterable, Identifiable {
-    case comeToMe
-    case visitGroomer
-
-    var id: Self { self }
-
-    var icon: String {
-        switch self {
-        case .comeToMe:
-            "🚐"
-        case .visitGroomer:
-            "🏠"
-        }
-    }
-
-    var title: String {
-        switch self {
-        case .comeToMe:
-            "Mobile Groomer Comes To Me"
-        case .visitGroomer:
-            "I Can Visit The Groomer"
-        }
-    }
-}
+typealias CustomerRequestLocationMode = GroomingLocationMode
 
 private enum CustomerRequestWizardDateFormatting {
     static func daySummary(_ date: Date) -> String {
@@ -3046,7 +2992,7 @@ private struct CustomerRequestLocationModeCard: View {
                     .font(.title2)
                     .frame(width: 44)
 
-                Text(mode.title)
+                Text(mode.customerTitle)
                     .font(DesignTokens.Typography.body.weight(.bold))
                     .foregroundStyle(DesignTokens.Colors.textPrimary)
                     .lineLimit(2)
@@ -3090,25 +3036,93 @@ private struct CustomerRequestLocationModeCard: View {
 private struct CustomerRequestAddressFields: View {
     @Binding var streetAddress: String
     @Binding var city: String
-    @Binding var state: String
+    @Binding var stateCode: USStateCode?
     @Binding var zipCode: String
     let locationMode: CustomerRequestLocationMode
-    @Binding var travelRangeMiles: Double
+    @Binding var travelRangeMiles: Int
+    @StateObject private var addressSearch = CustomerRequestAddressSearch()
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
             TextField("Street Address", text: $streetAddress)
                 .textContentType(.streetAddressLine1)
                 .groomlyFormField()
+                .onChange(of: streetAddress) { _, newValue in
+                    addressSearch.update(
+                        street: newValue,
+                        city: city,
+                        stateCode: stateCode
+                    )
+                }
+
+            if !addressSearch.suggestions.isEmpty {
+                VStack(spacing: DesignTokens.Spacing.xs) {
+                    ForEach(addressSearch.suggestions.prefix(4)) { suggestion in
+                        Button {
+                            applyAddressSuggestion(suggestion)
+                        } label: {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(suggestion.title)
+                                    .font(DesignTokens.Typography.caption.weight(.semibold))
+                                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+                                    .lineLimit(1)
+
+                                Text(suggestion.subtitle)
+                                    .font(DesignTokens.Typography.caption)
+                                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                                    .lineLimit(1)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, DesignTokens.Spacing.md)
+                            .padding(.vertical, DesignTokens.Spacing.sm)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .background(DesignTokens.Colors.surface)
+                .clipShape(
+                    RoundedRectangle(
+                        cornerRadius: DesignTokens.CornerRadius.input,
+                        style: .continuous
+                    )
+                )
+                .overlay {
+                    RoundedRectangle(
+                        cornerRadius: DesignTokens.CornerRadius.input,
+                        style: .continuous
+                    )
+                    .stroke(DesignTokens.Colors.borderSoft, lineWidth: 1)
+                }
+            }
 
             HStack(spacing: DesignTokens.Spacing.md) {
                 TextField("City", text: $city)
                     .textContentType(.addressCity)
                     .groomlyFormField()
 
-                TextField("State", text: $state)
-                    .textContentType(.addressState)
+                Menu {
+                    ForEach(USStateCode.allCases) { state in
+                        Button(state.rawValue) {
+                            stateCode = state
+                        }
+                    }
+                } label: {
+                    HStack {
+                        Text(stateCode?.rawValue ?? "State")
+                            .foregroundStyle(
+                                stateCode == nil
+                                    ? DesignTokens.Colors.textSecondary
+                                    : DesignTokens.Colors.textPrimary
+                            )
+
+                        Spacer(minLength: DesignTokens.Spacing.xs)
+
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(DesignTokens.Colors.textSecondary)
+                    }
                     .groomlyFormField()
+                }
                     .frame(width: 92)
             }
 
@@ -3117,7 +3131,7 @@ private struct CustomerRequestAddressFields: View {
                 .keyboardType(.numbersAndPunctuation)
                 .groomlyFormField()
 
-            if locationMode == .visitGroomer {
+            if locationMode == .customerComesToGroomer {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
                     HStack {
                         Text("Travel Range")
@@ -3126,13 +3140,16 @@ private struct CustomerRequestAddressFields: View {
 
                         Spacer()
 
-                        Text("\(CustomerRequestTravelRange.clampedMiles(travelRangeMiles)) mi")
+                        Text("\(CustomerRequestTravelRange.clampedMiles(Double(travelRangeMiles))) mi")
                             .font(DesignTokens.Typography.body.weight(.bold))
                             .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
                     }
 
                     Slider(
-                        value: $travelRangeMiles,
+                        value: Binding(
+                            get: { Double(travelRangeMiles) },
+                            set: { travelRangeMiles = CustomerRequestTravelRange.clampedMiles($0) }
+                        ),
                         in: Double(CustomerRequestTravelRange.minimumMiles)...Double(CustomerRequestTravelRange.maximumMiles),
                         step: 1
                     )
@@ -3161,6 +3178,132 @@ private struct CustomerRequestAddressFields: View {
         }
         .transition(.opacity.combined(with: .move(edge: .top)))
     }
+
+    private func applyAddressSuggestion(_ suggestion: CustomerRequestAddressSuggestion) {
+        Task {
+            guard let address = await addressSearch.resolve(suggestion) else { return }
+            streetAddress = address.streetAddress
+            city = address.city
+            stateCode = address.stateCode
+            zipCode = address.zipCode
+        }
+    }
+}
+
+private struct CustomerRequestAddressSuggestion: Identifiable, Hashable {
+    let id: String
+    let title: String
+    let subtitle: String
+}
+
+private struct CustomerRequestResolvedAddress {
+    let streetAddress: String
+    let city: String
+    let stateCode: USStateCode
+    let zipCode: String
+}
+
+private final class CustomerRequestAddressSearch:
+    NSObject,
+    ObservableObject,
+    MKLocalSearchCompleterDelegate
+{
+    @Published private(set) var suggestions: [CustomerRequestAddressSuggestion] = []
+
+    private let completer = MKLocalSearchCompleter()
+    private var completionsByID: [String: MKLocalSearchCompletion] = [:]
+
+    override init() {
+        super.init()
+        completer.delegate = self
+        completer.resultTypes = .address
+    }
+
+    func update(
+        street: String,
+        city: String,
+        stateCode: USStateCode?
+    ) {
+        let trimmedStreet = street.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmedStreet.count >= 3 else {
+            suggestions = []
+            completionsByID = [:]
+            completer.queryFragment = ""
+            return
+        }
+
+        let query = [
+            trimmedStreet,
+            city.trimmingCharacters(in: .whitespacesAndNewlines),
+            stateCode?.rawValue ?? "",
+        ]
+        .filter { !$0.isEmpty }
+        .joined(separator: ", ")
+
+        completer.queryFragment = query
+    }
+
+    func completerDidUpdateResults(_ completer: MKLocalSearchCompleter) {
+        let pairs = completer.results.prefix(5).map { completion in
+            let suggestion = CustomerRequestAddressSuggestion(
+                id: "\(completion.title)|\(completion.subtitle)",
+                title: completion.title,
+                subtitle: completion.subtitle
+            )
+            return (suggestion, completion)
+        }
+
+        DispatchQueue.main.async {
+            self.suggestions = pairs.map(\.0)
+            self.completionsByID = Dictionary(
+                uniqueKeysWithValues: pairs.map { ($0.0.id, $0.1) }
+            )
+        }
+    }
+
+    func completer(
+        _ completer: MKLocalSearchCompleter,
+        didFailWithError error: any Error
+    ) {
+        DispatchQueue.main.async {
+            self.suggestions = []
+            self.completionsByID = [:]
+        }
+    }
+
+    func resolve(
+        _ suggestion: CustomerRequestAddressSuggestion
+    ) async -> CustomerRequestResolvedAddress? {
+        guard let completion = completionsByID[suggestion.id] else { return nil }
+
+        let request = MKLocalSearch.Request(completion: completion)
+        guard
+            let mapItem = try? await MKLocalSearch(request: request).start().mapItems.first,
+            let state = mapItem.placemark.administrativeArea,
+            let stateCode = USStateCode(rawValue: state.uppercased()),
+            let zipCode = mapItem.placemark.postalCode?.trimmingCharacters(in: .whitespacesAndNewlines),
+            !zipCode.isEmpty
+        else {
+            return nil
+        }
+
+        let streetAddress = [
+            mapItem.placemark.subThoroughfare,
+            mapItem.placemark.thoroughfare,
+        ]
+        .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+        .filter { !$0.isEmpty }
+        .joined(separator: " ")
+
+        guard !streetAddress.isEmpty else { return nil }
+
+        return CustomerRequestResolvedAddress(
+            streetAddress: streetAddress,
+            city: mapItem.placemark.locality ?? "",
+            stateCode: stateCode,
+            zipCode: zipCode
+        )
+    }
 }
 
 private struct CustomerRequestPhotoPreviewTile: View {
@@ -3178,42 +3321,42 @@ private struct CustomerRequestPhotoPreviewTile: View {
 }
 
 private struct CustomerRequestAddPhotoTile: View {
-    let isSelected: Bool
-    let action: () -> Void
+    let photoCount: Int
 
     var body: some View {
-        Button(action: action) {
-            VStack(spacing: DesignTokens.Spacing.sm) {
-                Image(systemName: isSelected ? "checkmark.circle.fill" : "camera")
-                    .font(.title2.weight(.semibold))
-                    .foregroundStyle(
-                        isSelected ? DesignTokens.Colors.customerPrimaryDark : DesignTokens.Colors.textTertiary
-                    )
+        VStack(spacing: DesignTokens.Spacing.sm) {
+            Image(systemName: photoCount > 0 ? "checkmark.circle.fill" : "camera")
+                .font(.title2.weight(.semibold))
+                .foregroundStyle(
+                    photoCount > 0
+                        ? DesignTokens.Colors.customerPrimaryDark
+                        : DesignTokens.Colors.textTertiary
+                )
 
-                Text(isSelected ? "Added" : "Add")
-                    .font(DesignTokens.Typography.caption.weight(.bold))
-                    .foregroundStyle(DesignTokens.Colors.textTertiary)
-            }
-            .frame(width: 112, height: 112)
-            .background(DesignTokens.Colors.surface.opacity(0.4))
-            .clipShape(
-                RoundedRectangle(
-                    cornerRadius: DesignTokens.CornerRadius.input,
-                    style: .continuous
-                )
-            )
-            .overlay {
-                RoundedRectangle(
-                    cornerRadius: DesignTokens.CornerRadius.input,
-                    style: .continuous
-                )
-                .stroke(
-                    DesignTokens.Colors.border,
-                    style: StrokeStyle(lineWidth: 1.5, dash: [6, 4])
-                )
-            }
+            Text(photoCount > 0 ? "\(photoCount) Added" : "Add")
+                .font(DesignTokens.Typography.caption.weight(.bold))
+                .foregroundStyle(DesignTokens.Colors.textTertiary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
         }
-        .buttonStyle(.plain)
+        .frame(width: 112, height: 112)
+        .background(DesignTokens.Colors.surface.opacity(0.4))
+        .clipShape(
+            RoundedRectangle(
+                cornerRadius: DesignTokens.CornerRadius.input,
+                style: .continuous
+            )
+        )
+        .overlay {
+            RoundedRectangle(
+                cornerRadius: DesignTokens.CornerRadius.input,
+                style: .continuous
+            )
+            .stroke(
+                DesignTokens.Colors.border,
+                style: StrokeStyle(lineWidth: 1.5, dash: [6, 4])
+            )
+        }
     }
 }
 
@@ -3415,13 +3558,16 @@ private final class CustomerRequestsPreviewRequestRepository: CustomerRequestRep
                     snapshotAt: "2026-06-20T12:00:00Z"
                 ),
                 photoSnapshot: [],
-                serviceType: "Full groom",
+                serviceType: .fullGroom,
                 serviceNotes: "Please be gentle around the paws.",
                 preferredStart: "2026-06-22T16:00:00Z",
                 preferredEnd: "2026-06-22T18:00:00Z",
+                locationMode: .groomerComesToCustomer,
+                streetAddress: "123 Pine Street",
                 city: "Seattle",
                 state: "WA",
                 zipCode: "98101",
+                travelRadiusMiles: nil,
                 status: .open,
                 expiresAt: "2026-06-22T12:00:00Z",
                 createdAt: "2026-06-20T12:00:00Z",
@@ -3445,13 +3591,16 @@ private final class CustomerRequestsPreviewRequestRepository: CustomerRequestRep
                     snapshotAt: "2026-06-18T12:00:00Z"
                 ),
                 photoSnapshot: [],
-                serviceType: "Bath and trim",
+                serviceType: .bathAndBrush,
                 serviceNotes: nil,
                 preferredStart: "2026-06-24T17:00:00Z",
                 preferredEnd: "2026-06-24T18:30:00Z",
+                locationMode: .customerComesToGroomer,
+                streetAddress: "456 Cedar Avenue",
                 city: "Seattle",
                 state: "WA",
                 zipCode: "98103",
+                travelRadiusMiles: 15,
                 status: .booked,
                 expiresAt: "2026-06-23T12:00:00Z",
                 createdAt: "2026-06-18T12:00:00Z",
@@ -3490,6 +3639,7 @@ private final class CustomerRequestsPreviewRequestRepository: CustomerRequestRep
                     baseCity: "Seattle",
                     baseState: "WA",
                     serviceRadiusMiles: 12,
+                    serviceLocationMode: .groomerComesToCustomer,
                     ratingAverage: 0,
                     ratingCount: 0,
                     isActive: true,
@@ -3506,6 +3656,29 @@ private final class CustomerRequestsPreviewRequestRepository: CustomerRequestRep
         GroomingRequestPublishResult(
             requestID: UUID(),
             matchCount: 2
+        )
+    }
+
+    func uploadRequestPhoto(
+        customerID: UUID,
+        requestID: UUID,
+        data: Data,
+        contentType: GroomingRequestPhotoContentType,
+        caption: String?
+    ) async throws -> GroomingRequestPhoto {
+        GroomingRequestPhoto(
+            id: UUID(),
+            requestID: requestID,
+            customerID: customerID,
+            storageBucket: "request-photos",
+            storagePath: GroomingRequestPhotoPath.make(
+                customerID: customerID,
+                requestID: requestID,
+                contentType: contentType
+            ),
+            caption: caption,
+            sortOrder: 0,
+            createdAt: "2026-06-20T14:00:00Z"
         )
     }
 

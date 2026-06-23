@@ -10,7 +10,7 @@ struct GroomerMatchedRequest: Equatable, Hashable, Identifiable, Sendable {
     }
 
     var title: String {
-        "\(request.serviceType) for \(request.petSnapshot.name)"
+        "\(request.serviceType.title) for \(request.petSnapshot.name)"
     }
 
     var locationSummary: String {
@@ -70,20 +70,23 @@ struct GroomerMatchedGroomingRequest:
     let petID: UUID?
     let petSnapshot: GroomingRequestPetSnapshot
     let photoSnapshot: [GroomingRequestPhotoSnapshot]
-    let serviceType: String
+    let serviceType: GroomingServiceType
     let serviceNotes: String?
     let preferredStart: String
     let preferredEnd: String
+    let locationMode: GroomingLocationMode
+    let streetAddress: String
     let city: String
     let state: String
     let zipCode: String
+    let travelRadiusMiles: Int?
     let status: GroomingRequestStatus
     let expiresAt: String
     let createdAt: String
     let updatedAt: String
 
     var locationSummary: String {
-        "\(city), \(state) \(zipCode)"
+        "\(streetAddress), \(city), \(state) \(zipCode)"
     }
 }
 
@@ -275,9 +278,12 @@ extension GroomerMatchedGroomingRequest {
             serviceNotes: serviceNotes,
             preferredStart: preferredStart,
             preferredEnd: preferredEnd,
+            locationMode: locationMode,
+            streetAddress: streetAddress,
             city: city,
             state: state,
             zipCode: zipCode,
+            travelRadiusMiles: travelRadiusMiles,
             status: status,
             expiresAt: expiresAt,
             createdAt: createdAt,

@@ -6,23 +6,30 @@ struct CustomerGroomingRequest: Equatable, Hashable, Identifiable, Sendable {
     let petID: UUID?
     let petSnapshot: GroomingRequestPetSnapshot
     let photoSnapshot: [GroomingRequestPhotoSnapshot]
-    let serviceType: String
+    let serviceType: GroomingServiceType
     let serviceNotes: String?
     let preferredStart: String
     let preferredEnd: String
+    let locationMode: GroomingLocationMode
+    let streetAddress: String
     let city: String
     let state: String
     let zipCode: String
+    let travelRadiusMiles: Int?
     let status: GroomingRequestStatus
     let expiresAt: String
     let createdAt: String
     let updatedAt: String
 
     var title: String {
-        "\(serviceType) for \(petSnapshot.name)"
+        "\(serviceType.title) for \(petSnapshot.name)"
     }
 
     var locationSummary: String {
+        "\(streetAddress), \(city), \(state) \(zipCode)"
+    }
+
+    var compactLocationSummary: String {
         "\(city), \(state) \(zipCode)"
     }
 
@@ -40,9 +47,12 @@ struct CustomerGroomingRequest: Equatable, Hashable, Identifiable, Sendable {
             serviceNotes: serviceNotes,
             preferredStart: preferredStart,
             preferredEnd: preferredEnd,
+            locationMode: locationMode,
+            streetAddress: streetAddress,
             city: city,
             state: state,
             zipCode: zipCode,
+            travelRadiusMiles: travelRadiusMiles,
             status: status,
             expiresAt: expiresAt,
             createdAt: createdAt,
@@ -149,13 +159,16 @@ nonisolated enum GroomingRequestStatus:
 
 struct GroomingRequestDraft: Equatable, Sendable {
     let petID: UUID
-    let serviceType: String
+    let serviceType: GroomingServiceType
     let serviceNotes: String?
     let preferredStart: Date
     let preferredEnd: Date
+    let locationMode: GroomingLocationMode
+    let streetAddress: String
     let city: String
-    let state: String
+    let stateCode: USStateCode
     let zipCode: String
+    let travelRadiusMiles: Int?
 }
 
 struct GroomingRequestPublishResult: Equatable, Sendable {

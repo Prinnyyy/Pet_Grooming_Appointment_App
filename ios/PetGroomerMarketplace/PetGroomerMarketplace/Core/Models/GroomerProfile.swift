@@ -9,6 +9,7 @@ struct GroomerProfile: Equatable, Sendable {
     let baseCity: String?
     let baseState: String?
     let serviceRadiusMiles: Int?
+    let serviceLocationMode: GroomingLocationMode?
     let ratingAverage: Double
     let ratingCount: Int
     let isActive: Bool
@@ -20,14 +21,16 @@ struct GroomerProfileDraft: Equatable, Sendable {
     let bio: String?
     let yearsExperience: Int?
     let baseCity: String?
-    let baseState: String?
+    let baseStateCode: USStateCode?
     let serviceRadiusMiles: Int?
+    let serviceLocationMode: GroomingLocationMode?
     let isActive: Bool
 }
 
 struct GroomerService: Equatable, Identifiable, Sendable {
     let id: UUID
     let groomerID: UUID
+    let serviceType: GroomingServiceType
     let title: String
     let description: String?
     let basePrice: Double
@@ -43,6 +46,7 @@ struct GroomerService: Equatable, Identifiable, Sendable {
 }
 
 struct GroomerServiceDraft: Equatable, Sendable {
+    let serviceType: GroomingServiceType
     let title: String
     let description: String?
     let basePrice: Double

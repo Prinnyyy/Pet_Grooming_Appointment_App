@@ -25,6 +25,14 @@ protocol CustomerRequestRepository: AnyObject {
         draft: GroomingRequestDraft
     ) async throws -> GroomingRequestPublishResult
 
+    func uploadRequestPhoto(
+        customerID: UUID,
+        requestID: UUID,
+        data: Data,
+        contentType: GroomingRequestPhotoContentType,
+        caption: String?
+    ) async throws -> GroomingRequestPhoto
+
     func cancelRequest(
         requestID: UUID
     ) async throws -> CancelGroomingRequestResult

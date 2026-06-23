@@ -24,12 +24,15 @@ final class GroomerProfileStore {
     var yearsExperience = ""
     var baseCity = ""
     var baseState = ""
+    var baseStateCode: USStateCode?
     var serviceRadiusMiles = ""
+    var serviceLocationMode: GroomingLocationMode?
     var isActive = false
 
     var isShowingServiceForm = false
     var editingServiceID: UUID?
     var serviceTitle = ""
+    var serviceType: GroomingServiceType = .fullGroom
     var serviceDescription = ""
     var serviceBasePrice = ""
     var serviceDurationMinutes = ""
@@ -128,6 +131,7 @@ final class GroomerProfileStore {
 
     func startEditService(_ service: GroomerService) {
         editingServiceID = service.id
+        serviceType = service.serviceType
         serviceTitle = service.title
         serviceDescription = service.description ?? ""
         serviceBasePrice = Self.displayPrice(service.basePrice)
@@ -269,12 +273,15 @@ final class GroomerProfileStore {
         yearsExperience = profile.yearsExperience.map(String.init) ?? ""
         baseCity = profile.baseCity ?? ""
         baseState = profile.baseState ?? ""
+        baseStateCode = profile.baseState.flatMap(USStateCode.init(rawValue:))
         serviceRadiusMiles = profile.serviceRadiusMiles.map(String.init) ?? ""
+        serviceLocationMode = profile.serviceLocationMode
         isActive = profile.isActive
     }
 
     private func resetServiceForm() {
-        serviceTitle = ""
+        serviceType = .fullGroom
+        serviceTitle = GroomingServiceType.fullGroom.title
         serviceDescription = ""
         serviceBasePrice = ""
         serviceDurationMinutes = ""
@@ -304,29 +311,29 @@ final class GroomerProfileStore {
                 range: 0...80
             ),
             baseCity: try optional(baseCity, field: "City", maximum: 100),
-            baseState: try optional(baseState, field: "State", maximum: 80),
+            baseStateCode: baseStateCode,
             serviceRadiusMiles: try optionalInteger(
                 serviceRadiusMiles,
                 field: "Service radius",
                 range: 1...250
             ),
+            serviceLocationMode: serviceLocationMode,
             isActive: isActive
         )
 
         if draft.isActive,
            (draft.businessName == nil
             || draft.baseCity == nil
-            || draft.baseState == nil
+            || draft.baseStateCode == nil
             || draft.serviceRadiusMiles == nil) {
             throw GroomerProfileFormError(
                 message: "Complete business name, city, state, and service radius before going active."
             )
         }
 
-        if let baseState = draft.baseState,
-           baseState.count < 2 {
+        if draft.isActive, draft.serviceLocationMode == nil {
             throw GroomerProfileFormError(
-                message: "State must be 2–80 characters."
+                message: "Choose whether you travel to customers or host appointments before going active."
             )
         }
 
@@ -334,8 +341,10 @@ final class GroomerProfileStore {
     }
 
     private func makeServiceDraft() throws -> GroomerServiceDraft {
-        GroomerServiceDraft(
-            title: try required(serviceTitle, field: "Service title", range: 1...80),
+        let serviceTitle = serviceType.title
+        return GroomerServiceDraft(
+            serviceType: serviceType,
+            title: serviceTitle,
             description: try optional(
                 serviceDescription,
                 field: "Description",

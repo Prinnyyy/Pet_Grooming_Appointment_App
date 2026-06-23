@@ -137,7 +137,7 @@ private struct GroomerRequestSummaryRow: View {
                             .foregroundStyle(DesignTokens.Colors.textPrimary)
                             .fixedSize(horizontal: false, vertical: true)
 
-                        Text(matchedRequest.request.serviceType)
+                        Text(matchedRequest.request.serviceType.title)
                             .font(DesignTokens.Typography.caption)
                             .foregroundStyle(DesignTokens.Colors.textSecondary)
                     }
@@ -267,7 +267,7 @@ private struct GroomerRequestDetailView: View {
                             .font(DesignTokens.Typography.title)
                             .foregroundStyle(DesignTokens.Colors.textPrimary)
 
-                        Text(matchedRequest.request.serviceType)
+                        Text(matchedRequest.request.serviceType.title)
                             .font(DesignTokens.Typography.body)
                             .foregroundStyle(DesignTokens.Colors.textSecondary)
                     }
@@ -324,7 +324,7 @@ private struct GroomerRequestDetailView: View {
                 HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
                     DetailMetadataRow(
                         title: "Service",
-                        value: matchedRequest.request.serviceType,
+                        value: matchedRequest.request.serviceType.title,
                         systemImage: "scissors"
                     )
 
@@ -963,13 +963,16 @@ private final class GroomerRequestsPreviewRepository: GroomerRequestRepository {
                     snapshotAt: "2026-06-20T12:00:00Z"
                 ),
                 photoSnapshot: [],
-                serviceType: "Full groom",
+                serviceType: .fullGroom,
                 serviceNotes: "Sensitive paws.",
                 preferredStart: "2026-06-22T16:00:00Z",
                 preferredEnd: "2026-06-22T18:00:00Z",
+                locationMode: .groomerComesToCustomer,
+                streetAddress: "123 Pine Street",
                 city: "Seattle",
                 state: "WA",
                 zipCode: "98101",
+                travelRadiusMiles: nil,
                 status: .open,
                 expiresAt: "2026-06-22T12:00:00Z",
                 createdAt: "2026-06-20T12:00:00Z",

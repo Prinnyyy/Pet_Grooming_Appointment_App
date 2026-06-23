@@ -69,6 +69,28 @@ struct GroomerProfileStoreTests {
     }
 
     @Test @MainActor
+    func activeProfileRequiresServiceLocationModeBeforeRepositoryCall() async {
+        let repository = GroomerProfileRepositoryFake()
+        let store = GroomerProfileStore(
+            groomerID: UUID(),
+            repository: repository
+        )
+        store.isActive = true
+        store.businessName = "Fresh Coat"
+        store.baseCity = "Seattle"
+        store.baseStateCode = .washington
+        store.serviceRadiusMiles = "12"
+
+        await store.saveProfile()
+
+        #expect(repository.updateProfileCallCount == 0)
+        #expect(
+            store.errorMessage ==
+                "Choose whether you travel to customers or host appointments before going active."
+        )
+    }
+
+    @Test @MainActor
     func saveProfileTrimsOptionalFieldsAndSendsActiveState() async {
         let groomerID = UUID()
         let repository = GroomerProfileRepositoryFake()
@@ -80,8 +102,9 @@ struct GroomerProfileStoreTests {
         store.bio = " Calm grooming "
         store.yearsExperience = "6"
         store.baseCity = " Seattle "
-        store.baseState = " WA "
+        store.baseStateCode = .washington
         store.serviceRadiusMiles = "12"
+        store.serviceLocationMode = .groomerComesToCustomer
         store.isActive = true
 
         await store.saveProfile()
@@ -91,20 +114,21 @@ struct GroomerProfileStoreTests {
         #expect(repository.lastProfileDraft?.bio == "Calm grooming")
         #expect(repository.lastProfileDraft?.yearsExperience == 6)
         #expect(repository.lastProfileDraft?.baseCity == "Seattle")
-        #expect(repository.lastProfileDraft?.baseState == "WA")
+        #expect(repository.lastProfileDraft?.baseStateCode == .washington)
         #expect(repository.lastProfileDraft?.serviceRadiusMiles == 12)
+        #expect(repository.lastProfileDraft?.serviceLocationMode == .groomerComesToCustomer)
         #expect(repository.lastProfileDraft?.isActive == true)
     }
 
     @Test @MainActor
-    func createServiceKeepsCanonicalPetSizeOrderAndUsesEmptyAsAllSizes() async {
+    func createServiceUsesFixedServiceTypeKeepsCanonicalPetSizeOrderAndUsesEmptyAsAllSizes() async {
         let groomerID = UUID()
         let repository = GroomerProfileRepositoryFake()
         let store = GroomerProfileStore(
             groomerID: groomerID,
             repository: repository
         )
-        store.serviceTitle = " Bath "
+        store.serviceType = .bathAndBrush
         store.serviceDescription = " Shampoo "
         store.serviceBasePrice = "45.50"
         store.serviceDurationMinutes = "60"
@@ -113,14 +137,15 @@ struct GroomerProfileStoreTests {
         await store.saveService()
 
         #expect(repository.createServiceCallCount == 1)
-        #expect(repository.lastServiceDraft?.title == "Bath")
+        #expect(repository.lastServiceDraft?.serviceType == .bathAndBrush)
+        #expect(repository.lastServiceDraft?.title == "Bath & Brush")
         #expect(repository.lastServiceDraft?.description == "Shampoo")
         #expect(repository.lastServiceDraft?.basePrice == 45.50)
         #expect(repository.lastServiceDraft?.durationMinutes == 60)
         #expect(repository.lastServiceDraft?.acceptedPetSizes == [.small, .giant])
 
         store.startCreateService()
-        store.serviceTitle = "Nails"
+        store.serviceType = .nailTrim
         store.serviceBasePrice = "20"
         store.serviceDurationMinutes = "30"
         store.selectedServiceSizes = []
@@ -202,6 +227,7 @@ struct GroomerProfileStoreTests {
             baseCity: "Seattle",
             baseState: "WA",
             serviceRadiusMiles: 12,
+            serviceLocationMode: .groomerComesToCustomer,
             ratingAverage: 0,
             ratingCount: 0,
             isActive: true,
@@ -213,6 +239,7 @@ struct GroomerProfileStoreTests {
         GroomerService(
             id: UUID(),
             groomerID: groomerID,
+            serviceType: .bathAndBrush,
             title: "Bath",
             description: nil,
             basePrice: 45,
@@ -315,8 +342,9 @@ private final class GroomerProfileRepositoryFake: GroomerProfileRepository {
             bio: draft.bio,
             yearsExperience: draft.yearsExperience,
             baseCity: draft.baseCity,
-            baseState: draft.baseState,
+            baseState: draft.baseStateCode?.rawValue,
             serviceRadiusMiles: draft.serviceRadiusMiles,
+            serviceLocationMode: draft.serviceLocationMode,
             ratingAverage: 0,
             ratingCount: 0,
             isActive: draft.isActive,
@@ -338,6 +366,7 @@ private final class GroomerProfileRepositoryFake: GroomerProfileRepository {
         return GroomerService(
             id: UUID(),
             groomerID: groomerID,
+            serviceType: draft.serviceType,
             title: draft.title,
             description: draft.description,
             basePrice: draft.basePrice,
@@ -361,6 +390,7 @@ private final class GroomerProfileRepositoryFake: GroomerProfileRepository {
         return GroomerService(
             id: service.id,
             groomerID: service.groomerID,
+            serviceType: draft.serviceType,
             title: draft.title,
             description: draft.description,
             basePrice: draft.basePrice,

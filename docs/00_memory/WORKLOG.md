@@ -1,6 +1,28 @@
 # Worklog
 
 ```text
+Date: 2026-06-23
+Task: T-049 review follow-up - request card presentation regression.
+Files changed: CustomerRequest.swift, CustomerRequestsView.swift, CustomerRequestFeatureTests.swift, T-049 task doc, CURRENT_STATE.md, WORKLOG.md.
+Checks: Reproduced the full-suite failure with ./scripts/ios-test.sh before the fix; ./scripts/ios-test.sh passed after the fix; git diff --check passed; ./scripts/ios-build.sh passed.
+Simulator launch: XcodeBuildMCP build_run_sim passed on iPhone 17 simulator (B9639233-9E78-41C9-A372-330D36C38DA7) with no diagnostics warnings or errors. App launched successfully for inspection.
+Result: Fixed service titles remain Title Case in booked quest cards, and compact quest action cards now use a dedicated city/state/ZIP location summary while detail surfaces keep the full street address.
+Risks: None beyond the existing T-049 risks; full street display remains intentional on detail surfaces and groomer-facing request summaries.
+Next: Commit and push the T-049 branch.
+```
+
+```text
+Date: 2026-06-23
+Task: T-049 - Groomly request data contract, location, and photos.
+Files changed: Supabase migration 20260623065017, request/groomer models, Supabase repositories, Customer request Store/View, Groomer profile Store/View, previews/fakes/tests, backend docs, task ledger, current state, feature index.
+Checks: Supabase MCP migration applied to fresh project lqmasbuqzvcvtawonjlb and metadata/policy/grant checks completed; targeted T-049 CustomerRequestsStore/GroomerProfileStore tests passed; git diff --check passed; ./scripts/ios-build.sh passed.
+Simulator launch: XcodeBuildMCP build_run_sim passed on iPhone 17 simulator (B9639233-9E78-41C9-A372-330D36C38DA7) with no diagnostics warnings or errors. App launched successfully for inspection.
+Result: Fixed grooming services are now shared enum values across request creation and groomer services; customer requests persist location mode, street/city/state/ZIP, optional travel radius, and request photo metadata/storage; groomer profiles persist service-location capability; create_grooming_request now validates and matches on service/location.
+Risks: Supabase advisor MCP was unavailable in this session; request photo uploads use standard upload without compression/resumable transfer; stricter street number/name validation is client-side while the database enforces address length plus state/ZIP/range/service/location constraints.
+Next: User visual/flow review in Simulator, especially new request address autocomplete, PhotosPicker staging, and groomer service-location/service-type profile controls.
+```
+
+```text
 Date: 2026-06-22
 Task: T-048 - Groomly customer new request wizard rework.
 Files changed: Added T-048 task doc; updated CustomerRequestsView.swift, CustomerPetsView.swift, CustomerRequestFeatureTests.swift, CURRENT_STATE.md, FEATURE_INDEX.md, WORKLOG.md, and TASK_LEDGER.md.

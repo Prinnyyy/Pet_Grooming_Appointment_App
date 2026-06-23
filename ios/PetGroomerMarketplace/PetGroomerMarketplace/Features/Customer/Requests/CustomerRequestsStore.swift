@@ -5,6 +5,7 @@ import Observation
 @Observable
 final class CustomerRequestsStore {
     static let minimumPreferredStartLeadTime: TimeInterval = 5 * 60
+    static let maximumRequestPhotoBytes = 10 * 1024 * 1024
 
     private let customerID: UUID
     private let petRepository: any CustomerPetRepository
@@ -31,13 +32,17 @@ final class CustomerRequestsStore {
     var isShowingWizard = false
 
     var selectedPetID: UUID?
-    var serviceType = ""
+    var serviceType: GroomingServiceType = .fullGroom
     var serviceNotes = ""
     var preferredStart: Date
     var preferredEnd: Date
+    var locationMode: GroomingLocationMode = .groomerComesToCustomer
+    var streetAddress = ""
     var city = ""
-    var state = ""
+    var stateCode: USStateCode?
     var zipCode = ""
+    var travelRadiusMiles = 15
+    private(set) var pendingRequestPhotos: [PendingGroomingRequestPhoto] = []
 
     var isBusy: Bool {
         isLoading || isSubmitting || !acceptingOfferIDs.isEmpty || !cancellingRequestIDs.isEmpty
@@ -179,6 +184,24 @@ final class CustomerRequestsStore {
         noticeMessage = nil
     }
 
+    func addPendingPhoto(
+        data: Data,
+        contentType: GroomingRequestPhotoContentType
+    ) {
+        guard data.count <= Self.maximumRequestPhotoBytes else {
+            errorMessage = "Choose a request photo smaller than 10 MB."
+            return
+        }
+
+        pendingRequestPhotos.append(
+            PendingGroomingRequestPhoto(
+                data: data,
+                contentType: contentType
+            )
+        )
+        errorMessage = nil
+    }
+
     func acknowledgeBookingHandoff(for handoff: CustomerRequestBookingHandoff) {
         let insertion = acknowledgedBookingHandoffRequestIDs.insert(handoff.request.id)
         guard insertion.inserted else { return }
@@ -246,6 +269,15 @@ final class CustomerRequestsStore {
                 customerID: customerID,
                 draft: draft
             )
+            for photo in pendingRequestPhotos {
+                _ = try await requestRepository.uploadRequestPhoto(
+                    customerID: customerID,
+                    requestID: result.requestID,
+                    data: photo.data,
+                    contentType: photo.contentType,
+                    caption: nil
+                )
+            }
             requests = try await requestRepository.requests(customerID: customerID)
             publishResult = result
             noticeMessage = result.matchCount == 1
@@ -353,11 +385,6 @@ final class CustomerRequestsStore {
             )
         }
 
-        let serviceType = try required(
-            self.serviceType,
-            field: "Service type",
-            range: 1...80
-        )
         let serviceNotes = try optional(
             self.serviceNotes,
             field: "Service notes",
@@ -379,24 +406,41 @@ final class CustomerRequestsStore {
             )
         }
 
+        let streetAddress = try streetAddressValue(self.streetAddress)
+        let city = try required(city, field: "City", range: 1...100)
+        guard let stateCode else {
+            throw CustomerRequestFormError(message: "Choose a state.")
+        }
+        let zipCode = try zipCodeValue(self.zipCode)
+        let travelRadius = locationMode == .customerComesToGroomer
+            ? CustomerRequestTravelRange.clampedMiles(Double(travelRadiusMiles))
+            : nil
+
         return GroomingRequestDraft(
             petID: selectedPetID,
             serviceType: serviceType,
             serviceNotes: serviceNotes,
             preferredStart: preferredStart,
             preferredEnd: preferredEnd,
-            city: try required(city, field: "City", range: 1...100),
-            state: try required(state, field: "State", range: 2...80),
-            zipCode: try required(zipCode, field: "ZIP code", range: 3...20)
+            locationMode: locationMode,
+            streetAddress: streetAddress,
+            city: city,
+            stateCode: stateCode,
+            zipCode: zipCode,
+            travelRadiusMiles: travelRadius
         )
     }
 
     private func resetForm(now: Date = Date()) {
-        serviceType = ""
+        serviceType = .fullGroom
         serviceNotes = ""
+        locationMode = .groomerComesToCustomer
+        streetAddress = ""
         city = ""
-        state = ""
+        stateCode = nil
         zipCode = ""
+        travelRadiusMiles = 15
+        pendingRequestPhotos = []
 
         let defaults = Self.defaultPreferredRange(now: now)
         preferredStart = defaults.start
@@ -530,6 +574,29 @@ final class CustomerRequestsStore {
                 message: "\(field) must be \(maximum) characters or fewer."
             )
         }
+        return trimmed
+    }
+
+    private func zipCodeValue(_ value: String) throws -> String {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        let pattern = #"^[0-9]{5}(-[0-9]{4})?$"#
+        guard trimmed.range(of: pattern, options: .regularExpression) != nil else {
+            throw CustomerRequestFormError(message: "Enter a valid 5-digit ZIP code.")
+        }
+        return trimmed
+    }
+
+    private func streetAddressValue(_ value: String) throws -> String {
+        let trimmed = try required(value, field: "Street address", range: 1...160)
+        let hasStreetNumber = trimmed.range(of: #"[0-9]"#, options: .regularExpression) != nil
+        let hasStreetName = trimmed.range(of: #"[A-Za-z]"#, options: .regularExpression) != nil
+
+        guard hasStreetNumber, hasStreetName else {
+            throw CustomerRequestFormError(
+                message: "Enter a street address with a street number and name."
+            )
+        }
+
         return trimmed
     }
 
@@ -682,5 +749,21 @@ struct CustomerRequestActionCardItem: Equatable, Hashable, Identifiable, Sendabl
 
     var isBookingHandoff: Bool {
         handoff != nil
+    }
+}
+
+struct PendingGroomingRequestPhoto: Equatable, Identifiable, Sendable {
+    let id: UUID
+    let data: Data
+    let contentType: GroomingRequestPhotoContentType
+
+    init(
+        id: UUID = UUID(),
+        data: Data,
+        contentType: GroomingRequestPhotoContentType
+    ) {
+        self.id = id
+        self.data = data
+        self.contentType = contentType
     }
 }

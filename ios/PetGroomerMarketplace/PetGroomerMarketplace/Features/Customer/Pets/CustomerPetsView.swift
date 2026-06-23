@@ -1144,13 +1144,16 @@ private final class CustomerHomePreviewRequestRepository: CustomerRequestReposit
                     snapshotAt: "2026-06-20T12:00:00Z"
                 ),
                 photoSnapshot: [],
-                serviceType: "Full Groom",
+                serviceType: .fullGroom,
                 serviceNotes: "Trim and brush out.",
                 preferredStart: "2026-06-24T16:00:00Z",
                 preferredEnd: "2026-06-24T18:00:00Z",
+                locationMode: .groomerComesToCustomer,
+                streetAddress: "123 Pine Street",
                 city: "Seattle",
                 state: "WA",
                 zipCode: "98101",
+                travelRadiusMiles: nil,
                 status: .open,
                 expiresAt: "2026-06-23T12:00:00Z",
                 createdAt: "2026-06-20T12:00:00Z",
@@ -1173,6 +1176,29 @@ private final class CustomerHomePreviewRequestRepository: CustomerRequestReposit
         GroomingRequestPublishResult(
             requestID: UUID(),
             matchCount: 2
+        )
+    }
+
+    func uploadRequestPhoto(
+        customerID: UUID,
+        requestID: UUID,
+        data: Data,
+        contentType: GroomingRequestPhotoContentType,
+        caption: String?
+    ) async throws -> GroomingRequestPhoto {
+        GroomingRequestPhoto(
+            id: UUID(),
+            requestID: requestID,
+            customerID: customerID,
+            storageBucket: "request-photos",
+            storagePath: GroomingRequestPhotoPath.make(
+                customerID: customerID,
+                requestID: requestID,
+                contentType: contentType
+            ),
+            caption: caption,
+            sortOrder: 0,
+            createdAt: "2026-06-20T14:00:00Z"
         )
     }
 

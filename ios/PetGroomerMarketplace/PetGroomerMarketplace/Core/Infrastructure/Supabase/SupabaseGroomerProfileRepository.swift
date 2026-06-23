@@ -4,9 +4,9 @@ import Supabase
 @MainActor
 final class SupabaseGroomerProfileRepository: GroomerProfileRepository {
     private static let profileColumns =
-        "user_id,business_name,bio,years_experience,base_city,base_state,service_radius_miles,rating_avg,rating_count,is_active,is_verified"
+        "user_id,business_name,bio,years_experience,base_city,base_state,service_radius_miles,service_location_mode,rating_avg,rating_count,is_active,is_verified"
     private static let serviceColumns =
-        "id,groomer_id,title,description,base_price,duration_minutes,accepted_pet_sizes,is_active"
+        "id,groomer_id,service_type,title,description,base_price,duration_minutes,accepted_pet_sizes,is_active"
     private static let portfolioColumns =
         "id,groomer_id,storage_bucket,storage_path,caption,sort_order"
     fileprivate static let bucketID = "groomer-portfolio"
@@ -196,7 +196,7 @@ final class SupabaseGroomerProfileRepository: GroomerProfileRepository {
                 .value
 
             guard rows.count == 1, let photo = rows.first?.photo else {
-                try? await client.storage
+                _ = try? await client.storage
                     .from(Self.bucketID)
                     .remove(paths: [storagePath])
                 throw GroomerProfileRepositoryError.unavailable
@@ -206,7 +206,7 @@ final class SupabaseGroomerProfileRepository: GroomerProfileRepository {
         } catch let error as GroomerProfileRepositoryError {
             throw error
         } catch {
-            try? await client.storage
+            _ = try? await client.storage
                 .from(Self.bucketID)
                 .remove(paths: [storagePath])
             throw Self.map(error)
@@ -275,6 +275,7 @@ private struct GroomerProfileRow: Decodable {
     let baseCity: String?
     let baseState: String?
     let serviceRadiusMiles: Int?
+    let serviceLocationMode: GroomingLocationMode?
     let ratingAverage: Double
     let ratingCount: Int
     let isActive: Bool
@@ -289,6 +290,7 @@ private struct GroomerProfileRow: Decodable {
             baseCity: baseCity,
             baseState: baseState,
             serviceRadiusMiles: serviceRadiusMiles,
+            serviceLocationMode: serviceLocationMode,
             ratingAverage: ratingAverage,
             ratingCount: ratingCount,
             isActive: isActive,
@@ -304,6 +306,7 @@ private struct GroomerProfileRow: Decodable {
         case baseCity = "base_city"
         case baseState = "base_state"
         case serviceRadiusMiles = "service_radius_miles"
+        case serviceLocationMode = "service_location_mode"
         case ratingAverage = "rating_avg"
         case ratingCount = "rating_count"
         case isActive = "is_active"
@@ -314,6 +317,7 @@ private struct GroomerProfileRow: Decodable {
 private struct GroomerServiceRow: Decodable {
     let id: UUID
     let groomerID: UUID
+    let serviceType: GroomingServiceType
     let title: String
     let description: String?
     let basePrice: Double
@@ -325,6 +329,7 @@ private struct GroomerServiceRow: Decodable {
         GroomerService(
             id: id,
             groomerID: groomerID,
+            serviceType: serviceType,
             title: title,
             description: description,
             basePrice: basePrice,
@@ -337,6 +342,7 @@ private struct GroomerServiceRow: Decodable {
     private enum CodingKeys: String, CodingKey {
         case id
         case groomerID = "groomer_id"
+        case serviceType = "service_type"
         case title
         case description
         case basePrice = "base_price"
@@ -388,10 +394,15 @@ private struct GroomerProfileUpdateRow: Encodable {
             in: &container
         )
         try encodeNullable(draft.baseCity, forKey: .baseCity, in: &container)
-        try encodeNullable(draft.baseState, forKey: .baseState, in: &container)
+        try encodeNullable(draft.baseStateCode?.rawValue, forKey: .baseState, in: &container)
         try encodeNullable(
             draft.serviceRadiusMiles,
             forKey: .serviceRadiusMiles,
+            in: &container
+        )
+        try encodeNullable(
+            draft.serviceLocationMode?.rawValue,
+            forKey: .serviceLocationMode,
             in: &container
         )
         try container.encode(draft.isActive, forKey: .isActive)
@@ -416,6 +427,7 @@ private struct GroomerProfileUpdateRow: Encodable {
         case baseCity = "base_city"
         case baseState = "base_state"
         case serviceRadiusMiles = "service_radius_miles"
+        case serviceLocationMode = "service_location_mode"
         case isActive = "is_active"
     }
 }
@@ -427,6 +439,7 @@ private struct GroomerServiceInsertRow: Encodable {
     func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(groomerID.uuidString.lowercased(), forKey: .groomerID)
+        try container.encode(draft.serviceType.rawValue, forKey: .serviceType)
         try container.encode(draft.title, forKey: .title)
         try container.encodeIfPresent(draft.description, forKey: .description)
         try container.encode(draft.basePrice, forKey: .basePrice)
@@ -437,6 +450,7 @@ private struct GroomerServiceInsertRow: Encodable {
 
     private enum CodingKeys: String, CodingKey {
         case groomerID = "groomer_id"
+        case serviceType = "service_type"
         case title
         case description
         case basePrice = "base_price"
@@ -451,6 +465,7 @@ private struct GroomerServiceUpdateRow: Encodable {
 
     func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(draft.serviceType.rawValue, forKey: .serviceType)
         try container.encode(draft.title, forKey: .title)
         try encodeNullable(draft.description, forKey: .description, in: &container)
         try container.encode(draft.basePrice, forKey: .basePrice)
@@ -472,6 +487,7 @@ private struct GroomerServiceUpdateRow: Encodable {
     }
 
     private enum CodingKeys: String, CodingKey {
+        case serviceType = "service_type"
         case title
         case description
         case basePrice = "base_price"

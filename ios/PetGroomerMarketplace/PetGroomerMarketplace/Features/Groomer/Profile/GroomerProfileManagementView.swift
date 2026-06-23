@@ -126,11 +126,11 @@ private struct GroomerProfileFormSection: View {
                             prompt: "City"
                         )
 
-                        GroomerProfileTextField(
+                        GroomerProfileStatePicker(
                             title: "State",
-                            text: $store.baseState,
-                            prompt: "State"
+                            selection: $store.baseStateCode
                         )
+                        .frame(width: 100)
                     }
 
                     GroomerProfileTextField(
@@ -139,6 +139,10 @@ private struct GroomerProfileFormSection: View {
                         prompt: "Service Radius in Miles"
                     )
                     .keyboardType(.numberPad)
+
+                    GroomerProfileLocationModePicker(
+                        selection: $store.serviceLocationMode
+                    )
 
                     GroomlyToggleRow(
                         title: "Profile Visible to Authenticated Customers",
@@ -324,6 +328,100 @@ private struct GroomerProfileTextField: View {
     }
 }
 
+private struct GroomerProfileStatePicker: View {
+    let title: String
+    @Binding var selection: USStateCode?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            Text(title)
+                .font(DesignTokens.Typography.caption)
+                .foregroundStyle(DesignTokens.Colors.textSecondary)
+
+            Menu {
+                ForEach(USStateCode.allCases) { state in
+                    Button(state.rawValue) {
+                        selection = state
+                    }
+                }
+            } label: {
+                HStack {
+                    Text(selection?.rawValue ?? "State")
+                        .foregroundStyle(
+                            selection == nil
+                                ? DesignTokens.Colors.textSecondary
+                                : DesignTokens.Colors.textPrimary
+                        )
+
+                    Spacer(minLength: DesignTokens.Spacing.xs)
+
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+                }
+                .groomlyFormField()
+            }
+        }
+    }
+}
+
+private struct GroomerProfileLocationModePicker: View {
+    @Binding var selection: GroomingLocationMode?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            Text("Service Location")
+                .font(DesignTokens.Typography.caption)
+                .foregroundStyle(DesignTokens.Colors.textSecondary)
+
+            VStack(spacing: DesignTokens.Spacing.sm) {
+                ForEach(GroomingLocationMode.allCases) { mode in
+                    Button {
+                        selection = mode
+                    } label: {
+                        HStack(spacing: DesignTokens.Spacing.md) {
+                            Text(mode.icon)
+                                .font(.title3)
+                                .frame(width: 30)
+
+                            Text(mode.groomerTitle)
+                                .font(DesignTokens.Typography.body.weight(.semibold))
+                                .foregroundStyle(DesignTokens.Colors.textPrimary)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+
+                            if selection == mode {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
+                            }
+                        }
+                        .padding(DesignTokens.Spacing.md)
+                        .background(DesignTokens.Colors.surface)
+                        .clipShape(
+                            RoundedRectangle(
+                                cornerRadius: DesignTokens.CornerRadius.input,
+                                style: .continuous
+                            )
+                        )
+                        .overlay {
+                            RoundedRectangle(
+                                cornerRadius: DesignTokens.CornerRadius.input,
+                                style: .continuous
+                            )
+                            .stroke(
+                                selection == mode
+                                    ? DesignTokens.Colors.groomerAccent
+                                    : DesignTokens.Colors.borderSoft,
+                                lineWidth: selection == mode ? 2 : 1
+                            )
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+}
+
 private struct GroomlyToggleRow: View {
     let title: String
     let subtitle: String?
@@ -413,6 +511,73 @@ private struct GroomerServiceSizeToggleRow: View {
                 .tint(DesignTokens.Colors.groomerAccent)
         }
         .accessibilityElement(children: .combine)
+    }
+}
+
+private struct GroomerServiceTypePicker: View {
+    @Binding var selection: GroomingServiceType
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            Text("Service Type")
+                .font(DesignTokens.Typography.caption)
+                .foregroundStyle(DesignTokens.Colors.textSecondary)
+
+            VStack(spacing: DesignTokens.Spacing.sm) {
+                ForEach(GroomingServiceType.allCases) { type in
+                    Button {
+                        selection = type
+                    } label: {
+                        HStack(spacing: DesignTokens.Spacing.md) {
+                            Image(systemName: "scissors")
+                                .font(DesignTokens.Typography.caption.weight(.bold))
+                                .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
+                                .frame(width: DesignTokens.Spacing.xl, height: DesignTokens.Spacing.xl)
+                                .background(DesignTokens.Colors.groomerAccent.opacity(0.14))
+                                .clipShape(Circle())
+
+                            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                                Text(type.title)
+                                    .font(DesignTokens.Typography.body.weight(.semibold))
+                                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+
+                                Text(type.subtitle)
+                                    .font(DesignTokens.Typography.caption)
+                                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+
+                            if selection == type {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
+                            }
+                        }
+                        .padding(DesignTokens.Spacing.md)
+                        .background(DesignTokens.Colors.surface)
+                        .clipShape(
+                            RoundedRectangle(
+                                cornerRadius: DesignTokens.CornerRadius.input,
+                                style: .continuous
+                            )
+                        )
+                        .overlay {
+                            RoundedRectangle(
+                                cornerRadius: DesignTokens.CornerRadius.input,
+                                style: .continuous
+                            )
+                            .stroke(
+                                selection == type
+                                    ? DesignTokens.Colors.groomerAccent
+                                    : DesignTokens.Colors.borderSoft,
+                                lineWidth: selection == type ? 2 : 1
+                            )
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
     }
 }
 
@@ -669,10 +834,8 @@ private struct GroomerServiceFormView: View {
 
                         GroomlyCard {
                             VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                                GroomerProfileTextField(
-                                    title: "Title",
-                                    text: $store.serviceTitle,
-                                    prompt: "Title"
+                                GroomerServiceTypePicker(
+                                    selection: $store.serviceType
                                 )
 
                                 GroomerProfileTextField(
@@ -849,6 +1012,7 @@ private final class GroomerProfilePreviewRepository: GroomerProfileRepository {
             baseCity: "Seattle",
             baseState: "WA",
             serviceRadiusMiles: 12,
+            serviceLocationMode: .groomerComesToCustomer,
             ratingAverage: 0,
             ratingCount: 0,
             isActive: false,
@@ -858,6 +1022,7 @@ private final class GroomerProfilePreviewRepository: GroomerProfileRepository {
             GroomerService(
                 id: UUID(),
                 groomerID: groomerID,
+                serviceType: .fullGroom,
                 title: "Full Groom",
                 description: "Bath, haircut, nails, and ear cleaning.",
                 basePrice: 95,
@@ -890,8 +1055,9 @@ private final class GroomerProfilePreviewRepository: GroomerProfileRepository {
             bio: draft.bio,
             yearsExperience: draft.yearsExperience,
             baseCity: draft.baseCity,
-            baseState: draft.baseState,
+            baseState: draft.baseStateCode?.rawValue,
             serviceRadiusMiles: draft.serviceRadiusMiles,
+            serviceLocationMode: draft.serviceLocationMode,
             ratingAverage: storedProfile.ratingAverage,
             ratingCount: storedProfile.ratingCount,
             isActive: draft.isActive,
@@ -907,6 +1073,7 @@ private final class GroomerProfilePreviewRepository: GroomerProfileRepository {
         let service = GroomerService(
             id: UUID(),
             groomerID: groomerID,
+            serviceType: draft.serviceType,
             title: draft.title,
             description: draft.description,
             basePrice: draft.basePrice,
@@ -925,6 +1092,7 @@ private final class GroomerProfilePreviewRepository: GroomerProfileRepository {
         GroomerService(
             id: service.id,
             groomerID: service.groomerID,
+            serviceType: draft.serviceType,
             title: draft.title,
             description: draft.description,
             basePrice: draft.basePrice,

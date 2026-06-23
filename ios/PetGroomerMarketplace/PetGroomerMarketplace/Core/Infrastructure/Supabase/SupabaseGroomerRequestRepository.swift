@@ -9,7 +9,8 @@ final class SupabaseGroomerRequestRepository: GroomerRequestRepository {
         """
     private static let requestColumns = """
         id,customer_id,pet_id,pet_snapshot,photo_snapshot,service_type,service_notes,\
-        preferred_start,preferred_end,city,state,zip_code,status,expires_at,created_at,updated_at
+        preferred_start,preferred_end,location_mode,street_address,city,state,zip_code,\
+        travel_radius_miles,status,expires_at,created_at,updated_at
         """
     private static let offerColumns = """
         id,request_id,match_id,customer_id,groomer_id,proposed_start,proposed_end,\
@@ -324,13 +325,16 @@ private struct GroomerMatchedGroomingRequestRow: Decodable {
     let petID: UUID?
     let petSnapshot: GroomingRequestPetSnapshot
     let photoSnapshot: [GroomingRequestPhotoSnapshot]
-    let serviceType: String
+    let serviceType: GroomingServiceType
     let serviceNotes: String?
     let preferredStart: String
     let preferredEnd: String
+    let locationMode: GroomingLocationMode
+    let streetAddress: String
     let city: String
     let state: String
     let zipCode: String
+    let travelRadiusMiles: Int?
     let status: GroomingRequestStatus
     let expiresAt: String
     let createdAt: String
@@ -347,9 +351,12 @@ private struct GroomerMatchedGroomingRequestRow: Decodable {
             serviceNotes: serviceNotes,
             preferredStart: preferredStart,
             preferredEnd: preferredEnd,
+            locationMode: locationMode,
+            streetAddress: streetAddress,
             city: city,
             state: state,
             zipCode: zipCode,
+            travelRadiusMiles: travelRadiusMiles,
             status: status,
             expiresAt: expiresAt,
             createdAt: createdAt,
@@ -367,9 +374,12 @@ private struct GroomerMatchedGroomingRequestRow: Decodable {
         case serviceNotes = "service_notes"
         case preferredStart = "preferred_start"
         case preferredEnd = "preferred_end"
+        case locationMode = "location_mode"
+        case streetAddress = "street_address"
         case city
         case state
         case zipCode = "zip_code"
+        case travelRadiusMiles = "travel_radius_miles"
         case status
         case expiresAt = "expires_at"
         case createdAt = "created_at"
