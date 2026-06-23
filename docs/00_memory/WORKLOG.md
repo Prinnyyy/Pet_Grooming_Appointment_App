@@ -2,6 +2,28 @@
 
 ```text
 Date: 2026-06-23
+Task: T-050 review follow-up - pet size mapping function grant.
+Files changed: T-050 local Supabase migration, T-050 task doc, TASK_LEDGER.md, CURRENT_STATE.md, WORKLOG.md.
+Checks: git diff --check passed; ./scripts/ios-test.sh passed.
+Simulator launch: XcodeBuildMCP build_run_sim passed on iPhone 17 simulator (B9639233-9E78-41C9-A372-330D36C38DA7) with no diagnostics warnings or errors. App launched successfully for inspection.
+Result: The local draft migration now grants authenticated execute on the pure immutable app_private.pet_size_code_for_weight_lbs(numeric) function so deployed derived-size CHECK evaluation can run for authenticated pet writes. The trigger function remains private and security invoker.
+Risks: The migration is still local only and has not been deployed. Remote deployment should include an authenticated pet insert/update smoke test plus advisor/rollback validation.
+Next: Commit and push codex/t050-pet-data-contract.
+```
+
+```text
+Date: 2026-06-23
+Task: T-050 - Groomly pet data contract and Add Pet UI.
+Files changed: CustomerPet model, CustomerPetsStore/View, customer/groomer request presentation fixtures, CustomerPet/Request/GroomerRequest tests, local Supabase migration 20260623013113, backend docs, task ledger, current state, feature index, worklog.
+Checks: Targeted CustomerPetsStore red test failed before implementation because fixed taxonomy/date/photo staging APIs did not exist; targeted CustomerPetsStore tests passed after implementation; git diff --check passed; ./scripts/ios-build.sh passed.
+Simulator launch: XcodeBuildMCP build_run_sim passed on iPhone 17 simulator (B9639233-9E78-41C9-A372-330D36C38DA7) with no diagnostics warnings or errors. App launched successfully for inspection.
+Result: Pet profiles now use fixed species, breed, and temperament options; size is derived from weight bands; birthday is date-backed; Add/Edit Pet uses pickers, a weight slider, date picker, and staged Add Pet photos uploaded through the existing pet-photos repository/storage path after create.
+Risks: The T-050 Supabase migration is local only and was not remotely deployed. Supabase CLI/psql were unavailable locally, so remote deployment plus advisor/rollback validation still needs explicit authorization before treating database constraints as live.
+Next: Review the Add/Edit Pet UI in Simulator. If the fixed pet contract should become live in Supabase, explicitly authorize applying the T-050 migration to project lqmasbuqzvcvtawonjlb.
+```
+
+```text
+Date: 2026-06-23
 Task: T-049 review follow-up - request card presentation regression.
 Files changed: CustomerRequest.swift, CustomerRequestsView.swift, CustomerRequestFeatureTests.swift, T-049 task doc, CURRENT_STATE.md, WORKLOG.md.
 Checks: Reproduced the full-suite failure with ./scripts/ios-test.sh before the fix; ./scripts/ios-test.sh passed after the fix; git diff --check passed; ./scripts/ios-build.sh passed.

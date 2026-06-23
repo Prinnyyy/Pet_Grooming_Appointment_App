@@ -235,7 +235,7 @@ struct GroomerRequestsStoreTests {
                     name: "Mochi",
                     species: "Dog",
                     breed: "Corgi",
-                    size: "Small",
+                    size: "M",
                     weightLbs: 22,
                     birthday: nil,
                     temperament: "Gentle",

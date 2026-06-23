@@ -21,14 +21,14 @@ final class CustomerPetsStore {
     var editingPetID: UUID?
 
     var formName = ""
-    var formSpecies = ""
-    var formBreed = ""
-    var formSize = ""
-    var formWeightLbs = ""
-    var formBirthday = ""
-    var formTemperament = ""
+    var formSpecies: CustomerPetSpecies = .dog
+    var formBreed: CustomerPetBreed = .unspecified
+    var formWeightLbs = 20.0
+    var formBirthdayDate: Date?
+    var formTemperament: CustomerPetTemperament = .notSure
     var formMedicalNotes = ""
     var formGroomingNotes = ""
+    private(set) var pendingFormPhotos: [PendingCustomerPetPhoto] = []
 
     var formTitle: String {
         editingPetID == nil ? "Add Pet" : "Edit Pet"
@@ -84,14 +84,18 @@ final class CustomerPetsStore {
     func startEdit(_ pet: CustomerPet) {
         editingPetID = pet.id
         formName = pet.name
-        formSpecies = pet.species
-        formBreed = pet.breed ?? ""
-        formSize = pet.size ?? ""
-        formWeightLbs = pet.weightLbs.map(Self.displayString) ?? ""
-        formBirthday = pet.birthday ?? ""
-        formTemperament = pet.temperament ?? ""
+        formSpecies = CustomerPetSpecies(storedValue: pet.species) ?? .dog
+        let breed = pet.breed.flatMap(CustomerPetBreed.init(storedValue:)) ?? .unspecified
+        formBreed = CustomerPetBreed.options(for: formSpecies).contains(breed)
+            ? breed
+            : .unspecified
+        formWeightLbs = Self.clampedFormWeight(pet.weightLbs ?? 20)
+        formBirthdayDate = pet.birthday.flatMap(Self.date)
+        formTemperament = pet.temperament
+            .flatMap(CustomerPetTemperament.init(storedValue:)) ?? .notSure
         formMedicalNotes = pet.medicalNotes ?? ""
         formGroomingNotes = pet.groomingNotes ?? ""
+        pendingFormPhotos = []
         errorMessage = nil
         noticeMessage = nil
         isShowingPetForm = true
@@ -101,6 +105,34 @@ final class CustomerPetsStore {
         isShowingPetForm = false
         editingPetID = nil
         resetForm()
+    }
+
+    func updateFormSpecies(_ species: CustomerPetSpecies) {
+        formSpecies = species
+        if !CustomerPetBreed.options(for: species).contains(formBreed) {
+            formBreed = .unspecified
+        }
+    }
+
+    func addPendingFormPhoto(
+        data: Data,
+        contentType: CustomerPetPhotoContentType
+    ) {
+        guard data.count <= Self.maximumPhotoBytes else {
+            errorMessage = "Choose a photo smaller than 10 MB."
+            return
+        }
+
+        pendingFormPhotos.append(
+            PendingCustomerPetPhoto(
+                data: data,
+                contentType: contentType
+            )
+        )
+    }
+
+    func removePendingFormPhoto(_ photo: PendingCustomerPetPhoto) {
+        pendingFormPhotos.removeAll { $0.id == photo.id }
     }
 
     func savePet() async {
@@ -124,6 +156,8 @@ final class CustomerPetsStore {
         defer { isSaving = false }
 
         do {
+            let savedPet: CustomerPet
+            let action: String
             if let editingPetID,
                let currentPet = pets.first(where: { $0.id == editingPetID }) {
                 let pet = try await repository.updatePet(
@@ -131,16 +165,25 @@ final class CustomerPetsStore {
                     draft: draft
                 )
                 replace(pet)
-                noticeMessage = "\(pet.name) was updated."
+                savedPet = pet
+                action = "updated"
             } else {
                 let pet = try await repository.createPet(
                     customerID: customerID,
                     draft: draft
                 )
                 pets.insert(pet, at: 0)
-                noticeMessage = "\(pet.name) was added."
+                savedPet = pet
+                action = "added"
             }
 
+            let uploadedPhotoCount = await uploadPendingFormPhotos(for: savedPet)
+            if uploadedPhotoCount > 0 {
+                noticeMessage =
+                    "\(savedPet.name) was \(action) with \(uploadedPhotoCount) photo\(uploadedPhotoCount == 1 ? "" : "s")."
+            } else {
+                noticeMessage = "\(savedPet.name) was \(action)."
+            }
             isShowingPetForm = false
             editingPetID = nil
             resetForm()
@@ -234,14 +277,14 @@ final class CustomerPetsStore {
 
     private func resetForm() {
         formName = ""
-        formSpecies = ""
-        formBreed = ""
-        formSize = ""
-        formWeightLbs = ""
-        formBirthday = ""
-        formTemperament = ""
+        formSpecies = .dog
+        formBreed = .unspecified
+        formWeightLbs = 20
+        formBirthdayDate = nil
+        formTemperament = .notSure
         formMedicalNotes = ""
         formGroomingNotes = ""
+        pendingFormPhotos = []
     }
 
     private func makeDraft() throws -> CustomerPetDraft {
@@ -250,24 +293,20 @@ final class CustomerPetsStore {
             field: "Pet name",
             range: 1...80
         )
-        let species = try required(
-            formSpecies,
-            field: "Species",
-            range: 1...40
-        )
+        formWeightLbs = Self.clampedFormWeight(formWeightLbs)
+        if !CustomerPetBreed.options(for: formSpecies).contains(formBreed) {
+            formBreed = .unspecified
+        }
+        let size = CustomerPetSizeCode.code(forWeightLbs: formWeightLbs)
 
         return CustomerPetDraft(
             name: name,
-            species: species,
-            breed: try optional(formBreed, field: "Breed", maximum: 80),
-            size: try optional(formSize, field: "Size", maximum: 40),
-            weightLbs: try weight(from: formWeightLbs),
-            birthday: try birthday(from: formBirthday),
-            temperament: try optional(
-                formTemperament,
-                field: "Temperament",
-                maximum: 500
-            ),
+            species: formSpecies.rawValue,
+            breed: formBreed.rawValue,
+            size: size.rawValue,
+            weightLbs: formWeightLbs,
+            birthday: formBirthdayDate.map(Self.dateString),
+            temperament: formTemperament.rawValue,
             medicalNotes: try optional(
                 formMedicalNotes,
                 field: "Medical notes",
@@ -310,42 +349,54 @@ final class CustomerPetsStore {
         return trimmed
     }
 
-    private func weight(from value: String) throws -> Double? {
-        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return nil }
-        guard let weight = Double(trimmed), weight > 0, weight <= 1000 else {
-            throw CustomerPetFormError(
-                message: "Weight must be greater than 0 and at most 1000 lbs."
-            )
-        }
-        return weight
-    }
-
-    private func birthday(from value: String) throws -> String? {
-        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return nil }
-
+    private static func date(_ value: String) -> Date? {
         let formatter = DateFormatter()
         formatter.calendar = Calendar(identifier: .gregorian)
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.timeZone = TimeZone(secondsFromGMT: 0)
         formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.date(from: value)
+    }
 
-        guard let date = formatter.date(from: trimmed),
-              formatter.string(from: date) == trimmed else {
-            throw CustomerPetFormError(
-                message: "Birthday must use YYYY-MM-DD."
-            )
+    private static func dateString(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: date)
+    }
+
+    private static func clampedFormWeight(_ value: Double) -> Double {
+        min(101, max(5, value.rounded()))
+    }
+
+    private func uploadPendingFormPhotos(for pet: CustomerPet) async -> Int {
+        guard !pendingFormPhotos.isEmpty else { return 0 }
+
+        var uploadedCount = 0
+        var failed = false
+        for photo in pendingFormPhotos {
+            do {
+                let uploaded = try await repository.uploadPhoto(
+                    customerID: customerID,
+                    petID: pet.id,
+                    data: photo.data,
+                    contentType: photo.contentType,
+                    caption: nil
+                )
+                photosByPetID[pet.id, default: []].append(uploaded)
+                uploadedCount += 1
+            } catch {
+                failed = true
+            }
         }
 
-        let today = Calendar.current.startOfDay(for: Date())
-        guard date <= today else {
-            throw CustomerPetFormError(
-                message: "Birthday cannot be in the future."
-            )
+        pendingFormPhotos = []
+        if failed {
+            errorMessage = "Pet was saved, but some photos could not upload."
         }
-
-        return trimmed
+        return uploadedCount
     }
 
     private func message(
@@ -373,4 +424,20 @@ final class CustomerPetsStore {
 
 private struct CustomerPetFormError: Error {
     let message: String
+}
+
+struct PendingCustomerPetPhoto: Equatable, Identifiable, Sendable {
+    let id: UUID
+    let data: Data
+    let contentType: CustomerPetPhotoContentType
+
+    init(
+        id: UUID = UUID(),
+        data: Data,
+        contentType: CustomerPetPhotoContentType
+    ) {
+        self.id = id
+        self.data = data
+        self.contentType = contentType
+    }
 }

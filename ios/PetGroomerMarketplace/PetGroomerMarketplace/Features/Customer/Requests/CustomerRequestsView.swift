@@ -2336,12 +2336,12 @@ struct CustomerRequestWizardView: View {
             return "Choose A Pet"
         }
 
-        let breed = pet.breed?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let breed = pet.displayBreed?.trimmingCharacters(in: .whitespacesAndNewlines)
         if let breed, !breed.isEmpty {
             return "\(pet.name) · \(breed)"
         }
 
-        return "\(pet.name) · \(pet.species)"
+        return "\(pet.name) · \(pet.displaySpecies)"
     }
 
     private var reviewPreferredTimeSummary: String {
@@ -2689,8 +2689,8 @@ private struct CustomerRequestPetChoiceCard: View {
     }
 
     private var subtitle: String {
-        let breed = pet.breed?.trimmingCharacters(in: .whitespacesAndNewlines)
-        let breedText = breed?.isEmpty == false ? breed ?? pet.species : pet.species
+        let breed = pet.displayBreed?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let breedText = breed?.isEmpty == false ? breed ?? pet.displaySpecies : pet.displaySpecies
         if let weight = pet.weightLbs {
             return "\(breedText) · \(weight.formatted(.number.precision(.fractionLength(0...1)))) lbs"
         }
@@ -3379,7 +3379,7 @@ private struct CustomerRequestWizardPetAvatar: View {
     }
 
     private var avatar: String {
-        let searchText = "\(pet.breed ?? "") \(pet.species)".lowercased()
+        let searchText = "\(pet.displayBreed ?? "") \(pet.displaySpecies)".lowercased()
         if searchText.contains("poodle") {
             return "🐩"
         } else if searchText.contains("cat") {
@@ -3490,7 +3490,7 @@ private final class CustomerRequestsPreviewPetRepository: CustomerPetRepository 
         name: "Mochi",
         species: "Dog",
         breed: "Corgi",
-        size: "Small",
+        size: "M",
         weightLbs: 22,
         birthday: nil,
         temperament: "Gentle",
@@ -3549,7 +3549,7 @@ private final class CustomerRequestsPreviewRequestRepository: CustomerRequestRep
                     name: "Mochi",
                     species: "Dog",
                     breed: "Corgi",
-                    size: "Small",
+                    size: "M",
                     weightLbs: 22,
                     birthday: nil,
                     temperament: "Gentle",
@@ -3582,10 +3582,10 @@ private final class CustomerRequestsPreviewRequestRepository: CustomerRequestRep
                     name: "Biscuit",
                     species: "Dog",
                     breed: "Pomeranian",
-                    size: "Small",
+                    size: "S",
                     weightLbs: 12,
                     birthday: nil,
-                    temperament: "Bright",
+                    temperament: "Playful",
                     medicalNotes: nil,
                     groomingNotes: nil,
                     snapshotAt: "2026-06-18T12:00:00Z"

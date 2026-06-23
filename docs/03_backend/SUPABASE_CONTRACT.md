@@ -36,7 +36,7 @@ All Supabase migration and validation operations must target only the task-autho
 | `profiles` | Map Auth user to one app role and shared identity | `id` → Auth user, immutable `role`, `display_name`, private `avatar_path`, timestamps | Owner read/insert; owner updates only display name/avatar path; broader profile presentation deferred | T-004 |
 | `customer_profiles` | Customer onboarding role marker and extension point | `user_id`, timestamps | Customer inserts/reads own matching-role row; detail fields deferred | T-004 |
 | `groomer_profiles` | Groomer role marker plus marketplace profile details | `user_id`, business name, bio, experience, base city/state, radius, `service_location_mode`, rating summary, active/verified flags, timestamps | Groomer updates own safe profile fields and active flag; active profiles require service-location mode; authenticated users read active groomer profiles; rating/verification remain server-maintained | T-004, T-010, T-021, T-049 |
-| `pets` | Customer-owned pet profile | `id`, `customer_id`, identity/details/notes, active/delete markers, timestamps | Customer CRUD for owned rows; groomer access only through authorized request snapshot | T-008 |
+| `pets` | Customer-owned pet profile | `id`, `customer_id`, fixed species/breed/temperament, weight-derived size, birthday, notes, active/delete markers, timestamps | Customer CRUD for owned rows; groomer access only through authorized request snapshot | T-008; T-050 local draft |
 | `pet_photos` | Metadata for pet image objects | `id`, `pet_id`, `customer_id`, bucket/path, caption/order/primary, timestamp | Customer-managed for owned pet; direct groomer reads not required | T-008 |
 | `groomer_services` | Groomer's offered services | `id`, `groomer_id`, fixed `service_type`, title, description, base price, duration, accepted sizes, active flag, timestamps | Groomer manages own; authenticated users read active services for active groomers; request matching filters by active fixed service type | T-010, T-049 |
 | `groomer_portfolio_photos` | Metadata for groomer portfolio objects | `id`, `groomer_id`, bucket/path, caption/order, timestamp | Groomer manages own; authenticated users read portfolio metadata for active groomers | T-010 |
@@ -101,12 +101,12 @@ No additional RPCs are approved beyond the deployed functions above. Future func
 
 ## Storage Buckets and Roadmap
 
-`avatars` is deployed by T-004. `pet-photos` is deployed and backend-validated by T-008. `groomer-portfolio` is deployed and backend-validated by T-010. `request-photos` is deployed and metadata/policy-validated by T-049. Supabase intentionally requires the Storage API for binary deletion; the approved T-009 remote smoke verified actual authenticated upload/delete integration for pet photos and cleaned up all temporary validation data. Every other bucket remains planned until its owning task applies and verifies its Storage contract.
+`avatars` is deployed by T-004. `pet-photos` is deployed and backend-validated by T-008 and reused by the T-050 Add Pet photo flow. `groomer-portfolio` is deployed and backend-validated by T-010. `request-photos` is deployed and metadata/policy-validated by T-049. Supabase intentionally requires the Storage API for binary deletion; the approved T-009 remote smoke verified actual authenticated upload/delete integration for pet photos and cleaned up all temporary validation data. Every other bucket remains planned until its owning task applies and verifies its Storage contract.
 
 | Bucket | Default Visibility | Path Contract | Roadmap |
 |---|---|---|---|
 | `avatars` | Private; owner-only in T-004, with broader authorized presentation deferred | `{user_id}/{file_id}.{allowed_image_extension}` | T-004 |
-| `pet-photos` | Private | `{customer_id}/{pet_id}/{file_id}.jpg` | T-008 |
+| `pet-photos` | Private | `{customer_id}/{pet_id}/{file_id}.{jpg,png,heic,heif}` | T-008; T-050 reuses existing bucket |
 | `groomer-portfolio` | Private bucket; authenticated object reads for active groomer portfolio metadata; owner-writable | `{groomer_id}/{file_id}.jpg` | T-010 |
 | `request-photos` | Private bucket; authorized customer/matched-groomer object reads through metadata-backed policies; customer-owned upload/delete for open requests | `{customer_id}/{request_id}/{file_id}.{jpg,png,heic,heif}` | T-049 |
 | `chat-attachments` | Private to conversation participants | `{conversation_id}/{message_id}.jpg` | deferred beyond T-020 |

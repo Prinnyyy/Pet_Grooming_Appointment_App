@@ -158,7 +158,7 @@ final class SupabaseCustomerPetRepository: CustomerPetRepository {
                 .value
 
             guard rows.count == 1, let photo = rows.first?.photo else {
-                try? await client.storage
+                _ = try? await client.storage
                     .from(Self.bucketID)
                     .remove(paths: [storagePath])
                 throw CustomerPetRepositoryError.unavailable
@@ -168,7 +168,7 @@ final class SupabaseCustomerPetRepository: CustomerPetRepository {
         } catch let error as CustomerPetRepositoryError {
             throw error
         } catch {
-            try? await client.storage
+            _ = try? await client.storage
                 .from(Self.bucketID)
                 .remove(paths: [storagePath])
             throw Self.map(error)

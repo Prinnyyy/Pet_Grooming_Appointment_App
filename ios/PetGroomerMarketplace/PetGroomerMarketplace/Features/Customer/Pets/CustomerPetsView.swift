@@ -428,16 +428,16 @@ private struct CustomerHomePetTile: View {
     }
 
     private var petBreedLine: String {
-        let breed = pet.breed?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let breed = pet.displayBreed?.trimmingCharacters(in: .whitespacesAndNewlines)
         if let breed, !breed.isEmpty {
             return breed
         }
 
-        return pet.species
+        return pet.displaySpecies
     }
 
     private var avatar: String {
-        let searchText = "\(pet.breed ?? "") \(pet.species)"
+        let searchText = "\(pet.displayBreed ?? "") \(pet.displaySpecies)"
             .lowercased()
 
         if searchText.contains("poodle") {
@@ -765,7 +765,7 @@ private struct CustomerPetCardView: View {
     }
 
     private var detailLine: String {
-        [pet.species, pet.breed, pet.size]
+        [pet.displaySpecies, pet.displayBreed, pet.displaySize]
             .compactMap { $0 }
             .filter { !$0.isEmpty }
             .joined(separator: " • ")
@@ -871,30 +871,65 @@ private struct CustomerPetFormView: View {
                         .textContentType(.name)
                         .groomlyFormField()
 
-                    TextField("Species", text: $store.formSpecies)
-                        .groomlyFormField()
+                    Picker("Species", selection: speciesBinding) {
+                        ForEach(CustomerPetSpecies.allCases) { species in
+                            Text(species.title).tag(species)
+                        }
+                    }
 
-                    TextField("Breed", text: $store.formBreed)
-                        .groomlyFormField()
-
-                    TextField("Size", text: $store.formSize)
-                        .groomlyFormField()
+                    Picker("Breed", selection: $store.formBreed) {
+                        ForEach(CustomerPetBreed.options(for: store.formSpecies)) { breed in
+                            Text(breed.title).tag(breed)
+                        }
+                    }
                 }
                 .listRowBackground(Color.clear)
 
                 Section("Optional details") {
-                    TextField("Weight in lbs", text: $store.formWeightLbs)
-                        .keyboardType(.decimalPad)
-                        .groomlyFormField()
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                        HStack {
+                            Text("Weight")
+                                .font(DesignTokens.Typography.body.weight(.semibold))
+                                .foregroundStyle(DesignTokens.Colors.textPrimary)
 
-                    TextField("Birthday YYYY-MM-DD", text: $store.formBirthday)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        .groomlyFormField()
+                            Spacer()
 
-                    TextField("Temperament", text: $store.formTemperament, axis: .vertical)
-                        .lineLimit(2...4)
-                        .groomlyFormField()
+                            Text(weightText)
+                                .font(DesignTokens.Typography.body.weight(.bold))
+                                .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
+                        }
+
+                        Slider(
+                            value: $store.formWeightLbs,
+                            in: 5...101,
+                            step: 1
+                        )
+                        .tint(DesignTokens.Colors.customerPrimary)
+
+                        Text("Size: \(CustomerPetSizeCode.code(forWeightLbs: store.formWeightLbs).title)")
+                            .font(DesignTokens.Typography.caption.weight(.semibold))
+                            .foregroundStyle(DesignTokens.Colors.textSecondary)
+                    }
+                    .padding(.vertical, DesignTokens.Spacing.xs)
+
+                    Toggle("Birthday Known", isOn: birthdayKnownBinding)
+                        .tint(DesignTokens.Colors.customerPrimary)
+
+                    if store.formBirthdayDate != nil {
+                        DatePicker(
+                            "Birthday",
+                            selection: birthdayBinding,
+                            in: ...Date(),
+                            displayedComponents: .date
+                        )
+                        .datePickerStyle(.compact)
+                    }
+
+                    Picker("Temperament", selection: $store.formTemperament) {
+                        ForEach(CustomerPetTemperament.allCases) { temperament in
+                            Text(temperament.title).tag(temperament)
+                        }
+                    }
 
                     TextField("Medical notes", text: $store.formMedicalNotes, axis: .vertical)
                         .lineLimit(2...5)
@@ -903,6 +938,33 @@ private struct CustomerPetFormView: View {
                     TextField("Grooming notes", text: $store.formGroomingNotes, axis: .vertical)
                         .lineLimit(2...5)
                         .groomlyFormField()
+                }
+                .listRowBackground(Color.clear)
+
+                Section("Photos") {
+                    CustomerPetFormPhotoPicker(store: store)
+
+                    ForEach(store.pendingFormPhotos) { photo in
+                        HStack(spacing: DesignTokens.Spacing.sm) {
+                            Image(systemName: "photo")
+                                .foregroundStyle(DesignTokens.Colors.textTertiary)
+                                .accessibilityHidden(true)
+
+                            Text("\(photo.contentType.fileExtension.uppercased()) photo")
+                                .font(DesignTokens.Typography.body)
+                                .foregroundStyle(DesignTokens.Colors.textPrimary)
+
+                            Spacer()
+
+                            Button(role: .destructive) {
+                                store.removePendingFormPhoto(photo)
+                            } label: {
+                                Image(systemName: "trash")
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(store.isSaving)
+                        }
+                    }
                 }
                 .listRowBackground(Color.clear)
 
@@ -942,6 +1004,83 @@ private struct CustomerPetFormView: View {
             }
         }
         .interactiveDismissDisabled(store.isSaving)
+    }
+
+    private var speciesBinding: Binding<CustomerPetSpecies> {
+        Binding(
+            get: { store.formSpecies },
+            set: { store.updateFormSpecies($0) }
+        )
+    }
+
+    private var birthdayKnownBinding: Binding<Bool> {
+        Binding(
+            get: { store.formBirthdayDate != nil },
+            set: { isKnown in
+                store.formBirthdayDate = isKnown
+                    ? store.formBirthdayDate ?? Date()
+                    : nil
+            }
+        )
+    }
+
+    private var birthdayBinding: Binding<Date> {
+        Binding(
+            get: { store.formBirthdayDate ?? Date() },
+            set: { store.formBirthdayDate = $0 }
+        )
+    }
+
+    private var weightText: String {
+        if store.formWeightLbs < 10 {
+            return "<10 lbs"
+        }
+        if store.formWeightLbs > 100 {
+            return ">100 lbs"
+        }
+        return "\(Int(store.formWeightLbs.rounded())) lbs"
+    }
+}
+
+private struct CustomerPetFormPhotoPicker: View {
+    @Bindable var store: CustomerPetsStore
+    @State private var selectedPhotoItem: PhotosPickerItem?
+
+    var body: some View {
+        PhotosPicker(
+            selection: $selectedPhotoItem,
+            matching: .images
+        ) {
+            Label("Add Pet Photo", systemImage: "camera")
+                .lineLimit(1)
+        }
+        .buttonStyle(GroomlySecondaryButtonStyle(isFullWidth: false))
+        .disabled(store.isSaving)
+        .onChange(of: selectedPhotoItem) { _, newItem in
+            guard let newItem else { return }
+            Task {
+                await addPendingPhoto(newItem)
+            }
+        }
+    }
+
+    private func addPendingPhoto(_ item: PhotosPickerItem) async {
+        defer { selectedPhotoItem = nil }
+
+        guard let data = try? await item.loadTransferable(type: Data.self) else {
+            store.errorMessage = "We could not read that photo."
+            return
+        }
+
+        let contentType = item.supportedContentTypes
+            .lazy
+            .compactMap(CustomerPetPhotoContentType.init(uniformType:))
+            .first ?? .jpeg
+
+        store.addPendingFormPhoto(
+            data: data,
+            contentType: contentType
+        )
     }
 }
 
@@ -1019,7 +1158,7 @@ private final class CustomerPetsPreviewRepository: CustomerPetRepository {
                 name: "Mochi",
                 species: "Dog",
                 breed: "Shiba Inu",
-                size: "Small",
+                size: "M",
                 weightLbs: 22,
                 birthday: "2022-03-10",
                 temperament: "Friendly",
@@ -1033,7 +1172,7 @@ private final class CustomerPetsPreviewRepository: CustomerPetRepository {
                 name: "Biscuit",
                 species: "Dog",
                 breed: "Pomeranian",
-                size: "Small",
+                size: "S",
                 weightLbs: 12,
                 birthday: "2023-05-14",
                 temperament: "Playful",
@@ -1135,7 +1274,7 @@ private final class CustomerHomePreviewRequestRepository: CustomerRequestReposit
                     name: "Mochi",
                     species: "Dog",
                     breed: "Toy Poodle",
-                    size: "Small",
+                    size: "S",
                     weightLbs: 18,
                     birthday: nil,
                     temperament: "Gentle",

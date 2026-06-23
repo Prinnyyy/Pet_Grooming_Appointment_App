@@ -2,14 +2,14 @@
 
 ## Current Status
 
-The private `avatars` bucket is deployed and validated by T-004. T-008 deploys and validates the private `pet-photos` bucket with a 10 MiB limit, JPEG/PNG/HEIC/HEIF restrictions, UUID filenames, owner/customer/pet paths, and select/insert/update/delete policies. T-010 deploys and validates the private `groomer-portfolio` bucket with the same 10 MiB image limits, owner-scoped upload/update/delete, authenticated object reads for active groomer portfolio metadata, and no broad authenticated listing. T-049 deploys and metadata-validates the private `request-photos` bucket with the same 10 MiB image limits, customer/request UUID paths, customer-owned upload/delete for open requests, and customer/matched-groomer reads through request-photo metadata. Supabase intentionally blocks direct SQL object deletion; MCP metadata confirmed owner-only DELETE policies match behavior-tested ownership predicates. The approved T-009 remote smoke verified actual authenticated Storage API upload/delete for pet photos and left zero persisted validation data. Later buckets remain planned.
+The private `avatars` bucket is deployed and validated by T-004. T-008 deploys and validates the private `pet-photos` bucket with a 10 MiB limit, JPEG/PNG/HEIC/HEIF restrictions, UUID filenames, owner/customer/pet paths, and select/insert/update/delete policies; T-050 reuses this bucket for Add Pet form photos instead of adding a second pet container. T-010 deploys and validates the private `groomer-portfolio` bucket with the same 10 MiB image limits, owner-scoped upload/update/delete, authenticated object reads for active groomer portfolio metadata, and no broad authenticated listing. T-049 deploys and metadata-validates the private `request-photos` bucket with the same 10 MiB image limits, customer/request UUID paths, customer-owned upload/delete for open requests, and customer/matched-groomer reads through request-photo metadata. Supabase intentionally blocks direct SQL object deletion; MCP metadata confirmed owner-only DELETE policies match behavior-tested ownership predicates. The approved T-009 remote smoke verified actual authenticated Storage API upload/delete for pet photos and left zero persisted validation data. Later buckets remain planned.
 
 ## Bucket Roadmap
 
 | Bucket | Purpose | Visibility | Owner Path | Owning Task |
 |---|---|---|---|---|
 | `avatars` | Customer/groomer profile avatar | Private by default; authenticated reads only when the profile flow requires them | `{user_id}/{file_id}.jpg` | T-004 |
-| `pet-photos` | Customer pet images | Private | `{customer_id}/{pet_id}/{file_id}.jpg` | T-008 |
+| `pet-photos` | Customer pet images | Private | `{customer_id}/{pet_id}/{file_id}.{jpg,png,heic,heif}` | T-008; reused by T-050 |
 | `groomer-portfolio` | Groomer work examples | Private bucket; authenticated object reads for active groomer portfolio metadata; owner-writable | `{groomer_id}/{file_id}.jpg` | T-010 |
 | `request-photos` | Customer-added request images | Private bucket; customer and matched-groomer reads through metadata-backed policies; owner-writable for open requests | `{customer_id}/{request_id}/{file_id}.{jpg,png,heic,heif}` | T-049 |
 | `chat-attachments` | Optional booked-conversation attachments | Private to conversation participants | `{conversation_id}/{message_id}.jpg` | T-020 |

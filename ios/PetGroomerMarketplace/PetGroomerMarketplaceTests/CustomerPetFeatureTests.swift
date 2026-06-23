@@ -25,7 +25,7 @@ struct CustomerPetPhotoPathTests {
 
 struct CustomerPetsStoreTests {
     @Test @MainActor
-    func createsPetWithTrimmedRequiredFieldsAndNilOptionalFields() async {
+    func createsPetWithFixedOptionsAndDerivedSize() async {
         let customerID = UUID()
         let repository = CustomerPetRepositoryFake()
         let store = CustomerPetsStore(
@@ -34,10 +34,11 @@ struct CustomerPetsStoreTests {
         )
 
         store.formName = " Mochi "
-        store.formSpecies = " Dog "
-        store.formBreed = "   "
-        store.formWeightLbs = "22.5"
-        store.formBirthday = "2022-03-10"
+        store.formSpecies = .dog
+        store.formBreed = .unspecified
+        store.formWeightLbs = 22
+        store.formBirthdayDate = Date(timeIntervalSince1970: 1_647_740_800)
+        store.formTemperament = .gentle
 
         await store.savePet()
 
@@ -45,11 +46,24 @@ struct CustomerPetsStoreTests {
         #expect(repository.lastCustomerID == customerID)
         #expect(repository.lastDraft?.name == "Mochi")
         #expect(repository.lastDraft?.species == "Dog")
-        #expect(repository.lastDraft?.breed == nil)
-        #expect(repository.lastDraft?.weightLbs == 22.5)
-        #expect(repository.lastDraft?.birthday == "2022-03-10")
+        #expect(repository.lastDraft?.breed == "Unspecified")
+        #expect(repository.lastDraft?.size == "M")
+        #expect(repository.lastDraft?.weightLbs == 22)
+        #expect(repository.lastDraft?.birthday == "2022-03-20")
+        #expect(repository.lastDraft?.temperament == "Gentle")
         #expect(store.pets.map(\.name) == ["Mochi"])
         #expect(store.isShowingPetForm == false)
+    }
+
+    @Test
+    func sizeCodeMapsFromWeightBands() {
+        #expect(CustomerPetSizeCode.code(forWeightLbs: 9.9) == .xs)
+        #expect(CustomerPetSizeCode.code(forWeightLbs: 10) == .s)
+        #expect(CustomerPetSizeCode.code(forWeightLbs: 20) == .m)
+        #expect(CustomerPetSizeCode.code(forWeightLbs: 40) == .l)
+        #expect(CustomerPetSizeCode.code(forWeightLbs: 60) == .xl)
+        #expect(CustomerPetSizeCode.code(forWeightLbs: 80) == .xxl)
+        #expect(CustomerPetSizeCode.code(forWeightLbs: 101) == .giant)
     }
 
     @Test @MainActor
@@ -61,7 +75,7 @@ struct CustomerPetsStoreTests {
         )
 
         store.formName = " "
-        store.formSpecies = "Dog"
+        store.formSpecies = .dog
 
         await store.savePet()
 
@@ -162,6 +176,40 @@ struct CustomerPetsStoreTests {
         #expect(store.photos(for: pet).isEmpty)
     }
 
+    @Test @MainActor
+    func stagedFormPhotoUploadsAfterPetCreation() async {
+        let customerID = UUID()
+        let createdPet = Self.pet(customerID: customerID)
+        let repository = CustomerPetRepositoryFake(
+            createResult: .success(createdPet),
+            uploadResult: .success(
+                Self.photo(customerID: customerID, petID: createdPet.id)
+            )
+        )
+        let store = CustomerPetsStore(
+            customerID: customerID,
+            repository: repository
+        )
+
+        store.formName = "Banksy"
+        store.formSpecies = .dog
+        store.formBreed = .corgi
+        store.formWeightLbs = 21
+        store.formTemperament = .friendly
+        store.addPendingFormPhoto(
+            data: Data([0x01, 0x02]),
+            contentType: .png
+        )
+
+        await store.savePet()
+
+        #expect(repository.createCallCount == 1)
+        #expect(repository.uploadCallCount == 1)
+        #expect(repository.lastUploadPetID == createdPet.id)
+        #expect(store.photos(for: createdPet).count == 1)
+        #expect(store.pendingFormPhotos.isEmpty)
+    }
+
     private static func pet(customerID: UUID) -> CustomerPet {
         CustomerPet(
             id: UUID(),
@@ -217,6 +265,7 @@ private final class CustomerPetRepositoryFake: CustomerPetRepository {
     private(set) var deletePhotoCallCount = 0
     private(set) var lastCustomerID: UUID?
     private(set) var lastDraft: CustomerPetDraft?
+    private(set) var lastUploadPetID: UUID?
 
     init(
         petsResult: Result<[CustomerPet], CustomerPetRepositoryError> = .success([]),
@@ -313,6 +362,7 @@ private final class CustomerPetRepositoryFake: CustomerPetRepository {
         caption: String?
     ) async throws -> CustomerPetPhoto {
         uploadCallCount += 1
+        lastUploadPetID = petID
         return try uploadResult.get()
     }
 
