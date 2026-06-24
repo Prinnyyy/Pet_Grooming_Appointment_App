@@ -13,6 +13,8 @@ final class GroomerProfileStore {
     private(set) var services: [GroomerService] = []
     private(set) var portfolioPhotos: [GroomerPortfolioPhoto] = []
     private(set) var availabilityWindows: [GroomerAvailabilityWindow] = []
+    private(set) var bookingPreferences: GroomerBookingPreferences?
+    private(set) var timeOffWindows: [GroomerTimeOffWindow] = []
     private(set) var avatarPhotoData: Data?
     private(set) var isLoading = false
     private(set) var isSaving = false
@@ -45,6 +47,13 @@ final class GroomerProfileStore {
     var availabilityDayStates: [GroomerAvailabilityDayState] =
         GroomerAvailabilityDayState.defaultStates()
     var availabilityTimezone = TimeZone.current.identifier
+    var maxAppointmentsPerDay = 4
+    var minimumAdvanceNoticeDays = 0
+    var autoAcceptBookings = false
+    var isShowingTimeOffForm = false
+    var timeOffTitle = ""
+    var timeOffStartDate = Date()
+    var timeOffEndDate = Date()
 
     var serviceFormTitle: String {
         editingServiceID == nil ? "Add Service" : "Edit Service"
@@ -72,13 +81,19 @@ final class GroomerProfileStore {
             let loadedServices = try await repository.services(groomerID: groomerID)
             let loadedPhotos = try await repository.portfolioPhotos(groomerID: groomerID)
             let loadedAvailability = try await repository.availabilityWindows(groomerID: groomerID)
+            let loadedBookingPreferences = try await repository.bookingPreferences(groomerID: groomerID)
+            let loadedTimeOff = try await repository.timeOffWindows(groomerID: groomerID)
 
             profile = loadedProfile
             services = loadedServices
             portfolioPhotos = loadedPhotos
             availabilityWindows = loadedAvailability
+            bookingPreferences = loadedBookingPreferences
+            timeOffWindows = loadedTimeOff
             populateProfileForm(with: loadedProfile)
             populateAvailabilityForm(with: loadedAvailability)
+            populateBookingPreferencesForm(with: loadedBookingPreferences)
+            resetTimeOffForm()
             await loadAvatarPhotoIfAvailable(from: loadedProfile.avatarPath)
         } catch let error as GroomerProfileRepositoryError {
             errorMessage = message(for: error, action: "load")
@@ -334,9 +349,13 @@ final class GroomerProfileStore {
         errorMessage = nil
         noticeMessage = nil
 
+        let profileDraft: GroomerProfileDraft
         let drafts: [GroomerAvailabilityDraft]
+        let preferencesDraft: GroomerBookingPreferencesDraft
         do {
+            profileDraft = try makeProfileDraft()
             drafts = try makeAvailabilityDrafts()
+            preferencesDraft = try makeBookingPreferencesDraft()
         } catch let error as GroomerProfileFormError {
             errorMessage = error.message
             return
@@ -349,17 +368,103 @@ final class GroomerProfileStore {
         defer { isSaving = false }
 
         do {
+            let updatedProfile = try await repository.updateProfile(
+                groomerID: groomerID,
+                draft: profileDraft
+            )
             let updatedWindows = try await repository.replaceAvailability(
                 groomerID: groomerID,
                 drafts: drafts
             )
+            let updatedPreferences = try await repository.updateBookingPreferences(
+                groomerID: groomerID,
+                draft: preferencesDraft
+            )
+            profile = updatedProfile
             availabilityWindows = updatedWindows
+            bookingPreferences = updatedPreferences
+            populateProfileForm(with: updatedProfile)
             populateAvailabilityForm(with: updatedWindows)
+            populateBookingPreferencesForm(with: updatedPreferences)
             noticeMessage = "Availability saved."
         } catch let error as GroomerProfileRepositoryError {
             errorMessage = message(for: error, action: "save availability")
         } catch {
             errorMessage = message(for: .unavailable, action: "save availability")
+        }
+    }
+
+    func startCreateTimeOff() {
+        resetTimeOffForm()
+        errorMessage = nil
+        noticeMessage = nil
+        isShowingTimeOffForm = true
+    }
+
+    func cancelTimeOffForm() {
+        resetTimeOffForm()
+        isShowingTimeOffForm = false
+    }
+
+    func createTimeOff() async {
+        guard !isSaving else { return }
+
+        errorMessage = nil
+        noticeMessage = nil
+
+        let draft: GroomerTimeOffDraft
+        do {
+            draft = try makeTimeOffDraft()
+        } catch let error as GroomerProfileFormError {
+            errorMessage = error.message
+            return
+        } catch {
+            errorMessage = "Check your time off dates and try again."
+            return
+        }
+
+        isSaving = true
+        defer { isSaving = false }
+
+        do {
+            let window = try await repository.createTimeOff(
+                groomerID: groomerID,
+                draft: draft
+            )
+            timeOffWindows.append(window)
+            timeOffWindows.sort {
+                if $0.startDate == $1.startDate {
+                    $0.title < $1.title
+                } else {
+                    $0.startDate < $1.startDate
+                }
+            }
+            isShowingTimeOffForm = false
+            resetTimeOffForm()
+            noticeMessage = "Time off added."
+        } catch let error as GroomerProfileRepositoryError {
+            errorMessage = message(for: error, action: "save time off")
+        } catch {
+            errorMessage = message(for: .unavailable, action: "save time off")
+        }
+    }
+
+    func deleteTimeOff(_ window: GroomerTimeOffWindow) async {
+        guard !isSaving else { return }
+
+        isSaving = true
+        errorMessage = nil
+        noticeMessage = nil
+        defer { isSaving = false }
+
+        do {
+            try await repository.deleteTimeOff(window)
+            timeOffWindows.removeAll { $0.id == window.id }
+            noticeMessage = "Time off removed."
+        } catch let error as GroomerProfileRepositoryError {
+            errorMessage = message(for: error, action: "delete time off")
+        } catch {
+            errorMessage = message(for: .unavailable, action: "delete time off")
         }
     }
 
@@ -407,6 +512,19 @@ final class GroomerProfileStore {
         if let timezone = windows.first?.timezone {
             availabilityTimezone = timezone
         }
+    }
+
+    private func populateBookingPreferencesForm(with preferences: GroomerBookingPreferences) {
+        maxAppointmentsPerDay = min(max(preferences.maxAppointmentsPerDay, 1), 12)
+        minimumAdvanceNoticeDays = min(max(preferences.minimumAdvanceNoticeDays, 0), 2)
+        autoAcceptBookings = preferences.autoAcceptBookings
+    }
+
+    private func resetTimeOffForm() {
+        timeOffTitle = ""
+        let today = Calendar.current.startOfDay(for: Date())
+        timeOffStartDate = today
+        timeOffEndDate = today
     }
 
     private func resetServiceForm() {
@@ -521,6 +639,48 @@ final class GroomerProfileStore {
             }
     }
 
+    private func makeBookingPreferencesDraft() throws -> GroomerBookingPreferencesDraft {
+        guard (1...12).contains(maxAppointmentsPerDay) else {
+            throw GroomerProfileFormError(
+                message: "Max appointments per day must be 1–12."
+            )
+        }
+
+        guard (0...2).contains(minimumAdvanceNoticeDays) else {
+            throw GroomerProfileFormError(
+                message: "Minimum advance notice must be Same day, 1 day, or 2 days."
+            )
+        }
+
+        return GroomerBookingPreferencesDraft(
+            maxAppointmentsPerDay: maxAppointmentsPerDay,
+            minimumAdvanceNoticeDays: minimumAdvanceNoticeDays,
+            autoAcceptBookings: autoAcceptBookings
+        )
+    }
+
+    private func makeTimeOffDraft() throws -> GroomerTimeOffDraft {
+        let title = try required(
+            timeOffTitle,
+            field: "Time off title",
+            range: 1...80
+        )
+        let startDate = Calendar.current.startOfDay(for: timeOffStartDate)
+        let endDate = Calendar.current.startOfDay(for: timeOffEndDate)
+
+        guard endDate >= startDate else {
+            throw GroomerProfileFormError(
+                message: "Time off end date must be on or after the start date."
+            )
+        }
+
+        return GroomerTimeOffDraft(
+            title: title,
+            startDate: Self.dateString(from: startDate),
+            endDate: Self.dateString(from: endDate)
+        )
+    }
+
     private func required(
         _ value: String,
         field: String,
@@ -626,6 +786,16 @@ final class GroomerProfileStore {
             return String(Int(price))
         }
         return String(format: "%.2f", price)
+    }
+
+    static func dateString(from date: Date) -> String {
+        let components = Calendar.current.dateComponents([.year, .month, .day], from: date)
+        return String(
+            format: "%04d-%02d-%02d",
+            components.year ?? 0,
+            components.month ?? 1,
+            components.day ?? 1
+        )
     }
 
     private func message(

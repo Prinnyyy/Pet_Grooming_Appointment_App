@@ -1,6 +1,28 @@
 # Worklog
 
 ```text
+Date: 2026-06-24
+Task: T-061 - Groomly groomer Availability layout refinement.
+Files changed: GroomerProfileManagementView, task ledger, feature index, CURRENT_STATE.md, WORKLOG.md, and T-061 task doc.
+Checks: First ios-build failed on an invalid SwiftUI frame overload, then passed after splitting width/minHeight into two frame calls. Final diff-check and simulator launch are recorded in the task closeout.
+Result: Enabled weekly-hours rows now use tighter fixed widths and spacing so opening Monday/Tuesday no longer widens the Availability page. Booking Preferences now only shows Auto-accept bookings; the persisted max-appointments and advance-notice fields remain in the model/store/repository for compatibility but are no longer exposed in this UI.
+Risks: This is UI-only. Existing persisted preference values still save through the current availability save path even though two controls are hidden.
+Next: App is running in Simulator for inspection. Wait for user feedback before changing availability persistence or enforcement.
+```
+
+```text
+Date: 2026-06-23
+Task: T-060 - Groomly groomer Availability preferences and time off.
+Files changed: GroomerProfile model/repository/Supabase adapter/store/view/tests, Supabase migration, backend contract/RLS docs, task ledger, feature index, CURRENT_STATE.md, WORKLOG.md, and T-060 task doc.
+Checks: Red targeted GroomerProfileStore tests failed before implementation because booking preferences, time off models, drafts, and repository methods did not exist; targeted GroomerProfileStore tests passed after implementation; git diff --check passed; ./scripts/ios-build.sh passed; full ./scripts/ios-test.sh passed.
+Supabase: MCP migration 20260624022107_t060_groomer_availability_preferences applied to project lqmasbuqzvcvtawonjlb from local migration 20260624021122. MCP metadata checks confirmed both tables, RLS, owner-only policies, authenticated/service_role grants, no anon grants, constraints, and updated_at triggers. Security advisor returned only existing controlled warnings; performance advisor returned existing INFOs plus an expected immediate unused-index INFO for the new time-off index.
+Simulator launch: The built app was installed and launched on iPhone 16 Pro iOS 18.4 (4CB97394-9112-4FBB-8C99-628B416B922F) via xcrun simctl; launch returned pid 34832.
+Result: Groomer Availability now follows the uploaded availability screenshots with Available For Bookings, compact weekly hours, booking preferences, auto-accept toggle, and time off create/delete UI. Booking preferences and time off persist through owner-only Supabase tables behind repository boundaries.
+Risks: Booking preferences and time off are not yet used by matching, customer slot discovery, booking creation, auto-accept behavior, or booking conflict checks. Availability save still performs profile, weekly availability, and preference writes sequentially rather than through an atomic RPC.
+Next: App is running in Simulator for inspection. Wait for user feedback before connecting availability preferences/time off to matching or booking enforcement.
+```
+
+```text
 Date: 2026-06-23
 Task: T-059 - Groomly groomer profile details, services, portfolio, and avatar.
 Files changed: GroomerProfile model/repository/Supabase adapter/store/view/tests, Booking model/Supabase adapter/tests, Supabase migration, backend contract/RLS/Storage docs, task ledger, feature index, CURRENT_STATE.md, WORKLOG.md, and T-059 task doc.

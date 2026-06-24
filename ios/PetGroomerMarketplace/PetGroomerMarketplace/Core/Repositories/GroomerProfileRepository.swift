@@ -12,6 +12,8 @@ protocol GroomerProfileRepository: AnyObject {
     func services(groomerID: UUID) async throws -> [GroomerService]
     func portfolioPhotos(groomerID: UUID) async throws -> [GroomerPortfolioPhoto]
     func availabilityWindows(groomerID: UUID) async throws -> [GroomerAvailabilityWindow]
+    func bookingPreferences(groomerID: UUID) async throws -> GroomerBookingPreferences
+    func timeOffWindows(groomerID: UUID) async throws -> [GroomerTimeOffWindow]
 
     func updateProfile(
         groomerID: UUID,
@@ -51,4 +53,16 @@ protocol GroomerProfileRepository: AnyObject {
         groomerID: UUID,
         drafts: [GroomerAvailabilityDraft]
     ) async throws -> [GroomerAvailabilityWindow]
+
+    func updateBookingPreferences(
+        groomerID: UUID,
+        draft: GroomerBookingPreferencesDraft
+    ) async throws -> GroomerBookingPreferences
+
+    func createTimeOff(
+        groomerID: UUID,
+        draft: GroomerTimeOffDraft
+    ) async throws -> GroomerTimeOffWindow
+
+    func deleteTimeOff(_ window: GroomerTimeOffWindow) async throws
 }

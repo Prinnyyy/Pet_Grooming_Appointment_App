@@ -12,6 +12,10 @@ final class SupabaseGroomerProfileRepository: GroomerProfileRepository {
         "id,groomer_id,storage_bucket,storage_path,caption,sort_order"
     private static let availabilityColumns =
         "id,groomer_id,weekday,start_time,end_time,is_enabled,timezone"
+    private static let bookingPreferencesColumns =
+        "groomer_id,max_appointments_per_day,minimum_advance_notice_days,auto_accept_bookings"
+    private static let timeOffColumns =
+        "id,groomer_id,title,start_date,end_date"
     fileprivate static let bucketID = "groomer-portfolio"
     fileprivate static let avatarBucketID = "avatars"
 
@@ -88,6 +92,46 @@ final class SupabaseGroomerProfileRepository: GroomerProfileRepository {
                 .value
 
             return rows.compactMap(\.window)
+        } catch {
+            throw Self.map(error)
+        }
+    }
+
+    func bookingPreferences(groomerID: UUID) async throws -> GroomerBookingPreferences {
+        do {
+            let rows: [GroomerBookingPreferencesRow] = try await client
+                .from("groomer_booking_preferences")
+                .select(Self.bookingPreferencesColumns)
+                .eq("groomer_id", value: groomerID.uuidString.lowercased())
+                .limit(1)
+                .execute()
+                .value
+
+            guard rows.count <= 1 else {
+                throw GroomerProfileRepositoryError.unavailable
+            }
+
+            return rows.first?.preferences
+                ?? GroomerBookingPreferences.default(groomerID: groomerID)
+        } catch let error as GroomerProfileRepositoryError {
+            throw error
+        } catch {
+            throw Self.map(error)
+        }
+    }
+
+    func timeOffWindows(groomerID: UUID) async throws -> [GroomerTimeOffWindow] {
+        do {
+            let rows: [GroomerTimeOffWindowRow] = try await client
+                .from("groomer_time_off_windows")
+                .select(Self.timeOffColumns)
+                .eq("groomer_id", value: groomerID.uuidString.lowercased())
+                .order("start_date")
+                .order("end_date")
+                .execute()
+                .value
+
+            return rows.map(\.window)
         } catch {
             throw Self.map(error)
         }
@@ -351,6 +395,73 @@ final class SupabaseGroomerProfileRepository: GroomerProfileRepository {
         }
     }
 
+    func updateBookingPreferences(
+        groomerID: UUID,
+        draft: GroomerBookingPreferencesDraft
+    ) async throws -> GroomerBookingPreferences {
+        do {
+            let rows: [GroomerBookingPreferencesRow] = try await client
+                .from("groomer_booking_preferences")
+                .upsert(
+                    GroomerBookingPreferencesUpsertRow(
+                        groomerID: groomerID,
+                        draft: draft
+                    ),
+                    onConflict: "groomer_id"
+                )
+                .select(Self.bookingPreferencesColumns)
+                .execute()
+                .value
+
+            guard rows.count == 1, let preferences = rows.first?.preferences else {
+                throw GroomerProfileRepositoryError.unavailable
+            }
+
+            return preferences
+        } catch let error as GroomerProfileRepositoryError {
+            throw error
+        } catch {
+            throw Self.map(error)
+        }
+    }
+
+    func createTimeOff(
+        groomerID: UUID,
+        draft: GroomerTimeOffDraft
+    ) async throws -> GroomerTimeOffWindow {
+        do {
+            let rows: [GroomerTimeOffWindowRow] = try await client
+                .from("groomer_time_off_windows")
+                .insert(GroomerTimeOffWindowInsertRow(groomerID: groomerID, draft: draft))
+                .select(Self.timeOffColumns)
+                .execute()
+                .value
+
+            guard rows.count == 1 else {
+                throw GroomerProfileRepositoryError.unavailable
+            }
+
+            return rows[0].window
+        } catch let error as GroomerProfileRepositoryError {
+            throw error
+        } catch {
+            throw Self.map(error)
+        }
+    }
+
+    func deleteTimeOff(_ window: GroomerTimeOffWindow) async throws {
+        do {
+            try await client
+                .from("groomer_time_off_windows")
+                .delete()
+                .eq("id", value: window.id.uuidString.lowercased())
+                .eq("groomer_id", value: window.groomerID.uuidString.lowercased())
+                .execute()
+        } catch {
+            throw Self.map(error)
+        }
+    }
+
     private static func normalized(_ value: String?) -> String? {
         let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         return trimmed.isEmpty ? nil : trimmed
@@ -590,6 +701,55 @@ private struct GroomerAvailabilityWindowRow: Decodable {
     }
 }
 
+private struct GroomerBookingPreferencesRow: Decodable {
+    let groomerID: UUID
+    let maxAppointmentsPerDay: Int
+    let minimumAdvanceNoticeDays: Int
+    let autoAcceptBookings: Bool
+
+    var preferences: GroomerBookingPreferences {
+        GroomerBookingPreferences(
+            groomerID: groomerID,
+            maxAppointmentsPerDay: maxAppointmentsPerDay,
+            minimumAdvanceNoticeDays: minimumAdvanceNoticeDays,
+            autoAcceptBookings: autoAcceptBookings
+        )
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case groomerID = "groomer_id"
+        case maxAppointmentsPerDay = "max_appointments_per_day"
+        case minimumAdvanceNoticeDays = "minimum_advance_notice_days"
+        case autoAcceptBookings = "auto_accept_bookings"
+    }
+}
+
+private struct GroomerTimeOffWindowRow: Decodable {
+    let id: UUID
+    let groomerID: UUID
+    let title: String
+    let startDate: String
+    let endDate: String
+
+    var window: GroomerTimeOffWindow {
+        GroomerTimeOffWindow(
+            id: id,
+            groomerID: groomerID,
+            title: title,
+            startDate: startDate,
+            endDate: endDate
+        )
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case groomerID = "groomer_id"
+        case title
+        case startDate = "start_date"
+        case endDate = "end_date"
+    }
+}
+
 private struct GroomerProfileUpdateRow: Encodable {
     let draft: GroomerProfileDraft
 
@@ -653,6 +813,29 @@ private struct GroomerProfileUpdateRow: Encodable {
         case serviceLocationMode = "service_location_mode"
         case serviceLocationModes = "service_location_modes"
         case isActive = "is_active"
+    }
+}
+
+private struct GroomerBookingPreferencesUpsertRow: Encodable {
+    let groomerID: UUID
+    let draft: GroomerBookingPreferencesDraft
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(groomerID.uuidString.lowercased(), forKey: .groomerID)
+        try container.encode(draft.maxAppointmentsPerDay, forKey: .maxAppointmentsPerDay)
+        try container.encode(
+            draft.minimumAdvanceNoticeDays,
+            forKey: .minimumAdvanceNoticeDays
+        )
+        try container.encode(draft.autoAcceptBookings, forKey: .autoAcceptBookings)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case groomerID = "groomer_id"
+        case maxAppointmentsPerDay = "max_appointments_per_day"
+        case minimumAdvanceNoticeDays = "minimum_advance_notice_days"
+        case autoAcceptBookings = "auto_accept_bookings"
     }
 }
 
@@ -778,5 +961,25 @@ private struct GroomerAvailabilityWindowInsertRow: Encodable {
         case endTime = "end_time"
         case isEnabled = "is_enabled"
         case timezone
+    }
+}
+
+private struct GroomerTimeOffWindowInsertRow: Encodable {
+    let groomerID: UUID
+    let draft: GroomerTimeOffDraft
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(groomerID.uuidString.lowercased(), forKey: .groomerID)
+        try container.encode(draft.title, forKey: .title)
+        try container.encode(draft.startDate, forKey: .startDate)
+        try container.encode(draft.endDate, forKey: .endDate)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case groomerID = "groomer_id"
+        case title
+        case startDate = "start_date"
+        case endDate = "end_date"
     }
 }

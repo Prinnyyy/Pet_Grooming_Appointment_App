@@ -201,6 +201,60 @@ struct GroomerAvailabilityDraft: Equatable, Sendable {
     let timezone: String
 }
 
+struct GroomerBookingPreferences: Equatable, Sendable {
+    let groomerID: UUID
+    let maxAppointmentsPerDay: Int
+    let minimumAdvanceNoticeDays: Int
+    let autoAcceptBookings: Bool
+
+    static func `default`(groomerID: UUID) -> GroomerBookingPreferences {
+        GroomerBookingPreferences(
+            groomerID: groomerID,
+            maxAppointmentsPerDay: 4,
+            minimumAdvanceNoticeDays: 0,
+            autoAcceptBookings: false
+        )
+    }
+}
+
+struct GroomerBookingPreferencesDraft: Equatable, Sendable {
+    let maxAppointmentsPerDay: Int
+    let minimumAdvanceNoticeDays: Int
+    let autoAcceptBookings: Bool
+}
+
+struct GroomerTimeOffWindow: Equatable, Identifiable, Sendable {
+    let id: UUID
+    let groomerID: UUID
+    let title: String
+    let startDate: String
+    let endDate: String
+
+    var dateSummary: String {
+        startDate == endDate ? Self.displayDate(startDate) : "\(Self.displayDate(startDate)) - \(Self.displayDate(endDate))"
+    }
+
+    private static func displayDate(_ value: String) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        formatter.dateFormat = "yyyy-MM-dd"
+
+        guard let date = formatter.date(from: value) else {
+            return value
+        }
+
+        formatter.dateFormat = "MMM d"
+        return formatter.string(from: date)
+    }
+}
+
+struct GroomerTimeOffDraft: Equatable, Sendable {
+    let title: String
+    let startDate: String
+    let endDate: String
+}
+
 nonisolated enum GroomerPortfolioPhotoContentType:
     String,
     CaseIterable,
