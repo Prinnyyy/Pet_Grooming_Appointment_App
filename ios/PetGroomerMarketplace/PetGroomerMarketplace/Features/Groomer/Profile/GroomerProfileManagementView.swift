@@ -1,5 +1,8 @@
+import Combine
+import MapKit
 import PhotosUI
 import SwiftUI
+import UIKit
 
 struct GroomerProfileManagementView: View {
     @State private var store: GroomerProfileStore
@@ -80,7 +83,10 @@ private struct GroomerAccountHomeView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.top, DesignTokens.Spacing.sm)
 
-            GroomerAccountProfileCard(profile: store.profile)
+            GroomerAccountProfileCard(
+                profile: store.profile,
+                avatarPhotoData: store.avatarPhotoData
+            )
 
             VStack(spacing: 0) {
                 GroomerAccountMenuLink(
@@ -89,6 +95,28 @@ private struct GroomerAccountHomeView: View {
                     isFirst: true
                 ) {
                     GroomerProfileEditorView(store: store)
+                }
+
+                Divider()
+                    .overlay(DesignTokens.Colors.divider)
+                    .padding(.leading, 72)
+
+                GroomerAccountMenuLink(
+                    title: "Services",
+                    systemImage: "scissors"
+                ) {
+                    GroomerServicesEditorView(store: store)
+                }
+
+                Divider()
+                    .overlay(DesignTokens.Colors.divider)
+                    .padding(.leading, 72)
+
+                GroomerAccountMenuLink(
+                    title: "Portfolio",
+                    systemImage: "photo.on.rectangle"
+                ) {
+                    GroomerPortfolioEditorView(store: store)
                 }
 
                 Divider()
@@ -146,25 +174,17 @@ private struct GroomerAccountHomeView: View {
 
 private struct GroomerAccountProfileCard: View {
     let profile: GroomerProfile?
+    let avatarPhotoData: Data?
 
     var body: some View {
         GroomlyCard(padding: DesignTokens.Spacing.lg) {
             HStack(spacing: DesignTokens.Spacing.lg) {
-                Text("👩🏻")
-                    .font(.system(size: 34))
-                    .frame(width: 84, height: 84)
-                    .background(
-                        LinearGradient(
-                            colors: [
-                                DesignTokens.Colors.groomerAccent.opacity(0.28),
-                                DesignTokens.Colors.customerPrimary.opacity(0.34),
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-                    .accessibilityHidden(true)
+                GroomerAvatarImage(
+                    data: avatarPhotoData,
+                    size: 84,
+                    cornerRadius: 24,
+                    placeholderSize: 34
+                )
 
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     Text(profile?.businessName ?? "Groomer Profile")
@@ -235,6 +255,43 @@ private struct GroomerAccountMenuLink<Destination: View>: View {
     }
 }
 
+private struct GroomerAvatarImage: View {
+    let data: Data?
+    let size: CGFloat
+    let cornerRadius: CGFloat
+    let placeholderSize: CGFloat
+
+    var body: some View {
+        ZStack {
+            LinearGradient(
+                colors: [
+                    DesignTokens.Colors.groomerAccent.opacity(0.28),
+                    DesignTokens.Colors.customerPrimary.opacity(0.34),
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+
+            if let image {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                Text("👩🏻")
+                    .font(.system(size: placeholderSize))
+            }
+        }
+        .frame(width: size, height: size)
+        .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        .accessibilityHidden(true)
+    }
+
+    private var image: UIImage? {
+        guard let data else { return nil }
+        return UIImage(data: data)
+    }
+}
+
 private struct GroomerProfileEditorView: View {
     @Bindable var store: GroomerProfileStore
 
@@ -242,13 +299,12 @@ private struct GroomerProfileEditorView: View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
                 GroomlySectionHeader(
-                    "Edit Profile",
-                    subtitle: "Update the profile details, service menu, and portfolio customers see before they book."
+                    "Profile Details",
+                    subtitle: "Update the public details customers see before they book."
                 )
 
+                GroomerAvatarEditorSection(store: store)
                 GroomerProfileFormSection(store: store)
-                GroomerServicesSection(store: store)
-                GroomerPortfolioSection(store: store)
             }
             .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
             .padding(.top, DesignTokens.Spacing.lg)
@@ -259,6 +315,40 @@ private struct GroomerProfileEditorView: View {
         .navigationBarTitleDisplayMode(.inline)
         .scrollDismissesKeyboard(.interactively)
         .accessibilityIdentifier("groomer.profile.edit")
+    }
+}
+
+private struct GroomerServicesEditorView: View {
+    @Bindable var store: GroomerProfileStore
+
+    var body: some View {
+        ScrollView {
+            GroomerServicesSection(store: store)
+                .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+                .padding(.top, DesignTokens.Spacing.lg)
+                .padding(.bottom, 120)
+        }
+        .background(DesignTokens.Colors.background.ignoresSafeArea())
+        .navigationTitle("Services")
+        .navigationBarTitleDisplayMode(.inline)
+        .accessibilityIdentifier("groomer.services.edit")
+    }
+}
+
+private struct GroomerPortfolioEditorView: View {
+    @Bindable var store: GroomerProfileStore
+
+    var body: some View {
+        ScrollView {
+            GroomerPortfolioSection(store: store)
+                .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+                .padding(.top, DesignTokens.Spacing.lg)
+                .padding(.bottom, 120)
+        }
+        .background(DesignTokens.Colors.background.ignoresSafeArea())
+        .navigationTitle("Portfolio")
+        .navigationBarTitleDisplayMode(.inline)
+        .accessibilityIdentifier("groomer.portfolio.edit")
     }
 }
 
@@ -456,110 +546,198 @@ private struct GroomerAvailabilityTimeMenu: View {
     .map { $0 }
 }
 
-private struct GroomerProfileFormSection: View {
+private struct GroomerAvatarEditorSection: View {
     @Bindable var store: GroomerProfileStore
+    @State private var selectedPhotoItem: PhotosPickerItem?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            GroomlySectionHeader(
-                "Marketplace Profile",
-                subtitle: "Complete these fields before making your profile active."
-            ) {
-                if let profile = store.profile {
-                    GroomlyStatusChip(
-                        profile.isActive ? "Active" : "Hidden",
-                        systemImage: profile.isActive ? "checkmark.circle.fill" : "eye.slash",
-                        tone: profile.isActive ? .success : .neutral
+        GroomlyCard {
+            HStack(alignment: .center, spacing: DesignTokens.Spacing.lg) {
+                ZStack(alignment: .bottomTrailing) {
+                    GroomerAvatarImage(
+                        data: store.avatarPhotoData,
+                        size: 94,
+                        cornerRadius: 28,
+                        placeholderSize: 38
                     )
+
+                    if store.profile?.avatarPath != nil {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 22, weight: .bold))
+                            .foregroundStyle(DesignTokens.Colors.success)
+                            .background(Circle().fill(DesignTokens.Colors.surface))
+                            .accessibilityLabel("Profile photo saved")
+                    }
                 }
-            }
+                .accessibilityHidden(true)
 
-            GroomlyCard {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                    GroomerProfileTextField(
-                        title: "Business Name",
-                        text: $store.businessName,
-                        prompt: "Business Name"
-                    )
-                    .textContentType(.organizationName)
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                        Text("Profile Photo")
+                            .font(DesignTokens.Typography.headline)
+                            .foregroundStyle(DesignTokens.Colors.textPrimary)
 
-                    GroomerProfileTextField(
-                        title: "Bio",
-                        text: $store.bio,
-                        prompt: "Bio",
-                        axis: .vertical
-                    )
-                    .lineLimit(3...6)
-
-                    GroomerProfileTextField(
-                        title: "Years of Experience",
-                        text: $store.yearsExperience,
-                        prompt: "Years of Experience"
-                    )
-                    .keyboardType(.numberPad)
-
-                    HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
-                        GroomerProfileTextField(
-                            title: "City",
-                            text: $store.baseCity,
-                            prompt: "City"
-                        )
-
-                        GroomerProfileStatePicker(
-                            title: "State",
-                            selection: $store.baseStateCode
-                        )
-                        .frame(width: 100)
-                    }
-
-                    GroomerProfileTextField(
-                        title: "Service Radius in Miles",
-                        text: $store.serviceRadiusMiles,
-                        prompt: "Service Radius in Miles"
-                    )
-                    .keyboardType(.numberPad)
-
-                    GroomerProfileLocationModePicker(
-                        selection: $store.serviceLocationMode
-                    )
-
-                    GroomlyToggleRow(
-                        title: "Profile Visible to Authenticated Customers",
-                        subtitle: "Customers can discover and receive offers from active groomer profiles.",
-                        systemImage: "eye",
-                        isOn: $store.isActive
-                    )
-
-                    if let profile = store.profile {
-                        ProfileBadges(profile: profile)
-                    }
-
-                    Button {
-                        Task {
-                            await store.saveProfile()
-                        }
-                    } label: {
-                        if store.isSaving {
-                            HStack(spacing: DesignTokens.Spacing.sm) {
-                                ProgressView()
-                                    .tint(DesignTokens.Colors.surface)
-                                Text("Saving…")
-                            }
-                        } else {
-                            Label("Save Profile", systemImage: "checkmark.circle")
-                        }
-                    }
-                    .buttonStyle(GroomlyPrimaryButtonStyle(accent: .groomer))
-                    .disabled(store.isBusy)
-                    .accessibilityIdentifier("groomer.profile.save")
-
-                    if store.profile == nil {
-                        Text("Save your profile once these details are ready.")
+                        Text(store.profile?.avatarPath == nil ? "Add a clear face photo." : "Photo saved to your profile.")
                             .font(DesignTokens.Typography.caption)
                             .foregroundStyle(DesignTokens.Colors.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
+
+                    PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
+                        Label(
+                            store.profile?.avatarPath == nil ? "Upload Photo" : "Replace Photo",
+                            systemImage: "camera"
+                        )
+                    }
+                    .buttonStyle(GroomlySecondaryButtonStyle(accent: .groomer))
+                    .disabled(store.isBusy)
+                    .accessibilityIdentifier("groomer.profile.avatar.upload")
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        .onChange(of: selectedPhotoItem) { _, newItem in
+            guard let newItem else { return }
+            Task {
+                await upload(newItem)
+            }
+        }
+    }
+
+    private func upload(_ item: PhotosPickerItem) async {
+        defer { selectedPhotoItem = nil }
+
+        guard let data = try? await item.loadTransferable(type: Data.self) else {
+            store.errorMessage = "We could not read that photo."
+            return
+        }
+
+        let contentType = item.supportedContentTypes
+            .lazy
+            .compactMap(GroomerAvatarPhotoContentType.init(uniformType:))
+            .first ?? .jpeg
+
+        await store.uploadAvatarPhoto(data: data, contentType: contentType)
+    }
+}
+
+private struct GroomerProfileFormSection: View {
+    @Bindable var store: GroomerProfileStore
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                GroomlySectionHeader(
+                    "Marketplace Profile",
+                    subtitle: "Complete these fields before making your profile active."
+                ) {
+                    if let profile = store.profile {
+                        GroomlyStatusChip(
+                            profile.isActive ? "Active" : "Hidden",
+                            systemImage: profile.isActive ? "checkmark.circle.fill" : "eye.slash",
+                            tone: profile.isActive ? .success : .neutral
+                        )
+                    }
+                }
+
+                GroomlyCard {
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                        GroomerProfileTextField(
+                            title: "Business Name",
+                            text: $store.businessName,
+                            prompt: "Business Name"
+                        )
+                        .textContentType(.organizationName)
+
+                        GroomerProfileTextField(
+                            title: "Biography",
+                            text: $store.bio,
+                            prompt: "Biography",
+                            axis: .vertical
+                        )
+                        .lineLimit(3...6)
+
+                        GroomerExperiencePicker(selection: $store.yearsExperience)
+                    }
+                }
+            }
+
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                GroomlySectionHeader(
+                    "Address",
+                    subtitle: "Use the address customers visit, or your base address for mobile appointments."
+                )
+
+                GroomlyCard {
+                    GroomerProfileAddressFields(
+                        streetAddress: $store.baseStreetAddress,
+                        city: $store.baseCity,
+                        stateCode: $store.baseStateCode,
+                        zipCode: $store.baseZipCode
+                    )
+                }
+            }
+
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                GroomlySectionHeader(
+                    "Service Settings",
+                    subtitle: "Choose where you work and how far you travel."
+                )
+
+                GroomlyCard {
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                        GroomerProfileRadiusSlider(radius: $store.serviceRadiusMiles)
+                        GroomerProfileLocationModePicker(selection: $store.serviceLocationModes)
+                    }
+                }
+            }
+
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                GroomlySectionHeader(
+                    "Profile Visibility",
+                    subtitle: "Turn this on when your profile is ready to receive customers."
+                )
+
+                GroomlyCard {
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                        GroomlyToggleRow(
+                            title: "Visible to Authenticated Customers",
+                            subtitle: "Customers can discover and receive offers from active groomer profiles.",
+                            systemImage: "eye",
+                            isOn: $store.isActive
+                        )
+
+                        if let profile = store.profile {
+                            ProfileBadges(profile: profile)
+                        }
+                    }
+                }
+            }
+
+            Button {
+                Task {
+                    await store.saveProfile()
+                }
+            } label: {
+                if store.isSaving {
+                    HStack(spacing: DesignTokens.Spacing.sm) {
+                        ProgressView()
+                            .tint(DesignTokens.Colors.surface)
+                        Text("Saving…")
+                    }
+                } else {
+                    Label("Save Profile", systemImage: "checkmark.circle")
+                }
+            }
+            .buttonStyle(GroomlyPrimaryButtonStyle(accent: .groomer))
+            .disabled(store.isBusy)
+            .accessibilityIdentifier("groomer.profile.save")
+
+            if store.profile == nil {
+                Text("Save your profile once these details are ready.")
+                    .font(DesignTokens.Typography.caption)
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }
@@ -707,6 +885,80 @@ private struct GroomerProfileTextField: View {
     }
 }
 
+private struct GroomerExperiencePicker: View {
+    @Binding var selection: Int
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            Text("Years Of Experience")
+                .font(DesignTokens.Typography.caption)
+                .foregroundStyle(DesignTokens.Colors.textSecondary)
+
+            Menu {
+                ForEach(0...5, id: \.self) { years in
+                    Button(label(for: years)) {
+                        selection = years
+                    }
+                }
+            } label: {
+                HStack {
+                    Text(label(for: selection))
+                        .font(DesignTokens.Typography.body.weight(.semibold))
+                        .foregroundStyle(DesignTokens.Colors.textPrimary)
+
+                    Spacer(minLength: DesignTokens.Spacing.xs)
+
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+                }
+                .groomlyFormField()
+            }
+        }
+    }
+
+    private func label(for years: Int) -> String {
+        years >= 5 ? "5+ Years" : "\(max(0, years)) Year\(years == 1 ? "" : "s")"
+    }
+}
+
+private struct GroomerProfileRadiusSlider: View {
+    @Binding var radius: Int
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("Service Radius")
+                    .font(DesignTokens.Typography.caption)
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+
+                Spacer()
+
+                Text(radius >= 50 ? "50+ mi" : "\(radius) mi")
+                    .font(DesignTokens.Typography.body.weight(.bold))
+                    .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
+            }
+
+            Slider(
+                value: Binding(
+                    get: { Double(radius) },
+                    set: { radius = min(max(Int($0.rounded()), 5), 50) }
+                ),
+                in: 5...50,
+                step: 1
+            )
+            .tint(DesignTokens.Colors.groomerAccent)
+
+            Text("Use 50+ when you cover a wider service area.")
+                .font(DesignTokens.Typography.caption)
+                .foregroundStyle(DesignTokens.Colors.textSecondary)
+        }
+        .padding(DesignTokens.Spacing.md)
+        .background(DesignTokens.Colors.borderSoft.opacity(0.32))
+        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input, style: .continuous))
+    }
+}
+
 private struct GroomerProfileStatePicker: View {
     let title: String
     @Binding var selection: USStateCode?
@@ -744,8 +996,99 @@ private struct GroomerProfileStatePicker: View {
     }
 }
 
+private struct GroomerProfileAddressFields: View {
+    @Binding var streetAddress: String
+    @Binding var city: String
+    @Binding var stateCode: USStateCode?
+    @Binding var zipCode: String
+    @StateObject private var addressSearch = GroomerProfileAddressSearch()
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            GroomerProfileTextField(
+                title: "Street Address",
+                text: $streetAddress,
+                prompt: "Street Address"
+            )
+            .textContentType(.streetAddressLine1)
+            .onChange(of: streetAddress) { _, newValue in
+                addressSearch.update(
+                    street: newValue,
+                    city: city,
+                    stateCode: stateCode
+                )
+            }
+
+            if !addressSearch.suggestions.isEmpty {
+                VStack(spacing: DesignTokens.Spacing.xs) {
+                    ForEach(addressSearch.suggestions.prefix(4)) { suggestion in
+                        Button {
+                            applyAddressSuggestion(suggestion)
+                        } label: {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(suggestion.title)
+                                    .font(DesignTokens.Typography.caption.weight(.semibold))
+                                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+                                    .lineLimit(1)
+
+                                Text(suggestion.subtitle)
+                                    .font(DesignTokens.Typography.caption)
+                                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                                    .lineLimit(1)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, DesignTokens.Spacing.md)
+                            .padding(.vertical, DesignTokens.Spacing.sm)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .background(DesignTokens.Colors.surface)
+                .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input, style: .continuous)
+                        .stroke(DesignTokens.Colors.borderSoft, lineWidth: 1)
+                }
+            }
+
+            HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
+                GroomerProfileTextField(
+                    title: "City",
+                    text: $city,
+                    prompt: "City"
+                )
+                .textContentType(.addressCity)
+
+                GroomerProfileStatePicker(
+                    title: "State",
+                    selection: $stateCode
+                )
+                .frame(width: 100)
+            }
+
+            GroomerProfileTextField(
+                title: "ZIP Code",
+                text: $zipCode,
+                prompt: "ZIP Code"
+            )
+            .textContentType(.postalCode)
+            .keyboardType(.numbersAndPunctuation)
+        }
+    }
+
+    private func applyAddressSuggestion(_ suggestion: GroomerProfileAddressSuggestion) {
+        Task {
+            guard let address = await addressSearch.resolve(suggestion) else { return }
+            streetAddress = address.streetAddress
+            city = address.city
+            stateCode = address.stateCode
+            zipCode = address.zipCode
+        }
+    }
+}
+
 private struct GroomerProfileLocationModePicker: View {
-    @Binding var selection: GroomingLocationMode?
+    @Binding var selection: Set<GroomingLocationMode>
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
@@ -756,8 +1099,13 @@ private struct GroomerProfileLocationModePicker: View {
             VStack(spacing: DesignTokens.Spacing.sm) {
                 ForEach(GroomingLocationMode.allCases) { mode in
                     Button {
-                        selection = mode
+                        if selection.contains(mode) {
+                            selection.remove(mode)
+                        } else {
+                            selection.insert(mode)
+                        }
                     } label: {
+                        let isSelected = selection.contains(mode)
                         HStack(spacing: DesignTokens.Spacing.md) {
                             Text(mode.icon)
                                 .font(.title3)
@@ -768,7 +1116,7 @@ private struct GroomerProfileLocationModePicker: View {
                                 .foregroundStyle(DesignTokens.Colors.textPrimary)
                                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                            if selection == mode {
+                            if isSelected {
                                 Image(systemName: "checkmark.circle.fill")
                                     .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
                             }
@@ -787,10 +1135,10 @@ private struct GroomerProfileLocationModePicker: View {
                                 style: .continuous
                             )
                             .stroke(
-                                selection == mode
+                                isSelected
                                     ? DesignTokens.Colors.groomerAccent
                                     : DesignTokens.Colors.borderSoft,
-                                lineWidth: selection == mode ? 2 : 1
+                                lineWidth: isSelected ? 2 : 1
                             )
                         }
                     }
@@ -798,6 +1146,167 @@ private struct GroomerProfileLocationModePicker: View {
                 }
             }
         }
+    }
+}
+
+private struct GroomerProfileAddressSuggestion: Identifiable, Hashable {
+    let id: String
+    let title: String
+    let subtitle: String
+}
+
+private struct GroomerProfileAddressCompletion<Completion> {
+    let title: String
+    let subtitle: String
+    let completion: Completion
+}
+
+private enum GroomerProfileAddressSuggestionBuilder {
+    static func build<Completion>(
+        from completions: [GroomerProfileAddressCompletion<Completion>],
+        limit: Int = 5
+    ) -> (
+        suggestions: [GroomerProfileAddressSuggestion],
+        completionsByID: [String: Completion]
+    ) {
+        var seenKeys: Set<String> = []
+        var suggestions: [GroomerProfileAddressSuggestion] = []
+        var completionsByID: [String: Completion] = [:]
+
+        for completion in completions where suggestions.count < limit {
+            let title = completion.title.trimmingCharacters(in: .whitespacesAndNewlines)
+            let subtitle = completion.subtitle.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !title.isEmpty else { continue }
+
+            let key = "\(title)|\(subtitle)"
+            guard seenKeys.insert(key).inserted else { continue }
+
+            let suggestion = GroomerProfileAddressSuggestion(
+                id: key,
+                title: title,
+                subtitle: subtitle
+            )
+            suggestions.append(suggestion)
+            completionsByID[suggestion.id] = completion.completion
+        }
+
+        return (suggestions, completionsByID)
+    }
+}
+
+private struct GroomerProfileResolvedAddress {
+    let streetAddress: String
+    let city: String
+    let stateCode: USStateCode
+    let zipCode: String
+}
+
+private final class GroomerProfileAddressSearch:
+    NSObject,
+    ObservableObject,
+    MKLocalSearchCompleterDelegate
+{
+    @Published private(set) var suggestions: [GroomerProfileAddressSuggestion] = []
+
+    private let completer = MKLocalSearchCompleter()
+    private var completionsByID: [String: MKLocalSearchCompletion] = [:]
+    private var lastQueryFragment = ""
+
+    override init() {
+        super.init()
+        completer.delegate = self
+        completer.resultTypes = .address
+    }
+
+    func update(
+        street: String,
+        city: String,
+        stateCode: USStateCode?
+    ) {
+        let trimmedStreet = street.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmedStreet.count >= 3 else {
+            suggestions = []
+            completionsByID = [:]
+            updateQueryFragmentIfNeeded("")
+            return
+        }
+
+        let query = [
+            trimmedStreet,
+            city.trimmingCharacters(in: .whitespacesAndNewlines),
+            stateCode?.rawValue ?? "",
+        ]
+        .filter { !$0.isEmpty }
+        .joined(separator: ", ")
+
+        updateQueryFragmentIfNeeded(query)
+    }
+
+    private func updateQueryFragmentIfNeeded(_ query: String) {
+        guard query != lastQueryFragment else { return }
+        lastQueryFragment = query
+        completer.queryFragment = query
+    }
+
+    func completerDidUpdateResults(_ completer: MKLocalSearchCompleter) {
+        let result = GroomerProfileAddressSuggestionBuilder.build(
+            from: completer.results.map { completion in
+                GroomerProfileAddressCompletion(
+                    title: completion.title,
+                    subtitle: completion.subtitle,
+                    completion: completion
+                )
+            }
+        )
+
+        DispatchQueue.main.async {
+            self.suggestions = result.suggestions
+            self.completionsByID = result.completionsByID
+        }
+    }
+
+    func completer(
+        _ completer: MKLocalSearchCompleter,
+        didFailWithError error: any Error
+    ) {
+        DispatchQueue.main.async {
+            self.suggestions = []
+            self.completionsByID = [:]
+        }
+    }
+
+    func resolve(
+        _ suggestion: GroomerProfileAddressSuggestion
+    ) async -> GroomerProfileResolvedAddress? {
+        guard let completion = completionsByID[suggestion.id] else { return nil }
+
+        let request = MKLocalSearch.Request(completion: completion)
+        guard
+            let mapItem = try? await MKLocalSearch(request: request).start().mapItems.first,
+            let state = mapItem.placemark.administrativeArea,
+            let stateCode = USStateCode(rawValue: state.uppercased()),
+            let zipCode = mapItem.placemark.postalCode?.trimmingCharacters(in: .whitespacesAndNewlines),
+            !zipCode.isEmpty
+        else {
+            return nil
+        }
+
+        let streetAddress = [
+            mapItem.placemark.subThoroughfare,
+            mapItem.placemark.thoroughfare,
+        ]
+        .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+        .filter { !$0.isEmpty }
+        .joined(separator: " ")
+
+        guard !streetAddress.isEmpty else { return nil }
+
+        return GroomerProfileResolvedAddress(
+            streetAddress: streetAddress,
+            city: mapItem.placemark.locality ?? "",
+            stateCode: stateCode,
+            zipCode: zipCode
+        )
     }
 }
 
@@ -1388,11 +1897,14 @@ private final class GroomerProfilePreviewRepository: GroomerProfileRepository {
             userID: groomerID,
             businessName: "Fresh Coat Grooming",
             bio: "Calm, one-on-one grooming for small and medium dogs.",
-            yearsExperience: 6,
+            yearsExperience: 5,
+            baseStreetAddress: "123 Pine Street",
             baseCity: "Seattle",
             baseState: "WA",
+            baseZipCode: "98101",
             serviceRadiusMiles: 12,
             serviceLocationMode: .groomerComesToCustomer,
+            serviceLocationModes: [.groomerComesToCustomer, .customerComesToGroomer],
             ratingAverage: 0,
             ratingCount: 0,
             isActive: false,
@@ -1458,10 +1970,13 @@ private final class GroomerProfilePreviewRepository: GroomerProfileRepository {
             businessName: draft.businessName,
             bio: draft.bio,
             yearsExperience: draft.yearsExperience,
+            baseStreetAddress: draft.baseStreetAddress,
             baseCity: draft.baseCity,
             baseState: draft.baseStateCode?.rawValue,
+            baseZipCode: draft.baseZipCode,
             serviceRadiusMiles: draft.serviceRadiusMiles,
             serviceLocationMode: draft.serviceLocationMode,
+            serviceLocationModes: draft.serviceLocationModes,
             ratingAverage: storedProfile.ratingAverage,
             ratingCount: storedProfile.ratingCount,
             isActive: draft.isActive,
@@ -1528,6 +2043,23 @@ private final class GroomerProfilePreviewRepository: GroomerProfileRepository {
     }
 
     func deletePortfolioPhoto(_ photo: GroomerPortfolioPhoto) async throws {}
+
+    func uploadAvatarPhoto(
+        groomerID: UUID,
+        data: Data,
+        contentType: GroomerAvatarPhotoContentType
+    ) async throws -> String {
+        let path = GroomerAvatarPhotoPath.make(
+            groomerID: groomerID,
+            contentType: contentType
+        )
+        storedProfile.avatarPath = path
+        return path
+    }
+
+    func avatarPhotoData(storagePath: String) async throws -> Data {
+        Data()
+    }
 
     func replaceAvailability(
         groomerID: UUID,

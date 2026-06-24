@@ -39,6 +39,14 @@ protocol GroomerProfileRepository: AnyObject {
 
     func deletePortfolioPhoto(_ photo: GroomerPortfolioPhoto) async throws
 
+    func uploadAvatarPhoto(
+        groomerID: UUID,
+        data: Data,
+        contentType: GroomerAvatarPhotoContentType
+    ) async throws -> String
+
+    func avatarPhotoData(storagePath: String) async throws -> Data
+
     func replaceAvailability(
         groomerID: UUID,
         drafts: [GroomerAvailabilityDraft]

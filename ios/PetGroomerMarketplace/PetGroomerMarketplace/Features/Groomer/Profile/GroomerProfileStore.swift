@@ -13,6 +13,7 @@ final class GroomerProfileStore {
     private(set) var services: [GroomerService] = []
     private(set) var portfolioPhotos: [GroomerPortfolioPhoto] = []
     private(set) var availabilityWindows: [GroomerAvailabilityWindow] = []
+    private(set) var avatarPhotoData: Data?
     private(set) var isLoading = false
     private(set) var isSaving = false
     private(set) var isUploading = false
@@ -22,12 +23,14 @@ final class GroomerProfileStore {
 
     var businessName = ""
     var bio = ""
-    var yearsExperience = ""
+    var yearsExperience = 0
+    var baseStreetAddress = ""
     var baseCity = ""
     var baseState = ""
     var baseStateCode: USStateCode?
-    var serviceRadiusMiles = ""
-    var serviceLocationMode: GroomingLocationMode?
+    var baseZipCode = ""
+    var serviceRadiusMiles = 12
+    var serviceLocationModes: Set<GroomingLocationMode> = []
     var isActive = false
 
     var isShowingServiceForm = false
@@ -76,6 +79,7 @@ final class GroomerProfileStore {
             availabilityWindows = loadedAvailability
             populateProfileForm(with: loadedProfile)
             populateAvailabilityForm(with: loadedAvailability)
+            await loadAvatarPhotoIfAvailable(from: loadedProfile.avatarPath)
         } catch let error as GroomerProfileRepositoryError {
             errorMessage = message(for: error, action: "load")
         } catch {
@@ -274,6 +278,41 @@ final class GroomerProfileStore {
         }
     }
 
+    func uploadAvatarPhoto(
+        data: Data,
+        contentType: GroomerAvatarPhotoContentType
+    ) async {
+        guard !isUploading else { return }
+
+        guard data.count <= Self.maximumPhotoBytes else {
+            errorMessage = "Choose an avatar photo smaller than 10 MB."
+            return
+        }
+
+        isUploading = true
+        errorMessage = nil
+        noticeMessage = nil
+        defer { isUploading = false }
+
+        do {
+            let avatarPath = try await repository.uploadAvatarPhoto(
+                groomerID: groomerID,
+                data: data,
+                contentType: contentType
+            )
+            if var profile {
+                profile.avatarPath = avatarPath
+                self.profile = profile
+            }
+            avatarPhotoData = data
+            noticeMessage = "Profile photo was updated."
+        } catch let error as GroomerProfileRepositoryError {
+            errorMessage = message(for: error, action: "upload avatar")
+        } catch {
+            errorMessage = message(for: .unavailable, action: "upload avatar")
+        }
+    }
+
     func setAvailability(
         day: GroomerAvailabilityWeekday,
         isEnabled: Bool,
@@ -327,13 +366,28 @@ final class GroomerProfileStore {
     private func populateProfileForm(with profile: GroomerProfile) {
         businessName = profile.businessName ?? ""
         bio = profile.bio ?? ""
-        yearsExperience = profile.yearsExperience.map(String.init) ?? ""
+        yearsExperience = min(max(profile.yearsExperience ?? 0, 0), 5)
+        baseStreetAddress = profile.baseStreetAddress ?? ""
         baseCity = profile.baseCity ?? ""
         baseState = profile.baseState ?? ""
         baseStateCode = profile.baseState.flatMap(USStateCode.init(rawValue:))
-        serviceRadiusMiles = profile.serviceRadiusMiles.map(String.init) ?? ""
-        serviceLocationMode = profile.serviceLocationMode
+        baseZipCode = profile.baseZipCode ?? ""
+        serviceRadiusMiles = min(max(profile.serviceRadiusMiles ?? 12, 5), 50)
+        serviceLocationModes = profile.effectiveServiceLocationModes
         isActive = profile.isActive
+    }
+
+    private func loadAvatarPhotoIfAvailable(from storagePath: String?) async {
+        guard let storagePath,
+              !storagePath.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        else {
+            avatarPhotoData = nil
+            return
+        }
+
+        avatarPhotoData = try? await repository.avatarPhotoData(
+            storagePath: storagePath
+        )
     }
 
     private func populateAvailabilityForm(with windows: [GroomerAvailabilityWindow]) {
@@ -380,34 +434,35 @@ final class GroomerProfileStore {
                 field: "Business name",
                 maximum: 120
             ),
-            bio: try optional(bio, field: "Bio", maximum: 2000),
-            yearsExperience: try optionalInteger(
-                yearsExperience,
-                field: "Years of experience",
-                range: 0...80
+            bio: try optional(bio, field: "Biography", maximum: 2000),
+            yearsExperience: min(max(yearsExperience, 0), 5),
+            baseStreetAddress: try optional(
+                baseStreetAddress,
+                field: "Street address",
+                maximum: 160
             ),
             baseCity: try optional(baseCity, field: "City", maximum: 100),
             baseStateCode: baseStateCode,
-            serviceRadiusMiles: try optionalInteger(
-                serviceRadiusMiles,
-                field: "Service radius",
-                range: 1...250
-            ),
-            serviceLocationMode: serviceLocationMode,
+            baseZipCode: try optionalZipCode(baseZipCode),
+            serviceRadiusMiles: min(max(serviceRadiusMiles, 5), 50),
+            serviceLocationMode: serviceLocationModes.primaryMode,
+            serviceLocationModes: serviceLocationModes,
             isActive: isActive
         )
 
         if draft.isActive,
            (draft.businessName == nil
+            || draft.baseStreetAddress == nil
             || draft.baseCity == nil
             || draft.baseStateCode == nil
+            || draft.baseZipCode == nil
             || draft.serviceRadiusMiles == nil) {
             throw GroomerProfileFormError(
-                message: "Complete business name, city, state, and service radius before going active."
+                message: "Complete business name, address, city, state, ZIP, and service radius before going active."
             )
         }
 
-        if draft.isActive, draft.serviceLocationMode == nil {
+        if draft.isActive, draft.serviceLocationModes.isEmpty {
             throw GroomerProfileFormError(
                 message: "Choose whether you travel to customers or host appointments before going active."
             )
@@ -517,6 +572,20 @@ final class GroomerProfileStore {
             )
         }
         return try integer(trimmed, field: field, range: range)
+    }
+
+    private func optionalZipCode(_ value: String) throws -> String? {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+
+        let pattern = #"^[0-9]{5}(-[0-9]{4})?$"#
+        guard trimmed.range(of: pattern, options: .regularExpression) != nil else {
+            throw GroomerProfileFormError(
+                message: "ZIP must be a valid 5-digit ZIP code."
+            )
+        }
+
+        return trimmed
     }
 
     private func integer(

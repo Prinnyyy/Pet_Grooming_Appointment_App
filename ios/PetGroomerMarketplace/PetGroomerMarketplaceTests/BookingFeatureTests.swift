@@ -257,14 +257,16 @@ struct BookingsStoreTests {
     func bookingPresentationUsesGroomerLocationFallbackWhenCustomerVisits() {
         let booking = Self.booking(
             groomerBusinessName: nil,
+            groomerBaseStreetAddress: "456 Groomer Lane",
             groomerBaseCity: "Austin",
             groomerBaseState: "TX",
+            groomerBaseZipCode: "78701",
             locationMode: .customerComesToGroomer
         )
 
         #expect(booking.partnerDisplayTitle(for: .customer) == "Groomer Name")
         #expect(booking.appointmentLocationTitle == "Customer Comes To Groomer")
-        #expect(booking.appointmentAddressSummary == "Austin, TX")
+        #expect(booking.appointmentAddressSummary == "456 Groomer Lane, Austin, TX 78701")
     }
 
     private static func booking(
@@ -278,8 +280,10 @@ struct BookingsStoreTests {
         review: BookingReview? = nil,
         serviceType: GroomingServiceType? = nil,
         groomerBusinessName: String? = nil,
+        groomerBaseStreetAddress: String? = nil,
         groomerBaseCity: String? = nil,
         groomerBaseState: String? = nil,
+        groomerBaseZipCode: String? = nil,
         locationMode: GroomingLocationMode? = nil,
         customerStreetAddress: String? = nil,
         customerCity: String? = nil,
@@ -305,8 +309,10 @@ struct BookingsStoreTests {
             review: review,
             serviceType: serviceType,
             groomerBusinessName: groomerBusinessName,
+            groomerBaseStreetAddress: groomerBaseStreetAddress,
             groomerBaseCity: groomerBaseCity,
             groomerBaseState: groomerBaseState,
+            groomerBaseZipCode: groomerBaseZipCode,
             locationMode: locationMode,
             customerStreetAddress: customerStreetAddress,
             customerCity: customerCity,

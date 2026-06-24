@@ -4,7 +4,8 @@ import Supabase
 @MainActor
 final class SupabaseGroomerProfileRepository: GroomerProfileRepository {
     private static let profileColumns =
-        "user_id,business_name,bio,years_experience,base_city,base_state,service_radius_miles,service_location_mode,rating_avg,rating_count,is_active,is_verified"
+        "user_id,business_name,bio,years_experience,base_street_address,base_city,base_state,base_zip_code,service_radius_miles,service_location_mode,service_location_modes,rating_avg,rating_count,is_active,is_verified"
+    private static let accountProfileColumns = "id,avatar_path"
     private static let serviceColumns =
         "id,groomer_id,service_type,title,description,base_price,duration_minutes,accepted_pet_sizes,is_active"
     private static let portfolioColumns =
@@ -12,6 +13,7 @@ final class SupabaseGroomerProfileRepository: GroomerProfileRepository {
     private static let availabilityColumns =
         "id,groomer_id,weekday,start_time,end_time,is_enabled,timezone"
     fileprivate static let bucketID = "groomer-portfolio"
+    fileprivate static let avatarBucketID = "avatars"
 
     private let client: SupabaseClient
 
@@ -28,9 +30,11 @@ final class SupabaseGroomerProfileRepository: GroomerProfileRepository {
                 .execute()
                 .value
 
-            guard rows.count == 1, let profile = rows.first?.profile else {
+            guard rows.count == 1, var profile = rows.first?.profile else {
                 throw GroomerProfileRepositoryError.unavailable
             }
+
+            profile.avatarPath = try await avatarPath(groomerID: groomerID)
 
             return profile
         } catch let error as GroomerProfileRepositoryError {
@@ -248,6 +252,73 @@ final class SupabaseGroomerProfileRepository: GroomerProfileRepository {
         }
     }
 
+    func uploadAvatarPhoto(
+        groomerID: UUID,
+        data: Data,
+        contentType: GroomerAvatarPhotoContentType
+    ) async throws -> String {
+        let storagePath = GroomerAvatarPhotoPath.make(
+            groomerID: groomerID,
+            contentType: contentType
+        )
+
+        do {
+            let oldAvatarPath = try? await avatarPath(groomerID: groomerID)
+
+            try await client.storage
+                .from(Self.avatarBucketID)
+                .upload(
+                    storagePath,
+                    data: data,
+                    options: FileOptions(
+                        contentType: contentType.mimeType,
+                        upsert: false
+                    )
+                )
+
+            let rows: [GroomerAccountProfileRow] = try await client
+                .from("profiles")
+                .update(GroomerAvatarUpdateRow(avatarPath: storagePath))
+                .eq("id", value: groomerID.uuidString.lowercased())
+                .select(Self.accountProfileColumns)
+                .execute()
+                .value
+
+            guard rows.count == 1, rows.first?.avatarPath == storagePath else {
+                _ = try? await client.storage
+                    .from(Self.avatarBucketID)
+                    .remove(paths: [storagePath])
+                throw GroomerProfileRepositoryError.unavailable
+            }
+
+            if let oldAvatarPath,
+               oldAvatarPath != storagePath {
+                _ = try? await client.storage
+                    .from(Self.avatarBucketID)
+                    .remove(paths: [oldAvatarPath])
+            }
+
+            return storagePath
+        } catch let error as GroomerProfileRepositoryError {
+            throw error
+        } catch {
+            _ = try? await client.storage
+                .from(Self.avatarBucketID)
+                .remove(paths: [storagePath])
+            throw Self.map(error)
+        }
+    }
+
+    func avatarPhotoData(storagePath: String) async throws -> Data {
+        do {
+            return try await client.storage
+                .from(Self.avatarBucketID)
+                .download(path: storagePath)
+        } catch {
+            throw Self.map(error)
+        }
+    }
+
     func replaceAvailability(
         groomerID: UUID,
         drafts: [GroomerAvailabilityDraft]
@@ -283,6 +354,22 @@ final class SupabaseGroomerProfileRepository: GroomerProfileRepository {
     private static func normalized(_ value: String?) -> String? {
         let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         return trimmed.isEmpty ? nil : trimmed
+    }
+
+    private func avatarPath(groomerID: UUID) async throws -> String? {
+        let rows: [GroomerAccountProfileRow] = try await client
+            .from("profiles")
+            .select(Self.accountProfileColumns)
+            .eq("id", value: groomerID.uuidString.lowercased())
+            .limit(1)
+            .execute()
+            .value
+
+        guard rows.count <= 1 else {
+            throw GroomerProfileRepositoryError.unavailable
+        }
+
+        return rows.first?.avatarPath
     }
 
     private static func map(_ error: any Error) -> GroomerProfileRepositoryError {
@@ -322,10 +409,13 @@ private struct GroomerProfileRow: Decodable {
     let businessName: String?
     let bio: String?
     let yearsExperience: Int?
+    let baseStreetAddress: String?
     let baseCity: String?
     let baseState: String?
+    let baseZipCode: String?
     let serviceRadiusMiles: Int?
     let serviceLocationMode: GroomingLocationMode?
+    let serviceLocationModes: [String]?
     let ratingAverage: Double
     let ratingCount: Int
     let isActive: Bool
@@ -337,10 +427,16 @@ private struct GroomerProfileRow: Decodable {
             businessName: businessName,
             bio: bio,
             yearsExperience: yearsExperience,
+            baseStreetAddress: baseStreetAddress,
             baseCity: baseCity,
             baseState: baseState,
+            baseZipCode: baseZipCode,
             serviceRadiusMiles: serviceRadiusMiles,
             serviceLocationMode: serviceLocationMode,
+            serviceLocationModes: Set(
+                (serviceLocationModes ?? [])
+                    .compactMap(GroomingLocationMode.init(rawValue:))
+            ),
             ratingAverage: ratingAverage,
             ratingCount: ratingCount,
             isActive: isActive,
@@ -353,14 +449,27 @@ private struct GroomerProfileRow: Decodable {
         case businessName = "business_name"
         case bio
         case yearsExperience = "years_experience"
+        case baseStreetAddress = "base_street_address"
         case baseCity = "base_city"
         case baseState = "base_state"
+        case baseZipCode = "base_zip_code"
         case serviceRadiusMiles = "service_radius_miles"
         case serviceLocationMode = "service_location_mode"
+        case serviceLocationModes = "service_location_modes"
         case ratingAverage = "rating_avg"
         case ratingCount = "rating_count"
         case isActive = "is_active"
         case isVerified = "is_verified"
+    }
+}
+
+private struct GroomerAccountProfileRow: Decodable {
+    let id: UUID
+    let avatarPath: String?
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case avatarPath = "avatar_path"
     }
 }
 
@@ -493,8 +602,14 @@ private struct GroomerProfileUpdateRow: Encodable {
             forKey: .yearsExperience,
             in: &container
         )
+        try encodeNullable(
+            draft.baseStreetAddress,
+            forKey: .baseStreetAddress,
+            in: &container
+        )
         try encodeNullable(draft.baseCity, forKey: .baseCity, in: &container)
         try encodeNullable(draft.baseStateCode?.rawValue, forKey: .baseState, in: &container)
+        try encodeNullable(draft.baseZipCode, forKey: .baseZipCode, in: &container)
         try encodeNullable(
             draft.serviceRadiusMiles,
             forKey: .serviceRadiusMiles,
@@ -505,6 +620,12 @@ private struct GroomerProfileUpdateRow: Encodable {
             forKey: .serviceLocationMode,
             in: &container
         )
+        let locationModeValues = draft.serviceLocationModes.canonicalModes.map(\.rawValue)
+        if locationModeValues.isEmpty {
+            try container.encodeNil(forKey: .serviceLocationModes)
+        } else {
+            try container.encode(locationModeValues, forKey: .serviceLocationModes)
+        }
         try container.encode(draft.isActive, forKey: .isActive)
     }
 
@@ -524,11 +645,22 @@ private struct GroomerProfileUpdateRow: Encodable {
         case businessName = "business_name"
         case bio
         case yearsExperience = "years_experience"
+        case baseStreetAddress = "base_street_address"
         case baseCity = "base_city"
         case baseState = "base_state"
+        case baseZipCode = "base_zip_code"
         case serviceRadiusMiles = "service_radius_miles"
         case serviceLocationMode = "service_location_mode"
+        case serviceLocationModes = "service_location_modes"
         case isActive = "is_active"
+    }
+}
+
+private struct GroomerAvatarUpdateRow: Encodable {
+    let avatarPath: String
+
+    private enum CodingKeys: String, CodingKey {
+        case avatarPath = "avatar_path"
     }
 }
 

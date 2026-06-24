@@ -11,7 +11,8 @@ final class SupabaseBookingRepository: BookingRepository {
     private static let reviewColumns = """
         id,booking_id,customer_id,groomer_id,rating,content,created_at
         """
-    private static let groomerSummaryColumns = "user_id,business_name,base_city,base_state"
+    private static let groomerSummaryColumns =
+        "user_id,business_name,base_street_address,base_city,base_state,base_zip_code"
     private static let requestLocationColumns =
         "id,service_type,location_mode,street_address,city,state,zip_code"
 
@@ -338,8 +339,10 @@ private struct BookingRow: Decodable {
             review: review,
             serviceType: requestLocation?.serviceType,
             groomerBusinessName: groomerSummary?.businessName,
+            groomerBaseStreetAddress: groomerSummary?.baseStreetAddress,
             groomerBaseCity: groomerSummary?.baseCity,
             groomerBaseState: groomerSummary?.baseState,
+            groomerBaseZipCode: groomerSummary?.baseZipCode,
             locationMode: requestLocation?.locationMode,
             customerStreetAddress: requestLocation?.streetAddress,
             customerCity: requestLocation?.city,
@@ -369,29 +372,37 @@ private struct BookingRow: Decodable {
 
 private struct BookingGroomerSummary: Sendable {
     let businessName: String?
+    let baseStreetAddress: String?
     let baseCity: String?
     let baseState: String?
+    let baseZipCode: String?
 }
 
 private struct BookingGroomerSummaryRow: Decodable {
     let userID: UUID
     let businessName: String?
+    let baseStreetAddress: String?
     let baseCity: String?
     let baseState: String?
+    let baseZipCode: String?
 
     var summary: BookingGroomerSummary {
         BookingGroomerSummary(
             businessName: businessName,
+            baseStreetAddress: baseStreetAddress,
             baseCity: baseCity,
-            baseState: baseState
+            baseState: baseState,
+            baseZipCode: baseZipCode
         )
     }
 
     private enum CodingKeys: String, CodingKey {
         case userID = "user_id"
         case businessName = "business_name"
+        case baseStreetAddress = "base_street_address"
         case baseCity = "base_city"
         case baseState = "base_state"
+        case baseZipCode = "base_zip_code"
     }
 }
 

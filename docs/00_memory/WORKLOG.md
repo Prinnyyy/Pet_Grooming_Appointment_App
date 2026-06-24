@@ -2,6 +2,18 @@
 
 ```text
 Date: 2026-06-23
+Task: T-059 - Groomly groomer profile details, services, portfolio, and avatar.
+Files changed: GroomerProfile model/repository/Supabase adapter/store/view/tests, Booking model/Supabase adapter/tests, Supabase migration, backend contract/RLS/Storage docs, task ledger, feature index, CURRENT_STATE.md, WORKLOG.md, and T-059 task doc.
+Checks: Red targeted GroomerProfileStore tests failed before implementation because the new profile/address/avatar contract did not exist; targeted GroomerProfileStore + BookingStore tests passed after implementation; full ./scripts/ios-test.sh passed; git diff --check passed; ./scripts/ios-build.sh passed.
+Supabase: MCP migration 20260623233559_t059_groomer_profile_address_location_modes applied to project lqmasbuqzvcvtawonjlb. MCP checks confirmed new groomer profile columns, sync trigger, column grants, helper/RPC function shape, canonical location-mode normalization, and advisors.
+Simulator launch: The built app was installed and launched on iPhone 16 Pro iOS 18.4 (4CB97394-9112-4FBB-8C99-628B416B922F) via xcrun simctl; launch returned pid 14057. XcodeBuildMCP session defaults were unavailable for this workspace profile, so simctl was used for launch only after the script build passed.
+Result: Groomer Account now separates Edit Profile, Services, Portfolio, and Availability. Edit Profile contains avatar upload/rendering, Biography, fixed 0-5+ experience, full address autocomplete, 5-50+ radius slider, multi-select service-location modes, and separate Profile Visibility. Matching now uses canonical service-location mode membership, and booking detail can consume full groomer address fields.
+Risks: Existing active groomer rows may not have street/ZIP yet; app validation requires them for future active saves while DB keeps old rows compatible. Customer-facing groomer avatar display remains deferred pending a signed URL or broader read contract.
+Next: App is running in Simulator for inspection. Wait for user feedback before adding customer-facing avatar presentation or connecting availability to matching.
+```
+
+```text
+Date: 2026-06-23
 Task: T-058 - Groomly groomer Account, Edit Profile, and Availability.
 Files changed: Groomer profile model/repository/Supabase adapter/store/view, AuthenticatedEntryView, GroomerTab/GroomerTabView, AppEntry/GroomerProfile tests, Supabase migration, backend contract/RLS docs, task ledger, CURRENT_STATE.md, WORKLOG.md, and T-058 task doc.
 Checks: Red targeted GroomerProfileStore test failed before implementation because availability models did not exist; targeted GroomerProfileStore tests passed after implementation; full GroomerProfileStoreTests passed; git diff --check passed; ./scripts/ios-build.sh passed; ./scripts/ios-test.sh passed.

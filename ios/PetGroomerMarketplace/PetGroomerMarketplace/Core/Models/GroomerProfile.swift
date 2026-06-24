@@ -3,27 +3,44 @@ import UniformTypeIdentifiers
 
 struct GroomerProfile: Equatable, Sendable {
     let userID: UUID
+    var avatarPath: String? = nil
     let businessName: String?
     let bio: String?
     let yearsExperience: Int?
+    var baseStreetAddress: String? = nil
     let baseCity: String?
     let baseState: String?
+    var baseZipCode: String? = nil
     let serviceRadiusMiles: Int?
     let serviceLocationMode: GroomingLocationMode?
+    var serviceLocationModes: Set<GroomingLocationMode> = []
     let ratingAverage: Double
     let ratingCount: Int
     let isActive: Bool
     let isVerified: Bool
+
+    var effectiveServiceLocationModes: Set<GroomingLocationMode> {
+        if !serviceLocationModes.isEmpty {
+            serviceLocationModes
+        } else if let serviceLocationMode {
+            [serviceLocationMode]
+        } else {
+            []
+        }
+    }
 }
 
 struct GroomerProfileDraft: Equatable, Sendable {
     let businessName: String?
     let bio: String?
     let yearsExperience: Int?
+    var baseStreetAddress: String? = nil
     let baseCity: String?
     let baseStateCode: USStateCode?
+    var baseZipCode: String? = nil
     let serviceRadiusMiles: Int?
     let serviceLocationMode: GroomingLocationMode?
+    var serviceLocationModes: Set<GroomingLocationMode> = []
     let isActive: Bool
 }
 
@@ -238,6 +255,8 @@ nonisolated enum GroomerPortfolioPhotoContentType:
     }
 }
 
+typealias GroomerAvatarPhotoContentType = GroomerPortfolioPhotoContentType
+
 nonisolated enum GroomerPortfolioPhotoPath {
     static func make(
         groomerID: UUID,
@@ -249,5 +268,29 @@ nonisolated enum GroomerPortfolioPhotoPath {
             "\(fileID.uuidString.lowercased()).\(contentType.fileExtension)",
         ]
         .joined(separator: "/")
+    }
+}
+
+nonisolated enum GroomerAvatarPhotoPath {
+    static func make(
+        groomerID: UUID,
+        fileID: UUID = UUID(),
+        contentType: GroomerAvatarPhotoContentType
+    ) -> String {
+        [
+            groomerID.uuidString.lowercased(),
+            "\(fileID.uuidString.lowercased()).\(contentType.fileExtension)",
+        ]
+        .joined(separator: "/")
+    }
+}
+
+extension Set where Element == GroomingLocationMode {
+    var canonicalModes: [GroomingLocationMode] {
+        GroomingLocationMode.allCases.filter { contains($0) }
+    }
+
+    var primaryMode: GroomingLocationMode? {
+        canonicalModes.first
     }
 }

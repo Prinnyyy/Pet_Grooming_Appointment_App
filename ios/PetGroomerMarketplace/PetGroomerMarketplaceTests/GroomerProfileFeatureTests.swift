@@ -113,14 +113,16 @@ struct GroomerProfileStoreTests {
         store.isActive = true
         store.businessName = "Fresh Coat"
         store.baseCity = "Seattle"
-        store.baseState = "WA"
+        store.baseStateCode = .washington
+        store.baseZipCode = "98101"
+        store.serviceLocationModes = [.groomerComesToCustomer]
 
         await store.saveProfile()
 
         #expect(repository.updateProfileCallCount == 0)
         #expect(
             store.errorMessage ==
-                "Complete business name, city, state, and service radius before going active."
+                "Complete business name, address, city, state, ZIP, and service radius before going active."
         )
     }
 
@@ -133,9 +135,11 @@ struct GroomerProfileStoreTests {
         )
         store.isActive = true
         store.businessName = "Fresh Coat"
+        store.baseStreetAddress = "123 Pine Street"
         store.baseCity = "Seattle"
         store.baseStateCode = .washington
-        store.serviceRadiusMiles = "12"
+        store.baseZipCode = "98101"
+        store.serviceRadiusMiles = 12
 
         await store.saveProfile()
 
@@ -147,7 +151,7 @@ struct GroomerProfileStoreTests {
     }
 
     @Test @MainActor
-    func saveProfileTrimsOptionalFieldsAndSendsActiveState() async {
+    func saveProfileSendsFullAddressFixedExperienceRadiusAndMultipleLocationModes() async {
         let groomerID = UUID()
         let repository = GroomerProfileRepositoryFake()
         let store = GroomerProfileStore(
@@ -156,11 +160,13 @@ struct GroomerProfileStoreTests {
         )
         store.businessName = " Fresh Coat "
         store.bio = " Calm grooming "
-        store.yearsExperience = "6"
+        store.yearsExperience = 5
+        store.baseStreetAddress = " 123 Pine Street "
         store.baseCity = " Seattle "
         store.baseStateCode = .washington
-        store.serviceRadiusMiles = "12"
-        store.serviceLocationMode = .groomerComesToCustomer
+        store.baseZipCode = " 98101 "
+        store.serviceRadiusMiles = 50
+        store.serviceLocationModes = [.customerComesToGroomer, .groomerComesToCustomer]
         store.isActive = true
 
         await store.saveProfile()
@@ -168,12 +174,58 @@ struct GroomerProfileStoreTests {
         #expect(repository.updateProfileCallCount == 1)
         #expect(repository.lastProfileDraft?.businessName == "Fresh Coat")
         #expect(repository.lastProfileDraft?.bio == "Calm grooming")
-        #expect(repository.lastProfileDraft?.yearsExperience == 6)
+        #expect(repository.lastProfileDraft?.yearsExperience == 5)
+        #expect(repository.lastProfileDraft?.baseStreetAddress == "123 Pine Street")
         #expect(repository.lastProfileDraft?.baseCity == "Seattle")
         #expect(repository.lastProfileDraft?.baseStateCode == .washington)
-        #expect(repository.lastProfileDraft?.serviceRadiusMiles == 12)
+        #expect(repository.lastProfileDraft?.baseZipCode == "98101")
+        #expect(repository.lastProfileDraft?.serviceRadiusMiles == 50)
+        #expect(
+            repository.lastProfileDraft?.serviceLocationModes ==
+                [.customerComesToGroomer, .groomerComesToCustomer]
+        )
         #expect(repository.lastProfileDraft?.serviceLocationMode == .groomerComesToCustomer)
         #expect(repository.lastProfileDraft?.isActive == true)
+    }
+
+    @Test @MainActor
+    func oversizedAvatarUploadDoesNotCallRepository() async {
+        let repository = GroomerProfileRepositoryFake()
+        let store = GroomerProfileStore(
+            groomerID: UUID(),
+            repository: repository
+        )
+
+        await store.uploadAvatarPhoto(
+            data: Data(count: GroomerProfileStore.maximumPhotoBytes + 1),
+            contentType: .jpeg
+        )
+
+        #expect(repository.uploadAvatarCallCount == 0)
+        #expect(store.errorMessage == "Choose an avatar photo smaller than 10 MB.")
+    }
+
+    @Test @MainActor
+    func successfulAvatarUploadUpdatesLocalProfilePath() async {
+        let groomerID = UUID()
+        let profile = Self.profile(groomerID: groomerID)
+        let repository = GroomerProfileRepositoryFake(
+            profileResult: .success(profile),
+            uploadAvatarResult: .success("avatar-path.jpg")
+        )
+        let store = GroomerProfileStore(
+            groomerID: groomerID,
+            repository: repository
+        )
+        await store.load()
+
+        let avatarData = Data([0x01, 0x02])
+        await store.uploadAvatarPhoto(data: avatarData, contentType: .jpeg)
+
+        #expect(repository.uploadAvatarCallCount == 1)
+        #expect(store.profile?.avatarPath == "avatar-path.jpg")
+        #expect(store.avatarPhotoData == avatarData)
+        #expect(store.noticeMessage == "Profile photo was updated.")
     }
 
     @Test @MainActor
@@ -280,10 +332,13 @@ struct GroomerProfileStoreTests {
             businessName: "Fresh Coat",
             bio: "Calm grooming",
             yearsExperience: 6,
+            baseStreetAddress: "123 Pine Street",
             baseCity: "Seattle",
             baseState: "WA",
+            baseZipCode: "98101",
             serviceRadiusMiles: 12,
             serviceLocationMode: .groomerComesToCustomer,
+            serviceLocationModes: [.groomerComesToCustomer],
             ratingAverage: 0,
             ratingCount: 0,
             isActive: true,
@@ -343,6 +398,7 @@ private final class GroomerProfileRepositoryFake: GroomerProfileRepository {
     var updateServiceResult: Result<GroomerService, GroomerProfileRepositoryError>?
     var deleteServiceResult: Result<Void, GroomerProfileRepositoryError>
     var uploadResult: Result<GroomerPortfolioPhoto, GroomerProfileRepositoryError>
+    var uploadAvatarResult: Result<String, GroomerProfileRepositoryError>
     var deletePhotoResult: Result<Void, GroomerProfileRepositoryError>
     var replaceAvailabilityResult: Result<[GroomerAvailabilityWindow], GroomerProfileRepositoryError>?
 
@@ -351,6 +407,7 @@ private final class GroomerProfileRepositoryFake: GroomerProfileRepository {
     private(set) var updateServiceCallCount = 0
     private(set) var deleteServiceCallCount = 0
     private(set) var uploadCallCount = 0
+    private(set) var uploadAvatarCallCount = 0
     private(set) var deletePhotoCallCount = 0
     private(set) var replaceAvailabilityCallCount = 0
     private(set) var lastProfileDraft: GroomerProfileDraft?
@@ -373,6 +430,8 @@ private final class GroomerProfileRepositoryFake: GroomerProfileRepository {
             .success(()),
         uploadResult: Result<GroomerPortfolioPhoto, GroomerProfileRepositoryError> =
             .failure(.unavailable),
+        uploadAvatarResult: Result<String, GroomerProfileRepositoryError> =
+            .failure(.unavailable),
         deletePhotoResult: Result<Void, GroomerProfileRepositoryError> =
             .success(()),
         replaceAvailabilityResult: Result<[GroomerAvailabilityWindow], GroomerProfileRepositoryError>? = nil
@@ -386,6 +445,7 @@ private final class GroomerProfileRepositoryFake: GroomerProfileRepository {
         self.updateServiceResult = updateServiceResult
         self.deleteServiceResult = deleteServiceResult
         self.uploadResult = uploadResult
+        self.uploadAvatarResult = uploadAvatarResult
         self.deletePhotoResult = deletePhotoResult
         self.replaceAvailabilityResult = replaceAvailabilityResult
     }
@@ -422,10 +482,13 @@ private final class GroomerProfileRepositoryFake: GroomerProfileRepository {
             businessName: draft.businessName,
             bio: draft.bio,
             yearsExperience: draft.yearsExperience,
+            baseStreetAddress: draft.baseStreetAddress,
             baseCity: draft.baseCity,
             baseState: draft.baseStateCode?.rawValue,
+            baseZipCode: draft.baseZipCode,
             serviceRadiusMiles: draft.serviceRadiusMiles,
             serviceLocationMode: draft.serviceLocationMode,
+            serviceLocationModes: draft.serviceLocationModes,
             ratingAverage: 0,
             ratingCount: 0,
             isActive: draft.isActive,
@@ -494,6 +557,19 @@ private final class GroomerProfileRepositoryFake: GroomerProfileRepository {
     ) async throws -> GroomerPortfolioPhoto {
         uploadCallCount += 1
         return try uploadResult.get()
+    }
+
+    func uploadAvatarPhoto(
+        groomerID: UUID,
+        data: Data,
+        contentType: GroomerAvatarPhotoContentType
+    ) async throws -> String {
+        uploadAvatarCallCount += 1
+        return try uploadAvatarResult.get()
+    }
+
+    func avatarPhotoData(storagePath: String) async throws -> Data {
+        Data("avatar".utf8)
     }
 
     func deletePortfolioPhoto(_ photo: GroomerPortfolioPhoto) async throws {

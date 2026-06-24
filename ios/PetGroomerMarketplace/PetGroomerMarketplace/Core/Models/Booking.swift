@@ -19,8 +19,10 @@ struct Booking: Equatable, Hashable, Identifiable, Sendable {
     let review: BookingReview?
     let serviceType: GroomingServiceType?
     let groomerBusinessName: String?
+    let groomerBaseStreetAddress: String?
     let groomerBaseCity: String?
     let groomerBaseState: String?
+    let groomerBaseZipCode: String?
     let locationMode: GroomingLocationMode?
     let customerStreetAddress: String?
     let customerCity: String?
@@ -46,8 +48,10 @@ struct Booking: Equatable, Hashable, Identifiable, Sendable {
         review: BookingReview?,
         serviceType: GroomingServiceType? = nil,
         groomerBusinessName: String? = nil,
+        groomerBaseStreetAddress: String? = nil,
         groomerBaseCity: String? = nil,
         groomerBaseState: String? = nil,
+        groomerBaseZipCode: String? = nil,
         locationMode: GroomingLocationMode? = nil,
         customerStreetAddress: String? = nil,
         customerCity: String? = nil,
@@ -72,8 +76,10 @@ struct Booking: Equatable, Hashable, Identifiable, Sendable {
         self.review = review
         self.serviceType = serviceType
         self.groomerBusinessName = groomerBusinessName
+        self.groomerBaseStreetAddress = groomerBaseStreetAddress
         self.groomerBaseCity = groomerBaseCity
         self.groomerBaseState = groomerBaseState
+        self.groomerBaseZipCode = groomerBaseZipCode
         self.locationMode = locationMode
         self.customerStreetAddress = customerStreetAddress
         self.customerCity = customerCity
@@ -203,8 +209,10 @@ struct Booking: Equatable, Hashable, Identifiable, Sendable {
             review: review,
             serviceType: serviceType,
             groomerBusinessName: groomerBusinessName,
+            groomerBaseStreetAddress: groomerBaseStreetAddress,
             groomerBaseCity: groomerBaseCity,
             groomerBaseState: groomerBaseState,
+            groomerBaseZipCode: groomerBaseZipCode,
             locationMode: locationMode,
             customerStreetAddress: customerStreetAddress,
             customerCity: customerCity,
@@ -240,18 +248,36 @@ struct Booking: Equatable, Hashable, Identifiable, Sendable {
     }
 
     nonisolated private var groomerLocationSummary: String? {
+        let streetAddress = normalized(groomerBaseStreetAddress)
         let city = normalized(groomerBaseCity)
         let state = normalized(groomerBaseState)
+        let zipCode = normalized(groomerBaseZipCode)
+
+        if let streetAddress, let city, let state, let zipCode {
+            return "\(streetAddress), \(city), \(state) \(zipCode)"
+        }
 
         return switch (city, state) {
         case let (.some(city), .some(state)):
-            "\(city), \(state)"
+            if let zipCode {
+                "\(city), \(state) \(zipCode)"
+            } else {
+                "\(city), \(state)"
+            }
         case let (.some(city), nil):
-            city
+            if let zipCode {
+                "\(city) \(zipCode)"
+            } else {
+                city
+            }
         case let (nil, .some(state)):
-            state
+            if let zipCode {
+                "\(state) \(zipCode)"
+            } else {
+                state
+            }
         case (nil, nil):
-            nil
+            streetAddress ?? zipCode
         }
     }
 
