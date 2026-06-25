@@ -175,7 +175,13 @@ final class SupabaseBookingRepository: BookingRepository {
                 return .notAllowed
             case "22023":
                 switch postgrestError.message {
-                case "invalid_rating", "invalid_review_content":
+                case "invalid_rating",
+                     "invalid_review_content",
+                     "invalid_review_outcomes",
+                     "too_many_review_outcomes",
+                     "invalid_review_outcome_trait",
+                     "invalid_review_outcome_value",
+                     "duplicate_review_outcome":
                     return .invalidReview
                 default:
                     return .invalidInput
@@ -640,7 +646,7 @@ private struct CompleteBookingParameters: Encodable {
     }
 }
 
-private struct CreateReviewParameters: Encodable {
+nonisolated struct CreateReviewParameters: Encodable {
     let bookingID: UUID
     let draft: BookingReviewDraft
 
@@ -654,11 +660,14 @@ private struct CreateReviewParameters: Encodable {
         } else {
             try container.encodeNil(forKey: .content)
         }
+
+        try container.encode(draft.petFitOutcomes, forKey: .petFitOutcomes)
     }
 
     private enum CodingKeys: String, CodingKey {
         case bookingID = "p_booking_id"
         case rating = "p_rating"
         case content = "p_content"
+        case petFitOutcomes = "p_pet_fit_outcomes"
     }
 }

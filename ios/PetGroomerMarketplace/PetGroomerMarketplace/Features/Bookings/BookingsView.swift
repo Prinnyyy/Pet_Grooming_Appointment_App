@@ -1142,6 +1142,22 @@ private struct BookingReviewForm: View {
     let accent: GroomlyPrimaryButtonStyle.Accent
     @State private var rating = 5
     @State private var content = ""
+    @State private var fitOutcomeSelections: [BookingReviewPetFitOutcomeSelection]
+
+    init(
+        booking: Booking,
+        store: BookingsStore,
+        accent: GroomlyPrimaryButtonStyle.Accent
+    ) {
+        self.booking = booking
+        self.store = store
+        self.accent = accent
+        _fitOutcomeSelections = State(
+            initialValue: BookingReviewPetFitOutcomeSelection.defaults(
+                for: booking.reviewableFitSignals
+            )
+        )
+    }
 
     var body: some View {
         GroomlyCard {
@@ -1165,12 +1181,25 @@ private struct BookingReviewForm: View {
                     .font(DesignTokens.Typography.caption)
                     .foregroundStyle(DesignTokens.Colors.textSecondary)
 
+                if !fitOutcomeSelections.isEmpty {
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                        Text("Pet Fit Notes")
+                            .font(DesignTokens.Typography.headline)
+                            .foregroundStyle(DesignTokens.Colors.textPrimary)
+
+                        ForEach($fitOutcomeSelections) { $selection in
+                            BookingReviewFitOutcomePicker(selection: $selection)
+                        }
+                    }
+                }
+
                 Button {
                     Task {
                         await store.createReview(
                             for: booking,
                             rating: rating,
-                            content: content
+                            content: content,
+                            petFitOutcomes: fitOutcomeSelections.selectedOutcomes
                         )
                     }
                 } label: {
@@ -1181,6 +1210,50 @@ private struct BookingReviewForm: View {
                 .accessibilityIdentifier("bookings.review.submit")
             }
         }
+    }
+}
+
+private struct BookingReviewFitOutcomePicker: View {
+    @Binding var selection: BookingReviewPetFitOutcomeSelection
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+            HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
+                Text(selection.title)
+                    .font(DesignTokens.Typography.body.weight(.semibold))
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+
+                Spacer(minLength: DesignTokens.Spacing.sm)
+
+                Text(selection.groupTitle)
+                    .font(DesignTokens.Typography.caption.weight(.bold))
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+            }
+
+            Picker(
+                "Pet fit outcome",
+                selection: $selection.outcome
+            ) {
+                Text("Skip").tag(nil as BookingReviewPetFitOutcome?)
+
+                ForEach(BookingReviewPetFitOutcome.allCases) { outcome in
+                    Text(outcome.title).tag(Optional(outcome))
+                }
+            }
+            .pickerStyle(.segmented)
+            .tint(DesignTokens.Colors.customerPrimary)
+            .accessibilityIdentifier(
+                "bookings.review.fit.\(selection.signal.id)"
+            )
+        }
+        .padding(DesignTokens.Spacing.sm)
+        .background(DesignTokens.Colors.borderSoft.opacity(0.42))
+        .clipShape(
+            RoundedRectangle(
+                cornerRadius: DesignTokens.CornerRadius.input,
+                style: .continuous
+            )
+        )
     }
 }
 

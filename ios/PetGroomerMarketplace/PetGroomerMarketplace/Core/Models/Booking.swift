@@ -345,9 +345,108 @@ struct BookingReview: Equatable, Hashable, Identifiable, Sendable {
     }
 }
 
-struct BookingReviewDraft: Equatable, Sendable {
+nonisolated struct BookingReviewDraft: Equatable, Sendable {
     let rating: Int
     let content: String?
+    let petFitOutcomes: [BookingReviewPetFitOutcomeDraft]
+
+    init(
+        rating: Int,
+        content: String?,
+        petFitOutcomes: [BookingReviewPetFitOutcomeDraft] = []
+    ) {
+        self.rating = rating
+        self.content = content
+        self.petFitOutcomes = petFitOutcomes
+    }
+}
+
+nonisolated enum BookingReviewPetFitOutcome:
+    String,
+    Codable,
+    CaseIterable,
+    Hashable,
+    Identifiable,
+    Sendable
+{
+    case positive
+    case negative
+
+    var id: Self { self }
+
+    var title: String {
+        switch self {
+        case .positive:
+            "Went Well"
+        case .negative:
+            "Needs Care"
+        }
+    }
+}
+
+nonisolated struct BookingReviewPetFitOutcomeDraft:
+    Encodable,
+    Equatable,
+    Hashable,
+    Identifiable,
+    Sendable
+{
+    let signal: PetFitSignal
+    let outcome: BookingReviewPetFitOutcome
+
+    var id: String { signal.id }
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(signal.traitType, forKey: .traitType)
+        try container.encode(signal.traitValue, forKey: .traitValue)
+        try container.encode(outcome.rawValue, forKey: .outcome)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case traitType = "trait_type"
+        case traitValue = "trait_value"
+        case outcome
+    }
+}
+
+nonisolated struct BookingReviewPetFitOutcomeSelection:
+    Equatable,
+    Hashable,
+    Identifiable,
+    Sendable
+{
+    let signal: PetFitSignal
+    var outcome: BookingReviewPetFitOutcome?
+
+    var id: String { signal.id }
+    var title: String { signal.title }
+    var groupTitle: String { signal.groupTitle }
+
+    var selectedOutcome: BookingReviewPetFitOutcomeDraft? {
+        guard let outcome else { return nil }
+        return BookingReviewPetFitOutcomeDraft(
+            signal: signal,
+            outcome: outcome
+        )
+    }
+
+    static func defaults(
+        for signals: [PetFitSignal]
+    ) -> [BookingReviewPetFitOutcomeSelection] {
+        signals.map { signal in
+            BookingReviewPetFitOutcomeSelection(
+                signal: signal,
+                outcome: nil
+            )
+        }
+    }
+}
+
+extension Array where Element == BookingReviewPetFitOutcomeSelection {
+    var selectedOutcomes: [BookingReviewPetFitOutcomeDraft] {
+        compactMap(\.selectedOutcome)
+    }
 }
 
 nonisolated enum BookingStatus:

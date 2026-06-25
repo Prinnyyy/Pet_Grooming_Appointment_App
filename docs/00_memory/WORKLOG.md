@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-06-25
+Task: T-078 - Groomly structured review iOS submission.
+Files changed: Booking review model, SupabaseBookingRepository, BookingsStore, BookingsView, BookingFeatureTests, T-078 task doc, pet-fit closure plan, task ledger, feature index, CURRENT_STATE.md, and WORKLOG.md.
+Checks: RED targeted booking/review tests failed before implementation because structured outcome model/selection/RPC encoding did not exist; GREEN targeted booking/review tests passed after implementation; ./scripts/ios-build.sh passed; XcodeBuildMCP build_run_sim launched the app on iPhone 17 Pro iOS 26.5; git diff --check passed.
+Result: Completed-booking review submission can now carry optional selected pet-fit outcomes to create_review p_pet_fit_outcomes, while every suggested signal defaults to Skip and rating/content-only reviews remain valid.
+Risks: T-078 adds no Supabase schema/RLS/RPC signature/Storage change, no matching behavior, no public directory, no direct booking, no claim UI, and no portfolio tag UI.
+Next: Stop unless the user asks for commit/push or explicitly authorizes T-079.
+```
+
+```text
+Date: 2026-06-25
 Task: T-077 - Groomly booking pet-fit context enrichment.
 Files changed: Booking model, SupabaseBookingRepository, BookingFeatureTests, T-077 task doc, pet-fit closure plan, task ledger, feature index, CURRENT_STATE.md, and WORKLOG.md.
 Checks: RED targeted booking tests failed before implementation because Booking lacked requestPetSnapshot/reviewableFitSignals; GREEN targeted booking tests passed after implementation; ./scripts/ios-build.sh passed; git diff --check passed.

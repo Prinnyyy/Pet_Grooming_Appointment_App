@@ -168,6 +168,162 @@ struct BookingsStoreTests {
     }
 
     @Test @MainActor
+    func customerSubmitsStructuredPetFitReviewOutcomes() async throws {
+        let customerID = UUID()
+        let booking = Self.booking(
+            customerID: customerID,
+            status: .completed,
+            completedAt: "2026-06-22T18:05:00Z"
+        )
+        let review = BookingReview(
+            id: UUID(),
+            bookingID: booking.id,
+            customerID: booking.customerID,
+            groomerID: booking.groomerID,
+            rating: 4,
+            content: nil,
+            createdAt: "2026-06-22T19:00:00Z"
+        )
+        let repository = BookingRepositoryFake(
+            bookingsResult: .success([booking]),
+            reviewResult: .success(
+                CreateReviewResult(
+                    review: review,
+                    groomerRatingAverage: 4,
+                    groomerRatingCount: 1
+                )
+            )
+        )
+        let store = BookingsStore(
+            participantID: customerID,
+            role: .customer,
+            repository: repository
+        )
+        let selectedOutcomes = [
+            BookingReviewPetFitOutcomeDraft(
+                signal: .serviceFit(.curlyCoat),
+                outcome: .positive
+            ),
+            BookingReviewPetFitOutcomeDraft(
+                signal: .careFlag(.anxious),
+                outcome: .negative
+            )
+        ]
+        await store.load()
+
+        await store.createReview(
+            for: booking,
+            rating: 4,
+            content: "",
+            petFitOutcomes: selectedOutcomes
+        )
+
+        #expect(repository.reviewCallCount == 1)
+        #expect(repository.lastReviewDraft == BookingReviewDraft(
+            rating: 4,
+            content: nil,
+            petFitOutcomes: selectedOutcomes
+        ))
+    }
+
+    @Test
+    func reviewPetFitOutcomeSelectionsDefaultToEmptyOutcomes() {
+        let signals: [PetFitSignal] = [
+            .breedGroup(.poodle),
+            .careFlag(.anxious),
+            .serviceFit(.gentleHandling)
+        ]
+
+        let selections = BookingReviewPetFitOutcomeSelection.defaults(
+            for: signals
+        )
+
+        #expect(selections.map(\.signal) == signals)
+        #expect(selections.map(\.outcome) == [nil, nil, nil])
+        #expect(selections.selectedOutcomes.isEmpty)
+    }
+
+    @Test
+    func reviewPetFitOutcomeSelectionsBuildSelectedOutcomesOnly() {
+        var selections = BookingReviewPetFitOutcomeSelection.defaults(
+            for: [
+                .breedGroup(.poodle),
+                .careFlag(.anxious),
+                .serviceFit(.gentleHandling)
+            ]
+        )
+        selections[0].outcome = .positive
+        selections[2].outcome = .negative
+
+        #expect(selections.selectedOutcomes == [
+            BookingReviewPetFitOutcomeDraft(
+                signal: .breedGroup(.poodle),
+                outcome: .positive
+            ),
+            BookingReviewPetFitOutcomeDraft(
+                signal: .serviceFit(.gentleHandling),
+                outcome: .negative
+            )
+        ])
+    }
+
+    @Test
+    func createReviewParametersEncodePetFitOutcomesRpcPayload() throws {
+        let bookingID = UUID(uuidString: "AAAAAAAA-BBBB-4CCC-8DDD-EEEEEEEEEEEE")!
+        let parameters = CreateReviewParameters(
+            bookingID: bookingID,
+            draft: BookingReviewDraft(
+                rating: 5,
+                content: "Patient handling",
+                petFitOutcomes: [
+                    BookingReviewPetFitOutcomeDraft(
+                        signal: .serviceFit(.gentleHandling),
+                        outcome: .positive
+                    ),
+                    BookingReviewPetFitOutcomeDraft(
+                        signal: .careFlag(.senior),
+                        outcome: .negative
+                    )
+                ]
+            )
+        )
+
+        let payload = try Self.encodedJSONObject(parameters)
+
+        #expect(payload["p_booking_id"] as? String == bookingID.uuidString.lowercased())
+        #expect(payload["p_rating"] as? Int == 5)
+        #expect(payload["p_content"] as? String == "Patient handling")
+
+        let outcomes = try #require(payload["p_pet_fit_outcomes"] as? [[String: String]])
+        #expect(outcomes == [
+            [
+                "trait_type": "service_fit",
+                "trait_value": "gentle_handling",
+                "outcome": "positive"
+            ],
+            [
+                "trait_type": "care_flag",
+                "trait_value": "senior",
+                "outcome": "negative"
+            ]
+        ])
+    }
+
+    @Test
+    func createReviewParametersEncodeEmptyPetFitOutcomes() throws {
+        let parameters = CreateReviewParameters(
+            bookingID: UUID(uuidString: "AAAAAAAA-BBBB-4CCC-8DDD-EEEEEEEEEEEE")!,
+            draft: BookingReviewDraft(rating: 5, content: nil)
+        )
+
+        let payload = try Self.encodedJSONObject(parameters)
+
+        #expect(payload["p_content"] is NSNull)
+        let outcomes = try #require(payload["p_pet_fit_outcomes"] as? [Any])
+        #expect(outcomes.isEmpty)
+    }
+
+    @Test @MainActor
     func invalidReviewDoesNotCallRepository() async throws {
         let booking = Self.booking(status: .completed)
         let repository = BookingRepositoryFake(
@@ -412,6 +568,15 @@ struct BookingsStoreTests {
             medicalNotes: nil,
             groomingNotes: nil,
             snapshotAt: nil
+        )
+    }
+
+    private static func encodedJSONObject<T: Encodable>(
+        _ value: T
+    ) throws -> [String: Any] {
+        let data = try JSONEncoder().encode(value)
+        return try #require(
+            JSONSerialization.jsonObject(with: data) as? [String: Any]
         )
     }
 }

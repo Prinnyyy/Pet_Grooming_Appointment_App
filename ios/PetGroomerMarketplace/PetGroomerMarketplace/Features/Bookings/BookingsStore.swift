@@ -124,7 +124,8 @@ final class BookingsStore {
     func createReview(
         for booking: Booking,
         rating: Int,
-        content: String
+        content: String,
+        petFitOutcomes: [BookingReviewPetFitOutcomeDraft] = []
     ) async {
         guard !isSubmittingReview else { return }
         guard booking.canReview(for: role) else {
@@ -151,7 +152,8 @@ final class BookingsStore {
 
         let draft = BookingReviewDraft(
             rating: rating,
-            content: trimmedContent.isEmpty ? nil : trimmedContent
+            content: trimmedContent.isEmpty ? nil : trimmedContent,
+            petFitOutcomes: petFitOutcomes
         )
 
         do {
