@@ -665,7 +665,9 @@ final class CustomerRequestsStore {
                         status: nextStatus,
                         withdrawnAt: review.offer.withdrawnAt
                     ),
-                    groomerProfile: review.groomerProfile
+                    groomerProfile: review.groomerProfile,
+                    matchScore: review.matchScore,
+                    matchReason: review.matchReason
                 )
             }
         )
@@ -724,7 +726,9 @@ final class CustomerRequestsStore {
                         status: nextStatus,
                         withdrawnAt: review.offer.withdrawnAt
                     ),
-                    groomerProfile: review.groomerProfile
+                    groomerProfile: review.groomerProfile,
+                    matchScore: review.matchScore,
+                    matchReason: review.matchReason
                 )
             }
         )

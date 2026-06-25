@@ -1432,8 +1432,70 @@ private struct CustomerOfferSummaryRow: View {
                         .multilineTextAlignment(.trailing)
                         .fixedSize(horizontal: false, vertical: true)
                 }
+
+                if let fitEvidence = offerReview.fitEvidencePresentation {
+                    CustomerOfferFitEvidenceBlock(
+                        presentation: fitEvidence,
+                        isCompact: true
+                    )
+                }
             }
         }
+    }
+}
+
+private struct CustomerOfferFitEvidenceBlock: View {
+    let presentation: CustomerOfferFitPresentation
+    let isCompact: Bool
+
+    var body: some View {
+        HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
+            Image(systemName: "sparkles")
+                .font(DesignTokens.Typography.caption.weight(.semibold))
+                .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
+                .frame(
+                    width: DesignTokens.Spacing.xl,
+                    height: DesignTokens.Spacing.xl
+                )
+                .background(DesignTokens.Colors.customerPrimary.opacity(0.14))
+                .clipShape(DesignTokens.Shapes.circular)
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
+                    Text("Fit Evidence")
+                        .font(DesignTokens.Typography.caption.weight(.semibold))
+                        .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
+
+                    if let scoreText = presentation.scoreText {
+                        Text(scoreText)
+                            .font(DesignTokens.Typography.caption.weight(.semibold))
+                            .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
+                            .padding(.horizontal, DesignTokens.Spacing.sm)
+                            .padding(.vertical, 3)
+                            .background(DesignTokens.Colors.customerPrimary.opacity(0.14))
+                            .clipShape(Capsule())
+                    }
+                }
+
+                Text(presentation.listSummary)
+                    .font(isCompact ? DesignTokens.Typography.caption : DesignTokens.Typography.body)
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                    .lineLimit(isCompact ? 2 : nil)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(DesignTokens.Spacing.md)
+        .background {
+            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input, style: .continuous)
+                .fill(DesignTokens.Colors.customerPrimary.opacity(0.08))
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input, style: .continuous)
+                .stroke(DesignTokens.Colors.customerPrimary.opacity(0.24), lineWidth: 1)
+        }
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -1513,6 +1575,13 @@ private struct CustomerOfferDetailView: View {
                     value: offerReview.ratingSummary,
                     systemImage: "star.fill"
                 )
+
+                if let fitEvidence = offerReview.fitEvidencePresentation {
+                    CustomerOfferFitEvidenceBlock(
+                        presentation: fitEvidence,
+                        isCompact: false
+                    )
+                }
 
                 if let bio = offerReview.groomerProfile?.bio {
                     Text(bio)
@@ -3833,7 +3902,9 @@ private final class CustomerRequestsPreviewRequestRepository: CustomerRequestRep
                     ratingCount: 0,
                     isActive: true,
                     isVerified: false
-                )
+                ),
+                matchScore: 94,
+                matchReason: "Same city and service location. Pet-fit evidence: completed poodle coats."
             ),
         ]
     }

@@ -1118,6 +1118,42 @@ struct CustomerRequestsStoreTests {
     }
 
     @Test @MainActor
+    func offerReviewFitEvidencePresentationUsesBackendReasonAndRoundedScore() {
+        let offerReview = Self.offerReview(
+            customerID: UUID(),
+            requestID: UUID(),
+            matchScore: 94.4,
+            matchReason: """
+            Same city and service location. Pet-fit evidence: completed poodle coats.
+            """
+        )
+
+        let presentation = offerReview.fitEvidencePresentation
+
+        #expect(presentation?.scoreText == "94 match")
+        #expect(
+            presentation?.reason
+                == "Same city and service location. Pet-fit evidence: completed poodle coats."
+        )
+        #expect(
+            presentation?.listSummary
+                == "Same city and service location. Pet-fit evidence: completed poodle coats."
+        )
+    }
+
+    @Test @MainActor
+    func offerReviewFitEvidencePresentationIgnoresBlankReason() {
+        let offerReview = Self.offerReview(
+            customerID: UUID(),
+            requestID: UUID(),
+            matchScore: 91,
+            matchReason: "   \n  "
+        )
+
+        #expect(offerReview.fitEvidencePresentation == nil)
+    }
+
+    @Test @MainActor
     func loadOffersFailureIsScopedToRequest() async throws {
         let customerID = UUID()
         let request = Self.request(customerID: customerID, petID: UUID())
@@ -1375,7 +1411,9 @@ struct CustomerRequestsStoreTests {
         customerID: UUID,
         requestID: UUID,
         status: GroomerOfferStatus = .pending,
-        createdAt: String = "2026-06-20T13:00:00Z"
+        createdAt: String = "2026-06-20T13:00:00Z",
+        matchScore: Double? = nil,
+        matchReason: String? = nil
     ) -> CustomerOfferReview {
         let groomerID = UUID()
         return CustomerOfferReview(
@@ -1408,7 +1446,9 @@ struct CustomerRequestsStoreTests {
                 ratingCount: 18,
                 isActive: true,
                 isVerified: true
-            )
+            ),
+            matchScore: matchScore,
+            matchReason: matchReason
         )
     }
 

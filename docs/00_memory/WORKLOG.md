@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-06-25
+Task: T-074 - Groomly customer offer match evidence.
+Files changed: Supabase migrations 20260625085126 and corrective 20260625090429; CustomerOfferReview model; SupabaseCustomerRequestRepository; CustomerRequestsStore/View; CustomerRequestFeatureTests; T-074 task doc; backend contract/RLS docs; task ledger; feature index; CURRENT_STATE.md; and WORKLOG.md.
+Checks: RED rollback-only customer offered-match RLS SQL failed as expected before migration; GREEN rollback-only RLS SQL passed after migration and again after merging request_matches SELECT policies; metadata/policy checks confirmed one final `request_matches_select_groomer_or_customer_offered` policy; migration list confirmed both T-074 versions local/remote; security/performance advisors ran with no T-074 performance findings; supabase-check passed; targeted RED/GREEN Swift presentation tests passed; git diff --check passed; ios-build passed; XcodeBuildMCP build_run_sim launched the app on iPhone 17 Pro iOS 26.5.
+Result: Customer offer review can now display backend-generated match score/reason only for matches already linked to offers visible on the owning customer's request.
+Risks: T-074 does not expose unoffered matches, unmatched groomers, public directory browsing, customer slot discovery, direct booking, new scoring, or client-authored match evidence.
+Next: Stop unless the user asks for commit/push or explicitly authorizes a T-075+ task.
+```
+
+```text
+Date: 2026-06-25
 Task: T-073 - Groomly claim and portfolio match signals.
 Files changed: Supabase migration 20260625081925; T-073 task doc; backend contract/RLS docs; task ledger; feature index; CURRENT_STATE.md; and WORKLOG.md.
 Checks: RED rollback-only SQL showed claim/tag groomer and baseline groomer both scored 80.00 before implementation; CLI applied the migration file and repaired remote history after reverting an accidental empty MCP probe migration; GREEN rollback-only SQL passed with claim/tag groomer outranking baseline and zero persisted residue; metadata/grant/function checks passed; security/performance advisors ran; supabase-check passed; git diff --check passed.

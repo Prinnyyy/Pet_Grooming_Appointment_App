@@ -12,6 +12,8 @@ final class SupabaseCustomerRequestRepository: CustomerRequestRepository {
         id,request_id,match_id,customer_id,groomer_id,proposed_start,proposed_end,\
         price_estimate,message,status,expires_at,withdrawn_at,created_at,updated_at
         """
+    private static let offerMatchEvidenceColumns =
+        "id,match_score,match_reason"
     private static let groomerProfileColumns =
         "user_id,business_name,bio,years_experience,base_city,base_state,service_radius_miles,service_location_mode,rating_avg,rating_count,is_active,is_verified"
     private static let requestPhotoColumns =
@@ -58,6 +60,8 @@ final class SupabaseCustomerRequestRepository: CustomerRequestRepository {
 
             let groomerIDs = Set(offerRows.map(\.groomerID))
                 .map { $0.uuidString.lowercased() }
+            let matchIDs = Set(offerRows.map(\.matchID))
+                .map { $0.uuidString.lowercased() }
 
             let profileRows: [CustomerOfferGroomerProfileRow] = try await client
                 .from("groomer_profiles")
@@ -66,14 +70,29 @@ final class SupabaseCustomerRequestRepository: CustomerRequestRepository {
                 .execute()
                 .value
 
+            let matchRows: [CustomerOfferMatchEvidenceRow] = try await client
+                .from("request_matches")
+                .select(Self.offerMatchEvidenceColumns)
+                .eq("customer_id", value: customerID.uuidString.lowercased())
+                .eq("request_id", value: requestID.uuidString.lowercased())
+                .in("id", values: matchIDs)
+                .execute()
+                .value
+
             let profilesByID = Dictionary(
                 uniqueKeysWithValues: profileRows.map { ($0.userID, $0.profile) }
             )
+            let matchEvidenceByID = Dictionary(
+                uniqueKeysWithValues: matchRows.map { ($0.id, $0) }
+            )
 
             return offerRows.map { row in
-                CustomerOfferReview(
+                let matchEvidence = matchEvidenceByID[row.matchID]
+                return CustomerOfferReview(
                     offer: row.offer,
-                    groomerProfile: profilesByID[row.groomerID]
+                    groomerProfile: profilesByID[row.groomerID],
+                    matchScore: matchEvidence?.matchScore,
+                    matchReason: matchEvidence?.matchReason
                 )
             }
         } catch {
@@ -443,6 +462,18 @@ private struct CustomerOfferGroomerProfileRow: Decodable {
         case ratingCount = "rating_count"
         case isActive = "is_active"
         case isVerified = "is_verified"
+    }
+}
+
+private struct CustomerOfferMatchEvidenceRow: Decodable {
+    let id: UUID
+    let matchScore: Double?
+    let matchReason: String?
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case matchScore = "match_score"
+        case matchReason = "match_reason"
     }
 }
 

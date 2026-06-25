@@ -185,6 +185,20 @@ struct CancelGroomingRequestResult: Equatable, Sendable {
 struct CustomerOfferReview: Equatable, Identifiable, Sendable {
     let offer: GroomerOffer
     let groomerProfile: GroomerProfile?
+    let matchScore: Double?
+    let matchReason: String?
+
+    nonisolated init(
+        offer: GroomerOffer,
+        groomerProfile: GroomerProfile?,
+        matchScore: Double? = nil,
+        matchReason: String? = nil
+    ) {
+        self.offer = offer
+        self.groomerProfile = groomerProfile
+        self.matchScore = matchScore
+        self.matchReason = matchReason
+    }
 
     var id: UUID {
         offer.id
@@ -230,6 +244,34 @@ struct CustomerOfferReview: Equatable, Identifiable, Sendable {
 
     var isPending: Bool {
         offer.status == .pending
+    }
+
+    var fitEvidencePresentation: CustomerOfferFitPresentation? {
+        guard
+            let rawReason = matchReason,
+            !rawReason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        else {
+            return nil
+        }
+
+        let reason = rawReason.trimmingCharacters(in: .whitespacesAndNewlines)
+        return CustomerOfferFitPresentation(
+            scoreText: matchScore.map { "\(Int($0.rounded())) match" },
+            reason: reason
+        )
+    }
+}
+
+struct CustomerOfferFitPresentation:
+    Equatable,
+    Hashable,
+    Sendable
+{
+    let scoreText: String?
+    let reason: String
+
+    var listSummary: String {
+        reason
     }
 }
 
