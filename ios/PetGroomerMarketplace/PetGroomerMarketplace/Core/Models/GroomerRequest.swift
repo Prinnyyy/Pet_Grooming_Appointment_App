@@ -25,6 +25,21 @@ struct GroomerMatchedRequest: Equatable, Hashable, Identifiable, Sendable {
         return match.status.title
     }
 
+    var fitEvidencePresentation: GroomerMatchFitPresentation? {
+        guard
+            let rawReason = match.matchReason,
+            !rawReason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        else {
+            return nil
+        }
+
+        let reason = rawReason.trimmingCharacters(in: .whitespacesAndNewlines)
+        return GroomerMatchFitPresentation(
+            scoreText: match.matchScore.map { "\(Int($0.rounded())) match" },
+            reason: reason
+        )
+    }
+
     var canCreateOffer: Bool {
         request.status.isOpenForOffers
             && match.status.isOfferable
@@ -41,6 +56,19 @@ struct GroomerMatchedRequest: Equatable, Hashable, Identifiable, Sendable {
             request: request.replacing(status: requestStatus ?? request.status),
             offer: offer
         )
+    }
+}
+
+struct GroomerMatchFitPresentation:
+    Equatable,
+    Hashable,
+    Sendable
+{
+    let scoreText: String?
+    let reason: String
+
+    var listSummary: String {
+        reason
     }
 }
 

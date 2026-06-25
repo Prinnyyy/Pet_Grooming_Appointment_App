@@ -2,6 +2,26 @@
 
 ```text
 Date: 2026-06-25
+Task: T-070 - Groomly pet-fit iOS surfacing.
+Files changed: Groomer request model, groomer request list/detail SwiftUI, GroomerRequestFeatureTests, T-070 task doc, task ledger, feature index, Supabase contract note, CURRENT_STATE.md, and WORKLOG.md.
+Checks: RED targeted tests failed on missing `fitEvidencePresentation`; GREEN targeted tests passed after implementation; final diff-check, ios-build, and simulator launch are recorded in the task doc.
+Result: Added an iOS-only fit-evidence presentation derived from existing backend `matchScore` and `matchReason`, then surfaced it in groomer matched-request rows and the detail Match card.
+Risks: T-070 does not change repositories, Supabase schema/RLS/Storage, customer offer review, public directory behavior, matching, availability enforcement, or lifecycle semantics.
+Next: T-071 can address availability/time-off enforcement if separately authorized.
+```
+
+```text
+Date: 2026-06-25
+Task: T-069 - Groomly pet-fit match scoring.
+Files changed: Supabase migration 20260625064506; T-069 task doc; Supabase contract/RLS docs; task ledger; feature index; CURRENT_STATE.md; and WORKLOG.md.
+Checks: RED rollback-only SQL reproduced the old same-score/same-reason behavior; Supabase MCP migration applied; metadata/grant/function checks passed; GREEN rollback-only behavior checks passed; final residue check returned zero validation rows; security and performance advisors ran; supabase-check passed; diff-check and no-index whitespace checks passed.
+Result: Replaced `create_grooming_request` internals so eligible groomer matches keep existing hard filters while match score/reason now combine location fit with bounded T-068 pet-fit evidence from completed bookings and structured review outcomes.
+Risks: T-069 does not change the RPC signature, iOS models/repositories/UI, RLS policies, Storage, availability enforcement, groomer claims/portfolio evidence weighting, or request/offer/booking lifecycle semantics. iOS still only displays the backend-generated reason text it already receives.
+Next: T-070 can surface existing fit reasons more deliberately in iOS without adding a customer groomer directory or new matching backend behavior.
+```
+
+```text
+Date: 2026-06-25
 Task: T-068 - Groomly pet-fit evidence summary.
 Files changed: Supabase migrations 20260625061431 and 20260625061526; T-068 task doc; Supabase contract/RLS docs; task ledger; feature index; CURRENT_STATE.md; and WORKLOG.md.
 Checks: RED missing-view query passed before implementation; Supabase MCP migrations applied; metadata/grant/view-option checks passed; rollback-only behavior checks passed; final residue check returned zero validation rows; security and performance advisors ran; supabase-check passed; diff-check and no-index whitespace checks passed.

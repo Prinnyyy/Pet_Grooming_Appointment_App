@@ -202,9 +202,45 @@ struct GroomerRequestsStoreTests {
         #expect(store.noticeMessage == "Offer withdrawn.")
     }
 
+    @Test @MainActor
+    func fitEvidencePresentationUsesBackendReasonAndRoundedScore() {
+        let matchedRequest = Self.matchedRequest(
+            groomerID: UUID(),
+            matchScore: 94.6,
+            matchReason: """
+            Same city and service location. Pet-fit evidence: curly coats with positive reviews, poodles from completed bookings.
+            """
+        )
+
+        let presentation = matchedRequest.fitEvidencePresentation
+
+        #expect(presentation?.scoreText == "95 match")
+        #expect(
+            presentation?.reason
+                == "Same city and service location. Pet-fit evidence: curly coats with positive reviews, poodles from completed bookings."
+        )
+        #expect(
+            presentation?.listSummary
+                == "Same city and service location. Pet-fit evidence: curly coats with positive reviews, poodles from completed bookings."
+        )
+    }
+
+    @Test @MainActor
+    func fitEvidencePresentationIgnoresBlankReason() {
+        let matchedRequest = Self.matchedRequest(
+            groomerID: UUID(),
+            matchScore: 91,
+            matchReason: "   \n  "
+        )
+
+        #expect(matchedRequest.fitEvidencePresentation == nil)
+    }
+
     private static func matchedRequest(
         groomerID: UUID,
         status: RequestMatchStatus = .visible,
+        matchScore: Double? = 100,
+        matchReason: String? = "same_city",
         offerID: UUID? = nil
     ) -> GroomerMatchedRequest {
         let requestID = UUID()
@@ -217,8 +253,8 @@ struct GroomerRequestsStoreTests {
                 requestID: requestID,
                 groomerID: groomerID,
                 customerID: customerID,
-                matchScore: 100,
-                matchReason: "same_city",
+                matchScore: matchScore,
+                matchReason: matchReason,
                 dismissReason: nil,
                 status: status,
                 viewedAt: nil,

@@ -157,6 +157,13 @@ private struct GroomerRequestSummaryRow: View {
                 .font(DesignTokens.Typography.caption)
                 .foregroundStyle(DesignTokens.Colors.textSecondary)
 
+                if let fitEvidence = matchedRequest.fitEvidencePresentation {
+                    GroomerFitEvidenceBlock(
+                        presentation: fitEvidence,
+                        isCompact: true
+                    )
+                }
+
                 HStack(spacing: DesignTokens.Spacing.sm) {
                     Text(matchedRequest.matchSummary)
                         .font(DesignTokens.Typography.caption.weight(.semibold))
@@ -298,19 +305,17 @@ private struct GroomerRequestDetailView: View {
                     systemImage: matchedRequest.match.status.groomerSystemImage
                 )
 
-                if let score = matchedRequest.match.matchScore {
+                if let fitEvidence = matchedRequest.fitEvidencePresentation {
+                    GroomerFitEvidenceBlock(
+                        presentation: fitEvidence,
+                        isCompact: false
+                    )
+                } else if let score = matchedRequest.match.matchScore {
                     DetailMetadataRow(
                         title: "Score",
                         value: "\(Int(score.rounded()))",
                         systemImage: "gauge.with.dots.needle.50percent"
                     )
-                }
-
-                if let reason = matchedRequest.match.matchReason {
-                    Text(reason)
-                        .font(DesignTokens.Typography.body)
-                        .foregroundStyle(DesignTokens.Colors.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
         }
@@ -679,6 +684,61 @@ private struct GroomerRequestDetailView: View {
     }
 }
 
+private struct GroomerFitEvidenceBlock: View {
+    let presentation: GroomerMatchFitPresentation
+    let isCompact: Bool
+
+    var body: some View {
+        HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
+            Image(systemName: "sparkles")
+                .font(DesignTokens.Typography.caption.weight(.semibold))
+                .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
+                .frame(
+                    width: DesignTokens.Spacing.xl,
+                    height: DesignTokens.Spacing.xl
+                )
+                .background(DesignTokens.Colors.groomerAccent.opacity(0.14))
+                .clipShape(DesignTokens.Shapes.circular)
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
+                    Text("Fit Evidence")
+                        .font(DesignTokens.Typography.caption.weight(.semibold))
+                        .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
+
+                    if let scoreText = presentation.scoreText {
+                        Text(scoreText)
+                            .font(DesignTokens.Typography.caption.weight(.semibold))
+                            .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
+                            .padding(.horizontal, DesignTokens.Spacing.sm)
+                            .padding(.vertical, 3)
+                            .background(DesignTokens.Colors.groomerAccent.opacity(0.14))
+                            .clipShape(Capsule())
+                    }
+                }
+
+                Text(presentation.listSummary)
+                    .font(isCompact ? DesignTokens.Typography.caption : DesignTokens.Typography.body)
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                    .lineLimit(isCompact ? 2 : nil)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(DesignTokens.Spacing.md)
+        .background {
+            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input, style: .continuous)
+                .fill(DesignTokens.Colors.groomerAccent.opacity(0.08))
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input, style: .continuous)
+                .stroke(DesignTokens.Colors.groomerAccent.opacity(0.24), lineWidth: 1)
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
 private struct DetailShellCard<Content: View>: View {
     let title: String
     let subtitle: String?
@@ -937,7 +997,7 @@ private final class GroomerRequestsPreviewRepository: GroomerRequestRepository {
                 groomerID: UUID(),
                 customerID: UUID(),
                 matchScore: 100,
-                matchReason: "Same city",
+                matchReason: "Same city and service location. Pet-fit evidence: curly coats with positive reviews.",
                 dismissReason: nil,
                 status: .visible,
                 viewedAt: nil,
