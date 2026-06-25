@@ -5,8 +5,8 @@ Date: 2026-06-24
 Task: Project folder readability cleanup.
 Files changed: Project structure docs, README indexes, workflow path references, task screenshot references, reviewed SQL draft paths, design screenshot paths, frozen archives, CURRENT_STATE.md, and WORKLOG.md.
 Checks: git diff --check passed; git diff --cached --check passed while git-tracked moves were staged; ./scripts/ios-build.sh passed for iPhone 17 Pro iOS 26.5; simulator boot/install/launch passed on iPhone 17 Pro with PetGroomerMarketplace pid 55542.
-Result: Reviewed SQL task attachments moved into docs/06_tasks/sql_reviews; disabled agent role cards, archived workflow reports/docs, and the initialization prompt moved into docs/09_frozen; prototype screenshots moved into docs/08_design/screenshots with ASCII filenames; active references were updated; and a durable project structure map now records current path ownership and move history.
-Risks: Root brief, CLAUDE_reference, iOS source, Xcode project, Supabase migrations, scripts, .codex/config.toml, and local secrets were intentionally not moved to avoid breaking historical references, app/build paths, migration audit trails, or credential boundaries.
+Result: Active documentation now points to the current task-artifact, design-asset, frozen-archive, and structure-index locations. Detailed move history lives only in `docs/10_project_structure/REORGANIZATION_LOG.md`.
+Risks: iOS source, Xcode project, Supabase migrations, scripts, `.codex/config.toml`, and local secrets were not changed.
 Next: Use docs/10_project_structure/README.md when a future run needs the current folder map.
 ```
 

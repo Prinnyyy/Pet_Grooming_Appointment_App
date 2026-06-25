@@ -18,7 +18,3 @@ The names preserve the original screenshot date and clock label while removing s
 - Task records reference these files from `docs/06_tasks/T-*.md`.
 - Groomly prototype source files remain in `docs/08_design/Groomly/`.
 - Design tokens remain in `docs/08_design/design_tokens.json`.
-
-## Move History
-
-These files were moved from `docs/08_design/原型截图/` during the 2026-06-24 project structure cleanup. The full move record is in `docs/10_project_structure/REORGANIZATION_LOG.md`.
