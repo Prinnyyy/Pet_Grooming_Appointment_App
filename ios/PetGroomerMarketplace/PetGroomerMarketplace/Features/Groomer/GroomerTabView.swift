@@ -9,6 +9,7 @@ struct GroomerTabView: View {
     let accountContent: AnyView?
     let onSignOut: (() -> Void)?
     @State private var selection: GroomerTab = .requests
+    @State private var focusedConversationBookingID: UUID?
     @State private var feedbackCenter = GroomlyFeedbackCenter()
 
     init(
@@ -68,7 +69,8 @@ struct GroomerTabView: View {
             BookingsView(
                 participantID: groomerID,
                 role: .groomer,
-                repository: bookingRepository
+                repository: bookingRepository,
+                onOpenChat: openBookingChat
             )
         } else if tab == .messages,
                   let groomerID,
@@ -76,7 +78,8 @@ struct GroomerTabView: View {
             ChatConversationsView(
                 participantID: groomerID,
                 role: .groomer,
-                repository: chatRepository
+                repository: chatRepository,
+                focusedBookingID: $focusedConversationBookingID
             )
         } else if tab == .account,
            let groomerID,
@@ -96,6 +99,13 @@ struct GroomerTabView: View {
                 systemImage: tab.systemImage,
                 accent: .groomer
             )
+        }
+    }
+
+    private func openBookingChat(_ booking: Booking) {
+        focusedConversationBookingID = booking.id
+        withAnimation(.easeInOut(duration: 0.22)) {
+            selection = .messages
         }
     }
 }

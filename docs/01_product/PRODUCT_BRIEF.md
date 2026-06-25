@@ -20,6 +20,19 @@ Open Grooming Request
 
 Customers do not repeatedly target individual groomers. A groomer chooses whether to respond to an eligible request, and a booking exists only after the customer accepts an offer.
 
+## Pet-Fit Matching Direction
+
+The post-MVP direction keeps the request-first marketplace model and makes the matching layer more pet-specific. Groomly should help a customer find a groomer who fits this pet and this service need, then let the groomer compete through a concrete offer.
+
+Pet-fit matching v1 is evidence-based and explainable:
+
+- Customer requests provide pet traits, service need, location mode, photos, and a preferred time window.
+- Groomer profiles provide service coverage, availability, portfolio, and low-weight claimed specialties.
+- Completed bookings and structured customer reviews create higher-confidence evidence over time.
+- Match scores and reasons must be understandable enough to show as user-facing fit explanations.
+
+Groomly is not shifting to a customer-facing public groomer directory, direct slot booking, or AI/ML recommender in v1. Customer choice remains anchored in received offers, not in browsing a static list of all groomers.
+
 ## Target Users
 
 - **Customer:** A pet owner who maintains pet profiles, publishes grooming requests, compares offers, manages bookings, chats after booking, and reviews completed service.
@@ -47,7 +60,7 @@ Customers do not repeatedly target individual groomers. A groomer chooses whethe
 
 - Payments, refunds, disputes, subscriptions, and dynamic pricing.
 - Push notifications and social login.
-- Complex calendars, map-first experiences, AI recommendations, and advanced matching.
+- Complex calendars, map-first experiences, AI recommendations, machine-learning recommendations, public groomer directory browsing, direct customer slot booking, and advanced matching beyond explainable pet-fit v1.
 - Realtime chat polish, typing indicators, and read-receipt polish.
 - Admin tools and multi-pet request bundles.
 - Favorites behavior. The Fresh Brief lists a `favorites` table but defines no fields, user flow, screen, or acceptance criterion; no schema or UI will be created without a separate product decision.

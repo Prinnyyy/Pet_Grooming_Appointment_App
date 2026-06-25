@@ -10,7 +10,7 @@ fi
 
 project="${CODEX_IOS_PROJECT:-ios/PetGroomerMarketplace/PetGroomerMarketplace.xcodeproj}"
 scheme="${CODEX_IOS_SCHEME:-PetGroomerMarketplace}"
-destination="${CODEX_IOS_DESTINATION:-platform=iOS Simulator,OS=18.4,name=iPhone 16 Pro}"
+destination="${CODEX_IOS_DESTINATION:-platform=iOS Simulator,OS=26.5,name=iPhone 17 Pro}"
 
 if [[ ! -d "$project" ]]; then
   echo "Xcode project not found: $project"

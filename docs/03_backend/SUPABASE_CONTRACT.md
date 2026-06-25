@@ -29,7 +29,7 @@ All Supabase migration and validation operations must target only the task-autho
 
 ## Tables and Roadmap
 
-`profiles`, `customer_profiles`, base `groomer_profiles`, `pets`, `pet_photos`, T-010 groomer profile details, `groomer_services`, `groomer_portfolio_photos`, `groomer_availability_windows`, `groomer_booking_preferences`, `groomer_time_off_windows`, `grooming_requests`, `request_matches`, `groomer_offers`, `bookings`, `conversations`, `messages`, and `reviews` are deployed and backend-validated. Every other row remains planned until its owning task applies and verifies a migration.
+`profiles`, `customer_profiles`, base `groomer_profiles`, `pets`, `pet_photos`, T-010 groomer profile details, `groomer_services`, `groomer_portfolio_photos`, `groomer_availability_windows`, `groomer_booking_preferences`, `groomer_time_off_windows`, `grooming_requests`, `request_matches`, `groomer_offers`, `bookings`, `conversations`, `messages`, and `reviews` are deployed and backend-validated. Pet-fit matching v1 objects are planned only; every planned row remains undeployed until its owning task applies and verifies a migration.
 
 | Table | Purpose | Key Planned Fields | Access Summary | Roadmap |
 |---|---|---|---|---|
@@ -40,6 +40,8 @@ All Supabase migration and validation operations must target only the task-autho
 | `pet_photos` | Metadata for pet image objects | `id`, `pet_id`, `customer_id`, bucket/path, caption/order/primary, timestamp | Customer-managed for owned pet; direct groomer reads not required | T-008 |
 | `groomer_services` | Groomer's offered services | `id`, `groomer_id`, fixed `service_type`, title, description, base price, duration, accepted sizes, active flag, timestamps | Groomer manages own; authenticated users read active services for active groomers; request matching filters by active fixed service type | T-010, T-049 |
 | `groomer_portfolio_photos` | Metadata for groomer portfolio objects | `id`, `groomer_id`, bucket/path, caption/order, timestamp | Groomer manages own; authenticated users read portfolio metadata for active groomers | T-010 |
+| `groomer_fit_claims` | Planned low-weight self-claimed pet-fit coverage | Groomer, trait type/value, active flag, timestamps | Planned owner management; authenticated customer/groomer reads only active claims for active groomers; claims are not expertise proof | planned T-066 |
+| `groomer_portfolio_fit_tags` | Planned optional pet/service/care tags attached to groomer portfolio evidence | Portfolio photo, groomer, trait type/value, timestamps | Planned owner management through portfolio paths; authenticated reads only for active groomers | planned T-066 |
 | `groomer_availability_windows` | Groomer's weekly availability editor state | `id`, `groomer_id`, ISO weekday, start/end time, enabled flag, timezone, timestamps | Groomer reads and replaces own weekly rows; no customer or matching read path is connected yet | T-058 |
 | `groomer_booking_preferences` | Groomer's availability booking preferences | `groomer_id`, max appointments per day, minimum advance notice days, auto-accept flag, timestamps | Groomer reads and upserts own row only; not connected to matching or booking lifecycle checks yet | T-060 |
 | `groomer_time_off_windows` | Groomer's unavailable date windows | `id`, `groomer_id`, title, start/end date, timestamps | Groomer reads/creates/updates/deletes own rows only; not connected to matching or booking lifecycle checks yet | T-060 |
@@ -52,6 +54,24 @@ All Supabase migration and validation operations must target only the task-autho
 | `messages` | Text-only conversation messages | `id`, `conversation_id`, `sender_id`, `body`, timestamp | Conversation participants read; sender must be a participant; update/delete denied to authenticated clients | T-020 |
 | `reviews` | One customer review for a completed booking | `id`, unique `booking_id`, customer/groomer references, rating/content, timestamp | Booking participants read through RLS; booked customer creates once through `create_review`; direct authenticated insert/update/delete denied | T-021 |
 | `favorites` | Name reserved by the Fresh Brief without a defined flow or fields | No contract approved | No access, migration, repository, or UI authorized | deferred |
+
+## Planned Pet-Fit Matching V1
+
+Pet-fit matching v1 is request distribution, not a public groomer directory or direct slot-booking system.
+
+- T-064/T-065 define a shared iOS and SQL trait vocabulary for breed group, size band, care flags, and service fit.
+- T-066 adds low-weight groomer claims and portfolio tags. Claims may expand eligible context but must not by themselves create "specialist" or "expert" status.
+- T-067 extends completed-booking reviews with structured outcomes while preserving the existing rating/content contract.
+- T-068 adds a read-only evidence summary grouped by groomer and trait. Evidence summaries are derived from completed bookings and structured reviews, not manually edited.
+- T-069 updates `create_grooming_request` to keep the current hard filters and write more useful `request_matches.match_score` and `request_matches.match_reason` values.
+- T-070 surfaces existing fit reasons in iOS offer/request UI without adding a new customer groomer-directory screen.
+- T-071 connects availability/time off to offer or acceptance feasibility checks before any customer self-booking behavior is considered.
+
+## Planned Views
+
+| View | Purpose | Access Summary | Roadmap |
+|---|---|---|---|
+| `groomer_pet_fit_evidence_summary` | Planned derived summary of completed similar bookings, positive structured outcomes, and confidence tier by groomer/trait | Read-only; no direct client mutation; exact RLS/security-barrier shape belongs to T-068 | planned T-068 |
 
 ## Planned Status Values
 
@@ -70,6 +90,9 @@ All Supabase migration and validation operations must target only the task-autho
 - Request snapshots do not change when a pet profile changes later.
 - Request location mode is fixed to `groomer_comes_to_customer` or `customer_comes_to_groomer`; customer-visits-groomer requests carry a 5-100 mile travel radius, while mobile groomer requests do not.
 - Active groomer profiles must include base city/state/radius and at least one canonical `service_location_modes` value. The app also requires street address and ZIP before saving active profiles; the DB keeps those optional for old-row compatibility. Request matching requires compatible service-location mode membership and at least one active groomer service with the requested fixed service type.
+- Pet-fit matching v1 preserves request-first distribution. It must not create a customer self-booking path, public all-groomer directory, or client-authored match rows.
+- Groomer claimed specialties are low-confidence evidence only. Completed bookings and structured customer reviews are the source of evidence-backed fit summaries.
+- `request_matches.match_score` and `request_matches.match_reason` remain backend-generated, bounded, and explainable. The client may display them but does not calculate authoritative matching.
 - Groomer availability is stored as one weekly window per ISO weekday for the owning groomer. T-060 also stores owner-only booking preferences and time off windows. These settings are not yet connected to request matching, customer-facing slot discovery, booking creation, or booking conflict checks; that remains a future backend/model task.
 - Customer request cancellation closes only `open` and `has_offers` requests, declines pending offers, and hides visible/viewed/offered matches.
 - At most one match per request/groomer pair.
@@ -101,7 +124,7 @@ The corrective T-007 migration changes only the profile insert conflict target t
 
 ## Planned RPCs
 
-No additional RPCs are approved beyond the deployed functions above. Future function signatures, return shapes, security mode, grants, and error codes must be finalized in their owning tasks. Cross-record operations must be atomic and explicitly granted only to intended roles.
+No additional RPCs are approved beyond the deployed functions above. Pet-fit matching v1 is expected to replace or extend existing controlled RPCs in their owning tasks rather than creating client-side write paths: T-067 updates `create_review`, T-069 updates `create_grooming_request`, and T-071 updates `create_groomer_offer` and/or `accept_groomer_offer` for availability enforcement. Future function signatures, return shapes, security mode, grants, and error codes must be finalized in their owning tasks. Cross-record operations must be atomic and explicitly granted only to intended roles.
 
 ## Storage Buckets and Roadmap
 

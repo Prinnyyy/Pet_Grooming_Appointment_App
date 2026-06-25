@@ -53,6 +53,180 @@ nonisolated enum GroomingServiceType:
     }
 }
 
+nonisolated enum PetBreedGroup:
+    String,
+    Codable,
+    CaseIterable,
+    Hashable,
+    Identifiable,
+    Sendable
+{
+    case poodle
+    case terrier
+
+    var id: Self { self }
+
+    static func group(forBreed breed: String?) -> Self? {
+        guard let normalizedBreed = normalized(breed), !normalizedBreed.isEmpty else {
+            return nil
+        }
+
+        if normalizedBreed.contains("poodle") {
+            return .poodle
+        }
+
+        if normalizedBreed.contains("terrier")
+            || normalizedBreed.contains("westie")
+            || normalizedBreed.contains("west highland")
+        {
+            return .terrier
+        }
+
+        return nil
+    }
+
+    private static func normalized(_ value: String?) -> String? {
+        value?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+            .lowercased()
+    }
+}
+
+nonisolated enum PetCareFlag:
+    String,
+    Codable,
+    CaseIterable,
+    Hashable,
+    Identifiable,
+    Sendable
+{
+    case anxious
+    case senior
+
+    var id: Self { self }
+
+    static func flags(
+        for pet: GroomingRequestPetSnapshot,
+        referenceDate: Date = Date()
+    ) -> Set<Self> {
+        var flags = Set<Self>()
+
+        if isAnxiousTemperament(pet.temperament) {
+            flags.insert(.anxious)
+        }
+
+        if isSenior(birthday: pet.birthday, referenceDate: referenceDate) {
+            flags.insert(.senior)
+        }
+
+        return flags
+    }
+
+    private static func isAnxiousTemperament(_ temperament: String?) -> Bool {
+        guard let normalizedTemperament = normalized(temperament) else {
+            return false
+        }
+
+        return ["anxious", "nervous", "reactive"].contains(normalizedTemperament)
+    }
+
+    private static func isSenior(
+        birthday: String?,
+        referenceDate: Date
+    ) -> Bool {
+        guard
+            let birthday,
+            let birthdayDate = birthdayDate(from: birthday)
+        else {
+            return false
+        }
+
+        let age = Calendar(identifier: .gregorian).dateComponents(
+            [.year],
+            from: birthdayDate,
+            to: referenceDate
+        )
+        return (age.year ?? 0) >= 10
+    }
+
+    private static func birthdayDate(from value: String) -> Date? {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.date(from: value)
+    }
+
+    private static func normalized(_ value: String?) -> String? {
+        value?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+            .lowercased()
+    }
+}
+
+nonisolated enum PetFitTrait:
+    String,
+    Codable,
+    CaseIterable,
+    Hashable,
+    Identifiable,
+    Sendable
+{
+    case curlyCoat
+    case gentleHandling
+    case seniorCare
+    case terrierCoat
+
+    var id: Self { self }
+
+    static func serviceFit(
+        for pet: GroomingRequestPetSnapshot,
+        serviceType: GroomingServiceType,
+        referenceDate: Date = Date()
+    ) -> Set<Self> {
+        var traits = Set<Self>()
+
+        switch PetBreedGroup.group(forBreed: pet.breed) {
+        case .poodle:
+            if serviceType.involvesCoatWork {
+                traits.insert(.curlyCoat)
+            }
+        case .terrier:
+            if serviceType.involvesCoatWork {
+                traits.insert(.terrierCoat)
+            }
+        case nil:
+            break
+        }
+
+        let careFlags = PetCareFlag.flags(
+            for: pet,
+            referenceDate: referenceDate
+        )
+        if careFlags.contains(.anxious) {
+            traits.insert(.gentleHandling)
+        }
+        if careFlags.contains(.senior) {
+            traits.insert(.seniorCare)
+        }
+
+        return traits
+    }
+}
+
+private extension GroomingServiceType {
+    nonisolated var involvesCoatWork: Bool {
+        switch self {
+        case .fullGroom, .bathAndBrush, .haircutOnly, .deShedding, .customRequest:
+            true
+        case .nailTrim:
+            false
+        }
+    }
+}
+
 nonisolated enum GroomingLocationMode:
     String,
     Codable,

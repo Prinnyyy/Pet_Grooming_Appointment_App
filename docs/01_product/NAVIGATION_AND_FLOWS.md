@@ -52,6 +52,23 @@ Sign up or sign in
 
 Publishing calls `create_grooming_request`; acceptance calls `accept_groomer_offer` and then refreshes owned request/offer state; review creation calls `create_review`. Failure keeps the user on the actionable screen with recoverable input intact.
 
+## Pet-Fit Matching V1 Flow
+
+Pet-fit matching v1 preserves the existing request-first flow:
+
+```text
+Customer creates pet profile
+→ Customer publishes a grooming request with pet/service/location/time context
+→ Backend creates eligible request matches with explainable fit reasons
+→ Groomers review assigned requests and make concrete offers
+→ Customer compares received offers and fit explanations
+→ Customer accepts one offer
+→ Booking and conversation are created atomically
+→ Completed booking review feeds future evidence
+```
+
+The customer does not browse a public all-groomer directory or directly reserve a groomer time slot in v1. Groomer availability, portfolio tags, claimed specialties, and structured reviews are used to improve request distribution and offer explanation while keeping booking creation behind offer acceptance.
+
 ## Groomer Flow
 
 ```text

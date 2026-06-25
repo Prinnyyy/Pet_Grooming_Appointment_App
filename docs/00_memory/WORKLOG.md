@@ -2,6 +2,38 @@
 
 ```text
 Date: 2026-06-24
+Task: T-064 - Groomly pet-fit taxonomy foundation.
+Files changed: GroomingRequestTaxonomy, PetFitTaxonomyTests, T-064 task doc, task ledger, feature index, CURRENT_STATE.md, and WORKLOG.md.
+Checks: Red targeted PetFitTaxonomyTests failed before implementation because the taxonomy API did not exist; green targeted PetFitTaxonomyTests passed after implementation; git diff --check passed; ./scripts/ios-build.sh passed.
+Result: Added local pure Swift pet-fit taxonomy derivation for Westie/terrier coat, poodle/curly coat, anxious/gentle handling, and senior-care traits.
+Risks: T-064 does not change backend matching, persistence, repositories, or UI. T-065+ backend pet-fit evidence tasks still require separate task files and explicit Supabase migration authorization.
+Next: Do not start T-065+ backend work without explicit authorization.
+```
+
+```text
+Date: 2026-06-24
+Task: T-063 - Groomly pet-fit matching contract.
+Files changed: T-063 task doc, product flow docs, backend contract docs, feature index, task ledger, CURRENT_STATE.md, and WORKLOG.md.
+Checks: git diff --check passed.
+Result: Locked the next bottom-layer direction as request-first pet-fit matching v1. The docs now explicitly preserve the current request -> offer -> customer acceptance -> booking flow, defer public groomer directory browsing/direct slot booking/AI recommendations/payments, and record planned pet-fit backend objects and RPC replacement points without claiming any schema deployment.
+Risks: T-063 is docs-only. T-064 through T-071 still require separate task files, implementation, and mode-appropriate validation. Backend tasks still require explicit Supabase migration authorization.
+Dirty worktree boundary: Pre-existing T-062 Swift/script/docs changes were present before T-063 and were not reverted. T-063 intentionally avoided the Swift and script files from that set.
+Next: Start T-064 iOS pet-fit taxonomy foundation when ready; do not start T-065+ backend work without explicit authorization.
+```
+
+```text
+Date: 2026-06-24
+Task: T-062 - Groomly groomer Schedule screenshot UI.
+Files changed: BookingsView, GroomerTabView, ios-build/ios-test scripts, task ledger, feature index, CURRENT_STATE.md, WORKLOG.md, and T-062 task doc.
+Checks: ./scripts/ios-build.sh passed using the new default destination platform=iOS Simulator,OS=26.5,name=iPhone 17 Pro; git diff --check passed.
+Simulator launch: The built app was installed and launched on iPhone 17 Pro iOS 26.5 (45D452E8-DC6C-4CD4-A747-4D21671E68A6) via xcrun simctl; launch returned pid 60645.
+Result: Groomer Schedule now uses a merchant-focused agenda layout with date chips, selected-day snapshot, vertical appointment cards, existing booking detail navigation, Message routing to the groomer Messages tab, and existing Complete action. Build/test scripts now default to iPhone 17 Pro on the installed iOS 26 runtime.
+Risks: Booking still does not expose real pet names or customer display names, so Schedule cards use current safe fallback content until a future model/repository task adds those joins.
+Next: App is running in Simulator for inspection. Wait for user feedback before adding booking summary joins, schedule conflict handling, or availability enforcement.
+```
+
+```text
+Date: 2026-06-24
 Task: T-061 - Groomly groomer Availability layout refinement.
 Files changed: GroomerProfileManagementView, task ledger, feature index, CURRENT_STATE.md, WORKLOG.md, and T-061 task doc.
 Checks: First ios-build failed on an invalid SwiftUI frame overload, then passed after splitting width/minHeight into two frame calls. Final diff-check and simulator launch are recorded in the task closeout.
