@@ -2,6 +2,26 @@
 
 ```text
 Date: 2026-06-25
+Task: Authorized T-050 remote deployment.
+Files changed: T-050/T-075 task docs; backend contract/RLS docs; task ledger; feature index; CURRENT_STATE.md; and WORKLOG.md.
+Checks: Supabase changelog and current Data API/RLS docs reviewed; remote migration history confirmed T-050 was absent before apply; `supabase db query --linked --file supabase/migrations/20260623013113_t050_pet_fixed_taxonomy_derived_size.sql` passed; `supabase migration repair --linked --status applied 20260623013113` passed; migration history now includes `20260623013113_t050_pet_fixed_taxonomy_derived_size`; metadata checks confirmed fixed pet constraints, derived-size CHECK without app_private helper dependency, private helper permissions, trigger installation, and pet-photos bucket settings; rollback-only authenticated pet write smoke passed; residue check returned zero rows; security/performance advisors ran with only existing baseline findings.
+Result: T-050 is now deployed to `lqmasbuqzvcvtawonjlb`; owned authenticated pet writes accept fixed taxonomy and valid weights while deriving `size` server-side, and invalid taxonomy/weight inputs are rejected.
+Risks: Existing advisor WARN/INFO findings remain baseline items. T-050 does not add matching, Storage policy, iOS UI, public directory, direct booking, or pet-fit evidence behavior.
+Next: Run local closeout checks, then stop unless the user asks for commit/push or explicitly authorizes T-076.
+```
+
+```text
+Date: 2026-06-25
+Task: T-075 - Groomly pet data contract remote hardening.
+Files changed: Hardened local T-050 pet migration; T-075 task doc; TASK_LEDGER.md; CURRENT_STATE.md; and WORKLOG.md.
+Checks: RED rollback-only linked-project diagnostic showed the prior T-050 draft exposed `app_private.pet_size_code_for_weight_lbs(numeric)` execute to `authenticated`; corrected rollback metadata check passed with authenticated helper execute denied, service_role execute allowed, SECURITY DEFINER trigger confirmed, and derived-size CHECK no longer referencing app_private; rollback-only authenticated pet write checks passed for valid insert/update size derivation and invalid species/breed/temperament/weight rejection; residue check returned zero validation rows; security/performance advisors ran against the current remote baseline; supabase-check passed; git diff --check passed.
+Result: The local T-050 migration is hardened for later authorized remote deployment without exposing the private size helper directly to authenticated clients.
+Risks: T-075 itself performed no remote schema write. The T-050 pet contract was later applied after explicit user authorization.
+Next: Stop unless the user asks for commit/push or explicitly authorizes T-076.
+```
+
+```text
+Date: 2026-06-25
 Task: T-074 - Groomly customer offer match evidence.
 Files changed: Supabase migrations 20260625085126 and corrective 20260625090429; CustomerOfferReview model; SupabaseCustomerRequestRepository; CustomerRequestsStore/View; CustomerRequestFeatureTests; T-074 task doc; backend contract/RLS docs; task ledger; feature index; CURRENT_STATE.md; and WORKLOG.md.
 Checks: RED rollback-only customer offered-match RLS SQL failed as expected before migration; GREEN rollback-only RLS SQL passed after migration and again after merging request_matches SELECT policies; metadata/policy checks confirmed one final `request_matches_select_groomer_or_customer_offered` policy; migration list confirmed both T-074 versions local/remote; security/performance advisors ran with no T-074 performance findings; supabase-check passed; targeted RED/GREEN Swift presentation tests passed; git diff --check passed; ios-build passed; XcodeBuildMCP build_run_sim launched the app on iPhone 17 Pro iOS 26.5.

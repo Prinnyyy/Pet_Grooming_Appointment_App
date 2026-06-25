@@ -68,7 +68,7 @@ Modify customer pet profile data types and update the Add Pet page:
   - adds `app_private.pet_size_code_for_weight_lbs`;
   - adds a trigger to keep `pets.size` derived from `pets.weight_lbs`;
   - tightens check constraints for fixed options and weight range.
-- Review follow-up: granted `execute` on the pure immutable `app_private.pet_size_code_for_weight_lbs(numeric)` mapping function to `authenticated` so authenticated `pets` writes can satisfy the derived-size check after deployment. The trigger function remains private and `security invoker`.
+- T-075 hardening follow-up: kept `app_private.pet_size_code_for_weight_lbs(numeric)` private to `service_role`, moved size derivation into a private `SECURITY DEFINER` trigger function, and changed the derived-size check to an inline `CASE` expression so authenticated pet writes do not require direct helper execute.
 
 ## Validation Log
 
@@ -77,16 +77,24 @@ Modify customer pet profile data types and update the Add Pet page:
 - `git diff --check` passed.
 - `./scripts/ios-build.sh` passed.
 - XcodeBuildMCP `build_run_sim` passed on the `iPhone 17` simulator (`B9639233-9E78-41C9-A372-330D36C38DA7`) with no diagnostics warnings or errors. The app is launched for inspection.
-- Review follow-up validation: `git diff --check` passed and `./scripts/ios-test.sh` passed after the function grant fix.
+- Review follow-up validation: `git diff --check` passed and `./scripts/ios-test.sh` passed after the original function grant fix.
+- T-075 hardening validation: rollback-only linked-project diagnostics proved the old draft exposed direct helper execute to `authenticated`, then confirmed the hardened draft denied direct helper execute while preserving authenticated pet writes.
+- User-authorized remote deployment validation on 2026-06-25:
+  - `supabase db query --linked --file supabase/migrations/20260623013113_t050_pet_fixed_taxonomy_derived_size.sql` passed.
+  - `supabase migration repair --linked --status applied 20260623013113` passed.
+  - Migration history includes `20260623013113_t050_pet_fixed_taxonomy_derived_size`.
+  - Metadata checks confirmed fixed species/breed/size/derived-size/weight/temperament constraints, `pets_derive_size_from_weight`, private helper permissions, and existing `pet-photos` bucket settings.
+  - Rollback-only authenticated pet write smoke passed for valid insert/update derived size, invalid species/breed/temperament/weight rejection, direct helper execute denial, and zero validation residue.
+  - Supabase advisors ran with only existing baseline security WARNs and performance INFOs; T-050 added no new advisor finding.
 
 ## Deployment Notes
 
-- No remote Supabase migration was applied in this run.
-- The local T-050 migration should be deployed only after explicit remote-write authorization for project `lqmasbuqzvcvtawonjlb`, then validated with an authenticated pet insert/update smoke test.
+- Remote Supabase migration `20260623013113_t050_pet_fixed_taxonomy_derived_size` was applied to project `lqmasbuqzvcvtawonjlb` after explicit user authorization on 2026-06-25.
+- The remote migration history was repaired to mark the existing local migration version as applied.
 
 ## Closeout
 
 - Completed the iOS pet data/UI update and local backend contract draft.
 - Reused the existing `pet-photos` private Storage bucket and `CustomerPetRepository.uploadPhoto` path rather than adding a duplicate container.
 - Size remains stored for compatibility with existing request snapshots, but it is now derived from weight in the Store and guarded by the local migration trigger/check.
-- Remaining backend step: apply and validate the local T-050 Supabase migration after explicit remote-write authorization.
+- Remaining backend step: none for T-050. Future pet-fit work continues from T-076 only after separate authorization.

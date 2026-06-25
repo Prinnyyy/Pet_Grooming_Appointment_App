@@ -44,12 +44,12 @@ revoke all on function app_private.pet_size_code_for_weight_lbs(numeric)
 from public, anon, authenticated;
 
 grant execute on function app_private.pet_size_code_for_weight_lbs(numeric)
-to authenticated;
+to service_role;
 
 create or replace function app_private.set_pet_size_from_weight()
 returns trigger
 language plpgsql
-security invoker
+security definer
 set search_path = ''
 as $$
 begin
@@ -208,7 +208,15 @@ alter table public.pets
     size in ('XS', 'S', 'M', 'L', 'XL', 'XXL', 'Giant')
   ),
   add constraint pets_size_derived_from_weight_check check (
-    size = app_private.pet_size_code_for_weight_lbs(weight_lbs)
+    size = case
+      when weight_lbs < 10 then 'XS'
+      when weight_lbs < 20 then 'S'
+      when weight_lbs < 40 then 'M'
+      when weight_lbs < 60 then 'L'
+      when weight_lbs < 80 then 'XL'
+      when weight_lbs <= 100 then 'XXL'
+      else 'Giant'
+    end
   ),
   add constraint pets_weight_lbs_range_check check (
     weight_lbs >= 5 and weight_lbs <= 101
