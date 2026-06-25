@@ -1,6 +1,16 @@
 # Worklog
 
 ```text
+Date: 2026-06-25
+Task: T-067 - Groomly pet-fit structured reviews.
+Files changed: Supabase migration 20260625050422; T-067 task doc; Supabase contract/RLS docs; task ledger; feature index; CURRENT_STATE.md; and WORKLOG.md.
+Checks: RED missing-table/signature query passed before implementation; Supabase CLI db push hung during login-role initialization, so the reviewed migration was applied through Supabase MCP; metadata/grant/RLS/policy/index/function checks passed; rollback-only behavior checks passed; final residue check returned zero validation rows; security and performance advisors ran; supabase-check passed; diff-check recorded in task closeout.
+Result: Deployed participant-readable structured review outcomes and a compatible optional structured-outcomes `create_review` signature while preserving old rating/content review calls.
+Risks: T-067 does not add evidence summary views, matching score/reason changes, iOS UI/repositories, or Storage access. New T-067 indexes are expected to show unused until production traffic or T-068 summary queries use them.
+Next: Do not start T-068 evidence summary without a separate task file and explicit backend authorization.
+```
+
+```text
 Date: 2026-06-24
 Task: Project folder readability cleanup.
 Files changed: Project structure docs, README indexes, workflow path references, task screenshot references, reviewed SQL draft paths, design screenshot paths, frozen archives, CURRENT_STATE.md, and WORKLOG.md.
