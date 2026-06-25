@@ -12,10 +12,10 @@
 
 ## Status
 
-- Status: planned
+- Status: active sequence; completed through T-077
 - Date: 2026-06-25
-- Current completed pet-fit baseline: T-063 through T-075, plus user-authorized T-050 remote deployment.
-- Next executable task: T-076, only after the user explicitly starts it.
+- Current completed pet-fit baseline: T-063 through T-077, plus user-authorized T-050 remote deployment.
+- Next executable task: T-078, only after the user explicitly starts it.
 
 ## Product Guardrails
 
@@ -34,6 +34,8 @@
 - T-068 evidence summary exists as a read-only aggregate view.
 - T-073 scoring uses evidence, claims, and portfolio signals. Claims and portfolio tags are capped at low weight.
 - T-074 lets customers see backend match evidence only for visible offered matches.
+- T-076 adds a pure Swift canonical signal vocabulary for T-065 trait pairs, but no owner UI or review submission UI.
+- T-077 enriches bookings with existing request pet snapshot context and derives completed-booking reviewable signals, but no review submission UI or Supabase schema change.
 
 ## Task Plan
 

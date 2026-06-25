@@ -2,6 +2,26 @@
 
 ```text
 Date: 2026-06-25
+Task: T-077 - Groomly booking pet-fit context enrichment.
+Files changed: Booking model, SupabaseBookingRepository, BookingFeatureTests, T-077 task doc, pet-fit closure plan, task ledger, feature index, CURRENT_STATE.md, and WORKLOG.md.
+Checks: RED targeted booking tests failed before implementation because Booking lacked requestPetSnapshot/reviewableFitSignals; GREEN targeted booking tests passed after implementation; ./scripts/ios-build.sh passed; git diff --check passed.
+Result: Completed bookings can now derive reviewable PetFitSignal values from the existing request pet snapshot and service type through model/repository-owned enrichment, covering poodle, terrier, anxious, senior, and weight-derived size contexts.
+Risks: T-077 adds no Supabase schema/RLS/RPC/Storage change, no UI, no structured review submission, no matching behavior, and no claim/portfolio management.
+Next: Stop unless the user asks for commit/push or explicitly authorizes T-078.
+```
+
+```text
+Date: 2026-06-25
+Task: T-076 - Groomly pet-fit signal vocabulary bridge.
+Files changed: GroomingRequestTaxonomy, PetFitTaxonomyTests, T-076 task doc, pet-fit closure plan, task ledger, feature index, CURRENT_STATE.md, and WORKLOG.md.
+Checks: RED targeted PetFitTaxonomyTests failed before implementation because PetFitSignal did not exist; GREEN targeted PetFitTaxonomyTests passed after implementation; ./scripts/ios-build.sh passed; git diff --check passed.
+Result: Added pure Swift PetFitSignal vocabulary for canonical breed_group, size_band, care_flag, and service_fit trait pairs, with titles, grouping metadata, request-context derivation, and backend snake_case PetFitTrait raw values.
+Risks: T-076 adds no repository, UI, Supabase schema/RLS/RPC, Storage, matching behavior, claim management UI, portfolio tag UI, or review submission UI.
+Next: Stop unless the user asks for commit/push or explicitly authorizes T-077.
+```
+
+```text
+Date: 2026-06-25
 Task: Authorized T-050 remote deployment.
 Files changed: T-050/T-075 task docs; backend contract/RLS docs; task ledger; feature index; CURRENT_STATE.md; and WORKLOG.md.
 Checks: Supabase changelog and current Data API/RLS docs reviewed; remote migration history confirmed T-050 was absent before apply; `supabase db query --linked --file supabase/migrations/20260623013113_t050_pet_fixed_taxonomy_derived_size.sql` passed; `supabase migration repair --linked --status applied 20260623013113` passed; migration history now includes `20260623013113_t050_pet_fixed_taxonomy_derived_size`; metadata checks confirmed fixed pet constraints, derived-size CHECK without app_private helper dependency, private helper permissions, trigger installation, and pet-photos bucket settings; rollback-only authenticated pet write smoke passed; residue check returned zero rows; security/performance advisors ran with only existing baseline findings.

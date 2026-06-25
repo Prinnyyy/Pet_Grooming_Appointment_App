@@ -18,6 +18,7 @@ struct Booking: Equatable, Hashable, Identifiable, Sendable {
     let updatedAt: String
     let review: BookingReview?
     let serviceType: GroomingServiceType?
+    let requestPetSnapshot: GroomingRequestPetSnapshot?
     let groomerBusinessName: String?
     let groomerBaseStreetAddress: String?
     let groomerBaseCity: String?
@@ -47,6 +48,7 @@ struct Booking: Equatable, Hashable, Identifiable, Sendable {
         updatedAt: String,
         review: BookingReview?,
         serviceType: GroomingServiceType? = nil,
+        requestPetSnapshot: GroomingRequestPetSnapshot? = nil,
         groomerBusinessName: String? = nil,
         groomerBaseStreetAddress: String? = nil,
         groomerBaseCity: String? = nil,
@@ -75,6 +77,7 @@ struct Booking: Equatable, Hashable, Identifiable, Sendable {
         self.updatedAt = updatedAt
         self.review = review
         self.serviceType = serviceType
+        self.requestPetSnapshot = requestPetSnapshot
         self.groomerBusinessName = groomerBusinessName
         self.groomerBaseStreetAddress = groomerBaseStreetAddress
         self.groomerBaseCity = groomerBaseCity
@@ -160,6 +163,22 @@ struct Booking: Equatable, Hashable, Identifiable, Sendable {
         serviceType?.title ?? "Service Details"
     }
 
+    nonisolated var reviewableFitSignals: [PetFitSignal] {
+        guard
+            status == .completed,
+            let serviceType,
+            let requestPetSnapshot
+        else {
+            return []
+        }
+
+        return PetFitSignal.signals(
+            for: requestPetSnapshot,
+            serviceType: serviceType,
+            referenceDate: reviewableFitReferenceDate
+        )
+    }
+
     nonisolated var appointmentLocationTitle: String {
         switch locationMode {
         case .groomerComesToCustomer:
@@ -208,6 +227,7 @@ struct Booking: Equatable, Hashable, Identifiable, Sendable {
             updatedAt: updatedAt,
             review: review,
             serviceType: serviceType,
+            requestPetSnapshot: requestPetSnapshot,
             groomerBusinessName: groomerBusinessName,
             groomerBaseStreetAddress: groomerBaseStreetAddress,
             groomerBaseCity: groomerBaseCity,
@@ -245,6 +265,23 @@ struct Booking: Equatable, Hashable, Identifiable, Sendable {
         ]
         guard parts.allSatisfy({ $0 != nil }) else { return nil }
         return "\(parts[0]!), \(parts[1]!), \(parts[2]!) \(parts[3]!)"
+    }
+
+    nonisolated private var reviewableFitReferenceDate: Date {
+        if let completedAt,
+           let completedDate = GroomingRequestDateFormatting.parsedDate(
+                from: completedAt
+           ) {
+            return completedDate
+        }
+
+        if let scheduledEndDate = GroomingRequestDateFormatting.parsedDate(
+            from: scheduledEnd
+        ) {
+            return scheduledEndDate
+        }
+
+        return Date()
     }
 
     nonisolated private var groomerLocationSummary: String? {

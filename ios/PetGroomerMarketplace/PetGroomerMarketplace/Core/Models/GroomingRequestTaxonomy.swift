@@ -174,10 +174,10 @@ nonisolated enum PetFitTrait:
     Identifiable,
     Sendable
 {
-    case curlyCoat
-    case gentleHandling
-    case seniorCare
-    case terrierCoat
+    case curlyCoat = "curly_coat"
+    case gentleHandling = "gentle_handling"
+    case seniorCare = "senior_care"
+    case terrierCoat = "terrier_coat"
 
     var id: Self { self }
 
@@ -213,6 +213,205 @@ nonisolated enum PetFitTrait:
         }
 
         return traits
+    }
+}
+
+nonisolated struct PetFitSignal:
+    Hashable,
+    Identifiable,
+    Sendable
+{
+    nonisolated enum Group:
+        String,
+        CaseIterable,
+        Hashable,
+        Identifiable,
+        Sendable
+    {
+        case breedGroup = "breed_group"
+        case sizeBand = "size_band"
+        case careFlag = "care_flag"
+        case serviceFit = "service_fit"
+
+        var id: Self { self }
+        var traitType: String { rawValue }
+
+        var title: String {
+            switch self {
+            case .breedGroup:
+                "Breed Group"
+            case .sizeBand:
+                "Size Band"
+            case .careFlag:
+                "Care Flag"
+            case .serviceFit:
+                "Service Fit"
+            }
+        }
+
+        var sortOrder: Int {
+            switch self {
+            case .breedGroup:
+                10
+            case .sizeBand:
+                20
+            case .careFlag:
+                30
+            case .serviceFit:
+                40
+            }
+        }
+    }
+
+    let group: Group
+    let traitValue: String
+    let title: String
+
+    var id: String { "\(traitType):\(traitValue)" }
+    var traitType: String { group.traitType }
+    var groupTitle: String { group.title }
+    var sortOrder: Int { group.sortOrder }
+
+    static var allCases: [Self] {
+        breedGroupSignals
+            + sizeBandSignals
+            + careFlagSignals
+            + serviceFitSignals
+    }
+
+    static var breedGroupSignals: [Self] {
+        PetBreedGroup.allCases.map { Self.breedGroup($0) }
+    }
+
+    static var sizeBandSignals: [Self] {
+        CustomerPetSizeCode.allCases.map { Self.sizeBand($0) }
+    }
+
+    static var careFlagSignals: [Self] {
+        PetCareFlag.allCases.map { Self.careFlag($0) }
+    }
+
+    static var serviceFitSignals: [Self] {
+        PetFitTrait.allCases.map { Self.serviceFit($0) }
+    }
+
+    static func breedGroup(_ value: PetBreedGroup) -> Self {
+        Self(
+            group: .breedGroup,
+            traitValue: value.rawValue,
+            title: title(for: value)
+        )
+    }
+
+    static func sizeBand(_ value: CustomerPetSizeCode) -> Self {
+        Self(
+            group: .sizeBand,
+            traitValue: value.rawValue,
+            title: value.title
+        )
+    }
+
+    static func careFlag(_ value: PetCareFlag) -> Self {
+        Self(
+            group: .careFlag,
+            traitValue: value.rawValue,
+            title: title(for: value)
+        )
+    }
+
+    static func serviceFit(_ value: PetFitTrait) -> Self {
+        Self(
+            group: .serviceFit,
+            traitValue: value.rawValue,
+            title: title(for: value)
+        )
+    }
+
+    static func signals(
+        for pet: GroomingRequestPetSnapshot,
+        serviceType: GroomingServiceType,
+        referenceDate: Date = Date()
+    ) -> [Self] {
+        var signals: [Self] = []
+
+        if let breedGroup = PetBreedGroup.group(forBreed: pet.breed) {
+            signals.append(Self.breedGroup(breedGroup))
+        }
+
+        if let sizeBand = sizeBand(for: pet) {
+            signals.append(Self.sizeBand(sizeBand))
+        }
+
+        let careFlags = PetCareFlag.flags(
+            for: pet,
+            referenceDate: referenceDate
+        )
+        signals.append(
+            contentsOf: PetCareFlag.allCases
+                .filter { careFlags.contains($0) }
+                .map { Self.careFlag($0) }
+        )
+
+        let serviceFitTraits = PetFitTrait.serviceFit(
+            for: pet,
+            serviceType: serviceType,
+            referenceDate: referenceDate
+        )
+        signals.append(
+            contentsOf: PetFitTrait.allCases
+                .filter { serviceFitTraits.contains($0) }
+                .map { Self.serviceFit($0) }
+        )
+
+        return signals
+    }
+
+    private static func sizeBand(
+        for pet: GroomingRequestPetSnapshot
+    ) -> CustomerPetSizeCode? {
+        if let weightLbs = pet.weightLbs {
+            return CustomerPetSizeCode.code(forWeightLbs: weightLbs)
+        }
+
+        if
+            let size = pet.size,
+            let storedSize = CustomerPetSizeCode(storedValue: size)
+        {
+            return storedSize
+        }
+
+        return nil
+    }
+
+    private static func title(for value: PetBreedGroup) -> String {
+        switch value {
+        case .poodle:
+            "Poodle"
+        case .terrier:
+            "Terrier"
+        }
+    }
+
+    private static func title(for value: PetCareFlag) -> String {
+        switch value {
+        case .anxious:
+            "Anxious"
+        case .senior:
+            "Senior"
+        }
+    }
+
+    private static func title(for value: PetFitTrait) -> String {
+        switch value {
+        case .curlyCoat:
+            "Curly Coat"
+        case .gentleHandling:
+            "Gentle Handling"
+        case .seniorCare:
+            "Senior Care"
+        case .terrierCoat:
+            "Terrier Coat"
+        }
     }
 }
 

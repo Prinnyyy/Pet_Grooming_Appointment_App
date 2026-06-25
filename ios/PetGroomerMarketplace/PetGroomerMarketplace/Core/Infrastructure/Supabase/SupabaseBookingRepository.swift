@@ -14,7 +14,7 @@ final class SupabaseBookingRepository: BookingRepository {
     private static let groomerSummaryColumns =
         "user_id,business_name,base_street_address,base_city,base_state,base_zip_code"
     private static let requestLocationColumns =
-        "id,service_type,location_mode,street_address,city,state,zip_code"
+        "id,service_type,pet_snapshot,location_mode,street_address,city,state,zip_code"
 
     private let client: SupabaseClient
 
@@ -338,6 +338,7 @@ private struct BookingRow: Decodable {
             updatedAt: updatedAt,
             review: review,
             serviceType: requestLocation?.serviceType,
+            requestPetSnapshot: requestLocation?.petSnapshot,
             groomerBusinessName: groomerSummary?.businessName,
             groomerBaseStreetAddress: groomerSummary?.baseStreetAddress,
             groomerBaseCity: groomerSummary?.baseCity,
@@ -408,6 +409,7 @@ private struct BookingGroomerSummaryRow: Decodable {
 
 private struct BookingRequestLocation: Sendable {
     let serviceType: GroomingServiceType
+    let petSnapshot: GroomingRequestPetSnapshot
     let locationMode: GroomingLocationMode
     let streetAddress: String
     let city: String
@@ -418,6 +420,7 @@ private struct BookingRequestLocation: Sendable {
 private struct BookingRequestLocationRow: Decodable {
     let id: UUID
     let serviceType: GroomingServiceType
+    let petSnapshot: GroomingRequestPetSnapshot
     let locationMode: GroomingLocationMode
     let streetAddress: String
     let city: String
@@ -427,6 +430,7 @@ private struct BookingRequestLocationRow: Decodable {
     var location: BookingRequestLocation {
         BookingRequestLocation(
             serviceType: serviceType,
+            petSnapshot: petSnapshot,
             locationMode: locationMode,
             streetAddress: streetAddress,
             city: city,
@@ -438,6 +442,7 @@ private struct BookingRequestLocationRow: Decodable {
     private enum CodingKeys: String, CodingKey {
         case id
         case serviceType = "service_type"
+        case petSnapshot = "pet_snapshot"
         case locationMode = "location_mode"
         case streetAddress = "street_address"
         case city

@@ -269,6 +269,76 @@ struct BookingsStoreTests {
         #expect(booking.appointmentAddressSummary == "456 Groomer Lane, Austin, TX 78701")
     }
 
+    @Test
+    func completedBookingDerivesReviewablePetFitSignalsFromRequestContext() throws {
+        let booking = Self.booking(
+            status: .completed,
+            completedAt: "2026-06-22T18:05:00Z",
+            serviceType: .fullGroom,
+            requestPetSnapshot: try Self.petSnapshot(
+                breed: "Toy Poodle",
+                size: "Giant",
+                weightLbs: 16,
+                birthday: "2013-06-24",
+                temperament: "Anxious"
+            )
+        )
+
+        #expect(
+            booking.reviewableFitSignals.map(\.id) == [
+                "breed_group:poodle",
+                "size_band:S",
+                "care_flag:anxious",
+                "care_flag:senior",
+                "service_fit:curly_coat",
+                "service_fit:gentle_handling",
+                "service_fit:senior_care"
+            ]
+        )
+    }
+
+    @Test
+    func reviewablePetFitSignalsRequireCompletedBookingAndRequestContext() throws {
+        let confirmedBooking = Self.booking(
+            status: .confirmed,
+            serviceType: .haircutOnly,
+            requestPetSnapshot: try Self.petSnapshot(
+                breed: "West Highland White Terrier",
+                weightLbs: 22
+            )
+        )
+        let missingContextBooking = Self.booking(
+            status: .completed,
+            completedAt: "2026-06-22T18:05:00Z",
+            serviceType: .haircutOnly,
+            requestPetSnapshot: nil
+        )
+
+        #expect(confirmedBooking.reviewableFitSignals.isEmpty)
+        #expect(missingContextBooking.reviewableFitSignals.isEmpty)
+    }
+
+    @Test
+    func bookingReviewableSignalsIncludeTerrierServiceFitAndSizeContext() throws {
+        let booking = Self.booking(
+            status: .completed,
+            completedAt: "2026-06-22T18:05:00Z",
+            serviceType: .haircutOnly,
+            requestPetSnapshot: try Self.petSnapshot(
+                breed: "West Highland White Terrier",
+                weightLbs: 42
+            )
+        )
+
+        #expect(
+            booking.reviewableFitSignals.map(\.id) == [
+                "breed_group:terrier",
+                "size_band:L",
+                "service_fit:terrier_coat"
+            ]
+        )
+    }
+
     private static func booking(
         id: UUID = UUID(),
         requestID: UUID = UUID(),
@@ -288,7 +358,8 @@ struct BookingsStoreTests {
         customerStreetAddress: String? = nil,
         customerCity: String? = nil,
         customerState: String? = nil,
-        customerZipCode: String? = nil
+        customerZipCode: String? = nil,
+        requestPetSnapshot: GroomingRequestPetSnapshot? = nil
     ) -> Booking {
         Booking(
             id: id,
@@ -308,6 +379,7 @@ struct BookingsStoreTests {
             updatedAt: "2026-06-20T12:00:00Z",
             review: review,
             serviceType: serviceType,
+            requestPetSnapshot: requestPetSnapshot,
             groomerBusinessName: groomerBusinessName,
             groomerBaseStreetAddress: groomerBaseStreetAddress,
             groomerBaseCity: groomerBaseCity,
@@ -318,6 +390,28 @@ struct BookingsStoreTests {
             customerCity: customerCity,
             customerState: customerState,
             customerZipCode: customerZipCode
+        )
+    }
+
+    private static func petSnapshot(
+        breed: String? = nil,
+        size: String? = "S",
+        weightLbs: Double? = 16,
+        birthday: String? = nil,
+        temperament: String? = nil
+    ) throws -> GroomingRequestPetSnapshot {
+        GroomingRequestPetSnapshot(
+            id: UUID(uuidString: "11111111-2222-4333-8444-555555555555")!,
+            name: "Mochi",
+            species: "Dog",
+            breed: breed,
+            size: size,
+            weightLbs: weightLbs,
+            birthday: birthday,
+            temperament: temperament,
+            medicalNotes: nil,
+            groomingNotes: nil,
+            snapshotAt: nil
         )
     }
 }
