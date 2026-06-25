@@ -24,7 +24,7 @@ Startup reads:
 3. targeted `CURRENT_STATE.md` sections when current state or risks matter
 4. `TASK_LEDGER.md` only when choosing or updating task status
 
-Avoid broad searches. Do not read or search `docs/05_workflow/archive_subagent_workflow/` or `docs/05_workflow/agent_reports/` unless the task is explicitly about historical workflow state.
+Avoid broad searches. Do not read or search `docs/09_frozen/workflow_archive_2026-06-24/archive_subagent_workflow/` or `docs/09_frozen/workflow_archive_2026-06-24/agent_reports/` unless the task is explicitly about historical workflow state.
 
 ## Flow
 

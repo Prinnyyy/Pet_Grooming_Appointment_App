@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-06-24
+Task: Project folder readability cleanup.
+Files changed: Project structure docs, README indexes, workflow path references, task screenshot references, reviewed SQL draft paths, design screenshot paths, frozen archives, CURRENT_STATE.md, and WORKLOG.md.
+Checks: git diff --check passed; git diff --cached --check passed while git-tracked moves were staged; ./scripts/ios-build.sh passed for iPhone 17 Pro iOS 26.5; simulator boot/install/launch passed on iPhone 17 Pro with PetGroomerMarketplace pid 55542.
+Result: Reviewed SQL task attachments moved into docs/06_tasks/sql_reviews; disabled agent role cards, archived workflow reports/docs, and the initialization prompt moved into docs/09_frozen; prototype screenshots moved into docs/08_design/screenshots with ASCII filenames; active references were updated; and a durable project structure map now records current path ownership and move history.
+Risks: Root brief, CLAUDE_reference, iOS source, Xcode project, Supabase migrations, scripts, .codex/config.toml, and local secrets were intentionally not moved to avoid breaking historical references, app/build paths, migration audit trails, or credential boundaries.
+Next: Use docs/10_project_structure/README.md when a future run needs the current folder map.
+```
+
+```text
+Date: 2026-06-24
 Task: T-066 - Groomly pet-fit groomer claims and portfolio tags.
 Files changed: Supabase migrations 20260625005226, 20260625010421, and 20260625010716; T-066 task doc; Supabase contract/RLS docs; task ledger; feature index; CURRENT_STATE.md; and WORKLOG.md.
 Checks: RED missing-table query failed before implementation; RED authenticated CHECK-helper failure reproduced after the first migration; MCP migrations applied; metadata/grant/RLS/policy/index checks passed; rollback-only behavior checks passed; final residue check returned zero validation rows; advisors ran; supabase-check passed; diff-check recorded in task closeout.
@@ -747,7 +757,7 @@ Files changed: T-018 task doc, reviewed SQL draft, task ledger, current state, a
 Checks: Supabase changelog/docs were reviewed; MCP read-only checks confirmed the fresh target migration history, existing T-012/T-015 objects, and `btree_gist` availability. No remote DDL was applied.
 Result: T-018 is in progress. The reviewed SQL draft defines bookings, conversations, participant RLS, `accept_groomer_offer`, `cancel_booking`, uniqueness, and groomer time-overlap protection.
 Risks: Remote migration, backend validation, local migration mirror, backend docs, and final closeout remain pending explicit user approval for MCP `apply_migration`.
-Next: Approve or revise `docs/06_tasks/T-018_OFFER_ACCEPTANCE_BOOKING_REVIEWED_SQL.sql`, then continue T-018.
+Next: Approve or revise `docs/06_tasks/sql_reviews/T-018_OFFER_ACCEPTANCE_BOOKING_REVIEWED_SQL.sql`, then continue T-018.
 ```
 
 ```text

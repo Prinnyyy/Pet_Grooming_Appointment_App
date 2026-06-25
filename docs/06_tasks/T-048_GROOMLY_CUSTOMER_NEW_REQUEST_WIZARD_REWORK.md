@@ -17,11 +17,11 @@ Rework the Customer new request flow from five prototype screenshots as a progre
 
 Screenshot/source references:
 
-- `docs/08_design/原型截图/截屏2026-06-22 下午9.54.20.png`
-- `docs/08_design/原型截图/截屏2026-06-22 下午9.55.02.png`
-- `docs/08_design/原型截图/截屏2026-06-22 下午9.55.15.png`
-- `docs/08_design/原型截图/截屏2026-06-22 下午10.06.23.png`
-- `docs/08_design/原型截图/截屏2026-06-22 下午10.06.34.png`
+- `docs/08_design/screenshots/screenshot-2026-06-22-pm-09-54-20.png`
+- `docs/08_design/screenshots/screenshot-2026-06-22-pm-09-55-02.png`
+- `docs/08_design/screenshots/screenshot-2026-06-22-pm-09-55-15.png`
+- `docs/08_design/screenshots/screenshot-2026-06-22-pm-10-06-23.png`
+- `docs/08_design/screenshots/screenshot-2026-06-22-pm-10-06-34.png`
 
 ## Primary Task
 

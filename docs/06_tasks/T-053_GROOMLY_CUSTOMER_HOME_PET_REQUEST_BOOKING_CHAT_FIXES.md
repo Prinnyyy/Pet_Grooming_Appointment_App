@@ -12,7 +12,7 @@ Fix several customer-facing issues across Home, Add/Edit Pet, Requests, Bookings
 
 Screenshot/source reference:
 
-- `/Users/liafenyua/Desktop/Pet_Grooming_Appointment_App/docs/08_design/原型截图/截屏2026-06-23 上午11.44.01.png`
+- `docs/08_design/screenshots/screenshot-2026-06-23-am-11-44-01.png`
 
 ## Primary Task
 

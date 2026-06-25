@@ -17,9 +17,9 @@ Redesign the Customer Bookings, Messages, and Account pages from three uploaded 
 
 Screenshot references:
 
-- `docs/08_design/原型截图/截屏2026-06-22 上午12.27.41.png`
-- `docs/08_design/原型截图/截屏2026-06-22 上午12.27.50.png`
-- `docs/08_design/原型截图/截屏2026-06-22 上午12.27.57.png`
+- `docs/08_design/screenshots/screenshot-2026-06-22-am-12-27-41.png`
+- `docs/08_design/screenshots/screenshot-2026-06-22-am-12-27-50.png`
+- `docs/08_design/screenshots/screenshot-2026-06-22-am-12-27-57.png`
 
 ## Screenshot Analysis
 

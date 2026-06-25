@@ -10,7 +10,7 @@ Redesign the groomer Schedule page from the uploaded prototype screenshot. The p
 
 Screenshot/source reference:
 
-- `/Users/liafenyua/Desktop/Pet_Grooming_Appointment_App/docs/08_design/原型截图/截屏2026-06-24 上午12.16.03.png`
+- `docs/08_design/screenshots/screenshot-2026-06-24-am-12-16-03.png`
 
 ## Screenshot Analysis
 

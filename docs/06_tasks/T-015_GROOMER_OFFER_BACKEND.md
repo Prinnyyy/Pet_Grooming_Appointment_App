@@ -41,7 +41,7 @@ Applied remote migrations:
 
 The reviewed SQL draft remains stored at:
 
-- `docs/06_tasks/T-015_GROOMER_OFFER_BACKEND_REVIEWED_SQL.sql`
+- `docs/06_tasks/sql_reviews/T-015_GROOMER_OFFER_BACKEND_REVIEWED_SQL.sql`
 
 ## Contract Summary
 

@@ -12,8 +12,8 @@ Deep. The screenshot implied new persistence for booking preferences and time of
 
 Source screenshots:
 
-- `docs/08_design/原型截图/截屏2026-06-23 下午6.56.11.png`
-- `docs/08_design/原型截图/截屏2026-06-23 下午6.56.24.png`
+- `docs/08_design/screenshots/screenshot-2026-06-23-pm-06-56-11.png`
+- `docs/08_design/screenshots/screenshot-2026-06-23-pm-06-56-24.png`
 
 Add functionality to the groomer Availability page based on the two screenshots.
 

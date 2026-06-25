@@ -12,8 +12,8 @@ Rework the customer Requests page from the uploaded prototype screenshots. The t
 
 Screenshot/source reference:
 
-- `docs/08_design/原型截图/截屏2026-06-22 上午12.27.13.png`
-- `docs/08_design/原型截图/截屏2026-06-22 上午12.27.26.png`
+- `docs/08_design/screenshots/screenshot-2026-06-22-am-12-27-13.png`
+- `docs/08_design/screenshots/screenshot-2026-06-22-am-12-27-26.png`
 
 ## Primary Task
 

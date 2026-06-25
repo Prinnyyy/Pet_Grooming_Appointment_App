@@ -62,7 +62,7 @@ Read only what the task needs:
 3. targeted sections of `docs/00_memory/CURRENT_STATE.md` when current state or risks matter
 4. `docs/06_tasks/TASK_LEDGER.md` only when choosing or updating task status
 
-Read product briefs, `PROJECT_MEMORY.md`, architecture/backend docs, historical decisions, archived workflow docs, or old reports only when directly relevant. Do not search `docs/05_workflow/archive_subagent_workflow/` or `docs/05_workflow/agent_reports/` unless the user asks for historical workflow context.
+Read product briefs, `PROJECT_MEMORY.md`, architecture/backend docs, historical decisions, archived workflow docs, or old reports only when directly relevant. Do not search `docs/09_frozen/workflow_archive_2026-06-24/archive_subagent_workflow/` or `docs/09_frozen/workflow_archive_2026-06-24/agent_reports/` unless the user asks for historical workflow context.
 
 ## Working Rules
 

@@ -11,11 +11,26 @@ Use it to avoid relying on long conversation context.
 - `02_architecture/`: iOS/client architecture and module boundaries
 - `03_backend/`: Supabase schema, RLS, RPC, storage, migrations
 - `04_ios/`: Swift, SwiftUI, build, testing, accessibility rules
-- `05_workflow/`: lightweight single-agent Codex workflow, context management, and tool policies
+- `05_workflow/`: active lightweight single-agent Codex workflow, context management, and tool policies
 - `06_tasks/`: task ledger, task template, handoff notes, review template
 - `07_decisions/`: ADRs and decision templates
-- `08_design/`: Groomly prototype, design prompt, implementation notes, and extracted design tokens
-- `09_frozen/`: frozen pre-phase snapshots used only for recovery or comparison
+- `08_design/`: Groomly prototype, normalized screenshots, design prompt, implementation notes, and extracted design tokens
+- `09_frozen/`: frozen historical snapshots, disabled agent roles, archived workflow docs/reports, and setup prompts
+- `10_project_structure/`: current path map and reorganization history
+- `superpowers/`: historical Superpowers plans/specs, read only when directly relevant
+
+## Quick Path Lookup
+
+- Current structure map: `10_project_structure/README.md`
+- Structure change log: `10_project_structure/REORGANIZATION_LOG.md`
+- Task folder guide: `06_tasks/README.md`
+- Reviewed SQL task drafts: `06_tasks/sql_reviews/`
+- Design screenshots: `08_design/screenshots/`
+- Frozen archive guide: `09_frozen/README.md`
+- Frozen workflow archive: `09_frozen/workflow_archive_2026-06-24/`
+- Frozen disabled agent archive: `09_frozen/agent_team_archive_2026-06-24/`
+- Deployed/prepared Supabase migration mirrors: `../supabase/migrations/`
+- SwiftUI source root: `../ios/PetGroomerMarketplace/PetGroomerMarketplace/`
 
 ## Active Task
 

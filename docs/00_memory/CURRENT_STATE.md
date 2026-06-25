@@ -29,6 +29,11 @@ Update this only when project state meaningfully changes.
 - Active next executable pet-fit matching task: none without explicit T-067+ backend authorization.
 - Active next executable Groomly screenshot task: none currently defined; future UI work starts from a user-uploaded screenshot.
 - Screenshot-driven task template: `docs/06_tasks/SCREENSHOT_UI_REWORK_TASK_TEMPLATE.md`.
+- Project structure index: `docs/10_project_structure/README.md`.
+- Project reorganization log: `docs/10_project_structure/REORGANIZATION_LOG.md`.
+- Task directory guide: `docs/06_tasks/README.md`.
+- Design screenshots now live under normalized ASCII paths in `docs/08_design/screenshots/`.
+- Disabled agent roles, archived subagent workflow docs/reports, and the original workspace initialization prompt live under `docs/09_frozen/`.
 - Superseded mandatory completion gate task: `docs/06_tasks/WORKFLOW-COMPLETION-GATE-001.md`.
 - Lightweight workflow gates task: `docs/06_tasks/WORKFLOW-LIGHTWEIGHT-GATES-001.md`.
 - Screenshot ignore rule task: `docs/06_tasks/WORKFLOW-SCREENSHOT-IGNORE-EXTERNAL-ROLE-TOGGLE-001.md`.
@@ -80,11 +85,11 @@ Update this only when project state meaningfully changes.
 ## Current Build Status
 
 - Last build command: `./scripts/ios-build.sh`.
-- Last known build result: passed for T-064 on 2026-06-24 using `platform=iOS Simulator,OS=26.5,name=iPhone 17 Pro`.
+- Last known build result: passed after project structure cleanup on 2026-06-24 using `platform=iOS Simulator,OS=26.5,name=iPhone 17 Pro`.
 - Last test command: targeted `xcodebuild test ... -only-testing:PetGroomerMarketplaceTests/PetFitTaxonomyTests`.
 - Last known test result: targeted `PetFitTaxonomyTests` passed for T-064 on 2026-06-24.
-- Last simulator launch: `xcrun simctl install` + `xcrun simctl launch com.prinnyyy.PetGroomerMarketplace` passed on `iPhone 17 Pro` iOS 26.5 simulator (`45D452E8-DC6C-4CD4-A747-4D21671E68A6`) on 2026-06-24; app launched successfully for inspection with pid `60645`.
-- Last general check: `git diff --check` passed for T-066 on 2026-06-24; `./scripts/supabase-check.sh` passed for T-066 on 2026-06-24.
+- Last simulator launch: `xcrun simctl install` + `xcrun simctl launch com.prinnyyy.PetGroomerMarketplace` passed on `iPhone 17 Pro` iOS 26.5 simulator (`45D452E8-DC6C-4CD4-A747-4D21671E68A6`) on 2026-06-24 after project structure cleanup; app launched successfully with pid `55542`.
+- Last general check: `git diff --check` and `git diff --cached --check` passed after project structure cleanup on 2026-06-24; `./scripts/supabase-check.sh` passed for T-066 on 2026-06-24.
 - Known failing checks: none recorded after T-066 corrective validation.
 - Historical per-task validation details live in the relevant `docs/06_tasks/T-*.md` files and `docs/00_memory/WORKLOG.md`.
 

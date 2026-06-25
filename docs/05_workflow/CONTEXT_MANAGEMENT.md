@@ -10,7 +10,7 @@ Default to the smallest useful read:
 - Read `TASK_LEDGER.md` only to choose, verify, or update task status.
 - Read briefs, architecture/backend docs, decisions, feature indexes, and old reports only when directly relevant.
 
-Search only active areas by default. Exclude `docs/05_workflow/archive_subagent_workflow/` and `docs/05_workflow/agent_reports/` unless the user asks for historical workflow context.
+Search only active areas by default. Exclude `docs/09_frozen/workflow_archive_2026-06-24/archive_subagent_workflow/` and `docs/09_frozen/workflow_archive_2026-06-24/agent_reports/` unless the user asks for historical workflow context.
 
 ## Durable Memory
 

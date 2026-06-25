@@ -56,7 +56,11 @@ No active next Groomly UI task is currently defined. Do not start backend contra
 
 - Agent rules: `AGENTS.md`
 - Current state: `docs/00_memory/CURRENT_STATE.md`
+- Project structure index: `docs/10_project_structure/README.md`
 - Task ledger: `docs/06_tasks/TASK_LEDGER.md`
+- Task folder guide: `docs/06_tasks/README.md`
+- Design screenshots: `docs/08_design/screenshots/`
+- Frozen archives: `docs/09_frozen/README.md`
 - Groomly foundation sequence: `docs/06_tasks/T-023_GROOMLY_UI_FOUNDATION_SEQUENCE.md`
 - Completed Auth/Onboarding slice: `docs/06_tasks/T-024_GROOMLY_AUTH_ONBOARDING_UI.md`
 - Completed Customer Pets/Home slice: `docs/06_tasks/T-025_GROOMLY_CUSTOMER_PETS_UI.md`

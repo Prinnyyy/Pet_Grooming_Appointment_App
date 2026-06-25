@@ -15,8 +15,8 @@ Redesign selected customer-facing surfaces to better match the current Groomly v
 
 Screenshot/source references:
 
-- `/Users/liafenyua/Desktop/Pet_Grooming_Appointment_App/docs/08_design/原型截图/截屏2026-06-22 上午12.27.41.png`
-- `/Users/liafenyua/Desktop/Pet_Grooming_Appointment_App/docs/08_design/原型截图/截屏2026-06-22 上午12.27.50.png`
+- `docs/08_design/screenshots/screenshot-2026-06-22-am-12-27-41.png`
+- `docs/08_design/screenshots/screenshot-2026-06-22-am-12-27-50.png`
 
 ## Primary Task
 

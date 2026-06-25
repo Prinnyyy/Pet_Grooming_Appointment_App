@@ -45,7 +45,7 @@ Applied remote migrations:
 
 The reviewed SQL draft remains stored at:
 
-- `docs/06_tasks/T-018_OFFER_ACCEPTANCE_BOOKING_REVIEWED_SQL.sql`
+- `docs/06_tasks/sql_reviews/T-018_OFFER_ACCEPTANCE_BOOKING_REVIEWED_SQL.sql`
 
 ## Contract Summary
 

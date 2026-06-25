@@ -10,7 +10,7 @@ Deep. User explicitly authorized the Supabase-backed availability work after the
 
 ## Screenshot Analysis
 
-Source screenshot: `docs/08_design/原型截图/截屏2026-06-23 下午3.17.46.png`.
+Source screenshot: `docs/08_design/screenshots/screenshot-2026-06-23-pm-03-17-46.png`.
 
 - The long oval Customer/Groomer switch above the phone frame is an external prototype annotation and was ignored per workflow rule.
 - In-app modules mapped:

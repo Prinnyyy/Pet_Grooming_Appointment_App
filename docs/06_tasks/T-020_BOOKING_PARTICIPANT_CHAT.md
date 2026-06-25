@@ -34,7 +34,7 @@ Out of scope:
 
 Reviewed SQL draft:
 
-- `docs/06_tasks/T-020_BOOKING_PARTICIPANT_CHAT_REVIEWED_SQL.sql`
+- `docs/06_tasks/sql_reviews/T-020_BOOKING_PARTICIPANT_CHAT_REVIEWED_SQL.sql`
 
 The user approved this SQL and it was applied remotely as migration `20260621055915`.
 
