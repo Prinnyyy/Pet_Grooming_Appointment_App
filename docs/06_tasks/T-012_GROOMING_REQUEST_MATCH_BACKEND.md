@@ -135,11 +135,11 @@ Server checks:
 
 Completed validation:
 
-1. MCP primary migration apply passed and migration record `20260621000444` was confirmed.
-2. MCP conflict-target corrective migration apply passed and migration record `20260621002211` was confirmed.
-3. MCP photo-snapshot cap corrective migration apply passed and migration record `20260621010315` was confirmed.
-4. Tables, columns, constraints, indexes, grants, policies, and function privileges were verified through MCP metadata SQL.
-5. Rollback-only MCP behavior checks passed:
+1. Remote primary migration apply passed and migration record `20260621000444` was confirmed.
+2. Remote conflict-target corrective migration apply passed and migration record `20260621002211` was confirmed.
+3. Remote photo-snapshot cap corrective migration apply passed and migration record `20260621010315` was confirmed.
+4. Tables, columns, constraints, indexes, grants, policies, and function privileges were verified through CLI-backed metadata SQL.
+5. Rollback-only remote behavior checks passed:
    - Valid customer request creates one request and expected matches.
    - Pet snapshot and photo snapshot freeze current pet/photo data.
    - Open request limit rejects the fourth active request.
@@ -152,8 +152,8 @@ Completed validation:
    - Anonymous caller cannot execute either RPC.
 6. A rollback-only regression check with 21 pet-photo rows passed: request creation succeeded and stored a 20-item `photo_snapshot`.
 7. Rollback cleanup confirmed zero persisted T-012 Auth users, profiles, pets, photos, requests, or matches.
-8. MCP security advisor returned two expected WARNs for authenticated callers executing the T-012 `SECURITY DEFINER` RPCs. This is intentional for controlled multi-row writes while direct table insert/update/delete grants remain denied; both RPCs perform explicit identity, role, ownership, and state checks, use an empty `search_path`, and revoke `PUBLIC`/`anon` execution.
-9. MCP performance advisor returned INFOs:
+8. Supabase CLI security advisor returned two expected WARNs for authenticated callers executing the T-012 `SECURITY DEFINER` RPCs. This is intentional for controlled multi-row writes while direct table insert/update/delete grants remain denied; both RPCs perform explicit identity, role, ownership, and state checks, use an empty `search_path`, and revoke `PUBLIC`/`anon` execution.
+9. Supabase CLI performance advisor returned INFOs:
    - Existing T-008 `pet_photos_pet_owner_fkey` composite-FK advisory, already reviewed in T-008.
    - New T-012 composite-FK index suggestions for `grooming_requests_pet_owner_fkey` and `request_matches_request_customer_fkey`.
    - New T-012 unused-index INFOs expected before T-013/T-014 client queries exercise request flows.

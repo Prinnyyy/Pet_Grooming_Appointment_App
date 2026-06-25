@@ -114,13 +114,13 @@ Observed coverage:
 
 ## Remote Migration Checkpoint
 
-Approved MCP migration applies:
+Approved Supabase CLI migration applies:
 
 - Project: `lqmasbuqzvcvtawonjlb`.
 - Applied primary migration: `20260621065954_t021_completion_reviews`.
 - Applied corrective migration: `20260621070826_t021_fix_create_review_returning_ambiguity`.
 
-MCP metadata verification passed:
+CLI-backed metadata verification passed:
 
 - `bookings.completed_at` and `bookings.completed_by` exist.
 - `public.reviews` exists with RLS enabled.

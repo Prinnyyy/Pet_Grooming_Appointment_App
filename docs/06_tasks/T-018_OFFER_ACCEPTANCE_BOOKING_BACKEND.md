@@ -144,8 +144,8 @@ The `completed` booking status is forward-compatible only in T-018. No deployed 
 
 Completed validation:
 
-1. MCP migration apply passed and migration record `20260621044424` was confirmed.
-2. MCP metadata checks verified:
+1. Supabase CLI migration apply passed and migration record `20260621044424` was confirmed.
+2. CLI-backed metadata checks verified:
    - `btree_gist` is installed.
    - `bookings` and `conversations` exist with RLS enabled.
    - Each new table has exactly one participant SELECT policy.
@@ -153,7 +153,7 @@ Completed validation:
    - `anon` and `public` cannot execute the new RPCs; `authenticated` and `service_role` can execute them.
    - `accept_groomer_offer` and `cancel_booking` are `SECURITY DEFINER` with an empty search path.
    - Uniqueness, conversation identity FK, groomer-offer identity FK, and `bookings_no_groomer_time_overlap` exclusion constraint exist.
-3. Rollback-only MCP behavior checks passed:
+3. Rollback-only remote behavior checks passed:
    - Customer can accept own pending offer.
    - Direct authenticated booking insert is denied.
    - Duplicate accept is rejected.
@@ -165,8 +165,8 @@ Completed validation:
    - Customer and groomer participants can cancel confirmed bookings.
    - Non-participant cancellation is rejected.
 4. Rollback cleanup confirmed zero persisted T-018 Auth/profile/request/match/offer/booking/conversation validation rows.
-5. MCP security advisor returned expected `SECURITY DEFINER` WARNs for the four existing T-012/T-015 RPCs plus the two new T-018 RPCs. This is intentional for controlled multi-row writes while direct table writes remain denied; the RPCs perform explicit identity, role, ownership, status, uniqueness, and conflict checks, use an empty `search_path`, and revoke `PUBLIC`/`anon` execution.
-6. MCP performance advisor returned INFOs:
+5. Supabase CLI security advisor returned expected `SECURITY DEFINER` WARNs for the four existing T-012/T-015 RPCs plus the two new T-018 RPCs. This is intentional for controlled multi-row writes while direct table writes remain denied; the RPCs perform explicit identity, role, ownership, status, uniqueness, and conflict checks, use an empty `search_path`, and revoke `PUBLIC`/`anon` execution.
+6. Supabase CLI performance advisor returned INFOs:
    - Existing T-008/T-012/T-015 composite-FK and unused-index INFOs already reviewed in earlier tasks.
    - New T-018 composite-FK INFOs for `bookings_request_customer_fkey`, `bookings_offer_identity_fkey`, and `conversations_booking_identity_fkey`. They were reviewed as non-blocking because existing unique/leading-column indexes cover the authoritative request, offer, and booking lookup paths; broader composite indexing can be revisited when T-019 client query paths are final.
 7. `./scripts/supabase-check.sh` passed.

@@ -15,7 +15,7 @@ In scope:
 
 - Review existing loading, empty, error, and validation surfaces for the implemented MVP screens.
 - Add a developer-only safe Debug Panel.
-- Validate core customer-to-groomer flow through rollback-only Supabase MCP checks.
+- Validate core customer-to-groomer flow through rollback-only Supabase CLI checks.
 - Validate booking uniqueness/conflict boundaries and required RLS negative cases.
 - Run local iOS and repository checks once, with one approved targeted retry for the compile issue found in validation.
 
@@ -58,11 +58,11 @@ Targeted source review confirmed the implemented MVP screens expose loading, emp
 
 No broad UX refactor was made in T-022.
 
-## Supabase MCP Validation
+## Supabase CLI Validation
 
 No schema migration or remote DDL was applied.
 
-MCP checks used the authorized fresh project only:
+Supabase CLI checks used the authorized fresh project only:
 
 - Project: `lqmasbuqzvcvtawonjlb`.
 - Legacy project: not inspected or mutated.

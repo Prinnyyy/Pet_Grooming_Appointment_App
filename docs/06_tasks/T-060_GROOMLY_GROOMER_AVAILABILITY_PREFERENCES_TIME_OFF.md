@@ -62,8 +62,8 @@ Add functionality to the groomer Availability page based on the two screenshots.
 
 - Local migration: `supabase/migrations/20260624021122_t060_groomer_availability_preferences.sql`.
 - Remote project: `lqmasbuqzvcvtawonjlb`.
-- MCP migration application: success.
-- MCP migration list confirmed remote version `20260624022107_t060_groomer_availability_preferences`.
+- Supabase CLI migration application: success.
+- Supabase CLI migration list confirmed remote version `20260624022107_t060_groomer_availability_preferences`.
 - Metadata checks confirmed:
   - both tables exist;
   - RLS enabled on both tables;

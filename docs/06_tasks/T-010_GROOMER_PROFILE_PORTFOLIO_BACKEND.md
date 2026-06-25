@@ -98,10 +98,10 @@ Private bucket:
 
 Completed validation:
 
-1. MCP primary migration apply passed and migration record `20260620224418` was confirmed.
-2. MCP corrective migration apply passed and migration record `20260620225308` was confirmed.
-3. Tables, columns, constraints, indexes, grants, bucket, and RLS/Storage policies were verified through MCP metadata queries.
-4. Rollback-only MCP access checks passed before and after the corrective policy merge:
+1. Remote primary migration apply passed and migration record `20260620224418` was confirmed.
+2. Remote corrective migration apply passed and migration record `20260620225308` was confirmed.
+3. Tables, columns, constraints, indexes, grants, bucket, and RLS/Storage policies were verified through CLI-backed metadata queries.
+4. Rollback-only remote access checks passed before and after the corrective policy merge:
    - Groomer can update own `groomer_profiles`.
    - Groomer cannot update another groomer profile.
    - Customer cannot insert/update groomer services.
@@ -112,8 +112,8 @@ Completed validation:
    - Portfolio Storage insert rejects cross-owner paths and invalid extensions.
    - Portfolio authenticated read is tied to active groomer metadata and does not open broad listing.
 5. Rollback cleanup confirmed zero remaining validation Auth users, profiles, services, portfolio metadata, or Storage objects.
-6. MCP security advisor returned 0 lints.
-7. MCP performance advisor's T-010 multiple-permissive SELECT WARNs were resolved by the corrective migration. Remaining performance INFOs are non-blocking:
+6. Supabase CLI security advisor returned 0 lints.
+7. Supabase CLI performance advisor's T-010 multiple-permissive SELECT WARNs were resolved by the corrective migration. Remaining performance INFOs are non-blocking:
    - Existing T-008 `pet_photos_pet_owner_fkey` composite-FK index advisory, already reviewed in T-008.
    - T-010 `groomer_profiles_active_city_idx` unused-index INFO; expected until T-011+ production queries exercise active groomer discovery.
 8. `./scripts/supabase-check.sh` passed.

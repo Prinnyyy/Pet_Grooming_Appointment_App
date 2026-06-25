@@ -8,10 +8,10 @@ Applied and validated on 2026-06-20.
 
 - Authorized project: `Pet Groomer Marketplace` (`lqmasbuqzvcvtawonjlb`).
 - Forbidden legacy project: `swdiiyypysyxbnfrxxsv`.
-- Initial MCP baseline: project was `ACTIVE_HEALTHY` on Postgres 17.6; `public` had no tables, migration history was empty, and no `avatars` bucket existed.
+- Initial remote baseline: project was `ACTIVE_HEALTHY` on Postgres 17.6; `public` had no tables, migration history was empty, and no `avatars` bucket existed.
 - Applied migration mirror: `supabase/migrations/20260620105202_t004_profile_foundation.sql`.
 - Advisor remediation mirror: `supabase/migrations/20260620105409_t004_optimize_rls_auth_calls.sql`.
-- The first mirror intentionally preserves its reviewed pre-apply header comment because the file is an exact copy of the SQL sent to MCP; deployed status is recorded in this review and the task intake.
+- The first mirror intentionally preserves its reviewed pre-apply header comment because the file is an exact copy of the SQL applied remotely; deployed status is recorded in this review and the task intake.
 
 ## Reviewed Scope
 
@@ -26,11 +26,11 @@ Applied and validated on 2026-06-20.
 
 ## Validation Results
 
-1. MCP applied `20260620105202_t004_profile_foundation` to `lqmasbuqzvcvtawonjlb` and the exact SQL was mirrored locally.
+1. Supabase CLI applied `20260620105202_t004_profile_foundation` to `lqmasbuqzvcvtawonjlb` and the exact SQL was mirrored locally.
 2. Metadata inspection confirmed all three tables, constraints, grants, RLS policies, update triggers, and the private `avatars` bucket.
 3. Rollback-only tests passed for own-row access, cross-user denial, role mismatch denial, owner-folder enforcement, and anonymous denial; no test data persisted.
-4. Performance advisors initially reported seven equivalent `auth.jwt()` initialization-plan warnings. MCP migration `20260620105409_t004_optimize_rls_auth_calls` corrected the expressions without changing access semantics.
-5. Final MCP security and performance advisors both returned zero lints.
+4. Performance advisors initially reported seven equivalent `auth.jwt()` initialization-plan warnings. Supabase CLI migration `20260620105409_t004_optimize_rls_auth_calls` corrected the expressions without changing access semantics.
+5. Final Supabase CLI security and performance advisors both returned zero lints.
 6. The first static repository check exposed a validator false positive on legitimate SQL `service_role` grants. The scan was narrowed to actual key-value patterns, a targeted rerun passed, and `git diff --check` passed.
 
 ## Authorization Gate

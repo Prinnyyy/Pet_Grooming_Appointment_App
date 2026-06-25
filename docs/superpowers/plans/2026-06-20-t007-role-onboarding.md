@@ -6,7 +6,7 @@
 
 **Architecture:** A `security invoker` Postgres RPC performs the shared-profile and role-marker inserts atomically under existing grants and RLS. A dedicated profile repository and `AuthenticatedEntryStore` keep Supabase out of SwiftUI views and keep profile state separate from Auth session state. Production routing remains session- and backend-driven; explicit routes remain preview/test-only composition points.
 
-**Tech Stack:** PostgreSQL 17, Supabase MCP, Supabase Swift 2.46.0, Swift 6, SwiftUI, Observation, Swift Testing.
+**Tech Stack:** PostgreSQL 17, Supabase CLI, Supabase Swift 2.46.0, Swift 6, SwiftUI, Observation, Swift Testing.
 
 ---
 
@@ -14,7 +14,7 @@
 
 Create:
 
-- `supabase/migrations/<mcp-version>_t007_create_my_profile.sql` — exact MCP-applied RPC migration mirror.
+- `supabase/migrations/<mcp-version>_t007_create_my_profile.sql` — exact CLI-applied RPC migration mirror.
 - `ios/PetGroomerMarketplace/PetGroomerMarketplace/Core/Models/MarketplaceProfile.swift` — minimal profile domain value.
 - `ios/PetGroomerMarketplace/PetGroomerMarketplace/Core/Repositories/ProfileRepository.swift` — profile lookup/onboarding contract and safe domain errors.
 - `ios/PetGroomerMarketplace/PetGroomerMarketplace/Core/Infrastructure/Supabase/SupabaseProfileRepository.swift` — sole PostgREST/RPC adapter.
@@ -45,7 +45,7 @@ The Xcode project uses filesystem-synchronized groups, so no `project.pbxproj` e
 
 **Files:**
 
-- Create after MCP returns its migration version: `supabase/migrations/<mcp-version>_t007_create_my_profile.sql`
+- Create with `supabase migration new <name>`: `supabase/migrations/<mcp-version>_t007_create_my_profile.sql`
 
 - [x] **Step 1: Obtain explicit approval for this exact remote migration**
 
@@ -154,13 +154,13 @@ grant execute on function public.create_my_profile(public.user_role, text)
 to authenticated, service_role;
 ```
 
-- [x] **Step 2: Apply once with Supabase MCP**
+- [x] **Step 2: Apply once with Supabase CLI**
 
-Call MCP `apply_migration` with the approved SQL. Do not use CLI, `execute_sql` for DDL, the legacy ref, or a second migration attempt.
+Call Supabase CLI `db push --linked` with the approved SQL. Do not use `supabase db query --linked` for DDL, the legacy ref, or a second migration attempt.
 
 - [x] **Step 3: Mirror the exact applied migration**
 
-Use the version returned by MCP in the local filename. The file content must be byte-for-byte the approved/applied SQL above; do not retain “draft” comments.
+Use the CLI-created migration filename in the local filename. The file content must be byte-for-byte the approved/applied SQL above; do not retain “draft” comments.
 
 #### Execution checkpoint: corrective migration applied
 
@@ -427,15 +427,15 @@ Use a `NavigationStack`, display-name `TextField`, two explicit role buttons wit
 
 ### Task 5: Verify backend behavior
 
-- [x] **Step 1: Verify migration metadata and grants through MCP**
+- [x] **Step 1: Verify migration metadata and grants through Supabase CLI**
 
-Confirm one `t007_create_my_profile` migration and inspect `pg_proc` privileges/security mode with read-only MCP SQL.
+Confirm one `t007_create_my_profile` migration and inspect `pg_proc` privileges/security mode with read-only Supabase CLI SQL.
 
-- [x] **Step 2: Run one rollback-only MCP SQL validation batch**
+- [x] **Step 2: Run one rollback-only Supabase CLI SQL validation batch**
 
 Within one transaction that always rolls back, create isolated Auth test identities and set `request.jwt.claims` per caller. Prove Customer and Groomer marker exclusivity, same-role idempotency/name preservation, exact different-role error, cross-user invisibility, and anonymous rejection. Raise an exception from the validation block on any failed assertion.
 
-- [x] **Step 3: Run MCP advisors**
+- [x] **Step 3: Run Supabase CLI advisors**
 
 Run security and performance advisors once. Stop and report any new T-007 finding rather than iterating remote DDL.
 
@@ -467,7 +467,7 @@ Run `git diff --check`, `git diff --stat`, and inspect only the T-007 diff. Conf
 
 - [x] **Step 1: Record only verified state**
 
-List the actual MCP migration version, backend checks/advisors, exact iOS test result/count, implemented routes, and next task T-008. Do not claim build/test success from planned work.
+List the actual Supabase CLI migration version, backend checks/advisors, exact iOS test result/count, implemented routes, and next task T-008. Do not claim build/test success from planned work.
 
 - [x] **Step 2: Stop**
 

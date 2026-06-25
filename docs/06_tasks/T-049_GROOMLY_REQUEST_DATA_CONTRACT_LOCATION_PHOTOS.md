@@ -42,7 +42,7 @@ The user explicitly authorized preparing and deploying a Supabase migration to t
 
 1. Add failing iOS tests for fixed service values, location-mode draft validation, state-code handling, request photo publish/upload behavior, and groomer profile location capability.
 2. Prepare a Supabase migration that adds request/groomer location fields, request photo metadata and Storage policies, service option constraints, explicit grants, and a replaced `create_grooming_request` RPC.
-3. Deploy the migration through Supabase MCP only, then run metadata/rollback-query/advisor checks.
+3. Deploy the migration through Supabase CLI only, then run metadata/rollback-query/advisor checks.
 4. Implement iOS shared models, repository parameters, request photo upload flow, customer wizard UI, groomer profile UI, groomer request/customer request display updates, fakes, and previews.
 5. Update backend/product docs and durable memory.
 
@@ -50,7 +50,7 @@ The user explicitly authorized preparing and deploying a Supabase migration to t
 
 - Run targeted red tests before production implementation and verify they fail for missing behavior.
 - Run the same targeted tests after implementation.
-- Deploy and verify Supabase migration on `lqmasbuqzvcvtawonjlb` through MCP.
+- Deploy and verify Supabase migration on `lqmasbuqzvcvtawonjlb` through Supabase CLI.
 - Run Supabase metadata checks for new columns, constraints, grants, policies, bucket, and RPC signature.
 - Run Supabase advisor checks and record any non-blocking findings.
 - Run `git diff --check`.
@@ -75,7 +75,7 @@ The user explicitly authorized preparing and deploying a Supabase migration to t
 
 ## Supabase Migration
 
-- Deployed to fresh project `lqmasbuqzvcvtawonjlb` through Supabase MCP as remote migration `20260623065017_t049_request_location_photo_contract`.
+- Deployed to fresh project `lqmasbuqzvcvtawonjlb` through Supabase CLI as remote migration `20260623065017_t049_request_location_photo_contract`.
 - Local mirror: `supabase/migrations/20260623065017_t049_request_location_photo_contract.sql`.
 - Normalized existing request/service text values into fixed service raw values: `full_groom`, `bath_and_brush`, `haircut_only`, `nail_trim`, `de_shedding`, and `custom_request`.
 - Added `grooming_requests.location_mode`, `street_address`, and `travel_radius_miles` with checks for allowed modes, state/ZIP format, address length, and travel-range mode compatibility.
@@ -91,7 +91,7 @@ The user explicitly authorized preparing and deploying a Supabase migration to t
 - Confirmed new columns, constraints, request photo policies, private bucket configuration, and `create_grooming_request` signature/grants on `lqmasbuqzvcvtawonjlb`.
 - Confirmed RPC execute grants remain restricted to `authenticated`, `postgres`, and `service_role`; no `anon` execute grant.
 - Confirmed existing request service values were normalized on the fresh project.
-- Supabase advisor MCP was not available in this tool session; this is recorded as a tooling limitation, not a failed advisory finding.
+- Supabase advisor CLI was not available in this tool session; this is recorded as a tooling limitation, not a failed advisory finding.
 
 ## Validation Log
 

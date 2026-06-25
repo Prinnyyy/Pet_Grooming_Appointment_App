@@ -48,13 +48,13 @@ Allow an authenticated user without a marketplace profile to enter a display nam
 
 ## Remote Boundary
 
-All Supabase work must use MCP and target only `lqmasbuqzvcvtawonjlb`. The complete migration SQL must be reviewed and explicitly approved before `apply_migration`. The applied migration must then be mirrored exactly under `supabase/migrations/`.
+All Supabase work must use Supabase CLI and target only the linked `lqmasbuqzvcvtawonjlb` project. The complete migration SQL must be reviewed and explicitly approved before `supabase db push --linked`. The applied migration must then be mirrored exactly under `supabase/migrations/`.
 
 ## Validation Plan
 
-1. Apply the approved migration with Supabase MCP.
-2. Use rollback-only MCP SQL checks for Customer/Groomer creation, same-role idempotency, role-switch rejection, and cross-user isolation.
-3. Run MCP security and performance advisors.
+1. Apply the approved migration with Supabase CLI.
+2. Use rollback-only Supabase CLI SQL checks for Customer/Groomer creation, same-role idempotency, role-switch rejection, and cross-user isolation.
+3. Run Supabase CLI security and performance advisors.
 4. Run `./scripts/supabase-check.sh` as a static repository check.
 5. Run exactly one Xcode validation attempt: `./scripts/ios-test.sh`.
 6. Run lightweight diff checks and review only the T-007 scope.

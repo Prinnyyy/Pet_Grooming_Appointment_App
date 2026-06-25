@@ -6,7 +6,7 @@ Completed on 2026-06-20.
 
 ## Primary Task
 
-Create the isolated Supabase foundation required for later authentication onboarding: an MCP-applied and repository-mirrored migration containing role/profile tables, owner-scoped RLS, and a private owner-scoped `avatars` bucket.
+Create the isolated Supabase foundation required for later authentication onboarding: an CLI-applied and repository-mirrored migration containing role/profile tables, owner-scoped RLS, and a private owner-scoped `avatars` bucket.
 
 ## Authorized Target
 
@@ -21,8 +21,8 @@ Create the isolated Supabase foundation required for later authentication onboar
 - Draft one reviewed migration for the Customer/Groomer role type, `profiles`, `customer_profiles`, and `groomer_profiles`.
 - Add explicit Data API grants and owner/role-scoped RLS policies.
 - Add a private `avatars` bucket with owner-folder Storage policies.
-- Apply the reviewed migration only through Supabase MCP to the authorized fresh project, then mirror the MCP-reported migration version locally.
-- Validate deployed objects, grants, RLS behavior, Storage policies, and security/performance advisors through Supabase MCP.
+- Apply the reviewed migration only through Supabase CLI to the authorized fresh project, then mirror the CLI-created migration filename locally.
+- Validate deployed objects, grants, RLS behavior, Storage policies, and security/performance advisors through Supabase CLI.
 - Synchronize backend contracts and durable memory with verified deployed state.
 
 ## Out of Scope
@@ -43,16 +43,16 @@ Create the isolated Supabase foundation required for later authentication onboar
 
 ## Execution Policy
 
-All Supabase operations used Supabase MCP. The user authorized the reviewed migration by explicitly requesting resolution of the T-004 migration. No Supabase CLI, `npx supabase`, local Supabase stack, or direct database tooling was used.
+All Supabase operations targeted the authorized fresh project. The user authorized the reviewed migration by explicitly requesting resolution of the T-004 migration. No `npx supabase`, local Supabase stack, or direct database tooling was used.
 
 ## Current Progress
 
-- MCP applied `20260620105202_t004_profile_foundation` to the authorized fresh project only.
-- MCP performance advisors identified an `auth.jwt()` initialization-plan warning; the scoped remediation `20260620105409_t004_optimize_rls_auth_calls` was applied and both migration files are mirrored under `supabase/migrations/`.
+- Supabase CLI applied `20260620105202_t004_profile_foundation` to the authorized fresh project only.
+- Supabase CLI performance advisors identified an `auth.jwt()` initialization-plan warning; the scoped remediation `20260620105409_t004_optimize_rls_auth_calls` was applied and both migration files are mirrored under `supabase/migrations/`.
 - `profiles`, `customer_profiles`, and `groomer_profiles` are deployed with RLS, explicit client grants, and update triggers.
 - The private `avatars` bucket is deployed with a 5 MiB limit, image MIME restrictions, and owner-folder policies.
 - Rollback-only positive/negative tests passed for owner visibility, cross-user isolation, role-marker enforcement, Storage isolation, and anonymous denial.
-- Final MCP security and performance advisor results contain no lints.
+- Final Supabase CLI security and performance advisor results contain no lints.
 
 ## Risk Level
 

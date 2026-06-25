@@ -51,10 +51,10 @@ T-003 resolved the placeholder product/navigation/screen documents, standardized
 
 - **Mode:** Deep.
 - **Depends on:** T-003.
-- **Goal:** Establish the MCP-managed, repository-mirrored Supabase profile foundation required by Auth onboarding.
+- **Goal:** Establish the CLI-managed, repository-mirrored Supabase profile foundation required by Auth onboarding.
 - **Boundary:** Create or select a brand-new Supabase project for the fresh rebuild; never use the visible legacy project. Add only role/profile types, `profiles`, `customer_profiles`, `groomer_profiles`, the private-by-default `avatars` bucket, baseline RLS/Storage policies, migration conventions, and matching backend-contract documentation. Do not add pets, requests, offers, or bookings.
 - **Acceptance:** Authenticated users can access only their permitted profile records and avatar paths; privileged keys are absent from client-facing files.
-- **Validation:** Explicit MCP backend plan including `./scripts/supabase-check.sh` as a static repository check plus remote profile RLS positive/negative checks and advisors.
+- **Validation:** Explicit Supabase CLI backend plan including `./scripts/supabase-check.sh` as a static repository check plus remote profile RLS positive/negative checks and advisors.
 - **Stop:** Stop if a fresh project, organization/cost confirmation, or migration target is not explicitly authorized. Otherwise stop after the profile contract and migration validate; do not add the iOS SDK.
 
 ### T-005 — iOS Supabase Client and Session Boundary

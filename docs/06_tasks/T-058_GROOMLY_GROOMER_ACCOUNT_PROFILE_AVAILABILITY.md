@@ -47,8 +47,8 @@ Source screenshot: `docs/08_design/screenshots/screenshot-2026-06-23-pm-03-17-46
 
 - Local migration: `supabase/migrations/20260623223830_t058_groomer_availability_windows.sql`.
 - Remote project: `lqmasbuqzvcvtawonjlb`.
-- MCP migration application: success.
-- MCP migration list confirmed remote version `20260623223830_t058_groomer_availability_windows`.
+- Supabase CLI migration application: success.
+- Supabase CLI migration list confirmed remote version `20260623223830_t058_groomer_availability_windows`.
 - Metadata check confirmed:
   - table exists;
   - RLS enabled;
@@ -85,4 +85,4 @@ Source screenshot: `docs/08_design/screenshots/screenshot-2026-06-23-pm-03-17-46
 - Availability is now persisted and editable, but not yet used by request matching or booking conflict checks.
 - The schema supports one time window per weekday. Multiple windows per day, blackout dates, holidays, and per-date exceptions need a later explicit product/backend task.
 - The repository uses delete-then-insert replacement for the groomer's weekly rows. It is simple and RLS-safe, but not an atomic RPC. If partial-write resilience becomes important, add a controlled RPC in a future authorized backend task.
-- No Supabase advisor MCP tool was available in this session; metadata, migration-list, RLS, trigger, and grants were checked through MCP SQL instead.
+- No Supabase advisor CLI tool was available in this session; metadata, migration-list, RLS, trigger, and grants were checked through Supabase CLI SQL instead.

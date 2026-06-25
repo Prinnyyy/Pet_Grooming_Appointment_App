@@ -54,8 +54,8 @@ Deep. The user explicitly authorized the required backend migration after the st
 
 - Local migration: `supabase/migrations/20260623233559_t059_groomer_profile_address_location_modes.sql`.
 - Remote project: `lqmasbuqzvcvtawonjlb`.
-- MCP migration application: success.
-- MCP migration list confirmed remote version `20260623233559_t059_groomer_profile_address_location_modes`.
+- Supabase CLI migration application: success.
+- Supabase CLI migration list confirmed remote version `20260623233559_t059_groomer_profile_address_location_modes`.
 - Metadata checks confirmed:
   - `groomer_profiles.base_street_address`, `base_zip_code`, and `service_location_modes` exist;
   - `groomer_profiles_sync_location_modes` trigger exists;

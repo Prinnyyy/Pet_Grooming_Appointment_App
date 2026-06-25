@@ -40,18 +40,18 @@ Add the SQL-side pet-fit taxonomy derivation foundation for later request-first 
 ## Implementation Plan
 
 1. Verify the SQL helpers do not exist yet with a read-only RED query.
-2. Apply one reviewed Supabase MCP migration to the fresh project `lqmasbuqzvcvtawonjlb`.
+2. Apply one reviewed Supabase CLI migration to the fresh project `lqmasbuqzvcvtawonjlb`.
 3. Save the applied migration as a local mirror under `supabase/migrations/`.
 4. Verify SQL mapping behavior, function privileges, migration metadata, and advisors.
 5. Update backend contract, ledger, and durable memory after validation.
 
 ## Required Validation
 
-- RED MCP SQL query showing `app_private.pet_fit_breed_group(...)` does not exist before migration.
-- MCP `apply_migration` to `lqmasbuqzvcvtawonjlb`.
-- MCP SQL behavior checks for Westie/terrier, poodle/curly coat, anxious/gentle handling, senior care, size band, and JSON snapshot trait rows.
-- MCP SQL privilege metadata check confirming no `anon`/`authenticated` execute grant on the private helper functions.
-- MCP security and performance advisors.
+- RED Supabase CLI SQL query showing `app_private.pet_fit_breed_group(...)` does not exist before migration.
+- Supabase CLI `db push --linked` to `lqmasbuqzvcvtawonjlb`.
+- Supabase CLI SQL behavior checks for Westie/terrier, poodle/curly coat, anxious/gentle handling, senior care, size band, and JSON snapshot trait rows.
+- Supabase CLI SQL privilege metadata check confirming no `anon`/`authenticated` execute grant on the private helper functions.
+- Supabase CLI security and performance advisors.
 - `git diff --check`
 - `./scripts/supabase-check.sh` if present/configured.
 
@@ -59,7 +59,7 @@ Simulator launch is skipped because T-065 is backend SQL only and has no visible
 
 ## Stop Condition
 
-Stop and report if this requires matching RPC replacement, new public tables/views, iOS UI/repository changes, T-050 deployment, or any non-MCP database write.
+Stop and report if this requires matching RPC replacement, new public tables/views, iOS UI/repository changes, T-050 deployment, or any non-CLI database write.
 
 ## Progress
 
@@ -82,10 +82,10 @@ Changed files:
 
 Validation:
 
-- RED MCP SQL query failed before migration because `app_private.pet_fit_breed_group(text)` did not exist.
-- Supabase MCP `apply_migration` passed for `20260625003519_t065_pet_fit_sql_taxonomy` on `lqmasbuqzvcvtawonjlb`.
-- MCP SQL behavior checks passed for Westie/terrier, poodle/curly coat, anxious/senior care flags, nail-trim no-coat behavior, size bands, trait-pair validation, and JSON snapshot trait rows.
-- MCP function privilege check confirmed `anon` and `authenticated` have no execute privilege on T-065 private helper functions; `service_role` has execute.
+- RED Supabase CLI SQL query failed before migration because `app_private.pet_fit_breed_group(text)` did not exist.
+- Remote migration application passed for `20260625003519_t065_pet_fit_sql_taxonomy` on `lqmasbuqzvcvtawonjlb`.
+- Supabase CLI SQL behavior checks passed for Westie/terrier, poodle/curly coat, anxious/senior care flags, nail-trim no-coat behavior, size bands, trait-pair validation, and JSON snapshot trait rows.
+- Remote function privilege check confirmed `anon` and `authenticated` have no execute privilege on T-065 private helper functions; `service_role` has execute.
 - Security advisor returned only existing public controlled `SECURITY DEFINER` RPC warnings plus leaked-password protection, not new T-065 helper warnings.
 - Performance advisor returned existing table/index INFOs, not new T-065 findings.
 - `./scripts/supabase-check.sh`: passed

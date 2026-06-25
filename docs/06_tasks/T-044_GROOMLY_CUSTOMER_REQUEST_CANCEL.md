@@ -24,7 +24,7 @@ Local and remote checks found no customer request cancellation path.
 - `SUPABASE_CONTRACT.md`, `RLS_RPC_POLICY.md`, `FEATURE_INDEX.md`, and earlier task docs record customer request cancellation as deferred.
 - Remote `pg_proc` inspection on fresh project `lqmasbuqzvcvtawonjlb` listed `accept_groomer_offer`, `cancel_booking`, `complete_booking`, `create_groomer_offer`, `create_grooming_request`, `dismiss_request_match`, and `withdraw_groomer_offer`; no request-cancel function existed.
 
-Supabase CLI was unavailable locally (`supabase: command not found`), so the migration filename was generated from the local timestamp instead of `supabase migration new`.
+The migration filename is kept as the existing local timestamped file and is not regenerated.
 
 ## Primary Task
 
@@ -73,7 +73,7 @@ Confirmed/booked requests remain final and cannot be cancelled through this requ
 ## Implementation Plan
 
 1. Create a T-044 migration with the controlled `cancel_grooming_request` RPC and narrow execute grants.
-2. Deploy the migration to fresh project `lqmasbuqzvcvtawonjlb` through Supabase MCP.
+2. Deploy the migration to fresh project `lqmasbuqzvcvtawonjlb` through Supabase CLI.
 3. Add iOS repository result types, protocol method, Supabase RPC adapter, and error mapping.
 4. Add `CustomerRequestsStore.cancel(_:)` with busy state, local status replacement, and refresh fallback messaging.
 5. Change Customer Requests action row from dynamic `Edit`/`Detail` to fixed `Detail`; wire `Cancel` to the store with confirmation and disabled state for confirmed/closed requests.
@@ -88,7 +88,7 @@ Backend:
 ./scripts/supabase-check.sh
 ```
 
-Supabase MCP:
+Supabase CLI:
 
 - Apply migration to `lqmasbuqzvcvtawonjlb`.
 - Inspect function metadata/grants.
@@ -139,7 +139,7 @@ Implementation:
 
 Backend validation:
 
-- Supabase MCP `apply_migration` passed for `t044_cancel_grooming_request` on `lqmasbuqzvcvtawonjlb`.
+- Remote migration application passed for `t044_cancel_grooming_request` on `lqmasbuqzvcvtawonjlb`.
 - Remote metadata check confirmed `cancel_grooming_request(p_request_id uuid)` is `SECURITY DEFINER`, owned by `postgres`, and executable by `authenticated`, `service_role`, and owner `postgres`; no `anon` execute grant.
 - Rollback-only behavior check passed:
   - `has_offers` request transitioned to `cancelled`.

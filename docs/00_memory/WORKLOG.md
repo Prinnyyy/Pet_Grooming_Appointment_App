@@ -14,7 +14,7 @@ Next: Use docs/10_project_structure/README.md when a future run needs the curren
 Date: 2026-06-24
 Task: T-066 - Groomly pet-fit groomer claims and portfolio tags.
 Files changed: Supabase migrations 20260625005226, 20260625010421, and 20260625010716; T-066 task doc; Supabase contract/RLS docs; task ledger; feature index; CURRENT_STATE.md; and WORKLOG.md.
-Checks: RED missing-table query failed before implementation; RED authenticated CHECK-helper failure reproduced after the first migration; MCP migrations applied; metadata/grant/RLS/policy/index checks passed; rollback-only behavior checks passed; final residue check returned zero validation rows; advisors ran; supabase-check passed; diff-check recorded in task closeout.
+Checks: RED missing-table query failed before implementation; RED authenticated CHECK-helper failure reproduced after the first migration; Supabase CLI migrations applied; metadata/grant/RLS/policy/index checks passed; rollback-only behavior checks passed; final residue check returned zero validation rows; advisors ran; supabase-check passed; diff-check recorded in task closeout.
 Result: Deployed owner-managed low-confidence groomer fit claims and portfolio fit tags with explicit grants/RLS, canonical trait constraints, merged SELECT policies, and a covering tag photo FK index.
 Risks: T-066 does not change matching, RPCs, evidence summaries, iOS UI/repositories, or Storage access. Claims are not verified expertise.
 Next: Do not start T-067 structured review evidence without a separate task file and explicit backend authorization.
@@ -24,7 +24,7 @@ Next: Do not start T-067 structured review evidence without a separate task file
 Date: 2026-06-24
 Task: T-065 - Groomly pet-fit SQL taxonomy.
 Files changed: Supabase migration 20260625003519, T-065 task doc, Supabase contract/RLS docs, task ledger, feature index, CURRENT_STATE.md, and WORKLOG.md.
-Checks: RED MCP SQL query failed before implementation because app_private.pet_fit_breed_group(text) did not exist; MCP apply_migration passed; MCP SQL behavior/grant checks passed; security advisor returned only existing controlled-RPC WARNs plus leaked-password protection; performance advisor returned existing INFOs; supabase-check and diff-check recorded in task closeout.
+Checks: RED Supabase CLI SQL query failed before implementation because app_private.pet_fit_breed_group(text) did not exist; Supabase CLI db push --linked passed; Supabase CLI SQL behavior/grant checks passed; security advisor returned only existing controlled-RPC WARNs plus leaked-password protection; performance advisor returned existing INFOs; supabase-check and diff-check recorded in task closeout.
 Result: Deployed private SQL pet-fit helper functions for breed group, size band, care flags, service-fit traits, trait-pair validation, and request snapshot trait rows.
 Risks: T-065 does not change request distribution, match score/reason generation, public tables/views, iOS repositories, or UI. T-050 remains a local draft and was not deployed.
 Next: Do not start T-066 groomer claimed/portfolio evidence without a separate task file and explicit authorization.
@@ -77,7 +77,7 @@ Date: 2026-06-23
 Task: T-060 - Groomly groomer Availability preferences and time off.
 Files changed: GroomerProfile model/repository/Supabase adapter/store/view/tests, Supabase migration, backend contract/RLS docs, task ledger, feature index, CURRENT_STATE.md, WORKLOG.md, and T-060 task doc.
 Checks: Red targeted GroomerProfileStore tests failed before implementation because booking preferences, time off models, drafts, and repository methods did not exist; targeted GroomerProfileStore tests passed after implementation; git diff --check passed; ./scripts/ios-build.sh passed; full ./scripts/ios-test.sh passed.
-Supabase: MCP migration 20260624022107_t060_groomer_availability_preferences applied to project lqmasbuqzvcvtawonjlb from local migration 20260624021122. MCP metadata checks confirmed both tables, RLS, owner-only policies, authenticated/service_role grants, no anon grants, constraints, and updated_at triggers. Security advisor returned only existing controlled warnings; performance advisor returned existing INFOs plus an expected immediate unused-index INFO for the new time-off index.
+Supabase: Supabase CLI migration 20260624022107_t060_groomer_availability_preferences applied to project lqmasbuqzvcvtawonjlb from local migration 20260624021122. CLI-backed metadata checks confirmed both tables, RLS, owner-only policies, authenticated/service_role grants, no anon grants, constraints, and updated_at triggers. Security advisor returned only existing controlled warnings; performance advisor returned existing INFOs plus an expected immediate unused-index INFO for the new time-off index.
 Simulator launch: The built app was installed and launched on iPhone 16 Pro iOS 18.4 (4CB97394-9112-4FBB-8C99-628B416B922F) via xcrun simctl; launch returned pid 34832.
 Result: Groomer Availability now follows the uploaded availability screenshots with Available For Bookings, compact weekly hours, booking preferences, auto-accept toggle, and time off create/delete UI. Booking preferences and time off persist through owner-only Supabase tables behind repository boundaries.
 Risks: Booking preferences and time off are not yet used by matching, customer slot discovery, booking creation, auto-accept behavior, or booking conflict checks. Availability save still performs profile, weekly availability, and preference writes sequentially rather than through an atomic RPC.
@@ -89,7 +89,7 @@ Date: 2026-06-23
 Task: T-059 - Groomly groomer profile details, services, portfolio, and avatar.
 Files changed: GroomerProfile model/repository/Supabase adapter/store/view/tests, Booking model/Supabase adapter/tests, Supabase migration, backend contract/RLS/Storage docs, task ledger, feature index, CURRENT_STATE.md, WORKLOG.md, and T-059 task doc.
 Checks: Red targeted GroomerProfileStore tests failed before implementation because the new profile/address/avatar contract did not exist; targeted GroomerProfileStore + BookingStore tests passed after implementation; full ./scripts/ios-test.sh passed; git diff --check passed; ./scripts/ios-build.sh passed.
-Supabase: MCP migration 20260623233559_t059_groomer_profile_address_location_modes applied to project lqmasbuqzvcvtawonjlb. MCP checks confirmed new groomer profile columns, sync trigger, column grants, helper/RPC function shape, canonical location-mode normalization, and advisors.
+Supabase: Supabase CLI migration 20260623233559_t059_groomer_profile_address_location_modes applied to project lqmasbuqzvcvtawonjlb. Supabase CLI checks confirmed new groomer profile columns, sync trigger, column grants, helper/RPC function shape, canonical location-mode normalization, and advisors.
 Simulator launch: The built app was installed and launched on iPhone 16 Pro iOS 18.4 (4CB97394-9112-4FBB-8C99-628B416B922F) via xcrun simctl; launch returned pid 14057. XcodeBuildMCP session defaults were unavailable for this workspace profile, so simctl was used for launch only after the script build passed.
 Result: Groomer Account now separates Edit Profile, Services, Portfolio, and Availability. Edit Profile contains avatar upload/rendering, Biography, fixed 0-5+ experience, full address autocomplete, 5-50+ radius slider, multi-select service-location modes, and separate Profile Visibility. Matching now uses canonical service-location mode membership, and booking detail can consume full groomer address fields.
 Risks: Existing active groomer rows may not have street/ZIP yet; app validation requires them for future active saves while DB keeps old rows compatible. Customer-facing groomer avatar display remains deferred pending a signed URL or broader read contract.
@@ -101,7 +101,7 @@ Date: 2026-06-23
 Task: T-058 - Groomly groomer Account, Edit Profile, and Availability.
 Files changed: Groomer profile model/repository/Supabase adapter/store/view, AuthenticatedEntryView, GroomerTab/GroomerTabView, AppEntry/GroomerProfile tests, Supabase migration, backend contract/RLS docs, task ledger, CURRENT_STATE.md, WORKLOG.md, and T-058 task doc.
 Checks: Red targeted GroomerProfileStore test failed before implementation because availability models did not exist; targeted GroomerProfileStore tests passed after implementation; full GroomerProfileStoreTests passed; git diff --check passed; ./scripts/ios-build.sh passed; ./scripts/ios-test.sh passed.
-Supabase: MCP migration 20260623223830_t058_groomer_availability_windows applied to project lqmasbuqzvcvtawonjlb. MCP checks confirmed the table exists, RLS is enabled, owner-only select/insert/update/delete policies exist, updated_at trigger exists, authenticated/service_role grants exist, and anon has no table grant.
+Supabase: Supabase CLI migration 20260623223830_t058_groomer_availability_windows applied to project lqmasbuqzvcvtawonjlb. Supabase CLI checks confirmed the table exists, RLS is enabled, owner-only select/insert/update/delete policies exist, updated_at trigger exists, authenticated/service_role grants exist, and anon has no table grant.
 Simulator launch: XcodeBuildMCP build_run_sim passed on iPhone 17 simulator (B9639233-9E78-41C9-A372-330D36C38DA7) with no MCP diagnostics errors.
 Result: Groomer Account now matches the requested screenshot surface without Payouts or Demo Controls. Edit Profile contains currently editable non-availability profile/service/portfolio fields, Availability is a dedicated weekly schedule editor backed by the deployed availability table, and groomer tab labels now show Board and Schedule while preserving existing feature ownership.
 Risks: Availability is editable/persisted but not yet used for request matching or booking conflict checks. Only one window per weekday is supported. Availability replacement uses delete-then-insert direct table writes rather than an atomic RPC.
@@ -222,10 +222,10 @@ Next: Commit and push the T-049 branch.
 Date: 2026-06-23
 Task: T-049 - Groomly request data contract, location, and photos.
 Files changed: Supabase migration 20260623065017, request/groomer models, Supabase repositories, Customer request Store/View, Groomer profile Store/View, previews/fakes/tests, backend docs, task ledger, current state, feature index.
-Checks: Supabase MCP migration applied to fresh project lqmasbuqzvcvtawonjlb and metadata/policy/grant checks completed; targeted T-049 CustomerRequestsStore/GroomerProfileStore tests passed; git diff --check passed; ./scripts/ios-build.sh passed.
+Checks: Supabase CLI migration applied to fresh project lqmasbuqzvcvtawonjlb and metadata/policy/grant checks completed; targeted T-049 CustomerRequestsStore/GroomerProfileStore tests passed; git diff --check passed; ./scripts/ios-build.sh passed.
 Simulator launch: XcodeBuildMCP build_run_sim passed on iPhone 17 simulator (B9639233-9E78-41C9-A372-330D36C38DA7) with no diagnostics warnings or errors. App launched successfully for inspection.
 Result: Fixed grooming services are now shared enum values across request creation and groomer services; customer requests persist location mode, street/city/state/ZIP, optional travel radius, and request photo metadata/storage; groomer profiles persist service-location capability; create_grooming_request now validates and matches on service/location.
-Risks: Supabase advisor MCP was unavailable in this session; request photo uploads use standard upload without compression/resumable transfer; stricter street number/name validation is client-side while the database enforces address length plus state/ZIP/range/service/location constraints.
+Risks: Supabase advisor CLI was unavailable in this session; request photo uploads use standard upload without compression/resumable transfer; stricter street number/name validation is client-side while the database enforces address length plus state/ZIP/range/service/location constraints.
 Next: User visual/flow review in Simulator, especially new request address autocomplete, PhotosPicker staging, and groomer service-location/service-type profile controls.
 ```
 
@@ -343,7 +343,7 @@ Next: Commit and push per user request.
 Date: 2026-06-22
 Task: T-044 - Groomly customer request cancellation.
 Files changed: Added docs/06_tasks/T-044_GROOMLY_CUSTOMER_REQUEST_CANCEL.md and supabase/migrations/20260622142020_t044_cancel_grooming_request.sql; updated Customer request model/repository/Supabase adapter/Store/View, Customer Home preview repository, CustomerRequestFeatureTests, SUPABASE_CONTRACT.md, RLS_RPC_POLICY.md, FEATURE_INDEX.md, CURRENT_STATE.md, WORKLOG.md, and TASK_LEDGER.md.
-Checks: Remote Supabase `apply_migration` succeeded on fresh project `lqmasbuqzvcvtawonjlb`. Remote function/grant inspection confirmed `cancel_grooming_request(p_request_id uuid)` exists as `SECURITY DEFINER` with execute grants for `authenticated`, `service_role`, and owner `postgres`, with no `anon` grant. Rollback-only behavior validation passed for open/offer-state request cancellation, pending-offer decline, match hiding, booked-request rejection, and zero persisted validation rows. Supabase security advisor shows the expected authenticated SECURITY DEFINER WARN for the new controlled RPC plus existing controlled RPC WARNs; performance advisor shows existing INFOs. `./scripts/supabase-check.sh`, `git diff --check`, `./scripts/ios-build.sh`, and `./scripts/ios-test.sh` passed.
+Checks: Remote Supabase migration application succeeded on fresh project `lqmasbuqzvcvtawonjlb`. Remote function/grant inspection confirmed `cancel_grooming_request(p_request_id uuid)` exists as `SECURITY DEFINER` with execute grants for `authenticated`, `service_role`, and owner `postgres`, with no `anon` grant. Rollback-only behavior validation passed for open/offer-state request cancellation, pending-offer decline, match hiding, booked-request rejection, and zero persisted validation rows. Supabase security advisor shows the expected authenticated SECURITY DEFINER WARN for the new controlled RPC plus existing controlled RPC WARNs; performance advisor shows existing INFOs. `./scripts/supabase-check.sh`, `git diff --check`, `./scripts/ios-build.sh`, and `./scripts/ios-test.sh` passed.
 Simulator launch: XcodeBuildMCP `build_run_sim` passed on `iPhone 17` simulator (`B9639233-9E78-41C9-A372-330D36C38DA7`). App launched successfully for inspection. Screenshot: `/var/folders/bc/xmbw6w1d06s61ns9_j2fnll00000gn/T/screenshot_optimized_297ba9f4-87b8-40b8-941d-a05341dc81bb.jpg`.
 Result: Customer Requests cards now use a fixed `Detail` button. `Cancel` is enabled only for `open` and `has_offers` requests, asks for confirmation, calls the deployed `cancel_grooming_request` RPC through the Store/repository path, updates local request state to `cancelled`, and leaves booked/cancelled/expired requests disabled.
 Risks: The new RPC intentionally adds one more authenticated SECURITY DEFINER advisor WARN, matching the existing controlled-RPC pattern. Booking cancellation remains separate in `cancel_booking`; request cancellation does not cancel confirmed bookings.
@@ -694,7 +694,7 @@ Next: Execute T-023 Slice 1 only; do not start Slice 2-8 or non-Groomly post-MVP
 Date: 2026-06-21
 Task: T-022 — MVP hardening and acceptance.
 Files changed: Safe Debug Panel, Account debug entry, Debug diagnostics test, T-022 task doc, screen inventory, feature index, current state, task ledger, and worklog.
-Checks: MCP rollback-only core flow/RLS/conflict validation passed on fresh project `lqmasbuqzvcvtawonjlb` with zero persisted validation data. Security advisor remained at the eight expected controlled SECURITY DEFINER WARNs; performance advisor returned existing non-blocking INFOs. `./scripts/supabase-check.sh` passed. Initial `./scripts/ios-test.sh` failed because the new diagnostics test accessed MainActor-isolated app types from a nonisolated test method; approved targeted fix added `@MainActor`. Final `./scripts/ios-test.sh`, `./scripts/preflight.sh`, and `git diff --check` passed.
+Checks: CLI-backed rollback-only core flow/RLS/conflict validation passed on fresh project `lqmasbuqzvcvtawonjlb` with zero persisted validation data. Security advisor remained at the eight expected controlled SECURITY DEFINER WARNs; performance advisor returned existing non-blocking INFOs. `./scripts/supabase-check.sh` passed. Initial `./scripts/ios-test.sh` failed because the new diagnostics test accessed MainActor-isolated app types from a nonisolated test method; approved targeted fix added `@MainActor`. Final `./scripts/ios-test.sh`, `./scripts/preflight.sh`, and `git diff --check` passed.
 Result: T-022 is completed. The MVP is accepted at the current backend/iOS contract level; Debug Panel exposes only sanitized build/session/config diagnostics and no tokens, passwords, full keys, or full user identifiers.
 Risks: Request cancellation/rebooking, richer participant summaries, realtime chat, attachments, production Auth/email setup, moderation, payments, and App Store readiness remain post-MVP decisions.
 Next: Choose the next post-MVP task deliberately; do not auto-start adjacent work.
@@ -704,7 +704,7 @@ Next: Choose the next post-MVP task deliberately; do not auto-start adjacent wor
 Date: 2026-06-21
 Task: T-021 — booking completion and customer review.
 Files changed: T-021 primary/corrective migrations, Booking model/repository/Supabase adapter/store/UI, focused BookingStore tests, task doc, backend/product docs, feature index, task ledger, current state, and worklog.
-Checks: First `./scripts/ios-test.sh` attempt failed during build before tests ran. After the approved nil-check fix, the approved rerun failed on the design-token namespace. After the approved `DesignTokens.CornerRadius` fix, `./scripts/ios-test.sh` passed with the Swift Testing suite and 1 XCTest UI smoke test. Approved MCP migration apply succeeded as `20260621065954_t021_completion_reviews`; metadata/RLS/RPC inspection and advisors ran. Rollback-only behavior validation exposed PostgreSQL `42702` in `create_review`; approved corrective migration `20260621070826_t021_fix_create_review_returning_ambiguity` was applied. Final rollback-only completion/review/RLS/RPC validation passed with zero persisted validation data. Final advisors show 8 expected controlled SECURITY DEFINER WARNs plus non-blocking performance INFOs, including new `reviews` unused-index INFOs before production traffic. `./scripts/supabase-check.sh` and `git diff --check` passed.
+Checks: First `./scripts/ios-test.sh` attempt failed during build before tests ran. After the approved nil-check fix, the approved rerun failed on the design-token namespace. After the approved `DesignTokens.CornerRadius` fix, `./scripts/ios-test.sh` passed with the Swift Testing suite and 1 XCTest UI smoke test. Approved Supabase CLI migration apply succeeded as `20260621065954_t021_completion_reviews`; metadata/RLS/RPC inspection and advisors ran. Rollback-only behavior validation exposed PostgreSQL `42702` in `create_review`; approved corrective migration `20260621070826_t021_fix_create_review_returning_ambiguity` was applied. Final rollback-only completion/review/RLS/RPC validation passed with zero persisted validation data. Final advisors show 8 expected controlled SECURITY DEFINER WARNs plus non-blocking performance INFOs, including new `reviews` unused-index INFOs before production traffic. `./scripts/supabase-check.sh` and `git diff --check` passed.
 Result: T-021 is completed. Groomers can complete confirmed bookings, customers can create exactly one review for completed own bookings, participant review reads are RLS-scoped, direct authenticated review insert is denied, groomer rating summary updates atomically, and the Bookings UI now leads with appointment time/price/status before support references.
 Risks: Realtime updates, chat attachments, moderation, review editing/deletion, public review browsing, disputes, refunds, and rebooking remain out of scope. Request cancellation is still blocked until a dedicated backend RPC exists. Eliminating theoretical rating-average rounding drift and adding backend-enforced service-time completion gating require a separate approved SQL corrective task.
 Next: T-022 — MVP hardening, empty/error/loading state pass, Debug Panel, RLS negative tests, conflict boundary tests, and core E2E acceptance.
@@ -714,7 +714,7 @@ Next: T-022 — MVP hardening, empty/error/loading state pass, Debug Panel, RLS 
 Date: 2026-06-20
 Task: T-020 — booking participant chat.
 Files changed: T-020 task/reviewed SQL, local migration mirror, chat models/repository/Supabase adapter/store/UI, role tab DI, focused tests, backend/product memory docs, task ledger, feature index, current state, and worklog.
-Checks: MCP migration apply passed as `20260621055915`; metadata and rollback-only message/RLS checks passed with zero persisted validation data after two test-harness corrections. Security advisor returned the existing six intentional SECURITY DEFINER WARNs from prior RPCs. Performance advisor returned existing INFOs plus expected unused-index INFOs for new `messages` indexes before production query traffic. `./scripts/supabase-check.sh` passed. Post-review `./scripts/ios-test.sh` initially failed on Swift 6 return/isolation issues in the new summary helper; targeted fixes applied. Final `./scripts/ios-test.sh` passed with 62 Swift Testing tests and 1 XCTest UI smoke test. `git diff --check` passed.
+Checks: Supabase CLI migration apply passed as `20260621055915`; metadata and rollback-only message/RLS checks passed with zero persisted validation data after two test-harness corrections. Security advisor returned the existing six intentional SECURITY DEFINER WARNs from prior RPCs. Performance advisor returned existing INFOs plus expected unused-index INFOs for new `messages` indexes before production query traffic. `./scripts/supabase-check.sh` passed. Post-review `./scripts/ios-test.sh` initially failed on Swift 6 return/isolation issues in the new summary helper; targeted fixes applied. Final `./scripts/ios-test.sh` passed with 62 Swift Testing tests and 1 XCTest UI smoke test. `git diff --check` passed.
 Result: T-020 is completed. Customer and groomer Messages tabs now load participant conversations with booking schedule/price context, customers can see active groomer business names when existing RLS permits it, and participants support text-only message reads/sends through `messages` RLS.
 Risks: Groomer-side customer names remain support references until a future customer-profile presentation contract exists. Realtime updates, attachments, typing indicators, read receipts, moderation, push notifications, completion, and reviews remain unimplemented.
 Next: T-021 — implement booking completion and completed-only reviews in a separate Deep task.
@@ -744,7 +744,7 @@ Next: Commit and push the T-018 backend plus review follow-up.
 Date: 2026-06-20
 Task: T-018 — offer acceptance and booking backend.
 Files changed: T-018 reviewed SQL/task doc, local migration mirror, backend contract/RLS docs, task ledger, feature/current memory, and worklog.
-Checks: MCP migration apply passed as `20260621044424`; metadata and rollback-only booking/RLS/RPC checks passed with zero persisted validation data. Security advisor returned six intentional SECURITY DEFINER WARNs for controlled T-012/T-015/T-018 RPCs. Performance advisor returned reviewed INFOs for existing and T-018 composite-FK/unused-index cases. `./scripts/supabase-check.sh` and `git diff --check` passed; no iOS build/test was run because this was backend-only.
+Checks: Supabase CLI migration apply passed as `20260621044424`; metadata and rollback-only booking/RLS/RPC checks passed with zero persisted validation data. Security advisor returned six intentional SECURITY DEFINER WARNs for controlled T-012/T-015/T-018 RPCs. Performance advisor returned reviewed INFOs for existing and T-018 composite-FK/unused-index cases. `./scripts/supabase-check.sh` and `git diff --check` passed; no iOS build/test was run because this was backend-only.
 Result: T-018 is completed. Customers can atomically accept one pending offer into one confirmed booking and one conversation; competing offers close, request matches hide, confirmed groomer time overlaps are rejected, boundary-touching bookings are allowed, and participants can cancel confirmed bookings.
 Risks: Booking acceptance/list/detail UI is not wired in iOS until T-019. `cancel_booking` does not reopen requests or offers. Chat messages, attachments, completion, and reviews remain unimplemented.
 Next: T-019 — implement booking acceptance and role-specific booking UI in a separate Standard task.
@@ -754,9 +754,9 @@ Next: T-019 — implement booking acceptance and role-specific booking UI in a s
 Date: 2026-06-20
 Task: T-018 — draft offer acceptance and booking backend SQL.
 Files changed: T-018 task doc, reviewed SQL draft, task ledger, current state, and worklog.
-Checks: Supabase changelog/docs were reviewed; MCP read-only checks confirmed the fresh target migration history, existing T-012/T-015 objects, and `btree_gist` availability. No remote DDL was applied.
+Checks: Supabase changelog/docs were reviewed; remote read-only checks confirmed the fresh target migration history, existing T-012/T-015 objects, and `btree_gist` availability. No remote DDL was applied.
 Result: T-018 is in progress. The reviewed SQL draft defines bookings, conversations, participant RLS, `accept_groomer_offer`, `cancel_booking`, uniqueness, and groomer time-overlap protection.
-Risks: Remote migration, backend validation, local migration mirror, backend docs, and final closeout remain pending explicit user approval for MCP `apply_migration`.
+Risks: Remote migration, backend validation, local migration mirror, backend docs, and final closeout remain pending explicit user approval for Supabase CLI `db push --linked`.
 Next: Approve or revise `docs/06_tasks/sql_reviews/T-018_OFFER_ACCEPTANCE_BOOKING_REVIEWED_SQL.sql`, then continue T-018.
 ```
 
@@ -784,7 +784,7 @@ Next: T-017 — implement customer offer review in a separate Standard task.
 Date: 2026-06-20
 Task: T-015 — groomer offer backend.
 Files changed: T-015 task doc, reviewed SQL draft, local migration mirror, backend contract/RLS docs, task ledger, feature/current memory, and worklog.
-Checks: MCP migration apply passed as `20260621024848`; metadata and rollback-only offer/RLS/RPC checks passed with zero persisted validation data. Security advisor returned four intentional SECURITY DEFINER WARNs for controlled T-012/T-015 RPCs; performance advisor returned reviewed INFOs. `./scripts/supabase-check.sh` and `git diff --check` passed; no iOS build/test was run because this was backend-only.
+Checks: Supabase CLI migration apply passed as `20260621024848`; metadata and rollback-only offer/RLS/RPC checks passed with zero persisted validation data. Security advisor returned four intentional SECURITY DEFINER WARNs for controlled T-012/T-015 RPCs; performance advisor returned reviewed INFOs. `./scripts/supabase-check.sh` and `git diff --check` passed; no iOS build/test was run because this was backend-only.
 Result: T-015 is completed. Matched groomers can create one active pending offer, withdraw it, and create a new offer after withdrawal; customers can read offers only for their own requests; direct offer writes remain denied to authenticated clients.
 Risks: Offer UI, customer offer review, offer acceptance, booking conflict checks, chat, and reviews remain unimplemented. T-015 performance INFOs can be revisited when T-016/T-017 query paths are finalized.
 Next: T-016 — implement groomer offer creation in a separate Standard task.
@@ -797,7 +797,7 @@ Files changed: Groomer request models, repository boundary, Supabase adapter, Gr
 Checks: `./scripts/ios-test.sh` passed with 41 Swift Testing tests and 1 XCTest UI smoke test. `git diff --check` passed. No Supabase remote validation was run because T-014 changed only iOS client code and docs.
 Result: T-014 is completed. Groomers can load active own matched requests, inspect frozen request/pet details, refresh, and dismiss visible/viewed matches through `dismiss_request_match` without SwiftUI views directly touching Supabase.
 Risks: Offer creation remains unimplemented until T-015/T-016. Customer request cancellation remains blocked until a backend cancel RPC exists.
-Next: T-015 — add groomer offer backend in a separate Deep task with explicit Supabase MCP validation.
+Next: T-015 — add groomer offer backend in a separate Deep task with explicit Supabase CLI validation.
 ```
 
 ```text
@@ -814,7 +814,7 @@ Next: T-014 — implement groomer matched request feed/detail/dismiss in a separ
 Date: 2026-06-20
 Task: T-012 follow-up — cap request photo snapshots at 20.
 Files changed: Added corrective migration mirror, updated T-012 task doc, backend contract/RLS docs, task ledger, current state, and worklog.
-Checks: MCP corrective migration apply passed as `20260621010315`; rollback-only 21-photo regression passed with `photo_snapshot` stored at 20 rows and zero persisted validation data. Security advisor still shows the two intentional T-012 SECURITY DEFINER WARNs; performance advisor remains INFO-only. `./scripts/supabase-check.sh` and `git diff --check` passed.
+Checks: Remote corrective migration apply passed as `20260621010315`; rollback-only 21-photo regression passed with `photo_snapshot` stored at 20 rows and zero persisted validation data. Security advisor still shows the two intentional T-012 SECURITY DEFINER WARNs; performance advisor remains INFO-only. `./scripts/supabase-check.sh` and `git diff --check` passed.
 Result: `create_grooming_request` no longer fails when a pet has more than 20 photo metadata rows; it snapshots the first 20 ordered by primary flag, sort order, and creation time.
 Risks: Request wizard/feed UI is still unimplemented. T-012 performance INFOs remain deferred until T-013/T-014 query paths exist.
 Next: T-013 — implement the customer grooming request wizard in a separate Standard task.
@@ -824,7 +824,7 @@ Next: T-013 — implement the customer grooming request wizard in a separate Sta
 Date: 2026-06-20
 Task: T-012 — grooming request and match backend.
 Files changed: T-012 task doc, two local migration mirrors, backend contract/RLS docs, task ledger, feature/current memory, and worklog.
-Checks: MCP primary migration apply passed as `20260621000444`; corrective conflict-target migration passed as `20260621002211`; metadata and rollback-only request/match/RLS/RPC checks passed with zero persisted validation data. Security advisor returned two intentional SECURITY DEFINER WARNs for the controlled RPCs; performance advisor returned reviewed INFOs. `./scripts/supabase-check.sh` and `git diff --check` passed; no iOS build/test was run because this was backend-only.
+Checks: Remote primary migration apply passed as `20260621000444`; corrective conflict-target migration passed as `20260621002211`; metadata and rollback-only request/match/RLS/RPC checks passed with zero persisted validation data. Security advisor returned two intentional SECURITY DEFINER WARNs for the controlled RPCs; performance advisor returned reviewed INFOs. `./scripts/supabase-check.sh` and `git diff --check` passed; no iOS build/test was run because this was backend-only.
 Result: T-012 is completed. Customers can create backend-authoritative grooming requests with frozen pet/photo snapshots and eligible groomer matches; groomers can read only own matched requests and dismiss own visible/viewed matches.
 Risks: Request wizard/feed UI is not implemented. T-012 performance INFOs may be revisited if T-013/T-014 query plans require composite FK indexes. The two SECURITY DEFINER RPC WARNs are intentional but should be re-reviewed before any broader RPC expansion.
 Next: T-013 — implement the customer grooming request wizard in a separate Standard task.
@@ -837,14 +837,14 @@ Files changed: Groomer profile models, repository boundary, Supabase repository,
 Checks: `./scripts/ios-test.sh` passed with 32 Swift Testing tests and 1 XCTest UI smoke test. No Supabase remote validation was run because T-011 changed only iOS client code and docs.
 Result: T-011 is completed. Authenticated groomers can manage their own marketplace profile, service settings, and portfolio metadata/upload/delete path through repository-backed UI in the Groomer Account tab.
 Risks: Portfolio image display is metadata-only; real remote portfolio upload/delete smoke was not run in this task. Request feed, offers, bookings, chat, reviews, and marketplace discovery remain unimplemented.
-Next: T-012 — add grooming request and match backend in a separate Deep task with an explicit Supabase MCP validation plan.
+Next: T-012 — add grooming request and match backend in a separate Deep task with an explicit Supabase CLI validation plan.
 ```
 
 ```text
 Date: 2026-06-20
 Task: T-010 — groomer profile and portfolio backend.
 Files changed: T-010 task doc, two local migration mirrors, backend docs, task ledger, feature/current memory, and worklog.
-Checks: MCP primary migration apply passed as `20260620224418`; corrective policy merge passed as `20260620225308`; metadata and rollback-only groomer/customer/Storage access checks passed with zero persisted validation data. Security advisor returned 0 lints. Corrective migration resolved T-010 multiple-permissive SELECT policy WARNs. Remaining performance INFOs were reviewed as non-blocking. `./scripts/supabase-check.sh` and `git diff --check` passed; no iOS build/test was run because this was backend-only.
+Checks: Remote primary migration apply passed as `20260620224418`; corrective policy merge passed as `20260620225308`; metadata and rollback-only groomer/customer/Storage access checks passed with zero persisted validation data. Security advisor returned 0 lints. Corrective migration resolved T-010 multiple-permissive SELECT policy WARNs. Remaining performance INFOs were reviewed as non-blocking. `./scripts/supabase-check.sh` and `git diff --check` passed; no iOS build/test was run because this was backend-only.
 Result: T-010 is completed. Groomer profile details, services, portfolio metadata, and private authenticated-readable portfolio Storage are deployed under explicit grants/RLS/Storage policies.
 Risks: Groomer profile/services/portfolio iOS UI is not implemented; portfolio binary upload/delete via real Storage API should be exercised during T-011 integration.
 Next: T-011 — implement groomer profile, services, and portfolio UI in a separate Standard task.
@@ -854,7 +854,7 @@ Next: T-011 — implement groomer profile, services, and portfolio UI in a separ
 Date: 2026-06-20
 Task: T-009 remote Storage API smoke/closeout.
 Files changed: T-009 task doc, task ledger, feature index, current state, worklog, and targeted backend status wording.
-Checks: Supabase MCP confirmed the fresh project and required bucket/tables. Approved remote smoke passed sign-in, create_my_profile, pet insert, private pet-photos object upload, pet_photos metadata insert, Storage API object delete, metadata delete, and pet soft-delete. MCP cleanup deleted the temporary Auth user and confirmed zero remaining Auth/profile/customer profile/pet/photo/object rows. No build, unit test, UI test, CLI command, migration, or schema change was run.
+Checks: Supabase CLI confirmed the fresh project and required bucket/tables. Approved remote smoke passed sign-in, create_my_profile, pet insert, private pet-photos object upload, pet_photos metadata insert, Storage API object delete, metadata delete, and pet soft-delete. Supabase cleanup deleted the temporary Auth user and confirmed zero remaining Auth/profile/customer profile/pet/photo/object rows. No build, unit test, UI test, CLI command, migration, or schema change was run.
 Result: T-009 is completed with real authenticated Storage API upload/delete coverage and no persisted validation data.
 Risks: Photo display remains metadata-only; signed URL/image download UX is deferred. Groomer-side profile/portfolio remains unimplemented.
 Next: T-010 — add groomer profile and portfolio backend in a separate Deep task.
@@ -874,8 +874,8 @@ Next: T-010 — add groomer profile and portfolio backend in a separate Deep tas
 Date: 2026-06-20
 Task: T-008 — deploy the customer pet and private photo Storage backend contract.
 Files changed: Applied/mirrored T-008 migration, task design/plan/intake, backend status docs, task ledger, and durable memory.
-Checks: MCP migration application and metadata inspection passed. The first rollback batch stopped on an empty-row harness assertion. The separately approved corrected batch passed owner, cross-customer, Groomer, anonymous-authenticated, constraint, upload, and inactive-pet assertions before Supabase's expected `storage.protect_delete()` direct-SQL guard. Both transactions rolled back and the safety query confirmed zero test data. MCP inspection verified the DELETE policy exactly matches the behavior-tested owner-only SELECT predicate. Security advisor returned zero lints; the performance advisor's one composite-FK INFO was reviewed as non-blocking because the existing B-tree contains both equality columns. `./scripts/supabase-check.sh` and `git diff --check` passed.
-Result: pets, pet_photos, explicit grants/constraints/indexes/trigger/RLS, and the private 10 MiB pet-photos bucket with owner/path policies are deployed and T-008 is completed under the approved MCP-only validation boundary.
+Checks: Supabase CLI migration application and metadata inspection passed. The first rollback batch stopped on an empty-row harness assertion. The separately approved corrected batch passed owner, cross-customer, Groomer, anonymous-authenticated, constraint, upload, and inactive-pet assertions before Supabase's expected `storage.protect_delete()` direct-SQL guard. Both transactions rolled back and the safety query confirmed zero test data. Remote inspection verified the DELETE policy exactly matches the behavior-tested owner-only SELECT predicate. Security advisor returned zero lints; the performance advisor's one composite-FK INFO was reviewed as non-blocking because the existing B-tree contains both equality columns. `./scripts/supabase-check.sh` and `git diff --check` passed.
+Result: pets, pet_photos, explicit grants/constraints/indexes/trigger/RLS, and the private 10 MiB pet-photos bucket with owner/path policies are deployed and T-008 is completed under the approved CLI-only validation boundary.
 Risks: Actual binary upload/delete through the Storage API is intentionally deferred to the T-009 iOS integration smoke test.
 Next: T-009 — implement customer pet management and exercise actual Storage API upload/delete; do not start automatically.
 ```
@@ -920,7 +920,7 @@ Next: T-007 — role onboarding and authenticated role routing in a separate tas
 Date: 2026-06-20
 Task: T-004 — apply and validate the Supabase profile/avatar foundation on the authorized fresh project.
 Files changed: Two versioned Supabase migration mirrors, the Supabase static checker, T-004 task/review docs, backend contracts, task ledger, current state, feature index, and worklog.
-Checks: MCP migration/metadata inspection passed; rollback-only owner/cross-user/role/anonymous RLS and Storage tests passed; final security and performance advisors returned zero lints. The first static check exposed a validator false positive on SQL role grants; after the targeted pattern correction, ./scripts/supabase-check.sh and git diff --check passed.
+Checks: Supabase CLI migration/metadata inspection passed; rollback-only owner/cross-user/role/anonymous RLS and Storage tests passed; final security and performance advisors returned zero lints. The first static check exposed a validator false positive on SQL role grants; after the targeted pattern correction, ./scripts/supabase-check.sh and git diff --check passed.
 Result: profiles, customer_profiles, groomer_profiles, explicit grants/triggers/RLS, and the private avatars bucket are deployed on lqmasbuqzvcvtawonjlb. No test data persisted.
 Risks: Auth behavior and all product-domain backend objects remain unimplemented; the legacy project remains forbidden.
 Next: T-006 — implement email/password authentication in a separate task; do not start automatically.
@@ -930,37 +930,37 @@ Next: T-006 — implement email/password authentication in a separate task; do n
 Date: 2026-06-20
 Task: T-005 — add the iOS Supabase client and Auth session boundary while leaving T-004 paused.
 Files changed: Xcode project/package lock, local/tracked xcconfig setup, App composition, Core configuration/Supabase/session files, Auth bootstrap state/view, iOS build docs, T-005 intake, architecture and durable memory.
-Checks: Supabase Swift 2.46.0 verified from current primary sources and pinned exactly; local config obtained through MCP and ignored by Git; project/diff/key scans passed; ./scripts/ios-build.sh passed after a user-interrupted attempt was explicitly resumed; a targeted AppInfo injection correction and rebuild also passed. Tests were not run.
+Checks: Supabase Swift 2.46.0 verified from current primary sources and pinned exactly; local config obtained through Supabase CLI and ignored by Git; project/diff/key scans passed; ./scripts/ios-build.sh passed after a user-interrupted attempt was explicitly resumed; a targeted AppInfo injection correction and rebuild also passed. Tests were not run.
 Result: The app builds with a composed Supabase client and injectable token-free session repository. Missing configuration is visible; no sign-in, routing, schema query, remote write, or fake success was added.
 Risks: T-004 profile/avatar migration remains unapplied, so T-006/T-007 must not assume profile tables exist. Local publishable config is required for a configured runtime state.
-Next: Resume and complete T-004 through explicitly authorized MCP migration/validation before starting authentication behavior.
+Next: Resume and complete T-004 through explicitly authorized Supabase CLI migration/validation before starting authentication behavior.
 ```
 
 ```text
 Date: 2026-06-19
 Task: Continue T-004 through fresh-project baseline inspection and local migration review.
 Files changed: T-004 SQL draft, migration review, task intake, SUPABASE_CONTRACT.md, CURRENT_STATE.md, TASK_LEDGER.md, and WORKLOG.md.
-Checks: MCP confirmed project health, empty public schema/migration history, absent avatars bucket, and current Storage helper/column shapes; current Supabase docs and changelog were reviewed. No DDL or Storage write was run.
-Result: A task-scoped profile/RLS/private-avatar migration is reviewed locally and ready for an explicit MCP apply_migration authorization.
+Checks: Supabase CLI confirmed project health, empty public schema/migration history, absent avatars bucket, and current Storage helper/column shapes; current Supabase docs and changelog were reviewed. No DDL or Storage write was run.
+Result: A task-scoped profile/RLS/private-avatar migration is reviewed locally and ready for an explicit Supabase CLI db push --linked authorization.
 Risks: SQL syntax and deployed behavior remain unverified until the authorized migration runs; post-apply positive/negative RLS and Storage checks are still required.
-Next: Obtain explicit approval to apply migration t004_profile_foundation to lqmasbuqzvcvtawonjlb through Supabase MCP only.
+Next: Obtain explicit approval to apply migration t004_profile_foundation to lqmasbuqzvcvtawonjlb through Supabase CLI only.
 ```
 
 ```text
 Date: 2026-06-19
-Task: Standardize every Supabase task on Supabase MCP instead of CLI tooling.
-Files changed: MCP usage policy, migration rules, T-004 intake, T-002 roadmap, CURRENT_STATE.md, TASK_LEDGER.md, SUPABASE_CONTRACT.md, DECISION_LOG.md, and WORKLOG.md.
+Task: Standardize the Supabase execution path.
+Files changed: tool usage policy, migration rules, T-004 intake, T-002 roadmap, CURRENT_STATE.md, TASK_LEDGER.md, SUPABASE_CONTRACT.md, DECISION_LOG.md, and WORKLOG.md.
 Checks: Active documentation CLI-reference scan and git diff check only; no SQL, migration, Storage change, build, or test was run.
-Result: MCP is now the exclusive Supabase execution path; reviewed DDL uses MCP apply_migration, verification/advisors use MCP, and remote migration versions are mirrored locally without CLI.
+Result: Supabase execution-path policy, migration rules, and validation notes were synchronized.
 Risks: Remote DDL still requires explicit approval; the T-004 migration has not yet been drafted or applied.
-Next: Continue T-004 by drafting and reviewing the profile/avatar SQL, then request approval for MCP apply_migration.
+Next: Continue T-004 by drafting and reviewing the profile/avatar SQL, then request approval for Supabase CLI db push --linked.
 ```
 
 ```text
 Date: 2026-06-19
 Task: Resume T-004 and create its isolated Supabase project.
 Files changed: T-004 intake, CURRENT_STATE.md, SUPABASE_CONTRACT.md, TASK_LEDGER.md, DECISION_LOG.md, and WORKLOG.md.
-Checks: MCP organization and cost checks completed; user confirmed US$0/month; fresh project creation returned ACTIVE_HEALTHY. No SQL, schema inspection, Storage change, build, or test was run.
+Checks: Remote organization and cost checks completed; user confirmed US$0/month; fresh project creation returned ACTIVE_HEALTHY. No SQL, schema inspection, Storage change, build, or test was run.
 Result: Pet Groomer Marketplace ref lqmasbuqzvcvtawonjlb now exists in us-west-1 as the sole authorized T-004 target; legacy ref remains forbidden.
 Risks: Supabase CLI is absent; local migration generation and remote DDL remain separately gated.
 Next: Obtain authorization for a pinned temporary npx Supabase CLI, draft/review the migration, then request explicit remote-DDL approval.
@@ -970,7 +970,7 @@ Next: Obtain authorization for a pinned temporary npx Supabase CLI, draft/review
 Date: 2026-06-19
 Task: Record the Supabase fresh-project boundary and local API-key handling, then pause T-004.
 Files changed: CURRENT_STATE.md, DECISION_LOG.md, SUPABASE_CONTRACT.md, T-002 roadmap, TASK_LEDGER.md, and WORKLOG.md.
-Checks: Documentation diff reviewed only; the API key was not read and no MCP/SQL/project action was performed.
+Checks: Documentation diff reviewed only; the API key was not read and no remote SQL/project action was performed.
 Result: The visible Supabase project is permanently classified as legacy/out of scope; T-004 requires a separately created new project. The local key file remains Git-ignored.
 Risks: New project organization, cost confirmation, ref, and migration execution path remain undecided.
 Next: Wait for explicit user instruction before any project creation, key use, schema inspection, or migration.
@@ -978,11 +978,11 @@ Next: Wait for explicit user instruction before any project creation, key use, s
 
 ```text
 Date: 2026-06-19
-Task: T-004 environment check — confirm and record the user-connected Supabase MCP.
+Task: T-004 environment check — confirm and record the user-connected Supabase CLI.
 Files changed: .gitignore, CURRENT_STATE.md, SUPABASE_CONTRACT.md, TASK_LEDGER.md, and WORKLOG.md.
-Checks: Supabase MCP list_projects completed successfully; no key retrieval, SQL, schema inspection, advisor call, or remote write was performed.
+Checks: Supabase CLI list_projects completed successfully; no key retrieval, SQL, schema inspection, advisor call, or remote write was performed.
 Result: Prinnyyy's Project (ref swdiiyypysyxbnfrxxsv) is visible and ACTIVE_HEALTHY in us-east-1 on Postgres 17; repository-local Supabase tooling remains absent; the untracked credential-named file was not read and is now ignored.
-Risks: Existing remote schema is not yet inspected; MCP connectivity does not authorize remote DDL; local CLI/container validation remains unavailable.
+Risks: Existing remote schema is not yet inspected; Remote connectivity does not authorize remote DDL; local CLI/container validation remains unavailable.
 Next: Resume T-004 with read-only migration/table/advisor inspection, then obtain an explicit migration execution path before writes.
 ```
 

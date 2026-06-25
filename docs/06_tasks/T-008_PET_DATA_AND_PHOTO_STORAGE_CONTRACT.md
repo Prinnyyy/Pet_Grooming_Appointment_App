@@ -4,7 +4,7 @@
 
 Completed on 2026-06-20. Approved migration
 `20260620192648_t008_pet_data_photo_storage` is
-deployed to the authorized fresh project and mirrored locally. MCP metadata
+deployed to the authorized fresh project and mirrored locally. CLI-backed metadata
 inspection confirmed the tables, constraints, indexes, grants, RLS policies,
 trigger, private bucket, and Storage policies. The first rollback batch stopped
 on an empty-row harness assertion. The separately approved corrected batch
@@ -13,7 +13,7 @@ upload, and inactive-pet assertions, then stopped when
 `storage.protect_delete()` rejected direct SQL deletion from `storage.objects`
 and required the Storage API. Both transactions rolled back; the final
 read-only safety check found zero validation users, profiles, pets, photo rows,
-or Storage objects. Under the separately approved MCP-only closeout boundary,
+or Storage objects. Under the separately approved CLI-only closeout boundary,
 metadata inspection confirmed that the authenticated DELETE policy exactly
 matches the behavior-tested owner-only SELECT predicate. Security advisor
 returned zero lints. The performance advisor's one composite-foreign-key INFO
@@ -72,20 +72,21 @@ private pet-photo Storage bucket. This task is backend-only.
 
 ## Remote Boundary
 
-All Supabase work uses MCP and targets only `lqmasbuqzvcvtawonjlb`. The full
-migration SQL must be reviewed and explicitly approved before MCP
-`apply_migration`. After successful application, the exact MCP-reported
-migration version and SQL are mirrored under `supabase/migrations/`.
+All Supabase work uses Supabase CLI and targets only the linked
+`lqmasbuqzvcvtawonjlb` project. The full migration SQL must be reviewed and
+explicitly approved before `supabase db push --linked`. After successful
+application, the exact CLI-created migration file and SQL are mirrored under
+`supabase/migrations/`.
 
 ## Validation Plan
 
-1. Apply the explicitly approved migration once through Supabase MCP.
+1. Apply the explicitly approved migration once through Supabase CLI.
 2. Verify migration history, tables, constraints, indexes, grants, RLS
-   policies, bucket configuration, and Storage policies through MCP.
+   policies, bucket configuration, and Storage policies through Supabase CLI.
 3. Run one rollback-only SQL validation covering owner CRUD, soft deletion,
    cross-customer denial, Groomer denial, anonymous denial, ownership/path
    immutability, active-pet upload rules, and primary-photo uniqueness.
-4. Run MCP security and performance advisors.
+4. Run Supabase CLI security and performance advisors.
 5. Run `./scripts/supabase-check.sh` and `git diff --check`.
 6. Review only the T-008 diff. Do not run an Xcode build, unit tests, or UI
    tests because no iOS file changes.

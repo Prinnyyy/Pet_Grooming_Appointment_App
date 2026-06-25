@@ -68,21 +68,21 @@ Validation:
 
 After explicit SQL approval:
 
-1. Apply the reviewed SQL with Supabase MCP `apply_migration` to `lqmasbuqzvcvtawonjlb`.
-2. Verify with MCP metadata/read-only SQL:
+1. Apply the reviewed SQL with `supabase db push --linked` to the linked `lqmasbuqzvcvtawonjlb` project.
+2. Verify with CLI-backed metadata/read-only SQL:
    - migration is listed,
    - `messages` exists with RLS enabled,
    - `authenticated` has `SELECT` and column-scoped `INSERT`,
    - exactly one `SELECT` and one `INSERT` policy exist,
    - no update/delete grants exist for `authenticated`.
-3. Run rollback-only MCP behavior checks:
+3. Run rollback-only remote behavior checks:
    - booking customer can insert/read own conversation messages,
    - booking groomer can insert/read own conversation messages,
    - non-participant cannot read or insert,
    - anonymous/invalid sender insert is rejected,
    - blank/oversized body is rejected,
    - cleanup leaves zero validation rows.
-4. Run MCP security/performance advisors and record findings.
+4. Run Supabase CLI security/performance advisors and record findings.
 5. Run `./scripts/supabase-check.sh`.
 6. Run one iOS validation attempt: `./scripts/ios-test.sh`.
 7. Run `git diff --check`.
@@ -95,11 +95,11 @@ T-020 is complete. The backend text-message contract is deployed and mirrored, c
 
 Validation completed:
 
-- MCP migration apply passed as version `20260621055915`.
-- MCP metadata checks confirmed `messages` exists with RLS enabled, one SELECT policy, one INSERT policy, authenticated SELECT plus column-scoped INSERT, and no authenticated UPDATE/DELETE.
+- Supabase CLI migration apply passed as version `20260621055915`.
+- CLI-backed metadata checks confirmed `messages` exists with RLS enabled, one SELECT policy, one INSERT policy, authenticated SELECT plus column-scoped INSERT, and no authenticated UPDATE/DELETE.
 - Rollback-only behavior checks passed for customer/groomer participant reads/inserts, non-participant denial, anonymous-authenticated denial, body constraint rejection, and zero persisted validation rows. Two initial validation attempts failed due to test-harness setup only: `auth.users.instance_id` needed uuid casting and the temporary ID table needed authenticated SELECT during simulated RLS checks.
-- MCP security advisor returned the existing six intentional SECURITY DEFINER WARNs from T-012/T-015/T-018; T-020 adds no definer functions.
-- MCP performance advisor returned existing INFOs plus expected unused-index INFOs for `messages` indexes before production query traffic.
+- Supabase CLI security advisor returned the existing six intentional SECURITY DEFINER WARNs from T-012/T-015/T-018; T-020 adds no definer functions.
+- Supabase CLI performance advisor returned existing INFOs plus expected unused-index INFOs for `messages` indexes before production query traffic.
 - `./scripts/supabase-check.sh` passed.
 - `./scripts/ios-test.sh` passed with 62 Swift Testing tests and 1 XCTest UI smoke test after a targeted Swift 6 return/isolation fix in the post-review chat summary follow-up.
 - `git diff --check` passed.

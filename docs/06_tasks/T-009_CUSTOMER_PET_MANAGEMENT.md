@@ -48,7 +48,7 @@ Implement customer pet profile management in the iOS app using the T-008
   sign-in, `create_my_profile`, pet insert, private `pet-photos` object upload,
   `pet_photos` metadata insert, Storage API object delete, metadata delete, and
   pet soft-delete.
-- MCP cleanup deleted the temporary Auth user and confirmed zero remaining Auth
+- Supabase cleanup deleted the temporary Auth user and confirmed zero remaining Auth
   user, profile, customer profile, pet, pet photo, or `pet-photos` object rows
   for the smoke user.
 - No Supabase CLI command, migration, schema change, or persistent test data was

@@ -15,7 +15,7 @@ T-004 remains paused with a reviewed but unapplied migration. The user explicitl
 ## In Scope
 
 - Pin `supabase-swift` exactly to `2.46.0` and link the `Supabase` product to the app target.
-- Load the MCP-provided project URL and modern publishable key through an ignored local xcconfig.
+- Load the authorized project URL and modern publishable key through an ignored local xcconfig.
 - Keep a tracked empty xcconfig fallback so clean checkouts still build and show a visible configuration error.
 - Compose `SupabaseClient` outside SwiftUI views.
 - Add a token-free session snapshot, repository protocol, and Supabase Auth adapter.

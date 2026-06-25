@@ -59,7 +59,7 @@ The shared `profiles` insert must occur before the role-marker insert, in the sa
 
 Existing RLS and column grants remain active because the function uses invoker rights. Execute permission is revoked from `PUBLIC` and `anon`, then granted only to `authenticated` and `service_role`. No table RLS policy is weakened. The iOS repository maps only the exact `P0001` / `profile_role_immutable` pair to its immutable-role domain error; unrelated PostgREST and RLS errors remain generic safe failures.
 
-This RPC is a T-007 contract addition. The migration is not deployed until its exact SQL is reviewed and explicitly authorized for MCP `apply_migration` against `lqmasbuqzvcvtawonjlb`.
+This RPC is a T-007 contract addition. The migration is not deployed until its exact SQL is reviewed and explicitly authorized for Supabase CLI `db push --linked` against `lqmasbuqzvcvtawonjlb`.
 
 ## iOS Architecture
 
@@ -141,7 +141,7 @@ Focused Store tests cover:
 - failed creation preserves form state and allows retry;
 - duplicate submission protection.
 
-Backend validation uses rollback-only MCP SQL to prove:
+Backend validation uses rollback-only Supabase CLI SQL to prove:
 
 - Customer creation produces only the caller's shared and Customer marker rows;
 - Groomer creation produces only the caller's shared and Groomer marker rows;

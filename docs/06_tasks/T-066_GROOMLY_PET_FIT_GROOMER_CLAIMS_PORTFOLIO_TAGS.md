@@ -35,18 +35,18 @@ Add backend-only pet-fit evidence input tables for later matching work:
 
 ## Implementation Plan
 
-1. Run a RED MCP SQL query proving the new claim table is absent.
-2. Apply one reviewed Supabase MCP migration to `lqmasbuqzvcvtawonjlb`.
+1. Run a RED Supabase CLI SQL query proving the new claim table is absent.
+2. Apply one reviewed Supabase CLI migration to `lqmasbuqzvcvtawonjlb`.
 3. Mirror the applied migration locally under `supabase/migrations/`.
 4. Verify table shape, grants, RLS policies, trait constraints, owner management, active-groomer reads, cross-user denial, and rollback residue.
 5. Update backend contract, RLS policy docs, ledger, and durable memory after validation.
 
 ## Required Validation
 
-- RED MCP SQL query showing `public.groomer_fit_claims` does not exist before migration.
-- MCP `apply_migration` to `lqmasbuqzvcvtawonjlb`.
-- MCP metadata checks for both tables, grants, RLS, policies, constraints, indexes, and migration listing.
-- Rollback-only MCP behavior checks:
+- RED Supabase CLI SQL query showing `public.groomer_fit_claims` does not exist before migration.
+- Supabase CLI `db push --linked` to `lqmasbuqzvcvtawonjlb`.
+- CLI-backed metadata checks for both tables, grants, RLS, policies, constraints, indexes, and migration listing.
+- Rollback-only remote behavior checks:
   - groomer owner can insert/update/delete own claims;
   - owner can insert/delete tags for own portfolio photos;
   - authenticated users can read active claims/tags for active groomers;
@@ -54,7 +54,7 @@ Add backend-only pet-fit evidence input tables for later matching work:
   - cross-user direct mutation is denied;
   - invalid trait pairs are rejected;
   - rollback leaves zero validation rows.
-- MCP advisor checks.
+- Supabase CLI advisor checks.
 - `./scripts/supabase-check.sh`
 - `git diff --check`
 
@@ -62,12 +62,12 @@ Simulator launch is skipped because T-066 is backend SQL only and has no visible
 
 ## Stop Condition
 
-Stop and report if this requires matching RPC replacement, evidence summary views, iOS UI/repository changes, Storage policy changes, or non-MCP database writes.
+Stop and report if this requires matching RPC replacement, evidence summary views, iOS UI/repository changes, Storage policy changes, or non-CLI database writes.
 
 ## Progress
 
 - RED query passed: `select count(*) from public.groomer_fit_claims;` failed with SQLSTATE `42P01` because the table did not exist.
-- Supabase MCP `apply_migration` passed for `20260625005226_t066_groomer_fit_claims_portfolio_tags` on `lqmasbuqzvcvtawonjlb`.
+- Remote migration application passed for `20260625005226_t066_groomer_fit_claims_portfolio_tags` on `lqmasbuqzvcvtawonjlb`.
 - Local migration mirror was aligned to `supabase/migrations/20260625005226_t066_groomer_fit_claims_portfolio_tags.sql`.
 - Metadata checks passed for migration listing, table existence, RLS enabled, column-scoped authenticated grants, policies, constraints, indexes, triggers, and `anon` lacking pet-fit helper function execute.
 - Rollback-only behavior validation failed on the first owner insert with SQLSTATE `42501`: authenticated DML triggered `groomer_fit_claims_trait_check`, which called `app_private.pet_fit_valid_trait_pair(...)`; that helper then called `app_private.pet_fit_normalized_text(...)`, but `authenticated` lacks `USAGE` on schema `app_private`.
@@ -98,17 +98,17 @@ Changed files:
 
 Validation:
 
-- RED MCP SQL query failed before the first migration because `public.groomer_fit_claims` did not exist.
-- Supabase MCP `apply_migration` passed for `20260625005226_t066_groomer_fit_claims_portfolio_tags`.
-- MCP metadata checks confirmed both tables exist with RLS enabled, explicit authenticated/service_role grants, no anon table grants, canonical trait constraints, unique constraints, foreign keys, indexes, updated_at triggers, and one policy per operation after the final corrective migration.
+- RED Supabase CLI SQL query failed before the first migration because `public.groomer_fit_claims` did not exist.
+- Remote migration application passed for `20260625005226_t066_groomer_fit_claims_portfolio_tags`.
+- CLI-backed metadata checks confirmed both tables exist with RLS enabled, explicit authenticated/service_role grants, no anon table grants, canonical trait constraints, unique constraints, foreign keys, indexes, updated_at triggers, and one policy per operation after the final corrective migration.
 - RED reproduction after the first migration failed with SQLSTATE `42501`, proving the authenticated CHECK helper schema-permission issue before correction.
-- Supabase MCP `apply_migration` passed for corrective migration `20260625010421_t066_fix_claim_tag_trait_checks`.
-- MCP checks confirmed the T-066 trait CHECK constraints no longer depend on `app_private`, while `anon` and `authenticated` again lack execute privilege on the two T-065 pet-fit helper functions and `service_role` keeps execute.
+- Remote migration application passed for corrective migration `20260625010421_t066_fix_claim_tag_trait_checks`.
+- Supabase CLI checks confirmed the T-066 trait CHECK constraints no longer depend on `app_private`, while `anon` and `authenticated` again lack execute privilege on the two T-065 pet-fit helper functions and `service_role` keeps execute.
 - Rollback-only behavior validation passed for owner claim insert/update/delete, owner portfolio tag insert/update/delete, active-groomer reads, inactive-groomer hiding, cross-user mutation denial, invalid trait rejection, and zero persisted validation rows.
-- Supabase MCP `apply_migration` passed for advisor corrective migration `20260625010716_t066_merge_select_policies_and_index_tag_fk`.
+- Remote migration application passed for advisor corrective migration `20260625010716_t066_merge_select_policies_and_index_tag_fk`.
 - Final policy/index checks confirmed one SELECT policy per T-066 table and a covering index for `groomer_portfolio_fit_tags(portfolio_photo_id, groomer_id)`.
-- Final MCP security advisor returned only existing controlled public SECURITY DEFINER RPC warnings plus leaked-password protection; no new T-066 security finding.
-- Final MCP performance advisor no longer reported T-066 multiple-permissive-policy WARNs or the tag foreign-key missing-index INFO. It reported existing historical INFOs plus an expected unused-index INFO for the new tag foreign-key index before production traffic.
+- Final Supabase CLI security advisor returned only existing controlled public SECURITY DEFINER RPC warnings plus leaked-password protection; no new T-066 security finding.
+- Final Supabase CLI performance advisor no longer reported T-066 multiple-permissive-policy WARNs or the tag foreign-key missing-index INFO. It reported existing historical INFOs plus an expected unused-index INFO for the new tag foreign-key index before production traffic.
 - Final residue check returned zero T-066 validation auth users, profiles, claims, and tags.
 - `./scripts/supabase-check.sh`: passed.
 - `git diff --check`: passed.

@@ -13,7 +13,7 @@ authenticated object owner and path to an active owned pet. Pet deletion is a
 soft-delete state; photo metadata can be deleted directly, while binary objects
 are managed only through the Storage API.
 
-**Tech Stack:** PostgreSQL 17, Supabase Data API/RLS/Storage, Supabase MCP, Bash
+**Tech Stack:** PostgreSQL 17, Supabase Data API/RLS/Storage, Supabase CLI, Bash
 repository checks.
 
 **Execution status:** Completed on 2026-06-20. Migration
@@ -23,7 +23,7 @@ rollback batch stopped on an empty-row harness assertion. The separately
 approved corrected batch passed all assertions before final Storage cleanup,
 where Supabase's `storage.protect_delete()` rejected direct SQL deletion and
 required the Storage API. Both transactions rolled back with zero test data.
-The separately approved MCP-only closeout verified that the authenticated
+The separately approved CLI-only closeout verified that the authenticated
 DELETE policy exactly matches the behavior-tested owner-only SELECT predicate.
 Security advisor returned zero lints; the one performance INFO was reviewed as
 non-blocking because the existing photo index contains both composite foreign
@@ -34,9 +34,9 @@ to T-009 integration.
 
 ## File Map
 
-- Create after MCP application:
+- Create after Supabase CLI application:
   `supabase/migrations/<mcp-version>_t008_pet_data_photo_storage.sql` — exact
-  mirror of the approved SQL below, using the version returned by MCP.
+  mirror of the approved SQL below, using the CLI-created migration filename.
 - Modify after verification: `docs/03_backend/SUPABASE_CONTRACT.md` — mark the
   pet tables and bucket deployed and record their exact contract.
 - Modify after verification: `docs/03_backend/STORAGE_POLICY.md` — record the
@@ -57,7 +57,7 @@ No Swift or Xcode file is part of this plan.
 ## Task 1: Review and Apply the Migration
 
 - [x] Confirm the user explicitly approves the exact SQL in this task.
-- [x] Call Supabase MCP `apply_migration` once with project
+- [x] Call Supabase CLI `db push --linked` once with project
   `lqmasbuqzvcvtawonjlb`, name `t008_pet_data_photo_storage`, and the exact SQL
   below.
 - [x] If application fails, report the first real error and stop. Do not revise
@@ -520,13 +520,13 @@ using (
 
 ## Task 2: Mirror and Inspect the Applied Migration
 
-- [x] Call MCP `list_migrations` and capture the exact version assigned to
+- [x] Call `supabase migration list --linked` and capture the exact version assigned to
   `t008_pet_data_photo_storage`.
 - [x] Create
   `supabase/migrations/<mcp-version>_t008_pet_data_photo_storage.sql` with the
-  exact approved SQL above. Do not create or guess the timestamp before MCP
+  exact approved SQL above. Do not create or guess migration timestamps by hand
   reports it.
-- [x] Use MCP table and SQL inspection to verify:
+- [x] Use Supabase CLI table and SQL inspection to verify:
   - both public tables exist with RLS enabled;
   - constraints, foreign keys, indexes, grants, trigger, and policies match the
     plan;
@@ -536,7 +536,7 @@ using (
 
 ## Task 3: Run One Rollback-Only Access Validation
 
-- [x] Through MCP `execute_sql`, start one transaction and create disposable
+- [x] Through Supabase CLI `db query --linked`, start one transaction and create disposable
   Customer A, Customer B, Groomer, and anonymous-authenticated Auth/profile
   identities using fixed validation UUIDs.
 - [x] Under transaction-local `authenticated` JWT claims, verify:
@@ -549,7 +549,7 @@ using (
     second-primary-photo insertion, and hard pet deletion are rejected;
   - rollback-only `storage.objects` policy probes allow Customer A's active pet
     path and deny foreign/deleted pet paths;
-  - under the approved MCP-only boundary, the authenticated DELETE policy is
+  - under the approved CLI-only boundary, the authenticated DELETE policy is
     structurally identical to the behavior-tested owner-only SELECT predicate.
 - [x] End with `rollback` and verify the fixed validation UUIDs left zero Auth,
   profile, pet, photo metadata, and Storage rows.
@@ -558,9 +558,9 @@ using (
 
 ## Task 4: Run Advisors and Repository Checks
 
-- [x] Run MCP security advisor for `lqmasbuqzvcvtawonjlb` and review every T-008
+- [x] Run Supabase CLI security advisor for `lqmasbuqzvcvtawonjlb` and review every T-008
   finding.
-- [x] Run MCP performance advisor and review every T-008 finding.
+- [x] Run Supabase CLI performance advisor and review every T-008 finding.
 - [x] Run `./scripts/supabase-check.sh`; expected result:
   `Supabase contract check passed.`
 - [x] Run `git diff --check`; expected result: no output and exit status 0.

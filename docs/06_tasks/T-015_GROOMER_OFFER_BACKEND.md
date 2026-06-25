@@ -114,15 +114,15 @@ Server checks:
 
 Completed validation:
 
-1. MCP migration apply passed and migration record `20260621024848` was confirmed.
-2. MCP metadata checks verified:
+1. Supabase CLI migration apply passed and migration record `20260621024848` was confirmed.
+2. CLI-backed metadata checks verified:
    - `groomer_offers` exists with RLS enabled and exactly one participant SELECT policy.
    - `request_matches_identity_key` exists to support the composite offer FK.
    - `groomer_offers` constraints include primary key, request/customer FK, match identity FK, price check, and status check.
    - `authenticated` has SELECT only on `groomer_offers`; `service_role` has full table privileges.
    - `anon` and `public` cannot execute the offer RPCs; `authenticated` and `service_role` can execute them.
    - Both offer RPCs are `SECURITY DEFINER` with an empty search path.
-3. Rollback-only MCP behavior checks passed:
+3. Rollback-only remote behavior checks passed:
    - Matched groomer can create one pending offer.
    - Duplicate active offer is rejected.
    - Withdrawn offer allows a new offer.
@@ -132,8 +132,8 @@ Completed validation:
    - Customer cannot directly insert an offer.
    - Anonymous caller cannot execute either RPC.
 4. Rollback cleanup confirmed zero persisted T-015 request and offer validation rows.
-5. MCP security advisor returned expected `SECURITY DEFINER` WARNs for the two T-012 RPCs plus the two T-015 offer RPCs. This is intentional for controlled multi-row writes while direct table insert/update/delete grants remain denied; the RPCs perform explicit identity, role, ownership, current-state, and range checks, use an empty `search_path`, and revoke `PUBLIC`/`anon` execution.
-6. MCP performance advisor returned INFOs:
+5. Supabase CLI security advisor returned expected `SECURITY DEFINER` WARNs for the two T-012 RPCs plus the two T-015 offer RPCs. This is intentional for controlled multi-row writes while direct table insert/update/delete grants remain denied; the RPCs perform explicit identity, role, ownership, current-state, and range checks, use an empty `search_path`, and revoke `PUBLIC`/`anon` execution.
+6. Supabase CLI performance advisor returned INFOs:
    - Existing T-008/T-012 composite-FK and unused-index INFOs already reviewed in earlier tasks.
    - New T-015 composite-FK INFOs for `groomer_offers_request_customer_fkey` and `groomer_offers_match_identity_fkey`.
    - New T-015 unused-index INFO for `groomer_offers_match_idx`, expected before T-016/T-017 client query paths exercise offers.

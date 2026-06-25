@@ -6,7 +6,7 @@ Approved and completed on 2026-06-20. Migration
 `20260620192648_t008_pet_data_photo_storage` is deployed and mirrored, with
 metadata inspection passed. The corrected rollback batch passed every assertion
 before final Storage cleanup, where Supabase's `storage.protect_delete()`
-correctly required the Storage API. The approved MCP-only closeout verified that
+correctly required the Storage API. The approved CLI-only closeout verified that
 the authenticated DELETE policy exactly matches the behavior-tested owner-only
 SELECT predicate. Advisors and static checks were reviewed and no validation
 data persisted. Actual Storage API deletion is deferred to T-009 integration.
@@ -170,7 +170,7 @@ later list queries. No policy depends on user-editable Auth metadata.
 ## Validation
 
 After explicit approval of the exact SQL, apply one migration through Supabase
-MCP to fresh project `lqmasbuqzvcvtawonjlb` only. Then verify migration history,
+Supabase CLI to fresh project `lqmasbuqzvcvtawonjlb` only. Then verify migration history,
 metadata, grants, policies, bucket restrictions, and indexes.
 
 One rollback-only SQL validation covers:
@@ -185,7 +185,7 @@ One rollback-only SQL validation covers:
 - Storage policy predicates allow only the owner path and active owned pet for
   insert/update, while owner cleanup remains possible after soft deletion.
 
-Run MCP security and performance advisors, `./scripts/supabase-check.sh`, and
+Run Supabase CLI security and performance advisors, `./scripts/supabase-check.sh`, and
 `git diff --check`. Do not run Xcode build, unit tests, or UI tests because T-008
 does not modify iOS code. On the first migration or validation failure, stop and
 report the real error without an unapproved fix loop.

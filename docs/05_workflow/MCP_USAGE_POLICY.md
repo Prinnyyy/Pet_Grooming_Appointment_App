@@ -22,24 +22,25 @@ Mode budget:
 
 Allowed for scheme/simulator discovery, build/test execution, and structured build errors. Do not alter signing, capabilities, entitlements, or project structure unless explicitly planned.
 
-## Supabase MCP
+## Supabase CLI
 
-Supabase MCP is the exclusive interface for every Supabase task. Do not install or invoke the Supabase CLI, `npx supabase`, local containers, or direct database tooling.
+Supabase CLI is the default interface for every Supabase task. Use the installed `supabase` binary against the authorized linked project. Do not use `npx supabase`, local containers, or direct database tooling unless a task explicitly documents that fallback.
 
-Use Supabase MCP for project/docs inspection, migrations, focused SQL verification, Storage/RLS/policy checks, and advisors.
+Use Supabase CLI for project inspection, migrations, focused SQL verification, Storage/RLS/policy checks, and advisors.
 
 Migration workflow:
 
-1. Draft and review one task-scoped SQL change locally.
-2. Obtain explicit user approval for the remote DDL.
-3. Apply reviewed SQL only with MCP `apply_migration` against the authorized project ref.
-4. Confirm the recorded version/name with MCP.
-5. Store an exact local migration mirror using the MCP-reported version.
-6. Validate metadata, positive/negative authorization cases, and advisors through MCP.
+1. Create the migration with `supabase migration new <name>`.
+2. Draft and review one task-scoped SQL change locally.
+3. Obtain explicit user approval for the remote DDL.
+4. Apply reviewed SQL only with `supabase db push --linked` against the authorized project ref.
+5. Confirm the recorded version/name with `supabase migration list --linked`.
+6. Validate metadata and positive/negative authorization cases with `supabase db query --linked`.
+7. Run advisors with `supabase db advisors --linked --type security` and `supabase db advisors --linked --type performance`.
 
-`./scripts/supabase-check.sh` is a repository static check only. It does not replace MCP verification and must not invoke a CLI or remote database directly.
+`./scripts/supabase-check.sh` is a repository static check only. It does not replace Supabase CLI remote verification and must not mutate a remote database.
 
-Never use MCP for destructive schema changes, RLS weakening, migration repair, or secret inspection. Remote Supabase writes require explicit user approval. Do not read local credential files when MCP can perform the task.
+Never use Supabase CLI for destructive schema changes, RLS weakening, migration repair, or secret inspection without explicit task authorization. Remote Supabase writes require explicit user approval. Do not read local credential files when the CLI or Dashboard can provide the required non-secret project fact.
 
 ## GitHub MCP
 

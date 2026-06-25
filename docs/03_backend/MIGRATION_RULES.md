@@ -2,14 +2,14 @@
 
 ## Current State
 
-The repository-local `supabase/migrations/` mirror exists for approved Supabase tasks. The authorized fresh project is managed exclusively through Supabase MCP; a local Supabase CLI or container runtime is neither required nor permitted by project policy.
+The repository-local `supabase/migrations/` mirror exists for approved Supabase tasks. The authorized fresh project is managed through Supabase CLI. A local Supabase container runtime is required only for tasks that explicitly validate against a local stack.
 
 ## Principles
 
 - Make migrations small, ordered by the roadmap feature slice, and append-only after application.
 - Never copy legacy project migrations or infer deployed schema from documentation.
-- Use Supabase MCP for documentation, project inspection, migration application, SQL verification, migration history, and advisors. Do not install or run the Supabase CLI, `npx supabase`, a local Supabase stack, or direct database tools.
-- Draft and review the full task-scoped SQL locally before any authorized MCP write.
+- Use Supabase CLI for project inspection, migration application, SQL verification, migration history, and advisors. Prefer the installed `supabase` binary; do not use `npx supabase` or direct database tools unless a task explicitly documents that fallback.
+- Draft and review the full task-scoped SQL locally before any authorized remote write.
 - Keep tables, constraints, indexes, grants, RLS policies, functions, Storage policies, and `SUPABASE_CONTRACT.md` synchronized.
 - Use explicit rollback/recovery reasoning for destructive or data-transforming changes; do not reset or repair a remote database without approval.
 
@@ -31,22 +31,23 @@ For each exposed table or function, the owning task must review:
 - Confirm the task's exact tables/functions and exclude adjacent roadmap features.
 - Confirm Auth identity, ownership, role, RLS, grant, and RPC requirements.
 - Review current Supabase changelog/docs for relevant breaking changes.
-- Confirm the authorized MCP project ref and explicitly exclude every legacy ref.
-- Confirm user approval for remote DDL before calling MCP `apply_migration`.
+- Confirm the authorized linked project ref with `supabase projects list` or `supabase migration list --linked`, and explicitly exclude every legacy ref.
+- Create new migration files with `supabase migration new <name>`; never invent timestamped filenames by hand.
+- Confirm user approval for remote DDL before running `supabase db push --linked`.
 
 ## After Creating a Migration
 
-- Confirm the applied migration version/name through MCP migration inspection.
-- Save an exact local mirror under `supabase/migrations/` using the version reported by MCP; never invent, renumber, or repair remote history.
+- Confirm the applied migration version/name through `supabase migration list --linked`.
+- Keep the exact CLI-created migration file under `supabase/migrations/`; never invent, renumber, or repair remote history.
 - Run `./scripts/supabase-check.sh` as a repository static check when configured.
-- Test intended access and required negative cases through MCP with separate user identities or equivalent transaction-local claims that roll back.
-- Run MCP security and performance advisors for functions, views, RLS, and Storage.
+- Test intended access and required negative cases with `supabase db query --linked` using separate user identities or equivalent transaction-local claims that roll back.
+- Run `supabase db advisors --linked --type security` and `supabase db advisors --linked --type performance` for functions, views, RLS, and Storage.
 - Update backend contract, feature index/current state when implementation state changes, and the task worklog.
 
 ## Remote Safety
 
-- MCP `apply_migration` is the only authorized DDL path. Remote apply, reset, repair, destructive DDL, bucket deletion, and policy removal require explicit user authorization.
-- Do not use exploratory DDL through `execute_sql`; prepare one reviewed migration and apply it once.
+- `supabase db push --linked` is the authorized remote migration path. Remote apply, reset, repair, destructive DDL, bucket deletion, and policy removal require explicit user authorization.
+- Do not use exploratory DDL through `supabase db query --linked`; prepare one reviewed migration and apply it once.
 - Never expose secret/service-role credentials in migrations, seed data, app configuration, logs, or documentation.
 - Seed data is for authorized local/test environments only and must not create a production bypass path.
 
