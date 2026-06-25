@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-06-24
+Task: T-066 - Groomly pet-fit groomer claims and portfolio tags.
+Files changed: Supabase migrations 20260625005226, 20260625010421, and 20260625010716; T-066 task doc; Supabase contract/RLS docs; task ledger; feature index; CURRENT_STATE.md; and WORKLOG.md.
+Checks: RED missing-table query failed before implementation; RED authenticated CHECK-helper failure reproduced after the first migration; MCP migrations applied; metadata/grant/RLS/policy/index checks passed; rollback-only behavior checks passed; final residue check returned zero validation rows; advisors ran; supabase-check passed; diff-check recorded in task closeout.
+Result: Deployed owner-managed low-confidence groomer fit claims and portfolio fit tags with explicit grants/RLS, canonical trait constraints, merged SELECT policies, and a covering tag photo FK index.
+Risks: T-066 does not change matching, RPCs, evidence summaries, iOS UI/repositories, or Storage access. Claims are not verified expertise.
+Next: Do not start T-067 structured review evidence without a separate task file and explicit backend authorization.
+```
+
+```text
+Date: 2026-06-24
 Task: T-065 - Groomly pet-fit SQL taxonomy.
 Files changed: Supabase migration 20260625003519, T-065 task doc, Supabase contract/RLS docs, task ledger, feature index, CURRENT_STATE.md, and WORKLOG.md.
 Checks: RED MCP SQL query failed before implementation because app_private.pet_fit_breed_group(text) did not exist; MCP apply_migration passed; MCP SQL behavior/grant checks passed; security advisor returned only existing controlled-RPC WARNs plus leaked-password protection; performance advisor returned existing INFOs; supabase-check and diff-check recorded in task closeout.
