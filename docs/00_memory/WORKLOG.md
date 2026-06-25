@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-06-25
+Task: T-073 - Groomly claim and portfolio match signals.
+Files changed: Supabase migration 20260625081925; T-073 task doc; backend contract/RLS docs; task ledger; feature index; CURRENT_STATE.md; and WORKLOG.md.
+Checks: RED rollback-only SQL showed claim/tag groomer and baseline groomer both scored 80.00 before implementation; CLI applied the migration file and repaired remote history after reverting an accidental empty MCP probe migration; GREEN rollback-only SQL passed with claim/tag groomer outranking baseline and zero persisted residue; metadata/grant/function checks passed; security/performance advisors ran; supabase-check passed; git diff --check passed.
+Result: `create_grooming_request` now adds capped low-confidence T-066 claim/portfolio signals to eligible availability-fit matches while preserving the RPC signature, return shape, grants, hard filters, T-072 availability gate, and T-069 evidence-backed scoring.
+Risks: T-073 affects only newly created matches and does not backfill existing rows. Claims/tags still do not create eligibility, proof of expertise, specialist/expert status, public directory browsing, direct booking, iOS UI, Storage, or RLS changes.
+Next: Stop unless the user asks for commit/push or explicitly authorizes a T-074+ task.
+```
+
+```text
+Date: 2026-06-25
 Task: T-072 - Groomly availability-aware matching.
 Files changed: Supabase migration 20260625075813; T-072 task doc; backend contract/RLS docs; task ledger; feature index; CURRENT_STATE.md; and WORKLOG.md.
 Checks: Supabase MCP migration applied after CLI dry-run hung at login-role initialization; corrected rollback-only matching check passed with unavailable groomer filtered and zero persisted residue; metadata/grant/function checks passed; security/performance advisors ran; supabase-check passed.
