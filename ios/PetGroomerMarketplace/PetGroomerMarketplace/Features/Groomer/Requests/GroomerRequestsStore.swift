@@ -310,6 +310,8 @@ final class GroomerRequestsStore {
             "This request can no longer receive offers."
         case .activeOfferExists:
             "You already have an active offer for this request."
+        case .groomerUnavailable:
+            "Choose a time within your availability and outside time off."
         case .offerNotFound:
             "This offer is no longer available."
         case .noLongerWithdrawable:

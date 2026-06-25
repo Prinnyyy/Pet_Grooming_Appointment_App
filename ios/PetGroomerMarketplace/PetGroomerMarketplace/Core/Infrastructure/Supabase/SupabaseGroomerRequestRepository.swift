@@ -189,6 +189,8 @@ final class SupabaseGroomerRequestRepository: GroomerRequestRepository {
                     return .noLongerOfferable
                 case "active_offer_exists":
                     return .activeOfferExists
+                case "groomer_unavailable":
+                    return .groomerUnavailable
                 case "offer_not_found", "invalid_offer":
                     return .offerNotFound
                 case "offer_not_withdrawable":

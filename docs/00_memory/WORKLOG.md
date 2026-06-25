@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-06-25
+Task: T-071 - Groomly availability enforcement.
+Files changed: Supabase migration 20260625073116; GroomerRequest repository/store error mapping; GroomerRequestFeatureTests; T-071 task doc; backend contract/RLS docs; task ledger; feature index; CURRENT_STATE.md; and WORKLOG.md.
+Checks: RED rollback-only SQL showed offer/acceptance availability gaps; RED targeted Swift test failed on missing `groomerUnavailable`; Supabase MCP migration applied; GREEN rollback-only SQL passed with zero auth residue; metadata/grant/function checks passed; security/performance advisors ran; supabase-check passed; GREEN targeted Swift test passed; final git diff check, iOS build, and XcodeBuildMCP simulator build/run passed.
+Result: `create_groomer_offer` now rejects unavailable proposed ranges with `groomer_unavailable`, and `accept_groomer_offer` rechecks stale offers with the existing `booking_conflict` contract.
+Risks: T-071 does not change request matching distribution, customer slot discovery, direct booking, auto-accept, multiple windows per day, Storage, or RPC signatures.
+Next: Stop unless the user asks for commit/push or explicitly authorizes a T-072+ task.
+```
+
+```text
+Date: 2026-06-25
 Task: T-070 - Groomly pet-fit iOS surfacing.
 Files changed: Groomer request model, groomer request list/detail SwiftUI, GroomerRequestFeatureTests, T-070 task doc, task ledger, feature index, Supabase contract note, CURRENT_STATE.md, and WORKLOG.md.
 Checks: RED targeted tests failed on missing `fitEvidencePresentation`; GREEN targeted tests passed after implementation; final diff-check, ios-build, and simulator launch are recorded in the task doc.

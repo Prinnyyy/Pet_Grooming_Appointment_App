@@ -167,6 +167,35 @@ struct GroomerRequestsStoreTests {
     }
 
     @Test @MainActor
+    func submitOfferUnavailableRangePreservesMatchAndShowsAvailabilityError() async throws {
+        let groomerID = UUID()
+        let matchedRequest = Self.matchedRequest(groomerID: groomerID)
+        let repository = GroomerRequestRepositoryFake(
+            matchedRequestsResult: .success([matchedRequest]),
+            createOfferResult: .failure(.groomerUnavailable)
+        )
+        let store = GroomerRequestsStore(
+            groomerID: groomerID,
+            repository: repository
+        )
+        await store.load()
+
+        let start = Date(timeIntervalSince1970: 1_783_000_000)
+        await store.submitOffer(
+            for: matchedRequest,
+            proposedStart: start,
+            proposedEnd: start.addingTimeInterval(2 * 60 * 60),
+            priceEstimateText: "125",
+            message: "",
+            now: start.addingTimeInterval(-60 * 60)
+        )
+
+        #expect(repository.createOfferCallCount == 1)
+        #expect(store.matchedRequests == [matchedRequest])
+        #expect(store.errorMessage == "Choose a time within your availability and outside time off.")
+    }
+
+    @Test @MainActor
     func pendingOfferCanBeWithdrawnAndReturnsMatchToViewed() async throws {
         let groomerID = UUID()
         let offerID = UUID()

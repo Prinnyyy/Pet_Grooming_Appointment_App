@@ -7,6 +7,7 @@ enum GroomerRequestRepositoryError: Error, Equatable, Sendable {
     case requestNoLongerOpen
     case noLongerOfferable
     case activeOfferExists
+    case groomerUnavailable
     case offerNotFound
     case noLongerWithdrawable
     case invalidInput
