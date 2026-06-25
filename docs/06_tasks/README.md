@@ -16,7 +16,7 @@ Use this directory for task records, templates, and task-specific artifacts. Sta
 - `T-001` through `T-022`: MVP foundation, backend, iOS, booking, chat, reviews, and hardening.
 - `T-023*` through `T-035`: completed and archived Groomly UI foundation sequence.
 - `T-036` through `T-062`: screenshot-driven Groomly UI and stability refinements.
-- `T-063` through `T-066`: pet-fit matching contract, taxonomy, SQL helpers, and groomer evidence input.
+- `T-063` through `T-068`: pet-fit matching contract, taxonomy, SQL helpers, groomer/review evidence input, and evidence summary.
 - `WORKFLOW-*`: workflow policy tasks.
 
 ## Task Artifacts

@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-06-25
+Task: T-068 - Groomly pet-fit evidence summary.
+Files changed: Supabase migrations 20260625061431 and 20260625061526; T-068 task doc; Supabase contract/RLS docs; task ledger; feature index; CURRENT_STATE.md; and WORKLOG.md.
+Checks: RED missing-view query passed before implementation; Supabase MCP migrations applied; metadata/grant/view-option checks passed; rollback-only behavior checks passed; final residue check returned zero validation rows; security and performance advisors ran; supabase-check passed; diff-check and no-index whitespace checks passed.
+Result: Deployed read-only `groomer_pet_fit_evidence_summary` grouped by groomer and canonical trait with completed-booking counts, positive/negative structured outcome counts, evidence timestamps, and a conservative confidence tier.
+Risks: T-068 does not change matching, request match score/reason generation, iOS UI/repositories, or Storage. Direct client reads are constrained by underlying RLS; T-069 can consume the view from controlled backend context for full matching evidence.
+Next: Do not start T-069 matching score/reason work without a separate task file and explicit backend authorization.
+```
+
+```text
+Date: 2026-06-25
 Task: T-067 - Groomly pet-fit structured reviews.
 Files changed: Supabase migration 20260625050422; T-067 task doc; Supabase contract/RLS docs; task ledger; feature index; CURRENT_STATE.md; and WORKLOG.md.
 Checks: RED missing-table/signature query passed before implementation; Supabase CLI db push hung during login-role initialization, so the reviewed migration was applied through Supabase MCP; metadata/grant/RLS/policy/index/function checks passed; rollback-only behavior checks passed; final residue check returned zero validation rows; security and performance advisors ran; supabase-check passed; diff-check recorded in task closeout.
