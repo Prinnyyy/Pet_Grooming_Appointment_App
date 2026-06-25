@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-06-24
+Task: T-065 - Groomly pet-fit SQL taxonomy.
+Files changed: Supabase migration 20260625003519, T-065 task doc, Supabase contract/RLS docs, task ledger, feature index, CURRENT_STATE.md, and WORKLOG.md.
+Checks: RED MCP SQL query failed before implementation because app_private.pet_fit_breed_group(text) did not exist; MCP apply_migration passed; MCP SQL behavior/grant checks passed; security advisor returned only existing controlled-RPC WARNs plus leaked-password protection; performance advisor returned existing INFOs; supabase-check and diff-check recorded in task closeout.
+Result: Deployed private SQL pet-fit helper functions for breed group, size band, care flags, service-fit traits, trait-pair validation, and request snapshot trait rows.
+Risks: T-065 does not change request distribution, match score/reason generation, public tables/views, iOS repositories, or UI. T-050 remains a local draft and was not deployed.
+Next: Do not start T-066 groomer claimed/portfolio evidence without a separate task file and explicit authorization.
+```
+
+```text
+Date: 2026-06-24
 Task: T-064 - Groomly pet-fit taxonomy foundation.
 Files changed: GroomingRequestTaxonomy, PetFitTaxonomyTests, T-064 task doc, task ledger, feature index, CURRENT_STATE.md, and WORKLOG.md.
 Checks: Red targeted PetFitTaxonomyTests failed before implementation because the taxonomy API did not exist; green targeted PetFitTaxonomyTests passed after implementation; git diff --check passed; ./scripts/ios-build.sh passed.

@@ -2,7 +2,7 @@
 
 ## Contract Status
 
-This backend contract is derived from `Fresh_Pet_Groomer_Marketplace_Engineering_Brief.md`. The T-004 profile/avatar foundation, T-007 atomic profile-onboarding RPC, T-008 pet/photo schema and private bucket, T-010 groomer profile/services/portfolio backend, T-012 grooming request/match backend, T-015 groomer offer backend, T-018 booking/conversation backend, T-020 text-message backend, T-021 completion/review backend, T-044 customer request cancellation backend, T-049 fixed-service/location/request-photo contract, T-058 groomer availability windows, T-059 groomer full-address/multi-location profile contract, and T-060 groomer availability preferences/time-off contract are deployed to the fresh Supabase project and mirrored under `supabase/migrations/`. T-060 migration metadata, grants, RLS policies, triggers, constraints, and advisors were verified under the approved MCP-only boundary. The original project visible through MCP is a legacy project and is not a target for this rebuild.
+This backend contract is derived from `Fresh_Pet_Groomer_Marketplace_Engineering_Brief.md`. The T-004 profile/avatar foundation, T-007 atomic profile-onboarding RPC, T-008 pet/photo schema and private bucket, T-010 groomer profile/services/portfolio backend, T-012 grooming request/match backend, T-015 groomer offer backend, T-018 booking/conversation backend, T-020 text-message backend, T-021 completion/review backend, T-044 customer request cancellation backend, T-049 fixed-service/location/request-photo contract, T-058 groomer availability windows, T-059 groomer full-address/multi-location profile contract, T-060 groomer availability preferences/time-off contract, and T-065 private pet-fit SQL taxonomy helpers are deployed to the fresh Supabase project and mirrored under `supabase/migrations/`. T-065 migration metadata, helper behavior, grants, and advisors were verified under the approved MCP-only boundary. The original project visible through MCP is a legacy project and is not a target for this rebuild.
 
 Once migrations exist, reviewed migrations and verified deployed metadata are authoritative. This document must remain synchronized with them and must never claim a planned object is deployed.
 
@@ -14,7 +14,7 @@ Once migrations exist, reviewed migrations and verified deployed metadata are au
 - Fresh project: `Pet Groomer Marketplace`, ref `lqmasbuqzvcvtawonjlb`, organization `Prinnyyy`, region `us-west-1`.
 - Project creation: authorized after the user confirmed the MCP-reported US$0/month cost; creation returned `ACTIVE_HEALTHY` on 2026-06-19.
 - Verification performed: project baseline; MCP migration application; schema, grants, RLS, trigger, function, and Storage inspection; rollback-only policy/RPC tests; security and performance advisors where tool support was available.
-- Applied migrations: `20260620105202_t004_profile_foundation`, `20260620105409_t004_optimize_rls_auth_calls`, `20260620172839_t007_create_my_profile`, corrective `20260620180607_t007_fix_create_my_profile_conflict_target`, `20260620192648_t008_pet_data_photo_storage`, `20260620224418_t010_groomer_profile_portfolio_backend`, corrective `20260620225308_t010_merge_groomer_select_policies`, `20260621000444_t012_grooming_request_match_backend`, corrective `20260621002211_t012_fix_create_grooming_request_conflict_target`, corrective `20260621010315_t012_limit_request_photo_snapshot`, `20260621024848_t015_groomer_offer_backend`, `20260621044424_t018_offer_acceptance_booking_backend`, `20260621055915_t020_booking_participant_chat`, `20260621065954_t021_completion_reviews`, corrective `20260621070826_t021_fix_create_review_returning_ambiguity`, `20260622142020_t044_cancel_grooming_request`, `20260623065017_t049_request_location_photo_contract`, `20260623223830_t058_groomer_availability_windows`, `20260623233559_t059_groomer_profile_address_location_modes`, and `20260624022107_t060_groomer_availability_preferences`.
+- Applied migrations: `20260620105202_t004_profile_foundation`, `20260620105409_t004_optimize_rls_auth_calls`, `20260620172839_t007_create_my_profile`, corrective `20260620180607_t007_fix_create_my_profile_conflict_target`, `20260620192648_t008_pet_data_photo_storage`, `20260620224418_t010_groomer_profile_portfolio_backend`, corrective `20260620225308_t010_merge_groomer_select_policies`, `20260621000444_t012_grooming_request_match_backend`, corrective `20260621002211_t012_fix_create_grooming_request_conflict_target`, corrective `20260621010315_t012_limit_request_photo_snapshot`, `20260621024848_t015_groomer_offer_backend`, `20260621044424_t018_offer_acceptance_booking_backend`, `20260621055915_t020_booking_participant_chat`, `20260621065954_t021_completion_reviews`, corrective `20260621070826_t021_fix_create_review_returning_ambiguity`, `20260622142020_t044_cancel_grooming_request`, `20260623065017_t049_request_location_photo_contract`, `20260623223830_t058_groomer_availability_windows`, `20260623233559_t059_groomer_profile_address_location_modes`, `20260624022107_t060_groomer_availability_preferences`, and `20260625003519_t065_pet_fit_sql_taxonomy`.
 - Local credential file: `supabase_api_key` exists, was not read, is Git-ignored, and has no authorization to appear in iOS code or documentation content.
 
 All Supabase migration and validation operations must target only the task-authorized fresh project, remain separate from the legacy ref, and use Supabase MCP exclusively. Remote DDL requires explicit authorization and a reviewed migration; MCP `apply_migration` is the only DDL path.
@@ -29,7 +29,7 @@ All Supabase migration and validation operations must target only the task-autho
 
 ## Tables and Roadmap
 
-`profiles`, `customer_profiles`, base `groomer_profiles`, `pets`, `pet_photos`, T-010 groomer profile details, `groomer_services`, `groomer_portfolio_photos`, `groomer_availability_windows`, `groomer_booking_preferences`, `groomer_time_off_windows`, `grooming_requests`, `request_matches`, `groomer_offers`, `bookings`, `conversations`, `messages`, and `reviews` are deployed and backend-validated. Pet-fit matching v1 objects are planned only; every planned row remains undeployed until its owning task applies and verifies a migration.
+`profiles`, `customer_profiles`, base `groomer_profiles`, `pets`, `pet_photos`, T-010 groomer profile details, `groomer_services`, `groomer_portfolio_photos`, `groomer_availability_windows`, `groomer_booking_preferences`, `groomer_time_off_windows`, `grooming_requests`, `request_matches`, `groomer_offers`, `bookings`, `conversations`, `messages`, and `reviews` are deployed and backend-validated. T-065 private pet-fit SQL helper functions are deployed and backend-validated. Pet-fit matching v1 tables/views remain planned only; every planned row remains undeployed until its owning task applies and verifies a migration.
 
 | Table | Purpose | Key Planned Fields | Access Summary | Roadmap |
 |---|---|---|---|---|
@@ -59,7 +59,7 @@ All Supabase migration and validation operations must target only the task-autho
 
 Pet-fit matching v1 is request distribution, not a public groomer directory or direct slot-booking system.
 
-- T-064/T-065 define a shared iOS and SQL trait vocabulary for breed group, size band, care flags, and service fit.
+- T-064/T-065 define the shared iOS and SQL trait vocabulary for breed group, size band, care flags, and service fit. T-065 stores the SQL side as private `app_private.pet_fit_*` helper functions only; it does not change request distribution.
 - T-066 adds low-weight groomer claims and portfolio tags. Claims may expand eligible context but must not by themselves create "specialist" or "expert" status.
 - T-067 extends completed-booking reviews with structured outcomes while preserving the existing rating/content contract.
 - T-068 adds a read-only evidence summary grouped by groomer and trait. Evidence summaries are derived from completed bookings and structured reviews, not manually edited.
@@ -104,6 +104,19 @@ Pet-fit matching v1 is request distribution, not a public groomer directory or d
 - One review per completed booking, written only by its customer.
 
 Exact SQL types, constraints, indexes, cascading behavior, and enum/check implementation are decided and verified in the owning migration task, not invented in this documentation task.
+
+## Deployed Private Helper Functions
+
+| Function | Purpose | Access Summary | Roadmap |
+|---|---|---|---|
+| `app_private.pet_fit_normalized_text(text)` | Normalizes text inputs for the T-065 pet-fit helpers | `SECURITY INVOKER`, empty `search_path`; `anon`/`authenticated` execute revoked; `service_role` execute granted | T-065 |
+| `app_private.pet_fit_breed_group(text)` | Maps breed text to the pet-fit breed group vocabulary (`poodle`, `terrier`) | `SECURITY INVOKER`, empty `search_path`; `anon`/`authenticated` execute revoked; `service_role` execute granted | T-065 |
+| `app_private.pet_fit_size_band(numeric)` | Maps weight in pounds to the pet-fit size band vocabulary (`XS`, `S`, `M`, `L`, `XL`, `XXL`, `Giant`) without depending on undeployed T-050 | `SECURITY INVOKER`, empty `search_path`; `anon`/`authenticated` execute revoked; `service_role` execute granted | T-065 |
+| `app_private.pet_fit_care_flags(text, date, date)` | Derives care flags such as `anxious` and `senior` from request pet fields | `SECURITY INVOKER`, empty `search_path`; `anon`/`authenticated` execute revoked; `service_role` execute granted | T-065 |
+| `app_private.pet_fit_service_traits(text, text, date, text, date)` | Derives service-fit traits such as `curly_coat`, `terrier_coat`, `gentle_handling`, and `senior_care` | `SECURITY INVOKER`, empty `search_path`; `anon`/`authenticated` execute revoked; `service_role` execute granted | T-065 |
+| `app_private.pet_fit_valid_trait_pair(text, text)` | Validates trait type/value pairs for later claim, tag, and evidence tables | `SECURITY INVOKER`, empty `search_path`; `anon`/`authenticated` execute revoked; `service_role` execute granted | T-065 |
+| `app_private.pet_fit_request_traits(text, numeric, text, date, text, date)` | Returns normalized trait rows from request pet fields for later evidence and scoring tasks | `SECURITY INVOKER`, empty `search_path`; `anon`/`authenticated` execute revoked; `service_role` execute granted | T-065 |
+| `app_private.pet_fit_traits_from_snapshot(jsonb, text, date)` | Returns normalized trait rows from `grooming_requests.pet_snapshot` JSON for later evidence and scoring tasks | `SECURITY INVOKER`, empty `search_path`; `anon`/`authenticated` execute revoked; `service_role` execute granted | T-065 |
 
 ## Deployed RPCs
 

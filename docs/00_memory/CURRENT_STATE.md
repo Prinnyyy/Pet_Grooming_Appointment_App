@@ -19,12 +19,13 @@ Update this only when project state meaningfully changes.
 - Latest completed Groomly groomer schedule task: `docs/06_tasks/T-062_GROOMLY_GROOMER_SCHEDULE_SCREENSHOT_UI.md`.
 - Latest completed pet-fit matching contract task: `docs/06_tasks/T-063_GROOMLY_PET_FIT_MATCHING_CONTRACT.md`.
 - Latest completed pet-fit taxonomy task: `docs/06_tasks/T-064_GROOMLY_PET_FIT_TAXONOMY_FOUNDATION.md`.
+- Latest completed pet-fit SQL taxonomy task: `docs/06_tasks/T-065_GROOMLY_PET_FIT_SQL_TAXONOMY.md`.
 - Latest completed Groomly UI refinement task: `docs/06_tasks/T-043_GROOMLY_CUSTOMER_REQUESTS_CAROUSEL_EDGE_REFINEMENT.md`.
 - Latest completed request feature task: `docs/06_tasks/T-049_GROOMLY_REQUEST_DATA_CONTRACT_LOCATION_PHOTOS.md`.
 - Latest completed pet feature task: `docs/06_tasks/T-050_GROOMLY_PET_DATA_CONTRACT_AND_ADD_PET_UI.md`.
 - Groomly UI sequence: `docs/06_tasks/T-026_TO_T-035_GROOMLY_UI_COMPLETION_SEQUENCE.md` is completed for implemented MVP screens.
 - Completed Groomly UI phase archive marker: `docs/09_frozen/groomly_ui_completed_2026-06-22/FREEZE_README.md`.
-- Active next executable pet-fit matching task: none without explicit T-065+ backend authorization.
+- Active next executable pet-fit matching task: none without explicit T-066+ backend authorization.
 - Active next executable Groomly screenshot task: none currently defined; future UI work starts from a user-uploaded screenshot.
 - Screenshot-driven task template: `docs/06_tasks/SCREENSHOT_UI_REWORK_TASK_TEMPLATE.md`.
 - Superseded mandatory completion gate task: `docs/06_tasks/WORKFLOW-COMPLETION-GATE-001.md`.
@@ -82,7 +83,7 @@ Update this only when project state meaningfully changes.
 - Last test command: targeted `xcodebuild test ... -only-testing:PetGroomerMarketplaceTests/PetFitTaxonomyTests`.
 - Last known test result: targeted `PetFitTaxonomyTests` passed for T-064 on 2026-06-24.
 - Last simulator launch: `xcrun simctl install` + `xcrun simctl launch com.prinnyyy.PetGroomerMarketplace` passed on `iPhone 17 Pro` iOS 26.5 simulator (`45D452E8-DC6C-4CD4-A747-4D21671E68A6`) on 2026-06-24; app launched successfully for inspection with pid `60645`.
-- Last general check: `git diff --check` passed for T-064 on 2026-06-24.
+- Last general check: `git diff --check` passed for T-065 on 2026-06-24; `./scripts/supabase-check.sh` passed for T-065 on 2026-06-24.
 - Known failing checks: none recorded after T-022.
 - Historical per-task validation details live in the relevant `docs/06_tasks/T-*.md` files and `docs/00_memory/WORKLOG.md`.
 
@@ -98,6 +99,7 @@ Update this only when project state meaningfully changes.
 - Active product model remains Open Request -> Groomer Offer -> Customer Confirmation -> Booking. Do not reintroduce task-card push flow.
 - T-063 locks the next bottom-layer direction as request-first pet-fit matching v1. The app should improve request distribution with explainable pet/groomer fit evidence while deferring public groomer directory browsing, direct customer slot booking, AI/ML recommendations, and payments.
 - T-064 adds the local pure Swift pet-fit taxonomy foundation in `GroomingRequestTaxonomy.swift`: poodle/curly coat, Westie/terrier coat, anxious/gentle handling, and senior-care derivation with focused unit coverage. It does not change backend matching, persistence, repositories, or UI.
+- T-065 deploys private SQL pet-fit taxonomy helpers in `app_private`: breed group, size band, care flags, service-fit traits, trait-pair validation, request field trait rows, and request snapshot trait rows. It does not change request distribution, match scores/reasons, repositories, or UI.
 - Customer Requests owns only pre-confirmation request work: it shows active `open`/`has_offers` request cards and a `booked` -> Booking handoff when a matching confirmed booking exists. The handoff is displayed inside the same quest action card layout as unconfirmed requests, swaps to a confirmed title and `View Booking` CTA, and is hidden after `View Booking` is acknowledged locally on the same device. Confirmed appointment lifecycle remains in Bookings. The Customer new request wizard is a five-step UI over persisted request draft fields, including fixed service type, preferred time, service notes, location mode/address/state/ZIP/range, and request photo upload after request creation.
 - Groomly UI adaptation is complete for implemented MVP screens and archived as historical context. Future Groomly UI changes are screenshot-driven rework tasks that must map screenshot modules to existing SwiftUI/Store/repository/model paths or stop for new-feature approval. Design sources remain `docs/08_design/Groomly.html`, `docs/08_design/Groomly/`, `docs/08_design/UI_IMPLEMENTATION_NOTES.md`, `docs/08_design/design_tokens.json`, and `docs/08_design/Apply Groomly Design Prototype to Existing SwiftUI App.md`.
 
@@ -171,8 +173,9 @@ Update this only when project state meaningfully changes.
 - T-058 deployed `public.groomer_availability_windows` to project `lqmasbuqzvcvtawonjlb` through Supabase MCP migration `20260623223830_t058_groomer_availability_windows`. RLS is enabled; authenticated non-anonymous groomer owners can select/insert/update/delete only their own rows; anon has no table grant. The table supports one enabled/disabled weekly time window per weekday and is not yet used by matching or booking conflict checks.
 - T-059 deployed `20260623233559_t059_groomer_profile_address_location_modes` to project `lqmasbuqzvcvtawonjlb`. `groomer_profiles` now has `base_street_address`, `base_zip_code`, and canonical multi-select `service_location_modes`; a trigger syncs the legacy `service_location_mode`; `create_grooming_request` matches groomers by service-location membership with legacy fallback; authenticated has SELECT/UPDATE grants on the new safe profile columns. The app requires full address before saving an active profile, while DB active-completeness keeps street/ZIP optional for old-row compatibility.
 - T-060 deployed `20260624022107_t060_groomer_availability_preferences` to project `lqmasbuqzvcvtawonjlb`. `groomer_booking_preferences` stores one owner row per groomer for max daily appointments, minimum advance notice, and auto-accept. `groomer_time_off_windows` stores owner-managed unavailable date ranges. Both tables have RLS enabled, explicit authenticated/service_role grants, owner-only authenticated policies, and no anon grants.
-- T-063 is docs-only and deployed no schema. Planned pet-fit matching backend tasks are T-065 through T-071: SQL trait derivation, groomer claimed/portfolio evidence, structured reviews, evidence summary view, matching score/reason improvements, thin iOS surfacing, and availability enforcement.
-- T-064 is iOS-only and deployed no schema. Backend pet-fit evidence work remains planned for T-065 through T-071 and requires explicit Supabase migration authorization before remote writes.
+- T-063 is docs-only and deployed no schema. Planned remaining pet-fit matching backend tasks are T-066 through T-071: groomer claimed/portfolio evidence, structured reviews, evidence summary view, matching score/reason improvements, thin iOS surfacing, and availability enforcement.
+- T-064 is iOS-only and deployed no schema.
+- T-065 deployed `20260625003519_t065_pet_fit_sql_taxonomy` to project `lqmasbuqzvcvtawonjlb`. It adds private `app_private.pet_fit_*` helper functions for breed group, weight size band, care flags, service-fit traits, trait-pair validation, and request snapshot trait rows. The helpers use `SECURITY INVOKER`, empty `search_path`, no `anon`/`authenticated` execute privilege, and `service_role` execute privilege. No tables, views, public RPCs, matching score changes, RLS policies, Storage policies, or iOS code were changed.
 - T-050 prepared local migration `20260623013113_t050_pet_fixed_taxonomy_derived_size.sql` to normalize/tighten pet species, breed, temperament, weight, and derived size constraints while reusing the existing private `pet-photos` bucket. A review follow-up grants `execute` on `app_private.pet_size_code_for_weight_lbs(numeric)` to `authenticated` and keeps the trigger function private. It has not been remotely deployed.
 - T-023B, T-023C, T-023D1, T-023D2, T-024 through T-043, T-045, T-046, and T-047 required no backend reads or writes. T-044 used explicit user authorization for remote Supabase DDL through MCP. Future backend work must use Supabase MCP only and requires explicit user approval for remote schema writes.
 - The local `supabase_api_key` file is ignored and must not be read or embedded in code/docs.
@@ -196,8 +199,9 @@ Update this only when project state meaningfully changes.
 - T-058 availability is authoritative for groomer self-editing only. It is not yet connected to request matching, booking availability conflict checks, blackout dates, holidays, or multiple windows per day. `SupabaseGroomerProfileRepository.replaceAvailability` uses delete-then-insert direct table writes rather than an atomic RPC; add a controlled RPC later if partial-write resilience becomes required.
 - T-059 owner-side groomer avatar rendering is implemented for Account/Edit Profile. Customer-facing groomer avatar presentation remains deferred because broader private-object reads or signed URL exposure need a separate product/security decision.
 - T-060 booking preferences and time off are persisted for groomer self-editing only. They are not yet enforced by request matching, customer slot discovery, booking creation, auto-accept behavior, or booking conflict checks. Availability save still performs profile, weekly rows, and preferences writes sequentially rather than through an atomic RPC.
+- T-065 pet-fit SQL helpers are internal derivation helpers only. They are not yet connected to `create_grooming_request`, `request_matches.match_score`, public evidence summaries, iOS surfacing, or groomer self-claimed fit management.
 
 ## Next Recommended Task
 
-- For the pet-fit matching bottom-layer plan, do not start T-065+ backend work without explicit Supabase migration authorization and a separate task file.
+- For the pet-fit matching bottom-layer plan, do not start T-066+ backend work without explicit Supabase migration authorization and a separate task file.
 - For Groomly screenshot UI work, wait for the user to upload/select one screenshot, then create the next available screenshot-driven task from `docs/06_tasks/SCREENSHOT_UI_REWORK_TASK_TEMPLATE.md`.
