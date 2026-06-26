@@ -176,6 +176,10 @@ struct AuthenticationView: View {
             .buttonStyle(.plain)
             .disabled(store.isSubmitting)
             .accessibilityIdentifier("auth.already-have-account")
+
+            #if DEBUG
+            debugQuickLoginActions
+            #endif
         }
         .frame(maxWidth: 430)
     }
@@ -202,6 +206,13 @@ struct AuthenticationView: View {
                     Spacer(minLength: fieldsToActionsSpacing)
 
                     authActions
+
+                    #if DEBUG
+                    if store.mode == .signIn {
+                        debugQuickLoginActions
+                            .padding(.top, DesignTokens.Spacing.lg)
+                    }
+                    #endif
 
                     feedback
                         .padding(.top, DesignTokens.Spacing.lg)
@@ -358,6 +369,47 @@ struct AuthenticationView: View {
         }
         .frame(maxWidth: .infinity)
     }
+
+    #if DEBUG
+    private var debugQuickLoginActions: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            Text("Debug Quick Login")
+                .font(DesignTokens.Typography.caption.weight(.bold))
+                .foregroundStyle(DesignTokens.Colors.textTertiary)
+                .textCase(.uppercase)
+
+            ForEach(AuthenticationDebugQuickLoginAccount.allCases) { account in
+                Button {
+                    Task {
+                        await store.signIn(debugAccount: account)
+                    }
+                } label: {
+                    Label(account.title, systemImage: debugQuickLoginIcon(for: account))
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(
+                    GroomlySecondaryButtonStyle(
+                        accent: account == .customer ? .customer : .groomer
+                    )
+                )
+                .disabled(store.isSubmitting)
+                .accessibilityIdentifier("auth.debug-login.\(account.id)")
+            }
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private func debugQuickLoginIcon(
+        for account: AuthenticationDebugQuickLoginAccount
+    ) -> String {
+        switch account {
+        case .customer:
+            "person"
+        case .groomer:
+            "scissors"
+        }
+    }
+    #endif
 
     @ViewBuilder
     private var feedback: some View {

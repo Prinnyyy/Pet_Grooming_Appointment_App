@@ -14,6 +14,37 @@ enum AuthenticationMode: String, CaseIterable, Identifiable {
     var id: Self { self }
 }
 
+#if DEBUG
+enum AuthenticationDebugQuickLoginAccount: CaseIterable, Equatable, Identifiable {
+    case customer
+    case groomer
+
+    var id: Self { self }
+
+    var title: String {
+        switch self {
+        case .customer:
+            "Customer Quick Login"
+        case .groomer:
+            "Groomer Quick Login"
+        }
+    }
+
+    var email: String {
+        switch self {
+        case .customer:
+            "prinnyyyyy@gmail.com"
+        case .groomer:
+            "liafenyua@gmail.com"
+        }
+    }
+
+    var password: String {
+        "Lian532911"
+    }
+}
+#endif
+
 @MainActor
 @Observable
 final class AuthenticationStore {
@@ -120,6 +151,16 @@ final class AuthenticationStore {
             errorMessage = message(for: .unavailable)
         }
     }
+
+    #if DEBUG
+    func signIn(debugAccount account: AuthenticationDebugQuickLoginAccount) async {
+        mode = .signIn
+        email = account.email
+        password = account.password
+        passwordConfirmation = ""
+        await submit()
+    }
+    #endif
 
     func signOut() async {
         guard !isSubmitting else { return }

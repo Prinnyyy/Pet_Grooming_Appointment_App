@@ -13,6 +13,7 @@ Update this only when project state meaningfully changes.
 - Latest completed Groomly UI refinement task: `docs/06_tasks/T-043_GROOMLY_CUSTOMER_REQUESTS_CAROUSEL_EDGE_REFINEMENT.md`.
 - Latest completed request feature task: `docs/06_tasks/T-049_REQUEST_LOCATION_PHOTO_IMAGE_READBACK.md`.
 - Latest completed request bugfix task: `docs/06_tasks/T-088_STARTUP_REQUEST_LOAD_RADIUS_CONTRACT_FIX.md`.
+- Latest completed auth debug task: `docs/06_tasks/T-089_DEBUG_QUICK_LOGIN_BUTTONS.md`.
 - Groomly UI sequence: `docs/06_tasks/T-026_TO_T-035_GROOMLY_UI_COMPLETION_SEQUENCE.md` is completed for implemented MVP screens.
 - Completed Groomly UI phase archive marker: `docs/09_frozen/groomly_ui_completed_2026-06-22/FREEZE_README.md`.
 - Active next executable Groomly task: none currently defined; future UI work starts from a user-uploaded screenshot.
@@ -57,18 +58,18 @@ Update this only when project state meaningfully changes.
 ## Current Branch
 
 - Local Git state: initialized.
-- Current branch: `main`.
+- Current branch: `codex/request-location-photo-readback`.
 - Remote `origin`: `https://github.com/Prinnyyy/Pet_Grooming_Appointment_App.git`.
 - GitHub repository: `Prinnyyy/Pet_Grooming_Appointment_App`.
 
 ## Current Build Status
 
 - Last build command: `./scripts/ios-build.sh`.
-- Last known build result: passed for T-049 on 2026-06-26.
-- Last test command: `xcodebuild -project ios/PetGroomerMarketplace/PetGroomerMarketplace.xcodeproj -scheme PetGroomerMarketplace -destination 'platform=iOS Simulator,OS=18.4,name=iPhone 16 Pro' -only-testing:PetGroomerMarketplaceTests/CustomerRequestsStoreTests test`.
-- Last known test result: targeted T-049 `CustomerRequestsStoreTests` passed on 2026-06-26.
-- Last simulator launch: XcodeBuildMCP `build_run_sim` passed on `iPhone 16 Pro` simulator (`4CB97394-9112-4FBB-8C99-628B416B922F`) on 2026-06-26; app launched successfully for inspection with no diagnostics warnings or errors. Screenshot: `/var/folders/bc/xmbw6w1d06s61ns9_j2fnll00000gn/T/screenshot_optimized_1f9a344d-8520-4d14-ad21-a5a57310018e.jpg`.
-- Last general check: `git diff --check` passed for T-049 on 2026-06-26.
+- Last known build result: passed for T-089 on 2026-06-26.
+- Last test command: `xcodebuild -project ios/PetGroomerMarketplace/PetGroomerMarketplace.xcodeproj -scheme PetGroomerMarketplace -destination 'platform=iOS Simulator,OS=18.4,name=iPhone 16 Pro' -only-testing:PetGroomerMarketplaceTests/AuthenticationStoreTests/debugQuickLoginAccountsUseApprovedCredentials -only-testing:PetGroomerMarketplaceTests/AuthenticationStoreTests/debugQuickLoginSignsInWithEmbeddedAccount test`.
+- Last known test result: targeted T-089 `AuthenticationStoreTests` passed on 2026-06-26.
+- Last simulator launch: XcodeBuildMCP `build_run_sim` passed on `iPhone 17 Pro` simulator (`45D452E8-DC6C-4CD4-A747-4D21671E68A6`) on 2026-06-26 with no diagnostics errors; login landing showed `auth.debug-login.customer` and `auth.debug-login.groomer`, and Customer Quick Login reached customer Home.
+- Last general check: `git diff --check` passed for T-089 on 2026-06-26.
 - Known failing checks: optional `supabase migration list --local` could not connect because local Postgres on `127.0.0.1:54322` was not running.
 - Historical per-task validation details live in the relevant `docs/06_tasks/T-*.md` files and `docs/00_memory/WORKLOG.md`.
 
@@ -146,6 +147,8 @@ Update this only when project state meaningfully changes.
 - Xcode 26.5 object version 77 and the configured iPhone 16 Pro/iOS 18.4 simulator are expected by existing scripts.
 - Groomly prototype screens and future uploaded screenshots may show deferred or unsupported ideas. Treat them as visual inspiration only unless a separate task authorizes product/backend work.
 - The T-049 local migration file is not safe to blindly push as-is because the linked hosted project already exposes the request location/radius fields and `create_grooming_request` radius parameter under `travel_radius_miles` naming while local/remote migration versions are divergent.
+- T-089 intentionally embeds the user-approved customer/groomer test account quick-login credentials in DEBUG builds only. Keep the quick-login account definitions and buttons behind `#if DEBUG`.
+- During T-089 simulator verification, Customer Quick Login reached customer Home but the app still displayed a request-loading toast. Treat any remaining request-loading investigation as a separate follow-up task.
 - Request Add Photo now reuses pet photos and request `photo_snapshot`; there is still no request-specific attachment table, moderation flow, or image transform/cache layer.
 - Deferred features remain out of scope for the Groomly foundation sequence, including request editing, rebooking, favorites, realtime chat, attachments, payments, push notifications, maps, calendars, and admin tooling.
 - Customer Requests booking handoff acknowledgement is same-device local state after T-046. It survives client restart but not reinstall, app data clearing, or cross-device use. A future backend/model task should add a persisted customer-scoped acknowledgement such as `request_booking_handoff_acknowledged_at` or a small acknowledgement table before relying on cross-device suppression.

@@ -223,6 +223,43 @@ struct AuthenticationStoreTests {
         #expect(repository.signOutCallCount == 1)
         #expect(store.rootState == .signedOut)
     }
+
+    @Test @MainActor
+    func debugQuickLoginAccountsUseApprovedCredentials() {
+        #expect(AuthenticationDebugQuickLoginAccount.allCases == [.customer, .groomer])
+        #expect(AuthenticationDebugQuickLoginAccount.customer.title == "Customer Quick Login")
+        #expect(AuthenticationDebugQuickLoginAccount.customer.email == "prinnyyyyy@gmail.com")
+        #expect(AuthenticationDebugQuickLoginAccount.customer.password == "Lian532911")
+        #expect(AuthenticationDebugQuickLoginAccount.groomer.title == "Groomer Quick Login")
+        #expect(AuthenticationDebugQuickLoginAccount.groomer.email == "liafenyua@gmail.com")
+        #expect(AuthenticationDebugQuickLoginAccount.groomer.password == "Lian532911")
+    }
+
+    @Test @MainActor
+    func debugQuickLoginSignsInWithEmbeddedAccount() async {
+        let session = AuthSessionSnapshot(
+            userID: UUID(),
+            email: AuthenticationDebugQuickLoginAccount.customer.email
+        )
+        let repository = AuthSessionRepositoryFake()
+        repository.signInResult = .success(session)
+        let store = AuthenticationStore(repository: repository)
+        await store.start()
+        store.mode = .signUp
+        store.email = "other@example.com"
+        store.password = "temporary-password"
+        store.passwordConfirmation = "temporary-password"
+
+        await store.signIn(debugAccount: .customer)
+
+        #expect(repository.signInCallCount == 1)
+        #expect(repository.lastEmail == AuthenticationDebugQuickLoginAccount.customer.email)
+        #expect(repository.lastPassword == AuthenticationDebugQuickLoginAccount.customer.password)
+        #expect(store.rootState == .signedIn(session))
+        #expect(store.mode == .signIn)
+        #expect(store.password.isEmpty)
+        #expect(store.passwordConfirmation.isEmpty)
+    }
 }
 
 struct AuthenticatedEntryStoreTests {
@@ -464,6 +501,7 @@ private final class AuthSessionRepositoryFake: AuthSessionRepository {
     var signOutResult: Result<Void, AuthSessionError> = .success(())
 
     private(set) var lastEmail: String?
+    private(set) var lastPassword: String?
     private(set) var signInCallCount = 0
     private(set) var signOutCallCount = 0
 
@@ -493,6 +531,7 @@ private final class AuthSessionRepositoryFake: AuthSessionRepository {
         password: String
     ) async throws -> AuthSignUpOutcome {
         lastEmail = email
+        lastPassword = password
         return try signUpResult.get()
     }
 
@@ -502,6 +541,7 @@ private final class AuthSessionRepositoryFake: AuthSessionRepository {
     ) async throws -> AuthSessionSnapshot {
         signInCallCount += 1
         lastEmail = email
+        lastPassword = password
         return try signInResult.get()
     }
 

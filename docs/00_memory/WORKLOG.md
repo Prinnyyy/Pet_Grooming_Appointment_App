@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-06-26
+Task: T-089 - Debug quick login buttons.
+Files changed: T-089 task doc, TASK_LEDGER.md, CURRENT_STATE.md, WORKLOG.md, AuthenticationStore.swift, AuthenticationView.swift, and AppEntryModelsTests.swift.
+Checks: Targeted TDD red check failed before implementation because the debug account type and Store API did not exist. The same targeted AuthenticationStore tests passed after implementation and again at final validation. `./scripts/ios-build.sh` passed. `git diff --check` passed. XcodeBuildMCP `build_run_sim` passed on `iPhone 17 Pro` simulator (`45D452E8-DC6C-4CD4-A747-4D21671E68A6`) with no diagnostics errors. Simulator UI verification signed out from an existing groomer session, confirmed `auth.debug-login.customer` and `auth.debug-login.groomer` on the login landing page, and Customer Quick Login reached customer Home.
+Result: DEBUG builds now show Customer Quick Login and Groomer Quick Login actions on the signed-out landing and sign-in surfaces. The buttons use approved test accounts, delegate to `AuthenticationStore.signIn(debugAccount:)`, and reuse the normal sign-in submit path.
+Risks: The approved debug credentials are intentionally embedded in code, but only under DEBUG compile guards. Keep these definitions and buttons out of Release builds. During simulator verification, customer Home still displayed a request-loading toast after login; treat that as a separate request-loading follow-up, not part of T-089.
+Next: Wait for user direction; commit/push only with explicit approval.
+```
+
+```text
+Date: 2026-06-26
 Task: T-088 - fix startup request load error from Supabase radius column mismatch.
 Files changed: T-088 task doc, TASK_LEDGER.md, Supabase customer/groomer request repositories, customer/groomer request feature tests, local T-049 migration draft, CURRENT_STATE.md, and WORKLOG.md.
 Checks: New focused contract tests failed before implementation on the old/private request contract, then passed after switching to `travel_radius_miles` / `p_travel_radius_miles`. `./scripts/ios-build.sh` passed. `git diff --check` passed. XcodeBuildMCP `build_run_sim` passed on `iPhone 17 Pro` simulator (`45D452E8-DC6C-4CD4-A747-4D21671E68A6`) with no diagnostics errors; UI snapshot showed Groomer Requests empty state without the request-load error banner, and runtime logs had no old-column/PostgREST column errors.
