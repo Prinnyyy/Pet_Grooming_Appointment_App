@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-06-26
+Task: T-088 - fix startup request load error from Supabase radius column mismatch.
+Files changed: T-088 task doc, TASK_LEDGER.md, Supabase customer/groomer request repositories, customer/groomer request feature tests, local T-049 migration draft, CURRENT_STATE.md, and WORKLOG.md.
+Checks: New focused contract tests failed before implementation on the old/private request contract, then passed after switching to `travel_radius_miles` / `p_travel_radius_miles`. `./scripts/ios-build.sh` passed. `git diff --check` passed. XcodeBuildMCP `build_run_sim` passed on `iPhone 17 Pro` simulator (`45D452E8-DC6C-4CD4-A747-4D21671E68A6`) with no diagnostics errors; UI snapshot showed Groomer Requests empty state without the request-load error banner, and runtime logs had no old-column/PostgREST column errors.
+Result: App request loading now matches the hosted Supabase request radius contract, removing the likely startup banner caused by selecting nonexistent `travel_range_miles`.
+Risks: Linked remote and local Supabase migration history are divergent; do not blindly push the local T-049 migration. Remote migration reconciliation remains a separate explicitly approved backend task.
+Next: Wait for user direction; commit/push only with explicit approval.
+```
+
+```text
+Date: 2026-06-26
 Task: T-049 - Request location, photo upload, and image readback.
 Files changed: Added T-049 task doc, local Supabase migration, StorageImageURLProvider, SupabaseStorageImageURLProvider, and GroomlyStorageImageThumbnail; updated request models/repositories, app injection, customer/groomer request and photo UI surfaces, CustomerRequestsStore, tests, CURRENT_STATE.md, FEATURE_INDEX.md, WORKLOG.md, and TASK_LEDGER.md.
 Checks: TDD red check failed before implementation because request drafts did not carry location mode/address/range and CustomerRequestsStore had no selected-pet photo upload API. Targeted `CustomerRequestsStoreTests` passed after implementation. `./scripts/ios-build.sh` passed. XcodeBuildMCP `build_run_sim` passed on `iPhone 16 Pro` simulator (`4CB97394-9112-4FBB-8C99-628B416B922F`) with no diagnostics warnings or errors. Final `git diff --check` passed. Screenshot: `/var/folders/bc/xmbw6w1d06s61ns9_j2fnll00000gn/T/screenshot_optimized_1f9a344d-8520-4d14-ad21-a5a57310018e.jpg`.

@@ -12,6 +12,7 @@ Update this only when project state meaningfully changes.
 - Latest completed Groomly screenshot task: `docs/06_tasks/T-041_GROOMLY_CUSTOMER_REQUESTS_STATUS_SCREENSHOT_UI.md`.
 - Latest completed Groomly UI refinement task: `docs/06_tasks/T-043_GROOMLY_CUSTOMER_REQUESTS_CAROUSEL_EDGE_REFINEMENT.md`.
 - Latest completed request feature task: `docs/06_tasks/T-049_REQUEST_LOCATION_PHOTO_IMAGE_READBACK.md`.
+- Latest completed request bugfix task: `docs/06_tasks/T-088_STARTUP_REQUEST_LOAD_RADIUS_CONTRACT_FIX.md`.
 - Groomly UI sequence: `docs/06_tasks/T-026_TO_T-035_GROOMLY_UI_COMPLETION_SEQUENCE.md` is completed for implemented MVP screens.
 - Completed Groomly UI phase archive marker: `docs/09_frozen/groomly_ui_completed_2026-06-22/FREEZE_README.md`.
 - Active next executable Groomly task: none currently defined; future UI work starts from a user-uploaded screenshot.
@@ -137,14 +138,14 @@ Update this only when project state meaningfully changes.
 - Authorized Supabase project: `Pet Groomer Marketplace`, ref `lqmasbuqzvcvtawonjlb`.
 - Legacy project `swdiiyypysyxbnfrxxsv` is out of scope; do not inspect or mutate it.
 - Backend objects needed for the MVP are deployed through T-022 and mirrored under `supabase/migrations/`.
-- T-023B, T-023C, T-023D1, T-023D2, T-024 through T-043, T-045, T-046, T-047, and T-048 required no backend reads or writes. T-044 used explicit user authorization for remote Supabase DDL through MCP. T-049 adds a local Supabase migration for request location fields, `create_grooming_request` parameters, and matched-groomer pet-photo signed-URL access, but it has not been applied remotely. Future backend work must use Supabase MCP only and requires explicit user approval for remote schema writes.
+- T-023B, T-023C, T-023D1, T-023D2, T-024 through T-043, T-045, T-046, T-047, and T-048 required no backend reads or writes. T-044 used explicit user authorization for remote Supabase DDL through MCP. T-049 added local request location/photo readback work. T-088 aligned app code with the hosted Supabase request radius contract `travel_radius_miles` / `p_travel_radius_miles`. Local Supabase migration history still diverges from the linked remote and must be reconciled before any remote migration writes. Future backend work must use Supabase MCP only and requires explicit user approval for remote schema writes.
 - The local `supabase_api_key` file is ignored and must not be read or embedded in code/docs.
 
 ## Known Risks
 
 - Xcode 26.5 object version 77 and the configured iPhone 16 Pro/iOS 18.4 simulator are expected by existing scripts.
 - Groomly prototype screens and future uploaded screenshots may show deferred or unsupported ideas. Treat them as visual inspiration only unless a separate task authorizes product/backend work.
-- The T-049 migration is local only. Hosted request publishing with the new RPC parameters requires applying `supabase/migrations/20260626175855_t049_request_location_and_image_readback.sql` to the authorized Supabase project first.
+- The T-049 local migration file is not safe to blindly push as-is because the linked hosted project already exposes the request location/radius fields and `create_grooming_request` radius parameter under `travel_radius_miles` naming while local/remote migration versions are divergent.
 - Request Add Photo now reuses pet photos and request `photo_snapshot`; there is still no request-specific attachment table, moderation flow, or image transform/cache layer.
 - Deferred features remain out of scope for the Groomly foundation sequence, including request editing, rebooking, favorites, realtime chat, attachments, payments, push notifications, maps, calendars, and admin tooling.
 - Customer Requests booking handoff acknowledgement is same-device local state after T-046. It survives client restart but not reinstall, app data clearing, or cross-device use. A future backend/model task should add a persisted customer-scoped acknowledgement such as `request_booking_handoff_acknowledged_at` or a small acknowledgement table before relying on cross-device suppression.
@@ -152,4 +153,4 @@ Update this only when project state meaningfully changes.
 
 ## Next Recommended Task
 
-- Wait for explicit user approval before applying the T-049 Supabase migration remotely or running hosted write validation. Otherwise, wait for the user to upload/select one screenshot, then create the next available screenshot-driven Groomly UI task from `docs/06_tasks/SCREENSHOT_UI_REWORK_TASK_TEMPLATE.md`. Do not start backend, post-MVP feature work, Admin Dashboard work, or new-feature implementation without explicit approval.
+- Wait for explicit user approval and a dedicated migration reconciliation task before remote Supabase migration writes. Otherwise, wait for the user to upload/select one screenshot, then create the next available screenshot-driven Groomly UI task from `docs/06_tasks/SCREENSHOT_UI_REWORK_TASK_TEMPLATE.md`. Do not start backend, post-MVP feature work, Admin Dashboard work, or new-feature implementation without explicit approval.

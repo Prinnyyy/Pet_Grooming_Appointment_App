@@ -5,7 +5,7 @@
 alter table public.grooming_requests
   add column location_mode text not null default 'come_to_me',
   add column street_address text,
-  add column travel_range_miles integer;
+  add column travel_radius_miles integer;
 
 alter table public.grooming_requests
   add constraint grooming_requests_location_mode_check check (
@@ -18,20 +18,20 @@ alter table public.grooming_requests
       and char_length(street_address) between 1 and 200
     )
   ),
-  add constraint grooming_requests_travel_range_miles_check check (
-    travel_range_miles is null
-    or travel_range_miles between 1 and 250
+  add constraint grooming_requests_travel_radius_miles_check check (
+    travel_radius_miles is null
+    or travel_radius_miles between 1 and 250
   ),
   add constraint grooming_requests_visit_range_check check (
     location_mode <> 'visit_groomer'
-    or travel_range_miles is not null
+    or travel_radius_miles is not null
   );
 
 comment on column public.grooming_requests.location_mode is
   'Customer-selected service location mode captured when the request is created.';
 comment on column public.grooming_requests.street_address is
   'Optional street address captured from the request wizard.';
-comment on column public.grooming_requests.travel_range_miles is
+comment on column public.grooming_requests.travel_radius_miles is
   'Customer travel range in miles when the customer can visit a groomer.';
 
 drop function if exists public.create_grooming_request(
@@ -56,7 +56,7 @@ create function public.create_grooming_request(
   p_zip_code text,
   p_location_mode text default 'come_to_me',
   p_street_address text default null,
-  p_travel_range_miles integer default null
+  p_travel_radius_miles integer default null
 )
 returns table (
   request_id uuid,
@@ -79,7 +79,7 @@ declare
   v_zip_code text := btrim(p_zip_code);
   v_location_mode text := coalesce(nullif(btrim(p_location_mode), ''), 'come_to_me');
   v_street_address text := nullif(btrim(p_street_address), '');
-  v_travel_range_miles integer := p_travel_range_miles;
+  v_travel_radius_miles integer := p_travel_radius_miles;
   v_open_request_count integer;
   v_request_id uuid;
   v_match_count integer := 0;
@@ -155,17 +155,17 @@ begin
 
   if v_location_mode = 'visit_groomer'
     and (
-      v_travel_range_miles is null
-      or v_travel_range_miles not between 1 and 250
+      v_travel_radius_miles is null
+      or v_travel_radius_miles not between 1 and 250
     )
   then
     raise exception using
       errcode = '22023',
-      message = 'invalid_travel_range_miles';
+      message = 'invalid_travel_radius_miles';
   end if;
 
   if v_location_mode <> 'visit_groomer' then
-    v_travel_range_miles := null;
+    v_travel_radius_miles := null;
   end if;
 
   if v_city is null
@@ -269,7 +269,7 @@ begin
     preferred_end,
     location_mode,
     street_address,
-    travel_range_miles,
+    travel_radius_miles,
     city,
     state,
     zip_code,
@@ -287,7 +287,7 @@ begin
     p_preferred_end,
     v_location_mode,
     v_street_address,
-    v_travel_range_miles,
+    v_travel_radius_miles,
     v_city,
     v_state,
     v_zip_code,

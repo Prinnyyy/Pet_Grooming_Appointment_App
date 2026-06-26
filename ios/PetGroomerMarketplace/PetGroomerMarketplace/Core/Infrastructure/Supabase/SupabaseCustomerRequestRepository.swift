@@ -3,9 +3,9 @@ import Supabase
 
 @MainActor
 final class SupabaseCustomerRequestRepository: CustomerRequestRepository {
-    private static let requestColumns = """
+    static let requestColumns = """
         id,customer_id,pet_id,pet_snapshot,photo_snapshot,service_type,service_notes,\
-        preferred_start,preferred_end,location_mode,street_address,travel_range_miles,\
+        preferred_start,preferred_end,location_mode,street_address,travel_radius_miles,\
         city,state,zip_code,status,expires_at,created_at,updated_at
         """
     private static let offerColumns = """
@@ -176,7 +176,7 @@ final class SupabaseCustomerRequestRepository: CustomerRequestRepository {
     }
 }
 
-private struct GroomingRequestRow: Decodable {
+struct GroomingRequestRow: Decodable {
     let id: UUID
     let customerID: UUID
     let petID: UUID?
@@ -233,7 +233,7 @@ private struct GroomingRequestRow: Decodable {
         case preferredEnd = "preferred_end"
         case locationMode = "location_mode"
         case streetAddress = "street_address"
-        case travelRangeMiles = "travel_range_miles"
+        case travelRangeMiles = "travel_radius_miles"
         case city
         case state
         case zipCode = "zip_code"
@@ -378,7 +378,7 @@ private struct CustomerOfferGroomerProfileRow: Decodable {
     }
 }
 
-private struct CreateGroomingRequestParameters: Encodable {
+struct CreateGroomingRequestParameters: Encodable {
     let draft: GroomingRequestDraft
 
     func encode(to encoder: any Encoder) throws {
@@ -425,7 +425,7 @@ private struct CreateGroomingRequestParameters: Encodable {
         case zipCode = "p_zip_code"
         case locationMode = "p_location_mode"
         case streetAddress = "p_street_address"
-        case travelRangeMiles = "p_travel_range_miles"
+        case travelRangeMiles = "p_travel_radius_miles"
     }
 }
 

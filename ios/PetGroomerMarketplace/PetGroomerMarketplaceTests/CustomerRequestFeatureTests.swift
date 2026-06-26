@@ -85,6 +85,38 @@ struct CustomerRequestsStoreTests {
     }
 
     @Test @MainActor
+    func supabaseRequestContractUsesBackendTravelRadiusColumn() throws {
+        #expect(
+            SupabaseCustomerRequestRepository.requestColumns
+                .contains("travel_radius_miles")
+        )
+        #expect(
+            !SupabaseCustomerRequestRepository.requestColumns
+                .contains("travel_range_miles")
+        )
+
+        let row = try JSONDecoder().decode(
+            GroomingRequestRow.self,
+            from: Self.requestRowData(travelRadiusMiles: 25)
+        )
+
+        #expect(row.request.travelRangeMiles == 25)
+    }
+
+    @Test @MainActor
+    func supabaseCreateRequestParametersUseBackendTravelRadiusRPCName() throws {
+        let payloadData = try JSONEncoder().encode(
+            CreateGroomingRequestParameters(draft: Self.createRequestDraft())
+        )
+        let payload = try #require(
+            JSONSerialization.jsonObject(with: payloadData) as? [String: Any]
+        )
+
+        #expect((payload["p_travel_radius_miles"] as? NSNumber)?.intValue == 25)
+        #expect(payload["p_travel_range_miles"] == nil)
+    }
+
+    @Test @MainActor
     func invalidFormDoesNotCallRepository() async {
         let repository = CustomerRequestRepositoryFake()
         let store = CustomerRequestsStore(
@@ -1085,6 +1117,62 @@ struct CustomerRequestsStoreTests {
             expiresAt: "2026-06-22T12:00:00Z",
             createdAt: "2026-06-20T12:00:00Z",
             updatedAt: "2026-06-20T12:00:00Z"
+        )
+    }
+
+    private static func createRequestDraft() -> GroomingRequestDraft {
+        GroomingRequestDraft(
+            petID: UUID(uuidString: "33333333-3333-3333-3333-333333333333")!,
+            serviceType: "Full groom",
+            serviceNotes: nil,
+            preferredStart: Date(timeIntervalSince1970: 1_783_000_000),
+            preferredEnd: Date(timeIntervalSince1970: 1_783_007_200),
+            locationMode: .visitGroomer,
+            streetAddress: "120 Pine St",
+            travelRangeMiles: 25,
+            city: "Seattle",
+            state: "WA",
+            zipCode: "98101"
+        )
+    }
+
+    private static func requestRowData(travelRadiusMiles: Int) -> Data {
+        Data(
+            #"""
+            {
+              "id": "11111111-1111-1111-1111-111111111111",
+              "customer_id": "22222222-2222-2222-2222-222222222222",
+              "pet_id": "33333333-3333-3333-3333-333333333333",
+              "pet_snapshot": {
+                "id": "33333333-3333-3333-3333-333333333333",
+                "name": "Mochi",
+                "species": "Dog",
+                "breed": "Corgi",
+                "size": "Small",
+                "weight_lbs": 22,
+                "birthday": null,
+                "temperament": "Gentle",
+                "medical_notes": null,
+                "grooming_notes": null,
+                "snapshot_at": "2026-06-20T12:00:00Z"
+              },
+              "photo_snapshot": [],
+              "service_type": "Full groom",
+              "service_notes": null,
+              "preferred_start": "2026-06-22T16:00:00Z",
+              "preferred_end": "2026-06-22T18:00:00Z",
+              "location_mode": "visit_groomer",
+              "street_address": "120 Pine St",
+              "travel_radius_miles": \#(travelRadiusMiles),
+              "city": "Seattle",
+              "state": "WA",
+              "zip_code": "98101",
+              "status": "open",
+              "expires_at": "2026-06-22T12:00:00Z",
+              "created_at": "2026-06-20T12:00:00Z",
+              "updated_at": "2026-06-20T12:00:00Z"
+            }
+            """#.utf8
         )
     }
 

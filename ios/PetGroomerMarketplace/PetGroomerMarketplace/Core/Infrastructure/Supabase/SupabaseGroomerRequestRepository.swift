@@ -7,9 +7,9 @@ final class SupabaseGroomerRequestRepository: GroomerRequestRepository {
         id,request_id,groomer_id,customer_id,match_score,match_reason,dismiss_reason,\
         status,viewed_at,dismissed_at,created_at,updated_at
         """
-    private static let requestColumns = """
+    static let requestColumns = """
         id,customer_id,pet_id,pet_snapshot,photo_snapshot,service_type,service_notes,\
-        preferred_start,preferred_end,location_mode,street_address,travel_range_miles,\
+        preferred_start,preferred_end,location_mode,street_address,travel_radius_miles,\
         city,state,zip_code,status,expires_at,created_at,updated_at
         """
     private static let offerColumns = """
@@ -319,7 +319,7 @@ private struct GroomerRequestMatchRow: Decodable {
     }
 }
 
-private struct GroomerMatchedGroomingRequestRow: Decodable {
+struct GroomerMatchedGroomingRequestRow: Decodable {
     let id: UUID
     let customerID: UUID
     let petID: UUID?
@@ -376,7 +376,7 @@ private struct GroomerMatchedGroomingRequestRow: Decodable {
         case preferredEnd = "preferred_end"
         case locationMode = "location_mode"
         case streetAddress = "street_address"
-        case travelRangeMiles = "travel_range_miles"
+        case travelRangeMiles = "travel_radius_miles"
         case city
         case state
         case zipCode = "zip_code"
