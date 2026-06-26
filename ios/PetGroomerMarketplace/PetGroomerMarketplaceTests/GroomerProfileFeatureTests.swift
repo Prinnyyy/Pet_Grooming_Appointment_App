@@ -36,10 +36,16 @@ struct GroomerProfileStoreTests {
             signal: .serviceFit(.gentleHandling),
             isActive: true
         )
+        let portfolioTag = Self.portfolioFitTag(
+            photoID: photo.id,
+            groomerID: groomerID,
+            signal: .serviceFit(.curlyCoat)
+        )
         let repository = GroomerProfileRepositoryFake(
             profileResult: .success(profile),
             servicesResult: .success([service]),
             portfolioResult: .success([photo]),
+            portfolioFitTagsResult: .success([portfolioTag]),
             availabilityResult: .success([availability]),
             bookingPreferencesResult: .success(preferences),
             timeOffResult: .success([timeOff]),
@@ -60,6 +66,12 @@ struct GroomerProfileStoreTests {
         #expect(store.timeOffWindows == [timeOff])
         #expect(store.fitClaims == [fitClaim])
         #expect(store.selectedFitClaimIDs == [fitClaim.signal.id])
+        #expect(store.portfolioFitTags == [portfolioTag])
+        #expect(
+            store.selectedPortfolioFitTagIDsByPhotoID[photo.id] == [
+                portfolioTag.signal.id,
+            ]
+        )
         #expect(store.businessName == "Fresh Coat")
         #expect(store.isActive)
         #expect(store.maxAppointmentsPerDay == 4)
@@ -139,6 +151,107 @@ struct GroomerProfileStoreTests {
             store.errorMessage ==
                 "Choose up to \(GroomerFitClaim.maximumActiveClaims) starter fit signals."
         )
+    }
+
+    @Test @MainActor
+    func savePortfolioFitTagsPersistsOnePhotoSelection() async {
+        let groomerID = UUID()
+        let photo = Self.photo(groomerID: groomerID)
+        let gentleHandling = Self.portfolioFitTag(
+            photoID: photo.id,
+            groomerID: groomerID,
+            signal: .serviceFit(.gentleHandling)
+        )
+        let senior = Self.portfolioFitTag(
+            photoID: photo.id,
+            groomerID: groomerID,
+            signal: .careFlag(.senior)
+        )
+        let repository = GroomerProfileRepositoryFake(
+            profileResult: .success(Self.profile(groomerID: groomerID)),
+            portfolioResult: .success([photo]),
+            portfolioFitTagsResult: .success([gentleHandling, senior])
+        )
+        let store = GroomerProfileStore(
+            groomerID: groomerID,
+            repository: repository
+        )
+        await store.load()
+
+        store.togglePortfolioFitTag(.serviceFit(.gentleHandling), for: photo)
+        store.togglePortfolioFitTag(.breedGroup(.poodle), for: photo)
+        await store.savePortfolioFitTags(for: photo)
+
+        #expect(repository.replacePortfolioFitTagsCallCount == 1)
+        #expect(repository.lastPortfolioFitTagPhotoID == photo.id)
+        #expect(repository.lastPortfolioFitTagDrafts == [
+            GroomerPortfolioFitTagDraft(signal: .breedGroup(.poodle)),
+            GroomerPortfolioFitTagDraft(signal: .careFlag(.senior)),
+        ])
+        #expect(
+            store.selectedPortfolioFitTagIDsByPhotoID[photo.id] == [
+                PetFitSignal.breedGroup(.poodle).id,
+                PetFitSignal.careFlag(.senior).id,
+            ]
+        )
+        #expect(store.noticeMessage == "Portfolio tags saved.")
+    }
+
+    @Test @MainActor
+    func portfolioFitTagSelectionIsBoundedBeforeRepositoryCall() async {
+        let repository = GroomerProfileRepositoryFake()
+        let photo = Self.photo(groomerID: UUID())
+        let store = GroomerProfileStore(
+            groomerID: photo.groomerID,
+            repository: repository
+        )
+        let signals = Array(
+            GroomerPortfolioFitTag.availableSignals.prefix(
+                GroomerPortfolioFitTag.maximumTagsPerPhoto + 1
+            )
+        )
+
+        for signal in signals {
+            store.togglePortfolioFitTag(signal, for: photo)
+        }
+
+        #expect(
+            store.selectedPortfolioFitTagIDsByPhotoID[photo.id]?.count ==
+                GroomerPortfolioFitTag.maximumTagsPerPhoto
+        )
+        #expect(repository.replacePortfolioFitTagsCallCount == 0)
+        #expect(
+            store.errorMessage ==
+                "Choose up to \(GroomerPortfolioFitTag.maximumTagsPerPhoto) tags for each portfolio photo."
+        )
+    }
+
+    @Test @MainActor
+    func deletePortfolioPhotoClearsLocalFitTagsAfterRepositoryDelete() async throws {
+        let groomerID = UUID()
+        let photo = Self.photo(groomerID: groomerID)
+        let tag = Self.portfolioFitTag(
+            photoID: photo.id,
+            groomerID: groomerID,
+            signal: .serviceFit(.curlyCoat)
+        )
+        let repository = GroomerProfileRepositoryFake(
+            profileResult: .success(Self.profile(groomerID: groomerID)),
+            portfolioResult: .success([photo]),
+            portfolioFitTagsResult: .success([tag])
+        )
+        let store = GroomerProfileStore(
+            groomerID: groomerID,
+            repository: repository
+        )
+        await store.load()
+
+        await store.deletePortfolioPhoto(photo)
+
+        #expect(repository.deletePhotoCallCount == 1)
+        #expect(store.portfolioPhotos.isEmpty)
+        #expect(store.portfolioFitTags.isEmpty)
+        #expect(store.selectedPortfolioFitTagIDsByPhotoID[photo.id] == nil)
     }
 
     @Test @MainActor
@@ -558,6 +671,19 @@ struct GroomerProfileStoreTests {
         )
     }
 
+    private static func portfolioFitTag(
+        photoID: UUID,
+        groomerID: UUID,
+        signal: PetFitSignal
+    ) -> GroomerPortfolioFitTag {
+        GroomerPortfolioFitTag(
+            id: UUID(),
+            portfolioPhotoID: photoID,
+            groomerID: groomerID,
+            signal: signal
+        )
+    }
+
     private static func date(year: Int, month: Int, day: Int) -> Date {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = .current
@@ -576,6 +702,7 @@ private final class GroomerProfileRepositoryFake: GroomerProfileRepository {
     var profileResult: Result<GroomerProfile, GroomerProfileRepositoryError>
     var servicesResult: Result<[GroomerService], GroomerProfileRepositoryError>
     var portfolioResult: Result<[GroomerPortfolioPhoto], GroomerProfileRepositoryError>
+    var portfolioFitTagsResult: Result<[GroomerPortfolioFitTag], GroomerProfileRepositoryError>
     var availabilityResult: Result<[GroomerAvailabilityWindow], GroomerProfileRepositoryError>
     var bookingPreferencesResult: Result<GroomerBookingPreferences, GroomerProfileRepositoryError>
     var timeOffResult: Result<[GroomerTimeOffWindow], GroomerProfileRepositoryError>
@@ -583,6 +710,7 @@ private final class GroomerProfileRepositoryFake: GroomerProfileRepository {
     var updateProfileResult: Result<GroomerProfile, GroomerProfileRepositoryError>?
     var updateBookingPreferencesResult: Result<GroomerBookingPreferences, GroomerProfileRepositoryError>?
     var replaceFitClaimsResult: Result<[GroomerFitClaim], GroomerProfileRepositoryError>?
+    var replacePortfolioFitTagsResult: Result<[GroomerPortfolioFitTag], GroomerProfileRepositoryError>?
     var createServiceResult: Result<GroomerService, GroomerProfileRepositoryError>?
     var updateServiceResult: Result<GroomerService, GroomerProfileRepositoryError>?
     var deleteServiceResult: Result<Void, GroomerProfileRepositoryError>
@@ -605,12 +733,15 @@ private final class GroomerProfileRepositoryFake: GroomerProfileRepository {
     private(set) var createTimeOffCallCount = 0
     private(set) var deleteTimeOffCallCount = 0
     private(set) var replaceFitClaimsCallCount = 0
+    private(set) var replacePortfolioFitTagsCallCount = 0
     private(set) var lastProfileDraft: GroomerProfileDraft?
     private(set) var lastBookingPreferencesDraft: GroomerBookingPreferencesDraft?
     private(set) var lastServiceDraft: GroomerServiceDraft?
     private(set) var lastAvailabilityDrafts: [GroomerAvailabilityDraft] = []
     private(set) var lastTimeOffDraft: GroomerTimeOffDraft?
     private(set) var lastFitClaimDrafts: [GroomerFitClaimDraft] = []
+    private(set) var lastPortfolioFitTagPhotoID: UUID?
+    private(set) var lastPortfolioFitTagDrafts: [GroomerPortfolioFitTagDraft] = []
 
     init(
         profileResult: Result<GroomerProfile, GroomerProfileRepositoryError> =
@@ -618,6 +749,8 @@ private final class GroomerProfileRepositoryFake: GroomerProfileRepository {
         servicesResult: Result<[GroomerService], GroomerProfileRepositoryError> =
             .success([]),
         portfolioResult: Result<[GroomerPortfolioPhoto], GroomerProfileRepositoryError> =
+            .success([]),
+        portfolioFitTagsResult: Result<[GroomerPortfolioFitTag], GroomerProfileRepositoryError> =
             .success([]),
         availabilityResult: Result<[GroomerAvailabilityWindow], GroomerProfileRepositoryError> =
             .success([]),
@@ -630,6 +763,7 @@ private final class GroomerProfileRepositoryFake: GroomerProfileRepository {
         updateProfileResult: Result<GroomerProfile, GroomerProfileRepositoryError>? = nil,
         updateBookingPreferencesResult: Result<GroomerBookingPreferences, GroomerProfileRepositoryError>? = nil,
         replaceFitClaimsResult: Result<[GroomerFitClaim], GroomerProfileRepositoryError>? = nil,
+        replacePortfolioFitTagsResult: Result<[GroomerPortfolioFitTag], GroomerProfileRepositoryError>? = nil,
         createServiceResult: Result<GroomerService, GroomerProfileRepositoryError>? = nil,
         updateServiceResult: Result<GroomerService, GroomerProfileRepositoryError>? = nil,
         deleteServiceResult: Result<Void, GroomerProfileRepositoryError> =
@@ -647,6 +781,7 @@ private final class GroomerProfileRepositoryFake: GroomerProfileRepository {
         self.profileResult = profileResult
         self.servicesResult = servicesResult
         self.portfolioResult = portfolioResult
+        self.portfolioFitTagsResult = portfolioFitTagsResult
         self.availabilityResult = availabilityResult
         self.bookingPreferencesResult = bookingPreferencesResult
         self.timeOffResult = timeOffResult
@@ -654,6 +789,7 @@ private final class GroomerProfileRepositoryFake: GroomerProfileRepository {
         self.updateProfileResult = updateProfileResult
         self.updateBookingPreferencesResult = updateBookingPreferencesResult
         self.replaceFitClaimsResult = replaceFitClaimsResult
+        self.replacePortfolioFitTagsResult = replacePortfolioFitTagsResult
         self.createServiceResult = createServiceResult
         self.updateServiceResult = updateServiceResult
         self.deleteServiceResult = deleteServiceResult
@@ -675,6 +811,10 @@ private final class GroomerProfileRepositoryFake: GroomerProfileRepository {
 
     func portfolioPhotos(groomerID: UUID) async throws -> [GroomerPortfolioPhoto] {
         try portfolioResult.get()
+    }
+
+    func portfolioFitTags(groomerID: UUID) async throws -> [GroomerPortfolioFitTag] {
+        try portfolioFitTagsResult.get()
     }
 
     func availabilityWindows(groomerID: UUID) async throws -> [GroomerAvailabilityWindow] {
@@ -783,6 +923,29 @@ private final class GroomerProfileRepositoryFake: GroomerProfileRepository {
                 groomerID: groomerID,
                 signal: $0.signal,
                 isActive: $0.isActive
+            )
+        }
+    }
+
+    func replacePortfolioFitTags(
+        groomerID: UUID,
+        photoID: UUID,
+        drafts: [GroomerPortfolioFitTagDraft]
+    ) async throws -> [GroomerPortfolioFitTag] {
+        replacePortfolioFitTagsCallCount += 1
+        lastPortfolioFitTagPhotoID = photoID
+        lastPortfolioFitTagDrafts = drafts
+
+        if let replacePortfolioFitTagsResult {
+            return try replacePortfolioFitTagsResult.get()
+        }
+
+        return drafts.map {
+            GroomerPortfolioFitTag(
+                id: UUID(),
+                portfolioPhotoID: photoID,
+                groomerID: groomerID,
+                signal: $0.signal
             )
         }
     }

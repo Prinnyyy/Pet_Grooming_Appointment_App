@@ -10,6 +10,8 @@ final class SupabaseGroomerProfileRepository: GroomerProfileRepository {
         "id,groomer_id,service_type,title,description,base_price,duration_minutes,accepted_pet_sizes,is_active"
     private static let portfolioColumns =
         "id,groomer_id,storage_bucket,storage_path,caption,sort_order"
+    private static let portfolioFitTagColumns =
+        "id,portfolio_photo_id,groomer_id,trait_type,trait_value"
     private static let availabilityColumns =
         "id,groomer_id,weekday,start_time,end_time,is_enabled,timezone"
     private static let bookingPreferencesColumns =
@@ -78,6 +80,17 @@ final class SupabaseGroomerProfileRepository: GroomerProfileRepository {
                 .value
 
             return rows.map(\.photo)
+        } catch {
+            throw Self.map(error)
+        }
+    }
+
+    func portfolioFitTags(groomerID: UUID) async throws -> [GroomerPortfolioFitTag] {
+        do {
+            return try await portfolioFitTags(
+                groomerID: groomerID,
+                photoID: nil
+            )
         } catch {
             throw Self.map(error)
         }
@@ -470,6 +483,69 @@ final class SupabaseGroomerProfileRepository: GroomerProfileRepository {
         }
     }
 
+    func replacePortfolioFitTags(
+        groomerID: UUID,
+        photoID: UUID,
+        drafts: [GroomerPortfolioFitTagDraft]
+    ) async throws -> [GroomerPortfolioFitTag] {
+        do {
+            let selectedIDs = Set(drafts.map { $0.signal.id })
+            let canonicalDrafts = GroomerPortfolioFitTag.availableSignals
+                .filter { selectedIDs.contains($0.id) }
+                .sorted { lhs, rhs in
+                    if lhs.sortOrder == rhs.sortOrder {
+                        return lhs.id < rhs.id
+                    }
+                    return lhs.sortOrder < rhs.sortOrder
+                }
+                .map { GroomerPortfolioFitTagDraft(signal: $0) }
+            let currentTags = try await portfolioFitTags(
+                groomerID: groomerID,
+                photoID: photoID
+            )
+            let selectedSignals = Set(canonicalDrafts.map(\.signal))
+            let currentSignals = Set(currentTags.map(\.signal))
+            let tagsToAdd = canonicalDrafts.filter {
+                !currentSignals.contains($0.signal)
+            }
+            let tagsToDelete = currentTags.filter {
+                !selectedSignals.contains($0.signal)
+            }
+
+            if !tagsToAdd.isEmpty {
+                try await client
+                    .from("groomer_portfolio_fit_tags")
+                    .insert(
+                        tagsToAdd.map {
+                            GroomerPortfolioFitTagInsertRow(
+                                groomerID: groomerID,
+                                photoID: photoID,
+                                draft: $0
+                            )
+                        }
+                    )
+                    .execute()
+            }
+
+            for tag in tagsToDelete {
+                try await client
+                    .from("groomer_portfolio_fit_tags")
+                    .delete()
+                    .eq("id", value: tag.id.uuidString.lowercased())
+                    .eq("portfolio_photo_id", value: photoID.uuidString.lowercased())
+                    .eq("groomer_id", value: groomerID.uuidString.lowercased())
+                    .execute()
+            }
+
+            return try await portfolioFitTags(
+                groomerID: groomerID,
+                photoID: photoID
+            )
+        } catch {
+            throw Self.map(error)
+        }
+    }
+
     func createTimeOff(
         groomerID: UUID,
         draft: GroomerTimeOffDraft
@@ -526,6 +602,29 @@ final class SupabaseGroomerProfileRepository: GroomerProfileRepository {
         }
 
         return rows.first?.avatarPath
+    }
+
+    private func portfolioFitTags(
+        groomerID: UUID,
+        photoID: UUID?
+    ) async throws -> [GroomerPortfolioFitTag] {
+        var query = client
+            .from("groomer_portfolio_fit_tags")
+            .select(Self.portfolioFitTagColumns)
+            .eq("groomer_id", value: groomerID.uuidString.lowercased())
+
+        if let photoID {
+            query = query.eq("portfolio_photo_id", value: photoID.uuidString.lowercased())
+        }
+
+        let rows: [GroomerPortfolioFitTagRow] = try await query
+            .order("portfolio_photo_id")
+            .order("trait_type")
+            .order("trait_value")
+            .execute()
+            .value
+
+        return rows.compactMap(\.tag)
     }
 
     private static func map(_ error: any Error) -> GroomerProfileRepositoryError {
@@ -693,6 +792,37 @@ private struct GroomerPortfolioPhotoRow: Decodable {
         case storagePath = "storage_path"
         case caption
         case sortOrder = "sort_order"
+    }
+}
+
+private struct GroomerPortfolioFitTagRow: Decodable {
+    let id: UUID
+    let portfolioPhotoID: UUID
+    let groomerID: UUID
+    let traitType: String
+    let traitValue: String
+
+    var tag: GroomerPortfolioFitTag? {
+        guard let signal = PetFitSignal.allCases.first(where: {
+            $0.traitType == traitType && $0.traitValue == traitValue
+        }) else {
+            return nil
+        }
+
+        return GroomerPortfolioFitTag(
+            id: id,
+            portfolioPhotoID: portfolioPhotoID,
+            groomerID: groomerID,
+            signal: signal
+        )
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case portfolioPhotoID = "portfolio_photo_id"
+        case groomerID = "groomer_id"
+        case traitType = "trait_type"
+        case traitValue = "trait_value"
     }
 }
 
@@ -1026,6 +1156,27 @@ private struct GroomerPortfolioPhotoInsertRow: Encodable {
         case storageBucket = "storage_bucket"
         case storagePath = "storage_path"
         case caption
+    }
+}
+
+private struct GroomerPortfolioFitTagInsertRow: Encodable {
+    let groomerID: UUID
+    let photoID: UUID
+    let draft: GroomerPortfolioFitTagDraft
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(photoID.uuidString.lowercased(), forKey: .portfolioPhotoID)
+        try container.encode(groomerID.uuidString.lowercased(), forKey: .groomerID)
+        try container.encode(draft.signal.traitType, forKey: .traitType)
+        try container.encode(draft.signal.traitValue, forKey: .traitValue)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case portfolioPhotoID = "portfolio_photo_id"
+        case groomerID = "groomer_id"
+        case traitType = "trait_type"
+        case traitValue = "trait_value"
     }
 }
 

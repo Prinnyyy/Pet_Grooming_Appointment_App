@@ -113,6 +113,30 @@ struct GroomerPortfolioPhoto: Equatable, Identifiable, Sendable {
     }
 }
 
+nonisolated struct GroomerPortfolioFitTag:
+    Equatable,
+    Identifiable,
+    Sendable
+{
+    static let maximumTagsPerPhoto = 6
+
+    static var availableSignals: [PetFitSignal] {
+        GroomerFitClaim.availableSignals
+    }
+
+    let id: UUID
+    let portfolioPhotoID: UUID
+    let groomerID: UUID
+    let signal: PetFitSignal
+}
+
+nonisolated struct GroomerPortfolioFitTagDraft:
+    Equatable,
+    Sendable
+{
+    let signal: PetFitSignal
+}
+
 nonisolated struct GroomerFitClaim:
     Equatable,
     Identifiable,

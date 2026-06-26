@@ -2087,7 +2087,158 @@ private struct GroomerPortfolioPhotoRow: View {
                         systemImage: "arrow.up.arrow.down"
                     )
                 }
+
+                Divider()
+                    .overlay(DesignTokens.Colors.divider)
+
+                GroomerPortfolioFitTagsSection(
+                    photo: photo,
+                    store: store
+                )
             }
+        }
+    }
+}
+
+private struct GroomerPortfolioFitTagsSection: View {
+    let photo: GroomerPortfolioPhoto
+    @Bindable var store: GroomerProfileStore
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            HStack(spacing: DesignTokens.Spacing.sm) {
+                Text("Fit Tags")
+                    .font(DesignTokens.Typography.body.weight(.bold))
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                GroomlyStatusChip(
+                    "\(selectedCount)/\(GroomerPortfolioFitTag.maximumTagsPerPhoto)",
+                    systemImage: "tag",
+                    tone: .groomer
+                )
+            }
+
+            ForEach(Self.visibleGroups) { group in
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                    Text(group.title)
+                        .font(DesignTokens.Typography.caption.weight(.bold))
+                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+                        .textCase(.uppercase)
+
+                    LazyVGrid(
+                        columns: [
+                            GridItem(.adaptive(minimum: 132), spacing: DesignTokens.Spacing.sm),
+                        ],
+                        alignment: .leading,
+                        spacing: DesignTokens.Spacing.sm
+                    ) {
+                        ForEach(signals(for: group)) { signal in
+                            GroomerPortfolioFitTagChip(
+                                signal: signal,
+                                isSelected: store.isPortfolioFitTagSelected(
+                                    signal,
+                                    for: photo
+                                )
+                            ) {
+                                store.togglePortfolioFitTag(signal, for: photo)
+                            }
+                        }
+                    }
+                }
+            }
+
+            Button {
+                Task {
+                    await store.savePortfolioFitTags(for: photo)
+                }
+            } label: {
+                Label("Save Tags", systemImage: "checkmark")
+            }
+            .buttonStyle(GroomlySecondaryButtonStyle(accent: .groomer, isFullWidth: true))
+            .disabled(store.isBusy)
+            .accessibilityIdentifier("groomer.portfolio.tags.save")
+        }
+    }
+
+    private var selectedCount: Int {
+        store.selectedPortfolioFitTagIDsByPhotoID[photo.id]?.count ?? 0
+    }
+
+    private static var visibleGroups: [PetFitSignal.Group] {
+        [.serviceFit, .breedGroup, .careFlag, .sizeBand].filter { group in
+            GroomerPortfolioFitTag.availableSignals.contains(where: {
+                $0.group == group
+            })
+        }
+    }
+
+    private func signals(for group: PetFitSignal.Group) -> [PetFitSignal] {
+        GroomerPortfolioFitTag.availableSignals.filter { $0.group == group }
+    }
+}
+
+private struct GroomerPortfolioFitTagChip: View {
+    let signal: PetFitSignal
+    let isSelected: Bool
+    let onToggle: () -> Void
+
+    var body: some View {
+        Button(action: onToggle) {
+            HStack(spacing: DesignTokens.Spacing.xs) {
+                Image(systemName: iconName)
+                    .font(.system(size: 13, weight: .bold))
+                    .accessibilityHidden(true)
+
+                Text(signal.title)
+                    .font(DesignTokens.Typography.caption.weight(.semibold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.78)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 14, weight: .semibold))
+                    .accessibilityHidden(true)
+            }
+            .foregroundStyle(
+                isSelected
+                    ? DesignTokens.Colors.surface
+                    : DesignTokens.Colors.textPrimary
+            )
+            .padding(.horizontal, DesignTokens.Spacing.sm)
+            .frame(height: 38)
+            .background(
+                isSelected
+                    ? DesignTokens.Colors.groomerAccent
+                    : DesignTokens.Colors.background
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(
+                        isSelected
+                            ? DesignTokens.Colors.groomerAccent
+                            : DesignTokens.Colors.borderSoft,
+                        lineWidth: 1
+                    )
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(signal.title) portfolio fit tag")
+        .accessibilityValue(isSelected ? "Selected" : "Not selected")
+    }
+
+    private var iconName: String {
+        switch signal.group {
+        case .breedGroup:
+            "pawprint.fill"
+        case .sizeBand:
+            "ruler"
+        case .careFlag:
+            "heart.fill"
+        case .serviceFit:
+            "scissors"
         }
     }
 }
@@ -2307,6 +2458,7 @@ private final class GroomerProfilePreviewRepository: GroomerProfileRepository {
     private var storedProfile: GroomerProfile
     private var storedServices: [GroomerService]
     private var storedPhotos: [GroomerPortfolioPhoto] = []
+    private var storedPortfolioFitTags: [GroomerPortfolioFitTag] = []
     private var storedAvailability: [GroomerAvailabilityWindow] = []
     private var storedBookingPreferences: GroomerBookingPreferences
     private var storedTimeOff: [GroomerTimeOffWindow] = []
@@ -2398,6 +2550,10 @@ private final class GroomerProfilePreviewRepository: GroomerProfileRepository {
         storedPhotos
     }
 
+    func portfolioFitTags(groomerID: UUID) async throws -> [GroomerPortfolioFitTag] {
+        storedPortfolioFitTags
+    }
+
     func fitClaims(groomerID: UUID) async throws -> [GroomerFitClaim] {
         []
     }
@@ -2482,7 +2638,7 @@ private final class GroomerProfilePreviewRepository: GroomerProfileRepository {
         contentType: GroomerPortfolioPhotoContentType,
         caption: String?
     ) async throws -> GroomerPortfolioPhoto {
-        GroomerPortfolioPhoto(
+        let photo = GroomerPortfolioPhoto(
             id: UUID(),
             groomerID: groomerID,
             storageBucket: "groomer-portfolio",
@@ -2493,9 +2649,14 @@ private final class GroomerProfilePreviewRepository: GroomerProfileRepository {
             caption: caption,
             sortOrder: 0
         )
+        storedPhotos.append(photo)
+        return photo
     }
 
-    func deletePortfolioPhoto(_ photo: GroomerPortfolioPhoto) async throws {}
+    func deletePortfolioPhoto(_ photo: GroomerPortfolioPhoto) async throws {
+        storedPhotos.removeAll { $0.id == photo.id }
+        storedPortfolioFitTags.removeAll { $0.portfolioPhotoID == photo.id }
+    }
 
     func replaceFitClaims(
         groomerID: UUID,
@@ -2509,6 +2670,24 @@ private final class GroomerProfilePreviewRepository: GroomerProfileRepository {
                 isActive: $0.isActive
             )
         }
+    }
+
+    func replacePortfolioFitTags(
+        groomerID: UUID,
+        photoID: UUID,
+        drafts: [GroomerPortfolioFitTagDraft]
+    ) async throws -> [GroomerPortfolioFitTag] {
+        let tags = drafts.map {
+            GroomerPortfolioFitTag(
+                id: UUID(),
+                portfolioPhotoID: photoID,
+                groomerID: groomerID,
+                signal: $0.signal
+            )
+        }
+        storedPortfolioFitTags.removeAll { $0.portfolioPhotoID == photoID }
+        storedPortfolioFitTags.append(contentsOf: tags)
+        return tags
     }
 
     func uploadAvatarPhoto(

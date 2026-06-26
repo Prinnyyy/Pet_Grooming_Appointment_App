@@ -12,6 +12,8 @@ final class GroomerProfileStore {
     private(set) var profile: GroomerProfile?
     private(set) var services: [GroomerService] = []
     private(set) var portfolioPhotos: [GroomerPortfolioPhoto] = []
+    private(set) var portfolioFitTags: [GroomerPortfolioFitTag] = []
+    private(set) var selectedPortfolioFitTagIDsByPhotoID: [UUID: Set<String>] = [:]
     private(set) var availabilityWindows: [GroomerAvailabilityWindow] = []
     private(set) var bookingPreferences: GroomerBookingPreferences?
     private(set) var timeOffWindows: [GroomerTimeOffWindow] = []
@@ -82,6 +84,9 @@ final class GroomerProfileStore {
             let loadedProfile = try await repository.profile(groomerID: groomerID)
             let loadedServices = try await repository.services(groomerID: groomerID)
             let loadedPhotos = try await repository.portfolioPhotos(groomerID: groomerID)
+            let loadedPortfolioFitTags = try await repository.portfolioFitTags(
+                groomerID: groomerID
+            )
             let loadedAvailability = try await repository.availabilityWindows(groomerID: groomerID)
             let loadedBookingPreferences = try await repository.bookingPreferences(groomerID: groomerID)
             let loadedTimeOff = try await repository.timeOffWindows(groomerID: groomerID)
@@ -90,6 +95,10 @@ final class GroomerProfileStore {
             profile = loadedProfile
             services = loadedServices
             portfolioPhotos = loadedPhotos
+            populatePortfolioFitTags(
+                with: loadedPortfolioFitTags,
+                visiblePhotos: loadedPhotos
+            )
             availabilityWindows = loadedAvailability
             bookingPreferences = loadedBookingPreferences
             timeOffWindows = loadedTimeOff
@@ -289,6 +298,7 @@ final class GroomerProfileStore {
         do {
             try await repository.deletePortfolioPhoto(photo)
             portfolioPhotos.removeAll { $0.id == photo.id }
+            removePortfolioFitTags(for: photo.id)
             noticeMessage = "Portfolio photo was deleted."
         } catch let error as GroomerProfileRepositoryError {
             errorMessage = message(for: error, action: "delete photo")
@@ -523,6 +533,81 @@ final class GroomerProfileStore {
         }
     }
 
+    func portfolioFitTags(for photo: GroomerPortfolioPhoto) -> [GroomerPortfolioFitTag] {
+        portfolioFitTags.filter { $0.portfolioPhotoID == photo.id }
+    }
+
+    func isPortfolioFitTagSelected(
+        _ signal: PetFitSignal,
+        for photo: GroomerPortfolioPhoto
+    ) -> Bool {
+        selectedPortfolioFitTagIDsByPhotoID[photo.id]?.contains(signal.id) == true
+    }
+
+    func togglePortfolioFitTag(
+        _ signal: PetFitSignal,
+        for photo: GroomerPortfolioPhoto
+    ) {
+        errorMessage = nil
+        noticeMessage = nil
+
+        var selectedIDs = selectedPortfolioFitTagIDsByPhotoID[photo.id] ?? []
+        if selectedIDs.contains(signal.id) {
+            selectedIDs.remove(signal.id)
+            if selectedIDs.isEmpty {
+                selectedPortfolioFitTagIDsByPhotoID.removeValue(forKey: photo.id)
+            } else {
+                selectedPortfolioFitTagIDsByPhotoID[photo.id] = selectedIDs
+            }
+            return
+        }
+
+        guard selectedIDs.count < GroomerPortfolioFitTag.maximumTagsPerPhoto else {
+            errorMessage = "Choose up to \(GroomerPortfolioFitTag.maximumTagsPerPhoto) tags for each portfolio photo."
+            return
+        }
+
+        selectedIDs.insert(signal.id)
+        selectedPortfolioFitTagIDsByPhotoID[photo.id] = selectedIDs
+    }
+
+    func savePortfolioFitTags(for photo: GroomerPortfolioPhoto) async {
+        guard !isSaving else { return }
+
+        errorMessage = nil
+        noticeMessage = nil
+
+        guard portfolioPhotos.contains(where: { $0.id == photo.id }) else {
+            errorMessage = "We could not save tags for that portfolio photo."
+            return
+        }
+
+        let selectedIDs = selectedPortfolioFitTagIDsByPhotoID[photo.id] ?? []
+        guard selectedIDs.count <= GroomerPortfolioFitTag.maximumTagsPerPhoto else {
+            errorMessage = "Choose up to \(GroomerPortfolioFitTag.maximumTagsPerPhoto) tags for each portfolio photo."
+            return
+        }
+
+        let drafts = makePortfolioFitTagDrafts(for: photo)
+
+        isSaving = true
+        defer { isSaving = false }
+
+        do {
+            let updatedTags = try await repository.replacePortfolioFitTags(
+                groomerID: groomerID,
+                photoID: photo.id,
+                drafts: drafts
+            )
+            replacePortfolioFitTags(for: photo.id, with: updatedTags)
+            noticeMessage = "Portfolio tags saved."
+        } catch let error as GroomerProfileRepositoryError {
+            errorMessage = message(for: error, action: "save portfolio tags")
+        } catch {
+            errorMessage = message(for: .unavailable, action: "save portfolio tags")
+        }
+    }
+
     private func populateProfileForm(with profile: GroomerProfile) {
         businessName = profile.businessName ?? ""
         bio = profile.bio ?? ""
@@ -585,6 +670,27 @@ final class GroomerProfileStore {
         )
     }
 
+    private func populatePortfolioFitTags(
+        with tags: [GroomerPortfolioFitTag],
+        visiblePhotos: [GroomerPortfolioPhoto]
+    ) {
+        let visiblePhotoIDs = Set(visiblePhotos.map(\.id))
+        let supportedSignals = Set(GroomerPortfolioFitTag.availableSignals)
+        let visibleTags = tags.filter {
+            visiblePhotoIDs.contains($0.portfolioPhotoID) &&
+                supportedSignals.contains($0.signal)
+        }
+
+        portfolioFitTags = visibleTags.sorted(by: Self.sortPortfolioFitTags)
+        selectedPortfolioFitTagIDsByPhotoID = Dictionary(
+            grouping: visibleTags,
+            by: \.portfolioPhotoID
+        )
+        .mapValues { tags in
+            Set(tags.map { $0.signal.id })
+        }
+    }
+
     private func resetTimeOffForm() {
         timeOffTitle = ""
         let today = Calendar.current.startOfDay(for: Date())
@@ -608,6 +714,31 @@ final class GroomerProfileStore {
             return
         }
         services[index] = service
+    }
+
+    private func removePortfolioFitTags(for photoID: UUID) {
+        portfolioFitTags.removeAll { $0.portfolioPhotoID == photoID }
+        selectedPortfolioFitTagIDsByPhotoID.removeValue(forKey: photoID)
+    }
+
+    private func replacePortfolioFitTags(
+        for photoID: UUID,
+        with tags: [GroomerPortfolioFitTag]
+    ) {
+        removePortfolioFitTags(for: photoID)
+
+        let supportedSignals = Set(GroomerPortfolioFitTag.availableSignals)
+        let supportedTags = tags.filter {
+            $0.portfolioPhotoID == photoID && supportedSignals.contains($0.signal)
+        }
+
+        portfolioFitTags.append(contentsOf: supportedTags)
+        portfolioFitTags.sort(by: Self.sortPortfolioFitTags)
+
+        let selectedIDs = Set(supportedTags.map { $0.signal.id })
+        if !selectedIDs.isEmpty {
+            selectedPortfolioFitTagIDsByPhotoID[photoID] = selectedIDs
+        }
     }
 
     private func makeProfileDraft() throws -> GroomerProfileDraft {
@@ -770,6 +901,17 @@ final class GroomerProfileStore {
             }
     }
 
+    private func makePortfolioFitTagDrafts(
+        for photo: GroomerPortfolioPhoto
+    ) -> [GroomerPortfolioFitTagDraft] {
+        let selectedIDs = selectedPortfolioFitTagIDsByPhotoID[photo.id] ?? []
+
+        return GroomerPortfolioFitTag.availableSignals
+            .filter { selectedIDs.contains($0.id) }
+            .sorted(by: Self.sortFitSignals)
+            .map { GroomerPortfolioFitTagDraft(signal: $0) }
+    }
+
     private func required(
         _ value: String,
         field: String,
@@ -882,6 +1024,16 @@ final class GroomerProfileStore {
         _ rhs: GroomerFitClaim
     ) -> Bool {
         sortFitSignals(lhs.signal, rhs.signal)
+    }
+
+    private static func sortPortfolioFitTags(
+        _ lhs: GroomerPortfolioFitTag,
+        _ rhs: GroomerPortfolioFitTag
+    ) -> Bool {
+        if lhs.portfolioPhotoID == rhs.portfolioPhotoID {
+            return sortFitSignals(lhs.signal, rhs.signal)
+        }
+        return lhs.portfolioPhotoID.uuidString < rhs.portfolioPhotoID.uuidString
     }
 
     private static func sortFitSignals(

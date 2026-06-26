@@ -12,10 +12,10 @@
 
 ## Status
 
-- Status: active sequence; completed through T-079
-- Date: 2026-06-25
-- Current completed pet-fit baseline: T-063 through T-079, plus user-authorized T-050 remote deployment.
-- Next executable task: T-080, only after the user explicitly starts it.
+- Status: active sequence; completed through T-081A; T-081 iOS dashboard pending explicit resume
+- Date: 2026-06-26
+- Current completed pet-fit baseline: T-063 through T-080 and T-081A, plus user-authorized T-050 remote deployment.
+- Next executable task: T-081, only after the user explicitly starts/resumes the iOS dashboard.
 
 ## Product Guardrails
 
@@ -29,15 +29,18 @@
 ## Current Grounding
 
 - T-050 iOS pet taxonomy is complete, and its hardened Supabase pet data contract migration is remotely deployed.
-- T-066 groomer fit claims and portfolio tags are deployed and consumed by matching. T-079 now adds iOS owner management UI for groomer fit claims only; portfolio tags remain T-080.
+- T-066 groomer fit claims and portfolio tags are deployed and consumed by matching. T-079 adds iOS owner management UI for groomer fit claims, and T-080 adds iOS owner management UI for portfolio fit tags.
 - T-067 structured review outcomes are deployed, and T-078 now lets iOS submit optional outcomes through the existing review RPC.
 - T-068 evidence summary exists as a read-only aggregate view.
 - T-073 scoring uses evidence, claims, and portfolio signals. Claims and portfolio tags are capped at low weight.
 - T-074 lets customers see backend match evidence only for visible offered matches.
-- T-076 adds a pure Swift canonical signal vocabulary for T-065 trait pairs, now reused by T-078 review submission and T-079 groomer claim management.
+- T-076 adds a pure Swift canonical signal vocabulary for T-065 trait pairs, now reused by T-078 review submission, T-079 groomer claim management, and T-080 portfolio tag management.
 - T-077 enriches bookings with existing request pet snapshot context and derives completed-booking reviewable signals.
 - T-078 extends iOS review submission so selected positive/negative outcomes are sent as `p_pet_fit_outcomes`, while empty outcomes and rating/content-only reviews remain valid. No Supabase schema change was made.
 - T-079 adds a Groomer Account Fit Signals page that manages bounded owner-claimed signals through existing `groomer_fit_claims` table access behind `GroomerProfileRepository`. No Supabase schema change was made.
+- T-080 adds per-photo Portfolio fit tag management through existing `groomer_portfolio_fit_tags` table access behind `GroomerProfileRepository`. No Supabase schema change was made.
+- T-081A adds the owner-readable aggregate RPC `get_my_groomer_pet_fit_evidence_summary()` so Groomer Account can read completed-booking and structured-review aggregate evidence without broadening request row RLS or exposing raw customer/pet/request/booking/review details.
+- T-081 is not implemented in Swift yet; when resumed, it should use the T-081A RPC behind `GroomerProfileRepository`.
 
 ## Task Plan
 
@@ -49,6 +52,7 @@
 | T-078 | Structured Review iOS Submission | Standard | Extend `BookingReviewDraft`, `BookingsStore`, Supabase encoding, and review UI to submit optional `p_pet_fit_outcomes`. | Rating/content-only reviews still work; selected positive/negative outcomes are sent through `create_review`; empty outcomes are valid. |
 | T-079 | Groomer Claimed Fit Signals UI | Standard | Add groomer-owned fit claim loading and saving through `GroomerProfileRepository` and a dedicated Account page. | Groomers can activate/deactivate a small bounded set of claims; UI copy frames claims as starter signals, not expert verification. |
 | T-080 | Portfolio Fit Tags UI | Standard | Add owner-managed fit tags for existing portfolio photos through the profile repository and Portfolio page. | Groomers can add/remove up to a bounded number of tags per photo; deleting a photo keeps relying on the existing FK cascade. |
+| T-081A | Evidence Dashboard Owner Visibility Backend | Deep | Create a safe owner-readable aggregate evidence contract for Groomer Account without exposing raw customer, pet, request, booking, or review details. | Completed: rollback-only checks prove groomers can read only their own aggregate evidence, cross-owner/customer reads are denied, advisors ran, and no raw private details are returned. |
 | T-081 | Groomer Evidence Dashboard | Standard | Surface earned evidence from `groomer_pet_fit_evidence_summary` in Groomer Account. | Groomers can see aggregate completed counts, review outcomes, and confidence tiers without customer or pet private details. |
 | T-082 | Matching Fairness And Calibration | Deep | Run rollback SQL scenarios and adjust `create_grooming_request` internals only if needed to preserve fair distribution and low claim weight. | Eligible new groomers still receive matches; claim-only groomers do not outrank equivalent evidence-backed groomers; RPC signature and grants remain unchanged. |
 | T-083 | Score Display De-Emphasis | Standard | Replace raw score-heavy UI copy in groomer request and customer offer surfaces with explanation-first fit evidence wording. | UI no longer reads like `94 match` as an ability percentage; tests cover reason trimming, blank reason hiding, and new copy. |
@@ -179,10 +183,13 @@
 - `ios/PetGroomerMarketplace/PetGroomerMarketplace/Core/Infrastructure/Supabase/SupabaseGroomerProfileRepository.swift`
 - `ios/PetGroomerMarketplace/PetGroomerMarketplace/Features/Groomer/Profile/GroomerProfileManagementView.swift`
 
+**Backend prerequisite:**
+- T-081A created `get_my_groomer_pet_fit_evidence_summary()` as the safe owner-readable aggregate backend contract. The original direct `security_invoker` view is still correctly constrained by underlying RLS, so the iOS dashboard should use the RPC for owner completed-booking evidence.
+
 **Execution notes:**
-- Query `groomer_pet_fit_evidence_summary` through the repository.
+- Query `get_my_groomer_pet_fit_evidence_summary()` through the repository.
 - Show only aggregate counts and confidence tiers.
-- If owner read visibility is blocked by current RLS/view behavior, stop and create a Deep backend follow-up instead of weakening UI assumptions.
+- Do not direct-read private request, pet, booking, review, or snapshot data from SwiftUI or repositories for this dashboard.
 
 **Validation:**
 - Targeted repository/store presentation tests.
@@ -279,7 +286,7 @@
 
 ## Assumptions
 
-- The next implementation starts with T-080.
+- The next implementation resumes T-081 only when explicitly requested.
 - Each listed row is a separate primary task.
 - T-075 through T-085 do not authorize remote writes by themselves.
 - Existing branch remains `codex/pet-fit-structure-cleanup` unless the user asks for a different branch.

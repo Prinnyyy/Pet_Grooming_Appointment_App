@@ -1,6 +1,36 @@
 # Worklog
 
 ```text
+Date: 2026-06-26
+Task: T-081A - Groomly evidence dashboard owner visibility backend.
+Files changed: Supabase migration 20260626021651; T-081A task doc; T-081 task doc; backend contract/RLS docs; pet-fit closure plan; task ledger; feature index; CURRENT_STATE.md; and WORKLOG.md.
+Checks: RED rollback-only SQL reproduced the direct owner-read gap for completed-booking snapshot evidence; Supabase MCP applied the reviewed migration after CLI dry-run showed existing remote/local migration drift; metadata/grant/function checks passed; GREEN rollback-only SQL passed for owner aggregate reads, cross-groomer isolation, customer rejection, aggregate-only signature, and unchanged direct-view RLS behavior; residue check returned zero validation rows; security/performance advisors ran with the expected controlled SECURITY DEFINER WARN for the new RPC plus existing baseline findings; ./scripts/supabase-check.sh passed; git diff --check passed before documentation closeout.
+Result: Added get_my_groomer_pet_fit_evidence_summary as the owner-readable aggregate RPC for Groomer Account evidence without broadening grooming_requests RLS or exposing raw customer, pet, request, booking, review, content, or pet_snapshot details.
+Risks: T-081 Swift dashboard is still not implemented. The iOS follow-up must call the new RPC through GroomerProfileRepository rather than direct-reading the security-invoker view for completed-booking evidence.
+Next: Stop unless the user explicitly asks to resume T-081 iOS dashboard, commit, or push.
+```
+
+```text
+Date: 2026-06-25
+Task: T-081 - Groomly groomer evidence dashboard.
+Files changed: T-081 blocked task doc, T-081A follow-up task doc, pet-fit closure plan, task ledger, feature index, CURRENT_STATE.md, and WORKLOG.md.
+Checks: Supabase changelog/docs checked for Data API/view/RLS behavior; local T-068/T-012/T-018/T-067 migrations inspected; read-only remote metadata query confirmed the evidence view is security_invoker/security_barrier and authenticated-selectable, but grooming_requests RLS still limits groomer direct reads to open/has-offers matched requests; git diff --check passed.
+Result: T-081 stopped before Swift implementation because completed-booking evidence depends on request snapshot rows that owner groomers cannot directly read through the current security-invoker view contract.
+Risks: No Swift, Supabase schema/RLS/grant/RPC/Storage, matching, public directory, direct booking, customer-facing evidence, or expertise-proof behavior changed. The dashboard remains unavailable until a Deep backend owner-visible aggregate contract is approved and implemented.
+Next: Do not resume T-081 UI. Start T-081A only after explicit user authorization for Deep backend work.
+```
+
+```text
+Date: 2026-06-25
+Task: T-080 - Groomly portfolio fit tags UI.
+Files changed: GroomerProfile model, GroomerProfileRepository, SupabaseGroomerProfileRepository, GroomerProfileStore, GroomerProfileManagementView, GroomerProfileFeatureTests, T-080 task doc, pet-fit closure plan, task ledger, feature index, CURRENT_STATE.md, and WORKLOG.md.
+Checks: RED targeted GroomerProfileStore tests failed before implementation because GroomerPortfolioFitTag did not exist; GREEN targeted portfolio-tag Store tests passed after implementation; ./scripts/ios-build.sh passed; XcodeBuildMCP build_run_sim launched the app on iPhone 17 Pro iOS 26.5; XcodeBuildMCP UI snapshot confirmed Account -> Portfolio, with no photo rows in the current signed-in account; git diff --check passed.
+Result: Groomer Portfolio photo cards now support up to six canonical fit tags per photo, saved one photo at a time through existing groomer_portfolio_fit_tags repository access.
+Risks: T-080 adds no Supabase schema/RLS/grant/RPC/Storage change, no photo upload behavior change, no matching behavior, no public directory, no direct booking, and no proof-of-expertise claim.
+Next: Stop unless the user asks for commit/push or explicitly authorizes T-081.
+```
+
+```text
 Date: 2026-06-25
 Task: T-079 - Groomly groomer claimed fit signals UI.
 Files changed: GroomerProfile model, GroomerProfileRepository, SupabaseGroomerProfileRepository, GroomerProfileStore, GroomerProfileManagementView, GroomerProfileFeatureTests, T-079 task doc, pet-fit closure plan, task ledger, feature index, CURRENT_STATE.md, and WORKLOG.md.
