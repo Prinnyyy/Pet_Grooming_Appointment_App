@@ -12,10 +12,10 @@
 
 ## Status
 
-- Status: active sequence; completed through T-081; T-082+ not started
+- Status: active sequence; completed through T-082; T-083+ not started
 - Date: 2026-06-26
-- Current completed pet-fit baseline: T-063 through T-081 and T-081A, plus user-authorized T-050 remote deployment.
-- Next executable task: none active; T-082+ requires an explicit user request/authorization.
+- Current completed pet-fit baseline: T-063 through T-082 and T-081A, plus user-authorized T-050 remote deployment.
+- Next executable task: none active; T-083+ requires an explicit user request/authorization.
 
 ## Product Guardrails
 
@@ -41,6 +41,7 @@
 - T-080 adds per-photo Portfolio fit tag management through existing `groomer_portfolio_fit_tags` table access behind `GroomerProfileRepository`. No Supabase schema change was made.
 - T-081A adds the owner-readable aggregate RPC `get_my_groomer_pet_fit_evidence_summary()` so Groomer Account can read completed-booking and structured-review aggregate evidence without broadening request row RLS or exposing raw customer/pet/request/booking/review details.
 - T-081 adds the Groomer Account Evidence Dashboard using the T-081A RPC behind `GroomerProfileRepository`. It shows aggregate counts, structured review outcomes, safe timestamps, and confidence tiers only.
+- T-082 calibrates `create_grooming_request` fairness so earned negative evidence is not dropped behind neutral top-three evidence and suppresses low-confidence claim/portfolio boosts when negative evidence exists.
 
 ## Task Plan
 
@@ -54,7 +55,7 @@
 | T-080 | Portfolio Fit Tags UI | Standard | Add owner-managed fit tags for existing portfolio photos through the profile repository and Portfolio page. | Groomers can add/remove up to a bounded number of tags per photo; deleting a photo keeps relying on the existing FK cascade. |
 | T-081A | Evidence Dashboard Owner Visibility Backend | Deep | Create a safe owner-readable aggregate evidence contract for Groomer Account without exposing raw customer, pet, request, booking, or review details. | Completed: rollback-only checks prove groomers can read only their own aggregate evidence, cross-owner/customer reads are denied, advisors ran, and no raw private details are returned. |
 | T-081 | Groomer Evidence Dashboard | Standard | Surface earned evidence from the T-081A owner aggregate RPC in Groomer Account. | Completed: groomers can see aggregate completed counts, review outcomes, and confidence tiers without customer or pet private details. |
-| T-082 | Matching Fairness And Calibration | Deep | Run rollback SQL scenarios and adjust `create_grooming_request` internals only if needed to preserve fair distribution and low claim weight. | Eligible new groomers still receive matches; claim-only groomers do not outrank equivalent evidence-backed groomers; RPC signature and grants remain unchanged. |
+| T-082 | Matching Fairness And Calibration | Deep | Run rollback SQL scenarios and adjust `create_grooming_request` internals only if needed to preserve fair distribution and low claim weight. | Completed: negative earned evidence is prioritized in the evidence set and suppresses low-confidence claim/portfolio boosts while eligible new, claim-only, portfolio-only, and positive evidence groomers still match; RPC signature and grants remain unchanged. |
 | T-083 | Score Display De-Emphasis | Standard | Replace raw score-heavy UI copy in groomer request and customer offer surfaces with explanation-first fit evidence wording. | UI no longer reads like `94 match` as an ability percentage; tests cover reason trimming, blank reason hiding, and new copy. |
 | T-084 | Pet-Fit End-To-End Validation Scenario | Deep | Validate the full evidence loop with rollback-only SQL: request, match, offer, booking, completion, structured review, next request. | Evidence from the first completed booking changes the next matching reason as expected while RLS and visibility boundaries still hold. |
 | T-085 | Request Fit Input Preview | Standard | Show customers the derived pet-fit needs on the request review step before publishing. | Customers can see the app's interpreted needs such as terrier coat, gentle handling, or senior care before submit; no new backend field is added. |
@@ -203,7 +204,8 @@
 ### T-082: Matching Fairness And Calibration
 
 **Primary files:**
-- latest `create_grooming_request` migration draft under `supabase/migrations/`
+- `supabase/migrations/20260626033330_t082_matching_fairness_calibration.sql`
+- `docs/06_tasks/T-082_GROOMLY_MATCHING_FAIRNESS_AND_CALIBRATION.md`
 - `docs/03_backend/SUPABASE_CONTRACT.md`
 - `docs/03_backend/RLS_RPC_POLICY.md`
 
@@ -218,6 +220,12 @@
 - Metadata/grant checks for `create_grooming_request`.
 - Supabase advisors and `./scripts/supabase-check.sh`.
 - `git diff --check`
+
+**Completion notes:**
+- RED rollback-only SQL proved negative poodle feedback could be dropped behind neutral completed-booking rows, letting low-confidence starter signals lift the negative-evidence groomer to `89.00` versus the no-evidence groomer at `80.00`.
+- T-082 replaces only `create_grooming_request` internals. Negative evidence is prioritized into the top evidence set, `pet_fit.has_negative_evidence` suppresses claim/portfolio adjustment and reason text, and hard filters/signature/grants remain unchanged.
+- GREEN rollback-only validation before and after remote apply returned five matches with scores: no evidence `80.00`, claim-only `83.00`, portfolio-only `86.00`, positive evidence `94.00`, negative evidence `78.00`.
+- Metadata/grant checks, zero-residue checks, advisors, `./scripts/supabase-check.sh`, and `git diff --check` passed.
 
 ### T-083: Score Display De-Emphasis
 
@@ -289,8 +297,8 @@
 
 ## Assumptions
 
-- No next implementation is active; T-082 and later tasks start only when explicitly requested.
+- No next implementation is active; T-083 and later tasks start only when explicitly requested.
 - Each listed row is a separate primary task.
 - T-075 through T-085 do not authorize remote writes by themselves.
 - Existing branch remains `codex/pet-fit-structure-cleanup` unless the user asks for a different branch.
-- Existing T-063 through T-081 behavior remains the baseline unless a task explicitly changes it.
+- Existing T-063 through T-082 behavior remains the baseline unless a task explicitly changes it.

@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-06-26
+Task: T-082 - Groomly matching fairness and calibration.
+Files changed: Supabase migration 20260626033330; T-082 task doc; backend contract/RLS docs; pet-fit closure plan; task ledger; feature index; CURRENT_STATE.md; and WORKLOG.md.
+Checks: RED rollback-only fairness diagnostic showed the negative-evidence groomer scored 89.00 versus no-evidence 80.00 because negative poodle feedback was dropped behind neutral evidence and starter signals were applied; GREEN rollback validation before and after apply passed with scores no-evidence 80.00, claim-only 83.00, portfolio-only 86.00, positive evidence 94.00, and negative evidence 78.00; migration applied by Supabase CLI and repaired into remote migration history; MCP migration list confirmed 20260626033330; metadata/grant checks passed; residue check returned zero validation rows; advisors reported baseline findings only; ./scripts/supabase-check.sh passed; git diff --check passed.
+Result: create_grooming_request now prioritizes negative earned evidence and suppresses low-confidence claim/portfolio boost and reason text when negative evidence exists.
+Risks: Affects newly created matches only; no backfill; no signature, grant, RLS, Storage, iOS, or lifecycle change.
+Next: Stop unless the user asks for commit/push or explicitly authorizes T-083.
+```
+
+```text
+Date: 2026-06-26
 Task: T-081 - Groomly groomer evidence dashboard.
 Files changed: GroomerProfile model, GroomerProfileRepository, SupabaseGroomerProfileRepository, GroomerProfileStore, GroomerProfileManagementView, GroomerProfileFeatureTests, T-081 task doc, pet-fit closure plan, task ledger, feature index, CURRENT_STATE.md, and WORKLOG.md.
 Checks: RED targeted GroomerProfileStore test failed before implementation because GroomerPetFitEvidenceSummary/GroomerPetFitEvidenceConfidenceTier did not exist; GREEN targeted evidence test passed after implementation; focused GroomerProfileStoreTests passed; ./scripts/ios-build.sh passed; XcodeBuildMCP build_run_sim passed on iPhone 17 Pro iOS 26.5 with no final warnings/errors; UI snapshots confirmed Account -> Evidence Dashboard and the dashboard empty state; git diff --check passed.
