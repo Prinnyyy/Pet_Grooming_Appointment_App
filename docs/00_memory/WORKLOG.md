@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-06-26
+Task: T-084 - Groomly pet-fit end-to-end validation scenario.
+Files changed: T-084 rollback SQL artifact, T-084 checkpoint task doc, pet-fit closure plan, and WORKLOG.md.
+Checks: Supabase changelog scan completed for relevant breaking-change tags; remote metadata confirmed current RPC signatures and auth.uid simulation; T-084 rollback validation attempt failed with invalid_booking from complete_booking(uuid) because the harness passed a null booking ID; independent residue check returned zero T-084 validation rows; git diff --check passed.
+Result: Checkpoint only. The likely issue is the validation harness querying the accepted booking through a groomer-role join to grooming_requests after acceptance hid the match/request path under RLS. No schema, RLS, RPC, Storage, iOS, or migration change was made.
+Risks: T-084 is not complete. The harness needs to keep the accepted booking ID or query groomer-visible bookings without the filtered request join, then rerun validation with explicit user approval.
+Next: Stop unless the user explicitly authorizes fixing the T-084 rollback validation harness and running a second Deep validation attempt.
+```
+
+```text
+Date: 2026-06-26
 Task: T-083 - Groomly score display de-emphasis.
 Files changed: GroomerRequest model, CustomerRequest model, GroomerRequestsView, GroomerRequestFeatureTests, CustomerRequestFeatureTests, T-083 task doc, pet-fit closure plan, task ledger, feature index, CURRENT_STATE.md, and WORKLOG.md.
 Checks: RED class-level GroomerRequestsStoreTests and CustomerRequestsStoreTests failed before implementation for the new no-raw-score presentation expectations; GREEN focused GroomerRequestsStoreTests and CustomerRequestsStoreTests passed after implementation; production raw-score copy search found no remaining "match" percentage copy or Score row; ./scripts/ios-build.sh passed; XcodeBuildMCP build_run_sim passed on iPhone 17 Pro iOS 26.5 with no warnings/errors; screenshot capture confirmed the app rendered; git diff --check passed.

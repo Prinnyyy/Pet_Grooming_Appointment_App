@@ -12,10 +12,10 @@
 
 ## Status
 
-- Status: active sequence; completed through T-083; T-084+ not started
+- Status: active sequence; completed through T-083; T-084 checkpoint exists and needs follow-up authorization
 - Date: 2026-06-26
 - Current completed pet-fit baseline: T-063 through T-083 and T-081A, plus user-authorized T-050 remote deployment.
-- Next executable task: none active; T-084+ requires an explicit user request/authorization.
+- Next executable task: T-084 validation harness correction/retry only if explicitly authorized; T-085+ requires a separate explicit user request/authorization.
 
 ## Product Guardrails
 
@@ -270,6 +270,12 @@
 - Supabase metadata checks only if the scenario reveals a needed backend change.
 - `git diff --check` for documentation artifacts.
 
+**Checkpoint notes:**
+- A rollback-only SQL artifact now exists at `docs/06_tasks/sql_reviews/T-084_PET_FIT_E2E_ROLLBACK_VALIDATION.sql`.
+- The first Deep validation attempt failed before completion with `invalid_booking` from `public.complete_booking(uuid)` because the validation harness passed a `null` booking ID.
+- The likely cause is harness RLS shape: the groomer-role subquery joined `bookings` through `grooming_requests` by service note after offer acceptance hid the request match, so the request row was filtered for that groomer.
+- No migration/schema/RLS/RPC change was made. Fixing the harness and running a second Deep validation attempt requires explicit user approval.
+
 ### T-085: Request Fit Input Preview
 
 **Primary files:**
@@ -305,7 +311,7 @@
 
 ## Assumptions
 
-- No next implementation is active; T-084 and later tasks start only when explicitly requested.
+- No next implementation is active; T-084 harness correction/retry and later tasks start only when explicitly requested.
 - Each listed row is a separate primary task.
 - T-075 through T-085 do not authorize remote writes by themselves.
 - Existing branch remains `codex/pet-fit-structure-cleanup` unless the user asks for a different branch.
