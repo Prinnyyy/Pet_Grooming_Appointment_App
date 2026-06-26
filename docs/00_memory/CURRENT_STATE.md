@@ -39,12 +39,13 @@ Update this only when project state meaningfully changes.
 - Latest completed matching fairness calibration task: `docs/06_tasks/T-082_GROOMLY_MATCHING_FAIRNESS_AND_CALIBRATION.md`.
 - Latest completed score display de-emphasis task: `docs/06_tasks/T-083_GROOMLY_SCORE_DISPLAY_DEEMPHASIS.md`.
 - Latest completed pet-fit end-to-end validation task: `docs/06_tasks/T-084_GROOMLY_PET_FIT_E2E_VALIDATION_SCENARIO.md`.
+- Latest completed request fit input preview task: `docs/06_tasks/T-085_GROOMLY_REQUEST_FIT_INPUT_PREVIEW.md`.
 - Latest completed Groomly UI refinement task: `docs/06_tasks/T-043_GROOMLY_CUSTOMER_REQUESTS_CAROUSEL_EDGE_REFINEMENT.md`.
 - Latest completed request feature task: `docs/06_tasks/T-049_GROOMLY_REQUEST_DATA_CONTRACT_LOCATION_PHOTOS.md`.
 - Latest completed pet feature task: `docs/06_tasks/T-050_GROOMLY_PET_DATA_CONTRACT_AND_ADD_PET_UI.md`.
 - Groomly UI sequence: `docs/06_tasks/T-026_TO_T-035_GROOMLY_UI_COMPLETION_SEQUENCE.md` is completed for implemented MVP screens.
 - Completed Groomly UI phase archive marker: `docs/09_frozen/groomly_ui_completed_2026-06-22/FREEZE_README.md`.
-- Active next executable pet-fit/availability task: T-085 only if explicitly requested/authorized.
+- Active next executable pet-fit/availability task: none currently defined; future pet-fit work needs explicit request/authorization.
 - Active next executable Groomly screenshot task: none currently defined; future UI work starts from a user-uploaded screenshot.
 - Screenshot-driven task template: `docs/06_tasks/SCREENSHOT_UI_REWORK_TASK_TEMPLATE.md`.
 - Project structure index: `docs/10_project_structure/README.md`.
@@ -101,10 +102,10 @@ Update this only when project state meaningfully changes.
 
 - Last build command: `./scripts/ios-build.sh`, then XcodeBuildMCP `build_run_sim`.
 - Last known build result: passed on 2026-06-26 using `platform=iOS Simulator,OS=26.5,name=iPhone 17 Pro`.
-- Last test command: targeted `xcodebuild ... -only-testing:PetGroomerMarketplaceTests/GroomerRequestsStoreTests` and `xcodebuild ... -only-testing:PetGroomerMarketplaceTests/CustomerRequestsStoreTests`.
-- Last known test result: T-083 focused Groomer and Customer request Store tests passed after class-level RED failures for the new no-raw-score presentation expectations.
-- Last simulator launch: XcodeBuildMCP `build_run_sim` installed and launched `com.prinnyyy.PetGroomerMarketplace` on `iPhone 17 Pro` iOS 26.5 simulator (`45D452E8-DC6C-4CD4-A747-4D21671E68A6`) on 2026-06-26; final launch completed with no warnings/errors. Screenshot capture confirmed the Groomer Requests screen rendered.
-- Last general check: T-084 authorized follow-up rollback SQL validation passed on 2026-06-26 with first match score `80.00`, second evidence-backed match score `89.00`, two structured review outcomes, zero T-084 validation residue, and `git diff --check` passed.
+- Last test command: targeted `xcodebuild ... -only-testing:PetGroomerMarketplaceTests/CustomerRequestsStoreTests`.
+- Last known test result: T-085 focused Customer request Store tests passed after a RED missing-API failure for `requestFitInputSignals`; new derived-signal and readable-label tests passed.
+- Last simulator launch: XcodeBuildMCP `build_run_sim` installed and launched `com.prinnyyy.PetGroomerMarketplace` on `iPhone 17 Pro` iOS 26.5 simulator (`45D452E8-DC6C-4CD4-A747-4D21671E68A6`) on 2026-06-26; final launch completed with no warnings/errors. Screenshot capture succeeded at `/var/folders/bc/xmbw6w1d06s61ns9_j2fnll00000gn/T/screenshot_optimized_0885e486-84e6-4efe-a668-ef046143c30f.jpg`.
+- Last general check: T-085 `git diff --check` passed after Review-step fit input preview implementation and documentation closeout.
 - Known failing checks: none from the latest T-084 validation.
 - Historical per-task validation details live in the relevant `docs/06_tasks/T-*.md` files and `docs/00_memory/WORKLOG.md`.
 
@@ -138,6 +139,7 @@ Update this only when project state meaningfully changes.
 - T-081 adds the Groomer Account Evidence Dashboard. `GroomerProfileStore` loads canonical aggregate evidence rows through the T-081A `get_my_groomer_pet_fit_evidence_summary()` RPC behind `GroomerProfileRepository`, filters unsupported/wrong-owner rows, and the UI displays only completed booking counts, structured review outcome counts, safe timestamps, and confidence tiers. It adds no schema/RLS/Storage/matching/public-directory/direct-booking/expertise-proof behavior.
 - T-082 calibrates `create_grooming_request` matching fairness. Negative earned evidence is prioritized into the top evidence set and suppresses low-confidence claim/portfolio score/reason boosts whenever present. It preserves the request-first flow, hard eligibility filters, signature, grants, RLS, Storage, iOS behavior, and request/offer/booking lifecycle.
 - T-083 de-emphasizes raw score display in existing fit evidence UI. Groomer matched-request summaries now say fit evidence is available instead of showing rounded match-score copy, customer/groomer evidence presentations keep the backend reason with explanation-first labels, and the groomer detail view no longer falls back to a raw `Score` row. It adds no schema/RLS/RPC/repository/matching/Storage/lifecycle change.
+- T-085 adds a Customer Request wizard Review-step `Fit Needs` preview. It derives canonical `PetFitSignal` chips from the selected pet and service before publishing, using readable labels and no new backend field, schema/RLS/RPC/Storage, matching, or publish-draft change.
 - Customer Requests owns only pre-confirmation request work: it shows active `open`/`has_offers` request cards and a `booked` -> Booking handoff when a matching confirmed booking exists. The handoff is displayed inside the same quest action card layout as unconfirmed requests, swaps to a confirmed title and `View Booking` CTA, and is hidden after `View Booking` is acknowledged locally on the same device. Confirmed appointment lifecycle remains in Bookings. The Customer new request wizard is a five-step UI over persisted request draft fields, including fixed service type, preferred time, service notes, location mode/address/state/ZIP/range, and request photo upload after request creation.
 - Groomly UI adaptation is complete for implemented MVP screens and archived as historical context. Future Groomly UI changes are screenshot-driven rework tasks that must map screenshot modules to existing SwiftUI/Store/repository/model paths or stop for new-feature approval. Design sources remain `docs/08_design/Groomly.html`, `docs/08_design/Groomly/`, `docs/08_design/UI_IMPLEMENTATION_NOTES.md`, `docs/08_design/design_tokens.json`, and `docs/08_design/Apply Groomly Design Prototype to Existing SwiftUI App.md`.
 
@@ -263,5 +265,5 @@ Update this only when project state meaningfully changes.
 
 ## Next Recommended Task
 
-- For the pet-fit/availability bottom-layer plan, T-085 and later tasks should not auto-start and require explicit user request/authorization.
+- For the pet-fit/availability bottom-layer plan, no next task is currently defined. Future work should not auto-start and requires explicit user request/authorization.
 - For Groomly screenshot UI work, wait for the user to upload/select one screenshot, then create the next available screenshot-driven task from `docs/06_tasks/SCREENSHOT_UI_REWORK_TASK_TEMPLATE.md`.

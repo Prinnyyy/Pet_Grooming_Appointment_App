@@ -913,6 +913,64 @@ struct CustomerRequestsStoreTests {
     }
 
     @Test @MainActor
+    func requestWizardFitInputPreviewDerivesSignalsFromSelectedPetAndService() async throws {
+        let customerID = UUID()
+        let pet = CustomerPet(
+            id: UUID(),
+            customerID: customerID,
+            name: "Mochi",
+            species: "Dog",
+            breed: "Toy Poodle",
+            size: "S",
+            weightLbs: 15,
+            birthday: nil,
+            temperament: "Gentle",
+            medicalNotes: nil,
+            groomingNotes: nil,
+            isActive: true
+        )
+        let store = CustomerRequestsStore(
+            customerID: customerID,
+            petRepository: CustomerRequestPetRepositoryFake(
+                petsResult: .success([pet])
+            ),
+            requestRepository: CustomerRequestRepositoryFake(),
+            bookingRepository: CustomerRequestBookingRepositoryFake()
+        )
+        await store.load()
+        store.startCreate()
+        store.serviceType = .fullGroom
+
+        #expect(store.requestFitInputSignals().map(\.id) == [
+            "breed_group:poodle",
+            "size_band:S",
+            "service_fit:curly_coat",
+        ])
+    }
+
+    @Test @MainActor
+    func requestWizardFitInputPresentationUsesReadableReviewLabels() {
+        let presentation = CustomerRequestWizardFitInputPresentation(
+            signals: [
+                .breedGroup(.poodle),
+                .sizeBand(.s),
+                .serviceFit(.curlyCoat),
+            ]
+        )
+
+        #expect(presentation.chips.map(\.label) == [
+            "Breed",
+            "Pet Size",
+            "Service Fit",
+        ])
+        #expect(presentation.chips.map(\.title) == [
+            "Poodle",
+            "S",
+            "Curly Coat",
+        ])
+    }
+
+    @Test @MainActor
     func requestWizardTimeStepRequiresCompleteAddressBeforeContinuing() async throws {
         let customerID = UUID()
         let pet = Self.pet(customerID: customerID)

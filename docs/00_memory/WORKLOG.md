@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-06-26
+Task: T-085 - Groomly request fit input preview.
+Files changed: CustomerRequestsStore, CustomerRequestsView, CustomerRequestFeatureTests, T-085 task doc, pet-fit closure plan, task ledger, feature index, CURRENT_STATE.md, and WORKLOG.md.
+Checks: RED targeted CustomerRequestsStoreTests failed before implementation because CustomerRequestsStore had no requestFitInputSignals; GREEN targeted CustomerRequestsStoreTests passed after implementation, including derived-signal and readable-label tests; ./scripts/ios-build.sh passed; XcodeBuildMCP build_run_sim passed on iPhone 17 Pro iOS 26.5 with no warnings/errors; screenshot capture succeeded; git diff --check passed.
+Result: T-085 is completed. The Customer Request wizard Review step now shows a Fit Needs preview derived from the selected pet and service through the existing PetFitSignal vocabulary.
+Risks: No backend field, schema, RLS, RPC, Storage, matching, repository, or publish-draft change was made.
+Next: Stop unless the user asks for commit/push or explicitly authorizes a new task.
+```
+
+```text
+Date: 2026-06-26
 Task: T-084 - Groomly pet-fit end-to-end validation scenario follow-up.
 Files changed: T-084 rollback SQL artifact, T-084 task doc, pet-fit closure plan, task ledger, feature index, CURRENT_STATE.md, and WORKLOG.md.
 Checks: Authorized second Deep validation attempt passed with supabase db query --linked --file docs/06_tasks/sql_reviews/T-084_PET_FIT_E2E_ROLLBACK_VALIDATION.sql --output json; result status was t084_pet_fit_e2e_rollback_validation_passed, first match score was 80.00, second evidence-backed match score was 89.00, and structured outcome count was 2; independent residue check returned zero T-084 validation rows; git diff --check passed.

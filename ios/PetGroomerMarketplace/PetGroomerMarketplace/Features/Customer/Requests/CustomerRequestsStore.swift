@@ -147,6 +147,30 @@ final class CustomerRequestsStore {
         return pets.first { $0.id == selectedPetID }
     }
 
+    func requestFitInputSignals(referenceDate: Date = Date()) -> [PetFitSignal] {
+        guard let selectedPet else { return [] }
+
+        let snapshot = GroomingRequestPetSnapshot(
+            id: selectedPet.id,
+            name: selectedPet.name,
+            species: selectedPet.species,
+            breed: selectedPet.breed,
+            size: selectedPet.size,
+            weightLbs: selectedPet.weightLbs,
+            birthday: selectedPet.birthday,
+            temperament: selectedPet.temperament,
+            medicalNotes: selectedPet.medicalNotes,
+            groomingNotes: selectedPet.groomingNotes,
+            snapshotAt: nil
+        )
+
+        return PetFitSignal.signals(
+            for: snapshot,
+            serviceType: serviceType,
+            referenceDate: referenceDate
+        )
+    }
+
     var activeRequests: [CustomerGroomingRequest] {
         requests.filter(\.status.isOpenForOffers)
     }

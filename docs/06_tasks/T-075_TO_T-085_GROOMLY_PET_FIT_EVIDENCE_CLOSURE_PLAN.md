@@ -12,10 +12,10 @@
 
 ## Status
 
-- Status: active sequence; completed through T-084
+- Status: completed through T-085
 - Date: 2026-06-26
-- Current completed pet-fit baseline: T-063 through T-084 and T-081A, plus user-authorized T-050 remote deployment.
-- Next executable task: T-085 only if explicitly requested/authorized.
+- Current completed pet-fit baseline: T-063 through T-085 and T-081A, plus user-authorized T-050 remote deployment.
+- Next executable task: none in this sequence; future pet-fit work requires a separate explicit user request/authorization.
 
 ## Product Guardrails
 
@@ -44,6 +44,7 @@
 - T-082 calibrates `create_grooming_request` fairness so earned negative evidence is not dropped behind neutral top-three evidence and suppresses low-confidence claim/portfolio boosts when negative evidence exists.
 - T-083 de-emphasizes raw score display in groomer request and customer offer evidence surfaces. Existing backend reasons now render through explanation-first labels without presenting rounded `match_score` as an ability percentage.
 - T-084 validates the full rollback-only evidence loop from request to match, offer, booking, completion, structured review outcomes, aggregate evidence, and a later evidence-backed request reason while preserving RLS boundaries.
+- T-085 shows customers derived request fit needs on the Review step before publishing, using existing pet/service inputs and existing `PetFitSignal` vocabulary without adding backend fields.
 
 ## Task Plan
 
@@ -298,6 +299,13 @@
 - `./scripts/ios-build.sh`
 - Simulator launch because request wizard UI changes.
 
+**Completion notes:**
+- `CustomerRequestsStore.requestFitInputSignals(referenceDate:)` derives canonical `PetFitSignal` values from the selected pet and service type.
+- The Request wizard Review step now includes a `Fit Needs` card with readable chips such as `Breed`, `Pet Size`, and `Service Fit`.
+- RED/GREEN targeted `CustomerRequestsStoreTests` passed after the initial missing-API failure.
+- `./scripts/ios-build.sh`, XcodeBuildMCP `build_run_sim`, screenshot capture, and `git diff --check` passed.
+- No backend field, schema, RLS, RPC, Storage, matching, or publish-draft change was made.
+
 ## Cross-Task Acceptance Criteria
 
 - The customer can publish a request without browsing groomer calendars or choosing a public directory profile.
@@ -315,8 +323,8 @@
 
 ## Assumptions
 
-- No next implementation is active; T-085 and later tasks start only when explicitly requested.
+- No next implementation is active; future pet-fit tasks start only when explicitly requested.
 - Each listed row is a separate primary task.
 - T-075 through T-085 do not authorize remote writes by themselves.
 - Existing branch remains `codex/pet-fit-structure-cleanup` unless the user asks for a different branch.
-- Existing T-063 through T-084 behavior remains the baseline unless a task explicitly changes it.
+- Existing T-063 through T-085 behavior remains the baseline unless a task explicitly changes it.

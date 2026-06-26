@@ -2035,6 +2035,54 @@ struct CustomerRequestWizardReviewPresentation: Equatable {
     }
 }
 
+struct CustomerRequestWizardFitInputPresentation: Equatable {
+    struct Chip: Equatable, Identifiable {
+        let id: String
+        let label: String
+        let title: String
+        let systemImage: String
+    }
+
+    let chips: [Chip]
+
+    init(signals: [PetFitSignal]) {
+        chips = signals.map { signal in
+            Chip(
+                id: signal.id,
+                label: Self.label(for: signal.group),
+                title: signal.title,
+                systemImage: Self.systemImage(for: signal.group)
+            )
+        }
+    }
+
+    private static func label(for group: PetFitSignal.Group) -> String {
+        switch group {
+        case .breedGroup:
+            "Breed"
+        case .sizeBand:
+            "Pet Size"
+        case .careFlag:
+            "Care Need"
+        case .serviceFit:
+            "Service Fit"
+        }
+    }
+
+    private static func systemImage(for group: PetFitSignal.Group) -> String {
+        switch group {
+        case .breedGroup:
+            "pawprint"
+        case .sizeBand:
+            "ruler"
+        case .careFlag:
+            "heart"
+        case .serviceFit:
+            "sparkles"
+        }
+    }
+}
+
 struct CustomerRequestWizardView: View {
     @Bindable var store: CustomerRequestsStore
 
@@ -2336,6 +2384,10 @@ struct CustomerRequestWizardView: View {
                 }
             }
 
+            CustomerRequestWizardFitInputCard(
+                presentation: reviewFitInputPresentation
+            )
+
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
                 Label("How Matching Works", systemImage: "info.circle")
                     .font(DesignTokens.Typography.headline)
@@ -2377,6 +2429,12 @@ struct CustomerRequestWizardView: View {
             preferredTime: reviewPreferredTimeSummary,
             location: reviewLocationSummary,
             notes: notesSummary
+        )
+    }
+
+    private var reviewFitInputPresentation: CustomerRequestWizardFitInputPresentation {
+        CustomerRequestWizardFitInputPresentation(
+            signals: store.requestFitInputSignals()
         )
     }
 
@@ -3681,6 +3739,100 @@ private struct CustomerRequestWizardReviewRow: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(.vertical, DesignTokens.Spacing.md)
+    }
+}
+
+private struct CustomerRequestWizardFitInputCard: View {
+    let presentation: CustomerRequestWizardFitInputPresentation
+
+    private var columns: [GridItem] {
+        [
+            GridItem(
+                .adaptive(minimum: 132),
+                spacing: DesignTokens.Spacing.sm,
+                alignment: .leading
+            ),
+        ]
+    }
+
+    var body: some View {
+        GroomlyCard(padding: DesignTokens.Spacing.lg) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                Label("Fit Needs", systemImage: "sparkles")
+                    .font(DesignTokens.Typography.headline)
+                    .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
+
+                Text("Based on the selected pet and service.")
+                    .font(DesignTokens.Typography.body)
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                if presentation.chips.isEmpty {
+                    Label("No specific needs detected", systemImage: "checkmark.circle")
+                        .font(DesignTokens.Typography.body.weight(.semibold))
+                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else {
+                    LazyVGrid(
+                        columns: columns,
+                        alignment: .leading,
+                        spacing: DesignTokens.Spacing.sm
+                    ) {
+                        ForEach(presentation.chips) { chip in
+                            CustomerRequestWizardFitInputChip(chip: chip)
+                        }
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+}
+
+private struct CustomerRequestWizardFitInputChip: View {
+    let chip: CustomerRequestWizardFitInputPresentation.Chip
+
+    var body: some View {
+        HStack(alignment: .center, spacing: DesignTokens.Spacing.sm) {
+            Image(systemName: chip.systemImage)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
+                .frame(width: 18)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(chip.label)
+                    .font(DesignTokens.Typography.caption.weight(.semibold))
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.82)
+
+                Text(chip.title)
+                    .font(DesignTokens.Typography.body.weight(.semibold))
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.82)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, DesignTokens.Spacing.md)
+        .padding(.vertical, DesignTokens.Spacing.sm)
+        .frame(maxWidth: .infinity, minHeight: 58, alignment: .leading)
+        .background(DesignTokens.Colors.customerPrimary.opacity(0.1))
+        .clipShape(
+            RoundedRectangle(
+                cornerRadius: DesignTokens.CornerRadius.button,
+                style: .continuous
+            )
+        )
+        .overlay(
+            RoundedRectangle(
+                cornerRadius: DesignTokens.CornerRadius.button,
+                style: .continuous
+            )
+            .stroke(DesignTokens.Colors.customerPrimary.opacity(0.2), lineWidth: 1)
+        )
     }
 }
 
