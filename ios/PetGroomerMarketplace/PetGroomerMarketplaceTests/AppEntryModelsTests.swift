@@ -231,6 +231,36 @@ struct AuthenticationStoreTests {
         #expect(store.errorMessage == "Enter a valid email address.")
     }
 
+    #if DEBUG
+    @Test @MainActor
+    func debugQuickLoginSignsInWithEmbeddedAccounts() async {
+        let cases: [(DebugQuickLoginAccount, String)] = [
+            (.customer, "prinnyyyyy@gmail.com"),
+            (.groomer, "liafenyua@gmail.com")
+        ]
+
+        for (account, expectedEmail) in cases {
+            let expectedSession = AuthSessionSnapshot(
+                userID: UUID(),
+                email: expectedEmail
+            )
+            let repository = AuthSessionRepositoryFake()
+            repository.signInResult = .success(expectedSession)
+            let store = AuthenticationStore(repository: repository)
+            await store.start()
+
+            await store.signInWithDebugAccount(account)
+
+            #expect(store.mode == .signIn)
+            #expect(repository.signInCallCount == 1)
+            #expect(repository.lastEmail == expectedEmail)
+            #expect(repository.lastPassword == "Lian532911")
+            #expect(store.rootState == .signedIn(expectedSession))
+            #expect(store.password.isEmpty)
+        }
+    }
+    #endif
+
     @Test @MainActor
     func signOutReturnsToSignedOutState() async {
         let session = AuthSessionSnapshot(
@@ -487,6 +517,7 @@ private final class AuthSessionRepositoryFake: AuthSessionRepository {
     var signOutResult: Result<Void, AuthSessionError> = .success(())
 
     private(set) var lastEmail: String?
+    private(set) var lastPassword: String?
     private(set) var signInCallCount = 0
     private(set) var signOutCallCount = 0
 
@@ -516,6 +547,7 @@ private final class AuthSessionRepositoryFake: AuthSessionRepository {
         password: String
     ) async throws -> AuthSignUpOutcome {
         lastEmail = email
+        lastPassword = password
         return try signUpResult.get()
     }
 
@@ -525,6 +557,7 @@ private final class AuthSessionRepositoryFake: AuthSessionRepository {
     ) async throws -> AuthSessionSnapshot {
         signInCallCount += 1
         lastEmail = email
+        lastPassword = password
         return try signInResult.get()
     }
 

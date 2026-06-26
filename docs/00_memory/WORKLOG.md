@@ -4,6 +4,17 @@ This file is reverse chronological history. Only the newest entry plus `docs/00_
 
 ```text
 Date: 2026-06-26
+Task: T-091 - Debug quick login buttons.
+Files changed: AuthenticationStore, AuthenticationView, AppEntryModelsTests, AppLaunchSmokeTests, TASK_LEDGER.md, CURRENT_STATE.md, and WORKLOG.md.
+Checks: RED ./scripts/ios-test.sh failed before implementation because the debug quick-login store API did not exist; GREEN ./scripts/ios-test.sh passed after implementation and accessibility-id correction; ./scripts/ios-build.sh passed; git diff --check passed.
+Simulator launch: ./scripts/ios-test.sh launched com.prinnyyy.PetGroomerMarketplace on iPhone 17 Pro iOS 26.5 simulator (45D452E8-DC6C-4CD4-A747-4D21671E68A6), and AppLaunchSmokeTests confirmed the sign-in form exposes both Debug quick-login buttons.
+Result: T-091 is completed. Debug builds now show Customer and Groomer quick-login buttons on the sign-in form and submit the provided test-account credentials through the existing AuthenticationStore/AuthSessionRepository path.
+Risks: The embedded test-account path is intentionally compiled under #if DEBUG only; Release UI and production auth routing are unchanged.
+Next: Stop unless the user asks to commit/push or explicitly authorizes T-092.
+```
+
+```text
+Date: 2026-06-26
 Task: T-090 - Markdown information architecture optimization.
 Files changed: Added docs/05_workflow/CONTEXT_AND_RECOVERY.md and docs/05_workflow/TOOLING_POLICY.md; moved superseded workflow/context/recovery/tool/MCP/Superpowers docs to docs/09_frozen/workflow_docs_2026-06-26/; updated AGENTS.md, README.md, CLAUDE.md, CLAUDE_reference, docs indexes, CURRENT_STATE.md, DECISION_LOG.md, WORKLOG.md, TASK_LEDGER.md, frozen archive index, and project structure docs.
 Checks: git diff --check passed; active stale workflow-reference search returned no matches after excluding historical WORKLOG.md and REORGANIZATION_LOG.md; new Markdown trailing-whitespace scans returned no matches; active docs/05_workflow now contains six Markdown entrypoints; docs/00_memory now contains five Markdown memory files.

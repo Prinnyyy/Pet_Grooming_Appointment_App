@@ -11,8 +11,8 @@ Update this only when project state meaningfully changes.
 
 - Current task source of truth: `docs/06_tasks/TASK_LEDGER.md`.
 - Detailed historical task records T-001 through T-088 and workflow task records are archived under `docs/09_frozen/task_records_2026-06-26/`; superseded workflow/context/tool policy docs are archived under `docs/09_frozen/workflow_docs_2026-06-26/`.
-- Latest completed task: T-090 Markdown information architecture optimization.
-- Next task ID for new bugfix or iteration work: T-091, unless the user explicitly chooses another ID or branch.
+- Latest completed task: T-091 Debug quick login buttons.
+- Next task ID for new bugfix or iteration work: T-092, unless the user explicitly chooses another ID or branch.
 - Active next executable pet-fit/availability task: none currently defined; future pet-fit work needs explicit request/authorization.
 - Active next executable Groomly UI alignment task: none currently defined; T-087 customer runtime visual inspection can resume only with a customer simulator session or explicit test-account authorization.
 - Active next executable Groomly screenshot task: none currently defined; future UI work starts from a user-uploaded screenshot and records status in `TASK_LEDGER.md` by default.
@@ -34,11 +34,11 @@ Update this only when project state meaningfully changes.
 ## Current Build Status
 
 - Last build command: `./scripts/ios-build.sh`.
-- Last known build result: passed on 2026-06-26 using `generic/platform=iOS Simulator`.
+- Last known build result: passed on 2026-06-26 using `generic/platform=iOS Simulator` after T-091.
 - Last test command: `./scripts/ios-test.sh`.
-- Last known test result: passed on 2026-06-26 using auto-discovered simulator destination `platform=iOS Simulator,id=45D452E8-DC6C-4CD4-A747-4D21671E68A6`; the launch smoke test passed with the signed-out auth launch argument.
-- Last simulator launch: `./scripts/ios-test.sh` launched `com.prinnyyy.PetGroomerMarketplace` on `iPhone 17 Pro` iOS 26.5 simulator (`45D452E8-DC6C-4CD4-A747-4D21671E68A6`) on 2026-06-26 for `AppLaunchSmokeTests.testNormalLaunchShowsOnlyAuthenticationRoot`.
-- Last general check: T-090 `git diff --check` passed after Markdown information architecture optimization; active stale workflow-reference search returned only expected `REORGANIZATION_LOG.md` move records.
+- Last known test result: passed on 2026-06-26 using auto-discovered simulator destination `platform=iOS Simulator,id=45D452E8-DC6C-4CD4-A747-4D21671E68A6`; the launch smoke tests passed with the signed-out auth launch argument, including the Debug quick-login button visibility check.
+- Last simulator launch: `./scripts/ios-test.sh` launched `com.prinnyyy.PetGroomerMarketplace` on `iPhone 17 Pro` iOS 26.5 simulator (`45D452E8-DC6C-4CD4-A747-4D21671E68A6`) on 2026-06-26 for `AppLaunchSmokeTests`, including the sign-in quick-login smoke path.
+- Last general check: T-091 `git diff --check` passed after Debug quick-login implementation and memory updates.
 - Known failing checks: none from the latest T-086 validation.
 - Historical per-task validation details live in `docs/09_frozen/task_records_2026-06-26/` and `docs/00_memory/WORKLOG.md`; current task status and numbering live in `docs/06_tasks/TASK_LEDGER.md`.
 
@@ -46,6 +46,7 @@ Update this only when project state meaningfully changes.
 
 - The MVP marketplace flow is complete at the current contract level: Customer publishes an open request -> matched groomers make offers -> customer accepts one offer -> booking and chat are created -> groomer completes booking -> customer leaves a review.
 - Production routing uses real Supabase Auth, authoritative profile loading, and customer/groomer role separation. No production path fabricates a session/profile.
+- Debug builds show Customer and Groomer quick-login buttons on the sign-in form using the approved test accounts. This path is guarded by `#if DEBUG`; Release UI and production auth routing remain unchanged.
 - Implemented iOS areas include Auth, role onboarding, customer pets, customer requests/offers, groomer requests/offers, bookings, participant text chat, groomer profile/services/portfolio metadata, Account, and a sanitized Debug Panel.
 - Customer pet profiles use fixed Dog/Cat species, fixed common breed options plus `Unspecified`, fixed temperament options, date-backed birthdays, and stored size derived from weight bands. Add/Edit Pet exposes pickers, a weight slider, date picker, and Add Pet photo staging/upload through the existing `pet-photos` path.
 - Customer Bookings uses a local Upcoming/Past segmented filter over `Booking.status` and sorts booking cards by scheduled time; Customer Home reuses the same booking summary row for the nearest upcoming confirmed Next Booking card and falls back to inline empty text with no empty-card flash. Booking cards/details can show groomer profile `business_name`; booking detail appointment rows show Service, Date, Time, Service Location, Address, and Price; and the booking detail Open Chat button lives inside the Groomer module and routes to the existing booking conversation in Messages. The visible Booking detail Lifecycle module has been removed. Messages previews show the latest message body when available, and completed booking conversations remain readable but disable sending client-side after the booking has been completed for 7 days. Account intentionally shows only profile and sign-out for the customer-facing screenshot surface.
