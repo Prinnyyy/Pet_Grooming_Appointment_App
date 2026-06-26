@@ -16,6 +16,8 @@ final class SupabaseGroomerProfileRepository: GroomerProfileRepository {
         "groomer_id,max_appointments_per_day,minimum_advance_notice_days,auto_accept_bookings"
     private static let timeOffColumns =
         "id,groomer_id,title,start_date,end_date"
+    private static let fitClaimColumns =
+        "id,groomer_id,trait_type,trait_value,is_active"
     fileprivate static let bucketID = "groomer-portfolio"
     fileprivate static let avatarBucketID = "avatars"
 
@@ -132,6 +134,23 @@ final class SupabaseGroomerProfileRepository: GroomerProfileRepository {
                 .value
 
             return rows.map(\.window)
+        } catch {
+            throw Self.map(error)
+        }
+    }
+
+    func fitClaims(groomerID: UUID) async throws -> [GroomerFitClaim] {
+        do {
+            let rows: [GroomerFitClaimRow] = try await client
+                .from("groomer_fit_claims")
+                .select(Self.fitClaimColumns)
+                .eq("groomer_id", value: groomerID.uuidString.lowercased())
+                .order("trait_type")
+                .order("trait_value")
+                .execute()
+                .value
+
+            return rows.compactMap(\.claim)
         } catch {
             throw Self.map(error)
         }
@@ -420,6 +439,32 @@ final class SupabaseGroomerProfileRepository: GroomerProfileRepository {
             return preferences
         } catch let error as GroomerProfileRepositoryError {
             throw error
+        } catch {
+            throw Self.map(error)
+        }
+    }
+
+    func replaceFitClaims(
+        groomerID: UUID,
+        drafts: [GroomerFitClaimDraft]
+    ) async throws -> [GroomerFitClaim] {
+        do {
+            if !drafts.isEmpty {
+                try await client
+                    .from("groomer_fit_claims")
+                    .upsert(
+                        drafts.map {
+                            GroomerFitClaimUpsertRow(
+                                groomerID: groomerID,
+                                draft: $0
+                            )
+                        },
+                        onConflict: "groomer_id,trait_type,trait_value"
+                    )
+                    .execute()
+            }
+
+            return try await fitClaims(groomerID: groomerID)
         } catch {
             throw Self.map(error)
         }
@@ -750,6 +795,37 @@ private struct GroomerTimeOffWindowRow: Decodable {
     }
 }
 
+private struct GroomerFitClaimRow: Decodable {
+    let id: UUID
+    let groomerID: UUID
+    let traitType: String
+    let traitValue: String
+    let isActive: Bool
+
+    var claim: GroomerFitClaim? {
+        guard let signal = PetFitSignal.allCases.first(where: {
+            $0.traitType == traitType && $0.traitValue == traitValue
+        }) else {
+            return nil
+        }
+
+        return GroomerFitClaim(
+            id: id,
+            groomerID: groomerID,
+            signal: signal,
+            isActive: isActive
+        )
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case groomerID = "groomer_id"
+        case traitType = "trait_type"
+        case traitValue = "trait_value"
+        case isActive = "is_active"
+    }
+}
+
 private struct GroomerProfileUpdateRow: Encodable {
     let draft: GroomerProfileDraft
 
@@ -836,6 +912,26 @@ private struct GroomerBookingPreferencesUpsertRow: Encodable {
         case maxAppointmentsPerDay = "max_appointments_per_day"
         case minimumAdvanceNoticeDays = "minimum_advance_notice_days"
         case autoAcceptBookings = "auto_accept_bookings"
+    }
+}
+
+private struct GroomerFitClaimUpsertRow: Encodable {
+    let groomerID: UUID
+    let draft: GroomerFitClaimDraft
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(groomerID.uuidString.lowercased(), forKey: .groomerID)
+        try container.encode(draft.signal.traitType, forKey: .traitType)
+        try container.encode(draft.signal.traitValue, forKey: .traitValue)
+        try container.encode(draft.isActive, forKey: .isActive)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case groomerID = "groomer_id"
+        case traitType = "trait_type"
+        case traitValue = "trait_value"
+        case isActive = "is_active"
     }
 }
 

@@ -113,6 +113,34 @@ struct GroomerPortfolioPhoto: Equatable, Identifiable, Sendable {
     }
 }
 
+nonisolated struct GroomerFitClaim:
+    Equatable,
+    Identifiable,
+    Sendable
+{
+    static let maximumActiveClaims = 6
+
+    static var availableSignals: [PetFitSignal] {
+        PetFitSignal.serviceFitSignals
+            + PetFitSignal.breedGroupSignals
+            + PetFitSignal.careFlagSignals
+            + PetFitSignal.sizeBandSignals
+    }
+
+    let id: UUID
+    let groomerID: UUID
+    let signal: PetFitSignal
+    let isActive: Bool
+}
+
+nonisolated struct GroomerFitClaimDraft:
+    Equatable,
+    Sendable
+{
+    let signal: PetFitSignal
+    let isActive: Bool
+}
+
 nonisolated enum GroomerAvailabilityWeekday:
     Int,
     Codable,

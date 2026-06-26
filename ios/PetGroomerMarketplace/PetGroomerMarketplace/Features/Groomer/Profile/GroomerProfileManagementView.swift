@@ -124,6 +124,17 @@ private struct GroomerAccountHomeView: View {
                     .padding(.leading, 72)
 
                 GroomerAccountMenuLink(
+                    title: "Fit Signals",
+                    systemImage: "sparkles"
+                ) {
+                    GroomerFitSignalsEditorView(store: store)
+                }
+
+                Divider()
+                    .overlay(DesignTokens.Colors.divider)
+                    .padding(.leading, 72)
+
+                GroomerAccountMenuLink(
                     title: "Availability",
                     systemImage: "calendar",
                     isLast: true
@@ -349,6 +360,194 @@ private struct GroomerPortfolioEditorView: View {
         .navigationTitle("Portfolio")
         .navigationBarTitleDisplayMode(.inline)
         .accessibilityIdentifier("groomer.portfolio.edit")
+    }
+}
+
+private struct GroomerFitSignalsEditorView: View {
+    @Bindable var store: GroomerProfileStore
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                GroomlySectionHeader(
+                    "Fit Signals",
+                    subtitle: "Choose starter signals that help route relevant requests. Completed bookings and reviews improve these over time."
+                ) {
+                    GroomlyStatusChip(
+                        "\(store.selectedFitClaimIDs.count)/\(GroomerFitClaim.maximumActiveClaims)",
+                        systemImage: "checkmark.circle",
+                        tone: .groomer
+                    )
+                }
+
+                ForEach(Self.visibleGroups) { group in
+                    GroomerFitSignalGroupSection(
+                        group: group,
+                        signals: signals(for: group),
+                        store: store
+                    )
+                }
+
+                if let errorMessage = store.errorMessage {
+                    GroomlyErrorBanner(
+                        title: "Fit Signals Could Not Be Saved",
+                        message: errorMessage
+                    )
+                    .accessibilityIdentifier("groomer.fit-signals.error")
+                }
+
+                Button {
+                    Task {
+                        await store.saveFitClaims()
+                    }
+                } label: {
+                    if store.isSaving {
+                        HStack(spacing: DesignTokens.Spacing.sm) {
+                            ProgressView()
+                                .tint(DesignTokens.Colors.surface)
+                            Text("Saving...")
+                        }
+                    } else {
+                        Text("Save Fit Signals")
+                    }
+                }
+                .buttonStyle(GroomlyPrimaryButtonStyle(accent: .groomer))
+                .disabled(store.isBusy)
+                .accessibilityIdentifier("groomer.fit-signals.save")
+            }
+            .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+            .padding(.top, DesignTokens.Spacing.lg)
+            .padding(.bottom, 120)
+        }
+        .background(DesignTokens.Colors.background.ignoresSafeArea())
+        .navigationTitle("Fit Signals")
+        .navigationBarTitleDisplayMode(.inline)
+        .accessibilityIdentifier("groomer.fit-signals.edit")
+    }
+
+    private static var visibleGroups: [PetFitSignal.Group] {
+        [.serviceFit, .breedGroup, .careFlag, .sizeBand].filter { group in
+            GroomerFitClaim.availableSignals.contains(where: {
+                $0.group == group
+            })
+        }
+    }
+
+    private func signals(for group: PetFitSignal.Group) -> [PetFitSignal] {
+        GroomerFitClaim.availableSignals.filter { $0.group == group }
+    }
+}
+
+private struct GroomerFitSignalGroupSection: View {
+    let group: PetFitSignal.Group
+    let signals: [PetFitSignal]
+    @Bindable var store: GroomerProfileStore
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            Text(group.title)
+                .font(DesignTokens.Typography.caption.weight(.bold))
+                .foregroundStyle(DesignTokens.Colors.textSecondary)
+                .textCase(.uppercase)
+
+            GroomlyCard(padding: DesignTokens.Spacing.md) {
+                VStack(spacing: 0) {
+                    ForEach(signals) { signal in
+                        GroomerFitSignalRow(
+                            signal: signal,
+                            isSelected: store.isFitClaimSelected(signal)
+                        ) {
+                            store.toggleFitClaim(signal)
+                        }
+
+                        if signal.id != signals.last?.id {
+                            Divider()
+                                .padding(.leading, 66)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private struct GroomerFitSignalRow: View {
+    let signal: PetFitSignal
+    let isSelected: Bool
+    let onToggle: () -> Void
+
+    var body: some View {
+        Button(action: onToggle) {
+            HStack(spacing: DesignTokens.Spacing.md) {
+                Image(systemName: iconName)
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundStyle(
+                        isSelected
+                            ? DesignTokens.Colors.surface
+                            : DesignTokens.Colors.groomerAccentDark
+                    )
+                    .frame(width: 46, height: 46)
+                    .background(
+                        isSelected
+                            ? DesignTokens.Colors.groomerAccent
+                            : DesignTokens.Colors.borderSoft.opacity(0.5)
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .accessibilityHidden(true)
+
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                    Text(signal.title)
+                        .font(DesignTokens.Typography.body.weight(.bold))
+                        .foregroundStyle(DesignTokens.Colors.textPrimary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                    Text(subtitle)
+                        .font(DesignTokens.Typography.caption)
+                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundStyle(
+                        isSelected
+                            ? DesignTokens.Colors.groomerAccent
+                            : DesignTokens.Colors.textTertiary
+                    )
+                    .accessibilityHidden(true)
+            }
+            .padding(.vertical, DesignTokens.Spacing.sm)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(signal.title) fit signal")
+        .accessibilityValue(isSelected ? "Selected" : "Not selected")
+    }
+
+    private var iconName: String {
+        switch signal.group {
+        case .breedGroup:
+            "pawprint.fill"
+        case .sizeBand:
+            "ruler"
+        case .careFlag:
+            "heart.fill"
+        case .serviceFit:
+            "scissors"
+        }
+    }
+
+    private var subtitle: String {
+        switch signal.group {
+        case .breedGroup:
+            "Requests with this coat or breed context"
+        case .sizeBand:
+            "Size context for routing only"
+        case .careFlag:
+            "Care context you are comfortable handling"
+        case .serviceFit:
+            "Service context that matches your work"
+        }
     }
 }
 
@@ -2199,6 +2398,10 @@ private final class GroomerProfilePreviewRepository: GroomerProfileRepository {
         storedPhotos
     }
 
+    func fitClaims(groomerID: UUID) async throws -> [GroomerFitClaim] {
+        []
+    }
+
     func availabilityWindows(groomerID: UUID) async throws -> [GroomerAvailabilityWindow] {
         storedAvailability
     }
@@ -2293,6 +2496,20 @@ private final class GroomerProfilePreviewRepository: GroomerProfileRepository {
     }
 
     func deletePortfolioPhoto(_ photo: GroomerPortfolioPhoto) async throws {}
+
+    func replaceFitClaims(
+        groomerID: UUID,
+        drafts: [GroomerFitClaimDraft]
+    ) async throws -> [GroomerFitClaim] {
+        drafts.map {
+            GroomerFitClaim(
+                id: UUID(),
+                groomerID: groomerID,
+                signal: $0.signal,
+                isActive: $0.isActive
+            )
+        }
+    }
 
     func uploadAvatarPhoto(
         groomerID: UUID,

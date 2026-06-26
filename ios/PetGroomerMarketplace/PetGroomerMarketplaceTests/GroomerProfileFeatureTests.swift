@@ -31,13 +31,19 @@ struct GroomerProfileStoreTests {
         let availability = Self.availability(groomerID: groomerID)
         let preferences = Self.bookingPreferences(groomerID: groomerID)
         let timeOff = Self.timeOff(groomerID: groomerID)
+        let fitClaim = Self.fitClaim(
+            groomerID: groomerID,
+            signal: .serviceFit(.gentleHandling),
+            isActive: true
+        )
         let repository = GroomerProfileRepositoryFake(
             profileResult: .success(profile),
             servicesResult: .success([service]),
             portfolioResult: .success([photo]),
             availabilityResult: .success([availability]),
             bookingPreferencesResult: .success(preferences),
-            timeOffResult: .success([timeOff])
+            timeOffResult: .success([timeOff]),
+            fitClaimsResult: .success([fitClaim])
         )
         let store = GroomerProfileStore(
             groomerID: groomerID,
@@ -52,11 +58,87 @@ struct GroomerProfileStoreTests {
         #expect(store.availabilityWindows == [availability])
         #expect(store.bookingPreferences == preferences)
         #expect(store.timeOffWindows == [timeOff])
+        #expect(store.fitClaims == [fitClaim])
+        #expect(store.selectedFitClaimIDs == [fitClaim.signal.id])
         #expect(store.businessName == "Fresh Coat")
         #expect(store.isActive)
         #expect(store.maxAppointmentsPerDay == 4)
         #expect(store.minimumAdvanceNoticeDays == 1)
         #expect(store.autoAcceptBookings)
+    }
+
+    @Test @MainActor
+    func saveFitClaimsPersistsActiveAndInactiveSupportedSignals() async {
+        let groomerID = UUID()
+        let gentleHandling = Self.fitClaim(
+            groomerID: groomerID,
+            signal: .serviceFit(.gentleHandling),
+            isActive: true
+        )
+        let senior = Self.fitClaim(
+            groomerID: groomerID,
+            signal: .careFlag(.senior),
+            isActive: true
+        )
+        let repository = GroomerProfileRepositoryFake(
+            profileResult: .success(Self.profile(groomerID: groomerID)),
+            fitClaimsResult: .success([gentleHandling, senior])
+        )
+        let store = GroomerProfileStore(
+            groomerID: groomerID,
+            repository: repository
+        )
+        await store.load()
+
+        store.toggleFitClaim(.serviceFit(.gentleHandling))
+        store.toggleFitClaim(.breedGroup(.poodle))
+        await store.saveFitClaims()
+
+        #expect(repository.replaceFitClaimsCallCount == 1)
+        #expect(repository.lastFitClaimDrafts == [
+            GroomerFitClaimDraft(
+                signal: .breedGroup(.poodle),
+                isActive: true
+            ),
+            GroomerFitClaimDraft(
+                signal: .careFlag(.senior),
+                isActive: true
+            ),
+            GroomerFitClaimDraft(
+                signal: .serviceFit(.gentleHandling),
+                isActive: false
+            )
+        ])
+        #expect(store.selectedFitClaimIDs == [
+            PetFitSignal.breedGroup(.poodle).id,
+            PetFitSignal.careFlag(.senior).id
+        ])
+        #expect(store.noticeMessage == "Fit signals saved.")
+    }
+
+    @Test @MainActor
+    func fitClaimSelectionIsBoundedBeforeRepositoryCall() async {
+        let repository = GroomerProfileRepositoryFake()
+        let store = GroomerProfileStore(
+            groomerID: UUID(),
+            repository: repository
+        )
+        let signals = Array(
+            GroomerFitClaim.availableSignals.prefix(
+                GroomerFitClaim.maximumActiveClaims + 1
+            )
+        )
+
+        for signal in signals {
+            store.toggleFitClaim(signal)
+        }
+
+        #expect(store.selectedFitClaimIDs.count == GroomerFitClaim.maximumActiveClaims)
+        #expect(repository.replaceFitClaimsCallCount == 0)
+        #expect(
+            store.errorMessage ==
+                "Choose up to \(GroomerFitClaim.maximumActiveClaims) starter fit signals."
+        )
     }
 
     @Test @MainActor
@@ -463,6 +545,19 @@ struct GroomerProfileStoreTests {
         )
     }
 
+    private static func fitClaim(
+        groomerID: UUID,
+        signal: PetFitSignal,
+        isActive: Bool
+    ) -> GroomerFitClaim {
+        GroomerFitClaim(
+            id: UUID(),
+            groomerID: groomerID,
+            signal: signal,
+            isActive: isActive
+        )
+    }
+
     private static func date(year: Int, month: Int, day: Int) -> Date {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = .current
@@ -484,8 +579,10 @@ private final class GroomerProfileRepositoryFake: GroomerProfileRepository {
     var availabilityResult: Result<[GroomerAvailabilityWindow], GroomerProfileRepositoryError>
     var bookingPreferencesResult: Result<GroomerBookingPreferences, GroomerProfileRepositoryError>
     var timeOffResult: Result<[GroomerTimeOffWindow], GroomerProfileRepositoryError>
+    var fitClaimsResult: Result<[GroomerFitClaim], GroomerProfileRepositoryError>
     var updateProfileResult: Result<GroomerProfile, GroomerProfileRepositoryError>?
     var updateBookingPreferencesResult: Result<GroomerBookingPreferences, GroomerProfileRepositoryError>?
+    var replaceFitClaimsResult: Result<[GroomerFitClaim], GroomerProfileRepositoryError>?
     var createServiceResult: Result<GroomerService, GroomerProfileRepositoryError>?
     var updateServiceResult: Result<GroomerService, GroomerProfileRepositoryError>?
     var deleteServiceResult: Result<Void, GroomerProfileRepositoryError>
@@ -507,11 +604,13 @@ private final class GroomerProfileRepositoryFake: GroomerProfileRepository {
     private(set) var replaceAvailabilityCallCount = 0
     private(set) var createTimeOffCallCount = 0
     private(set) var deleteTimeOffCallCount = 0
+    private(set) var replaceFitClaimsCallCount = 0
     private(set) var lastProfileDraft: GroomerProfileDraft?
     private(set) var lastBookingPreferencesDraft: GroomerBookingPreferencesDraft?
     private(set) var lastServiceDraft: GroomerServiceDraft?
     private(set) var lastAvailabilityDrafts: [GroomerAvailabilityDraft] = []
     private(set) var lastTimeOffDraft: GroomerTimeOffDraft?
+    private(set) var lastFitClaimDrafts: [GroomerFitClaimDraft] = []
 
     init(
         profileResult: Result<GroomerProfile, GroomerProfileRepositoryError> =
@@ -526,8 +625,11 @@ private final class GroomerProfileRepositoryFake: GroomerProfileRepository {
             .success(.default(groomerID: UUID())),
         timeOffResult: Result<[GroomerTimeOffWindow], GroomerProfileRepositoryError> =
             .success([]),
+        fitClaimsResult: Result<[GroomerFitClaim], GroomerProfileRepositoryError> =
+            .success([]),
         updateProfileResult: Result<GroomerProfile, GroomerProfileRepositoryError>? = nil,
         updateBookingPreferencesResult: Result<GroomerBookingPreferences, GroomerProfileRepositoryError>? = nil,
+        replaceFitClaimsResult: Result<[GroomerFitClaim], GroomerProfileRepositoryError>? = nil,
         createServiceResult: Result<GroomerService, GroomerProfileRepositoryError>? = nil,
         updateServiceResult: Result<GroomerService, GroomerProfileRepositoryError>? = nil,
         deleteServiceResult: Result<Void, GroomerProfileRepositoryError> =
@@ -548,8 +650,10 @@ private final class GroomerProfileRepositoryFake: GroomerProfileRepository {
         self.availabilityResult = availabilityResult
         self.bookingPreferencesResult = bookingPreferencesResult
         self.timeOffResult = timeOffResult
+        self.fitClaimsResult = fitClaimsResult
         self.updateProfileResult = updateProfileResult
         self.updateBookingPreferencesResult = updateBookingPreferencesResult
+        self.replaceFitClaimsResult = replaceFitClaimsResult
         self.createServiceResult = createServiceResult
         self.updateServiceResult = updateServiceResult
         self.deleteServiceResult = deleteServiceResult
@@ -583,6 +687,10 @@ private final class GroomerProfileRepositoryFake: GroomerProfileRepository {
 
     func timeOffWindows(groomerID: UUID) async throws -> [GroomerTimeOffWindow] {
         try timeOffResult.get()
+    }
+
+    func fitClaims(groomerID: UUID) async throws -> [GroomerFitClaim] {
+        try fitClaimsResult.get()
     }
 
     func updateProfile(
@@ -656,6 +764,27 @@ private final class GroomerProfileRepositoryFake: GroomerProfileRepository {
             minimumAdvanceNoticeDays: draft.minimumAdvanceNoticeDays,
             autoAcceptBookings: draft.autoAcceptBookings
         )
+    }
+
+    func replaceFitClaims(
+        groomerID: UUID,
+        drafts: [GroomerFitClaimDraft]
+    ) async throws -> [GroomerFitClaim] {
+        replaceFitClaimsCallCount += 1
+        lastFitClaimDrafts = drafts
+
+        if let replaceFitClaimsResult {
+            return try replaceFitClaimsResult.get()
+        }
+
+        return drafts.map {
+            GroomerFitClaim(
+                id: UUID(),
+                groomerID: groomerID,
+                signal: $0.signal,
+                isActive: $0.isActive
+            )
+        }
     }
 
     func updateService(

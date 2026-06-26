@@ -15,6 +15,8 @@ final class GroomerProfileStore {
     private(set) var availabilityWindows: [GroomerAvailabilityWindow] = []
     private(set) var bookingPreferences: GroomerBookingPreferences?
     private(set) var timeOffWindows: [GroomerTimeOffWindow] = []
+    private(set) var fitClaims: [GroomerFitClaim] = []
+    private(set) var selectedFitClaimIDs: Set<String> = []
     private(set) var avatarPhotoData: Data?
     private(set) var isLoading = false
     private(set) var isSaving = false
@@ -83,6 +85,7 @@ final class GroomerProfileStore {
             let loadedAvailability = try await repository.availabilityWindows(groomerID: groomerID)
             let loadedBookingPreferences = try await repository.bookingPreferences(groomerID: groomerID)
             let loadedTimeOff = try await repository.timeOffWindows(groomerID: groomerID)
+            let loadedFitClaims = try await repository.fitClaims(groomerID: groomerID)
 
             profile = loadedProfile
             services = loadedServices
@@ -90,6 +93,7 @@ final class GroomerProfileStore {
             availabilityWindows = loadedAvailability
             bookingPreferences = loadedBookingPreferences
             timeOffWindows = loadedTimeOff
+            populateFitClaims(with: loadedFitClaims)
             populateProfileForm(with: loadedProfile)
             populateAvailabilityForm(with: loadedAvailability)
             populateBookingPreferencesForm(with: loadedBookingPreferences)
@@ -468,6 +472,57 @@ final class GroomerProfileStore {
         }
     }
 
+    func isFitClaimSelected(_ signal: PetFitSignal) -> Bool {
+        selectedFitClaimIDs.contains(signal.id)
+    }
+
+    func toggleFitClaim(_ signal: PetFitSignal) {
+        errorMessage = nil
+        noticeMessage = nil
+
+        if selectedFitClaimIDs.contains(signal.id) {
+            selectedFitClaimIDs.remove(signal.id)
+            return
+        }
+
+        guard selectedFitClaimIDs.count < GroomerFitClaim.maximumActiveClaims else {
+            errorMessage = "Choose up to \(GroomerFitClaim.maximumActiveClaims) starter fit signals."
+            return
+        }
+
+        selectedFitClaimIDs.insert(signal.id)
+    }
+
+    func saveFitClaims() async {
+        guard !isSaving else { return }
+
+        errorMessage = nil
+        noticeMessage = nil
+
+        guard selectedFitClaimIDs.count <= GroomerFitClaim.maximumActiveClaims else {
+            errorMessage = "Choose up to \(GroomerFitClaim.maximumActiveClaims) starter fit signals."
+            return
+        }
+
+        let drafts = makeFitClaimDrafts()
+
+        isSaving = true
+        defer { isSaving = false }
+
+        do {
+            let updatedClaims = try await repository.replaceFitClaims(
+                groomerID: groomerID,
+                drafts: drafts
+            )
+            populateFitClaims(with: updatedClaims)
+            noticeMessage = "Fit signals saved."
+        } catch let error as GroomerProfileRepositoryError {
+            errorMessage = message(for: error, action: "save fit signals")
+        } catch {
+            errorMessage = message(for: .unavailable, action: "save fit signals")
+        }
+    }
+
     private func populateProfileForm(with profile: GroomerProfile) {
         businessName = profile.businessName ?? ""
         bio = profile.bio ?? ""
@@ -518,6 +573,16 @@ final class GroomerProfileStore {
         maxAppointmentsPerDay = min(max(preferences.maxAppointmentsPerDay, 1), 12)
         minimumAdvanceNoticeDays = min(max(preferences.minimumAdvanceNoticeDays, 0), 2)
         autoAcceptBookings = preferences.autoAcceptBookings
+    }
+
+    private func populateFitClaims(with claims: [GroomerFitClaim]) {
+        fitClaims = claims.sorted(by: Self.sortFitClaims)
+        let supportedSignals = Set(GroomerFitClaim.availableSignals)
+        selectedFitClaimIDs = Set(
+            claims
+                .filter { $0.isActive && supportedSignals.contains($0.signal) }
+                .map { $0.signal.id }
+        )
     }
 
     private func resetTimeOffForm() {
@@ -681,6 +746,30 @@ final class GroomerProfileStore {
         )
     }
 
+    private func makeFitClaimDrafts() -> [GroomerFitClaimDraft] {
+        let supportedSignals = Set(GroomerFitClaim.availableSignals)
+        let knownSignals = Set(
+            fitClaims
+                .map(\.signal)
+                .filter { supportedSignals.contains($0) }
+        )
+        let selectedSignals = Set(
+            GroomerFitClaim.availableSignals.filter {
+                selectedFitClaimIDs.contains($0.id)
+            }
+        )
+
+        return knownSignals
+            .union(selectedSignals)
+            .sorted(by: Self.sortFitSignals)
+            .map { signal in
+                GroomerFitClaimDraft(
+                    signal: signal,
+                    isActive: selectedFitClaimIDs.contains(signal.id)
+                )
+            }
+    }
+
     private func required(
         _ value: String,
         field: String,
@@ -786,6 +875,26 @@ final class GroomerProfileStore {
             return String(Int(price))
         }
         return String(format: "%.2f", price)
+    }
+
+    private static func sortFitClaims(
+        _ lhs: GroomerFitClaim,
+        _ rhs: GroomerFitClaim
+    ) -> Bool {
+        sortFitSignals(lhs.signal, rhs.signal)
+    }
+
+    private static func sortFitSignals(
+        _ lhs: PetFitSignal,
+        _ rhs: PetFitSignal
+    ) -> Bool {
+        if lhs.sortOrder == rhs.sortOrder {
+            if lhs.title == rhs.title {
+                return lhs.id < rhs.id
+            }
+            return lhs.title < rhs.title
+        }
+        return lhs.sortOrder < rhs.sortOrder
     }
 
     static func dateString(from date: Date) -> String {

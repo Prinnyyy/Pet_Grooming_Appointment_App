@@ -12,10 +12,10 @@
 
 ## Status
 
-- Status: active sequence; completed through T-078
+- Status: active sequence; completed through T-079
 - Date: 2026-06-25
-- Current completed pet-fit baseline: T-063 through T-078, plus user-authorized T-050 remote deployment.
-- Next executable task: T-079, only after the user explicitly starts it.
+- Current completed pet-fit baseline: T-063 through T-079, plus user-authorized T-050 remote deployment.
+- Next executable task: T-080, only after the user explicitly starts it.
 
 ## Product Guardrails
 
@@ -29,14 +29,15 @@
 ## Current Grounding
 
 - T-050 iOS pet taxonomy is complete, and its hardened Supabase pet data contract migration is remotely deployed.
-- T-066 groomer fit claims and portfolio tags are deployed and consumed by matching, but iOS has no owner management UI for them.
+- T-066 groomer fit claims and portfolio tags are deployed and consumed by matching. T-079 now adds iOS owner management UI for groomer fit claims only; portfolio tags remain T-080.
 - T-067 structured review outcomes are deployed, and T-078 now lets iOS submit optional outcomes through the existing review RPC.
 - T-068 evidence summary exists as a read-only aggregate view.
 - T-073 scoring uses evidence, claims, and portfolio signals. Claims and portfolio tags are capped at low weight.
 - T-074 lets customers see backend match evidence only for visible offered matches.
-- T-076 adds a pure Swift canonical signal vocabulary for T-065 trait pairs, but no owner UI or review submission UI.
+- T-076 adds a pure Swift canonical signal vocabulary for T-065 trait pairs, now reused by T-078 review submission and T-079 groomer claim management.
 - T-077 enriches bookings with existing request pet snapshot context and derives completed-booking reviewable signals.
 - T-078 extends iOS review submission so selected positive/negative outcomes are sent as `p_pet_fit_outcomes`, while empty outcomes and rating/content-only reviews remain valid. No Supabase schema change was made.
+- T-079 adds a Groomer Account Fit Signals page that manages bounded owner-claimed signals through existing `groomer_fit_claims` table access behind `GroomerProfileRepository`. No Supabase schema change was made.
 
 ## Task Plan
 
@@ -278,7 +279,7 @@
 
 ## Assumptions
 
-- The next implementation starts with T-075.
+- The next implementation starts with T-080.
 - Each listed row is a separate primary task.
 - T-075 through T-085 do not authorize remote writes by themselves.
 - Existing branch remains `codex/pet-fit-structure-cleanup` unless the user asks for a different branch.

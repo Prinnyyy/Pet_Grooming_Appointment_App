@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-06-25
+Task: T-079 - Groomly groomer claimed fit signals UI.
+Files changed: GroomerProfile model, GroomerProfileRepository, SupabaseGroomerProfileRepository, GroomerProfileStore, GroomerProfileManagementView, GroomerProfileFeatureTests, T-079 task doc, pet-fit closure plan, task ledger, feature index, CURRENT_STATE.md, and WORKLOG.md.
+Checks: RED targeted GroomerProfileStore tests failed before implementation because GroomerFitClaim/GroomerFitClaimDraft did not exist; GREEN targeted fit-claim Store tests passed after implementation; ./scripts/ios-build.sh passed; XcodeBuildMCP build_run_sim launched the app on iPhone 17 Pro iOS 26.5; XcodeBuildMCP UI snapshot confirmed Account -> Fit Signals and bottom Save action; git diff --check passed.
+Result: Groomer Account now has a Fit Signals page where groomers can activate/deactivate up to six starter claims backed by existing groomer_fit_claims repository access.
+Risks: T-079 adds no Supabase schema/RLS/grant/RPC/Storage change, no matching behavior, no portfolio tag UI, no public directory, no direct booking, and no proof-of-expertise claim.
+Next: Stop unless the user asks for commit/push or explicitly authorizes T-080.
+```
+
+```text
+Date: 2026-06-25
 Task: T-078 - Groomly structured review iOS submission.
 Files changed: Booking review model, SupabaseBookingRepository, BookingsStore, BookingsView, BookingFeatureTests, T-078 task doc, pet-fit closure plan, task ledger, feature index, CURRENT_STATE.md, and WORKLOG.md.
 Checks: RED targeted booking/review tests failed before implementation because structured outcome model/selection/RPC encoding did not exist; GREEN targeted booking/review tests passed after implementation; ./scripts/ios-build.sh passed; XcodeBuildMCP build_run_sim launched the app on iPhone 17 Pro iOS 26.5; git diff --check passed.
