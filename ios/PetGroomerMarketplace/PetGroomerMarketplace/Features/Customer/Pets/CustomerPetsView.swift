@@ -333,6 +333,17 @@ private struct CustomerHomeRequestHero: View {
                 .buttonStyle(.plain)
                 .disabled(isDisabled)
                 .accessibilityIdentifier("customer.home.start-request")
+
+                if isDisabled {
+                    Label(
+                        "Add a pet profile before starting a grooming request.",
+                        systemImage: "pawprint"
+                    )
+                    .font(DesignTokens.Typography.caption.weight(.semibold))
+                    .foregroundStyle(.white.opacity(0.92))
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("customer.home.start-request.requirement")
+                }
             }
             .padding(DesignTokens.Spacing.xl)
             .frame(maxWidth: .infinity, alignment: .leading)

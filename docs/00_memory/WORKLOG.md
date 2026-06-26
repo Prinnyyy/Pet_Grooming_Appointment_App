@@ -2,6 +2,27 @@
 
 ```text
 Date: 2026-06-26
+Task: T-087 - Groomly quest readiness UI alignment implementation.
+Files changed: CustomerPetsView, CustomerRequestsStore, CustomerRequestsView, GroomerProfileManagementView, GroomerTab, GroomerTabView, CustomerRequestFeatureTests, AppEntryModelsTests, T-087 task doc, TASK_LEDGER.md, CURRENT_STATE.md, and WORKLOG.md.
+Checks: RED focused wizard/tab test failed as expected before implementation because GroomerTab.visibleCases was missing; GREEN focused wizard/tab tests passed; ./scripts/ios-build.sh passed; git diff --check passed; no-index whitespace check passed for the untracked T-087 task doc after retrying the zsh script with a non-reserved variable name.
+Simulator launch: XcodeBuildMCP build_run_sim passed on iPhone 17 Pro (45D452E8-DC6C-4CD4-A747-4D21671E68A6). Runtime snapshots confirmed the groomer tab bar has Board/Schedule/Messages/Account with no standalone Offers tab, Account order is Edit Profile -> Services -> Availability -> Fit Signals -> Portfolio -> Evidence Dashboard, and Availability copy is request-first. Customer Home no-pet and Customer Request wizard runtime inspection were blocked because the simulator restored a groomer production session and no approved customer test account or customer preview launch route exists.
+Result: T-087 Swift implementation is complete. Customer Home now explains that a pet profile is required before starting a request; the request wizard uses Time & Location copy and precise phone/email vs location privacy copy; Groomer Account prioritizes readiness gates; Availability avoids direct-booking promises; the standalone groomer Offers placeholder is hidden from visible tabs while offer domain behavior remains under Board/request detail.
+Risks: Customer-side runtime visual validation still needs a customer simulator session or explicit authorization for a remote test account path. No Supabase schema, RLS, RPC, Storage, repository contract, matching, request lifecycle, offer lifecycle, or booking semantics changed.
+Next: Stop T-087. Resume only for customer visual inspection if the user provides a customer session/authorization; do not start backend readiness gates, public directory, direct booking, or additional pet-fit work automatically.
+```
+
+```text
+Date: 2026-06-26
+Task: T-087 - Groomly quest readiness UI alignment task writing.
+Files changed: Added T-087 task doc; updated TASK_LEDGER.md, CURRENT_STATE.md, and WORKLOG.md.
+Checks: git diff --check passed for tracked docs; no-index whitespace check passed for the new T-087 task doc after retrying the zsh script with a non-reserved variable name.
+Result: T-087 is now defined as a pending Standard app-visible UI alignment task based on the quest-readiness audit. It does not implement Swift changes yet.
+Risks: Implementation will touch visible navigation by hiding/removing the standalone groomer Offers placeholder; offer domain behavior must remain behind Board/request-detail flow.
+Next: Stop unless the user explicitly authorizes implementation of T-087.
+```
+
+```text
+Date: 2026-06-26
 Task: T-086 - Groomly iOS test stability review fixes.
 Files changed: AppLaunchConfiguration, AppComposition, SignedOutAuthSessionRepository, AppEntryModelsTests, AppLaunchSmokeTests, iOS destination/build/test scripts, iOS build/testing docs, T-086 task doc, task ledger, CURRENT_STATE.md, and WORKLOG.md.
 Checks: RED targeted AppEntryModelsTests failed before implementation because AppLaunchConfiguration and SignedOutAuthSessionRepository did not exist; GREEN targeted AppEntryModelsTests passed; focused AuthenticationStoreTests plus AppLaunchSmokeTests passed; bash syntax and destination helper checks passed after fixing UDID extraction; ./scripts/ios-build.sh passed using generic/platform=iOS Simulator; ./scripts/ios-test.sh passed using an auto-discovered iPhone 17 Pro simulator UDID; git diff --check passed.

@@ -2409,7 +2409,7 @@ struct CustomerRequestWizardView: View {
             )
 
             Label(
-                "Your contact details stay hidden until you accept an offer.",
+                "Your phone and email stay hidden until you accept an offer. Groomers see the request location details needed to decide whether to offer.",
                 systemImage: "lock"
             )
             .font(DesignTokens.Typography.body)

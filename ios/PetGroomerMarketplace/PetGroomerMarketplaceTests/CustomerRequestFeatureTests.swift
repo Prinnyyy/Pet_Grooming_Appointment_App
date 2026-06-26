@@ -797,7 +797,7 @@ struct CustomerRequestsStoreTests {
         #expect(CustomerRequestWizardStep.allCases.map(\.title) == [
             "Pet",
             "Service",
-            "Time",
+            "Time & Location",
             "Details",
             "Review",
         ])

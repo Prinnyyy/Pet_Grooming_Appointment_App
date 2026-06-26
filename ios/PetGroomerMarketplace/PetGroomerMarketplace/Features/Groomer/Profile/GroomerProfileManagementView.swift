@@ -113,10 +113,10 @@ private struct GroomerAccountHomeView: View {
                     .padding(.leading, 72)
 
                 GroomerAccountMenuLink(
-                    title: "Portfolio",
-                    systemImage: "photo.on.rectangle"
+                    title: "Availability",
+                    systemImage: "calendar"
                 ) {
-                    GroomerPortfolioEditorView(store: store)
+                    GroomerAvailabilityEditorView(store: store)
                 }
 
                 Divider()
@@ -135,10 +135,10 @@ private struct GroomerAccountHomeView: View {
                     .padding(.leading, 72)
 
                 GroomerAccountMenuLink(
-                    title: "Evidence Dashboard",
-                    systemImage: "chart.bar.xaxis"
+                    title: "Portfolio",
+                    systemImage: "photo.on.rectangle"
                 ) {
-                    GroomerEvidenceDashboardView(store: store)
+                    GroomerPortfolioEditorView(store: store)
                 }
 
                 Divider()
@@ -146,11 +146,11 @@ private struct GroomerAccountHomeView: View {
                     .padding(.leading, 72)
 
                 GroomerAccountMenuLink(
-                    title: "Availability",
-                    systemImage: "calendar",
+                    title: "Evidence Dashboard",
+                    systemImage: "chart.bar.xaxis",
                     isLast: true
                 ) {
-                    GroomerAvailabilityEditorView(store: store)
+                    GroomerEvidenceDashboardView(store: store)
                 }
             }
             .background(DesignTokens.Colors.surface)
@@ -921,19 +921,19 @@ private struct GroomerAvailabilityActiveCard: View {
                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
 
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                    Text("Available for bookings")
+                    Text("Available for requests")
                         .font(DesignTokens.Typography.headline)
                         .foregroundStyle(DesignTokens.Colors.textPrimary)
                         .fixedSize(horizontal: false, vertical: true)
 
-                    Text("New clients can find and book you")
+                    Text("Matching requests can be sent to you during available windows.")
                         .font(DesignTokens.Typography.body)
                         .foregroundStyle(DesignTokens.Colors.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                Toggle("Available for bookings", isOn: $isActive)
+                Toggle("Available for requests", isOn: $isActive)
                     .labelsHidden()
                     .tint(DesignTokens.Colors.success)
             }
@@ -1056,7 +1056,7 @@ private struct GroomerBookingPreferencesSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            Text("Booking Preferences")
+            Text("Request Preferences")
                 .font(DesignTokens.Typography.caption.weight(.bold))
                 .foregroundStyle(DesignTokens.Colors.textSecondary)
                 .textCase(.uppercase)
@@ -1064,17 +1064,17 @@ private struct GroomerBookingPreferencesSection: View {
             GroomlyCard {
                 HStack(spacing: DesignTokens.Spacing.md) {
                     VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                        Text("Auto-accept bookings")
+                        Text("Auto-ready during open hours")
                             .font(DesignTokens.Typography.body.weight(.bold))
                             .foregroundStyle(DesignTokens.Colors.textPrimary)
 
-                        Text("Skip approval during open hours")
+                        Text("Use your open hours when checking request and offer availability.")
                             .font(DesignTokens.Typography.caption)
                             .foregroundStyle(DesignTokens.Colors.textSecondary)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
 
-                    Toggle("Auto-accept bookings", isOn: $autoAcceptBookings)
+                    Toggle("Auto-ready during open hours", isOn: $autoAcceptBookings)
                         .labelsHidden()
                         .tint(DesignTokens.Colors.groomerAccent)
                 }

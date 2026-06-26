@@ -17,7 +17,7 @@ enum CustomerRequestWizardStep: Int, CaseIterable, Identifiable {
         case .service:
             "Service"
         case .time:
-            "Time"
+            "Time & Location"
         case .details:
             "Details"
         case .review:
@@ -32,7 +32,7 @@ enum CustomerRequestWizardStep: Int, CaseIterable, Identifiable {
         case .service:
             "What Service Do You Need?"
         case .time:
-            "When Works Best?"
+            "When and Where Works Best?"
         case .details:
             "Add Helpful Details"
         case .review:
@@ -47,7 +47,7 @@ enum CustomerRequestWizardStep: Int, CaseIterable, Identifiable {
         case .service:
             nil
         case .time:
-            "Choose a preferred time. Groomers can also suggest alternatives."
+            "Choose a preferred time and the location details groomers need before making an offer."
         case .details:
             nil
         case .review:

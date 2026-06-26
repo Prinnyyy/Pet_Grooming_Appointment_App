@@ -41,12 +41,14 @@ Update this only when project state meaningfully changes.
 - Latest completed pet-fit end-to-end validation task: `docs/06_tasks/T-084_GROOMLY_PET_FIT_E2E_VALIDATION_SCENARIO.md`.
 - Latest completed request fit input preview task: `docs/06_tasks/T-085_GROOMLY_REQUEST_FIT_INPUT_PREVIEW.md`.
 - Latest completed iOS test stability review fix task: `docs/06_tasks/T-086_GROOMLY_IOS_TEST_STABILITY_REVIEW_FIXES.md`.
+- Latest implemented Groomly quest readiness UI alignment task: `docs/06_tasks/T-087_GROOMLY_QUEST_READINESS_UI_ALIGNMENT.md`; customer-side simulator visual inspection remains pending until a customer session or explicitly authorized test account path is available.
 - Latest completed Groomly UI refinement task: `docs/06_tasks/T-043_GROOMLY_CUSTOMER_REQUESTS_CAROUSEL_EDGE_REFINEMENT.md`.
 - Latest completed request feature task: `docs/06_tasks/T-049_GROOMLY_REQUEST_DATA_CONTRACT_LOCATION_PHOTOS.md`.
 - Latest completed pet feature task: `docs/06_tasks/T-050_GROOMLY_PET_DATA_CONTRACT_AND_ADD_PET_UI.md`.
 - Groomly UI sequence: `docs/06_tasks/T-026_TO_T-035_GROOMLY_UI_COMPLETION_SEQUENCE.md` is completed for implemented MVP screens.
 - Completed Groomly UI phase archive marker: `docs/09_frozen/groomly_ui_completed_2026-06-22/FREEZE_README.md`.
 - Active next executable pet-fit/availability task: none currently defined; future pet-fit work needs explicit request/authorization.
+- Active next executable Groomly UI alignment task: none currently defined; T-087 customer runtime visual inspection can resume only with a customer simulator session or explicit test-account authorization.
 - Active next executable Groomly screenshot task: none currently defined; future UI work starts from a user-uploaded screenshot.
 - Screenshot-driven task template: `docs/06_tasks/SCREENSHOT_UI_REWORK_TASK_TEMPLATE.md`.
 - Project structure index: `docs/10_project_structure/README.md`.
@@ -267,4 +269,5 @@ Update this only when project state meaningfully changes.
 ## Next Recommended Task
 
 - For the pet-fit/availability bottom-layer plan, no next task is currently defined. Future work should not auto-start and requires explicit user request/authorization.
+- For T-087, code implementation is complete and groomer runtime visual inspection passed; customer runtime visual inspection remains blocked by the current groomer-only simulator session. Do not create remote test accounts or add preview launch hooks without explicit user authorization.
 - For Groomly screenshot UI work, wait for the user to upload/select one screenshot, then create the next available screenshot-driven task from `docs/06_tasks/SCREENSHOT_UI_REWORK_TASK_TEMPLATE.md`.

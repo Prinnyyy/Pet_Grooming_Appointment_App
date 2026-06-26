@@ -32,7 +32,7 @@ struct GroomerTabView: View {
 
     var body: some View {
         TabView(selection: $selection) {
-            ForEach(GroomerTab.allCases) { tab in
+            ForEach(GroomerTab.visibleCases) { tab in
                 NavigationStack {
                     destination(for: tab)
                         .background(DesignTokens.Colors.background)
