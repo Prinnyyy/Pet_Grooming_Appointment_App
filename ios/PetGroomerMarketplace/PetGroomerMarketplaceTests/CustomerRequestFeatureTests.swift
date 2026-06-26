@@ -104,6 +104,40 @@ struct CustomerRequestsStoreTests {
     }
 
     @Test @MainActor
+    func supabaseRequestRowsDefaultLegacyNullLocationMode() throws {
+        let row = try JSONDecoder().decode(
+            GroomingRequestRow.self,
+            from: Self.requestRowData(
+                travelRadiusMiles: 25,
+                locationModeJSON: "null"
+            )
+        )
+
+        #expect(row.request.locationMode == .comeToMe)
+    }
+
+    @Test @MainActor
+    func supabaseRequestRowsDecodeRemoteLegacyLocationModeAliases() throws {
+        let visitGroomerRow = try JSONDecoder().decode(
+            GroomingRequestRow.self,
+            from: Self.requestRowData(
+                travelRadiusMiles: 15,
+                locationModeJSON: #""customer_comes_to_groomer""#
+            )
+        )
+        let comeToMeRow = try JSONDecoder().decode(
+            GroomingRequestRow.self,
+            from: Self.requestRowData(
+                travelRadiusMiles: 15,
+                locationModeJSON: #""groomer_comes_to_customer""#
+            )
+        )
+
+        #expect(visitGroomerRow.request.locationMode == .visitGroomer)
+        #expect(comeToMeRow.request.locationMode == .comeToMe)
+    }
+
+    @Test @MainActor
     func supabaseCreateRequestParametersUseBackendTravelRadiusRPCName() throws {
         let payloadData = try JSONEncoder().encode(
             CreateGroomingRequestParameters(draft: Self.createRequestDraft())
@@ -1136,7 +1170,10 @@ struct CustomerRequestsStoreTests {
         )
     }
 
-    private static func requestRowData(travelRadiusMiles: Int) -> Data {
+    private static func requestRowData(
+        travelRadiusMiles: Int,
+        locationModeJSON: String = #""visit_groomer""#
+    ) -> Data {
         Data(
             #"""
             {
@@ -1161,7 +1198,7 @@ struct CustomerRequestsStoreTests {
               "service_notes": null,
               "preferred_start": "2026-06-22T16:00:00Z",
               "preferred_end": "2026-06-22T18:00:00Z",
-              "location_mode": "visit_groomer",
+              "location_mode": \#(locationModeJSON),
               "street_address": "120 Pine St",
               "travel_radius_miles": \#(travelRadiusMiles),
               "city": "Seattle",

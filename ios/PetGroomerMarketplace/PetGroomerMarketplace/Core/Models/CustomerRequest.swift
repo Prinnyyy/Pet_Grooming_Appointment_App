@@ -12,6 +12,28 @@ nonisolated enum GroomingRequestLocationMode:
     case visitGroomer = "visit_groomer"
 
     var id: Self { self }
+
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let rawValue = try container.decode(String.self)
+
+        switch rawValue {
+        case Self.comeToMe.rawValue, "groomer_comes_to_customer":
+            self = .comeToMe
+        case Self.visitGroomer.rawValue, "customer_comes_to_groomer":
+            self = .visitGroomer
+        default:
+            throw DecodingError.dataCorruptedError(
+                in: container,
+                debugDescription: "Unsupported grooming request location mode."
+            )
+        }
+    }
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
 struct CustomerGroomingRequest: Equatable, Hashable, Identifiable, Sendable {

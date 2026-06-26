@@ -159,6 +159,19 @@ struct GroomerRequestsStoreTests {
     }
 
     @Test @MainActor
+    func supabaseMatchedRequestRowsDefaultLegacyNullLocationMode() throws {
+        let row = try JSONDecoder().decode(
+            GroomerMatchedGroomingRequestRow.self,
+            from: Self.requestRowData(
+                travelRadiusMiles: 25,
+                locationModeJSON: "null"
+            )
+        )
+
+        #expect(row.request.locationMode == .comeToMe)
+    }
+
+    @Test @MainActor
     func invalidOfferPriceDoesNotCallRepository() async throws {
         let groomerID = UUID()
         let matchedRequest = Self.matchedRequest(groomerID: groomerID)
@@ -299,7 +312,10 @@ struct GroomerRequestsStoreTests {
         )
     }
 
-    private static func requestRowData(travelRadiusMiles: Int) -> Data {
+    private static func requestRowData(
+        travelRadiusMiles: Int,
+        locationModeJSON: String = #""visit_groomer""#
+    ) -> Data {
         Data(
             #"""
             {
@@ -324,7 +340,7 @@ struct GroomerRequestsStoreTests {
               "service_notes": null,
               "preferred_start": "2026-06-22T16:00:00Z",
               "preferred_end": "2026-06-22T18:00:00Z",
-              "location_mode": "visit_groomer",
+              "location_mode": \#(locationModeJSON),
               "street_address": "120 Pine St",
               "travel_radius_miles": \#(travelRadiusMiles),
               "city": "Seattle",

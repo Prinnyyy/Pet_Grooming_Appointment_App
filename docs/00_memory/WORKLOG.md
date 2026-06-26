@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-06-26
+Task: T-090 - Customer Home request load legacy location mode fix.
+Files changed: T-090 task doc, TASK_LEDGER.md, CURRENT_STATE.md, WORKLOG.md, CustomerRequest.swift, SupabaseCustomerRequestRepository.swift, SupabaseGroomerRequestRepository.swift, CustomerRequestFeatureTests.swift, and GroomerRequestFeatureTests.swift.
+Checks: Read-only Supabase query inspected hosted customer request row shape and found legacy `location_mode` values. Unit target red check failed on the new legacy location-mode decoding tests before the enum decoder fix, then passed after mapping legacy aliases. `./scripts/ios-build.sh` passed. `git diff --check` passed. XcodeBuildMCP `build_run_sim` passed on `iPhone 17 Pro` simulator (`45D452E8-DC6C-4CD4-A747-4D21671E68A6`) with no diagnostics errors.
+Result: Customer Home now decodes hosted request rows that use `customer_comes_to_groomer` / `groomer_comes_to_customer`, renders the Active Request card, and no longer shows the `We Could Not Update Requests` toast for the customer quick-login account.
+Risks: No remote database writes were made. Local/remote Supabase migration history remains divergent and must still be reconciled as a separate explicitly approved backend task before any remote migration writes.
+Next: Wait for user direction; commit/push only with explicit approval.
+```
+
+```text
+Date: 2026-06-26
 Task: T-089 - Debug quick login buttons.
 Files changed: T-089 task doc, TASK_LEDGER.md, CURRENT_STATE.md, WORKLOG.md, AuthenticationStore.swift, AuthenticationView.swift, and AppEntryModelsTests.swift.
 Checks: Targeted TDD red check failed before implementation because the debug account type and Store API did not exist. The same targeted AuthenticationStore tests passed after implementation and again at final validation. `./scripts/ios-build.sh` passed. `git diff --check` passed. XcodeBuildMCP `build_run_sim` passed on `iPhone 17 Pro` simulator (`45D452E8-DC6C-4CD4-A747-4D21671E68A6`) with no diagnostics errors. Simulator UI verification signed out from an existing groomer session, confirmed `auth.debug-login.customer` and `auth.debug-login.groomer` on the login landing page, and Customer Quick Login reached customer Home.

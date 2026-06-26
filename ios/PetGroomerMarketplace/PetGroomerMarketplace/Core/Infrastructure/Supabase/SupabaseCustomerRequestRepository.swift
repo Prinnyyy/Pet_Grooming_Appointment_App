@@ -186,7 +186,7 @@ struct GroomingRequestRow: Decodable {
     let serviceNotes: String?
     let preferredStart: String
     let preferredEnd: String
-    let locationMode: GroomingRequestLocationMode
+    let locationMode: GroomingRequestLocationMode?
     let streetAddress: String?
     let travelRangeMiles: Int?
     let city: String
@@ -208,7 +208,7 @@ struct GroomingRequestRow: Decodable {
             serviceNotes: serviceNotes,
             preferredStart: preferredStart,
             preferredEnd: preferredEnd,
-            locationMode: locationMode,
+            locationMode: locationMode ?? .comeToMe,
             streetAddress: streetAddress,
             travelRangeMiles: travelRangeMiles,
             city: city,
