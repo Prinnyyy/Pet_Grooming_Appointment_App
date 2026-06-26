@@ -7,6 +7,7 @@ struct CustomerTabView: View {
     let requestRepository: (any CustomerRequestRepository)?
     let bookingRepository: (any BookingRepository)?
     let chatRepository: (any ChatRepository)?
+    let storageImageURLProvider: (any StorageImageURLProvider)?
     let accountContent: AnyView?
     @State private var selection: CustomerTab = .home
     @State private var feedbackCenter = GroomlyFeedbackCenter()
@@ -18,6 +19,7 @@ struct CustomerTabView: View {
         requestRepository: (any CustomerRequestRepository)? = nil,
         bookingRepository: (any BookingRepository)? = nil,
         chatRepository: (any ChatRepository)? = nil,
+        storageImageURLProvider: (any StorageImageURLProvider)? = nil,
         accountContent: AnyView? = nil
     ) {
         self.customerID = customerID
@@ -26,6 +28,7 @@ struct CustomerTabView: View {
         self.requestRepository = requestRepository
         self.bookingRepository = bookingRepository
         self.chatRepository = chatRepository
+        self.storageImageURLProvider = storageImageURLProvider
         self.accountContent = accountContent
     }
 
@@ -65,7 +68,8 @@ struct CustomerTabView: View {
                 displayName: customerDisplayName,
                 repository: petRepository,
                 requestRepository: requestRepository,
-                bookingRepository: bookingRepository
+                bookingRepository: bookingRepository,
+                imageURLProvider: storageImageURLProvider
             )
         } else if tab == .requests,
                   let customerID,
@@ -76,7 +80,8 @@ struct CustomerTabView: View {
                 customerID: customerID,
                 petRepository: petRepository,
                 requestRepository: requestRepository,
-                bookingRepository: bookingRepository
+                bookingRepository: bookingRepository,
+                imageURLProvider: storageImageURLProvider
             )
         } else if tab == .bookings,
                   let customerID,

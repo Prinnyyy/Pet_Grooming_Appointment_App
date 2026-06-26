@@ -56,6 +56,9 @@ struct CustomerRequestsStoreTests {
         store.startCreate()
         store.serviceType = " Full groom "
         store.serviceNotes = "   "
+        store.locationMode = .visitGroomer
+        store.streetAddress = " 120 Pine St "
+        store.travelRangeMiles = 24.6
         store.preferredStart = Date().addingTimeInterval(60 * 60)
         store.preferredEnd = Date().addingTimeInterval(3 * 60 * 60)
         store.city = " Seattle "
@@ -70,6 +73,9 @@ struct CustomerRequestsStoreTests {
         #expect(requestRepository.lastDraft?.petID == pet.id)
         #expect(requestRepository.lastDraft?.serviceType == "Full groom")
         #expect(requestRepository.lastDraft?.serviceNotes == nil)
+        #expect(requestRepository.lastDraft?.locationMode == .visitGroomer)
+        #expect(requestRepository.lastDraft?.streetAddress == "120 Pine St")
+        #expect(requestRepository.lastDraft?.travelRangeMiles == 25)
         #expect(requestRepository.lastDraft?.city == "Seattle")
         #expect(requestRepository.lastDraft?.state == "WA")
         #expect(requestRepository.lastDraft?.zipCode == "98101")
@@ -92,6 +98,34 @@ struct CustomerRequestsStoreTests {
 
         #expect(repository.createCallCount == 0)
         #expect(store.errorMessage == "Add a pet before creating a request.")
+    }
+
+    @Test @MainActor
+    func wizardPhotoUploadAddsPhotoForSelectedPet() async throws {
+        let customerID = UUID()
+        let pet = Self.pet(customerID: customerID)
+        let photo = Self.photo(customerID: customerID, petID: pet.id)
+        let petRepository = CustomerRequestPetRepositoryFake(
+            petsResult: .success([pet]),
+            uploadPhotoResult: .success(photo)
+        )
+        let store = CustomerRequestsStore(
+            customerID: customerID,
+            petRepository: petRepository,
+            requestRepository: CustomerRequestRepositoryFake(),
+            bookingRepository: CustomerRequestBookingRepositoryFake()
+        )
+        await store.load()
+
+        await store.uploadPhotoForSelectedPet(
+            data: Data([0x01, 0x02]),
+            contentType: .jpeg
+        )
+
+        #expect(petRepository.uploadPhotoCallCount == 1)
+        #expect(petRepository.lastUploadedPetID == pet.id)
+        #expect(store.photos(for: pet) == [photo])
+        #expect(store.selectedPetPhotos == [photo])
     }
 
     @Test @MainActor
@@ -994,6 +1028,26 @@ struct CustomerRequestsStoreTests {
         )
     }
 
+    private static func photo(
+        customerID: UUID,
+        petID: UUID
+    ) -> CustomerPetPhoto {
+        CustomerPetPhoto(
+            id: UUID(),
+            petID: petID,
+            customerID: customerID,
+            storageBucket: "pet-photos",
+            storagePath: CustomerPetPhotoPath.make(
+                customerID: customerID,
+                petID: petID,
+                contentType: .jpeg
+            ),
+            caption: nil,
+            sortOrder: 0,
+            isPrimary: false
+        )
+    }
+
     private static func request(
         customerID: UUID,
         petID: UUID,
@@ -1021,6 +1075,9 @@ struct CustomerRequestsStoreTests {
             serviceNotes: nil,
             preferredStart: "2026-06-22T16:00:00Z",
             preferredEnd: "2026-06-22T18:00:00Z",
+            locationMode: .comeToMe,
+            streetAddress: nil,
+            travelRangeMiles: nil,
             city: "Seattle",
             state: "WA",
             zipCode: "98101",
@@ -1128,11 +1185,23 @@ struct CustomerRequestsStoreTests {
 @MainActor
 private final class CustomerRequestPetRepositoryFake: CustomerPetRepository {
     var petsResult: Result<[CustomerPet], CustomerPetRepositoryError>
+    var photosResult: Result<[CustomerPetPhoto], CustomerPetRepositoryError>
+    var uploadPhotoResult: Result<CustomerPetPhoto, CustomerPetRepositoryError>
+
+    private(set) var uploadPhotoCallCount = 0
+    private(set) var lastUploadedCustomerID: UUID?
+    private(set) var lastUploadedPetID: UUID?
+    private(set) var lastUploadedContentType: CustomerPetPhotoContentType?
 
     init(
-        petsResult: Result<[CustomerPet], CustomerPetRepositoryError> = .success([])
+        petsResult: Result<[CustomerPet], CustomerPetRepositoryError> = .success([]),
+        photosResult: Result<[CustomerPetPhoto], CustomerPetRepositoryError> = .success([]),
+        uploadPhotoResult: Result<CustomerPetPhoto, CustomerPetRepositoryError> =
+            .failure(.unavailable)
     ) {
         self.petsResult = petsResult
+        self.photosResult = photosResult
+        self.uploadPhotoResult = uploadPhotoResult
     }
 
     func pets(customerID: UUID) async throws -> [CustomerPet] {
@@ -1140,7 +1209,7 @@ private final class CustomerRequestPetRepositoryFake: CustomerPetRepository {
     }
 
     func photos(customerID: UUID) async throws -> [CustomerPetPhoto] {
-        []
+        try photosResult.get()
     }
 
     func createPet(
@@ -1166,7 +1235,11 @@ private final class CustomerRequestPetRepositoryFake: CustomerPetRepository {
         contentType: CustomerPetPhotoContentType,
         caption: String?
     ) async throws -> CustomerPetPhoto {
-        throw CustomerPetRepositoryError.unavailable
+        uploadPhotoCallCount += 1
+        lastUploadedCustomerID = customerID
+        lastUploadedPetID = petID
+        lastUploadedContentType = contentType
+        return try uploadPhotoResult.get()
     }
 
     func deletePhoto(_ photo: CustomerPetPhoto) async throws {}

@@ -5,7 +5,8 @@ import Supabase
 final class SupabaseCustomerRequestRepository: CustomerRequestRepository {
     private static let requestColumns = """
         id,customer_id,pet_id,pet_snapshot,photo_snapshot,service_type,service_notes,\
-        preferred_start,preferred_end,city,state,zip_code,status,expires_at,created_at,updated_at
+        preferred_start,preferred_end,location_mode,street_address,travel_range_miles,\
+        city,state,zip_code,status,expires_at,created_at,updated_at
         """
     private static let offerColumns = """
         id,request_id,match_id,customer_id,groomer_id,proposed_start,proposed_end,\
@@ -185,6 +186,9 @@ private struct GroomingRequestRow: Decodable {
     let serviceNotes: String?
     let preferredStart: String
     let preferredEnd: String
+    let locationMode: GroomingRequestLocationMode
+    let streetAddress: String?
+    let travelRangeMiles: Int?
     let city: String
     let state: String
     let zipCode: String
@@ -204,6 +208,9 @@ private struct GroomingRequestRow: Decodable {
             serviceNotes: serviceNotes,
             preferredStart: preferredStart,
             preferredEnd: preferredEnd,
+            locationMode: locationMode,
+            streetAddress: streetAddress,
+            travelRangeMiles: travelRangeMiles,
             city: city,
             state: state,
             zipCode: zipCode,
@@ -224,6 +231,9 @@ private struct GroomingRequestRow: Decodable {
         case serviceNotes = "service_notes"
         case preferredStart = "preferred_start"
         case preferredEnd = "preferred_end"
+        case locationMode = "location_mode"
+        case streetAddress = "street_address"
+        case travelRangeMiles = "travel_range_miles"
         case city
         case state
         case zipCode = "zip_code"
@@ -391,6 +401,17 @@ private struct CreateGroomingRequestParameters: Encodable {
         try container.encode(draft.city, forKey: .city)
         try container.encode(draft.state, forKey: .state)
         try container.encode(draft.zipCode, forKey: .zipCode)
+        try container.encode(draft.locationMode.rawValue, forKey: .locationMode)
+        if let streetAddress = draft.streetAddress {
+            try container.encode(streetAddress, forKey: .streetAddress)
+        } else {
+            try container.encodeNil(forKey: .streetAddress)
+        }
+        if let travelRangeMiles = draft.travelRangeMiles {
+            try container.encode(travelRangeMiles, forKey: .travelRangeMiles)
+        } else {
+            try container.encodeNil(forKey: .travelRangeMiles)
+        }
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -402,6 +423,9 @@ private struct CreateGroomingRequestParameters: Encodable {
         case city = "p_city"
         case state = "p_state"
         case zipCode = "p_zip_code"
+        case locationMode = "p_location_mode"
+        case streetAddress = "p_street_address"
+        case travelRangeMiles = "p_travel_range_miles"
     }
 }
 

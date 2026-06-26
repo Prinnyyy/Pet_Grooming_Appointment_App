@@ -1,6 +1,8 @@
+import PhotosUI
 import SwiftUI
 
 struct CustomerRequestsView: View {
+    private let imageURLProvider: (any StorageImageURLProvider)?
     @State private var store: CustomerRequestsStore
     @State private var pendingCancelRequest: CustomerGroomingRequest?
     @State private var selectedBookingHandoff: CustomerRequestBookingHandoff?
@@ -9,8 +11,10 @@ struct CustomerRequestsView: View {
         customerID: UUID,
         petRepository: any CustomerPetRepository,
         requestRepository: any CustomerRequestRepository,
-        bookingRepository: any BookingRepository
+        bookingRepository: any BookingRepository,
+        imageURLProvider: (any StorageImageURLProvider)? = nil
     ) {
+        self.imageURLProvider = imageURLProvider
         _store = State(
             initialValue: CustomerRequestsStore(
                 customerID: customerID,
@@ -113,7 +117,8 @@ struct CustomerRequestsView: View {
                             },
                             onCancelRequest: { request in
                                 pendingCancelRequest = request
-                            }
+                            },
+                            imageURLProvider: imageURLProvider
                         )
                         .accessibilityIdentifier("customer.requests.progress-carousel")
                     }
@@ -184,6 +189,7 @@ private struct CustomerRequestProgressCarousel: View {
     let store: CustomerRequestsStore
     let onViewBooking: (CustomerRequestBookingHandoff) -> Void
     let onCancelRequest: (CustomerGroomingRequest) -> Void
+    let imageURLProvider: (any StorageImageURLProvider)?
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
@@ -195,7 +201,8 @@ private struct CustomerRequestProgressCarousel: View {
                             handoff: card.handoff,
                             store: store,
                             onViewBooking: onViewBooking,
-                            onCancelRequest: onCancelRequest
+                            onCancelRequest: onCancelRequest,
+                            imageURLProvider: imageURLProvider
                         )
                         .containerRelativeFrame(.horizontal) { length, _ in
                             length
@@ -286,6 +293,7 @@ private struct CustomerRequestProgressCard: View {
     let store: CustomerRequestsStore
     let onViewBooking: (CustomerRequestBookingHandoff) -> Void
     let onCancelRequest: (CustomerGroomingRequest) -> Void
+    let imageURLProvider: (any StorageImageURLProvider)?
 
     var body: some View {
         GroomlyCard(
@@ -315,7 +323,8 @@ private struct CustomerRequestProgressCard: View {
                     CustomerRequestActionRow(
                         request: request,
                         store: store,
-                        onCancelRequest: onCancelRequest
+                        onCancelRequest: onCancelRequest,
+                        imageURLProvider: imageURLProvider
                     )
                 }
             }
@@ -847,6 +856,7 @@ private struct CustomerRequestActionRow: View {
     let request: CustomerGroomingRequest
     let store: CustomerRequestsStore
     let onCancelRequest: (CustomerGroomingRequest) -> Void
+    let imageURLProvider: (any StorageImageURLProvider)?
 
     var body: some View {
         HStack(spacing: DesignTokens.Spacing.md) {
@@ -859,7 +869,8 @@ private struct CustomerRequestActionRow: View {
         NavigationLink {
             CustomerRequestDetailView(
                 requestID: request.id,
-                store: store
+                store: store,
+                imageURLProvider: imageURLProvider
             )
         } label: {
             CustomerRequestActionLabel(
@@ -1060,6 +1071,7 @@ private extension GroomingRequestPetSnapshot {
 struct CustomerRequestDetailView: View {
     let requestID: UUID
     let store: CustomerRequestsStore
+    let imageURLProvider: (any StorageImageURLProvider)?
 
     var body: some View {
         if let request = store.request(withID: requestID) {
@@ -1166,6 +1178,10 @@ struct CustomerRequestDetailView: View {
                     value: "\(request.photoSnapshot.count)",
                     systemImage: "photo.on.rectangle"
                 )
+
+                if !request.photoSnapshot.isEmpty {
+                    requestPhotoStrip(request.photoSnapshot)
+                }
             }
         }
     }
@@ -1193,11 +1209,52 @@ struct CustomerRequestDetailView: View {
                     ),
                     systemImage: "clock.badge.checkmark"
                 )
+                DetailMetadataRow(
+                    title: "Service Mode",
+                    value: request.locationMode.detailTitle,
+                    systemImage: request.locationMode.detailSystemImage
+                )
+                if let streetAddress = request.streetAddress {
+                    DetailMetadataRow(
+                        title: "Street",
+                        value: streetAddress,
+                        systemImage: "house"
+                    )
+                }
                 DetailMetadataRow(title: "City", value: request.city, systemImage: "building.2")
                 DetailMetadataRow(title: "State", value: request.state, systemImage: "map")
                 DetailMetadataRow(title: "ZIP", value: request.zipCode, systemImage: "number")
+                if let travelRangeMiles = request.travelRangeMiles {
+                    DetailMetadataRow(
+                        title: "Travel Range",
+                        value: "\(travelRangeMiles) mi",
+                        systemImage: "location"
+                    )
+                }
             }
         }
+    }
+
+    private func requestPhotoStrip(
+        _ photos: [GroomingRequestPhotoSnapshot]
+    ) -> some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: DesignTokens.Spacing.sm) {
+                ForEach(photos) { photo in
+                    GroomlyStorageImageThumbnail(
+                        bucket: photo.storageBucket,
+                        path: photo.storagePath,
+                        fileName: photo.fileName,
+                        urlProvider: imageURLProvider,
+                        width: 88,
+                        height: 88,
+                        tint: DesignTokens.Colors.customerPrimaryDark
+                    )
+                }
+            }
+            .padding(.vertical, DesignTokens.Spacing.xs)
+        }
+        .accessibilityIdentifier("customer.requests.photo-strip")
     }
 
     private var cancellationNotice: some View {
@@ -2000,8 +2057,8 @@ enum CustomerRequestTimeWindowOption: String, CaseIterable, Identifiable {
 }
 
 enum CustomerRequestTravelRange {
-    static let minimumMiles = 5
-    static let maximumMiles = 100
+    static let minimumMiles = CustomerRequestsStore.minimumTravelRangeMiles
+    static let maximumMiles = CustomerRequestsStore.maximumTravelRangeMiles
 
     static func clampedMiles(_ value: Double) -> Int {
         min(
@@ -2042,21 +2099,21 @@ struct CustomerRequestWizardView: View {
     @Bindable var store: CustomerRequestsStore
 
     private let onAddPet: (() -> Void)?
+    private let imageURLProvider: (any StorageImageURLProvider)?
     @State private var currentStep: CustomerRequestWizardStep = .pet
     @State private var selectedServiceOption: CustomerRequestServiceOption?
     @State private var selectedDate: Date
     @State private var selectedTimeWindow: CustomerRequestTimeWindowOption = .afternoon
     @State private var isFlexibleWithTime = false
-    @State private var locationMode: CustomerRequestLocationMode = .comeToMe
-    @State private var streetAddress = ""
-    @State private var travelRangeMiles: Double = 15
-    @State private var hasPhotoPlaceholder = false
+    @State private var selectedPhotoItem: PhotosPickerItem?
 
     init(
         store: CustomerRequestsStore,
+        imageURLProvider: (any StorageImageURLProvider)? = nil,
         onAddPet: (() -> Void)? = nil
     ) {
         self.store = store
+        self.imageURLProvider = imageURLProvider
         self.onAddPet = onAddPet
         _selectedDate = State(initialValue: store.preferredStart)
         _selectedServiceOption = State(
@@ -2247,19 +2304,19 @@ struct CustomerRequestWizardView: View {
             ForEach(CustomerRequestLocationMode.allCases) { mode in
                 CustomerRequestLocationModeCard(
                     mode: mode,
-                    isSelected: locationMode == mode
+                    isSelected: store.locationMode == mode
                 ) {
-                    locationMode = mode
+                    store.locationMode = mode
                 }
             }
 
             CustomerRequestAddressFields(
-                streetAddress: $streetAddress,
+                streetAddress: $store.streetAddress,
                 city: $store.city,
                 state: $store.state,
                 zipCode: $store.zipCode,
-                locationMode: locationMode,
-                travelRangeMiles: $travelRangeMiles
+                locationMode: store.locationMode,
+                travelRangeMiles: $store.travelRangeMiles
             )
         }
     }
@@ -2283,13 +2340,24 @@ struct CustomerRequestWizardView: View {
 
                 HStack(spacing: DesignTokens.Spacing.md) {
                     if let pet = store.selectedPet {
-                        CustomerRequestPhotoPreviewTile(pet: pet)
+                        CustomerRequestPhotoPreviewTile(
+                            pet: pet,
+                            photos: store.selectedPetPhotos,
+                            imageURLProvider: imageURLProvider
+                        )
                     }
 
-                    CustomerRequestAddPhotoTile(isSelected: hasPhotoPlaceholder) {
-                        hasPhotoPlaceholder.toggle()
-                    }
+                    CustomerRequestAddPhotoTile(
+                        selectedPhotoItem: $selectedPhotoItem,
+                        isUploading: store.isUploadingPhoto
+                    )
                 }
+            }
+        }
+        .onChange(of: selectedPhotoItem) { _, newItem in
+            guard let newItem else { return }
+            Task {
+                await upload(newItem)
             }
         }
     }
@@ -2397,6 +2465,7 @@ struct CustomerRequestWizardView: View {
 
     private var reviewLocationSummary: String {
         let location = [
+            store.streetAddress.trimmingCharacters(in: .whitespacesAndNewlines),
             store.city.trimmingCharacters(in: .whitespacesAndNewlines),
             store.state.trimmingCharacters(in: .whitespacesAndNewlines),
             store.zipCode.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -2404,8 +2473,16 @@ struct CustomerRequestWizardView: View {
         .filter { !$0.isEmpty }
         .joined(separator: ", ")
 
-        let prefix = locationMode == .comeToMe ? "Mobile" : "Visit"
-        return location.isEmpty ? "\(prefix) · Required" : "\(prefix) · \(location)"
+        let prefix = store.locationMode == .comeToMe ? "Mobile" : "Visit"
+        guard !location.isEmpty else {
+            return "\(prefix) · Required"
+        }
+
+        if store.locationMode == .visitGroomer {
+            return "\(prefix) · \(location) · \(CustomerRequestTravelRange.clampedMiles(store.travelRangeMiles)) mi"
+        }
+
+        return "\(prefix) · \(location)"
     }
 
     private var notesSummary: String {
@@ -2449,6 +2526,25 @@ struct CustomerRequestWizardView: View {
         onAddPet()
     }
 
+    private func upload(_ item: PhotosPickerItem) async {
+        defer { selectedPhotoItem = nil }
+
+        guard let data = try? await item.loadTransferable(type: Data.self) else {
+            store.errorMessage = "We could not read that photo."
+            return
+        }
+
+        let contentType = item.supportedContentTypes
+            .lazy
+            .compactMap(CustomerPetPhotoContentType.init(uniformType:))
+            .first ?? .jpeg
+
+        await store.uploadPhotoForSelectedPet(
+            data: data,
+            contentType: contentType
+        )
+    }
+
     private func applyInitialDefaults() {
         if selectedServiceOption == nil,
            let option = CustomerRequestServiceOption.allCases.first(
@@ -2490,12 +2586,9 @@ struct CustomerRequestWizardView: View {
     }
 }
 
-private enum CustomerRequestLocationMode: CaseIterable, Identifiable {
-    case comeToMe
-    case visitGroomer
+private typealias CustomerRequestLocationMode = GroomingRequestLocationMode
 
-    var id: Self { self }
-
+private extension GroomingRequestLocationMode {
     var icon: String {
         switch self {
         case .comeToMe:
@@ -2511,6 +2604,24 @@ private enum CustomerRequestLocationMode: CaseIterable, Identifiable {
             "Mobile Groomer Comes To Me"
         case .visitGroomer:
             "I Can Visit The Groomer"
+        }
+    }
+
+    var detailTitle: String {
+        switch self {
+        case .comeToMe:
+            "Mobile groomer comes to customer"
+        case .visitGroomer:
+            "Customer can visit groomer"
+        }
+    }
+
+    var detailSystemImage: String {
+        switch self {
+        case .comeToMe:
+            "car.fill"
+        case .visitGroomer:
+            "house.fill"
         }
     }
 }
@@ -3165,55 +3276,100 @@ private struct CustomerRequestAddressFields: View {
 
 private struct CustomerRequestPhotoPreviewTile: View {
     let pet: CustomerPet
+    let photos: [CustomerPetPhoto]
+    let imageURLProvider: (any StorageImageURLProvider)?
 
     var body: some View {
-        CustomerRequestWizardPetAvatar(pet: pet, size: 112)
-            .clipShape(
-                RoundedRectangle(
-                    cornerRadius: DesignTokens.CornerRadius.input,
-                    style: .continuous
+        ZStack(alignment: .bottomTrailing) {
+            if let photo = photos.first {
+                GroomlyStorageImageThumbnail(
+                    bucket: photo.storageBucket,
+                    path: photo.storagePath,
+                    fileName: photo.fileName,
+                    urlProvider: imageURLProvider,
+                    width: 112,
+                    height: 112,
+                    tint: DesignTokens.Colors.customerPrimaryDark
                 )
-            )
+            } else {
+                CustomerRequestWizardPetAvatar(pet: pet, size: 112)
+                    .clipShape(
+                        RoundedRectangle(
+                            cornerRadius: DesignTokens.CornerRadius.input,
+                            style: .continuous
+                        )
+                    )
+            }
+
+            if !photos.isEmpty {
+                Text("\(photos.count)")
+                    .font(DesignTokens.Typography.caption.weight(.bold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, DesignTokens.Spacing.sm)
+                    .padding(.vertical, DesignTokens.Spacing.xs)
+                    .background(DesignTokens.Colors.customerPrimaryDark)
+                    .clipShape(Capsule())
+                    .padding(DesignTokens.Spacing.xs)
+                    .accessibilityLabel("\(photos.count) photos")
+            }
+        }
     }
 }
 
 private struct CustomerRequestAddPhotoTile: View {
-    let isSelected: Bool
-    let action: () -> Void
+    @Binding var selectedPhotoItem: PhotosPickerItem?
+    let isUploading: Bool
 
     var body: some View {
-        Button(action: action) {
-            VStack(spacing: DesignTokens.Spacing.sm) {
-                Image(systemName: isSelected ? "checkmark.circle.fill" : "camera")
-                    .font(.title2.weight(.semibold))
-                    .foregroundStyle(
-                        isSelected ? DesignTokens.Colors.customerPrimaryDark : DesignTokens.Colors.textTertiary
-                    )
+        let spacing = DesignTokens.Spacing.sm
+        let accentColor = DesignTokens.Colors.customerPrimaryDark
+        let textColor = DesignTokens.Colors.textTertiary
+        let captionFont = DesignTokens.Typography.caption.weight(.bold)
+        let surfaceColor = DesignTokens.Colors.surface.opacity(0.4)
+        let cornerRadius = DesignTokens.CornerRadius.input
+        let borderColor = DesignTokens.Colors.border
 
-                Text(isSelected ? "Added" : "Add")
-                    .font(DesignTokens.Typography.caption.weight(.bold))
-                    .foregroundStyle(DesignTokens.Colors.textTertiary)
+        PhotosPicker(
+            selection: $selectedPhotoItem,
+            matching: .images
+        ) {
+            VStack(spacing: spacing) {
+                if isUploading {
+                    ProgressView()
+                        .tint(accentColor)
+                } else {
+                    Image(systemName: "camera")
+                        .font(.title2.weight(.semibold))
+                        .foregroundStyle(textColor)
+                }
+
+                Text(isUploading ? "Uploading" : "Add")
+                    .font(captionFont)
+                    .foregroundStyle(textColor)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
             }
             .frame(width: 112, height: 112)
-            .background(DesignTokens.Colors.surface.opacity(0.4))
+            .background(surfaceColor)
             .clipShape(
                 RoundedRectangle(
-                    cornerRadius: DesignTokens.CornerRadius.input,
+                    cornerRadius: cornerRadius,
                     style: .continuous
                 )
             )
             .overlay {
                 RoundedRectangle(
-                    cornerRadius: DesignTokens.CornerRadius.input,
+                    cornerRadius: cornerRadius,
                     style: .continuous
                 )
                 .stroke(
-                    DesignTokens.Colors.border,
+                    borderColor,
                     style: StrokeStyle(lineWidth: 1.5, dash: [6, 4])
                 )
             }
         }
         .buttonStyle(.plain)
+        .disabled(isUploading)
     }
 }
 
@@ -3419,6 +3575,9 @@ private final class CustomerRequestsPreviewRequestRepository: CustomerRequestRep
                 serviceNotes: "Please be gentle around the paws.",
                 preferredStart: "2026-06-22T16:00:00Z",
                 preferredEnd: "2026-06-22T18:00:00Z",
+                locationMode: .comeToMe,
+                streetAddress: "120 Pine St",
+                travelRangeMiles: nil,
                 city: "Seattle",
                 state: "WA",
                 zipCode: "98101",
@@ -3449,6 +3608,9 @@ private final class CustomerRequestsPreviewRequestRepository: CustomerRequestRep
                 serviceNotes: nil,
                 preferredStart: "2026-06-24T17:00:00Z",
                 preferredEnd: "2026-06-24T18:30:00Z",
+                locationMode: .visitGroomer,
+                streetAddress: nil,
+                travelRangeMiles: 15,
                 city: "Seattle",
                 state: "WA",
                 zipCode: "98103",

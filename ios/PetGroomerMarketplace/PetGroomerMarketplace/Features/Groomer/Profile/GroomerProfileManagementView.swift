@@ -3,11 +3,13 @@ import SwiftUI
 
 struct GroomerProfileManagementView: View {
     @State private var store: GroomerProfileStore
+    private let imageURLProvider: (any StorageImageURLProvider)?
     let accountContent: AnyView?
 
     init(
         groomerID: UUID,
         repository: any GroomerProfileRepository,
+        imageURLProvider: (any StorageImageURLProvider)? = nil,
         accountContent: AnyView? = nil
     ) {
         _store = State(
@@ -16,6 +18,7 @@ struct GroomerProfileManagementView: View {
                 repository: repository
             )
         )
+        self.imageURLProvider = imageURLProvider
         self.accountContent = accountContent
     }
 
@@ -44,7 +47,10 @@ struct GroomerProfileManagementView: View {
 
                         GroomerProfileFormSection(store: store)
                         GroomerServicesSection(store: store)
-                        GroomerPortfolioSection(store: store)
+                        GroomerPortfolioSection(
+                            store: store,
+                            imageURLProvider: imageURLProvider
+                        )
                     }
                     .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
                     .padding(.vertical, DesignTokens.Spacing.lg)
@@ -445,6 +451,7 @@ private struct ProfileBadges: View {
 
 private struct GroomerPortfolioSection: View {
     @Bindable var store: GroomerProfileStore
+    let imageURLProvider: (any StorageImageURLProvider)?
     @State private var selectedPhotoItem: PhotosPickerItem?
 
     var body: some View {
@@ -473,6 +480,7 @@ private struct GroomerPortfolioSection: View {
                     ForEach(store.sortedPortfolioPhotos()) { photo in
                         GroomerPortfolioPhotoRow(
                             photo: photo,
+                            imageURLProvider: imageURLProvider,
                             store: store
                         )
                     }
@@ -539,22 +547,22 @@ private struct GroomerPortfolioUpdatingCard: View {
 
 private struct GroomerPortfolioPhotoRow: View {
     let photo: GroomerPortfolioPhoto
+    let imageURLProvider: (any StorageImageURLProvider)?
     @Bindable var store: GroomerProfileStore
 
     var body: some View {
         GroomlyCard(padding: DesignTokens.Spacing.md) {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                 HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
-                    Image(systemName: "photo.on.rectangle")
-                        .font(DesignTokens.Typography.caption.weight(.semibold))
-                        .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
-                        .frame(
-                            width: DesignTokens.Spacing.xl,
-                            height: DesignTokens.Spacing.xl
-                        )
-                        .background(DesignTokens.Colors.groomerAccent.opacity(0.14))
-                        .clipShape(DesignTokens.Shapes.circular)
-                        .accessibilityHidden(true)
+                    GroomlyStorageImageThumbnail(
+                        bucket: photo.storageBucket,
+                        path: photo.storagePath,
+                        fileName: photo.fileName,
+                        urlProvider: imageURLProvider,
+                        width: 72,
+                        height: 72,
+                        tint: DesignTokens.Colors.groomerAccentDark
+                    )
 
                     VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                         Text(photo.fileName)

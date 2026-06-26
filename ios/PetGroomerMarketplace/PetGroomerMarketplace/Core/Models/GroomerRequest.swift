@@ -74,6 +74,9 @@ struct GroomerMatchedGroomingRequest:
     let serviceNotes: String?
     let preferredStart: String
     let preferredEnd: String
+    let locationMode: GroomingRequestLocationMode
+    let streetAddress: String?
+    let travelRangeMiles: Int?
     let city: String
     let state: String
     let zipCode: String
@@ -83,7 +86,12 @@ struct GroomerMatchedGroomingRequest:
     let updatedAt: String
 
     var locationSummary: String {
-        "\(city), \(state) \(zipCode)"
+        let cityState = [city, state]
+            .filter { !$0.isEmpty }
+            .joined(separator: ", ")
+        return [cityState, zipCode]
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
     }
 }
 
@@ -275,6 +283,9 @@ extension GroomerMatchedGroomingRequest {
             serviceNotes: serviceNotes,
             preferredStart: preferredStart,
             preferredEnd: preferredEnd,
+            locationMode: locationMode,
+            streetAddress: streetAddress,
+            travelRangeMiles: travelRangeMiles,
             city: city,
             state: state,
             zipCode: zipCode,

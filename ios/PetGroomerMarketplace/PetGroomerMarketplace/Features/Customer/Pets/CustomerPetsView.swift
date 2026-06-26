@@ -3,6 +3,7 @@ import SwiftUI
 
 struct CustomerPetsView: View {
     private let displayName: String
+    private let imageURLProvider: (any StorageImageURLProvider)?
     @State private var petStore: CustomerPetsStore
     @State private var requestStore: CustomerRequestsStore
     @State private var bookingStore: BookingsStore
@@ -12,12 +13,14 @@ struct CustomerPetsView: View {
         displayName: String? = nil,
         repository: any CustomerPetRepository,
         requestRepository: any CustomerRequestRepository,
-        bookingRepository: any BookingRepository
+        bookingRepository: any BookingRepository,
+        imageURLProvider: (any StorageImageURLProvider)? = nil
     ) {
         let trimmedName = displayName?.trimmingCharacters(
             in: .whitespacesAndNewlines
         ) ?? ""
         self.displayName = trimmedName.isEmpty ? "there" : trimmedName
+        self.imageURLProvider = imageURLProvider
         _petStore = State(
             initialValue: CustomerPetsStore(
                 customerID: customerID,
@@ -63,7 +66,10 @@ struct CustomerPetsView: View {
             CustomerPetFormView(store: petStore)
         }
         .sheet(isPresented: $requestStore.isShowingWizard) {
-            CustomerRequestWizardView(store: requestStore) {
+            CustomerRequestWizardView(
+                store: requestStore,
+                imageURLProvider: imageURLProvider
+            ) {
                 requestStore.cancelWizard()
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
                     petStore.startCreate()
@@ -89,7 +95,10 @@ struct CustomerPetsView: View {
                     action: startGroomingRequest
                 )
 
-                CustomerHomePetsSection(store: petStore)
+                CustomerHomePetsSection(
+                    store: petStore,
+                    imageURLProvider: imageURLProvider
+                )
 
                 CustomerHomeActiveRequestSection(
                     presentation: activeRequestPresentation
@@ -320,6 +329,7 @@ private struct CustomerHomeRequestHero: View {
 
 private struct CustomerHomePetsSection: View {
     @Bindable var store: CustomerPetsStore
+    let imageURLProvider: (any StorageImageURLProvider)?
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
@@ -340,7 +350,8 @@ private struct CustomerHomePetsSection: View {
                         ForEach(store.pets) { pet in
                             CustomerHomePetTile(
                                 pet: pet,
-                                store: store
+                                store: store,
+                                imageURLProvider: imageURLProvider
                             )
                         }
 
@@ -361,24 +372,14 @@ private struct CustomerHomePetsSection: View {
 private struct CustomerHomePetTile: View {
     let pet: CustomerPet
     @Bindable var store: CustomerPetsStore
+    let imageURLProvider: (any StorageImageURLProvider)?
 
     var body: some View {
         Button {
             store.startEdit(pet)
         } label: {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                Text(avatar)
-                    .font(.system(size: 58))
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 116)
-                    .background(avatarBackground)
-                    .clipShape(
-                        RoundedRectangle(
-                            cornerRadius: DesignTokens.CornerRadius.input,
-                            style: .continuous
-                        )
-                    )
-                    .accessibilityHidden(true)
+                heroImage
 
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     Text(pet.name)
@@ -434,6 +435,35 @@ private struct CustomerHomePetTile: View {
         }
 
         return pet.species
+    }
+
+    @ViewBuilder
+    private var heroImage: some View {
+        if let photo = store.photos(for: pet).first {
+            GroomlyStorageImageThumbnail(
+                bucket: photo.storageBucket,
+                path: photo.storagePath,
+                fileName: photo.fileName,
+                urlProvider: imageURLProvider,
+                width: 140,
+                height: 116,
+                tint: DesignTokens.Colors.customerPrimaryDark
+            )
+            .frame(maxWidth: .infinity)
+        } else {
+            Text(avatar)
+                .font(.system(size: 58))
+                .frame(maxWidth: .infinity)
+                .frame(height: 116)
+                .background(avatarBackground)
+                .clipShape(
+                    RoundedRectangle(
+                        cornerRadius: DesignTokens.CornerRadius.input,
+                        style: .continuous
+                    )
+                )
+                .accessibilityHidden(true)
+        }
     }
 
     private var avatar: String {
@@ -680,6 +710,7 @@ private struct CustomerHomeDetailHeader: View {
 private struct CustomerPetCardView: View {
     let pet: CustomerPet
     let photos: [CustomerPetPhoto]
+    let imageURLProvider: (any StorageImageURLProvider)?
     @Bindable var store: CustomerPetsStore
 
     var body: some View {
@@ -756,6 +787,7 @@ private struct CustomerPetCardView: View {
                     ForEach(photos) { photo in
                         CustomerPetPhotoRow(
                             photo: photo,
+                            imageURLProvider: imageURLProvider,
                             store: store
                         )
                     }
@@ -785,13 +817,20 @@ private struct CustomerPetCardView: View {
 
 private struct CustomerPetPhotoRow: View {
     let photo: CustomerPetPhoto
+    let imageURLProvider: (any StorageImageURLProvider)?
     @Bindable var store: CustomerPetsStore
 
     var body: some View {
         HStack(spacing: DesignTokens.Spacing.sm) {
-            Image(systemName: "photo")
-                .foregroundStyle(DesignTokens.Colors.textTertiary)
-                .accessibilityHidden(true)
+            GroomlyStorageImageThumbnail(
+                bucket: photo.storageBucket,
+                path: photo.storagePath,
+                fileName: photo.fileName,
+                urlProvider: imageURLProvider,
+                width: 48,
+                height: 48,
+                tint: DesignTokens.Colors.customerPrimaryDark
+            )
 
             Text(photo.fileName)
                 .font(DesignTokens.Typography.caption)
@@ -1148,6 +1187,9 @@ private final class CustomerHomePreviewRequestRepository: CustomerRequestReposit
                 serviceNotes: "Trim and brush out.",
                 preferredStart: "2026-06-24T16:00:00Z",
                 preferredEnd: "2026-06-24T18:00:00Z",
+                locationMode: .comeToMe,
+                streetAddress: "120 Pine St",
+                travelRangeMiles: nil,
                 city: "Seattle",
                 state: "WA",
                 zipCode: "98101",

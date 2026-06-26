@@ -5,6 +5,10 @@ import Observation
 @Observable
 final class CustomerRequestsStore {
     static let minimumPreferredStartLeadTime: TimeInterval = 5 * 60
+    static let maximumPhotoBytes = 10 * 1024 * 1024
+    static let minimumTravelRangeMiles = 5
+    static let maximumTravelRangeMiles = 100
+    static let defaultTravelRangeMiles: Double = 15
 
     private let customerID: UUID
     private let petRepository: any CustomerPetRepository
@@ -14,6 +18,7 @@ final class CustomerRequestsStore {
     private let handoffAcknowledgementStorageKey: String
 
     private(set) var pets: [CustomerPet] = []
+    private(set) var petPhotosByPetID: [UUID: [CustomerPetPhoto]] = [:]
     private(set) var requests: [CustomerGroomingRequest] = []
     private(set) var bookings: [Booking] = []
     private(set) var offerReviewsByRequestID: [UUID: [CustomerOfferReview]] = [:]
@@ -24,6 +29,7 @@ final class CustomerRequestsStore {
     private(set) var acknowledgedBookingHandoffRequestIDs: Set<UUID> = []
     private(set) var isLoading = false
     private(set) var isSubmitting = false
+    private(set) var isUploadingPhoto = false
 
     var errorMessage: String?
     var noticeMessage: String?
@@ -33,6 +39,9 @@ final class CustomerRequestsStore {
     var selectedPetID: UUID?
     var serviceType = ""
     var serviceNotes = ""
+    var locationMode: GroomingRequestLocationMode = .comeToMe
+    var streetAddress = ""
+    var travelRangeMiles = CustomerRequestsStore.defaultTravelRangeMiles
     var preferredStart: Date
     var preferredEnd: Date
     var city = ""
@@ -40,12 +49,21 @@ final class CustomerRequestsStore {
     var zipCode = ""
 
     var isBusy: Bool {
-        isLoading || isSubmitting || !acceptingOfferIDs.isEmpty || !cancellingRequestIDs.isEmpty
+        isLoading
+            || isSubmitting
+            || isUploadingPhoto
+            || !acceptingOfferIDs.isEmpty
+            || !cancellingRequestIDs.isEmpty
     }
 
     var selectedPet: CustomerPet? {
         guard let selectedPetID else { return nil }
         return pets.first { $0.id == selectedPetID }
+    }
+
+    var selectedPetPhotos: [CustomerPetPhoto] {
+        guard let selectedPetID else { return [] }
+        return petPhotosByPetID[selectedPetID] ?? []
     }
 
     var activeRequests: [CustomerGroomingRequest] {
@@ -113,6 +131,9 @@ final class CustomerRequestsStore {
 
         do {
             pets = try await petRepository.pets(customerID: customerID)
+            petPhotosByPetID = Self.groupedByPetID(
+                try await petRepository.photos(customerID: customerID)
+            )
             requests = try await requestRepository.requests(customerID: customerID)
             bookings = try await bookingRepository.bookings(
                 participantID: customerID,
@@ -177,6 +198,49 @@ final class CustomerRequestsStore {
         }
 
         noticeMessage = nil
+    }
+
+    func photos(for pet: CustomerPet) -> [CustomerPetPhoto] {
+        petPhotosByPetID[pet.id] ?? []
+    }
+
+    func uploadPhotoForSelectedPet(
+        data: Data,
+        contentType: CustomerPetPhotoContentType
+    ) async {
+        guard !isUploadingPhoto else { return }
+
+        guard let pet = selectedPet else {
+            errorMessage = "Choose a pet before adding a photo."
+            return
+        }
+
+        guard data.count <= Self.maximumPhotoBytes else {
+            errorMessage = "Choose a photo smaller than 10 MB."
+            return
+        }
+
+        errorMessage = nil
+        isUploadingPhoto = true
+        defer { isUploadingPhoto = false }
+
+        do {
+            let photo = try await petRepository.uploadPhoto(
+                customerID: customerID,
+                petID: pet.id,
+                data: data,
+                contentType: contentType,
+                caption: nil
+            )
+            petPhotosByPetID[pet.id, default: []].append(photo)
+            petPhotosByPetID[pet.id] = Self.orderedPhotos(
+                petPhotosByPetID[pet.id] ?? []
+            )
+        } catch let error as CustomerPetRepositoryError {
+            errorMessage = message(for: error, action: "upload")
+        } catch {
+            errorMessage = message(for: CustomerPetRepositoryError.unavailable, action: "upload")
+        }
     }
 
     func acknowledgeBookingHandoff(for handoff: CustomerRequestBookingHandoff) {
@@ -363,6 +427,14 @@ final class CustomerRequestsStore {
             field: "Service notes",
             maximum: 2000
         )
+        let streetAddress = try optional(
+            self.streetAddress,
+            field: "Street address",
+            maximum: 200
+        )
+        let travelRangeMiles = locationMode == .visitGroomer
+            ? Self.clampedTravelRangeMiles(self.travelRangeMiles)
+            : nil
 
         let earliestPreferredStart = now.addingTimeInterval(
             Self.minimumPreferredStartLeadTime
@@ -385,6 +457,9 @@ final class CustomerRequestsStore {
             serviceNotes: serviceNotes,
             preferredStart: preferredStart,
             preferredEnd: preferredEnd,
+            locationMode: locationMode,
+            streetAddress: streetAddress,
+            travelRangeMiles: travelRangeMiles,
             city: try required(city, field: "City", range: 1...100),
             state: try required(state, field: "State", range: 2...80),
             zipCode: try required(zipCode, field: "ZIP code", range: 3...20)
@@ -394,6 +469,9 @@ final class CustomerRequestsStore {
     private func resetForm(now: Date = Date()) {
         serviceType = ""
         serviceNotes = ""
+        locationMode = .comeToMe
+        streetAddress = ""
+        travelRangeMiles = Self.defaultTravelRangeMiles
         city = ""
         state = ""
         zipCode = ""
@@ -632,6 +710,37 @@ final class CustomerRequestsStore {
 
             return lhs.id.uuidString < rhs.id.uuidString
         }
+    }
+
+    private static func groupedByPetID(
+        _ photos: [CustomerPetPhoto]
+    ) -> [UUID: [CustomerPetPhoto]] {
+        var grouped: [UUID: [CustomerPetPhoto]] = [:]
+        for photo in photos {
+            grouped[photo.petID, default: []].append(photo)
+        }
+        return grouped.mapValues(orderedPhotos)
+    }
+
+    private static func orderedPhotos(
+        _ photos: [CustomerPetPhoto]
+    ) -> [CustomerPetPhoto] {
+        photos.sorted { lhs, rhs in
+            if lhs.isPrimary != rhs.isPrimary {
+                return lhs.isPrimary
+            }
+            if lhs.sortOrder != rhs.sortOrder {
+                return lhs.sortOrder < rhs.sortOrder
+            }
+            return lhs.id.uuidString < rhs.id.uuidString
+        }
+    }
+
+    private static func clampedTravelRangeMiles(_ value: Double) -> Int {
+        min(
+            maximumTravelRangeMiles,
+            max(minimumTravelRangeMiles, Int(value.rounded()))
+        )
     }
 
     private func persistAcknowledgedBookingHandoffRequestIDs() {

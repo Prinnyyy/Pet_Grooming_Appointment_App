@@ -11,6 +11,7 @@ struct AppRootView: View {
     let chatRepository: (any ChatRepository)?
     let groomerProfileRepository: (any GroomerProfileRepository)?
     let groomerRequestRepository: (any GroomerRequestRepository)?
+    let storageImageURLProvider: (any StorageImageURLProvider)?
     let roleOnboardingContent: AnyView?
 
     init(
@@ -24,6 +25,7 @@ struct AppRootView: View {
         chatRepository: (any ChatRepository)? = nil,
         groomerProfileRepository: (any GroomerProfileRepository)? = nil,
         groomerRequestRepository: (any GroomerRequestRepository)? = nil,
+        storageImageURLProvider: (any StorageImageURLProvider)? = nil,
         roleOnboardingContent: AnyView? = nil
     ) {
         self.route = route
@@ -36,6 +38,7 @@ struct AppRootView: View {
         self.chatRepository = chatRepository
         self.groomerProfileRepository = groomerProfileRepository
         self.groomerRequestRepository = groomerRequestRepository
+        self.storageImageURLProvider = storageImageURLProvider
         self.roleOnboardingContent = roleOnboardingContent
     }
 
@@ -49,7 +52,8 @@ struct AppRootView: View {
                let bookingRepository,
                let chatRepository,
                let groomerProfileRepository,
-               let groomerRequestRepository {
+               let groomerRequestRepository,
+               let storageImageURLProvider {
                 AuthenticationGateView(
                     store: authenticationStore,
                     profileRepository: profileRepository,
@@ -58,7 +62,8 @@ struct AppRootView: View {
                     bookingRepository: bookingRepository,
                     chatRepository: chatRepository,
                     groomerProfileRepository: groomerProfileRepository,
-                    groomerRequestRepository: groomerRequestRepository
+                    groomerRequestRepository: groomerRequestRepository,
+                    storageImageURLProvider: storageImageURLProvider
                 )
             } else {
                 AuthenticationBootstrapView(state: authenticationBootstrapState)

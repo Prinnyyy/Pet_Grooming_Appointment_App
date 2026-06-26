@@ -1,12 +1,15 @@
 import SwiftUI
 
 struct GroomerRequestsView: View {
+    private let imageURLProvider: (any StorageImageURLProvider)?
     @State private var store: GroomerRequestsStore
 
     init(
         groomerID: UUID,
-        repository: any GroomerRequestRepository
+        repository: any GroomerRequestRepository,
+        imageURLProvider: (any StorageImageURLProvider)? = nil
     ) {
+        self.imageURLProvider = imageURLProvider
         _store = State(
             initialValue: GroomerRequestsStore(
                 groomerID: groomerID,
@@ -105,7 +108,8 @@ struct GroomerRequestsView: View {
                             NavigationLink {
                                 GroomerRequestDetailView(
                                     matchID: matchedRequest.id,
-                                    store: store
+                                    store: store,
+                                    imageURLProvider: imageURLProvider
                                 )
                             } label: {
                                 GroomerRequestSummaryRow(
@@ -206,6 +210,7 @@ private struct GroomerRequestSummaryRow: View {
 private struct GroomerRequestDetailView: View {
     let matchID: UUID
     let store: GroomerRequestsStore
+    let imageURLProvider: (any StorageImageURLProvider)?
 
     @State private var didInitializeOfferForm = false
     @State private var proposedStart = Date().addingTimeInterval(24 * 60 * 60)
@@ -381,6 +386,10 @@ private struct GroomerRequestDetailView: View {
                     value: "\(matchedRequest.request.photoSnapshot.count)",
                     systemImage: "photo.on.rectangle"
                 )
+
+                if !matchedRequest.request.photoSnapshot.isEmpty {
+                    requestPhotoStrip(matchedRequest.request.photoSnapshot)
+                }
             }
         }
     }
@@ -407,6 +416,18 @@ private struct GroomerRequestDetailView: View {
                 Divider()
                     .overlay(DesignTokens.Colors.divider)
                 DetailMetadataRow(
+                    title: "Service Mode",
+                    value: matchedRequest.request.locationMode.groomerDetailTitle,
+                    systemImage: matchedRequest.request.locationMode.groomerDetailSystemImage
+                )
+                if let streetAddress = matchedRequest.request.streetAddress {
+                    DetailMetadataRow(
+                        title: "Street",
+                        value: streetAddress,
+                        systemImage: "house"
+                    )
+                }
+                DetailMetadataRow(
                     title: "City",
                     value: matchedRequest.request.city,
                     systemImage: "mappin.and.ellipse"
@@ -421,8 +442,37 @@ private struct GroomerRequestDetailView: View {
                     value: matchedRequest.request.zipCode,
                     systemImage: "number"
                 )
+                if let travelRangeMiles = matchedRequest.request.travelRangeMiles {
+                    DetailMetadataRow(
+                        title: "Travel Range",
+                        value: "\(travelRangeMiles) mi",
+                        systemImage: "location"
+                    )
+                }
             }
         }
+    }
+
+    private func requestPhotoStrip(
+        _ photos: [GroomingRequestPhotoSnapshot]
+    ) -> some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: DesignTokens.Spacing.sm) {
+                ForEach(photos) { photo in
+                    GroomlyStorageImageThumbnail(
+                        bucket: photo.storageBucket,
+                        path: photo.storagePath,
+                        fileName: photo.fileName,
+                        urlProvider: imageURLProvider,
+                        width: 88,
+                        height: 88,
+                        tint: DesignTokens.Colors.groomerAccentDark
+                    )
+                }
+            }
+            .padding(.vertical, DesignTokens.Spacing.xs)
+        }
+        .accessibilityIdentifier("groomer.requests.photo-strip")
     }
 
     @ViewBuilder
@@ -861,6 +911,26 @@ private extension GroomerOfferStatus {
     }
 }
 
+private extension GroomingRequestLocationMode {
+    var groomerDetailTitle: String {
+        switch self {
+        case .comeToMe:
+            "Mobile groomer comes to customer"
+        case .visitGroomer:
+            "Customer can visit groomer"
+        }
+    }
+
+    var groomerDetailSystemImage: String {
+        switch self {
+        case .comeToMe:
+            "car.fill"
+        case .visitGroomer:
+            "house.fill"
+        }
+    }
+}
+
 private struct GroomerRequestsStatusView: View {
     let store: GroomerRequestsStore
 
@@ -967,6 +1037,9 @@ private final class GroomerRequestsPreviewRepository: GroomerRequestRepository {
                 serviceNotes: "Sensitive paws.",
                 preferredStart: "2026-06-22T16:00:00Z",
                 preferredEnd: "2026-06-22T18:00:00Z",
+                locationMode: .comeToMe,
+                streetAddress: "120 Pine St",
+                travelRangeMiles: nil,
                 city: "Seattle",
                 state: "WA",
                 zipCode: "98101",

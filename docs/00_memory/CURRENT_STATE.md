@@ -4,14 +4,14 @@ Update this only when project state meaningfully changes.
 
 ## Last Updated
 
-- Date: 2026-06-22
+- Date: 2026-06-26
 - Updated by: Codex
 
 ## Current Task Fast Path
 
 - Latest completed Groomly screenshot task: `docs/06_tasks/T-041_GROOMLY_CUSTOMER_REQUESTS_STATUS_SCREENSHOT_UI.md`.
 - Latest completed Groomly UI refinement task: `docs/06_tasks/T-043_GROOMLY_CUSTOMER_REQUESTS_CAROUSEL_EDGE_REFINEMENT.md`.
-- Latest completed request feature task: `docs/06_tasks/T-048_GROOMLY_CUSTOMER_NEW_REQUEST_WIZARD_REWORK.md`.
+- Latest completed request feature task: `docs/06_tasks/T-049_REQUEST_LOCATION_PHOTO_IMAGE_READBACK.md`.
 - Groomly UI sequence: `docs/06_tasks/T-026_TO_T-035_GROOMLY_UI_COMPLETION_SEQUENCE.md` is completed for implemented MVP screens.
 - Completed Groomly UI phase archive marker: `docs/09_frozen/groomly_ui_completed_2026-06-22/FREEZE_README.md`.
 - Active next executable Groomly task: none currently defined; future UI work starts from a user-uploaded screenshot.
@@ -50,7 +50,8 @@ Update this only when project state meaningfully changes.
 - T-045 is completed. Customer Requests now filters its main cards to `open`/`has_offers` requests plus `booked` request handoff cards backed by matching confirmed bookings. `View Booking` opens the existing Booking detail and removes the handoff from the current UI session only; cancelled/expired requests and completed/cancelled bookings are not shown there.
 - T-046 is completed. The booked request handoff no longer uses a separate card style. `booked` requests with matching confirmed bookings now render through the quest action card with the pet avatar retained, handoff title/body text, a compact completed timeline, a green confirmed border, and a single `View Booking` CTA. Opening `View Booking` persists the acknowledgement locally for that customer so the handoff stays hidden after app restart on the same device.
 - T-047 is completed. Booked handoff quest cards now use the same quest action card layout metrics as unconfirmed request cards, replace the handoff paragraph with the original request title, add the request address under the confirmed booking time, center carousel cards, use larger explicit two-line card headlines, compact no-year single-line time ranges, unify `Detail`/`Cancel`/`View Booking` button structure, keep T-046 same-device acknowledgement persistence, share the same visible quest action card source with Customer Home's horizontally swipeable summary carousel, use shared `No Active Request` empty copy for Home and Requests, and route bottom success notices through a global 2-second tab-shell feedback overlay positioned above the tab bar.
-- T-048 is completed. Customer new request now uses a five-step Pet/Service/Time/Details/Review wizard inspired by the five uploaded screenshots. Pet selection and Add Pet reuse existing pet data/form paths; fixed service choices write the existing `serviceType`; date chips plus Morning/Afternoon/Evening/Detailed Time/Flexible controls write the existing `preferredStart`/`preferredEnd`; notes write the existing `serviceNotes`; review displays only current request fields. Location mode/street address/travel range and photo tiles are UI-only until a future backend/model task persists them.
+- T-048 is completed. Customer new request uses a five-step Pet/Service/Time/Details/Review wizard inspired by the five uploaded screenshots.
+- T-049 is completed locally. Request location mode/street address/travel range now flow through the Store, request draft, Supabase RPC parameters, request models, and detail displays; wizard Add Photo uploads through the selected pet's existing photo path; pet/request/portfolio photos render via signed Storage thumbnails. The T-049 Supabase migration is local only until explicitly applied remotely.
 
 ## Current Branch
 
@@ -62,12 +63,12 @@ Update this only when project state meaningfully changes.
 ## Current Build Status
 
 - Last build command: `./scripts/ios-build.sh`.
-- Last known build result: passed for T-047 on 2026-06-22.
-- Last test command: `xcodebuild -project ios/PetGroomerMarketplace/PetGroomerMarketplace.xcodeproj -scheme PetGroomerMarketplace -destination 'platform=iOS Simulator,OS=18.4,name=iPhone 16 Pro' test -only-testing:PetGroomerMarketplaceTests/CustomerRequestsStoreTests/requestWizardStepsMatchPrototypeProgression -only-testing:PetGroomerMarketplaceTests/CustomerRequestsStoreTests/requestWizardServiceOptionsMapToExistingServiceTypeField -only-testing:PetGroomerMarketplaceTests/CustomerRequestsStoreTests/requestWizardTimeWindowsApplyPresetRangesToSelectedDate -only-testing:PetGroomerMarketplaceTests/CustomerRequestsStoreTests/requestWizardFlexibleTimeUsesAllDayWindow -only-testing:PetGroomerMarketplaceTests/CustomerRequestsStoreTests/requestWizardTravelRangeClampsToSupportedMiles -only-testing:PetGroomerMarketplaceTests/CustomerRequestsStoreTests/requestWizardReviewSummaryUsesCurrentRequestFields`.
-- Last known test result: targeted T-048 Customer new request wizard presentation tests passed on 2026-06-22.
-- Last simulator launch: XcodeBuildMCP `build_run_sim` passed on `iPhone 17` simulator (`B9639233-9E78-41C9-A372-330D36C38DA7`) on 2026-06-22; app launched successfully for inspection with no diagnostics warnings or errors. Screenshot: `/var/folders/bc/xmbw6w1d06s61ns9_j2fnll00000gn/T/screenshot_optimized_558715fe-96de-4a6c-8cba-597f9215838c.jpg`.
-- Last general check: `git diff --check` passed for T-048 on 2026-06-22.
-- Known failing checks: none recorded after T-022.
+- Last known build result: passed for T-049 on 2026-06-26.
+- Last test command: `xcodebuild -project ios/PetGroomerMarketplace/PetGroomerMarketplace.xcodeproj -scheme PetGroomerMarketplace -destination 'platform=iOS Simulator,OS=18.4,name=iPhone 16 Pro' -only-testing:PetGroomerMarketplaceTests/CustomerRequestsStoreTests test`.
+- Last known test result: targeted T-049 `CustomerRequestsStoreTests` passed on 2026-06-26.
+- Last simulator launch: XcodeBuildMCP `build_run_sim` passed on `iPhone 16 Pro` simulator (`4CB97394-9112-4FBB-8C99-628B416B922F`) on 2026-06-26; app launched successfully for inspection with no diagnostics warnings or errors. Screenshot: `/var/folders/bc/xmbw6w1d06s61ns9_j2fnll00000gn/T/screenshot_optimized_1f9a344d-8520-4d14-ad21-a5a57310018e.jpg`.
+- Last general check: `git diff --check` passed for T-049 on 2026-06-26.
+- Known failing checks: optional `supabase migration list --local` could not connect because local Postgres on `127.0.0.1:54322` was not running.
 - Historical per-task validation details live in the relevant `docs/06_tasks/T-*.md` files and `docs/00_memory/WORKLOG.md`.
 
 ## Current Product State
@@ -76,7 +77,7 @@ Update this only when project state meaningfully changes.
 - Production routing uses real Supabase Auth, authoritative profile loading, and customer/groomer role separation. No production path fabricates a session/profile.
 - Implemented iOS areas include Auth, role onboarding, customer pets, customer requests/offers, groomer requests/offers, bookings, participant text chat, groomer profile/services/portfolio metadata, Account, and a sanitized Debug Panel.
 - Active product model remains Open Request -> Groomer Offer -> Customer Confirmation -> Booking. Do not reintroduce task-card push flow.
-- Customer Requests owns only pre-confirmation request work: it shows active `open`/`has_offers` request cards and a `booked` -> Booking handoff when a matching confirmed booking exists. The handoff is displayed inside the same quest action card layout as unconfirmed requests, swaps to a confirmed title and `View Booking` CTA, and is hidden after `View Booking` is acknowledged locally on the same device. Confirmed appointment lifecycle remains in Bookings. The Customer new request wizard is a five-step UI over the existing request draft fields; location mode/address/range and photo tiles are not persisted yet.
+- Customer Requests owns only pre-confirmation request work: it shows active `open`/`has_offers` request cards and a `booked` -> Booking handoff when a matching confirmed booking exists. The handoff is displayed inside the same quest action card layout as unconfirmed requests, swaps to a confirmed title and `View Booking` CTA, and is hidden after `View Booking` is acknowledged locally on the same device. Confirmed appointment lifecycle remains in Bookings. The Customer new request wizard is a five-step UI over request draft fields; T-049 adds local persistence support for location mode/address/range and makes Add Photo upload to the selected pet photo path for request snapshot reuse.
 - Groomly UI adaptation is complete for implemented MVP screens and archived as historical context. Future Groomly UI changes are screenshot-driven rework tasks that must map screenshot modules to existing SwiftUI/Store/repository/model paths or stop for new-feature approval. Design sources remain `docs/08_design/Groomly.html`, `docs/08_design/Groomly/`, `docs/08_design/UI_IMPLEMENTATION_NOTES.md`, `docs/08_design/design_tokens.json`, and `docs/08_design/Apply Groomly Design Prototype to Existing SwiftUI App.md`.
 
 ## Current Workflow State
@@ -102,6 +103,7 @@ Update this only when project state meaningfully changes.
 - `DesignSystem/GroomlyActionPrimitives.swift` contains `GroomlyPrimaryButtonStyle`, `GroomlySecondaryButtonStyle`, `GroomlyCard`, `GroomlyStatusChip`, and the shared `.groomlyShadow(...)` modifier for DesignSystem primitives.
 - `DesignSystem/GroomlyFeedbackPrimitives.swift` contains `GroomlyErrorBanner`, `GroomlyNoticeToast`, `GroomlyStatusProgressToast`, `GroomlyFeedbackCenter`, `GroomlyNoticeForwarder`, `GroomlyGlobalFeedbackOverlay`, `GroomlyLoadingView`, `GroomlyEmptyState`, and `GroomlySectionHeader`; loading and empty-state primitives support customer/groomer accents for role-specific screens.
 - `DesignSystem/GroomlyFormPrimitives.swift` contains `.groomlyFormField()` for token-based Auth/form inputs.
+- `DesignSystem/GroomlyStorageImageThumbnail.swift` renders private Storage images through signed URLs from `StorageImageURLProvider`.
 - T-024 wires Groomly primitives into Auth bootstrap, AuthGate loading, Sign In, Sign Up, profile loading/error, and Role Onboarding only.
 - T-036 introduced the signed-out AuthenticationView landing-first shell with entry animations, floating bubbles, and CTA routing into the existing sign-up/sign-in form.
 - T-037 removes the mistakenly implemented pre-auth Customer/Groomer selector and all `LandingAudience`-derived variants from `AuthenticationView`. The signed-out landing now has a single dog/Groomly hero, more visible bubble drift, rebalanced logo/title/CTA spacing, and fixed customer-accent styling only as a brand treatment.
@@ -115,7 +117,8 @@ Update this only when project state meaningfully changes.
 - T-045 added Customer Requests booking handoff behavior without backend changes by mapping `booked` requests through `Booking.requestID` and routing `View Booking` to the existing `BookingDetailView`.
 - T-046 supersedes the separate handoff card style: `CustomerRequestsView` now renders booked handoffs through `CustomerRequestProgressCard`, changes the card header/action content for confirmed bookings, uses a compact completed timeline, and persists same-device acknowledgement through customer-scoped `UserDefaults`.
 - T-047 refines the fused Customer Requests quest card and bottom feedback polish: `CustomerRequestProgressCardPresentation` centralizes active/booked header and info-line text, booked cards show the original request title plus booking time and address, active/booked cards share the same card padding, spacing, and timeline density, carousel sizing is centered, headlines are explicit two-line Title Case strings, quest card time ranges use compact no-year single-line formatting, all three card actions share one label component with tone-specific styling, `CustomerRequestsStore.visibleActionCards` feeds both the Requests carousel and Customer Home's no-timeline/no-button summary carousel, Home avoids request-busy CTA flicker and empty loading cards, Home/Requests share `No Active Request` empty copy, and success notices are forwarded into a global tab-shell `GroomlyFeedbackCenter` overlay that survives page switches, replaces older notices, dismisses after 2 seconds, and sits above the tab bar.
-- T-048 replaces the Customer request creation sheet with a five-step Pet/Service/Time/Details/Review wizard. The wizard maps supported controls to existing fields only: pet selection -> `selectedPetID`, fixed service option -> `serviceType`, preset/detailed/flexible time -> `preferredStart`/`preferredEnd`, notes -> `serviceNotes`, and city/state/ZIP -> existing location fields. The Add Pet tile exits the request sheet and opens the existing Customer pet form from Home. Location mode/street address/travel range and photo placeholders are local UI state only and are omitted from publish/review persistence until a future backend/model change.
+- T-048 replaces the Customer request creation sheet with a five-step Pet/Service/Time/Details/Review wizard. The wizard maps pet selection, service choice, time controls, notes, and location controls to `CustomerRequestsStore`; the Add Pet tile exits the request sheet and opens the existing Customer pet form from Home.
+- T-049 extends the request draft/model/repository contract for `locationMode`, `streetAddress`, and `travelRangeMiles`, adds local migration `20260626175855_t049_request_location_and_image_readback.sql`, wires wizard Add Photo to `CustomerPetRepository.uploadPhoto`, loads selected pet photos into `CustomerRequestsStore`, and renders signed thumbnails for pet photos, request `photoSnapshot` rows, and groomer portfolio photos.
 - T-025 wires Groomly primitives into Customer Home/Pets, including the pet list, pet cards, photo metadata rows, loading/empty/error/notice states, and add/edit pet form styling only.
 - T-026 wires Groomly primitives into the Customer Requests tab shell, request list, summary rows, loading/empty/error states, new-request entry card, and bottom status feedback only.
 - T-027 wires Groomly primitives into the Customer Request wizard form, field cards, review summary, wizard error banner, and publish action only.
@@ -134,18 +137,19 @@ Update this only when project state meaningfully changes.
 - Authorized Supabase project: `Pet Groomer Marketplace`, ref `lqmasbuqzvcvtawonjlb`.
 - Legacy project `swdiiyypysyxbnfrxxsv` is out of scope; do not inspect or mutate it.
 - Backend objects needed for the MVP are deployed through T-022 and mirrored under `supabase/migrations/`.
-- T-023B, T-023C, T-023D1, T-023D2, T-024 through T-043, T-045, T-046, and T-047 required no backend reads or writes. T-044 used explicit user authorization for remote Supabase DDL through MCP. Future backend work must use Supabase MCP only and requires explicit user approval for remote schema writes.
+- T-023B, T-023C, T-023D1, T-023D2, T-024 through T-043, T-045, T-046, T-047, and T-048 required no backend reads or writes. T-044 used explicit user authorization for remote Supabase DDL through MCP. T-049 adds a local Supabase migration for request location fields, `create_grooming_request` parameters, and matched-groomer pet-photo signed-URL access, but it has not been applied remotely. Future backend work must use Supabase MCP only and requires explicit user approval for remote schema writes.
 - The local `supabase_api_key` file is ignored and must not be read or embedded in code/docs.
 
 ## Known Risks
 
 - Xcode 26.5 object version 77 and the configured iPhone 16 Pro/iOS 18.4 simulator are expected by existing scripts.
 - Groomly prototype screens and future uploaded screenshots may show deferred or unsupported ideas. Treat them as visual inspiration only unless a separate task authorizes product/backend work.
-- T-048's new request wizard displays UI-only location mode, street address, travel range, and photo placeholder controls. These do not affect matching or persisted request detail until a future approved backend/model/repository task adds durable fields and mappings.
-- Deferred features remain out of scope for the Groomly foundation sequence, including request editing, rebooking, favorites, signed URL image rendering, realtime chat, attachments, payments, push notifications, maps, calendars, and admin tooling.
+- The T-049 migration is local only. Hosted request publishing with the new RPC parameters requires applying `supabase/migrations/20260626175855_t049_request_location_and_image_readback.sql` to the authorized Supabase project first.
+- Request Add Photo now reuses pet photos and request `photo_snapshot`; there is still no request-specific attachment table, moderation flow, or image transform/cache layer.
+- Deferred features remain out of scope for the Groomly foundation sequence, including request editing, rebooking, favorites, realtime chat, attachments, payments, push notifications, maps, calendars, and admin tooling.
 - Customer Requests booking handoff acknowledgement is same-device local state after T-046. It survives client restart but not reinstall, app data clearing, or cross-device use. A future backend/model task should add a persisted customer-scoped acknowledgement such as `request_booking_handoff_acknowledged_at` or a small acknowledgement table before relying on cross-device suppression.
 - Default email confirmation still requires browser confirmation and returning to Sign In; native deep-link completion and production SMTP remain separate future work.
 
 ## Next Recommended Task
 
-- Wait for the user to upload/select one screenshot, then create the next available screenshot-driven Groomly UI task from `docs/06_tasks/SCREENSHOT_UI_REWORK_TASK_TEMPLATE.md`. Do not start backend, post-MVP feature work, Admin Dashboard work, or new-feature implementation without explicit approval.
+- Wait for explicit user approval before applying the T-049 Supabase migration remotely or running hosted write validation. Otherwise, wait for the user to upload/select one screenshot, then create the next available screenshot-driven Groomly UI task from `docs/06_tasks/SCREENSHOT_UI_REWORK_TASK_TEMPLATE.md`. Do not start backend, post-MVP feature work, Admin Dashboard work, or new-feature implementation without explicit approval.

@@ -6,6 +6,7 @@ struct GroomerTabView: View {
     let requestRepository: (any GroomerRequestRepository)?
     let bookingRepository: (any BookingRepository)?
     let chatRepository: (any ChatRepository)?
+    let storageImageURLProvider: (any StorageImageURLProvider)?
     let accountContent: AnyView?
     @State private var selection: GroomerTab = .requests
     @State private var feedbackCenter = GroomlyFeedbackCenter()
@@ -16,6 +17,7 @@ struct GroomerTabView: View {
         requestRepository: (any GroomerRequestRepository)? = nil,
         bookingRepository: (any BookingRepository)? = nil,
         chatRepository: (any ChatRepository)? = nil,
+        storageImageURLProvider: (any StorageImageURLProvider)? = nil,
         accountContent: AnyView? = nil
     ) {
         self.groomerID = groomerID
@@ -23,6 +25,7 @@ struct GroomerTabView: View {
         self.requestRepository = requestRepository
         self.bookingRepository = bookingRepository
         self.chatRepository = chatRepository
+        self.storageImageURLProvider = storageImageURLProvider
         self.accountContent = accountContent
     }
 
@@ -57,7 +60,8 @@ struct GroomerTabView: View {
            let requestRepository {
             GroomerRequestsView(
                 groomerID: groomerID,
-                repository: requestRepository
+                repository: requestRepository,
+                imageURLProvider: storageImageURLProvider
             )
         } else if tab == .bookings,
                   let groomerID,
@@ -81,6 +85,7 @@ struct GroomerTabView: View {
             GroomerProfileManagementView(
                 groomerID: groomerID,
                 repository: profileRepository,
+                imageURLProvider: storageImageURLProvider,
                 accountContent: accountContent
             )
         } else if tab == .account, let accountContent {

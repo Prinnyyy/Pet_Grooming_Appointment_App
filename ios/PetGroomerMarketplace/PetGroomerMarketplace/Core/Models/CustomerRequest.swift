@@ -1,5 +1,19 @@
 import Foundation
 
+nonisolated enum GroomingRequestLocationMode:
+    String,
+    Codable,
+    CaseIterable,
+    Hashable,
+    Identifiable,
+    Sendable
+{
+    case comeToMe = "come_to_me"
+    case visitGroomer = "visit_groomer"
+
+    var id: Self { self }
+}
+
 struct CustomerGroomingRequest: Equatable, Hashable, Identifiable, Sendable {
     let id: UUID
     let customerID: UUID
@@ -10,6 +24,9 @@ struct CustomerGroomingRequest: Equatable, Hashable, Identifiable, Sendable {
     let serviceNotes: String?
     let preferredStart: String
     let preferredEnd: String
+    let locationMode: GroomingRequestLocationMode
+    let streetAddress: String?
+    let travelRangeMiles: Int?
     let city: String
     let state: String
     let zipCode: String
@@ -23,7 +40,12 @@ struct CustomerGroomingRequest: Equatable, Hashable, Identifiable, Sendable {
     }
 
     var locationSummary: String {
-        "\(city), \(state) \(zipCode)"
+        let cityState = [city, state]
+            .filter { !$0.isEmpty }
+            .joined(separator: ", ")
+        return [cityState, zipCode]
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
     }
 
     func replacing(
@@ -40,6 +62,9 @@ struct CustomerGroomingRequest: Equatable, Hashable, Identifiable, Sendable {
             serviceNotes: serviceNotes,
             preferredStart: preferredStart,
             preferredEnd: preferredEnd,
+            locationMode: locationMode,
+            streetAddress: streetAddress,
+            travelRangeMiles: travelRangeMiles,
             city: city,
             state: state,
             zipCode: zipCode,
@@ -153,6 +178,9 @@ struct GroomingRequestDraft: Equatable, Sendable {
     let serviceNotes: String?
     let preferredStart: Date
     let preferredEnd: Date
+    let locationMode: GroomingRequestLocationMode
+    let streetAddress: String?
+    let travelRangeMiles: Int?
     let city: String
     let state: String
     let zipCode: String

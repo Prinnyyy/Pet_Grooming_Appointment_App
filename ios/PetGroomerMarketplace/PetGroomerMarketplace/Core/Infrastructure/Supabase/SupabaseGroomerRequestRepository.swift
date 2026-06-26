@@ -9,7 +9,8 @@ final class SupabaseGroomerRequestRepository: GroomerRequestRepository {
         """
     private static let requestColumns = """
         id,customer_id,pet_id,pet_snapshot,photo_snapshot,service_type,service_notes,\
-        preferred_start,preferred_end,city,state,zip_code,status,expires_at,created_at,updated_at
+        preferred_start,preferred_end,location_mode,street_address,travel_range_miles,\
+        city,state,zip_code,status,expires_at,created_at,updated_at
         """
     private static let offerColumns = """
         id,request_id,match_id,customer_id,groomer_id,proposed_start,proposed_end,\
@@ -328,6 +329,9 @@ private struct GroomerMatchedGroomingRequestRow: Decodable {
     let serviceNotes: String?
     let preferredStart: String
     let preferredEnd: String
+    let locationMode: GroomingRequestLocationMode
+    let streetAddress: String?
+    let travelRangeMiles: Int?
     let city: String
     let state: String
     let zipCode: String
@@ -347,6 +351,9 @@ private struct GroomerMatchedGroomingRequestRow: Decodable {
             serviceNotes: serviceNotes,
             preferredStart: preferredStart,
             preferredEnd: preferredEnd,
+            locationMode: locationMode,
+            streetAddress: streetAddress,
+            travelRangeMiles: travelRangeMiles,
             city: city,
             state: state,
             zipCode: zipCode,
@@ -367,6 +374,9 @@ private struct GroomerMatchedGroomingRequestRow: Decodable {
         case serviceNotes = "service_notes"
         case preferredStart = "preferred_start"
         case preferredEnd = "preferred_end"
+        case locationMode = "location_mode"
+        case streetAddress = "street_address"
+        case travelRangeMiles = "travel_range_miles"
         case city
         case state
         case zipCode = "zip_code"

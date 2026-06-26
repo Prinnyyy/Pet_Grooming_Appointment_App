@@ -9,6 +9,7 @@ struct AuthenticationGateView: View {
     let chatRepository: any ChatRepository
     let groomerProfileRepository: any GroomerProfileRepository
     let groomerRequestRepository: any GroomerRequestRepository
+    let storageImageURLProvider: any StorageImageURLProvider
 
     var body: some View {
         Group {
@@ -39,7 +40,8 @@ struct AuthenticationGateView: View {
                     bookingRepository: bookingRepository,
                     chatRepository: chatRepository,
                     groomerProfileRepository: groomerProfileRepository,
-                    groomerRequestRepository: groomerRequestRepository
+                    groomerRequestRepository: groomerRequestRepository,
+                    storageImageURLProvider: storageImageURLProvider
                 )
             }
         }

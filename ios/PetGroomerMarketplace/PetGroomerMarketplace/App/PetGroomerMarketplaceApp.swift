@@ -16,7 +16,8 @@ struct PetGroomerMarketplaceApp: App {
                 bookingRepository: composition.bookingRepository,
                 chatRepository: composition.chatRepository,
                 groomerProfileRepository: composition.groomerProfileRepository,
-                groomerRequestRepository: composition.groomerRequestRepository
+                groomerRequestRepository: composition.groomerRequestRepository,
+                storageImageURLProvider: composition.storageImageURLProvider
             )
         }
     }

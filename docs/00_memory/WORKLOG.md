@@ -1,6 +1,17 @@
 # Worklog
 
 ```text
+Date: 2026-06-26
+Task: T-049 - Request location, photo upload, and image readback.
+Files changed: Added T-049 task doc, local Supabase migration, StorageImageURLProvider, SupabaseStorageImageURLProvider, and GroomlyStorageImageThumbnail; updated request models/repositories, app injection, customer/groomer request and photo UI surfaces, CustomerRequestsStore, tests, CURRENT_STATE.md, FEATURE_INDEX.md, WORKLOG.md, and TASK_LEDGER.md.
+Checks: TDD red check failed before implementation because request drafts did not carry location mode/address/range and CustomerRequestsStore had no selected-pet photo upload API. Targeted `CustomerRequestsStoreTests` passed after implementation. `./scripts/ios-build.sh` passed. XcodeBuildMCP `build_run_sim` passed on `iPhone 16 Pro` simulator (`4CB97394-9112-4FBB-8C99-628B416B922F`) with no diagnostics warnings or errors. Final `git diff --check` passed. Screenshot: `/var/folders/bc/xmbw6w1d06s61ns9_j2fnll00000gn/T/screenshot_optimized_1f9a344d-8520-4d14-ad21-a5a57310018e.jpg`.
+Additional checks: `./scripts/ios-test.sh --filter CustomerRequestsStoreTests` was attempted but the script ignores the filter and ran the full test action; UI smoke failed independently while the new Store tests passed after implementation. `supabase migration list --local` was attempted as a non-writing local check but could not connect because local Postgres on `127.0.0.1:54322` was not running.
+Result: Request location mode/address/range now flow through the Store, request draft, Supabase RPC parameters, request models, and request detail displays. Wizard Add Photo now uploads through the existing selected pet photo path so request creation can snapshot the uploaded metadata. Customer pet cards/rows, request photo snapshots, groomer request detail snapshots, and groomer portfolio rows now render signed Storage thumbnails.
+Risks: The T-049 Supabase migration is local only in this run and must be remotely applied before validating hosted request publishing with the new RPC signature. Add Photo is still pet-photo reuse plus request snapshot, not a request-specific attachment system.
+Next: Wait for explicit user approval before applying the T-049 migration remotely or running hosted Supabase write validation.
+```
+
+```text
 Date: 2026-06-22
 Task: T-048 - Groomly customer new request wizard rework.
 Files changed: Added T-048 task doc; updated CustomerRequestsView.swift, CustomerPetsView.swift, CustomerRequestFeatureTests.swift, CURRENT_STATE.md, FEATURE_INDEX.md, WORKLOG.md, and TASK_LEDGER.md.

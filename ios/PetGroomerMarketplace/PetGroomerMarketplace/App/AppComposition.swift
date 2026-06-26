@@ -11,6 +11,7 @@ struct AppComposition {
     let chatRepository: (any ChatRepository)?
     let groomerProfileRepository: (any GroomerProfileRepository)?
     let groomerRequestRepository: (any GroomerRequestRepository)?
+    let storageImageURLProvider: (any StorageImageURLProvider)?
     let authenticationStore: AuthenticationStore?
 
     init(bundle: Bundle = .main) {
@@ -25,6 +26,7 @@ struct AppComposition {
             let chatRepository = SupabaseChatRepository(client: client)
             let groomerProfileRepository = SupabaseGroomerProfileRepository(client: client)
             let groomerRequestRepository = SupabaseGroomerRequestRepository(client: client)
+            let storageImageURLProvider = SupabaseStorageImageURLProvider(client: client)
 
             authenticationBootstrapState = .ready
             authSessionRepository = authRepository
@@ -35,6 +37,7 @@ struct AppComposition {
             self.chatRepository = chatRepository
             self.groomerProfileRepository = groomerProfileRepository
             self.groomerRequestRepository = groomerRequestRepository
+            self.storageImageURLProvider = storageImageURLProvider
             authenticationStore = AuthenticationStore(repository: authRepository)
         } catch {
             authenticationBootstrapState = .configurationError(
@@ -48,6 +51,7 @@ struct AppComposition {
             chatRepository = nil
             groomerProfileRepository = nil
             groomerRequestRepository = nil
+            storageImageURLProvider = nil
             authenticationStore = nil
         }
     }
