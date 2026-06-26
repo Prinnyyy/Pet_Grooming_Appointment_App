@@ -25,6 +25,18 @@ struct AppEntryModelsTests {
         #expect(AppEntryRoute.productionDefault == .authentication)
         #expect(AppEntryRoute.authentication.id == .authentication)
     }
+
+    @Test @MainActor
+    func uiTestsCanForceSignedOutAuthenticationAtLaunch() {
+        let configuration = AppLaunchConfiguration(
+            arguments: [
+                "PetGroomerMarketplaceUITests",
+                "--groomly-ui-test-signed-out-auth",
+            ]
+        )
+
+        #expect(configuration.usesSignedOutAuthSessionRepository)
+    }
 }
 
 struct TabModelsTests {
@@ -126,6 +138,17 @@ struct DebugDiagnosticsTests {
 }
 
 struct AuthenticationStoreTests {
+    @Test @MainActor
+    func signedOutLaunchAuthRepositoryDoesNotRestoreCachedSession() async {
+        let store = AuthenticationStore(
+            repository: SignedOutAuthSessionRepository()
+        )
+
+        await store.start()
+
+        #expect(store.rootState == .signedOut)
+    }
+
     @Test @MainActor
     func restoresExistingSession() async {
         let session = AuthSessionSnapshot(

@@ -13,11 +13,19 @@ struct AppComposition {
     let groomerRequestRepository: (any GroomerRequestRepository)?
     let authenticationStore: AuthenticationStore?
 
-    init(bundle: Bundle = .main) {
+    init(
+        bundle: Bundle = .main,
+        launchConfiguration: AppLaunchConfiguration = AppLaunchConfiguration()
+    ) {
         do {
             let configuration = try SupabaseConfiguration.load(from: bundle)
             let client = SupabaseClientFactory.make(configuration: configuration)
-            let authRepository = SupabaseAuthSessionRepository(client: client)
+            let authRepository: any AuthSessionRepository =
+                if launchConfiguration.usesSignedOutAuthSessionRepository {
+                    SignedOutAuthSessionRepository()
+                } else {
+                    SupabaseAuthSessionRepository(client: client)
+                }
             let profileRepository = SupabaseProfileRepository(client: client)
             let customerPetRepository = SupabaseCustomerPetRepository(client: client)
             let customerRequestRepository = SupabaseCustomerRequestRepository(client: client)

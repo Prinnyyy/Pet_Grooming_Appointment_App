@@ -8,6 +8,7 @@ final class AppLaunchSmokeTests: XCTestCase {
     @MainActor
     func testNormalLaunchShowsOnlyAuthenticationRoot() {
         let app = XCUIApplication()
+        app.launchArguments.append("--groomly-ui-test-signed-out-auth")
 
         app.launch()
 

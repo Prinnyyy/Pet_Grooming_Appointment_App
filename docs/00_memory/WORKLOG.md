@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-06-26
+Task: T-086 - Groomly iOS test stability review fixes.
+Files changed: AppLaunchConfiguration, AppComposition, SignedOutAuthSessionRepository, AppEntryModelsTests, AppLaunchSmokeTests, iOS destination/build/test scripts, iOS build/testing docs, T-086 task doc, task ledger, CURRENT_STATE.md, and WORKLOG.md.
+Checks: RED targeted AppEntryModelsTests failed before implementation because AppLaunchConfiguration and SignedOutAuthSessionRepository did not exist; GREEN targeted AppEntryModelsTests passed; focused AuthenticationStoreTests plus AppLaunchSmokeTests passed; bash syntax and destination helper checks passed after fixing UDID extraction; ./scripts/ios-build.sh passed using generic/platform=iOS Simulator; ./scripts/ios-test.sh passed using an auto-discovered iPhone 17 Pro simulator UDID; git diff --check passed.
+Result: T-086 is completed. The launch smoke UI test now forces a local signed-out auth repository, so persisted simulator Supabase sessions no longer make the test route into customer/groomer tabs.
+Risks: Normal app launches still restore Supabase auth sessions. The signed-out auth repository is only selected by the UI-test launch argument. The scripts still allow fixed simulator selection through CODEX_IOS_DESTINATION for CI images.
+Next: Stop unless the user asks for commit/push or explicitly authorizes a new task.
+```
+
+```text
+Date: 2026-06-26
 Task: T-085 - Groomly request fit input preview.
 Files changed: CustomerRequestsStore, CustomerRequestsView, CustomerRequestFeatureTests, T-085 task doc, pet-fit closure plan, task ledger, feature index, CURRENT_STATE.md, and WORKLOG.md.
 Checks: RED targeted CustomerRequestsStoreTests failed before implementation because CustomerRequestsStore had no requestFitInputSignals; GREEN targeted CustomerRequestsStoreTests passed after implementation, including derived-signal and readable-label tests; ./scripts/ios-build.sh passed; XcodeBuildMCP build_run_sim passed on iPhone 17 Pro iOS 26.5 with no warnings/errors; screenshot capture succeeded; git diff --check passed.

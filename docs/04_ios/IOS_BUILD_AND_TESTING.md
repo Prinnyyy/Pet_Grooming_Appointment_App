@@ -4,11 +4,13 @@
 
 - Project: `ios/PetGroomerMarketplace/PetGroomerMarketplace.xcodeproj`
 - Shared scheme: `PetGroomerMarketplace`
-- Destination: `platform=iOS Simulator,OS=18.4,name=iPhone 16 Pro`
+- Build destination: `generic/platform=iOS Simulator`
+- Test destination: auto-discovered concrete iPhone simulator from the current Xcode installation
 - Minimum deployment target: iOS 18.0
 - Swift language mode: Swift 6
 
 The scripts address the project directly. They do not discover or prefer the internal `project.xcworkspace` inside the `.xcodeproj` bundle.
+CI jobs that require a fixed simulator image should set `CODEX_IOS_DESTINATION` explicitly.
 
 ## Build
 
@@ -33,7 +35,7 @@ All defaults can be overridden explicitly:
 ```bash
 CODEX_IOS_PROJECT=/path/to/App.xcodeproj \
 CODEX_IOS_SCHEME=App \
-CODEX_IOS_DESTINATION='platform=iOS Simulator,OS=18.4,name=iPhone 16 Pro' \
+CODEX_IOS_DESTINATION='platform=iOS Simulator,OS=26.5,name=iPhone 17 Pro' \
 ./scripts/ios-build.sh
 ```
 

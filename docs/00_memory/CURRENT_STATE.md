@@ -40,6 +40,7 @@ Update this only when project state meaningfully changes.
 - Latest completed score display de-emphasis task: `docs/06_tasks/T-083_GROOMLY_SCORE_DISPLAY_DEEMPHASIS.md`.
 - Latest completed pet-fit end-to-end validation task: `docs/06_tasks/T-084_GROOMLY_PET_FIT_E2E_VALIDATION_SCENARIO.md`.
 - Latest completed request fit input preview task: `docs/06_tasks/T-085_GROOMLY_REQUEST_FIT_INPUT_PREVIEW.md`.
+- Latest completed iOS test stability review fix task: `docs/06_tasks/T-086_GROOMLY_IOS_TEST_STABILITY_REVIEW_FIXES.md`.
 - Latest completed Groomly UI refinement task: `docs/06_tasks/T-043_GROOMLY_CUSTOMER_REQUESTS_CAROUSEL_EDGE_REFINEMENT.md`.
 - Latest completed request feature task: `docs/06_tasks/T-049_GROOMLY_REQUEST_DATA_CONTRACT_LOCATION_PHOTOS.md`.
 - Latest completed pet feature task: `docs/06_tasks/T-050_GROOMLY_PET_DATA_CONTRACT_AND_ADD_PET_UI.md`.
@@ -100,13 +101,13 @@ Update this only when project state meaningfully changes.
 
 ## Current Build Status
 
-- Last build command: `./scripts/ios-build.sh`, then XcodeBuildMCP `build_run_sim`.
-- Last known build result: passed on 2026-06-26 using `platform=iOS Simulator,OS=26.5,name=iPhone 17 Pro`.
-- Last test command: targeted `xcodebuild ... -only-testing:PetGroomerMarketplaceTests/CustomerRequestsStoreTests`.
-- Last known test result: T-085 focused Customer request Store tests passed after a RED missing-API failure for `requestFitInputSignals`; new derived-signal and readable-label tests passed.
-- Last simulator launch: XcodeBuildMCP `build_run_sim` installed and launched `com.prinnyyy.PetGroomerMarketplace` on `iPhone 17 Pro` iOS 26.5 simulator (`45D452E8-DC6C-4CD4-A747-4D21671E68A6`) on 2026-06-26; final launch completed with no warnings/errors. Screenshot capture succeeded at `/var/folders/bc/xmbw6w1d06s61ns9_j2fnll00000gn/T/screenshot_optimized_0885e486-84e6-4efe-a668-ef046143c30f.jpg`.
-- Last general check: T-085 `git diff --check` passed after Review-step fit input preview implementation and documentation closeout.
-- Known failing checks: none from the latest T-084 validation.
+- Last build command: `./scripts/ios-build.sh`.
+- Last known build result: passed on 2026-06-26 using `generic/platform=iOS Simulator`.
+- Last test command: `./scripts/ios-test.sh`.
+- Last known test result: passed on 2026-06-26 using auto-discovered simulator destination `platform=iOS Simulator,id=45D452E8-DC6C-4CD4-A747-4D21671E68A6`; the launch smoke test passed with the signed-out auth launch argument.
+- Last simulator launch: `./scripts/ios-test.sh` launched `com.prinnyyy.PetGroomerMarketplace` on `iPhone 17 Pro` iOS 26.5 simulator (`45D452E8-DC6C-4CD4-A747-4D21671E68A6`) on 2026-06-26 for `AppLaunchSmokeTests.testNormalLaunchShowsOnlyAuthenticationRoot`.
+- Last general check: T-086 `git diff --check` passed after launch-test stability and iOS script destination fixes.
+- Known failing checks: none from the latest T-086 validation.
 - Historical per-task validation details live in the relevant `docs/06_tasks/T-*.md` files and `docs/00_memory/WORKLOG.md`.
 
 ## Current Product State
@@ -147,7 +148,7 @@ Update this only when project state meaningfully changes.
 
 - Lightweight single-agent workflow is active at `docs/05_workflow/SINGLE_AGENT_WORKFLOW.md`.
 - Completion gates are adaptive by task mode and risk: Micro tasks stay lightweight; Quick docs/workflow tasks usually run only `git diff --check`; Standard app/UI tasks run build validation and launch the simulator for visible app changes; Deep tasks require an explicit validation plan.
-- Default local iOS build/test scripts now target `platform=iOS Simulator,OS=26.5,name=iPhone 17 Pro` unless `CODEX_IOS_DESTINATION` overrides it.
+- Default local iOS scripts now avoid a single hard-coded runtime: `./scripts/ios-build.sh` uses `generic/platform=iOS Simulator`, `./scripts/ios-test.sh` auto-discovers a concrete available iPhone simulator by UDID, and `CODEX_IOS_DESTINATION` overrides both.
 - Task closeout, durable memory updates, and simulator launch are not required for every small task. They are required when an active task file exists, app behavior changes, future runs need the state, screenshot UI work is implemented, or the user asks for inspection.
 - Screenshot analysis must ignore any long oval Customer/Groomer toggle located above the visible app screen frame; treat it as an external prototype/control annotation, not an app module to map, classify, or implement.
 - Pre-Groomly rule/task context is frozen at `docs/09_frozen/pre_groomly_ui_2026-06-21/` for recovery only; do not read it during Groomly foundation child tasks unless explicitly needed for recovery.
@@ -240,7 +241,7 @@ Update this only when project state meaningfully changes.
 
 ## Known Risks
 
-- Xcode 26.5 object version 77 and the configured iPhone 16 Pro/iOS 18.4 simulator are expected by existing scripts.
+- Xcode project object version 77 remains expected. iOS scripts no longer hard-code one simulator runtime by default: build uses `generic/platform=iOS Simulator`, test auto-discovers a concrete available iPhone simulator, and CI/developers can still set `CODEX_IOS_DESTINATION` explicitly.
 - Groomly prototype screens and future uploaded screenshots may show deferred or unsupported ideas. Treat them as visual inspiration only unless a separate task authorizes product/backend work.
 - T-048's new request wizard displays UI-only location mode, street address, travel range, and photo placeholder controls. These do not affect matching or persisted request detail until a future approved backend/model/repository task adds durable fields and mappings.
 - Deferred features remain out of scope for the Groomly foundation sequence, including request editing, rebooking, favorites, signed URL image rendering, realtime chat, attachments, payments, push notifications, maps, calendars, and admin tooling.
