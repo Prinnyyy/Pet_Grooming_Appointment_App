@@ -232,7 +232,7 @@ struct GroomerRequestsStoreTests {
     }
 
     @Test @MainActor
-    func fitEvidencePresentationUsesBackendReasonAndRoundedScore() {
+    func fitEvidencePresentationUsesExplanationFirstCopyWithoutRawScore() {
         let matchedRequest = Self.matchedRequest(
             groomerID: UUID(),
             matchScore: 94.6,
@@ -243,15 +243,48 @@ struct GroomerRequestsStoreTests {
 
         let presentation = matchedRequest.fitEvidencePresentation
 
-        #expect(presentation?.scoreText == "95 match")
+        #expect(presentation?.scoreText == nil)
         #expect(
             presentation?.reason
                 == "Same city and service location. Pet-fit evidence: curly coats with positive reviews, poodles from completed bookings."
         )
         #expect(
             presentation?.listSummary
-                == "Same city and service location. Pet-fit evidence: curly coats with positive reviews, poodles from completed bookings."
+                == "Location And Service Fit: Same city and service location. Earned Evidence: curly coats with positive reviews, poodles from completed bookings."
         )
+    }
+
+    @Test @MainActor
+    func fitEvidencePresentationLabelsStarterSignalsAsLowConfidence() {
+        let matchedRequest = Self.matchedRequest(
+            groomerID: UUID(),
+            matchScore: 86,
+            matchReason: """
+            Same city and service location. Groomer fit signals: portfolio tag for poodles, claim for gentle handling.
+            """
+        )
+
+        let presentation = matchedRequest.fitEvidencePresentation
+
+        #expect(presentation?.scoreText == nil)
+        #expect(
+            presentation?.listSummary
+                == "Location And Service Fit: Same city and service location. Starter Signals: portfolio tag for poodles, claim for gentle handling."
+        )
+    }
+
+    @Test @MainActor
+    func matchSummaryDoesNotExposeRawScoreAsMatchPercentage() {
+        let matchedRequest = Self.matchedRequest(
+            groomerID: UUID(),
+            status: .viewed,
+            matchScore: 88,
+            matchReason: """
+            Same city and service location. Pet-fit evidence: gentle handling.
+            """
+        )
+
+        #expect(matchedRequest.matchSummary == "Viewed · Fit evidence available")
     }
 
     @Test @MainActor

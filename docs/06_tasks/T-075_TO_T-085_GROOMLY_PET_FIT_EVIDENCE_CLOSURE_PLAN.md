@@ -12,10 +12,10 @@
 
 ## Status
 
-- Status: active sequence; completed through T-082; T-083+ not started
+- Status: active sequence; completed through T-083; T-084+ not started
 - Date: 2026-06-26
-- Current completed pet-fit baseline: T-063 through T-082 and T-081A, plus user-authorized T-050 remote deployment.
-- Next executable task: none active; T-083+ requires an explicit user request/authorization.
+- Current completed pet-fit baseline: T-063 through T-083 and T-081A, plus user-authorized T-050 remote deployment.
+- Next executable task: none active; T-084+ requires an explicit user request/authorization.
 
 ## Product Guardrails
 
@@ -42,6 +42,7 @@
 - T-081A adds the owner-readable aggregate RPC `get_my_groomer_pet_fit_evidence_summary()` so Groomer Account can read completed-booking and structured-review aggregate evidence without broadening request row RLS or exposing raw customer/pet/request/booking/review details.
 - T-081 adds the Groomer Account Evidence Dashboard using the T-081A RPC behind `GroomerProfileRepository`. It shows aggregate counts, structured review outcomes, safe timestamps, and confidence tiers only.
 - T-082 calibrates `create_grooming_request` fairness so earned negative evidence is not dropped behind neutral top-three evidence and suppresses low-confidence claim/portfolio boosts when negative evidence exists.
+- T-083 de-emphasizes raw score display in groomer request and customer offer evidence surfaces. Existing backend reasons now render through explanation-first labels without presenting rounded `match_score` as an ability percentage.
 
 ## Task Plan
 
@@ -56,7 +57,7 @@
 | T-081A | Evidence Dashboard Owner Visibility Backend | Deep | Create a safe owner-readable aggregate evidence contract for Groomer Account without exposing raw customer, pet, request, booking, or review details. | Completed: rollback-only checks prove groomers can read only their own aggregate evidence, cross-owner/customer reads are denied, advisors ran, and no raw private details are returned. |
 | T-081 | Groomer Evidence Dashboard | Standard | Surface earned evidence from the T-081A owner aggregate RPC in Groomer Account. | Completed: groomers can see aggregate completed counts, review outcomes, and confidence tiers without customer or pet private details. |
 | T-082 | Matching Fairness And Calibration | Deep | Run rollback SQL scenarios and adjust `create_grooming_request` internals only if needed to preserve fair distribution and low claim weight. | Completed: negative earned evidence is prioritized in the evidence set and suppresses low-confidence claim/portfolio boosts while eligible new, claim-only, portfolio-only, and positive evidence groomers still match; RPC signature and grants remain unchanged. |
-| T-083 | Score Display De-Emphasis | Standard | Replace raw score-heavy UI copy in groomer request and customer offer surfaces with explanation-first fit evidence wording. | UI no longer reads like `94 match` as an ability percentage; tests cover reason trimming, blank reason hiding, and new copy. |
+| T-083 | Score Display De-Emphasis | Standard | Replace raw score-heavy UI copy in groomer request and customer offer surfaces with explanation-first fit evidence wording. | Completed: groomer request and customer offer evidence now use explanation-first labels and hide rounded raw score copy; targeted presentation tests, iOS build, simulator launch, and diff-check passed. |
 | T-084 | Pet-Fit End-To-End Validation Scenario | Deep | Validate the full evidence loop with rollback-only SQL: request, match, offer, booking, completion, structured review, next request. | Evidence from the first completed booking changes the next matching reason as expected while RLS and visibility boundaries still hold. |
 | T-085 | Request Fit Input Preview | Standard | Show customers the derived pet-fit needs on the request review step before publishing. | Customers can see the app's interpreted needs such as terrier coat, gentle handling, or senior care before submit; no new backend field is added. |
 
@@ -246,6 +247,13 @@
 - `./scripts/ios-build.sh`
 - Simulator launch because visible UI changes.
 
+**Completion notes:**
+- `GroomerMatchedRequest.matchSummary` now uses `Fit evidence available` instead of rendering a rounded score as match copy when backend reason evidence exists.
+- Groomer and customer fit presentations preserve trimmed backend reasons, but expose no score text; list/detail summaries classify known reason fragments as `Location And Service Fit`, `Earned Evidence`, and `Starter Signals`.
+- The groomer request detail no longer falls back to a raw `Score` metadata row.
+- RED class-level Groomer and Customer request tests failed before implementation for the new no-raw-score expectations; the focused class tests passed after implementation.
+- `./scripts/ios-build.sh`, XcodeBuildMCP `build_run_sim`, screenshot capture, and `git diff --check` passed.
+
 ### T-084: Pet-Fit End-To-End Validation Scenario
 
 **Primary files:**
@@ -297,8 +305,8 @@
 
 ## Assumptions
 
-- No next implementation is active; T-083 and later tasks start only when explicitly requested.
+- No next implementation is active; T-084 and later tasks start only when explicitly requested.
 - Each listed row is a separate primary task.
 - T-075 through T-085 do not authorize remote writes by themselves.
 - Existing branch remains `codex/pet-fit-structure-cleanup` unless the user asks for a different branch.
-- Existing T-063 through T-082 behavior remains the baseline unless a task explicitly changes it.
+- Existing T-063 through T-083 behavior remains the baseline unless a task explicitly changes it.

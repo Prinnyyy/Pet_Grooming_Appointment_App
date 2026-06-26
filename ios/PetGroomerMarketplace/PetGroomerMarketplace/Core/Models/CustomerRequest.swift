@@ -256,7 +256,7 @@ struct CustomerOfferReview: Equatable, Identifiable, Sendable {
 
         let reason = rawReason.trimmingCharacters(in: .whitespacesAndNewlines)
         return CustomerOfferFitPresentation(
-            scoreText: matchScore.map { "\(Int($0.rounded())) match" },
+            scoreText: nil,
             reason: reason
         )
     }
@@ -271,7 +271,7 @@ struct CustomerOfferFitPresentation:
     let reason: String
 
     var listSummary: String {
-        reason
+        MatchFitEvidenceReasonFormatter.explanationSummary(from: reason)
     }
 }
 

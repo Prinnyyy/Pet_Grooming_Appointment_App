@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-06-26
+Task: T-083 - Groomly score display de-emphasis.
+Files changed: GroomerRequest model, CustomerRequest model, GroomerRequestsView, GroomerRequestFeatureTests, CustomerRequestFeatureTests, T-083 task doc, pet-fit closure plan, task ledger, feature index, CURRENT_STATE.md, and WORKLOG.md.
+Checks: RED class-level GroomerRequestsStoreTests and CustomerRequestsStoreTests failed before implementation for the new no-raw-score presentation expectations; GREEN focused GroomerRequestsStoreTests and CustomerRequestsStoreTests passed after implementation; production raw-score copy search found no remaining "match" percentage copy or Score row; ./scripts/ios-build.sh passed; XcodeBuildMCP build_run_sim passed on iPhone 17 Pro iOS 26.5 with no warnings/errors; screenshot capture confirmed the app rendered; git diff --check passed.
+Result: Existing fit evidence UI now keeps backend reasons but presents explanation-first labels and hides rounded score-as-match copy in groomer request and customer offer surfaces.
+Risks: Display-only iOS change; existing backend match_score values remain stored/internal, with no schema, RLS, RPC, repository, matching, Storage, or lifecycle change.
+Next: Stop unless the user asks for commit/push or explicitly authorizes T-084.
+```
+
+```text
+Date: 2026-06-26
 Task: T-082 - Groomly matching fairness and calibration.
 Files changed: Supabase migration 20260626033330; T-082 task doc; backend contract/RLS docs; pet-fit closure plan; task ledger; feature index; CURRENT_STATE.md; and WORKLOG.md.
 Checks: RED rollback-only fairness diagnostic showed the negative-evidence groomer scored 89.00 versus no-evidence 80.00 because negative poodle feedback was dropped behind neutral evidence and starter signals were applied; GREEN rollback validation before and after apply passed with scores no-evidence 80.00, claim-only 83.00, portfolio-only 86.00, positive evidence 94.00, and negative evidence 78.00; migration applied by Supabase CLI and repaired into remote migration history; MCP migration list confirmed 20260626033330; metadata/grant checks passed; residue check returned zero validation rows; advisors reported baseline findings only; ./scripts/supabase-check.sh passed; git diff --check passed.

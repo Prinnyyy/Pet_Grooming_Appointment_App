@@ -18,8 +18,8 @@ struct GroomerMatchedRequest: Equatable, Hashable, Identifiable, Sendable {
     }
 
     var matchSummary: String {
-        if let score = match.matchScore {
-            return "\(match.status.title) · \(Int(score.rounded())) match"
+        if fitEvidencePresentation != nil {
+            return "\(match.status.title) · Fit evidence available"
         }
 
         return match.status.title
@@ -35,7 +35,7 @@ struct GroomerMatchedRequest: Equatable, Hashable, Identifiable, Sendable {
 
         let reason = rawReason.trimmingCharacters(in: .whitespacesAndNewlines)
         return GroomerMatchFitPresentation(
-            scoreText: match.matchScore.map { "\(Int($0.rounded())) match" },
+            scoreText: nil,
             reason: reason
         )
     }
@@ -68,7 +68,108 @@ struct GroomerMatchFitPresentation:
     let reason: String
 
     var listSummary: String {
-        reason
+        MatchFitEvidenceReasonFormatter.explanationSummary(from: reason)
+    }
+}
+
+nonisolated enum MatchFitEvidenceReasonFormatter {
+    private struct Marker {
+        let range: Range<String.Index>
+        let title: String
+    }
+
+    static func explanationSummary(from reason: String) -> String {
+        let trimmedReason = reason.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedReason.isEmpty else {
+            return ""
+        }
+
+        let markers = [
+            marker(
+                in: trimmedReason,
+                markerText: ". Pet-fit evidence: ",
+                title: "Earned Evidence"
+            ),
+            marker(
+                in: trimmedReason,
+                markerText: ". Groomer fit signals: ",
+                title: "Starter Signals"
+            ),
+        ]
+        .compactMap(\.self)
+        .sorted { $0.range.lowerBound < $1.range.lowerBound }
+
+        guard !markers.isEmpty else {
+            return "Fit Evidence: \(sentence(trimmedReason))"
+        }
+
+        var sections: [String] = []
+
+        if let firstMarker = markers.first {
+            let location = trimmedReason[..<firstMarker.range.lowerBound]
+            appendSection(
+                title: "Location And Service Fit",
+                body: String(location),
+                to: &sections
+            )
+        }
+
+        for index in markers.indices {
+            let marker = markers[index]
+            let endIndex = markers.index(after: index) < markers.endIndex
+                ? markers[markers.index(after: index)].range.lowerBound
+                : trimmedReason.endIndex
+            let body = trimmedReason[marker.range.upperBound..<endIndex]
+            appendSection(
+                title: marker.title,
+                body: String(body),
+                to: &sections
+            )
+        }
+
+        guard !sections.isEmpty else {
+            return "Fit Evidence: \(sentence(trimmedReason))"
+        }
+
+        return sections.joined(separator: " ")
+    }
+
+    private static func marker(
+        in reason: String,
+        markerText: String,
+        title: String
+    ) -> Marker? {
+        guard let range = reason.range(of: markerText) else {
+            return nil
+        }
+
+        return Marker(range: range, title: title)
+    }
+
+    private static func appendSection(
+        title: String,
+        body: String,
+        to sections: inout [String]
+    ) {
+        let sectionBody = sentence(body)
+        guard !sectionBody.isEmpty else {
+            return
+        }
+
+        sections.append("\(title): \(sectionBody)")
+    }
+
+    private static func sentence(_ value: String) -> String {
+        let trimmedValue = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedValue.isEmpty else {
+            return ""
+        }
+
+        if trimmedValue.hasSuffix(".") {
+            return trimmedValue
+        }
+
+        return "\(trimmedValue)."
     }
 }
 

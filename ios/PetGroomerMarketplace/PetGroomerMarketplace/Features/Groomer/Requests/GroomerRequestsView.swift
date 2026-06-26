@@ -310,12 +310,6 @@ private struct GroomerRequestDetailView: View {
                         presentation: fitEvidence,
                         isCompact: false
                     )
-                } else if let score = matchedRequest.match.matchScore {
-                    DetailMetadataRow(
-                        title: "Score",
-                        value: "\(Int(score.rounded()))",
-                        systemImage: "gauge.with.dots.needle.50percent"
-                    )
                 }
             }
         }

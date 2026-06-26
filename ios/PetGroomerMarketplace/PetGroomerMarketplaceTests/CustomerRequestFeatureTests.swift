@@ -1118,7 +1118,7 @@ struct CustomerRequestsStoreTests {
     }
 
     @Test @MainActor
-    func offerReviewFitEvidencePresentationUsesBackendReasonAndRoundedScore() {
+    func offerReviewFitEvidencePresentationUsesExplanationFirstCopyWithoutRawScore() {
         let offerReview = Self.offerReview(
             customerID: UUID(),
             requestID: UUID(),
@@ -1130,14 +1130,14 @@ struct CustomerRequestsStoreTests {
 
         let presentation = offerReview.fitEvidencePresentation
 
-        #expect(presentation?.scoreText == "94 match")
+        #expect(presentation?.scoreText == nil)
         #expect(
             presentation?.reason
                 == "Same city and service location. Pet-fit evidence: completed poodle coats."
         )
         #expect(
             presentation?.listSummary
-                == "Same city and service location. Pet-fit evidence: completed poodle coats."
+                == "Location And Service Fit: Same city and service location. Earned Evidence: completed poodle coats."
         )
     }
 
