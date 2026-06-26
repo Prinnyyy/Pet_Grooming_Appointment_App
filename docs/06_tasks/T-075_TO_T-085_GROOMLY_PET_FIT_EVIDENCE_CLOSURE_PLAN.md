@@ -12,10 +12,10 @@
 
 ## Status
 
-- Status: active sequence; completed through T-083; T-084 checkpoint exists and needs follow-up authorization
+- Status: active sequence; completed through T-084
 - Date: 2026-06-26
-- Current completed pet-fit baseline: T-063 through T-083 and T-081A, plus user-authorized T-050 remote deployment.
-- Next executable task: T-084 validation harness correction/retry only if explicitly authorized; T-085+ requires a separate explicit user request/authorization.
+- Current completed pet-fit baseline: T-063 through T-084 and T-081A, plus user-authorized T-050 remote deployment.
+- Next executable task: T-085 only if explicitly requested/authorized.
 
 ## Product Guardrails
 
@@ -43,6 +43,7 @@
 - T-081 adds the Groomer Account Evidence Dashboard using the T-081A RPC behind `GroomerProfileRepository`. It shows aggregate counts, structured review outcomes, safe timestamps, and confidence tiers only.
 - T-082 calibrates `create_grooming_request` fairness so earned negative evidence is not dropped behind neutral top-three evidence and suppresses low-confidence claim/portfolio boosts when negative evidence exists.
 - T-083 de-emphasizes raw score display in groomer request and customer offer evidence surfaces. Existing backend reasons now render through explanation-first labels without presenting rounded `match_score` as an ability percentage.
+- T-084 validates the full rollback-only evidence loop from request to match, offer, booking, completion, structured review outcomes, aggregate evidence, and a later evidence-backed request reason while preserving RLS boundaries.
 
 ## Task Plan
 
@@ -270,11 +271,14 @@
 - Supabase metadata checks only if the scenario reveals a needed backend change.
 - `git diff --check` for documentation artifacts.
 
-**Checkpoint notes:**
+**Completion notes:**
 - A rollback-only SQL artifact now exists at `docs/06_tasks/sql_reviews/T-084_PET_FIT_E2E_ROLLBACK_VALIDATION.sql`.
 - The first Deep validation attempt failed before completion with `invalid_booking` from `public.complete_booking(uuid)` because the validation harness passed a `null` booking ID.
 - The likely cause is harness RLS shape: the groomer-role subquery joined `bookings` through `grooming_requests` by service note after offer acceptance hid the request match, so the request row was filtered for that groomer.
-- No migration/schema/RLS/RPC change was made. Fixing the harness and running a second Deep validation attempt requires explicit user approval.
+- After explicit follow-up authorization, the harness now queries participant-visible `bookings` rows directly for completion and review without joining through the filtered request row.
+- The rollback validation passed with first match score `80.00`, second match score `89.00`, second reason `Same city and service location. Pet-fit evidence: curly coats with positive reviews, poodles with positive reviews, small pets.`, and structured outcome count `2`.
+- Independent residue checks returned zero T-084 validation rows, and `git diff --check` passed.
+- No migration/schema/RLS/RPC/Storage/iOS change was made.
 
 ### T-085: Request Fit Input Preview
 
@@ -311,8 +315,8 @@
 
 ## Assumptions
 
-- No next implementation is active; T-084 harness correction/retry and later tasks start only when explicitly requested.
+- No next implementation is active; T-085 and later tasks start only when explicitly requested.
 - Each listed row is a separate primary task.
 - T-075 through T-085 do not authorize remote writes by themselves.
 - Existing branch remains `codex/pet-fit-structure-cleanup` unless the user asks for a different branch.
-- Existing T-063 through T-083 behavior remains the baseline unless a task explicitly changes it.
+- Existing T-063 through T-084 behavior remains the baseline unless a task explicitly changes it.

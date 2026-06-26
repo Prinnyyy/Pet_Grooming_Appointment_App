@@ -38,13 +38,13 @@ Update this only when project state meaningfully changes.
 - Latest completed groomer evidence dashboard UI task: `docs/06_tasks/T-081_GROOMLY_GROOMER_EVIDENCE_DASHBOARD.md`.
 - Latest completed matching fairness calibration task: `docs/06_tasks/T-082_GROOMLY_MATCHING_FAIRNESS_AND_CALIBRATION.md`.
 - Latest completed score display de-emphasis task: `docs/06_tasks/T-083_GROOMLY_SCORE_DISPLAY_DEEMPHASIS.md`.
-- Latest pet-fit validation checkpoint: `docs/06_tasks/T-084_GROOMLY_PET_FIT_E2E_VALIDATION_SCENARIO.md`.
+- Latest completed pet-fit end-to-end validation task: `docs/06_tasks/T-084_GROOMLY_PET_FIT_E2E_VALIDATION_SCENARIO.md`.
 - Latest completed Groomly UI refinement task: `docs/06_tasks/T-043_GROOMLY_CUSTOMER_REQUESTS_CAROUSEL_EDGE_REFINEMENT.md`.
 - Latest completed request feature task: `docs/06_tasks/T-049_GROOMLY_REQUEST_DATA_CONTRACT_LOCATION_PHOTOS.md`.
 - Latest completed pet feature task: `docs/06_tasks/T-050_GROOMLY_PET_DATA_CONTRACT_AND_ADD_PET_UI.md`.
 - Groomly UI sequence: `docs/06_tasks/T-026_TO_T-035_GROOMLY_UI_COMPLETION_SEQUENCE.md` is completed for implemented MVP screens.
 - Completed Groomly UI phase archive marker: `docs/09_frozen/groomly_ui_completed_2026-06-22/FREEZE_README.md`.
-- Active next executable pet-fit/availability task: T-084 validation harness correction/retry only if explicitly authorized; T-085+ should not auto-start without explicit user request/authorization.
+- Active next executable pet-fit/availability task: T-085 only if explicitly requested/authorized.
 - Active next executable Groomly screenshot task: none currently defined; future UI work starts from a user-uploaded screenshot.
 - Screenshot-driven task template: `docs/06_tasks/SCREENSHOT_UI_REWORK_TASK_TEMPLATE.md`.
 - Project structure index: `docs/10_project_structure/README.md`.
@@ -104,8 +104,8 @@ Update this only when project state meaningfully changes.
 - Last test command: targeted `xcodebuild ... -only-testing:PetGroomerMarketplaceTests/GroomerRequestsStoreTests` and `xcodebuild ... -only-testing:PetGroomerMarketplaceTests/CustomerRequestsStoreTests`.
 - Last known test result: T-083 focused Groomer and Customer request Store tests passed after class-level RED failures for the new no-raw-score presentation expectations.
 - Last simulator launch: XcodeBuildMCP `build_run_sim` installed and launched `com.prinnyyy.PetGroomerMarketplace` on `iPhone 17 Pro` iOS 26.5 simulator (`45D452E8-DC6C-4CD4-A747-4D21671E68A6`) on 2026-06-26; final launch completed with no warnings/errors. Screenshot capture confirmed the Groomer Requests screen rendered.
-- Last general check: T-084 rollback SQL validation attempt failed on 2026-06-26 with `invalid_booking` from `complete_booking(uuid)` because the harness passed a null booking ID through a groomer-role RLS-filtered request join; independent residue check returned zero T-084 validation rows and `git diff --check` passed.
-- Known failing checks: T-084 rollback validation harness needs correction and explicit approval before a second Deep validation attempt.
+- Last general check: T-084 authorized follow-up rollback SQL validation passed on 2026-06-26 with first match score `80.00`, second evidence-backed match score `89.00`, two structured review outcomes, zero T-084 validation residue, and `git diff --check` passed.
+- Known failing checks: none from the latest T-084 validation.
 - Historical per-task validation details live in the relevant `docs/06_tasks/T-*.md` files and `docs/00_memory/WORKLOG.md`.
 
 ## Current Product State
@@ -258,10 +258,10 @@ Update this only when project state meaningfully changes.
 - T-073 groomer claims/portfolio tags are weighted only as capped low-confidence signals after hard eligibility and availability checks. They do not create proof of expertise, specialist/expert status, customer-facing slot discovery, direct booking, or public groomer directory behavior. T-074 surfaces backend fit reasons only inside customer offer review once an offer exists, not in a public groomer directory. T-072/T-073 enforce availability at match generation, but not customer slot browsing.
 - T-082 affects newly created `request_matches` only; existing score/reason rows are not backfilled. It keeps claim/portfolio tags as low-confidence starter signals and suppresses them only when negative earned evidence is present.
 - T-083 changes display framing only. Existing `match_score` values remain stored and available internally, but current customer/groomer evidence UI should not present them as a public ability grade.
-- T-084 has a checkpoint only. The rollback SQL artifact exists, but the first validation attempt failed in the harness before completing the full evidence-loop assertions. No schema/RLS/RPC/Storage/iOS/migration change was made.
+- T-084 is completed. The rollback SQL artifact validates request -> match -> offer -> booking -> completion -> structured review outcomes -> aggregate evidence -> later evidence-backed request reason. The first attempt exposed a harness-only booking lookup issue through a groomer-role request join; the authorized follow-up queries participant-visible bookings directly and passed. No schema/RLS/RPC/Storage/iOS/migration change was made.
 - T-081 owner-side evidence dashboard is implemented through the T-081A `get_my_groomer_pet_fit_evidence_summary()` RPC. Keep any future evidence work repository-backed and aggregate-only; do not work around the direct `security_invoker` view by assuming partial rows are complete, and do not direct-read raw request/pet/booking/review details in Swift.
 
 ## Next Recommended Task
 
-- For the pet-fit/availability bottom-layer plan, T-084 validation harness correction/retry is the only current checkpoint continuation and requires explicit user approval. T-085 and later tasks should not auto-start and require explicit user request/authorization.
+- For the pet-fit/availability bottom-layer plan, T-085 and later tasks should not auto-start and require explicit user request/authorization.
 - For Groomly screenshot UI work, wait for the user to upload/select one screenshot, then create the next available screenshot-driven task from `docs/06_tasks/SCREENSHOT_UI_REWORK_TASK_TEMPLATE.md`.

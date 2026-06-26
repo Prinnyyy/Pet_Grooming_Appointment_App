@@ -2,7 +2,7 @@
 
 ## Status
 
-- Status: checkpoint - validation harness needs follow-up
+- Status: completed
 - Date: 2026-06-26
 - Mode: Deep
 - Branch: `codex/pet-fit-structure-cleanup`
@@ -27,8 +27,13 @@ No Supabase migration, schema change, RLS change, RPC change, Storage change, or
 
 - `docs/06_tasks/sql_reviews/T-084_PET_FIT_E2E_ROLLBACK_VALIDATION.sql`
 - `docs/06_tasks/T-084_GROOMLY_PET_FIT_E2E_VALIDATION_SCENARIO.md`
+- `docs/06_tasks/T-075_TO_T-085_GROOMLY_PET_FIT_EVIDENCE_CLOSURE_PLAN.md`
+- `docs/06_tasks/TASK_LEDGER.md`
+- `docs/00_memory/FEATURE_INDEX.md`
+- `docs/00_memory/CURRENT_STATE.md`
+- `docs/00_memory/WORKLOG.md`
 
-## Validation Attempt
+## Validation
 
 Command:
 
@@ -36,19 +41,27 @@ Command:
 supabase db query --linked --file docs/06_tasks/sql_reviews/T-084_PET_FIT_E2E_ROLLBACK_VALIDATION.sql --output json
 ```
 
-Result:
+First attempt:
 
 - Failed with `invalid_booking` from `public.complete_booking(uuid)`.
 - The failed statement passed a `null` booking ID into `complete_booking`.
 - The likely cause is the validation harness, not the product RPC chain: the groomer-role subquery selected `bookings` joined to `grooming_requests` by service note after offer acceptance had hidden the request match, so the `grooming_requests` RLS path filtered the row for that groomer.
-- The harness should be adjusted to keep the accepted booking ID from the customer acceptance step or query the groomer-visible `bookings` row without joining through the now-filtered request row.
+
+Authorized follow-up:
+
+- Corrected the harness to query participant-visible `bookings` rows directly for completion and review, without joining back through the now-filtered request row.
+- The rollback validation passed with status `t084_pet_fit_e2e_rollback_validation_passed`.
+- First match score/reason: `80.00`, `Same city and service location.`
+- Second match score/reason: `89.00`, `Same city and service location. Pet-fit evidence: curly coats with positive reviews, poodles with positive reviews, small pets.`
+- Structured outcome count: `2`.
 
 ## Safety
 
-- The validation script is transaction-scoped and did not reach its final `ROLLBACK`, but the error occurred inside the transaction; the failed query was rolled back by the database session.
-- Independent residue check confirmed zero T-084 validation rows across `auth.users`, profiles, customer/groomer profiles, pets, grooming requests, request matches, offers, bookings, reviews, and structured review outcomes.
-- `git diff --check` passed for the checkpoint documentation and SQL artifact.
+- The first validation attempt was transaction-scoped and did not reach its final `ROLLBACK`, but the error occurred inside the transaction; the failed query was rolled back by the database session.
+- The authorized follow-up completed the script and reached the final `ROLLBACK`.
+- Independent residue checks after both attempts confirmed zero T-084 validation rows across `auth.users`, profiles, customer/groomer profiles, pets, grooming requests, request matches, offers, bookings, reviews, and structured review outcomes.
+- `git diff --check` passed.
 
-## Next Step
+## Result
 
-Requires explicit user approval to fix the rollback validation harness and run a second Deep validation attempt.
+T-084 is complete. The full rollback-only loop now proves that a completed booking plus structured positive review outcomes can improve the later match reason while RLS and participant visibility boundaries still hold. No migration, schema, RLS, RPC, Storage, iOS, or product behavior change was made.

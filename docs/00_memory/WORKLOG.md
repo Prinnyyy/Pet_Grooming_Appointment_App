@@ -2,12 +2,22 @@
 
 ```text
 Date: 2026-06-26
+Task: T-084 - Groomly pet-fit end-to-end validation scenario follow-up.
+Files changed: T-084 rollback SQL artifact, T-084 task doc, pet-fit closure plan, task ledger, feature index, CURRENT_STATE.md, and WORKLOG.md.
+Checks: Authorized second Deep validation attempt passed with supabase db query --linked --file docs/06_tasks/sql_reviews/T-084_PET_FIT_E2E_ROLLBACK_VALIDATION.sql --output json; result status was t084_pet_fit_e2e_rollback_validation_passed, first match score was 80.00, second evidence-backed match score was 89.00, and structured outcome count was 2; independent residue check returned zero T-084 validation rows; git diff --check passed.
+Result: T-084 is completed. The rollback-only SQL now validates request, match, offer, booking, completion, structured review, aggregate evidence, and a later evidence-backed request reason while RLS/visibility boundaries still hold.
+Risks: No migration, schema, RLS, RPC, Storage, iOS, or product behavior change was made. The only SQL change was a validation-harness correction to query participant-visible bookings directly after acceptance.
+Next: Stop unless the user asks for commit/push or explicitly authorizes T-085.
+```
+
+```text
+Date: 2026-06-26
 Task: T-084 - Groomly pet-fit end-to-end validation scenario.
 Files changed: T-084 rollback SQL artifact, T-084 checkpoint task doc, pet-fit closure plan, and WORKLOG.md.
 Checks: Supabase changelog scan completed for relevant breaking-change tags; remote metadata confirmed current RPC signatures and auth.uid simulation; T-084 rollback validation attempt failed with invalid_booking from complete_booking(uuid) because the harness passed a null booking ID; independent residue check returned zero T-084 validation rows; git diff --check passed.
-Result: Checkpoint only. The likely issue is the validation harness querying the accepted booking through a groomer-role join to grooming_requests after acceptance hid the match/request path under RLS. No schema, RLS, RPC, Storage, iOS, or migration change was made.
-Risks: T-084 is not complete. The harness needs to keep the accepted booking ID or query groomer-visible bookings without the filtered request join, then rerun validation with explicit user approval.
-Next: Stop unless the user explicitly authorizes fixing the T-084 rollback validation harness and running a second Deep validation attempt.
+Result: Historical checkpoint only, superseded by the completed follow-up entry above. The likely issue was the validation harness querying the accepted booking through a groomer-role join to grooming_requests after acceptance hid the match/request path under RLS. No schema, RLS, RPC, Storage, iOS, or migration change was made.
+Risks: At checkpoint time, T-084 was not complete. The completed follow-up above fixed the harness and passed validation.
+Next: Superseded by the completed follow-up entry above; no longer actionable.
 ```
 
 ```text

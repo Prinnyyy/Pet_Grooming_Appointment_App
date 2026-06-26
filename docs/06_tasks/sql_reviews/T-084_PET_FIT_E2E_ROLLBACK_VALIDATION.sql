@@ -365,9 +365,9 @@ begin
   from public.complete_booking((
     select booking.id
     from public.bookings as booking
-    join public.grooming_requests as grooming_request
-      on grooming_request.id = booking.request_id
-    where grooming_request.service_notes = 'T084 rollback validation first request'
+    where booking.customer_id = '84000000-0000-4000-8000-000000000001'
+      and booking.groomer_id = '84000000-0000-4000-8000-000000000002'
+      and booking.status = 'confirmed'
     limit 1
   ));
 
@@ -397,9 +397,9 @@ begin
     (
       select booking.id
       from public.bookings as booking
-      join public.grooming_requests as grooming_request
-        on grooming_request.id = booking.request_id
-      where grooming_request.service_notes = 'T084 rollback validation first request'
+      where booking.customer_id = '84000000-0000-4000-8000-000000000001'
+        and booking.groomer_id = '84000000-0000-4000-8000-000000000002'
+        and booking.status = 'completed'
       limit 1
     ),
     5,
