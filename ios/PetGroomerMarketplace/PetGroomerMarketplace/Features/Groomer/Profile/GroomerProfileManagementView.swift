@@ -135,6 +135,17 @@ private struct GroomerAccountHomeView: View {
                     .padding(.leading, 72)
 
                 GroomerAccountMenuLink(
+                    title: "Evidence Dashboard",
+                    systemImage: "chart.bar.xaxis"
+                ) {
+                    GroomerEvidenceDashboardView(store: store)
+                }
+
+                Divider()
+                    .overlay(DesignTokens.Colors.divider)
+                    .padding(.leading, 72)
+
+                GroomerAccountMenuLink(
                     title: "Availability",
                     systemImage: "calendar",
                     isLast: true
@@ -435,6 +446,255 @@ private struct GroomerFitSignalsEditorView: View {
 
     private func signals(for group: PetFitSignal.Group) -> [PetFitSignal] {
         GroomerFitClaim.availableSignals.filter { $0.group == group }
+    }
+}
+
+private struct GroomerEvidenceDashboardView: View {
+    @Bindable var store: GroomerProfileStore
+
+    private var summaries: [GroomerPetFitEvidenceSummary] {
+        store.sortedPetFitEvidenceSummary()
+    }
+
+    var body: some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                GroomlySectionHeader(
+                    "Evidence Dashboard",
+                    subtitle: "Completed bookings and structured reviews by pet-fit signal."
+                ) {
+                    GroomlyStatusChip(
+                        "\(summaries.count) signal\(summaries.count == 1 ? "" : "s")",
+                        systemImage: "sparkles",
+                        tone: .groomer
+                    )
+                }
+
+                GroomerEvidenceDashboardSummaryCard(summaries: summaries)
+
+                if summaries.isEmpty {
+                    GroomlyEmptyState(
+                        title: "No Evidence Yet",
+                        message: "Completed bookings and structured reviews will appear here as they accumulate.",
+                        systemImage: "chart.bar.xaxis",
+                        accent: .groomer
+                    )
+                    .accessibilityIdentifier("groomer.evidence.empty")
+                } else {
+                    ForEach(summaries) { summary in
+                        GroomerEvidenceSummaryRow(summary: summary)
+                    }
+                }
+            }
+            .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+            .padding(.top, DesignTokens.Spacing.lg)
+            .padding(.bottom, 120)
+        }
+        .background(DesignTokens.Colors.background.ignoresSafeArea())
+        .navigationTitle("Evidence")
+        .navigationBarTitleDisplayMode(.inline)
+        .accessibilityIdentifier("groomer.evidence.dashboard")
+    }
+}
+
+private struct GroomerEvidenceDashboardSummaryCard: View {
+    let summaries: [GroomerPetFitEvidenceSummary]
+
+    var body: some View {
+        GroomlyCard {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                HStack(spacing: DesignTokens.Spacing.md) {
+                    Image(systemName: "checkmark.seal.fill")
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
+                        .frame(width: 48, height: 48)
+                        .background(DesignTokens.Colors.groomerAccent.opacity(0.16))
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .accessibilityHidden(true)
+
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                        Text("Evidence Summary")
+                            .font(DesignTokens.Typography.headline)
+                            .foregroundStyle(DesignTokens.Colors.textPrimary)
+
+                        Text("Aggregate counts from completed care history")
+                            .font(DesignTokens.Typography.caption)
+                            .foregroundStyle(DesignTokens.Colors.textSecondary)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+
+                HStack(spacing: DesignTokens.Spacing.md) {
+                    GroomerEvidenceMetricView(
+                        value: totalCompletedBookings,
+                        label: "Completed"
+                    )
+
+                    GroomerEvidenceMetricView(
+                        value: totalPositiveOutcomes,
+                        label: "Positive"
+                    )
+
+                    GroomerEvidenceMetricView(
+                        value: highConfidenceCount,
+                        label: "High Tier"
+                    )
+                }
+            }
+        }
+    }
+
+    private var totalCompletedBookings: Int {
+        summaries.reduce(0) { $0 + $1.completedBookingCount }
+    }
+
+    private var totalPositiveOutcomes: Int {
+        summaries.reduce(0) { $0 + $1.positiveReviewOutcomeCount }
+    }
+
+    private var highConfidenceCount: Int {
+        summaries.filter { $0.confidenceTier == .high }.count
+    }
+}
+
+private struct GroomerEvidenceMetricView: View {
+    let value: Int
+    let label: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+            Text(value.formatted())
+                .font(.system(size: 26, weight: .bold))
+                .foregroundStyle(DesignTokens.Colors.textPrimary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.76)
+
+            Text(label)
+                .font(DesignTokens.Typography.caption)
+                .foregroundStyle(DesignTokens.Colors.textSecondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.82)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+private struct GroomerEvidenceSummaryRow: View {
+    let summary: GroomerPetFitEvidenceSummary
+
+    var body: some View {
+        GroomlyCard {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
+                    Image(systemName: iconName)
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
+                        .frame(width: 46, height: 46)
+                        .background(DesignTokens.Colors.groomerAccent.opacity(0.14))
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .accessibilityHidden(true)
+
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                        Text(summary.signal.title)
+                            .font(DesignTokens.Typography.headline)
+                            .foregroundStyle(DesignTokens.Colors.textPrimary)
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        Text(summary.signal.groupTitle)
+                            .font(DesignTokens.Typography.caption)
+                            .foregroundStyle(DesignTokens.Colors.textSecondary)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                    GroomlyStatusChip(
+                        "\(summary.confidenceTier.title) confidence",
+                        systemImage: confidenceIconName,
+                        tone: confidenceTone
+                    )
+                }
+
+                VStack(spacing: DesignTokens.Spacing.sm) {
+                    GroomerEvidenceCountLine(
+                        title: "Completed bookings",
+                        value: summary.completedBookingCount
+                    )
+                    GroomerEvidenceCountLine(
+                        title: "Positive review outcomes",
+                        value: summary.positiveReviewOutcomeCount
+                    )
+                    GroomerEvidenceCountLine(
+                        title: "Negative review outcomes",
+                        value: summary.negativeReviewOutcomeCount
+                    )
+                    GroomerEvidenceCountLine(
+                        title: "Structured review outcomes",
+                        value: summary.structuredReviewOutcomeCount
+                    )
+                }
+
+                if let updatedAt = summary.evidenceUpdatedAt {
+                    Text("Updated \(GroomingRequestDateFormatting.displayString(from: updatedAt))")
+                        .font(DesignTokens.Typography.caption)
+                        .foregroundStyle(DesignTokens.Colors.textTertiary)
+                }
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    private var iconName: String {
+        switch summary.signal.group {
+        case .breedGroup:
+            "pawprint.fill"
+        case .sizeBand:
+            "ruler"
+        case .careFlag:
+            "heart.fill"
+        case .serviceFit:
+            "scissors"
+        }
+    }
+
+    private var confidenceIconName: String {
+        switch summary.confidenceTier {
+        case .high:
+            "checkmark.seal.fill"
+        case .medium:
+            "checkmark.circle.fill"
+        case .low:
+            "circle"
+        }
+    }
+
+    private var confidenceTone: GroomlyStatusChip.Tone {
+        switch summary.confidenceTier {
+        case .high:
+            .success
+        case .medium:
+            .groomer
+        case .low:
+            .neutral
+        }
+    }
+}
+
+private struct GroomerEvidenceCountLine: View {
+    let title: String
+    let value: Int
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.md) {
+            Text(title)
+                .font(DesignTokens.Typography.body)
+                .foregroundStyle(DesignTokens.Colors.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Spacer(minLength: DesignTokens.Spacing.md)
+
+            Text(value.formatted())
+                .font(DesignTokens.Typography.body.weight(.bold))
+                .foregroundStyle(DesignTokens.Colors.textPrimary)
+        }
     }
 }
 
@@ -968,6 +1228,11 @@ private struct GroomerAvatarEditorSection: View {
     @State private var selectedPhotoItem: PhotosPickerItem?
 
     var body: some View {
+        let hasSavedPhoto = store.profile?.avatarPath != nil
+        let photoStatusText = hasSavedPhoto ? "Photo saved to your profile." : "Add a clear face photo."
+        let photoActionTitle = hasSavedPhoto ? "Replace Photo" : "Upload Photo"
+        let isBusy = store.isBusy
+
         GroomlyCard {
             HStack(alignment: .center, spacing: DesignTokens.Spacing.lg) {
                 ZStack(alignment: .bottomTrailing) {
@@ -978,7 +1243,7 @@ private struct GroomerAvatarEditorSection: View {
                         placeholderSize: 38
                     )
 
-                    if store.profile?.avatarPath != nil {
+                    if hasSavedPhoto {
                         Image(systemName: "checkmark.circle.fill")
                             .font(.system(size: 22, weight: .bold))
                             .foregroundStyle(DesignTokens.Colors.success)
@@ -994,7 +1259,7 @@ private struct GroomerAvatarEditorSection: View {
                             .font(DesignTokens.Typography.headline)
                             .foregroundStyle(DesignTokens.Colors.textPrimary)
 
-                        Text(store.profile?.avatarPath == nil ? "Add a clear face photo." : "Photo saved to your profile.")
+                        Text(photoStatusText)
                             .font(DesignTokens.Typography.caption)
                             .foregroundStyle(DesignTokens.Colors.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
@@ -1002,12 +1267,12 @@ private struct GroomerAvatarEditorSection: View {
 
                     PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
                         Label(
-                            store.profile?.avatarPath == nil ? "Upload Photo" : "Replace Photo",
+                            photoActionTitle,
                             systemImage: "camera"
                         )
                     }
                     .buttonStyle(GroomlySecondaryButtonStyle(accent: .groomer))
-                    .disabled(store.isBusy)
+                    .disabled(isBusy)
                     .accessibilityIdentifier("groomer.profile.avatar.upload")
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -2462,6 +2727,7 @@ private final class GroomerProfilePreviewRepository: GroomerProfileRepository {
     private var storedAvailability: [GroomerAvailabilityWindow] = []
     private var storedBookingPreferences: GroomerBookingPreferences
     private var storedTimeOff: [GroomerTimeOffWindow] = []
+    private var storedPetFitEvidenceSummary: [GroomerPetFitEvidenceSummary] = []
 
     init() {
         storedProfile = GroomerProfile(
@@ -2536,6 +2802,32 @@ private final class GroomerProfilePreviewRepository: GroomerProfileRepository {
                 timezone: TimeZone.current.identifier
             ),
         ]
+        storedPetFitEvidenceSummary = [
+            GroomerPetFitEvidenceSummary(
+                groomerID: groomerID,
+                signal: .breedGroup(.poodle),
+                completedBookingCount: 5,
+                positiveReviewOutcomeCount: 3,
+                negativeReviewOutcomeCount: 0,
+                structuredReviewOutcomeCount: 3,
+                lastCompletedAt: "2026-06-21T17:00:00Z",
+                lastReviewOutcomeAt: "2026-06-22T18:00:00Z",
+                evidenceUpdatedAt: "2026-06-22T18:00:00Z",
+                confidenceTier: .high
+            ),
+            GroomerPetFitEvidenceSummary(
+                groomerID: groomerID,
+                signal: .serviceFit(.gentleHandling),
+                completedBookingCount: 2,
+                positiveReviewOutcomeCount: 1,
+                negativeReviewOutcomeCount: 0,
+                structuredReviewOutcomeCount: 1,
+                lastCompletedAt: "2026-06-18T16:00:00Z",
+                lastReviewOutcomeAt: "2026-06-19T16:30:00Z",
+                evidenceUpdatedAt: "2026-06-19T16:30:00Z",
+                confidenceTier: .medium
+            ),
+        ]
     }
 
     func profile(groomerID: UUID) async throws -> GroomerProfile {
@@ -2556,6 +2848,10 @@ private final class GroomerProfilePreviewRepository: GroomerProfileRepository {
 
     func fitClaims(groomerID: UUID) async throws -> [GroomerFitClaim] {
         []
+    }
+
+    func petFitEvidenceSummary(groomerID: UUID) async throws -> [GroomerPetFitEvidenceSummary] {
+        storedPetFitEvidenceSummary
     }
 
     func availabilityWindows(groomerID: UUID) async throws -> [GroomerAvailabilityWindow] {

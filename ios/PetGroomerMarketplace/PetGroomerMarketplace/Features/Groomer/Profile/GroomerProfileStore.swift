@@ -18,6 +18,7 @@ final class GroomerProfileStore {
     private(set) var bookingPreferences: GroomerBookingPreferences?
     private(set) var timeOffWindows: [GroomerTimeOffWindow] = []
     private(set) var fitClaims: [GroomerFitClaim] = []
+    private(set) var petFitEvidenceSummary: [GroomerPetFitEvidenceSummary] = []
     private(set) var selectedFitClaimIDs: Set<String> = []
     private(set) var avatarPhotoData: Data?
     private(set) var isLoading = false
@@ -91,6 +92,9 @@ final class GroomerProfileStore {
             let loadedBookingPreferences = try await repository.bookingPreferences(groomerID: groomerID)
             let loadedTimeOff = try await repository.timeOffWindows(groomerID: groomerID)
             let loadedFitClaims = try await repository.fitClaims(groomerID: groomerID)
+            let loadedPetFitEvidenceSummary = try await repository.petFitEvidenceSummary(
+                groomerID: groomerID
+            )
 
             profile = loadedProfile
             services = loadedServices
@@ -103,6 +107,7 @@ final class GroomerProfileStore {
             bookingPreferences = loadedBookingPreferences
             timeOffWindows = loadedTimeOff
             populateFitClaims(with: loadedFitClaims)
+            populatePetFitEvidenceSummary(with: loadedPetFitEvidenceSummary)
             populateProfileForm(with: loadedProfile)
             populateAvailabilityForm(with: loadedAvailability)
             populateBookingPreferencesForm(with: loadedBookingPreferences)
@@ -123,6 +128,10 @@ final class GroomerProfileStore {
                 $0.sortOrder < $1.sortOrder
             }
         }
+    }
+
+    func sortedPetFitEvidenceSummary() -> [GroomerPetFitEvidenceSummary] {
+        petFitEvidenceSummary.sorted(by: Self.sortPetFitEvidenceSummary)
     }
 
     func saveProfile() async {
@@ -670,6 +679,13 @@ final class GroomerProfileStore {
         )
     }
 
+    private func populatePetFitEvidenceSummary(with summaries: [GroomerPetFitEvidenceSummary]) {
+        let supportedSignals = Set(PetFitSignal.allCases)
+        petFitEvidenceSummary = summaries
+            .filter { $0.groomerID == groomerID && supportedSignals.contains($0.signal) }
+            .sorted(by: Self.sortPetFitEvidenceSummary)
+    }
+
     private func populatePortfolioFitTags(
         with tags: [GroomerPortfolioFitTag],
         visiblePhotos: [GroomerPortfolioPhoto]
@@ -1034,6 +1050,25 @@ final class GroomerProfileStore {
             return sortFitSignals(lhs.signal, rhs.signal)
         }
         return lhs.portfolioPhotoID.uuidString < rhs.portfolioPhotoID.uuidString
+    }
+
+    private static func sortPetFitEvidenceSummary(
+        _ lhs: GroomerPetFitEvidenceSummary,
+        _ rhs: GroomerPetFitEvidenceSummary
+    ) -> Bool {
+        if lhs.confidenceTier.sortOrder != rhs.confidenceTier.sortOrder {
+            return lhs.confidenceTier.sortOrder < rhs.confidenceTier.sortOrder
+        }
+        if lhs.completedBookingCount != rhs.completedBookingCount {
+            return lhs.completedBookingCount > rhs.completedBookingCount
+        }
+        if lhs.positiveReviewOutcomeCount != rhs.positiveReviewOutcomeCount {
+            return lhs.positiveReviewOutcomeCount > rhs.positiveReviewOutcomeCount
+        }
+        if lhs.structuredReviewOutcomeCount != rhs.structuredReviewOutcomeCount {
+            return lhs.structuredReviewOutcomeCount > rhs.structuredReviewOutcomeCount
+        }
+        return sortFitSignals(lhs.signal, rhs.signal)
     }
 
     private static func sortFitSignals(

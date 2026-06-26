@@ -12,10 +12,10 @@
 
 ## Status
 
-- Status: active sequence; completed through T-081A; T-081 iOS dashboard pending explicit resume
+- Status: active sequence; completed through T-081; T-082+ not started
 - Date: 2026-06-26
-- Current completed pet-fit baseline: T-063 through T-080 and T-081A, plus user-authorized T-050 remote deployment.
-- Next executable task: T-081, only after the user explicitly starts/resumes the iOS dashboard.
+- Current completed pet-fit baseline: T-063 through T-081 and T-081A, plus user-authorized T-050 remote deployment.
+- Next executable task: none active; T-082+ requires an explicit user request/authorization.
 
 ## Product Guardrails
 
@@ -40,7 +40,7 @@
 - T-079 adds a Groomer Account Fit Signals page that manages bounded owner-claimed signals through existing `groomer_fit_claims` table access behind `GroomerProfileRepository`. No Supabase schema change was made.
 - T-080 adds per-photo Portfolio fit tag management through existing `groomer_portfolio_fit_tags` table access behind `GroomerProfileRepository`. No Supabase schema change was made.
 - T-081A adds the owner-readable aggregate RPC `get_my_groomer_pet_fit_evidence_summary()` so Groomer Account can read completed-booking and structured-review aggregate evidence without broadening request row RLS or exposing raw customer/pet/request/booking/review details.
-- T-081 is not implemented in Swift yet; when resumed, it should use the T-081A RPC behind `GroomerProfileRepository`.
+- T-081 adds the Groomer Account Evidence Dashboard using the T-081A RPC behind `GroomerProfileRepository`. It shows aggregate counts, structured review outcomes, safe timestamps, and confidence tiers only.
 
 ## Task Plan
 
@@ -53,7 +53,7 @@
 | T-079 | Groomer Claimed Fit Signals UI | Standard | Add groomer-owned fit claim loading and saving through `GroomerProfileRepository` and a dedicated Account page. | Groomers can activate/deactivate a small bounded set of claims; UI copy frames claims as starter signals, not expert verification. |
 | T-080 | Portfolio Fit Tags UI | Standard | Add owner-managed fit tags for existing portfolio photos through the profile repository and Portfolio page. | Groomers can add/remove up to a bounded number of tags per photo; deleting a photo keeps relying on the existing FK cascade. |
 | T-081A | Evidence Dashboard Owner Visibility Backend | Deep | Create a safe owner-readable aggregate evidence contract for Groomer Account without exposing raw customer, pet, request, booking, or review details. | Completed: rollback-only checks prove groomers can read only their own aggregate evidence, cross-owner/customer reads are denied, advisors ran, and no raw private details are returned. |
-| T-081 | Groomer Evidence Dashboard | Standard | Surface earned evidence from `groomer_pet_fit_evidence_summary` in Groomer Account. | Groomers can see aggregate completed counts, review outcomes, and confidence tiers without customer or pet private details. |
+| T-081 | Groomer Evidence Dashboard | Standard | Surface earned evidence from the T-081A owner aggregate RPC in Groomer Account. | Completed: groomers can see aggregate completed counts, review outcomes, and confidence tiers without customer or pet private details. |
 | T-082 | Matching Fairness And Calibration | Deep | Run rollback SQL scenarios and adjust `create_grooming_request` internals only if needed to preserve fair distribution and low claim weight. | Eligible new groomers still receive matches; claim-only groomers do not outrank equivalent evidence-backed groomers; RPC signature and grants remain unchanged. |
 | T-083 | Score Display De-Emphasis | Standard | Replace raw score-heavy UI copy in groomer request and customer offer surfaces with explanation-first fit evidence wording. | UI no longer reads like `94 match` as an ability percentage; tests cover reason trimming, blank reason hiding, and new copy. |
 | T-084 | Pet-Fit End-To-End Validation Scenario | Deep | Validate the full evidence loop with rollback-only SQL: request, match, offer, booking, completion, structured review, next request. | Evidence from the first completed booking changes the next matching reason as expected while RLS and visibility boundaries still hold. |
@@ -186,16 +186,19 @@
 **Backend prerequisite:**
 - T-081A created `get_my_groomer_pet_fit_evidence_summary()` as the safe owner-readable aggregate backend contract. The original direct `security_invoker` view is still correctly constrained by underlying RLS, so the iOS dashboard should use the RPC for owner completed-booking evidence.
 
-**Execution notes:**
-- Query `get_my_groomer_pet_fit_evidence_summary()` through the repository.
-- Show only aggregate counts and confidence tiers.
-- Do not direct-read private request, pet, booking, review, or snapshot data from SwiftUI or repositories for this dashboard.
+**Completion notes:**
+- `GroomerProfileRepository` now exposes `petFitEvidenceSummary(groomerID:)`.
+- The Supabase adapter queries `get_my_groomer_pet_fit_evidence_summary()` through `.rpc(...)`.
+- The Store filters and sorts canonical aggregate rows for the active groomer.
+- The Account `Evidence Dashboard` page shows only aggregate counts, confidence tiers, and safe timestamps.
+- SwiftUI and repositories do not direct-read private request, pet, booking, review, or snapshot data for this dashboard.
 
 **Validation:**
-- Targeted repository/store presentation tests.
-- `git diff --check`
-- `./scripts/ios-build.sh`
-- Simulator launch because Account UI changes.
+- RED/GREEN targeted Store test.
+- Focused `GroomerProfileStoreTests`.
+- `git diff --check`.
+- `./scripts/ios-build.sh`.
+- XcodeBuildMCP simulator launch and Account -> Evidence Dashboard UI snapshots.
 
 ### T-082: Matching Fairness And Calibration
 
@@ -286,8 +289,8 @@
 
 ## Assumptions
 
-- The next implementation resumes T-081 only when explicitly requested.
+- No next implementation is active; T-082 and later tasks start only when explicitly requested.
 - Each listed row is a separate primary task.
 - T-075 through T-085 do not authorize remote writes by themselves.
 - Existing branch remains `codex/pet-fit-structure-cleanup` unless the user asks for a different branch.
-- Existing T-063 through T-074 behavior remains the baseline unless a task explicitly changes it.
+- Existing T-063 through T-081 behavior remains the baseline unless a task explicitly changes it.

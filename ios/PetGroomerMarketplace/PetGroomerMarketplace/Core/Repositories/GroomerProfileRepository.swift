@@ -16,6 +16,7 @@ protocol GroomerProfileRepository: AnyObject {
     func bookingPreferences(groomerID: UUID) async throws -> GroomerBookingPreferences
     func timeOffWindows(groomerID: UUID) async throws -> [GroomerTimeOffWindow]
     func fitClaims(groomerID: UUID) async throws -> [GroomerFitClaim]
+    func petFitEvidenceSummary(groomerID: UUID) async throws -> [GroomerPetFitEvidenceSummary]
 
     func updateProfile(
         groomerID: UUID,

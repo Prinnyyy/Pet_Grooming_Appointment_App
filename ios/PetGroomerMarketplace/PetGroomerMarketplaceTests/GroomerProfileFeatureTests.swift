@@ -41,6 +41,15 @@ struct GroomerProfileStoreTests {
             groomerID: groomerID,
             signal: .serviceFit(.curlyCoat)
         )
+        let evidenceSummary = Self.evidenceSummary(
+            groomerID: groomerID,
+            signal: .breedGroup(.poodle),
+            completedBookingCount: 3,
+            positiveReviewOutcomeCount: 2,
+            negativeReviewOutcomeCount: 0,
+            structuredReviewOutcomeCount: 2,
+            confidenceTier: .medium
+        )
         let repository = GroomerProfileRepositoryFake(
             profileResult: .success(profile),
             servicesResult: .success([service]),
@@ -49,7 +58,8 @@ struct GroomerProfileStoreTests {
             availabilityResult: .success([availability]),
             bookingPreferencesResult: .success(preferences),
             timeOffResult: .success([timeOff]),
-            fitClaimsResult: .success([fitClaim])
+            fitClaimsResult: .success([fitClaim]),
+            petFitEvidenceSummaryResult: .success([evidenceSummary])
         )
         let store = GroomerProfileStore(
             groomerID: groomerID,
@@ -66,6 +76,7 @@ struct GroomerProfileStoreTests {
         #expect(store.timeOffWindows == [timeOff])
         #expect(store.fitClaims == [fitClaim])
         #expect(store.selectedFitClaimIDs == [fitClaim.signal.id])
+        #expect(store.petFitEvidenceSummary == [evidenceSummary])
         #expect(store.portfolioFitTags == [portfolioTag])
         #expect(
             store.selectedPortfolioFitTagIDsByPhotoID[photo.id] == [
@@ -77,6 +88,47 @@ struct GroomerProfileStoreTests {
         #expect(store.maxAppointmentsPerDay == 4)
         #expect(store.minimumAdvanceNoticeDays == 1)
         #expect(store.autoAcceptBookings)
+    }
+
+    @Test @MainActor
+    func loadKeepsOnlySupportedPetFitEvidenceSignals() async {
+        let groomerID = UUID()
+        let poodle = Self.evidenceSummary(
+            groomerID: groomerID,
+            signal: .breedGroup(.poodle),
+            completedBookingCount: 1,
+            confidenceTier: .low
+        )
+        let repository = GroomerProfileRepositoryFake(
+            profileResult: .success(Self.profile(groomerID: groomerID)),
+            petFitEvidenceSummaryResult: .success([
+                poodle,
+                GroomerPetFitEvidenceSummary(
+                    groomerID: groomerID,
+                    signal: PetFitSignal(
+                        group: .breedGroup,
+                        traitValue: "unsupported",
+                        title: "Unsupported"
+                    ),
+                    completedBookingCount: 9,
+                    positiveReviewOutcomeCount: 9,
+                    negativeReviewOutcomeCount: 0,
+                    structuredReviewOutcomeCount: 9,
+                    lastCompletedAt: nil,
+                    lastReviewOutcomeAt: nil,
+                    evidenceUpdatedAt: nil,
+                    confidenceTier: .high
+                ),
+            ])
+        )
+        let store = GroomerProfileStore(
+            groomerID: groomerID,
+            repository: repository
+        )
+
+        await store.load()
+
+        #expect(store.petFitEvidenceSummary == [poodle])
     }
 
     @Test @MainActor
@@ -684,6 +736,29 @@ struct GroomerProfileStoreTests {
         )
     }
 
+    private static func evidenceSummary(
+        groomerID: UUID,
+        signal: PetFitSignal,
+        completedBookingCount: Int,
+        positiveReviewOutcomeCount: Int = 0,
+        negativeReviewOutcomeCount: Int = 0,
+        structuredReviewOutcomeCount: Int = 0,
+        confidenceTier: GroomerPetFitEvidenceConfidenceTier
+    ) -> GroomerPetFitEvidenceSummary {
+        GroomerPetFitEvidenceSummary(
+            groomerID: groomerID,
+            signal: signal,
+            completedBookingCount: completedBookingCount,
+            positiveReviewOutcomeCount: positiveReviewOutcomeCount,
+            negativeReviewOutcomeCount: negativeReviewOutcomeCount,
+            structuredReviewOutcomeCount: structuredReviewOutcomeCount,
+            lastCompletedAt: nil,
+            lastReviewOutcomeAt: nil,
+            evidenceUpdatedAt: nil,
+            confidenceTier: confidenceTier
+        )
+    }
+
     private static func date(year: Int, month: Int, day: Int) -> Date {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = .current
@@ -707,6 +782,7 @@ private final class GroomerProfileRepositoryFake: GroomerProfileRepository {
     var bookingPreferencesResult: Result<GroomerBookingPreferences, GroomerProfileRepositoryError>
     var timeOffResult: Result<[GroomerTimeOffWindow], GroomerProfileRepositoryError>
     var fitClaimsResult: Result<[GroomerFitClaim], GroomerProfileRepositoryError>
+    var petFitEvidenceSummaryResult: Result<[GroomerPetFitEvidenceSummary], GroomerProfileRepositoryError>
     var updateProfileResult: Result<GroomerProfile, GroomerProfileRepositoryError>?
     var updateBookingPreferencesResult: Result<GroomerBookingPreferences, GroomerProfileRepositoryError>?
     var replaceFitClaimsResult: Result<[GroomerFitClaim], GroomerProfileRepositoryError>?
@@ -760,6 +836,8 @@ private final class GroomerProfileRepositoryFake: GroomerProfileRepository {
             .success([]),
         fitClaimsResult: Result<[GroomerFitClaim], GroomerProfileRepositoryError> =
             .success([]),
+        petFitEvidenceSummaryResult: Result<[GroomerPetFitEvidenceSummary], GroomerProfileRepositoryError> =
+            .success([]),
         updateProfileResult: Result<GroomerProfile, GroomerProfileRepositoryError>? = nil,
         updateBookingPreferencesResult: Result<GroomerBookingPreferences, GroomerProfileRepositoryError>? = nil,
         replaceFitClaimsResult: Result<[GroomerFitClaim], GroomerProfileRepositoryError>? = nil,
@@ -786,6 +864,7 @@ private final class GroomerProfileRepositoryFake: GroomerProfileRepository {
         self.bookingPreferencesResult = bookingPreferencesResult
         self.timeOffResult = timeOffResult
         self.fitClaimsResult = fitClaimsResult
+        self.petFitEvidenceSummaryResult = petFitEvidenceSummaryResult
         self.updateProfileResult = updateProfileResult
         self.updateBookingPreferencesResult = updateBookingPreferencesResult
         self.replaceFitClaimsResult = replaceFitClaimsResult
@@ -831,6 +910,10 @@ private final class GroomerProfileRepositoryFake: GroomerProfileRepository {
 
     func fitClaims(groomerID: UUID) async throws -> [GroomerFitClaim] {
         try fitClaimsResult.get()
+    }
+
+    func petFitEvidenceSummary(groomerID: UUID) async throws -> [GroomerPetFitEvidenceSummary] {
+        try petFitEvidenceSummaryResult.get()
     }
 
     func updateProfile(

@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-06-26
+Task: T-081 - Groomly groomer evidence dashboard.
+Files changed: GroomerProfile model, GroomerProfileRepository, SupabaseGroomerProfileRepository, GroomerProfileStore, GroomerProfileManagementView, GroomerProfileFeatureTests, T-081 task doc, pet-fit closure plan, task ledger, feature index, CURRENT_STATE.md, and WORKLOG.md.
+Checks: RED targeted GroomerProfileStore test failed before implementation because GroomerPetFitEvidenceSummary/GroomerPetFitEvidenceConfidenceTier did not exist; GREEN targeted evidence test passed after implementation; focused GroomerProfileStoreTests passed; ./scripts/ios-build.sh passed; XcodeBuildMCP build_run_sim passed on iPhone 17 Pro iOS 26.5 with no final warnings/errors; UI snapshots confirmed Account -> Evidence Dashboard and the dashboard empty state; git diff --check passed.
+Result: Groomer Account now has a read-only Evidence Dashboard backed by get_my_groomer_pet_fit_evidence_summary through GroomerProfileRepository, showing aggregate completed-booking counts, structured review outcome counts, safe timestamps, and confidence tiers.
+Risks: T-081 adds no Supabase schema/RLS/grant/RPC/Storage change, no direct evidence-view reads, no customer-facing evidence, no public directory, no direct booking, no matching change, and no expertise-proof behavior.
+Next: Stop unless the user asks for commit/push or explicitly authorizes a next task.
+```
+
+```text
+Date: 2026-06-26
 Task: T-081A - Groomly evidence dashboard owner visibility backend.
 Files changed: Supabase migration 20260626021651; T-081A task doc; T-081 task doc; backend contract/RLS docs; pet-fit closure plan; task ledger; feature index; CURRENT_STATE.md; and WORKLOG.md.
 Checks: RED rollback-only SQL reproduced the direct owner-read gap for completed-booking snapshot evidence; Supabase MCP applied the reviewed migration after CLI dry-run showed existing remote/local migration drift; metadata/grant/function checks passed; GREEN rollback-only SQL passed for owner aggregate reads, cross-groomer isolation, customer rejection, aggregate-only signature, and unchanged direct-view RLS behavior; residue check returned zero validation rows; security/performance advisors ran with the expected controlled SECURITY DEFINER WARN for the new RPC plus existing baseline findings; ./scripts/supabase-check.sh passed; git diff --check passed before documentation closeout.

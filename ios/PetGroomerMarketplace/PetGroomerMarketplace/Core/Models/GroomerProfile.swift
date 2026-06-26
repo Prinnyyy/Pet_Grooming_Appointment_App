@@ -137,6 +137,60 @@ nonisolated struct GroomerPortfolioFitTagDraft:
     let signal: PetFitSignal
 }
 
+nonisolated enum GroomerPetFitEvidenceConfidenceTier:
+    String,
+    CaseIterable,
+    Equatable,
+    Sendable
+{
+    case low
+    case medium
+    case high
+
+    var title: String {
+        switch self {
+        case .low:
+            "Low"
+        case .medium:
+            "Medium"
+        case .high:
+            "High"
+        }
+    }
+
+    var sortOrder: Int {
+        switch self {
+        case .high:
+            0
+        case .medium:
+            1
+        case .low:
+            2
+        }
+    }
+}
+
+nonisolated struct GroomerPetFitEvidenceSummary:
+    Equatable,
+    Identifiable,
+    Sendable
+{
+    let groomerID: UUID
+    let signal: PetFitSignal
+    let completedBookingCount: Int
+    let positiveReviewOutcomeCount: Int
+    let negativeReviewOutcomeCount: Int
+    let structuredReviewOutcomeCount: Int
+    let lastCompletedAt: String?
+    let lastReviewOutcomeAt: String?
+    let evidenceUpdatedAt: String?
+    let confidenceTier: GroomerPetFitEvidenceConfidenceTier
+
+    var id: String {
+        "\(groomerID.uuidString.lowercased()):\(signal.id)"
+    }
+}
+
 nonisolated struct GroomerFitClaim:
     Equatable,
     Identifiable,

@@ -20,6 +20,8 @@ final class SupabaseGroomerProfileRepository: GroomerProfileRepository {
         "id,groomer_id,title,start_date,end_date"
     private static let fitClaimColumns =
         "id,groomer_id,trait_type,trait_value,is_active"
+    private static let petFitEvidenceSummaryRPC =
+        "get_my_groomer_pet_fit_evidence_summary"
     fileprivate static let bucketID = "groomer-portfolio"
     fileprivate static let avatarBucketID = "avatars"
 
@@ -164,6 +166,21 @@ final class SupabaseGroomerProfileRepository: GroomerProfileRepository {
                 .value
 
             return rows.compactMap(\.claim)
+        } catch {
+            throw Self.map(error)
+        }
+    }
+
+    func petFitEvidenceSummary(groomerID: UUID) async throws -> [GroomerPetFitEvidenceSummary] {
+        do {
+            let rows: [GroomerPetFitEvidenceSummaryRow] = try await client
+                .rpc(Self.petFitEvidenceSummaryRPC)
+                .execute()
+                .value
+
+            return rows
+                .compactMap(\.summary)
+                .filter { $0.groomerID == groomerID }
         } catch {
             throw Self.map(error)
         }
@@ -953,6 +970,55 @@ private struct GroomerFitClaimRow: Decodable {
         case traitType = "trait_type"
         case traitValue = "trait_value"
         case isActive = "is_active"
+    }
+}
+
+private struct GroomerPetFitEvidenceSummaryRow: Decodable {
+    let groomerID: UUID
+    let traitType: String
+    let traitValue: String
+    let completedBookingCount: Int
+    let positiveReviewOutcomeCount: Int
+    let negativeReviewOutcomeCount: Int
+    let structuredReviewOutcomeCount: Int
+    let lastCompletedAt: String?
+    let lastReviewOutcomeAt: String?
+    let evidenceUpdatedAt: String?
+    let confidenceTier: String
+
+    var summary: GroomerPetFitEvidenceSummary? {
+        guard let signal = PetFitSignal.allCases.first(where: {
+            $0.traitType == traitType && $0.traitValue == traitValue
+        }) else {
+            return nil
+        }
+
+        return GroomerPetFitEvidenceSummary(
+            groomerID: groomerID,
+            signal: signal,
+            completedBookingCount: completedBookingCount,
+            positiveReviewOutcomeCount: positiveReviewOutcomeCount,
+            negativeReviewOutcomeCount: negativeReviewOutcomeCount,
+            structuredReviewOutcomeCount: structuredReviewOutcomeCount,
+            lastCompletedAt: lastCompletedAt,
+            lastReviewOutcomeAt: lastReviewOutcomeAt,
+            evidenceUpdatedAt: evidenceUpdatedAt,
+            confidenceTier: GroomerPetFitEvidenceConfidenceTier(rawValue: confidenceTier) ?? .low
+        )
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case groomerID = "groomer_id"
+        case traitType = "trait_type"
+        case traitValue = "trait_value"
+        case completedBookingCount = "completed_booking_count"
+        case positiveReviewOutcomeCount = "positive_review_outcome_count"
+        case negativeReviewOutcomeCount = "negative_review_outcome_count"
+        case structuredReviewOutcomeCount = "structured_review_outcome_count"
+        case lastCompletedAt = "last_completed_at"
+        case lastReviewOutcomeAt = "last_review_outcome_at"
+        case evidenceUpdatedAt = "evidence_updated_at"
+        case confidenceTier = "confidence_tier"
     }
 }
 
