@@ -1,7 +1,8 @@
 <!--
 来源 / Provenance: 用户于 2026-06-20 直接提供的项目构建 plan 快照。
-权威详版 / Canonical detailed version: docs/06_tasks/T-002_INCREMENTAL_BUILD_ROADMAP.md
-本文件为按需读取的参考快照，不作为权威来源；如与权威文档冲突，以编号权威文档为准。
+Current task source: docs/06_tasks/TASK_LEDGER.md
+Historical detailed record: docs/09_frozen/task_records_2026-06-26/T-002_INCREMENTAL_BUILD_ROADMAP.md
+本文件为按需读取的参考快照，不作为权威来源；如与当前任务总账或历史详版冲突，以任务总账和归档详版为准。
 -->
 
 # T-002：分阶段搭建路线图重建
@@ -10,7 +11,7 @@
 
 本任务仅重建文档计划，不修改 Swift、Xcode 工程或 Supabase。以 `Fresh_Pet_Groomer_Marketplace_Engineering_Brief.md` 为产品主来源，T-001 为已完成基线。
 
-创建 `docs/06_tasks/T-002_INCREMENTAL_BUILD_ROADMAP.md` 作为唯一主路线图；后续任务文件在任务启动时按需创建。
+创建 T-002 分阶段路线图；该详版现在归档于 `docs/09_frozen/task_records_2026-06-26/T-002_INCREMENTAL_BUILD_ROADMAP.md`，当前任务状态以 `docs/06_tasks/TASK_LEDGER.md` 为准。
 
 ## Implementation Changes
 

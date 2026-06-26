@@ -9,95 +9,25 @@ Update this only when project state meaningfully changes.
 
 ## Current Task Fast Path
 
-- Latest completed Groomly screenshot task: `docs/06_tasks/T-053_GROOMLY_CUSTOMER_HOME_PET_REQUEST_BOOKING_CHAT_FIXES.md`.
-- Latest completed Groomly UI stability task: `docs/06_tasks/T-055_GROOMLY_CUSTOMER_HOME_NEXT_BOOKING_AND_REQUEST_WIZARD_STABILITY.md`.
-- Latest completed Groomly booking polish task: `docs/06_tasks/T-057_GROOMLY_BOOKING_DETAIL_APPOINTMENT_GROOMER_CARD_REFINEMENT.md`.
-- Latest completed Groomly groomer account/availability task: `docs/06_tasks/T-058_GROOMLY_GROOMER_ACCOUNT_PROFILE_AVAILABILITY.md`.
-- Latest completed Groomly groomer profile contract task: `docs/06_tasks/T-059_GROOMLY_GROOMER_PROFILE_DETAILS_SERVICES_PORTFOLIO.md`.
-- Latest completed Groomly groomer availability preferences task: `docs/06_tasks/T-060_GROOMLY_GROOMER_AVAILABILITY_PREFERENCES_TIME_OFF.md`.
-- Latest completed Groomly groomer availability layout task: `docs/06_tasks/T-061_GROOMLY_GROOMER_AVAILABILITY_LAYOUT_REFINEMENT.md`.
-- Latest completed Groomly groomer schedule task: `docs/06_tasks/T-062_GROOMLY_GROOMER_SCHEDULE_SCREENSHOT_UI.md`.
-- Latest completed pet-fit matching contract task: `docs/06_tasks/T-063_GROOMLY_PET_FIT_MATCHING_CONTRACT.md`.
-- Latest completed pet-fit taxonomy task: `docs/06_tasks/T-064_GROOMLY_PET_FIT_TAXONOMY_FOUNDATION.md`.
-- Latest completed pet-fit SQL taxonomy task: `docs/06_tasks/T-065_GROOMLY_PET_FIT_SQL_TAXONOMY.md`.
-- Latest completed pet-fit evidence input task: `docs/06_tasks/T-067_GROOMLY_PET_FIT_STRUCTURED_REVIEWS.md`.
-- Latest completed pet-fit evidence summary task: `docs/06_tasks/T-068_GROOMLY_PET_FIT_EVIDENCE_SUMMARY.md`.
-- Latest completed pet-fit match scoring task: `docs/06_tasks/T-069_GROOMLY_PET_FIT_MATCH_SCORING.md`.
-- Latest completed pet-fit iOS surfacing task: `docs/06_tasks/T-070_GROOMLY_PET_FIT_IOS_SURFACING.md`.
-- Latest completed availability enforcement task: `docs/06_tasks/T-071_GROOMLY_AVAILABILITY_ENFORCEMENT.md`.
-- Latest completed availability-aware matching task: `docs/06_tasks/T-072_GROOMLY_AVAILABILITY_AWARE_MATCHING.md`.
-- Latest completed claim/portfolio match signals task: `docs/06_tasks/T-073_GROOMLY_CLAIM_PORTFOLIO_MATCH_SIGNALS.md`.
-- Latest completed customer offer match evidence task: `docs/06_tasks/T-074_GROOMLY_CUSTOMER_OFFER_MATCH_EVIDENCE.md`.
-- Latest completed pet data contract hardening task: `docs/06_tasks/T-075_GROOMLY_PET_DATA_CONTRACT_REMOTE_HARDENING.md`.
-- Latest completed pet-fit signal vocabulary task: `docs/06_tasks/T-076_GROOMLY_PET_FIT_SIGNAL_VOCABULARY_BRIDGE.md`.
-- Latest completed booking pet-fit context task: `docs/06_tasks/T-077_GROOMLY_BOOKING_PET_FIT_CONTEXT_ENRICHMENT.md`.
-- Latest completed structured review iOS submission task: `docs/06_tasks/T-078_GROOMLY_STRUCTURED_REVIEW_IOS_SUBMISSION.md`.
-- Latest completed groomer claimed fit signals UI task: `docs/06_tasks/T-079_GROOMLY_GROOMER_CLAIMED_FIT_SIGNALS_UI.md`.
-- Latest completed portfolio fit tags UI task: `docs/06_tasks/T-080_GROOMLY_PORTFOLIO_FIT_TAGS_UI.md`.
-- Latest completed owner evidence backend follow-up: `docs/06_tasks/T-081A_GROOMLY_EVIDENCE_DASHBOARD_OWNER_VISIBILITY_BACKEND.md`.
-- Latest completed groomer evidence dashboard UI task: `docs/06_tasks/T-081_GROOMLY_GROOMER_EVIDENCE_DASHBOARD.md`.
-- Latest completed matching fairness calibration task: `docs/06_tasks/T-082_GROOMLY_MATCHING_FAIRNESS_AND_CALIBRATION.md`.
-- Latest completed score display de-emphasis task: `docs/06_tasks/T-083_GROOMLY_SCORE_DISPLAY_DEEMPHASIS.md`.
-- Latest completed pet-fit end-to-end validation task: `docs/06_tasks/T-084_GROOMLY_PET_FIT_E2E_VALIDATION_SCENARIO.md`.
-- Latest completed request fit input preview task: `docs/06_tasks/T-085_GROOMLY_REQUEST_FIT_INPUT_PREVIEW.md`.
-- Latest completed iOS test stability review fix task: `docs/06_tasks/T-086_GROOMLY_IOS_TEST_STABILITY_REVIEW_FIXES.md`.
-- Latest implemented Groomly quest readiness UI alignment task: `docs/06_tasks/T-087_GROOMLY_QUEST_READINESS_UI_ALIGNMENT.md`; customer-side simulator visual inspection remains pending until a customer session or explicitly authorized test account path is available.
-- Latest completed Groomly UI refinement task: `docs/06_tasks/T-043_GROOMLY_CUSTOMER_REQUESTS_CAROUSEL_EDGE_REFINEMENT.md`.
-- Latest completed request feature task: `docs/06_tasks/T-049_GROOMLY_REQUEST_DATA_CONTRACT_LOCATION_PHOTOS.md`.
-- Latest completed pet feature task: `docs/06_tasks/T-050_GROOMLY_PET_DATA_CONTRACT_AND_ADD_PET_UI.md`.
-- Groomly UI sequence: `docs/06_tasks/T-026_TO_T-035_GROOMLY_UI_COMPLETION_SEQUENCE.md` is completed for implemented MVP screens.
-- Completed Groomly UI phase archive marker: `docs/09_frozen/groomly_ui_completed_2026-06-22/FREEZE_README.md`.
+- Current task source of truth: `docs/06_tasks/TASK_LEDGER.md`.
+- Detailed historical task records T-001 through T-088 and workflow task records are archived under `docs/09_frozen/task_records_2026-06-26/`; superseded workflow/context/tool policy docs are archived under `docs/09_frozen/workflow_docs_2026-06-26/`.
+- Latest completed task: T-090 Markdown information architecture optimization.
+- Next task ID for new bugfix or iteration work: T-091, unless the user explicitly chooses another ID or branch.
 - Active next executable pet-fit/availability task: none currently defined; future pet-fit work needs explicit request/authorization.
 - Active next executable Groomly UI alignment task: none currently defined; T-087 customer runtime visual inspection can resume only with a customer simulator session or explicit test-account authorization.
-- Active next executable Groomly screenshot task: none currently defined; future UI work starts from a user-uploaded screenshot.
-- Screenshot-driven task template: `docs/06_tasks/SCREENSHOT_UI_REWORK_TASK_TEMPLATE.md`.
+- Active next executable Groomly screenshot task: none currently defined; future UI work starts from a user-uploaded screenshot and records status in `TASK_LEDGER.md` by default.
+- Screenshot-driven checklist template: `docs/06_tasks/SCREENSHOT_UI_REWORK_TASK_TEMPLATE.md`.
+- Context/recovery access tiers: `docs/05_workflow/CONTEXT_AND_RECOVERY.md`.
+- Tooling and validation policy: `docs/05_workflow/TOOLING_POLICY.md`.
 - Project structure index: `docs/10_project_structure/README.md`.
 - Task directory guide: `docs/06_tasks/README.md`.
-- Superseded mandatory completion gate task: `docs/06_tasks/WORKFLOW-COMPLETION-GATE-001.md`.
-- Lightweight workflow gates task: `docs/06_tasks/WORKFLOW-LIGHTWEIGHT-GATES-001.md`.
-- Screenshot ignore rule task: `docs/06_tasks/WORKFLOW-SCREENSHOT-IGNORE-EXTERNAL-ROLE-TOGGLE-001.md`.
-- Planned sequence after T-035: no remaining fixed Groomly UI screen slice is currently defined.
-- T-023A is completed. `docs/08_design/UI_IMPLEMENTATION_NOTES.md` records the Groomly design audit, prototype-to-SwiftUI mapping, deferred prototype ideas, and asset risks.
-- T-023B is completed. `docs/08_design/design_tokens.json` is the Groomly token source for colors, spacing, radius, shadow, and typography, with extracted versus inferred values labeled.
-- T-023C is completed. `DesignSystem/DesignTokens.swift` now exposes the Groomly SwiftUI token foundation while preserving existing baseline token names.
-- T-023D1 is completed. `DesignSystem/GroomlyActionPrimitives.swift` now provides the D1 button, card, and status-chip primitives without wiring them into feature screens.
-- T-023D2 is completed. `DesignSystem/GroomlyFeedbackPrimitives.swift` now provides feedback, loading, empty-state, and section-header primitives without wiring them into feature screens.
-- T-023A through T-023D2 are the completed Groomly UI foundation sequence.
-- T-024 is completed. Auth bootstrap, AuthGate session loading, Sign In, Sign Up, profile loading/error, and Role Onboarding now use Groomly tokens/primitives without changing auth, session, profile, backend, or role-routing behavior.
-- T-025 is completed. Customer Home/Pets now uses Groomly background, cards, loading, empty, error, notice, status, button, and form styling without changing pet Store, repository, model, photo metadata, upload/delete, or Storage behavior.
-- T-026 is completed. Customer Requests tab shell, request list, summary rows, loading, empty, error, and bottom status states now use Groomly styling without changing request Store, repository, model, navigation, wizard, detail, offer, booking, or backend behavior.
-- T-027 is completed. Customer Request wizard form, card grouping, fields, review summary, error banner, and publish action now use Groomly styling without changing request validation, Store calls, RPC inputs, repository, model, detail, offers, booking, or backend behavior.
-- T-028 is completed. Customer-owned request detail, pending/history offer review, offer detail, and offer acceptance entry now use Groomly styling without changing offer loading, acceptance semantics, booking creation side effects, Store ownership, repositories, models, or backend behavior.
-- T-029 is completed. Groomer matched-request feed, summary rows, detail shell, dismiss action, and bottom status feedback now use Groomly styling without changing matching, dismissal, offer eligibility, Store ownership, repositories, models, or backend behavior.
-- T-030 is completed. Groomer offer creation fields, existing offer status blocks, withdraw action, closed-offer notice, and submit action now use Groomly styling without changing create/withdraw semantics, validation, Store ownership, repositories, models, or backend behavior.
-- T-031 is completed. Groomer profile form, services list, service create/edit sheet, and profile/service status feedback now use Groomly styling without changing profile/service validation, Store ownership, repositories, models, portfolio Storage behavior, or backend behavior.
-- T-032 is completed. Groomer portfolio metadata rows, upload action, delete action, empty state, and upload progress feedback now use Groomly styling without changing portfolio Storage metadata behavior, Store ownership, repositories, models, signed URL support, or backend behavior.
-- T-033 is completed. Shared customer/groomer booking lists, booking detail, lifecycle actions, review display/form, and booking status feedback now use Groomly styling without changing booking Store, repository, model, backend, status semantics, or role behavior.
-- T-034 is completed. Participant conversation list, chat thread, message rows, composer, and chat status feedback now use Groomly styling without changing chat Store, repository, model, backend, text-only message behavior, or participant access assumptions.
-- T-035 is completed. Authenticated Account, customer/groomer tab shells, disconnected placeholder fallback, and the sanitized Debug Panel now use Groomly styling without changing sign-out, tab ownership, debug diagnostic data sources, repositories, models, or backend behavior.
-- T-036 is completed. It introduced the screenshot-driven signed-out landing surface, dropping circular hero animation, floating bubbles, and CTAs into the existing sign-up/sign-in form flow.
-- T-037 is completed. The incorrect pre-auth Customer/Groomer toggle and `LandingAudience`-driven derivative UI states were removed; the signed-out landing now uses one dog/Groomly identity, stronger bubble drift, and rebalanced logo/title/CTA layout without changing Auth, profile, backend, or role-routing behavior.
-- T-038 is completed. The sign-in page now follows the prototype hierarchy with a left-aligned `Welcome back` header, labeled email/password fields, local Show/Hide password control, primary `Sign In`, and secondary `Create Account`; the bottom DEMO module and pre-auth Customer/Groomer toggle were not implemented.
-- T-039 is completed. The two-field sign-in state now tightens only the fields-to-actions spacing while preserving the header-to-fields top anchor and leaving the three-field create-account spacing unchanged.
-- T-040 is completed. Customer Home now uses the prototype-inspired dashboard order with a profile display-name welcome header, static notification button, mint request CTA, horizontal pets carousel, add pet tile, active request summary, and next booking summary. It reuses existing pet/request/booking stores and existing pet form, request wizard/detail, and booking detail; notification behavior, avatar URLs, and booking participant names remain unimplemented model/backend gaps.
-- T-041 is completed. Customer Requests now uses a prototype-inspired status-first root page with a synced request title, status chip, vertical timeline, action row, preserved create-request entry, and optional other-request access. The prototype matched-groomer list was ignored per user request/current support; its historical unavailable cancellation path was superseded by T-044.
-- T-042 is completed. Customer Requests no longer shows a start grooming request module. Requests now render as horizontally scrollable per-request progress cards with request summary, timeline, and actions inside each card.
-- T-043 is completed. Customer Requests carousel now bleeds to screen edges and disables ScrollView clipping so request card shadows are not cut by an inner rectangular viewport.
-- T-044 is completed. Customer Requests cards now use a fixed `Detail` action and a real `Cancel` action for unconfirmed `open`/`has_offers` requests. The iOS Store/repository calls the deployed `cancel_grooming_request` RPC; booked/cancelled/expired requests keep `Cancel` disabled.
-- T-045 is completed. Customer Requests now filters its main cards to `open`/`has_offers` requests plus `booked` request handoff cards backed by matching confirmed bookings. `View Booking` opens the existing Booking detail and removes the handoff from the current UI session only; cancelled/expired requests and completed/cancelled bookings are not shown there.
-- T-046 is completed. The booked request handoff no longer uses a separate card style. `booked` requests with matching confirmed bookings now render through the quest action card with the pet avatar retained, handoff title/body text, a compact completed timeline, a green confirmed border, and a single `View Booking` CTA. Opening `View Booking` persists the acknowledgement locally for that customer so the handoff stays hidden after app restart on the same device.
-- T-047 is completed. Booked handoff quest cards now use the same quest action card layout metrics as unconfirmed request cards, replace the handoff paragraph with the original request title, add the request address under the confirmed booking time, center carousel cards, use larger explicit two-line card headlines, compact no-year single-line time ranges, unify `Detail`/`Cancel`/`View Booking` button structure, keep T-046 same-device acknowledgement persistence, share the same visible quest action card source with Customer Home's horizontally swipeable summary carousel, use shared `No Active Request` empty copy for Home and Requests, and route bottom success notices through a global 2-second tab-shell feedback overlay positioned above the tab bar.
-- T-048 is completed. Customer new request now uses a five-step Pet/Service/Time/Details/Review wizard inspired by the five uploaded screenshots. Pet selection and Add Pet reuse existing pet data/form paths; fixed service choices write the existing `serviceType`; date chips plus Morning/Afternoon/Evening/Detailed Time/Flexible controls write the existing `preferredStart`/`preferredEnd`; notes write the existing `serviceNotes`; review displays only current request fields. Location mode/street address/travel range and photo tiles are UI-only until a future backend/model task persists them.
-- T-049 is completed. Fixed request services now use a shared iOS/Supabase contract; customer requests persist service type, location mode, street/city/state/ZIP, optional travel range, and request photos; groomer profiles/services persist service-location capability and fixed service type for matching; migration `20260623065017_t049_request_location_photo_contract` is deployed to fresh project `lqmasbuqzvcvtawonjlb`.
-- T-050 is completed and remotely deployed. Customer pet profiles now use fixed iOS and backend taxonomy options for species, breed, and temperament; birthday uses date input; Add/Edit Pet derives stored size from weight; Add Pet can stage photos and upload them through the existing `pet-photos` repository path after create. The remote migration enforces fixed taxonomy, weight range, and trigger-derived `size` without granting authenticated callers direct execute on the private size helper.
-- T-051 is completed. Customer Bookings, Messages, and Account now follow the three uploaded prototype screenshots while ignoring the external Customer/Groomer toggle. Bookings has a large title, Upcoming/Past segmented filter, and compact cards over existing booking facts. Messages has prototype-style conversation cards and keeps completed booking conversations readable but client-side read-only after 7 days. Account shows only the profile card and sign-out entry, and the customer role label is `Pet Owner` without the dog emoji.
-- T-052 is completed. Add/Edit Pet now share a custom card-based form over existing pet form state; booking summary/detail surfaces hide request/offer/participant technical IDs and keep one order number; Messages conversation cards use a prototype-like avatar/title/preview/time hierarchy without fake latest-message content.
-- T-053 is completed. Add/Edit Pet puts Photos first, sorts fixed breed/temperament options with the special fallback first, labels care-note fields, and fixes the edit-cancel flash. Customer Home pet cards show weight/size, Home Active Request cards can jump to the matching Requests carousel card, Home reuses the Bookings summary row for Next Booking, Bookings sort by scheduled time, Messages show the latest message body, and the Chat thread follows the uploaded prototype within current chat model limits.
 
 ## Current Branch
 
 - Local Git state: initialized.
 - Current branch: `codex/pet-fit-structure-cleanup`.
+- Branch baseline: continue all new implementation, bugfix, documentation, commit, and push work from `codex/pet-fit-structure-cleanup` unless the user explicitly names a different branch.
+- Task numbering baseline: use the latest task ledger on this branch and assign new bugfix/iteration work to the next available task ID instead of reopening completed task files or continuing from divergent branch histories.
 - Remote `origin`: `https://github.com/Prinnyyy/Pet_Grooming_Appointment_App.git`.
 - GitHub repository: `Prinnyyy/Pet_Grooming_Appointment_App`.
 
@@ -108,9 +38,9 @@ Update this only when project state meaningfully changes.
 - Last test command: `./scripts/ios-test.sh`.
 - Last known test result: passed on 2026-06-26 using auto-discovered simulator destination `platform=iOS Simulator,id=45D452E8-DC6C-4CD4-A747-4D21671E68A6`; the launch smoke test passed with the signed-out auth launch argument.
 - Last simulator launch: `./scripts/ios-test.sh` launched `com.prinnyyy.PetGroomerMarketplace` on `iPhone 17 Pro` iOS 26.5 simulator (`45D452E8-DC6C-4CD4-A747-4D21671E68A6`) on 2026-06-26 for `AppLaunchSmokeTests.testNormalLaunchShowsOnlyAuthenticationRoot`.
-- Last general check: T-086 `git diff --check` passed after launch-test stability and iOS script destination fixes.
+- Last general check: T-090 `git diff --check` passed after Markdown information architecture optimization; active stale workflow-reference search returned only expected `REORGANIZATION_LOG.md` move records.
 - Known failing checks: none from the latest T-086 validation.
-- Historical per-task validation details live in the relevant `docs/06_tasks/T-*.md` files and `docs/00_memory/WORKLOG.md`.
+- Historical per-task validation details live in `docs/09_frozen/task_records_2026-06-26/` and `docs/00_memory/WORKLOG.md`; current task status and numbering live in `docs/06_tasks/TASK_LEDGER.md`.
 
 ## Current Product State
 
@@ -149,12 +79,14 @@ Update this only when project state meaningfully changes.
 ## Current Workflow State
 
 - Lightweight single-agent workflow is active at `docs/05_workflow/SINGLE_AGENT_WORKFLOW.md`.
+- Context and recovery rules are consolidated in `docs/05_workflow/CONTEXT_AND_RECOVERY.md`; default reads are tiered and archives/root reference material are not daily startup context.
+- Tool, validation, MCP/plugin, Git/GitHub, Superpowers, iOS, and Supabase execution rules are consolidated in `docs/05_workflow/TOOLING_POLICY.md`.
 - Completion gates are adaptive by task mode and risk: Micro tasks stay lightweight; Quick docs/workflow tasks usually run only `git diff --check`; Standard app/UI tasks run build validation and launch the simulator for visible app changes; Deep tasks require an explicit validation plan.
 - Default local iOS scripts now avoid a single hard-coded runtime: `./scripts/ios-build.sh` uses `generic/platform=iOS Simulator`, `./scripts/ios-test.sh` auto-discovers a concrete available iPhone simulator by UDID, and `CODEX_IOS_DESTINATION` overrides both.
-- Task closeout, durable memory updates, and simulator launch are not required for every small task. They are required when an active task file exists, app behavior changes, future runs need the state, screenshot UI work is implemented, or the user asks for inspection.
+- Task closeout, durable memory updates, and simulator launch are not required for every small task. They are required when app behavior changes, future runs need the state, screenshot UI work is implemented, the user asks for inspection, or a standalone task file was explicitly requested.
 - Screenshot analysis must ignore any long oval Customer/Groomer toggle located above the visible app screen frame; treat it as an external prototype/control annotation, not an app module to map, classify, or implement.
-- Pre-Groomly rule/task context is frozen at `docs/09_frozen/pre_groomly_ui_2026-06-21/` for recovery only; do not read it during Groomly foundation child tasks unless explicitly needed for recovery.
-- Completed Groomly UI phase context is marked at `docs/09_frozen/groomly_ui_completed_2026-06-22/FREEZE_README.md`; completed task files remain in `docs/06_tasks/` for history and should not be treated as active tasks.
+- Pre-Groomly rule/task context is frozen at `docs/09_frozen/pre_groomly_ui_2026-06-21/` for recovery only; do not read it unless explicitly needed for recovery.
+- Completed Groomly UI phase context is marked at `docs/09_frozen/groomly_ui_completed_2026-06-22/FREEZE_README.md`; detailed completed task files live under `docs/09_frozen/task_records_2026-06-26/` for history and should not be treated as active tasks.
 - T-001 through T-022 are completed. T-022 post-MVP next-task suggestions are frozen and must not auto-start.
 - T-023 is split into five child tasks: T-023A design audit notes, T-023B design tokens JSON, T-023C SwiftUI token foundation, T-023D1 action primitives, and T-023D2 feedback primitives.
 - T-023A, T-023B, T-023C, T-023D1, T-023D2, and T-024 through T-035 are completed. No remaining fixed Groomly UI sequence task is currently defined.
@@ -245,7 +177,7 @@ Update this only when project state meaningfully changes.
 
 - Xcode project object version 77 remains expected. iOS scripts no longer hard-code one simulator runtime by default: build uses `generic/platform=iOS Simulator`, test auto-discovers a concrete available iPhone simulator, and CI/developers can still set `CODEX_IOS_DESTINATION` explicitly.
 - Groomly prototype screens and future uploaded screenshots may show deferred or unsupported ideas. Treat them as visual inspiration only unless a separate task authorizes product/backend work.
-- T-048's new request wizard displays UI-only location mode, street address, travel range, and photo placeholder controls. These do not affect matching or persisted request detail until a future approved backend/model/repository task adds durable fields and mappings.
+- T-048 originally introduced location/photo controls as UI-only placeholders; T-049 superseded that limitation by persisting request location mode, address, travel range, and request photos through the approved request data contract.
 - Deferred features remain out of scope for the Groomly foundation sequence, including request editing, rebooking, favorites, signed URL image rendering, realtime chat, attachments, payments, push notifications, maps, calendars, and admin tooling.
 - Customer Requests booking handoff acknowledgement is same-device local state after T-046. It survives client restart but not reinstall, app data clearing, or cross-device use. A future backend/model task should add a persisted customer-scoped acknowledgement such as `request_booking_handoff_acknowledged_at` or a small acknowledgement table before relying on cross-device suppression.
 - Default email confirmation still requires browser confirmation and returning to Sign In; native deep-link completion and production SMTP remain separate future work.

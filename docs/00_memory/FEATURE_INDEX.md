@@ -1,6 +1,6 @@
 # Feature Index
 
-Use this index to locate only the context needed for one active task. The Fresh Brief is canonical; active working summaries live under `docs/01_product`, architecture under `docs/02_architecture`, and planned backend contracts under `docs/03_backend`.
+Use this index to locate only the context needed for one active task. The current execution baseline lives in `docs/00_memory/CURRENT_STATE.md` and `docs/06_tasks/TASK_LEDGER.md`; active working summaries live under `docs/01_product`, architecture under `docs/02_architecture`, and deployed/planned backend contracts under `docs/03_backend`.
 
 | Feature | Product Docs | Architecture Docs | Backend Docs | iOS Area | Status | Roadmap |
 |---|---|---|---|---|---|---|

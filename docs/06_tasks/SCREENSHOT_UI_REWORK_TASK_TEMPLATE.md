@@ -28,7 +28,7 @@ Target screen and role:
 Read only:
 
 1. `AGENTS.md`
-2. this task file
+2. the current ledger/worklog task record, or this task file only when explicitly created
 3. targeted `docs/00_memory/CURRENT_STATE.md` sections when current state or risks matter
 4. `docs/01_product/SCREEN_INVENTORY.md`
 5. `docs/01_product/DESIGN_SYSTEM.md`
@@ -111,7 +111,7 @@ git diff --check
 Completion launch for implemented UI changes:
 
 - After validation, launch the app in the iOS Simulator for user inspection.
-- Record simulator/device and visible root screen in this task file.
+- Record simulator/device and visible root screen in the ledger/worklog task record, or in this task file only when explicitly created.
 
 Run one validation attempt by mode. If required validation or required simulator launch fails, report the first real error and stop unless the user approves a follow-up. If no Swift/app UI changed, record simulator launch as skipped.
 
@@ -120,7 +120,7 @@ Run one validation attempt by mode. If required validation or required simulator
 - Screenshot modules are implemented only within the approved classification.
 - Existing MVP behavior uses existing Store/repository/model/backend paths.
 - No unapproved new feature, backend, schema, RLS, RPC, Storage, navigation, or role capability is introduced.
-- Completed T-024 through T-035 files remain historical records, not active task files.
+- Completed T-024 through T-035 files remain archived historical records, not active task files.
 - Required validation passes or the first real error is reported under stop rules.
 
 ## Closeout

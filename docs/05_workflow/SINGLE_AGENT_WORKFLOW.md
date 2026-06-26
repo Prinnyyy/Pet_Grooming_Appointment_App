@@ -13,6 +13,7 @@ The workflow is intentionally adaptive: small tasks stay small, while app, backe
 - Targeted context reads/searches only.
 - One validation attempt by mode.
 - Adaptive completion gate: task closeout, validation, and simulator launch are required only when the task mode and risk call for them.
+- Tool and remote-write rules live in `TOOLING_POLICY.md`.
 - Stop after the requested task is complete.
 
 ## Context Budget
@@ -20,11 +21,11 @@ The workflow is intentionally adaptive: small tasks stay small, while app, backe
 Startup reads:
 
 1. `AGENTS.md`
-2. active task file, if provided
+2. active task file, only if the user explicitly provided/requested one
 3. targeted `CURRENT_STATE.md` sections when current state or risks matter
 4. `TASK_LEDGER.md` only when choosing or updating task status
 
-Avoid broad searches. Do not read or search `docs/09_frozen/workflow_archive_2026-06-24/archive_subagent_workflow/` or `docs/09_frozen/workflow_archive_2026-06-24/agent_reports/` unless the task is explicitly about historical workflow state.
+Use `CONTEXT_AND_RECOVERY.md` for access tiers. Avoid broad searches. Do not read or search `docs/09_frozen/**` unless the task explicitly needs historical workflow state, recovery, or comparison.
 
 ## Flow
 
@@ -83,7 +84,7 @@ For future Groomly UI rework, one uploaded screenshot is one primary task unless
 
 Required flow:
 
-1. Create or use a task file from `docs/06_tasks/SCREENSHOT_UI_REWORK_TASK_TEMPLATE.md`.
+1. Use the checklist in `docs/06_tasks/SCREENSHOT_UI_REWORK_TASK_TEMPLATE.md`; create a standalone task file only if the user requests one or the screenshot scope needs a long written spec.
 2. Analyze the screenshot before editing SwiftUI.
 3. Ignore any long oval Customer/Groomer toggle located above the visible app screen frame; treat it as an external prototype/control annotation, not an app module.
 4. Map every visible in-app module to an existing SwiftUI surface, Store, repository/model path, or mark it as a new feature.
@@ -112,13 +113,13 @@ Update only files whose facts changed:
 - `docs/00_memory/WORKLOG.md`
 - `docs/06_tasks/TASK_LEDGER.md`
 - `docs/00_memory/FEATURE_INDEX.md`
-- `docs/07_decisions/DECISION_LOG.md`
+- `docs/00_memory/DECISION_LOG.md`
 
 Do not update memory for tiny documentation-only changes unless needed.
 
 ## Compaction
 
-Manual compaction belongs at task boundaries. Capture a closeout or debug checkpoint first, then compact when context is high or the next task is unrelated. Detailed thresholds live in `docs/05_workflow/CONTEXT_MANAGEMENT.md`.
+Manual compaction belongs at task boundaries. Capture a closeout or debug checkpoint first, then compact when context is high or the next task is unrelated. Detailed access, recovery, and compaction rules live in `docs/05_workflow/CONTEXT_AND_RECOVERY.md`.
 
 ## Reporting
 

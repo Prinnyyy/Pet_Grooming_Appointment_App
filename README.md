@@ -15,42 +15,15 @@ Customer publishes an open grooming request
 
 ## Active Phase
 
-The MVP implementation is complete through T-022. T-022 post-MVP next-task suggestions are frozen and recoverable from:
+The MVP implementation is complete and the implemented Groomly UI phase is historical. Current task state and task numbering live in `docs/06_tasks/TASK_LEDGER.md`.
+
+Detailed task records, including T-001 through T-088 and completed Groomly UI records, are archived under:
 
 ```text
-docs/09_frozen/pre_groomly_ui_2026-06-21/
+docs/09_frozen/task_records_2026-06-26/
 ```
 
-The completed Groomly foundation sequence is:
-
-```text
-docs/06_tasks/T-023_GROOMLY_UI_FOUNDATION_SEQUENCE.md
-```
-
-The completed screen-specific Groomly slices are:
-
-```text
-docs/06_tasks/T-024_GROOMLY_AUTH_ONBOARDING_UI.md
-docs/06_tasks/T-025_GROOMLY_CUSTOMER_PETS_UI.md
-docs/06_tasks/T-026_GROOMLY_CUSTOMER_REQUESTS_LIST_STATUS_UI.md
-docs/06_tasks/T-027_GROOMLY_CUSTOMER_REQUEST_WIZARD_UI.md
-docs/06_tasks/T-028_GROOMLY_CUSTOMER_REQUEST_DETAIL_OFFERS_UI.md
-docs/06_tasks/T-029_GROOMLY_GROOMER_REQUESTS_FEED_DETAIL_UI.md
-docs/06_tasks/T-030_GROOMLY_GROOMER_OFFER_FORM_STATUS_UI.md
-docs/06_tasks/T-031_GROOMLY_GROOMER_PROFILE_SERVICES_UI.md
-docs/06_tasks/T-032_GROOMLY_GROOMER_PORTFOLIO_UI.md
-docs/06_tasks/T-033_GROOMLY_BOOKINGS_UI.md
-docs/06_tasks/T-034_GROOMLY_CHAT_UI.md
-docs/06_tasks/T-035_GROOMLY_ACCOUNT_TABS_DEBUG_FINAL_UI.md
-```
-
-The Groomly UI completion sequence is completed:
-
-```text
-docs/06_tasks/T-026_TO_T-035_GROOMLY_UI_COMPLETION_SEQUENCE.md
-```
-
-No active next Groomly UI task is currently defined. Do not start backend contracts, product-flow changes, Admin Dashboard, or deferred post-MVP features without an explicit task.
+No active next Groomly UI, pet-fit, availability, backend, or screenshot task is currently defined. Start new work only from an explicit user request and the next available task ID in the ledger.
 
 ## Main References
 
@@ -59,22 +32,12 @@ No active next Groomly UI task is currently defined. Do not start backend contra
 - Project structure index: `docs/10_project_structure/README.md`
 - Task ledger: `docs/06_tasks/TASK_LEDGER.md`
 - Task folder guide: `docs/06_tasks/README.md`
+- Workflow rules: `docs/05_workflow/SINGLE_AGENT_WORKFLOW.md`
+- Context/recovery tiers: `docs/05_workflow/CONTEXT_AND_RECOVERY.md`
+- Tooling policy: `docs/05_workflow/TOOLING_POLICY.md`
 - Design screenshots: `docs/08_design/screenshots/`
 - Frozen archives: `docs/09_frozen/README.md`
-- Groomly foundation sequence: `docs/06_tasks/T-023_GROOMLY_UI_FOUNDATION_SEQUENCE.md`
-- Completed Auth/Onboarding slice: `docs/06_tasks/T-024_GROOMLY_AUTH_ONBOARDING_UI.md`
-- Completed Customer Pets/Home slice: `docs/06_tasks/T-025_GROOMLY_CUSTOMER_PETS_UI.md`
-- Completed Groomly UI sequence: `docs/06_tasks/T-026_TO_T-035_GROOMLY_UI_COMPLETION_SEQUENCE.md`
-- Completed Customer Requests List/Status slice: `docs/06_tasks/T-026_GROOMLY_CUSTOMER_REQUESTS_LIST_STATUS_UI.md`
-- Completed Customer Request Wizard slice: `docs/06_tasks/T-027_GROOMLY_CUSTOMER_REQUEST_WIZARD_UI.md`
-- Completed Customer Request Detail/Offers slice: `docs/06_tasks/T-028_GROOMLY_CUSTOMER_REQUEST_DETAIL_OFFERS_UI.md`
-- Completed Groomer Requests Feed/Detail slice: `docs/06_tasks/T-029_GROOMLY_GROOMER_REQUESTS_FEED_DETAIL_UI.md`
-- Completed Groomer Offer Form/Status slice: `docs/06_tasks/T-030_GROOMLY_GROOMER_OFFER_FORM_STATUS_UI.md`
-- Completed Groomer Profile/Services slice: `docs/06_tasks/T-031_GROOMLY_GROOMER_PROFILE_SERVICES_UI.md`
-- Completed Groomer Portfolio slice: `docs/06_tasks/T-032_GROOMLY_GROOMER_PORTFOLIO_UI.md`
-- Completed Bookings slice: `docs/06_tasks/T-033_GROOMLY_BOOKINGS_UI.md`
-- Completed Chat slice: `docs/06_tasks/T-034_GROOMLY_CHAT_UI.md`
-- Completed Account/Tabs/Debug final slice: `docs/06_tasks/T-035_GROOMLY_ACCOUNT_TABS_DEBUG_FINAL_UI.md`
+- Frozen task records: `docs/09_frozen/task_records_2026-06-26/`
 - Groomly design prompt: `docs/08_design/Apply Groomly Design Prototype to Existing SwiftUI App.md`
 - Groomly prototype: `docs/08_design/Groomly.html`
 - Existing SwiftUI design tokens: `ios/PetGroomerMarketplace/PetGroomerMarketplace/DesignSystem/DesignTokens.swift`

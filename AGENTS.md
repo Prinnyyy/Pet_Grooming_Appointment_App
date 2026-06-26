@@ -7,6 +7,7 @@ This is an iOS app project. Codex makes small, reversible changes and completes 
 ## Default Workflow
 
 Use the lightweight single-agent workflow in `docs/05_workflow/SINGLE_AGENT_WORKFLOW.md`.
+Use `docs/05_workflow/CONTEXT_AND_RECOVERY.md` for read-budget and recovery decisions, and `docs/05_workflow/TOOLING_POLICY.md` for tooling and validation boundaries.
 
 - One primary task; no adjacent features or broad refactors.
 - Minimal context: targeted reads/searches only.
@@ -20,26 +21,13 @@ Use the lightweight single-agent workflow in `docs/05_workflow/SINGLE_AGENT_WORK
 
 ## Archived Groomly UI Phase and Active Screenshot Rework
 
-The Groomly foundation sequence `docs/06_tasks/T-023_GROOMLY_UI_FOUNDATION_SEQUENCE.md` is completed.
+The detailed task-record files for T-001 through T-088 and workflow policy tasks are archived under `docs/09_frozen/task_records_2026-06-26/`.
 
-The completed Groomly screen slices are archived historical context:
+The active task record is `docs/06_tasks/TASK_LEDGER.md`. Use it as the single current task-status source; do not create new per-task `T-###_*.md` files unless the user explicitly asks for a long standalone task spec or the task cannot be represented clearly in the ledger/worklog.
 
-- `docs/06_tasks/T-024_GROOMLY_AUTH_ONBOARDING_UI.md`
-- `docs/06_tasks/T-025_GROOMLY_CUSTOMER_PETS_UI.md`
-- `docs/06_tasks/T-026_GROOMLY_CUSTOMER_REQUESTS_LIST_STATUS_UI.md`
-- `docs/06_tasks/T-027_GROOMLY_CUSTOMER_REQUEST_WIZARD_UI.md`
-- `docs/06_tasks/T-028_GROOMLY_CUSTOMER_REQUEST_DETAIL_OFFERS_UI.md`
-- `docs/06_tasks/T-029_GROOMLY_GROOMER_REQUESTS_FEED_DETAIL_UI.md`
-- `docs/06_tasks/T-030_GROOMLY_GROOMER_OFFER_FORM_STATUS_UI.md`
-- `docs/06_tasks/T-031_GROOMLY_GROOMER_PROFILE_SERVICES_UI.md`
-- `docs/06_tasks/T-032_GROOMLY_GROOMER_PORTFOLIO_UI.md`
-- `docs/06_tasks/T-033_GROOMLY_BOOKINGS_UI.md`
-- `docs/06_tasks/T-034_GROOMLY_CHAT_UI.md`
-- `docs/06_tasks/T-035_GROOMLY_ACCOUNT_TABS_DEBUG_FINAL_UI.md`
+The Groomly UI foundation and completion sequences are completed for implemented MVP screens. Their detailed records are historical context in the task-record archive.
 
-The Groomly UI completion sequence `docs/06_tasks/T-026_TO_T-035_GROOMLY_UI_COMPLETION_SEQUENCE.md` is completed for implemented MVP screens.
-
-Future Groomly UI work is screenshot-driven. Each uploaded screenshot becomes one bounded UI rework task unless the user explicitly combines or splits scope. Use `docs/06_tasks/SCREENSHOT_UI_REWORK_TASK_TEMPLATE.md` for new screenshot tasks, starting from the next available task ID instead of reopening completed T-024 through T-035 files.
+Future Groomly UI work is screenshot-driven. Each uploaded screenshot becomes one bounded UI rework task unless the user explicitly combines or splits scope. Use `docs/06_tasks/SCREENSHOT_UI_REWORK_TASK_TEMPLATE.md` as the checklist for new screenshot tasks, starting from the next available task ID in `TASK_LEDGER.md` instead of reopening archived T-024 through T-035 records.
 
 - T-022 remains completed, but its post-MVP next-task suggestions are frozen and must not auto-start.
 - Use the Groomly design source in `docs/08_design/` only as a visual and interaction reference.
@@ -58,15 +46,17 @@ Future Groomly UI work is screenshot-driven. Each uploaded screenshot becomes on
 Read only what the task needs:
 
 1. `AGENTS.md`
-2. the active task file, if provided
+2. the active task file, only if the user explicitly provided/requested one
 3. targeted sections of `docs/00_memory/CURRENT_STATE.md` when current state or risks matter
 4. `docs/06_tasks/TASK_LEDGER.md` only when choosing or updating task status
 
-Read product briefs, `PROJECT_MEMORY.md`, architecture/backend docs, historical decisions, archived workflow docs, or old reports only when directly relevant. Do not search `docs/09_frozen/workflow_archive_2026-06-24/archive_subagent_workflow/` or `docs/09_frozen/workflow_archive_2026-06-24/agent_reports/` unless the user asks for historical workflow context.
+Use the access tiers in `docs/05_workflow/CONTEXT_AND_RECOVERY.md` when deciding whether to read product briefs, `PROJECT_MEMORY.md`, architecture/backend docs, historical decisions, archived workflow docs, old reports, root reference material, or templates. Do not search `docs/09_frozen/**` unless the user asks for historical context or the task explicitly needs recovery/comparison.
 
 ## Working Rules
 
 - Preserve existing user work and inspect `git status` before editing.
+- Current branch baseline is `codex/pet-fit-structure-cleanup`; do not continue implementation, documentation, commits, or pushes from another branch unless the user explicitly names that branch.
+- Use the next available task ID from `docs/06_tasks/TASK_LEDGER.md` for new bugfix and iteration work; do not reopen archived task files to record unrelated follow-up work.
 - Do not start adjacent features or broad refactors.
 - Prefer targeted searches and narrow file reads.
 - Keep SwiftUI views thin and business logic outside views.
@@ -89,7 +79,7 @@ Read product briefs, `PROJECT_MEMORY.md`, architecture/backend docs, historical 
 ## Completion
 
 - Briefly review the current diff.
-- Record closeout in a task markdown file when one already exists, when the task is Standard/Deep, when the task changes app behavior, or when durable workflow/product state should be preserved. Do not create task files for every micro task.
+- Record closeout in `docs/06_tasks/TASK_LEDGER.md` and `docs/00_memory/WORKLOG.md` when the task changes durable workflow/product state or app behavior. Create a standalone task markdown file only when explicitly requested or when a long task spec is necessary.
 - Run mode-appropriate validation and report what was run or intentionally skipped.
 - Launch the app in the iOS Simulator only when the task affects visible app behavior or the user asks for inspection; if launch is required and fails, record the blocker and report it.
 - Update durable memory only when project state meaningfully changed.
@@ -98,4 +88,4 @@ Read product briefs, `PROJECT_MEMORY.md`, architecture/backend docs, historical 
 
 ## Recovery
 
-If interrupted or context is stale, follow `docs/05_workflow/INTERRUPTION_RECOVERY.md`. Do not reconstruct archived subagent state.
+If interrupted or context is stale, follow `docs/05_workflow/CONTEXT_AND_RECOVERY.md`. Do not reconstruct archived subagent state.

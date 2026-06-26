@@ -16,7 +16,7 @@ Paste or summarize the user request.
 
 Define exactly one primary task.
 
-For screenshot-driven Groomly UI rework, use `docs/06_tasks/SCREENSHOT_UI_REWORK_TASK_TEMPLATE.md` instead of this generic intake template.
+For screenshot-driven Groomly UI rework, use `docs/06_tasks/SCREENSHOT_UI_REWORK_TASK_TEMPLATE.md` as a checklist instead of this generic intake template.
 
 ---
 
@@ -51,8 +51,8 @@ For screenshot-driven Groomly UI rework, use `docs/06_tasks/SCREENSHOT_UI_REWORK
 `micro / tracked / app-visible / deep`
 
 - `micro`: no task closeout, memory update, build, or simulator launch by default.
-- `tracked`: close out this task file and run docs/workflow validation.
-- `app-visible`: close out this task file, run app validation, and launch the simulator.
+- `tracked`: close out the ledger/worklog record and run docs/workflow validation.
+- `app-visible`: close out the ledger/worklog record, run app validation, and launch the simulator.
 - `deep`: use an explicit validation plan and stop on the first required failure.
 
 ---

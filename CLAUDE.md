@@ -4,38 +4,15 @@ This file gives Claude Code the minimum active context for this repository.
 
 ## Active Phase
 
-The MVP is complete through T-022. T-022 post-MVP next-task suggestions are frozen and recoverable from `docs/09_frozen/pre_groomly_ui_2026-06-21/`.
+The MVP implementation is complete and the implemented Groomly UI phase is historical. Current task state and numbering live in `docs/06_tasks/TASK_LEDGER.md`.
 
-The completed Groomly foundation sequence is:
-
-```text
-docs/06_tasks/T-023_GROOMLY_UI_FOUNDATION_SEQUENCE.md
-```
-
-The completed screen-specific Groomly slices are:
+Detailed task records, including T-001 through T-088 and completed Groomly UI records, are archived under:
 
 ```text
-docs/06_tasks/T-024_GROOMLY_AUTH_ONBOARDING_UI.md
-docs/06_tasks/T-025_GROOMLY_CUSTOMER_PETS_UI.md
-docs/06_tasks/T-026_GROOMLY_CUSTOMER_REQUESTS_LIST_STATUS_UI.md
-docs/06_tasks/T-027_GROOMLY_CUSTOMER_REQUEST_WIZARD_UI.md
-docs/06_tasks/T-028_GROOMLY_CUSTOMER_REQUEST_DETAIL_OFFERS_UI.md
-docs/06_tasks/T-029_GROOMLY_GROOMER_REQUESTS_FEED_DETAIL_UI.md
-docs/06_tasks/T-030_GROOMLY_GROOMER_OFFER_FORM_STATUS_UI.md
-docs/06_tasks/T-031_GROOMLY_GROOMER_PROFILE_SERVICES_UI.md
-docs/06_tasks/T-032_GROOMLY_GROOMER_PORTFOLIO_UI.md
-docs/06_tasks/T-033_GROOMLY_BOOKINGS_UI.md
-docs/06_tasks/T-034_GROOMLY_CHAT_UI.md
-docs/06_tasks/T-035_GROOMLY_ACCOUNT_TABS_DEBUG_FINAL_UI.md
+docs/09_frozen/task_records_2026-06-26/
 ```
 
-The Groomly UI completion sequence is completed:
-
-```text
-docs/06_tasks/T-026_TO_T-035_GROOMLY_UI_COMPLETION_SEQUENCE.md
-```
-
-No active next Groomly UI task is currently defined. Do not start later/post-Groomly tasks, backend work, Admin Dashboard work, or other post-MVP tasks automatically.
+No active next Groomly UI, pet-fit, availability, backend, or screenshot task is currently defined. Start new work only from an explicit user request and the next available task ID in the ledger.
 
 ## Claude's Role
 
@@ -48,17 +25,18 @@ Without explicit user authorization, Claude must not modify project files, inclu
 For the next Groomly screen-specific task, read only:
 
 - `AGENTS.md`
-- the selected task file under `docs/06_tasks/`
-- `docs/06_tasks/T-026_TO_T-035_GROOMLY_UI_COMPLETION_SEQUENCE.md` when executing T-026 through T-035
+- `docs/05_workflow/SINGLE_AGENT_WORKFLOW.md`
+- `docs/05_workflow/CONTEXT_AND_RECOVERY.md` when read-budget or recovery decisions matter
 - targeted sections of `docs/00_memory/CURRENT_STATE.md`
 - `docs/06_tasks/TASK_LEDGER.md` only when choosing or updating task status
+- `docs/06_tasks/SCREENSHOT_UI_REWORK_TASK_TEMPLATE.md` when a screenshot task is active
 - `docs/08_design/Apply Groomly Design Prototype to Existing SwiftUI App.md`
 - `docs/08_design/UI_IMPLEMENTATION_NOTES.md`
 - `docs/08_design/design_tokens.json`
 - `docs/01_product/DESIGN_SYSTEM.md`
 - the relevant SwiftUI files for the selected screen
 
-Do not read backend docs, old task files, archived workflow docs, frozen snapshots, or full worklog history unless the user explicitly asks for that context.
+Do not read backend docs, old task files, archived workflow docs, frozen snapshots, or full worklog history unless the user explicitly asks for that context or the task directly requires it.
 
 ## Non-Negotiable Boundaries
 
@@ -86,6 +64,7 @@ Use the selected task file's validation commands. Standard SwiftUI screen slices
 
 - Current state: `docs/00_memory/CURRENT_STATE.md`
 - Task ledger: `docs/06_tasks/TASK_LEDGER.md`
+- Context/recovery: `docs/05_workflow/CONTEXT_AND_RECOVERY.md`
 - Product rules: `docs/01_product/`
 - Backend contract: `docs/03_backend/`
 - Groomly design source: `docs/08_design/`

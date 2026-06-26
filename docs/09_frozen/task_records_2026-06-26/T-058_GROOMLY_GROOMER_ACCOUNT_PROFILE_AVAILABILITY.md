@@ -19,7 +19,7 @@ Source screenshot: `docs/08_design/screenshots/screenshot-2026-06-23-pm-03-17-46
   - Availability row: new persistent availability feature because no existing model/repository/table existed.
   - Payouts: ignored per user request.
   - Demo Controls: ignored per user request.
-  - Bottom tabs: existing groomer tab shell, relabeled to match the prototype surface (`Board`, `Offers`, `Schedule`, `Messages`, `Account`) without changing feature ownership.
+  - Bottom tabs: existing groomer tab shell, relabeled to match the then-current prototype surface without changing feature ownership. T-087 later hid the standalone `Offers` tab from the visible groomer tab bar; offer behavior remains inside Board/request detail.
 
 ## Backend Plan
 

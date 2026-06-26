@@ -1,9 +1,11 @@
 # T-023 - Groomly UI Foundation Sequence
 
-- State: planned sequence.
+- State: completed historical sequence; this file preserves the original execution plan.
 - Mode: split into Quick/Standard child tasks.
 - Depends on: T-022 completion and the Groomly design files under `docs/08_design/`.
 - Active source prompt: `docs/08_design/Apply Groomly Design Prototype to Existing SwiftUI App.md`.
+
+Current task status and next-work decisions live in `docs/06_tasks/TASK_LEDGER.md` and `docs/00_memory/CURRENT_STATE.md`. Any "active next" language below describes the sequence state when T-023 was being executed, not the current project queue.
 
 ## Goal
 
@@ -19,7 +21,7 @@ Run exactly one child task per Codex run:
 4. `T-023D1_GROOMLY_SWIFTUI_ACTION_PRIMITIVES.md`
 5. `T-023D2_GROOMLY_SWIFTUI_FEEDBACK_PRIMITIVES.md`
 
-T-023A is the only active next task. Do not skip ahead. Do not start T-023B/C/D1/D2 until the previous child task is completed and recorded.
+At sequence start, the first child task was T-023A. Do not use this historical sequence record as a current next-task instruction.
 
 ## Shared Rules
 

@@ -12,15 +12,17 @@ Turn the Fresh Pet Groomer Marketplace brief into a sequence of small, independe
 
 1. `Fresh_Pet_Groomer_Marketplace_Engineering_Brief.md` is the canonical product and engineering source.
 2. `docs/00_memory/CURRENT_STATE.md` records the implemented state.
-3. This roadmap controls implementation order and task boundaries.
+3. This roadmap controlled the initial implementation order and task boundaries for T-003 through T-022.
 4. Feature-specific product, architecture, and backend documents become authoritative only after T-003 aligns them with the Fresh Brief.
 
-## Current Baseline
+## Baseline At T-002 Start
 
 - T-001 is complete: the Swift 6/iOS 18 SwiftUI app, explicit entry routing, role tab shells, design tokens, and test targets exist.
 - Production launch shows the authentication bootstrap.
 - No Supabase dependency, configuration, migration, schema, RPC, RLS, Storage integration, persistence, or product workflow exists.
 - The worktree was clean when T-002 started.
+
+This section is historical. Current implementation state lives in `docs/00_memory/CURRENT_STATE.md`.
 
 ## Documentation Alignment Status
 

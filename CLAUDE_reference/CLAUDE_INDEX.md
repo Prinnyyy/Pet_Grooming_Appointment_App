@@ -15,11 +15,11 @@ Claude consults **on demand**, not every session.
 - `CLAUDE.md` 每次会话都会载入上下文，必须保持精简：它只放一行指向本区域的**指针**，
   从不内联完整内容。
 - 本区域文档**仅在与当前任务相关时读取**（例如规划某个任务的顺序、范围或验收时）。
-- 本区域是 Claude 的参考存储，**不覆盖**权威文档：任务事实以 `docs/06_tasks/` 为准，
+- 本区域是 Claude 的参考存储，**不覆盖**权威文档：当前任务事实以 `docs/06_tasks/TASK_LEDGER.md` 为准，
   后端契约以 `docs/03_backend/` 为准，当前状态以 `docs/00_memory/CURRENT_STATE.md` 为准。
   如有冲突，编号的权威文档优先。
 
 ## 索引 / Index
 
 - [CLAUDE_INCREMENTAL_BUILD_PLAN.md](CLAUDE_INCREMENTAL_BUILD_PLAN.md) — 用户提供的 T-002 分阶段构建
-  路线图快照（2026-06-20 记录）。完整权威版见 `docs/06_tasks/T-002_INCREMENTAL_BUILD_ROADMAP.md`。
+  路线图快照（2026-06-20 记录）。当前状态见 `docs/06_tasks/TASK_LEDGER.md`；历史详版见 `docs/09_frozen/task_records_2026-06-26/T-002_INCREMENTAL_BUILD_ROADMAP.md`。

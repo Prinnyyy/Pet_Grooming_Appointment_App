@@ -76,4 +76,6 @@ Groomly is not shifting to a customer-facing public groomer directory, direct sl
 
 ## Current State
 
-T-001 provides the buildable SwiftUI baseline, authentication placeholder, explicit role routes, customer/groomer tab shells, and minimal design tokens. No MVP product or backend feature is implemented yet.
+The MVP marketplace flow is implemented at the current contract level: email/password authentication, role onboarding, customer pet profiles, grooming request creation, groomer matched-request review and offers, customer offer acceptance, bookings, participant text chat, completion, and completed-booking review.
+
+Groomly UI adaptation is complete for implemented MVP screens. Post-MVP pet-fit and availability work now supports fixed pet/request contracts, groomer availability enforcement in matching/offer/acceptance paths, explainable fit evidence, structured review outcomes, groomer fit-signal/portfolio tags, and an owner evidence dashboard. The app remains request-first: no public groomer directory, customer direct slot booking, payments, push notifications, or admin dashboard is active.

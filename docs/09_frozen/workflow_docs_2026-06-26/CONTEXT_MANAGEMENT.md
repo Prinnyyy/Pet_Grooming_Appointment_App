@@ -5,7 +5,7 @@
 Default to the smallest useful read:
 
 - Always read `AGENTS.md`.
-- Read the active task file when provided.
+- Read the active task file only when the user explicitly provided or requested one.
 - Read targeted `CURRENT_STATE.md` sections when current state, risk, or backend facts matter.
 - Read `TASK_LEDGER.md` only to choose, verify, or update task status.
 - Read briefs, architecture/backend docs, decisions, feature indexes, and old reports only when directly relevant.

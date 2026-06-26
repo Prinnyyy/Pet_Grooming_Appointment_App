@@ -1,5 +1,37 @@
 # Worklog
 
+This file is reverse chronological history. Only the newest entry plus `docs/00_memory/CURRENT_STATE.md` and `docs/06_tasks/TASK_LEDGER.md` define the current branch, current baseline, and next-task state. Older `Next:` lines and branch references are historical closeout notes, not current instructions.
+
+```text
+Date: 2026-06-26
+Task: T-090 - Markdown information architecture optimization.
+Files changed: Added docs/05_workflow/CONTEXT_AND_RECOVERY.md and docs/05_workflow/TOOLING_POLICY.md; moved superseded workflow/context/recovery/tool/MCP/Superpowers docs to docs/09_frozen/workflow_docs_2026-06-26/; updated AGENTS.md, README.md, CLAUDE.md, CLAUDE_reference, docs indexes, CURRENT_STATE.md, DECISION_LOG.md, WORKLOG.md, TASK_LEDGER.md, frozen archive index, and project structure docs.
+Checks: git diff --check passed; active stale workflow-reference search returned no matches after excluding historical WORKLOG.md and REORGANIZATION_LOG.md; new Markdown trailing-whitespace scans returned no matches; active docs/05_workflow now contains six Markdown entrypoints; docs/00_memory now contains five Markdown memory files.
+Result: T-090 is completed. Active workflow policy is reduced to progressive context/recovery tiers plus one consolidated tooling policy; old duplicate policies are frozen historical context.
+Risks: Historical WORKLOG.md and REORGANIZATION_LOG.md entries still mention old task or move paths as history. Root Claude and original Brief files remain in place by structure rule, but active docs now mark them as on-demand reference rather than startup context.
+Next: Stop unless the user asks to commit/push or explicitly authorizes the next task.
+```
+
+```text
+Date: 2026-06-26
+Task: T-089 - Markdown task-record archive cleanup.
+Files changed: Moved detailed task records from docs/06_tasks/ to docs/09_frozen/task_records_2026-06-26/; moved historical Superpowers plans/specs to docs/09_frozen/superpowers_2026-06-26/; updated AGENTS.md, workflow docs, task guide/templates, docs indexes, CURRENT_STATE.md, DECISION_LOG.md, WORKLOG.md, TASK_LEDGER.md, screenshots README, and project structure docs.
+Checks: docs/06_tasks task-record count returned 0; active path/reference search returned only expected REORGANIZATION_LOG.md historical move records; git diff --check passed; full Markdown trailing-whitespace scan returned no matches.
+Result: T-089 is completed. Active task status is reduced to one record file, docs/06_tasks/TASK_LEDGER.md, while detailed per-task Markdown files are preserved in frozen archives.
+Risks: Historical worklog entries still mention old task-file paths as historical text; active entrypoints now direct future work to TASK_LEDGER.md and the archive path.
+Next: Stop unless the user asks to commit/push or explicitly authorizes the next task.
+```
+
+```text
+Date: 2026-06-26
+Task: T-088 - Markdown baseline consistency cleanup.
+Files changed: AGENTS.md, docs README/index files, product/architecture baselines, task guide/ledger, CURRENT_STATE.md, PROJECT_MEMORY.md, FEATURE_INDEX.md, WORKLOG.md, T-088 task doc, and frozen archive boundary notes.
+Checks: Branch/wrong-task search returned no matches for the known divergent branch and wrong task markers; stale active-baseline search returned only the real Offers domain feature ownership; git diff --check passed.
+Result: T-088 is completed. The active documentation line is unified around codex/pet-fit-structure-cleanup, next-task numbering from TASK_LEDGER.md, current-state facts from CURRENT_STATE.md, and frozen archives as historical-only context.
+Risks: Historical worklog and frozen archive files intentionally preserve old facts; entrypoint notes now mark them as historical so future runs do not treat old next-task lines as current instructions.
+Next: Stop unless the user asks to commit/push or explicitly authorizes the next task.
+```
+
 ```text
 Date: 2026-06-26
 Task: T-087 - Groomly quest readiness UI alignment implementation.
@@ -454,7 +486,7 @@ Checks: git diff --check passed; ./scripts/ios-test.sh passed.
 Simulator launch: XcodeBuildMCP build_run_sim passed on iPhone 17 simulator (B9639233-9E78-41C9-A372-330D36C38DA7) with no diagnostics warnings or errors. App launched successfully for inspection.
 Result: The local draft migration now grants authenticated execute on the pure immutable app_private.pet_size_code_for_weight_lbs(numeric) function so deployed derived-size CHECK evaluation can run for authenticated pet writes. The trigger function remains private and security invoker.
 Risks: The migration is still local only and has not been deployed. Remote deployment should include an authenticated pet insert/update smoke test plus advisor/rollback validation.
-Next: Commit and push codex/t050-pet-data-contract.
+Next: Historical closeout asked to commit and push the then-current T-050 task branch.
 ```
 
 ```text
@@ -476,7 +508,7 @@ Checks: Reproduced the full-suite failure with ./scripts/ios-test.sh before the 
 Simulator launch: XcodeBuildMCP build_run_sim passed on iPhone 17 simulator (B9639233-9E78-41C9-A372-330D36C38DA7) with no diagnostics warnings or errors. App launched successfully for inspection.
 Result: Fixed service titles remain Title Case in booked quest cards, and compact quest action cards now use a dedicated city/state/ZIP location summary while detail surfaces keep the full street address.
 Risks: None beyond the existing T-049 risks; full street display remains intentional on detail surfaces and groomer-facing request summaries.
-Next: Commit and push the T-049 branch.
+Next: Historical closeout asked to commit and push the then-current T-049 task branch.
 ```
 
 ```text
