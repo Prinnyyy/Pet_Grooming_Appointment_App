@@ -157,6 +157,7 @@ final class CustomerRequestsStore {
             name: selectedPet.name,
             species: selectedPet.species,
             breed: selectedPet.breed,
+            coatType: selectedPet.coatType,
             size: selectedPet.size,
             weightLbs: selectedPet.weightLbs,
             birthday: selectedPet.birthday,

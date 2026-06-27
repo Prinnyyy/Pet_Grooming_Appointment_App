@@ -942,7 +942,21 @@ private struct CustomerPetFormView: View {
                                             title: breed.title,
                                             isSelected: store.formBreed == breed
                                         ) {
-                                            store.formBreed = breed
+                                            store.updateFormBreed(breed)
+                                        }
+                                    }
+                                }
+
+                                CustomerPetFormChoiceRow(
+                                    title: "Coat Type",
+                                    subtitle: store.formCoatType.title
+                                ) {
+                                    ForEach(CustomerPetCoatType.displayOptions) { coatType in
+                                        CustomerPetFormChip(
+                                            title: coatType.title,
+                                            isSelected: store.formCoatType == coatType
+                                        ) {
+                                            store.formCoatType = coatType
                                         }
                                     }
                                 }
@@ -1450,6 +1464,7 @@ private final class CustomerPetsPreviewRepository: CustomerPetRepository {
                 name: "Mochi",
                 species: "Dog",
                 breed: "Shiba Inu",
+                coatType: nil,
                 size: "M",
                 weightLbs: 22,
                 birthday: "2022-03-10",
@@ -1464,6 +1479,7 @@ private final class CustomerPetsPreviewRepository: CustomerPetRepository {
                 name: "Biscuit",
                 species: "Dog",
                 breed: "Pomeranian",
+                coatType: nil,
                 size: "S",
                 weightLbs: 12,
                 birthday: "2023-05-14",
@@ -1493,6 +1509,7 @@ private final class CustomerPetsPreviewRepository: CustomerPetRepository {
             name: draft.name,
             species: draft.species,
             breed: draft.breed,
+            coatType: draft.coatType,
             size: draft.size,
             weightLbs: draft.weightLbs,
             birthday: draft.birthday,
@@ -1515,6 +1532,7 @@ private final class CustomerPetsPreviewRepository: CustomerPetRepository {
             name: draft.name,
             species: draft.species,
             breed: draft.breed,
+            coatType: draft.coatType,
             size: draft.size,
             weightLbs: draft.weightLbs,
             birthday: draft.birthday,
@@ -1566,6 +1584,7 @@ private final class CustomerHomePreviewRequestRepository: CustomerRequestReposit
                     name: "Mochi",
                     species: "Dog",
                     breed: "Toy Poodle",
+                    coatType: nil,
                     size: "S",
                     weightLbs: 18,
                     birthday: nil,

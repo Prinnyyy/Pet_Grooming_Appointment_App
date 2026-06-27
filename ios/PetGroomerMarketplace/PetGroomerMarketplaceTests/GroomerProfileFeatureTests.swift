@@ -373,13 +373,13 @@ struct GroomerProfileStoreTests {
         await store.load()
 
         store.toggleFitClaim(.serviceFit(.gentleHandling))
-        store.toggleFitClaim(.breedGroup(.poodle))
+        store.toggleFitClaim(.coatType(.curlyWavy))
         await store.saveFitClaims()
 
         #expect(repository.replaceFitClaimsCallCount == 1)
         #expect(repository.lastFitClaimDrafts == [
             GroomerFitClaimDraft(
-                signal: .breedGroup(.poodle),
+                signal: .coatType(.curlyWavy),
                 isActive: true
             ),
             GroomerFitClaimDraft(
@@ -392,10 +392,22 @@ struct GroomerProfileStoreTests {
             )
         ])
         #expect(store.selectedFitClaimIDs == [
-            PetFitSignal.breedGroup(.poodle).id,
+            PetFitSignal.coatType(.curlyWavy).id,
             PetFitSignal.careFlag(.senior).id
         ])
         #expect(store.noticeMessage == "Fit signals saved.")
+    }
+
+    @Test @MainActor
+    func groomerAvailableFitClaimsUseSpecialtiesInsteadOfSizeBands() {
+        let availableIDs = GroomerFitClaim.availableSignals.map(\.id)
+
+        #expect(GroomerFitClaim.maximumActiveClaims == 8)
+        #expect(availableIDs.contains("coat_type:curly_wavy"))
+        #expect(availableIDs.contains("coat_type:double_coat"))
+        #expect(availableIDs.contains("service_fit:de_shedding_treatment"))
+        #expect(!availableIDs.contains("size_band:S"))
+        #expect(!availableIDs.contains("size_band:Giant"))
     }
 
     @Test @MainActor
@@ -449,18 +461,18 @@ struct GroomerProfileStoreTests {
         await store.load()
 
         store.togglePortfolioFitTag(.serviceFit(.gentleHandling), for: photo)
-        store.togglePortfolioFitTag(.breedGroup(.poodle), for: photo)
+        store.togglePortfolioFitTag(.coatType(.curlyWavy), for: photo)
         await store.savePortfolioFitTags(for: photo)
 
         #expect(repository.replacePortfolioFitTagsCallCount == 1)
         #expect(repository.lastPortfolioFitTagPhotoID == photo.id)
         #expect(repository.lastPortfolioFitTagDrafts == [
-            GroomerPortfolioFitTagDraft(signal: .breedGroup(.poodle)),
+            GroomerPortfolioFitTagDraft(signal: .coatType(.curlyWavy)),
             GroomerPortfolioFitTagDraft(signal: .careFlag(.senior)),
         ])
         #expect(
             store.selectedPortfolioFitTagIDsByPhotoID[photo.id] == [
-                PetFitSignal.breedGroup(.poodle).id,
+                PetFitSignal.coatType(.curlyWavy).id,
                 PetFitSignal.careFlag(.senior).id,
             ]
         )

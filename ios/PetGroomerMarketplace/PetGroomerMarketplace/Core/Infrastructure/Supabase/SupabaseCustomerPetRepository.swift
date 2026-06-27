@@ -3,7 +3,7 @@ import Supabase
 
 @MainActor
 final class SupabaseCustomerPetRepository: CustomerPetRepository {
-    private static let petColumns = "id,customer_id,name,species,breed,size,weight_lbs,birthday,temperament,medical_notes,grooming_notes,is_active"
+    private static let petColumns = "id,customer_id,name,species,breed,coat_type,size,weight_lbs,birthday,temperament,medical_notes,grooming_notes,is_active"
     private static let photoColumns = "id,pet_id,customer_id,storage_bucket,storage_path,caption,sort_order,is_primary"
     fileprivate static let bucketID = "pet-photos"
 
@@ -245,6 +245,7 @@ private struct PetRow: Decodable {
     let name: String
     let species: String
     let breed: String?
+    let coatType: String?
     let size: String?
     let weightLbs: Double?
     let birthday: String?
@@ -260,6 +261,7 @@ private struct PetRow: Decodable {
             name: name,
             species: species,
             breed: breed,
+            coatType: coatType,
             size: size,
             weightLbs: weightLbs,
             birthday: birthday,
@@ -276,6 +278,7 @@ private struct PetRow: Decodable {
         case name
         case species
         case breed
+        case coatType = "coat_type"
         case size
         case weightLbs = "weight_lbs"
         case birthday
@@ -331,6 +334,7 @@ private struct PetInsertRow: Encodable {
         try container.encode(draft.name, forKey: .name)
         try container.encode(draft.species, forKey: .species)
         try container.encodeIfPresent(draft.breed, forKey: .breed)
+        try container.encodeIfPresent(draft.coatType, forKey: .coatType)
         try container.encodeIfPresent(draft.size, forKey: .size)
         try container.encodeIfPresent(draft.weightLbs, forKey: .weightLbs)
         try container.encodeIfPresent(draft.birthday, forKey: .birthday)
@@ -344,6 +348,7 @@ private struct PetInsertRow: Encodable {
         case name
         case species
         case breed
+        case coatType = "coat_type"
         case size
         case weightLbs = "weight_lbs"
         case birthday
@@ -361,6 +366,7 @@ private struct PetUpdateRow: Encodable {
         try container.encode(draft.name, forKey: .name)
         try container.encode(draft.species, forKey: .species)
         try encodeNullable(draft.breed, forKey: .breed, in: &container)
+        try encodeNullable(draft.coatType, forKey: .coatType, in: &container)
         try encodeNullable(draft.size, forKey: .size, in: &container)
         try encodeNullable(draft.weightLbs, forKey: .weightLbs, in: &container)
         try encodeNullable(draft.birthday, forKey: .birthday, in: &container)
@@ -385,6 +391,7 @@ private struct PetUpdateRow: Encodable {
         case name
         case species
         case breed
+        case coatType = "coat_type"
         case size
         case weightLbs = "weight_lbs"
         case birthday

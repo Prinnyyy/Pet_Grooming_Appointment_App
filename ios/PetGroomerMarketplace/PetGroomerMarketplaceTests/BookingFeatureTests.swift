@@ -442,11 +442,13 @@ struct BookingsStoreTests {
 
         #expect(
             booking.reviewableFitSignals.map(\.id) == [
+                "coat_type:curly_wavy",
                 "breed_group:poodle",
                 "size_band:S",
                 "care_flag:anxious",
                 "care_flag:senior",
                 "service_fit:curly_coat",
+                "service_fit:full_haircut_styling",
                 "service_fit:gentle_handling",
                 "service_fit:senior_care"
             ]
@@ -488,8 +490,11 @@ struct BookingsStoreTests {
 
         #expect(
             booking.reviewableFitSignals.map(\.id) == [
+                "coat_type:wire",
                 "breed_group:terrier",
                 "size_band:L",
+                "service_fit:full_haircut_styling",
+                "service_fit:hand_stripping_carding",
                 "service_fit:terrier_coat"
             ]
         )
@@ -561,6 +566,7 @@ struct BookingsStoreTests {
             name: "Mochi",
             species: "Dog",
             breed: breed,
+            coatType: nil,
             size: size,
             weightLbs: weightLbs,
             birthday: birthday,

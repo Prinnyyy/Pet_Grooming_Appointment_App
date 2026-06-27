@@ -776,7 +776,7 @@ final class GroomerProfileStore {
         visiblePhotos: [GroomerPortfolioPhoto]
     ) {
         let visiblePhotoIDs = Set(visiblePhotos.map(\.id))
-        let supportedSignals = Set(GroomerPortfolioFitTag.availableSignals)
+        let supportedSignals = Set(PetFitSignal.allCases)
         let visibleTags = tags.filter {
             visiblePhotoIDs.contains($0.portfolioPhotoID) &&
                 supportedSignals.contains($0.signal)
@@ -828,7 +828,7 @@ final class GroomerProfileStore {
     ) {
         removePortfolioFitTags(for: photoID)
 
-        let supportedSignals = Set(GroomerPortfolioFitTag.availableSignals)
+        let supportedSignals = Set(PetFitSignal.allCases)
         let supportedTags = tags.filter {
             $0.portfolioPhotoID == photoID && supportedSignals.contains($0.signal)
         }
@@ -979,7 +979,7 @@ final class GroomerProfileStore {
     }
 
     private func makeFitClaimDrafts() -> [GroomerFitClaimDraft] {
-        let supportedSignals = Set(GroomerFitClaim.availableSignals)
+        let supportedSignals = Set(PetFitSignal.allCases)
         let knownSignals = Set(
             fitClaims
                 .map(\.signal)

@@ -66,6 +66,7 @@ struct GroomingRequestPetSnapshot: Decodable, Equatable, Hashable, Sendable {
     let name: String
     let species: String
     let breed: String?
+    let coatType: String?
     let size: String?
     let weightLbs: Double?
     let birthday: String?
@@ -79,6 +80,7 @@ struct GroomingRequestPetSnapshot: Decodable, Equatable, Hashable, Sendable {
         case name
         case species
         case breed
+        case coatType = "coat_type"
         case size
         case weightLbs = "weight_lbs"
         case birthday

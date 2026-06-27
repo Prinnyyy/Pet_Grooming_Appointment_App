@@ -24,6 +24,7 @@ final class CustomerPetsStore {
     var formName = ""
     var formSpecies: CustomerPetSpecies = .dog
     var formBreed: CustomerPetBreed = .unspecified
+    var formCoatType: CustomerPetCoatType = .notSure
     var formWeightLbs = 20.0
     var formBirthdayDate: Date?
     var formTemperament: CustomerPetTemperament = .notSure
@@ -95,6 +96,10 @@ final class CustomerPetsStore {
         formBreed = CustomerPetBreed.options(for: formSpecies).contains(breed)
             ? breed
             : .unspecified
+        formCoatType = pet.coatType
+            .flatMap(CustomerPetCoatType.init(storedValue:))
+            ?? formBreed.recommendedCoatType
+            ?? .notSure
         formWeightLbs = Self.clampedFormWeight(pet.weightLbs ?? 20)
         formBirthdayDate = pet.birthday.flatMap(Self.date)
         formTemperament = pet.temperament
@@ -122,6 +127,12 @@ final class CustomerPetsStore {
         if !CustomerPetBreed.options(for: species).contains(formBreed) {
             formBreed = .unspecified
         }
+        formCoatType = formBreed.recommendedCoatType ?? .notSure
+    }
+
+    func updateFormBreed(_ breed: CustomerPetBreed) {
+        formBreed = breed
+        formCoatType = breed.recommendedCoatType ?? .notSure
     }
 
     func addPendingFormPhoto(
@@ -307,6 +318,7 @@ final class CustomerPetsStore {
         formName = ""
         formSpecies = .dog
         formBreed = .unspecified
+        formCoatType = .notSure
         formWeightLbs = 20
         formBirthdayDate = nil
         formTemperament = .notSure
@@ -325,12 +337,16 @@ final class CustomerPetsStore {
         if !CustomerPetBreed.options(for: formSpecies).contains(formBreed) {
             formBreed = .unspecified
         }
+        let coatType = formCoatType == .notSure
+            ? formBreed.recommendedCoatType
+            : formCoatType
         let size = CustomerPetSizeCode.code(forWeightLbs: formWeightLbs)
 
         return CustomerPetDraft(
             name: name,
             species: formSpecies.rawValue,
             breed: formBreed.rawValue,
+            coatType: coatType?.rawValue,
             size: size.rawValue,
             weightLbs: formWeightLbs,
             birthday: formBirthdayDate.map(Self.dateString),

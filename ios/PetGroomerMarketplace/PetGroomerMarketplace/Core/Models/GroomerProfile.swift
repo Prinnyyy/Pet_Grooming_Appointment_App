@@ -196,13 +196,15 @@ nonisolated struct GroomerFitClaim:
     Identifiable,
     Sendable
 {
-    static let maximumActiveClaims = 6
+    static let maximumActiveClaims = 8
 
     static var availableSignals: [PetFitSignal] {
-        PetFitSignal.serviceFitSignals
-            + PetFitSignal.breedGroupSignals
+        PetFitSignal.coatTypeSignals
             + PetFitSignal.careFlagSignals
-            + PetFitSignal.sizeBandSignals
+            + PetFitSignal.serviceFitSignals.filter {
+                $0.traitValue != PetFitTrait.curlyCoat.rawValue
+                    && $0.traitValue != PetFitTrait.terrierCoat.rawValue
+            }
     }
 
     let id: UUID

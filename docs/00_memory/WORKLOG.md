@@ -4,6 +4,16 @@ This file is reverse chronological history. Only the newest entry plus `docs/00_
 
 ```text
 Date: 2026-06-26
+Task: T-099 - Pet coat type and professional fit-signal taxonomy.
+Files changed: CustomerPet, CustomerRequest, GroomerProfile, GroomingRequestTaxonomy models; Customer Pets/Requests and Groomer Profile/Requests stores/views; Supabase customer pet repository; focused iOS tests; Supabase migration `20260627040455_t099_pet_coat_type_fit_signals.sql`; backend contract, feature index, task ledger, current state, and worklog.
+Checks: RED/GREEN focused taxonomy/customer/groomer/request/booking tests; authorized remote Supabase migration applied with `supabase db query --linked` inside a transaction plus `supabase migration repair --linked --status applied 20260627040455` because linked push dry-run is blocked by older migration-version drift; remote behavior validation confirmed `pets.coat_type`, breed-to-coat fallback, explicit unknown-breed coat input, new trait-pair validation, and derived request traits; advisors returned existing WARN-class findings only; `./scripts/supabase-check.sh`, `./scripts/ios-build.sh`, `./scripts/ios-test.sh`, and `git diff --check` passed.
+Result: T-099 is completed. Customer pet profiles now persist optional coat type, unknown/unmatched breeds can supply coat structure, request pet snapshots freeze coat type, Swift and SQL derive coat/care/service fit signals consistently, and groomer Fit Signals now focus on professional coat structures, care needs, and grooming-service skills with an 8-signal limit instead of presenting broad size-band self-claims as primary specialties.
+Risks: Existing pet rows keep null `coat_type` until edited, existing request snapshots and match rows are not backfilled, and claim/portfolio signals remain low-confidence routing inputs rather than expertise proof, public directory ranking, direct booking, slot discovery, or ML recommendations.
+Next: Stop unless the user asks to commit/push or authorizes T-100.
+```
+
+```text
+Date: 2026-06-26
 Task: T-098 - Groomer avatar_path regex constraint fix.
 Files changed: Supabase migration `20260627030705_t098_fix_profile_avatar_path_regex.sql`, SUPABASE_CONTRACT.md, TASK_LEDGER.md, CURRENT_STATE.md, and WORKLOG.md.
 Checks: Read-only Supabase Storage/API logs showed avatar Storage POST succeeds, then profiles avatar_path PATCH returns 400, then the client cleanup DELETE succeeds. Read-only SQL confirmed the deployed profiles_avatar_path_check regex rejected a legal `{user_id}/{file_id}.jpg` path while the corrected regex accepts `.jpg` and rejects `.txt`. User authorized T-098 remote migration; Supabase MCP apply_migration succeeded as remote version `20260627030705`; migration list confirmed T-098; rollback-only live smoke with the approved groomer debug account passed Storage upload, profiles avatar_path PATCH/readback, private download, profile restore, and object delete with zero residue. Security advisors returned existing controlled WARNs; performance advisors returned existing INFOs. `./scripts/supabase-check.sh` and `git diff --check` passed. `supabase migration list --local` did not run because local Postgres on 127.0.0.1:54322 is not running.

@@ -102,6 +102,8 @@ nonisolated enum PetCareFlag:
     Sendable
 {
     case anxious
+    case reactive
+    case puppy
     case senior
 
     var id: Self { self }
@@ -112,23 +114,56 @@ nonisolated enum PetCareFlag:
     ) -> Set<Self> {
         var flags = Set<Self>()
 
-        if isAnxiousTemperament(pet.temperament) {
+        let temperamentFlags = temperamentFlags(pet.temperament)
+        if temperamentFlags.contains(.anxious) {
             flags.insert(.anxious)
         }
+        if temperamentFlags.contains(.reactive) {
+            flags.insert(.reactive)
+        }
 
-        if isSenior(birthday: pet.birthday, referenceDate: referenceDate) {
+        if isPuppy(birthday: pet.birthday, referenceDate: referenceDate) {
+            flags.insert(.puppy)
+        } else if isSenior(birthday: pet.birthday, referenceDate: referenceDate) {
             flags.insert(.senior)
         }
 
         return flags
     }
 
-    private static func isAnxiousTemperament(_ temperament: String?) -> Bool {
+    private static func temperamentFlags(_ temperament: String?) -> Set<Self> {
         guard let normalizedTemperament = normalized(temperament) else {
+            return []
+        }
+
+        if ["reactive", "protective"].contains(normalizedTemperament) {
+            return [.reactive]
+        }
+
+        if ["anxious", "nervous", "shy"].contains(normalizedTemperament) {
+            return [.anxious]
+        }
+
+        return []
+    }
+
+    private static func isPuppy(
+        birthday: String?,
+        referenceDate: Date
+    ) -> Bool {
+        guard
+            let birthday,
+            let birthdayDate = birthdayDate(from: birthday)
+        else {
             return false
         }
 
-        return ["anxious", "nervous", "reactive"].contains(normalizedTemperament)
+        let age = Calendar(identifier: .gregorian).dateComponents(
+            [.month],
+            from: birthdayDate,
+            to: referenceDate
+        )
+        return (age.month ?? Int.max) < 18
     }
 
     private static func isSenior(
@@ -175,7 +210,14 @@ nonisolated enum PetFitTrait:
     Sendable
 {
     case curlyCoat = "curly_coat"
+    case deSheddingTreatment = "de_shedding_treatment"
+    case fullHaircutStyling = "full_haircut_styling"
     case gentleHandling = "gentle_handling"
+    case handStrippingCarding = "hand_stripping_carding"
+    case mattedCoatHandling = "matted_coat_handling"
+    case nailPawCare = "nail_paw_care"
+    case puppyFirstGroom = "puppy_first_groom"
+    case reactiveLowTolerance = "reactive_low_tolerance"
     case seniorCare = "senior_care"
     case terrierCoat = "terrier_coat"
 
@@ -187,6 +229,17 @@ nonisolated enum PetFitTrait:
         referenceDate: Date = Date()
     ) -> Set<Self> {
         var traits = Set<Self>()
+
+        switch serviceType {
+        case .fullGroom, .haircutOnly:
+            traits.insert(.fullHaircutStyling)
+        case .deShedding:
+            traits.insert(.deSheddingTreatment)
+        case .nailTrim:
+            traits.insert(.nailPawCare)
+        case .bathAndBrush, .customRequest:
+            break
+        }
 
         switch PetBreedGroup.group(forBreed: pet.breed) {
         case .poodle:
@@ -201,6 +254,10 @@ nonisolated enum PetFitTrait:
             break
         }
 
+        if coatType(for: pet) == .wire && serviceType.involvesCoatWork {
+            traits.insert(.handStrippingCarding)
+        }
+
         let careFlags = PetCareFlag.flags(
             for: pet,
             referenceDate: referenceDate
@@ -208,11 +265,50 @@ nonisolated enum PetFitTrait:
         if careFlags.contains(.anxious) {
             traits.insert(.gentleHandling)
         }
+        if careFlags.contains(.reactive) {
+            traits.insert(.reactiveLowTolerance)
+        }
+        if careFlags.contains(.puppy) {
+            traits.insert(.puppyFirstGroom)
+        }
         if careFlags.contains(.senior) {
             traits.insert(.seniorCare)
         }
 
+        if groomingNotesMentionMats(pet.groomingNotes) {
+            traits.insert(.mattedCoatHandling)
+        }
+
         return traits
+    }
+
+    private static func groomingNotesMentionMats(_ value: String?) -> Bool {
+        guard let normalizedValue = normalized(value) else {
+            return false
+        }
+        return normalizedValue.contains("mat")
+            || normalizedValue.contains("tangle")
+            || normalizedValue.contains("knot")
+    }
+
+    private static func coatType(
+        for pet: GroomingRequestPetSnapshot
+    ) -> CustomerPetCoatType? {
+        if
+            let storedCoatType = pet.coatType.flatMap(CustomerPetCoatType.init(storedValue:)),
+            storedCoatType != .notSure
+        {
+            return storedCoatType
+        }
+
+        return CustomerPetCoatType.recommended(forBreed: pet.breed)
+    }
+
+    private static func normalized(_ value: String?) -> String? {
+        value?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+            .lowercased()
     }
 }
 
@@ -228,6 +324,7 @@ nonisolated struct PetFitSignal:
         Identifiable,
         Sendable
     {
+        case coatType = "coat_type"
         case breedGroup = "breed_group"
         case sizeBand = "size_band"
         case careFlag = "care_flag"
@@ -238,6 +335,8 @@ nonisolated struct PetFitSignal:
 
         var title: String {
             switch self {
+            case .coatType:
+                "Coat Type"
             case .breedGroup:
                 "Breed Group"
             case .sizeBand:
@@ -251,14 +350,16 @@ nonisolated struct PetFitSignal:
 
         var sortOrder: Int {
             switch self {
-            case .breedGroup:
+            case .coatType:
                 10
-            case .sizeBand:
+            case .breedGroup:
                 20
-            case .careFlag:
+            case .sizeBand:
                 30
-            case .serviceFit:
+            case .careFlag:
                 40
+            case .serviceFit:
+                50
             }
         }
     }
@@ -273,10 +374,15 @@ nonisolated struct PetFitSignal:
     var sortOrder: Int { group.sortOrder }
 
     static var allCases: [Self] {
-        breedGroupSignals
+        coatTypeSignals
+            + breedGroupSignals
             + sizeBandSignals
             + careFlagSignals
             + serviceFitSignals
+    }
+
+    static var coatTypeSignals: [Self] {
+        CustomerPetCoatType.fitSignalOptions.map { Self.coatType($0) }
     }
 
     static var breedGroupSignals: [Self] {
@@ -299,6 +405,14 @@ nonisolated struct PetFitSignal:
         allCases.first {
             $0.traitType == traitType && $0.traitValue == traitValue
         }
+    }
+
+    static func coatType(_ value: CustomerPetCoatType) -> Self {
+        Self(
+            group: .coatType,
+            traitValue: value.rawValue,
+            title: value.title
+        )
     }
 
     static func breedGroup(_ value: PetBreedGroup) -> Self {
@@ -340,6 +454,10 @@ nonisolated struct PetFitSignal:
     ) -> [Self] {
         var signals: [Self] = []
 
+        if let coatType = coatType(for: pet) {
+            signals.append(Self.coatType(coatType))
+        }
+
         if let breedGroup = PetBreedGroup.group(forBreed: pet.breed) {
             signals.append(Self.breedGroup(breedGroup))
         }
@@ -372,6 +490,19 @@ nonisolated struct PetFitSignal:
         return signals
     }
 
+    private static func coatType(
+        for pet: GroomingRequestPetSnapshot
+    ) -> CustomerPetCoatType? {
+        if
+            let storedCoatType = pet.coatType.flatMap(CustomerPetCoatType.init(storedValue:)),
+            storedCoatType != .notSure
+        {
+            return storedCoatType
+        }
+
+        return CustomerPetCoatType.recommended(forBreed: pet.breed)
+    }
+
     private static func sizeBand(
         for pet: GroomingRequestPetSnapshot
     ) -> CustomerPetSizeCode? {
@@ -402,6 +533,10 @@ nonisolated struct PetFitSignal:
         switch value {
         case .anxious:
             "Anxious"
+        case .reactive:
+            "Reactive"
+        case .puppy:
+            "Puppy"
         case .senior:
             "Senior"
         }
@@ -411,8 +546,22 @@ nonisolated struct PetFitSignal:
         switch value {
         case .curlyCoat:
             "Curly Coat"
+        case .deSheddingTreatment:
+            "De-shedding Treatment"
+        case .fullHaircutStyling:
+            "Full Haircut & Styling"
         case .gentleHandling:
             "Gentle Handling"
+        case .handStrippingCarding:
+            "Hand Stripping / Carding"
+        case .mattedCoatHandling:
+            "Matted Coat Handling"
+        case .nailPawCare:
+            "Nail Trim & Paw Care"
+        case .puppyFirstGroom:
+            "Puppy / First Groom"
+        case .reactiveLowTolerance:
+            "Reactive / Low-Tolerance Dogs"
         case .seniorCare:
             "Senior Care"
         case .terrierCoat:

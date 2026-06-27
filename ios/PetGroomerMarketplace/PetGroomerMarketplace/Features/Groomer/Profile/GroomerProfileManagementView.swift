@@ -462,7 +462,7 @@ private struct GroomerFitSignalsEditorView: View {
     }
 
     private static var visibleGroups: [PetFitSignal.Group] {
-        [.serviceFit, .breedGroup, .careFlag, .sizeBand].filter { group in
+        [.coatType, .careFlag, .serviceFit].filter { group in
             GroomerFitClaim.availableSignals.contains(where: {
                 $0.group == group
             })
@@ -669,6 +669,8 @@ private struct GroomerEvidenceSummaryRow: View {
 
     private var iconName: String {
         switch summary.signal.group {
+        case .coatType:
+            "comb"
         case .breedGroup:
             "pawprint.fill"
         case .sizeBand:
@@ -811,6 +813,8 @@ private struct GroomerFitSignalRow: View {
 
     private var iconName: String {
         switch signal.group {
+        case .coatType:
+            "comb"
         case .breedGroup:
             "pawprint.fill"
         case .sizeBand:
@@ -824,6 +828,8 @@ private struct GroomerFitSignalRow: View {
 
     private var subtitle: String {
         switch signal.group {
+        case .coatType:
+            "Coat structure you are confident grooming"
         case .breedGroup:
             "Requests with this coat or breed context"
         case .sizeBand:
@@ -2489,7 +2495,7 @@ private struct GroomerPortfolioFitTagsSection: View {
     }
 
     private static var visibleGroups: [PetFitSignal.Group] {
-        [.serviceFit, .breedGroup, .careFlag, .sizeBand].filter { group in
+        [.coatType, .careFlag, .serviceFit].filter { group in
             GroomerPortfolioFitTag.availableSignals.contains(where: {
                 $0.group == group
             })
@@ -2554,6 +2560,8 @@ private struct GroomerPortfolioFitTagChip: View {
 
     private var iconName: String {
         switch signal.group {
+        case .coatType:
+            "comb"
         case .breedGroup:
             "pawprint.fill"
         case .sizeBand:

@@ -36,6 +36,7 @@ struct CustomerPetsStoreTests {
         store.formName = " Mochi "
         store.formSpecies = .dog
         store.formBreed = .unspecified
+        store.formCoatType = .doubleCoat
         store.formWeightLbs = 22
         store.formBirthdayDate = Date(timeIntervalSince1970: 1_647_740_800)
         store.formTemperament = .gentle
@@ -47,12 +48,53 @@ struct CustomerPetsStoreTests {
         #expect(repository.lastDraft?.name == "Mochi")
         #expect(repository.lastDraft?.species == "Dog")
         #expect(repository.lastDraft?.breed == "Unspecified")
+        #expect(repository.lastDraft?.coatType == "double_coat")
         #expect(repository.lastDraft?.size == "M")
         #expect(repository.lastDraft?.weightLbs == 22)
         #expect(repository.lastDraft?.birthday == "2022-03-20")
         #expect(repository.lastDraft?.temperament == "Gentle")
         #expect(store.pets.map(\.name) == ["Mochi"])
         #expect(store.isShowingPetForm == false)
+    }
+
+    @Test
+    func coatTypeOptionsKeepNotSureFirstAndExcludePlaceholderFromFitSignals() {
+        let options = CustomerPetCoatType.displayOptions
+
+        #expect(options.first == .notSure)
+        #expect(options.contains(.doubleCoat))
+        #expect(!PetFitSignal.coatTypeSignals.map(\.traitValue).contains("not_sure"))
+    }
+
+    @Test @MainActor
+    func selectingKnownBreedAppliesRecommendedCoatType() {
+        let store = CustomerPetsStore(
+            customerID: UUID(),
+            repository: CustomerPetRepositoryFake()
+        )
+
+        store.updateFormBreed(.siberianHusky)
+
+        #expect(store.formBreed == .siberianHusky)
+        #expect(store.formCoatType == .doubleCoat)
+    }
+
+    @Test @MainActor
+    func editingPetHydratesSavedCoatType() {
+        let pet = Self.pet(
+            customerID: UUID(),
+            breed: "Unspecified",
+            coatType: "wire"
+        )
+        let store = CustomerPetsStore(
+            customerID: pet.customerID,
+            repository: CustomerPetRepositoryFake()
+        )
+
+        store.startEdit(pet)
+
+        #expect(store.formBreed == .unspecified)
+        #expect(store.formCoatType == .wire)
     }
 
     @Test
@@ -228,13 +270,18 @@ struct CustomerPetsStoreTests {
         #expect(store.pendingFormPhotos.isEmpty)
     }
 
-    private static func pet(customerID: UUID) -> CustomerPet {
+    private static func pet(
+        customerID: UUID,
+        breed: String? = nil,
+        coatType: String? = nil
+    ) -> CustomerPet {
         CustomerPet(
             id: UUID(),
             customerID: customerID,
             name: "Mochi",
             species: "Dog",
-            breed: nil,
+            breed: breed,
+            coatType: coatType,
             size: nil,
             weightLbs: nil,
             birthday: nil,
@@ -330,6 +377,7 @@ private final class CustomerPetRepositoryFake: CustomerPetRepository {
             name: draft.name,
             species: draft.species,
             breed: draft.breed,
+            coatType: draft.coatType,
             size: draft.size,
             weightLbs: draft.weightLbs,
             birthday: draft.birthday,
@@ -357,6 +405,7 @@ private final class CustomerPetRepositoryFake: CustomerPetRepository {
             name: draft.name,
             species: draft.species,
             breed: draft.breed,
+            coatType: draft.coatType,
             size: draft.size,
             weightLbs: draft.weightLbs,
             birthday: draft.birthday,

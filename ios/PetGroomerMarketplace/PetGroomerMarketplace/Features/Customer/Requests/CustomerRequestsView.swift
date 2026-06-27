@@ -2174,6 +2174,8 @@ struct CustomerRequestWizardFitInputPresentation: Equatable {
 
     private static func label(for group: PetFitSignal.Group) -> String {
         switch group {
+        case .coatType:
+            "Coat"
         case .breedGroup:
             "Breed"
         case .sizeBand:
@@ -2187,6 +2189,8 @@ struct CustomerRequestWizardFitInputPresentation: Equatable {
 
     private static func systemImage(for group: PetFitSignal.Group) -> String {
         switch group {
+        case .coatType:
+            "comb"
         case .breedGroup:
             "pawprint"
         case .sizeBand:
@@ -4016,6 +4020,7 @@ private final class CustomerRequestsPreviewPetRepository: CustomerPetRepository 
         name: "Mochi",
         species: "Dog",
         breed: "Corgi",
+        coatType: nil,
         size: "M",
         weightLbs: 22,
         birthday: nil,
@@ -4075,6 +4080,7 @@ private final class CustomerRequestsPreviewRequestRepository: CustomerRequestRep
                     name: "Mochi",
                     species: "Dog",
                     breed: "Corgi",
+                    coatType: nil,
                     size: "M",
                     weightLbs: 22,
                     birthday: nil,
@@ -4108,6 +4114,7 @@ private final class CustomerRequestsPreviewRequestRepository: CustomerRequestRep
                     name: "Biscuit",
                     species: "Dog",
                     breed: "Pomeranian",
+                    coatType: nil,
                     size: "S",
                     weightLbs: 12,
                     birthday: nil,

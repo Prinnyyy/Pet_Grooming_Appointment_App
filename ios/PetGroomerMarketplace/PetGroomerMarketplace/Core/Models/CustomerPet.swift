@@ -7,6 +7,7 @@ struct CustomerPet: Equatable, Identifiable, Sendable {
     let name: String
     let species: String
     let breed: String?
+    let coatType: String?
     let size: String?
     let weightLbs: Double?
     let birthday: String?
@@ -22,6 +23,11 @@ struct CustomerPet: Equatable, Identifiable, Sendable {
     var displayBreed: String? {
         guard let breed else { return nil }
         return CustomerPetBreed(storedValue: breed)?.title ?? breed
+    }
+
+    var displayCoatType: String? {
+        guard let coatType else { return nil }
+        return CustomerPetCoatType(storedValue: coatType)?.title ?? coatType
     }
 
     var displaySize: String? {
@@ -50,6 +56,7 @@ struct CustomerPetDraft: Equatable, Sendable {
     let name: String
     let species: String
     let breed: String?
+    let coatType: String?
     let size: String?
     let weightLbs: Double?
     let birthday: String?
@@ -124,6 +131,62 @@ nonisolated enum CustomerPetBreed: String, CaseIterable, Identifiable, Sendable 
     var id: Self { self }
     var title: String { rawValue }
 
+    var recommendedCoatType: CustomerPetCoatType? {
+        switch self {
+        case .unspecified,
+             .mixedBreed:
+            nil
+        case .poodle,
+             .toyPoodle,
+             .standardPoodle,
+             .bichonFrise:
+            .curlyWavy
+        case .miniatureSchnauzer:
+            .wire
+        case .labradorRetriever,
+             .goldenRetriever,
+             .germanShepherd,
+             .rottweiler,
+             .corgi,
+             .shibaInu,
+             .siberianHusky,
+             .australianShepherd,
+             .borderCollie,
+             .pomeranian:
+            .doubleCoat
+        case .yorkshireTerrier,
+             .shihTzu,
+             .maltese:
+            .dropCoat
+        case .cockerSpaniel,
+             .cavalierKingCharlesSpaniel,
+             .domesticLonghair,
+             .persian,
+             .maineCoon,
+             .ragdoll:
+            .longSilky
+        case .frenchBulldog,
+             .bulldog,
+             .beagle,
+             .dachshund,
+             .boxer,
+             .chihuahua,
+             .bostonTerrier,
+             .greatDane,
+             .dobermanPinscher,
+             .pitBull,
+             .domesticShorthair,
+             .siamese,
+             .britishShorthair,
+             .bengal,
+             .scottishFold,
+             .russianBlue:
+            .shortSmooth
+        case .sphynx:
+            .hairlessLowCoat
+        }
+    }
+
     var species: CustomerPetSpecies? {
         switch self {
         case .unspecified:
@@ -165,6 +228,167 @@ nonisolated enum CustomerPetBreed: String, CaseIterable, Identifiable, Sendable 
             return nil
         }
         self = value
+    }
+}
+
+nonisolated enum CustomerPetCoatType: String, CaseIterable, Identifiable, Sendable {
+    case notSure = "not_sure"
+    case curlyWavy = "curly_wavy"
+    case wire
+    case doubleCoat = "double_coat"
+    case dropCoat = "drop_coat"
+    case longSilky = "long_silky"
+    case shortSmooth = "short_smooth"
+    case hairlessLowCoat = "hairless_low_coat"
+
+    var id: Self { self }
+
+    var title: String {
+        switch self {
+        case .notSure:
+            "Not Sure"
+        case .curlyWavy:
+            "Curly / Wavy"
+        case .wire:
+            "Wire / Terrier"
+        case .doubleCoat:
+            "Double Coat / Heavy Shedding"
+        case .dropCoat:
+            "Drop Coat"
+        case .longSilky:
+            "Long Silky / Feathered"
+        case .shortSmooth:
+            "Short Smooth"
+        case .hairlessLowCoat:
+            "Hairless / Very Low Coat"
+        }
+    }
+
+    var subtitle: String {
+        switch self {
+        case .notSure:
+            "Use when you cannot identify the coat"
+        case .curlyWavy:
+            "Poodles, doodles, bichons, similar coats"
+        case .wire:
+            "Wire terriers, schnauzers, hand-strip candidates"
+        case .doubleCoat:
+            "Huskies, shepherds, retrievers, spitz coats"
+        case .dropCoat:
+            "Shih Tzu, Maltese, Yorkie-style coats"
+        case .longSilky:
+            "Spaniel, feathered, and long flowing coats"
+        case .shortSmooth:
+            "Short coated breeds with simpler brushing"
+        case .hairlessLowCoat:
+            "Hairless or very low coat maintenance"
+        }
+    }
+
+    static var displayOptions: [Self] {
+        [
+            .notSure,
+            .curlyWavy,
+            .wire,
+            .doubleCoat,
+            .dropCoat,
+            .longSilky,
+            .shortSmooth,
+            .hairlessLowCoat
+        ]
+    }
+
+    static var fitSignalOptions: [Self] {
+        displayOptions.filter { $0 != .notSure }
+    }
+
+    static func recommended(forBreed breed: String?) -> Self? {
+        guard let normalizedBreed = normalized(breed), !normalizedBreed.isEmpty else {
+            return nil
+        }
+
+        if let fixedBreed = CustomerPetBreed(storedValue: normalizedBreed) {
+            return fixedBreed.recommendedCoatType
+        }
+
+        if normalizedBreed.contains("poodle")
+            || normalizedBreed.contains("doodle")
+            || normalizedBreed.contains("bichon")
+        {
+            return .curlyWavy
+        }
+
+        if normalizedBreed.contains("schnauzer")
+            || normalizedBreed.contains("wire")
+            || normalizedBreed.contains("westie")
+            || normalizedBreed.contains("west highland")
+        {
+            return .wire
+        }
+
+        if normalizedBreed.contains("husky")
+            || normalizedBreed.contains("shepherd")
+            || normalizedBreed.contains("retriever")
+            || normalizedBreed.contains("corgi")
+            || normalizedBreed.contains("shiba")
+            || normalizedBreed.contains("spitz")
+            || normalizedBreed.contains("pomeranian")
+            || normalizedBreed.contains("collie")
+        {
+            return .doubleCoat
+        }
+
+        if normalizedBreed.contains("shih")
+            || normalizedBreed.contains("maltese")
+            || normalizedBreed.contains("york")
+        {
+            return .dropCoat
+        }
+
+        if normalizedBreed.contains("spaniel")
+            || normalizedBreed.contains("cavalier")
+            || normalizedBreed.contains("setter")
+        {
+            return .longSilky
+        }
+
+        if normalizedBreed.contains("bulldog")
+            || normalizedBreed.contains("beagle")
+            || normalizedBreed.contains("boxer")
+            || normalizedBreed.contains("dachshund")
+            || normalizedBreed.contains("doberman")
+            || normalizedBreed.contains("great dane")
+            || normalizedBreed.contains("boston")
+            || normalizedBreed.contains("pit bull")
+        {
+            return .shortSmooth
+        }
+
+        if normalizedBreed.contains("sphynx")
+            || normalizedBreed.contains("hairless")
+        {
+            return .hairlessLowCoat
+        }
+
+        return nil
+    }
+
+    init?(storedValue: String) {
+        let normalized = Self.normalized(storedValue) ?? ""
+        guard let value = Self.allCases.first(where: {
+            $0.rawValue.caseInsensitiveCompare(normalized) == .orderedSame
+                || $0.title.caseInsensitiveCompare(storedValue.trimmingCharacters(in: .whitespacesAndNewlines)) == .orderedSame
+        }) else {
+            return nil
+        }
+        self = value
+    }
+
+    private static func normalized(_ value: String?) -> String? {
+        value?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+            .lowercased()
     }
 }
 

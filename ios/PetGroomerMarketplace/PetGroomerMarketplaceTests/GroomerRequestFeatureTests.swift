@@ -333,6 +333,7 @@ struct GroomerRequestsStoreTests {
                     name: "Mochi",
                     species: "Dog",
                     breed: "Corgi",
+                    coatType: nil,
                     size: "M",
                     weightLbs: 22,
                     birthday: nil,

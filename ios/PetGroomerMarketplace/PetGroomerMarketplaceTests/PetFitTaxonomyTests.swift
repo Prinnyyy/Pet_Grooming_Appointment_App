@@ -7,6 +7,7 @@ struct PetFitTaxonomyTests {
     func petFitSignalsExposeCanonicalSqlTraitPairs() {
         #expect(
             PetFitSignal.Group.allCases.map(\.traitType) == [
+                "coat_type",
                 "breed_group",
                 "size_band",
                 "care_flag",
@@ -14,6 +15,17 @@ struct PetFitTaxonomyTests {
             ]
         )
 
+        #expect(
+            PetFitSignal.coatTypeSignals.map(\.traitValue) == [
+                "curly_wavy",
+                "wire",
+                "double_coat",
+                "drop_coat",
+                "long_silky",
+                "short_smooth",
+                "hairless_low_coat"
+            ]
+        )
         #expect(
             PetFitSignal.breedGroupSignals.map(\.traitValue)
                 == PetBreedGroup.allCases.map(\.rawValue)
@@ -29,7 +41,14 @@ struct PetFitTaxonomyTests {
         #expect(
             PetFitSignal.serviceFitSignals.map(\.traitValue) == [
                 "curly_coat",
+                "de_shedding_treatment",
+                "full_haircut_styling",
                 "gentle_handling",
+                "hand_stripping_carding",
+                "matted_coat_handling",
+                "nail_paw_care",
+                "puppy_first_groom",
+                "reactive_low_tolerance",
                 "senior_care",
                 "terrier_coat"
             ]
@@ -49,7 +68,7 @@ struct PetFitTaxonomyTests {
         #expect(signal.traitType == "service_fit")
         #expect(signal.traitValue == "gentle_handling")
         #expect(signal.title == "Gentle Handling")
-        #expect(PetFitSignal.Group.allCases.map(\.sortOrder) == [10, 20, 30, 40])
+        #expect(PetFitSignal.Group.allCases.map(\.sortOrder) == [10, 20, 30, 40, 50])
     }
 
     @Test @MainActor
@@ -68,11 +87,13 @@ struct PetFitTaxonomyTests {
 
         #expect(
             signals.map(\.id) == [
+                "coat_type:curly_wavy",
                 "breed_group:poodle",
                 "size_band:S",
                 "care_flag:anxious",
                 "care_flag:senior",
                 "service_fit:curly_coat",
+                "service_fit:full_haircut_styling",
                 "service_fit:gentle_handling",
                 "service_fit:senior_care"
             ]
@@ -95,6 +116,74 @@ struct PetFitTaxonomyTests {
 
         #expect(signalIDs.contains("size_band:S"))
         #expect(!signalIDs.contains("size_band:Giant"))
+    }
+
+    @Test @MainActor
+    func unknownBreedUsesSelectedCoatTypeForMatchingSignals() throws {
+        let snapshot = try Self.petSnapshot(
+            breed: "Unspecified",
+            coatType: "double_coat",
+            groomingNotes: "Heavy seasonal shedding"
+        )
+
+        let signalIDs = PetFitSignal.signals(
+            for: snapshot,
+            serviceType: .deShedding,
+            referenceDate: Self.referenceDate
+        )
+        .map(\.id)
+
+        #expect(signalIDs.contains("coat_type:double_coat"))
+        #expect(signalIDs.contains("service_fit:de_shedding_treatment"))
+        #expect(!signalIDs.contains("breed_group:poodle"))
+        #expect(!signalIDs.contains("breed_group:terrier"))
+    }
+
+    @Test @MainActor
+    func knownDogBreedsRecommendProfessionalCoatTypes() throws {
+        #expect(CustomerPetBreed.poodle.recommendedCoatType == .curlyWavy)
+        #expect(CustomerPetBreed.bichonFrise.recommendedCoatType == .curlyWavy)
+        #expect(CustomerPetBreed.miniatureSchnauzer.recommendedCoatType == .wire)
+        #expect(CustomerPetBreed.siberianHusky.recommendedCoatType == .doubleCoat)
+        #expect(CustomerPetBreed.pomeranian.recommendedCoatType == .doubleCoat)
+        #expect(CustomerPetBreed.shihTzu.recommendedCoatType == .dropCoat)
+        #expect(CustomerPetBreed.cockerSpaniel.recommendedCoatType == .longSilky)
+        #expect(CustomerPetBreed.greatDane.recommendedCoatType == .shortSmooth)
+    }
+
+    @Test @MainActor
+    func knownBreedFallsBackToRecommendedCoatTypeWhenNoExplicitCoatTypeExists() throws {
+        let snapshot = try Self.petSnapshot(
+            breed: "Siberian Husky",
+            coatType: nil
+        )
+
+        let signalIDs = PetFitSignal.signals(
+            for: snapshot,
+            serviceType: .bathAndBrush,
+            referenceDate: Self.referenceDate
+        )
+        .map(\.id)
+
+        #expect(signalIDs.contains("coat_type:double_coat"))
+    }
+
+    @Test @MainActor
+    func wireCoatRequestsDeriveHandStrippingSkillSignal() throws {
+        let snapshot = try Self.petSnapshot(
+            breed: "Unspecified",
+            coatType: "wire"
+        )
+
+        let signalIDs = PetFitSignal.signals(
+            for: snapshot,
+            serviceType: .fullGroom,
+            referenceDate: Self.referenceDate
+        )
+        .map(\.id)
+
+        #expect(signalIDs.contains("coat_type:wire"))
+        #expect(signalIDs.contains("service_fit:hand_stripping_carding"))
     }
 
     @Test @MainActor
@@ -173,22 +262,25 @@ struct PetFitTaxonomyTests {
 
     private static func petSnapshot(
         breed: String? = nil,
+        coatType: String? = nil,
         size: String? = "S",
         weightLbs: Double? = 16,
         birthday: String? = nil,
-        temperament: String? = nil
+        temperament: String? = nil,
+        groomingNotes: String? = nil
     ) throws -> GroomingRequestPetSnapshot {
         GroomingRequestPetSnapshot(
             id: UUID(uuidString: "11111111-2222-4333-8444-555555555555")!,
             name: "Mochi",
             species: "Dog",
             breed: breed,
+            coatType: coatType,
             size: size,
             weightLbs: weightLbs,
             birthday: birthday,
             temperament: temperament,
             medicalNotes: nil,
-            groomingNotes: nil,
+            groomingNotes: groomingNotes,
             snapshotAt: nil
         )
     }

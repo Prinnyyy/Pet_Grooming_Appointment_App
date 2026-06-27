@@ -921,6 +921,7 @@ struct CustomerRequestsStoreTests {
             name: "Mochi",
             species: "Dog",
             breed: "Toy Poodle",
+            coatType: nil,
             size: "S",
             weightLbs: 15,
             birthday: nil,
@@ -942,9 +943,11 @@ struct CustomerRequestsStoreTests {
         store.serviceType = .fullGroom
 
         #expect(store.requestFitInputSignals().map(\.id) == [
+            "coat_type:curly_wavy",
             "breed_group:poodle",
             "size_band:S",
             "service_fit:curly_coat",
+            "service_fit:full_haircut_styling",
         ])
     }
 
@@ -1387,6 +1390,7 @@ struct CustomerRequestsStoreTests {
             name: "Mochi",
             species: "Dog",
             breed: "Corgi",
+            coatType: nil,
             size: "M",
             weightLbs: 22,
             birthday: nil,
@@ -1411,6 +1415,7 @@ struct CustomerRequestsStoreTests {
                 name: "Mochi",
                 species: "Dog",
                 breed: "Corgi",
+                coatType: nil,
                 size: "M",
                 weightLbs: 22,
                 birthday: nil,
