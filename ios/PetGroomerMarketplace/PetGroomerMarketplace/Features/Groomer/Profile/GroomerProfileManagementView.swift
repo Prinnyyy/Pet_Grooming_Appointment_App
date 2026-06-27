@@ -404,25 +404,13 @@ private struct GroomerFitSignalsEditorView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+            LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
                 GroomlySectionHeader(
                     "Fit Signals",
-                    subtitle: "Choose starter signals that help route relevant requests. Completed bookings and reviews improve these over time."
-                ) {
-                    GroomlyStatusChip(
-                        "\(store.selectedFitClaimIDs.count)/\(GroomerFitClaim.maximumActiveClaims)",
-                        systemImage: "checkmark.circle",
-                        tone: .groomer
-                    )
-                }
+                    subtitle: "Keep your core skills focused while size experience stays separate."
+                )
 
-                ForEach(Self.visibleGroups) { group in
-                    GroomerFitSignalGroupSection(
-                        group: group,
-                        signals: signals(for: group),
-                        store: store
-                    )
-                }
+                GroomerFitSignalOverviewCard(store: store)
 
                 if let errorMessage = store.errorMessage {
                     GroomlyErrorBanner(
@@ -432,37 +420,29 @@ private struct GroomerFitSignalsEditorView: View {
                     .accessibilityIdentifier("groomer.fit-signals.error")
                 }
 
-                Button {
-                    Task {
-                        await store.saveFitClaims()
-                    }
-                } label: {
-                    if store.isSaving {
-                        HStack(spacing: DesignTokens.Spacing.sm) {
-                            ProgressView()
-                                .tint(DesignTokens.Colors.surface)
-                            Text("Saving...")
-                        }
-                    } else {
-                        Text("Save Fit Signals")
-                    }
+                ForEach(Self.visibleGroups) { group in
+                    GroomerFitSignalGroupSection(
+                        group: group,
+                        signals: signals(for: group),
+                        store: store
+                    )
                 }
-                .buttonStyle(GroomlyPrimaryButtonStyle(accent: .groomer))
-                .disabled(store.isBusy)
-                .accessibilityIdentifier("groomer.fit-signals.save")
             }
             .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
             .padding(.top, DesignTokens.Spacing.lg)
-            .padding(.bottom, 120)
+            .padding(.bottom, 156)
         }
         .background(DesignTokens.Colors.background.ignoresSafeArea())
         .navigationTitle("Fit Signals")
         .navigationBarTitleDisplayMode(.inline)
+        .safeAreaInset(edge: .bottom) {
+            GroomerFitSignalsSaveBar(store: store)
+        }
         .accessibilityIdentifier("groomer.fit-signals.edit")
     }
 
     private static var visibleGroups: [PetFitSignal.Group] {
-        [.coatType, .sizeBand, .careFlag, .serviceFit].filter { group in
+        [.coatType, .careFlag, .serviceFit, .sizeBand].filter { group in
             GroomerFitClaim.availableSignals.contains(where: {
                 $0.group == group
             })
@@ -471,6 +451,87 @@ private struct GroomerFitSignalsEditorView: View {
 
     private func signals(for group: PetFitSignal.Group) -> [PetFitSignal] {
         GroomerFitClaim.availableSignals.filter { $0.group == group }
+    }
+}
+
+private struct GroomerFitSignalOverviewCard: View {
+    @Bindable var store: GroomerProfileStore
+
+    var body: some View {
+        GroomlyCard {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
+                    Image(systemName: "slider.horizontal.3")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundStyle(DesignTokens.Colors.surface)
+                        .frame(width: 44, height: 44)
+                        .background(DesignTokens.Colors.groomerAccent)
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .accessibilityHidden(true)
+
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                        Text("Selection Balance")
+                            .font(DesignTokens.Typography.headline)
+                            .foregroundStyle(DesignTokens.Colors.textPrimary)
+
+                        Text("Core skills drive starter matching. Size bands add experience context without using that limit.")
+                            .font(DesignTokens.Typography.caption)
+                            .foregroundStyle(DesignTokens.Colors.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                    HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.md) {
+                        Text("Core Skills")
+                            .font(DesignTokens.Typography.body.weight(.bold))
+                            .foregroundStyle(DesignTokens.Colors.textPrimary)
+
+                        Spacer(minLength: DesignTokens.Spacing.md)
+
+                        Text("\(store.selectedCoreFitClaimCount)/\(GroomerFitClaim.maximumActiveClaims)")
+                            .font(DesignTokens.Typography.body.weight(.bold))
+                            .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                    }
+
+                    ProgressView(
+                        value: Double(store.selectedCoreFitClaimCount),
+                        total: Double(GroomerFitClaim.maximumActiveClaims)
+                    )
+                    .tint(DesignTokens.Colors.groomerAccent)
+
+                    Text("Coat, handling, and service strengths")
+                        .font(DesignTokens.Typography.caption)
+                        .foregroundStyle(DesignTokens.Colors.textTertiary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Divider()
+
+                HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                        Text("Size Experience")
+                            .font(DesignTokens.Typography.body.weight(.bold))
+                            .foregroundStyle(DesignTokens.Colors.textPrimary)
+
+                        Text("Extra routing context")
+                            .font(DesignTokens.Typography.caption)
+                            .foregroundStyle(DesignTokens.Colors.textTertiary)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                    GroomlyStatusChip(
+                        "\(store.selectedSizeBandFitClaimCount) selected",
+                        systemImage: "ruler",
+                        tone: .neutral
+                    )
+                }
+            }
+        }
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -731,13 +792,37 @@ private struct GroomerFitSignalGroupSection: View {
     @Bindable var store: GroomerProfileStore
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            Text(group.title)
-                .font(DesignTokens.Typography.caption.weight(.bold))
-                .foregroundStyle(DesignTokens.Colors.textSecondary)
-                .textCase(.uppercase)
+        GroomlyCard(padding: DesignTokens.Spacing.md) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
+                    Image(systemName: iconName)
+                        .font(.system(size: 17, weight: .bold))
+                        .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
+                        .frame(width: 42, height: 42)
+                        .background(DesignTokens.Colors.groomerAccent.opacity(0.14))
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .accessibilityHidden(true)
 
-            GroomlyCard(padding: DesignTokens.Spacing.md) {
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                        Text(title)
+                            .font(DesignTokens.Typography.headline)
+                            .foregroundStyle(DesignTokens.Colors.textPrimary)
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        Text(subtitle)
+                            .font(DesignTokens.Typography.caption)
+                            .foregroundStyle(DesignTokens.Colors.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                    GroomlyStatusChip(
+                        statusText,
+                        systemImage: statusIconName,
+                        tone: group == .sizeBand ? .neutral : .groomer
+                    )
+                }
+
                 VStack(spacing: 0) {
                     ForEach(signals) { signal in
                         GroomerFitSignalRow(
@@ -749,11 +834,72 @@ private struct GroomerFitSignalGroupSection: View {
 
                         if signal.id != signals.last?.id {
                             Divider()
-                                .padding(.leading, 66)
+                                .padding(.leading, 52)
                         }
                     }
                 }
+                .accessibilityElement(children: .contain)
             }
+        }
+    }
+
+    private var selectedCount: Int {
+        store.selectedFitClaimCount(in: group)
+    }
+
+    private var title: String {
+        switch group {
+        case .coatType:
+            "Coat Skills"
+        case .breedGroup:
+            "Breed Groups"
+        case .sizeBand:
+            "Size Experience"
+        case .careFlag:
+            "Handling Needs"
+        case .serviceFit:
+            "Service Strengths"
+        }
+    }
+
+    private var subtitle: String {
+        switch group {
+        case .coatType:
+            "Coat structures you handle reliably."
+        case .breedGroup:
+            "Breed contexts kept for compatibility."
+        case .sizeBand:
+            "Body-size ranges you are comfortable grooming. These do not use core skill slots."
+        case .careFlag:
+            "Care situations you accept."
+        case .serviceFit:
+            "Service work that matches your setup."
+        }
+    }
+
+    private var statusText: String {
+        if group == .sizeBand {
+            return selectedCount == 1 ? "1 extra" : "\(selectedCount) extra"
+        }
+        return selectedCount == 1 ? "1 selected" : "\(selectedCount) selected"
+    }
+
+    private var statusIconName: String {
+        group == .sizeBand ? "plus.circle" : "checkmark.circle"
+    }
+
+    private var iconName: String {
+        switch group {
+        case .coatType:
+            "comb"
+        case .breedGroup:
+            "pawprint.fill"
+        case .sizeBand:
+            "ruler"
+        case .careFlag:
+            "heart.fill"
+        case .serviceFit:
+            "scissors"
         }
     }
 }
@@ -767,13 +913,13 @@ private struct GroomerFitSignalRow: View {
         Button(action: onToggle) {
             HStack(spacing: DesignTokens.Spacing.md) {
                 Image(systemName: iconName)
-                    .font(.system(size: 18, weight: .bold))
+                    .font(.system(size: 15, weight: .bold))
                     .foregroundStyle(
                         isSelected
                             ? DesignTokens.Colors.surface
                             : DesignTokens.Colors.groomerAccentDark
                     )
-                    .frame(width: 46, height: 46)
+                    .frame(width: 38, height: 38)
                     .background(
                         isSelected
                             ? DesignTokens.Colors.groomerAccent
@@ -787,10 +933,6 @@ private struct GroomerFitSignalRow: View {
                         .font(DesignTokens.Typography.body.weight(.bold))
                         .foregroundStyle(DesignTokens.Colors.textPrimary)
                         .frame(maxWidth: .infinity, alignment: .leading)
-
-                    Text(subtitle)
-                        .font(DesignTokens.Typography.caption)
-                        .foregroundStyle(DesignTokens.Colors.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
@@ -825,20 +967,68 @@ private struct GroomerFitSignalRow: View {
             "scissors"
         }
     }
+}
 
-    private var subtitle: String {
-        switch signal.group {
-        case .coatType:
-            "Coat structure you are confident grooming"
-        case .breedGroup:
-            "Requests with this coat or breed context"
-        case .sizeBand:
-            "Size context for routing only"
-        case .careFlag:
-            "Care context you are comfortable handling"
-        case .serviceFit:
-            "Service context that matches your work"
+private struct GroomerFitSignalsSaveBar: View {
+    @Bindable var store: GroomerProfileStore
+
+    var body: some View {
+        VStack(spacing: DesignTokens.Spacing.sm) {
+            HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                    Text("\(store.selectedCoreFitClaimCount)/\(GroomerFitClaim.maximumActiveClaims) core skills")
+                        .font(DesignTokens.Typography.caption.weight(.bold))
+                        .foregroundStyle(DesignTokens.Colors.textPrimary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.82)
+
+                    Text(sizeBandSummaryText)
+                        .font(DesignTokens.Typography.caption)
+                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.82)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                Button {
+                    Task {
+                        await store.saveFitClaims()
+                    }
+                } label: {
+                    if store.isSaving {
+                        HStack(spacing: DesignTokens.Spacing.sm) {
+                            ProgressView()
+                                .tint(DesignTokens.Colors.surface)
+                            Text("Saving...")
+                        }
+                    } else {
+                        Text("Save")
+                    }
+                }
+                .buttonStyle(GroomlyPrimaryButtonStyle(accent: .groomer, isFullWidth: false))
+                .disabled(store.isBusy)
+                .accessibilityIdentifier("groomer.fit-signals.save")
+            }
         }
+        .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+        .padding(.top, DesignTokens.Spacing.md)
+        .padding(.bottom, DesignTokens.Spacing.md)
+        .background {
+            Rectangle()
+                .fill(DesignTokens.Colors.surfaceRaised)
+                .ignoresSafeArea()
+                .overlay(alignment: .top) {
+                    Rectangle()
+                        .fill(DesignTokens.Colors.borderSoft)
+                        .frame(height: 1)
+                }
+        }
+    }
+
+    private var sizeBandSummaryText: String {
+        store.selectedSizeBandFitClaimCount == 1
+            ? "1 size band"
+            : "\(store.selectedSizeBandFitClaimCount) size bands"
     }
 }
 

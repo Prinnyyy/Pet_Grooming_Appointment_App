@@ -3,6 +3,16 @@
 This file is reverse chronological history. Only the newest entry plus `docs/00_memory/CURRENT_STATE.md` and `docs/06_tasks/TASK_LEDGER.md` define the current branch, current baseline, and next-task state. Older `Next:` lines and branch references are historical closeout notes, not current instructions.
 
 ```text
+Date: 2026-06-27
+Task: T-101 - Groomer Fit Signals limit and layout refinement.
+Files changed: GroomerProfileStore, GroomerProfileManagementView, GroomerProfileFeatureTests, feature index, task ledger, current state, and worklog.
+Checks: Root-cause investigation confirmed the Store counted every selected fit-claim ID toward the 8-signal limit, so `size_band` selections consumed core skill slots. RED `./scripts/ios-test.sh` failed on new size-band limit tests; GREEN `./scripts/ios-test.sh` passed after changing the Store to limit only non-size-band core signals. `./scripts/ios-build.sh` passed after the SwiftUI page redesign. XcodeBuildMCP `build_run_sim` launched the app on iPhone 17 Pro iOS 26.5; runtime snapshots verified Debug Groomer login, Account -> Fit Signals navigation, the selection-balance summary, separated Size Experience section, and fixed bottom Save bar. `git diff --check` passed.
+Result: T-101 is completed. Groomer size-band Fit Signals are now extra experience context and no longer consume the 8 core skill slots. The Fit Signals page is reorganized into a clearer summary plus Coat Skills, Handling Needs, Service Strengths, and Size Experience groups with a persistent save action.
+Risks: T-101 is client-only. It does not change Supabase schema, RLS, grants, RPCs, Storage, matching weights, direct booking, public directory behavior, or expertise-proof semantics.
+Next: Stop unless the user asks to commit/push or authorizes T-102.
+```
+
+```text
 Date: 2026-06-26
 Task: T-100 - Pet coat and fit-claim save permission fix.
 Files changed: GroomerProfile, GroomerProfileManagementView, GroomerProfileFeatureTests, Supabase migration `20260627061032_t100_fix_pet_coat_and_fit_claim_grants.sql`, backend contract, feature index, task ledger, current state, and worklog.

@@ -71,6 +71,14 @@ final class GroomerProfileStore {
         (isLoading && profile == nil) || isSaving || isUploading
     }
 
+    var selectedCoreFitClaimCount: Int {
+        selectedFitClaimCount { $0.group != .sizeBand }
+    }
+
+    var selectedSizeBandFitClaimCount: Int {
+        selectedFitClaimCount { $0.group == .sizeBand }
+    }
+
     init(
         groomerID: UUID,
         repository: any GroomerProfileRepository
@@ -545,6 +553,10 @@ final class GroomerProfileStore {
         selectedFitClaimIDs.contains(signal.id)
     }
 
+    func selectedFitClaimCount(in group: PetFitSignal.Group) -> Int {
+        selectedFitClaimCount { $0.group == group }
+    }
+
     func toggleFitClaim(_ signal: PetFitSignal) {
         errorMessage = nil
         noticeMessage = nil
@@ -554,8 +566,9 @@ final class GroomerProfileStore {
             return
         }
 
-        guard selectedFitClaimIDs.count < GroomerFitClaim.maximumActiveClaims else {
-            errorMessage = "Choose up to \(GroomerFitClaim.maximumActiveClaims) starter fit signals."
+        guard signal.group == .sizeBand
+                || selectedCoreFitClaimCount < GroomerFitClaim.maximumActiveClaims else {
+            errorMessage = Self.fitClaimLimitMessage
             return
         }
 
@@ -568,8 +581,8 @@ final class GroomerProfileStore {
         errorMessage = nil
         noticeMessage = nil
 
-        guard selectedFitClaimIDs.count <= GroomerFitClaim.maximumActiveClaims else {
-            errorMessage = "Choose up to \(GroomerFitClaim.maximumActiveClaims) starter fit signals."
+        guard selectedCoreFitClaimCount <= GroomerFitClaim.maximumActiveClaims else {
+            errorMessage = Self.fitClaimLimitMessage
             return
         }
 
@@ -1002,6 +1015,17 @@ final class GroomerProfileStore {
             }
     }
 
+    private func selectedFitClaimCount(
+        where matches: (PetFitSignal) -> Bool
+    ) -> Int {
+        GroomerFitClaim.availableSignals.reduce(0) { count, signal in
+            guard matches(signal), selectedFitClaimIDs.contains(signal.id) else {
+                return count
+            }
+            return count + 1
+        }
+    }
+
     private func makePortfolioFitTagDrafts(
         for photo: GroomerPortfolioPhoto
     ) -> [GroomerPortfolioFitTagDraft] {
@@ -1167,6 +1191,10 @@ final class GroomerProfileStore {
             return lhs.title < rhs.title
         }
         return lhs.sortOrder < rhs.sortOrder
+    }
+
+    private static var fitClaimLimitMessage: String {
+        "Choose up to \(GroomerFitClaim.maximumActiveClaims) core fit signals. Size experience does not use this limit."
     }
 
     static func dateString(from date: Date) -> String {

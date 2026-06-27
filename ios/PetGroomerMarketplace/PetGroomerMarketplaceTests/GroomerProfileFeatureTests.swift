@@ -418,9 +418,9 @@ struct GroomerProfileStoreTests {
             repository: repository
         )
         let signals = Array(
-            GroomerFitClaim.availableSignals.prefix(
-                GroomerFitClaim.maximumActiveClaims + 1
-            )
+            GroomerFitClaim.availableSignals
+                .filter { $0.group != .sizeBand }
+                .prefix(GroomerFitClaim.maximumActiveClaims + 1)
         )
 
         for signal in signals {
@@ -431,8 +431,58 @@ struct GroomerProfileStoreTests {
         #expect(repository.replaceFitClaimsCallCount == 0)
         #expect(
             store.errorMessage ==
-                "Choose up to \(GroomerFitClaim.maximumActiveClaims) starter fit signals."
+                "Choose up to \(GroomerFitClaim.maximumActiveClaims) core fit signals. Size experience does not use this limit."
         )
+    }
+
+    @Test @MainActor
+    func sizeBandFitClaimsDoNotConsumeCoreSelectionLimit() {
+        let store = GroomerProfileStore(
+            groomerID: UUID(),
+            repository: GroomerProfileRepositoryFake()
+        )
+        let coreSignals = Array(
+            GroomerFitClaim.availableSignals
+                .filter { $0.group != .sizeBand }
+                .prefix(GroomerFitClaim.maximumActiveClaims)
+        )
+        let sizeSignal = PetFitSignal.sizeBand(.giant)
+
+        for signal in coreSignals {
+            store.toggleFitClaim(signal)
+        }
+        store.toggleFitClaim(sizeSignal)
+
+        #expect(store.selectedFitClaimIDs.count == GroomerFitClaim.maximumActiveClaims + 1)
+        #expect(store.selectedFitClaimIDs.contains(sizeSignal.id))
+        #expect(store.errorMessage == nil)
+    }
+
+    @Test @MainActor
+    func saveFitClaimsAllowsSizeBandsAboveCoreSelectionLimit() async {
+        let repository = GroomerProfileRepositoryFake()
+        let store = GroomerProfileStore(
+            groomerID: UUID(),
+            repository: repository
+        )
+        let coreSignals = Array(
+            GroomerFitClaim.availableSignals
+                .filter { $0.group != .sizeBand }
+                .prefix(GroomerFitClaim.maximumActiveClaims)
+        )
+        let sizeSignal = PetFitSignal.sizeBand(.giant)
+
+        for signal in coreSignals {
+            store.toggleFitClaim(signal)
+        }
+        store.toggleFitClaim(sizeSignal)
+        await store.saveFitClaims()
+
+        #expect(repository.replaceFitClaimsCallCount == 1)
+        #expect(repository.lastFitClaimDrafts.contains {
+            $0.signal == sizeSignal && $0.isActive
+        })
+        #expect(store.errorMessage == nil)
     }
 
     @Test @MainActor
