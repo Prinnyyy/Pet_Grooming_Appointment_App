@@ -79,6 +79,21 @@ final class GroomerProfileStore {
         selectedFitClaimCount { $0.group == .sizeBand }
     }
 
+    var selectedSizeBandRange: ClosedRange<Int> {
+        let selectedIndices = Self.sizeBandSignals.enumerated().compactMap { index, signal in
+            selectedFitClaimIDs.contains(signal.id) ? index : nil
+        }
+        guard let lowerBound = selectedIndices.min(),
+              let upperBound = selectedIndices.max() else {
+            return Self.fullSizeBandRange
+        }
+        return lowerBound...upperBound
+    }
+
+    var sizeBandFitClaimRangeTitle: String {
+        Self.sizeBandRangeTitle(for: selectedSizeBandRange)
+    }
+
     init(
         groomerID: UUID,
         repository: any GroomerProfileRepository
@@ -557,6 +572,25 @@ final class GroomerProfileStore {
         selectedFitClaimCount { $0.group == group }
     }
 
+    func ensureSizeBandFitClaimRange() {
+        setSizeBandFitClaimRange(
+            lowerIndex: selectedSizeBandRange.lowerBound,
+            upperIndex: selectedSizeBandRange.upperBound,
+            clearsNotice: false
+        )
+    }
+
+    func setSizeBandFitClaimRange(
+        lowerIndex: Int,
+        upperIndex: Int
+    ) {
+        setSizeBandFitClaimRange(
+            lowerIndex: lowerIndex,
+            upperIndex: upperIndex,
+            clearsNotice: true
+        )
+    }
+
     func toggleFitClaim(_ signal: PetFitSignal) {
         errorMessage = nil
         noticeMessage = nil
@@ -575,15 +609,16 @@ final class GroomerProfileStore {
         selectedFitClaimIDs.insert(signal.id)
     }
 
-    func saveFitClaims() async {
-        guard !isSaving else { return }
+    @discardableResult
+    func saveFitClaims() async -> String? {
+        guard !isSaving else { return nil }
 
         errorMessage = nil
         noticeMessage = nil
 
         guard selectedCoreFitClaimCount <= GroomerFitClaim.maximumActiveClaims else {
             errorMessage = Self.fitClaimLimitMessage
-            return
+            return nil
         }
 
         let drafts = makeFitClaimDrafts()
@@ -597,12 +632,15 @@ final class GroomerProfileStore {
                 drafts: drafts
             )
             populateFitClaims(with: updatedClaims)
-            noticeMessage = "Fit signals saved."
+            let successMessage = "Fit signals saved."
+            noticeMessage = successMessage
+            return successMessage
         } catch let error as GroomerProfileRepositoryError {
             errorMessage = message(for: error, action: "save fit signals")
         } catch {
             errorMessage = message(for: .unavailable, action: "save fit signals")
         }
+        return nil
     }
 
     func portfolioFitTags(for photo: GroomerPortfolioPhoto) -> [GroomerPortfolioFitTag] {
@@ -1026,6 +1064,28 @@ final class GroomerProfileStore {
         }
     }
 
+    private func setSizeBandFitClaimRange(
+        lowerIndex: Int,
+        upperIndex: Int,
+        clearsNotice: Bool
+    ) {
+        if clearsNotice {
+            errorMessage = nil
+            noticeMessage = nil
+        }
+
+        let range = Self.normalizedSizeBandRange(
+            lowerIndex: lowerIndex,
+            upperIndex: upperIndex
+        )
+        let sizeBandIDs = Set(Self.sizeBandSignals.map(\.id))
+        selectedFitClaimIDs.subtract(sizeBandIDs)
+
+        for index in range {
+            selectedFitClaimIDs.insert(Self.sizeBandSignals[index].id)
+        }
+    }
+
     private func makePortfolioFitTagDrafts(
         for photo: GroomerPortfolioPhoto
     ) -> [GroomerPortfolioFitTagDraft] {
@@ -1197,6 +1257,37 @@ final class GroomerProfileStore {
         "Choose up to \(GroomerFitClaim.maximumActiveClaims) core fit signals. Size experience does not use this limit."
     }
 
+    private static var sizeBandSignals: [PetFitSignal] {
+        CustomerPetSizeCode.allCases.map { PetFitSignal.sizeBand($0) }
+    }
+
+    private static var fullSizeBandRange: ClosedRange<Int> {
+        0...(sizeBandSignals.count - 1)
+    }
+
+    private static func normalizedSizeBandRange(
+        lowerIndex: Int,
+        upperIndex: Int
+    ) -> ClosedRange<Int> {
+        let maximumIndex = sizeBandSignals.count - 1
+        let lowerBound = min(max(lowerIndex, 0), maximumIndex)
+        let upperBound = min(max(upperIndex, 0), maximumIndex)
+        return min(lowerBound, upperBound)...max(lowerBound, upperBound)
+    }
+
+    private static func sizeBandRangeTitle(
+        for range: ClosedRange<Int>
+    ) -> String {
+        let normalizedRange = normalizedSizeBandRange(
+            lowerIndex: range.lowerBound,
+            upperIndex: range.upperBound
+        )
+        let codes = CustomerPetSizeCode.allCases
+        let lower = codes[normalizedRange.lowerBound]
+        let upper = codes[normalizedRange.upperBound]
+        return "\(lower.title)-\(upper.title) (\(lower.lowerWeightLabel)-\(upper.upperWeightLabel))"
+    }
+
     static func dateString(from date: Date) -> String {
         let components = Calendar.current.dateComponents([.year, .month, .day], from: date)
         return String(
@@ -1218,6 +1309,46 @@ final class GroomerProfileStore {
             "Check your connection and try again."
         case .unavailable:
             "We could not \(action) groomer profile details. Please try again."
+        }
+    }
+}
+
+private extension CustomerPetSizeCode {
+    var lowerWeightLabel: String {
+        switch self {
+        case .xs:
+            "<10lb"
+        case .s:
+            "10lb"
+        case .m:
+            "20lb"
+        case .l:
+            "40lb"
+        case .xl:
+            "60lb"
+        case .xxl:
+            "80lb"
+        case .giant:
+            "101lb"
+        }
+    }
+
+    var upperWeightLabel: String {
+        switch self {
+        case .xs:
+            "9lb"
+        case .s:
+            "19lb"
+        case .m:
+            "39lb"
+        case .l:
+            "59lb"
+        case .xl:
+            "79lb"
+        case .xxl:
+            "100lb"
+        case .giant:
+            "101+lb"
         }
     }
 }

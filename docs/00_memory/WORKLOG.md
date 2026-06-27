@@ -4,6 +4,16 @@ This file is reverse chronological history. Only the newest entry plus `docs/00_
 
 ```text
 Date: 2026-06-27
+Task: T-102 - Groomer Fit Signals size range slider and save feedback.
+Files changed: GroomerProfileStore, GroomerProfileManagementView, GroomerProfileFeatureTests, feature index, task ledger, current state, and worklog.
+Checks: RED `./scripts/ios-test.sh` failed on missing size-range Store APIs; GREEN `./scripts/ios-test.sh` passed after adding contiguous size-range selection and returning the Fit Signals save success message. `./scripts/ios-build.sh` passed. XcodeBuildMCP `build_run_sim` launched the app on iPhone 17 Pro iOS 26.5; runtime snapshots/screenshots verified Account -> Fit Signals, the Selection Balance dual-thumb Size Experience slider, live `XS-Giant (<10lb-101+lb)` range text, simplified option rows without redundant leading icons, and fixed bottom Save bar. `git diff --check` passed.
+Result: T-102 is completed. Size Experience is now edited as a compact contiguous range inside Selection Balance instead of a heavy separate size-band checklist, and Fit Signals save success feedback is generated from the current page instead of waiting for parent-page notice forwarding.
+Risks: T-102 is client-only. It reuses existing `groomer_fit_claims` size-band claim storage and does not change Supabase schema, RLS, grants, RPCs, Storage, matching weights, public directory, direct booking, or expertise-proof semantics. Existing groomers with sparse size-band selections are normalized to a continuous min-to-max range when they open the editor.
+Next: Stop unless the user asks to commit/push or authorizes T-103.
+```
+
+```text
+Date: 2026-06-27
 Task: T-101 - Groomer Fit Signals limit and layout refinement.
 Files changed: GroomerProfileStore, GroomerProfileManagementView, GroomerProfileFeatureTests, feature index, task ledger, current state, and worklog.
 Checks: Root-cause investigation confirmed the Store counted every selected fit-claim ID toward the 8-signal limit, so `size_band` selections consumed core skill slots. RED `./scripts/ios-test.sh` failed on new size-band limit tests; GREEN `./scripts/ios-test.sh` passed after changing the Store to limit only non-size-band core signals. `./scripts/ios-build.sh` passed after the SwiftUI page redesign. XcodeBuildMCP `build_run_sim` launched the app on iPhone 17 Pro iOS 26.5; runtime snapshots verified Debug Groomer login, Account -> Fit Signals navigation, the selection-balance summary, separated Size Experience section, and fixed bottom Save bar. `git diff --check` passed.

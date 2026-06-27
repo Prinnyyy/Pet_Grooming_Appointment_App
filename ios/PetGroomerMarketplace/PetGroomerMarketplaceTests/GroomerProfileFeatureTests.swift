@@ -374,9 +374,10 @@ struct GroomerProfileStoreTests {
 
         store.toggleFitClaim(.serviceFit(.gentleHandling))
         store.toggleFitClaim(.coatType(.curlyWavy))
-        await store.saveFitClaims()
+        let successMessage = await store.saveFitClaims()
 
         #expect(repository.replaceFitClaimsCallCount == 1)
+        #expect(successMessage == "Fit signals saved.")
         #expect(repository.lastFitClaimDrafts == [
             GroomerFitClaimDraft(
                 signal: .coatType(.curlyWavy),
@@ -483,6 +484,44 @@ struct GroomerProfileStoreTests {
             $0.signal == sizeSignal && $0.isActive
         })
         #expect(store.errorMessage == nil)
+    }
+
+    @Test @MainActor
+    func sizeBandRangeSelectionReplacesSizeBandsWithoutChangingCoreClaims() {
+        let store = GroomerProfileStore(
+            groomerID: UUID(),
+            repository: GroomerProfileRepositoryFake()
+        )
+        store.toggleFitClaim(.coatType(.curlyWavy))
+        store.setSizeBandFitClaimRange(
+            lowerIndex: 1,
+            upperIndex: 4
+        )
+
+        #expect(store.selectedCoreFitClaimCount == 1)
+        #expect(store.selectedSizeBandFitClaimCount == 4)
+        #expect(store.selectedFitClaimIDs.contains(PetFitSignal.coatType(.curlyWavy).id))
+        #expect(store.selectedFitClaimIDs.contains(PetFitSignal.sizeBand(.s).id))
+        #expect(store.selectedFitClaimIDs.contains(PetFitSignal.sizeBand(.m).id))
+        #expect(store.selectedFitClaimIDs.contains(PetFitSignal.sizeBand(.l).id))
+        #expect(store.selectedFitClaimIDs.contains(PetFitSignal.sizeBand(.xl).id))
+        #expect(!store.selectedFitClaimIDs.contains(PetFitSignal.sizeBand(.xs).id))
+        #expect(!store.selectedFitClaimIDs.contains(PetFitSignal.sizeBand(.xxl).id))
+        #expect(!store.selectedFitClaimIDs.contains(PetFitSignal.sizeBand(.giant).id))
+    }
+
+    @Test @MainActor
+    func sizeBandRangeDefaultsToFullRangeWhenUnselected() {
+        let store = GroomerProfileStore(
+            groomerID: UUID(),
+            repository: GroomerProfileRepositoryFake()
+        )
+
+        store.ensureSizeBandFitClaimRange()
+
+        #expect(store.selectedSizeBandRange == 0...6)
+        #expect(store.selectedSizeBandFitClaimCount == CustomerPetSizeCode.allCases.count)
+        #expect(store.sizeBandFitClaimRangeTitle == "XS-Giant (<10lb-101+lb)")
     }
 
     @Test @MainActor

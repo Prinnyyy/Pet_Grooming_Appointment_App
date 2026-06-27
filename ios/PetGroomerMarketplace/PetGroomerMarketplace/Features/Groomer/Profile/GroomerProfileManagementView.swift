@@ -401,6 +401,7 @@ private struct GroomerPortfolioEditorView: View {
 
 private struct GroomerFitSignalsEditorView: View {
     @Bindable var store: GroomerProfileStore
+    @State private var successNoticeMessage: String?
 
     var body: some View {
         ScrollView {
@@ -435,14 +436,48 @@ private struct GroomerFitSignalsEditorView: View {
         .background(DesignTokens.Colors.background.ignoresSafeArea())
         .navigationTitle("Fit Signals")
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            store.ensureSizeBandFitClaimRange()
+        }
         .safeAreaInset(edge: .bottom) {
-            GroomerFitSignalsSaveBar(store: store)
+            VStack(spacing: DesignTokens.Spacing.sm) {
+                if let successNoticeMessage {
+                    GroomlyNoticeToast(message: successNoticeMessage)
+                        .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .task(id: successNoticeMessage) {
+                            await dismissSuccessNotice(successNoticeMessage)
+                        }
+                }
+
+                GroomerFitSignalsSaveBar(store: store) { message in
+                    withAnimation(.easeInOut(duration: 0.24)) {
+                        successNoticeMessage = message
+                    }
+                    guard store.noticeMessage == message else { return }
+                    store.noticeMessage = nil
+                }
+            }
         }
         .accessibilityIdentifier("groomer.fit-signals.edit")
     }
 
+    private func dismissSuccessNotice(_ message: String) async {
+        try? await Task.sleep(
+            nanoseconds: GroomlyFeedbackCenter.noticeDismissDelayNanoseconds
+        )
+        guard !Task.isCancelled else { return }
+
+        await MainActor.run {
+            guard successNoticeMessage == message else { return }
+            withAnimation(.easeInOut(duration: 0.24)) {
+                successNoticeMessage = nil
+            }
+        }
+    }
+
     private static var visibleGroups: [PetFitSignal.Group] {
-        [.coatType, .careFlag, .serviceFit, .sizeBand].filter { group in
+        [.coatType, .careFlag, .serviceFit].filter { group in
             GroomerFitClaim.availableSignals.contains(where: {
                 $0.group == group
             })
@@ -511,27 +546,214 @@ private struct GroomerFitSignalOverviewCard: View {
 
                 Divider()
 
-                HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
-                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                        Text("Size Experience")
-                            .font(DesignTokens.Typography.body.weight(.bold))
-                            .foregroundStyle(DesignTokens.Colors.textPrimary)
+                GroomerSizeExperienceRangeControl(store: store)
+            }
+        }
+        .accessibilityElement(children: .contain)
+    }
+}
 
-                        Text("Extra routing context")
-                            .font(DesignTokens.Typography.caption)
-                            .foregroundStyle(DesignTokens.Colors.textTertiary)
+private struct GroomerSizeExperienceRangeControl: View {
+    @Bindable var store: GroomerProfileStore
+
+    private let sizeCodes = CustomerPetSizeCode.allCases
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.md) {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                    Text("Size Experience")
+                        .font(DesignTokens.Typography.body.weight(.bold))
+                        .foregroundStyle(DesignTokens.Colors.textPrimary)
+
+                    Text("Acceptable pet size range")
+                        .font(DesignTokens.Typography.caption)
+                        .foregroundStyle(DesignTokens.Colors.textTertiary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                Text(store.sizeBandFitClaimRangeTitle)
+                    .font(DesignTokens.Typography.caption.weight(.bold))
+                    .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+                    .padding(.horizontal, DesignTokens.Spacing.sm)
+                    .padding(.vertical, DesignTokens.Spacing.xs)
+                    .background(DesignTokens.Colors.groomerAccent.opacity(0.12))
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .accessibilityIdentifier("groomer.fit-signals.size-range-title")
+            }
+
+            GroomerSizeRangeSlider(
+                lowerIndex: Binding(
+                    get: { store.selectedSizeBandRange.lowerBound },
+                    set: { newValue in
+                        store.setSizeBandFitClaimRange(
+                            lowerIndex: newValue,
+                            upperIndex: store.selectedSizeBandRange.upperBound
+                        )
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                ),
+                upperIndex: Binding(
+                    get: { store.selectedSizeBandRange.upperBound },
+                    set: { newValue in
+                        store.setSizeBandFitClaimRange(
+                            lowerIndex: store.selectedSizeBandRange.lowerBound,
+                            upperIndex: newValue
+                        )
+                    }
+                ),
+                optionCount: sizeCodes.count,
+                rangeTitle: store.sizeBandFitClaimRangeTitle
+            )
 
-                    GroomlyStatusChip(
-                        "\(store.selectedSizeBandFitClaimCount) selected",
-                        systemImage: "ruler",
-                        tone: .neutral
-                    )
+            HStack(spacing: 0) {
+                ForEach(sizeCodes) { code in
+                    Text(code.title)
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(DesignTokens.Colors.textTertiary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.72)
+                        .frame(maxWidth: .infinity)
                 }
             }
         }
-        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct GroomerSizeRangeSlider: View {
+    @Binding var lowerIndex: Int
+    @Binding var upperIndex: Int
+    let optionCount: Int
+    let rangeTitle: String
+
+    @State private var lowerDragStartIndex: Int?
+    @State private var upperDragStartIndex: Int?
+
+    private let thumbSize: CGFloat = 30
+    private let hitSize: CGFloat = 48
+    private let trackHeight: CGFloat = 6
+
+    var body: some View {
+        GeometryReader { proxy in
+            let trackWidth = max(proxy.size.width - thumbSize, 1)
+            let lowerCenterX = centerX(for: lowerIndex, trackWidth: trackWidth)
+            let upperCenterX = centerX(for: upperIndex, trackWidth: trackWidth)
+
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(DesignTokens.Colors.borderSoft)
+                    .frame(width: trackWidth, height: trackHeight)
+                    .offset(x: thumbSize / 2)
+
+                Capsule()
+                    .fill(DesignTokens.Colors.groomerAccent)
+                    .frame(
+                        width: max(upperCenterX - lowerCenterX, trackHeight),
+                        height: trackHeight
+                    )
+                    .offset(x: lowerCenterX)
+
+                ForEach(0..<optionCount, id: \.self) { index in
+                    Circle()
+                        .fill(
+                            index >= lowerIndex && index <= upperIndex
+                                ? DesignTokens.Colors.groomerAccentDark
+                                : DesignTokens.Colors.textTertiary.opacity(0.45)
+                        )
+                        .frame(width: 6, height: 6)
+                        .offset(
+                            x: centerX(for: index, trackWidth: trackWidth) - 3,
+                            y: 0
+                        )
+                        .accessibilityHidden(true)
+                }
+
+                GroomerSizeRangeThumb()
+                    .frame(width: hitSize, height: hitSize)
+                    .position(x: lowerCenterX, y: hitSize / 2)
+                    .gesture(lowerThumbDrag(trackWidth: trackWidth))
+                    .accessibilityLabel("Minimum size")
+                    .accessibilityValue(rangeTitle)
+
+                GroomerSizeRangeThumb()
+                    .frame(width: hitSize, height: hitSize)
+                    .position(x: upperCenterX, y: hitSize / 2)
+                    .gesture(upperThumbDrag(trackWidth: trackWidth))
+                    .accessibilityLabel("Maximum size")
+                    .accessibilityValue(rangeTitle)
+            }
+        }
+        .frame(height: hitSize)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("groomer.fit-signals.size-range-slider")
+    }
+
+    private func centerX(for index: Int, trackWidth: CGFloat) -> CGFloat {
+        let maximumIndex = max(optionCount - 1, 1)
+        let clampedIndex = min(max(index, 0), maximumIndex)
+        return thumbSize / 2 + CGFloat(clampedIndex) / CGFloat(maximumIndex) * trackWidth
+    }
+
+    private func index(for centerX: CGFloat, trackWidth: CGFloat) -> Int {
+        let maximumIndex = max(optionCount - 1, 1)
+        let normalized = (centerX - thumbSize / 2) / trackWidth
+        return min(max(Int((normalized * CGFloat(maximumIndex)).rounded()), 0), maximumIndex)
+    }
+
+    private func lowerThumbDrag(trackWidth: CGFloat) -> some Gesture {
+        DragGesture(minimumDistance: 0)
+            .onChanged { value in
+                let startIndex = lowerDragStartIndex ?? lowerIndex
+                lowerDragStartIndex = startIndex
+                let startX = centerX(for: startIndex, trackWidth: trackWidth)
+                let proposedIndex = index(
+                    for: startX + value.translation.width,
+                    trackWidth: trackWidth
+                )
+                lowerIndex = min(proposedIndex, upperIndex)
+            }
+            .onEnded { _ in
+                lowerDragStartIndex = nil
+            }
+    }
+
+    private func upperThumbDrag(trackWidth: CGFloat) -> some Gesture {
+        DragGesture(minimumDistance: 0)
+            .onChanged { value in
+                let startIndex = upperDragStartIndex ?? upperIndex
+                upperDragStartIndex = startIndex
+                let startX = centerX(for: startIndex, trackWidth: trackWidth)
+                let proposedIndex = index(
+                    for: startX + value.translation.width,
+                    trackWidth: trackWidth
+                )
+                upperIndex = max(proposedIndex, lowerIndex)
+            }
+            .onEnded { _ in
+                upperDragStartIndex = nil
+            }
+    }
+}
+
+private struct GroomerSizeRangeThumb: View {
+    var body: some View {
+        ZStack {
+            Circle()
+                .fill(DesignTokens.Colors.surface)
+                .frame(width: 30, height: 30)
+                .groomlyShadow(DesignTokens.Shadows.smallCard)
+
+            Circle()
+                .stroke(DesignTokens.Colors.groomerAccent, lineWidth: 3)
+                .frame(width: 30, height: 30)
+
+            Capsule()
+                .fill(DesignTokens.Colors.groomerAccentDark)
+                .frame(width: 4, height: 14)
+        }
+        .frame(width: 48, height: 48)
+        .contentShape(Circle())
     }
 }
 
@@ -834,7 +1056,7 @@ private struct GroomerFitSignalGroupSection: View {
 
                         if signal.id != signals.last?.id {
                             Divider()
-                                .padding(.leading, 52)
+                                .padding(.leading, DesignTokens.Spacing.sm)
                         }
                     }
                 }
@@ -912,22 +1134,6 @@ private struct GroomerFitSignalRow: View {
     var body: some View {
         Button(action: onToggle) {
             HStack(spacing: DesignTokens.Spacing.md) {
-                Image(systemName: iconName)
-                    .font(.system(size: 15, weight: .bold))
-                    .foregroundStyle(
-                        isSelected
-                            ? DesignTokens.Colors.surface
-                            : DesignTokens.Colors.groomerAccentDark
-                    )
-                    .frame(width: 38, height: 38)
-                    .background(
-                        isSelected
-                            ? DesignTokens.Colors.groomerAccent
-                            : DesignTokens.Colors.borderSoft.opacity(0.5)
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                    .accessibilityHidden(true)
-
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     Text(signal.title)
                         .font(DesignTokens.Typography.body.weight(.bold))
@@ -952,25 +1158,11 @@ private struct GroomerFitSignalRow: View {
         .accessibilityLabel("\(signal.title) fit signal")
         .accessibilityValue(isSelected ? "Selected" : "Not selected")
     }
-
-    private var iconName: String {
-        switch signal.group {
-        case .coatType:
-            "comb"
-        case .breedGroup:
-            "pawprint.fill"
-        case .sizeBand:
-            "ruler"
-        case .careFlag:
-            "heart.fill"
-        case .serviceFit:
-            "scissors"
-        }
-    }
 }
 
 private struct GroomerFitSignalsSaveBar: View {
     @Bindable var store: GroomerProfileStore
+    let onSaved: (String) -> Void
 
     var body: some View {
         VStack(spacing: DesignTokens.Spacing.sm) {
@@ -992,7 +1184,9 @@ private struct GroomerFitSignalsSaveBar: View {
 
                 Button {
                     Task {
-                        await store.saveFitClaims()
+                        if let noticeMessage = await store.saveFitClaims() {
+                            onSaved(noticeMessage)
+                        }
                     }
                 } label: {
                     if store.isSaving {
@@ -1026,9 +1220,7 @@ private struct GroomerFitSignalsSaveBar: View {
     }
 
     private var sizeBandSummaryText: String {
-        store.selectedSizeBandFitClaimCount == 1
-            ? "1 size band"
-            : "\(store.selectedSizeBandFitClaimCount) size bands"
+        store.sizeBandFitClaimRangeTitle
     }
 }
 
