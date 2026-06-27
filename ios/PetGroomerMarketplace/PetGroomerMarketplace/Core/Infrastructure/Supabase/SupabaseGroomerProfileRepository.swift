@@ -422,6 +422,29 @@ final class SupabaseGroomerProfileRepository: GroomerProfileRepository {
         }
     }
 
+    func latestAvatarPhotoPath(groomerID: UUID) async throws -> String? {
+        let folderPath = groomerID.uuidString.lowercased()
+
+        do {
+            let files = try await client.storage
+                .from(Self.avatarBucketID)
+                .list(
+                    path: folderPath,
+                    options: SearchOptions(
+                        limit: 50,
+                        sortBy: SortBy(column: "created_at", order: "desc")
+                    )
+                )
+
+            return Self.latestAvatarPhotoPath(
+                folderPath: folderPath,
+                files: files
+            )
+        } catch {
+            throw Self.map(error)
+        }
+    }
+
     func replaceAvailability(
         groomerID: UUID,
         drafts: [GroomerAvailabilityDraft]
@@ -613,6 +636,35 @@ final class SupabaseGroomerProfileRepository: GroomerProfileRepository {
     private static func normalized(_ value: String?) -> String? {
         let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         return trimmed.isEmpty ? nil : trimmed
+    }
+
+    private static func latestAvatarPhotoPath(
+        folderPath: String,
+        files: [FileObject]
+    ) -> String? {
+        files
+            .filter { isSupportedAvatarObjectName($0.name) }
+            .sorted { lhs, rhs in
+                let lhsDate = lhs.createdAt ?? lhs.updatedAt ?? .distantPast
+                let rhsDate = rhs.createdAt ?? rhs.updatedAt ?? .distantPast
+
+                if lhsDate == rhsDate {
+                    return lhs.name > rhs.name
+                }
+
+                return lhsDate > rhsDate
+            }
+            .first
+            .map { "\(folderPath)/\($0.name)" }
+    }
+
+    private static func isSupportedAvatarObjectName(_ name: String) -> Bool {
+        switch (name as NSString).pathExtension.lowercased() {
+        case "jpg", "jpeg", "png", "heic", "heif":
+            return true
+        default:
+            return false
+        }
     }
 
     private func avatarPath(groomerID: UUID) async throws -> String? {

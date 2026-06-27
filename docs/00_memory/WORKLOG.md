@@ -4,6 +4,28 @@ This file is reverse chronological history. Only the newest entry plus `docs/00_
 
 ```text
 Date: 2026-06-26
+Task: T-097 - Groomer Edit Profile avatar and success feedback fix.
+Files changed: GroomerProfileManagementView, GroomerProfileFeatureTests, TASK_LEDGER.md, CURRENT_STATE.md, and WORKLOG.md.
+Checks: Read-only remote check authenticated the approved groomer debug account and found no profiles.avatar_path plus zero owner avatar objects in the target avatars bucket; ./scripts/ios-test.sh passed, including new GroomerAvatarImageEncoderTests and AppLaunchSmokeTests; ./scripts/ios-build.sh passed; git diff --check passed.
+Simulator launch: ./scripts/ios-test.sh launched com.prinnyyy.PetGroomerMarketplace on iPhone 17 Pro iOS 26.5 simulator (45D452E8-DC6C-4CD4-A747-4D21671E68A6) for AppLaunchSmokeTests.
+Result: T-097 is completed. Edit Profile now mounts the profile status/notice forwarder in the pushed edit destination, so Save Profile and avatar upload success notices can appear while the user is still on Edit Profile. Avatar image selection now normalizes readable PhotosPicker data into displayable PNG/JPEG bytes before Storage upload and immediate local avatar refresh.
+Risks: This is a client-only fix. Because the approved groomer debug account currently has no persisted avatar object in the live target project, an existing remote avatar cannot display until a new upload is performed from a build that includes this fix and the current Supabase config.
+Next: Stop unless the user asks to commit/push or authorizes a new task.
+```
+
+```text
+Date: 2026-06-26
+Task: T-096 - Groomer avatar Storage fallback display.
+Files changed: GroomerProfileRepository, SupabaseGroomerProfileRepository, GroomerProfileStore, GroomerProfileFeatureTests, TASK_LEDGER.md, CURRENT_STATE.md, and WORKLOG.md.
+Checks: RED/GREEN focused avatar Storage tests passed; ./scripts/ios-build.sh passed; ./scripts/ios-test.sh passed; git diff --check passed.
+Simulator launch: ./scripts/ios-test.sh launched com.prinnyyy.PetGroomerMarketplace on iPhone 17 Pro iOS 26.5 simulator (45D452E8-DC6C-4CD4-A747-4D21671E68A6) for AppLaunchSmokeTests.
+Result: T-096 is completed. Groomer avatar loading now uses the newest supported image object under avatars/{groomer_id}/ when available, downloads it, and hydrates avatarPhotoData plus the in-memory profile path so Account/Edit Profile renders the uploaded avatar photo even when profiles.avatar_path is empty or stale.
+Risks: No Supabase schema, RLS, Storage policy, upload path, or remote migration changed. If the bucket contains no owner-readable supported image object and the profile path cannot download, the existing placeholder avatar remains.
+Next: Stop unless the user asks to commit/push or authorizes a new task.
+```
+
+```text
+Date: 2026-06-26
 Task: T-095 - Groomer profile client update permission fix.
 Files changed: Supabase migration `20260627013249_t095_app_private_schema_usage_for_client_triggers.sql`, TASK_LEDGER.md, CURRENT_STATE.md, and WORKLOG.md.
 Checks: Ordinary authenticated groomer REST PATCH reproduced the live failure as `42501 permission denied for schema app_private`; Supabase CLI `db push --linked --dry-run` was blocked by older migration-version drift; user authorized the T-095 remote migration; Supabase MCP `apply_migration` passed as remote version `20260627013249`; MCP migration list confirmed T-095 in remote history; ordinary authenticated groomer `groomer_profiles` PATCH/readback/restore passed; ordinary authenticated `profiles` PATCH/restore passed; advisors returned existing Security Definer/leaked-password warnings only; ./scripts/ios-test.sh passed; git diff --check passed; ./scripts/supabase-check.sh passed.

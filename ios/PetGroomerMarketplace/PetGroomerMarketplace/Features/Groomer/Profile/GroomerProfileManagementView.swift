@@ -314,6 +314,28 @@ private struct GroomerAvatarImage: View {
     }
 }
 
+enum GroomerAvatarImageEncoder {
+    static func displayablePayload(
+        from data: Data,
+        preferredContentType: GroomerAvatarPhotoContentType
+    ) -> (data: Data, contentType: GroomerAvatarPhotoContentType)? {
+        guard let image = UIImage(data: data) else { return nil }
+
+        if preferredContentType == .png,
+           let pngData = image.pngData(),
+           UIImage(data: pngData) != nil {
+            return (pngData, .png)
+        }
+
+        guard let jpegData = image.jpegData(compressionQuality: 0.88),
+              UIImage(data: jpegData) != nil else {
+            return nil
+        }
+
+        return (jpegData, .jpeg)
+    }
+}
+
 private struct GroomerProfileEditorView: View {
     @Bindable var store: GroomerProfileStore
 
@@ -336,6 +358,9 @@ private struct GroomerProfileEditorView: View {
         .navigationTitle("Edit Profile")
         .navigationBarTitleDisplayMode(.inline)
         .scrollDismissesKeyboard(.interactively)
+        .safeAreaInset(edge: .bottom) {
+            GroomerProfileStatusView(store: store)
+        }
         .accessibilityIdentifier("groomer.profile.edit")
     }
 }
@@ -1299,7 +1324,18 @@ private struct GroomerAvatarEditorSection: View {
             .compactMap(GroomerAvatarPhotoContentType.init(uniformType:))
             .first ?? .jpeg
 
-        await store.uploadAvatarPhoto(data: data, contentType: contentType)
+        guard let payload = GroomerAvatarImageEncoder.displayablePayload(
+            from: data,
+            preferredContentType: contentType
+        ) else {
+            store.errorMessage = "We could not read that photo."
+            return
+        }
+
+        await store.uploadAvatarPhoto(
+            data: payload.data,
+            contentType: payload.contentType
+        )
     }
 }
 

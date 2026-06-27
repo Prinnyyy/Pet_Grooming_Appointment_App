@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+import UIKit
 @testable import PetGroomerMarketplace
 
 struct GroomerPortfolioPhotoPathTests {
@@ -18,6 +19,58 @@ struct GroomerPortfolioPhotoPathTests {
             path ==
                 "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee/99999999-aaaa-4bbb-8ccc-dddddddddddd.png"
         )
+    }
+}
+
+struct GroomerAvatarImageEncoderTests {
+    @Test @MainActor
+    func displayablePayloadKeepsDisplayablePNGWhenPreferred() throws {
+        let sourceData = try Self.solidPNGData()
+
+        let payload = try #require(
+            GroomerAvatarImageEncoder.displayablePayload(
+                from: sourceData,
+                preferredContentType: .png
+            )
+        )
+
+        #expect(payload.contentType == .png)
+        #expect(UIImage(data: payload.data) != nil)
+    }
+
+    @Test @MainActor
+    func displayablePayloadConvertsHEICPreferenceToDisplayableJPEG() throws {
+        let sourceData = try Self.solidPNGData()
+
+        let payload = try #require(
+            GroomerAvatarImageEncoder.displayablePayload(
+                from: sourceData,
+                preferredContentType: .heic
+            )
+        )
+
+        #expect(payload.contentType == .jpeg)
+        #expect(UIImage(data: payload.data) != nil)
+    }
+
+    @Test @MainActor
+    func displayablePayloadRejectsInvalidPhotoData() {
+        #expect(
+            GroomerAvatarImageEncoder.displayablePayload(
+                from: Data([0x01, 0x02, 0x03]),
+                preferredContentType: .jpeg
+            ) == nil
+        )
+    }
+
+    @MainActor
+    private static func solidPNGData() throws -> Data {
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: 12, height: 12))
+        let image = renderer.image { context in
+            UIColor.systemTeal.setFill()
+            context.fill(CGRect(x: 0, y: 0, width: 12, height: 12))
+        }
+        return try #require(image.pngData())
     }
 }
 
@@ -120,6 +173,53 @@ struct GroomerProfileStoreTests {
 
         loadTask.cancel()
         await loadTask.value
+    }
+
+    @Test @MainActor
+    func loadUsesLatestAvatarObjectWhenProfileAvatarPathIsMissing() async {
+        let groomerID = UUID(uuidString: "AAAAAAAA-BBBB-4CCC-8DDD-EEEEEEEEEEEE")!
+        let fallbackPath =
+            "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee/latest-avatar.jpg"
+        let repository = GroomerProfileRepositoryFake(
+            profileResult: .success(Self.profile(groomerID: groomerID)),
+            latestAvatarPathResult: .success(fallbackPath)
+        )
+        let store = GroomerProfileStore(
+            groomerID: groomerID,
+            repository: repository
+        )
+
+        await store.load()
+
+        #expect(repository.latestAvatarPathCallCount == 1)
+        #expect(repository.lastAvatarPhotoDataPath == fallbackPath)
+        #expect(store.profile?.avatarPath == fallbackPath)
+        #expect(store.avatarPhotoData == Data("avatar:\(fallbackPath)".utf8))
+    }
+
+    @Test @MainActor
+    func loadPrefersLatestAvatarObjectWhenProfileAvatarPathIsStale() async {
+        let groomerID = UUID(uuidString: "AAAAAAAA-BBBB-4CCC-8DDD-EEEEEEEEEEEE")!
+        let latestPath =
+            "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee/latest-avatar.jpg"
+        var profile = Self.profile(groomerID: groomerID)
+        profile.avatarPath =
+            "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee/old-avatar.jpg"
+        let repository = GroomerProfileRepositoryFake(
+            profileResult: .success(profile),
+            latestAvatarPathResult: .success(latestPath)
+        )
+        let store = GroomerProfileStore(
+            groomerID: groomerID,
+            repository: repository
+        )
+
+        await store.load()
+
+        #expect(repository.latestAvatarPathCallCount == 1)
+        #expect(repository.lastAvatarPhotoDataPath == latestPath)
+        #expect(store.profile?.avatarPath == latestPath)
+        #expect(store.avatarPhotoData == Data("avatar:\(latestPath)".utf8))
     }
 
     @Test @MainActor
@@ -609,6 +709,7 @@ struct GroomerProfileStoreTests {
         )
         #expect(repository.lastProfileDraft?.serviceLocationMode == .groomerComesToCustomer)
         #expect(repository.lastProfileDraft?.isActive == true)
+        #expect(store.noticeMessage == "Groomer profile saved.")
     }
 
     @Test @MainActor
@@ -953,6 +1054,7 @@ private final class GroomerProfileRepositoryFake: GroomerProfileRepository {
     var replaceAvailabilityResult: Result<[GroomerAvailabilityWindow], GroomerProfileRepositoryError>?
     var createTimeOffResult: Result<GroomerTimeOffWindow, GroomerProfileRepositoryError>?
     var deleteTimeOffResult: Result<Void, GroomerProfileRepositoryError>
+    var latestAvatarPathResult: Result<String?, GroomerProfileRepositoryError>
 
     private(set) var updateProfileCallCount = 0
     private(set) var updateBookingPreferencesCallCount = 0
@@ -961,6 +1063,7 @@ private final class GroomerProfileRepositoryFake: GroomerProfileRepository {
     private(set) var deleteServiceCallCount = 0
     private(set) var uploadCallCount = 0
     private(set) var uploadAvatarCallCount = 0
+    private(set) var latestAvatarPathCallCount = 0
     private(set) var deletePhotoCallCount = 0
     private(set) var replaceAvailabilityCallCount = 0
     private(set) var createTimeOffCallCount = 0
@@ -976,6 +1079,7 @@ private final class GroomerProfileRepositoryFake: GroomerProfileRepository {
     private(set) var lastFitClaimDrafts: [GroomerFitClaimDraft] = []
     private(set) var lastPortfolioFitTagPhotoID: UUID?
     private(set) var lastPortfolioFitTagDrafts: [GroomerPortfolioFitTagDraft] = []
+    private(set) var lastAvatarPhotoDataPath: String?
     var shouldSuspendPortfolioPhotoData = false
     var shouldSuspendAvailability = false
     private var suspendedAvailabilityContinuation: CheckedContinuation<Void, Never>?
@@ -1015,7 +1119,9 @@ private final class GroomerProfileRepositoryFake: GroomerProfileRepository {
             .success(()),
         replaceAvailabilityResult: Result<[GroomerAvailabilityWindow], GroomerProfileRepositoryError>? = nil,
         createTimeOffResult: Result<GroomerTimeOffWindow, GroomerProfileRepositoryError>? = nil,
-        deleteTimeOffResult: Result<Void, GroomerProfileRepositoryError> = .success(())
+        deleteTimeOffResult: Result<Void, GroomerProfileRepositoryError> = .success(()),
+        latestAvatarPathResult: Result<String?, GroomerProfileRepositoryError> =
+            .success(nil)
     ) {
         self.profileResult = profileResult
         self.servicesResult = servicesResult
@@ -1039,6 +1145,7 @@ private final class GroomerProfileRepositoryFake: GroomerProfileRepository {
         self.replaceAvailabilityResult = replaceAvailabilityResult
         self.createTimeOffResult = createTimeOffResult
         self.deleteTimeOffResult = deleteTimeOffResult
+        self.latestAvatarPathResult = latestAvatarPathResult
     }
 
     func profile(groomerID: UUID) async throws -> GroomerProfile {
@@ -1260,7 +1367,13 @@ private final class GroomerProfileRepositoryFake: GroomerProfileRepository {
     }
 
     func avatarPhotoData(storagePath: String) async throws -> Data {
-        Data("avatar".utf8)
+        lastAvatarPhotoDataPath = storagePath
+        return Data("avatar:\(storagePath)".utf8)
+    }
+
+    func latestAvatarPhotoPath(groomerID: UUID) async throws -> String? {
+        latestAvatarPathCallCount += 1
+        return try latestAvatarPathResult.get()
     }
 
     func portfolioPhotoData(_ photo: GroomerPortfolioPhoto) async throws -> Data {

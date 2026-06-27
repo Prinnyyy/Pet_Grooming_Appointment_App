@@ -131,13 +131,19 @@ final class GroomerProfileStore {
             }
             portfolioPhotoDataByID = loadedPortfolioPhotoData
 
-            let loadedAvatarPhotoData = await avatarPhotoData(
+            let loadedAvatarPhoto = await avatarPhotoPayload(
                 from: loadedProfile.avatarPath
             )
             guard loadRevision == profileMutationRevision else {
                 return
             }
-            avatarPhotoData = loadedAvatarPhotoData
+            if let loadedAvatarPath = loadedAvatarPhoto.path,
+               loadedAvatarPath != profile?.avatarPath,
+               var profile {
+                profile.avatarPath = loadedAvatarPath
+                self.profile = profile
+            }
+            avatarPhotoData = loadedAvatarPhoto.data
         } catch let error as GroomerProfileRepositoryError {
             isLoading = false
             errorMessage = message(for: error, action: "load")
@@ -675,16 +681,39 @@ final class GroomerProfileStore {
         isActive = profile.isActive
     }
 
-    private func avatarPhotoData(from storagePath: String?) async -> Data? {
-        guard let storagePath,
-              !storagePath.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        else {
-            return nil
+    private func avatarPhotoPayload(from storagePath: String?) async -> (
+        path: String?,
+        data: Data?
+    ) {
+        let preferredPath = normalizedStoragePath(storagePath)
+        let latestPath: String?
+
+        do {
+            latestPath = normalizedStoragePath(
+                try await repository.latestAvatarPhotoPath(
+                    groomerID: groomerID
+                )
+            )
+        } catch {
+            latestPath = nil
         }
 
-        return try? await repository.avatarPhotoData(
-            storagePath: storagePath
-        )
+        var seenPaths: Set<String> = []
+        for candidatePath in [latestPath, preferredPath].compactMap({ $0 })
+            where seenPaths.insert(candidatePath).inserted {
+            if let data = try? await repository.avatarPhotoData(
+                storagePath: candidatePath
+            ) {
+                return (candidatePath, data)
+            }
+        }
+
+        return (preferredPath, nil)
+    }
+
+    private func normalizedStoragePath(_ storagePath: String?) -> String? {
+        let trimmed = storagePath?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return trimmed.isEmpty ? nil : trimmed
     }
 
     private func portfolioPhotoDataMap(

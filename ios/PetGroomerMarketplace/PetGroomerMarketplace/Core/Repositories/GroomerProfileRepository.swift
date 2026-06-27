@@ -54,6 +54,8 @@ protocol GroomerProfileRepository: AnyObject {
 
     func avatarPhotoData(storagePath: String) async throws -> Data
 
+    func latestAvatarPhotoPath(groomerID: UUID) async throws -> String?
+
     func replaceAvailability(
         groomerID: UUID,
         drafts: [GroomerAvailabilityDraft]
@@ -86,5 +88,9 @@ protocol GroomerProfileRepository: AnyObject {
 extension GroomerProfileRepository {
     func portfolioPhotoData(_ photo: GroomerPortfolioPhoto) async throws -> Data {
         throw GroomerProfileRepositoryError.unavailable
+    }
+
+    func latestAvatarPhotoPath(groomerID: UUID) async throws -> String? {
+        nil
     }
 }
