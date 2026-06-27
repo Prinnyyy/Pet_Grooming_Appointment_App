@@ -50,6 +50,7 @@ final class GroomerProfileStore {
     var serviceDescription = ""
     var serviceBasePrice = ""
     var serviceDurationMinutes = ""
+    var serviceUsesCustomSizeRange = false
     var selectedServiceSizes: Set<GroomerServicePetSize> = []
     var serviceIsActive = true
     var availabilityDayStates: [GroomerAvailabilityDayState] =
@@ -92,6 +93,24 @@ final class GroomerProfileStore {
 
     var sizeBandFitClaimRangeTitle: String {
         Self.sizeBandRangeTitle(for: selectedSizeBandRange)
+    }
+
+    var selectedServiceSizeRange: ClosedRange<Int> {
+        let selectedIndices = Self.serviceSizeOptions.enumerated().compactMap { index, size in
+            selectedServiceSizes.contains(size) ? index : nil
+        }
+        guard let lowerBound = selectedIndices.min(),
+              let upperBound = selectedIndices.max() else {
+            return Self.normalizedServiceSizeRange(
+                lowerIndex: selectedSizeBandRange.lowerBound,
+                upperIndex: selectedSizeBandRange.upperBound
+            )
+        }
+        return lowerBound...upperBound
+    }
+
+    var serviceSizeRangeTitle: String {
+        Self.serviceSizeRangeTitle(for: selectedServiceSizeRange)
     }
 
     init(
@@ -249,6 +268,7 @@ final class GroomerProfileStore {
         serviceDescription = service.description ?? ""
         serviceBasePrice = Self.displayPrice(service.basePrice)
         serviceDurationMinutes = String(service.durationMinutes)
+        serviceUsesCustomSizeRange = !service.acceptedPetSizes.isEmpty
         selectedServiceSizes = Set(service.acceptedPetSizes)
         serviceIsActive = service.isActive
         errorMessage = nil
@@ -260,6 +280,37 @@ final class GroomerProfileStore {
         isShowingServiceForm = false
         editingServiceID = nil
         resetServiceForm()
+    }
+
+    func setServiceUsesCustomSizeRange(_ isEnabled: Bool) {
+        errorMessage = nil
+        noticeMessage = nil
+        serviceUsesCustomSizeRange = isEnabled
+
+        if isEnabled, selectedServiceSizes.isEmpty {
+            setServiceAcceptedPetSizeRange(
+                lowerIndex: selectedSizeBandRange.lowerBound,
+                upperIndex: selectedSizeBandRange.upperBound,
+                clearsNotice: false
+            )
+        } else if !isEnabled {
+            selectedServiceSizes = []
+        }
+    }
+
+    func setServiceAcceptedPetSizeRange(lowerIndex: Int, upperIndex: Int) {
+        setServiceAcceptedPetSizeRange(
+            lowerIndex: lowerIndex,
+            upperIndex: upperIndex,
+            clearsNotice: true
+        )
+    }
+
+    func serviceSizePolicySummary(for service: GroomerService) -> String {
+        if service.acceptedPetSizes.isEmpty {
+            return "Follows Fit Signals: \(sizeBandFitClaimRangeTitle)"
+        }
+        return "Custom range: \(Self.serviceSizeRangeTitle(for: service.acceptedPetSizes))"
     }
 
     func saveService() async {
@@ -856,6 +907,7 @@ final class GroomerProfileStore {
         serviceDescription = ""
         serviceBasePrice = ""
         serviceDurationMinutes = ""
+        serviceUsesCustomSizeRange = false
         selectedServiceSizes = []
         serviceIsActive = true
     }
@@ -953,9 +1005,9 @@ final class GroomerProfileStore {
                 field: "Duration",
                 range: 15...720
             ),
-            acceptedPetSizes: GroomerServicePetSize.allCases.filter {
-                selectedServiceSizes.contains($0)
-            },
+            acceptedPetSizes: serviceUsesCustomSizeRange
+                ? GroomerServicePetSize.allCases.filter { selectedServiceSizes.contains($0) }
+                : [],
             isActive: serviceIsActive
         )
     }
@@ -1084,6 +1136,28 @@ final class GroomerProfileStore {
         for index in range {
             selectedFitClaimIDs.insert(Self.sizeBandSignals[index].id)
         }
+    }
+
+    private func setServiceAcceptedPetSizeRange(
+        lowerIndex: Int,
+        upperIndex: Int,
+        clearsNotice: Bool
+    ) {
+        if clearsNotice {
+            errorMessage = nil
+            noticeMessage = nil
+        }
+
+        let range = Self.normalizedServiceSizeRange(
+            lowerIndex: lowerIndex,
+            upperIndex: upperIndex
+        )
+        serviceUsesCustomSizeRange = true
+        selectedServiceSizes = Set(
+            Self.serviceSizeOptions.enumerated().compactMap { index, size in
+                range.contains(index) ? size : nil
+            }
+        )
     }
 
     private func makePortfolioFitTagDrafts(
@@ -1285,6 +1359,52 @@ final class GroomerProfileStore {
         let codes = CustomerPetSizeCode.allCases
         let lower = codes[normalizedRange.lowerBound]
         let upper = codes[normalizedRange.upperBound]
+        return "\(lower.title)-\(upper.title) (\(lower.lowerWeightLabel)-\(upper.upperWeightLabel))"
+    }
+
+    private static var serviceSizeOptions: [GroomerServicePetSize] {
+        GroomerServicePetSize.allCases
+    }
+
+    private static var fullServiceSizeRange: ClosedRange<Int> {
+        0...(serviceSizeOptions.count - 1)
+    }
+
+    private static func normalizedServiceSizeRange(
+        lowerIndex: Int,
+        upperIndex: Int
+    ) -> ClosedRange<Int> {
+        let maximumIndex = serviceSizeOptions.count - 1
+        let lowerBound = min(max(lowerIndex, 0), maximumIndex)
+        let upperBound = min(max(upperIndex, 0), maximumIndex)
+        return min(lowerBound, upperBound)...max(lowerBound, upperBound)
+    }
+
+    private static func serviceSizeRangeTitle(
+        for sizes: [GroomerServicePetSize]
+    ) -> String {
+        let selectedIndices = serviceSizeOptions.enumerated().compactMap { index, size in
+            sizes.contains(size) ? index : nil
+        }
+        guard let lowerBound = selectedIndices.min(),
+              let upperBound = selectedIndices.max() else {
+            return serviceSizeRangeTitle(for: fullServiceSizeRange)
+        }
+        return serviceSizeRangeTitle(for: lowerBound...upperBound)
+    }
+
+    private static func serviceSizeRangeTitle(
+        for range: ClosedRange<Int>
+    ) -> String {
+        let normalizedRange = normalizedServiceSizeRange(
+            lowerIndex: range.lowerBound,
+            upperIndex: range.upperBound
+        )
+        let lower = serviceSizeOptions[normalizedRange.lowerBound]
+        let upper = serviceSizeOptions[normalizedRange.upperBound]
+        if lower == upper {
+            return "\(lower.title) (\(lower.singleWeightLabel))"
+        }
         return "\(lower.title)-\(upper.title) (\(lower.lowerWeightLabel)-\(upper.upperWeightLabel))"
     }
 

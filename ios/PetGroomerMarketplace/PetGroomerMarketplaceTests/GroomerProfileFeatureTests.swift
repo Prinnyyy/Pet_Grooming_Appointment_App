@@ -893,7 +893,7 @@ struct GroomerProfileStoreTests {
     }
 
     @Test @MainActor
-    func createServiceUsesFixedServiceTypeKeepsCanonicalPetSizeOrderAndUsesEmptyAsAllSizes() async {
+    func createServiceUsesFixedServiceTypeKeepsCanonicalPetSizeOrderAndUsesEmptyAsFitSignalInheritance() async {
         let groomerID = UUID()
         let repository = GroomerProfileRepositoryFake()
         let store = GroomerProfileStore(
@@ -904,7 +904,8 @@ struct GroomerProfileStoreTests {
         store.serviceDescription = " Shampoo "
         store.serviceBasePrice = "45.50"
         store.serviceDurationMinutes = "60"
-        store.selectedServiceSizes = [.giant, .small]
+        store.setServiceUsesCustomSizeRange(true)
+        store.setServiceAcceptedPetSizeRange(lowerIndex: 0, upperIndex: 6)
 
         await store.saveService()
 
@@ -914,20 +915,89 @@ struct GroomerProfileStoreTests {
         #expect(repository.lastServiceDraft?.description == "Shampoo")
         #expect(repository.lastServiceDraft?.basePrice == 45.50)
         #expect(repository.lastServiceDraft?.durationMinutes == 60)
-        #expect(repository.lastServiceDraft?.acceptedPetSizes == [.small, .giant])
+        #expect(repository.lastServiceDraft?.acceptedPetSizes == [
+            .xs,
+            .s,
+            .m,
+            .l,
+            .xl,
+            .xxl,
+            .giant,
+        ])
 
         store.startCreateService()
         store.serviceType = .nailTrim
         store.serviceBasePrice = "20"
         store.serviceDurationMinutes = "30"
-        store.selectedServiceSizes = []
 
         await store.saveService()
 
         #expect(repository.lastServiceDraft?.acceptedPetSizes == [])
         #expect(
-            store.services.first?.acceptedPetSizeSummary == "All pet sizes"
+            store.serviceSizePolicySummary(for: store.services.first!) ==
+                "Follows Fit Signals: XS-Giant (<10lb-101+lb)"
         )
+    }
+
+    @Test @MainActor
+    func serviceSizeOverrideSeedsFromFitSignalRangeAndCanReturnToInheritance() {
+        let store = GroomerProfileStore(
+            groomerID: UUID(),
+            repository: GroomerProfileRepositoryFake()
+        )
+
+        store.setSizeBandFitClaimRange(lowerIndex: 1, upperIndex: 4)
+        store.startCreateService()
+
+        #expect(store.serviceUsesCustomSizeRange == false)
+        #expect(store.selectedServiceSizes == [])
+        #expect(store.selectedServiceSizeRange == 1...4)
+        #expect(store.serviceSizeRangeTitle == "S-XL (10lb-79lb)")
+
+        store.setServiceUsesCustomSizeRange(true)
+
+        #expect(store.serviceUsesCustomSizeRange)
+        #expect(store.selectedServiceSizes == [.s, .m, .l, .xl])
+
+        store.setServiceAcceptedPetSizeRange(lowerIndex: 2, upperIndex: 5)
+
+        #expect(store.selectedServiceSizes == [.m, .l, .xl, .xxl])
+        #expect(store.serviceSizeRangeTitle == "M-XXL (20lb-100lb)")
+
+        store.setServiceUsesCustomSizeRange(false)
+
+        #expect(store.serviceUsesCustomSizeRange == false)
+        #expect(store.selectedServiceSizes == [])
+        #expect(store.serviceSizePolicySummary(for: Self.service(groomerID: UUID())) ==
+            "Custom range: XS (<10lb)"
+        )
+    }
+
+    @Test @MainActor
+    func editingServiceWithAcceptedSizesUsesCustomRange() {
+        let groomerID = UUID()
+        let service = GroomerService(
+            id: UUID(),
+            groomerID: groomerID,
+            serviceType: .bathAndBrush,
+            title: "Bath & Brush",
+            description: nil,
+            basePrice: 45,
+            durationMinutes: 60,
+            acceptedPetSizes: [.m, .l, .xl],
+            isActive: true
+        )
+        let repository = GroomerProfileRepositoryFake(servicesResult: .success([service]))
+        let store = GroomerProfileStore(
+            groomerID: groomerID,
+            repository: repository
+        )
+
+        store.startEditService(service)
+
+        #expect(store.serviceUsesCustomSizeRange)
+        #expect(store.selectedServiceSizeRange == 2...4)
+        #expect(store.serviceSizeRangeTitle == "M-XL (20lb-79lb)")
     }
 
     @Test @MainActor
@@ -1019,7 +1089,7 @@ struct GroomerProfileStoreTests {
             description: nil,
             basePrice: 45,
             durationMinutes: 60,
-            acceptedPetSizes: [.small],
+            acceptedPetSizes: [.xs],
             isActive: true
         )
     }

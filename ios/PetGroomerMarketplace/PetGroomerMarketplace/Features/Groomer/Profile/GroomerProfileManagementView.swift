@@ -626,6 +626,7 @@ private struct GroomerSizeRangeSlider: View {
     @Binding var upperIndex: Int
     let optionCount: Int
     let rangeTitle: String
+    var accessibilityIdentifier = "groomer.fit-signals.size-range-slider"
 
     @State private var lowerDragStartIndex: Int?
     @State private var upperDragStartIndex: Int?
@@ -686,7 +687,7 @@ private struct GroomerSizeRangeSlider: View {
         }
         .frame(height: hitSize)
         .accessibilityElement(children: .contain)
-        .accessibilityIdentifier("groomer.fit-signals.size-range-slider")
+        .accessibilityIdentifier(accessibilityIdentifier)
     }
 
     private func centerX(for index: Int, trackWidth: CGFloat) -> CGFloat {
@@ -1856,7 +1857,7 @@ private struct GroomerServicesSection: View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
             GroomlySectionHeader(
                 "Services",
-                subtitle: "Empty size selection means the service accepts all pet sizes."
+                subtitle: "Services inherit Fit Signals size experience unless a custom service range is enabled."
             ) {
                 Button {
                     store.startCreateService()
@@ -1926,9 +1927,10 @@ private struct GroomerServiceRow: View {
                         )
                     }
 
-                    Label(service.acceptedPetSizeSummary, systemImage: "pawprint")
+                    Label(store.serviceSizePolicySummary(for: service), systemImage: "ruler")
                         .font(DesignTokens.Typography.caption)
                         .foregroundStyle(DesignTokens.Colors.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
 
                     if let description = service.description {
                         Text(description)
@@ -2478,99 +2480,77 @@ private struct GroomlyToggleRow: View {
     }
 }
 
-private struct GroomerServiceSizeToggleRow: View {
-    let size: GroomerServicePetSize
-    @Binding var isOn: Bool
-
-    var body: some View {
-        HStack(spacing: DesignTokens.Spacing.md) {
-            Image(systemName: "pawprint")
-                .font(DesignTokens.Typography.caption.weight(.semibold))
-                .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
-                .frame(
-                    width: DesignTokens.Spacing.xl,
-                    height: DesignTokens.Spacing.xl
-                )
-                .background(DesignTokens.Colors.groomerAccent.opacity(0.14))
-                .clipShape(DesignTokens.Shapes.circular)
-                .accessibilityHidden(true)
-
-            Text(size.title)
-                .font(DesignTokens.Typography.body.weight(.semibold))
-                .foregroundStyle(DesignTokens.Colors.textPrimary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-            Toggle(size.title, isOn: $isOn)
-                .labelsHidden()
-                .tint(DesignTokens.Colors.groomerAccent)
-        }
-        .accessibilityElement(children: .combine)
-    }
-}
-
 private struct GroomerServiceTypePicker: View {
     @Binding var selection: GroomingServiceType
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            Text("Service Type")
-                .font(DesignTokens.Typography.caption)
+            Text("Service Menu")
+                .font(DesignTokens.Typography.caption.weight(.bold))
                 .foregroundStyle(DesignTokens.Colors.textSecondary)
+                .textCase(.uppercase)
 
-            VStack(spacing: DesignTokens.Spacing.sm) {
-                ForEach(GroomingServiceType.allCases) { type in
-                    Button {
-                        selection = type
-                    } label: {
-                        HStack(spacing: DesignTokens.Spacing.md) {
-                            Image(systemName: "scissors")
-                                .font(DesignTokens.Typography.caption.weight(.bold))
-                                .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
-                                .frame(width: DesignTokens.Spacing.xl, height: DesignTokens.Spacing.xl)
-                                .background(DesignTokens.Colors.groomerAccent.opacity(0.14))
-                                .clipShape(Circle())
+            GroomlyCard(padding: DesignTokens.Spacing.sm) {
+                VStack(spacing: 0) {
+                    ForEach(GroomingServiceType.allCases) { type in
+                        Button {
+                            selection = type
+                        } label: {
+                            HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
+                                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                                    Text(type.title)
+                                        .font(DesignTokens.Typography.body.weight(.bold))
+                                        .foregroundStyle(DesignTokens.Colors.textPrimary)
+                                        .fixedSize(horizontal: false, vertical: true)
 
-                            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                                Text(type.title)
-                                    .font(DesignTokens.Typography.body.weight(.semibold))
-                                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+                                    Text(serviceEditorSubtitle(for: type))
+                                        .font(DesignTokens.Typography.caption)
+                                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
 
-                                Text(type.subtitle)
-                                    .font(DesignTokens.Typography.caption)
-                                    .foregroundStyle(DesignTokens.Colors.textSecondary)
-                                    .fixedSize(horizontal: false, vertical: true)
+                                Image(systemName: selection == type ? "checkmark.circle.fill" : "circle")
+                                    .font(.system(size: 22, weight: .semibold))
+                                    .foregroundStyle(
+                                        selection == type
+                                            ? DesignTokens.Colors.groomerAccent
+                                            : DesignTokens.Colors.textTertiary
+                                    )
+                                    .accessibilityHidden(true)
                             }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-
-                            if selection == type {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
-                            }
+                            .padding(.horizontal, DesignTokens.Spacing.sm)
+                            .padding(.vertical, DesignTokens.Spacing.md)
+                            .contentShape(Rectangle())
                         }
-                        .padding(DesignTokens.Spacing.md)
-                        .background(DesignTokens.Colors.surface)
-                        .clipShape(
-                            RoundedRectangle(
-                                cornerRadius: DesignTokens.CornerRadius.input,
-                                style: .continuous
-                            )
-                        )
-                        .overlay {
-                            RoundedRectangle(
-                                cornerRadius: DesignTokens.CornerRadius.input,
-                                style: .continuous
-                            )
-                            .stroke(
-                                selection == type
-                                    ? DesignTokens.Colors.groomerAccent
-                                    : DesignTokens.Colors.borderSoft,
-                                lineWidth: selection == type ? 2 : 1
-                            )
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(type.title)
+                        .accessibilityValue(selection == type ? "Selected" : "Not selected")
+
+                        if type != GroomingServiceType.allCases.last {
+                            Divider()
+                                .overlay(DesignTokens.Colors.divider)
                         }
                     }
-                    .buttonStyle(.plain)
                 }
             }
+        }
+    }
+
+    private func serviceEditorSubtitle(for type: GroomingServiceType) -> String {
+        switch type {
+        case .fullGroom:
+            "Bath, coat cut, nails, ears, and finish"
+        case .bathAndBrush:
+            "Wash, dry, brush-out, and tidy touchups"
+        case .haircutOnly:
+            "Coat shaping for pets that do not need a bath"
+        case .nailTrim:
+            "Clip, grind, and paw handling"
+        case .deShedding:
+            "Undercoat release, blow-out, and brush work"
+        case .customRequest:
+            "Special-care appointment scoped in your offer"
         }
     }
 }
@@ -2998,36 +2978,36 @@ private struct GroomerServiceFormView: View {
                     VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
                         GroomlySectionHeader(
                             store.serviceFormTitle,
-                            subtitle: "Define the service customers can review when you make offers."
+                            subtitle: "Set one offer-ready service with clear price, duration, visibility, and pet-size policy."
                         )
+
+                        GroomerServiceTypePicker(selection: $store.serviceType)
 
                         GroomlyCard {
                             VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                                GroomerServiceTypePicker(
-                                    selection: $store.serviceType
-                                )
-
                                 GroomerProfileTextField(
                                     title: "Description",
                                     text: $store.serviceDescription,
-                                    prompt: "Description",
+                                    prompt: "What is included",
                                     axis: .vertical
                                 )
                                 .lineLimit(2...4)
 
-                                GroomerProfileTextField(
-                                    title: "Base Price",
-                                    text: $store.serviceBasePrice,
-                                    prompt: "Base Price"
-                                )
-                                .keyboardType(.decimalPad)
+                                HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
+                                    GroomerProfileTextField(
+                                        title: "Base Price",
+                                        text: $store.serviceBasePrice,
+                                        prompt: "Price"
+                                    )
+                                    .keyboardType(.decimalPad)
 
-                                GroomerProfileTextField(
-                                    title: "Duration in Minutes",
-                                    text: $store.serviceDurationMinutes,
-                                    prompt: "Duration in Minutes"
-                                )
-                                .keyboardType(.numberPad)
+                                    GroomerProfileTextField(
+                                        title: "Minutes",
+                                        text: $store.serviceDurationMinutes,
+                                        prompt: "Duration"
+                                    )
+                                    .keyboardType(.numberPad)
+                                }
 
                                 GroomlyToggleRow(
                                     title: "Visible to Customers",
@@ -3038,39 +3018,7 @@ private struct GroomerServiceFormView: View {
                             }
                         }
 
-                        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                            GroomlySectionHeader(
-                                "Accepted pet sizes",
-                                subtitle: "Leave all sizes off when this service accepts every pet size."
-                            )
-
-                            GroomlyCard {
-                                VStack(spacing: DesignTokens.Spacing.md) {
-                                    ForEach(GroomerServicePetSize.allCases) { size in
-                                        GroomerServiceSizeToggleRow(
-                                            size: size,
-                                            isOn: Binding(
-                                                get: {
-                                                    store.selectedServiceSizes.contains(size)
-                                                },
-                                                set: { isSelected in
-                                                    if isSelected {
-                                                        store.selectedServiceSizes.insert(size)
-                                                    } else {
-                                                        store.selectedServiceSizes.remove(size)
-                                                    }
-                                                }
-                                            )
-                                        )
-
-                                        if size.id != GroomerServicePetSize.allCases.last?.id {
-                                            Divider()
-                                                .overlay(DesignTokens.Colors.divider)
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                        GroomerServiceAcceptedPetSizeSection(store: store)
 
                         if let errorMessage = store.errorMessage {
                             GroomlyErrorBanner(
@@ -3106,6 +3054,119 @@ private struct GroomerServiceFormView: View {
             }
         }
         .interactiveDismissDisabled(store.isSaving)
+    }
+}
+
+private struct GroomerServiceAcceptedPetSizeSection: View {
+    @Bindable var store: GroomerProfileStore
+
+    private let serviceSizes = GroomerServicePetSize.allCases
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            GroomlySectionHeader(
+                "Accepted Pet Size",
+                subtitle: "Default follows your Fit Signals size experience."
+            )
+
+            GroomlyCard {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                    HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
+                        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                            Text("Custom Service Range")
+                                .font(DesignTokens.Typography.body.weight(.bold))
+                                .foregroundStyle(DesignTokens.Colors.textPrimary)
+
+                            Text(sizePolicySubtitle)
+                                .font(DesignTokens.Typography.caption)
+                                .foregroundStyle(DesignTokens.Colors.textSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                        Toggle(
+                            "Custom Service Range",
+                            isOn: Binding(
+                                get: { store.serviceUsesCustomSizeRange },
+                                set: { store.setServiceUsesCustomSizeRange($0) }
+                            )
+                        )
+                        .labelsHidden()
+                        .tint(DesignTokens.Colors.groomerAccent)
+                    }
+
+                    if store.serviceUsesCustomSizeRange {
+                        Divider()
+                            .overlay(DesignTokens.Colors.divider)
+
+                        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                            HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.md) {
+                                Text("Service Range")
+                                    .font(DesignTokens.Typography.body.weight(.bold))
+                                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+
+                                Spacer(minLength: DesignTokens.Spacing.md)
+
+                                Text(store.serviceSizeRangeTitle)
+                                    .font(DesignTokens.Typography.caption.weight(.bold))
+                                    .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.72)
+                                    .padding(.horizontal, DesignTokens.Spacing.sm)
+                                    .padding(.vertical, DesignTokens.Spacing.xs)
+                                    .background(DesignTokens.Colors.groomerAccent.opacity(0.12))
+                                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                    .accessibilityIdentifier("groomer.services.size-range-title")
+                            }
+
+                            GroomerSizeRangeSlider(
+                                lowerIndex: Binding(
+                                    get: { store.selectedServiceSizeRange.lowerBound },
+                                    set: { newValue in
+                                        store.setServiceAcceptedPetSizeRange(
+                                            lowerIndex: newValue,
+                                            upperIndex: store.selectedServiceSizeRange.upperBound
+                                        )
+                                    }
+                                ),
+                                upperIndex: Binding(
+                                    get: { store.selectedServiceSizeRange.upperBound },
+                                    set: { newValue in
+                                        store.setServiceAcceptedPetSizeRange(
+                                            lowerIndex: store.selectedServiceSizeRange.lowerBound,
+                                            upperIndex: newValue
+                                        )
+                                    }
+                                ),
+                                optionCount: serviceSizes.count,
+                                rangeTitle: store.serviceSizeRangeTitle,
+                                accessibilityIdentifier: "groomer.services.size-range-slider"
+                            )
+
+                            HStack(spacing: 0) {
+                                ForEach(serviceSizes) { size in
+                                    Text(size.title)
+                                        .font(.caption2.weight(.semibold))
+                                        .foregroundStyle(DesignTokens.Colors.textTertiary)
+                                        .lineLimit(1)
+                                        .minimumScaleFactor(0.72)
+                                        .frame(maxWidth: .infinity)
+                                }
+                            }
+                        }
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                    }
+                }
+                .animation(.easeInOut(duration: 0.2), value: store.serviceUsesCustomSizeRange)
+            }
+        }
+    }
+
+    private var sizePolicySubtitle: String {
+        if store.serviceUsesCustomSizeRange {
+            return store.serviceSizeRangeTitle
+        }
+        return "Following \(store.sizeBandFitClaimRangeTitle)"
     }
 }
 
@@ -3204,7 +3265,7 @@ private final class GroomerProfilePreviewRepository: GroomerProfileRepository {
                 description: "Bath, haircut, nails, and ear cleaning.",
                 basePrice: 95,
                 durationMinutes: 120,
-                acceptedPetSizes: [.small, .medium],
+                acceptedPetSizes: [.xs, .s, .m],
                 isActive: true
             ),
         ]

@@ -57,7 +57,7 @@ struct GroomerService: Equatable, Identifiable, Sendable {
 
     var acceptedPetSizeSummary: String {
         acceptedPetSizes.isEmpty
-            ? "All pet sizes"
+            ? "Follows Fit Signals"
             : acceptedPetSizes.map(\.title).joined(separator: ", ")
     }
 }
@@ -79,23 +79,74 @@ nonisolated enum GroomerServicePetSize:
     Identifiable,
     Sendable
 {
-    case small
-    case medium
-    case large
-    case giant
+    case xs = "XS"
+    case s = "S"
+    case m = "M"
+    case l = "L"
+    case xl = "XL"
+    case xxl = "XXL"
+    case giant = "Giant"
 
     var id: Self { self }
 
     var title: String {
+        rawValue
+    }
+
+    var singleWeightLabel: String {
         switch self {
-        case .small:
-            "Small"
-        case .medium:
-            "Medium"
-        case .large:
-            "Large"
+        case .xs:
+            "<10lb"
+        case .s:
+            "10-19lb"
+        case .m:
+            "20-39lb"
+        case .l:
+            "40-59lb"
+        case .xl:
+            "60-79lb"
+        case .xxl:
+            "80-100lb"
         case .giant:
-            "Giant"
+            "101+lb"
+        }
+    }
+
+    var lowerWeightLabel: String {
+        switch self {
+        case .xs:
+            "<10lb"
+        case .s:
+            "10lb"
+        case .m:
+            "20lb"
+        case .l:
+            "40lb"
+        case .xl:
+            "60lb"
+        case .xxl:
+            "80lb"
+        case .giant:
+            "101lb"
+        }
+    }
+
+    var upperWeightLabel: String {
+        switch self {
+        case .xs:
+            "9lb"
+        case .s:
+            "19lb"
+        case .m:
+            "39lb"
+        case .l:
+            "59lb"
+        case .xl:
+            "79lb"
+        case .xxl:
+            "100lb"
+        case .giant:
+            "101+lb"
         }
     }
 }

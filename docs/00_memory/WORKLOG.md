@@ -4,6 +4,26 @@ This file is reverse chronological history. Only the newest entry plus `docs/00_
 
 ```text
 Date: 2026-06-27
+Task: T-104 - Groomer service size vocabulary alignment.
+Files changed: GroomerProfile model, GroomerProfileStore, GroomerProfileManagementView, GroomerProfileFeatureTests, Supabase migration `20260627092014_t104_service_size_bands.sql`, backend contract, feature index, task ledger, current state, and worklog.
+Checks: RED `./scripts/ios-test.sh` failed after the tests were updated to expect XS/S/M/L/XL/XXL/Giant service-size cases. GREEN `./scripts/ios-test.sh` passed after aligning service accepted-size model raw values, Store inheritance/slider selection, and preview fixtures to the seven Fit Signals size bands. `./scripts/ios-build.sh`, `./scripts/supabase-check.sh`, XcodeBuildMCP simulator launch, and `git diff --check` passed. `supabase migration list --workdir supabase --local` was attempted for local history visibility but could not connect because local Postgres on `127.0.0.1:54322` is not running. User authorized T-104 remote migration; `supabase db push --linked --dry-run` remained blocked by older migration-version drift, so the reviewed T-104 SQL was applied as an explicit remote transaction and then recorded with `supabase migration repair --linked --status applied 20260627092014`. Remote validation confirmed migration history alignment, seven-value `groomer_services_sizes_check`, zero legacy/invalid accepted-size values, rollback-only acceptance of all seven new bands, and rollback-only rejection of legacy `small`. Advisors returned existing WARN-class findings only.
+Result: T-104 is completed. Service-level size overrides now use the same seven-band Size Experience vocabulary and slider semantics as Groomer Fit Signals instead of T-103's temporary four-bucket service vocabulary. The deployed migration drops the old four-value check constraint, maps existing old service values to seven bands, and adds a seven-value constraint.
+Risks: Request matching still does not filter by service-level accepted sizes; that remains a future authorized backend task. Supabase CLI linked push/dry-run remains affected by older migration-version drift unrelated to T-104, so future remote migrations may still need the reviewed SQL transaction plus migration repair path.
+Next: Stop unless the user asks to commit/push or starts T-105.
+```
+
+```text
+Date: 2026-06-27
+Task: T-103 - Groomer service editor size policy redesign.
+Files changed: GroomerProfile model, GroomerProfileStore, GroomerProfileManagementView, GroomerProfileFeatureTests, feature index, task ledger, current state, and worklog.
+Checks: RED `./scripts/ios-test.sh` failed on missing service-size inheritance/range Store APIs. GREEN `./scripts/ios-test.sh` passed after adding service size inheritance, custom range selection, and service summary coverage. `./scripts/ios-build.sh` passed. XcodeBuildMCP `build_run_sim` launched the app on iPhone 17 Pro iOS 26.5; runtime snapshots verified Account -> Services, the updated service row copy, Edit Service's compact service menu, bottom Accepted Pet Size module, enabled dual-thumb service range slider, and disabled switch state showing Fit Signals inheritance. `git diff --check` passed.
+Result: T-103 is completed. Groomer service editing no longer uses the old size toggle list. Services default to following Fit Signals size experience, and groomers can enable a service-specific range saved through the existing `groomer_services.accepted_pet_sizes` field.
+Risks: T-103 is client-only. It uses the existing four service-size buckets (`small`, `medium`, `large`, `giant`) for service-level overrides and does not change Supabase schema, RLS, grants, RPCs, Storage, matching filters, public directory, direct booking, or expertise-proof semantics. Current backend request matching still does not filter by `accepted_pet_sizes`; this remains a service metadata/filtering UI field unless a future authorized backend task wires it into matching.
+Next: Stop unless the user asks to commit/push or authorizes T-104.
+```
+
+```text
+Date: 2026-06-27
 Task: T-102 - Groomer Fit Signals size range slider and save feedback.
 Files changed: GroomerProfileStore, GroomerProfileManagementView, GroomerProfileFeatureTests, feature index, task ledger, current state, and worklog.
 Checks: RED `./scripts/ios-test.sh` failed on missing size-range Store APIs; GREEN `./scripts/ios-test.sh` passed after adding contiguous size-range selection and returning the Fit Signals save success message. `./scripts/ios-build.sh` passed. XcodeBuildMCP `build_run_sim` launched the app on iPhone 17 Pro iOS 26.5; runtime snapshots/screenshots verified Account -> Fit Signals, the Selection Balance dual-thumb Size Experience slider, live `XS-Giant (<10lb-101+lb)` range text, simplified option rows without redundant leading icons, and fixed bottom Save bar. `git diff --check` passed.
