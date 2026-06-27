@@ -1130,9 +1130,79 @@ private struct BookingReviewDisplay: View {
                         from: review.createdAt
                     )
                 )
+
+                if !review.petFitOutcomes.isEmpty {
+                    Divider()
+                        .overlay(DesignTokens.Colors.divider)
+
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                        Text("Pet Fit Notes")
+                            .font(DesignTokens.Typography.body.weight(.bold))
+                            .foregroundStyle(DesignTokens.Colors.textPrimary)
+
+                        ForEach(review.petFitOutcomes) { outcome in
+                            BookingReviewFitOutcomeDisplay(outcome: outcome)
+                        }
+                    }
+                }
             }
         }
         .accessibilityIdentifier("bookings.review.display")
+    }
+}
+
+private struct BookingReviewFitOutcomeDisplay: View {
+    let outcome: BookingReviewPetFitOutcomeRecord
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
+            Image(systemName: systemImage)
+                .font(DesignTokens.Typography.caption.weight(.bold))
+                .foregroundStyle(tint)
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                Text(outcome.title)
+                    .font(DesignTokens.Typography.body.weight(.semibold))
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+
+                Text(outcome.groupTitle)
+                    .font(DesignTokens.Typography.caption)
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Text(outcome.outcome.title)
+                .font(DesignTokens.Typography.caption.weight(.bold))
+                .foregroundStyle(tint)
+        }
+        .padding(DesignTokens.Spacing.sm)
+        .background(tint.opacity(0.1))
+        .clipShape(
+            RoundedRectangle(
+                cornerRadius: 8,
+                style: .continuous
+            )
+        )
+        .accessibilityElement(children: .combine)
+    }
+
+    private var tint: Color {
+        switch outcome.outcome {
+        case .positive:
+            DesignTokens.Colors.success
+        case .negative:
+            DesignTokens.Colors.warning
+        }
+    }
+
+    private var systemImage: String {
+        switch outcome.outcome {
+        case .positive:
+            "checkmark.circle.fill"
+        case .negative:
+            "exclamationmark.triangle.fill"
+        }
     }
 }
 
@@ -1524,7 +1594,14 @@ private final class BookingsPreviewRepository: BookingRepository {
             groomerID: bookings[0].groomerID,
             rating: draft.rating,
             content: draft.content,
-            createdAt: "2026-06-22T19:00:00Z"
+            createdAt: "2026-06-22T19:00:00Z",
+            petFitOutcomes: draft.petFitOutcomes.map {
+                BookingReviewPetFitOutcomeRecord(
+                    id: UUID(),
+                    signal: $0.signal,
+                    outcome: $0.outcome
+                )
+            }
         )
         bookings[0] = bookings[0].adding(review: review)
         return CreateReviewResult(

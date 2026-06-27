@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct GroomerRequestsView: View {
     @State private var store: GroomerRequestsStore
@@ -232,6 +233,7 @@ private struct GroomerRequestDetailView: View {
                         matchCard(for: matchedRequest)
                         requestCard(for: matchedRequest)
                         petSnapshotCard(for: matchedRequest)
+                        requestPhotosCard(for: matchedRequest)
                         scheduleLocationCard(for: matchedRequest)
                         offerSection(for: matchedRequest)
                         actionsCard(for: matchedRequest)
@@ -420,6 +422,46 @@ private struct GroomerRequestDetailView: View {
                     value: matchedRequest.request.zipCode,
                     systemImage: "number"
                 )
+                DetailMetadataRow(
+                    title: "Service Mode",
+                    value: matchedRequest.request.locationMode.requestDetailTitle,
+                    systemImage: "location.fill"
+                )
+                DetailMetadataRow(
+                    title: "Street",
+                    value: matchedRequest.request.streetAddress,
+                    systemImage: "house.fill"
+                )
+                if matchedRequest.request.locationMode == .customerComesToGroomer,
+                   let travelRadiusMiles = matchedRequest.request.travelRadiusMiles {
+                    DetailMetadataRow(
+                        title: "Travel Radius",
+                        value: "\(travelRadiusMiles) miles",
+                        systemImage: "point.topleft.down.curvedto.point.bottomright.up"
+                    )
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func requestPhotosCard(
+        for matchedRequest: GroomerMatchedRequest
+    ) -> some View {
+        let photos = store.requestPhotos(for: matchedRequest)
+        if !photos.isEmpty {
+            DetailShellCard(
+                title: "Request Photos",
+                subtitle: "\(photos.count) photo\(photos.count == 1 ? "" : "s") attached to this request."
+            ) {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                    ForEach(photos) { photo in
+                        GroomerRequestPhotoRow(
+                            photo: photo,
+                            data: store.requestPhotoData(for: photo)
+                        )
+                    }
+                }
             }
         }
     }
@@ -793,6 +835,59 @@ private struct DetailMetadataRow: View {
     }
 }
 
+private struct GroomerRequestPhotoRow: View {
+    let photo: GroomingRequestPhoto
+    let data: Data?
+
+    var body: some View {
+        HStack(spacing: DesignTokens.Spacing.md) {
+            GroomerRequestPhotoThumbnail(data: data)
+
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                Text(photo.caption ?? photo.fileName)
+                    .font(DesignTokens.Typography.body.weight(.semibold))
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+                    .lineLimit(1)
+
+                if photo.caption != nil {
+                    Text(photo.fileName)
+                        .font(DesignTokens.Typography.caption)
+                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+                        .lineLimit(1)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct GroomerRequestPhotoThumbnail: View {
+    let data: Data?
+
+    var body: some View {
+        Group {
+            if let data,
+               let image = UIImage(data: data) {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                Image(systemName: "photo")
+                    .font(DesignTokens.Typography.caption.weight(.semibold))
+                    .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(DesignTokens.Colors.groomerAccent.opacity(0.14))
+            }
+        }
+        .frame(width: 58, height: 58)
+        .clipShape(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+        )
+        .accessibilityHidden(true)
+    }
+}
+
 private struct OfferDatePickerField: View {
     let title: String
     @Binding var selection: Date
@@ -861,6 +956,17 @@ private extension GroomingRequestStatus {
 
     var groomerSystemImage: String {
         isOpenForOffers ? "clock" : "checkmark"
+    }
+}
+
+private extension GroomingLocationMode {
+    var requestDetailTitle: String {
+        switch self {
+        case .groomerComesToCustomer:
+            "Groomer travels to customer"
+        case .customerComesToGroomer:
+            "Customer can visit groomer"
+        }
     }
 }
 

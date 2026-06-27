@@ -10,6 +10,8 @@ final class GroomerRequestsStore {
     private let repository: any GroomerRequestRepository
 
     private(set) var matchedRequests: [GroomerMatchedRequest] = []
+    private(set) var requestPhotosByRequestID: [UUID: [GroomingRequestPhoto]] = [:]
+    private(set) var requestPhotoDataByID: [UUID: Data] = [:]
     private(set) var isLoading = false
     private(set) var isDismissing = false
     private(set) var isSubmittingOffer = false
@@ -34,6 +36,23 @@ final class GroomerRequestsStore {
         matchedRequests.first { $0.id == id }
     }
 
+    func requestPhotos(
+        for matchedRequest: GroomerMatchedRequest
+    ) -> [GroomingRequestPhoto] {
+        requestPhotosByRequestID[matchedRequest.request.id, default: []]
+            .sorted {
+                if $0.sortOrder == $1.sortOrder {
+                    $0.fileName < $1.fileName
+                } else {
+                    $0.sortOrder < $1.sortOrder
+                }
+            }
+    }
+
+    func requestPhotoData(for photo: GroomingRequestPhoto) -> Data? {
+        requestPhotoDataByID[photo.id]
+    }
+
     func load() async {
         isLoading = true
         errorMessage = nil
@@ -43,6 +62,7 @@ final class GroomerRequestsStore {
             matchedRequests = try await repository.matchedRequests(
                 groomerID: groomerID
             )
+            try await loadRequestPhotos(for: matchedRequests)
         } catch let error as GroomerRequestRepositoryError {
             errorMessage = message(for: error, action: "load")
         } catch {
@@ -289,6 +309,30 @@ final class GroomerRequestsStore {
         ) else { return }
 
         matchedRequests[index] = matchedRequest
+    }
+
+    private func loadRequestPhotos(
+        for matchedRequests: [GroomerMatchedRequest]
+    ) async throws {
+        let photos = try await repository.requestPhotos(
+            groomerID: groomerID,
+            requestIDs: matchedRequests.map(\.request.id)
+        )
+        requestPhotosByRequestID = Dictionary(grouping: photos, by: \.requestID)
+        requestPhotoDataByID = await requestPhotoDataMap(for: photos)
+    }
+
+    private func requestPhotoDataMap(
+        for photos: [GroomingRequestPhoto]
+    ) async -> [UUID: Data] {
+        var dataByID: [UUID: Data] = [:]
+        for photo in photos {
+            guard let data = try? await repository.requestPhotoData(photo) else {
+                continue
+            }
+            dataByID[photo.id] = data
+        }
+        return dataByID
     }
 
     private func message(

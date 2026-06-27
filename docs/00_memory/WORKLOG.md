@@ -4,6 +4,27 @@ This file is reverse chronological history. Only the newest entry plus `docs/00_
 
 ```text
 Date: 2026-06-26
+Task: T-095 - Groomer profile client update permission fix.
+Files changed: Supabase migration `20260627013249_t095_app_private_schema_usage_for_client_triggers.sql`, TASK_LEDGER.md, CURRENT_STATE.md, and WORKLOG.md.
+Checks: Ordinary authenticated groomer REST PATCH reproduced the live failure as `42501 permission denied for schema app_private`; Supabase CLI `db push --linked --dry-run` was blocked by older migration-version drift; user authorized the T-095 remote migration; Supabase MCP `apply_migration` passed as remote version `20260627013249`; MCP migration list confirmed T-095 in remote history; ordinary authenticated groomer `groomer_profiles` PATCH/readback/restore passed; ordinary authenticated `profiles` PATCH/restore passed; advisors returned existing Security Definer/leaked-password warnings only; ./scripts/ios-test.sh passed; git diff --check passed; ./scripts/supabase-check.sh passed.
+Result: T-095 is completed. The migration grants `USAGE` on schema `app_private` to `authenticated` and `service_role` so existing per-function grants can run through `groomer_profiles` triggers/check constraints during normal client updates.
+Risks: The migration does not grant anon schema access and does not widen any function `EXECUTE` privileges. Supabase CLI migration push/list still shows older historical local/remote version drift for T-044/T-060/T-071/T-072; T-095 local mirror is aligned to the MCP-applied remote version.
+Next: Stop unless the user asks to commit/push or authorizes a new task.
+```
+
+```text
+Date: 2026-06-26
+Task: T-094 - Groomer profile save and avatar state fix.
+Files changed: GroomerProfileStore, GroomerProfileFeatureTests, TASK_LEDGER.md, CURRENT_STATE.md, and WORKLOG.md.
+Checks: RED ./scripts/ios-test.sh failed before implementation because the new avatar-size boundary API did not exist; GREEN ./scripts/ios-test.sh passed after the Store state fix; git diff --check passed; ./scripts/preflight.sh passed.
+Simulator launch: ./scripts/ios-test.sh launched com.prinnyyy.PetGroomerMarketplace on iPhone 17 Pro iOS 26.5 simulator (45D452E8-DC6C-4CD4-A747-4D21671E68A6) for AppLaunchSmokeTests.
+Result: T-094 is completed. Existing-profile background refreshes no longer disable Edit Profile actions or overwrite just-saved profile fields; profile saves preserve the current avatar path when the profile update response omits it; avatar uploads now reject files larger than the private avatars bucket 5 MB limit before calling Storage.
+Risks: No Supabase schema, RLS, RPC, Storage policy, or repository contract change was made. Avatar replacement still uses the existing immediate-upload path; if a real Storage operation fails, the existing repository error message path remains responsible for surfacing that failure.
+Next: Stop unless the user asks to commit/push or authorizes a new task.
+```
+
+```text
+Date: 2026-06-26
 Task: T-091 - Debug quick login buttons.
 Files changed: AuthenticationStore, AuthenticationView, AppEntryModelsTests, AppLaunchSmokeTests, TASK_LEDGER.md, CURRENT_STATE.md, and WORKLOG.md.
 Checks: RED ./scripts/ios-test.sh failed before implementation because the debug quick-login store API did not exist; GREEN ./scripts/ios-test.sh passed after implementation and accessibility-id correction; ./scripts/ios-build.sh passed; git diff --check passed.

@@ -110,6 +110,8 @@ final class CustomerRequestsStore {
 
     private(set) var pets: [CustomerPet] = []
     private(set) var requests: [CustomerGroomingRequest] = []
+    private(set) var requestPhotosByRequestID: [UUID: [GroomingRequestPhoto]] = [:]
+    private(set) var requestPhotoDataByID: [UUID: Data] = [:]
     private(set) var bookings: [Booking] = []
     private(set) var offerReviewsByRequestID: [UUID: [CustomerOfferReview]] = [:]
     private(set) var offerErrorsByRequestID: [UUID: String] = [:]
@@ -237,6 +239,7 @@ final class CustomerRequestsStore {
         do {
             pets = try await petRepository.pets(customerID: customerID)
             requests = try await requestRepository.requests(customerID: customerID)
+            try await loadRequestPhotos(for: requests)
             bookings = try await bookingRepository.bookings(
                 participantID: customerID,
                 role: .customer
@@ -272,6 +275,21 @@ final class CustomerRequestsStore {
 
     func offers(for request: CustomerGroomingRequest) -> [CustomerOfferReview] {
         offerReviewsByRequestID[request.id] ?? []
+    }
+
+    func requestPhotos(for request: CustomerGroomingRequest) -> [GroomingRequestPhoto] {
+        requestPhotosByRequestID[request.id, default: []]
+            .sorted {
+                if $0.sortOrder == $1.sortOrder {
+                    $0.fileName < $1.fileName
+                } else {
+                    $0.sortOrder < $1.sortOrder
+                }
+            }
+    }
+
+    func requestPhotoData(for photo: GroomingRequestPhoto) -> Data? {
+        requestPhotoDataByID[photo.id]
     }
 
     func request(withID id: UUID) -> CustomerGroomingRequest? {
@@ -397,6 +415,7 @@ final class CustomerRequestsStore {
                 )
             }
             requests = try await requestRepository.requests(customerID: customerID)
+            try await loadRequestPhotos(for: requests)
             publishResult = result
             noticeMessage = result.matchCount == 1
                 ? "Request published. 1 groomer matched."
@@ -819,6 +838,30 @@ final class CustomerRequestsStore {
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
         let pattern = #"^[0-9]{5}(-[0-9]{4})?$"#
         return trimmed.range(of: pattern, options: .regularExpression) != nil
+    }
+
+    private func loadRequestPhotos(
+        for requests: [CustomerGroomingRequest]
+    ) async throws {
+        let photos = try await requestRepository.requestPhotos(
+            customerID: customerID,
+            requestIDs: requests.map(\.id)
+        )
+        requestPhotosByRequestID = Dictionary(grouping: photos, by: \.requestID)
+        requestPhotoDataByID = await requestPhotoDataMap(for: photos)
+    }
+
+    private func requestPhotoDataMap(
+        for photos: [GroomingRequestPhoto]
+    ) async -> [UUID: Data] {
+        var dataByID: [UUID: Data] = [:]
+        for photo in photos {
+            guard let data = try? await requestRepository.requestPhotoData(photo) else {
+                continue
+            }
+            dataByID[photo.id] = data
+        }
+        return dataByID
     }
 
     private func message(

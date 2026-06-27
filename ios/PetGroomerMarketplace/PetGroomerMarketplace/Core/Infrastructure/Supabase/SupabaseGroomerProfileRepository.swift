@@ -328,6 +328,16 @@ final class SupabaseGroomerProfileRepository: GroomerProfileRepository {
         }
     }
 
+    func portfolioPhotoData(_ photo: GroomerPortfolioPhoto) async throws -> Data {
+        do {
+            return try await client.storage
+                .from(Self.bucketID)
+                .download(path: photo.storagePath)
+        } catch {
+            throw Self.map(error)
+        }
+    }
+
     func deletePortfolioPhoto(_ photo: GroomerPortfolioPhoto) async throws {
         do {
             try await client.storage

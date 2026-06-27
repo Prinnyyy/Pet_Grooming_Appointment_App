@@ -175,6 +175,16 @@ final class SupabaseCustomerPetRepository: CustomerPetRepository {
         }
     }
 
+    func photoData(_ photo: CustomerPetPhoto) async throws -> Data {
+        do {
+            return try await client.storage
+                .from(Self.bucketID)
+                .download(path: photo.storagePath)
+        } catch {
+            throw Self.map(error)
+        }
+    }
+
     func deletePhoto(_ photo: CustomerPetPhoto) async throws {
         do {
             try await client.storage

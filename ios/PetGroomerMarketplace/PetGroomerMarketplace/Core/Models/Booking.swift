@@ -332,6 +332,27 @@ struct BookingReview: Equatable, Hashable, Identifiable, Sendable {
     let rating: Int
     let content: String?
     let createdAt: String
+    let petFitOutcomes: [BookingReviewPetFitOutcomeRecord]
+
+    nonisolated init(
+        id: UUID,
+        bookingID: UUID,
+        customerID: UUID,
+        groomerID: UUID,
+        rating: Int,
+        content: String?,
+        createdAt: String,
+        petFitOutcomes: [BookingReviewPetFitOutcomeRecord] = []
+    ) {
+        self.id = id
+        self.bookingID = bookingID
+        self.customerID = customerID
+        self.groomerID = groomerID
+        self.rating = rating
+        self.content = content
+        self.createdAt = createdAt
+        self.petFitOutcomes = petFitOutcomes
+    }
 
     nonisolated var ratingSummary: String {
         "\(rating)/5"
@@ -382,6 +403,20 @@ nonisolated enum BookingReviewPetFitOutcome:
             "Needs Care"
         }
     }
+}
+
+nonisolated struct BookingReviewPetFitOutcomeRecord:
+    Equatable,
+    Hashable,
+    Identifiable,
+    Sendable
+{
+    let id: UUID
+    let signal: PetFitSignal
+    let outcome: BookingReviewPetFitOutcome
+
+    var title: String { signal.title }
+    var groupTitle: String { signal.groupTitle }
 }
 
 nonisolated struct BookingReviewPetFitOutcomeDraft:

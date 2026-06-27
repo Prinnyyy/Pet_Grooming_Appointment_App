@@ -2280,16 +2280,9 @@ private struct GroomerPortfolioPhotoRow: View {
         GroomlyCard(padding: DesignTokens.Spacing.md) {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                 HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
-                    Image(systemName: "photo.on.rectangle")
-                        .font(DesignTokens.Typography.caption.weight(.semibold))
-                        .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
-                        .frame(
-                            width: DesignTokens.Spacing.xl,
-                            height: DesignTokens.Spacing.xl
-                        )
-                        .background(DesignTokens.Colors.groomerAccent.opacity(0.14))
-                        .clipShape(DesignTokens.Shapes.circular)
-                        .accessibilityHidden(true)
+                    GroomerPortfolioPhotoThumbnail(
+                        data: store.portfolioPhotoData(for: photo)
+                    )
 
                     VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                         Text(photo.fileName)
@@ -2362,6 +2355,35 @@ private struct GroomerPortfolioPhotoRow: View {
                 )
             }
         }
+    }
+}
+
+private struct GroomerPortfolioPhotoThumbnail: View {
+    let data: Data?
+
+    var body: some View {
+        Group {
+            if let data,
+               let image = UIImage(data: data) {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                Image(systemName: "photo.on.rectangle")
+                    .font(DesignTokens.Typography.caption.weight(.semibold))
+                    .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(DesignTokens.Colors.groomerAccent.opacity(0.14))
+            }
+        }
+        .frame(width: 64, height: 64)
+        .clipShape(
+            RoundedRectangle(
+                cornerRadius: 8,
+                style: .continuous
+            )
+        )
+        .accessibilityHidden(true)
     }
 }
 

@@ -31,5 +31,13 @@ protocol CustomerPetRepository: AnyObject {
         caption: String?
     ) async throws -> CustomerPetPhoto
 
+    func photoData(_ photo: CustomerPetPhoto) async throws -> Data
+
     func deletePhoto(_ photo: CustomerPetPhoto) async throws
+}
+
+extension CustomerPetRepository {
+    func photoData(_ photo: CustomerPetPhoto) async throws -> Data {
+        throw CustomerPetRepositoryError.unavailable
+    }
 }

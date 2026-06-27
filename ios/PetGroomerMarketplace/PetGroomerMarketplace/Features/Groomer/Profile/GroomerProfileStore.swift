@@ -5,13 +5,16 @@ import Observation
 @Observable
 final class GroomerProfileStore {
     static let maximumPhotoBytes = 10 * 1024 * 1024
+    static let maximumAvatarPhotoBytes = 5 * 1024 * 1024
 
     private let groomerID: UUID
     private let repository: any GroomerProfileRepository
+    private var profileMutationRevision = 0
 
     private(set) var profile: GroomerProfile?
     private(set) var services: [GroomerService] = []
     private(set) var portfolioPhotos: [GroomerPortfolioPhoto] = []
+    private(set) var portfolioPhotoDataByID: [UUID: Data] = [:]
     private(set) var portfolioFitTags: [GroomerPortfolioFitTag] = []
     private(set) var selectedPortfolioFitTagIDsByPhotoID: [UUID: Set<String>] = [:]
     private(set) var availabilityWindows: [GroomerAvailabilityWindow] = []
@@ -65,7 +68,7 @@ final class GroomerProfileStore {
     }
 
     var isBusy: Bool {
-        isLoading || isSaving || isUploading
+        (isLoading && profile == nil) || isSaving || isUploading
     }
 
     init(
@@ -77,9 +80,9 @@ final class GroomerProfileStore {
     }
 
     func load() async {
+        let loadRevision = profileMutationRevision
         isLoading = true
         errorMessage = nil
-        defer { isLoading = false }
 
         do {
             let loadedProfile = try await repository.profile(groomerID: groomerID)
@@ -96,9 +99,15 @@ final class GroomerProfileStore {
                 groomerID: groomerID
             )
 
+            guard loadRevision == profileMutationRevision else {
+                isLoading = false
+                return
+            }
+
             profile = loadedProfile
             services = loadedServices
             portfolioPhotos = loadedPhotos
+            portfolioPhotoDataByID = [:]
             populatePortfolioFitTags(
                 with: loadedPortfolioFitTags,
                 visiblePhotos: loadedPhotos
@@ -112,10 +121,28 @@ final class GroomerProfileStore {
             populateAvailabilityForm(with: loadedAvailability)
             populateBookingPreferencesForm(with: loadedBookingPreferences)
             resetTimeOffForm()
-            await loadAvatarPhotoIfAvailable(from: loadedProfile.avatarPath)
+            isLoading = false
+
+            let loadedPortfolioPhotoData = await portfolioPhotoDataMap(
+                for: loadedPhotos
+            )
+            guard loadRevision == profileMutationRevision else {
+                return
+            }
+            portfolioPhotoDataByID = loadedPortfolioPhotoData
+
+            let loadedAvatarPhotoData = await avatarPhotoData(
+                from: loadedProfile.avatarPath
+            )
+            guard loadRevision == profileMutationRevision else {
+                return
+            }
+            avatarPhotoData = loadedAvatarPhotoData
         } catch let error as GroomerProfileRepositoryError {
+            isLoading = false
             errorMessage = message(for: error, action: "load")
         } catch {
+            isLoading = false
             errorMessage = message(for: .unavailable, action: "load")
         }
     }
@@ -128,6 +155,10 @@ final class GroomerProfileStore {
                 $0.sortOrder < $1.sortOrder
             }
         }
+    }
+
+    func portfolioPhotoData(for photo: GroomerPortfolioPhoto) -> Data? {
+        portfolioPhotoDataByID[photo.id]
     }
 
     func sortedPetFitEvidenceSummary() -> [GroomerPetFitEvidenceSummary] {
@@ -152,13 +183,18 @@ final class GroomerProfileStore {
         }
 
         isSaving = true
+        profileMutationRevision += 1
         defer { isSaving = false }
 
         do {
-            let updatedProfile = try await repository.updateProfile(
+            let currentAvatarPath = profile?.avatarPath
+            var updatedProfile = try await repository.updateProfile(
                 groomerID: groomerID,
                 draft: draft
             )
+            if updatedProfile.avatarPath == nil {
+                updatedProfile.avatarPath = currentAvatarPath
+            }
             profile = updatedProfile
             populateProfileForm(with: updatedProfile)
             noticeMessage = "Groomer profile saved."
@@ -288,6 +324,7 @@ final class GroomerProfileStore {
                 caption: nil
             )
             portfolioPhotos.append(photo)
+            portfolioPhotoDataByID[photo.id] = data
             noticeMessage = "Portfolio photo was uploaded."
         } catch let error as GroomerProfileRepositoryError {
             errorMessage = message(for: error, action: "upload")
@@ -307,6 +344,7 @@ final class GroomerProfileStore {
         do {
             try await repository.deletePortfolioPhoto(photo)
             portfolioPhotos.removeAll { $0.id == photo.id }
+            portfolioPhotoDataByID[photo.id] = nil
             removePortfolioFitTags(for: photo.id)
             noticeMessage = "Portfolio photo was deleted."
         } catch let error as GroomerProfileRepositoryError {
@@ -322,12 +360,13 @@ final class GroomerProfileStore {
     ) async {
         guard !isUploading else { return }
 
-        guard data.count <= Self.maximumPhotoBytes else {
-            errorMessage = "Choose an avatar photo smaller than 10 MB."
+        guard data.count <= Self.maximumAvatarPhotoBytes else {
+            errorMessage = "Choose an avatar photo smaller than 5 MB."
             return
         }
 
         isUploading = true
+        profileMutationRevision += 1
         errorMessage = nil
         noticeMessage = nil
         defer { isUploading = false }
@@ -388,13 +427,18 @@ final class GroomerProfileStore {
         }
 
         isSaving = true
+        profileMutationRevision += 1
         defer { isSaving = false }
 
         do {
-            let updatedProfile = try await repository.updateProfile(
+            let currentAvatarPath = profile?.avatarPath
+            var updatedProfile = try await repository.updateProfile(
                 groomerID: groomerID,
                 draft: profileDraft
             )
+            if updatedProfile.avatarPath == nil {
+                updatedProfile.avatarPath = currentAvatarPath
+            }
             let updatedWindows = try await repository.replaceAvailability(
                 groomerID: groomerID,
                 drafts: drafts
@@ -631,17 +675,29 @@ final class GroomerProfileStore {
         isActive = profile.isActive
     }
 
-    private func loadAvatarPhotoIfAvailable(from storagePath: String?) async {
+    private func avatarPhotoData(from storagePath: String?) async -> Data? {
         guard let storagePath,
               !storagePath.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         else {
-            avatarPhotoData = nil
-            return
+            return nil
         }
 
-        avatarPhotoData = try? await repository.avatarPhotoData(
+        return try? await repository.avatarPhotoData(
             storagePath: storagePath
         )
+    }
+
+    private func portfolioPhotoDataMap(
+        for photos: [GroomerPortfolioPhoto]
+    ) async -> [UUID: Data] {
+        var dataByID: [UUID: Data] = [:]
+        for photo in photos {
+            guard let data = try? await repository.portfolioPhotoData(photo) else {
+                continue
+            }
+            dataByID[photo.id] = data
+        }
+        return dataByID
     }
 
     private func populateAvailabilityForm(with windows: [GroomerAvailabilityWindow]) {

@@ -16,6 +16,9 @@ final class SupabaseGroomerRequestRepository: GroomerRequestRepository {
         id,request_id,match_id,customer_id,groomer_id,proposed_start,proposed_end,\
         price_estimate,message,status,expires_at,withdrawn_at,created_at,updated_at
         """
+    private static let requestPhotoColumns =
+        "id,request_id,customer_id,storage_bucket,storage_path,caption,sort_order,created_at"
+    private static let requestPhotoBucketID = "request-photos"
 
     private let client: SupabaseClient
 
@@ -83,6 +86,39 @@ final class SupabaseGroomerRequestRepository: GroomerRequestRepository {
                     offer: latestOffersByRequestID[row.requestID]
                 )
             }
+        } catch {
+            throw Self.map(error)
+        }
+    }
+
+    func requestPhotos(
+        groomerID: UUID,
+        requestIDs: [UUID]
+    ) async throws -> [GroomingRequestPhoto] {
+        let ids = Self.uniqueLowercaseStrings(from: requestIDs)
+        guard !ids.isEmpty else { return [] }
+
+        do {
+            let rows: [GroomingRequestPhotoRow] = try await client
+                .from("request_photos")
+                .select(Self.requestPhotoColumns)
+                .in("request_id", values: ids)
+                .order("sort_order")
+                .order("created_at")
+                .execute()
+                .value
+
+            return rows.map(\.photo)
+        } catch {
+            throw Self.map(error)
+        }
+    }
+
+    func requestPhotoData(_ photo: GroomingRequestPhoto) async throws -> Data {
+        do {
+            return try await client.storage
+                .from(Self.requestPhotoBucketID)
+                .download(path: photo.storagePath)
         } catch {
             throw Self.map(error)
         }
@@ -218,6 +254,45 @@ final class SupabaseGroomerRequestRepository: GroomerRequestRepository {
         }
 
         return .unavailable
+    }
+
+    private static func uniqueLowercaseStrings(from ids: [UUID]) -> [String] {
+        Array(Set(ids)).map { $0.uuidString.lowercased() }
+    }
+}
+
+private struct GroomingRequestPhotoRow: Decodable {
+    let id: UUID
+    let requestID: UUID
+    let customerID: UUID
+    let storageBucket: String
+    let storagePath: String
+    let caption: String?
+    let sortOrder: Int
+    let createdAt: String?
+
+    var photo: GroomingRequestPhoto {
+        GroomingRequestPhoto(
+            id: id,
+            requestID: requestID,
+            customerID: customerID,
+            storageBucket: storageBucket,
+            storagePath: storagePath,
+            caption: caption,
+            sortOrder: sortOrder,
+            createdAt: createdAt
+        )
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case requestID = "request_id"
+        case customerID = "customer_id"
+        case storageBucket = "storage_bucket"
+        case storagePath = "storage_path"
+        case caption
+        case sortOrder = "sort_order"
+        case createdAt = "created_at"
     }
 }
 

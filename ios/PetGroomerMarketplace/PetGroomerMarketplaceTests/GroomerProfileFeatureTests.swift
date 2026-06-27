@@ -91,6 +91,124 @@ struct GroomerProfileStoreTests {
     }
 
     @Test @MainActor
+    func loadDoesNotBlockProfileFormOnPortfolioImageDownloads() async {
+        let groomerID = UUID()
+        let profile = Self.profile(groomerID: groomerID)
+        let photo = Self.photo(groomerID: groomerID)
+        let repository = GroomerProfileRepositoryFake(
+            profileResult: .success(profile),
+            portfolioResult: .success([photo])
+        )
+        repository.shouldSuspendPortfolioPhotoData = true
+        let store = GroomerProfileStore(
+            groomerID: groomerID,
+            repository: repository
+        )
+
+        let loadTask = Task {
+            await store.load()
+        }
+        try? await Task.sleep(nanoseconds: 50_000_000)
+
+        #expect(store.businessName == "Fresh Coat")
+        #expect(store.baseStreetAddress == "123 Pine Street")
+        #expect(store.baseCity == "Seattle")
+        #expect(store.baseStateCode == .washington)
+        #expect(store.baseZipCode == "98101")
+        #expect(store.isLoading == false)
+        #expect(store.isBusy == false)
+
+        loadTask.cancel()
+        await loadTask.value
+    }
+
+    @Test @MainActor
+    func backgroundLoadDoesNotDisableLoadedProfileEditing() async {
+        let groomerID = UUID()
+        let repository = GroomerProfileRepositoryFake(
+            profileResult: .success(Self.profile(groomerID: groomerID))
+        )
+        let store = GroomerProfileStore(
+            groomerID: groomerID,
+            repository: repository
+        )
+        await store.load()
+
+        repository.shouldSuspendAvailability = true
+        let loadTask = Task {
+            await store.load()
+        }
+        await repository.waitForSuspendedAvailability()
+
+        #expect(store.isLoading)
+        #expect(store.isBusy == false)
+
+        repository.resumeSuspendedAvailability()
+        await loadTask.value
+    }
+
+    @Test @MainActor
+    func inFlightLoadDoesNotOverwriteSavedProfileForm() async {
+        let groomerID = UUID()
+        let staleProfile = Self.profile(groomerID: groomerID)
+        let savedProfile = GroomerProfile(
+            userID: groomerID,
+            businessName: "Updated Coat",
+            bio: "Updated grooming",
+            yearsExperience: 4,
+            baseStreetAddress: "987 Cedar Avenue",
+            baseCity: "Portland",
+            baseState: "OR",
+            baseZipCode: "97201",
+            serviceRadiusMiles: 24,
+            serviceLocationMode: .customerComesToGroomer,
+            serviceLocationModes: [.customerComesToGroomer],
+            ratingAverage: 0,
+            ratingCount: 0,
+            isActive: true,
+            isVerified: false
+        )
+        let repository = GroomerProfileRepositoryFake(
+            profileResult: .success(staleProfile),
+            updateProfileResult: .success(savedProfile)
+        )
+        repository.shouldSuspendAvailability = true
+        let store = GroomerProfileStore(
+            groomerID: groomerID,
+            repository: repository
+        )
+
+        let loadTask = Task {
+            await store.load()
+        }
+        await repository.waitForSuspendedAvailability()
+
+        store.businessName = "Updated Coat"
+        store.bio = "Updated grooming"
+        store.yearsExperience = 4
+        store.baseStreetAddress = "987 Cedar Avenue"
+        store.baseCity = "Portland"
+        store.baseStateCode = .oregon
+        store.baseZipCode = "97201"
+        store.serviceRadiusMiles = 24
+        store.serviceLocationModes = [.customerComesToGroomer]
+        store.isActive = true
+        await store.saveProfile()
+
+        repository.resumeSuspendedAvailability()
+        await loadTask.value
+
+        #expect(store.profile == savedProfile)
+        #expect(store.businessName == "Updated Coat")
+        #expect(store.baseStreetAddress == "987 Cedar Avenue")
+        #expect(store.baseCity == "Portland")
+        #expect(store.baseStateCode == .oregon)
+        #expect(store.baseZipCode == "97201")
+        #expect(store.serviceRadiusMiles == 24)
+        #expect(store.serviceLocationModes == [.customerComesToGroomer])
+    }
+
+    @Test @MainActor
     func loadKeepsOnlySupportedPetFitEvidenceSignals() async {
         let groomerID = UUID()
         let poodle = Self.evidenceSummary(
@@ -502,12 +620,12 @@ struct GroomerProfileStoreTests {
         )
 
         await store.uploadAvatarPhoto(
-            data: Data(count: GroomerProfileStore.maximumPhotoBytes + 1),
+            data: Data(count: GroomerProfileStore.maximumAvatarPhotoBytes + 1),
             contentType: .jpeg
         )
 
         #expect(repository.uploadAvatarCallCount == 0)
-        #expect(store.errorMessage == "Choose an avatar photo smaller than 10 MB.")
+        #expect(store.errorMessage == "Choose an avatar photo smaller than 5 MB.")
     }
 
     @Test @MainActor
@@ -531,6 +649,45 @@ struct GroomerProfileStoreTests {
         #expect(store.profile?.avatarPath == "avatar-path.jpg")
         #expect(store.avatarPhotoData == avatarData)
         #expect(store.noticeMessage == "Profile photo was updated.")
+    }
+
+    @Test @MainActor
+    func saveProfilePreservesExistingAvatarPathWhenResponseOmitsAvatar() async {
+        let groomerID = UUID()
+        var currentProfile = Self.profile(groomerID: groomerID)
+        currentProfile.avatarPath = "existing-avatar.jpg"
+        let savedProfile = GroomerProfile(
+            userID: groomerID,
+            businessName: "Updated Coat",
+            bio: "Calm grooming",
+            yearsExperience: 5,
+            baseStreetAddress: "123 Pine Street",
+            baseCity: "Seattle",
+            baseState: "WA",
+            baseZipCode: "98101",
+            serviceRadiusMiles: 12,
+            serviceLocationMode: .groomerComesToCustomer,
+            serviceLocationModes: [.groomerComesToCustomer],
+            ratingAverage: 0,
+            ratingCount: 0,
+            isActive: true,
+            isVerified: false
+        )
+        let repository = GroomerProfileRepositoryFake(
+            profileResult: .success(currentProfile),
+            updateProfileResult: .success(savedProfile)
+        )
+        let store = GroomerProfileStore(
+            groomerID: groomerID,
+            repository: repository
+        )
+        await store.load()
+
+        store.businessName = "Updated Coat"
+        await store.saveProfile()
+
+        #expect(store.profile?.businessName == "Updated Coat")
+        #expect(store.profile?.avatarPath == "existing-avatar.jpg")
     }
 
     @Test @MainActor
@@ -810,6 +967,7 @@ private final class GroomerProfileRepositoryFake: GroomerProfileRepository {
     private(set) var deleteTimeOffCallCount = 0
     private(set) var replaceFitClaimsCallCount = 0
     private(set) var replacePortfolioFitTagsCallCount = 0
+    private(set) var portfolioPhotoDataCallCount = 0
     private(set) var lastProfileDraft: GroomerProfileDraft?
     private(set) var lastBookingPreferencesDraft: GroomerBookingPreferencesDraft?
     private(set) var lastServiceDraft: GroomerServiceDraft?
@@ -818,6 +976,9 @@ private final class GroomerProfileRepositoryFake: GroomerProfileRepository {
     private(set) var lastFitClaimDrafts: [GroomerFitClaimDraft] = []
     private(set) var lastPortfolioFitTagPhotoID: UUID?
     private(set) var lastPortfolioFitTagDrafts: [GroomerPortfolioFitTagDraft] = []
+    var shouldSuspendPortfolioPhotoData = false
+    var shouldSuspendAvailability = false
+    private var suspendedAvailabilityContinuation: CheckedContinuation<Void, Never>?
 
     init(
         profileResult: Result<GroomerProfile, GroomerProfileRepositoryError> =
@@ -897,7 +1058,24 @@ private final class GroomerProfileRepositoryFake: GroomerProfileRepository {
     }
 
     func availabilityWindows(groomerID: UUID) async throws -> [GroomerAvailabilityWindow] {
-        try availabilityResult.get()
+        if shouldSuspendAvailability {
+            await withCheckedContinuation { continuation in
+                suspendedAvailabilityContinuation = continuation
+            }
+        }
+        return try availabilityResult.get()
+    }
+
+    func waitForSuspendedAvailability() async {
+        while suspendedAvailabilityContinuation == nil {
+            try? await Task.sleep(nanoseconds: 10_000_000)
+        }
+    }
+
+    func resumeSuspendedAvailability() {
+        suspendedAvailabilityContinuation?.resume()
+        suspendedAvailabilityContinuation = nil
+        shouldSuspendAvailability = false
     }
 
     func bookingPreferences(groomerID: UUID) async throws -> GroomerBookingPreferences {
@@ -1083,6 +1261,17 @@ private final class GroomerProfileRepositoryFake: GroomerProfileRepository {
 
     func avatarPhotoData(storagePath: String) async throws -> Data {
         Data("avatar".utf8)
+    }
+
+    func portfolioPhotoData(_ photo: GroomerPortfolioPhoto) async throws -> Data {
+        portfolioPhotoDataCallCount += 1
+        if shouldSuspendPortfolioPhotoData {
+            while !Task.isCancelled {
+                try await Task.sleep(nanoseconds: 10_000_000)
+            }
+            throw GroomerProfileRepositoryError.unavailable
+        }
+        return Data("portfolio".utf8)
     }
 
     func deletePortfolioPhoto(_ photo: GroomerPortfolioPhoto) async throws {

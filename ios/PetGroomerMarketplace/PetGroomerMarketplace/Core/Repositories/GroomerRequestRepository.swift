@@ -19,6 +19,13 @@ enum GroomerRequestRepositoryError: Error, Equatable, Sendable {
 protocol GroomerRequestRepository: AnyObject {
     func matchedRequests(groomerID: UUID) async throws -> [GroomerMatchedRequest]
 
+    func requestPhotos(
+        groomerID: UUID,
+        requestIDs: [UUID]
+    ) async throws -> [GroomingRequestPhoto]
+
+    func requestPhotoData(_ photo: GroomingRequestPhoto) async throws -> Data
+
     func dismiss(
         matchID: UUID,
         reason: String?
@@ -31,4 +38,17 @@ protocol GroomerRequestRepository: AnyObject {
     func withdrawOffer(
         offerID: UUID
     ) async throws -> WithdrawGroomerOfferResult
+}
+
+extension GroomerRequestRepository {
+    func requestPhotos(
+        groomerID: UUID,
+        requestIDs: [UUID]
+    ) async throws -> [GroomingRequestPhoto] {
+        []
+    }
+
+    func requestPhotoData(_ photo: GroomingRequestPhoto) async throws -> Data {
+        throw GroomerRequestRepositoryError.unavailable
+    }
 }

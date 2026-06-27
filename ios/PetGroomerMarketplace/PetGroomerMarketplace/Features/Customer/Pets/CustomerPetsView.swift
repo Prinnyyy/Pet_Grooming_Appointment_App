@@ -1,5 +1,6 @@
 import PhotosUI
 import SwiftUI
+import UIKit
 
 struct CustomerPetsView: View {
     private let displayName: String
@@ -778,9 +779,7 @@ private struct CustomerPetPhotoRow: View {
 
     var body: some View {
         HStack(spacing: DesignTokens.Spacing.sm) {
-            Image(systemName: "photo")
-                .foregroundStyle(DesignTokens.Colors.textTertiary)
-                .accessibilityHidden(true)
+            CustomerPetPhotoThumbnail(data: store.photoData(for: photo))
 
             Text(photo.fileName)
                 .font(DesignTokens.Typography.caption)
@@ -802,6 +801,35 @@ private struct CustomerPetPhotoRow: View {
             .disabled(store.isBusy)
         }
         .padding(.vertical, DesignTokens.Spacing.xs)
+    }
+}
+
+private struct CustomerPetPhotoThumbnail: View {
+    let data: Data?
+
+    var body: some View {
+        Group {
+            if let data,
+               let image = UIImage(data: data) {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                Image(systemName: "photo")
+                    .font(DesignTokens.Typography.caption.weight(.semibold))
+                    .foregroundStyle(DesignTokens.Colors.textTertiary)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(DesignTokens.Colors.borderSoft.opacity(0.42))
+            }
+        }
+        .frame(width: 44, height: 44)
+        .clipShape(
+            RoundedRectangle(
+                cornerRadius: 8,
+                style: .continuous
+            )
+        )
+        .accessibilityHidden(true)
     }
 }
 

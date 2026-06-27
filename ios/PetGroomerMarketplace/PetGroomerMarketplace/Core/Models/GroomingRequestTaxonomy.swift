@@ -295,6 +295,12 @@ nonisolated struct PetFitSignal:
         PetFitTrait.allCases.map { Self.serviceFit($0) }
     }
 
+    static func stored(traitType: String, traitValue: String) -> Self? {
+        allCases.first {
+            $0.traitType == traitType && $0.traitValue == traitValue
+        }
+    }
+
     static func breedGroup(_ value: PetBreedGroup) -> Self {
         Self(
             group: .breedGroup,

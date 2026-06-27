@@ -100,6 +100,40 @@ final class SupabaseCustomerRequestRepository: CustomerRequestRepository {
         }
     }
 
+    func requestPhotos(
+        customerID: UUID,
+        requestIDs: [UUID]
+    ) async throws -> [GroomingRequestPhoto] {
+        let ids = Self.uniqueLowercaseStrings(from: requestIDs)
+        guard !ids.isEmpty else { return [] }
+
+        do {
+            let rows: [GroomingRequestPhotoRow] = try await client
+                .from("request_photos")
+                .select(Self.requestPhotoColumns)
+                .eq("customer_id", value: customerID.uuidString.lowercased())
+                .in("request_id", values: ids)
+                .order("sort_order")
+                .order("created_at")
+                .execute()
+                .value
+
+            return rows.map(\.photo)
+        } catch {
+            throw Self.map(error)
+        }
+    }
+
+    func requestPhotoData(_ photo: GroomingRequestPhoto) async throws -> Data {
+        do {
+            return try await client.storage
+                .from(Self.requestPhotoBucketID)
+                .download(path: photo.storagePath)
+        } catch {
+            throw Self.map(error)
+        }
+    }
+
     func createRequest(
         customerID: UUID,
         draft: GroomingRequestDraft
@@ -257,6 +291,10 @@ final class SupabaseCustomerRequestRepository: CustomerRequestRepository {
     private static func normalized(_ value: String?) -> String? {
         let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         return trimmed.isEmpty ? nil : trimmed
+    }
+
+    private static func uniqueLowercaseStrings(from ids: [UUID]) -> [String] {
+        Array(Set(ids)).map { $0.uuidString.lowercased() }
     }
 }
 

@@ -42,6 +42,8 @@ protocol GroomerProfileRepository: AnyObject {
         caption: String?
     ) async throws -> GroomerPortfolioPhoto
 
+    func portfolioPhotoData(_ photo: GroomerPortfolioPhoto) async throws -> Data
+
     func deletePortfolioPhoto(_ photo: GroomerPortfolioPhoto) async throws
 
     func uploadAvatarPhoto(
@@ -79,4 +81,10 @@ protocol GroomerProfileRepository: AnyObject {
     ) async throws -> GroomerTimeOffWindow
 
     func deleteTimeOff(_ window: GroomerTimeOffWindow) async throws
+}
+
+extension GroomerProfileRepository {
+    func portfolioPhotoData(_ photo: GroomerPortfolioPhoto) async throws -> Data {
+        throw GroomerProfileRepositoryError.unavailable
+    }
 }

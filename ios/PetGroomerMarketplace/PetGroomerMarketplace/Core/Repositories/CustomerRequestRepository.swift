@@ -20,6 +20,13 @@ protocol CustomerRequestRepository: AnyObject {
         requestID: UUID
     ) async throws -> [CustomerOfferReview]
 
+    func requestPhotos(
+        customerID: UUID,
+        requestIDs: [UUID]
+    ) async throws -> [GroomingRequestPhoto]
+
+    func requestPhotoData(_ photo: GroomingRequestPhoto) async throws -> Data
+
     func createRequest(
         customerID: UUID,
         draft: GroomingRequestDraft
@@ -36,4 +43,17 @@ protocol CustomerRequestRepository: AnyObject {
     func cancelRequest(
         requestID: UUID
     ) async throws -> CancelGroomingRequestResult
+}
+
+extension CustomerRequestRepository {
+    func requestPhotos(
+        customerID: UUID,
+        requestIDs: [UUID]
+    ) async throws -> [GroomingRequestPhoto] {
+        []
+    }
+
+    func requestPhotoData(_ photo: GroomingRequestPhoto) async throws -> Data {
+        throw CustomerRequestRepositoryError.unavailable
+    }
 }

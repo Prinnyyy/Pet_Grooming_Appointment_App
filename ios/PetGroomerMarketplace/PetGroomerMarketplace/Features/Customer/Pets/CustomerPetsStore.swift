@@ -11,6 +11,7 @@ final class CustomerPetsStore {
 
     private(set) var pets: [CustomerPet] = []
     private(set) var photosByPetID: [UUID: [CustomerPetPhoto]] = [:]
+    private(set) var photoDataByPhotoID: [UUID: Data] = [:]
     private(set) var isLoading = false
     private(set) var isSaving = false
     private(set) var isUploading = false
@@ -55,6 +56,7 @@ final class CustomerPetsStore {
             pets = try await repository.pets(customerID: customerID)
             let photos = try await repository.photos(customerID: customerID)
             photosByPetID = Dictionary(grouping: photos, by: \.petID)
+            photoDataByPhotoID = await photoDataMap(for: photos)
         } catch let error as CustomerPetRepositoryError {
             errorMessage = message(for: error, action: "load")
         } catch {
@@ -71,6 +73,10 @@ final class CustomerPetsStore {
                     $0.sortOrder < $1.sortOrder
                 }
             }
+    }
+
+    func photoData(for photo: CustomerPetPhoto) -> Data? {
+        photoDataByPhotoID[photo.id]
     }
 
     func startCreate() {
@@ -209,6 +215,9 @@ final class CustomerPetsStore {
         do {
             try await repository.softDeletePet(pet)
             pets.removeAll { $0.id == pet.id }
+            for photo in photosByPetID[pet.id, default: []] {
+                photoDataByPhotoID[photo.id] = nil
+            }
             photosByPetID[pet.id] = nil
             noticeMessage = "\(pet.name) was removed."
         } catch let error as CustomerPetRepositoryError {
@@ -244,6 +253,7 @@ final class CustomerPetsStore {
                 caption: nil
             )
             photosByPetID[pet.id, default: []].append(photo)
+            photoDataByPhotoID[photo.id] = data
             noticeMessage = "Photo was uploaded for \(pet.name)."
         } catch let error as CustomerPetRepositoryError {
             errorMessage = message(for: error, action: "upload")
@@ -263,6 +273,7 @@ final class CustomerPetsStore {
         do {
             try await repository.deletePhoto(photo)
             photosByPetID[photo.petID]?.removeAll { $0.id == photo.id }
+            photoDataByPhotoID[photo.id] = nil
             noticeMessage = "Photo was deleted."
         } catch let error as CustomerPetRepositoryError {
             errorMessage = message(for: error, action: "delete photo")
@@ -277,6 +288,19 @@ final class CustomerPetsStore {
             return
         }
         pets[index] = pet
+    }
+
+    private func photoDataMap(
+        for photos: [CustomerPetPhoto]
+    ) async -> [UUID: Data] {
+        var dataByID: [UUID: Data] = [:]
+        for photo in photos {
+            guard let data = try? await repository.photoData(photo) else {
+                continue
+            }
+            dataByID[photo.id] = data
+        }
+        return dataByID
     }
 
     private func resetForm() {

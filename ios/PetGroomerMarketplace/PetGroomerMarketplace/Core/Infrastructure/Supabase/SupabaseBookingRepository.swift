@@ -11,6 +11,10 @@ final class SupabaseBookingRepository: BookingRepository {
     private static let reviewColumns = """
         id,booking_id,customer_id,groomer_id,rating,content,created_at
         """
+    private static let reviewPetFitOutcomeColumns = """
+        id,review_id,booking_id,customer_id,groomer_id,trait_type,trait_value,\
+        outcome,created_at
+        """
     private static let groomerSummaryColumns =
         "user_id,business_name,base_street_address,base_city,base_state,base_zip_code"
     private static let requestLocationColumns =
@@ -250,9 +254,51 @@ final class SupabaseBookingRepository: BookingRepository {
             .execute()
             .value
 
-        return Dictionary(
-            uniqueKeysWithValues: rows.map { ($0.bookingID, $0.review) }
+        let outcomesByReviewID = try await reviewPetFitOutcomesByReviewID(
+            reviewIDs: rows.map(\.id)
         )
+
+        return Dictionary(
+            uniqueKeysWithValues: rows.map {
+                (
+                    $0.bookingID,
+                    $0.review(
+                        petFitOutcomes: outcomesByReviewID[$0.id, default: []]
+                    )
+                )
+            }
+        )
+    }
+
+    private func reviewPetFitOutcomesByReviewID(
+        reviewIDs: [UUID]
+    ) async throws -> [UUID: [BookingReviewPetFitOutcomeRecord]] {
+        let ids = uniqueLowercaseStrings(from: reviewIDs)
+        guard !ids.isEmpty else { return [:] }
+
+        let rows: [BookingReviewPetFitOutcomeRow] = try await client
+            .from("review_pet_fit_outcomes")
+            .select(Self.reviewPetFitOutcomeColumns)
+            .in("review_id", values: ids)
+            .order("created_at")
+            .execute()
+            .value
+
+        var recordsByReviewID: [UUID: [BookingReviewPetFitOutcomeRecord]] = [:]
+        for row in rows {
+            guard let record = row.record else { continue }
+            recordsByReviewID[row.reviewID, default: []].append(record)
+        }
+
+        return recordsByReviewID.mapValues {
+            $0.sorted {
+                if $0.signal.sortOrder == $1.signal.sortOrder {
+                    $0.title < $1.title
+                } else {
+                    $0.signal.sortOrder < $1.signal.sortOrder
+                }
+            }
+        }
     }
 
     private func groomerSummaries(
@@ -466,7 +512,9 @@ private struct BookingReviewRow: Decodable {
     let content: String?
     let createdAt: String
 
-    var review: BookingReview {
+    func review(
+        petFitOutcomes: [BookingReviewPetFitOutcomeRecord] = []
+    ) -> BookingReview {
         BookingReview(
             id: id,
             bookingID: bookingID,
@@ -474,7 +522,8 @@ private struct BookingReviewRow: Decodable {
             groomerID: groomerID,
             rating: rating,
             content: content,
-            createdAt: createdAt
+            createdAt: createdAt,
+            petFitOutcomes: petFitOutcomes
         )
     }
 
@@ -485,6 +534,47 @@ private struct BookingReviewRow: Decodable {
         case groomerID = "groomer_id"
         case rating
         case content
+        case createdAt = "created_at"
+    }
+}
+
+private struct BookingReviewPetFitOutcomeRow: Decodable {
+    let id: UUID
+    let reviewID: UUID
+    let bookingID: UUID
+    let customerID: UUID
+    let groomerID: UUID
+    let traitType: String
+    let traitValue: String
+    let outcomeRawValue: String
+    let createdAt: String
+
+    var record: BookingReviewPetFitOutcomeRecord? {
+        guard let signal = PetFitSignal.stored(
+            traitType: traitType,
+            traitValue: traitValue
+        ),
+              let outcome = BookingReviewPetFitOutcome(rawValue: outcomeRawValue)
+        else {
+            return nil
+        }
+
+        return BookingReviewPetFitOutcomeRecord(
+            id: id,
+            signal: signal,
+            outcome: outcome
+        )
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case reviewID = "review_id"
+        case bookingID = "booking_id"
+        case customerID = "customer_id"
+        case groomerID = "groomer_id"
+        case traitType = "trait_type"
+        case traitValue = "trait_value"
+        case outcomeRawValue = "outcome"
         case createdAt = "created_at"
     }
 }

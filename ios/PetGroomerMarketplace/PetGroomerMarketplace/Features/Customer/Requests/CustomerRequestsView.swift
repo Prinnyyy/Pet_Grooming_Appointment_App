@@ -2,6 +2,7 @@ import Combine
 import MapKit
 import PhotosUI
 import SwiftUI
+import UIKit
 
 struct CustomerRequestsView: View {
     @State private var store: CustomerRequestsStore
@@ -1118,6 +1119,7 @@ struct CustomerRequestDetailView: View {
 
                         requestCard(request)
                         petSnapshotCard(request)
+                        requestPhotosCard(request)
                         scheduleLocationCard(request)
 
                         CustomerOfferReviewSection(
@@ -1238,6 +1240,47 @@ struct CustomerRequestDetailView: View {
                 DetailMetadataRow(title: "City", value: request.city, systemImage: "building.2")
                 DetailMetadataRow(title: "State", value: request.state, systemImage: "map")
                 DetailMetadataRow(title: "ZIP", value: request.zipCode, systemImage: "number")
+                DetailMetadataRow(
+                    title: "Service Mode",
+                    value: request.locationMode.requestDetailTitle,
+                    systemImage: "location.fill"
+                )
+                DetailMetadataRow(
+                    title: "Street",
+                    value: request.streetAddress,
+                    systemImage: "house.fill"
+                )
+                if request.locationMode == .customerComesToGroomer,
+                   let travelRadiusMiles = request.travelRadiusMiles {
+                    DetailMetadataRow(
+                        title: "Travel Radius",
+                        value: "\(travelRadiusMiles) miles",
+                        systemImage: "point.topleft.down.curvedto.point.bottomright.up"
+                    )
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func requestPhotosCard(_ request: CustomerGroomingRequest) -> some View {
+        let photos = store.requestPhotos(for: request)
+        if !photos.isEmpty {
+            GroomlyCard {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                    DetailCardHeader(
+                        title: "Request Photos",
+                        subtitle: "\(photos.count) photo\(photos.count == 1 ? "" : "s") attached to this request.",
+                        systemImage: "photo.stack.fill"
+                    )
+
+                    ForEach(photos) { photo in
+                        CustomerRequestPhotoRow(
+                            photo: photo,
+                            data: store.requestPhotoData(for: photo)
+                        )
+                    }
+                }
             }
         }
     }
@@ -1257,6 +1300,79 @@ struct CustomerRequestDetailView: View {
                     )
                 }
             }
+        }
+    }
+}
+
+private struct CustomerRequestPhotoRow: View {
+    let photo: GroomingRequestPhoto
+    let data: Data?
+
+    var body: some View {
+        HStack(spacing: DesignTokens.Spacing.md) {
+            RequestPhotoThumbnail(
+                data: data,
+                accentColor: DesignTokens.Colors.customerPrimary,
+                systemImage: "photo"
+            )
+
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                Text(photo.caption ?? photo.fileName)
+                    .font(DesignTokens.Typography.body.weight(.semibold))
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+                    .lineLimit(1)
+
+                if photo.caption != nil {
+                    Text(photo.fileName)
+                        .font(DesignTokens.Typography.caption)
+                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+                        .lineLimit(1)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct RequestPhotoThumbnail: View {
+    let data: Data?
+    let accentColor: Color
+    let systemImage: String
+
+    var body: some View {
+        Group {
+            if let data,
+               let image = UIImage(data: data) {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                Image(systemName: systemImage)
+                    .font(DesignTokens.Typography.caption.weight(.semibold))
+                    .foregroundStyle(accentColor)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(accentColor.opacity(0.12))
+            }
+        }
+        .frame(width: 58, height: 58)
+        .clipShape(
+            RoundedRectangle(
+                cornerRadius: 8,
+                style: .continuous
+            )
+        )
+        .accessibilityHidden(true)
+    }
+}
+
+private extension GroomingLocationMode {
+    var requestDetailTitle: String {
+        switch self {
+        case .groomerComesToCustomer:
+            "Groomer travels to customer"
+        case .customerComesToGroomer:
+            "Customer can visit groomer"
         }
     }
 }
