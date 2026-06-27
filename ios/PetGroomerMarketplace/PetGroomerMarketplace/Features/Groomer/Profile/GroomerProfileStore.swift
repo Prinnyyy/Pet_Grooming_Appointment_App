@@ -209,6 +209,32 @@ final class GroomerProfileStore {
         portfolioPhotoDataByID[photo.id]
     }
 
+    var portfolioOverviewSummary: String {
+        switch portfolioPhotos.count {
+        case 0:
+            "No work photos"
+        case 1:
+            "1 work photo"
+        default:
+            "\(portfolioPhotos.count) work photos"
+        }
+    }
+
+    func portfolioFitTagSummary(for photo: GroomerPortfolioPhoto) -> String {
+        let tags = portfolioFitTags(for: photo)
+        guard !tags.isEmpty else {
+            return "No fit notes"
+        }
+
+        let visibleTitles = tags.prefix(2).map(\.signal.title)
+        let summary = visibleTitles.joined(separator: " • ")
+        let remainingCount = tags.count - visibleTitles.count
+
+        return remainingCount > 0
+            ? "\(summary) +\(remainingCount)"
+            : summary
+    }
+
     func sortedPetFitEvidenceSummary() -> [GroomerPetFitEvidenceSummary] {
         petFitEvidenceSummary.sorted(by: Self.sortPetFitEvidenceSummary)
     }

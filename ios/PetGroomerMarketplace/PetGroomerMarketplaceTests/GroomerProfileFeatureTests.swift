@@ -74,6 +74,38 @@ struct GroomerAvatarImageEncoderTests {
     }
 }
 
+struct GroomlyModuleImageLayoutTests {
+    @Test
+    func filledFrameCentersImagesAndPinsTheRequiredEdges() {
+        let containerSize = CGSize(width: 120, height: 120)
+
+        #expect(
+            GroomlyModuleImageLayout.filledFrame(
+                imageSize: CGSize(width: 100, height: 400),
+                in: containerSize
+            ) == CGRect(x: 0, y: -180, width: 120, height: 480)
+        )
+        #expect(
+            GroomlyModuleImageLayout.filledFrame(
+                imageSize: CGSize(width: 400, height: 100),
+                in: containerSize
+            ) == CGRect(x: -180, y: 0, width: 480, height: 120)
+        )
+        #expect(
+            GroomlyModuleImageLayout.filledFrame(
+                imageSize: CGSize(width: 200, height: 200),
+                in: containerSize
+            ) == CGRect(x: 0, y: 0, width: 120, height: 120)
+        )
+        #expect(
+            GroomlyModuleImageLayout.filledFrame(
+                imageSize: .zero,
+                in: containerSize
+            ) == .zero
+        )
+    }
+}
+
 struct GroomerProfileStoreTests {
     @Test @MainActor
     func loadPopulatesProfileServicesAndPortfolio() async {
@@ -623,6 +655,62 @@ struct GroomerProfileStoreTests {
         #expect(store.portfolioPhotos.isEmpty)
         #expect(store.portfolioFitTags.isEmpty)
         #expect(store.selectedPortfolioFitTagIDsByPhotoID[photo.id] == nil)
+    }
+
+    @Test @MainActor
+    func portfolioPresentationSummariesUseCustomerFacingCountsAndFitNotes() async {
+        let groomerID = UUID()
+        let firstPhoto = Self.photo(groomerID: groomerID)
+        let secondPhoto = Self.photo(groomerID: groomerID)
+        let coatTag = Self.portfolioFitTag(
+            photoID: firstPhoto.id,
+            groomerID: groomerID,
+            signal: .coatType(.curlyWavy)
+        )
+        let careTag = Self.portfolioFitTag(
+            photoID: firstPhoto.id,
+            groomerID: groomerID,
+            signal: .serviceFit(.seniorCare)
+        )
+        let repository = GroomerProfileRepositoryFake(
+            profileResult: .success(Self.profile(groomerID: groomerID)),
+            portfolioResult: .success([firstPhoto, secondPhoto]),
+            portfolioFitTagsResult: .success([coatTag, careTag])
+        )
+        let store = GroomerProfileStore(
+            groomerID: groomerID,
+            repository: repository
+        )
+
+        await store.load()
+
+        #expect(store.portfolioOverviewSummary == "2 work photos")
+        #expect(store.portfolioFitTagSummary(for: firstPhoto) == "Curly / Wavy • Senior Care")
+        #expect(store.portfolioFitTagSummary(for: secondPhoto) == "No fit notes")
+    }
+
+    @Test @MainActor
+    func portfolioArtworkLayoutUsesSharedModuleImagePolicy() {
+        let containerSize = CGSize(width: 120, height: 120)
+
+        #expect(
+            GroomlyModuleImageLayout.filledFrame(
+                imageSize: CGSize(width: 400, height: 100),
+                in: containerSize
+            ) == CGRect(x: -180, y: 0, width: 480, height: 120)
+        )
+        #expect(
+            GroomlyModuleImageLayout.filledFrame(
+                imageSize: CGSize(width: 100, height: 400),
+                in: containerSize
+            ) == CGRect(x: 0, y: -180, width: 120, height: 480)
+        )
+        #expect(
+            GroomlyModuleImageLayout.filledFrame(
+                imageSize: CGSize(width: 200, height: 200),
+                in: containerSize
+            ) == CGRect(x: 0, y: 0, width: 120, height: 120)
+        )
     }
 
     @Test @MainActor

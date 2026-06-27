@@ -866,19 +866,12 @@ private struct GroomerRequestPhotoThumbnail: View {
     let data: Data?
 
     var body: some View {
-        Group {
-            if let data,
-               let image = UIImage(data: data) {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFill()
-            } else {
-                Image(systemName: "photo")
-                    .font(DesignTokens.Typography.caption.weight(.semibold))
-                    .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(DesignTokens.Colors.groomerAccent.opacity(0.14))
-            }
+        GroomlyModuleImage(data: data) {
+            Image(systemName: "photo")
+                .font(DesignTokens.Typography.caption.weight(.semibold))
+                .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(DesignTokens.Colors.groomerAccent.opacity(0.14))
         }
         .frame(width: 58, height: 58)
         .clipShape(

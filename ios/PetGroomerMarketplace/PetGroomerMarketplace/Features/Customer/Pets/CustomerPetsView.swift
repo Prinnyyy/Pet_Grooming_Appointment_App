@@ -808,19 +808,12 @@ private struct CustomerPetPhotoThumbnail: View {
     let data: Data?
 
     var body: some View {
-        Group {
-            if let data,
-               let image = UIImage(data: data) {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFill()
-            } else {
-                Image(systemName: "photo")
-                    .font(DesignTokens.Typography.caption.weight(.semibold))
-                    .foregroundStyle(DesignTokens.Colors.textTertiary)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(DesignTokens.Colors.borderSoft.opacity(0.42))
-            }
+        GroomlyModuleImage(data: data) {
+            Image(systemName: "photo")
+                .font(DesignTokens.Typography.caption.weight(.semibold))
+                .foregroundStyle(DesignTokens.Colors.textTertiary)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(DesignTokens.Colors.borderSoft.opacity(0.42))
         }
         .frame(width: 44, height: 44)
         .clipShape(

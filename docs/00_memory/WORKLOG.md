@@ -4,6 +4,36 @@ This file is reverse chronological history. Only the newest entry plus `docs/00_
 
 ```text
 Date: 2026-06-27
+Task: T-107 - App-wide module photo display policy.
+Files changed: GroomlyModuleImage, GroomerProfileManagementView, GroomerRequestsView, CustomerPetsView, CustomerRequestsView, GroomerProfileFeatureTests, feature index, task ledger, current state, and worklog.
+Checks: RED `./scripts/ios-test.sh` failed on missing `GroomlyModuleImageLayout`. GREEN `./scripts/ios-test.sh` passed after adding the shared DesignSystem module image component and routing module photos through it. `./scripts/ios-build.sh` passed. XcodeBuildMCP `build_run_sim` launched `com.prinnyyy.PetGroomerMarketplace` on iPhone 17 Pro iOS 26.5. `git diff --check` passed.
+Result: T-107 is completed. Module-displayed real photos now use one shared centered aspect-fill policy: tall/long images fill the left/right edges, wide images fill the top/bottom edges, and any overflow is clipped inside the module frame. This covers groomer avatar, groomer Portfolio photos, groomer request photos, customer pet photos, and customer request photos.
+Risks: This is an iOS presentation-only change. It intentionally crops image overflow to satisfy the module fill rule and does not change image upload/download/delete behavior, Storage paths, repository contracts, Supabase schema, RLS, matching, or portfolio/pet/request photo persistence.
+Next: Stop unless the user asks to commit/push or starts T-108.
+```
+
+```text
+Date: 2026-06-27
+Task: T-106 - Groomer Portfolio photo aspect-fit fix.
+Files changed: GroomerProfileManagementView, GroomerProfileFeatureTests, feature index, task ledger, current state, and worklog.
+Checks: RED `./scripts/ios-test.sh` failed before implementation because `GroomerPortfolioArtworkLayout` did not exist. GREEN `./scripts/ios-test.sh` passed after adding the fitted-frame helper and replacing the Portfolio artwork fill/crop rendering with centered aspect-fit placement. `./scripts/ios-build.sh` passed. XcodeBuildMCP `build_run_sim` launched `com.prinnyyy.PetGroomerMarketplace` on iPhone 17 Pro iOS 26.5. `git diff --check` passed.
+Result: T-106 is completed. Portfolio photos now stay clipped inside the square card artwork window and are centered with aspect-fit scaling, so wide, tall, and square uploaded images fit by touching one edge without overflowing the visible frame.
+Risks: This is an iOS UI/presentation change only. It does not change repository calls, Storage upload/download/delete behavior, Supabase schema, RLS, matching, public directory behavior, or portfolio fit-tag persistence.
+Next: Stop unless the user asks to commit/push or starts T-107.
+```
+
+```text
+Date: 2026-06-27
+Task: T-105 - Groomer Portfolio page redesign.
+Files changed: GroomerProfileStore, GroomerProfileManagementView, GroomerProfileFeatureTests, feature index, task ledger, current state, and worklog.
+Checks: RED `./scripts/ios-test.sh` failed on missing `portfolioOverviewSummary` and `portfolioFitTagSummary` presentation helpers. GREEN `./scripts/ios-test.sh` passed after adding the helpers and redesigning the Portfolio UI. `./scripts/ios-build.sh` passed. XcodeBuildMCP `build_run_sim` launched `com.prinnyyy.PetGroomerMarketplace` on iPhone 17 Pro iOS 26.5. `git diff --check` passed.
+Result: T-105 is completed. Groomer Portfolio now reads as a Work Gallery with a photo-first two-column grid, customer-facing photo/tag summaries, compact upload/status states, icon-only delete controls, and collapsed per-photo Fit Notes editing. Bucket, storage path, sort order, and file metadata are no longer shown in the visible page.
+Risks: This is an iOS UI/presentation change only. It does not change repository calls, Storage upload/download/delete behavior, Supabase schema, RLS, matching, public directory behavior, or portfolio fit-tag persistence.
+Next: Stop unless the user asks to commit/push or starts T-106.
+```
+
+```text
+Date: 2026-06-27
 Task: T-104 - Groomer service size vocabulary alignment.
 Files changed: GroomerProfile model, GroomerProfileStore, GroomerProfileManagementView, GroomerProfileFeatureTests, Supabase migration `20260627092014_t104_service_size_bands.sql`, backend contract, feature index, task ledger, current state, and worklog.
 Checks: RED `./scripts/ios-test.sh` failed after the tests were updated to expect XS/S/M/L/XL/XXL/Giant service-size cases. GREEN `./scripts/ios-test.sh` passed after aligning service accepted-size model raw values, Store inheritance/slider selection, and preview fixtures to the seven Fit Signals size bands. `./scripts/ios-build.sh`, `./scripts/supabase-check.sh`, XcodeBuildMCP simulator launch, and `git diff --check` passed. `supabase migration list --workdir supabase --local` was attempted for local history visibility but could not connect because local Postgres on `127.0.0.1:54322` is not running. User authorized T-104 remote migration; `supabase db push --linked --dry-run` remained blocked by older migration-version drift, so the reviewed T-104 SQL was applied as an explicit remote transaction and then recorded with `supabase migration repair --linked --status applied 20260627092014`. Remote validation confirmed migration history alignment, seven-value `groomer_services_sizes_check`, zero legacy/invalid accepted-size values, rollback-only acceptance of all seven new bands, and rollback-only rejection of legacy `small`. Advisors returned existing WARN-class findings only.

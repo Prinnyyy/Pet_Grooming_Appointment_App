@@ -284,7 +284,7 @@ private struct GroomerAvatarImage: View {
     let placeholderSize: CGFloat
 
     var body: some View {
-        ZStack {
+        GroomlyModuleImage(data: data) {
             LinearGradient(
                 colors: [
                     DesignTokens.Colors.groomerAccent.opacity(0.28),
@@ -294,23 +294,12 @@ private struct GroomerAvatarImage: View {
                 endPoint: .bottomTrailing
             )
 
-            if let image {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFill()
-            } else {
-                Text("👩🏻")
-                    .font(.system(size: placeholderSize))
-            }
+            Text("👩🏻")
+                .font(.system(size: placeholderSize))
         }
         .frame(width: size, height: size)
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
         .accessibilityHidden(true)
-    }
-
-    private var image: UIImage? {
-        guard let data else { return nil }
-        return UIImage(data: data)
     }
 }
 
@@ -2590,7 +2579,11 @@ private struct GroomerPortfolioSection: View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
             GroomlySectionHeader(
                 "Portfolio",
-                subtitle: "Images upload to the private groomer-portfolio bucket and stay metadata-only here."
+                subtitle: "Finished work and fit notes for customers reviewing your profile."
+            )
+
+            GroomerPortfolioOverviewCard(
+                summary: store.portfolioOverviewSummary
             ) {
                 addPhotoPicker(isFullWidth: false)
             }
@@ -2601,16 +2594,22 @@ private struct GroomerPortfolioSection: View {
 
             if store.portfolioPhotos.isEmpty {
                 GroomlyEmptyState(
-                    title: "No Portfolio Photos",
-                    message: "Add work examples after completing your profile. This screen shows stored metadata only.",
+                    title: "No Work Photos",
+                    message: "Add finished grooming photos that show your coat work and handling style.",
                     systemImage: "photo.on.rectangle",
                     accent: .groomer
-                )
+                ) {
+                    addPhotoPicker(isFullWidth: true)
+                }
                 .accessibilityIdentifier("groomer.portfolio.empty")
             } else {
-                VStack(spacing: DesignTokens.Spacing.md) {
+                LazyVGrid(
+                    columns: Self.photoGridColumns,
+                    alignment: .leading,
+                    spacing: DesignTokens.Spacing.md
+                ) {
                     ForEach(store.sortedPortfolioPhotos()) { photo in
-                        GroomerPortfolioPhotoRow(
+                        GroomerPortfolioPhotoCard(
                             photo: photo,
                             store: store
                         )
@@ -2656,6 +2655,53 @@ private struct GroomerPortfolioSection: View {
         .disabled(store.isBusy)
         .accessibilityIdentifier("groomer.portfolio.add")
     }
+
+    private static let photoGridColumns = [
+        GridItem(.flexible(), spacing: DesignTokens.Spacing.md),
+        GridItem(.flexible(), spacing: DesignTokens.Spacing.md),
+    ]
+}
+
+private struct GroomerPortfolioOverviewCard<AddButton: View>: View {
+    let summary: String
+    let addButton: AddButton
+
+    init(
+        summary: String,
+        @ViewBuilder addButton: () -> AddButton
+    ) {
+        self.summary = summary
+        self.addButton = addButton()
+    }
+
+    var body: some View {
+        GroomlyCard(padding: DesignTokens.Spacing.md) {
+            HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
+                Image(systemName: "sparkles.rectangle.stack")
+                    .font(DesignTokens.Typography.headline.weight(.bold))
+                    .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
+                    .frame(width: 44, height: 44)
+                    .background(DesignTokens.Colors.groomerAccent.opacity(0.14))
+                    .clipShape(DesignTokens.Shapes.circular)
+                    .accessibilityHidden(true)
+
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                    Text("Work Gallery")
+                        .font(DesignTokens.Typography.body.weight(.bold))
+                        .foregroundStyle(DesignTokens.Colors.textPrimary)
+
+                    Text(summary)
+                        .font(DesignTokens.Typography.caption)
+                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                addButton
+                    .layoutPriority(1)
+            }
+            .accessibilityElement(children: .contain)
+        }
+    }
 }
 
 private struct GroomerPortfolioUpdatingCard: View {
@@ -2665,7 +2711,7 @@ private struct GroomerPortfolioUpdatingCard: View {
                 ProgressView()
                     .tint(DesignTokens.Colors.groomerAccent)
 
-                Text("Updating portfolio metadata…")
+                Text("Updating portfolio…")
                     .font(DesignTokens.Typography.caption)
                     .foregroundStyle(DesignTokens.Colors.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -2676,111 +2722,92 @@ private struct GroomerPortfolioUpdatingCard: View {
     }
 }
 
-private struct GroomerPortfolioPhotoRow: View {
+private struct GroomerPortfolioPhotoCard: View {
     let photo: GroomerPortfolioPhoto
     @Bindable var store: GroomerProfileStore
 
     var body: some View {
-        GroomlyCard(padding: DesignTokens.Spacing.md) {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
-                    GroomerPortfolioPhotoThumbnail(
+        GroomlyCard(padding: DesignTokens.Spacing.xs) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                ZStack(alignment: .topTrailing) {
+                    GroomerPortfolioPhotoArtwork(
                         data: store.portfolioPhotoData(for: photo)
                     )
-
-                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                        Text(photo.fileName)
-                            .font(DesignTokens.Typography.body.weight(.semibold))
-                            .foregroundStyle(DesignTokens.Colors.textPrimary)
-                            .lineLimit(1)
-
-                        if let caption = photo.caption {
-                            Text(caption)
-                                .font(DesignTokens.Typography.caption)
-                                .foregroundStyle(DesignTokens.Colors.textSecondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                        } else {
-                            Text("No Caption Metadata")
-                                .font(DesignTokens.Typography.caption)
-                                .foregroundStyle(DesignTokens.Colors.textTertiary)
-                        }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
 
                     Button(role: .destructive) {
                         Task {
                             await store.deletePortfolioPhoto(photo)
                         }
                     } label: {
-                        Label("Delete", systemImage: "trash")
+                        Image(systemName: "trash")
+                            .font(.system(size: 13, weight: .bold))
+                            .frame(width: 32, height: 32)
                     }
-                    .font(DesignTokens.Typography.caption.weight(.semibold))
                     .foregroundStyle(DesignTokens.Colors.error)
-                    .padding(.horizontal, DesignTokens.Spacing.md)
-                    .padding(.vertical, DesignTokens.Spacing.sm)
-                    .background(DesignTokens.Colors.error.opacity(0.08))
+                    .background(DesignTokens.Colors.surface.opacity(0.94))
                     .overlay {
-                        DesignTokens.Shapes.chip
+                        DesignTokens.Shapes.circular
                             .stroke(DesignTokens.Colors.error.opacity(0.26), lineWidth: 1)
                     }
-                    .clipShape(DesignTokens.Shapes.chip)
+                    .clipShape(DesignTokens.Shapes.circular)
                     .disabled(store.isBusy)
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Delete portfolio photo")
+                    .padding(DesignTokens.Spacing.xs)
                 }
 
-                Divider()
-                    .overlay(DesignTokens.Colors.divider)
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                    Text(captionText ?? "Work Photo")
+                        .font(DesignTokens.Typography.body.weight(.semibold))
+                        .foregroundStyle(DesignTokens.Colors.textPrimary)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.85)
 
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                    GroomerPortfolioMetadataRow(
-                        title: "Bucket",
-                        value: photo.storageBucket,
-                        systemImage: "shippingbox"
-                    )
+                    Text(store.portfolioFitTagSummary(for: photo))
+                        .font(DesignTokens.Typography.caption)
+                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
 
-                    GroomerPortfolioMetadataRow(
-                        title: "Storage Path",
-                        value: photo.storagePath,
-                        systemImage: "folder"
+                    GroomerPortfolioFitTagsSection(
+                        photo: photo,
+                        store: store
                     )
-
-                    GroomerPortfolioMetadataRow(
-                        title: "Sort Order",
-                        value: "\(photo.sortOrder)",
-                        systemImage: "arrow.up.arrow.down"
-                    )
+                    .padding(.top, DesignTokens.Spacing.xs)
                 }
-
-                Divider()
-                    .overlay(DesignTokens.Colors.divider)
-
-                GroomerPortfolioFitTagsSection(
-                    photo: photo,
-                    store: store
-                )
+                .padding(.horizontal, DesignTokens.Spacing.sm)
+                .padding(.bottom, DesignTokens.Spacing.sm)
             }
         }
+        .accessibilityIdentifier("groomer.portfolio.photo-card")
+    }
+
+    private var captionText: String? {
+        guard let caption = photo.caption?.trimmingCharacters(
+            in: .whitespacesAndNewlines
+        ), !caption.isEmpty else {
+            return nil
+        }
+
+        return caption
     }
 }
 
-private struct GroomerPortfolioPhotoThumbnail: View {
+private struct GroomerPortfolioPhotoArtwork: View {
     let data: Data?
 
     var body: some View {
-        Group {
-            if let data,
-               let image = UIImage(data: data) {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFill()
-            } else {
-                Image(systemName: "photo.on.rectangle")
-                    .font(DesignTokens.Typography.caption.weight(.semibold))
-                    .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(DesignTokens.Colors.groomerAccent.opacity(0.14))
-            }
+        GroomlyModuleImage(data: data) {
+            Rectangle()
+                .fill(DesignTokens.Colors.groomerAccent.opacity(0.08))
+
+            Image(systemName: "photo.on.rectangle")
+                .font(DesignTokens.Typography.headline)
+                .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
         }
-        .frame(width: 64, height: 64)
+        .frame(maxWidth: .infinity)
+        .aspectRatio(1, contentMode: .fit)
+        .clipped()
         .clipShape(
             RoundedRectangle(
                 cornerRadius: 8,
@@ -2794,62 +2821,73 @@ private struct GroomerPortfolioPhotoThumbnail: View {
 private struct GroomerPortfolioFitTagsSection: View {
     let photo: GroomerPortfolioPhoto
     @Bindable var store: GroomerProfileStore
+    @State private var isExpanded = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            HStack(spacing: DesignTokens.Spacing.sm) {
-                Text("Fit Tags")
-                    .font(DesignTokens.Typography.body.weight(.bold))
-                    .foregroundStyle(DesignTokens.Colors.textPrimary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+        DisclosureGroup(isExpanded: $isExpanded) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                ForEach(Self.visibleGroups) { group in
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                        Text(group.title)
+                            .font(DesignTokens.Typography.caption.weight(.bold))
+                            .foregroundStyle(DesignTokens.Colors.textSecondary)
+                            .textCase(.uppercase)
 
-                GroomlyStatusChip(
-                    "\(selectedCount)/\(GroomerPortfolioFitTag.maximumTagsPerPhoto)",
-                    systemImage: "tag",
-                    tone: .groomer
-                )
-            }
-
-            ForEach(Self.visibleGroups) { group in
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                    Text(group.title)
-                        .font(DesignTokens.Typography.caption.weight(.bold))
-                        .foregroundStyle(DesignTokens.Colors.textSecondary)
-                        .textCase(.uppercase)
-
-                    LazyVGrid(
-                        columns: [
-                            GridItem(.adaptive(minimum: 132), spacing: DesignTokens.Spacing.sm),
-                        ],
-                        alignment: .leading,
-                        spacing: DesignTokens.Spacing.sm
-                    ) {
-                        ForEach(signals(for: group)) { signal in
-                            GroomerPortfolioFitTagChip(
-                                signal: signal,
-                                isSelected: store.isPortfolioFitTagSelected(
-                                    signal,
-                                    for: photo
-                                )
-                            ) {
-                                store.togglePortfolioFitTag(signal, for: photo)
+                        LazyVGrid(
+                            columns: [
+                                GridItem(
+                                    .adaptive(minimum: 112),
+                                    spacing: DesignTokens.Spacing.sm
+                                ),
+                            ],
+                            alignment: .leading,
+                            spacing: DesignTokens.Spacing.sm
+                        ) {
+                            ForEach(signals(for: group)) { signal in
+                                GroomerPortfolioFitTagChip(
+                                    signal: signal,
+                                    isSelected: store.isPortfolioFitTagSelected(
+                                        signal,
+                                        for: photo
+                                    )
+                                ) {
+                                    store.togglePortfolioFitTag(signal, for: photo)
+                                }
                             }
                         }
                     }
                 }
-            }
 
-            Button {
-                Task {
-                    await store.savePortfolioFitTags(for: photo)
+                Button {
+                    Task {
+                        await store.savePortfolioFitTags(for: photo)
+                    }
+                } label: {
+                    Label("Save Fit Notes", systemImage: "checkmark")
                 }
-            } label: {
-                Label("Save Tags", systemImage: "checkmark")
+                .buttonStyle(GroomlySecondaryButtonStyle(accent: .groomer, isFullWidth: true))
+                .disabled(store.isBusy)
+                .accessibilityIdentifier("groomer.portfolio.tags.save")
             }
-            .buttonStyle(GroomlySecondaryButtonStyle(accent: .groomer, isFullWidth: true))
-            .disabled(store.isBusy)
-            .accessibilityIdentifier("groomer.portfolio.tags.save")
+            .padding(.top, DesignTokens.Spacing.sm)
+        } label: {
+            HStack(spacing: DesignTokens.Spacing.sm) {
+                Text("Fit notes")
+                    .font(DesignTokens.Typography.caption.weight(.bold))
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                Text("\(selectedCount)/\(GroomerPortfolioFitTag.maximumTagsPerPhoto)")
+                    .font(DesignTokens.Typography.caption.weight(.bold))
+                    .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
+                    .padding(.horizontal, DesignTokens.Spacing.sm)
+                    .padding(.vertical, DesignTokens.Spacing.xs)
+                    .background(DesignTokens.Colors.groomerAccent.opacity(0.12))
+                    .clipShape(DesignTokens.Shapes.chip)
+            }
+            .accessibilityElement(children: .combine)
         }
+        .tint(DesignTokens.Colors.groomerAccent)
     }
 
     private var selectedCount: Int {
@@ -2877,14 +2915,10 @@ private struct GroomerPortfolioFitTagChip: View {
     var body: some View {
         Button(action: onToggle) {
             HStack(spacing: DesignTokens.Spacing.xs) {
-                Image(systemName: iconName)
-                    .font(.system(size: 13, weight: .bold))
-                    .accessibilityHidden(true)
-
                 Text(signal.title)
                     .font(DesignTokens.Typography.caption.weight(.semibold))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.78)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.82)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
                 Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
@@ -2897,7 +2931,7 @@ private struct GroomerPortfolioFitTagChip: View {
                     : DesignTokens.Colors.textPrimary
             )
             .padding(.horizontal, DesignTokens.Spacing.sm)
-            .frame(height: 38)
+            .frame(minHeight: 38)
             .background(
                 isSelected
                     ? DesignTokens.Colors.groomerAccent
@@ -2918,50 +2952,6 @@ private struct GroomerPortfolioFitTagChip: View {
         .buttonStyle(.plain)
         .accessibilityLabel("\(signal.title) portfolio fit tag")
         .accessibilityValue(isSelected ? "Selected" : "Not selected")
-    }
-
-    private var iconName: String {
-        switch signal.group {
-        case .coatType:
-            "comb"
-        case .breedGroup:
-            "pawprint.fill"
-        case .sizeBand:
-            "ruler"
-        case .careFlag:
-            "heart.fill"
-        case .serviceFit:
-            "scissors"
-        }
-    }
-}
-
-private struct GroomerPortfolioMetadataRow: View {
-    let title: String
-    let value: String
-    let systemImage: String
-
-    var body: some View {
-        HStack(alignment: .top, spacing: DesignTokens.Spacing.sm) {
-            Image(systemName: systemImage)
-                .font(DesignTokens.Typography.caption)
-                .foregroundStyle(DesignTokens.Colors.textTertiary)
-                .frame(width: DesignTokens.Spacing.lg)
-                .accessibilityHidden(true)
-
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                Text(title)
-                    .font(DesignTokens.Typography.caption.weight(.semibold))
-                    .foregroundStyle(DesignTokens.Colors.textPrimary)
-
-                Text(value)
-                    .font(DesignTokens.Typography.caption)
-                    .foregroundStyle(DesignTokens.Colors.textSecondary)
-                    .lineLimit(2)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .accessibilityElement(children: .combine)
     }
 }
 
