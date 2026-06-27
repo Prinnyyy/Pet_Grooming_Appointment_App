@@ -4,6 +4,16 @@ This file is reverse chronological history. Only the newest entry plus `docs/00_
 
 ```text
 Date: 2026-06-26
+Task: T-098 - Groomer avatar_path regex constraint fix.
+Files changed: Supabase migration `20260627030705_t098_fix_profile_avatar_path_regex.sql`, SUPABASE_CONTRACT.md, TASK_LEDGER.md, CURRENT_STATE.md, and WORKLOG.md.
+Checks: Read-only Supabase Storage/API logs showed avatar Storage POST succeeds, then profiles avatar_path PATCH returns 400, then the client cleanup DELETE succeeds. Read-only SQL confirmed the deployed profiles_avatar_path_check regex rejected a legal `{user_id}/{file_id}.jpg` path while the corrected regex accepts `.jpg` and rejects `.txt`. User authorized T-098 remote migration; Supabase MCP apply_migration succeeded as remote version `20260627030705`; migration list confirmed T-098; rollback-only live smoke with the approved groomer debug account passed Storage upload, profiles avatar_path PATCH/readback, private download, profile restore, and object delete with zero residue. Security advisors returned existing controlled WARNs; performance advisors returned existing INFOs. `./scripts/supabase-check.sh` and `git diff --check` passed. `supabase migration list --local` did not run because local Postgres on 127.0.0.1:54322 is not running.
+Result: T-098 is completed. The deployed corrective migration replaces only the profiles_avatar_path_check extension regex and preserves the owner-folder, two-part path, 512-character, and allowed image extension rules.
+Risks: No RLS, grants, Storage policies, bucket settings, table columns, or iOS code changed. Supabase CLI linked push/list remains affected by historical migration-version drift/local-service limitations; local migration filename is aligned to the MCP-applied remote version.
+Next: Stop unless the user asks to commit/push or authorizes T-099.
+```
+
+```text
+Date: 2026-06-26
 Task: T-097 - Groomer Edit Profile avatar and success feedback fix.
 Files changed: GroomerProfileManagementView, GroomerProfileFeatureTests, TASK_LEDGER.md, CURRENT_STATE.md, and WORKLOG.md.
 Checks: Read-only remote check authenticated the approved groomer debug account and found no profiles.avatar_path plus zero owner avatar objects in the target avatars bucket; ./scripts/ios-test.sh passed, including new GroomerAvatarImageEncoderTests and AppLaunchSmokeTests; ./scripts/ios-build.sh passed; git diff --check passed.
