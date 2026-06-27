@@ -462,7 +462,7 @@ private struct GroomerFitSignalsEditorView: View {
     }
 
     private static var visibleGroups: [PetFitSignal.Group] {
-        [.coatType, .careFlag, .serviceFit].filter { group in
+        [.coatType, .sizeBand, .careFlag, .serviceFit].filter { group in
             GroomerFitClaim.availableSignals.contains(where: {
                 $0.group == group
             })

@@ -200,6 +200,7 @@ nonisolated struct GroomerFitClaim:
 
     static var availableSignals: [PetFitSignal] {
         PetFitSignal.coatTypeSignals
+            + PetFitSignal.sizeBandSignals
             + PetFitSignal.careFlagSignals
             + PetFitSignal.serviceFitSignals.filter {
                 $0.traitValue != PetFitTrait.curlyCoat.rawValue

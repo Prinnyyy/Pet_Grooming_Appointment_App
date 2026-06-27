@@ -4,6 +4,16 @@ This file is reverse chronological history. Only the newest entry plus `docs/00_
 
 ```text
 Date: 2026-06-26
+Task: T-100 - Pet coat and fit-claim save permission fix.
+Files changed: GroomerProfile, GroomerProfileManagementView, GroomerProfileFeatureTests, Supabase migration `20260627061032_t100_fix_pet_coat_and_fit_claim_grants.sql`, backend contract, feature index, task ledger, current state, and worklog.
+Checks: Root-cause investigation confirmed remote `pets.coat_type` had SELECT but not INSERT/UPDATE and `groomer_fit_claims.groomer_id` had INSERT/SELECT but not UPDATE, matching the 42501 save errors. RED `./scripts/ios-test.sh` failed on `GroomerProfileStoreTests.groomerAvailableFitClaimsIncludeSpecialtiesAndSizeExperience()` before restoring size-band fit signals; GREEN `./scripts/ios-test.sh` passed after the UI/model fix. User authorized T-100 remote migration; `supabase db push --linked --dry-run` remains blocked by older migration-version drift; authorized SQL transaction plus migration repair applied `20260627061032`; remote metadata confirmed the required grants and `schema_migrations` version; advisors returned existing WARN-class findings only; `./scripts/supabase-check.sh`, `./scripts/ios-build.sh`, and `git diff --check` passed.
+Result: T-100 is completed. Customer Edit Pet can save the T-099 coat-type field once the app writes it, Groomer Fit Signals can save through the existing upsert path, and groomer Fit Signals again show size-band experience options alongside coat/care/service signals.
+Risks: T-100 is a minimal permission/UI follow-up. It does not change RLS policies, table constraints, matching, Storage, public directory, direct booking, evidence scoring, or expertise-proof semantics.
+Next: Stop unless the user asks to commit/push or authorizes T-101.
+```
+
+```text
+Date: 2026-06-26
 Task: T-099 - Pet coat type and professional fit-signal taxonomy.
 Files changed: CustomerPet, CustomerRequest, GroomerProfile, GroomingRequestTaxonomy models; Customer Pets/Requests and Groomer Profile/Requests stores/views; Supabase customer pet repository; focused iOS tests; Supabase migration `20260627040455_t099_pet_coat_type_fit_signals.sql`; backend contract, feature index, task ledger, current state, and worklog.
 Checks: RED/GREEN focused taxonomy/customer/groomer/request/booking tests; authorized remote Supabase migration applied with `supabase db query --linked` inside a transaction plus `supabase migration repair --linked --status applied 20260627040455` because linked push dry-run is blocked by older migration-version drift; remote behavior validation confirmed `pets.coat_type`, breed-to-coat fallback, explicit unknown-breed coat input, new trait-pair validation, and derived request traits; advisors returned existing WARN-class findings only; `./scripts/supabase-check.sh`, `./scripts/ios-build.sh`, `./scripts/ios-test.sh`, and `git diff --check` passed.

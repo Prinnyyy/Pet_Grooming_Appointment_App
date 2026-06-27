@@ -399,15 +399,15 @@ struct GroomerProfileStoreTests {
     }
 
     @Test @MainActor
-    func groomerAvailableFitClaimsUseSpecialtiesInsteadOfSizeBands() {
+    func groomerAvailableFitClaimsIncludeSpecialtiesAndSizeExperience() {
         let availableIDs = GroomerFitClaim.availableSignals.map(\.id)
 
         #expect(GroomerFitClaim.maximumActiveClaims == 8)
         #expect(availableIDs.contains("coat_type:curly_wavy"))
         #expect(availableIDs.contains("coat_type:double_coat"))
+        #expect(availableIDs.contains("size_band:S"))
+        #expect(availableIDs.contains("size_band:Giant"))
         #expect(availableIDs.contains("service_fit:de_shedding_treatment"))
-        #expect(!availableIDs.contains("size_band:S"))
-        #expect(!availableIDs.contains("size_band:Giant"))
     }
 
     @Test @MainActor
