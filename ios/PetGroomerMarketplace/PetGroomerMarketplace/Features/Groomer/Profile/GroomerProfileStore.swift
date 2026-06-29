@@ -165,14 +165,6 @@ final class GroomerProfileStore {
             resetTimeOffForm()
             isLoading = false
 
-            let loadedPortfolioPhotoData = await portfolioPhotoDataMap(
-                for: loadedPhotos
-            )
-            guard loadRevision == profileMutationRevision else {
-                return
-            }
-            portfolioPhotoDataByID = loadedPortfolioPhotoData
-
             let loadedAvatarPhoto = await avatarPhotoPayload(
                 from: loadedProfile.avatarPath
             )
@@ -186,6 +178,14 @@ final class GroomerProfileStore {
                 self.profile = profile
             }
             avatarPhotoData = loadedAvatarPhoto.data
+
+            let loadedPortfolioPhotoData = await portfolioPhotoDataMap(
+                for: loadedPhotos
+            )
+            guard loadRevision == profileMutationRevision else {
+                return
+            }
+            portfolioPhotoDataByID = loadedPortfolioPhotoData
         } catch let error as GroomerProfileRepositoryError {
             isLoading = false
             errorMessage = message(for: error, action: "load")

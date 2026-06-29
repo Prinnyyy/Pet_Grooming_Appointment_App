@@ -142,7 +142,6 @@ final class ChatStore {
                 body: normalizedBody
             )
             append(message)
-            noticeMessage = "Message sent."
         } catch let error as ChatRepositoryError {
             errorMessage = self.message(for: error, action: "send message")
         } catch {

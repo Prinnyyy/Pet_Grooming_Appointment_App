@@ -67,7 +67,7 @@ struct ChatStoreTests {
         #expect(repository.lastSenderID == conversation.customerID)
         #expect(repository.lastBody == "Hello")
         #expect(store.messages(for: conversation.id) == [sent])
-        #expect(store.noticeMessage == "Message sent.")
+        #expect(store.noticeMessage == nil)
     }
 
     @Test @MainActor

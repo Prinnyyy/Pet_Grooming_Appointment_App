@@ -4,6 +4,16 @@ This file is reverse chronological history. Only the newest entry plus `docs/00_
 
 ```text
 Date: 2026-06-29
+Task: T-109 - Chat success toast and groomer avatar reload fix.
+Files changed: ChatStore, GroomerProfileStore, ChatFeatureTests, GroomerProfileFeatureTests, task ledger, current state, and worklog.
+Checks: RED `./scripts/ios-test.sh` failed on `ChatStoreTests.sendMessageTrimsAndAppendsReturnedMessage()` and `GroomerProfileStoreTests.loadRestoresAvatarBeforeSlowPortfolioPhotoHydrationCompletes()`. GREEN `./scripts/ios-test.sh` passed after implementation. A live read-only check against the approved debug groomer account confirmed `profiles.avatar_path` exists, the avatars bucket contains the referenced JPEG object, and the object is downloadable with the authenticated user token. `./scripts/ios-build.sh`, `xcrun simctl launch booted com.prinnyyy.PetGroomerMarketplace`, and `git diff --check` passed.
+Result: T-109 is completed. Successful chat sends append/clear the draft without setting `noticeMessage`, so customer/groomer chat no longer shows a success toast for normal sends while failed sends still surface `errorMessage`. Groomer profile load now hydrates the persisted avatar before Portfolio photo data, so slow Portfolio image downloads cannot leave the Account/Edit Profile avatar blank after returning to the app or signing back in.
+Risks: This is an iOS Store sequencing/feedback fix. It does not change Supabase schema, RLS, RPCs, Storage buckets, avatar upload path format, matching, navigation, or chat message persistence.
+Next: Stop unless the user asks to commit/push or starts T-110.
+```
+
+```text
+Date: 2026-06-29
 Task: T-108 - App-wide bottom prompt module unification.
 Files changed: GroomlyFeedbackPrimitives, BookingsView, ChatView, CustomerPetsView, CustomerRequestsView, GroomerProfileManagementView, GroomerRequestsView, task ledger, and worklog.
 Checks: `git diff --check` passed. `./scripts/ios-build.sh` passed. XcodeBuildMCP `build_run_sim` launched `com.prinnyyy.PetGroomerMarketplace` on iPhone 17 Pro Max iOS 26.5; no screenshot/UI capture was taken.

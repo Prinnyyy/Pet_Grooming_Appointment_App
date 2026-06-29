@@ -208,6 +208,35 @@ struct GroomerProfileStoreTests {
     }
 
     @Test @MainActor
+    func loadRestoresAvatarBeforeSlowPortfolioPhotoHydrationCompletes() async {
+        let groomerID = UUID()
+        let avatarPath = "\(groomerID.uuidString.lowercased())/avatar.jpg"
+        var profile = Self.profile(groomerID: groomerID)
+        profile.avatarPath = avatarPath
+        let photo = Self.photo(groomerID: groomerID)
+        let repository = GroomerProfileRepositoryFake(
+            profileResult: .success(profile),
+            portfolioResult: .success([photo])
+        )
+        repository.shouldSuspendPortfolioPhotoData = true
+        let store = GroomerProfileStore(
+            groomerID: groomerID,
+            repository: repository
+        )
+
+        let loadTask = Task {
+            await store.load()
+        }
+        try? await Task.sleep(nanoseconds: 50_000_000)
+
+        #expect(store.profile?.avatarPath == avatarPath)
+        #expect(store.avatarPhotoData == Data("avatar:\(avatarPath)".utf8))
+
+        loadTask.cancel()
+        await loadTask.value
+    }
+
+    @Test @MainActor
     func loadUsesLatestAvatarObjectWhenProfileAvatarPathIsMissing() async {
         let groomerID = UUID(uuidString: "AAAAAAAA-BBBB-4CCC-8DDD-EEEEEEEEEEEE")!
         let fallbackPath =
