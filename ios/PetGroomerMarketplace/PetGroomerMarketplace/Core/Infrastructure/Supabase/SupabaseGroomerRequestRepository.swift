@@ -18,7 +18,7 @@ final class SupabaseGroomerRequestRepository: GroomerRequestRepository {
         """
     private static let requestPhotoColumns =
         "id,request_id,customer_id,storage_bucket,storage_path,caption,sort_order,created_at"
-    private static let requestPhotoBucketID = "request-photos"
+    private static let requestPhotoBucketID = PhotoStorageBucketID.groomingRequest.rawValue
 
     private let client: SupabaseClient
 

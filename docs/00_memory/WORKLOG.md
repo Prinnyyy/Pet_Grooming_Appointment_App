@@ -4,6 +4,26 @@ This file is reverse chronological history. Only the newest entry plus `docs/00_
 
 ```text
 Date: 2026-06-29
+Task: T-110 - Authorized remote Storage bucket migration.
+Files changed: TASK_LEDGER.md, CURRENT_STATE.md, WORKLOG.md.
+Checks: `supabase db push --linked --dry-run` remained blocked by pre-existing remote/local migration-version drift, so the reviewed T-110 SQL was applied with `supabase db query --linked --file supabase/migrations/20260629220519_t110_storage_buckets_profile_snapshot.sql` and then recorded with `supabase migration repair --linked --status applied 20260629220519`. Remote migration list now shows `20260629220519` on both local and remote. Metadata checks confirmed private `groomer-avatars` bucket settings and SELECT/INSERT/UPDATE/DELETE policies for `authenticated`. Remote advisors returned existing WARN-class findings only. Authenticated Storage/profile smoke passed for groomer upload/download/profile avatar_path update/readback/restore/delete; customer upload to `groomer-avatars` was rejected by RLS; database residue check returned no temporary object rows.
+Result: T-110 remote migration is applied to project `lqmasbuqzvcvtawonjlb`. Live new groomer avatar uploads can now target the dedicated `groomer-avatars` bucket while Portfolio, customer pet, and grooming request photos remain on their separate buckets.
+Risks: Supabase CLI `db push --linked` is still blocked by historical migration-version drift unrelated to T-110, so future remote migrations may still need reviewed SQL apply plus targeted migration repair.
+Next: Stop unless the user asks to commit/push or starts T-111.
+```
+
+```text
+Date: 2026-06-29
+Task: T-110 - Profile photo buckets and local profile snapshot cache.
+Files changed: PhotoStorageBucketID, LocalProfileSnapshotCache, Supabase customer/groomer photo repositories, GroomlyModuleImage, AuthenticatedAccountView, GroomerProfileManagementView, GroomerProfileStore, GroomerProfileFeatureTests, Supabase migration 20260629220519_t110_storage_buckets_profile_snapshot, task ledger, current state, and worklog.
+Checks: RED `./scripts/ios-test.sh` failed on missing `PhotoStorageBucketID`, `ProfileSnapshot`, cache injection, and avatar-download failure fake support. GREEN `./scripts/ios-test.sh` passed after implementation. `./scripts/ios-build.sh`, `./scripts/supabase-check.sh`, simulator install/launch of `com.prinnyyy.PetGroomerMarketplace`, and `git diff --check` passed.
+Result: T-110 is implemented locally. The app now has an explicit four-bucket photo contract: new groomer avatar writes use `groomer-avatars`, groomer Portfolio remains `groomer-portfolio`, customer pet profile photos remain `pet-photos`, and grooming quest photos remain `request-photos`. Groomer avatar reads try the new bucket first and then the legacy `avatars` bucket so existing live avatars do not disappear during the transition. Groomer Account/Edit Profile now uses a file-backed local profile snapshot for avatar/name/detail fallback while remote data loads or avatar download fails, and profile avatar empty states use a local built-in avatar component.
+Risks: The T-110 Supabase migration is local only; remote Storage bucket/policies for `groomer-avatars` have not been applied because this run does not have explicit remote-migration authorization. Until that migration is authorized/applied, live new groomer avatar uploads to `groomer-avatars` may fail, while existing legacy `avatars` objects remain readable through the compatibility fallback.
+Next: Ask for explicit T-110 remote migration authorization before applying the new Storage bucket/policies; otherwise stop.
+```
+
+```text
+Date: 2026-06-29
 Task: T-109 - Chat success toast and groomer avatar reload fix.
 Files changed: ChatStore, GroomerProfileStore, ChatFeatureTests, GroomerProfileFeatureTests, task ledger, current state, and worklog.
 Checks: RED `./scripts/ios-test.sh` failed on `ChatStoreTests.sendMessageTrimsAndAppendsReturnedMessage()` and `GroomerProfileStoreTests.loadRestoresAvatarBeforeSlowPortfolioPhotoHydrationCompletes()`. GREEN `./scripts/ios-test.sh` passed after implementation. A live read-only check against the approved debug groomer account confirmed `profiles.avatar_path` exists, the avatars bucket contains the referenced JPEG object, and the object is downloadable with the authenticated user token. `./scripts/ios-build.sh`, `xcrun simctl launch booted com.prinnyyy.PetGroomerMarketplace`, and `git diff --check` passed.

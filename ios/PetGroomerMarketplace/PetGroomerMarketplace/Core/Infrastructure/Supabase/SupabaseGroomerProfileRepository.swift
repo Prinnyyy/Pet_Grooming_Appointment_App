@@ -22,8 +22,9 @@ final class SupabaseGroomerProfileRepository: GroomerProfileRepository {
         "id,groomer_id,trait_type,trait_value,is_active"
     private static let petFitEvidenceSummaryRPC =
         "get_my_groomer_pet_fit_evidence_summary"
-    fileprivate static let bucketID = "groomer-portfolio"
-    fileprivate static let avatarBucketID = "avatars"
+    fileprivate static let bucketID = PhotoStorageBucketID.groomerPortfolio.rawValue
+    fileprivate static let avatarBucketID = PhotoStorageBucketID.groomerAvatar.rawValue
+    private static let legacyAvatarBucketID = "avatars"
 
     private let client: SupabaseClient
 
@@ -388,46 +389,67 @@ final class SupabaseGroomerProfileRepository: GroomerProfileRepository {
                 .value
 
             guard rows.count == 1, rows.first?.avatarPath == storagePath else {
-                _ = try? await client.storage
-                    .from(Self.avatarBucketID)
-                    .remove(paths: [storagePath])
+                await removeAvatarPhoto(storagePath)
                 throw GroomerProfileRepositoryError.unavailable
             }
 
             if let oldAvatarPath,
                oldAvatarPath != storagePath {
-                _ = try? await client.storage
-                    .from(Self.avatarBucketID)
-                    .remove(paths: [oldAvatarPath])
+                await removeAvatarPhoto(oldAvatarPath)
             }
 
             return storagePath
         } catch let error as GroomerProfileRepositoryError {
             throw error
         } catch {
-            _ = try? await client.storage
-                .from(Self.avatarBucketID)
-                .remove(paths: [storagePath])
+            await removeAvatarPhoto(storagePath)
             throw Self.map(error)
         }
     }
 
     func avatarPhotoData(storagePath: String) async throws -> Data {
-        do {
-            return try await client.storage
-                .from(Self.avatarBucketID)
-                .download(path: storagePath)
-        } catch {
-            throw Self.map(error)
+        var lastError: (any Error)?
+        for bucketID in Self.avatarReadBucketIDs {
+            do {
+                return try await client.storage
+                    .from(bucketID)
+                    .download(path: storagePath)
+            } catch {
+                lastError = error
+            }
+        }
+
+        if let lastError {
+            throw Self.map(lastError)
+        }
+
+        throw GroomerProfileRepositoryError.unavailable
+    }
+
+    private func removeAvatarPhoto(_ storagePath: String) async {
+        for bucketID in Self.avatarReadBucketIDs {
+            _ = try? await client.storage
+                .from(bucketID)
+                .remove(paths: [storagePath])
         }
     }
 
-    func latestAvatarPhotoPath(groomerID: UUID) async throws -> String? {
+    private static var avatarReadBucketIDs: [String] {
+        [
+            avatarBucketID,
+            legacyAvatarBucketID,
+        ]
+    }
+
+    private func latestAvatarPhotoPath(
+        groomerID: UUID,
+        bucketID: String
+    ) async throws -> String? {
         let folderPath = groomerID.uuidString.lowercased()
 
         do {
             let files = try await client.storage
-                .from(Self.avatarBucketID)
+                .from(bucketID)
                 .list(
                     path: folderPath,
                     options: SearchOptions(
@@ -443,6 +465,28 @@ final class SupabaseGroomerProfileRepository: GroomerProfileRepository {
         } catch {
             throw Self.map(error)
         }
+    }
+
+    func latestAvatarPhotoPath(groomerID: UUID) async throws -> String? {
+        var lastError: GroomerProfileRepositoryError?
+        for bucketID in Self.avatarReadBucketIDs {
+            do {
+                if let path = try await latestAvatarPhotoPath(
+                    groomerID: groomerID,
+                    bucketID: bucketID
+                ) {
+                    return path
+                }
+            } catch let error as GroomerProfileRepositoryError {
+                lastError = error
+            }
+        }
+
+        if let lastError {
+            throw lastError
+        }
+
+        return nil
     }
 
     func replaceAvailability(

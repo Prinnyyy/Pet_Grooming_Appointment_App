@@ -70,3 +70,82 @@ struct GroomlyModuleImage<Placeholder: View>: View {
         return UIImage(data: data)
     }
 }
+
+enum GroomlyDefaultProfileAvatarTone {
+    case customer
+    case groomer
+    case neutral
+}
+
+struct GroomlyDefaultProfileAvatar: View {
+    let tone: GroomlyDefaultProfileAvatarTone
+    var symbolSize: CGFloat = 30
+
+    var body: some View {
+        ZStack {
+            background
+
+            Circle()
+                .fill(Color.white.opacity(0.35))
+                .frame(width: symbolSize * 1.55, height: symbolSize * 1.55)
+
+            Image(systemName: symbolName)
+                .font(.system(size: symbolSize, weight: .semibold))
+                .foregroundStyle(foregroundColor)
+        }
+    }
+
+    private var symbolName: String {
+        switch tone {
+        case .customer:
+            "person.fill"
+        case .groomer:
+            "scissors"
+        case .neutral:
+            "person.crop.circle.fill"
+        }
+    }
+
+    private var foregroundColor: Color {
+        switch tone {
+        case .customer:
+            DesignTokens.Colors.customerPrimaryDark
+        case .groomer:
+            DesignTokens.Colors.groomerAccentDark
+        case .neutral:
+            DesignTokens.Colors.textSecondary
+        }
+    }
+
+    private var background: LinearGradient {
+        switch tone {
+        case .customer:
+            LinearGradient(
+                colors: [
+                    DesignTokens.Colors.customerPrimary.opacity(0.42),
+                    DesignTokens.Colors.groomerAccent.opacity(0.28),
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        case .groomer:
+            LinearGradient(
+                colors: [
+                    DesignTokens.Colors.groomerAccent.opacity(0.4),
+                    DesignTokens.Colors.customerPrimary.opacity(0.28),
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        case .neutral:
+            LinearGradient(
+                colors: [
+                    DesignTokens.Colors.surfaceRaised,
+                    DesignTokens.Colors.borderSoft,
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        }
+    }
+}

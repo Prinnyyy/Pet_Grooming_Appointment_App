@@ -9,9 +9,11 @@ final class GroomerProfileStore {
 
     private let groomerID: UUID
     private let repository: any GroomerProfileRepository
+    private let profileSnapshotCache: any ProfileSnapshotCaching
     private var profileMutationRevision = 0
 
     private(set) var profile: GroomerProfile?
+    private(set) var cachedProfileSnapshot: ProfileSnapshot?
     private(set) var services: [GroomerService] = []
     private(set) var portfolioPhotos: [GroomerPortfolioPhoto] = []
     private(set) var portfolioPhotoDataByID: [UUID: Data] = [:]
@@ -72,6 +74,25 @@ final class GroomerProfileStore {
         (isLoading && profile == nil) || isSaving || isUploading
     }
 
+    var shouldShowInitialLoading: Bool {
+        isLoading && profile == nil && cachedProfileSnapshot == nil
+    }
+
+    var profileDisplayName: String {
+        Self.normalized(profile?.businessName)
+            ?? Self.normalized(cachedProfileSnapshot?.displayName)
+            ?? "Groomer Profile"
+    }
+
+    var profileDetailText: String {
+        if let profile {
+            return Self.detailText(for: profile)
+        }
+
+        return Self.normalized(cachedProfileSnapshot?.detailText)
+            ?? "★ New profile"
+    }
+
     var selectedCoreFitClaimCount: Int {
         selectedFitClaimCount { $0.group != .sizeBand }
     }
@@ -115,16 +136,19 @@ final class GroomerProfileStore {
 
     init(
         groomerID: UUID,
-        repository: any GroomerProfileRepository
+        repository: any GroomerProfileRepository,
+        profileSnapshotCache: any ProfileSnapshotCaching = FileProfileSnapshotCache.shared
     ) {
         self.groomerID = groomerID
         self.repository = repository
+        self.profileSnapshotCache = profileSnapshotCache
     }
 
     func load() async {
         let loadRevision = profileMutationRevision
         isLoading = true
         errorMessage = nil
+        populateCachedProfileSnapshot()
 
         do {
             let loadedProfile = try await repository.profile(groomerID: groomerID)
@@ -164,6 +188,7 @@ final class GroomerProfileStore {
             populateBookingPreferencesForm(with: loadedBookingPreferences)
             resetTimeOffForm()
             isLoading = false
+            saveProfileSnapshot(profile: loadedProfile, avatarData: avatarPhotoData)
 
             let loadedAvatarPhoto = await avatarPhotoPayload(
                 from: loadedProfile.avatarPath
@@ -177,7 +202,8 @@ final class GroomerProfileStore {
                 profile.avatarPath = loadedAvatarPath
                 self.profile = profile
             }
-            avatarPhotoData = loadedAvatarPhoto.data
+            avatarPhotoData = loadedAvatarPhoto.data ?? cachedProfileSnapshot?.avatarData
+            saveProfileSnapshot(profile: profile, avatarData: avatarPhotoData)
 
             let loadedPortfolioPhotoData = await portfolioPhotoDataMap(
                 for: loadedPhotos
@@ -271,6 +297,7 @@ final class GroomerProfileStore {
             }
             profile = updatedProfile
             populateProfileForm(with: updatedProfile)
+            saveProfileSnapshot(profile: updatedProfile, avatarData: avatarPhotoData)
             noticeMessage = "Groomer profile saved."
         } catch let error as GroomerProfileRepositoryError {
             errorMessage = message(for: error, action: "save")
@@ -488,6 +515,7 @@ final class GroomerProfileStore {
                 self.profile = profile
             }
             avatarPhotoData = data
+            saveProfileSnapshot(profile: profile, avatarData: data)
             noticeMessage = "Profile photo was updated."
         } catch let error as GroomerProfileRepositoryError {
             errorMessage = message(for: error, action: "upload avatar")
@@ -807,6 +835,48 @@ final class GroomerProfileStore {
         serviceRadiusMiles = min(max(profile.serviceRadiusMiles ?? 12, 5), 50)
         serviceLocationModes = profile.effectiveServiceLocationModes
         isActive = profile.isActive
+    }
+
+    private func populateCachedProfileSnapshot() {
+        guard let snapshot = profileSnapshotCache.snapshot(userID: groomerID) else {
+            return
+        }
+
+        cachedProfileSnapshot = snapshot
+        if avatarPhotoData == nil {
+            avatarPhotoData = snapshot.avatarData
+        }
+    }
+
+    private func saveProfileSnapshot(
+        profile: GroomerProfile?,
+        avatarData: Data?
+    ) {
+        let displayName = Self.normalized(profile?.businessName)
+            ?? Self.normalized(cachedProfileSnapshot?.displayName)
+            ?? "Groomer Profile"
+        let snapshot = ProfileSnapshot(
+            userID: groomerID,
+            displayName: displayName,
+            detailText: profile.map(Self.detailText(for:))
+                ?? Self.normalized(cachedProfileSnapshot?.detailText),
+            avatarData: avatarData
+        )
+        cachedProfileSnapshot = snapshot
+        profileSnapshotCache.save(snapshot)
+    }
+
+    private static func detailText(for profile: GroomerProfile) -> String {
+        guard profile.ratingCount > 0 else {
+            return "★ New profile"
+        }
+
+        return "★ \(profile.ratingAverage.formatted(.number.precision(.fractionLength(1)))) · \(profile.ratingCount) review\(profile.ratingCount == 1 ? "" : "s")"
+    }
+
+    private static func normalized(_ value: String?) -> String? {
+        let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return trimmed.isEmpty ? nil : trimmed
     }
 
     private func avatarPhotoPayload(from storagePath: String?) async -> (

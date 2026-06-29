@@ -22,6 +22,21 @@ struct GroomerPortfolioPhotoPathTests {
     }
 }
 
+struct GroomerProfileStorageBucketTests {
+    @Test
+    func photoBucketsAreSeparateForAvatarPortfolioPetAndRequestPhotos() {
+        #expect(PhotoStorageBucketID.groomerAvatar.rawValue == "groomer-avatars")
+        #expect(PhotoStorageBucketID.groomerPortfolio.rawValue == "groomer-portfolio")
+        #expect(PhotoStorageBucketID.customerPet.rawValue == "pet-photos")
+        #expect(PhotoStorageBucketID.groomingRequest.rawValue == "request-photos")
+
+        #expect(
+            Set(PhotoStorageBucketID.allCases.map(\.rawValue)).count
+                == PhotoStorageBucketID.allCases.count
+        )
+    }
+}
+
 struct GroomerAvatarImageEncoderTests {
     @Test @MainActor
     func displayablePayloadKeepsDisplayablePNGWhenPreferred() throws {
@@ -234,6 +249,73 @@ struct GroomerProfileStoreTests {
 
         loadTask.cancel()
         await loadTask.value
+    }
+
+    @Test @MainActor
+    func loadUsesLocalSnapshotWhileRemoteProfileDetailsAreStillLoading() async {
+        let groomerID = UUID()
+        let cachedAvatarData = Data("cached-avatar".utf8)
+        let cache = ProfileSnapshotCacheFake(
+            snapshot: ProfileSnapshot(
+                userID: groomerID,
+                displayName: "Cached Groomer",
+                detailText: "Cached profile",
+                avatarData: cachedAvatarData
+            )
+        )
+        let repository = GroomerProfileRepositoryFake(
+            profileResult: .success(Self.profile(groomerID: groomerID))
+        )
+        repository.shouldSuspendAvailability = true
+        let store = GroomerProfileStore(
+            groomerID: groomerID,
+            repository: repository,
+            profileSnapshotCache: cache
+        )
+
+        let loadTask = Task {
+            await store.load()
+        }
+        await repository.waitForSuspendedAvailability()
+
+        #expect(store.profileDisplayName == "Cached Groomer")
+        #expect(store.avatarPhotoData == cachedAvatarData)
+        #expect(store.isLoading)
+
+        repository.resumeSuspendedAvailability()
+        await loadTask.value
+    }
+
+    @Test @MainActor
+    func loadKeepsLocalAvatarWhenCloudAvatarDownloadFails() async {
+        let groomerID = UUID()
+        let cachedAvatarData = Data("cached-avatar".utf8)
+        let cache = ProfileSnapshotCacheFake(
+            snapshot: ProfileSnapshot(
+                userID: groomerID,
+                displayName: "Cached Groomer",
+                detailText: "Cached profile",
+                avatarData: cachedAvatarData
+            )
+        )
+        var profile = Self.profile(groomerID: groomerID)
+        profile.avatarPath = "\(groomerID.uuidString.lowercased())/avatar.jpg"
+        let repository = GroomerProfileRepositoryFake(
+            profileResult: .success(profile),
+            avatarPhotoDataResult: .failure(.networkUnavailable)
+        )
+        let store = GroomerProfileStore(
+            groomerID: groomerID,
+            repository: repository,
+            profileSnapshotCache: cache
+        )
+
+        await store.load()
+
+        #expect(store.profileDisplayName == "Fresh Coat")
+        #expect(store.avatarPhotoData == cachedAvatarData)
+        #expect(cache.savedSnapshot?.displayName == "Fresh Coat")
+        #expect(cache.savedSnapshot?.avatarData == cachedAvatarData)
     }
 
     @Test @MainActor
@@ -1338,6 +1420,7 @@ private final class GroomerProfileRepositoryFake: GroomerProfileRepository {
     var deleteServiceResult: Result<Void, GroomerProfileRepositoryError>
     var uploadResult: Result<GroomerPortfolioPhoto, GroomerProfileRepositoryError>
     var uploadAvatarResult: Result<String, GroomerProfileRepositoryError>
+    var avatarPhotoDataResult: Result<Data, GroomerProfileRepositoryError>?
     var deletePhotoResult: Result<Void, GroomerProfileRepositoryError>
     var replaceAvailabilityResult: Result<[GroomerAvailabilityWindow], GroomerProfileRepositoryError>?
     var createTimeOffResult: Result<GroomerTimeOffWindow, GroomerProfileRepositoryError>?
@@ -1403,6 +1486,7 @@ private final class GroomerProfileRepositoryFake: GroomerProfileRepository {
             .failure(.unavailable),
         uploadAvatarResult: Result<String, GroomerProfileRepositoryError> =
             .failure(.unavailable),
+        avatarPhotoDataResult: Result<Data, GroomerProfileRepositoryError>? = nil,
         deletePhotoResult: Result<Void, GroomerProfileRepositoryError> =
             .success(()),
         replaceAvailabilityResult: Result<[GroomerAvailabilityWindow], GroomerProfileRepositoryError>? = nil,
@@ -1429,6 +1513,7 @@ private final class GroomerProfileRepositoryFake: GroomerProfileRepository {
         self.deleteServiceResult = deleteServiceResult
         self.uploadResult = uploadResult
         self.uploadAvatarResult = uploadAvatarResult
+        self.avatarPhotoDataResult = avatarPhotoDataResult
         self.deletePhotoResult = deletePhotoResult
         self.replaceAvailabilityResult = replaceAvailabilityResult
         self.createTimeOffResult = createTimeOffResult
@@ -1656,6 +1741,9 @@ private final class GroomerProfileRepositoryFake: GroomerProfileRepository {
 
     func avatarPhotoData(storagePath: String) async throws -> Data {
         lastAvatarPhotoDataPath = storagePath
+        if let avatarPhotoDataResult {
+            return try avatarPhotoDataResult.get()
+        }
         return Data("avatar:\(storagePath)".utf8)
     }
 
@@ -1727,5 +1815,33 @@ private final class GroomerProfileRepositoryFake: GroomerProfileRepository {
     func deleteTimeOff(_ window: GroomerTimeOffWindow) async throws {
         deleteTimeOffCallCount += 1
         try deleteTimeOffResult.get()
+    }
+}
+
+@MainActor
+private final class ProfileSnapshotCacheFake: ProfileSnapshotCaching {
+    var storedSnapshot: ProfileSnapshot?
+    private(set) var savedSnapshot: ProfileSnapshot?
+    private(set) var removedUserID: UUID?
+
+    init(snapshot: ProfileSnapshot? = nil) {
+        self.storedSnapshot = snapshot
+    }
+
+    func snapshot(userID: UUID) -> ProfileSnapshot? {
+        guard storedSnapshot?.userID == userID else { return nil }
+        return storedSnapshot
+    }
+
+    func save(_ snapshot: ProfileSnapshot) {
+        savedSnapshot = snapshot
+        storedSnapshot = snapshot
+    }
+
+    func remove(userID: UUID) {
+        removedUserID = userID
+        if storedSnapshot?.userID == userID {
+            storedSnapshot = nil
+        }
     }
 }

@@ -18,7 +18,7 @@ final class SupabaseCustomerRequestRepository: CustomerRequestRepository {
         "user_id,business_name,bio,years_experience,base_city,base_state,service_radius_miles,service_location_mode,rating_avg,rating_count,is_active,is_verified"
     private static let requestPhotoColumns =
         "id,request_id,customer_id,storage_bucket,storage_path,caption,sort_order,created_at"
-    fileprivate static let requestPhotoBucketID = "request-photos"
+    fileprivate static let requestPhotoBucketID = PhotoStorageBucketID.groomingRequest.rawValue
 
     private let client: SupabaseClient
 

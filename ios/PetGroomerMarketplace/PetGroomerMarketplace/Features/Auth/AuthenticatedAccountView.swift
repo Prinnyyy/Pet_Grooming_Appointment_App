@@ -16,14 +16,14 @@ struct AuthenticatedAccountView: View {
 
                     GroomlyCard {
                         HStack(alignment: .center, spacing: DesignTokens.Spacing.lg) {
-                            Image(systemName: "person.fill")
-                                .font(.title.weight(.semibold))
-                                .foregroundStyle(profile.role.accountAccentColor)
+                            GroomlyDefaultProfileAvatar(
+                                tone: profile.role.defaultAvatarTone,
+                                symbolSize: 30
+                            )
                                 .frame(
                                     width: 72,
                                     height: 72
                                 )
-                                .background(profile.role.accountAccentBackgroundGradient)
                                 .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
                                 .accessibilityHidden(true)
 
@@ -139,35 +139,12 @@ private extension UserRole {
         }
     }
 
-    var accountAccentColor: Color {
+    var defaultAvatarTone: GroomlyDefaultProfileAvatarTone {
         switch self {
         case .customer:
-            DesignTokens.Colors.customerPrimaryDark
+            .customer
         case .groomer:
-            DesignTokens.Colors.groomerAccentDark
-        }
-    }
-
-    var accountAccentBackgroundGradient: LinearGradient {
-        switch self {
-        case .customer:
-            LinearGradient(
-                colors: [
-                    DesignTokens.Colors.groomerAccent.opacity(0.34),
-                    DesignTokens.Colors.customerPrimary.opacity(0.46),
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        case .groomer:
-            LinearGradient(
-                colors: [
-                    DesignTokens.Colors.groomerAccent.opacity(0.4),
-                    DesignTokens.Colors.customerPrimary.opacity(0.28),
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
+            .groomer
         }
     }
 }

@@ -32,7 +32,7 @@ struct GroomerProfileManagementView: View {
             DesignTokens.Colors.background
                 .ignoresSafeArea()
 
-            if store.isLoading, store.profile == nil {
+            if store.shouldShowInitialLoading {
                 GroomlyLoadingView(
                     title: "Loading Groomer Profile…",
                     message: "We are preparing your profile, services, and portfolio settings.",
@@ -84,7 +84,8 @@ private struct GroomerAccountHomeView: View {
                 .padding(.top, DesignTokens.Spacing.sm)
 
             GroomerAccountProfileCard(
-                profile: store.profile,
+                displayName: store.profileDisplayName,
+                detailText: store.profileDetailText,
                 avatarPhotoData: store.avatarPhotoData
             )
 
@@ -195,7 +196,8 @@ private struct GroomerAccountHomeView: View {
 }
 
 private struct GroomerAccountProfileCard: View {
-    let profile: GroomerProfile?
+    let displayName: String
+    let detailText: String
     let avatarPhotoData: Data?
 
     var body: some View {
@@ -209,13 +211,13 @@ private struct GroomerAccountProfileCard: View {
                 )
 
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                    Text(profile?.businessName ?? "Groomer Profile")
+                    Text(displayName)
                         .font(.system(size: 25, weight: .bold))
                         .foregroundStyle(DesignTokens.Colors.textPrimary)
                         .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
 
-                    Text(ratingSummary)
+                    Text(detailText)
                         .font(DesignTokens.Typography.body)
                         .foregroundStyle(DesignTokens.Colors.textSecondary)
 
@@ -230,14 +232,6 @@ private struct GroomerAccountProfileCard: View {
             }
         }
         .accessibilityElement(children: .combine)
-    }
-
-    private var ratingSummary: String {
-        guard let profile, profile.ratingCount > 0 else {
-            return "★ New profile"
-        }
-
-        return "★ \(profile.ratingAverage.formatted(.number.precision(.fractionLength(1)))) · \(profile.ratingCount) review\(profile.ratingCount == 1 ? "" : "s")"
     }
 }
 
@@ -285,17 +279,10 @@ private struct GroomerAvatarImage: View {
 
     var body: some View {
         GroomlyModuleImage(data: data) {
-            LinearGradient(
-                colors: [
-                    DesignTokens.Colors.groomerAccent.opacity(0.28),
-                    DesignTokens.Colors.customerPrimary.opacity(0.34),
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
+            GroomlyDefaultProfileAvatar(
+                tone: .groomer,
+                symbolSize: placeholderSize
             )
-
-            Text("👩🏻")
-                .font(.system(size: placeholderSize))
         }
         .frame(width: size, height: size)
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))

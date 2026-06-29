@@ -5,7 +5,7 @@ import Supabase
 final class SupabaseCustomerPetRepository: CustomerPetRepository {
     private static let petColumns = "id,customer_id,name,species,breed,coat_type,size,weight_lbs,birthday,temperament,medical_notes,grooming_notes,is_active"
     private static let photoColumns = "id,pet_id,customer_id,storage_bucket,storage_path,caption,sort_order,is_primary"
-    fileprivate static let bucketID = "pet-photos"
+    fileprivate static let bucketID = PhotoStorageBucketID.customerPet.rawValue
 
     private let client: SupabaseClient
 
