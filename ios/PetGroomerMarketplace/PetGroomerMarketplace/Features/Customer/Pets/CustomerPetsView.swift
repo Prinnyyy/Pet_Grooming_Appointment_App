@@ -638,12 +638,15 @@ private struct CustomerHomeStatusView: View {
             CustomerRequestsStatusView(store: requestStore)
 
             if let errorMessage = bookingStore.errorMessage {
-                GroomlyErrorBanner(
-                    title: "We Could Not Load Bookings",
-                    message: errorMessage
-                )
-                .padding(.horizontal, DesignTokens.Spacing.standard)
-                .padding(.vertical, DesignTokens.Spacing.sm)
+                GroomlyBottomPromptStack(
+                    horizontalPadding: DesignTokens.Spacing.standard,
+                    animationValue: errorMessage
+                ) {
+                    GroomlyBottomErrorPrompt(
+                        title: "We Could Not Load Bookings",
+                        message: errorMessage
+                    )
+                }
             }
         }
     }
@@ -1387,15 +1390,17 @@ private struct CustomerPetsStatusView: View {
     let store: CustomerPetsStore
 
     var body: some View {
-        VStack(spacing: 0) {
-            GroomlyNoticeForwarder(message: store.noticeMessage) { message in
+        GroomlyBottomPromptArea(
+            isPresented: hasInlineStatus,
+            noticeMessage: store.noticeMessage,
+            horizontalPadding: DesignTokens.Spacing.standard,
+            animationValue: hasInlineStatus,
+            clearNotice: { message in
                 guard store.noticeMessage == message else { return }
                 store.noticeMessage = nil
             }
-
-            if hasInlineStatus {
-                inlineStatus
-            }
+        ) {
+            inlineStatus
         }
     }
 
@@ -1410,16 +1415,12 @@ private struct CustomerPetsStatusView: View {
 
             if let errorMessage = store.errorMessage,
                !store.isShowingPetForm {
-                GroomlyErrorBanner(
+                GroomlyBottomErrorPrompt(
                     title: "We Could Not Update Your Pets",
                     message: errorMessage
                 )
             }
         }
-        .frame(maxWidth: .infinity)
-        .padding(.horizontal, DesignTokens.Spacing.standard)
-        .padding(.vertical, DesignTokens.Spacing.sm)
-        .animation(.easeInOut(duration: 0.24), value: hasInlineStatus)
     }
 
     private var hasInlineStatus: Bool {

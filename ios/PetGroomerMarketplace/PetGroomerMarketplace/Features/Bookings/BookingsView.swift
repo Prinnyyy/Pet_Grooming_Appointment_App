@@ -1332,15 +1332,16 @@ private struct BookingsStatusView: View {
     let role: UserRole
 
     var body: some View {
-        VStack(spacing: 0) {
-            GroomlyNoticeForwarder(message: store.noticeMessage) { message in
+        GroomlyBottomPromptArea(
+            isPresented: hasInlineStatus,
+            noticeMessage: store.noticeMessage,
+            animationValue: hasInlineStatus,
+            clearNotice: { message in
                 guard store.noticeMessage == message else { return }
                 store.noticeMessage = nil
             }
-
-            if hasInlineStatus {
-                inlineStatus
-            }
+        ) {
+            inlineStatus
         }
     }
 
@@ -1359,16 +1360,12 @@ private struct BookingsStatusView: View {
             }
 
             if let errorMessage = store.errorMessage {
-                GroomlyErrorBanner(
+                GroomlyBottomErrorPrompt(
                     title: "Booking Update Failed",
                     message: errorMessage
                 )
             }
         }
-        .frame(maxWidth: .infinity)
-        .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-        .padding(.vertical, DesignTokens.Spacing.sm)
-        .animation(.easeInOut(duration: 0.24), value: hasInlineStatus)
     }
 
     private var hasInlineStatus: Bool {

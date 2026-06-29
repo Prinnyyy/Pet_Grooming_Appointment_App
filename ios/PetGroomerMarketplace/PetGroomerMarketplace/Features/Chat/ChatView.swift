@@ -619,20 +619,20 @@ private struct ChatStatusView: View {
     let store: ChatStore
 
     var body: some View {
-        VStack(spacing: 0) {
-            GroomlyNoticeForwarder(message: store.noticeMessage) { message in
+        GroomlyBottomPromptArea(
+            isPresented: store.errorMessage != nil,
+            noticeMessage: store.noticeMessage,
+            animationValue: store.errorMessage != nil,
+            clearNotice: { message in
                 guard store.noticeMessage == message else { return }
                 store.noticeMessage = nil
             }
-
+        ) {
             if let errorMessage = store.errorMessage {
-                GroomlyErrorBanner(
+                GroomlyBottomErrorPrompt(
                     title: "Message Update Failed",
                     message: errorMessage
                 )
-                .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-                .padding(.vertical, DesignTokens.Spacing.sm)
-                .animation(.easeInOut(duration: 0.24), value: store.errorMessage)
             }
         }
     }

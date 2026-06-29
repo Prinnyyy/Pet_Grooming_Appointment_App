@@ -72,6 +72,8 @@ Read-only commands such as `git status`, `git diff`, and `git log` are allowed.
 
 Commit, push, reset, rebase, PR creation, merge, branch deletion, and repository-setting changes require explicit user approval.
 
+When committing or pushing, include a concise traceability record in the user-facing closeout: what changed, why it changed, validation run, known risks, branch, and commit/push result.
+
 ## Superpowers
 
 Superpowers is optional.

@@ -431,8 +431,13 @@ private struct GroomerFitSignalsEditorView: View {
         .safeAreaInset(edge: .bottom) {
             VStack(spacing: DesignTokens.Spacing.sm) {
                 if let successNoticeMessage {
-                    GroomlyNoticeToast(message: successNoticeMessage)
-                        .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+                    GroomlyBottomPromptStack(
+                        topPadding: 0,
+                        bottomPadding: 0,
+                        animationValue: successNoticeMessage
+                    ) {
+                        GroomlyNoticeToast(message: successNoticeMessage)
+                    }
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                         .task(id: successNoticeMessage) {
                             await dismissSuccessNotice(successNoticeMessage)
@@ -3164,15 +3169,16 @@ private struct GroomerProfileStatusView: View {
     let store: GroomerProfileStore
 
     var body: some View {
-        VStack(spacing: 0) {
-            GroomlyNoticeForwarder(message: store.noticeMessage) { message in
+        GroomlyBottomPromptArea(
+            isPresented: hasInlineStatus,
+            noticeMessage: store.noticeMessage,
+            animationValue: hasInlineStatus,
+            clearNotice: { message in
                 guard store.noticeMessage == message else { return }
                 store.noticeMessage = nil
             }
-
-            if hasInlineStatus {
-                inlineStatus
-            }
+        ) {
+            inlineStatus
         }
     }
 
@@ -3187,16 +3193,12 @@ private struct GroomerProfileStatusView: View {
 
             if let errorMessage = store.errorMessage,
                !store.isShowingServiceForm {
-                GroomlyErrorBanner(
+                GroomlyBottomErrorPrompt(
                     title: "Profile Update Failed",
                     message: errorMessage
                 )
             }
         }
-        .frame(maxWidth: .infinity)
-        .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-        .padding(.vertical, DesignTokens.Spacing.sm)
-        .animation(.easeInOut(duration: 0.24), value: hasInlineStatus)
     }
 
     private var hasInlineStatus: Bool {

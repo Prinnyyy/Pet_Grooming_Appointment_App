@@ -3,6 +3,16 @@
 This file is reverse chronological history. Only the newest entry plus `docs/00_memory/CURRENT_STATE.md` and `docs/06_tasks/TASK_LEDGER.md` define the current branch, current baseline, and next-task state. Older `Next:` lines and branch references are historical closeout notes, not current instructions.
 
 ```text
+Date: 2026-06-29
+Task: T-108 - App-wide bottom prompt module unification.
+Files changed: GroomlyFeedbackPrimitives, BookingsView, ChatView, CustomerPetsView, CustomerRequestsView, GroomerProfileManagementView, GroomerRequestsView, task ledger, and worklog.
+Checks: `git diff --check` passed. `./scripts/ios-build.sh` passed. XcodeBuildMCP `build_run_sim` launched `com.prinnyyy.PetGroomerMarketplace` on iPhone 17 Pro Max iOS 26.5; no screenshot/UI capture was taken.
+Result: T-108 is completed. Bottom notice, progress, and error prompt surfaces now share `GroomlyBottomPrompt`, `GroomlyBottomPromptStack`, `GroomlyBottomPromptArea`, and `GroomlyBottomErrorPrompt`; page-specific bottom status views route through that module while non-bottom inline error banners remain unchanged.
+Risks: This is an iOS presentation-only refactor. It does not change Stores, repositories, Supabase schema/RLS/RPC, navigation, matching, Storage, or persistence.
+Next: Stop unless the user asks to commit/push or starts T-109.
+```
+
+```text
 Date: 2026-06-27
 Task: T-107 - App-wide module photo display policy.
 Files changed: GroomlyModuleImage, GroomerProfileManagementView, GroomerRequestsView, CustomerPetsView, CustomerRequestsView, GroomerProfileFeatureTests, feature index, task ledger, current state, and worklog.

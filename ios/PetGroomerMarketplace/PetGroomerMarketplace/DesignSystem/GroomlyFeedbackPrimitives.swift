@@ -88,6 +88,111 @@ struct GroomlyFeedbackNotice: Equatable, Identifiable {
     let message: String
 }
 
+struct GroomlyBottomPrompt<Content: View>: View {
+    private let borderColor: Color
+    private let content: Content
+
+    init(
+        borderColor: Color = DesignTokens.Colors.borderSoft,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.borderColor = borderColor
+        self.content = content()
+    }
+
+    var body: some View {
+        content
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, DesignTokens.Spacing.lg)
+            .padding(.vertical, DesignTokens.Spacing.md)
+            .background {
+                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.card, style: .continuous)
+                    .fill(.ultraThinMaterial)
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.card, style: .continuous)
+                    .stroke(borderColor, lineWidth: 1)
+            }
+            .groomlyShadow(DesignTokens.Shadows.smallCard)
+            .accessibilityElement(children: .combine)
+    }
+}
+
+struct GroomlyBottomPromptStack<Content: View>: View {
+    private let horizontalPadding: CGFloat
+    private let topPadding: CGFloat
+    private let bottomPadding: CGFloat
+    private let animationValue: AnyHashable
+    private let content: Content
+
+    init(
+        horizontalPadding: CGFloat = DesignTokens.Spacing.screenHorizontal,
+        topPadding: CGFloat = DesignTokens.Spacing.sm,
+        bottomPadding: CGFloat = DesignTokens.Spacing.sm,
+        animationValue: AnyHashable = false,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.horizontalPadding = horizontalPadding
+        self.topPadding = topPadding
+        self.bottomPadding = bottomPadding
+        self.animationValue = animationValue
+        self.content = content()
+    }
+
+    var body: some View {
+        VStack(spacing: DesignTokens.Spacing.sm) {
+            content
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, horizontalPadding)
+        .padding(.top, topPadding)
+        .padding(.bottom, bottomPadding)
+        .animation(.easeInOut(duration: 0.24), value: animationValue)
+    }
+}
+
+struct GroomlyBottomPromptArea<Content: View>: View {
+    private let isPresented: Bool
+    private let noticeMessage: String?
+    private let horizontalPadding: CGFloat
+    private let animationValue: AnyHashable
+    private let clearNotice: ((String) -> Void)?
+    private let content: Content
+
+    init(
+        isPresented: Bool,
+        noticeMessage: String? = nil,
+        horizontalPadding: CGFloat = DesignTokens.Spacing.screenHorizontal,
+        animationValue: AnyHashable = false,
+        clearNotice: ((String) -> Void)? = nil,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.isPresented = isPresented
+        self.noticeMessage = noticeMessage
+        self.horizontalPadding = horizontalPadding
+        self.animationValue = animationValue
+        self.clearNotice = clearNotice
+        self.content = content()
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            if let clearNotice {
+                GroomlyNoticeForwarder(message: noticeMessage, clear: clearNotice)
+            }
+
+            if isPresented {
+                GroomlyBottomPromptStack(
+                    horizontalPadding: horizontalPadding,
+                    animationValue: animationValue
+                ) {
+                    content
+                }
+            }
+        }
+    }
+}
+
 @MainActor
 @Observable
 final class GroomlyFeedbackCenter {
@@ -154,14 +259,17 @@ struct GroomlyGlobalFeedbackOverlay: View {
 
     var body: some View {
         if let notice = center.notice {
-            GroomlyNoticeToast(message: notice.message)
-                .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-                .padding(.bottom, Self.bottomTabBarClearance)
-                .transition(.move(edge: .bottom).combined(with: .opacity))
-                .allowsHitTesting(false)
-                .task(id: notice.id) {
-                    await dismissNotice(id: notice.id)
-                }
+            GroomlyBottomPromptStack(
+                bottomPadding: Self.bottomTabBarClearance,
+                animationValue: notice.id
+            ) {
+                GroomlyNoticeToast(message: notice.message)
+            }
+            .transition(.move(edge: .bottom).combined(with: .opacity))
+            .allowsHitTesting(false)
+            .task(id: notice.id) {
+                await dismissNotice(id: notice.id)
+            }
         }
     }
 
@@ -187,44 +295,34 @@ struct GroomlyNoticeToast: View {
     }
 
     var body: some View {
-        HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
-            Image(systemName: "checkmark")
-                .font(.footnote.weight(.heavy))
-                .foregroundStyle(DesignTokens.Colors.surface)
-                .frame(width: 32, height: 32)
-                .background(DesignTokens.Colors.success)
-                .clipShape(DesignTokens.Shapes.circular)
-                .accessibilityHidden(true)
+        GroomlyBottomPrompt(borderColor: DesignTokens.Colors.success.opacity(0.24)) {
+            HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
+                Image(systemName: "checkmark")
+                    .font(.footnote.weight(.heavy))
+                    .foregroundStyle(DesignTokens.Colors.surface)
+                    .frame(width: 32, height: 32)
+                    .background(DesignTokens.Colors.success)
+                    .clipShape(DesignTokens.Shapes.circular)
+                    .accessibilityHidden(true)
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(DesignTokens.Typography.body.weight(.bold))
-                    .foregroundStyle(DesignTokens.Colors.textPrimary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.82)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(DesignTokens.Typography.body.weight(.bold))
+                        .foregroundStyle(DesignTokens.Colors.textPrimary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.82)
 
-                if let detail {
-                    Text(detail)
-                        .font(DesignTokens.Typography.caption)
-                        .foregroundStyle(DesignTokens.Colors.textSecondary)
-                        .lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
+                    if let detail {
+                        Text(detail)
+                            .font(DesignTokens.Typography.caption)
+                            .foregroundStyle(DesignTokens.Colors.textSecondary)
+                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(.horizontal, DesignTokens.Spacing.lg)
-        .padding(.vertical, DesignTokens.Spacing.md)
-        .background {
-            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.card, style: .continuous)
-                .fill(.ultraThinMaterial)
-        }
-        .overlay {
-            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.card, style: .continuous)
-                .stroke(DesignTokens.Colors.success.opacity(0.24), lineWidth: 1)
-        }
-        .groomlyShadow(DesignTokens.Shadows.smallCard)
-        .accessibilityElement(children: .combine)
     }
 
     private var title: String {
@@ -263,6 +361,50 @@ struct GroomlyNoticeToast: View {
     }
 }
 
+struct GroomlyBottomErrorPrompt: View {
+    private let title: String
+    private let message: String?
+
+    init(title: String, message: String? = nil) {
+        self.title = title
+        self.message = message
+    }
+
+    var body: some View {
+        GroomlyBottomPrompt(borderColor: DesignTokens.Colors.error.opacity(0.28)) {
+            HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(DesignTokens.Typography.body.weight(.semibold))
+                    .foregroundStyle(DesignTokens.Colors.error)
+                    .frame(
+                        width: DesignTokens.Spacing.xl + DesignTokens.Spacing.sm,
+                        height: DesignTokens.Spacing.xl + DesignTokens.Spacing.sm
+                    )
+                    .background(DesignTokens.Colors.error.opacity(0.12))
+                    .clipShape(DesignTokens.Shapes.circular)
+                    .accessibilityHidden(true)
+
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                    Text(title)
+                        .font(DesignTokens.Typography.body.weight(.bold))
+                        .foregroundStyle(DesignTokens.Colors.textPrimary)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.86)
+
+                    if let message {
+                        Text(message)
+                            .font(DesignTokens.Typography.caption)
+                            .foregroundStyle(DesignTokens.Colors.textSecondary)
+                            .lineLimit(3)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+    }
+}
+
 struct GroomlyStatusProgressToast: View {
     private let title: String
     private let tint: Color
@@ -273,29 +415,19 @@ struct GroomlyStatusProgressToast: View {
     }
 
     var body: some View {
-        HStack(spacing: DesignTokens.Spacing.md) {
-            ProgressView()
-                .tint(tint)
+        GroomlyBottomPrompt {
+            HStack(spacing: DesignTokens.Spacing.md) {
+                ProgressView()
+                    .tint(tint)
 
-            Text(title)
-                .font(DesignTokens.Typography.caption.weight(.semibold))
-                .foregroundStyle(DesignTokens.Colors.textSecondary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.82)
+                Text(title)
+                    .font(DesignTokens.Typography.caption.weight(.semibold))
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.82)
+            }
+            .frame(maxWidth: .infinity)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.horizontal, DesignTokens.Spacing.lg)
-        .padding(.vertical, DesignTokens.Spacing.md)
-        .background {
-            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.card, style: .continuous)
-                .fill(.ultraThinMaterial)
-        }
-        .overlay {
-            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.card, style: .continuous)
-                .stroke(DesignTokens.Colors.borderSoft, lineWidth: 1)
-        }
-        .groomlyShadow(DesignTokens.Shadows.smallCard)
-        .accessibilityElement(children: .combine)
     }
 }
 

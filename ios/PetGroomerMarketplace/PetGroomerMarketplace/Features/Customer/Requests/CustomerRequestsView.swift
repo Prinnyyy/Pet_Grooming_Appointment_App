@@ -3953,14 +3953,16 @@ struct CustomerRequestsStatusView: View {
     let store: CustomerRequestsStore
 
     var body: some View {
-        VStack(spacing: 0) {
-            GroomlyNoticeForwarder(message: store.noticeMessage) { message in
+        GroomlyBottomPromptArea(
+            isPresented: hasInlineStatus,
+            noticeMessage: store.noticeMessage,
+            horizontalPadding: DesignTokens.Spacing.standard,
+            animationValue: hasInlineStatus,
+            clearNotice: { message in
                 store.clearNotice(ifCurrent: message)
             }
-
-            if hasInlineStatus {
-                inlineStatus
-            }
+        ) {
+            inlineStatus
         }
     }
 
@@ -3975,16 +3977,12 @@ struct CustomerRequestsStatusView: View {
 
             if let errorMessage = store.errorMessage,
                !store.isShowingWizard {
-                GroomlyErrorBanner(
+                GroomlyBottomErrorPrompt(
                     title: "We Could Not Update Requests",
                     message: errorMessage
                 )
             }
         }
-        .frame(maxWidth: .infinity)
-        .padding(.horizontal, DesignTokens.Spacing.standard)
-        .padding(.vertical, DesignTokens.Spacing.sm)
-        .animation(.easeInOut(duration: 0.24), value: hasInlineStatus)
     }
 
     private var hasInlineStatus: Bool {
