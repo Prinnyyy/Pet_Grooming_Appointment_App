@@ -308,6 +308,45 @@ struct CustomerPetsStoreTests {
     }
 
     @Test @MainActor
+    func avatarUploadReplacesExistingPetPhotoAndCache() async {
+        let customerID = UUID()
+        let pet = Self.pet(customerID: customerID)
+        let oldPhoto = Self.photo(customerID: customerID, petID: pet.id)
+        let newPhoto = Self.photo(customerID: customerID, petID: pet.id)
+        let oldData = Data([0x01])
+        let newData = Data([0x02, 0x03])
+        let repository = CustomerPetRepositoryFake(
+            petsResult: .success([pet]),
+            photosResult: .success([oldPhoto]),
+            uploadResult: .success(newPhoto),
+            photoDataResultsByPhotoID: [
+                oldPhoto.id: .success(oldData),
+            ]
+        )
+        let photoCache = CustomerPetPhotoCacheFake()
+        let store = CustomerPetsStore(
+            customerID: customerID,
+            repository: repository,
+            photoCache: photoCache
+        )
+        await store.load()
+
+        await store.uploadPhoto(
+            pet: pet,
+            data: newData,
+            contentType: .jpeg
+        )
+
+        #expect(repository.uploadCallCount == 1)
+        #expect(repository.deletePhotoCallCount == 1)
+        #expect(repository.deletedPhotoIDs == [oldPhoto.id])
+        #expect(store.photos(for: pet) == [newPhoto])
+        #expect(store.primaryPhotoData(for: pet) == newData)
+        #expect(photoCache.savedSnapshots.last?.photoID == newPhoto.id)
+        #expect(photoCache.removedPhotoIDs == [oldPhoto.id])
+    }
+
+    @Test @MainActor
     func cardPhotoUploadBecomesAvatarWhenOlderPhotoHasNoImageData() async {
         let customerID = UUID()
         let pet = Self.pet(customerID: customerID)
@@ -343,7 +382,7 @@ struct CustomerPetsStoreTests {
             contentType: .jpeg
         )
 
-        #expect(store.photos(for: pet) == [olderPhoto, uploadedPhoto])
+        #expect(store.photos(for: pet) == [uploadedPhoto])
         #expect(store.primaryPhotoData(for: pet) == uploadedData)
     }
 
@@ -390,7 +429,7 @@ struct CustomerPetsStoreTests {
             contentType: .jpeg
         )
 
-        #expect(store.photos(for: pet) == [existingPrimaryPhoto, uploadedPhoto])
+        #expect(store.photos(for: pet) == [uploadedPhoto])
         #expect(store.primaryPhotoData(for: pet) == uploadedData)
     }
 
@@ -438,7 +477,7 @@ struct CustomerPetsStoreTests {
     }
 
     @Test @MainActor
-    func editFormUsesExistingPhotoDataAndCountsSavedPhotos() async {
+    func editFormUsesExistingAvatarPhotoData() async {
         let customerID = UUID()
         let pet = Self.pet(customerID: customerID)
         let photo = Self.photo(customerID: customerID, petID: pet.id)
@@ -459,7 +498,6 @@ struct CustomerPetsStoreTests {
         store.startEdit(pet)
 
         #expect(store.formAvatarPhotoData == existingData)
-        #expect(store.formSavedPhotoCount == 1)
     }
 
     @Test @MainActor
@@ -486,8 +524,67 @@ struct CustomerPetsStoreTests {
         store.addPendingFormPhoto(data: pendingData, contentType: .png)
 
         #expect(store.formAvatarPhotoData == pendingData)
-        #expect(store.formSavedPhotoCount == 1)
         #expect(store.pendingFormPhotos.count == 1)
+    }
+
+    @Test @MainActor
+    func editFormAvatarSelectionReplacesPreviousPendingPhoto() async {
+        let customerID = UUID()
+        let pet = Self.pet(customerID: customerID)
+        let firstPendingData = Data([0x11])
+        let secondPendingData = Data([0x22])
+        let store = CustomerPetsStore(
+            customerID: customerID,
+            repository: CustomerPetRepositoryFake(
+                petsResult: .success([pet])
+            )
+        )
+        await store.load()
+        store.startEdit(pet)
+
+        store.addPendingFormPhoto(data: firstPendingData, contentType: .jpeg)
+        store.addPendingFormPhoto(data: secondPendingData, contentType: .png)
+
+        #expect(store.pendingFormPhotos.count == 1)
+        #expect(store.formAvatarPhotoData == secondPendingData)
+    }
+
+    @Test @MainActor
+    func stagedEditAvatarUploadReplacesExistingPetPhotoAndCache() async {
+        let customerID = UUID()
+        let pet = Self.pet(customerID: customerID)
+        let oldPhoto = Self.photo(customerID: customerID, petID: pet.id)
+        let newPhoto = Self.photo(customerID: customerID, petID: pet.id)
+        let oldData = Data([0x12])
+        let newData = Data([0x34, 0x56])
+        let repository = CustomerPetRepositoryFake(
+            petsResult: .success([pet]),
+            photosResult: .success([oldPhoto]),
+            updateResult: .success(pet),
+            uploadResult: .success(newPhoto),
+            photoDataResultsByPhotoID: [
+                oldPhoto.id: .success(oldData),
+            ]
+        )
+        let photoCache = CustomerPetPhotoCacheFake()
+        let store = CustomerPetsStore(
+            customerID: customerID,
+            repository: repository,
+            photoCache: photoCache
+        )
+        await store.load()
+
+        store.startEdit(pet)
+        store.addPendingFormPhoto(data: newData, contentType: .png)
+        await store.savePet()
+
+        #expect(repository.updateCallCount == 1)
+        #expect(repository.uploadCallCount == 1)
+        #expect(repository.deletePhotoCallCount == 1)
+        #expect(repository.deletedPhotoIDs == [oldPhoto.id])
+        #expect(store.photos(for: pet) == [newPhoto])
+        #expect(store.primaryPhotoData(for: pet) == newData)
+        #expect(photoCache.removedPhotoIDs == [oldPhoto.id])
     }
 
     @Test @MainActor
@@ -643,6 +740,7 @@ private final class CustomerPetRepositoryFake: CustomerPetRepository {
     private(set) var lastCustomerID: UUID?
     private(set) var lastDraft: CustomerPetDraft?
     private(set) var lastUploadPetID: UUID?
+    private(set) var deletedPhotoIDs: [UUID] = []
 
     init(
         petsResult: Result<[CustomerPet], CustomerPetRepositoryError> = .success([]),
@@ -749,6 +847,7 @@ private final class CustomerPetRepositoryFake: CustomerPetRepository {
 
     func deletePhoto(_ photo: CustomerPetPhoto) async throws {
         deletePhotoCallCount += 1
+        deletedPhotoIDs.append(photo.id)
         try deletePhotoResult.get()
     }
 

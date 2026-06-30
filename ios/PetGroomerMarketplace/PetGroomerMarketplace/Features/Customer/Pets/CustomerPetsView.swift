@@ -688,222 +688,6 @@ private struct CustomerHomeInlineEmptyText: View {
     }
 }
 
-private struct CustomerPetCardView: View {
-    let pet: CustomerPet
-    let photos: [CustomerPetPhoto]
-    @Bindable var store: CustomerPetsStore
-
-    var body: some View {
-        GroomlyCard {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
-                    CustomerPetAvatarImage(
-                        data: store.primaryPhotoData(for: pet)
-                    )
-
-                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                        Text(pet.name)
-                            .font(DesignTokens.Typography.headline)
-                            .foregroundStyle(DesignTokens.Colors.textPrimary)
-
-                        if !detailLine.isEmpty {
-                            Text(detailLine)
-                                .font(DesignTokens.Typography.body)
-                                .foregroundStyle(DesignTokens.Colors.secondaryText)
-                        }
-                    }
-
-                    Spacer(minLength: DesignTokens.Spacing.md)
-
-                    Menu {
-                        Button("Edit") {
-                            store.startEdit(pet)
-                        }
-
-                        Button("Remove", role: .destructive) {
-                            Task {
-                                await store.softDelete(pet)
-                            }
-                        }
-                    } label: {
-                        Image(systemName: "ellipsis.circle")
-                            .font(DesignTokens.Typography.headline)
-                            .foregroundStyle(DesignTokens.Colors.textSecondary)
-                            .accessibilityLabel("Pet actions")
-                    }
-                    .disabled(store.isBusy)
-                }
-
-                if let notes = notesLine {
-                    Text(notes)
-                        .font(DesignTokens.Typography.caption)
-                        .foregroundStyle(DesignTokens.Colors.secondaryText)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-
-                Divider()
-                    .overlay(DesignTokens.Colors.divider)
-
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                    HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
-                        GroomlyStatusChip(
-                            "\(photos.count) photo\(photos.count == 1 ? "" : "s")",
-                            systemImage: "photo",
-                            tone: .customer
-                        )
-
-                        Spacer(minLength: DesignTokens.Spacing.md)
-
-                        CustomerPetPhotoUploadButton(
-                            pet: pet,
-                            store: store
-                        )
-                    }
-
-                    ForEach(photos) { photo in
-                        CustomerPetPhotoRow(
-                            photo: photo,
-                            store: store
-                        )
-                    }
-                }
-            }
-        }
-    }
-
-    private var detailLine: String {
-        [pet.displaySpecies, pet.displayBreed, pet.displaySize]
-            .compactMap { $0 }
-            .filter { !$0.isEmpty }
-            .joined(separator: " • ")
-    }
-
-    private var notesLine: String? {
-        let values = [
-            pet.temperament.map { "Temperament: \($0)" },
-            pet.medicalNotes.map { "Medical: \($0)" },
-            pet.groomingNotes.map { "Grooming: \($0)" },
-        ]
-        .compactMap { $0 }
-
-        return values.isEmpty ? nil : values.joined(separator: "\n")
-    }
-}
-
-private struct CustomerPetAvatarImage: View {
-    let data: Data?
-
-    var body: some View {
-        GroomlyModuleImage(data: data) {
-            Image(systemName: "pawprint.fill")
-                .font(DesignTokens.Typography.headline)
-                .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(DesignTokens.Colors.customerPrimary.opacity(0.16))
-        }
-        .frame(width: 44, height: 44)
-        .clipShape(DesignTokens.Shapes.circular)
-        .accessibilityHidden(true)
-    }
-}
-
-private struct CustomerPetPhotoRow: View {
-    let photo: CustomerPetPhoto
-    @Bindable var store: CustomerPetsStore
-
-    var body: some View {
-        HStack(spacing: DesignTokens.Spacing.sm) {
-            CustomerPetPhotoThumbnail(data: store.photoData(for: photo))
-
-            Text(photo.fileName)
-                .font(DesignTokens.Typography.caption)
-                .foregroundStyle(DesignTokens.Colors.secondaryText)
-                .lineLimit(1)
-
-            Spacer(minLength: DesignTokens.Spacing.sm)
-
-            Button(role: .destructive) {
-                Task {
-                    await store.deletePhoto(photo)
-                }
-            } label: {
-                Label("Delete", systemImage: "trash")
-            }
-            .font(DesignTokens.Typography.caption.weight(.semibold))
-            .foregroundStyle(DesignTokens.Colors.error)
-            .buttonStyle(.plain)
-            .disabled(store.isBusy)
-        }
-        .padding(.vertical, DesignTokens.Spacing.xs)
-    }
-}
-
-private struct CustomerPetPhotoThumbnail: View {
-    let data: Data?
-
-    var body: some View {
-        GroomlyModuleImage(data: data) {
-            Image(systemName: "photo")
-                .font(DesignTokens.Typography.caption.weight(.semibold))
-                .foregroundStyle(DesignTokens.Colors.textTertiary)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(DesignTokens.Colors.borderSoft.opacity(0.42))
-        }
-        .frame(width: 44, height: 44)
-        .clipShape(
-            RoundedRectangle(
-                cornerRadius: 8,
-                style: .continuous
-            )
-        )
-        .accessibilityHidden(true)
-    }
-}
-
-private struct CustomerPetPhotoUploadButton: View {
-    let pet: CustomerPet
-    @Bindable var store: CustomerPetsStore
-    @State private var selectedPhotoItem: PhotosPickerItem?
-
-    var body: some View {
-        PhotosPicker(
-            selection: $selectedPhotoItem,
-            matching: .images
-        ) {
-            Label("Add Photo", systemImage: "plus.circle")
-                .lineLimit(1)
-        }
-        .buttonStyle(GroomlySecondaryButtonStyle(isFullWidth: false))
-        .disabled(store.isBusy)
-        .onChange(of: selectedPhotoItem) { _, newItem in
-            guard let newItem else { return }
-            Task {
-                await upload(newItem)
-            }
-        }
-    }
-
-    private func upload(_ item: PhotosPickerItem) async {
-        defer { selectedPhotoItem = nil }
-
-        guard let data = try? await item.loadTransferable(type: Data.self) else {
-            store.errorMessage = "We could not read that photo."
-            return
-        }
-
-        let contentType = item.supportedContentTypes
-            .lazy
-            .compactMap(CustomerPetPhotoContentType.init(uniformType:))
-            .first ?? .jpeg
-
-        await store.uploadPhoto(
-            pet: pet,
-            data: data,
-            contentType: contentType
-        )
-    }
-}
-
 private struct CustomerPetFormView: View {
     @Bindable var store: CustomerPetsStore
 
@@ -920,7 +704,7 @@ private struct CustomerPetFormView: View {
                             subtitle: "Keep the details groomers need before you start a request."
                         )
 
-                        CustomerPetFormCard(title: "Photos", systemImage: "camera.fill") {
+                        CustomerPetFormCard(title: "Pet Card Avatar", systemImage: "camera.fill") {
                             CustomerPetFormPhotoModule(store: store)
                         }
 
@@ -1087,62 +871,50 @@ private struct CustomerPetFormPhotoModule: View {
     @Bindable var store: CustomerPetsStore
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-            HStack(alignment: .center, spacing: DesignTokens.Spacing.lg) {
-                CustomerPetFormAvatarPreview(data: store.formAvatarPhotoData)
+        VStack(spacing: DesignTokens.Spacing.md) {
+            CustomerPetFormAvatarPreview(data: store.formAvatarPhotoData)
 
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                    Text(statusTitle)
-                        .font(DesignTokens.Typography.headline)
-                        .foregroundStyle(DesignTokens.Colors.textPrimary)
-                        .fixedSize(horizontal: false, vertical: true)
+            VStack(spacing: DesignTokens.Spacing.xs) {
+                Text(statusTitle)
+                    .font(DesignTokens.Typography.headline)
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
 
-                    Text(statusMessage)
-                        .font(DesignTokens.Typography.body)
-                        .foregroundStyle(DesignTokens.Colors.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-
-                    CustomerPetFormPhotoPicker(store: store)
-                }
+                Text(statusMessage)
+                    .font(DesignTokens.Typography.body)
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
-            if !store.pendingFormPhotos.isEmpty {
-                ForEach(store.pendingFormPhotos) { photo in
-                    CustomerPetPendingPhotoRow(
-                        photo: photo,
-                        store: store
-                    )
-                }
-            }
+            CustomerPetFormPhotoPicker(store: store)
         }
+        .frame(maxWidth: .infinity)
     }
 
     private var statusTitle: String {
         if !store.pendingFormPhotos.isEmpty {
-            return "New photo selected"
+            return "New avatar selected"
         }
 
-        if store.formSavedPhotoCount == 1 {
-            return "1 saved photo"
+        if store.formAvatarPhotoData != nil {
+            return "Current pet card avatar"
         }
 
-        if store.formSavedPhotoCount > 1 {
-            return "\(store.formSavedPhotoCount) saved photos"
-        }
-
-        return "No pet photo"
+        return "No avatar photo"
     }
 
     private var statusMessage: String {
         if !store.pendingFormPhotos.isEmpty {
-            return "Ready to save."
+            return "Save Pet to replace the pet card avatar."
         }
 
-        if store.formSavedPhotoCount > 0 {
-            return "Shown on pet cards."
+        if store.formAvatarPhotoData != nil {
+            return "Shown on Home and pet cards."
         }
 
-        return "Profile photo empty."
+        return "Choose one photo for this pet's card."
     }
 }
 
@@ -1384,46 +1156,6 @@ private struct CustomerPetBirthdayControl: View {
     }
 }
 
-private struct CustomerPetPendingPhotoRow: View {
-    let photo: PendingCustomerPetPhoto
-    @Bindable var store: CustomerPetsStore
-
-    var body: some View {
-        HStack(spacing: DesignTokens.Spacing.md) {
-            Image(systemName: "photo")
-                .font(DesignTokens.Typography.body.weight(.semibold))
-                .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
-                .frame(width: 44, height: 44)
-                .background(DesignTokens.Colors.customerPrimary.opacity(0.12))
-                .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input, style: .continuous))
-                .accessibilityHidden(true)
-
-            Text("\(photo.contentType.fileExtension.uppercased()) Photo")
-                .font(DesignTokens.Typography.body.weight(.semibold))
-                .foregroundStyle(DesignTokens.Colors.textPrimary)
-
-            Spacer(minLength: DesignTokens.Spacing.md)
-
-            Button(role: .destructive) {
-                store.removePendingFormPhoto(photo)
-            } label: {
-                Image(systemName: "trash")
-                    .font(DesignTokens.Typography.body.weight(.semibold))
-            }
-            .buttonStyle(.plain)
-            .foregroundStyle(DesignTokens.Colors.error)
-            .disabled(store.isSaving)
-        }
-        .padding(DesignTokens.Spacing.md)
-        .background(DesignTokens.Colors.surface)
-        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input, style: .continuous)
-                .stroke(DesignTokens.Colors.borderSoft, lineWidth: 1)
-        }
-    }
-}
-
 private struct CustomerPetFormBottomBar: View {
     @Bindable var store: CustomerPetsStore
 
@@ -1455,8 +1187,8 @@ private struct CustomerPetFormPhotoPicker: View {
             matching: .images
         ) {
             Label(
-                store.formAvatarPhotoData == nil ? "Add Photo" : "Change Photo",
-                systemImage: "camera"
+                store.formAvatarPhotoData == nil ? "Choose Avatar" : "Change Avatar",
+                systemImage: "camera.fill"
             )
                 .lineLimit(1)
         }

@@ -50,11 +50,6 @@ final class CustomerPetsStore {
         return primaryPhotoData(for: pet)
     }
 
-    var formSavedPhotoCount: Int {
-        guard let editingPetID else { return 0 }
-        return photosByPetID[editingPetID, default: []].count
-    }
-
     var isBusy: Bool {
         isLoading || isSaving || isUploading
     }
@@ -184,12 +179,12 @@ final class CustomerPetsStore {
             return
         }
 
-        pendingFormPhotos.append(
+        pendingFormPhotos = [
             PendingCustomerPetPhoto(
                 data: data,
                 contentType: contentType
             )
-        )
+        ]
     }
 
     func removePendingFormPhoto(_ photo: PendingCustomerPetPhoto) {
@@ -240,8 +235,7 @@ final class CustomerPetsStore {
 
             let uploadedPhotoCount = await uploadPendingFormPhotos(for: savedPet)
             if uploadedPhotoCount > 0 {
-                noticeMessage =
-                    "\(savedPet.name) was \(action) with \(uploadedPhotoCount) photo\(uploadedPhotoCount == 1 ? "" : "s")."
+                noticeMessage = "\(savedPet.name) was \(action) with a new avatar."
             } else {
                 noticeMessage = "\(savedPet.name) was \(action)."
             }
@@ -297,17 +291,12 @@ final class CustomerPetsStore {
         defer { isUploading = false }
 
         do {
-            let photo = try await repository.uploadPhoto(
-                customerID: customerID,
-                petID: pet.id,
+            _ = try await replaceAvatarPhoto(
+                for: pet,
                 data: data,
-                contentType: contentType,
-                caption: nil
+                contentType: contentType
             )
-            photosByPetID[pet.id, default: []].append(photo)
-            photoDataByPhotoID[photo.id] = data
-            savePhotoCache(photo: photo, data: data)
-            noticeMessage = "Photo was uploaded for \(pet.name)."
+            noticeMessage = "\(pet.name)'s avatar was updated."
         } catch let error as CustomerPetRepositoryError {
             errorMessage = message(for: error, action: "upload")
         } catch {
@@ -475,31 +464,52 @@ final class CustomerPetsStore {
     private func uploadPendingFormPhotos(for pet: CustomerPet) async -> Int {
         guard !pendingFormPhotos.isEmpty else { return 0 }
 
-        var uploadedCount = 0
+        let photo = pendingFormPhotos.last
+        guard let photo else { return 0 }
+
         var failed = false
-        for photo in pendingFormPhotos {
-            do {
-                let uploaded = try await repository.uploadPhoto(
-                    customerID: customerID,
-                    petID: pet.id,
-                    data: photo.data,
-                    contentType: photo.contentType,
-                    caption: nil
-                )
-                photosByPetID[pet.id, default: []].append(uploaded)
-                photoDataByPhotoID[uploaded.id] = photo.data
-                savePhotoCache(photo: uploaded, data: photo.data)
-                uploadedCount += 1
-            } catch {
-                failed = true
-            }
+        do {
+            _ = try await replaceAvatarPhoto(
+                for: pet,
+                data: photo.data,
+                contentType: photo.contentType
+            )
+        } catch {
+            failed = true
         }
 
         pendingFormPhotos = []
         if failed {
-            errorMessage = "Pet was saved, but some photos could not upload."
+            errorMessage = "Pet was saved, but the avatar could not upload."
         }
-        return uploadedCount
+        return failed ? 0 : 1
+    }
+
+    private func replaceAvatarPhoto(
+        for pet: CustomerPet,
+        data: Data,
+        contentType: CustomerPetPhotoContentType
+    ) async throws -> CustomerPetPhoto {
+        let replacedPhotos = photosByPetID[pet.id, default: []]
+        let photo = try await repository.uploadPhoto(
+            customerID: customerID,
+            petID: pet.id,
+            data: data,
+            contentType: contentType,
+            caption: nil
+        )
+
+        photosByPetID[pet.id] = [photo]
+        photoDataByPhotoID[photo.id] = data
+        savePhotoCache(photo: photo, data: data)
+
+        for replacedPhoto in replacedPhotos where replacedPhoto.id != photo.id {
+            photoDataByPhotoID[replacedPhoto.id] = nil
+            photoCache.remove(photoID: replacedPhoto.id)
+            try? await repository.deletePhoto(replacedPhoto)
+        }
+
+        return photo
     }
 
     private func savePhotoCache(

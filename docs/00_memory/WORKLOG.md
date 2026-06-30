@@ -4,6 +4,16 @@ This file is reverse chronological history. Only the newest entry plus `docs/00_
 
 ```text
 Date: 2026-06-29
+Task: T-115 - Customer pet single-avatar replace model.
+Files changed: CustomerPetsStore, CustomerPetsView, CustomerPetFeatureTests, TASK_LEDGER.md, CURRENT_STATE.md, WORKLOG.md.
+Checks: RED `./scripts/ios-test.sh` first failed on new single-avatar replacement expectations, including direct upload replacement, staged Edit Pet replacement, pending-selection replacement, and older-photo avatar selection cases. GREEN `./scripts/ios-test.sh` passed after implementation. `./scripts/ios-build.sh` passed. Simulator install/launch of `com.prinnyyy.PetGroomerMarketplace` passed with process id `39122`. `git diff --check` passed.
+Result: T-115 is completed. Customer pet photos now behave as one pet-card avatar: selecting a new pending avatar replaces the previous pending choice, successful direct or Edit Pet uploads keep only the new avatar in local state, clear replaced avatar cache entries, and best-effort delete the prior remote pet photo through the existing repository path. Edit Pet now has a focused Pet Card Avatar replacement module with a circular preview and one change button, without saved-photo counts, lists, delete controls, or extra photo-management copy.
+Risks: No Supabase schema, RLS, Storage bucket, repository contract, or remote migration changed. The local pet-photo cache stores image bytes and works after Supabase photo metadata loads; it is not an offline metadata index. Prior remote-photo deletion is best-effort after the new avatar upload succeeds, so a remote delete failure could leave an old row/object remotely even though the local UI immediately shows the new single avatar.
+Next: Stop unless the user asks to commit/push or starts T-116.
+```
+
+```text
+Date: 2026-06-29
 Task: T-114 - Customer pet Home/Edit photo feedback fix.
 Files changed: CustomerPetsStore, CustomerPetsView, CustomerPetFeatureTests, TASK_LEDGER.md, CURRENT_STATE.md, WORKLOG.md.
 Checks: RED `./scripts/ios-test.sh` first failed while the new Edit Pet photo-preview APIs were missing, then failed on `CustomerPetsStoreTests.cardPhotoUploadBecomesAvatarWhenUploadedPhotoHasSameSortOrder()` until newest available photo data won avatar selection. GREEN `./scripts/ios-test.sh` passed after implementation. `./scripts/ios-build.sh` passed. Simulator install/launch of `com.prinnyyy.PetGroomerMarketplace` passed with process id `19243`. `git diff --check` passed.
