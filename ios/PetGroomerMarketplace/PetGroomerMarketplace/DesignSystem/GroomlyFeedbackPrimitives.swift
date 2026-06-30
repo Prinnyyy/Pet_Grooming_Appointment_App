@@ -88,7 +88,7 @@ struct GroomlyFeedbackNotice: Equatable, Identifiable {
     let message: String
 }
 
-enum GroomlyFeedbackTone: Equatable {
+enum GroomlyFeedbackTone: Equatable, Sendable {
     case customer
     case groomer
     case neutral
@@ -124,7 +124,7 @@ struct GroomlyGlobalFeedbackError: Equatable, Identifiable {
         ContentKey(title: title, message: message)
     }
 
-    struct ContentKey: Equatable {
+    struct ContentKey: Equatable, Hashable, Sendable {
         let title: String
         let message: String?
     }
@@ -156,7 +156,7 @@ struct GroomlyGlobalFeedbackProgress: Equatable, Identifiable {
         ContentKey(title: title, tone: tone)
     }
 
-    struct ContentKey: Equatable {
+    struct ContentKey: Equatable, Sendable {
         let title: String
         let tone: GroomlyFeedbackTone
     }
@@ -278,41 +278,57 @@ struct GroomlyBottomPromptArea<Content: View>: View {
 @Observable
 final class GroomlyFeedbackCenter {
     static let noticeDismissDelayNanoseconds: UInt64 = 2_000_000_000
+    static let errorDismissDelayNanoseconds: UInt64 = 2_000_000_000
+    static let queuedPromptAdvanceDelayNanoseconds: UInt64 = 280_000_000
 
-    var notice: GroomlyFeedbackNotice?
+    private(set) var notice: GroomlyFeedbackNotice?
     private(set) var error: GroomlyGlobalFeedbackError?
     private(set) var progress: GroomlyGlobalFeedbackProgress?
+    private var queuedPrompts: [QueuedPrompt] = []
+    private var dismissedErrorKeys: Set<GroomlyGlobalFeedbackError.ContentKey> = []
+    private var isWaitingToShowQueuedPrompt = false
+    private var queuedPromptAdvanceTask: Task<Void, Never>?
+    private var errorDismissTask: Task<Void, Never>?
 
     @discardableResult
     func showNotice(_ message: String) -> UUID {
         let id = UUID()
-        notice = GroomlyFeedbackNotice(id: id, message: message)
+        enqueue(.notice(GroomlyFeedbackNotice(id: id, message: message)))
         return id
     }
 
     func showError(_ error: GroomlyGlobalFeedbackError) {
-        guard self.error?.contentKey != error.contentKey else { return }
-        self.error = error
+        enqueue(.error(error))
     }
 
     func showProgress(_ progress: GroomlyGlobalFeedbackProgress) {
-        guard self.progress?.contentKey != progress.contentKey else { return }
-        self.progress = progress
+        enqueue(.progress(progress))
     }
 
     func clearNotice(id: UUID) {
-        guard notice?.id == id else { return }
-        notice = nil
+        if notice?.id == id {
+            dismissActivePrompt()
+        } else {
+            queuedPrompts.removeAll { $0.isNotice(id: id) }
+        }
     }
 
     func clearError(matching error: GroomlyGlobalFeedbackError) {
-        guard self.error?.contentKey == error.contentKey else { return }
-        self.error = nil
+        dismissedErrorKeys.remove(error.contentKey)
+
+        if self.error?.contentKey == error.contentKey {
+            dismissActivePrompt()
+        } else {
+            queuedPrompts.removeAll { $0.isError(matching: error) }
+        }
     }
 
     func clearProgress(matching progress: GroomlyGlobalFeedbackProgress) {
-        guard self.progress?.contentKey == progress.contentKey else { return }
-        self.progress = nil
+        if self.progress?.contentKey == progress.contentKey {
+            dismissActivePrompt()
+        } else {
+            queuedPrompts.removeAll { $0.isProgress(matching: progress) }
+        }
     }
 
     var hasVisiblePrompt: Bool {
@@ -325,6 +341,163 @@ final class GroomlyFeedbackCenter {
             error?.id.uuidString ?? "no-error",
             notice?.id.uuidString ?? "no-notice"
         ].joined(separator: ":")
+    }
+
+    private var activePrompt: QueuedPrompt? {
+        if let notice {
+            .notice(notice)
+        } else if let error {
+            .error(error)
+        } else if let progress {
+            .progress(progress)
+        } else {
+            nil
+        }
+    }
+
+    private func enqueue(_ prompt: QueuedPrompt) {
+        guard !isDismissedError(prompt) else { return }
+        guard !containsEquivalentPrompt(prompt) else { return }
+
+        if activePrompt == nil, !isWaitingToShowQueuedPrompt {
+            present(prompt)
+        } else {
+            queuedPrompts.append(prompt)
+        }
+    }
+
+    private func containsEquivalentPrompt(_ prompt: QueuedPrompt) -> Bool {
+        activePrompt?.isEquivalent(to: prompt) == true
+            || queuedPrompts.contains { $0.isEquivalent(to: prompt) }
+    }
+
+    private func isDismissedError(_ prompt: QueuedPrompt) -> Bool {
+        if case let .error(error) = prompt {
+            dismissedErrorKeys.contains(error.contentKey)
+        } else {
+            false
+        }
+    }
+
+    private func present(_ prompt: QueuedPrompt) {
+        cancelErrorDismissTask()
+        notice = nil
+        error = nil
+        progress = nil
+
+        switch prompt {
+        case let .notice(notice):
+            self.notice = notice
+        case let .error(error):
+            self.error = error
+            scheduleErrorDismiss(for: error)
+        case let .progress(progress):
+            self.progress = progress
+        }
+    }
+
+    private func dismissActivePrompt() {
+        cancelErrorDismissTask()
+        notice = nil
+        error = nil
+        progress = nil
+        scheduleQueuedPromptAdvanceIfNeeded()
+    }
+
+    private func dismissActiveErrorIfNeeded(matching contentKey: GroomlyGlobalFeedbackError.ContentKey) {
+        guard error?.contentKey == contentKey else { return }
+        dismissedErrorKeys.insert(contentKey)
+        dismissActivePrompt()
+    }
+
+    private func scheduleErrorDismiss(for error: GroomlyGlobalFeedbackError) {
+        let contentKey = error.contentKey
+        errorDismissTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: Self.errorDismissDelayNanoseconds)
+            guard !Task.isCancelled else { return }
+
+            await MainActor.run {
+                withAnimation(.easeInOut(duration: 0.28)) {
+                    self?.dismissActiveErrorIfNeeded(matching: contentKey)
+                }
+            }
+        }
+    }
+
+    private func cancelErrorDismissTask() {
+        errorDismissTask?.cancel()
+        errorDismissTask = nil
+    }
+
+    private func scheduleQueuedPromptAdvanceIfNeeded() {
+        queuedPromptAdvanceTask?.cancel()
+        queuedPromptAdvanceTask = nil
+
+        guard !queuedPrompts.isEmpty else {
+            isWaitingToShowQueuedPrompt = false
+            return
+        }
+
+        isWaitingToShowQueuedPrompt = true
+        queuedPromptAdvanceTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: Self.queuedPromptAdvanceDelayNanoseconds)
+            guard !Task.isCancelled else { return }
+
+            await MainActor.run {
+                guard let self else { return }
+                self.isWaitingToShowQueuedPrompt = false
+                self.queuedPromptAdvanceTask = nil
+                self.presentNextQueuedPromptIfIdle()
+            }
+        }
+    }
+
+    private func presentNextQueuedPromptIfIdle() {
+        guard activePrompt == nil, !queuedPrompts.isEmpty else { return }
+        present(queuedPrompts.removeFirst())
+    }
+
+    private enum QueuedPrompt {
+        case notice(GroomlyFeedbackNotice)
+        case error(GroomlyGlobalFeedbackError)
+        case progress(GroomlyGlobalFeedbackProgress)
+
+        func isEquivalent(to other: QueuedPrompt) -> Bool {
+            switch (self, other) {
+            case let (.notice(lhs), .notice(rhs)):
+                lhs.message == rhs.message
+            case let (.error(lhs), .error(rhs)):
+                lhs.contentKey == rhs.contentKey
+            case let (.progress(lhs), .progress(rhs)):
+                lhs.contentKey == rhs.contentKey
+            default:
+                false
+            }
+        }
+
+        func isNotice(id: UUID) -> Bool {
+            if case let .notice(notice) = self {
+                notice.id == id
+            } else {
+                false
+            }
+        }
+
+        func isError(matching error: GroomlyGlobalFeedbackError) -> Bool {
+            if case let .error(queuedError) = self {
+                queuedError.contentKey == error.contentKey
+            } else {
+                false
+            }
+        }
+
+        func isProgress(matching progress: GroomlyGlobalFeedbackProgress) -> Bool {
+            if case let .progress(queuedProgress) = self {
+                queuedProgress.contentKey == progress.contentKey
+            } else {
+                false
+            }
+        }
     }
 }
 

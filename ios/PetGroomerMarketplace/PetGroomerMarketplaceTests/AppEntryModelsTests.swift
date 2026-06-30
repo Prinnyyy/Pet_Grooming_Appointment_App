@@ -69,17 +69,21 @@ struct GroomlyFeedbackCenterTests {
     }
 
     @Test @MainActor
-    func newNoticeReplacesExistingNoticeAndMakesPreviousCountdownStale() {
+    func newNoticeWaitsUntilVisibleNoticeDismissesBeforeShowing() async throws {
         let center = GroomlyFeedbackCenter()
 
         let firstID = center.showNotice("Request Cancelled.")
         let secondID = center.showNotice("Message Sent.")
 
         #expect(firstID != secondID)
-        #expect(center.notice?.id == secondID)
-        #expect(center.notice?.message == "Message Sent.")
+        #expect(center.notice?.id == firstID)
+        #expect(center.notice?.message == "Request Cancelled.")
 
         center.clearNotice(id: firstID)
+        #expect(center.notice == nil)
+
+        try await waitForFeedbackQueueAdvance()
+
         #expect(center.notice?.id == secondID)
         #expect(center.notice?.message == "Message Sent.")
 
@@ -88,7 +92,7 @@ struct GroomlyFeedbackCenterTests {
     }
 
     @Test @MainActor
-    func globalFeedbackCenterTracksErrorAndProgressPrompts() {
+    func globalFeedbackCenterQueuesMixedPromptTypesOneAtATime() async throws {
         let center = GroomlyFeedbackCenter()
         let error = GroomlyGlobalFeedbackError(
             title: "Booking Update Failed",
@@ -99,19 +103,74 @@ struct GroomlyFeedbackCenterTests {
             tone: .groomer
         )
 
+        let noticeID = center.showNotice("Request Cancelled.")
         center.showError(error)
         center.showProgress(progress)
 
+        #expect(center.notice?.id == noticeID)
+        #expect(center.error == nil)
+        #expect(center.progress == nil)
+
+        center.clearNotice(id: noticeID)
+        #expect(center.hasVisiblePrompt == false)
+
+        try await waitForFeedbackQueueAdvance()
+
+        #expect(center.notice == nil)
         #expect(center.error?.title == error.title)
         #expect(center.error?.message == error.message)
+        #expect(center.progress == nil)
+
+        center.clearError(matching: error)
+        #expect(center.hasVisiblePrompt == false)
+
+        try await waitForFeedbackQueueAdvance()
+
+        #expect(center.notice == nil)
+        #expect(center.error == nil)
         #expect(center.progress?.title == progress.title)
         #expect(center.progress?.tone == progress.tone)
 
-        center.clearError(matching: error)
         center.clearProgress(matching: progress)
 
         #expect(center.error == nil)
         #expect(center.progress == nil)
+    }
+
+    @Test @MainActor
+    func errorPromptAutoDismissesAndDoesNotReplayUntilSourceClears() async throws {
+        let center = GroomlyFeedbackCenter()
+        let error = GroomlyGlobalFeedbackError(
+            title: "Booking Update Failed",
+            message: "We could not load bookings. Please try again."
+        )
+
+        center.showError(error)
+        #expect(center.error?.title == error.title)
+
+        try await waitForFeedbackPromptAutoDismiss()
+
+        #expect(center.error == nil)
+        #expect(center.hasVisiblePrompt == false)
+
+        center.showError(error)
+        #expect(center.error == nil)
+
+        center.clearError(matching: error)
+        center.showError(error)
+        #expect(center.error?.title == error.title)
+    }
+
+    private func waitForFeedbackQueueAdvance() async throws {
+        try await Task.sleep(
+            nanoseconds: GroomlyFeedbackCenter.queuedPromptAdvanceDelayNanoseconds + 370_000_000
+        )
+    }
+
+    private func waitForFeedbackPromptAutoDismiss() async throws {
+        try await Task.sleep(
+            nanoseconds: GroomlyFeedbackCenter.errorDismissDelayNanoseconds + 350_000_000
+        )
     }
 }
 

@@ -4,6 +4,26 @@ This file is reverse chronological history. Only the newest entry plus `docs/00_
 
 ```text
 Date: 2026-06-30
+Task: T-119 - Global bottom prompt error auto-dismiss.
+Files changed: GroomlyFeedbackPrimitives, AppEntryModelsTests, TASK_LEDGER.md, CURRENT_STATE.md, WORKLOG.md.
+Checks: Investigation found that global notice prompts had a 2-second dismissal path but global error prompts did not; Store `errorMessage` values can persist until the next load/action, so the global bottom error could stay visible indefinitely. RED `./scripts/ios-test.sh` failed only on the new error auto-dismiss and stale-replay suppression expectation. GREEN `./scripts/ios-test.sh` passed after adding center-owned error dismissal, stale same-content suppression until source clear, and regression coverage. `./scripts/ios-build.sh` passed. Simulator install/launch of `com.prinnyyy.PetGroomerMarketplace` passed with process id `46357`. `git diff --check` passed.
+Result: T-119 is completed. Global bottom error prompts now auto-dismiss after the same timed window as transient notices and do not replay stale same-content errors on tab switches while the underlying source still holds the old error. When the source clears, the same error content can be shown again for a future failure. The existing one-prompt queue/fade behavior from T-118 remains intact.
+Risks: No Store, repository, Supabase schema, RLS, RPC, Storage, navigation, or page-specific prompt-forwarding contract changed. Progress prompts intentionally still rely on source busy state clearing; if a loading prompt stays forever, that indicates a stuck source operation/busy flag rather than this global error-dismiss path.
+Next: Stop unless the user asks to commit/push or starts T-120.
+```
+
+```text
+Date: 2026-06-30
+Task: T-118 - Global bottom prompt queued presentation.
+Files changed: GroomlyFeedbackPrimitives, AppEntryModelsTests, TASK_LEDGER.md, CURRENT_STATE.md, WORKLOG.md.
+Checks: RED `./scripts/ios-test.sh` failed only on the new queue expectations because the previous global feedback center replaced/staged prompts immediately instead of waiting behind the active prompt. GREEN `./scripts/ios-test.sh` passed after adding center-owned queued prompt state and a fade-window advance. `./scripts/ios-build.sh` passed. Simulator install/launch of `com.prinnyyy.PetGroomerMarketplace` passed on iPhone 17 Pro Max with process id `34084`. `git diff --check` passed.
+Result: T-118 is completed. The global bottom feedback center now presents only one notice/error/progress prompt at a time. New prompt requests queue behind the active prompt, duplicate active/queued content is ignored, clearing the active prompt creates a short empty fade window, and the next queued prompt appears only after that window completes.
+Risks: No Store, repository, Supabase schema, RLS, RPC, Storage, navigation, or page-specific prompt-forwarding contract changed. Persistent progress/error prompts still rely on their existing forwarders clearing stale queued items when the source state becomes nil.
+Next: Stop unless the user asks to commit/push or starts T-119.
+```
+
+```text
+Date: 2026-06-30
 Task: T-117 - Global bottom prompt routing for booking errors.
 Files changed: GroomlyFeedbackPrimitives, BookingsView, ChatView, CustomerPetsView, CustomerRequestsView, GroomerRequestsView, GroomerProfileManagementView, AppEntryModelsTests, BookingFeatureTests, CustomerRequestFeatureTests, TASK_LEDGER.md, CURRENT_STATE.md, WORKLOG.md.
 Checks: RED `./scripts/ios-test.sh` failed after adding tests for missing global feedback-center error/progress APIs. A later RED failed on the corrected Customer Home requirement that Next Booking load failures create a global bottom prompt instead of a page-local error. GREEN `./scripts/ios-test.sh` passed after extending the center, routing page status views through it, restoring Customer Home booking load failures to the global prompt path, and making prompt forwarders update on appear/change. `./scripts/ios-build.sh` passed. Simulator install/launch of `com.prinnyyy.PetGroomerMarketplace` passed on iPhone 17 Pro Max with process id `20415`. `git diff --check` passed.
