@@ -165,6 +165,68 @@ struct CustomerPetsStoreTests {
     }
 
     @Test @MainActor
+    func loadUsesCachedPetPhotoDataWhenCloudDownloadFails() async {
+        let customerID = UUID()
+        let pet = Self.pet(customerID: customerID)
+        let photo = Self.photo(customerID: customerID, petID: pet.id)
+        let cachedData = Data([0x09, 0x10])
+        let repository = CustomerPetRepositoryFake(
+            petsResult: .success([pet]),
+            photosResult: .success([photo]),
+            photoDataResultsByPhotoID: [
+                photo.id: .failure(.networkUnavailable),
+            ]
+        )
+        let photoCache = CustomerPetPhotoCacheFake(
+            snapshots: [
+                Self.photoSnapshot(photo, data: cachedData),
+            ]
+        )
+        let store = CustomerPetsStore(
+            customerID: customerID,
+            repository: repository,
+            photoCache: photoCache
+        )
+
+        await store.load()
+
+        #expect(store.primaryPhotoData(for: pet) == cachedData)
+        #expect(photoCache.savedSnapshots.isEmpty)
+    }
+
+    @Test @MainActor
+    func loadRefreshesPetPhotoCacheAfterCloudDownload() async {
+        let customerID = UUID()
+        let pet = Self.pet(customerID: customerID)
+        let photo = Self.photo(customerID: customerID, petID: pet.id)
+        let cachedData = Data([0x01])
+        let cloudData = Data([0x02, 0x03])
+        let repository = CustomerPetRepositoryFake(
+            petsResult: .success([pet]),
+            photosResult: .success([photo]),
+            photoDataResultsByPhotoID: [
+                photo.id: .success(cloudData),
+            ]
+        )
+        let photoCache = CustomerPetPhotoCacheFake(
+            snapshots: [
+                Self.photoSnapshot(photo, data: cachedData),
+            ]
+        )
+        let store = CustomerPetsStore(
+            customerID: customerID,
+            repository: repository,
+            photoCache: photoCache
+        )
+
+        await store.load()
+
+        #expect(store.primaryPhotoData(for: pet) == cloudData)
+        #expect(photoCache.savedSnapshots.last?.photoID == photo.id)
+        #expect(photoCache.savedSnapshots.last?.data == cloudData)
+    }
+
+    @Test @MainActor
     func softDeleteRemovesPetAndItsPhotosFromLocalState() async {
         let customerID = UUID()
         let pet = Self.pet(customerID: customerID)
@@ -210,45 +272,241 @@ struct CustomerPetsStoreTests {
     func successfulPhotoUploadAndDeleteUpdateLocalState() async throws {
         let customerID = UUID()
         let pet = Self.pet(customerID: customerID)
+        let uploadedData = Data([0x01, 0x02])
+        let uploadedPhoto = Self.photo(customerID: customerID, petID: pet.id)
         let repository = CustomerPetRepositoryFake(
             uploadResult: .success(
-                Self.photo(customerID: customerID, petID: pet.id)
+                uploadedPhoto
             )
         )
+        let photoCache = CustomerPetPhotoCacheFake()
         let store = CustomerPetsStore(
             customerID: customerID,
-            repository: repository
+            repository: repository,
+            photoCache: photoCache
         )
 
         await store.uploadPhoto(
             pet: pet,
-            data: Data([0x01, 0x02]),
+            data: uploadedData,
             contentType: .jpeg
         )
 
         #expect(repository.uploadCallCount == 1)
         #expect(store.photos(for: pet).count == 1)
+        #expect(store.primaryPhotoData(for: pet) == uploadedData)
+        #expect(photoCache.savedSnapshots.last?.photoID == uploadedPhoto.id)
+        #expect(photoCache.savedSnapshots.last?.data == uploadedData)
 
         let photo = try #require(store.photos(for: pet).first)
         await store.deletePhoto(photo)
 
         #expect(repository.deletePhotoCallCount == 1)
         #expect(store.photos(for: pet).isEmpty)
+        #expect(store.primaryPhotoData(for: pet) == nil)
+        #expect(photoCache.removedPhotoIDs == [uploadedPhoto.id])
+    }
+
+    @Test @MainActor
+    func cardPhotoUploadBecomesAvatarWhenOlderPhotoHasNoImageData() async {
+        let customerID = UUID()
+        let pet = Self.pet(customerID: customerID)
+        let olderPhoto = Self.photo(
+            customerID: customerID,
+            petID: pet.id,
+            storagePath: "customer/pet/000-old.jpg",
+            sortOrder: 0
+        )
+        let uploadedPhoto = Self.photo(
+            customerID: customerID,
+            petID: pet.id,
+            storagePath: "customer/pet/999-new.jpg",
+            sortOrder: 1
+        )
+        let uploadedData = Data([0x33, 0x44])
+        let repository = CustomerPetRepositoryFake(
+            petsResult: .success([pet]),
+            photosResult: .success([olderPhoto]),
+            uploadResult: .success(uploadedPhoto)
+        )
+        let store = CustomerPetsStore(
+            customerID: customerID,
+            repository: repository
+        )
+        await store.load()
+
+        #expect(store.primaryPhotoData(for: pet) == nil)
+
+        await store.uploadPhoto(
+            pet: pet,
+            data: uploadedData,
+            contentType: .jpeg
+        )
+
+        #expect(store.photos(for: pet) == [olderPhoto, uploadedPhoto])
+        #expect(store.primaryPhotoData(for: pet) == uploadedData)
+    }
+
+    @Test @MainActor
+    func cardPhotoUploadBecomesAvatarWhenExistingPrimaryHasImageData() async {
+        let customerID = UUID()
+        let pet = Self.pet(customerID: customerID)
+        let existingPrimaryPhoto = Self.photo(
+            customerID: customerID,
+            petID: pet.id,
+            storagePath: "customer/pet/000-primary.jpg",
+            sortOrder: 0,
+            isPrimary: true
+        )
+        let uploadedPhoto = Self.photo(
+            customerID: customerID,
+            petID: pet.id,
+            storagePath: "customer/pet/999-new.jpg",
+            sortOrder: 1
+        )
+        let existingData = Data([0x10, 0x20])
+        let uploadedData = Data([0x30, 0x40])
+        let repository = CustomerPetRepositoryFake(
+            petsResult: .success([pet]),
+            photosResult: .success([existingPrimaryPhoto]),
+            uploadResult: .success(uploadedPhoto),
+            photoDataResultsByPhotoID: [
+                existingPrimaryPhoto.id: .success(existingData),
+            ]
+        )
+        let photoCache = CustomerPetPhotoCacheFake()
+        let store = CustomerPetsStore(
+            customerID: customerID,
+            repository: repository,
+            photoCache: photoCache
+        )
+        await store.load()
+
+        #expect(store.primaryPhotoData(for: pet) == existingData)
+
+        await store.uploadPhoto(
+            pet: pet,
+            data: uploadedData,
+            contentType: .jpeg
+        )
+
+        #expect(store.photos(for: pet) == [existingPrimaryPhoto, uploadedPhoto])
+        #expect(store.primaryPhotoData(for: pet) == uploadedData)
+    }
+
+    @Test @MainActor
+    func cardPhotoUploadBecomesAvatarWhenUploadedPhotoHasSameSortOrder() async {
+        let customerID = UUID()
+        let pet = Self.pet(customerID: customerID)
+        let existingPhoto = Self.photo(
+            customerID: customerID,
+            petID: pet.id,
+            storagePath: "customer/pet/zzz-existing.jpg",
+            sortOrder: 0
+        )
+        let uploadedPhoto = Self.photo(
+            customerID: customerID,
+            petID: pet.id,
+            storagePath: "customer/pet/aaa-new.jpg",
+            sortOrder: 0
+        )
+        let existingData = Data([0x10, 0x20])
+        let uploadedData = Data([0x30, 0x40])
+        let repository = CustomerPetRepositoryFake(
+            petsResult: .success([pet]),
+            photosResult: .success([existingPhoto]),
+            uploadResult: .success(uploadedPhoto),
+            photoDataResultsByPhotoID: [
+                existingPhoto.id: .success(existingData),
+            ]
+        )
+        let store = CustomerPetsStore(
+            customerID: customerID,
+            repository: repository
+        )
+        await store.load()
+
+        #expect(store.primaryPhotoData(for: pet) == existingData)
+
+        await store.uploadPhoto(
+            pet: pet,
+            data: uploadedData,
+            contentType: .jpeg
+        )
+
+        #expect(store.primaryPhotoData(for: pet) == uploadedData)
+    }
+
+    @Test @MainActor
+    func editFormUsesExistingPhotoDataAndCountsSavedPhotos() async {
+        let customerID = UUID()
+        let pet = Self.pet(customerID: customerID)
+        let photo = Self.photo(customerID: customerID, petID: pet.id)
+        let existingData = Data([0x50, 0x60])
+        let repository = CustomerPetRepositoryFake(
+            petsResult: .success([pet]),
+            photosResult: .success([photo]),
+            photoDataResultsByPhotoID: [
+                photo.id: .success(existingData),
+            ]
+        )
+        let store = CustomerPetsStore(
+            customerID: customerID,
+            repository: repository
+        )
+        await store.load()
+
+        store.startEdit(pet)
+
+        #expect(store.formAvatarPhotoData == existingData)
+        #expect(store.formSavedPhotoCount == 1)
+    }
+
+    @Test @MainActor
+    func editFormAvatarPreviewPrefersPendingPhoto() async {
+        let customerID = UUID()
+        let pet = Self.pet(customerID: customerID)
+        let photo = Self.photo(customerID: customerID, petID: pet.id)
+        let existingData = Data([0x50, 0x60])
+        let pendingData = Data([0x70, 0x80])
+        let repository = CustomerPetRepositoryFake(
+            petsResult: .success([pet]),
+            photosResult: .success([photo]),
+            photoDataResultsByPhotoID: [
+                photo.id: .success(existingData),
+            ]
+        )
+        let store = CustomerPetsStore(
+            customerID: customerID,
+            repository: repository
+        )
+        await store.load()
+        store.startEdit(pet)
+
+        store.addPendingFormPhoto(data: pendingData, contentType: .png)
+
+        #expect(store.formAvatarPhotoData == pendingData)
+        #expect(store.formSavedPhotoCount == 1)
+        #expect(store.pendingFormPhotos.count == 1)
     }
 
     @Test @MainActor
     func stagedFormPhotoUploadsAfterPetCreation() async {
         let customerID = UUID()
         let createdPet = Self.pet(customerID: customerID)
+        let stagedPhotoData = Data([0x01, 0x02])
+        let uploadedPhoto = Self.photo(customerID: customerID, petID: createdPet.id)
         let repository = CustomerPetRepositoryFake(
             createResult: .success(createdPet),
             uploadResult: .success(
-                Self.photo(customerID: customerID, petID: createdPet.id)
+                uploadedPhoto
             )
         )
+        let photoCache = CustomerPetPhotoCacheFake()
         let store = CustomerPetsStore(
             customerID: customerID,
-            repository: repository
+            repository: repository,
+            photoCache: photoCache
         )
 
         store.formName = "Banksy"
@@ -257,7 +515,7 @@ struct CustomerPetsStoreTests {
         store.formWeightLbs = 21
         store.formTemperament = .friendly
         store.addPendingFormPhoto(
-            data: Data([0x01, 0x02]),
+            data: stagedPhotoData,
             contentType: .png
         )
 
@@ -267,7 +525,43 @@ struct CustomerPetsStoreTests {
         #expect(repository.uploadCallCount == 1)
         #expect(repository.lastUploadPetID == createdPet.id)
         #expect(store.photos(for: createdPet).count == 1)
+        #expect(store.primaryPhotoData(for: createdPet) == stagedPhotoData)
+        #expect(photoCache.savedSnapshots.last?.photoID == uploadedPhoto.id)
+        #expect(photoCache.savedSnapshots.last?.data == stagedPhotoData)
         #expect(store.pendingFormPhotos.isEmpty)
+    }
+
+    @Test @MainActor
+    func stagedFormPhotoUploadsAfterPetUpdateRefreshPrimaryPhotoData() async {
+        let customerID = UUID()
+        let pet = Self.pet(customerID: customerID)
+        let stagedPhotoData = Data([0x03, 0x04])
+        let repository = CustomerPetRepositoryFake(
+            petsResult: .success([pet]),
+            updateResult: .success(pet),
+            uploadResult: .success(
+                Self.photo(customerID: customerID, petID: pet.id)
+            )
+        )
+        let store = CustomerPetsStore(
+            customerID: customerID,
+            repository: repository
+        )
+        await store.load()
+
+        store.startEdit(pet)
+        store.addPendingFormPhoto(
+            data: stagedPhotoData,
+            contentType: .png
+        )
+
+        await store.savePet()
+
+        #expect(repository.updateCallCount == 1)
+        #expect(repository.uploadCallCount == 1)
+        #expect(repository.lastUploadPetID == pet.id)
+        #expect(store.photos(for: pet).count == 1)
+        #expect(store.primaryPhotoData(for: pet) == stagedPhotoData)
     }
 
     private static func pet(
@@ -294,21 +588,38 @@ struct CustomerPetsStoreTests {
 
     private static func photo(
         customerID: UUID,
-        petID: UUID
+        petID: UUID,
+        storagePath: String? = nil,
+        sortOrder: Int = 0,
+        isPrimary: Bool = false
     ) -> CustomerPetPhoto {
         CustomerPetPhoto(
             id: UUID(),
             petID: petID,
             customerID: customerID,
             storageBucket: "pet-photos",
-            storagePath: CustomerPetPhotoPath.make(
+            storagePath: storagePath ?? CustomerPetPhotoPath.make(
                 customerID: customerID,
                 petID: petID,
                 contentType: .jpeg
             ),
             caption: nil,
-            sortOrder: 0,
-            isPrimary: false
+            sortOrder: sortOrder,
+            isPrimary: isPrimary
+        )
+    }
+
+    @MainActor
+    private static func photoSnapshot(
+        _ photo: CustomerPetPhoto,
+        data: Data
+    ) -> CustomerPetPhotoSnapshot {
+        CustomerPetPhotoSnapshot(
+            customerID: photo.customerID,
+            petID: photo.petID,
+            photoID: photo.id,
+            storagePath: photo.storagePath,
+            data: data
         )
     }
 }
@@ -321,6 +632,7 @@ private final class CustomerPetRepositoryFake: CustomerPetRepository {
     var updateResult: Result<CustomerPet, CustomerPetRepositoryError>?
     var softDeleteResult: Result<Void, CustomerPetRepositoryError>
     var uploadResult: Result<CustomerPetPhoto, CustomerPetRepositoryError>
+    var photoDataResultsByPhotoID: [UUID: Result<Data, CustomerPetRepositoryError>]
     var deletePhotoResult: Result<Void, CustomerPetRepositoryError>
 
     private(set) var createCallCount = 0
@@ -340,6 +652,7 @@ private final class CustomerPetRepositoryFake: CustomerPetRepository {
         softDeleteResult: Result<Void, CustomerPetRepositoryError> = .success(()),
         uploadResult: Result<CustomerPetPhoto, CustomerPetRepositoryError> =
             .failure(.unavailable),
+        photoDataResultsByPhotoID: [UUID: Result<Data, CustomerPetRepositoryError>] = [:],
         deletePhotoResult: Result<Void, CustomerPetRepositoryError> = .success(())
     ) {
         self.petsResult = petsResult
@@ -348,6 +661,7 @@ private final class CustomerPetRepositoryFake: CustomerPetRepository {
         self.updateResult = updateResult
         self.softDeleteResult = softDeleteResult
         self.uploadResult = uploadResult
+        self.photoDataResultsByPhotoID = photoDataResultsByPhotoID
         self.deletePhotoResult = deletePhotoResult
     }
 
@@ -436,5 +750,46 @@ private final class CustomerPetRepositoryFake: CustomerPetRepository {
     func deletePhoto(_ photo: CustomerPetPhoto) async throws {
         deletePhotoCallCount += 1
         try deletePhotoResult.get()
+    }
+
+    func photoData(_ photo: CustomerPetPhoto) async throws -> Data {
+        guard let result = photoDataResultsByPhotoID[photo.id] else {
+            throw CustomerPetRepositoryError.unavailable
+        }
+        return try result.get()
+    }
+}
+
+@MainActor
+private final class CustomerPetPhotoCacheFake: CustomerPetPhotoCaching {
+    private var snapshotsByPhotoID: [UUID: CustomerPetPhotoSnapshot]
+    private(set) var savedSnapshots: [CustomerPetPhotoSnapshot] = []
+    private(set) var removedPhotoIDs: [UUID] = []
+
+    init(snapshots: [CustomerPetPhotoSnapshot] = []) {
+        snapshotsByPhotoID = Dictionary(
+            uniqueKeysWithValues: snapshots.map { ($0.photoID, $0) }
+        )
+    }
+
+    func snapshot(photo: CustomerPetPhoto) -> CustomerPetPhotoSnapshot? {
+        guard let snapshot = snapshotsByPhotoID[photo.id],
+              snapshot.customerID == photo.customerID,
+              snapshot.petID == photo.petID,
+              snapshot.storagePath == photo.storagePath else {
+            return nil
+        }
+
+        return snapshot
+    }
+
+    func save(_ snapshot: CustomerPetPhotoSnapshot) {
+        snapshotsByPhotoID[snapshot.photoID] = snapshot
+        savedSnapshots.append(snapshot)
+    }
+
+    func remove(photoID: UUID) {
+        snapshotsByPhotoID[photoID] = nil
+        removedPhotoIDs.append(photoID)
     }
 }

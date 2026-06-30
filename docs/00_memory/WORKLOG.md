@@ -4,6 +4,46 @@ This file is reverse chronological history. Only the newest entry plus `docs/00_
 
 ```text
 Date: 2026-06-29
+Task: T-114 - Customer pet Home/Edit photo feedback fix.
+Files changed: CustomerPetsStore, CustomerPetsView, CustomerPetFeatureTests, TASK_LEDGER.md, CURRENT_STATE.md, WORKLOG.md.
+Checks: RED `./scripts/ios-test.sh` first failed while the new Edit Pet photo-preview APIs were missing, then failed on `CustomerPetsStoreTests.cardPhotoUploadBecomesAvatarWhenUploadedPhotoHasSameSortOrder()` until newest available photo data won avatar selection. GREEN `./scripts/ios-test.sh` passed after implementation. `./scripts/ios-build.sh` passed. Simulator install/launch of `com.prinnyyy.PetGroomerMarketplace` passed with process id `19243`. `git diff --check` passed.
+Result: T-114 is completed. Customer Home pet cards now render uploaded pet photo data instead of the emoji-only fallback, and Edit Pet Photos now shows a circular avatar preview, existing saved-photo count, and selected pending-photo preview so reopening Edit Pet can show the saved photo state when image data is available.
+Risks: No Supabase schema, RLS, Storage bucket, repository contract, or remote migration changed. Pet photo metadata still has to load before the app can associate cached/cloud photo data with a pet; if no local or cloud bytes are available, the local paw fallback remains correct.
+Next: Stop unless the user asks to commit/push or starts T-115.
+```
+
+```text
+Date: 2026-06-29
+Task: T-113 - Customer pet card direct-upload avatar selection fix.
+Files changed: CustomerPetsStore, CustomerPetFeatureTests, TASK_LEDGER.md, CURRENT_STATE.md, WORKLOG.md.
+Checks: RED `./scripts/ios-test.sh` failed on `CustomerPetsStoreTests.cardPhotoUploadBecomesAvatarWhenOlderPhotoHasNoImageData()`, then a broader RED failed on `CustomerPetsStoreTests.cardPhotoUploadBecomesAvatarWhenExistingPrimaryHasImageData()`. GREEN `./scripts/ios-test.sh` passed after changing pet-card avatar selection to use the newest available local/cloud image data. `./scripts/ios-build.sh` passed. Simulator install/launch of `com.prinnyyy.PetGroomerMarketplace` passed with process id `1837`. `git diff --check` passed.
+Result: T-113 is completed. Pet card direct uploads now become the visible card avatar even when the pet already has older photo metadata without image bytes or an existing visible primary image.
+Risks: No Supabase schema, RLS, Storage bucket, repository contract, or remote migration changed. If neither local cache/upload bytes nor cloud-downloaded bytes exist for any pet photo, the card still correctly falls back to the local paw avatar.
+Next: Stop unless the user asks to commit/push or starts T-114.
+```
+
+```text
+Date: 2026-06-29
+Task: T-112 - Customer pet avatar local photo cache.
+Files changed: LocalCustomerPetPhotoCache, CustomerPetsStore, CustomerPetFeatureTests, TASK_LEDGER.md, CURRENT_STATE.md, WORKLOG.md.
+Checks: RED `./scripts/ios-test.sh` failed on missing `CustomerPetPhotoSnapshot` and `CustomerPetPhotoCaching`. GREEN `./scripts/ios-test.sh` passed after adding the file-backed cache and Store integration. `./scripts/ios-build.sh` passed. Simulator install/launch of `com.prinnyyy.PetGroomerMarketplace` passed with process id `83809`. `git diff --check` passed.
+Result: T-112 is completed. Customer pet card avatars now read cached pet-photo bytes from a dedicated local snapshot cache before cloud image hydration, refresh that cache after successful Storage downloads, and save/remove cached bytes when customer pet photos are uploaded or deleted.
+Risks: No Supabase schema, RLS, Storage bucket, or remote migration changed. Pet-photo metadata still must load from Supabase before the app can identify which cached photo belongs to a pet; when neither cache nor cloud image data is available, the pet card keeps the local paw fallback.
+Next: Stop unless the user asks to commit/push or starts T-113.
+```
+
+```text
+Date: 2026-06-29
+Task: T-111 - Customer pet card avatar refresh after photo upload.
+Files changed: CustomerPetsStore, CustomerPetsView, CustomerPetFeatureTests, TASK_LEDGER.md, CURRENT_STATE.md, WORKLOG.md.
+Checks: RED `./scripts/ios-test.sh` failed because `CustomerPetsStore.primaryPhotoData(for:)` did not exist. GREEN `./scripts/ios-test.sh` passed after adding primary pet photo data state and caching staged form upload bytes. `./scripts/ios-build.sh` passed. Simulator install/launch of `com.prinnyyy.PetGroomerMarketplace` passed after selecting the real Debug simulator app bundle instead of the `Index.noindex` product. `git diff --check` passed.
+Result: T-111 is completed. Customer pet cards now use the pet's primary uploaded photo data for the card avatar, and Add/Edit Pet staged photo uploads immediately cache uploaded image bytes so the card avatar refreshes as soon as the form save completes. Empty or unreadable pet images still show the local paw fallback.
+Risks: No Supabase schema, RLS, Storage bucket, or repository contract changed. The card uses locally available/downloaded image bytes; if cloud image download fails and no freshly uploaded bytes are cached, it intentionally falls back to the local paw avatar.
+Next: Stop unless the user asks to commit/push or starts T-112.
+```
+
+```text
+Date: 2026-06-29
 Task: T-110 - Authorized remote Storage bucket migration.
 Files changed: TASK_LEDGER.md, CURRENT_STATE.md, WORKLOG.md.
 Checks: `supabase db push --linked --dry-run` remained blocked by pre-existing remote/local migration-version drift, so the reviewed T-110 SQL was applied with `supabase db query --linked --file supabase/migrations/20260629220519_t110_storage_buckets_profile_snapshot.sql` and then recorded with `supabase migration repair --linked --status applied 20260629220519`. Remote migration list now shows `20260629220519` on both local and remote. Metadata checks confirmed private `groomer-avatars` bucket settings and SELECT/INSERT/UPDATE/DELETE policies for `authenticated`. Remote advisors returned existing WARN-class findings only. Authenticated Storage/profile smoke passed for groomer upload/download/profile avatar_path update/readback/restore/delete; customer upload to `groomer-avatars` was rejected by RLS; database residue check returned no temporary object rows.

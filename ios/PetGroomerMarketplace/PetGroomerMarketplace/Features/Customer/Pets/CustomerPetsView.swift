@@ -406,18 +406,20 @@ private struct CustomerHomePetTile: View {
             store.startEdit(pet)
         } label: {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                Text(avatar)
-                    .font(.system(size: 58))
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 116)
-                    .background(avatarBackground)
-                    .clipShape(
-                        RoundedRectangle(
-                            cornerRadius: DesignTokens.CornerRadius.input,
-                            style: .continuous
-                        )
+                CustomerHomePetAvatarImage(
+                    data: store.primaryPhotoData(for: pet),
+                    fallbackText: avatar,
+                    background: avatarBackground
+                )
+                .frame(maxWidth: .infinity)
+                .frame(height: 116)
+                .clipShape(
+                    RoundedRectangle(
+                        cornerRadius: DesignTokens.CornerRadius.input,
+                        style: .continuous
                     )
-                    .accessibilityHidden(true)
+                )
+                .accessibilityHidden(true)
 
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     Text(pet.name)
@@ -509,6 +511,22 @@ private struct CustomerHomePetTile: View {
             DesignTokens.Colors.warning.opacity(0.18),
         ]
         return palette[abs(pet.name.hashValue) % palette.count]
+    }
+}
+
+private struct CustomerHomePetAvatarImage: View {
+    let data: Data?
+    let fallbackText: String
+    let background: Color
+
+    var body: some View {
+        GroomlyModuleImage(data: data) {
+            Text(fallbackText)
+                .font(.system(size: 58))
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(background)
+        }
+        .background(background)
     }
 }
 
@@ -679,13 +697,9 @@ private struct CustomerPetCardView: View {
         GroomlyCard {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
                 HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
-                    Image(systemName: "pawprint.fill")
-                        .font(DesignTokens.Typography.headline)
-                        .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
-                        .frame(width: 44, height: 44)
-                        .background(DesignTokens.Colors.customerPrimary.opacity(0.16))
-                        .clipShape(DesignTokens.Shapes.circular)
-                        .accessibilityHidden(true)
+                    CustomerPetAvatarImage(
+                        data: store.primaryPhotoData(for: pet)
+                    )
 
                     VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                         Text(pet.name)
@@ -773,6 +787,23 @@ private struct CustomerPetCardView: View {
         .compactMap { $0 }
 
         return values.isEmpty ? nil : values.joined(separator: "\n")
+    }
+}
+
+private struct CustomerPetAvatarImage: View {
+    let data: Data?
+
+    var body: some View {
+        GroomlyModuleImage(data: data) {
+            Image(systemName: "pawprint.fill")
+                .font(DesignTokens.Typography.headline)
+                .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(DesignTokens.Colors.customerPrimary.opacity(0.16))
+        }
+        .frame(width: 44, height: 44)
+        .clipShape(DesignTokens.Shapes.circular)
+        .accessibilityHidden(true)
     }
 }
 
@@ -890,23 +921,7 @@ private struct CustomerPetFormView: View {
                         )
 
                         CustomerPetFormCard(title: "Photos", systemImage: "camera.fill") {
-                            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                                CustomerPetFormPhotoPicker(store: store)
-
-                                if store.pendingFormPhotos.isEmpty {
-                                    Text("Photos help groomers recognize your pet. You can add them now or later.")
-                                        .font(DesignTokens.Typography.body)
-                                        .foregroundStyle(DesignTokens.Colors.textSecondary)
-                                        .fixedSize(horizontal: false, vertical: true)
-                                } else {
-                                    ForEach(store.pendingFormPhotos) { photo in
-                                        CustomerPetPendingPhotoRow(
-                                            photo: photo,
-                                            store: store
-                                        )
-                                    }
-                                }
-                            }
+                            CustomerPetFormPhotoModule(store: store)
                         }
 
                         CustomerPetFormCard(title: "Profile", systemImage: "pawprint.fill") {
@@ -1065,6 +1080,92 @@ private struct CustomerPetFormView: View {
             return ">100 lbs"
         }
         return "\(Int(store.formWeightLbs.rounded())) lbs"
+    }
+}
+
+private struct CustomerPetFormPhotoModule: View {
+    @Bindable var store: CustomerPetsStore
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+            HStack(alignment: .center, spacing: DesignTokens.Spacing.lg) {
+                CustomerPetFormAvatarPreview(data: store.formAvatarPhotoData)
+
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                    Text(statusTitle)
+                        .font(DesignTokens.Typography.headline)
+                        .foregroundStyle(DesignTokens.Colors.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Text(statusMessage)
+                        .font(DesignTokens.Typography.body)
+                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    CustomerPetFormPhotoPicker(store: store)
+                }
+            }
+
+            if !store.pendingFormPhotos.isEmpty {
+                ForEach(store.pendingFormPhotos) { photo in
+                    CustomerPetPendingPhotoRow(
+                        photo: photo,
+                        store: store
+                    )
+                }
+            }
+        }
+    }
+
+    private var statusTitle: String {
+        if !store.pendingFormPhotos.isEmpty {
+            return "New photo selected"
+        }
+
+        if store.formSavedPhotoCount == 1 {
+            return "1 saved photo"
+        }
+
+        if store.formSavedPhotoCount > 1 {
+            return "\(store.formSavedPhotoCount) saved photos"
+        }
+
+        return "No pet photo"
+    }
+
+    private var statusMessage: String {
+        if !store.pendingFormPhotos.isEmpty {
+            return "Ready to save."
+        }
+
+        if store.formSavedPhotoCount > 0 {
+            return "Shown on pet cards."
+        }
+
+        return "Profile photo empty."
+    }
+}
+
+private struct CustomerPetFormAvatarPreview: View {
+    let data: Data?
+
+    var body: some View {
+        GroomlyModuleImage(data: data) {
+            Image(systemName: "pawprint.fill")
+                .font(.system(size: 42, weight: .semibold))
+                .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(DesignTokens.Colors.customerPrimary.opacity(0.16))
+        }
+        .frame(width: 112, height: 112)
+        .background(DesignTokens.Colors.customerPrimary.opacity(0.12))
+        .clipShape(DesignTokens.Shapes.circular)
+        .overlay {
+            Circle()
+                .stroke(DesignTokens.Colors.customerPrimary.opacity(0.34), lineWidth: 2)
+        }
+        .groomlyShadow(DesignTokens.Shadows.smallCard)
+        .accessibilityHidden(true)
     }
 }
 
@@ -1353,7 +1454,10 @@ private struct CustomerPetFormPhotoPicker: View {
             selection: $selectedPhotoItem,
             matching: .images
         ) {
-            Label("Add Pet Photo", systemImage: "camera")
+            Label(
+                store.formAvatarPhotoData == nil ? "Add Photo" : "Change Photo",
+                systemImage: "camera"
+            )
                 .lineLimit(1)
         }
         .buttonStyle(GroomlySecondaryButtonStyle(isFullWidth: false))

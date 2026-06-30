@@ -8,6 +8,7 @@ final class CustomerPetsStore {
 
     private let customerID: UUID
     private let repository: any CustomerPetRepository
+    private let photoCache: any CustomerPetPhotoCaching
 
     private(set) var pets: [CustomerPet] = []
     private(set) var photosByPetID: [UUID: [CustomerPetPhoto]] = [:]
@@ -36,31 +37,58 @@ final class CustomerPetsStore {
         editingPetID == nil ? "Add Pet" : "Edit Pet"
     }
 
+    var formAvatarPhotoData: Data? {
+        if let pendingPhoto = pendingFormPhotos.last {
+            return pendingPhoto.data
+        }
+
+        guard let editingPetID,
+              let pet = pets.first(where: { $0.id == editingPetID }) else {
+            return nil
+        }
+
+        return primaryPhotoData(for: pet)
+    }
+
+    var formSavedPhotoCount: Int {
+        guard let editingPetID else { return 0 }
+        return photosByPetID[editingPetID, default: []].count
+    }
+
     var isBusy: Bool {
         isLoading || isSaving || isUploading
     }
 
     init(
         customerID: UUID,
-        repository: any CustomerPetRepository
+        repository: any CustomerPetRepository,
+        photoCache: any CustomerPetPhotoCaching = FileCustomerPetPhotoCache.shared
     ) {
         self.customerID = customerID
         self.repository = repository
+        self.photoCache = photoCache
     }
 
     func load() async {
         isLoading = true
         errorMessage = nil
-        defer { isLoading = false }
 
         do {
             pets = try await repository.pets(customerID: customerID)
             let photos = try await repository.photos(customerID: customerID)
             photosByPetID = Dictionary(grouping: photos, by: \.petID)
-            photoDataByPhotoID = await photoDataMap(for: photos)
+            photoDataByPhotoID = cachedPhotoDataMap(for: photos)
+            isLoading = false
+
+            let downloadedPhotoData = await photoDataMap(for: photos)
+            photoDataByPhotoID.merge(downloadedPhotoData) { _, downloaded in
+                downloaded
+            }
         } catch let error as CustomerPetRepositoryError {
+            isLoading = false
             errorMessage = message(for: error, action: "load")
         } catch {
+            isLoading = false
             errorMessage = message(for: .unavailable, action: "load")
         }
     }
@@ -78,6 +106,18 @@ final class CustomerPetsStore {
 
     func photoData(for photo: CustomerPetPhoto) -> Data? {
         photoDataByPhotoID[photo.id]
+    }
+
+    func primaryPhotoData(for pet: CustomerPet) -> Data? {
+        let photos = photosByPetID[pet.id, default: []]
+
+        if let newestAvailableData = photos.reversed().lazy.compactMap({
+            self.photoData(for: $0)
+        }).first {
+            return newestAvailableData
+        }
+
+        return nil
     }
 
     func startCreate() {
@@ -228,6 +268,7 @@ final class CustomerPetsStore {
             pets.removeAll { $0.id == pet.id }
             for photo in photosByPetID[pet.id, default: []] {
                 photoDataByPhotoID[photo.id] = nil
+                photoCache.remove(photoID: photo.id)
             }
             photosByPetID[pet.id] = nil
             noticeMessage = "\(pet.name) was removed."
@@ -265,6 +306,7 @@ final class CustomerPetsStore {
             )
             photosByPetID[pet.id, default: []].append(photo)
             photoDataByPhotoID[photo.id] = data
+            savePhotoCache(photo: photo, data: data)
             noticeMessage = "Photo was uploaded for \(pet.name)."
         } catch let error as CustomerPetRepositoryError {
             errorMessage = message(for: error, action: "upload")
@@ -285,6 +327,7 @@ final class CustomerPetsStore {
             try await repository.deletePhoto(photo)
             photosByPetID[photo.petID]?.removeAll { $0.id == photo.id }
             photoDataByPhotoID[photo.id] = nil
+            photoCache.remove(photoID: photo.id)
             noticeMessage = "Photo was deleted."
         } catch let error as CustomerPetRepositoryError {
             errorMessage = message(for: error, action: "delete photo")
@@ -310,6 +353,20 @@ final class CustomerPetsStore {
                 continue
             }
             dataByID[photo.id] = data
+            savePhotoCache(photo: photo, data: data)
+        }
+        return dataByID
+    }
+
+    private func cachedPhotoDataMap(
+        for photos: [CustomerPetPhoto]
+    ) -> [UUID: Data] {
+        var dataByID: [UUID: Data] = [:]
+        for photo in photos {
+            guard let snapshot = photoCache.snapshot(photo: photo) else {
+                continue
+            }
+            dataByID[photo.id] = snapshot.data
         }
         return dataByID
     }
@@ -430,6 +487,8 @@ final class CustomerPetsStore {
                     caption: nil
                 )
                 photosByPetID[pet.id, default: []].append(uploaded)
+                photoDataByPhotoID[uploaded.id] = photo.data
+                savePhotoCache(photo: uploaded, data: photo.data)
                 uploadedCount += 1
             } catch {
                 failed = true
@@ -441,6 +500,21 @@ final class CustomerPetsStore {
             errorMessage = "Pet was saved, but some photos could not upload."
         }
         return uploadedCount
+    }
+
+    private func savePhotoCache(
+        photo: CustomerPetPhoto,
+        data: Data
+    ) {
+        photoCache.save(
+            CustomerPetPhotoSnapshot(
+                customerID: photo.customerID,
+                petID: photo.petID,
+                photoID: photo.id,
+                storagePath: photo.storagePath,
+                data: data
+            )
+        )
     }
 
     private func message(
