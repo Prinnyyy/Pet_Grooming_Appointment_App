@@ -4,6 +4,16 @@ This file is reverse chronological history. Only the newest entry plus `docs/00_
 
 ```text
 Date: 2026-06-30
+Task: T-121 - Customer Home optional booking prompt suppression.
+Files changed: CustomerPetsView, CustomerRequestFeatureTests, TASK_LEDGER.md, CURRENT_STATE.md, WORKLOG.md.
+Checks: Confirmed branch `codex/pet-fit-structure-cleanup`. Added temporary OSLog diagnostics and reproduced that the reported prompt came from customer `BookingsStore.load()` while Home was preloading bookings for its optional Next Booking summary; current XcodeBuildMCP run showed the live Supabase booking query path succeeding, so the durable code fix targets Home's optional prompt forwarding rather than the Bookings repository. RED `./scripts/ios-test.sh` failed only on `homeNextBookingLoadFailureDoesNotCreateGlobalPrompt()`. GREEN `./scripts/ios-test.sh` passed after making Customer Home's Next Booking presentation return no global error prompt for optional load failures. `./scripts/ios-build.sh` and `git diff --check` passed. XcodeBuildMCP build/run plus Home -> Bookings -> Home smoke showed no bottom prompt.
+Result: T-121 is completed. Customer Home can still best-effort load bookings to populate the Next Booking summary, but a failure in that optional Home summary path no longer produces a global booking-load toast. The dedicated Bookings tab continues to own true booking load errors through `BookingsStore` and the global bottom prompt module.
+Risks: No Supabase schema, RLS, RPC, Storage, repository contract, navigation, or global prompt center behavior changed. Temporary diagnostic logging was removed before closeout. XcodeBuildMCP reported existing Swift concurrency warnings in `CustomerPetsView.swift:1202`; they are unrelated to this prompt fix.
+Next: Stop unless the user asks to commit/push or starts T-122.
+```
+
+```text
+Date: 2026-06-30
 Task: T-120 - Customer Requests booking handoff error isolation.
 Files changed: CustomerRequestsStore, CustomerRequestFeatureTests, TASK_LEDGER.md, CURRENT_STATE.md, WORKLOG.md.
 Checks: Confirmed current branch is `codex/pet-fit-structure-cleanup`. Investigation traced the screenshot to `CustomerRequestsStore.load()` surfacing optional booking-handoff enrichment failures through the Customer Requests error forwarder. RED `./scripts/ios-test.sh` failed only on the new `bookingHandoffLoadFailureDoesNotSurfaceAsRequestUpdateError()` regression. GREEN `./scripts/ios-test.sh` passed after making booking-handoff enrichment best-effort. `./scripts/ios-build.sh` passed. XcodeBuildMCP `build_run_sim` passed with process id `1479`, and Home -> Bookings -> Home snapshot smoke showed no bottom error prompt. `git diff --check` passed.

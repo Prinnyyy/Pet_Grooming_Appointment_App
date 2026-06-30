@@ -219,11 +219,7 @@ struct CustomerHomeNextBookingPresentation: Equatable {
     }
 
     var globalErrorPrompt: GroomlyGlobalFeedbackError? {
-        guard let loadErrorMessage else { return nil }
-        return GroomlyGlobalFeedbackError(
-            title: "We Could Not Load Bookings",
-            message: loadErrorMessage
-        )
+        nil
     }
 }
 
