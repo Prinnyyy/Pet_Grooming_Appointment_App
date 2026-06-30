@@ -195,6 +195,40 @@ struct CustomerPetsStoreTests {
     }
 
     @Test @MainActor
+    func loadUsesCachedPetAvatarBeforePhotoMetadataReturns() async {
+        let customerID = UUID()
+        let pet = Self.pet(customerID: customerID)
+        let photo = Self.photo(customerID: customerID, petID: pet.id)
+        let cachedData = Data([0x31, 0x32])
+        let repository = CustomerPetRepositoryFake(
+            petsResult: .success([pet]),
+            photosResult: .success([photo])
+        )
+        repository.suspendPhotos = true
+        let photoCache = CustomerPetPhotoCacheFake(
+            snapshots: [
+                Self.photoSnapshot(photo, data: cachedData),
+            ]
+        )
+        let store = CustomerPetsStore(
+            customerID: customerID,
+            repository: repository,
+            photoCache: photoCache
+        )
+
+        let loadTask = Task {
+            await store.load()
+        }
+        await repository.waitUntilPhotosRequested()
+
+        #expect(store.pets == [pet])
+        #expect(store.primaryPhotoData(for: pet) == cachedData)
+
+        repository.resumePhotos()
+        await loadTask.value
+    }
+
+    @Test @MainActor
     func loadRefreshesPetPhotoCacheAfterCloudDownload() async {
         let customerID = UUID()
         let pet = Self.pet(customerID: customerID)
@@ -731,16 +765,21 @@ private final class CustomerPetRepositoryFake: CustomerPetRepository {
     var uploadResult: Result<CustomerPetPhoto, CustomerPetRepositoryError>
     var photoDataResultsByPhotoID: [UUID: Result<Data, CustomerPetRepositoryError>]
     var deletePhotoResult: Result<Void, CustomerPetRepositoryError>
+    var suspendPhotos = false
 
     private(set) var createCallCount = 0
     private(set) var updateCallCount = 0
     private(set) var softDeleteCallCount = 0
     private(set) var uploadCallCount = 0
     private(set) var deletePhotoCallCount = 0
+    private(set) var photosCallCount = 0
     private(set) var lastCustomerID: UUID?
     private(set) var lastDraft: CustomerPetDraft?
     private(set) var lastUploadPetID: UUID?
     private(set) var deletedPhotoIDs: [UUID] = []
+    private var photosContinuation:
+        CheckedContinuation<[CustomerPetPhoto], any Error>?
+    private var photosRequestedContinuation: CheckedContinuation<Void, Never>?
 
     init(
         petsResult: Result<[CustomerPet], CustomerPetRepositoryError> = .success([]),
@@ -768,7 +807,36 @@ private final class CustomerPetRepositoryFake: CustomerPetRepository {
     }
 
     func photos(customerID: UUID) async throws -> [CustomerPetPhoto] {
-        try photosResult.get()
+        photosCallCount += 1
+        if suspendPhotos {
+            return try await withCheckedThrowingContinuation { continuation in
+                photosContinuation = continuation
+                photosRequestedContinuation?.resume()
+                photosRequestedContinuation = nil
+            }
+        }
+
+        return try photosResult.get()
+    }
+
+    func waitUntilPhotosRequested() async {
+        guard photosCallCount == 0 else { return }
+
+        await withCheckedContinuation { continuation in
+            photosRequestedContinuation = continuation
+        }
+    }
+
+    func resumePhotos() {
+        guard let photosContinuation else { return }
+        self.photosContinuation = nil
+
+        switch photosResult {
+        case .success(let photos):
+            photosContinuation.resume(returning: photos)
+        case .failure(let error):
+            photosContinuation.resume(throwing: error)
+        }
     }
 
     func createPet(
@@ -869,6 +937,15 @@ private final class CustomerPetPhotoCacheFake: CustomerPetPhotoCaching {
         snapshotsByPhotoID = Dictionary(
             uniqueKeysWithValues: snapshots.map { ($0.photoID, $0) }
         )
+    }
+
+    func snapshot(
+        customerID: UUID,
+        petID: UUID
+    ) -> CustomerPetPhotoSnapshot? {
+        snapshotsByPhotoID.values.first { snapshot in
+            snapshot.customerID == customerID && snapshot.petID == petID
+        }
     }
 
     func snapshot(photo: CustomerPetPhoto) -> CustomerPetPhotoSnapshot? {

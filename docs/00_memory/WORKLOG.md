@@ -4,6 +4,16 @@ This file is reverse chronological history. Only the newest entry plus `docs/00_
 
 ```text
 Date: 2026-06-29
+Task: T-116 - Customer pet avatar first-frame cache fix.
+Files changed: LocalCustomerPetPhotoCache, CustomerPetsStore, CustomerPetFeatureTests, TASK_LEDGER.md, CURRENT_STATE.md, WORKLOG.md.
+Checks: RED `./scripts/ios-test.sh` failed only on `CustomerPetsStoreTests.loadUsesCachedPetAvatarBeforePhotoMetadataReturns()` after an initial test-fake compile correction. GREEN `./scripts/ios-test.sh` passed after adding petID-level cache reads and Store fallback data. `./scripts/ios-build.sh` passed. Simulator install/launch of `com.prinnyyy.PetGroomerMarketplace` passed with process id `52166`. `git diff --check` passed.
+Result: T-116 is completed. The root cause of the restart/Home first-frame default pet avatar was that `CustomerPetsStore.load()` assigned `pets` before photo metadata returned, while the existing cache could only be read with a `CustomerPetPhoto`/photoID. Pet cards can now use local petID-level cached avatar bytes as soon as pet profiles load, before Supabase pet-photo metadata/downloads return. Metadata still reconciles the authoritative remote photo list afterward and clears in-memory stale fallback when a pet has no remote photos.
+Risks: No Supabase schema, RLS, Storage bucket, repository contract, or remote migration changed. A remote deletion made from another device could still show a stale local petID cached image briefly until photo metadata loads and clears the in-memory fallback.
+Next: Stop unless the user asks to commit/push or starts T-117.
+```
+
+```text
+Date: 2026-06-29
 Task: T-115 - Customer pet single-avatar replace model.
 Files changed: CustomerPetsStore, CustomerPetsView, CustomerPetFeatureTests, TASK_LEDGER.md, CURRENT_STATE.md, WORKLOG.md.
 Checks: RED `./scripts/ios-test.sh` first failed on new single-avatar replacement expectations, including direct upload replacement, staged Edit Pet replacement, pending-selection replacement, and older-photo avatar selection cases. GREEN `./scripts/ios-test.sh` passed after implementation. `./scripts/ios-build.sh` passed. Simulator install/launch of `com.prinnyyy.PetGroomerMarketplace` passed with process id `39122`. `git diff --check` passed.

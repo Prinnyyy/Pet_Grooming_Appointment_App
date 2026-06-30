@@ -10,6 +10,10 @@ struct CustomerPetPhotoSnapshot: Codable, Equatable, Sendable {
 
 @MainActor
 protocol CustomerPetPhotoCaching: AnyObject {
+    func snapshot(
+        customerID: UUID,
+        petID: UUID
+    ) -> CustomerPetPhotoSnapshot?
     func snapshot(photo: CustomerPetPhoto) -> CustomerPetPhotoSnapshot?
     func save(_ snapshot: CustomerPetPhotoSnapshot)
     func remove(photoID: UUID)
@@ -34,7 +38,46 @@ final class FileCustomerPetPhotoCache: CustomerPetPhotoCaching {
             .appendingPathComponent(
                 "GroomlyCustomerPetPhotoSnapshots",
                 isDirectory: true
-            )
+        )
+    }
+
+    func snapshot(
+        customerID: UUID,
+        petID: UUID
+    ) -> CustomerPetPhotoSnapshot? {
+        guard let urls = try? fileManager.contentsOfDirectory(
+            at: directoryURL,
+            includingPropertiesForKeys: [.contentModificationDateKey],
+            options: [.skipsHiddenFiles]
+        ) else {
+            return nil
+        }
+
+        return urls
+            .compactMap { url -> (Date, CustomerPetPhotoSnapshot)? in
+                guard url.pathExtension == "json",
+                      let data = try? Data(contentsOf: url),
+                      let snapshot = try? decoder.decode(
+                        CustomerPetPhotoSnapshot.self,
+                        from: data
+                      ),
+                      snapshot.customerID == customerID,
+                      snapshot.petID == petID else {
+                    return nil
+                }
+
+                let values = try? url.resourceValues(
+                    forKeys: [.contentModificationDateKey]
+                )
+                return (
+                    values?.contentModificationDate ?? .distantPast,
+                    snapshot
+                )
+            }
+            .max { lhs, rhs in
+                lhs.0 < rhs.0
+            }?
+            .1
     }
 
     func snapshot(photo: CustomerPetPhoto) -> CustomerPetPhotoSnapshot? {

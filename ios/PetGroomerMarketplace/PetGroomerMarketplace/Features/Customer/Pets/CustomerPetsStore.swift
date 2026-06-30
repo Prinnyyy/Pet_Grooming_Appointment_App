@@ -13,6 +13,7 @@ final class CustomerPetsStore {
     private(set) var pets: [CustomerPet] = []
     private(set) var photosByPetID: [UUID: [CustomerPetPhoto]] = [:]
     private(set) var photoDataByPhotoID: [UUID: Data] = [:]
+    private var cachedAvatarDataByPetID: [UUID: Data] = [:]
     private(set) var isLoading = false
     private(set) var isSaving = false
     private(set) var isUploading = false
@@ -69,10 +70,14 @@ final class CustomerPetsStore {
         errorMessage = nil
 
         do {
-            pets = try await repository.pets(customerID: customerID)
+            let loadedPets = try await repository.pets(customerID: customerID)
+            cachedAvatarDataByPetID = cachedAvatarDataMap(for: loadedPets)
+            pets = loadedPets
+
             let photos = try await repository.photos(customerID: customerID)
             photosByPetID = Dictionary(grouping: photos, by: \.petID)
             photoDataByPhotoID = cachedPhotoDataMap(for: photos)
+            clearStaleCachedAvatarData()
             isLoading = false
 
             let downloadedPhotoData = await photoDataMap(for: photos)
@@ -112,7 +117,7 @@ final class CustomerPetsStore {
             return newestAvailableData
         }
 
-        return nil
+        return cachedAvatarDataByPetID[pet.id]
     }
 
     func startCreate() {
@@ -265,6 +270,7 @@ final class CustomerPetsStore {
                 photoCache.remove(photoID: photo.id)
             }
             photosByPetID[pet.id] = nil
+            cachedAvatarDataByPetID[pet.id] = nil
             noticeMessage = "\(pet.name) was removed."
         } catch let error as CustomerPetRepositoryError {
             errorMessage = message(for: error, action: "delete")
@@ -317,6 +323,7 @@ final class CustomerPetsStore {
             photosByPetID[photo.petID]?.removeAll { $0.id == photo.id }
             photoDataByPhotoID[photo.id] = nil
             photoCache.remove(photoID: photo.id)
+            refreshCachedAvatarDataAfterPhotoRemoval(petID: photo.petID)
             noticeMessage = "Photo was deleted."
         } catch let error as CustomerPetRepositoryError {
             errorMessage = message(for: error, action: "delete photo")
@@ -347,6 +354,22 @@ final class CustomerPetsStore {
         return dataByID
     }
 
+    private func cachedAvatarDataMap(
+        for pets: [CustomerPet]
+    ) -> [UUID: Data] {
+        var dataByPetID: [UUID: Data] = [:]
+        for pet in pets {
+            guard let snapshot = photoCache.snapshot(
+                customerID: customerID,
+                petID: pet.id
+            ) else {
+                continue
+            }
+            dataByPetID[pet.id] = snapshot.data
+        }
+        return dataByPetID
+    }
+
     private func cachedPhotoDataMap(
         for photos: [CustomerPetPhoto]
     ) -> [UUID: Data] {
@@ -356,8 +379,29 @@ final class CustomerPetsStore {
                 continue
             }
             dataByID[photo.id] = snapshot.data
+            cachedAvatarDataByPetID[photo.petID] = snapshot.data
         }
         return dataByID
+    }
+
+    private func clearStaleCachedAvatarData() {
+        for pet in pets where photosByPetID[pet.id, default: []].isEmpty {
+            cachedAvatarDataByPetID[pet.id] = nil
+        }
+    }
+
+    private func refreshCachedAvatarDataAfterPhotoRemoval(petID: UUID) {
+        let remainingPhotos = photosByPetID[petID, default: []]
+        guard !remainingPhotos.isEmpty else {
+            cachedAvatarDataByPetID[petID] = nil
+            return
+        }
+
+        if let newestAvailableData = remainingPhotos.reversed().lazy.compactMap({
+            self.photoData(for: $0)
+        }).first {
+            cachedAvatarDataByPetID[petID] = newestAvailableData
+        }
     }
 
     private func resetForm() {
@@ -501,6 +545,7 @@ final class CustomerPetsStore {
 
         photosByPetID[pet.id] = [photo]
         photoDataByPhotoID[photo.id] = data
+        cachedAvatarDataByPetID[pet.id] = data
         savePhotoCache(photo: photo, data: data)
 
         for replacedPhoto in replacedPhotos where replacedPhoto.id != photo.id {
@@ -516,6 +561,7 @@ final class CustomerPetsStore {
         photo: CustomerPetPhoto,
         data: Data
     ) {
+        cachedAvatarDataByPetID[photo.petID] = data
         photoCache.save(
             CustomerPetPhotoSnapshot(
                 customerID: photo.customerID,
