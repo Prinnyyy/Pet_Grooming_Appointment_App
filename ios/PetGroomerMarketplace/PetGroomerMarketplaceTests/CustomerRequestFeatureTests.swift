@@ -522,6 +522,37 @@ struct CustomerRequestsStoreTests {
     }
 
     @Test @MainActor
+    func bookingHandoffLoadFailureDoesNotSurfaceAsRequestUpdateError() async throws {
+        let customerID = UUID()
+        let pet = Self.pet(customerID: customerID)
+        let bookedRequest = Self.request(
+            customerID: customerID,
+            petID: pet.id,
+            status: .booked
+        )
+        let bookingRepository = CustomerRequestBookingRepositoryFake(
+            bookingsResult: .failure(.unavailable)
+        )
+        let store = CustomerRequestsStore(
+            customerID: customerID,
+            petRepository: CustomerRequestPetRepositoryFake(
+                petsResult: .success([pet])
+            ),
+            requestRepository: CustomerRequestRepositoryFake(
+                requestsResult: .success([bookedRequest])
+            ),
+            bookingRepository: bookingRepository
+        )
+
+        await store.load()
+
+        #expect(bookingRepository.bookingsCallCount == 1)
+        #expect(store.requests == [bookedRequest])
+        #expect(store.bookingHandoffs.isEmpty)
+        #expect(store.errorMessage == nil)
+    }
+
+    @Test @MainActor
     func acknowledgedBookingHandoffPersistsAcrossStoreReloads() async throws {
         let customerID = UUID()
         let suiteName = "CustomerRequestsStoreTests.\(UUID().uuidString)"

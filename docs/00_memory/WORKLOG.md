@@ -4,6 +4,16 @@ This file is reverse chronological history. Only the newest entry plus `docs/00_
 
 ```text
 Date: 2026-06-30
+Task: T-120 - Customer Requests booking handoff error isolation.
+Files changed: CustomerRequestsStore, CustomerRequestFeatureTests, TASK_LEDGER.md, CURRENT_STATE.md, WORKLOG.md.
+Checks: Confirmed current branch is `codex/pet-fit-structure-cleanup`. Investigation traced the screenshot to `CustomerRequestsStore.load()` surfacing optional booking-handoff enrichment failures through the Customer Requests error forwarder. RED `./scripts/ios-test.sh` failed only on the new `bookingHandoffLoadFailureDoesNotSurfaceAsRequestUpdateError()` regression. GREEN `./scripts/ios-test.sh` passed after making booking-handoff enrichment best-effort. `./scripts/ios-build.sh` passed. XcodeBuildMCP `build_run_sim` passed with process id `1479`, and Home -> Bookings -> Home snapshot smoke showed no bottom error prompt. `git diff --check` passed.
+Result: T-120 is completed. Customer Requests keeps loaded request data visible when the booking repository fails only during booked-request handoff enrichment, and that failure no longer appears as `We Could Not Update Requests` with a bookings load message. True BookingsStore load failures still route through the Bookings/global prompt path.
+Risks: No Supabase schema, RLS, RPC, Storage, repository contract, navigation, or global prompt module behavior changed. XcodeBuildMCP reported existing Swift concurrency warnings in `CustomerPetsView.swift:1206`; they are unrelated to this fix.
+Next: Stop unless the user asks to commit/push or starts T-121.
+```
+
+```text
+Date: 2026-06-30
 Task: T-119 - Global bottom prompt error auto-dismiss.
 Files changed: GroomlyFeedbackPrimitives, AppEntryModelsTests, TASK_LEDGER.md, CURRENT_STATE.md, WORKLOG.md.
 Checks: Investigation found that global notice prompts had a 2-second dismissal path but global error prompts did not; Store `errorMessage` values can persist until the next load/action, so the global bottom error could stay visible indefinitely. RED `./scripts/ios-test.sh` failed only on the new error auto-dismiss and stale-replay suppression expectation. GREEN `./scripts/ios-test.sh` passed after adding center-owned error dismissal, stale same-content suppression until source clear, and regression coverage. `./scripts/ios-build.sh` passed. Simulator install/launch of `com.prinnyyy.PetGroomerMarketplace` passed with process id `46357`. `git diff --check` passed.

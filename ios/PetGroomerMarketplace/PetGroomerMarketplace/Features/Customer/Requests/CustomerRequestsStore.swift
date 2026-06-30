@@ -241,10 +241,14 @@ final class CustomerRequestsStore {
             pets = try await petRepository.pets(customerID: customerID)
             requests = try await requestRepository.requests(customerID: customerID)
             try await loadRequestPhotos(for: requests)
-            bookings = try await bookingRepository.bookings(
-                participantID: customerID,
-                role: .customer
-            )
+            do {
+                bookings = try await bookingRepository.bookings(
+                    participantID: customerID,
+                    role: .customer
+                )
+            } catch {
+                bookings = []
+            }
 
             if selectedPetID == nil {
                 selectedPetID = pets.first?.id
@@ -253,8 +257,6 @@ final class CustomerRequestsStore {
             errorMessage = message(for: error, action: "load")
         } catch let error as CustomerRequestRepositoryError {
             errorMessage = message(for: error, action: "load")
-        } catch let error as BookingRepositoryError {
-            errorMessage = message(for: error, action: "load bookings")
         } catch {
             errorMessage = message(for: CustomerRequestRepositoryError.unavailable, action: "load")
         }
