@@ -3,6 +3,16 @@
 This file is reverse chronological history. Only the newest entry plus `docs/00_memory/CURRENT_STATE.md` and `docs/06_tasks/TASK_LEDGER.md` define the current branch, current baseline, and next-task state. Older `Next:` lines and branch references are historical closeout notes, not current instructions.
 
 ```text
+Date: 2026-06-30
+Task: T-117 - Global bottom prompt routing for booking errors.
+Files changed: GroomlyFeedbackPrimitives, BookingsView, ChatView, CustomerPetsView, CustomerRequestsView, GroomerRequestsView, GroomerProfileManagementView, AppEntryModelsTests, BookingFeatureTests, CustomerRequestFeatureTests, TASK_LEDGER.md, CURRENT_STATE.md, WORKLOG.md.
+Checks: RED `./scripts/ios-test.sh` failed after adding tests for missing global feedback-center error/progress APIs. A later RED failed on the corrected Customer Home requirement that Next Booking load failures create a global bottom prompt instead of a page-local error. GREEN `./scripts/ios-test.sh` passed after extending the center, routing page status views through it, restoring Customer Home booking load failures to the global prompt path, and making prompt forwarders update on appear/change. `./scripts/ios-build.sh` passed. Simulator install/launch of `com.prinnyyy.PetGroomerMarketplace` passed on iPhone 17 Pro Max with process id `20415`. `git diff --check` passed.
+Result: T-117 is completed. The existing tab-level global feedback overlay now owns notice, error, and progress bottom prompts. Bookings, Chat, Customer Pets, Customer Requests, Groomer Requests, and Groomer Profile status views forward state to the global center instead of rendering page-local bottom prompt insets. Customer Home Next Booking load failures stay on that same global bottom prompt path, so the booking load error is owned by the global host above the tab pages instead of by a local Home module. Forwarders use synchronous appear/change handling rather than delayed task scheduling, reducing tab-switch timing windows where a prompt could appear late or only flash during navigation.
+Risks: No Supabase schema, RLS, RPC, Storage, repository, or navigation contract changed. Fixed bottom controls such as the chat composer, request wizard controls, and Fit Signals save bar still use their own bottom layout because they are controls, not transient prompt hosts.
+Next: Stop unless the user asks to commit/push or starts T-118.
+```
+
+```text
 Date: 2026-06-29
 Task: T-116 - Customer pet avatar first-frame cache fix.
 Files changed: LocalCustomerPetPhotoCache, CustomerPetsStore, CustomerPetFeatureTests, TASK_LEDGER.md, CURRENT_STATE.md, WORKLOG.md.

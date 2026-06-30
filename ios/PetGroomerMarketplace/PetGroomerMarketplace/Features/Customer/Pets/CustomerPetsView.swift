@@ -59,11 +59,11 @@ struct CustomerPetsView: View {
             screenContent
         }
         .toolbar(.hidden, for: .navigationBar)
-        .safeAreaInset(edge: .bottom) {
+        .background {
             CustomerHomeStatusView(
                 petStore: petStore,
                 requestStore: requestStore,
-                bookingStore: bookingStore
+                nextBookingPresentation: nextBookingPresentation
             )
         }
         .sheet(isPresented: $petStore.isShowingPetForm) {
@@ -140,7 +140,8 @@ struct CustomerPetsView: View {
     private var nextBookingPresentation: CustomerHomeNextBookingPresentation {
         CustomerHomeNextBookingPresentation(
             booking: nextBooking,
-            isLoading: bookingStore.isLoading
+            isLoading: bookingStore.isLoading,
+            loadErrorMessage: bookingStore.errorMessage
         )
     }
 
@@ -185,6 +186,17 @@ struct CustomerHomeActiveRequestPresentation: Equatable {
 struct CustomerHomeNextBookingPresentation: Equatable {
     let booking: Booking?
     let isLoading: Bool
+    let loadErrorMessage: String?
+
+    init(
+        booking: Booking?,
+        isLoading: Bool,
+        loadErrorMessage: String? = nil
+    ) {
+        self.booking = booking
+        self.isLoading = isLoading
+        self.loadErrorMessage = loadErrorMessage
+    }
 
     var shouldShowBooking: Bool {
         booking != nil
@@ -194,12 +206,24 @@ struct CustomerHomeNextBookingPresentation: Equatable {
         false
     }
 
+    var shouldShowLoadError: Bool {
+        false
+    }
+
     var shouldShowEmptyText: Bool {
         booking == nil
     }
 
     var shouldShowEmptyCard: Bool {
         false
+    }
+
+    var globalErrorPrompt: GroomlyGlobalFeedbackError? {
+        guard let loadErrorMessage else { return nil }
+        return GroomlyGlobalFeedbackError(
+            title: "We Could Not Load Bookings",
+            message: loadErrorMessage
+        )
     }
 }
 
@@ -648,23 +672,15 @@ private struct CustomerHomeNextBookingSection: View {
 private struct CustomerHomeStatusView: View {
     let petStore: CustomerPetsStore
     let requestStore: CustomerRequestsStore
-    let bookingStore: BookingsStore
+    let nextBookingPresentation: CustomerHomeNextBookingPresentation
 
     var body: some View {
         VStack(spacing: DesignTokens.Spacing.sm) {
             CustomerPetsStatusView(store: petStore)
             CustomerRequestsStatusView(store: requestStore)
 
-            if let errorMessage = bookingStore.errorMessage {
-                GroomlyBottomPromptStack(
-                    horizontalPadding: DesignTokens.Spacing.standard,
-                    animationValue: errorMessage
-                ) {
-                    GroomlyBottomErrorPrompt(
-                        title: "We Could Not Load Bookings",
-                        message: errorMessage
-                    )
-                }
+            if let errorPrompt = nextBookingPresentation.globalErrorPrompt {
+                GroomlyGlobalFeedbackForwarder(error: errorPrompt)
             }
         }
     }
@@ -1226,43 +1242,32 @@ private struct CustomerPetsStatusView: View {
     let store: CustomerPetsStore
 
     var body: some View {
-        GroomlyBottomPromptArea(
-            isPresented: hasInlineStatus,
+        GroomlyGlobalFeedbackForwarder(
             noticeMessage: store.noticeMessage,
-            horizontalPadding: DesignTokens.Spacing.standard,
-            animationValue: hasInlineStatus,
             clearNotice: { message in
                 guard store.noticeMessage == message else { return }
                 store.noticeMessage = nil
-            }
-        ) {
-            inlineStatus
-        }
+            },
+            error: errorPrompt,
+            progress: progressPrompt
+        )
     }
 
-    private var inlineStatus: some View {
-        VStack(spacing: DesignTokens.Spacing.sm) {
-            if store.isSaving || store.isUploading {
-                GroomlyStatusProgressToast(
-                    store.isUploading ? "Uploading…" : "Saving…",
-                    tint: DesignTokens.Colors.customerPrimary
-                )
-            }
-
-            if let errorMessage = store.errorMessage,
-               !store.isShowingPetForm {
-                GroomlyBottomErrorPrompt(
-                    title: "We Could Not Update Your Pets",
-                    message: errorMessage
-                )
-            }
-        }
+    private var errorPrompt: GroomlyGlobalFeedbackError? {
+        guard let errorMessage = store.errorMessage,
+              !store.isShowingPetForm else { return nil }
+        return GroomlyGlobalFeedbackError(
+            title: "We Could Not Update Your Pets",
+            message: errorMessage
+        )
     }
 
-    private var hasInlineStatus: Bool {
-        store.isSaving
-            || store.isUploading
-            || (store.errorMessage != nil && !store.isShowingPetForm)
+    private var progressPrompt: GroomlyGlobalFeedbackProgress? {
+        guard store.isSaving || store.isUploading else { return nil }
+        return GroomlyGlobalFeedbackProgress(
+            title: store.isUploading ? "Uploading…" : "Saving…",
+            tone: .customer
+        )
     }
 }
 

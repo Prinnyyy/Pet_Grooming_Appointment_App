@@ -58,7 +58,7 @@ struct GroomerProfileManagementView: View {
         }
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
-        .safeAreaInset(edge: .bottom) {
+        .background {
             GroomerProfileStatusView(store: store)
         }
         .sheet(isPresented: $store.isShowingServiceForm) {
@@ -334,7 +334,7 @@ private struct GroomerProfileEditorView: View {
         .navigationTitle("Edit Profile")
         .navigationBarTitleDisplayMode(.inline)
         .scrollDismissesKeyboard(.interactively)
-        .safeAreaInset(edge: .bottom) {
+        .background {
             GroomerProfileStatusView(store: store)
         }
         .accessibilityIdentifier("groomer.profile.edit")
@@ -3156,42 +3156,32 @@ private struct GroomerProfileStatusView: View {
     let store: GroomerProfileStore
 
     var body: some View {
-        GroomlyBottomPromptArea(
-            isPresented: hasInlineStatus,
+        GroomlyGlobalFeedbackForwarder(
             noticeMessage: store.noticeMessage,
-            animationValue: hasInlineStatus,
             clearNotice: { message in
                 guard store.noticeMessage == message else { return }
                 store.noticeMessage = nil
-            }
-        ) {
-            inlineStatus
-        }
+            },
+            error: errorPrompt,
+            progress: progressPrompt
+        )
     }
 
-    private var inlineStatus: some View {
-        VStack(spacing: DesignTokens.Spacing.sm) {
-            if store.isSaving || store.isUploading {
-                GroomlyStatusProgressToast(
-                    store.isUploading ? "Uploading…" : "Saving…",
-                    tint: DesignTokens.Colors.groomerAccent
-                )
-            }
-
-            if let errorMessage = store.errorMessage,
-               !store.isShowingServiceForm {
-                GroomlyBottomErrorPrompt(
-                    title: "Profile Update Failed",
-                    message: errorMessage
-                )
-            }
-        }
+    private var errorPrompt: GroomlyGlobalFeedbackError? {
+        guard let errorMessage = store.errorMessage,
+              !store.isShowingServiceForm else { return nil }
+        return GroomlyGlobalFeedbackError(
+            title: "Profile Update Failed",
+            message: errorMessage
+        )
     }
 
-    private var hasInlineStatus: Bool {
-        store.isSaving ||
-            store.isUploading ||
-            (store.errorMessage != nil && !store.isShowingServiceForm)
+    private var progressPrompt: GroomlyGlobalFeedbackProgress? {
+        guard store.isSaving || store.isUploading else { return nil }
+        return GroomlyGlobalFeedbackProgress(
+            title: store.isUploading ? "Uploading…" : "Saving…",
+            tone: .groomer
+        )
     }
 }
 

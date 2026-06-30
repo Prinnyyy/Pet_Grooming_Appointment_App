@@ -51,7 +51,7 @@ struct CustomerRequestsView: View {
                 .disabled(store.isBusy)
             }
         }
-        .safeAreaInset(edge: .bottom) {
+        .background {
             CustomerRequestsStatusView(store: store)
         }
         .alert("Cancel this request?", isPresented: isCancelAlertPresented) {
@@ -3953,41 +3953,31 @@ struct CustomerRequestsStatusView: View {
     let store: CustomerRequestsStore
 
     var body: some View {
-        GroomlyBottomPromptArea(
-            isPresented: hasInlineStatus,
+        GroomlyGlobalFeedbackForwarder(
             noticeMessage: store.noticeMessage,
-            horizontalPadding: DesignTokens.Spacing.standard,
-            animationValue: hasInlineStatus,
             clearNotice: { message in
                 store.clearNotice(ifCurrent: message)
-            }
-        ) {
-            inlineStatus
-        }
+            },
+            error: errorPrompt,
+            progress: progressPrompt
+        )
     }
 
-    private var inlineStatus: some View {
-        VStack(spacing: DesignTokens.Spacing.sm) {
-            if store.isSubmitting {
-                GroomlyStatusProgressToast(
-                    "Publishing…",
-                    tint: DesignTokens.Colors.customerPrimary
-                )
-            }
-
-            if let errorMessage = store.errorMessage,
-               !store.isShowingWizard {
-                GroomlyBottomErrorPrompt(
-                    title: "We Could Not Update Requests",
-                    message: errorMessage
-                )
-            }
-        }
+    private var errorPrompt: GroomlyGlobalFeedbackError? {
+        guard let errorMessage = store.errorMessage,
+              !store.isShowingWizard else { return nil }
+        return GroomlyGlobalFeedbackError(
+            title: "We Could Not Update Requests",
+            message: errorMessage
+        )
     }
 
-    private var hasInlineStatus: Bool {
-        store.isSubmitting
-            || (store.errorMessage != nil && !store.isShowingWizard)
+    private var progressPrompt: GroomlyGlobalFeedbackProgress? {
+        guard store.isSubmitting else { return nil }
+        return GroomlyGlobalFeedbackProgress(
+            title: "Publishing…",
+            tone: .customer
+        )
     }
 }
 

@@ -88,6 +88,87 @@ struct GroomlyFeedbackNotice: Equatable, Identifiable {
     let message: String
 }
 
+enum GroomlyFeedbackTone: Equatable {
+    case customer
+    case groomer
+    case neutral
+
+    var tint: Color {
+        switch self {
+        case .customer:
+            DesignTokens.Colors.customerPrimary
+        case .groomer:
+            DesignTokens.Colors.groomerAccent
+        case .neutral:
+            DesignTokens.Colors.textSecondary
+        }
+    }
+}
+
+struct GroomlyGlobalFeedbackError: Equatable, Identifiable {
+    let id: UUID
+    let title: String
+    let message: String?
+
+    init(
+        id: UUID = UUID(),
+        title: String,
+        message: String? = nil
+    ) {
+        self.id = id
+        self.title = title
+        self.message = message
+    }
+
+    var contentKey: ContentKey {
+        ContentKey(title: title, message: message)
+    }
+
+    struct ContentKey: Equatable {
+        let title: String
+        let message: String?
+    }
+
+    static func == (
+        lhs: GroomlyGlobalFeedbackError,
+        rhs: GroomlyGlobalFeedbackError
+    ) -> Bool {
+        lhs.contentKey == rhs.contentKey
+    }
+}
+
+struct GroomlyGlobalFeedbackProgress: Equatable, Identifiable {
+    let id: UUID
+    let title: String
+    let tone: GroomlyFeedbackTone
+
+    init(
+        id: UUID = UUID(),
+        title: String,
+        tone: GroomlyFeedbackTone = .neutral
+    ) {
+        self.id = id
+        self.title = title
+        self.tone = tone
+    }
+
+    var contentKey: ContentKey {
+        ContentKey(title: title, tone: tone)
+    }
+
+    struct ContentKey: Equatable {
+        let title: String
+        let tone: GroomlyFeedbackTone
+    }
+
+    static func == (
+        lhs: GroomlyGlobalFeedbackProgress,
+        rhs: GroomlyGlobalFeedbackProgress
+    ) -> Bool {
+        lhs.contentKey == rhs.contentKey
+    }
+}
+
 struct GroomlyBottomPrompt<Content: View>: View {
     private let borderColor: Color
     private let content: Content
@@ -199,6 +280,8 @@ final class GroomlyFeedbackCenter {
     static let noticeDismissDelayNanoseconds: UInt64 = 2_000_000_000
 
     var notice: GroomlyFeedbackNotice?
+    private(set) var error: GroomlyGlobalFeedbackError?
+    private(set) var progress: GroomlyGlobalFeedbackProgress?
 
     @discardableResult
     func showNotice(_ message: String) -> UUID {
@@ -207,9 +290,41 @@ final class GroomlyFeedbackCenter {
         return id
     }
 
+    func showError(_ error: GroomlyGlobalFeedbackError) {
+        guard self.error?.contentKey != error.contentKey else { return }
+        self.error = error
+    }
+
+    func showProgress(_ progress: GroomlyGlobalFeedbackProgress) {
+        guard self.progress?.contentKey != progress.contentKey else { return }
+        self.progress = progress
+    }
+
     func clearNotice(id: UUID) {
         guard notice?.id == id else { return }
         notice = nil
+    }
+
+    func clearError(matching error: GroomlyGlobalFeedbackError) {
+        guard self.error?.contentKey == error.contentKey else { return }
+        self.error = nil
+    }
+
+    func clearProgress(matching progress: GroomlyGlobalFeedbackProgress) {
+        guard self.progress?.contentKey == progress.contentKey else { return }
+        self.progress = nil
+    }
+
+    var hasVisiblePrompt: Bool {
+        notice != nil || error != nil || progress != nil
+    }
+
+    var animationKey: String {
+        [
+            progress?.id.uuidString ?? "no-progress",
+            error?.id.uuidString ?? "no-error",
+            notice?.id.uuidString ?? "no-notice"
+        ].joined(separator: ":")
     }
 }
 
@@ -239,8 +354,11 @@ struct GroomlyNoticeForwarder: View {
         Color.clear
             .frame(width: 0, height: 0)
             .accessibilityHidden(true)
-            .task(id: message) {
+            .onAppear {
                 forward(message)
+            }
+            .onChange(of: message) { _, newMessage in
+                forward(newMessage)
             }
     }
 
@@ -252,24 +370,116 @@ struct GroomlyNoticeForwarder: View {
     }
 }
 
+struct GroomlyGlobalFeedbackForwarder: View {
+    @Environment(\.groomlyFeedbackCenter) private var feedbackCenter
+    @State private var forwardedError: GroomlyGlobalFeedbackError?
+    @State private var forwardedProgress: GroomlyGlobalFeedbackProgress?
+
+    private let noticeMessage: String?
+    private let clearNotice: ((String) -> Void)?
+    private let error: GroomlyGlobalFeedbackError?
+    private let progress: GroomlyGlobalFeedbackProgress?
+
+    init(
+        noticeMessage: String? = nil,
+        clearNotice: ((String) -> Void)? = nil,
+        error: GroomlyGlobalFeedbackError? = nil,
+        progress: GroomlyGlobalFeedbackProgress? = nil
+    ) {
+        self.noticeMessage = noticeMessage
+        self.clearNotice = clearNotice
+        self.error = error
+        self.progress = progress
+    }
+
+    var body: some View {
+        Color.clear
+            .frame(width: 0, height: 0)
+            .accessibilityHidden(true)
+            .onAppear {
+                forwardNotice(noticeMessage)
+                forwardError(error)
+                forwardProgress(progress)
+            }
+            .onChange(of: noticeMessage) { _, newNoticeMessage in
+                forwardNotice(newNoticeMessage)
+            }
+            .onChange(of: error) { _, newError in
+                forwardError(newError)
+            }
+            .onChange(of: progress) { _, newProgress in
+                forwardProgress(newProgress)
+            }
+    }
+
+    @MainActor
+    private func forwardNotice(_ message: String?) {
+        guard let message, let feedbackCenter else { return }
+        feedbackCenter.showNotice(message)
+        clearNotice?(message)
+    }
+
+    @MainActor
+    private func forwardError(_ error: GroomlyGlobalFeedbackError?) {
+        guard let feedbackCenter else { return }
+
+        if let error {
+            feedbackCenter.showError(error)
+            forwardedError = error
+        } else if let forwardedError {
+            feedbackCenter.clearError(matching: forwardedError)
+            self.forwardedError = nil
+        }
+    }
+
+    @MainActor
+    private func forwardProgress(_ progress: GroomlyGlobalFeedbackProgress?) {
+        guard let feedbackCenter else { return }
+
+        if let progress {
+            feedbackCenter.showProgress(progress)
+            forwardedProgress = progress
+        } else if let forwardedProgress {
+            feedbackCenter.clearProgress(matching: forwardedProgress)
+            self.forwardedProgress = nil
+        }
+    }
+}
+
 struct GroomlyGlobalFeedbackOverlay: View {
     static let bottomTabBarClearance = DesignTokens.Spacing.xl * 3 + DesignTokens.Spacing.sm
 
     let center: GroomlyFeedbackCenter
 
     var body: some View {
-        if let notice = center.notice {
+        if center.hasVisiblePrompt {
             GroomlyBottomPromptStack(
                 bottomPadding: Self.bottomTabBarClearance,
-                animationValue: notice.id
+                animationValue: center.animationKey
             ) {
-                GroomlyNoticeToast(message: notice.message)
+                if let progress = center.progress {
+                    GroomlyStatusProgressToast(
+                        progress.title,
+                        tint: progress.tone.tint
+                    )
+                }
+
+                if let error = center.error {
+                    GroomlyBottomErrorPrompt(
+                        title: error.title,
+                        message: error.message
+                    )
+                }
+
+                if let notice = center.notice {
+                    GroomlyNoticeToast(message: notice.message)
+                        .task(id: notice.id) {
+                            await dismissNotice(id: notice.id)
+                        }
+                }
             }
             .transition(.move(edge: .bottom).combined(with: .opacity))
             .allowsHitTesting(false)
-            .task(id: notice.id) {
-                await dismissNotice(id: notice.id)
-            }
         }
     }
 

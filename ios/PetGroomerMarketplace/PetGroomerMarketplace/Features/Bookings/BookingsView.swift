@@ -33,7 +33,7 @@ struct BookingsView: View {
         }
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
-        .safeAreaInset(edge: .bottom) {
+        .background {
             BookingsStatusView(
                 store: store,
                 role: role
@@ -1332,53 +1332,49 @@ private struct BookingsStatusView: View {
     let role: UserRole
 
     var body: some View {
-        GroomlyBottomPromptArea(
-            isPresented: hasInlineStatus,
+        GroomlyGlobalFeedbackForwarder(
             noticeMessage: store.noticeMessage,
-            animationValue: hasInlineStatus,
             clearNotice: { message in
                 guard store.noticeMessage == message else { return }
                 store.noticeMessage = nil
-            }
-        ) {
-            inlineStatus
+            },
+            error: errorPrompt,
+            progress: progressPrompt
+        )
+    }
+
+    private var errorPrompt: GroomlyGlobalFeedbackError? {
+        guard let errorMessage = store.errorMessage else { return nil }
+        return GroomlyGlobalFeedbackError(
+            title: "Booking Update Failed",
+            message: errorMessage
+        )
+    }
+
+    private var progressPrompt: GroomlyGlobalFeedbackProgress? {
+        if store.isCancelling {
+            return GroomlyGlobalFeedbackProgress(
+                title: "Cancelling…",
+                tone: role.feedbackTone
+            )
         }
-    }
 
-    private var inlineStatus: some View {
-        VStack(spacing: DesignTokens.Spacing.sm) {
-            if store.isCancelling {
-                progressRow("Cancelling…")
-            }
-
-            if store.isCompleting {
-                progressRow("Completing…")
-            }
-
-            if store.isSubmittingReview {
-                progressRow("Submitting Review…")
-            }
-
-            if let errorMessage = store.errorMessage {
-                GroomlyBottomErrorPrompt(
-                    title: "Booking Update Failed",
-                    message: errorMessage
-                )
-            }
+        if store.isCompleting {
+            return GroomlyGlobalFeedbackProgress(
+                title: "Completing…",
+                tone: role.feedbackTone
+            )
         }
-    }
 
-    private var hasInlineStatus: Bool {
-        store.isCancelling ||
-            store.isCompleting ||
-            store.isSubmittingReview ||
-            store.errorMessage != nil
-    }
+        if store.isSubmittingReview {
+            return GroomlyGlobalFeedbackProgress(
+                title: "Submitting Review…",
+                tone: role.feedbackTone
+            )
+        }
 
-    private func progressRow(_ title: String) -> some View {
-        GroomlyStatusProgressToast(title, tint: role.primaryColor)
+        return nil
     }
-
 }
 
 private struct BookingFactRow: View {
@@ -1462,6 +1458,15 @@ private extension UserRole {
             DesignTokens.Colors.customerPrimaryDark
         case .groomer:
             DesignTokens.Colors.groomerAccentDark
+        }
+    }
+
+    var feedbackTone: GroomlyFeedbackTone {
+        switch self {
+        case .customer:
+            .customer
+        case .groomer:
+            .groomer
         }
     }
 

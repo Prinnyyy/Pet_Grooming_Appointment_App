@@ -784,6 +784,21 @@ struct CustomerRequestsStoreTests {
     }
 
     @Test @MainActor
+    func homeNextBookingLoadFailureCreatesGlobalPromptWithoutInlineError() throws {
+        let presentation = CustomerHomeNextBookingPresentation(
+            booking: nil,
+            isLoading: false,
+            loadErrorMessage: "We could not load bookings. Please try again."
+        )
+        let prompt = try #require(presentation.globalErrorPrompt)
+
+        #expect(presentation.shouldShowLoadError == false)
+        #expect(presentation.shouldShowEmptyText == true)
+        #expect(prompt.title == "We Could Not Load Bookings")
+        #expect(prompt.message == "We could not load bookings. Please try again.")
+    }
+
+    @Test @MainActor
     func requestEmptyCopyIsSharedByHomeAndRequests() {
         #expect(CustomerRequestEmptyCopy.title == "No Active Request")
         #expect(

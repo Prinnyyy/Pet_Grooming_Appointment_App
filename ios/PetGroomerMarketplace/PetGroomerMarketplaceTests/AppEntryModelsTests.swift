@@ -86,6 +86,33 @@ struct GroomlyFeedbackCenterTests {
         center.clearNotice(id: secondID)
         #expect(center.notice == nil)
     }
+
+    @Test @MainActor
+    func globalFeedbackCenterTracksErrorAndProgressPrompts() {
+        let center = GroomlyFeedbackCenter()
+        let error = GroomlyGlobalFeedbackError(
+            title: "Booking Update Failed",
+            message: "We could not load bookings. Please try again."
+        )
+        let progress = GroomlyGlobalFeedbackProgress(
+            title: "Completing…",
+            tone: .groomer
+        )
+
+        center.showError(error)
+        center.showProgress(progress)
+
+        #expect(center.error?.title == error.title)
+        #expect(center.error?.message == error.message)
+        #expect(center.progress?.title == progress.title)
+        #expect(center.progress?.tone == progress.tone)
+
+        center.clearError(matching: error)
+        center.clearProgress(matching: progress)
+
+        #expect(center.error == nil)
+        #expect(center.progress == nil)
+    }
 }
 
 struct DebugDiagnosticsTests {

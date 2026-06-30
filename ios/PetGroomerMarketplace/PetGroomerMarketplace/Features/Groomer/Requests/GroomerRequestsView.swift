@@ -36,7 +36,7 @@ struct GroomerRequestsView: View {
                 .disabled(store.isBusy)
             }
         }
-        .safeAreaInset(edge: .bottom) {
+        .background {
             GroomerRequestsStatusView(store: store)
         }
         .task {
@@ -1018,53 +1018,49 @@ private struct GroomerRequestsStatusView: View {
     let store: GroomerRequestsStore
 
     var body: some View {
-        GroomlyBottomPromptArea(
-            isPresented: hasInlineStatus,
+        GroomlyGlobalFeedbackForwarder(
             noticeMessage: store.noticeMessage,
-            animationValue: hasInlineStatus,
             clearNotice: { message in
                 guard store.noticeMessage == message else { return }
                 store.noticeMessage = nil
-            }
-        ) {
-            inlineStatus
+            },
+            error: errorPrompt,
+            progress: progressPrompt
+        )
+    }
+
+    private var errorPrompt: GroomlyGlobalFeedbackError? {
+        guard let errorMessage = store.errorMessage else { return nil }
+        return GroomlyGlobalFeedbackError(
+            title: "Request Update Failed",
+            message: errorMessage
+        )
+    }
+
+    private var progressPrompt: GroomlyGlobalFeedbackProgress? {
+        if store.isDismissing {
+            return GroomlyGlobalFeedbackProgress(
+                title: "Dismissing…",
+                tone: .groomer
+            )
         }
-    }
 
-    private var inlineStatus: some View {
-        VStack(spacing: DesignTokens.Spacing.sm) {
-            if store.isDismissing {
-                progressRow("Dismissing…")
-            }
-
-            if store.isSubmittingOffer {
-                progressRow("Submitting Offer…")
-            }
-
-            if store.isWithdrawingOffer {
-                progressRow("Withdrawing Offer…")
-            }
-
-            if let errorMessage = store.errorMessage {
-                GroomlyBottomErrorPrompt(
-                    title: "Request Update Failed",
-                    message: errorMessage
-                )
-            }
+        if store.isSubmittingOffer {
+            return GroomlyGlobalFeedbackProgress(
+                title: "Submitting Offer…",
+                tone: .groomer
+            )
         }
-    }
 
-    private var hasInlineStatus: Bool {
-        store.isDismissing ||
-            store.isSubmittingOffer ||
-            store.isWithdrawingOffer ||
-            store.errorMessage != nil
-    }
+        if store.isWithdrawingOffer {
+            return GroomlyGlobalFeedbackProgress(
+                title: "Withdrawing Offer…",
+                tone: .groomer
+            )
+        }
 
-    private func progressRow(_ title: String) -> some View {
-        GroomlyStatusProgressToast(title, tint: DesignTokens.Colors.groomerAccent)
+        return nil
     }
-
 }
 
 #if DEBUG

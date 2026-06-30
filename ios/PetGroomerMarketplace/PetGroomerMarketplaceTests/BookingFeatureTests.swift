@@ -26,6 +26,24 @@ struct BookingsStoreTests {
     }
 
     @Test @MainActor
+    func loadFailureUsesGlobalBottomPromptErrorState() async throws {
+        let repository = BookingRepositoryFake(
+            bookingsResult: .failure(.unavailable)
+        )
+        let store = BookingsStore(
+            participantID: UUID(),
+            role: .groomer,
+            repository: repository
+        )
+
+        await store.load()
+
+        #expect(repository.bookingsCallCount == 1)
+        #expect(store.bookings.isEmpty)
+        #expect(store.errorMessage == "We could not load bookings. Please try again.")
+    }
+
+    @Test @MainActor
     func cancelConfirmedBookingUpdatesLocalStatus() async throws {
         let customerID = UUID()
         let booking = Self.booking(customerID: customerID)

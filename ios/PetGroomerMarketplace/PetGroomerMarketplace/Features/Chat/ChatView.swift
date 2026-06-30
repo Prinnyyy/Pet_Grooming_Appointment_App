@@ -34,7 +34,7 @@ struct ChatConversationsView: View {
         }
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
-        .safeAreaInset(edge: .bottom) {
+        .background {
             ChatStatusView(store: store)
         }
         .navigationDestination(item: $focusedConversation) { conversation in
@@ -272,10 +272,7 @@ private struct ChatThreadView: View {
             await store.loadMessages(for: conversation)
         }
         .background {
-            GroomlyNoticeForwarder(message: store.noticeMessage) { message in
-                guard store.noticeMessage == message else { return }
-                store.noticeMessage = nil
-            }
+            ChatStatusView(store: store)
         }
         .scrollDismissesKeyboard(.interactively)
         .accessibilityIdentifier("chat.thread")
@@ -619,22 +616,22 @@ private struct ChatStatusView: View {
     let store: ChatStore
 
     var body: some View {
-        GroomlyBottomPromptArea(
-            isPresented: store.errorMessage != nil,
+        GroomlyGlobalFeedbackForwarder(
             noticeMessage: store.noticeMessage,
-            animationValue: store.errorMessage != nil,
             clearNotice: { message in
                 guard store.noticeMessage == message else { return }
                 store.noticeMessage = nil
-            }
-        ) {
-            if let errorMessage = store.errorMessage {
-                GroomlyBottomErrorPrompt(
-                    title: "Message Update Failed",
-                    message: errorMessage
-                )
-            }
-        }
+            },
+            error: errorPrompt
+        )
+    }
+
+    private var errorPrompt: GroomlyGlobalFeedbackError? {
+        guard let errorMessage = store.errorMessage else { return nil }
+        return GroomlyGlobalFeedbackError(
+            title: "Message Update Failed",
+            message: errorMessage
+        )
     }
 }
 
