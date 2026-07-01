@@ -38,6 +38,38 @@ struct CustomerProfileStorageBucketTests {
     }
 }
 
+struct CustomerProfileAddressSearchTests {
+    @Test @MainActor
+    func customerProfileAddressSuggestionsUseSharedDeduplication() {
+        let result = CustomerProfileAddressSuggestionBuilder.build(
+            from: [
+                CustomerProfileAddressCompletion(
+                    title: "100 Main Street",
+                    subtitle: "Los Angeles, CA",
+                    completion: "first"
+                ),
+                CustomerProfileAddressCompletion(
+                    title: "100 Main Street",
+                    subtitle: "Los Angeles, CA",
+                    completion: "duplicate"
+                ),
+                CustomerProfileAddressCompletion(
+                    title: "200 Broadway",
+                    subtitle: "Anaheim, CA",
+                    completion: "second"
+                ),
+            ]
+        )
+
+        #expect(result.suggestions.map(\.title) == [
+            "100 Main Street",
+            "200 Broadway",
+        ])
+        #expect(result.completionsByID[result.suggestions[0].id] == "first")
+        #expect(result.completionsByID[result.suggestions[1].id] == "second")
+    }
+}
+
 struct CustomerAvatarImageEncoderTests {
     @Test @MainActor
     func displayablePayloadKeepsDisplayablePNGWhenPreferred() throws {

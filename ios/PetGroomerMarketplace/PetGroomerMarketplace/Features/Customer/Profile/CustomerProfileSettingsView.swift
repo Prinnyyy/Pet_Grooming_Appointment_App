@@ -249,41 +249,12 @@ private struct CustomerProfileSettingsView: View {
                 }
 
                 GroomlyCard {
-                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                        Text("Address")
-                            .font(DesignTokens.Typography.headline)
-                            .foregroundStyle(DesignTokens.Colors.textPrimary)
-
-                        CustomerProfileTextField(
-                            title: "Street Address",
-                            text: $store.streetAddress,
-                            prompt: "Street Address"
-                        )
-                        .textContentType(.streetAddressLine1)
-
-                        HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
-                            CustomerProfileTextField(
-                                title: "City",
-                                text: $store.city,
-                                prompt: "City"
-                            )
-                            .textContentType(.addressCity)
-
-                            CustomerProfileStatePicker(
-                                title: "State",
-                                selection: $store.stateCode
-                            )
-                            .frame(width: 100)
-                        }
-
-                        CustomerProfileTextField(
-                            title: "ZIP Code",
-                            text: $store.zipCode,
-                            prompt: "ZIP Code"
-                        )
-                        .textContentType(.postalCode)
-                        .keyboardType(.numbersAndPunctuation)
-                    }
+                    CustomerProfileAddressFields(
+                        streetAddress: $store.streetAddress,
+                        city: $store.city,
+                        stateCode: $store.stateCode,
+                        zipCode: $store.zipCode
+                    )
                 }
 
                 if store.shouldShowInitialLoading {
@@ -319,6 +290,109 @@ private struct CustomerProfileSettingsView: View {
             CustomerProfileStatusView(store: store)
         }
         .accessibilityIdentifier("customer.profile.settings")
+    }
+}
+
+private struct CustomerProfileAddressFields: View {
+    @Binding var streetAddress: String
+    @Binding var city: String
+    @Binding var stateCode: USStateCode?
+    @Binding var zipCode: String
+    @StateObject private var addressSearch = CustomerProfileAddressSearch()
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            Text("Address")
+                .font(DesignTokens.Typography.headline)
+                .foregroundStyle(DesignTokens.Colors.textPrimary)
+
+            CustomerProfileTextField(
+                title: "Street Address",
+                text: $streetAddress,
+                prompt: "Street Address"
+            )
+            .textContentType(.streetAddressLine1)
+            .onChange(of: streetAddress) { _, newValue in
+                addressSearch.update(
+                    street: newValue,
+                    city: city,
+                    stateCode: stateCode
+                )
+            }
+
+            if !addressSearch.suggestions.isEmpty {
+                VStack(spacing: DesignTokens.Spacing.xs) {
+                    ForEach(addressSearch.suggestions.prefix(4)) { suggestion in
+                        Button {
+                            applyAddressSuggestion(suggestion)
+                        } label: {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(suggestion.title)
+                                    .font(DesignTokens.Typography.caption.weight(.semibold))
+                                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+                                    .lineLimit(1)
+
+                                Text(suggestion.subtitle)
+                                    .font(DesignTokens.Typography.caption)
+                                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                                    .lineLimit(1)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, DesignTokens.Spacing.md)
+                            .padding(.vertical, DesignTokens.Spacing.sm)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .background(DesignTokens.Colors.surface)
+                .clipShape(
+                    RoundedRectangle(
+                        cornerRadius: DesignTokens.CornerRadius.input,
+                        style: .continuous
+                    )
+                )
+                .overlay {
+                    RoundedRectangle(
+                        cornerRadius: DesignTokens.CornerRadius.input,
+                        style: .continuous
+                    )
+                    .stroke(DesignTokens.Colors.borderSoft, lineWidth: 1)
+                }
+            }
+
+            HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
+                CustomerProfileTextField(
+                    title: "City",
+                    text: $city,
+                    prompt: "City"
+                )
+                .textContentType(.addressCity)
+
+                CustomerProfileStatePicker(
+                    title: "State",
+                    selection: $stateCode
+                )
+                .frame(width: 100)
+            }
+
+            CustomerProfileTextField(
+                title: "ZIP Code",
+                text: $zipCode,
+                prompt: "ZIP Code"
+            )
+            .textContentType(.postalCode)
+            .keyboardType(.numbersAndPunctuation)
+        }
+    }
+
+    private func applyAddressSuggestion(_ suggestion: CustomerProfileAddressSuggestion) {
+        Task {
+            guard let address = await addressSearch.resolve(suggestion) else { return }
+            streetAddress = address.streetAddress
+            city = address.city
+            stateCode = address.stateCode
+            zipCode = address.zipCode
+        }
     }
 }
 

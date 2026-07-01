@@ -4,6 +4,7 @@ struct CustomerTabView: View {
     @Environment(\.appDebugEventRecorder) private var debugRecorder
     let customerID: UUID?
     let customerDisplayName: String?
+    let customerProfileRepository: (any CustomerProfileRepository)?
     let petRepository: (any CustomerPetRepository)?
     let requestRepository: (any CustomerRequestRepository)?
     let bookingRepository: (any BookingRepository)?
@@ -17,6 +18,7 @@ struct CustomerTabView: View {
     init(
         customerID: UUID? = nil,
         customerDisplayName: String? = nil,
+        customerProfileRepository: (any CustomerProfileRepository)? = nil,
         petRepository: (any CustomerPetRepository)? = nil,
         requestRepository: (any CustomerRequestRepository)? = nil,
         bookingRepository: (any BookingRepository)? = nil,
@@ -25,6 +27,7 @@ struct CustomerTabView: View {
     ) {
         self.customerID = customerID
         self.customerDisplayName = customerDisplayName
+        self.customerProfileRepository = customerProfileRepository
         self.petRepository = petRepository
         self.requestRepository = requestRepository
         self.bookingRepository = bookingRepository
@@ -83,6 +86,7 @@ struct CustomerTabView: View {
                 customerID: customerID,
                 displayName: customerDisplayName,
                 repository: petRepository,
+                customerProfileRepository: customerProfileRepository,
                 requestRepository: requestRepository,
                 bookingRepository: bookingRepository,
                 debugRecorder: debugRecorder,

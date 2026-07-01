@@ -2207,9 +2207,11 @@ struct CustomerRequestWizardFitInputPresentation: Equatable {
 }
 
 struct CustomerRequestWizardView: View {
+    @Environment(\.groomlyFeedbackCenter) private var feedbackCenter
     @Bindable var store: CustomerRequestsStore
 
     private let onAddPet: (() -> Void)?
+    private let customerProfileRepository: (any CustomerProfileRepository)?
     @State private var currentStep: CustomerRequestWizardStep = .pet
     @State private var selectedServiceOption: CustomerRequestServiceOption?
     @State private var selectedDate: Date
@@ -2217,12 +2219,15 @@ struct CustomerRequestWizardView: View {
     @State private var isFlexibleWithTime = false
     @State private var selectedRequestPhotoItem: PhotosPickerItem?
     @State private var invalidFields: Set<CustomerRequestWizardValidationField> = []
+    @State private var isApplyingProfileAddress = false
 
     init(
         store: CustomerRequestsStore,
+        customerProfileRepository: (any CustomerProfileRepository)? = nil,
         onAddPet: (() -> Void)? = nil
     ) {
         self.store = store
+        self.customerProfileRepository = customerProfileRepository
         self.onAddPet = onAddPet
         _selectedDate = State(initialValue: store.preferredStart)
         _selectedServiceOption = State(
@@ -2298,6 +2303,14 @@ struct CustomerRequestWizardView: View {
             guard let newItem else { return }
             Task {
                 await addPendingRequestPhoto(newItem)
+            }
+        }
+        .overlay(alignment: .bottom) {
+            if let feedbackCenter {
+                GroomlyGlobalFeedbackOverlay(
+                    center: feedbackCenter,
+                    bottomPadding: GroomlyGlobalFeedbackOverlay.sheetBottomClearance
+                )
             }
         }
         .accessibilityIdentifier("customer.requests.wizard")
@@ -2443,6 +2456,8 @@ struct CustomerRequestWizardView: View {
                 locationMode: store.locationMode,
                 travelRangeMiles: $store.travelRadiusMiles,
                 invalidFields: invalidFields,
+                isApplyingProfileAddress: isApplyingProfileAddress,
+                useProfileAddress: applyProfileAddress,
                 clearInvalidField: clearInvalidField
             )
         }
@@ -2665,6 +2680,69 @@ struct CustomerRequestWizardView: View {
             data: data,
             contentType: contentType
         )
+    }
+
+    private func applyProfileAddress() {
+        guard !isApplyingProfileAddress else { return }
+        guard let customerProfileRepository else {
+            showNoProfileAddressPrompt()
+            return
+        }
+
+        isApplyingProfileAddress = true
+        Task { @MainActor in
+            defer { isApplyingProfileAddress = false }
+
+            do {
+                let profile = try await customerProfileRepository.profile(
+                    customerID: store.customerID
+                )
+                guard let autofill = CustomerProfileAddressAutofill.make(from: profile) else {
+                    showNoProfileAddressPrompt()
+                    return
+                }
+
+                store.streetAddress = autofill.streetAddress
+                store.city = autofill.city
+                store.stateCode = autofill.stateCode
+                store.zipCode = autofill.zipCode
+                clearInvalidField(.streetAddress)
+                clearInvalidField(.city)
+                clearInvalidField(.state)
+                clearInvalidField(.zipCode)
+            } catch CustomerProfileRepositoryError.cancelled {
+                return
+            } catch {
+                showProfileAddressUnavailablePrompt()
+            }
+        }
+    }
+
+    private func showNoProfileAddressPrompt() {
+        showProfileAddressPrompt(
+            GroomlyGlobalFeedbackError(
+                scope: .operation("customer.requests.profile-address"),
+                sourceKey: "customer.requests.profile-address.missing",
+                title: "No Profile Address",
+                message: "Add an address in Account Profile Settings first."
+            )
+        )
+    }
+
+    private func showProfileAddressUnavailablePrompt() {
+        showProfileAddressPrompt(
+            GroomlyGlobalFeedbackError(
+                scope: .operation("customer.requests.profile-address"),
+                sourceKey: "customer.requests.profile-address.unavailable",
+                title: "Profile Address Unavailable",
+                message: "We could not load your saved profile address. Please try again."
+            )
+        )
+    }
+
+    private func showProfileAddressPrompt(_ error: GroomlyGlobalFeedbackError) {
+        feedbackCenter?.clearError(matching: error)
+        feedbackCenter?.showError(error)
     }
 
     private func applyInitialDefaults() {
@@ -3409,11 +3487,53 @@ private struct CustomerRequestAddressFields: View {
     let locationMode: CustomerRequestLocationMode
     @Binding var travelRangeMiles: Int
     let invalidFields: Set<CustomerRequestWizardValidationField>
+    let isApplyingProfileAddress: Bool
+    let useProfileAddress: () -> Void
     let clearInvalidField: (CustomerRequestWizardValidationField) -> Void
     @StateObject private var addressSearch = CustomerRequestAddressSearch()
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            Button(action: useProfileAddress) {
+                HStack(spacing: DesignTokens.Spacing.sm) {
+                    if isApplyingProfileAddress {
+                        ProgressView()
+                            .tint(DesignTokens.Colors.customerPrimaryDark)
+                    } else {
+                        Image(systemName: "person.crop.circle.badge.checkmark")
+                            .font(.headline.weight(.semibold))
+                    }
+
+                    Text(isApplyingProfileAddress ? "Loading Profile Address..." : "Use Profile Address")
+                        .font(DesignTokens.Typography.body.weight(.bold))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.82)
+
+                    Spacer(minLength: 0)
+                }
+                .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
+                .padding(.horizontal, DesignTokens.Spacing.md)
+                .padding(.vertical, DesignTokens.Spacing.md)
+                .frame(maxWidth: .infinity, minHeight: 52, alignment: .leading)
+                .background(DesignTokens.Colors.customerPrimary.opacity(0.1))
+                .clipShape(
+                    RoundedRectangle(
+                        cornerRadius: DesignTokens.CornerRadius.button,
+                        style: .continuous
+                    )
+                )
+                .overlay {
+                    RoundedRectangle(
+                        cornerRadius: DesignTokens.CornerRadius.button,
+                        style: .continuous
+                    )
+                    .stroke(DesignTokens.Colors.customerPrimary.opacity(0.2), lineWidth: 1)
+                }
+            }
+            .buttonStyle(.plain)
+            .disabled(isApplyingProfileAddress)
+            .accessibilityIdentifier("customer.requests.use-profile-address")
+
             TextField("Street Address", text: $streetAddress)
                 .textContentType(.streetAddressLine1)
                 .groomlyFormField(isInvalid: invalidFields.contains(.streetAddress))
@@ -3581,167 +3701,6 @@ private struct CustomerRequestAddressFields: View {
             clearInvalidField(.state)
             clearInvalidField(.zipCode)
         }
-    }
-}
-
-struct CustomerRequestAddressSuggestion: Identifiable, Hashable {
-    let id: String
-    let title: String
-    let subtitle: String
-}
-
-struct CustomerRequestAddressCompletion<Completion> {
-    let title: String
-    let subtitle: String
-    let completion: Completion
-}
-
-enum CustomerRequestAddressSuggestionBuilder {
-    static func build<Completion>(
-        from completions: [CustomerRequestAddressCompletion<Completion>],
-        limit: Int = 5
-    ) -> (
-        suggestions: [CustomerRequestAddressSuggestion],
-        completionsByID: [String: Completion]
-    ) {
-        var seenKeys: Set<String> = []
-        var suggestions: [CustomerRequestAddressSuggestion] = []
-        var completionsByID: [String: Completion] = [:]
-
-        for completion in completions where suggestions.count < limit {
-            let title = completion.title.trimmingCharacters(in: .whitespacesAndNewlines)
-            let subtitle = completion.subtitle.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !title.isEmpty else { continue }
-
-            let key = "\(title)|\(subtitle)"
-            guard seenKeys.insert(key).inserted else { continue }
-
-            let suggestion = CustomerRequestAddressSuggestion(
-                id: key,
-                title: title,
-                subtitle: subtitle
-            )
-            suggestions.append(suggestion)
-            completionsByID[suggestion.id] = completion.completion
-        }
-
-        return (suggestions, completionsByID)
-    }
-}
-
-private struct CustomerRequestResolvedAddress {
-    let streetAddress: String
-    let city: String
-    let stateCode: USStateCode
-    let zipCode: String
-}
-
-private final class CustomerRequestAddressSearch:
-    NSObject,
-    ObservableObject,
-    MKLocalSearchCompleterDelegate
-{
-    @Published private(set) var suggestions: [CustomerRequestAddressSuggestion] = []
-
-    private let completer = MKLocalSearchCompleter()
-    private var completionsByID: [String: MKLocalSearchCompletion] = [:]
-    private var lastQueryFragment = ""
-
-    override init() {
-        super.init()
-        completer.delegate = self
-        completer.resultTypes = .address
-    }
-
-    func update(
-        street: String,
-        city: String,
-        stateCode: USStateCode?
-    ) {
-        let trimmedStreet = street.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard trimmedStreet.count >= 3 else {
-            suggestions = []
-            completionsByID = [:]
-            updateQueryFragmentIfNeeded("")
-            return
-        }
-
-        let query = [
-            trimmedStreet,
-            city.trimmingCharacters(in: .whitespacesAndNewlines),
-            stateCode?.rawValue ?? "",
-        ]
-        .filter { !$0.isEmpty }
-        .joined(separator: ", ")
-
-        updateQueryFragmentIfNeeded(query)
-    }
-
-    private func updateQueryFragmentIfNeeded(_ query: String) {
-        guard query != lastQueryFragment else { return }
-        lastQueryFragment = query
-        completer.queryFragment = query
-    }
-
-    func completerDidUpdateResults(_ completer: MKLocalSearchCompleter) {
-        let result = CustomerRequestAddressSuggestionBuilder.build(
-            from: completer.results.map { completion in
-                CustomerRequestAddressCompletion(
-                    title: completion.title,
-                    subtitle: completion.subtitle,
-                    completion: completion
-                )
-            }
-        )
-
-        DispatchQueue.main.async {
-            self.suggestions = result.suggestions
-            self.completionsByID = result.completionsByID
-        }
-    }
-
-    func completer(
-        _ completer: MKLocalSearchCompleter,
-        didFailWithError error: any Error
-    ) {
-        DispatchQueue.main.async {
-            self.suggestions = []
-            self.completionsByID = [:]
-        }
-    }
-
-    func resolve(
-        _ suggestion: CustomerRequestAddressSuggestion
-    ) async -> CustomerRequestResolvedAddress? {
-        guard let completion = completionsByID[suggestion.id] else { return nil }
-
-        let request = MKLocalSearch.Request(completion: completion)
-        guard
-            let mapItem = try? await MKLocalSearch(request: request).start().mapItems.first,
-            let state = mapItem.placemark.administrativeArea,
-            let stateCode = USStateCode(rawValue: state.uppercased()),
-            let zipCode = mapItem.placemark.postalCode?.trimmingCharacters(in: .whitespacesAndNewlines),
-            !zipCode.isEmpty
-        else {
-            return nil
-        }
-
-        let streetAddress = [
-            mapItem.placemark.subThoroughfare,
-            mapItem.placemark.thoroughfare,
-        ]
-        .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
-        .filter { !$0.isEmpty }
-        .joined(separator: " ")
-
-        guard !streetAddress.isEmpty else { return nil }
-
-        return CustomerRequestResolvedAddress(
-            streetAddress: streetAddress,
-            city: mapItem.placemark.locality ?? "",
-            stateCode: stateCode,
-            zipCode: zipCode
-        )
     }
 }
 

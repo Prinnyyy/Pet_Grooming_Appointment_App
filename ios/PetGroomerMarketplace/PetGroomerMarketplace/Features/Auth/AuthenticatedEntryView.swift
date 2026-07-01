@@ -57,6 +57,7 @@ struct AuthenticatedEntryView: View {
                 CustomerTabView(
                     customerID: profile.userID,
                     customerDisplayName: profile.displayName,
+                    customerProfileRepository: customerProfileRepository,
                     petRepository: customerPetRepository,
                     requestRepository: customerRequestRepository,
                     bookingRepository: bookingRepository,

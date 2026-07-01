@@ -1007,13 +1007,23 @@ struct GroomlyGlobalFeedbackForwarder: View {
 
 struct GroomlyGlobalFeedbackOverlay: View {
     static let bottomTabBarClearance = DesignTokens.Spacing.xl * 3 + DesignTokens.Spacing.sm
+    static let sheetBottomClearance = DesignTokens.Spacing.xl
 
     let center: GroomlyFeedbackCenter
+    let bottomPadding: CGFloat
+
+    init(
+        center: GroomlyFeedbackCenter,
+        bottomPadding: CGFloat = Self.bottomTabBarClearance
+    ) {
+        self.center = center
+        self.bottomPadding = bottomPadding
+    }
 
     var body: some View {
         if center.hasVisiblePrompt {
             GroomlyBottomPromptStack(
-                bottomPadding: Self.bottomTabBarClearance,
+                bottomPadding: bottomPadding,
                 animationValue: center.animationKey
             ) {
                 if let progress = center.progress {

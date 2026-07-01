@@ -1063,6 +1063,73 @@ struct CustomerRequestsStoreTests {
     }
 
     @Test @MainActor
+    func sharedAddressSuggestionsDeduplicateRepeatedMapResults() {
+        let result = GroomlyAddressSuggestionBuilder.build(
+            from: [
+                GroomlyAddressCompletion(
+                    title: "760 Market Street",
+                    subtitle: "San Francisco, CA",
+                    completion: "first"
+                ),
+                GroomlyAddressCompletion(
+                    title: "760 Market Street",
+                    subtitle: "San Francisco, CA",
+                    completion: "duplicate"
+                ),
+                GroomlyAddressCompletion(
+                    title: "760 2nd Street",
+                    subtitle: "San Francisco, CA",
+                    completion: "second"
+                ),
+            ]
+        )
+
+        #expect(result.suggestions.map(\.title) == [
+            "760 Market Street",
+            "760 2nd Street",
+        ])
+        #expect(result.completionsByID[result.suggestions[0].id] == "first")
+        #expect(result.completionsByID[result.suggestions[1].id] == "second")
+    }
+
+    @Test @MainActor
+    func profileAddressAutofillRequiresCompleteTrimmedAddress() {
+        let customerID = UUID()
+        let completeProfile = CustomerProfileDetails(
+            userID: customerID,
+            nickname: "Prinny",
+            avatarPath: nil,
+            streetAddress: " 123 Pine Street ",
+            city: " Seattle ",
+            stateCode: .washington,
+            zipCode: " 98101 ",
+            contactEmail: nil,
+            phoneNumber: nil
+        )
+
+        #expect(CustomerProfileAddressAutofill.make(from: completeProfile) == CustomerProfileAddressAutofill(
+            streetAddress: "123 Pine Street",
+            city: "Seattle",
+            stateCode: .washington,
+            zipCode: "98101"
+        ))
+
+        let incompleteProfile = CustomerProfileDetails(
+            userID: customerID,
+            nickname: "Prinny",
+            avatarPath: nil,
+            streetAddress: "123 Pine Street",
+            city: "",
+            stateCode: .washington,
+            zipCode: "98101",
+            contactEmail: nil,
+            phoneNumber: nil
+        )
+
+        #expect(CustomerProfileAddressAutofill.make(from: incompleteProfile) == nil)
+    }
+
+    @Test @MainActor
     func requestWizardAddressSuggestionsDeduplicateRepeatedMapResults() {
         let result = CustomerRequestAddressSuggestionBuilder.build(
             from: [

@@ -4,6 +4,7 @@ import UIKit
 
 struct CustomerPetsView: View {
     private let displayName: String
+    private let customerProfileRepository: (any CustomerProfileRepository)?
     private let onActiveRequestSelected: (UUID) -> Void
     private let onBookingChatSelected: (Booking) -> Void
     @State private var petStore: CustomerPetsStore
@@ -14,6 +15,7 @@ struct CustomerPetsView: View {
         customerID: UUID,
         displayName: String? = nil,
         repository: any CustomerPetRepository,
+        customerProfileRepository: (any CustomerProfileRepository)? = nil,
         requestRepository: any CustomerRequestRepository,
         bookingRepository: any BookingRepository,
         debugRecorder: AppDebugEventRecorder? = nil,
@@ -24,6 +26,7 @@ struct CustomerPetsView: View {
             in: .whitespacesAndNewlines
         ) ?? ""
         self.displayName = trimmedName.isEmpty ? "there" : trimmedName
+        self.customerProfileRepository = customerProfileRepository
         self.onActiveRequestSelected = onActiveRequestSelected
         self.onBookingChatSelected = onBookingChatSelected
         _petStore = State(
@@ -74,7 +77,10 @@ struct CustomerPetsView: View {
             CustomerPetFormView(store: petStore)
         }
         .sheet(isPresented: $requestStore.isShowingWizard) {
-            CustomerRequestWizardView(store: requestStore) {
+            CustomerRequestWizardView(
+                store: requestStore,
+                customerProfileRepository: customerProfileRepository
+            ) {
                 requestStore.cancelWizard()
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
                     petStore.startCreate()

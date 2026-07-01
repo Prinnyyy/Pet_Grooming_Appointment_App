@@ -101,7 +101,7 @@ final class CustomerRequestsStore {
     static let minimumPreferredStartLeadTime: TimeInterval = 5 * 60
     static let maximumRequestPhotoBytes = 10 * 1024 * 1024
 
-    private let customerID: UUID
+    let customerID: UUID
     private let petRepository: any CustomerPetRepository
     private let requestRepository: any CustomerRequestRepository
     private let bookingRepository: any BookingRepository

@@ -4,6 +4,26 @@ This file is reverse chronological history. Only the newest entry plus `docs/00_
 
 ```text
 Date: 2026-07-01
+Task: T-132 - Customer profile address autocomplete and sheet feedback visibility.
+Files changed: GroomlyAddressSearch, GroomlyFeedbackPrimitives, CustomerProfileSettingsView, CustomerRequestsView, CustomerProfileFeatureTests, AppEntryModelsTests, CURRENT_STATE.md, WORKLOG.md, TASK_LEDGER.md.
+Checks: Confirmed branch `codex/pet-fit-structure-cleanup`. RED focused CustomerProfile address-search test failed before implementation because the Customer Profile address suggestion aliases did not exist. GREEN focused tests passed for shared Customer Profile address suggestion de-duplication and sheet feedback bottom-clearance behavior. `./scripts/ios-build.sh` passed. XcodeBuildMCP simulator build/run passed. `git diff --check` passed.
+Result: Customer Profile address entry now uses the shared MapKit-backed address autocomplete/resolve implementation instead of plain text-only fields. The customer request wizard sheet now mounts the same global feedback overlay with sheet bottom clearance, so tapping `Use Profile Address` when the customer profile has no saved complete address shows the no-address prompt while the sheet remains open.
+Risks: No Supabase schema, RLS, RPC, Storage, repository contract, auth, or remote data changed. The wizard still uses the existing global feedback center; this did not add a second toast system.
+Next: Stop unless the user asks to commit/push or starts T-133.
+```
+
+```text
+Date: 2026-07-01
+Task: T-131 - Request profile-address autofill and shared address search.
+Files changed: GroomlyAddressSearch, CustomerRequestsStore/View, CustomerPetsView, CustomerTabView, AuthenticatedEntryView, GroomerProfileManagementView, CustomerRequestFeatureTests, CURRENT_STATE.md, WORKLOG.md, TASK_LEDGER.md.
+Checks: Confirmed branch `codex/pet-fit-structure-cleanup`. RED focused tests failed before implementation because `GroomlyAddressSuggestionBuilder`, `GroomlyAddressCompletion`, and `CustomerProfileAddressAutofill` did not exist. GREEN focused tests passed for shared address suggestion de-duplication and complete trimmed profile-address autofill. `./scripts/ios-build.sh` passed. XcodeBuildMCP simulator launch passed. `git diff --check` passed.
+Result: Customer grooming request address entry now has a `Use Profile Address` button. It reads the saved customer profile address through the existing customer profile repository, fills street/city/state/ZIP when complete, and shows a unified global bottom error prompt when the saved profile address is missing or cannot be loaded. Customer request and groomer profile address autocomplete now share one MapKit-backed address search implementation, so groomer address selection uses the same real-address autofill path as customer requests.
+Risks: No Supabase schema, RLS, RPC, Storage, or remote data changed. The button depends on the saved customer profile address having all four address fields; partial profile addresses intentionally show the no-address prompt.
+Next: Stop unless the user asks to commit/push or starts T-132.
+```
+
+```text
+Date: 2026-07-01
 Task: T-130 - LA/OC public-address refinement for bulk test account resources.
 Files changed: docs/02_architecture/test_resources/T-129_GROOMER_TEST_PROFILES.md, docs/02_architecture/test_resources/T-129_CUSTOMER_TEST_PROFILES.md, CURRENT_STATE.md, WORKLOG.md, TASK_LEDGER.md.
 Checks: Confirmed branch `codex/pet-fit-structure-cleanup`; browsed official LA County Library, OC Public Libraries, and City of Orange Library location pages for public address sources; parsed validation confirmed 50 groomers, 50 customers, 100 pets, LA/OC-only profile addresses, non-empty groomer bio/address/mode/radius/year/size/fit/availability/service fields, and app-compatible pet breed/coat/temperament values; `git diff --check` passed. No Supabase remote write, Auth user creation, seed script, Swift build, test, or simulator launch was run because this was documentation-only.

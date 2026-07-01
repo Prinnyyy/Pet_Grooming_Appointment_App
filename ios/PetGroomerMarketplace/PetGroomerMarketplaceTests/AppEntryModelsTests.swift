@@ -69,6 +69,11 @@ struct GroomlyFeedbackCenterTests {
     }
 
     @Test @MainActor
+    func sheetNoticeOverlayUsesSheetBottomClearance() {
+        #expect(GroomlyGlobalFeedbackOverlay.sheetBottomClearance < GroomlyGlobalFeedbackOverlay.bottomTabBarClearance)
+    }
+
+    @Test @MainActor
     func newNoticeWaitsUntilVisibleNoticeDismissesBeforeShowing() async throws {
         let center = GroomlyFeedbackCenter()
 
