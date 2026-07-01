@@ -5,6 +5,7 @@ struct AppComposition {
     let authenticationBootstrapState: AuthenticationBootstrapState
     let authSessionRepository: (any AuthSessionRepository)?
     let profileRepository: (any ProfileRepository)?
+    let customerProfileRepository: (any CustomerProfileRepository)?
     let customerPetRepository: (any CustomerPetRepository)?
     let customerRequestRepository: (any CustomerRequestRepository)?
     let bookingRepository: (any BookingRepository)?
@@ -29,6 +30,10 @@ struct AppComposition {
             let profileRepository = SupabaseProfileRepository(client: client)
             #if DEBUG
             let debugRecorder = AppDebugEventRecorder.shared
+            let customerProfileRepository = DebugCustomerProfileRepository(
+                base: SupabaseCustomerProfileRepository(client: client),
+                debugRecorder: debugRecorder
+            )
             let customerPetRepository = DebugCustomerPetRepository(
                 base: SupabaseCustomerPetRepository(client: client),
                 debugRecorder: debugRecorder
@@ -54,6 +59,7 @@ struct AppComposition {
                 debugRecorder: debugRecorder
             )
             #else
+            let customerProfileRepository = SupabaseCustomerProfileRepository(client: client)
             let customerPetRepository = SupabaseCustomerPetRepository(client: client)
             let customerRequestRepository = SupabaseCustomerRequestRepository(client: client)
             let bookingRepository = SupabaseBookingRepository(client: client)
@@ -65,6 +71,7 @@ struct AppComposition {
             authenticationBootstrapState = .ready
             authSessionRepository = authRepository
             self.profileRepository = profileRepository
+            self.customerProfileRepository = customerProfileRepository
             self.customerPetRepository = customerPetRepository
             self.customerRequestRepository = customerRequestRepository
             self.bookingRepository = bookingRepository
@@ -78,6 +85,7 @@ struct AppComposition {
             )
             authSessionRepository = nil
             profileRepository = nil
+            customerProfileRepository = nil
             customerPetRepository = nil
             customerRequestRepository = nil
             bookingRepository = nil

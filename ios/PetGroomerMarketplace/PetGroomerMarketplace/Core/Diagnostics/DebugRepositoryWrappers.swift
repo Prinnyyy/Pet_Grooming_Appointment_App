@@ -56,6 +56,7 @@ private enum AppDebugRepositoryCancellation {
         switch error {
         case BookingRepositoryError.cancelled,
              CustomerRequestRepositoryError.cancelled,
+             CustomerProfileRepositoryError.cancelled,
              CustomerPetRepositoryError.cancelled,
              ChatRepositoryError.cancelled,
              GroomerProfileRepositoryError.cancelled,
@@ -292,6 +293,113 @@ final class DebugCustomerRequestRepository: CustomerRequestRepository {
         ) {
             try await base.cancelRequest(requestID: requestID)
         }
+    }
+}
+
+@MainActor
+final class DebugCustomerProfileRepository: CustomerProfileRepository {
+    private let base: any CustomerProfileRepository
+    private let debugRecorder: AppDebugEventRecorder?
+
+    init(
+        base: any CustomerProfileRepository,
+        debugRecorder: AppDebugEventRecorder?
+    ) {
+        self.base = base
+        self.debugRecorder = debugRecorder
+    }
+
+    func profile(customerID: UUID) async throws -> CustomerProfileDetails {
+        try await profileCall(
+            "profile",
+            customerID: customerID,
+            table: "customer_profiles"
+        ) {
+            try await base.profile(customerID: customerID)
+        }
+    }
+
+    func updateProfile(
+        customerID: UUID,
+        draft: CustomerProfileDraft
+    ) async throws -> CustomerProfileDetails {
+        try await profileCall(
+            "updateProfile",
+            customerID: customerID,
+            table: "customer_profiles"
+        ) {
+            try await base.updateProfile(customerID: customerID, draft: draft)
+        }
+    }
+
+    func uploadAvatarPhoto(
+        customerID: UUID,
+        data: Data,
+        contentType: CustomerAvatarPhotoContentType
+    ) async throws -> String {
+        try await profileCall(
+            "uploadAvatarPhoto",
+            customerID: customerID,
+            table: "profiles",
+            metadata: [
+                "bucket": "customer-avatars",
+                "contentType": contentType.rawValue,
+            ]
+        ) {
+            try await base.uploadAvatarPhoto(
+                customerID: customerID,
+                data: data,
+                contentType: contentType
+            )
+        }
+    }
+
+    func avatarPhotoData(storagePath: String) async throws -> Data {
+        try await profileCall(
+            "avatarPhotoData",
+            customerID: nil,
+            metadata: [
+                "bucket": "customer-avatars",
+                "storagePath": storagePath,
+            ]
+        ) {
+            try await base.avatarPhotoData(storagePath: storagePath)
+        }
+    }
+
+    func latestAvatarPhotoPath(customerID: UUID) async throws -> String? {
+        try await profileCall(
+            "latestAvatarPhotoPath",
+            customerID: customerID,
+            metadata: ["bucket": "customer-avatars"]
+        ) {
+            try await base.latestAvatarPhotoPath(customerID: customerID)
+        }
+    }
+
+    private func profileCall<T>(
+        _ operation: String,
+        customerID: UUID?,
+        table: String? = nil,
+        metadata: [String: String] = [:],
+        body: () async throws -> T
+    ) async throws -> T {
+        var eventMetadata = metadata
+        if let customerID {
+            eventMetadata["customerID"] = customerID.uuidString
+        }
+        if let table {
+            eventMetadata["table"] = table
+        }
+
+        return try await debugRepositoryCall(
+            recorder: debugRecorder,
+            source: "CustomerProfileRepository.\(operation)",
+            scope: "customer.profile",
+            operation: operation,
+            metadata: eventMetadata,
+            body: body
+        )
     }
 }
 

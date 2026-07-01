@@ -24,7 +24,8 @@ struct GroomerPortfolioPhotoPathTests {
 
 struct GroomerProfileStorageBucketTests {
     @Test
-    func photoBucketsAreSeparateForAvatarPortfolioPetAndRequestPhotos() {
+    func photoBucketsAreSeparateForCustomerAvatarGroomerAvatarPortfolioPetAndRequestPhotos() {
+        #expect(PhotoStorageBucketID.customerAvatar.rawValue == "customer-avatars")
         #expect(PhotoStorageBucketID.groomerAvatar.rawValue == "groomer-avatars")
         #expect(PhotoStorageBucketID.groomerPortfolio.rawValue == "groomer-portfolio")
         #expect(PhotoStorageBucketID.customerPet.rawValue == "pet-photos")

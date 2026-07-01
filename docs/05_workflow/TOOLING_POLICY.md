@@ -46,15 +46,20 @@ Migration workflow:
 
 1. Create the migration with `supabase migration new <name>`.
 2. Draft and review one task-scoped SQL change locally.
-3. Obtain explicit user approval for remote DDL.
-4. Apply reviewed SQL only with `supabase db push --linked`.
-5. Confirm version/name with `supabase migration list --linked`.
-6. Validate metadata and positive/negative authorization cases with `supabase db query --linked`.
-7. Run advisors with `supabase db advisors --linked --type security` and `supabase db advisors --linked --type performance`.
+3. Run `supabase migration list --linked`; previous local and remote versions must match before applying new work.
+4. Run `supabase db push --linked --dry-run`; it should show only the intended new migration, or `Remote database is up to date.` when there is nothing to apply.
+5. Obtain explicit user approval for remote DDL.
+6. Apply reviewed SQL only with `supabase db push --linked`.
+7. Confirm version/name with `supabase migration list --linked`.
+8. Re-run `supabase db push --linked --dry-run`; it must return `Remote database is up to date.`
+9. Validate metadata and positive/negative authorization cases with `supabase db query --linked`.
+10. Run advisors with `supabase db advisors --linked --type security` and `supabase db advisors --linked --type performance`.
 
 `./scripts/supabase-check.sh` is a static repository check. It does not replace remote verification and must not mutate remote state.
 
-Never reset databases, weaken RLS, repair migration history, expose service-role keys, inspect local secrets, or make remote schema/Storage writes without explicit task authorization.
+Never reset databases, weaken RLS, repair migration history, expose service-role keys, inspect local secrets, or make remote schema/Storage writes without explicit task authorization. `supabase migration repair --linked` is permitted only as a documented recovery step after `migration list` proves drift and each mismatched version is mapped to a known local canonical migration.
+
+Run linked Supabase CLI commands sequentially. Do not run linked `migration list`, `db push`, `db query`, or `db advisors` calls in parallel because concurrent login-role initialization can produce transient `cli_login_postgres` SASL/auth failures.
 
 ## MCP and Plugin Tools
 

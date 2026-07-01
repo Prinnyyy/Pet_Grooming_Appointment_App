@@ -1,0 +1,288 @@
+import Foundation
+import Testing
+import UIKit
+@testable import PetGroomerMarketplace
+
+struct CustomerAvatarPhotoPathTests {
+    @Test
+    func storagePathMatchesBackendContractAndUsesLowercaseUUIDs() {
+        let customerID = UUID(uuidString: "AAAAAAAA-BBBB-4CCC-8DDD-EEEEEEEEEEEE")!
+        let fileID = UUID(uuidString: "99999999-AAAA-4BBB-8CCC-DDDDDDDDDDDD")!
+
+        let path = CustomerAvatarPhotoPath.make(
+            customerID: customerID,
+            fileID: fileID,
+            contentType: .png
+        )
+
+        #expect(
+            path ==
+                "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee/99999999-aaaa-4bbb-8ccc-dddddddddddd.png"
+        )
+    }
+}
+
+struct CustomerProfileStorageBucketTests {
+    @Test
+    func customerAvatarBucketIsSeparateFromOtherPhotoBuckets() {
+        #expect(PhotoStorageBucketID.customerAvatar.rawValue == "customer-avatars")
+        #expect(PhotoStorageBucketID.groomerAvatar.rawValue == "groomer-avatars")
+        #expect(PhotoStorageBucketID.groomerPortfolio.rawValue == "groomer-portfolio")
+        #expect(PhotoStorageBucketID.customerPet.rawValue == "pet-photos")
+        #expect(PhotoStorageBucketID.groomingRequest.rawValue == "request-photos")
+
+        #expect(
+            Set(PhotoStorageBucketID.allCases.map(\.rawValue)).count
+                == PhotoStorageBucketID.allCases.count
+        )
+    }
+}
+
+struct CustomerAvatarImageEncoderTests {
+    @Test @MainActor
+    func displayablePayloadKeepsDisplayablePNGWhenPreferred() throws {
+        let sourceData = try Self.solidPNGData()
+
+        let payload = try #require(
+            CustomerAvatarImageEncoder.displayablePayload(
+                from: sourceData,
+                preferredContentType: .png
+            )
+        )
+
+        #expect(payload.contentType == .png)
+        #expect(UIImage(data: payload.data) != nil)
+    }
+
+    @Test @MainActor
+    func displayablePayloadConvertsHEICPreferenceToDisplayableJPEG() throws {
+        let sourceData = try Self.solidPNGData()
+
+        let payload = try #require(
+            CustomerAvatarImageEncoder.displayablePayload(
+                from: sourceData,
+                preferredContentType: .heic
+            )
+        )
+
+        #expect(payload.contentType == .jpeg)
+        #expect(UIImage(data: payload.data) != nil)
+    }
+
+    @MainActor
+    private static func solidPNGData() throws -> Data {
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: 12, height: 12))
+        let image = renderer.image { context in
+            UIColor.systemPink.setFill()
+            context.fill(CGRect(x: 0, y: 0, width: 12, height: 12))
+        }
+        return try #require(image.pngData())
+    }
+}
+
+struct CustomerProfileStoreTests {
+    @Test @MainActor
+    func saveProfileNormalizesDraftAndUpdatesSnapshot() async {
+        let customerID = UUID()
+        let repository = CustomerProfileRepositoryFake(
+            profileResult: .success(Self.profile(customerID: customerID))
+        )
+        let cache = ProfileSnapshotCacheFake()
+        let store = CustomerProfileStore(
+            customerID: customerID,
+            initialDisplayName: "Old Name",
+            sessionEmail: "owner@example.com",
+            repository: repository,
+            profileSnapshotCache: cache
+        )
+
+        store.nickname = "  Prinny  "
+        store.streetAddress = "  123 Pine Street  "
+        store.city = "  Seattle  "
+        store.stateCode = .washington
+        store.zipCode = "98101"
+        store.contactEmail = "  owner@example.com  "
+        store.phoneNumber = "  +1 555 222 3333  "
+
+        await store.saveProfile()
+
+        #expect(repository.updateCallCount == 1)
+        #expect(repository.lastDraft?.nickname == "Prinny")
+        #expect(repository.lastDraft?.streetAddress == "123 Pine Street")
+        #expect(repository.lastDraft?.city == "Seattle")
+        #expect(repository.lastDraft?.stateCode == .washington)
+        #expect(repository.lastDraft?.zipCode == "98101")
+        #expect(repository.lastDraft?.contactEmail == "owner@example.com")
+        #expect(repository.lastDraft?.phoneNumber == "+1 555 222 3333")
+        #expect(store.profileDisplayName == "Prinny")
+        #expect(cache.savedSnapshots.last?.displayName == "Prinny")
+        #expect(store.noticeMessage == "Profile saved.")
+    }
+
+    @Test @MainActor
+    func invalidEmailDoesNotCallRepository() async {
+        let repository = CustomerProfileRepositoryFake()
+        let store = CustomerProfileStore(
+            customerID: UUID(),
+            initialDisplayName: "Prinny",
+            sessionEmail: nil,
+            repository: repository
+        )
+
+        store.nickname = "Prinny"
+        store.contactEmail = "not-an-email"
+
+        await store.saveProfile()
+
+        #expect(repository.updateCallCount == 0)
+        #expect(store.errorMessage == "Enter a valid email address.")
+    }
+
+    @Test @MainActor
+    func uploadAvatarRefreshesVisibleDataAndSnapshot() async {
+        let customerID = UUID()
+        let repository = CustomerProfileRepositoryFake(
+            profileResult: .success(Self.profile(customerID: customerID))
+        )
+        let cache = ProfileSnapshotCacheFake()
+        let store = CustomerProfileStore(
+            customerID: customerID,
+            initialDisplayName: "Prinny",
+            sessionEmail: "owner@example.com",
+            repository: repository,
+            profileSnapshotCache: cache
+        )
+        await store.load()
+
+        let data = Data([0x01, 0x02, 0x03])
+        await store.uploadAvatarPhoto(data: data, contentType: .jpeg)
+
+        #expect(repository.uploadAvatarCallCount == 1)
+        #expect(store.profile?.avatarPath == repository.uploadedAvatarPath)
+        #expect(store.avatarPhotoData == data)
+        #expect(cache.savedSnapshots.last?.avatarData == data)
+        #expect(store.noticeMessage == "Profile photo was updated.")
+    }
+
+    private static func profile(
+        customerID: UUID,
+        nickname: String = "Prinny",
+        avatarPath: String? = nil
+    ) -> CustomerProfileDetails {
+        CustomerProfileDetails(
+            userID: customerID,
+            nickname: nickname,
+            avatarPath: avatarPath,
+            streetAddress: nil,
+            city: nil,
+            stateCode: nil,
+            zipCode: nil,
+            contactEmail: "owner@example.com",
+            phoneNumber: nil
+        )
+    }
+}
+
+@MainActor
+private final class CustomerProfileRepositoryFake: CustomerProfileRepository {
+    var profileResult: Result<CustomerProfileDetails, CustomerProfileRepositoryError>
+    var updateCallCount = 0
+    var uploadAvatarCallCount = 0
+    var lastCustomerID: UUID?
+    var lastDraft: CustomerProfileDraft?
+    var uploadedAvatarPath = ""
+
+    init(
+        profileResult: Result<CustomerProfileDetails, CustomerProfileRepositoryError> =
+            .success(
+                CustomerProfileDetails(
+                    userID: UUID(),
+                    nickname: "Prinny",
+                    avatarPath: nil,
+                    streetAddress: nil,
+                    city: nil,
+                    stateCode: nil,
+                    zipCode: nil,
+                    contactEmail: nil,
+                    phoneNumber: nil
+                )
+            )
+    ) {
+        self.profileResult = profileResult
+    }
+
+    func profile(customerID: UUID) async throws -> CustomerProfileDetails {
+        try profileResult.get()
+    }
+
+    func updateProfile(
+        customerID: UUID,
+        draft: CustomerProfileDraft
+    ) async throws -> CustomerProfileDetails {
+        updateCallCount += 1
+        lastCustomerID = customerID
+        lastDraft = draft
+
+        return CustomerProfileDetails(
+            userID: customerID,
+            nickname: draft.nickname,
+            avatarPath: nil,
+            streetAddress: draft.streetAddress,
+            city: draft.city,
+            stateCode: draft.stateCode,
+            zipCode: draft.zipCode,
+            contactEmail: draft.contactEmail,
+            phoneNumber: draft.phoneNumber
+        )
+    }
+
+    func uploadAvatarPhoto(
+        customerID: UUID,
+        data: Data,
+        contentType: CustomerAvatarPhotoContentType
+    ) async throws -> String {
+        uploadAvatarCallCount += 1
+        uploadedAvatarPath = CustomerAvatarPhotoPath.make(
+            customerID: customerID,
+            fileID: UUID(uuidString: "99999999-AAAA-4BBB-8CCC-DDDDDDDDDDDD")!,
+            contentType: contentType
+        )
+        return uploadedAvatarPath
+    }
+
+    func avatarPhotoData(storagePath: String) async throws -> Data {
+        Data("avatar:\(storagePath)".utf8)
+    }
+
+    func latestAvatarPhotoPath(customerID: UUID) async throws -> String? {
+        nil
+    }
+}
+
+@MainActor
+private final class ProfileSnapshotCacheFake: ProfileSnapshotCaching {
+    var snapshot: ProfileSnapshot?
+    private(set) var savedSnapshots: [ProfileSnapshot] = []
+    private(set) var removedUserIDs: [UUID] = []
+
+    init(snapshot: ProfileSnapshot? = nil) {
+        self.snapshot = snapshot
+    }
+
+    func snapshot(userID: UUID) -> ProfileSnapshot? {
+        guard snapshot?.userID == userID else { return nil }
+        return snapshot
+    }
+
+    func save(_ snapshot: ProfileSnapshot) {
+        self.snapshot = snapshot
+        savedSnapshots.append(snapshot)
+    }
+
+    func remove(userID: UUID) {
+        if snapshot?.userID == userID {
+            snapshot = nil
+        }
+        removedUserIDs.append(userID)
+    }
+}

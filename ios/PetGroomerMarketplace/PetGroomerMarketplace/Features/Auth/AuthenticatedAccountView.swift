@@ -129,7 +129,7 @@ struct AuthenticatedAccountView: View {
     }
 }
 
-private struct AccountTabTitle: View {
+struct AccountTabTitle: View {
     let title: String
 
     init(_ title: String) {

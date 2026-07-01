@@ -1198,12 +1198,14 @@ private struct CustomerPetFormPhotoPicker: View {
     @State private var selectedPhotoItem: PhotosPickerItem?
 
     var body: some View {
+        let avatarActionTitle = store.formAvatarPhotoData == nil ? "Choose Avatar" : "Change Avatar"
+
         PhotosPicker(
             selection: $selectedPhotoItem,
             matching: .images
         ) {
             Label(
-                store.formAvatarPhotoData == nil ? "Choose Avatar" : "Change Avatar",
+                avatarActionTitle,
                 systemImage: "camera.fill"
             )
                 .lineLimit(1)

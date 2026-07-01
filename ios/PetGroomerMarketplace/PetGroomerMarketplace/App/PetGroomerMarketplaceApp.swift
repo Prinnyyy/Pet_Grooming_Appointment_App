@@ -11,6 +11,7 @@ struct PetGroomerMarketplaceApp: App {
                 authenticationBootstrapState: composition.authenticationBootstrapState,
                 authenticationStore: composition.authenticationStore,
                 profileRepository: composition.profileRepository,
+                customerProfileRepository: composition.customerProfileRepository,
                 customerPetRepository: composition.customerPetRepository,
                 customerRequestRepository: composition.customerRequestRepository,
                 bookingRepository: composition.bookingRepository,

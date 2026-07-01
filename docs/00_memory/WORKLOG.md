@@ -3,6 +3,26 @@
 This file is reverse chronological history. Only the newest entry plus `docs/00_memory/CURRENT_STATE.md` and `docs/06_tasks/TASK_LEDGER.md` define the current branch, current baseline, and next-task state. Older `Next:` lines and branch references are historical closeout notes, not current instructions.
 
 ```text
+Date: 2026-07-01
+Task: T-128 - Supabase migration history repair, CLI workflow docs, and launch warning cleanup.
+Files changed: Remote `supabase_migrations.schema_migrations`, CustomerPetsView, MIGRATION_RULES.md, TOOLING_POLICY.md, SUPABASE_CONTRACT.md, DECISION_LOG.md, CURRENT_STATE.md, WORKLOG.md, TASK_LEDGER.md.
+Checks: Confirmed branch `codex/pet-fit-structure-cleanup`. Root-cause investigation reproduced `supabase db push --linked --dry-run` failure and `supabase migration list --linked` showed four remote-only versions (`20260622212214`, `20260624022107`, `20260625073709`, `20260625080102`) paired with four local-only canonical versions (`20260622142020`, `20260624021122`, `20260625073116`, `20260625075813`). Remote history repair marked the remote-only versions reverted and the local canonical versions applied. Post-repair `supabase migration list --linked` shows every local migration matched by remote. Post-repair `supabase db push --linked --dry-run` returns `Remote database is up to date.` `./scripts/supabase-check.sh` passed. `./scripts/ios-build.sh` passed after the PhotosPicker label warning was removed. `git diff --check` passed.
+Result: Historical Supabase migration-version drift is resolved. Future remote migrations can use the normal CLI path again: `supabase migration list --linked`, `supabase db push --linked --dry-run`, user-authorized `supabase db push --linked`, final `supabase db push --linked --dry-run`, focused metadata/authorization checks, and advisors. Documentation now records `migration repair` as recovery-only, not a normal deployment step. CustomerPetsView no longer captures the main actor-isolated Store inside the PhotosPicker label closure.
+Risks: No business schema, RLS, RPC, table, or Storage object changed; only the remote migration history table was repaired. Linked Supabase CLI commands should still run sequentially to avoid transient `cli_login_postgres` SASL/auth races.
+Next: Stop unless the user asks to commit/push or starts T-129.
+```
+
+```text
+Date: 2026-07-01
+Task: T-127 - Customer Account profile settings and avatar bucket.
+Files changed: CustomerProfile model/repository/store/UI, customer Account routing, App composition/root/gate, DebugRepositoryWrappers, PhotoStorageBucketID, CustomerProfileFeatureTests, GroomerProfileFeatureTests, Supabase migration `20260701050012_t127_customer_profile_settings.sql`, SUPABASE_CONTRACT.md, RLS_RPC_POLICY.md, STORAGE_POLICY.md, FEATURE_INDEX.md, TASK_LEDGER.md, CURRENT_STATE.md, WORKLOG.md.
+Checks: Confirmed branch `codex/pet-fit-structure-cleanup`. `git diff --check` passed. Full `./scripts/ios-test.sh` passed, including the new CustomerProfileFeatureTests and UI launch smoke. `./scripts/supabase-check.sh` passed. `./scripts/ios-build.sh` passed. Supabase changelog/docs were checked for Data API grants and Storage RLS policy requirements. Linked dry-run remained blocked by historical remote/local migration-version drift, so the reviewed T-127 SQL was applied remotely inside a transaction and recorded with `supabase migration repair --linked --status applied 20260701050012`. `supabase migration list --linked` shows T-127 aligned locally/remotely. Remote metadata checks confirmed 6 authenticated insert/update column grants, 4 `customer-avatars` storage policies, private 5 MB bucket config, and allowed image MIME types. Security advisors returned only existing WARN-class SECURITY DEFINER/Auth findings; performance advisors found no issues.
+Result: T-127 is completed and remotely applied. Customer Account now opens a Profile Settings page with customer avatar upload, nickname, address, contact email, and phone. Customer avatar writes use the dedicated private `customer-avatars` bucket and update `profiles.avatar_path`; nickname updates `profiles.display_name`; address/contact fields persist on owner-scoped `customer_profiles`. Customer profile load/save/upload operations use the existing repository boundary, DEBUG repository/store structured logging, `FileProfileSnapshotCache` for first-frame avatar/name fallback, and the global feedback forwarder for save/upload/error/progress prompts.
+Risks: `supabase db push --linked --dry-run` remains blocked by older migration drift unrelated to T-127. The customer contact email is an app profile contact field; the Auth sign-in email remains separate. The profile update is a sequential repository write across `profiles` and `customer_profiles`, not yet a single atomic RPC.
+Next: Stop unless the user asks to commit/push or starts T-128.
+```
+
+```text
 Date: 2026-06-30
 Task: T-126 - Request day-capacity matching.
 Files changed: Supabase migration `20260701033335_t126_request_day_capacity_matching.sql`, T-126 rollback SQL validation artifact, CustomerRequestsView, GroomerRequestsView, CustomerRequestFeatureTests, SUPABASE_CONTRACT.md, RLS_RPC_POLICY.md, FEATURE_INDEX.md, TASK_LEDGER.md, CURRENT_STATE.md, WORKLOG.md.

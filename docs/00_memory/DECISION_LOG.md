@@ -19,6 +19,16 @@ Linked files:
 ## Decisions
 
 ```text
+Date: 2026-07-01
+Decision: Treat repository-local Supabase migration filenames as the canonical migration history and use `supabase db push --linked` as the normal remote deployment path.
+Context: Historical remote/local timestamp drift for T-044/T-060/T-071/T-072 left four remote-only versions and four local-only versions in migration history, causing `supabase db push --linked --dry-run` to fail even though the schema was already represented locally.
+Options considered: Keep using reviewed SQL transactions plus targeted `migration repair`; rename local migration files to remote-only versions; or repair remote history to match the existing repository-local canonical files.
+Reason: The repository is the durable source of truth for this branch. Repairing remote history to match the existing local files restores Supabase CLI's intended migration model without changing business schema.
+Consequences: Future Supabase work must run `supabase migration list --linked` and `supabase db push --linked --dry-run` before remote apply, use user-authorized `supabase db push --linked` for deployment, and re-run dry-run afterward until it reports `Remote database is up to date.` `supabase migration repair --linked` is recovery-only and requires root-cause evidence plus explicit task authorization. Linked Supabase CLI commands should be run sequentially.
+Linked files: docs/03_backend/MIGRATION_RULES.md, docs/05_workflow/TOOLING_POLICY.md, docs/03_backend/SUPABASE_CONTRACT.md, docs/00_memory/CURRENT_STATE.md, docs/06_tasks/TASK_LEDGER.md
+```
+
+```text
 Date: 2026-06-20
 Decision: Pin Supabase Swift to 2.46.0 and inject only authorized-project publishable configuration through an ignored local xcconfig.
 Context: T-005 required a buildable client/session boundary while T-004 remained paused and the repository contained an unread credential-named file.
