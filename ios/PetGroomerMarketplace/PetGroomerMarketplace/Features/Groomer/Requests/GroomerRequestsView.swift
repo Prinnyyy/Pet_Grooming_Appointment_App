@@ -6,12 +6,14 @@ struct GroomerRequestsView: View {
 
     init(
         groomerID: UUID,
-        repository: any GroomerRequestRepository
+        repository: any GroomerRequestRepository,
+        debugRecorder: AppDebugEventRecorder? = nil
     ) {
         _store = State(
             initialValue: GroomerRequestsStore(
                 groomerID: groomerID,
-                repository: repository
+                repository: repository,
+                debugRecorder: debugRecorder
             )
         )
     }

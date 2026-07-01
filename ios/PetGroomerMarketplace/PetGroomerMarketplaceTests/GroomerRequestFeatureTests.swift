@@ -24,6 +24,47 @@ struct GroomerRequestsStoreTests {
     }
 
     @Test @MainActor
+    func loadRecordsStructuredDebugEventsForEmptyMatchedRequestResult() async throws {
+        let groomerID = UUID()
+        let recorder = AppDebugEventRecorder(
+            writer: AppDebugEventWriterSpy(),
+            emitsToOSLog: false
+        )
+        let repository = GroomerRequestRepositoryFake(
+            matchedRequestsResult: .success([])
+        )
+        let store = GroomerRequestsStore(
+            groomerID: groomerID,
+            repository: repository,
+            debugRecorder: recorder
+        )
+
+        await store.load()
+
+        let start = try #require(
+            recorder.events.first {
+                $0.source == "GroomerRequestsStore.load"
+                    && $0.message == "start"
+            }
+        )
+        let success = try #require(
+            recorder.events.first {
+                $0.source == "GroomerRequestsStore.load"
+                    && $0.message == "success"
+            }
+        )
+
+        #expect(start.scope == "groomer.requests")
+        #expect(start.metadata["operation"] == "load")
+        #expect(start.metadata["groomerID"] == groomerID.uuidString.prefix(8).uppercased())
+        #expect(success.scope == "groomer.requests")
+        #expect(success.metadata["operation"] == "load")
+        #expect(success.metadata["matchedRequestCount"] == "0")
+        #expect(success.metadata["requestPhotoCount"] == "0")
+        #expect(success.metadata["downloadedPhotoCount"] == "0")
+    }
+
+    @Test @MainActor
     func dismissCallsRepositoryAndRemovesMatch() async throws {
         let groomerID = UUID()
         let matchedRequest = Self.matchedRequest(groomerID: groomerID)

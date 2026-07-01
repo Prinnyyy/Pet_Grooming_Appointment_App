@@ -4,6 +4,16 @@ This file is reverse chronological history. Only the newest entry plus `docs/00_
 
 ```text
 Date: 2026-06-30
+Task: T-125 - Groomer Requests structured debug coverage.
+Files changed: GroomerRequestsStore, GroomerRequestsView, GroomerTabView, GroomerRequestFeatureTests, TASK_LEDGER.md, CURRENT_STATE.md, WORKLOG.md.
+Checks: Confirmed branch `codex/pet-fit-structure-cleanup`. RED focused GroomerRequestsStore test failed before implementation on missing debug recorder injection. GREEN focused test passed after implementation. Full `./scripts/ios-test.sh` passed, including `GroomerRequestsStoreTests/loadRecordsStructuredDebugEventsForEmptyMatchedRequestResult`. `./scripts/ios-build.sh` passed. `git diff --check` passed.
+Result: T-125 is completed. Groomer Requests now receives the global DEBUG recorder and records `groomer.requests` Store events for load, dismiss, submit offer, withdraw offer, failures, and cancellations. Successful empty request loads record `matchedRequestCount=0`, `requestPhotoCount=0`, and `downloadedPhotoCount=0`, so local repro logs can tell whether the request feed loaded with zero matches or did not load.
+Risks: No matching logic, repository contract, Supabase schema/RLS/RPC/Storage behavior, feedback UI, or production routing changed.
+Next: Stop unless the user asks to commit/push or starts T-126.
+```
+
+```text
+Date: 2026-06-30
 Task: T-124 - Debug Console usage documentation.
 Files changed: docs/04_ios/DEBUG_CONSOLE.md, docs/02_architecture/ERROR_HANDLING.md, docs/04_ios/IOS_BUILD_AND_TESTING.md, docs/01_product/SCREEN_INVENTORY.md, docs/README.md, docs/10_project_structure/README.md, docs/00_memory/FEATURE_INDEX.md, TASK_LEDGER.md, CURRENT_STATE.md, WORKLOG.md.
 Checks: Confirmed branch `codex/pet-fit-structure-cleanup`; `git diff --check` passed. No Swift build, iOS tests, simulator launch, Supabase command, remote write, commit, or push was run because this was documentation-only.

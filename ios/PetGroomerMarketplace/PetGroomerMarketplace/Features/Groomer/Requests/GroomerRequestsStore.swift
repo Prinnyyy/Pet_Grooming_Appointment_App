@@ -8,6 +8,7 @@ final class GroomerRequestsStore {
 
     private let groomerID: UUID
     private let repository: any GroomerRequestRepository
+    private let debugRecorder: AppDebugEventRecorder?
 
     private(set) var matchedRequests: [GroomerMatchedRequest] = []
     private(set) var requestPhotosByRequestID: [UUID: [GroomingRequestPhoto]] = [:]
@@ -26,10 +27,12 @@ final class GroomerRequestsStore {
 
     init(
         groomerID: UUID,
-        repository: any GroomerRequestRepository
+        repository: any GroomerRequestRepository,
+        debugRecorder: AppDebugEventRecorder? = nil
     ) {
         self.groomerID = groomerID
         self.repository = repository
+        self.debugRecorder = debugRecorder
     }
 
     func matchedRequest(withID id: UUID) -> GroomerMatchedRequest? {
@@ -54,6 +57,8 @@ final class GroomerRequestsStore {
     }
 
     func load() async {
+        let startedAt = Date()
+        recordStoreStart("load")
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
@@ -63,10 +68,35 @@ final class GroomerRequestsStore {
                 groomerID: groomerID
             )
             try await loadRequestPhotos(for: matchedRequests)
+            recordStoreSuccess(
+                "load",
+                startedAt: startedAt,
+                metadata: [
+                    "matchedRequestCount": "\(matchedRequests.count)",
+                    "requestPhotoCount": "\(requestPhotosByRequestID.values.flatMap { $0 }.count)",
+                    "downloadedPhotoCount": "\(requestPhotoDataByID.count)",
+                ]
+            )
+        } catch GroomerRequestRepositoryError.cancelled {
+            recordStoreCancelled("load", startedAt: startedAt)
         } catch let error as GroomerRequestRepositoryError {
             errorMessage = message(for: error, action: "load")
+            recordStoreFailure(
+                "load",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt
+            )
+        } catch where AppDebugErrorClassifier.isCancellation(error) {
+            recordStoreCancelled("load", startedAt: startedAt)
         } catch {
             errorMessage = message(for: .unavailable, action: "load")
+            recordStoreFailure(
+                "load",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt
+            )
         }
     }
 
@@ -78,6 +108,11 @@ final class GroomerRequestsStore {
         }
 
         isDismissing = true
+        let startedAt = Date()
+        recordStoreStart(
+            "dismiss",
+            metadata: ["matchID": matchedRequest.match.id.uuidString]
+        )
         errorMessage = nil
         noticeMessage = nil
         defer { isDismissing = false }
@@ -89,10 +124,27 @@ final class GroomerRequestsStore {
             )
             matchedRequests.removeAll { $0.match.id == result.matchID }
             noticeMessage = "Match dismissed."
+            recordStoreSuccess("dismiss", startedAt: startedAt)
+        } catch GroomerRequestRepositoryError.cancelled {
+            recordStoreCancelled("dismiss", startedAt: startedAt)
         } catch let error as GroomerRequestRepositoryError {
             errorMessage = message(for: error, action: "dismiss")
+            recordStoreFailure(
+                "dismiss",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt
+            )
+        } catch where AppDebugErrorClassifier.isCancellation(error) {
+            recordStoreCancelled("dismiss", startedAt: startedAt)
         } catch {
             errorMessage = message(for: .unavailable, action: "dismiss")
+            recordStoreFailure(
+                "dismiss",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt
+            )
         }
     }
 
@@ -106,6 +158,7 @@ final class GroomerRequestsStore {
     ) async {
         guard !isSubmittingOffer else { return }
 
+        let startedAt = Date()
         errorMessage = nil
         noticeMessage = nil
 
@@ -121,13 +174,33 @@ final class GroomerRequestsStore {
             )
         } catch let error as GroomerOfferFormError {
             errorMessage = error.message
+            recordStoreFailure(
+                "submitOffer",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt,
+                level: .warning,
+                metadata: ["requestID": matchedRequest.request.id.uuidString]
+            )
             return
         } catch {
             errorMessage = "Check the offer details and try again."
+            recordStoreFailure(
+                "submitOffer",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt,
+                level: .warning,
+                metadata: ["requestID": matchedRequest.request.id.uuidString]
+            )
             return
         }
 
         isSubmittingOffer = true
+        recordStoreStart(
+            "submitOffer",
+            metadata: ["requestID": draft.requestID.uuidString]
+        )
         defer { isSubmittingOffer = false }
 
         do {
@@ -161,10 +234,29 @@ final class GroomerRequestsStore {
                 )
             )
             noticeMessage = "Offer submitted."
+            recordStoreSuccess("submitOffer", startedAt: startedAt)
+        } catch GroomerRequestRepositoryError.cancelled {
+            recordStoreCancelled("submitOffer", startedAt: startedAt)
         } catch let error as GroomerRequestRepositoryError {
             errorMessage = message(for: error, action: "submit offer")
+            recordStoreFailure(
+                "submitOffer",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt,
+                metadata: ["requestID": draft.requestID.uuidString]
+            )
+        } catch where AppDebugErrorClassifier.isCancellation(error) {
+            recordStoreCancelled("submitOffer", startedAt: startedAt)
         } catch {
             errorMessage = message(for: .unavailable, action: "submit offer")
+            recordStoreFailure(
+                "submitOffer",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt,
+                metadata: ["requestID": draft.requestID.uuidString]
+            )
         }
     }
 
@@ -180,6 +272,11 @@ final class GroomerRequestsStore {
         }
 
         isWithdrawingOffer = true
+        let startedAt = Date()
+        recordStoreStart(
+            "withdrawOffer",
+            metadata: ["offerID": offer.id.uuidString]
+        )
         errorMessage = nil
         noticeMessage = nil
         defer { isWithdrawingOffer = false }
@@ -197,10 +294,29 @@ final class GroomerRequestsStore {
                 )
             )
             noticeMessage = "Offer withdrawn."
+            recordStoreSuccess("withdrawOffer", startedAt: startedAt)
+        } catch GroomerRequestRepositoryError.cancelled {
+            recordStoreCancelled("withdrawOffer", startedAt: startedAt)
         } catch let error as GroomerRequestRepositoryError {
             errorMessage = message(for: error, action: "withdraw offer")
+            recordStoreFailure(
+                "withdrawOffer",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt,
+                metadata: ["offerID": offer.id.uuidString]
+            )
+        } catch where AppDebugErrorClassifier.isCancellation(error) {
+            recordStoreCancelled("withdrawOffer", startedAt: startedAt)
         } catch {
             errorMessage = message(for: .unavailable, action: "withdraw offer")
+            recordStoreFailure(
+                "withdrawOffer",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt,
+                metadata: ["offerID": offer.id.uuidString]
+            )
         }
     }
 
@@ -373,6 +489,82 @@ final class GroomerRequestsStore {
                 ? "We could not \(action). Please try again."
                 : "We could not \(action) matched requests. Please try again."
         }
+    }
+
+    private var debugScope: String {
+        "groomer.requests"
+    }
+
+    private func recordStoreStart(
+        _ operation: String,
+        metadata: [String: String] = [:]
+    ) {
+        var eventMetadata = metadata
+        eventMetadata["operation"] = operation
+        eventMetadata["groomerID"] = groomerID.uuidString
+        debugRecorder?.record(
+            level: .info,
+            category: .store,
+            source: "GroomerRequestsStore.\(operation)",
+            scope: debugScope,
+            message: "start",
+            metadata: eventMetadata
+        )
+    }
+
+    private func recordStoreSuccess(
+        _ operation: String,
+        startedAt: Date,
+        metadata: [String: String] = [:]
+    ) {
+        var eventMetadata = metadata
+        eventMetadata["operation"] = operation
+        debugRecorder?.record(
+            level: .info,
+            category: .store,
+            source: "GroomerRequestsStore.\(operation)",
+            scope: debugScope,
+            message: "success",
+            durationMs: Int(Date().timeIntervalSince(startedAt) * 1_000),
+            metadata: eventMetadata
+        )
+    }
+
+    private func recordStoreFailure(
+        _ operation: String,
+        error: any Error,
+        mappedMessage: String?,
+        startedAt: Date,
+        level: AppDebugEventLevel = .error,
+        metadata: [String: String] = [:]
+    ) {
+        var eventMetadata = metadata
+        eventMetadata["operation"] = operation
+        debugRecorder?.record(
+            level: level,
+            category: .store,
+            source: "GroomerRequestsStore.\(operation)",
+            scope: debugScope,
+            message: mappedMessage ?? "failure",
+            underlyingError: error,
+            durationMs: Int(Date().timeIntervalSince(startedAt) * 1_000),
+            metadata: eventMetadata
+        )
+    }
+
+    private func recordStoreCancelled(
+        _ operation: String,
+        startedAt: Date
+    ) {
+        debugRecorder?.record(
+            level: .info,
+            category: .store,
+            source: "GroomerRequestsStore.\(operation)",
+            scope: debugScope,
+            message: "cancelled ignored",
+            durationMs: Int(Date().timeIntervalSince(startedAt) * 1_000),
+            metadata: ["operation": operation]
+        )
     }
 }
 

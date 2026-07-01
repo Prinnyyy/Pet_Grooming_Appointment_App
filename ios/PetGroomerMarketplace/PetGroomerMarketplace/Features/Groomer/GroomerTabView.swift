@@ -78,7 +78,8 @@ struct GroomerTabView: View {
            let requestRepository {
             GroomerRequestsView(
                 groomerID: groomerID,
-                repository: requestRepository
+                repository: requestRepository,
+                debugRecorder: debugRecorder
             )
         } else if tab == .bookings,
                   let groomerID,
