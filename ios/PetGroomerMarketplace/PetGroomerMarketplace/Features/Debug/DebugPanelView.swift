@@ -42,6 +42,21 @@ struct DebugPanelView: View {
                         .accessibilityElement(children: .combine)
                     }
 
+                    DebugPanelSection(title: "TestOps") {
+                        if let snapshot = debugRecorder?.testOpsSnapshot {
+                            row("Run ref", snapshot.runID ?? "Not set")
+                            row("Scenario", snapshot.scenarioID ?? "Not set")
+                            row("Phase", snapshot.activePhase ?? "Not started")
+                            row("Actor", snapshot.actorRole ?? "Not set")
+
+                            if let latestEvent = snapshot.latestEvent {
+                                DebugPanelEventRow(event: latestEvent)
+                            }
+                        } else {
+                            row("Status", "No active TestOps launch context.")
+                        }
+                    }
+
                     DebugPanelSection(title: "Current Feedback") {
                         if let snapshot = feedbackCenter?.debugSnapshot {
                             if let active = snapshot.active {

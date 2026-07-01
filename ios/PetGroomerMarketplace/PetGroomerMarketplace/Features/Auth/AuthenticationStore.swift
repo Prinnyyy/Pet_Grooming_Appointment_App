@@ -67,6 +67,7 @@ enum DebugQuickLoginAccount: CaseIterable, Identifiable {
 @Observable
 final class AuthenticationStore {
     private let repository: any AuthSessionRepository
+    private let clearsSessionBeforeRestore: Bool
     private var didRestoreSession = false
     private var isObservingSession = false
 
@@ -86,8 +87,12 @@ final class AuthenticationStore {
     var errorMessage: String?
     var noticeMessage: String?
 
-    init(repository: any AuthSessionRepository) {
+    init(
+        repository: any AuthSessionRepository,
+        clearsSessionBeforeRestore: Bool = false
+    ) {
         self.repository = repository
+        self.clearsSessionBeforeRestore = clearsSessionBeforeRestore
     }
 
     func start() async {
@@ -97,7 +102,12 @@ final class AuthenticationStore {
 
         if !didRestoreSession {
             didRestoreSession = true
-            apply(repository.currentSession())
+            if clearsSessionBeforeRestore {
+                try? await repository.signOut()
+                apply(nil)
+            } else {
+                apply(repository.currentSession())
+            }
         }
 
         let stateChanges = await repository.sessionStateChanges()

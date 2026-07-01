@@ -85,6 +85,55 @@ struct AppDebugEventTests {
             )
         )
     }
+
+    @Test @MainActor
+    func testOpsEventsIncludeScenarioMetadataAndStaySanitized() throws {
+        let writer = AppDebugEventWriterSpy()
+        let recorder = AppDebugEventRecorder(
+            writer: writer,
+            emitsToOSLog: false
+        )
+        let configuration = AppTestOpsConfiguration(
+            runID: "TESTOPS-20260701-123456",
+            scenarioID: "marketplace_full_lifecycle",
+            clearsSessionBeforeRestore: true,
+            disablesAnimations: true
+        )
+        recorder.configureTestOps(configuration)
+
+        recorder.recordTestOps(
+            level: .info,
+            phase: "customer.publish",
+            actorRole: "customer",
+            source: "TestOps.backend.marketplaceFullLifecycle",
+            message: "signed in groomly.customer001@example.com with token=secret",
+            metadata: [
+                "customerUUID": "11111111-2222-3333-4444-555555555555",
+                "email": "groomly.customer001@example.com",
+                "password": "GroomlyTest!2026",
+            ]
+        )
+
+        let event = try #require(recorder.events.last)
+        let line = try #require(writer.lines.last)
+
+        #expect(event.category == .test)
+        #expect(event.scope == "testops.marketplace_full_lifecycle")
+        #expect(event.correlationID == "TESTOPS-2026")
+        #expect(event.metadata["automationRunID"] == "TESTOPS-2026")
+        #expect(event.metadata["scenarioID"] == "marketplace_full_lifecycle")
+        #expect(event.metadata["phase"] == "customer.publish")
+        #expect(event.metadata["actorRole"] == "customer")
+        #expect(event.metadata["customerUUID"] == "11111111")
+        #expect(event.metadata["email"] == "example.com")
+        #expect(event.metadata["password"] == "[redacted]")
+        #expect(line.contains("groomly.customer001@example.com") == false)
+        #expect(line.contains("GroomlyTest!2026") == false)
+        #expect(line.contains("secret") == false)
+        #expect(recorder.testOpsSnapshot?.runID == "TESTOPS-2026")
+        #expect(recorder.testOpsSnapshot?.scenarioID == "marketplace_full_lifecycle")
+        #expect(recorder.testOpsSnapshot?.latestEvent?.source == "TestOps.backend.marketplaceFullLifecycle")
+    }
 }
 
 @MainActor

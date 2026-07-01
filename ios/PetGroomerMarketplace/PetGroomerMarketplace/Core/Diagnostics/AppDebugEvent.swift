@@ -17,6 +17,7 @@ enum AppDebugEventCategory: String, CaseIterable, Codable, Sendable {
     case navigation
     case action
     case lifecycle
+    case test
 }
 
 struct AppDebugEvent: Identifiable, Codable, Equatable, Sendable {
@@ -71,6 +72,14 @@ enum AppDebugEventSanitizer {
 
     static func sanitizedMetadataValue(_ value: String, forKey key: String) -> String {
         let lowercasedKey = key.lowercased()
+
+        if lowercasedKey == "scenarioid"
+            || lowercasedKey == "scenario_id"
+            || lowercasedKey == "phase"
+            || lowercasedKey == "actorrole"
+            || lowercasedKey == "actor_role" {
+            return sanitizedText(value)
+        }
 
         if lowercasedKey.contains("password")
             || lowercasedKey.contains("token")
@@ -278,6 +287,14 @@ private final class AppDebugEventNoopWriter: AppDebugEventWriting {
     func clear() throws {}
 }
 
+struct AppDebugTestOpsSnapshot: Equatable, Sendable {
+    let runID: String?
+    let scenarioID: String?
+    let activePhase: String?
+    let actorRole: String?
+    let latestEvent: AppDebugEvent?
+}
+
 @MainActor
 @Observable
 final class AppDebugEventRecorder {
@@ -285,6 +302,8 @@ final class AppDebugEventRecorder {
     static let maximumMemoryEvents = 5_000
 
     private(set) var events: [AppDebugEvent] = []
+    private(set) var testOpsConfiguration: AppTestOpsConfiguration?
+    private(set) var latestTestOpsEvent: AppDebugEvent?
     private let writer: any AppDebugEventWriting
     private let emitsToOSLog: Bool
     private let logger = Logger(
@@ -348,8 +367,61 @@ final class AppDebugEventRecorder {
         return event
     }
 
+    func configureTestOps(_ configuration: AppTestOpsConfiguration) {
+        testOpsConfiguration = configuration.isEnabled ? configuration : nil
+        guard configuration.isEnabled else { return }
+
+        recordTestOps(
+            level: .info,
+            phase: "launch",
+            source: "AppDebugEventRecorder.configureTestOps",
+            message: "TestOps launch context configured",
+            metadata: configuration.metadata
+        )
+    }
+
+    @discardableResult
+    func recordTestOps(
+        level: AppDebugEventLevel,
+        phase: String,
+        actorRole: String? = nil,
+        source: String,
+        message: String,
+        underlyingError: (any Error)? = nil,
+        durationMs: Int? = nil,
+        metadata: [String: String] = [:]
+    ) -> AppDebugEvent {
+        let configuration = testOpsConfiguration
+        var testMetadata = metadata
+        if let runID = configuration?.runID {
+            testMetadata["automationRunID"] = runID
+        }
+        if let scenarioID = configuration?.scenarioID {
+            testMetadata["scenarioID"] = scenarioID
+        }
+        testMetadata["phase"] = phase
+        if let actorRole {
+            testMetadata["actorRole"] = actorRole
+        }
+
+        let event = record(
+            level: level,
+            category: .test,
+            source: source,
+            scope: configuration?.scope ?? "testops",
+            message: message,
+            underlyingError: underlyingError,
+            correlationID: configuration?.runID,
+            durationMs: durationMs,
+            metadata: testMetadata
+        )
+        latestTestOpsEvent = event
+        return event
+    }
+
     func clear() {
         events = []
+        latestTestOpsEvent = nil
         try? writer.clear()
     }
 
@@ -365,6 +437,18 @@ final class AppDebugEventRecorder {
             $0.level == .error
                 || $0.message.lowercased().contains("cancelled")
         }
+    }
+
+    var testOpsSnapshot: AppDebugTestOpsSnapshot? {
+        guard let configuration = testOpsConfiguration else { return nil }
+
+        return AppDebugTestOpsSnapshot(
+            runID: configuration.runID.map(AppDebugEventSanitizer.supportReference),
+            scenarioID: configuration.scenarioID,
+            activePhase: latestTestOpsEvent?.metadata["phase"],
+            actorRole: latestTestOpsEvent?.metadata["actorRole"],
+            latestEvent: latestTestOpsEvent
+        )
     }
 
     private func emitToOSLog(_ event: AppDebugEvent) {

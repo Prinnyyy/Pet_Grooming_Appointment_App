@@ -9,6 +9,7 @@ The application has no runtime demo mode. Preview and test fixtures exist only t
 - `docs/02_architecture/test_resources/T-129_GROOMER_TEST_PROFILES.md` contains 50 local groomer seed profiles for review before any remote Supabase write; T-130 restricts all profile addresses to real public institution addresses in Los Angeles County or Orange County.
 - `docs/02_architecture/test_resources/T-129_CUSTOMER_TEST_PROFILES.md` contains 50 local customer seed profiles, each with one dog and one cat, for review before any remote Supabase write; T-130 applies the same LA/OC public-address rule.
 - These resources are documentation-only. They are not production fixtures, runtime fallback data, quick-login accounts, or evidence that remote users exist.
+- TestOps usage, rules, scenarios, and run templates live under `docs/04_ios/testops/README.md`; use that index before running lifecycle automation with the seeded account pool.
 
 ## Allowed
 

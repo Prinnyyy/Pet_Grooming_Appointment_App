@@ -17,7 +17,7 @@ This file is the first stop when a path is unclear. It records the current folde
 - `ios/`: Xcode project, SwiftUI app code, tests, and local iOS configuration. Do not move files here without also validating Xcode project references and running the iOS build script.
 - `supabase/migrations/`: append-only local mirrors for applied or prepared Supabase migrations. Do not rename, reorder, or nest these files.
 - `supabase/drafts/`: draft backend material when present.
-- `scripts/`: repository validation and helper commands.
+- `scripts/`: repository validation, TestOps automation, and helper commands.
 - `docs/`: durable project memory, task records, workflow rules, design references, decisions, and this structure index.
 - `supabase_api_key`: local ignored secret. Never read, move into docs, or commit.
 
@@ -49,6 +49,7 @@ This file is the first stop when a path is unclear. It records the current folde
 - iOS source root: `ios/PetGroomerMarketplace/PetGroomerMarketplace/`.
 - iOS tests: `ios/PetGroomerMarketplace/PetGroomerMarketplaceTests/`.
 - Debug Console and structured event logs: `docs/04_ios/DEBUG_CONSOLE.md`.
+- TestOps automation module: `docs/04_ios/testops/README.md`.
 - Design screenshot assets: `docs/08_design/screenshots/`.
 - Frozen workflow archive: `docs/09_frozen/workflow_archive_2026-06-24/`.
 - Frozen disabled agent archive: `docs/09_frozen/agent_team_archive_2026-06-24/`.

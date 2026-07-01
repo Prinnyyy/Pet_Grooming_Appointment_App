@@ -19,6 +19,11 @@ struct PetGroomerMarketplaceApp: App {
                 groomerProfileRepository: composition.groomerProfileRepository,
                 groomerRequestRepository: composition.groomerRequestRepository
             )
+            .transaction { transaction in
+                if composition.launchConfiguration.testOps.disablesAnimations {
+                    transaction.animation = nil
+                }
+            }
         }
     }
 }

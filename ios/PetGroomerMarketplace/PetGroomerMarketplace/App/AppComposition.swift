@@ -2,6 +2,7 @@ import Foundation
 
 @MainActor
 struct AppComposition {
+    let launchConfiguration: AppLaunchConfiguration
     let authenticationBootstrapState: AuthenticationBootstrapState
     let authSessionRepository: (any AuthSessionRepository)?
     let profileRepository: (any ProfileRepository)?
@@ -18,6 +19,13 @@ struct AppComposition {
         bundle: Bundle = .main,
         launchConfiguration: AppLaunchConfiguration = AppLaunchConfiguration()
     ) {
+        self.launchConfiguration = launchConfiguration
+
+        #if DEBUG
+        let debugRecorder = AppDebugEventRecorder.shared
+        debugRecorder.configureTestOps(launchConfiguration.testOps)
+        #endif
+
         do {
             let configuration = try SupabaseConfiguration.load(from: bundle)
             let client = SupabaseClientFactory.make(configuration: configuration)
@@ -29,7 +37,6 @@ struct AppComposition {
                 }
             let profileRepository = SupabaseProfileRepository(client: client)
             #if DEBUG
-            let debugRecorder = AppDebugEventRecorder.shared
             let customerProfileRepository = DebugCustomerProfileRepository(
                 base: SupabaseCustomerProfileRepository(client: client),
                 debugRecorder: debugRecorder
@@ -78,7 +85,11 @@ struct AppComposition {
             self.chatRepository = chatRepository
             self.groomerProfileRepository = groomerProfileRepository
             self.groomerRequestRepository = groomerRequestRepository
-            authenticationStore = AuthenticationStore(repository: authRepository)
+            authenticationStore = AuthenticationStore(
+                repository: authRepository,
+                clearsSessionBeforeRestore:
+                    launchConfiguration.testOps.clearsSessionBeforeRestore
+            )
         } catch {
             authenticationBootstrapState = .configurationError(
                 message: error.localizedDescription

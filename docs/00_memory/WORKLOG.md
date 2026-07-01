@@ -4,6 +4,16 @@ This file is reverse chronological history. Only the newest entry plus `docs/00_
 
 ```text
 Date: 2026-07-01
+Task: T-136 - Unified TestOps automation module.
+Files changed: App launch configuration/composition, AuthenticationStore, AppDebugEventRecorder, DebugPanelView, TestOps launch smoke test, TestOps unit tests, scripts/testops.mjs, scripts/ios-testops-e2e.sh, docs/04_ios/testops/*, docs indexes, CURRENT_STATE.md, WORKLOG.md, TASK_LEDGER.md.
+Checks: Confirmed branch `codex/pet-fit-structure-cleanup`. RED focused TestOps tests failed before implementation on missing launch-argument parsing, session-clear control, TestOps event category/snapshot, and structured metadata. GREEN focused tests passed after adding DEBUG-only TestOps launch configuration, recorder integration, auth-session clearing, sanitizer coverage, and Debug Console TestOps snapshot. `./scripts/ios-testops-e2e.sh marketplace_full_lifecycle` passed. Installing the latest debug app on the booted simulator and launching with TestOps args produced a `category=test` JSONL event readable through `./scripts/ios-debug-events.sh`. `node --check scripts/testops.mjs`, `node scripts/testops.mjs doctor --dry-run`, `node scripts/testops.mjs run backend --scenario marketplace_full_lifecycle`, `./scripts/supabase-check.sh`, full `./scripts/ios-test.sh`, `./scripts/ios-build.sh`, and `git diff --check` passed.
+Result: T-136 is completed. The project now has a unified local TestOps module with indexed docs, backend lifecycle dry-run/execute/cleanup/report scaffolding, explicit remote-write gating, TestOps launch args for clean UI automation sessions, Debug Console `category=test` visibility, JSONL/OSLog context, and a reusable TestOps XCUITest launch wrapper.
+Risks: No Supabase schema, RLS, RPC, Storage bucket/policy, migration, or remote data changed. Backend lifecycle execution remains disabled unless an operator explicitly passes `--execute` and sets `TESTOPS_REMOTE_WRITE_APPROVED=1`; cleanup should be run only for tagged `TESTOPS:<run_id>` artifacts.
+Next: Stop unless the user asks to commit/push or starts T-137.
+```
+
+```text
+Date: 2026-07-01
 Task: T-135 - Remote seed T-129 customer test accounts.
 Files changed: scripts/seed-t129-customers.mjs, T-129_CUSTOMER_TEST_PROFILES.md, CURRENT_STATE.md, WORKLOG.md, TASK_LEDGER.md.
 Checks: Confirmed branch `codex/pet-fit-structure-cleanup`. `node scripts/seed-t129-customers.mjs` dry-run parsed 50 customer profiles and planned 100 pets. Authorized remote execution created 50 Supabase Auth users and verified 50 profiles, 50 customer profiles, and 100 pets. Idempotency re-run passed with 0 users created, 50 users updated, and the same remote row counts. Password-login smoke for `groomly.customer001@example.com` passed and returned app role `customer`. Authenticated RLS pet read for that account returned the expected 2 pets. `./scripts/supabase-check.sh` and `git diff --check` passed.

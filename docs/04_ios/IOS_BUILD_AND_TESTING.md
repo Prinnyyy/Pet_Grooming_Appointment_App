@@ -28,6 +28,20 @@ Run both the Swift Testing unit target and XCTest UI target:
 ./scripts/ios-test.sh
 ```
 
+## TestOps
+
+Unified lifecycle automation and run templates live under `docs/04_ios/testops/README.md`.
+
+Useful entrypoints:
+
+```bash
+node scripts/testops.mjs doctor --dry-run
+node scripts/testops.mjs run backend --scenario marketplace_full_lifecycle
+./scripts/ios-testops-e2e.sh marketplace_full_lifecycle
+```
+
+Remote backend execution and cleanup require explicit operator approval, `--execute`, and `TESTOPS_REMOTE_WRITE_APPROVED=1`.
+
 ## Debug Event Logs
 
 For local app repros, DEBUG builds expose `Account -> Debug Console` and write structured JSONL events to the booted simulator app container. Use:

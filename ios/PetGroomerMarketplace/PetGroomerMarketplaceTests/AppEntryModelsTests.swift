@@ -37,6 +37,43 @@ struct AppEntryModelsTests {
 
         #expect(configuration.usesSignedOutAuthSessionRepository)
     }
+
+    @Test @MainActor
+    func testOpsLaunchArgumentsParseRunScenarioAndSessionControls() {
+        let configuration = AppLaunchConfiguration(
+            arguments: [
+                "PetGroomerMarketplace",
+                "--groomly-testops-run-id",
+                "TESTOPS-20260701-123456",
+                "--groomly-testops-scenario",
+                "marketplace_full_lifecycle",
+                "--groomly-testops-clear-session",
+                "--groomly-testops-disable-animations",
+            ]
+        )
+
+        #expect(configuration.testOps.runID == "TESTOPS-20260701-123456")
+        #expect(configuration.testOps.scenarioID == "marketplace_full_lifecycle")
+        #expect(configuration.testOps.clearsSessionBeforeRestore)
+        #expect(configuration.testOps.disablesAnimations)
+        #expect(configuration.testOps.isEnabled)
+        #expect(configuration.usesSignedOutAuthSessionRepository == false)
+    }
+
+    @Test @MainActor
+    func testOpsLaunchArgumentsIgnoreMissingValuesSafely() {
+        let configuration = AppLaunchConfiguration(
+            arguments: [
+                "PetGroomerMarketplace",
+                "--groomly-testops-run-id",
+                "--groomly-testops-scenario",
+            ]
+        )
+
+        #expect(configuration.testOps.runID == nil)
+        #expect(configuration.testOps.scenarioID == nil)
+        #expect(configuration.testOps.isEnabled == false)
+    }
 }
 
 struct TabModelsTests {
@@ -319,6 +356,24 @@ struct AuthenticationStoreTests {
         await store.start()
 
         #expect(store.rootState == .signedIn(session))
+    }
+
+    @Test @MainActor
+    func canClearLocalSessionBeforeRestoreForTestOps() async {
+        let session = AuthSessionSnapshot(
+            userID: UUID(),
+            email: "user@example.com"
+        )
+        let repository = AuthSessionRepositoryFake(currentSession: session)
+        let store = AuthenticationStore(
+            repository: repository,
+            clearsSessionBeforeRestore: true
+        )
+
+        await store.start()
+
+        #expect(repository.signOutCallCount == 1)
+        #expect(store.rootState == .signedOut)
     }
 
     @Test @MainActor

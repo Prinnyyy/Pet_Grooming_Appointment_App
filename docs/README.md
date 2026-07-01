@@ -24,6 +24,7 @@ Use it to avoid relying on long conversation context.
 - Structure change log: `10_project_structure/REORGANIZATION_LOG.md`
 - Task folder guide: `06_tasks/README.md`
 - Debug Console and structured event logs: `04_ios/DEBUG_CONSOLE.md`
+- TestOps automation module: `04_ios/testops/README.md`
 - Reviewed SQL task drafts: `06_tasks/sql_reviews/`
 - Design screenshots: `08_design/screenshots/`
 - Frozen archive guide: `09_frozen/README.md`

@@ -24,6 +24,7 @@ The console shows:
 - Current Feedback: active prompt and queued prompt count from the global feedback center.
 - Recent Events: latest structured events across feedback, Store, repository, navigation, action, and lifecycle categories.
 - Errors Only: error-level events and cancellation events.
+- TestOps: active run ref, scenario, phase, actor role, and latest `category=test` event when the app launched with TestOps arguments.
 - Tools: copy the last 5 minutes of JSONL events or clear local debug logs.
 
 ## Local Log File
@@ -51,7 +52,7 @@ Each JSONL row is an `AppDebugEvent`:
 ```text
 timestamp
 level: debug/info/warning/error
-category: feedback/store/repository/navigation/action/lifecycle
+category: feedback/store/repository/navigation/action/lifecycle/test
 source
 scope
 message
@@ -63,6 +64,8 @@ metadata
 ```
 
 Use `source` for the precise code path, for example `CustomerRequestsStore.load` or `GroomlyFeedbackCenter.enqueue`. Use `scope` for the user-facing surface, for example `customer.home`, `customer.requests`, `customer.bookings`, `groomer.profile`, or `messages.thread`.
+
+TestOps launch arguments add `category=test` events with `automationRunID`, `scenarioID`, `phase`, and `actorRole` metadata. Full TestOps usage lives in `docs/04_ios/testops/README.md`.
 
 ## Safety Rules
 
