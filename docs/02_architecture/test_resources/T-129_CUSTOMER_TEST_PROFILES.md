@@ -1,6 +1,6 @@
 # T-129 Customer Test Profiles
 
-Status: local test resource only. These accounts and pets have not been inserted into Supabase.
+Status: imported to Supabase remote project `lqmasbuqzvcvtawonjlb` on 2026-07-01 by T-135.
 
 Purpose: seed a realistic customer population for pet-profile, coat-type, request publishing, request matching, booking, and chat QA. Each customer has exactly two pets: one dog and one cat.
 
@@ -26,6 +26,18 @@ Purpose: seed a realistic customer population for pet-profile, coat-type, reques
   - temperament: fixed `CustomerPetTemperament` title
   - size is derived by backend/app from `weight_lbs`
 
+## Remote Import Notes
+
+- T-135 created or updated these 50 customer Auth users through the Supabase Admin API, confirmed email login, and wrote the public profile/customer-profile/pet rows through service-role REST.
+- Reusable script: `scripts/seed-t129-customers.mjs`.
+- Default script mode is dry-run:
+  `node scripts/seed-t129-customers.mjs`
+- Remote write mode requires service-role credentials in environment variables:
+  `SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... node scripts/seed-t129-customers.mjs --execute`
+- The script is idempotent for these emails. It updates existing matching Auth users, replaces owned pet rows for the seed customers, and refuses to overwrite a public profile whose role is not `customer`.
+- Cleanup should use the explicit `groomly.customerNNN@example.com` email prefix and/or Auth `app_metadata.groomly_seed = T-129`; do not delete unrelated users by broad domain alone.
+- The GTC-019 Great Dane fixture uses `101 lb` because the deployed app contract limits `pets.weight_lbs` to 5...101.
+
 ## Profiles
 
 | Seed ID | Email | Password | Nickname / Contact | Address | Dog Pet | Cat Pet |
@@ -48,7 +60,7 @@ Purpose: seed a realistic customer population for pet-profile, coat-type, reques
 | GTC-016 | groomly.customer016@example.com | GroomlyTest!2026 | Noah / noah.customer016@example.com / 323-555-1016 | 208 N Harvard Ave, Claremont, CA 91711 | Ruby; German Shepherd; double_coat; 76 lb; 2018-05-29; Protective; notes: de-shed, reactive to dryer | Juno; Maine Coon; long_silky; 18 lb; 2019-12-13; Calm; notes: large cat, brush-out |
 | GTC-017 | groomly.customer017@example.com | GroomlyTest!2026 | Emma / emma.customer017@example.com / 562-555-1017 | 20540 E Arrow Highway Suite K, Covina, CA 91724 | Coco; Standard Poodle; curly_wavy; 52 lb; 2020-07-17; Social; notes: full haircut, clean feet | Tilly; Domestic Shorthair; short_smooth; 9 lb; 2022-01-09; Playful; notes: nail trim |
 | GTC-018 | groomly.customer018@example.com | GroomlyTest!2026 | Lucas / lucas.customer018@example.com / 626-555-1018 | 1060 S Greenwood Ave, Montebello, CA 90640 | Pickles; Cavalier King Charles Spaniel; long_silky; 18 lb; 2019-08-01; Gentle; notes: feather trim | Maple Cat; Ragdoll; long_silky; 13 lb; 2021-04-04; Affectionate; notes: brush-out |
-| GTC-019 | groomly.customer019@example.com | GroomlyTest!2026 | Olivia / olivia.customer019@example.com / 818-555-1019 | 4420 E Rose St, East Rancho Dominguez, CA 90221 | Moose; Great Dane; short_smooth; 118 lb; 2017-06-06; Calm; notes: giant bath, senior joints | Kiwi; Bengal; short_smooth; 11 lb; 2020-02-22; Energetic; notes: quick nails |
+| GTC-019 | groomly.customer019@example.com | GroomlyTest!2026 | Olivia / olivia.customer019@example.com / 818-555-1019 | 4420 E Rose St, East Rancho Dominguez, CA 90221 | Moose; Great Dane; short_smooth; 101 lb; 2017-06-06; Calm; notes: giant bath, senior joints | Kiwi; Bengal; short_smooth; 11 lb; 2020-02-22; Energetic; notes: quick nails |
 | GTC-020 | groomly.customer020@example.com | GroomlyTest!2026 | Henry / henry.customer020@example.com / 213-555-1020 | 4035 Tweedy Blvd, South Gate, CA 90280 | Ziggy; Chihuahua; short_smooth; 6 lb; 2022-11-11; Nervous; notes: small-dog handling | Olive Cat; British Shorthair; short_smooth; 13 lb; 2018-09-16; Independent; notes: nail trim |
 | GTC-021 | groomly.customer021@example.com | GroomlyTest!2026 | Harper / harper.customer021@example.com / 424-555-1021 | 14615 Burin Ave, Lawndale, CA 90260 | Rumi; Toy Poodle; curly_wavy; 8 lb; 2021-03-12; Friendly; notes: teddy face | Cleo Cat; Persian; long_silky; 9 lb; 2019-10-20; Shy; notes: mat prevention |
 | GTC-022 | groomly.customer022@example.com | GroomlyTest!2026 | Jack / jack.customer022@example.com / 310-555-1022 | 601 W Lancaster Blvd, Lancaster, CA 93534 | Honey; Cocker Spaniel; long_silky; 28 lb; 2018-08-08; Gentle; notes: ear care, feather trim | Blue; Russian Blue; short_smooth; 10 lb; 2020-12-24; Calm; notes: brush and nails |

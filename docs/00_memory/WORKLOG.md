@@ -4,6 +4,26 @@ This file is reverse chronological history. Only the newest entry plus `docs/00_
 
 ```text
 Date: 2026-07-01
+Task: T-135 - Remote seed T-129 customer test accounts.
+Files changed: scripts/seed-t129-customers.mjs, T-129_CUSTOMER_TEST_PROFILES.md, CURRENT_STATE.md, WORKLOG.md, TASK_LEDGER.md.
+Checks: Confirmed branch `codex/pet-fit-structure-cleanup`. `node scripts/seed-t129-customers.mjs` dry-run parsed 50 customer profiles and planned 100 pets. Authorized remote execution created 50 Supabase Auth users and verified 50 profiles, 50 customer profiles, and 100 pets. Idempotency re-run passed with 0 users created, 50 users updated, and the same remote row counts. Password-login smoke for `groomly.customer001@example.com` passed and returned app role `customer`. Authenticated RLS pet read for that account returned the expected 2 pets. `./scripts/supabase-check.sh` and `git diff --check` passed.
+Result: The T-129 customer resource set now exists in remote Supabase project `lqmasbuqzvcvtawonjlb` as login-capable customer accounts with profile contact/address data and exactly one dog plus one cat pet profile each. The reusable seed script is idempotent for the `groomly.customerNNN@example.com` email set and refuses to overwrite public profiles with a non-customer role.
+Risks: This was a remote data seed only. No Supabase schema, RLS, RPC, Storage bucket/policy, migration, Swift runtime code, image object, request, booking, chat, or review changed. The GTC-019 Great Dane fixture was corrected from 118 lb to 101 lb to match the deployed pet weight constraint.
+Next: Stop unless the user asks to commit/push or starts T-136.
+```
+
+```text
+Date: 2026-07-01
+Task: T-134 - Remote seed T-129 groomer test accounts.
+Files changed: scripts/seed-t129-groomers.mjs, T-129_GROOMER_TEST_PROFILES.md, CURRENT_STATE.md, WORKLOG.md, TASK_LEDGER.md.
+Checks: Confirmed branch `codex/pet-fit-structure-cleanup`. `node scripts/seed-t129-groomers.mjs` dry-run parsed 50 groomer profiles and planned 150 services, 246 availability windows, 50 booking preferences, and 508 fit claims. Authorized remote execution created 50 Supabase Auth users and verified 50 profiles, 50 active groomer profiles, 150 services, 246 availability rows, 50 preferences, and 508 fit claims. Idempotency re-run passed with 0 users created, 50 users updated, and the same remote row counts. Password-login smoke for `groomly.groomer001@example.com` passed and returned app role `groomer`. Linked SQL count verification passed. `git diff --check` passed.
+Result: The T-129 groomer resource set now exists in remote Supabase project `lqmasbuqzvcvtawonjlb` as login-capable groomer accounts with active marketplace profile data, services, availability, booking preferences, and fit signals. The reusable seed script is idempotent for the `groomly.groomerNNN@example.com` email set and refuses to overwrite public profiles with a non-groomer role.
+Risks: This was a remote data seed only. No Supabase schema, RLS, RPC, Storage bucket/policy, migration, Swift runtime code, or customer test accounts changed.
+Next: Stop unless the user asks to commit/push or starts T-135.
+```
+
+```text
+Date: 2026-07-01
 Task: T-133 - Customer profile save permission fix.
 Files changed: SupabaseCustomerProfileRepository, CustomerProfileFeatureTests, CURRENT_STATE.md, WORKLOG.md, TASK_LEDGER.md.
 Checks: Confirmed branch `codex/pet-fit-structure-cleanup`. Debug Console JSONL showed `CustomerProfileRepository.updateProfile` failing on `table=customer_profiles` with `underlyingErrorCode=notAllowed`. RED focused test failed before implementation because the safe update payload did not exist. GREEN focused test passed after adding a customer-profile update payload that omits `user_id`. `./scripts/ios-build.sh` passed. `git diff --check` passed.

@@ -1,6 +1,6 @@
 # T-129 Groomer Test Profiles
 
-Status: local test resource only. These accounts have not been inserted into Supabase.
+Status: imported to Supabase remote project `lqmasbuqzvcvtawonjlb` on 2026-07-01 by T-134.
 
 Purpose: seed a realistic groomer population for request matching, availability, service filtering, fit-signal, and account/profile QA. This file is intentionally documentation-only so the dataset can be reviewed before any remote write.
 
@@ -33,6 +33,17 @@ Purpose: seed a realistic groomer population for request matching, availability,
 - `auto_accept_bookings`: `false`
 - Availability timezone: `America/Los_Angeles`
 - Services with no explicit size override should store an empty `accepted_pet_sizes` array, meaning "follow Fit Signals".
+
+## Remote Import Notes
+
+- T-134 created or updated these 50 groomer Auth users through the Supabase Admin API, confirmed email login, and wrote the public profile/service/availability/preference/fit-claim rows through service-role REST.
+- Reusable script: `scripts/seed-t129-groomers.mjs`.
+- Default script mode is dry-run:
+  `node scripts/seed-t129-groomers.mjs`
+- Remote write mode requires service-role credentials in environment variables:
+  `SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... node scripts/seed-t129-groomers.mjs --execute`
+- The script is idempotent for these emails. It updates existing matching Auth users, replaces service/availability/preference/fit-claim rows for the seed groomers, and refuses to overwrite a public profile whose role is not `groomer`.
+- Cleanup should use the explicit `groomly.groomerNNN@example.com` email prefix and/or Auth `app_metadata.groomly_seed = T-129`; do not delete unrelated users by broad domain alone.
 
 ## Profiles
 
