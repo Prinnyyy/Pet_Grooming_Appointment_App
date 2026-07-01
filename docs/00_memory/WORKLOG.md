@@ -4,6 +4,26 @@ This file is reverse chronological history. Only the newest entry plus `docs/00_
 
 ```text
 Date: 2026-07-01
+Task: T-130 - LA/OC public-address refinement for bulk test account resources.
+Files changed: docs/02_architecture/test_resources/T-129_GROOMER_TEST_PROFILES.md, docs/02_architecture/test_resources/T-129_CUSTOMER_TEST_PROFILES.md, CURRENT_STATE.md, WORKLOG.md, TASK_LEDGER.md.
+Checks: Confirmed branch `codex/pet-fit-structure-cleanup`; browsed official LA County Library, OC Public Libraries, and City of Orange Library location pages for public address sources; parsed validation confirmed 50 groomers, 50 customers, 100 pets, LA/OC-only profile addresses, non-empty groomer bio/address/mode/radius/year/size/fit/availability/service fields, and app-compatible pet breed/coat/temperament values; `git diff --check` passed. No Supabase remote write, Auth user creation, seed script, Swift build, test, or simulator launch was run because this was documentation-only.
+Result: The local seed resources now use real public institution addresses restricted to Los Angeles County and Orange County, not Bay Area/Sacramento addresses. Groomer business names are consistent with the new address regions, groomer biographies are populated, and groomer years of experience are normalized to the app-supported 0-5 range.
+Risks: Public addresses are used for safe geocoding/matching tests and do not claim any seeded account occupies those facilities. These accounts do not exist remotely yet. Future insertion needs explicit remote-write authorization, a reversible seed script, and a cleanup strategy by email prefix and/or seed marker.
+Next: Stop unless the user asks to generate/import the Supabase seed data or starts T-131.
+```
+
+```text
+Date: 2026-07-01
+Task: T-129 - Local bulk test account resource profiles.
+Files changed: docs/02_architecture/test_resources/T-129_GROOMER_TEST_PROFILES.md, docs/02_architecture/test_resources/T-129_CUSTOMER_TEST_PROFILES.md, PREVIEW_AND_TEST_FIXTURES.md, CURRENT_STATE.md, WORKLOG.md, TASK_LEDGER.md.
+Checks: Confirmed branch `codex/pet-fit-structure-cleanup`; `git diff --check` passed. No Supabase remote write, Auth user creation, seed script, Swift build, test, or simulator launch was run because this was documentation-only.
+Result: The project now has reviewable offline seed resources for 50 groomer test profiles and 50 customer test profiles. Groomer profiles include test credentials, profile details, service-location modes, size experience, fit signals, availability/preferences, and active services. Customer profiles include test credentials, account/contact details, and exactly two pets per account: one dog and one cat with breed, coat type, weight, birthday, temperament, and notes.
+Risks: These accounts do not exist remotely yet. Future insertion needs an explicit remote-write task, a reversible seed script, and a cleanup strategy by email prefix and/or seed marker.
+Next: Stop unless the user asks to generate/import the Supabase seed data or starts T-130.
+```
+
+```text
+Date: 2026-07-01
 Task: T-128 - Supabase migration history repair, CLI workflow docs, and launch warning cleanup.
 Files changed: Remote `supabase_migrations.schema_migrations`, CustomerPetsView, MIGRATION_RULES.md, TOOLING_POLICY.md, SUPABASE_CONTRACT.md, DECISION_LOG.md, CURRENT_STATE.md, WORKLOG.md, TASK_LEDGER.md.
 Checks: Confirmed branch `codex/pet-fit-structure-cleanup`. Root-cause investigation reproduced `supabase db push --linked --dry-run` failure and `supabase migration list --linked` showed four remote-only versions (`20260622212214`, `20260624022107`, `20260625073709`, `20260625080102`) paired with four local-only canonical versions (`20260622142020`, `20260624021122`, `20260625073116`, `20260625075813`). Remote history repair marked the remote-only versions reverted and the local canonical versions applied. Post-repair `supabase migration list --linked` shows every local migration matched by remote. Post-repair `supabase db push --linked --dry-run` returns `Remote database is up to date.` `./scripts/supabase-check.sh` passed. `./scripts/ios-build.sh` passed after the PhotosPicker label warning was removed. `git diff --check` passed.
