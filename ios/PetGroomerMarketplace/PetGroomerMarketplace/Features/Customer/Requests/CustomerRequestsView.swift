@@ -4,6 +4,14 @@ import PhotosUI
 import SwiftUI
 import UIKit
 
+enum CustomerRequestMatchingCopy {
+    static let customerReviewInfo =
+        "Your preferred time helps us find groomers with availability on that day. Groomers will send offers with a real appointment time for you to review."
+
+    static let groomerOfferGuidance =
+        "Start from the customer's preferred window, then choose a time that is actually available on your schedule."
+}
+
 struct CustomerRequestsView: View {
     @State private var store: CustomerRequestsStore
     @State private var pendingCancelRequest: CustomerGroomingRequest?
@@ -2508,7 +2516,7 @@ struct CustomerRequestWizardView: View {
                     .font(DesignTokens.Typography.headline)
                     .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
 
-                Text("Your request will be shown to groomers who fit your pet, service, and preferred time. Groomers can send offers or suggest another time.")
+                Text(CustomerRequestMatchingCopy.customerReviewInfo)
                     .font(DesignTokens.Typography.body)
                     .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
                     .fixedSize(horizontal: false, vertical: true)

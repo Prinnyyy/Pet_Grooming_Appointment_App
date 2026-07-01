@@ -924,6 +924,18 @@ struct CustomerRequestsStoreTests {
     }
 
     @Test @MainActor
+    func requestMatchingCopyExplainsPreferredTimeAsFlexible() {
+        #expect(
+            CustomerRequestMatchingCopy.customerReviewInfo ==
+                "Your preferred time helps us find groomers with availability on that day. Groomers will send offers with a real appointment time for you to review."
+        )
+        #expect(
+            CustomerRequestMatchingCopy.groomerOfferGuidance ==
+                "Start from the customer's preferred window, then choose a time that is actually available on your schedule."
+        )
+    }
+
+    @Test @MainActor
     func requestWizardTravelRangeClampsToSupportedMiles() {
         #expect(CustomerRequestTravelRange.clampedMiles(3) == 5)
         #expect(CustomerRequestTravelRange.clampedMiles(42) == 42)

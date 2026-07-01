@@ -581,7 +581,7 @@ private struct GroomerRequestDetailView: View {
                             .font(DesignTokens.Typography.headline)
                             .foregroundStyle(DesignTokens.Colors.textPrimary)
 
-                        Text("Use the customer's preferred window as the starting point.")
+                        Text(CustomerRequestMatchingCopy.groomerOfferGuidance)
                             .font(DesignTokens.Typography.caption)
                             .foregroundStyle(DesignTokens.Colors.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
