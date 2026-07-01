@@ -4,6 +4,26 @@ This file is reverse chronological history. Only the newest entry plus `docs/00_
 
 ```text
 Date: 2026-07-01
+Task: T-138 - Supabase tooling and credential usage rules update.
+Files changed: TOOLING_POLICY.md, MIGRATION_RULES.md, SUPABASE_CONTRACT.md, DECISION_LOG.md, CURRENT_STATE.md, WORKLOG.md, TASK_LEDGER.md.
+Checks: Confirmed branch `codex/pet-fit-structure-cleanup`. Reviewed current Supabase CLI docs/changelog references. `supabase --version` returned 2.107.0. Sequential `supabase migration list --linked` succeeded and showed Local/Remote migration history aligned through `20260701050012`. `git diff --check` passed.
+Result: Local Supabase operating rules now explicitly forbid parallel linked CLI commands, require one sequential `migration list --linked` before diagnosing `cli_login_postgres`/SASL errors as drift, and preserve `migration repair` as recovery-only. The ignored `supabase_api_key` file may now be read only after explicit user authorization for service-role operations, remote seed/test execution, or tagged cleanup, and only into ephemeral environment variables. MCP SQL is documented as a read-only verification/tagged-cleanup fallback, not a normal migration path.
+Risks: Documentation-only. No Supabase schema, RLS, RPC, Storage, migration, seed data, iOS source, build setting, or remote data changed.
+Next: Stop unless the user asks to commit/push current T-137/T-138 local changes or starts T-139.
+```
+
+```text
+Date: 2026-07-01
+Task: T-137 - TestOps unit tests and smoke case catalog.
+Files changed: scripts/testops.mjs, scripts/testops-core.mjs, scripts/testops-unit.sh, tests/testops/testops-core.test.mjs, docs/04_ios/testops/TEST_CASES.md, TestOps docs/indexes, IOS_BUILD_AND_TESTING.md, FEATURE_INDEX.md, CURRENT_STATE.md, WORKLOG.md, TASK_LEDGER.md.
+Checks: Confirmed branch `codex/pet-fit-structure-cleanup`. Before starting T-137, committed and pushed T-136 as `5ea1665` (`chore: add TestOps automation scaffold`). RED `node --test tests/testops/testops-core.test.mjs` failed before implementation because `scripts/testops-core.mjs` did not exist. GREEN `./scripts/testops-unit.sh` passed after splitting the CLI into a testable core and adding parser, plan, matrix, safety gate, redaction, report, and cleanup tests. `node --check scripts/testops.mjs`, `node --check scripts/testops-core.mjs`, `node scripts/testops.mjs doctor --dry-run`, `node scripts/testops.mjs run backend --scenario marketplace_full_lifecycle --matrix smoke5`, `node scripts/testops.mjs cleanup --run-id TESTOPS-DRYRUN`, `./scripts/supabase-check.sh`, full `./scripts/ios-test.sh`, `./scripts/ios-build.sh`, and `git diff --check` passed. After explicit authorization, remote `smoke5` first exposed an invalid `travelRadiusMiles=null` plan for `customer_comes_to_groomer`; fixing the core to match app behavior with 15 miles made local TestOps unit/check/dry-run pass again. Authorized remote `smoke5` then passed 5/5, SQL final-state verification confirmed 5 booked requests, 5 completed bookings, and 5 five-star reviews, and tagged cleanup deleted 5 requests, 76 matches, 5 offers, 5 bookings, 5 conversations, and 5 reviews with zero tagged requests/offers/reviews remaining.
+Result: T-137 is completed locally and the first authorized remote `smoke5` lifecycle has passed with cleanup. TestOps now has a thin CLI, reusable core module, Node built-in unit test script, and the documented `smoke5` backend lifecycle case catalog covering five seeded customer/groomer pairs. Dry-run remains the default and prints sanitized plans; execute/cleanup remain gated by `--execute` plus `TESTOPS_REMOTE_WRITE_APPROVED=1`.
+Risks: No Supabase schema, RLS, RPC, Storage bucket/policy, or migration changed. Remote lifecycle test rows were created and then removed by `TESTOPS:<run_id>` tag; local ignored artifacts under `artifacts/testops/` retain the run summaries.
+Next: Stop unless the user asks to commit/push T-137 or authorizes remote `smoke5` execution.
+```
+
+```text
+Date: 2026-07-01
 Task: T-136 - Unified TestOps automation module.
 Files changed: App launch configuration/composition, AuthenticationStore, AppDebugEventRecorder, DebugPanelView, TestOps launch smoke test, TestOps unit tests, scripts/testops.mjs, scripts/ios-testops-e2e.sh, docs/04_ios/testops/*, docs indexes, CURRENT_STATE.md, WORKLOG.md, TASK_LEDGER.md.
 Checks: Confirmed branch `codex/pet-fit-structure-cleanup`. RED focused TestOps tests failed before implementation on missing launch-argument parsing, session-clear control, TestOps event category/snapshot, and structured metadata. GREEN focused tests passed after adding DEBUG-only TestOps launch configuration, recorder integration, auth-session clearing, sanitizer coverage, and Debug Console TestOps snapshot. `./scripts/ios-testops-e2e.sh marketplace_full_lifecycle` passed. Installing the latest debug app on the booted simulator and launching with TestOps args produced a `category=test` JSONL event readable through `./scripts/ios-debug-events.sh`. `node --check scripts/testops.mjs`, `node scripts/testops.mjs doctor --dry-run`, `node scripts/testops.mjs run backend --scenario marketplace_full_lifecycle`, `./scripts/supabase-check.sh`, full `./scripts/ios-test.sh`, `./scripts/ios-build.sh`, and `git diff --check` passed.

@@ -35,8 +35,10 @@ Unified lifecycle automation and run templates live under `docs/04_ios/testops/R
 Useful entrypoints:
 
 ```bash
+./scripts/testops-unit.sh
 node scripts/testops.mjs doctor --dry-run
 node scripts/testops.mjs run backend --scenario marketplace_full_lifecycle
+node scripts/testops.mjs run backend --scenario marketplace_full_lifecycle --matrix smoke5
 ./scripts/ios-testops-e2e.sh marketplace_full_lifecycle
 ```
 

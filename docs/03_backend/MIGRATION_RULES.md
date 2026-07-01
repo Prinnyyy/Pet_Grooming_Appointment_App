@@ -11,6 +11,7 @@ T-128 repaired historical remote/local migration-version drift in `supabase_migr
 - Make migrations small, ordered by the roadmap feature slice, and append-only after application.
 - Never copy legacy project migrations or infer deployed schema from documentation.
 - Use Supabase CLI for project inspection, migration application, SQL verification, migration history, and advisors. Prefer the installed `supabase` binary; do not use `npx supabase` or direct database tools unless a task explicitly documents that fallback.
+- Treat linked Supabase CLI commands as single-flight operations. Do not run linked migration, push, query, or advisor commands in parallel.
 - Draft and review the full task-scoped SQL locally before any authorized remote write.
 - Keep tables, constraints, indexes, grants, RLS policies, functions, Storage policies, and `SUPABASE_CONTRACT.md` synchronized.
 - Use explicit rollback/recovery reasoning for destructive or data-transforming changes; do not reset or repair a remote database without approval and root-cause evidence.
@@ -53,7 +54,10 @@ For each exposed table or function, the owning task must review:
 
 - `supabase db push --linked` is the authorized remote migration path. Remote apply, reset, repair, destructive DDL, bucket deletion, and policy removal require explicit user authorization.
 - `supabase migration repair --linked` is a recovery tool, not a normal deployment step. Use it only when `supabase migration list --linked` proves migration history drift, after mapping each mismatched version to a known local canonical migration and confirming the schema is already represented locally.
-- Run linked Supabase CLI commands sequentially. Concurrent linked commands can race while initializing `cli_login_postgres` and produce transient SASL/auth failures.
+- Run linked Supabase CLI commands sequentially. Concurrent linked commands can race while initializing `cli_login_postgres`, invalidate another command's temporary login, and produce transient SASL/auth failures.
+- If a linked command reports `cli_login_postgres` or SASL/auth failure, first stop all concurrent Supabase CLI work and run one sequential `supabase migration list --linked`. If Local and Remote still align, record the earlier error as transient CLI login-role contention rather than migration drift. Run `supabase migration repair --linked` only when sequential `migration list` proves a real history mismatch.
+- The ignored local `supabase_api_key` file is allowed only for explicitly authorized service-role operations, remote seed/test execution, and tagged cleanup. Load it into an environment variable for the command that needs it; never print it, store it in tracked docs/code, embed it in app configuration, or include it in artifacts.
+- MCP SQL may be used for read-only verification and explicitly tagged cleanup when CLI auth/env setup is the blocker. It is not a normal migration path and must not be used for exploratory DDL.
 - Do not use exploratory DDL through `supabase db query --linked`; prepare one reviewed migration and apply it once.
 - Never expose secret/service-role credentials in migrations, seed data, app configuration, logs, or documentation.
 - Seed data is for authorized local/test environments only and must not create a production bypass path.

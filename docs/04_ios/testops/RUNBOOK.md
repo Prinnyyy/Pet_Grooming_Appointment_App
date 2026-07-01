@@ -8,6 +8,14 @@ Check local resources and environment without remote writes:
 node scripts/testops.mjs doctor --dry-run
 ```
 
+## Unit Tests
+
+Run the TestOps parser, safety-gate, plan, redaction, report, and cleanup unit tests:
+
+```bash
+./scripts/testops-unit.sh
+```
+
 ## Backend Lifecycle Dry Run
 
 Print the planned `marketplace_full_lifecycle` payload:
@@ -17,6 +25,14 @@ node scripts/testops.mjs run backend \
   --scenario marketplace_full_lifecycle \
   --customer GTC-001 \
   --groomer GTG-001
+```
+
+Print the first five remote smoke plans without writing data:
+
+```bash
+node scripts/testops.mjs run backend \
+  --scenario marketplace_full_lifecycle \
+  --matrix smoke5
 ```
 
 ## Backend Lifecycle Execute
@@ -33,6 +49,16 @@ node scripts/testops.mjs run backend \
   --scenario marketplace_full_lifecycle \
   --customer GTC-001 \
   --groomer GTG-001 \
+  --execute \
+  --cleanup
+```
+
+The first five-case smoke matrix uses the same safety gate:
+
+```bash
+node scripts/testops.mjs run backend \
+  --scenario marketplace_full_lifecycle \
+  --matrix smoke5 \
   --execute \
   --cleanup
 ```
@@ -68,4 +94,3 @@ After a local app repro:
 ```
 
 Filter by `category=test`, `automationRunID`, `scenarioID`, `phase`, and nearby `store`/`repository` events.
-

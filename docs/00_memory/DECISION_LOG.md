@@ -20,11 +20,21 @@ Linked files:
 
 ```text
 Date: 2026-07-01
+Decision: Treat linked Supabase CLI commands as single-flight operations and allow `supabase_api_key` only for explicitly authorized service-role tasks.
+Context: Linked Supabase CLI commands repeatedly hit transient `cli_login_postgres` SASL/auth failures when multiple linked commands ran concurrently. Separately, authorized remote TestOps execution needed service-role verification/cleanup but the shell environment did not contain a service-role key.
+Options considered: Keep the blanket "never read local secrets" rule; always use MCP SQL instead of CLI/service-role env; or permit the ignored local key under a narrow explicit-authorization boundary while keeping CLI as the normal migration path.
+Reason: The repository still needs one canonical migration path through the installed Supabase CLI, but linked CLI commands must not be parallelized. Service-role validation/test cleanup also needs a safe local credential path that does not leak secrets into code, docs, artifacts, or logs.
+Consequences: Run linked `migration list`, `db push`, `db query`, and `db advisors` sequentially only. On `cli_login_postgres`/SASL failure, stop concurrent CLI work and verify with one sequential `supabase migration list --linked` before diagnosing drift or using repair. `supabase_api_key` may be read only after explicit user authorization for service-role operations, remote seed/test execution, or tagged cleanup, and only into an ephemeral environment variable. MCP SQL remains a fallback for read-only verification and explicitly tagged cleanup, not a migration path.
+Linked files: docs/05_workflow/TOOLING_POLICY.md, docs/03_backend/MIGRATION_RULES.md, docs/03_backend/SUPABASE_CONTRACT.md, docs/00_memory/CURRENT_STATE.md, docs/06_tasks/TASK_LEDGER.md
+```
+
+```text
+Date: 2026-07-01
 Decision: Treat repository-local Supabase migration filenames as the canonical migration history and use `supabase db push --linked` as the normal remote deployment path.
 Context: Historical remote/local timestamp drift for T-044/T-060/T-071/T-072 left four remote-only versions and four local-only versions in migration history, causing `supabase db push --linked --dry-run` to fail even though the schema was already represented locally.
 Options considered: Keep using reviewed SQL transactions plus targeted `migration repair`; rename local migration files to remote-only versions; or repair remote history to match the existing repository-local canonical files.
 Reason: The repository is the durable source of truth for this branch. Repairing remote history to match the existing local files restores Supabase CLI's intended migration model without changing business schema.
-Consequences: Future Supabase work must run `supabase migration list --linked` and `supabase db push --linked --dry-run` before remote apply, use user-authorized `supabase db push --linked` for deployment, and re-run dry-run afterward until it reports `Remote database is up to date.` `supabase migration repair --linked` is recovery-only and requires root-cause evidence plus explicit task authorization. Linked Supabase CLI commands should be run sequentially.
+Consequences: Future Supabase work must run `supabase migration list --linked` and `supabase db push --linked --dry-run` before remote apply, use user-authorized `supabase db push --linked` for deployment, and re-run dry-run afterward until it reports `Remote database is up to date.` `supabase migration repair --linked` is recovery-only and requires root-cause evidence plus explicit task authorization. Linked Supabase CLI commands must be run sequentially.
 Linked files: docs/03_backend/MIGRATION_RULES.md, docs/05_workflow/TOOLING_POLICY.md, docs/03_backend/SUPABASE_CONTRACT.md, docs/00_memory/CURRENT_STATE.md, docs/06_tasks/TASK_LEDGER.md
 ```
 
@@ -44,7 +54,7 @@ Decision: Use Supabase CLI for every current and future Supabase task in this re
 Context: Supabase CLI is installed, authenticated, and linked to the authorized `Pet Groomer Marketplace` project. The repository has a local migration mirror under `supabase/migrations/`.
 Options considered: Use the installed Supabase CLI; mix CLI and MCP; or standardize on MCP.
 Reason: One authenticated CLI execution path keeps remote target selection explicit and matches the repository-local migration workflow.
-Consequences: Use the installed `supabase` binary, not `npx supabase`, for Supabase tasks. Apply reviewed remote DDL only with `supabase db push --linked` after user approval, verify with `supabase migration list --linked` and `supabase db query --linked`, run advisors with `supabase db advisors --linked`, and keep CLI-created migration files under `supabase/migrations/`. scripts/supabase-check.sh remains a static repository check only.
+Consequences: Use the installed `supabase` binary, not `npx supabase`, for Supabase tasks. Apply reviewed remote DDL only with `supabase db push --linked` after user approval, verify with `supabase migration list --linked` and `supabase db query --linked`, run advisors with `supabase db advisors --linked`, and keep CLI-created migration files under `supabase/migrations/`. Linked CLI commands must not be parallelized. scripts/supabase-check.sh remains a static repository check only.
 Linked files: docs/05_workflow/TOOLING_POLICY.md, docs/03_backend/MIGRATION_RULES.md, docs/09_frozen/task_records_2026-06-26/T-004_SUPABASE_PROFILE_FOUNDATION.md, docs/00_memory/CURRENT_STATE.md
 ```
 
@@ -54,7 +64,7 @@ Decision: Treat the existing non-Groomly Supabase project as a legacy project an
 Context: The connected account already contains an older project. The user explicitly requires clean project isolation and placed an API key in the repository root for future authorized setup.
 Options considered: Reuse or branch the legacy project; inspect and clean it; or create a new isolated project.
 Reason: A new project prevents legacy schema, policies, data, migrations, and configuration from contaminating the fresh marketplace architecture.
-Consequences: Ref swdiiyypysyxbnfrxxsv is forbidden as a migration or inspection target for this rebuild. The authorized replacement is `Pet Groomer Marketplace` ref `lqmasbuqzvcvtawonjlb` in `us-west-1`, created after confirmation of the reported US$0/month cost. The local supabase_api_key file remains unread and Git-ignored and must never enter app code or documentation content.
+Consequences: Ref swdiiyypysyxbnfrxxsv is forbidden as a migration or inspection target for this rebuild. The authorized replacement is `Pet Groomer Marketplace` ref `lqmasbuqzvcvtawonjlb` in `us-west-1`, created after confirmation of the reported US$0/month cost. The local `supabase_api_key` file is Git-ignored and may be read only under the explicit-authorization rules recorded on 2026-07-01; it must never enter app code or documentation content.
 Linked files: docs/00_memory/CURRENT_STATE.md, docs/03_backend/SUPABASE_CONTRACT.md, docs/09_frozen/task_records_2026-06-26/T-002_INCREMENTAL_BUILD_ROADMAP.md, docs/06_tasks/TASK_LEDGER.md
 ```
 

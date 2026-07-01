@@ -42,6 +42,8 @@ Do not alter signing, capabilities, entitlements, schemes, project structure, or
 
 Supabase CLI is the default interface for Supabase work. Use the installed `supabase` binary against the authorized linked project. Do not use `npx supabase`, local containers, direct database tools, or MCP migration writes unless a task explicitly documents that fallback.
 
+Linked Supabase CLI commands are single-flight operations. Do not run linked `supabase migration list`, `supabase db push`, `supabase db query`, or `supabase db advisors` in `multi_tool_use.parallel`, background jobs, separate terminals, or any other concurrent form. The CLI initializes a temporary `cli_login_postgres` role; concurrent linked commands can invalidate each other's temporary password and produce transient SASL/auth failures.
+
 Migration workflow:
 
 1. Create the migration with `supabase migration new <name>`.
@@ -57,9 +59,13 @@ Migration workflow:
 
 `./scripts/supabase-check.sh` is a static repository check. It does not replace remote verification and must not mutate remote state.
 
-Never reset databases, weaken RLS, repair migration history, expose service-role keys, inspect local secrets, or make remote schema/Storage writes without explicit task authorization. `supabase migration repair --linked` is permitted only as a documented recovery step after `migration list` proves drift and each mismatched version is mapped to a known local canonical migration.
+Never reset databases, weaken RLS, repair migration history, expose service-role keys, or make remote schema/Storage writes without explicit task authorization. `supabase migration repair --linked` is permitted only as a documented recovery step after `migration list` proves drift and each mismatched version is mapped to a known local canonical migration.
 
-Run linked Supabase CLI commands sequentially. Do not run linked `migration list`, `db push`, `db query`, or `db advisors` calls in parallel because concurrent login-role initialization can produce transient `cli_login_postgres` SASL/auth failures.
+The ignored local `supabase_api_key` file may be read only after explicit user authorization for a service-role operation, remote seed, remote TestOps execution, or cleanup. Read it into a process environment variable or ephemeral shell variable only; do not print it, write it into tracked files, pass it through verbose logs, or embed it in iOS app configuration. Prefer a single command invocation such as `SUPABASE_SERVICE_ROLE_KEY="$(<supabase_api_key)" ...` over exporting it globally.
+
+If a linked CLI command fails with `cli_login_postgres` or SASL/auth errors, do not retry in a loop and do not run `migration repair`. Stop parallel Supabase work, wait briefly, then run exactly one sequential `supabase migration list --linked`. If that succeeds and shows aligned Local/Remote versions, treat the earlier failure as transient CLI login-role contention. If it fails twice sequentially, capture the first error, check `supabase --version`, and switch to the documented MCP/SQL fallback only for read-only verification or explicitly tagged cleanup.
+
+MCP SQL is allowed for read-only verification and explicitly tagged cleanup when CLI auth/env setup is the blocker. MCP must not be used to apply migrations, repair migration history, or perform exploratory DDL unless a task explicitly authorizes that fallback and records the reason.
 
 ## MCP and Plugin Tools
 

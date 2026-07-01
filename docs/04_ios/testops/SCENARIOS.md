@@ -25,6 +25,12 @@ Initial default pair:
 - Service: `full_groom`
 - Location mode: `customer_comes_to_groomer`
 
+Smoke matrix:
+
+- `smoke5` runs five fixed LA/OC lifecycle pairs from `TEST_CASES.md`.
+- Dry-run is the default and prints the planned case set only.
+- Remote execution still requires `--execute` and `TESTOPS_REMOTE_WRITE_APPROVED=1`.
+
 UI path:
 
 - Current implementation: TestOps launch smoke with run/scenario arguments, clear-session, and disabled animations.
@@ -36,4 +42,3 @@ UI path:
 - `request_no_match_diagnostics`: create a request expected to produce zero matches and verify Debug Console event provenance.
 - `image_upload_cleanup`: exercise request/pet/avatar image upload and explicit Storage cleanup.
 - `chat_message_failure`: exercise send timeout/failure without success toast.
-
