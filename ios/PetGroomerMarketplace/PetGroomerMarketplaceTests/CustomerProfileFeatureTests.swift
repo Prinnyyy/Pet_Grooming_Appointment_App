@@ -70,6 +70,32 @@ struct CustomerProfileAddressSearchTests {
     }
 }
 
+struct CustomerProfileRepositoryPayloadTests {
+    @Test @MainActor
+    func existingCustomerProfileUpdatePayloadDoesNotEncodeUserID() throws {
+        let draft = CustomerProfileDraft(
+            nickname: "Prinny",
+            streetAddress: "123 Pine Street",
+            city: "Seattle",
+            stateCode: .washington,
+            zipCode: "98101",
+            contactEmail: "owner@example.com",
+            phoneNumber: "+1 555 222 3333"
+        )
+
+        let data = try JSONEncoder().encode(CustomerProfileDetailsUpdateRow(draft: draft))
+        let object = try #require(JSONSerialization.jsonObject(with: data) as? [String: String])
+
+        #expect(object["user_id"] == nil)
+        #expect(object["street_address"] == "123 Pine Street")
+        #expect(object["city"] == "Seattle")
+        #expect(object["state"] == "WA")
+        #expect(object["zip_code"] == "98101")
+        #expect(object["contact_email"] == "owner@example.com")
+        #expect(object["phone_number"] == "+1 555 222 3333")
+    }
+}
+
 struct CustomerAvatarImageEncoderTests {
     @Test @MainActor
     func displayablePayloadKeepsDisplayablePNGWhenPreferred() throws {

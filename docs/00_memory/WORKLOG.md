@@ -4,6 +4,16 @@ This file is reverse chronological history. Only the newest entry plus `docs/00_
 
 ```text
 Date: 2026-07-01
+Task: T-133 - Customer profile save permission fix.
+Files changed: SupabaseCustomerProfileRepository, CustomerProfileFeatureTests, CURRENT_STATE.md, WORKLOG.md, TASK_LEDGER.md.
+Checks: Confirmed branch `codex/pet-fit-structure-cleanup`. Debug Console JSONL showed `CustomerProfileRepository.updateProfile` failing on `table=customer_profiles` with `underlyingErrorCode=notAllowed`. RED focused test failed before implementation because the safe update payload did not exist. GREEN focused test passed after adding a customer-profile update payload that omits `user_id`. `./scripts/ios-build.sh` passed. `git diff --check` passed.
+Result: Customer Profile saves no longer use a `customer_profiles` upsert that includes `user_id` on existing-row updates. Existing customer profile rows now use `update` with only the owner-editable safe address/contact fields, matching the deployed T-127 column grants; missing profile rows fall back to `insert` with `user_id`.
+Risks: No Supabase schema, RLS, RPC, Storage, migration, or remote data changed. The profile update remains a sequential write across `profiles` and `customer_profiles`, not an atomic RPC.
+Next: Stop unless the user asks to commit/push or starts T-134.
+```
+
+```text
+Date: 2026-07-01
 Task: T-132 - Customer profile address autocomplete and sheet feedback visibility.
 Files changed: GroomlyAddressSearch, GroomlyFeedbackPrimitives, CustomerProfileSettingsView, CustomerRequestsView, CustomerProfileFeatureTests, AppEntryModelsTests, CURRENT_STATE.md, WORKLOG.md, TASK_LEDGER.md.
 Checks: Confirmed branch `codex/pet-fit-structure-cleanup`. RED focused CustomerProfile address-search test failed before implementation because the Customer Profile address suggestion aliases did not exist. GREEN focused tests passed for shared Customer Profile address suggestion de-duplication and sheet feedback bottom-clearance behavior. `./scripts/ios-build.sh` passed. XcodeBuildMCP simulator build/run passed. `git diff --check` passed.

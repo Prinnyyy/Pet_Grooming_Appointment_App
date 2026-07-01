@@ -77,18 +77,27 @@ final class SupabaseCustomerProfileRepository: CustomerProfileRepository {
                 throw CustomerProfileRepositoryError.unavailable
             }
 
-            let detailRows: [CustomerProfileDetailsRow] = try await client
+            var detailRows: [CustomerProfileDetailsRow] = try await client
                 .from("customer_profiles")
-                .upsert(
-                    CustomerProfileDetailsUpsertRow(
-                        customerID: customerID,
-                        draft: draft
-                    ),
-                    onConflict: "user_id"
-                )
+                .update(CustomerProfileDetailsUpdateRow(draft: draft))
+                .eq("user_id", value: customerID.uuidString.lowercased())
                 .select(Self.customerProfileColumns)
                 .execute()
                 .value
+
+            if detailRows.isEmpty {
+                detailRows = try await client
+                    .from("customer_profiles")
+                    .insert(
+                        CustomerProfileDetailsInsertRow(
+                            customerID: customerID,
+                            draft: draft
+                        )
+                    )
+                    .select(Self.customerProfileColumns)
+                    .execute()
+                    .value
+            }
 
             guard detailRows.count == 1, let detailRow = detailRows.first else {
                 throw CustomerProfileRepositoryError.unavailable
@@ -339,7 +348,30 @@ private struct CustomerAvatarUpdateRow: Encodable {
     }
 }
 
-private struct CustomerProfileDetailsUpsertRow: Encodable {
+struct CustomerProfileDetailsUpdateRow: Encodable {
+    let draft: CustomerProfileDraft
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(draft.streetAddress, forKey: .streetAddress)
+        try container.encode(draft.city, forKey: .city)
+        try container.encode(draft.stateCode?.rawValue, forKey: .state)
+        try container.encode(draft.zipCode, forKey: .zipCode)
+        try container.encode(draft.contactEmail, forKey: .contactEmail)
+        try container.encode(draft.phoneNumber, forKey: .phoneNumber)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case streetAddress = "street_address"
+        case city
+        case state
+        case zipCode = "zip_code"
+        case contactEmail = "contact_email"
+        case phoneNumber = "phone_number"
+    }
+}
+
+private struct CustomerProfileDetailsInsertRow: Encodable {
     let customerID: UUID
     let draft: CustomerProfileDraft
 
