@@ -12,13 +12,15 @@ struct GroomerProfileManagementView: View {
     init(
         groomerID: UUID,
         repository: any GroomerProfileRepository,
+        debugRecorder: AppDebugEventRecorder? = nil,
         accountContent: AnyView? = nil,
         onSignOut: (() -> Void)? = nil
     ) {
         _store = State(
             initialValue: GroomerProfileStore(
                 groomerID: groomerID,
-                repository: repository
+                repository: repository,
+                debugRecorder: debugRecorder
             )
         )
         self.accountContent = accountContent
@@ -3171,6 +3173,8 @@ private struct GroomerProfileStatusView: View {
         guard let errorMessage = store.errorMessage,
               !store.isShowingServiceForm else { return nil }
         return GroomlyGlobalFeedbackError(
+            scope: .page("groomer.profile"),
+            sourceKey: "groomer.profile.error",
             title: "Profile Update Failed",
             message: errorMessage
         )
@@ -3179,6 +3183,8 @@ private struct GroomerProfileStatusView: View {
     private var progressPrompt: GroomlyGlobalFeedbackProgress? {
         guard store.isSaving || store.isUploading else { return nil }
         return GroomlyGlobalFeedbackProgress(
+            scope: .operation("groomer.profile.save"),
+            sourceKey: "groomer.profile.save-progress",
             title: store.isUploading ? "Uploading…" : "Saving…",
             tone: .groomer
         )

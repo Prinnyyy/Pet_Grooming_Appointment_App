@@ -107,6 +107,7 @@ final class CustomerRequestsStore {
     private let bookingRepository: any BookingRepository
     private let handoffAcknowledgementDefaults: UserDefaults
     private let handoffAcknowledgementStorageKey: String
+    private let debugRecorder: AppDebugEventRecorder?
 
     private(set) var pets: [CustomerPet] = []
     private(set) var requests: [CustomerGroomingRequest] = []
@@ -212,13 +213,15 @@ final class CustomerRequestsStore {
         requestRepository: any CustomerRequestRepository,
         bookingRepository: any BookingRepository,
         handoffAcknowledgementDefaults: UserDefaults = .standard,
-        now: Date = Date()
+        now: Date = Date(),
+        debugRecorder: AppDebugEventRecorder? = nil
     ) {
         self.customerID = customerID
         self.petRepository = petRepository
         self.requestRepository = requestRepository
         self.bookingRepository = bookingRepository
         self.handoffAcknowledgementDefaults = handoffAcknowledgementDefaults
+        self.debugRecorder = debugRecorder
         handoffAcknowledgementStorageKey = Self.handoffAcknowledgementStorageKey(
             customerID: customerID
         )
@@ -233,6 +236,8 @@ final class CustomerRequestsStore {
     }
 
     func load() async {
+        let startedAt = Date()
+        recordStoreStart("load")
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
@@ -246,19 +251,62 @@ final class CustomerRequestsStore {
                     participantID: customerID,
                     role: .customer
                 )
+            } catch BookingRepositoryError.cancelled {
+                bookings = []
+                recordStoreCancelled("load.bookingHandoff", startedAt: startedAt)
             } catch {
                 bookings = []
+                recordStoreFailure(
+                    "load.bookingHandoff",
+                    error: error,
+                    mappedMessage: nil,
+                    startedAt: startedAt,
+                    level: .warning
+                )
             }
 
             if selectedPetID == nil {
                 selectedPetID = pets.first?.id
             }
+            recordStoreSuccess(
+                "load",
+                startedAt: startedAt,
+                metadata: [
+                    "petCount": "\(pets.count)",
+                    "requestCount": "\(requests.count)",
+                    "bookingCount": "\(bookings.count)",
+                ]
+            )
+        } catch CustomerPetRepositoryError.cancelled {
+            recordStoreCancelled("load", startedAt: startedAt)
+        } catch CustomerRequestRepositoryError.cancelled {
+            recordStoreCancelled("load", startedAt: startedAt)
         } catch let error as CustomerPetRepositoryError {
             errorMessage = message(for: error, action: "load")
+            recordStoreFailure(
+                "load",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt
+            )
         } catch let error as CustomerRequestRepositoryError {
             errorMessage = message(for: error, action: "load")
+            recordStoreFailure(
+                "load",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt
+            )
+        } catch where AppDebugErrorClassifier.isCancellation(error) {
+            recordStoreCancelled("load", startedAt: startedAt)
         } catch {
             errorMessage = message(for: CustomerRequestRepositoryError.unavailable, action: "load")
+            recordStoreFailure(
+                "load",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt
+            )
         }
     }
 
@@ -352,13 +400,16 @@ final class CustomerRequestsStore {
             participantID: customerID,
             role: .customer,
             repository: bookingRepository,
-            initialBookings: [booking]
+            initialBookings: [booking],
+            debugRecorder: debugRecorder
         )
     }
 
     func loadOffers(for request: CustomerGroomingRequest) async {
         guard !loadingOfferRequestIDs.contains(request.id) else { return }
 
+        let startedAt = Date()
+        recordStoreStart("loadOffers", metadata: ["requestID": request.id.uuidString])
         loadingOfferRequestIDs.insert(request.id)
         offerErrorsByRequestID[request.id] = nil
         defer {
@@ -372,12 +423,38 @@ final class CustomerRequestsStore {
                     requestID: request.id
                 )
             )
+            recordStoreSuccess(
+                "loadOffers",
+                startedAt: startedAt,
+                metadata: [
+                    "requestID": request.id.uuidString,
+                    "offerCount": "\(offerReviewsByRequestID[request.id, default: []].count)",
+                ]
+            )
+        } catch CustomerRequestRepositoryError.cancelled {
+            recordStoreCancelled("loadOffers", startedAt: startedAt)
         } catch let error as CustomerRequestRepositoryError {
             offerErrorsByRequestID[request.id] = message(for: error, action: "load offers")
+            recordStoreFailure(
+                "loadOffers",
+                error: error,
+                mappedMessage: offerErrorsByRequestID[request.id],
+                startedAt: startedAt,
+                metadata: ["requestID": request.id.uuidString]
+            )
+        } catch where AppDebugErrorClassifier.isCancellation(error) {
+            recordStoreCancelled("loadOffers", startedAt: startedAt)
         } catch {
             offerErrorsByRequestID[request.id] = message(
                 for: CustomerRequestRepositoryError.unavailable,
                 action: "load offers"
+            )
+            recordStoreFailure(
+                "loadOffers",
+                error: error,
+                mappedMessage: offerErrorsByRequestID[request.id],
+                startedAt: startedAt,
+                metadata: ["requestID": request.id.uuidString]
             )
         }
     }
@@ -385,6 +462,8 @@ final class CustomerRequestsStore {
     func publish() async {
         guard !isSubmitting else { return }
 
+        let startedAt = Date()
+        recordStoreStart("publish")
         errorMessage = nil
         noticeMessage = nil
         publishResult = nil
@@ -394,9 +473,23 @@ final class CustomerRequestsStore {
             draft = try makeDraft()
         } catch let error as CustomerRequestFormError {
             errorMessage = error.message
+            recordStoreFailure(
+                "publish",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt,
+                level: .warning
+            )
             return
         } catch {
             errorMessage = "Check the request details and try again."
+            recordStoreFailure(
+                "publish",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt,
+                level: .warning
+            )
             return
         }
 
@@ -426,10 +519,34 @@ final class CustomerRequestsStore {
             isShowingWizard = false
             resetForm()
             selectedPetID = pets.first?.id
+            recordStoreSuccess(
+                "publish",
+                startedAt: startedAt,
+                metadata: [
+                    "matchCount": "\(result.matchCount)",
+                    "pendingPhotoCount": "\(pendingRequestPhotos.count)",
+                ]
+            )
+        } catch CustomerRequestRepositoryError.cancelled {
+            recordStoreCancelled("publish", startedAt: startedAt)
         } catch let error as CustomerRequestRepositoryError {
             errorMessage = message(for: error, action: "publish")
+            recordStoreFailure(
+                "publish",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt
+            )
+        } catch where AppDebugErrorClassifier.isCancellation(error) {
+            recordStoreCancelled("publish", startedAt: startedAt)
         } catch {
             errorMessage = message(for: CustomerRequestRepositoryError.unavailable, action: "publish")
+            recordStoreFailure(
+                "publish",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt
+            )
         }
     }
 
@@ -447,6 +564,14 @@ final class CustomerRequestsStore {
             return
         }
 
+        let startedAt = Date()
+        recordStoreStart(
+            "accept",
+            metadata: [
+                "requestID": request.id.uuidString,
+                "offerID": offerReview.offer.id.uuidString,
+            ]
+        )
         acceptingOfferIDs.insert(offerReview.offer.id)
         errorMessage = nil
         noticeMessage = nil
@@ -466,12 +591,29 @@ final class CustomerRequestsStore {
             noticeMessage = didApplyLocalState
                 ? "Offer accepted. Booking confirmed."
                 : "Offer accepted. Booking confirmed. Refresh this request if the offer state does not update."
+            recordStoreSuccess("accept", startedAt: startedAt)
+        } catch BookingRepositoryError.cancelled {
+            recordStoreCancelled("accept", startedAt: startedAt)
         } catch let error as BookingRepositoryError {
             errorMessage = message(for: error, action: "accept offer")
+            recordStoreFailure(
+                "accept",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt
+            )
+        } catch where AppDebugErrorClassifier.isCancellation(error) {
+            recordStoreCancelled("accept", startedAt: startedAt)
         } catch {
             errorMessage = message(
                 for: BookingRepositoryError.unavailable,
                 action: "accept offer"
+            )
+            recordStoreFailure(
+                "accept",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt
             )
         }
     }
@@ -483,6 +625,8 @@ final class CustomerRequestsStore {
             return
         }
 
+        let startedAt = Date()
+        recordStoreStart("cancel", metadata: ["requestID": request.id.uuidString])
         cancellingRequestIDs.insert(request.id)
         errorMessage = nil
         noticeMessage = nil
@@ -501,12 +645,29 @@ final class CustomerRequestsStore {
             noticeMessage = didApplyLocalState
                 ? "Request cancelled."
                 : "Request cancelled. Refresh requests to see the latest state."
+            recordStoreSuccess("cancel", startedAt: startedAt)
+        } catch CustomerRequestRepositoryError.cancelled {
+            recordStoreCancelled("cancel", startedAt: startedAt)
         } catch let error as CustomerRequestRepositoryError {
             errorMessage = message(for: error, action: "cancel")
+            recordStoreFailure(
+                "cancel",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt
+            )
+        } catch where AppDebugErrorClassifier.isCancellation(error) {
+            recordStoreCancelled("cancel", startedAt: startedAt)
         } catch {
             errorMessage = message(
                 for: CustomerRequestRepositoryError.unavailable,
                 action: "cancel"
+            )
+            recordStoreFailure(
+                "cancel",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt
             )
         }
     }
@@ -876,6 +1037,8 @@ final class CustomerRequestsStore {
             "This account cannot \(action) customer pets."
         case .networkUnavailable:
             "Check your connection and try again."
+        case .cancelled:
+            "The pet information load was cancelled."
         case .unavailable:
             "We could not \(action) pet information. Please try again."
         }
@@ -900,6 +1063,8 @@ final class CustomerRequestsStore {
             "Check the request details and try again."
         case .networkUnavailable:
             "Check your connection and try again."
+        case .cancelled:
+            "The request action was cancelled."
         case .unavailable:
             "We could not \(action) grooming requests. Please try again."
         }
@@ -938,9 +1103,87 @@ final class CustomerRequestsStore {
             "Check the offer and try again."
         case .networkUnavailable:
             "Check your connection and try again."
+        case .cancelled:
+            "The booking action was cancelled."
         case .unavailable:
             "We could not \(action). Please try again."
         }
+    }
+
+    private var debugScope: String {
+        "customer.requests"
+    }
+
+    private func recordStoreStart(
+        _ operation: String,
+        metadata: [String: String] = [:]
+    ) {
+        var eventMetadata = metadata
+        eventMetadata["operation"] = operation
+        eventMetadata["customerID"] = customerID.uuidString
+        debugRecorder?.record(
+            level: .info,
+            category: .store,
+            source: "CustomerRequestsStore.\(operation)",
+            scope: debugScope,
+            message: "start",
+            metadata: eventMetadata
+        )
+    }
+
+    private func recordStoreSuccess(
+        _ operation: String,
+        startedAt: Date,
+        metadata: [String: String] = [:]
+    ) {
+        var eventMetadata = metadata
+        eventMetadata["operation"] = operation
+        debugRecorder?.record(
+            level: .info,
+            category: .store,
+            source: "CustomerRequestsStore.\(operation)",
+            scope: debugScope,
+            message: "success",
+            durationMs: Int(Date().timeIntervalSince(startedAt) * 1_000),
+            metadata: eventMetadata
+        )
+    }
+
+    private func recordStoreFailure(
+        _ operation: String,
+        error: any Error,
+        mappedMessage: String?,
+        startedAt: Date,
+        level: AppDebugEventLevel = .error,
+        metadata: [String: String] = [:]
+    ) {
+        var eventMetadata = metadata
+        eventMetadata["operation"] = operation
+        debugRecorder?.record(
+            level: level,
+            category: .store,
+            source: "CustomerRequestsStore.\(operation)",
+            scope: debugScope,
+            message: mappedMessage ?? "failure",
+            underlyingError: error,
+            durationMs: Int(Date().timeIntervalSince(startedAt) * 1_000),
+            metadata: eventMetadata
+        )
+    }
+
+    private func recordStoreCancelled(
+        _ operation: String,
+        startedAt: Date
+    ) {
+        debugRecorder?.record(
+            level: .info,
+            category: .store,
+            source: "CustomerRequestsStore.\(operation)",
+            scope: debugScope,
+            message: "cancelled ignored",
+            durationMs: Int(Date().timeIntervalSince(startedAt) * 1_000),
+            metadata: ["operation": operation]
+        )
     }
 
     private static func defaultPreferredRange(now: Date) -> (start: Date, end: Date) {

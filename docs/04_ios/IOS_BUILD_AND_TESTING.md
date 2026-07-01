@@ -28,6 +28,17 @@ Run both the Swift Testing unit target and XCTest UI target:
 ./scripts/ios-test.sh
 ```
 
+## Debug Event Logs
+
+For local app repros, DEBUG builds expose `Account -> Debug Console` and write structured JSONL events to the booted simulator app container. Use:
+
+```bash
+./scripts/ios-debug-events.sh tail 100
+./scripts/ios-debug-events.sh path
+```
+
+The full usage and instrumentation rules live in `docs/04_ios/DEBUG_CONSOLE.md`.
+
 ## Environment Overrides
 
 All defaults can be overridden explicitly:

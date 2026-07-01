@@ -114,6 +114,10 @@ final class SupabaseChatRepository: ChatRepository {
     }
 
     private static func map(_ error: any Error) -> ChatRepositoryError {
+        if AppDebugErrorClassifier.isCancellation(error) {
+            return .cancelled
+        }
+
         if let repositoryError = error as? ChatRepositoryError {
             return repositoryError
         }

@@ -751,6 +751,10 @@ final class SupabaseGroomerProfileRepository: GroomerProfileRepository {
     }
 
     private static func map(_ error: any Error) -> GroomerProfileRepositoryError {
+        if AppDebugErrorClassifier.isCancellation(error) {
+            return .cancelled
+        }
+
         if let repositoryError = error as? GroomerProfileRepositoryError {
             return repositoryError
         }

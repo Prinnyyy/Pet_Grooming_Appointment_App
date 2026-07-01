@@ -201,6 +201,10 @@ final class SupabaseGroomerRequestRepository: GroomerRequestRepository {
     }
 
     private static func map(_ error: any Error) -> GroomerRequestRepositoryError {
+        if AppDebugErrorClassifier.isCancellation(error) {
+            return .cancelled
+        }
+
         if let repositoryError = error as? GroomerRequestRepositoryError {
             return repositoryError
         }

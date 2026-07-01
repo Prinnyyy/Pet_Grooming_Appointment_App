@@ -79,6 +79,15 @@ struct AuthenticatedEntryView: View {
         .task(id: session.userID) {
             await store.load(userID: session.userID)
         }
+        .environment(\.appDebugEventRecorder, appDebugRecorder)
+    }
+
+    private var appDebugRecorder: AppDebugEventRecorder? {
+        #if DEBUG
+        AppDebugEventRecorder.shared
+        #else
+        nil
+        #endif
     }
 
     private var loadingView: some View {

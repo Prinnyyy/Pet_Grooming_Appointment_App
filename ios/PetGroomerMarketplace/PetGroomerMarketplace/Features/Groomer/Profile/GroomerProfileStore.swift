@@ -10,6 +10,7 @@ final class GroomerProfileStore {
     private let groomerID: UUID
     private let repository: any GroomerProfileRepository
     private let profileSnapshotCache: any ProfileSnapshotCaching
+    private let debugRecorder: AppDebugEventRecorder?
     private var profileMutationRevision = 0
 
     private(set) var profile: GroomerProfile?
@@ -137,14 +138,18 @@ final class GroomerProfileStore {
     init(
         groomerID: UUID,
         repository: any GroomerProfileRepository,
-        profileSnapshotCache: any ProfileSnapshotCaching = FileProfileSnapshotCache.shared
+        profileSnapshotCache: any ProfileSnapshotCaching = FileProfileSnapshotCache.shared,
+        debugRecorder: AppDebugEventRecorder? = nil
     ) {
         self.groomerID = groomerID
         self.repository = repository
         self.profileSnapshotCache = profileSnapshotCache
+        self.debugRecorder = debugRecorder
     }
 
     func load() async {
+        let startedAt = Date()
+        recordStoreStart("load")
         let loadRevision = profileMutationRevision
         isLoading = true
         errorMessage = nil
@@ -209,15 +214,47 @@ final class GroomerProfileStore {
                 for: loadedPhotos
             )
             guard loadRevision == profileMutationRevision else {
+                recordStoreCancelled(
+                    "load",
+                    startedAt: startedAt,
+                    metadata: ["reason": "stale mutation revision"]
+                )
                 return
             }
             portfolioPhotoDataByID = loadedPortfolioPhotoData
+            recordStoreSuccess(
+                "load",
+                startedAt: startedAt,
+                metadata: [
+                    "serviceCount": "\(services.count)",
+                    "portfolioPhotoCount": "\(portfolioPhotos.count)",
+                    "fitClaimCount": "\(fitClaims.count)",
+                ]
+            )
+        } catch GroomerProfileRepositoryError.cancelled {
+            isLoading = false
+            recordStoreCancelled("load", startedAt: startedAt)
         } catch let error as GroomerProfileRepositoryError {
             isLoading = false
             errorMessage = message(for: error, action: "load")
+            recordStoreFailure(
+                "load",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt
+            )
+        } catch where AppDebugErrorClassifier.isCancellation(error) {
+            isLoading = false
+            recordStoreCancelled("load", startedAt: startedAt)
         } catch {
             isLoading = false
             errorMessage = message(for: .unavailable, action: "load")
+            recordStoreFailure(
+                "load",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt
+            )
         }
     }
 
@@ -1523,9 +1560,86 @@ final class GroomerProfileStore {
             "This account cannot \(action) groomer profile details."
         case .networkUnavailable:
             "Check your connection and try again."
+        case .cancelled:
+            "The profile action was cancelled."
         case .unavailable:
             "We could not \(action) groomer profile details. Please try again."
         }
+    }
+
+    private var debugScope: String {
+        "groomer.profile"
+    }
+
+    private func recordStoreStart(
+        _ operation: String,
+        metadata: [String: String] = [:]
+    ) {
+        var eventMetadata = metadata
+        eventMetadata["operation"] = operation
+        eventMetadata["groomerID"] = groomerID.uuidString
+        debugRecorder?.record(
+            level: .info,
+            category: .store,
+            source: "GroomerProfileStore.\(operation)",
+            scope: debugScope,
+            message: "start",
+            metadata: eventMetadata
+        )
+    }
+
+    private func recordStoreSuccess(
+        _ operation: String,
+        startedAt: Date,
+        metadata: [String: String] = [:]
+    ) {
+        var eventMetadata = metadata
+        eventMetadata["operation"] = operation
+        debugRecorder?.record(
+            level: .info,
+            category: .store,
+            source: "GroomerProfileStore.\(operation)",
+            scope: debugScope,
+            message: "success",
+            durationMs: Int(Date().timeIntervalSince(startedAt) * 1_000),
+            metadata: eventMetadata
+        )
+    }
+
+    private func recordStoreFailure(
+        _ operation: String,
+        error: any Error,
+        mappedMessage: String?,
+        startedAt: Date
+    ) {
+        debugRecorder?.record(
+            level: .error,
+            category: .store,
+            source: "GroomerProfileStore.\(operation)",
+            scope: debugScope,
+            message: mappedMessage ?? "failure",
+            underlyingError: error,
+            durationMs: Int(Date().timeIntervalSince(startedAt) * 1_000),
+            metadata: ["operation": operation]
+        )
+    }
+
+    private func recordStoreCancelled(
+        _ operation: String,
+        startedAt: Date,
+        metadata: [String: String] = [:]
+    ) {
+        var eventMetadata = metadata
+        eventMetadata["operation"] = operation
+        debugRecorder?.record(
+            level: .info,
+            category: .store,
+            source: "GroomerProfileStore.\(operation)",
+            scope: debugScope,
+            message: "cancelled ignored",
+            durationMs: Int(Date().timeIntervalSince(startedAt) * 1_000),
+            metadata: eventMetadata
+        )
     }
 }
 

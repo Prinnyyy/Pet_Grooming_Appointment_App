@@ -60,6 +60,31 @@ struct AuthenticatedAccountView: View {
                         .accessibilityIdentifier("auth.error")
                     }
 
+                    #if DEBUG
+                    NavigationLink {
+                        DebugPanelView(
+                            diagnostics: DebugDiagnostics.current(
+                                session: session,
+                                profile: profile
+                            )
+                        )
+                    } label: {
+                        Label("Debug Console", systemImage: "ladybug")
+                            .font(DesignTokens.Typography.headline)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(DesignTokens.Spacing.lg)
+                            .background(DesignTokens.Colors.surfaceRaised)
+                            .clipShape(
+                                RoundedRectangle(
+                                    cornerRadius: DesignTokens.CornerRadius.card,
+                                    style: .continuous
+                                )
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("account.debug-console")
+                    #endif
+
                     Button(role: .destructive) {
                         Task {
                             await authenticationStore.signOut()

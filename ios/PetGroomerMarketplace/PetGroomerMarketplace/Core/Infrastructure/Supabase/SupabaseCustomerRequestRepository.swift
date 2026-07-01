@@ -241,6 +241,10 @@ final class SupabaseCustomerRequestRepository: CustomerRequestRepository {
     }
 
     private static func map(_ error: any Error) -> CustomerRequestRepositoryError {
+        if AppDebugErrorClassifier.isCancellation(error) {
+            return .cancelled
+        }
+
         if let repositoryError = error as? CustomerRequestRepositoryError {
             return repositoryError
         }

@@ -27,7 +27,7 @@ This file is the first stop when a path is unclear. It records the current folde
 - `docs/01_product/`: product definitions, roles, flows, screen inventory, and UX rules.
 - `docs/02_architecture/`: app architecture, data flow, boundaries, error handling, and fixtures.
 - `docs/03_backend/`: Supabase contract, RLS/RPC policy, storage policy, and migration rules.
-- `docs/04_ios/`: Swift, SwiftUI, build, testing, and accessibility rules.
+- `docs/04_ios/`: Swift, SwiftUI, build, testing, accessibility, and DEBUG diagnostic rules.
 - `docs/05_workflow/`: active single-agent workflow, context/recovery access tiers, tooling policy, GitHub rules, stop rules, and final-report template.
 - `docs/06_tasks/`: active task ledger, task templates, and task-specific artifacts. Detailed completed task records are frozen under `docs/09_frozen/task_records_2026-06-26/`.
 - `docs/06_tasks/sql_reviews/`: reviewed SQL drafts that were attached to task records before being mirrored as migrations.
@@ -48,6 +48,7 @@ This file is the first stop when a path is unclear. It records the current folde
 - Backend contract: `docs/03_backend/SUPABASE_CONTRACT.md`.
 - iOS source root: `ios/PetGroomerMarketplace/PetGroomerMarketplace/`.
 - iOS tests: `ios/PetGroomerMarketplace/PetGroomerMarketplaceTests/`.
+- Debug Console and structured event logs: `docs/04_ios/DEBUG_CONSOLE.md`.
 - Design screenshot assets: `docs/08_design/screenshots/`.
 - Frozen workflow archive: `docs/09_frozen/workflow_archive_2026-06-24/`.
 - Frozen disabled agent archive: `docs/09_frozen/agent_team_archive_2026-06-24/`.

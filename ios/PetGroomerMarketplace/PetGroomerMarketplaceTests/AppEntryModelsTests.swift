@@ -161,6 +161,73 @@ struct GroomlyFeedbackCenterTests {
         #expect(center.error?.title == error.title)
     }
 
+    @Test @MainActor
+    func clearingPageScopeRemovesOnlyPageScopedToastPrompts() async throws {
+        let center = GroomlyFeedbackCenter()
+        let pageScope = GroomlyFeedbackScope.page("customer.bookings")
+        let pageError = GroomlyGlobalFeedbackError(
+            scope: pageScope,
+            sourceKey: "bookings.load",
+            title: "Booking Update Failed",
+            message: "We could not load bookings. Please try again."
+        )
+        let queuedPageError = GroomlyGlobalFeedbackError(
+            scope: pageScope,
+            sourceKey: "bookings.refresh",
+            title: "Booking Refresh Failed",
+            message: "Pull to refresh and try again."
+        )
+        let operationError = GroomlyGlobalFeedbackError(
+            scope: .operation("bookings.cancel"),
+            sourceKey: "bookings.cancel",
+            title: "Cancellation Failed",
+            message: "We could not cancel this booking."
+        )
+
+        center.showError(pageError)
+        center.showError(queuedPageError)
+        center.showError(operationError)
+
+        #expect(center.error == pageError)
+
+        center.clearTransientPrompts(in: pageScope)
+        #expect(center.error == nil)
+
+        try await waitForFeedbackQueueAdvance()
+
+        #expect(center.error == operationError)
+        #expect(center.error?.scope == .operation("bookings.cancel"))
+    }
+
+    @Test @MainActor
+    func persistentErrorsKeepStableScopeAndSourceIdentity() {
+        let error = GroomlyPersistentFeedbackError(
+            scope: .page("customer.bookings"),
+            sourceKey: "bookings.load",
+            title: "We Could Not Load Bookings",
+            message: "Check your connection and try again.",
+            actionTitle: "Try Again"
+        )
+        let sameSource = GroomlyPersistentFeedbackError(
+            scope: .page("customer.bookings"),
+            sourceKey: "bookings.load",
+            title: "We Could Not Load Bookings",
+            message: "Check your connection and try again.",
+            actionTitle: "Try Again"
+        )
+        let otherPage = GroomlyPersistentFeedbackError(
+            scope: .page("customer.requests"),
+            sourceKey: "bookings.load",
+            title: "We Could Not Load Bookings",
+            message: "Check your connection and try again.",
+            actionTitle: "Try Again"
+        )
+
+        #expect(error.identityKey == sameSource.identityKey)
+        #expect(error.identityKey != otherPage.identityKey)
+        #expect(error.actionTitle == "Try Again")
+    }
+
     private func waitForFeedbackQueueAdvance() async throws {
         try await Task.sleep(
             nanoseconds: GroomlyFeedbackCenter.queuedPromptAdvanceDelayNanoseconds + 370_000_000

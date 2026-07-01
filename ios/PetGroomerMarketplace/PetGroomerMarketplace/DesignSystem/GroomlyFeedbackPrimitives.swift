@@ -88,6 +88,33 @@ struct GroomlyFeedbackNotice: Equatable, Identifiable {
     let message: String
 }
 
+enum GroomlyFeedbackScope: Equatable, Hashable, Sendable {
+    case global
+    case page(String)
+    case module(String)
+    case operation(String)
+
+    var clearsWhenSourceDisappears: Bool {
+        switch self {
+        case .page, .module:
+            true
+        case .global, .operation:
+            false
+        }
+    }
+
+    var debugKey: String {
+        switch self {
+        case .global:
+            "global"
+        case let .page(value),
+             let .module(value),
+             let .operation(value):
+            value
+        }
+    }
+}
+
 enum GroomlyFeedbackTone: Equatable, Sendable {
     case customer
     case groomer
@@ -107,24 +134,37 @@ enum GroomlyFeedbackTone: Equatable, Sendable {
 
 struct GroomlyGlobalFeedbackError: Equatable, Identifiable {
     let id: UUID
+    let scope: GroomlyFeedbackScope
+    let sourceKey: String
     let title: String
     let message: String?
 
     init(
         id: UUID = UUID(),
+        scope: GroomlyFeedbackScope = .global,
+        sourceKey: String? = nil,
         title: String,
         message: String? = nil
     ) {
         self.id = id
+        self.scope = scope
+        self.sourceKey = sourceKey ?? Self.defaultSourceKey(title: title, message: message)
         self.title = title
         self.message = message
     }
 
     var contentKey: ContentKey {
-        ContentKey(title: title, message: message)
+        ContentKey(
+            scope: scope,
+            sourceKey: sourceKey,
+            title: title,
+            message: message
+        )
     }
 
     struct ContentKey: Equatable, Hashable, Sendable {
+        let scope: GroomlyFeedbackScope
+        let sourceKey: String
         let title: String
         let message: String?
     }
@@ -135,28 +175,45 @@ struct GroomlyGlobalFeedbackError: Equatable, Identifiable {
     ) -> Bool {
         lhs.contentKey == rhs.contentKey
     }
+
+    private static func defaultSourceKey(title: String, message: String?) -> String {
+        [title, message].compactMap { $0 }.joined(separator: "|")
+    }
 }
 
 struct GroomlyGlobalFeedbackProgress: Equatable, Identifiable {
     let id: UUID
+    let scope: GroomlyFeedbackScope
+    let sourceKey: String
     let title: String
     let tone: GroomlyFeedbackTone
 
     init(
         id: UUID = UUID(),
+        scope: GroomlyFeedbackScope = .global,
+        sourceKey: String? = nil,
         title: String,
         tone: GroomlyFeedbackTone = .neutral
     ) {
         self.id = id
+        self.scope = scope
+        self.sourceKey = sourceKey ?? title
         self.title = title
         self.tone = tone
     }
 
     var contentKey: ContentKey {
-        ContentKey(title: title, tone: tone)
+        ContentKey(
+            scope: scope,
+            sourceKey: sourceKey,
+            title: title,
+            tone: tone
+        )
     }
 
     struct ContentKey: Equatable, Sendable {
+        let scope: GroomlyFeedbackScope
+        let sourceKey: String
         let title: String
         let tone: GroomlyFeedbackTone
     }
@@ -166,6 +223,123 @@ struct GroomlyGlobalFeedbackProgress: Equatable, Identifiable {
         rhs: GroomlyGlobalFeedbackProgress
     ) -> Bool {
         lhs.contentKey == rhs.contentKey
+    }
+}
+
+struct GroomlyPersistentFeedbackError: Equatable, Identifiable {
+    let id: UUID
+    let scope: GroomlyFeedbackScope
+    let sourceKey: String
+    let title: String
+    let message: String
+    let actionTitle: String?
+
+    init(
+        id: UUID = UUID(),
+        scope: GroomlyFeedbackScope,
+        sourceKey: String,
+        title: String,
+        message: String,
+        actionTitle: String? = nil
+    ) {
+        self.id = id
+        self.scope = scope
+        self.sourceKey = sourceKey
+        self.title = title
+        self.message = message
+        self.actionTitle = actionTitle
+    }
+
+    var identityKey: IdentityKey {
+        IdentityKey(scope: scope, sourceKey: sourceKey)
+    }
+
+    struct IdentityKey: Equatable, Hashable, Sendable {
+        let scope: GroomlyFeedbackScope
+        let sourceKey: String
+    }
+}
+
+struct GroomlyFeedbackDebugPromptSnapshot: Equatable, Identifiable {
+    let id: String
+    let kind: String
+    let scope: String?
+    let sourceKey: String?
+    let title: String
+    let message: String?
+}
+
+struct GroomlyFeedbackDebugSnapshot: Equatable {
+    let active: GroomlyFeedbackDebugPromptSnapshot?
+    let queued: [GroomlyFeedbackDebugPromptSnapshot]
+}
+
+struct GroomlyPersistentErrorView<Action: View>: View {
+    private let error: GroomlyPersistentFeedbackError
+    private let systemImage: String
+    private let showsAction: Bool
+    private let action: Action
+
+    init(
+        _ error: GroomlyPersistentFeedbackError,
+        systemImage: String = "exclamationmark.triangle.fill",
+        @ViewBuilder action: () -> Action
+    ) {
+        self.error = error
+        self.systemImage = systemImage
+        showsAction = true
+        self.action = action()
+    }
+
+    var body: some View {
+        GroomlyCard(padding: DesignTokens.Spacing.xl) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
+                    Image(systemName: systemImage)
+                        .font(.title3.weight(.bold))
+                        .foregroundStyle(DesignTokens.Colors.error)
+                        .frame(width: 52, height: 52)
+                        .background(DesignTokens.Colors.error.opacity(0.12))
+                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        .accessibilityHidden(true)
+
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                        Text(error.title)
+                            .font(DesignTokens.Typography.headline)
+                            .foregroundStyle(DesignTokens.Colors.textPrimary)
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        Text(error.message)
+                            .font(DesignTokens.Typography.body)
+                            .foregroundStyle(DesignTokens.Colors.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .accessibilityElement(children: .combine)
+
+                if showsAction {
+                    action
+                }
+            }
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.card, style: .continuous)
+                .stroke(DesignTokens.Colors.error.opacity(0.24), lineWidth: 1)
+        }
+        .accessibilityIdentifier("groomly.persistent-error")
+    }
+}
+
+extension GroomlyPersistentErrorView where Action == EmptyView {
+    init(
+        _ error: GroomlyPersistentFeedbackError,
+        systemImage: String = "exclamationmark.triangle.fill"
+    ) {
+        self.error = error
+        self.systemImage = systemImage
+        showsAction = false
+        action = EmptyView()
     }
 }
 
@@ -281,6 +455,7 @@ final class GroomlyFeedbackCenter {
     static let errorDismissDelayNanoseconds: UInt64 = 2_000_000_000
     static let queuedPromptAdvanceDelayNanoseconds: UInt64 = 280_000_000
 
+    private var debugRecorder: AppDebugEventRecorder?
     private(set) var notice: GroomlyFeedbackNotice?
     private(set) var error: GroomlyGlobalFeedbackError?
     private(set) var progress: GroomlyGlobalFeedbackProgress?
@@ -289,6 +464,14 @@ final class GroomlyFeedbackCenter {
     private var isWaitingToShowQueuedPrompt = false
     private var queuedPromptAdvanceTask: Task<Void, Never>?
     private var errorDismissTask: Task<Void, Never>?
+
+    init(debugRecorder: AppDebugEventRecorder? = nil) {
+        self.debugRecorder = debugRecorder
+    }
+
+    func setDebugRecorder(_ recorder: AppDebugEventRecorder?) {
+        debugRecorder = recorder
+    }
 
     @discardableResult
     func showNotice(_ message: String) -> UUID {
@@ -331,6 +514,49 @@ final class GroomlyFeedbackCenter {
         }
     }
 
+    func clearTransientPrompts(in scope: GroomlyFeedbackScope) {
+        var removedPromptCount = 0
+        queuedPrompts.removeAll { prompt in
+            if let error = prompt.error(in: scope) {
+                dismissedErrorKeys.insert(error.contentKey)
+                removedPromptCount += 1
+                return true
+            }
+
+            if prompt.scope == scope {
+                removedPromptCount += 1
+                return true
+            }
+
+            return false
+        }
+
+        guard activePrompt?.scope == scope else {
+            recordFeedbackEvent(
+                source: "GroomlyFeedbackCenter.clearedScope",
+                level: .debug,
+                scope: scope,
+                message: "cleared scope",
+                metadata: ["removedCount": "\(removedPromptCount)"]
+            )
+            return
+        }
+
+        if let error = activePrompt?.error(in: scope) {
+            dismissedErrorKeys.insert(error.contentKey)
+        }
+
+        removedPromptCount += 1
+        dismissActivePrompt()
+        recordFeedbackEvent(
+            source: "GroomlyFeedbackCenter.clearedScope",
+            level: .debug,
+            scope: scope,
+            message: "cleared scope",
+            metadata: ["removedCount": "\(removedPromptCount)"]
+        )
+    }
+
     var hasVisiblePrompt: Bool {
         notice != nil || error != nil || progress != nil
     }
@@ -341,6 +567,15 @@ final class GroomlyFeedbackCenter {
             error?.id.uuidString ?? "no-error",
             notice?.id.uuidString ?? "no-notice"
         ].joined(separator: ":")
+    }
+
+    var debugSnapshot: GroomlyFeedbackDebugSnapshot {
+        GroomlyFeedbackDebugSnapshot(
+            active: activePrompt?.debugSnapshot(index: 0),
+            queued: queuedPrompts.enumerated().map { index, prompt in
+                prompt.debugSnapshot(index: index)
+            }
+        )
     }
 
     private var activePrompt: QueuedPrompt? {
@@ -356,9 +591,31 @@ final class GroomlyFeedbackCenter {
     }
 
     private func enqueue(_ prompt: QueuedPrompt) {
-        guard !isDismissedError(prompt) else { return }
-        guard !containsEquivalentPrompt(prompt) else { return }
+        guard !isDismissedError(prompt) else {
+            recordFeedbackEvent(
+                source: "GroomlyFeedbackCenter.suppressedStale",
+                level: .debug,
+                prompt: prompt,
+                message: "suppressed stale prompt"
+            )
+            return
+        }
+        guard !containsEquivalentPrompt(prompt) else {
+            recordFeedbackEvent(
+                source: "GroomlyFeedbackCenter.suppressedDuplicate",
+                level: .debug,
+                prompt: prompt,
+                message: "suppressed duplicate prompt"
+            )
+            return
+        }
 
+        recordFeedbackEvent(
+            source: "GroomlyFeedbackCenter.enqueue",
+            level: .info,
+            prompt: prompt,
+            message: "queued prompt"
+        )
         if activePrompt == nil, !isWaitingToShowQueuedPrompt {
             present(prompt)
         } else {
@@ -394,13 +651,29 @@ final class GroomlyFeedbackCenter {
         case let .progress(progress):
             self.progress = progress
         }
+
+        recordFeedbackEvent(
+            source: "GroomlyFeedbackCenter.presented",
+            level: .info,
+            prompt: prompt,
+            message: "presented prompt"
+        )
     }
 
     private func dismissActivePrompt() {
+        let dismissedPrompt = activePrompt
         cancelErrorDismissTask()
         notice = nil
         error = nil
         progress = nil
+        if let dismissedPrompt {
+            recordFeedbackEvent(
+                source: "GroomlyFeedbackCenter.dismissed",
+                level: .info,
+                prompt: dismissedPrompt,
+                message: "dismissed prompt"
+            )
+        }
         scheduleQueuedPromptAdvanceIfNeeded()
     }
 
@@ -457,10 +730,65 @@ final class GroomlyFeedbackCenter {
         present(queuedPrompts.removeFirst())
     }
 
+    private func recordFeedbackEvent(
+        source: String,
+        level: AppDebugEventLevel,
+        prompt: QueuedPrompt,
+        message: String
+    ) {
+        let snapshot = prompt.debugSnapshot(index: 0)
+        var metadata = [
+            "kind": snapshot.kind,
+            "title": snapshot.title,
+        ]
+        if let sourceKey = snapshot.sourceKey {
+            metadata["sourceKey"] = sourceKey
+        }
+        if let detail = snapshot.message {
+            metadata["message"] = detail
+        }
+
+        recordFeedbackEvent(
+            source: source,
+            level: level,
+            scope: prompt.scope,
+            message: message,
+            metadata: metadata
+        )
+    }
+
+    private func recordFeedbackEvent(
+        source: String,
+        level: AppDebugEventLevel,
+        scope: GroomlyFeedbackScope?,
+        message: String,
+        metadata: [String: String]
+    ) {
+        debugRecorder?.record(
+            level: level,
+            category: .feedback,
+            source: source,
+            scope: scope?.debugKey,
+            message: message,
+            metadata: metadata
+        )
+    }
+
     private enum QueuedPrompt {
         case notice(GroomlyFeedbackNotice)
         case error(GroomlyGlobalFeedbackError)
         case progress(GroomlyGlobalFeedbackProgress)
+
+        var scope: GroomlyFeedbackScope? {
+            switch self {
+            case .notice:
+                nil
+            case let .error(error):
+                error.scope
+            case let .progress(progress):
+                progress.scope
+            }
+        }
 
         func isEquivalent(to other: QueuedPrompt) -> Bool {
             switch (self, other) {
@@ -496,6 +824,46 @@ final class GroomlyFeedbackCenter {
                 queuedProgress.contentKey == progress.contentKey
             } else {
                 false
+            }
+        }
+
+        func error(in scope: GroomlyFeedbackScope) -> GroomlyGlobalFeedbackError? {
+            if case let .error(error) = self, error.scope == scope {
+                error
+            } else {
+                nil
+            }
+        }
+
+        func debugSnapshot(index: Int) -> GroomlyFeedbackDebugPromptSnapshot {
+            switch self {
+            case let .notice(notice):
+                GroomlyFeedbackDebugPromptSnapshot(
+                    id: "notice-\(notice.id.uuidString)-\(index)",
+                    kind: "notice",
+                    scope: nil,
+                    sourceKey: nil,
+                    title: "Notice",
+                    message: notice.message
+                )
+            case let .error(error):
+                GroomlyFeedbackDebugPromptSnapshot(
+                    id: "error-\(error.sourceKey)-\(index)",
+                    kind: "error",
+                    scope: error.scope.debugKey,
+                    sourceKey: error.sourceKey,
+                    title: error.title,
+                    message: error.message
+                )
+            case let .progress(progress):
+                GroomlyFeedbackDebugPromptSnapshot(
+                    id: "progress-\(progress.sourceKey)-\(index)",
+                    kind: "progress",
+                    scope: progress.scope.debugKey,
+                    sourceKey: progress.sourceKey,
+                    title: progress.title,
+                    message: nil
+                )
             }
         }
     }
@@ -583,6 +951,9 @@ struct GroomlyGlobalFeedbackForwarder: View {
             .onChange(of: progress) { _, newProgress in
                 forwardProgress(newProgress)
             }
+            .onDisappear {
+                clearScopedPromptsOnDisappear()
+            }
     }
 
     @MainActor
@@ -615,6 +986,21 @@ struct GroomlyGlobalFeedbackForwarder: View {
         } else if let forwardedProgress {
             feedbackCenter.clearProgress(matching: forwardedProgress)
             self.forwardedProgress = nil
+        }
+    }
+
+    @MainActor
+    private func clearScopedPromptsOnDisappear() {
+        guard let feedbackCenter else { return }
+
+        if let scope = forwardedError?.scope,
+           scope.clearsWhenSourceDisappears {
+            feedbackCenter.clearTransientPrompts(in: scope)
+        }
+
+        if let scope = forwardedProgress?.scope,
+           scope.clearsWhenSourceDisappears {
+            feedbackCenter.clearTransientPrompts(in: scope)
         }
     }
 }

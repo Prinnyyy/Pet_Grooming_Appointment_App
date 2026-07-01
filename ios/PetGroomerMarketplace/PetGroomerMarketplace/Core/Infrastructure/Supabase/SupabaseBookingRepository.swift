@@ -169,6 +169,10 @@ final class SupabaseBookingRepository: BookingRepository {
     }
 
     private static func map(_ error: any Error) -> BookingRepositoryError {
+        if AppDebugErrorClassifier.isCancellation(error) {
+            return .cancelled
+        }
+
         if let repositoryError = error as? BookingRepositoryError {
             return repositoryError
         }

@@ -8,6 +8,7 @@ final class ChatStore {
     private let role: UserRole
     private let repository: any ChatRepository
     private let now: () -> Date
+    private let debugRecorder: AppDebugEventRecorder?
 
     private(set) var conversations: [ChatConversation] = []
     private(set) var messagesByConversationID: [UUID: [ChatMessage]] = [:]
@@ -28,12 +29,14 @@ final class ChatStore {
         participantID: UUID,
         role: UserRole,
         repository: any ChatRepository,
-        now: @escaping () -> Date = Date.init
+        now: @escaping () -> Date = Date.init,
+        debugRecorder: AppDebugEventRecorder? = nil
     ) {
         self.participantID = participantID
         self.role = role
         self.repository = repository
         self.now = now
+        self.debugRecorder = debugRecorder
     }
 
     func messages(for conversationID: UUID) -> [ChatMessage] {
@@ -74,6 +77,8 @@ final class ChatStore {
     }
 
     func loadConversations() async {
+        let startedAt = Date()
+        recordStoreStart("loadConversations")
         isLoadingConversations = true
         errorMessage = nil
         defer { isLoadingConversations = false }
@@ -83,16 +88,42 @@ final class ChatStore {
                 participantID: participantID,
                 role: role
             )
+            recordStoreSuccess(
+                "loadConversations",
+                startedAt: startedAt,
+                metadata: ["conversationCount": "\(conversations.count)"]
+            )
+        } catch ChatRepositoryError.cancelled {
+            recordStoreCancelled("loadConversations", startedAt: startedAt)
         } catch let error as ChatRepositoryError {
             errorMessage = message(for: error, action: "load conversations")
+            recordStoreFailure(
+                "loadConversations",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt
+            )
+        } catch where AppDebugErrorClassifier.isCancellation(error) {
+            recordStoreCancelled("loadConversations", startedAt: startedAt)
         } catch {
             errorMessage = message(for: .unavailable, action: "load conversations")
+            recordStoreFailure(
+                "loadConversations",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt
+            )
         }
     }
 
     func loadMessages(for conversation: ChatConversation) async {
         guard !loadingConversationIDs.contains(conversation.id) else { return }
 
+        let startedAt = Date()
+        recordStoreStart(
+            "loadMessages",
+            metadata: ["conversationID": conversation.id.uuidString]
+        )
         loadingConversationIDs.insert(conversation.id)
         errorMessage = nil
         defer { loadingConversationIDs.remove(conversation.id) }
@@ -100,10 +131,34 @@ final class ChatStore {
         do {
             messagesByConversationID[conversation.id] =
                 try await repository.messages(conversationID: conversation.id)
+            recordStoreSuccess(
+                "loadMessages",
+                startedAt: startedAt,
+                metadata: [
+                    "conversationID": conversation.id.uuidString,
+                    "messageCount": "\(messagesByConversationID[conversation.id]?.count ?? 0)",
+                ]
+            )
+        } catch ChatRepositoryError.cancelled {
+            recordStoreCancelled("loadMessages", startedAt: startedAt)
         } catch let error as ChatRepositoryError {
             errorMessage = message(for: error, action: "load messages")
+            recordStoreFailure(
+                "loadMessages",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt
+            )
+        } catch where AppDebugErrorClassifier.isCancellation(error) {
+            recordStoreCancelled("loadMessages", startedAt: startedAt)
         } catch {
             errorMessage = message(for: .unavailable, action: "load messages")
+            recordStoreFailure(
+                "loadMessages",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt
+            )
         }
     }
 
@@ -130,6 +185,11 @@ final class ChatStore {
             return
         }
 
+        let startedAt = Date()
+        recordStoreStart(
+            "sendMessage",
+            metadata: ["conversationID": conversation.id.uuidString]
+        )
         sendingConversationIDs.insert(conversation.id)
         errorMessage = nil
         noticeMessage = nil
@@ -142,10 +202,31 @@ final class ChatStore {
                 body: normalizedBody
             )
             append(message)
+            recordStoreSuccess(
+                "sendMessage",
+                startedAt: startedAt,
+                metadata: ["conversationID": conversation.id.uuidString]
+            )
+        } catch ChatRepositoryError.cancelled {
+            recordStoreCancelled("sendMessage", startedAt: startedAt)
         } catch let error as ChatRepositoryError {
             errorMessage = self.message(for: error, action: "send message")
+            recordStoreFailure(
+                "sendMessage",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt
+            )
+        } catch where AppDebugErrorClassifier.isCancellation(error) {
+            recordStoreCancelled("sendMessage", startedAt: startedAt)
         } catch {
             errorMessage = self.message(for: .unavailable, action: "send message")
+            recordStoreFailure(
+                "sendMessage",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt
+            )
         }
     }
 
@@ -183,8 +264,83 @@ final class ChatStore {
             "Check the message and try again."
         case .networkUnavailable:
             "Check your connection and try again."
+        case .cancelled:
+            "The message action was cancelled."
         case .unavailable:
             "We could not \(action). Please try again."
         }
+    }
+
+    private var debugScope: String {
+        "\(role.appDebugScopePrefix).messages"
+    }
+
+    private func recordStoreStart(
+        _ operation: String,
+        metadata: [String: String] = [:]
+    ) {
+        var eventMetadata = metadata
+        eventMetadata["operation"] = operation
+        eventMetadata["participantID"] = participantID.uuidString
+        eventMetadata["role"] = role.appDebugName
+        debugRecorder?.record(
+            level: .info,
+            category: .store,
+            source: "ChatStore.\(operation)",
+            scope: debugScope,
+            message: "start",
+            metadata: eventMetadata
+        )
+    }
+
+    private func recordStoreSuccess(
+        _ operation: String,
+        startedAt: Date,
+        metadata: [String: String] = [:]
+    ) {
+        var eventMetadata = metadata
+        eventMetadata["operation"] = operation
+        debugRecorder?.record(
+            level: .info,
+            category: .store,
+            source: "ChatStore.\(operation)",
+            scope: debugScope,
+            message: "success",
+            durationMs: Int(Date().timeIntervalSince(startedAt) * 1_000),
+            metadata: eventMetadata
+        )
+    }
+
+    private func recordStoreFailure(
+        _ operation: String,
+        error: any Error,
+        mappedMessage: String?,
+        startedAt: Date
+    ) {
+        debugRecorder?.record(
+            level: .error,
+            category: .store,
+            source: "ChatStore.\(operation)",
+            scope: debugScope,
+            message: mappedMessage ?? "failure",
+            underlyingError: error,
+            durationMs: Int(Date().timeIntervalSince(startedAt) * 1_000),
+            metadata: ["operation": operation]
+        )
+    }
+
+    private func recordStoreCancelled(
+        _ operation: String,
+        startedAt: Date
+    ) {
+        debugRecorder?.record(
+            level: .info,
+            category: .store,
+            source: "ChatStore.\(operation)",
+            scope: debugScope,
+            message: "cancelled ignored",
+            durationMs: Int(Date().timeIntervalSince(startedAt) * 1_000),
+            metadata: ["operation": operation]
+        )
     }
 }

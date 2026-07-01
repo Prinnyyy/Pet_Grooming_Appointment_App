@@ -16,6 +16,7 @@ struct CustomerRequestsView: View {
         petRepository: any CustomerPetRepository,
         requestRepository: any CustomerRequestRepository,
         bookingRepository: any BookingRepository,
+        debugRecorder: AppDebugEventRecorder? = nil,
         focusedRequestID: Binding<UUID?> = .constant(nil),
         onBookingChatSelected: @escaping (Booking) -> Void = { _ in }
     ) {
@@ -26,7 +27,8 @@ struct CustomerRequestsView: View {
                 customerID: customerID,
                 petRepository: petRepository,
                 requestRepository: requestRepository,
-                bookingRepository: bookingRepository
+                bookingRepository: bookingRepository,
+                debugRecorder: debugRecorder
             )
         )
     }
@@ -3967,6 +3969,8 @@ struct CustomerRequestsStatusView: View {
         guard let errorMessage = store.errorMessage,
               !store.isShowingWizard else { return nil }
         return GroomlyGlobalFeedbackError(
+            scope: .page("customer.requests"),
+            sourceKey: "customer.requests.error",
             title: "We Could Not Update Requests",
             message: errorMessage
         )
@@ -3975,6 +3979,8 @@ struct CustomerRequestsStatusView: View {
     private var progressPrompt: GroomlyGlobalFeedbackProgress? {
         guard store.isSubmitting else { return nil }
         return GroomlyGlobalFeedbackProgress(
+            scope: .operation("customer.requests.publish"),
+            sourceKey: "customer.requests.publish-progress",
             title: "Publishing…",
             tone: .customer
         )

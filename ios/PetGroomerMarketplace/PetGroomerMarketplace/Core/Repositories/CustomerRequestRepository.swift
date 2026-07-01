@@ -8,6 +8,7 @@ enum CustomerRequestRepositoryError: Error, Equatable, Sendable {
     case petNotFound
     case invalidInput
     case networkUnavailable
+    case cancelled
     case unavailable
 }
 

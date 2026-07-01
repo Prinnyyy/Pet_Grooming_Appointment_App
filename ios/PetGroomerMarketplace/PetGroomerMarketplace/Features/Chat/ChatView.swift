@@ -11,6 +11,7 @@ struct ChatConversationsView: View {
         participantID: UUID,
         role: UserRole,
         repository: any ChatRepository,
+        debugRecorder: AppDebugEventRecorder? = nil,
         focusedBookingID: Binding<UUID?> = .constant(nil)
     ) {
         self.participantID = participantID
@@ -20,7 +21,8 @@ struct ChatConversationsView: View {
             initialValue: ChatStore(
                 participantID: participantID,
                 role: role,
-                repository: repository
+                repository: repository,
+                debugRecorder: debugRecorder
             )
         )
     }
@@ -35,7 +37,7 @@ struct ChatConversationsView: View {
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .background {
-            ChatStatusView(store: store)
+            ChatStatusView(store: store, role: role)
         }
         .navigationDestination(item: $focusedConversation) { conversation in
             ChatThreadView(
@@ -272,7 +274,7 @@ private struct ChatThreadView: View {
             await store.loadMessages(for: conversation)
         }
         .background {
-            ChatStatusView(store: store)
+            ChatStatusView(store: store, role: role)
         }
         .scrollDismissesKeyboard(.interactively)
         .accessibilityIdentifier("chat.thread")
@@ -614,6 +616,7 @@ private struct ChatReadOnlyBanner: View {
 
 private struct ChatStatusView: View {
     let store: ChatStore
+    let role: UserRole
 
     var body: some View {
         GroomlyGlobalFeedbackForwarder(
@@ -629,6 +632,8 @@ private struct ChatStatusView: View {
     private var errorPrompt: GroomlyGlobalFeedbackError? {
         guard let errorMessage = store.errorMessage else { return nil }
         return GroomlyGlobalFeedbackError(
+            scope: .page("\(role.rawValue).messages"),
+            sourceKey: "\(role.rawValue).messages.error",
             title: "Message Update Failed",
             message: errorMessage
         )

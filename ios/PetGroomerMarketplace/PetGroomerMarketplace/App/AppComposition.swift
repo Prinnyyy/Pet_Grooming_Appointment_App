@@ -27,12 +27,40 @@ struct AppComposition {
                     SupabaseAuthSessionRepository(client: client)
                 }
             let profileRepository = SupabaseProfileRepository(client: client)
+            #if DEBUG
+            let debugRecorder = AppDebugEventRecorder.shared
+            let customerPetRepository = DebugCustomerPetRepository(
+                base: SupabaseCustomerPetRepository(client: client),
+                debugRecorder: debugRecorder
+            )
+            let customerRequestRepository = DebugCustomerRequestRepository(
+                base: SupabaseCustomerRequestRepository(client: client),
+                debugRecorder: debugRecorder
+            )
+            let bookingRepository = DebugBookingRepository(
+                base: SupabaseBookingRepository(client: client),
+                debugRecorder: debugRecorder
+            )
+            let chatRepository = DebugChatRepository(
+                base: SupabaseChatRepository(client: client),
+                debugRecorder: debugRecorder
+            )
+            let groomerProfileRepository = DebugGroomerProfileRepository(
+                base: SupabaseGroomerProfileRepository(client: client),
+                debugRecorder: debugRecorder
+            )
+            let groomerRequestRepository = DebugGroomerRequestRepository(
+                base: SupabaseGroomerRequestRepository(client: client),
+                debugRecorder: debugRecorder
+            )
+            #else
             let customerPetRepository = SupabaseCustomerPetRepository(client: client)
             let customerRequestRepository = SupabaseCustomerRequestRepository(client: client)
             let bookingRepository = SupabaseBookingRepository(client: client)
             let chatRepository = SupabaseChatRepository(client: client)
             let groomerProfileRepository = SupabaseGroomerProfileRepository(client: client)
             let groomerRequestRepository = SupabaseGroomerRequestRepository(client: client)
+            #endif
 
             authenticationBootstrapState = .ready
             authSessionRepository = authRepository

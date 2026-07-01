@@ -16,6 +16,7 @@ struct CustomerPetsView: View {
         repository: any CustomerPetRepository,
         requestRepository: any CustomerRequestRepository,
         bookingRepository: any BookingRepository,
+        debugRecorder: AppDebugEventRecorder? = nil,
         onActiveRequestSelected: @escaping (UUID) -> Void = { _ in },
         onBookingChatSelected: @escaping (Booking) -> Void = { _ in }
     ) {
@@ -28,7 +29,8 @@ struct CustomerPetsView: View {
         _petStore = State(
             initialValue: CustomerPetsStore(
                 customerID: customerID,
-                repository: repository
+                repository: repository,
+                debugRecorder: debugRecorder
             )
         )
         _requestStore = State(
@@ -36,14 +38,16 @@ struct CustomerPetsView: View {
                 customerID: customerID,
                 petRepository: repository,
                 requestRepository: requestRepository,
-                bookingRepository: bookingRepository
+                bookingRepository: bookingRepository,
+                debugRecorder: debugRecorder
             )
         )
         _bookingStore = State(
             initialValue: BookingsStore(
                 participantID: customerID,
                 role: .customer,
-                repository: bookingRepository
+                repository: bookingRepository,
+                debugRecorder: debugRecorder
             )
         )
     }
@@ -1253,6 +1257,8 @@ private struct CustomerPetsStatusView: View {
         guard let errorMessage = store.errorMessage,
               !store.isShowingPetForm else { return nil }
         return GroomlyGlobalFeedbackError(
+            scope: .page("customer.pets"),
+            sourceKey: "customer.pets.error",
             title: "We Could Not Update Your Pets",
             message: errorMessage
         )
@@ -1261,6 +1267,8 @@ private struct CustomerPetsStatusView: View {
     private var progressPrompt: GroomlyGlobalFeedbackProgress? {
         guard store.isSaving || store.isUploading else { return nil }
         return GroomlyGlobalFeedbackProgress(
+            scope: .operation("customer.pets.save"),
+            sourceKey: "customer.pets.save-progress",
             title: store.isUploading ? "Uploading…" : "Saving…",
             tone: .customer
         )

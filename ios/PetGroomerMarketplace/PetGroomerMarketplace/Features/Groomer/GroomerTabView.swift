@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct GroomerTabView: View {
+    @Environment(\.appDebugEventRecorder) private var debugRecorder
     let groomerID: UUID?
     let profileRepository: (any GroomerProfileRepository)?
     let requestRepository: (any GroomerRequestRepository)?
@@ -51,6 +52,22 @@ struct GroomerTabView: View {
         .overlay(alignment: .bottom) {
             GroomlyGlobalFeedbackOverlay(center: feedbackCenter)
         }
+        .onAppear {
+            feedbackCenter.setDebugRecorder(debugRecorder)
+        }
+        .onChange(of: selection) { oldValue, newValue in
+            debugRecorder?.record(
+                level: .info,
+                category: .navigation,
+                source: "GroomerTabView.selection",
+                scope: "groomer.\(newValue.debugKey)",
+                message: "\(oldValue.debugKey) -> \(newValue.debugKey)",
+                metadata: [
+                    "from": "groomer.\(oldValue.debugKey)",
+                    "to": "groomer.\(newValue.debugKey)",
+                ]
+            )
+        }
         .accessibilityIdentifier("groomer.tabs")
     }
 
@@ -70,6 +87,7 @@ struct GroomerTabView: View {
                 participantID: groomerID,
                 role: .groomer,
                 repository: bookingRepository,
+                debugRecorder: debugRecorder,
                 onOpenChat: openBookingChat
             )
         } else if tab == .messages,
@@ -79,6 +97,7 @@ struct GroomerTabView: View {
                 participantID: groomerID,
                 role: .groomer,
                 repository: chatRepository,
+                debugRecorder: debugRecorder,
                 focusedBookingID: $focusedConversationBookingID
             )
         } else if tab == .account,
@@ -87,6 +106,7 @@ struct GroomerTabView: View {
             GroomerProfileManagementView(
                 groomerID: groomerID,
                 repository: profileRepository,
+                debugRecorder: debugRecorder,
                 accountContent: accountContent,
                 onSignOut: onSignOut
             )
@@ -106,6 +126,23 @@ struct GroomerTabView: View {
         focusedConversationBookingID = booking.id
         withAnimation(.easeInOut(duration: 0.22)) {
             selection = .messages
+        }
+    }
+}
+
+private extension GroomerTab {
+    var debugKey: String {
+        switch self {
+        case .requests:
+            "requests"
+        case .offers:
+            "offers"
+        case .bookings:
+            "bookings"
+        case .messages:
+            "messages"
+        case .account:
+            "account"
         }
     }
 }

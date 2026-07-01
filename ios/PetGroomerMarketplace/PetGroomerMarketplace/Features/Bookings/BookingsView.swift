@@ -11,6 +11,7 @@ struct BookingsView: View {
         participantID: UUID,
         role: UserRole,
         repository: any BookingRepository,
+        debugRecorder: AppDebugEventRecorder? = nil,
         onOpenChat: @escaping (Booking) -> Void = { _ in }
     ) {
         self.role = role
@@ -19,7 +20,8 @@ struct BookingsView: View {
             initialValue: BookingsStore(
                 participantID: participantID,
                 role: role,
-                repository: repository
+                repository: repository,
+                debugRecorder: debugRecorder
             )
         )
     }
@@ -36,7 +38,8 @@ struct BookingsView: View {
         .background {
             BookingsStatusView(
                 store: store,
-                role: role
+                role: role,
+                presentation: feedbackPresentation
             )
         }
         .refreshable {
@@ -70,6 +73,8 @@ struct BookingsView: View {
                         accent: role.loadingAccent
                     )
                     .accessibilityIdentifier("bookings.loading")
+                } else if let persistentLoadError = feedbackPresentation.persistentLoadError {
+                    persistentLoadErrorView(persistentLoadError)
                 } else if visibleBookings.isEmpty {
                     GroomlyEmptyState(
                         title: selectedScope.emptyTitle,
@@ -132,6 +137,8 @@ struct BookingsView: View {
                         accent: .groomer
                     )
                     .accessibilityIdentifier("groomer.schedule.loading")
+                } else if let persistentLoadError = feedbackPresentation.persistentLoadError {
+                    persistentLoadErrorView(persistentLoadError)
                 } else if selectedScheduleBookings.isEmpty {
                     GroomlyEmptyState(
                         title: "No Appointments",
@@ -153,7 +160,32 @@ struct BookingsView: View {
             .padding(.bottom, DesignTokens.Spacing.xl + DesignTokens.Spacing.xl)
         }
         .scrollContentBackground(.hidden)
-        .accessibilityIdentifier("groomer.schedule")
+            .accessibilityIdentifier("groomer.schedule")
+    }
+
+    private var feedbackPresentation: BookingsFeedbackPresentation {
+        BookingsFeedbackPresentation(
+            role: role,
+            bookings: store.bookings,
+            isLoading: store.isLoading,
+            errorMessage: store.errorMessage
+        )
+    }
+
+    private func persistentLoadErrorView(
+        _ error: GroomlyPersistentFeedbackError
+    ) -> some View {
+        GroomlyPersistentErrorView(error) {
+            Button {
+                Task {
+                    await store.load()
+                }
+            } label: {
+                Text(error.actionTitle ?? "Try Again")
+            }
+            .buttonStyle(GroomlyPrimaryButtonStyle(accent: role.primaryButtonAccent))
+        }
+        .accessibilityIdentifier("bookings.persistent-error")
     }
 
     private var visibleBookings: [Booking] {
@@ -195,6 +227,66 @@ struct BookingsView: View {
                     GroomerScheduleDateFormatting.dayKey(from: booking.scheduledStart) == effectiveScheduleDayKey
             }
             .sortedByScheduledStart(ascending: true)
+    }
+}
+
+struct BookingsFeedbackPresentation {
+    let role: UserRole
+    let bookings: [Booking]
+    let isLoading: Bool
+    let errorMessage: String?
+
+    init(
+        role: UserRole,
+        bookings: [Booking],
+        isLoading: Bool,
+        errorMessage: String?
+    ) {
+        self.role = role
+        self.bookings = bookings
+        self.isLoading = isLoading
+        self.errorMessage = errorMessage
+    }
+
+    var persistentLoadError: GroomlyPersistentFeedbackError? {
+        guard let errorMessage,
+              !isLoading,
+              bookings.isEmpty
+        else {
+            return nil
+        }
+
+        return GroomlyPersistentFeedbackError(
+            scope: .page(scopeID),
+            sourceKey: "\(scopeID).load",
+            title: role == .groomer ? "We Could Not Load Schedule" : "We Could Not Load Bookings",
+            message: errorMessage,
+            actionTitle: "Try Again"
+        )
+    }
+
+    var toastError: GroomlyGlobalFeedbackError? {
+        guard let errorMessage,
+              persistentLoadError == nil
+        else {
+            return nil
+        }
+
+        return GroomlyGlobalFeedbackError(
+            scope: .operation("\(scopeID).operation"),
+            sourceKey: "\(scopeID).operation-error",
+            title: "Booking Update Failed",
+            message: errorMessage
+        )
+    }
+
+    var scopeID: String {
+        switch role {
+        case .customer:
+            "customer.bookings"
+        case .groomer:
+            "groomer.bookings"
+        }
     }
 }
 
@@ -1330,6 +1422,7 @@ private struct BookingReviewFitOutcomePicker: View {
 private struct BookingsStatusView: View {
     let store: BookingsStore
     let role: UserRole
+    let presentation: BookingsFeedbackPresentation
 
     var body: some View {
         GroomlyGlobalFeedbackForwarder(
@@ -1344,16 +1437,14 @@ private struct BookingsStatusView: View {
     }
 
     private var errorPrompt: GroomlyGlobalFeedbackError? {
-        guard let errorMessage = store.errorMessage else { return nil }
-        return GroomlyGlobalFeedbackError(
-            title: "Booking Update Failed",
-            message: errorMessage
-        )
+        presentation.toastError
     }
 
     private var progressPrompt: GroomlyGlobalFeedbackProgress? {
         if store.isCancelling {
             return GroomlyGlobalFeedbackProgress(
+                scope: .operation("\(presentation.scopeID).cancel"),
+                sourceKey: "\(presentation.scopeID).cancel-progress",
                 title: "Cancelling…",
                 tone: role.feedbackTone
             )
@@ -1361,6 +1452,8 @@ private struct BookingsStatusView: View {
 
         if store.isCompleting {
             return GroomlyGlobalFeedbackProgress(
+                scope: .operation("\(presentation.scopeID).complete"),
+                sourceKey: "\(presentation.scopeID).complete-progress",
                 title: "Completing…",
                 tone: role.feedbackTone
             )
@@ -1368,6 +1461,8 @@ private struct BookingsStatusView: View {
 
         if store.isSubmittingReview {
             return GroomlyGlobalFeedbackProgress(
+                scope: .operation("\(presentation.scopeID).review"),
+                sourceKey: "\(presentation.scopeID).review-progress",
                 title: "Submitting Review…",
                 tone: role.feedbackTone
             )

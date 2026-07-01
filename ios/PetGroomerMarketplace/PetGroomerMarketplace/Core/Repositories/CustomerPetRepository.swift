@@ -3,6 +3,7 @@ import Foundation
 enum CustomerPetRepositoryError: Error, Equatable, Sendable {
     case notAllowed
     case networkUnavailable
+    case cancelled
     case unavailable
 }
 

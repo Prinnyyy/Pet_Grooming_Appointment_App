@@ -3,6 +3,7 @@ import Foundation
 enum GroomerProfileRepositoryError: Error, Equatable, Sendable {
     case notAllowed
     case networkUnavailable
+    case cancelled
     case unavailable
 }
 

@@ -1032,6 +1032,8 @@ private struct GroomerRequestsStatusView: View {
     private var errorPrompt: GroomlyGlobalFeedbackError? {
         guard let errorMessage = store.errorMessage else { return nil }
         return GroomlyGlobalFeedbackError(
+            scope: .page("groomer.requests"),
+            sourceKey: "groomer.requests.error",
             title: "Request Update Failed",
             message: errorMessage
         )
@@ -1040,6 +1042,8 @@ private struct GroomerRequestsStatusView: View {
     private var progressPrompt: GroomlyGlobalFeedbackProgress? {
         if store.isDismissing {
             return GroomlyGlobalFeedbackProgress(
+                scope: .operation("groomer.requests.dismiss"),
+                sourceKey: "groomer.requests.dismiss-progress",
                 title: "Dismissing…",
                 tone: .groomer
             )
@@ -1047,6 +1051,8 @@ private struct GroomerRequestsStatusView: View {
 
         if store.isSubmittingOffer {
             return GroomlyGlobalFeedbackProgress(
+                scope: .operation("groomer.requests.offer"),
+                sourceKey: "groomer.requests.offer-progress",
                 title: "Submitting Offer…",
                 tone: .groomer
             )
@@ -1054,6 +1060,8 @@ private struct GroomerRequestsStatusView: View {
 
         if store.isWithdrawingOffer {
             return GroomlyGlobalFeedbackProgress(
+                scope: .operation("groomer.requests.withdraw"),
+                sourceKey: "groomer.requests.withdraw-progress",
                 title: "Withdrawing Offer…",
                 tone: .groomer
             )

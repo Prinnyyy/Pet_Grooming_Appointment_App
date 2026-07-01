@@ -366,6 +366,8 @@ final class GroomerRequestsStore {
                 : "Check the match and try again."
         case .networkUnavailable:
             "Check your connection and try again."
+        case .cancelled:
+            "The request action was cancelled."
         case .unavailable:
             action.contains("offer")
                 ? "We could not \(action). Please try again."

@@ -12,6 +12,7 @@ enum GroomerRequestRepositoryError: Error, Equatable, Sendable {
     case noLongerWithdrawable
     case invalidInput
     case networkUnavailable
+    case cancelled
     case unavailable
 }
 

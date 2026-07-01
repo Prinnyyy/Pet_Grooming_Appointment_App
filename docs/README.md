@@ -10,7 +10,7 @@ Use it to avoid relying on long conversation context.
 - `01_product/`: product definition, user roles, flows, design system
 - `02_architecture/`: iOS/client architecture and module boundaries
 - `03_backend/`: Supabase schema, RLS, RPC, storage, migrations
-- `04_ios/`: Swift, SwiftUI, build, testing, accessibility rules
+- `04_ios/`: Swift, SwiftUI, build, testing, accessibility, and DEBUG diagnostic rules
 - `05_workflow/`: active lightweight single-agent workflow, context/recovery guide, tooling policy, and stop rules
 - `06_tasks/`: active task ledger, templates, handoff notes, review template
 - `07_decisions/`: ADRs and decision templates
@@ -23,6 +23,7 @@ Use it to avoid relying on long conversation context.
 - Current structure map: `10_project_structure/README.md`
 - Structure change log: `10_project_structure/REORGANIZATION_LOG.md`
 - Task folder guide: `06_tasks/README.md`
+- Debug Console and structured event logs: `04_ios/DEBUG_CONSOLE.md`
 - Reviewed SQL task drafts: `06_tasks/sql_reviews/`
 - Design screenshots: `08_design/screenshots/`
 - Frozen archive guide: `09_frozen/README.md`

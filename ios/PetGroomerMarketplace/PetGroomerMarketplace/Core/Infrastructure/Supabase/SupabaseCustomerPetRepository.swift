@@ -208,6 +208,10 @@ final class SupabaseCustomerPetRepository: CustomerPetRepository {
     }
 
     private static func map(_ error: any Error) -> CustomerPetRepositoryError {
+        if AppDebugErrorClassifier.isCancellation(error) {
+            return .cancelled
+        }
+
         if let repositoryError = error as? CustomerPetRepositoryError {
             return repositoryError
         }

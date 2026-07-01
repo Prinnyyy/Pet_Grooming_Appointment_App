@@ -4,6 +4,36 @@ This file is reverse chronological history. Only the newest entry plus `docs/00_
 
 ```text
 Date: 2026-06-30
+Task: T-124 - Debug Console usage documentation.
+Files changed: docs/04_ios/DEBUG_CONSOLE.md, docs/02_architecture/ERROR_HANDLING.md, docs/04_ios/IOS_BUILD_AND_TESTING.md, docs/01_product/SCREEN_INVENTORY.md, docs/README.md, docs/10_project_structure/README.md, docs/00_memory/FEATURE_INDEX.md, TASK_LEDGER.md, CURRENT_STATE.md, WORKLOG.md.
+Checks: Confirmed branch `codex/pet-fit-structure-cleanup`; `git diff --check` passed. No Swift build, iOS tests, simulator launch, Supabase command, remote write, commit, or push was run because this was documentation-only.
+Result: T-124 is completed. The project now has a durable Debug Console reference covering Account entry, JSONL file location, `scripts/ios-debug-events.sh` usage, event fields, safety rules, repro-reading order, cancellation handling, and future instrumentation rules.
+Risks: Documentation-only. T-123 implementation and validation remain the latest runtime behavior baseline.
+Next: Stop unless the user asks to commit/push or starts T-125.
+```
+
+```text
+Date: 2026-06-30
+Task: T-123 - Global Debug Console and structured event recorder.
+Files changed: AppDebugEvent/AppDebugEventRecorder, DebugRepositoryWrappers, AppComposition, GroomlyFeedbackPrimitives, Customer/Groomer tab navigation, Customer Requests/Pets, Bookings, Chat, Groomer Profile stores/views, DebugPanelView, ios-debug-events script, DebugEventTests, BookingFeatureTests, TASK_LEDGER.md, CURRENT_STATE.md, WORKLOG.md.
+Checks: Confirmed branch `codex/pet-fit-structure-cleanup`. RED debug tests failed on missing event recorder/sanitizer/feedback/repository APIs. GREEN full `./scripts/ios-test.sh` passed after adding DEBUG-only structured events, cancellation classification, feedback lifecycle recording, Store/repository instrumentation, and repository wrapper tests. `./scripts/ios-build.sh` passed. XcodeBuildMCP build/run launched `com.prinnyyy.PetGroomerMarketplace`, Account -> Debug Console opened, Recent Events rendered store/navigation rows, and final `./scripts/ios-debug-events.sh tail 12` read JSONL events from the booted simulator app container. `git diff --check` passed.
+Result: T-123 is completed. DEBUG builds now provide one global Debug Console plus a structured event recorder writing sanitized events to memory, `Application Support/GroomlyDebug/debug-events.jsonl`, and OSLog. Feedback prompts, key Stores, live Supabase repository calls, and tab navigation now produce source/scope/correlation-friendly events. Cancellation is classified separately and does not become a user-facing Store error.
+Risks: No Supabase schema, RLS, RPC, Storage, auth, production routing, or product workflow changed. Release uses raw live repositories, no-op debug recorder paths, and no visible Debug Console entry. No T-123 runtime blocker was observed in the final simulator build/run.
+Next: Stop unless the user asks to commit/push or starts T-124.
+```
+
+```text
+Date: 2026-06-30
+Task: T-122 - Global persistent error and scoped toast rules.
+Files changed: GroomlyFeedbackPrimitives, BookingsView, ChatView, CustomerPetsView, CustomerRequestsView, GroomerRequestsView, GroomerProfileManagementView, AppEntryModelsTests, BookingFeatureTests, TASK_LEDGER.md, CURRENT_STATE.md, WORKLOG.md.
+Checks: Confirmed branch `codex/pet-fit-structure-cleanup`. RED feedback-center tests failed on missing `GroomlyFeedbackScope`, scoped prompt clearing, and persistent error model. GREEN feedback-center tests passed after adding shared scopes/source keys, scoped clearing, and the persistent error model/view. RED Bookings presentation tests failed on missing `BookingsFeedbackPresentation`. GREEN Bookings tests passed after moving Bookings/Schedule load failures to a persistent Retry card and keeping operation failures as operation-scoped bottom toasts. `git diff --check`, `./scripts/ios-build.sh`, full `./scripts/ios-test.sh`, and XcodeBuildMCP build/run plus Home -> Bookings -> Home smoke passed.
+Result: T-122 is completed. The app still has one global bottom feedback center; it now understands `global`, `page`, `module`, and `operation` prompt scopes. Page/module scoped prompts clear when their source view disappears and are not replayed as stale toast, while operation/global prompts remain eligible. Bookings/Schedule is the first page using the new persistent error module for primary load failures with Retry.
+Risks: No Store, repository, Supabase schema, RLS, RPC, Storage, auth, routing, or navigation contract changed. Non-Bookings pages now label existing status forwarder errors with page scope but keep the same user-facing copy. XcodeBuildMCP reported existing Swift warnings in `CustomerPetsView.swift:1202` and `SupabaseAuthSessionRepository.swift:17`; they are unrelated to this feedback behavior.
+Next: Stop unless the user asks to commit/push or starts T-123.
+```
+
+```text
+Date: 2026-06-30
 Task: T-121 - Customer Home optional booking prompt suppression.
 Files changed: CustomerPetsView, CustomerRequestFeatureTests, TASK_LEDGER.md, CURRENT_STATE.md, WORKLOG.md.
 Checks: Confirmed branch `codex/pet-fit-structure-cleanup`. Added temporary OSLog diagnostics and reproduced that the reported prompt came from customer `BookingsStore.load()` while Home was preloading bookings for its optional Next Booking summary; current XcodeBuildMCP run showed the live Supabase booking query path succeeding, so the durable code fix targets Home's optional prompt forwarding rather than the Bookings repository. RED `./scripts/ios-test.sh` failed only on `homeNextBookingLoadFailureDoesNotCreateGlobalPrompt()`. GREEN `./scripts/ios-test.sh` passed after making Customer Home's Next Booking presentation return no global error prompt for optional load failures. `./scripts/ios-build.sh` and `git diff --check` passed. XcodeBuildMCP build/run plus Home -> Bookings -> Home smoke showed no bottom prompt.

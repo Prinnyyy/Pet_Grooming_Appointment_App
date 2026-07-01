@@ -9,6 +9,7 @@ final class CustomerPetsStore {
     private let customerID: UUID
     private let repository: any CustomerPetRepository
     private let photoCache: any CustomerPetPhotoCaching
+    private let debugRecorder: AppDebugEventRecorder?
 
     private(set) var pets: [CustomerPet] = []
     private(set) var photosByPetID: [UUID: [CustomerPetPhoto]] = [:]
@@ -58,14 +59,18 @@ final class CustomerPetsStore {
     init(
         customerID: UUID,
         repository: any CustomerPetRepository,
-        photoCache: any CustomerPetPhotoCaching = FileCustomerPetPhotoCache.shared
+        photoCache: any CustomerPetPhotoCaching = FileCustomerPetPhotoCache.shared,
+        debugRecorder: AppDebugEventRecorder? = nil
     ) {
         self.customerID = customerID
         self.repository = repository
         self.photoCache = photoCache
+        self.debugRecorder = debugRecorder
     }
 
     func load() async {
+        let startedAt = Date()
+        recordStoreStart("load")
         isLoading = true
         errorMessage = nil
 
@@ -84,12 +89,39 @@ final class CustomerPetsStore {
             photoDataByPhotoID.merge(downloadedPhotoData) { _, downloaded in
                 downloaded
             }
+            recordStoreSuccess(
+                "load",
+                startedAt: startedAt,
+                metadata: [
+                    "petCount": "\(pets.count)",
+                    "photoCount": "\(photosByPetID.values.reduce(0) { $0 + $1.count })",
+                    "downloadedPhotoCount": "\(downloadedPhotoData.count)",
+                ]
+            )
+        } catch CustomerPetRepositoryError.cancelled {
+            isLoading = false
+            recordStoreCancelled("load", startedAt: startedAt)
         } catch let error as CustomerPetRepositoryError {
             isLoading = false
             errorMessage = message(for: error, action: "load")
+            recordStoreFailure(
+                "load",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt
+            )
+        } catch where AppDebugErrorClassifier.isCancellation(error) {
+            isLoading = false
+            recordStoreCancelled("load", startedAt: startedAt)
         } catch {
             isLoading = false
             errorMessage = message(for: .unavailable, action: "load")
+            recordStoreFailure(
+                "load",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt
+            )
         }
     }
 
@@ -199,6 +231,8 @@ final class CustomerPetsStore {
     func savePet() async {
         guard !isSaving else { return }
 
+        let startedAt = Date()
+        recordStoreStart("savePet")
         errorMessage = nil
         noticeMessage = nil
 
@@ -207,9 +241,23 @@ final class CustomerPetsStore {
             draft = try makeDraft()
         } catch let error as CustomerPetFormError {
             errorMessage = error.message
+            recordStoreFailure(
+                "savePet",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt,
+                level: .warning
+            )
             return
         } catch {
             errorMessage = "Check the pet details and try again."
+            recordStoreFailure(
+                "savePet",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt,
+                level: .warning
+            )
             return
         }
 
@@ -247,16 +295,43 @@ final class CustomerPetsStore {
             isShowingPetForm = false
             editingPetID = nil
             resetForm()
+            recordStoreSuccess(
+                "savePet",
+                startedAt: startedAt,
+                metadata: [
+                    "action": action,
+                    "petID": savedPet.id.uuidString,
+                    "uploadedPhotoCount": "\(uploadedPhotoCount)",
+                ]
+            )
+        } catch CustomerPetRepositoryError.cancelled {
+            recordStoreCancelled("savePet", startedAt: startedAt)
         } catch let error as CustomerPetRepositoryError {
             errorMessage = message(for: error, action: "save")
+            recordStoreFailure(
+                "savePet",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt
+            )
+        } catch where AppDebugErrorClassifier.isCancellation(error) {
+            recordStoreCancelled("savePet", startedAt: startedAt)
         } catch {
             errorMessage = message(for: .unavailable, action: "save")
+            recordStoreFailure(
+                "savePet",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt
+            )
         }
     }
 
     func softDelete(_ pet: CustomerPet) async {
         guard !isSaving else { return }
 
+        let startedAt = Date()
+        recordStoreStart("softDelete", metadata: ["petID": pet.id.uuidString])
         isSaving = true
         errorMessage = nil
         noticeMessage = nil
@@ -272,10 +347,27 @@ final class CustomerPetsStore {
             photosByPetID[pet.id] = nil
             cachedAvatarDataByPetID[pet.id] = nil
             noticeMessage = "\(pet.name) was removed."
+            recordStoreSuccess("softDelete", startedAt: startedAt)
+        } catch CustomerPetRepositoryError.cancelled {
+            recordStoreCancelled("softDelete", startedAt: startedAt)
         } catch let error as CustomerPetRepositoryError {
             errorMessage = message(for: error, action: "delete")
+            recordStoreFailure(
+                "softDelete",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt
+            )
+        } catch where AppDebugErrorClassifier.isCancellation(error) {
+            recordStoreCancelled("softDelete", startedAt: startedAt)
         } catch {
             errorMessage = message(for: .unavailable, action: "delete")
+            recordStoreFailure(
+                "softDelete",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt
+            )
         }
     }
 
@@ -291,6 +383,8 @@ final class CustomerPetsStore {
             return
         }
 
+        let startedAt = Date()
+        recordStoreStart("uploadPhoto", metadata: ["petID": pet.id.uuidString])
         isUploading = true
         errorMessage = nil
         noticeMessage = nil
@@ -303,16 +397,35 @@ final class CustomerPetsStore {
                 contentType: contentType
             )
             noticeMessage = "\(pet.name)'s avatar was updated."
+            recordStoreSuccess("uploadPhoto", startedAt: startedAt)
+        } catch CustomerPetRepositoryError.cancelled {
+            recordStoreCancelled("uploadPhoto", startedAt: startedAt)
         } catch let error as CustomerPetRepositoryError {
             errorMessage = message(for: error, action: "upload")
+            recordStoreFailure(
+                "uploadPhoto",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt
+            )
+        } catch where AppDebugErrorClassifier.isCancellation(error) {
+            recordStoreCancelled("uploadPhoto", startedAt: startedAt)
         } catch {
             errorMessage = message(for: .unavailable, action: "upload")
+            recordStoreFailure(
+                "uploadPhoto",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt
+            )
         }
     }
 
     func deletePhoto(_ photo: CustomerPetPhoto) async {
         guard !isUploading else { return }
 
+        let startedAt = Date()
+        recordStoreStart("deletePhoto", metadata: ["photoID": photo.id.uuidString])
         isUploading = true
         errorMessage = nil
         noticeMessage = nil
@@ -325,10 +438,27 @@ final class CustomerPetsStore {
             photoCache.remove(photoID: photo.id)
             refreshCachedAvatarDataAfterPhotoRemoval(petID: photo.petID)
             noticeMessage = "Photo was deleted."
+            recordStoreSuccess("deletePhoto", startedAt: startedAt)
+        } catch CustomerPetRepositoryError.cancelled {
+            recordStoreCancelled("deletePhoto", startedAt: startedAt)
         } catch let error as CustomerPetRepositoryError {
             errorMessage = message(for: error, action: "delete photo")
+            recordStoreFailure(
+                "deletePhoto",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt
+            )
+        } catch where AppDebugErrorClassifier.isCancellation(error) {
+            recordStoreCancelled("deletePhoto", startedAt: startedAt)
         } catch {
             errorMessage = message(for: .unavailable, action: "delete photo")
+            recordStoreFailure(
+                "deletePhoto",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt
+            )
         }
     }
 
@@ -582,9 +712,84 @@ final class CustomerPetsStore {
             "This account cannot \(action) customer pets."
         case .networkUnavailable:
             "Check your connection and try again."
+        case .cancelled:
+            "The pet action was cancelled."
         case .unavailable:
             "We could not \(action) pet information. Please try again."
         }
+    }
+
+    private var debugScope: String {
+        "customer.pets"
+    }
+
+    private func recordStoreStart(
+        _ operation: String,
+        metadata: [String: String] = [:]
+    ) {
+        var eventMetadata = metadata
+        eventMetadata["operation"] = operation
+        eventMetadata["customerID"] = customerID.uuidString
+        debugRecorder?.record(
+            level: .info,
+            category: .store,
+            source: "CustomerPetsStore.\(operation)",
+            scope: debugScope,
+            message: "start",
+            metadata: eventMetadata
+        )
+    }
+
+    private func recordStoreSuccess(
+        _ operation: String,
+        startedAt: Date,
+        metadata: [String: String] = [:]
+    ) {
+        var eventMetadata = metadata
+        eventMetadata["operation"] = operation
+        debugRecorder?.record(
+            level: .info,
+            category: .store,
+            source: "CustomerPetsStore.\(operation)",
+            scope: debugScope,
+            message: "success",
+            durationMs: Int(Date().timeIntervalSince(startedAt) * 1_000),
+            metadata: eventMetadata
+        )
+    }
+
+    private func recordStoreFailure(
+        _ operation: String,
+        error: any Error,
+        mappedMessage: String?,
+        startedAt: Date,
+        level: AppDebugEventLevel = .error
+    ) {
+        debugRecorder?.record(
+            level: level,
+            category: .store,
+            source: "CustomerPetsStore.\(operation)",
+            scope: debugScope,
+            message: mappedMessage ?? "failure",
+            underlyingError: error,
+            durationMs: Int(Date().timeIntervalSince(startedAt) * 1_000),
+            metadata: ["operation": operation]
+        )
+    }
+
+    private func recordStoreCancelled(
+        _ operation: String,
+        startedAt: Date
+    ) {
+        debugRecorder?.record(
+            level: .info,
+            category: .store,
+            source: "CustomerPetsStore.\(operation)",
+            scope: debugScope,
+            message: "cancelled ignored",
+            durationMs: Int(Date().timeIntervalSince(startedAt) * 1_000),
+            metadata: ["operation": operation]
+        )
     }
 
     private static func displayString(_ value: Double) -> String {

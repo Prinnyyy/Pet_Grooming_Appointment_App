@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct CustomerTabView: View {
+    @Environment(\.appDebugEventRecorder) private var debugRecorder
     let customerID: UUID?
     let customerDisplayName: String?
     let petRepository: (any CustomerPetRepository)?
@@ -52,6 +53,22 @@ struct CustomerTabView: View {
         .overlay(alignment: .bottom) {
             GroomlyGlobalFeedbackOverlay(center: feedbackCenter)
         }
+        .onAppear {
+            feedbackCenter.setDebugRecorder(debugRecorder)
+        }
+        .onChange(of: selection) { oldValue, newValue in
+            debugRecorder?.record(
+                level: .info,
+                category: .navigation,
+                source: "CustomerTabView.selection",
+                scope: "customer.\(newValue.debugKey)",
+                message: "\(oldValue.debugKey) -> \(newValue.debugKey)",
+                metadata: [
+                    "from": "customer.\(oldValue.debugKey)",
+                    "to": "customer.\(newValue.debugKey)",
+                ]
+            )
+        }
         .accessibilityIdentifier("customer.tabs")
     }
 
@@ -68,6 +85,7 @@ struct CustomerTabView: View {
                 repository: petRepository,
                 requestRepository: requestRepository,
                 bookingRepository: bookingRepository,
+                debugRecorder: debugRecorder,
                 onActiveRequestSelected: { requestID in
                     focusedRequestID = requestID
                     withAnimation(.easeInOut(duration: 0.22)) {
@@ -86,6 +104,7 @@ struct CustomerTabView: View {
                 petRepository: petRepository,
                 requestRepository: requestRepository,
                 bookingRepository: bookingRepository,
+                debugRecorder: debugRecorder,
                 focusedRequestID: $focusedRequestID,
                 onBookingChatSelected: openBookingChat
             )
@@ -96,6 +115,7 @@ struct CustomerTabView: View {
                 participantID: customerID,
                 role: .customer,
                 repository: bookingRepository,
+                debugRecorder: debugRecorder,
                 onOpenChat: openBookingChat
             )
         } else if tab == .messages,
@@ -105,6 +125,7 @@ struct CustomerTabView: View {
                 participantID: customerID,
                 role: .customer,
                 repository: chatRepository,
+                debugRecorder: debugRecorder,
                 focusedBookingID: $focusedConversationBookingID
             )
         } else if tab == .account, let accountContent {
@@ -123,6 +144,23 @@ struct CustomerTabView: View {
         focusedConversationBookingID = booking.id
         withAnimation(.easeInOut(duration: 0.22)) {
             selection = .messages
+        }
+    }
+}
+
+private extension CustomerTab {
+    var debugKey: String {
+        switch self {
+        case .home:
+            "home"
+        case .requests:
+            "requests"
+        case .bookings:
+            "bookings"
+        case .messages:
+            "messages"
+        case .account:
+            "account"
         }
     }
 }

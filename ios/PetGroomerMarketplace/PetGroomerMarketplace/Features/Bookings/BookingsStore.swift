@@ -7,6 +7,7 @@ final class BookingsStore {
     private let participantID: UUID
     private let role: UserRole
     private let repository: any BookingRepository
+    private let debugRecorder: AppDebugEventRecorder?
 
     private(set) var bookings: [Booking] = []
     private(set) var isLoading = false
@@ -25,11 +26,13 @@ final class BookingsStore {
         participantID: UUID,
         role: UserRole,
         repository: any BookingRepository,
-        initialBookings: [Booking] = []
+        initialBookings: [Booking] = [],
+        debugRecorder: AppDebugEventRecorder? = nil
     ) {
         self.participantID = participantID
         self.role = role
         self.repository = repository
+        self.debugRecorder = debugRecorder
         bookings = initialBookings
     }
 
@@ -38,6 +41,8 @@ final class BookingsStore {
     }
 
     func load() async {
+        let startedAt = Date()
+        recordStoreStart("load")
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
@@ -47,10 +52,31 @@ final class BookingsStore {
                 participantID: participantID,
                 role: role
             )
+            recordStoreSuccess(
+                "load",
+                startedAt: startedAt,
+                metadata: ["bookingCount": "\(bookings.count)"]
+            )
+        } catch BookingRepositoryError.cancelled {
+            recordStoreCancelled("load", startedAt: startedAt)
         } catch let error as BookingRepositoryError {
             errorMessage = message(for: error, action: "load")
+            recordStoreFailure(
+                "load",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt
+            )
+        } catch where AppDebugErrorClassifier.isCancellation(error) {
+            recordStoreCancelled("load", startedAt: startedAt)
         } catch {
             errorMessage = message(for: .unavailable, action: "load")
+            recordStoreFailure(
+                "load",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt
+            )
         }
     }
 
@@ -62,6 +88,8 @@ final class BookingsStore {
         }
 
         isCancelling = true
+        let startedAt = Date()
+        recordStoreStart("cancel")
         errorMessage = nil
         noticeMessage = nil
         defer { isCancelling = false }
@@ -79,10 +107,27 @@ final class BookingsStore {
             } else {
                 noticeMessage = "Booking cancelled. Refresh bookings to see the latest state. The original request and offers remain closed."
             }
+            recordStoreSuccess("cancel", startedAt: startedAt)
+        } catch BookingRepositoryError.cancelled {
+            recordStoreCancelled("cancel", startedAt: startedAt)
         } catch let error as BookingRepositoryError {
             errorMessage = message(for: error, action: "cancel")
+            recordStoreFailure(
+                "cancel",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt
+            )
+        } catch where AppDebugErrorClassifier.isCancellation(error) {
+            recordStoreCancelled("cancel", startedAt: startedAt)
         } catch {
             errorMessage = message(for: .unavailable, action: "cancel")
+            recordStoreFailure(
+                "cancel",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt
+            )
         }
     }
 
@@ -94,6 +139,8 @@ final class BookingsStore {
         }
 
         isCompleting = true
+        let startedAt = Date()
+        recordStoreStart("complete")
         errorMessage = nil
         noticeMessage = nil
         defer { isCompleting = false }
@@ -114,10 +161,27 @@ final class BookingsStore {
             } else {
                 noticeMessage = "Booking completed. Refresh bookings to see the latest state."
             }
+            recordStoreSuccess("complete", startedAt: startedAt)
+        } catch BookingRepositoryError.cancelled {
+            recordStoreCancelled("complete", startedAt: startedAt)
         } catch let error as BookingRepositoryError {
             errorMessage = message(for: error, action: "complete")
+            recordStoreFailure(
+                "complete",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt
+            )
+        } catch where AppDebugErrorClassifier.isCancellation(error) {
+            recordStoreCancelled("complete", startedAt: startedAt)
         } catch {
             errorMessage = message(for: .unavailable, action: "complete")
+            recordStoreFailure(
+                "complete",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt
+            )
         }
     }
 
@@ -146,6 +210,8 @@ final class BookingsStore {
         }
 
         isSubmittingReview = true
+        let startedAt = Date()
+        recordStoreStart("createReview")
         errorMessage = nil
         noticeMessage = nil
         defer { isSubmittingReview = false }
@@ -168,10 +234,27 @@ final class BookingsStore {
             } else {
                 noticeMessage = "Review submitted. Refresh bookings to see the latest state."
             }
+            recordStoreSuccess("createReview", startedAt: startedAt)
+        } catch BookingRepositoryError.cancelled {
+            recordStoreCancelled("createReview", startedAt: startedAt)
         } catch let error as BookingRepositoryError {
             errorMessage = message(for: error, action: "review")
+            recordStoreFailure(
+                "createReview",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt
+            )
+        } catch where AppDebugErrorClassifier.isCancellation(error) {
+            recordStoreCancelled("createReview", startedAt: startedAt)
         } catch {
             errorMessage = message(for: .unavailable, action: "review")
+            recordStoreFailure(
+                "createReview",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt
+            )
         }
     }
 
@@ -218,8 +301,80 @@ final class BookingsStore {
             "Check the booking and try again."
         case .networkUnavailable:
             "Check your connection and try again."
+        case .cancelled:
+            "The booking action was cancelled."
         case .unavailable:
             "We could not \(action) bookings. Please try again."
         }
+    }
+
+    private var debugScope: String {
+        "\(role.appDebugScopePrefix).bookings"
+    }
+
+    private func recordStoreStart(_ operation: String) {
+        debugRecorder?.record(
+            level: .info,
+            category: .store,
+            source: "BookingsStore.\(operation)",
+            scope: debugScope,
+            message: "start",
+            metadata: [
+                "operation": operation,
+                "participantID": participantID.uuidString,
+                "role": role.appDebugName,
+            ]
+        )
+    }
+
+    private func recordStoreSuccess(
+        _ operation: String,
+        startedAt: Date,
+        metadata: [String: String] = [:]
+    ) {
+        var eventMetadata = metadata
+        eventMetadata["operation"] = operation
+        debugRecorder?.record(
+            level: .info,
+            category: .store,
+            source: "BookingsStore.\(operation)",
+            scope: debugScope,
+            message: "success",
+            durationMs: Int(Date().timeIntervalSince(startedAt) * 1_000),
+            metadata: eventMetadata
+        )
+    }
+
+    private func recordStoreFailure(
+        _ operation: String,
+        error: any Error,
+        mappedMessage: String?,
+        startedAt: Date
+    ) {
+        debugRecorder?.record(
+            level: .error,
+            category: .store,
+            source: "BookingsStore.\(operation)",
+            scope: debugScope,
+            message: mappedMessage ?? "failure",
+            underlyingError: error,
+            durationMs: Int(Date().timeIntervalSince(startedAt) * 1_000),
+            metadata: ["operation": operation]
+        )
+    }
+
+    private func recordStoreCancelled(
+        _ operation: String,
+        startedAt: Date
+    ) {
+        debugRecorder?.record(
+            level: .info,
+            category: .store,
+            source: "BookingsStore.\(operation)",
+            scope: debugScope,
+            message: "cancelled ignored",
+            durationMs: Int(Date().timeIntervalSince(startedAt) * 1_000),
+            metadata: ["operation": operation]
+        )
     }
 }
