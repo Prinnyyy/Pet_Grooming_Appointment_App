@@ -34,4 +34,4 @@ Use this for internal Codex review before reporting completion.
 - [ ] `CURRENT_STATE.md` updated only if project state changed.
 - [ ] `FEATURE_INDEX.md` updated if needed.
 - [ ] `WORKLOG.md` appended only after meaningful implementation.
-- [ ] `DECISION_LOG.md` updated if needed.
+- [ ] `docs/07_decisions/DECISION_LOG.md` updated if needed.

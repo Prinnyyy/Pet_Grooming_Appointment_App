@@ -17,7 +17,7 @@ Run remote execute only after explicit authorization:
 ```bash
 export SUPABASE_URL="https://lqmasbuqzvcvtawonjlb.supabase.co"
 export SUPABASE_PUBLISHABLE_KEY="sb_publishable_..."
-export SUPABASE_SERVICE_ROLE_KEY="..."
+export SUPABASE_SERVICE_ROLE_KEY="eyJ..."
 export TESTOPS_REMOTE_WRITE_APPROVED=1
 
 node scripts/testops.mjs run backend \
@@ -26,6 +26,8 @@ node scripts/testops.mjs run backend \
   --execute \
   --cleanup
 ```
+
+The current TestOps CLI expects `SUPABASE_SERVICE_ROLE_KEY` to be a JWT-shaped legacy service-role key because it uses that value as a Bearer token for service verification and cleanup. Do not substitute `SUPABASE_SECRET_KEY=sb_secret_...`, `supabase_api_key`, or a publishable key. Modern Supabase secret keys are not JWTs and need different request headers before they can replace this variable.
 
 | Case | Customer | Groomer | Purpose |
 |---|---|---|---|

@@ -4,6 +4,8 @@ Status: imported to Supabase remote project `lqmasbuqzvcvtawonjlb` on 2026-07-01
 
 Purpose: seed a realistic customer population for pet-profile, coat-type, request publishing, request matching, booking, and chat QA. Each customer has exactly two pets: one dog and one cat.
 
+Machine-readable source: `scripts/seed-t129-customers.mjs` and TestOps parse the `| GTC-` rows in this file. Do not trim, reformat, move, or archive the profile table without updating those parsers and tests. This file is excluded from ordinary `rg` searches by `.rgignore`; read it directly or use `rg --no-ignore` only when seed-resource content is required.
+
 ## Address Source and Safety
 
 - All profile addresses are real, public institution addresses in Los Angeles County or Orange County.
@@ -34,6 +36,7 @@ Purpose: seed a realistic customer population for pet-profile, coat-type, reques
   `node scripts/seed-t129-customers.mjs`
 - Remote write mode requires service-role credentials in environment variables:
   `SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... node scripts/seed-t129-customers.mjs --execute`
+- `SUPABASE_SERVICE_ROLE_KEY` must be a JWT-shaped legacy service-role key for the current seed script. Do not substitute `SUPABASE_SECRET_KEY=sb_secret_...`, `supabase_api_key`, or a publishable key; those are not JWT Bearer tokens.
 - The script is idempotent for these emails. It updates existing matching Auth users, replaces owned pet rows for the seed customers, and refuses to overwrite a public profile whose role is not `customer`.
 - Cleanup should use the explicit `groomly.customerNNN@example.com` email prefix and/or Auth `app_metadata.groomly_seed = T-129`; do not delete unrelated users by broad domain alone.
 - The GTC-019 Great Dane fixture uses `101 lb` because the deployed app contract limits `pets.weight_lbs` to 5...101.

@@ -1,0 +1,10 @@
+# Keep default searches focused on active, human-sized project context.
+docs/09_frozen/**
+artifacts/**
+
+# Machine-readable seed resources are parsed by scripts, but should not appear in broad context searches.
+docs/02_architecture/test_resources/T-129_*_TEST_PROFILES.md
+
+# Large design exports. Prefer docs/08_design/UI_IMPLEMENTATION_NOTES.md and screenshots first.
+docs/08_design/Groomly.html
+docs/08_design/Groomly/**

@@ -3,4 +3,4 @@ set -euo pipefail
 
 echo "== TestOps Unit Tests =="
 
-node --test tests/testops/testops-core.test.mjs
+node --test tests/testops/*.test.mjs

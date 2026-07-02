@@ -4,7 +4,7 @@ Use this directory for the active task ledger, templates, and task-specific arti
 
 ## Primary Files
 
-- `TASK_LEDGER.md`: the single active task-status and task-numbering record.
+- `TASK_LEDGER.md`: the active/recent task-status and task-numbering record.
 - `TASK_INTAKE_TEMPLATE.md`: template for defining a new task.
 - `LIGHTWEIGHT_TASK_PROMPT_TEMPLATE.md`: template for lightweight task prompts.
 - `SCREENSHOT_UI_REWORK_TASK_TEMPLATE.md`: template for screenshot-driven Groomly UI work.
@@ -16,6 +16,7 @@ Use this directory for the active task ledger, templates, and task-specific arti
 Historical detailed task files for `T-001` through `T-088` and completed `WORKFLOW-*` policy tasks now live under `../09_frozen/task_records_2026-06-26/`.
 
 Use `TASK_LEDGER.md` as the merged active record for task families, status, checks, and notes.
+Older completed ledger rows are archived under `../09_frozen/task_ledgers/` when context hygiene thresholds are exceeded.
 
 ## Task Artifacts
 
@@ -28,4 +29,5 @@ Use `TASK_LEDGER.md` as the merged active record for task families, status, chec
 - Current branch baseline is `codex/pet-fit-structure-cleanup` unless the user explicitly names another branch.
 - Start new bugfix and iteration records from the next available task ID in `TASK_LEDGER.md`; do not add unrelated follow-up notes to archived task files.
 - Do not create individual `T-###_*.md` task files by default. Use `TASK_LEDGER.md` plus `docs/00_memory/WORKLOG.md` unless the user explicitly requests a standalone task spec.
+- Keep `TASK_LEDGER.md` compact. If it grows beyond the context hygiene threshold, keep active/blocked/recent rows here and archive older completed rows under `../09_frozen/task_ledgers/`.
 - Put non-Markdown task attachments in a named subfolder such as `sql_reviews/` so the main listing remains readable.

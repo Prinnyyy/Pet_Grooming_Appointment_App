@@ -16,7 +16,11 @@ Archived files may contain old TODOs, old paths, old branch/task references, or 
 - `superpowers_2026-06-26/`: historical Superpowers plans/specs moved out of the active docs tree.
 - `workflow_docs_2026-06-26/`: superseded context, recovery, tool, MCP, Superpowers, and Codex workflow docs consolidated into active workflow entrypoints.
 - `workspace_initialization_2026-06-24/`: original workspace initialization prompt.
+- `current_state_snapshots/`: pre-trim snapshots of active `CURRENT_STATE.md` before context-footprint cleanup.
+- `worklogs/`: verbatim archived worklog entries moved out of active `docs/00_memory/WORKLOG.md`.
+- `task_ledgers/`: archived completed task-ledger rows moved out of active `docs/06_tasks/TASK_LEDGER.md`.
+- `backend_contracts/`: archived long-form `docs/03_backend/SUPABASE_CONTRACT.md` snapshots moved out of the active fast-path backend contract.
 
 ## Rule
 
-Do not search this directory by default. Read it only when the current task explicitly needs historical context.
+Do not search this directory by default. `.rgignore` excludes it from ordinary `rg` searches. Read it only when the current task explicitly needs historical context, using a targeted direct read or `rg --no-ignore`.

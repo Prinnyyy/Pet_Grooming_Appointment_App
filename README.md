@@ -31,10 +31,12 @@ No active next Groomly UI, pet-fit, availability, backend, or screenshot task is
 - Current state: `docs/00_memory/CURRENT_STATE.md`
 - Project structure index: `docs/10_project_structure/README.md`
 - Task ledger: `docs/06_tasks/TASK_LEDGER.md`
+- Durable decisions: `docs/07_decisions/DECISION_LOG.md`
 - Task folder guide: `docs/06_tasks/README.md`
 - Workflow rules: `docs/05_workflow/SINGLE_AGENT_WORKFLOW.md`
 - Context/recovery tiers: `docs/05_workflow/CONTEXT_AND_RECOVERY.md`
 - Tooling policy: `docs/05_workflow/TOOLING_POLICY.md`
+- Search ignore rules: `.rgignore`
 - Design screenshots: `docs/08_design/screenshots/`
 - Frozen archives: `docs/09_frozen/README.md`
 - Frozen task records: `docs/09_frozen/task_records_2026-06-26/`

@@ -55,7 +55,7 @@ export const SMOKE5_CASES = [
 
 export function parseCustomerProfiles(filePath = CUSTOMER_RESOURCE) {
   const markdown = fs.readFileSync(filePath, "utf8");
-  return markdown
+  const profiles = markdown
     .split(/\r?\n/)
     .filter((line) => line.startsWith("| GTC-"))
     .map((line) => {
@@ -70,11 +70,13 @@ export function parseCustomerProfiles(filePath = CUSTOMER_RESOURCE) {
         address: parseAddress(addressValue),
       };
     });
+  validateSeedProfiles(profiles, "customer");
+  return profiles;
 }
 
 export function parseGroomerProfiles(filePath = GROOMER_RESOURCE) {
   const markdown = fs.readFileSync(filePath, "utf8");
-  return markdown
+  const profiles = markdown
     .split(/\r?\n/)
     .filter((line) => line.startsWith("| GTG-"))
     .map((line) => {
@@ -92,6 +94,8 @@ export function parseGroomerProfiles(filePath = GROOMER_RESOURCE) {
         address: parseAddress(addressValue),
       };
     });
+  validateSeedProfiles(profiles, "groomer");
+  return profiles;
 }
 
 export function parseOptions(args) {
@@ -161,7 +165,7 @@ export function makeBackendPlans({
       throw new Error(`Unsupported matrix: ${matrix}`);
     }
 
-    const baseRunID = runID ?? makeRunID();
+    const baseRunID = validateRunID(runID ?? makeRunID());
     return SMOKE5_CASES.map((entry) =>
       makeBackendPlan({
         runID: `${baseRunID}-${entry.caseID}`,
@@ -188,7 +192,7 @@ export function makeBackendPlans({
 
   return [
     makeBackendPlan({
-      runID: runID ?? makeRunID(),
+      runID: validateRunID(runID ?? makeRunID()),
       scenarioID,
       caseID: caseEntry.caseID,
       purpose: caseEntry.purpose,
@@ -209,6 +213,7 @@ export function makeBackendPlan({
   preferredWeekdays = [1, 2, 3, 4, 5],
 }) {
   assertSupportedScenario(scenarioID);
+  validateRunID(runID);
   const slot = nextWeekdaySlot(preferredWeekdays);
   return {
     runID,
@@ -287,7 +292,7 @@ export async function runMarketplaceLifecycle(api, plan) {
     throw new Error("create_grooming_request did not return request_id.");
   }
   if (matchCount < 1) {
-    throw new Error(`Request ${requestID} produced zero matches.`);
+    throw new Error(`Request ${shortRef(requestID)} produced zero matches.`);
   }
 
   const groomerSession = await timed(phases, "groomer.signIn", () =>
@@ -304,7 +309,7 @@ export async function runMarketplaceLifecycle(api, plan) {
   );
   if (matches.length === 0) {
     throw new Error(
-      `Selected groomer ${plan.groomer.seedID} did not receive request ${requestID}.`
+      `Selected groomer ${plan.groomer.seedID} did not receive request ${shortRef(requestID)}.`
     );
   }
 
@@ -456,6 +461,7 @@ export async function cleanupRun(api, runID) {
 }
 
 export function buildCleanupPlan(runID) {
+  validateRunID(runID);
   return {
     runID,
     tag: `TESTOPS:${runID}`,
@@ -497,6 +503,12 @@ export class SupabaseREST {
     this.url = url.replace(/\/$/, "");
     this.publishableKey = publishableKey;
     this.serviceRoleKey = serviceRoleKey;
+    if (serviceRoleKey && !isLegacyJWTKey(serviceRoleKey)) {
+      throw new Error(
+        `${SERVICE_ROLE_KEY_ENV} must be a JWT-shaped legacy service-role key; ` +
+          "modern project secret or publishable keys are not supported here."
+      );
+    }
   }
 
   async signIn(email, password) {
@@ -549,6 +561,12 @@ export class SupabaseREST {
   requireServiceRole() {
     if (!this.serviceRoleKey) {
       throw new Error(`${SERVICE_ROLE_KEY_ENV} is required.`);
+    }
+    if (!isLegacyJWTKey(this.serviceRoleKey)) {
+      throw new Error(
+        `${SERVICE_ROLE_KEY_ENV} must be a JWT-shaped legacy service-role key; ` +
+          "modern project secret or publishable keys are not supported here."
+      );
     }
     return this.serviceRoleKey;
   }
@@ -679,6 +697,10 @@ export function shortRef(value) {
 
 export function safeErrorMessage(error) {
   return String(error?.message ?? error)
+    .replace(/https:\/\/[^\s]+\/storage\/v1\/object\/sign\/[^\s]+/gi, "[signed-url]")
+    .replace(/\bsb_secret_[A-Za-z0-9._+=/-]+/g, "[supabase-secret]")
+    .replace(/\bsb_publishable_[A-Za-z0-9._+=/-]+/g, "[supabase-publishable]")
+    .replace(/\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g, "[jwt]")
     .replace(/[A-Z0-9._%+-]+@([A-Z0-9.-]+\.[A-Z]{2,})/gi, "[email-domain:$1]")
     .replace(/(password|token|authorization|apikey|api_key)(=|:|\s+)[^\s&]+/gi, "$1$2[redacted]")
     .replace(/\b([0-9a-f]{8})-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi, "$1");
@@ -739,13 +761,66 @@ function assertSupportedScenario(scenarioID) {
   }
 }
 
+function validateSeedProfiles(profiles, kind) {
+  if (profiles.length === 0) {
+    throw new Error(`No ${kind} seed profiles found.`);
+  }
+
+  const seen = new Set();
+  for (const profile of profiles) {
+    if (seen.has(profile.seedID)) {
+      throw new Error(`Duplicate ${kind} seed id ${profile.seedID}.`);
+    }
+    seen.add(profile.seedID);
+
+    const invalidFields = [];
+    if (!/^[A-Z]{3}-\d{3}$/.test(profile.seedID)) {
+      invalidFields.push("seedID");
+    }
+    if (!isEmail(profile.email)) {
+      invalidFields.push("email");
+    }
+    if (!profile.password) {
+      invalidFields.push("password");
+    }
+    if (!profile.displayName) {
+      invalidFields.push("displayName");
+    }
+    if (kind === "groomer" && !profile.businessName) {
+      invalidFields.push("businessName");
+    }
+    if (!profile.address?.street || !profile.address?.city || !profile.address?.zip) {
+      invalidFields.push("address");
+    }
+
+    if (invalidFields.length > 0) {
+      throw new Error(`Invalid ${kind} seed ${profile.seedID}: ${invalidFields.join(", ")}.`);
+    }
+  }
+}
+
+function isEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+function validateRunID(runID) {
+  if (!/^TESTOPS-[A-Z0-9-]{1,96}$/.test(String(runID ?? ""))) {
+    throw new Error("Invalid TestOps run id. Use TESTOPS- plus uppercase letters, numbers, and hyphens only.");
+  }
+  return runID;
+}
+
+function isLegacyJWTKey(value) {
+  return /^eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(value);
+}
+
 function cellsFromRow(line, expectedCount) {
   const cells = line
     .split("|")
     .slice(1, -1)
     .map((cell) => cell.trim());
   if (cells.length !== expectedCount) {
-    throw new Error(`Expected ${expectedCount} columns in row: ${line}`);
+    throw new Error(`Expected ${expectedCount} columns in seed row.`);
   }
   return cells;
 }

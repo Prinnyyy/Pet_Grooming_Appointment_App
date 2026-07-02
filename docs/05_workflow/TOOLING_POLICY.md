@@ -42,6 +42,21 @@ Do not alter signing, capabilities, entitlements, schemes, project structure, or
 
 Supabase CLI is the default interface for Supabase work. Use the installed `supabase` binary against the authorized linked project. Do not use `npx supabase`, local containers, direct database tools, or MCP migration writes unless a task explicitly documents that fallback.
 
+Current local CLI readiness, verified on 2026-07-01:
+
+- `supabase projects list` succeeds and shows `Pet Groomer Marketplace` / `lqmasbuqzvcvtawonjlb` as the linked active project.
+- `supabase migration list --linked` succeeds and shows local/remote migrations aligned through `20260701050012`.
+- `supabase db push --linked --dry-run` succeeds with `Remote database is up to date.`
+- `SUPABASE_DB_PASSWORD` is not needed for normal local CLI work while the saved linked database credential remains valid. It is needed only for relinking, CI/no-keychain environments, or a real database-password auth failure.
+
+Supabase credential taxonomy:
+
+- `SUPABASE_ACCESS_TOKEN` / Dashboard PAT (`sbp_...`) is for `supabase login` and Management API access only. It is not a project API key and must not be committed.
+- `SUPABASE_DB_PASSWORD` is the remote Postgres password used by `supabase link` or CI-style linked DB operations when the saved credential is unavailable.
+- `SUPABASE_URL` plus `SUPABASE_PUBLISHABLE_KEY` are safe client configuration for the iOS app and authenticated user flows. The publishable key is public but still must be managed through ignored local config.
+- `SUPABASE_SECRET_KEY` / `sb_secret_...` is a server-side project secret key. It is not a CLI login token, not a Postgres password, and not a JWT service-role key. Do not place it in `Authorization: Bearer ...` and do not assign it to `SUPABASE_SERVICE_ROLE_KEY` for scripts that expect a JWT.
+- `SUPABASE_SERVICE_ROLE_KEY` means a legacy JWT-shaped service-role key only when a script sends the value as `Authorization: Bearer ...`. If the only available elevated key is `sb_secret_...`, update the script to support secret-key `apikey` semantics first, or use an explicitly authorized MCP/SQL fallback for read-only verification/tagged cleanup.
+
 Linked Supabase CLI commands are single-flight operations. Do not run linked `supabase migration list`, `supabase db push`, `supabase db query`, or `supabase db advisors` in `multi_tool_use.parallel`, background jobs, separate terminals, or any other concurrent form. The CLI initializes a temporary `cli_login_postgres` role; concurrent linked commands can invalidate each other's temporary password and produce transient SASL/auth failures.
 
 Migration workflow:
@@ -61,7 +76,7 @@ Migration workflow:
 
 Never reset databases, weaken RLS, repair migration history, expose service-role keys, or make remote schema/Storage writes without explicit task authorization. `supabase migration repair --linked` is permitted only as a documented recovery step after `migration list` proves drift and each mismatched version is mapped to a known local canonical migration.
 
-The ignored local `supabase_api_key` file may be read only after explicit user authorization for a service-role operation, remote seed, remote TestOps execution, or cleanup. Read it into a process environment variable or ephemeral shell variable only; do not print it, write it into tracked files, pass it through verbose logs, or embed it in iOS app configuration. Prefer a single command invocation such as `SUPABASE_SERVICE_ROLE_KEY="$(<supabase_api_key)" ...` over exporting it globally.
+Ignored local credential files include `supabase_api_key`, `supabase_environment_variables`, and `ios/PetGroomerMarketplace/Config/Supabase.local.xcconfig`. They may be inspected only after explicit user authorization for the specific operation. Read secrets into process-local environment variables only; do not print them, write them into tracked files, pass them through verbose logs, or embed secret keys in iOS app configuration. Current local `supabase_api_key` content has been identified as `sb_secret_...`; do not use it as a CLI PAT, DB password, or JWT service-role key.
 
 If a linked CLI command fails with `cli_login_postgres` or SASL/auth errors, do not retry in a loop and do not run `migration repair`. Stop parallel Supabase work, wait briefly, then run exactly one sequential `supabase migration list --linked`. If that succeeds and shows aligned Local/Remote versions, treat the earlier failure as transient CLI login-role contention. If it fails twice sequentially, capture the first error, check `supabase --version`, and switch to the documented MCP/SQL fallback only for read-only verification or explicitly tagged cleanup.
 

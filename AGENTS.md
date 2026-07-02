@@ -16,6 +16,7 @@ Use `docs/05_workflow/CONTEXT_AND_RECOVERY.md` for read-budget and recovery deci
 - One validation attempt by mode.
 - Completion gate is adaptive: match task closeout, validation, and simulator launch to the task mode and risk.
 - Update durable memory only when project state changed.
+- After any task that updates durable memory, run the context hygiene check in `docs/05_workflow/CONTEXT_AND_RECOVERY.md` and archive old active memory/task rows immediately if thresholds are exceeded.
 - Write a closeout/checkpoint before `/compact`.
 - Stop when the requested task is complete.
 
@@ -58,7 +59,7 @@ Use the access tiers in `docs/05_workflow/CONTEXT_AND_RECOVERY.md` when deciding
 - Current branch baseline is `codex/pet-fit-structure-cleanup`; do not continue implementation, documentation, commits, or pushes from another branch unless the user explicitly names that branch.
 - Use the next available task ID from `docs/06_tasks/TASK_LEDGER.md` for new bugfix and iteration work; do not reopen archived task files to record unrelated follow-up work.
 - Do not start adjacent features or broad refactors.
-- Prefer targeted searches and narrow file reads.
+- Prefer targeted searches and narrow file reads. Default `rg` searches use `.rgignore`; use `rg --no-ignore` only when the task explicitly needs frozen archives, machine-readable seed profiles, generated artifacts, or full design exports.
 - Keep SwiftUI views thin and business logic outside views.
 - Keep backend access behind repository/service boundaries.
 - Do not invent Supabase schema facts or perform destructive database operations.
@@ -80,6 +81,7 @@ Use the access tiers in `docs/05_workflow/CONTEXT_AND_RECOVERY.md` when deciding
 
 - Briefly review the current diff.
 - Record closeout in `docs/06_tasks/TASK_LEDGER.md` and `docs/00_memory/WORKLOG.md` when the task changes durable workflow/product state or app behavior. Create a standalone task markdown file only when explicitly requested or when a long task spec is necessary.
+- Keep `CURRENT_STATE.md`, `WORKLOG.md`, and `TASK_LEDGER.md` compact after closeout. If the context hygiene thresholds are exceeded, archive old content in the same task before final reporting.
 - Run mode-appropriate validation and report what was run or intentionally skipped.
 - Launch the app in the iOS Simulator only when the task affects visible app behavior or the user asks for inspection; if launch is required and fails, record the blocker and report it.
 - Update durable memory only when project state meaningfully changed.

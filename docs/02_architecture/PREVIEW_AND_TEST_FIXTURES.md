@@ -6,9 +6,11 @@ The application has no runtime demo mode. Preview and test fixtures exist only t
 
 ## Test Resource Documents
 
+- Test resource directory index: `docs/02_architecture/test_resources/README.md`.
 - `docs/02_architecture/test_resources/T-129_GROOMER_TEST_PROFILES.md` contains 50 local groomer seed profiles for review before any remote Supabase write; T-130 restricts all profile addresses to real public institution addresses in Los Angeles County or Orange County.
 - `docs/02_architecture/test_resources/T-129_CUSTOMER_TEST_PROFILES.md` contains 50 local customer seed profiles, each with one dog and one cat, for review before any remote Supabase write; T-130 applies the same LA/OC public-address rule.
-- These resources are documentation-only. They are not production fixtures, runtime fallback data, quick-login accounts, or evidence that remote users exist.
+- These resources are machine-readable Markdown tables parsed by seed scripts and TestOps. They are excluded from ordinary `rg` searches by `.rgignore`; read them directly or with `rg --no-ignore` only when the task needs seed-resource content.
+- These resources are not production fixtures, runtime fallback data, quick-login accounts, or evidence that remote users exist unless a completed seed task and current remote verification say so.
 - TestOps usage, rules, scenarios, and run templates live under `docs/04_ios/testops/README.md`; use that index before running lifecycle automation with the seeded account pool.
 
 ## Allowed

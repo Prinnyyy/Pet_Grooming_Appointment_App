@@ -2,6 +2,33 @@
 
 This log records repository structure changes so future agents do not lose track of moved paths.
 
+## 2026-07-02 - Markdown Fast-Path and Search Hygiene
+
+Scope:
+
+- Reduce duplicate active decision-log ownership.
+- Keep backend contract details traceable without loading the long contract by default.
+- Make broad text search skip frozen/heavy paths unless a task explicitly opts in.
+- Preserve T-129 seed profile tables as machine-readable script inputs rather than trimming them in place.
+
+Changed paths:
+
+| Path | Change | Reason |
+|---|---|---|
+| `docs/07_decisions/DECISION_LOG.md` | Promoted as the single complete durable decision log. | Avoid two active decision-log sources. |
+| `docs/00_memory/DECISION_LOG.md` | Replaced with a compatibility pointer to `../07_decisions/DECISION_LOG.md`. | Preserve old links without maintaining duplicate decision entries. |
+| `.rgignore` | Added default ripgrep ignores for `docs/09_frozen/**`, `artifacts/**`, T-129 seed profile tables, and Groomly HTML exports. | Keep ordinary searches focused on active context. |
+| `docs/09_frozen/backend_contracts/SUPABASE_CONTRACT_2026-07-01_PRE_FAST_PATH_TRIM.md` | Added archived long-form backend contract snapshot. | Preserve pre-trim backend detail verbatim. |
+| `docs/03_backend/SUPABASE_CONTRACT.md` | Rewritten as a fast-path contract index. | Route detailed backend facts to focused policy docs, migrations, or archive on demand. |
+| `docs/02_architecture/test_resources/README.md` | Added test-resource directory index. | Explain that T-129 profile docs are parser inputs and default-search ignored. |
+
+Validation:
+
+- Active Markdown link check passed.
+- `git diff --check` passed.
+- T-129 seed parser dry-runs passed.
+- Reference checks confirmed active docs point to canonical decision and archive paths.
+
 ## 2026-06-26 - Markdown Information Architecture Optimization
 
 Scope:
@@ -106,7 +133,7 @@ Paths intentionally not moved:
 - `CLAUDE.md` and `CLAUDE_reference/`: existing owner notes explicitly keep this reference area at the root.
 - `.codex/config.toml`: active Codex project configuration.
 - `scripts/`: stable command entrypoints used by workflow docs and task closeouts.
-- `supabase_api_key`: ignored local secret; not read or moved.
+- `supabase_api_key`: ignored local secret; not moved. Later Supabase workflow docs allow inspecting ignored credential files only with explicit user authorization for the current operation.
 
 Validation:
 

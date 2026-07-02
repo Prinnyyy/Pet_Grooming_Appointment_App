@@ -6,6 +6,8 @@ The repository-local `supabase/migrations/` mirror exists for approved Supabase 
 
 T-128 repaired historical remote/local migration-version drift in `supabase_migrations.schema_migrations`: remote-only versions `20260622212214`, `20260624022107`, `20260625073709`, and `20260625080102` were reverted from migration history, and the local canonical versions `20260622142020`, `20260624021122`, `20260625073116`, and `20260625075813` were marked applied. `supabase migration list --linked` now shows every local version matched by remote, and `supabase db push --linked --dry-run` returns `Remote database is up to date.`
 
+T-139 reconfirmed the local Supabase CLI credential state: `supabase projects list`, `supabase migration list --linked`, and `supabase db push --linked --dry-run` all succeed sequentially. The current machine does not need `SUPABASE_DB_PASSWORD` for normal linked CLI work because the saved linked database credential is already valid.
+
 ## Principles
 
 - Make migrations small, ordered by the roadmap feature slice, and append-only after application.
@@ -39,6 +41,7 @@ For each exposed table or function, the owning task must review:
 - Run `supabase migration list --linked` before remote migration work. The Local and Remote columns must match through the previous deployed migration before applying new work.
 - Run `supabase db push --linked --dry-run` before remote DDL. The expected clean-state output is `Remote database is up to date.`; after adding a new approved migration, the dry-run should list only that new migration.
 - Confirm user approval for remote DDL before running `supabase db push --linked`.
+- Do not source `supabase_environment_variables` for CLI login. `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`, and `SUPABASE_JWKS_URL` are not substitutes for the CLI PAT or saved linked database credential.
 
 ## After Creating a Migration
 
@@ -56,7 +59,9 @@ For each exposed table or function, the owning task must review:
 - `supabase migration repair --linked` is a recovery tool, not a normal deployment step. Use it only when `supabase migration list --linked` proves migration history drift, after mapping each mismatched version to a known local canonical migration and confirming the schema is already represented locally.
 - Run linked Supabase CLI commands sequentially. Concurrent linked commands can race while initializing `cli_login_postgres`, invalidate another command's temporary login, and produce transient SASL/auth failures.
 - If a linked command reports `cli_login_postgres` or SASL/auth failure, first stop all concurrent Supabase CLI work and run one sequential `supabase migration list --linked`. If Local and Remote still align, record the earlier error as transient CLI login-role contention rather than migration drift. Run `supabase migration repair --linked` only when sequential `migration list` proves a real history mismatch.
-- The ignored local `supabase_api_key` file is allowed only for explicitly authorized service-role operations, remote seed/test execution, and tagged cleanup. Load it into an environment variable for the command that needs it; never print it, store it in tracked docs/code, embed it in app configuration, or include it in artifacts.
+- The ignored local `supabase_api_key` and `supabase_environment_variables` files are allowed only for explicitly authorized credential inspection or remote seed/test/cleanup operations. Never print their values, store them in tracked docs/code, embed secret values in app configuration, or include them in artifacts.
+- `sb_secret_...` and `sb_publishable_...` keys are not JWTs. Do not pass either as `Authorization: Bearer ...`, do not use either for `supabase login`, and do not put `sb_secret_...` into `SUPABASE_SERVICE_ROLE_KEY` for scripts that expect a legacy JWT-shaped service-role key.
+- `SUPABASE_ACCESS_TOKEN=sbp_...` is the CLI login token; `SUPABASE_DB_PASSWORD` is only for relinking or environments where the saved database password is unavailable.
 - MCP SQL may be used for read-only verification and explicitly tagged cleanup when CLI auth/env setup is the blocker. It is not a normal migration path and must not be used for exploratory DDL.
 - Do not use exploratory DDL through `supabase db query --linked`; prepare one reviewed migration and apply it once.
 - Never expose secret/service-role credentials in migrations, seed data, app configuration, logs, or documentation.

@@ -25,7 +25,7 @@ Startup reads:
 3. targeted `CURRENT_STATE.md` sections when current state or risks matter
 4. `TASK_LEDGER.md` only when choosing or updating task status
 
-Use `CONTEXT_AND_RECOVERY.md` for access tiers. Avoid broad searches. Do not read or search `docs/09_frozen/**` unless the task explicitly needs historical workflow state, recovery, or comparison.
+Use `CONTEXT_AND_RECOVERY.md` for access tiers. Avoid broad searches. Default `rg` searches honor `.rgignore`; use `rg --no-ignore` only when the task explicitly needs ignored archives, machine-readable seed profiles, generated artifacts, or full design exports.
 
 ## Flow
 
@@ -36,9 +36,9 @@ Use `CONTEXT_AND_RECOVERY.md` for access tiers. Avoid broad searches. Do not rea
 5. Implement only that scope.
 6. Run the mode-appropriate validation once, if validation is required.
 7. Review the current diff briefly when files changed.
-8. Record task closeout only when the gate below requires it.
-9. Launch the app in the iOS Simulator only when the gate below requires it.
-10. Update durable memory only if project state changed.
+8. Record task closeout and update durable memory only when the gate below requires it.
+9. Run context hygiene if durable memory or the task ledger changed.
+10. Launch the app in the iOS Simulator only when the gate below requires it.
 11. Write a closeout/checkpoint before manual compaction.
 12. Stop.
 
@@ -76,7 +76,9 @@ Simulator launch is required only for:
 
 Simulator launch is skipped by default for docs-only, workflow-only, read-only, command-output, and backend-only tasks. If launch is required, prefer XcodeBuildMCP simulator tools when available; otherwise use local Xcode/simulator tooling. Record the simulator/device used and whether the app reached a visible root screen.
 
-Durable memory updates are limited to meaningful project state changes. Do not update `CURRENT_STATE.md`, `WORKLOG.md`, `TASK_LEDGER.md`, `FEATURE_INDEX.md`, or `DECISION_LOG.md` for tiny docs-only edits unless future runs need that fact.
+Durable memory updates are limited to meaningful project state changes. Do not update `CURRENT_STATE.md`, `WORKLOG.md`, `TASK_LEDGER.md`, `FEATURE_INDEX.md`, or `docs/07_decisions/DECISION_LOG.md` for tiny docs-only edits unless future runs need that fact.
+
+After any task that updates durable memory or `TASK_LEDGER.md`, run the context hygiene check in `docs/05_workflow/CONTEXT_AND_RECOVERY.md`. If active memory files exceed thresholds, archive old content in the same task before final reporting. This replaces periodic manual cleanup.
 
 ## Screenshot-Driven Groomly UI Rework
 
@@ -113,7 +115,7 @@ Update only files whose facts changed:
 - `docs/00_memory/WORKLOG.md`
 - `docs/06_tasks/TASK_LEDGER.md`
 - `docs/00_memory/FEATURE_INDEX.md`
-- `docs/00_memory/DECISION_LOG.md`
+- `docs/07_decisions/DECISION_LOG.md`
 
 Do not update memory for tiny documentation-only changes unless needed.
 

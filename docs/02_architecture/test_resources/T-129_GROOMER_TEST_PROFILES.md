@@ -4,6 +4,8 @@ Status: imported to Supabase remote project `lqmasbuqzvcvtawonjlb` on 2026-07-01
 
 Purpose: seed a realistic groomer population for request matching, availability, service filtering, fit-signal, and account/profile QA. This file is intentionally documentation-only so the dataset can be reviewed before any remote write.
 
+Machine-readable source: `scripts/seed-t129-groomers.mjs` and TestOps parse the `| GTG-` rows in this file. Do not trim, reformat, move, or archive the profile table without updating those parsers and tests. This file is excluded from ordinary `rg` searches by `.rgignore`; read it directly or use `rg --no-ignore` only when seed-resource content is required.
+
 ## Address Source and Safety
 
 - All profile addresses are real, public institution addresses in Los Angeles County or Orange County.
@@ -42,6 +44,7 @@ Purpose: seed a realistic groomer population for request matching, availability,
   `node scripts/seed-t129-groomers.mjs`
 - Remote write mode requires service-role credentials in environment variables:
   `SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... node scripts/seed-t129-groomers.mjs --execute`
+- `SUPABASE_SERVICE_ROLE_KEY` must be a JWT-shaped legacy service-role key for the current seed script. Do not substitute `SUPABASE_SECRET_KEY=sb_secret_...`, `supabase_api_key`, or a publishable key; those are not JWT Bearer tokens.
 - The script is idempotent for these emails. It updates existing matching Auth users, replaces service/availability/preference/fit-claim rows for the seed groomers, and refuses to overwrite a public profile whose role is not `groomer`.
 - Cleanup should use the explicit `groomly.groomerNNN@example.com` email prefix and/or Auth `app_metadata.groomly_seed = T-129`; do not delete unrelated users by broad domain alone.
 

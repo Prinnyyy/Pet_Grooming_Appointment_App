@@ -7,9 +7,10 @@ This directory holds compact project memory for current work and recovery. It is
 | File | Owns | Does Not Own |
 |---|---|---|
 | `CURRENT_STATE.md` | Current branch, latest task, active blockers, latest validation state, current high-level product/iOS/backend facts, live risks, next task guidance | Detailed task history, per-feature implementation timelines, long migration notes |
-| `WORKLOG.md` | Reverse-chronological closeout history and checkpoints | Current instructions from old `Next:` lines, task numbering authority |
+| `WORKLOG.md` | Recent reverse-chronological closeout history and checkpoints | Full historical worklog archives, current instructions from old `Next:` lines, task numbering authority |
 | `FEATURE_INDEX.md` | Feature-to-doc/code lookup and feature status summaries | Current branch/build status, detailed task closeouts |
 | `PROJECT_MEMORY.md` | Highest-level project identity and permanent constraints | Current task status, detailed feature or backend facts |
+| `DECISION_LOG.md` | Compatibility pointer to the canonical decision log | Decision entries, ADR ownership |
 
 Durable product and architecture decisions live in `docs/07_decisions/DECISION_LOG.md`.
 
@@ -19,7 +20,9 @@ Durable product and architecture decisions live in `docs/07_decisions/DECISION_L
 - Append to `WORKLOG.md` only for meaningful implementation, workflow, product, or recovery checkpoints.
 - Update `FEATURE_INDEX.md` only when a feature is added, removed, relocated, or materially changes ownership.
 - Update `PROJECT_MEMORY.md` only when a permanent high-level project fact changes.
+- Update `docs/07_decisions/DECISION_LOG.md`, not `DECISION_LOG.md` in this directory, when a durable architecture/product decision changes.
 - Keep history out of `CURRENT_STATE.md`; link to `WORKLOG.md`, `TASK_LEDGER.md`, archived task records, or domain docs instead.
+- After any task that updates durable memory, run the context hygiene check in `docs/05_workflow/CONTEXT_AND_RECOVERY.md` and roll older history into `docs/09_frozen/` if the active files exceed their limits.
 
 ## Conflict Rules
 
@@ -31,4 +34,4 @@ Durable product and architecture decisions live in `docs/07_decisions/DECISION_L
 
 ## Size Rule
 
-Keep `CURRENT_STATE.md` short enough to scan during startup. When it starts reading like a changelog, move the old detail into `WORKLOG.md`, `FEATURE_INDEX.md`, or the relevant domain document.
+Keep `CURRENT_STATE.md`, `WORKLOG.md`, and `TASK_LEDGER.md` short enough to scan during startup. When they start reading like changelogs, move old detail into the appropriate `docs/09_frozen/` archive and keep only current/recent facts active.

@@ -61,3 +61,5 @@ Keep this concise. It is an index, not a full project dump.
 - Backend contract: `docs/03_backend/SUPABASE_CONTRACT.md`
 - Workflow: `docs/05_workflow/SINGLE_AGENT_WORKFLOW.md`
 - Task ledger: `docs/06_tasks/TASK_LEDGER.md`
+- Durable decisions: `docs/07_decisions/DECISION_LOG.md`
+- Default search ignores: `.rgignore`
