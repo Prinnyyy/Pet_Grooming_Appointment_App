@@ -1,125 +1,94 @@
 # Single-Agent Workflow
 
-## Purpose
-
-Default Codex workflow for this repository. It favors limited context, small reversible changes, and one verifiable task per run.
-The workflow is intentionally adaptive: small tasks stay small, while app, backend, and screenshot work keep stronger guardrails.
+Default workflow for this repository. It keeps each run bounded, recoverable, and proportional to risk.
 
 ## Core Rules
 
-- One primary task only.
-- No adjacent features, broad refactors, commits, pushes, or remote writes unless explicitly requested.
-- No subagents or archived agent-team protocol.
-- Targeted context reads/searches only.
-- One validation attempt by mode.
-- Adaptive completion gate: task closeout, validation, and simulator launch are required only when the task mode and risk call for them.
+- Complete one primary task per run.
+- Preserve user work and inspect `git status --short` before edits.
+- Use targeted context only; access tiers live in `CONTEXT_AND_RECOVERY.md`.
+- Do not start adjacent features, broad refactors, commits, pushes, seeds, cleanup, or remote writes unless explicitly requested.
+- No subagents or archived agent-team orchestration unless the user explicitly re-enables them.
+- Write a short plan before non-trivial edits.
+- Use one validation attempt by mode unless the user approves more.
 - Stop after the requested task is complete.
 
-## Context Budget
+## Task Flow
 
-Startup reads:
-
-1. `AGENTS.md`
-2. active task file, if provided
-3. targeted `CURRENT_STATE.md` sections when current state or risks matter
-4. `TASK_LEDGER.md` only when choosing or updating task status
-
-Avoid broad searches. Do not read or search `docs/05_workflow/archive_subagent_workflow/` or `docs/05_workflow/agent_reports/` unless the task is explicitly about historical workflow state.
-
-## Flow
-
-1. Identify one primary task.
+1. Identify the single primary task.
 2. Classify it as Micro, Quick, Standard, or Deep.
-3. Read only the context needed for that task.
-4. Write a short plan before non-trivial edits.
-5. Implement only that scope.
-6. Run the mode-appropriate validation once, if validation is required.
-7. Review the current diff briefly when files changed.
-8. Record task closeout only when the gate below requires it.
-9. Launch the app in the iOS Simulator only when the gate below requires it.
-10. Update durable memory only if project state changed.
-11. Write a closeout/checkpoint before manual compaction.
+3. Read only the L0/L1 context needed to plan the work.
+4. Expand to L2/L3/L4 context only under the access rules in `CONTEXT_AND_RECOVERY.md`.
+5. Implement only the approved scope.
+6. Run mode-appropriate validation.
+7. Review the current diff.
+8. Update task closeout and durable memory only when the completion gate requires it.
+9. Run context hygiene if durable memory or task ledgers changed.
+10. Launch the simulator only when required.
+11. Write a checkpoint before manual compaction.
 12. Stop.
-
-## Completion Gate
-
-Completion is proportional, not one-size-fits-all.
-
-Always do these before the final response:
-
-- Preserve existing user work.
-- Keep the response scoped to the requested task.
-- If files changed, briefly review the diff and report validation that ran or why it was skipped.
-
-Task closeout is required when any of these apply:
-
-- The user provided or requested a task file.
-- The task is Standard or Deep.
-- The task changes Swift, app behavior, visible UI, backend contracts, Supabase, auth, navigation, or persistence.
-- The task changes durable workflow/product state that future runs must remember.
-
-Task closeout is optional, and usually skipped, for Micro tasks and small docs-only Quick tasks.
-
-Validation rules:
-
-1. **No file edits:** no validation required unless the user requested a command/check.
-2. **Docs/workflow-only edits:** run `git diff --check` by default.
-3. **Swift, Xcode project, simulator, app behavior, or UI edits:** run `git diff --check` and one `./scripts/ios-build.sh` attempt unless the active task defines a stricter command.
-4. **Deep tasks:** state the validation plan before implementation and run one planned attempt unless the user approves more.
-
-Simulator launch is required only for:
-
-- User-facing app/UI behavior changes.
-- Screenshot-driven UI rework tasks.
-- Tasks where the user explicitly asks to inspect the app.
-
-Simulator launch is skipped by default for docs-only, workflow-only, read-only, command-output, and backend-only tasks. If launch is required, prefer XcodeBuildMCP simulator tools when available; otherwise use local Xcode/simulator tooling. Record the simulator/device used and whether the app reached a visible root screen.
-
-Durable memory updates are limited to meaningful project state changes. Do not update `CURRENT_STATE.md`, `WORKLOG.md`, `TASK_LEDGER.md`, `FEATURE_INDEX.md`, or `DECISION_LOG.md` for tiny docs-only edits unless future runs need that fact.
-
-## Screenshot-Driven Groomly UI Rework
-
-For future Groomly UI rework, one uploaded screenshot is one primary task unless the user explicitly says otherwise.
-
-Required flow:
-
-1. Create or use a task file from `docs/06_tasks/SCREENSHOT_UI_REWORK_TASK_TEMPLATE.md`.
-2. Analyze the screenshot before editing SwiftUI.
-3. Ignore any long oval Customer/Groomer toggle located above the visible app screen frame; treat it as an external prototype/control annotation, not an app module.
-4. Map every visible in-app module to an existing SwiftUI surface, Store, repository/model path, or mark it as a new feature.
-5. Classify each module as visual-only, existing-feature rewire, reusable UI primitive, or new feature.
-6. Implement only visual-only, existing-feature rewire, or small pure DesignSystem primitive work that is inside the approved screenshot task.
-7. Stop before implementing new features unless the user explicitly approves a separate feature scope.
-
-Existing MVP behavior must use existing Store, repository, model, and backend contracts. Do not add duplicate backend paths, direct Supabase access from SwiftUI, or schema/RLS/RPC/Storage changes during a screenshot UI task.
 
 ## Modes
 
 | Mode | Use For | Validation |
 |---|---|---|
-| Micro | Read-only answers, status checks, small command output, tiny docs wording | None by default; `git diff --check` if files changed and useful |
-| Quick | Docs, workflow changes, small scripts, one-file fixes, simple UI text/style | `git diff --check` when files changed; no simulator unless app-facing |
-| Standard | Normal iOS feature, bug, or visible UI work | `git diff --check` plus one `./scripts/ios-build.sh`; simulator launch for user-facing app/UI changes |
-| Deep | Supabase, auth, RLS, migrations, storage, major navigation, high-risk work | Explicit validation plan; one planned attempt unless approved otherwise |
+| Micro | Read-only answers, status checks, command output, tiny docs wording | None by default |
+| Quick | Docs, workflow changes, small scripts, one-file fixes | `git diff --check` when files changed |
+| Standard | Normal iOS feature, bug, visible UI, user-facing app behavior | `git diff --check` plus one `./scripts/ios-build.sh`; simulator launch for visible UI/app behavior |
+| Deep | Supabase, auth, RLS, migrations, storage, major navigation, destructive-risk work | State validation plan before edits; make one planned attempt |
 
-If a required validation or required launch fails, report the first real error and stop unless the user approves a follow-up task. A skipped simulator launch for non-app work is not a failure.
+## Completion Gate
 
-## Durable Memory
+Always:
 
-Update only files whose facts changed:
+- Keep the final response scoped to the user request.
+- Report validation run or why it was intentionally skipped.
+- Report if iOS build, simulator, tests, Supabase, commit, or push were intentionally not run.
 
-- `docs/00_memory/CURRENT_STATE.md`
-- `docs/00_memory/WORKLOG.md`
-- `docs/06_tasks/TASK_LEDGER.md`
-- `docs/00_memory/FEATURE_INDEX.md`
-- `docs/07_decisions/DECISION_LOG.md`
+Task closeout in `TASK_LEDGER.md` and `WORKLOG.md` is required when:
 
-Do not update memory for tiny documentation-only changes unless needed.
+- The user provided or requested a task file.
+- The task is Standard or Deep.
+- The task changes Swift, app behavior, visible UI, backend contracts, Supabase, auth, navigation, persistence, workflow rules, or durable state future runs need.
+
+Task closeout is usually skipped for Micro tasks and tiny docs-only Quick tasks that future runs do not need.
+
+Durable memory updates are limited to changed facts:
+
+- `docs/00_memory/CURRENT_STATE.md`: current branch, latest completed task, validation baseline, active risks, next-task facts.
+- `docs/00_memory/WORKLOG.md`: recent closeout/checkpoint evidence.
+- `docs/06_tasks/TASK_LEDGER.md`: task numbering and status.
+- `docs/00_memory/FEATURE_INDEX.md`: feature ownership or routing changes.
+- `docs/07_decisions/DECISION_LOG.md`: durable architecture/product decisions.
+
+After durable memory or ledger changes, run context hygiene and archive old rows/content in the same task if thresholds are exceeded.
+
+## Screenshot UI Tasks
+
+One uploaded screenshot is one primary task unless the user explicitly says otherwise.
+
+Before SwiftUI edits:
+
+- Use `docs/06_tasks/SCREENSHOT_UI_REWORK_TASK_TEMPLATE.md` as the checklist.
+- Map every visible in-app module to an existing SwiftUI surface, Store, repository, model, or mark it as a new feature.
+- Ignore any long oval Customer/Groomer toggle above the visible app frame.
+
+Allowed inside a screenshot task:
+
+- Visual-only work.
+- Existing-feature rewiring to current Store/repository/model paths.
+- Small reusable DesignSystem primitive work within the screenshot scope.
+
+Stop before:
+
+- New persistence, schema, RLS, RPC, Storage, navigation, role capability, or deferred-feature work.
+- Direct Supabase access from SwiftUI.
+- Copying HTML/CSS/React into SwiftUI.
 
 ## Compaction
 
-Manual compaction belongs at task boundaries. Capture a closeout or debug checkpoint first, then compact when context is high or the next task is unrelated. Detailed thresholds live in `docs/05_workflow/CONTEXT_MANAGEMENT.md`.
+Compaction belongs at task boundaries. Before `/compact`, write a checkpoint with task ID/status, files changed, validation, key decisions, risks, and next context.
 
 ## Reporting
 
-Keep final reports concise. Use `LIGHTWEIGHT_FINAL_REPORT_TEMPLATE.md` only when a durable report is useful or explicitly requested.
+Keep final reports concise. Use the final response rules in `AGENTS.md`; do not create a separate report file unless the user explicitly asks for one.

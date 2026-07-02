@@ -1,20 +1,118 @@
 import Foundation
 import Observation
 
+enum CustomerRequestWizardStep: Int, CaseIterable, Identifiable {
+    case pet
+    case service
+    case time
+    case details
+    case review
+
+    var id: Self { self }
+
+    var title: String {
+        switch self {
+        case .pet:
+            "Pet"
+        case .service:
+            "Service"
+        case .time:
+            "Time & Location"
+        case .details:
+            "Details"
+        case .review:
+            "Review"
+        }
+    }
+
+    var headline: String {
+        switch self {
+        case .pet:
+            "Who Needs Grooming?"
+        case .service:
+            "What Service Do You Need?"
+        case .time:
+            "When and Where Works Best?"
+        case .details:
+            "Add Helpful Details"
+        case .review:
+            "Review Your Request"
+        }
+    }
+
+    var subtitle: String? {
+        switch self {
+        case .pet:
+            "Choose the pet this request is for."
+        case .service:
+            nil
+        case .time:
+            "Choose a preferred time and the location details groomers need before making an offer."
+        case .details:
+            nil
+        case .review:
+            nil
+        }
+    }
+
+    var progress: Double {
+        Double(rawValue + 1) / Double(Self.allCases.count)
+    }
+
+    var previous: Self? {
+        Self(rawValue: rawValue - 1)
+    }
+
+    var next: Self? {
+        Self(rawValue: rawValue + 1)
+    }
+}
+
+enum CustomerRequestWizardValidationField: Hashable {
+    case pet
+    case service
+    case timeWindow
+    case notes
+    case streetAddress
+    case city
+    case state
+    case zipCode
+}
+
+struct CustomerRequestWizardStepValidation: Equatable {
+    static let requiredFieldsMessage =
+        "Complete the highlighted required fields before continuing."
+
+    let fields: Set<CustomerRequestWizardValidationField>
+    let message: String?
+
+    var isValid: Bool {
+        fields.isEmpty
+    }
+
+    static var valid: Self {
+        Self(fields: [], message: nil)
+    }
+}
+
 @MainActor
 @Observable
 final class CustomerRequestsStore {
     static let minimumPreferredStartLeadTime: TimeInterval = 5 * 60
+    static let maximumRequestPhotoBytes = 10 * 1024 * 1024
 
-    private let customerID: UUID
+    let customerID: UUID
     private let petRepository: any CustomerPetRepository
     private let requestRepository: any CustomerRequestRepository
     private let bookingRepository: any BookingRepository
     private let handoffAcknowledgementDefaults: UserDefaults
     private let handoffAcknowledgementStorageKey: String
+    private let debugRecorder: AppDebugEventRecorder?
 
     private(set) var pets: [CustomerPet] = []
     private(set) var requests: [CustomerGroomingRequest] = []
+    private(set) var requestPhotosByRequestID: [UUID: [GroomingRequestPhoto]] = [:]
+    private(set) var requestPhotoDataByID: [UUID: Data] = [:]
     private(set) var bookings: [Booking] = []
     private(set) var offerReviewsByRequestID: [UUID: [CustomerOfferReview]] = [:]
     private(set) var offerErrorsByRequestID: [UUID: String] = [:]
@@ -31,13 +129,17 @@ final class CustomerRequestsStore {
     var isShowingWizard = false
 
     var selectedPetID: UUID?
-    var serviceType = ""
+    var serviceType: GroomingServiceType = .fullGroom
     var serviceNotes = ""
     var preferredStart: Date
     var preferredEnd: Date
+    var locationMode: GroomingLocationMode = .groomerComesToCustomer
+    var streetAddress = ""
     var city = ""
-    var state = ""
+    var stateCode: USStateCode?
     var zipCode = ""
+    var travelRadiusMiles = 15
+    private(set) var pendingRequestPhotos: [PendingGroomingRequestPhoto] = []
 
     var isBusy: Bool {
         isLoading || isSubmitting || !acceptingOfferIDs.isEmpty || !cancellingRequestIDs.isEmpty
@@ -46,6 +148,31 @@ final class CustomerRequestsStore {
     var selectedPet: CustomerPet? {
         guard let selectedPetID else { return nil }
         return pets.first { $0.id == selectedPetID }
+    }
+
+    func requestFitInputSignals(referenceDate: Date = Date()) -> [PetFitSignal] {
+        guard let selectedPet else { return [] }
+
+        let snapshot = GroomingRequestPetSnapshot(
+            id: selectedPet.id,
+            name: selectedPet.name,
+            species: selectedPet.species,
+            breed: selectedPet.breed,
+            coatType: selectedPet.coatType,
+            size: selectedPet.size,
+            weightLbs: selectedPet.weightLbs,
+            birthday: selectedPet.birthday,
+            temperament: selectedPet.temperament,
+            medicalNotes: selectedPet.medicalNotes,
+            groomingNotes: selectedPet.groomingNotes,
+            snapshotAt: nil
+        )
+
+        return PetFitSignal.signals(
+            for: snapshot,
+            serviceType: serviceType,
+            referenceDate: referenceDate
+        )
     }
 
     var activeRequests: [CustomerGroomingRequest] {
@@ -86,13 +213,15 @@ final class CustomerRequestsStore {
         requestRepository: any CustomerRequestRepository,
         bookingRepository: any BookingRepository,
         handoffAcknowledgementDefaults: UserDefaults = .standard,
-        now: Date = Date()
+        now: Date = Date(),
+        debugRecorder: AppDebugEventRecorder? = nil
     ) {
         self.customerID = customerID
         self.petRepository = petRepository
         self.requestRepository = requestRepository
         self.bookingRepository = bookingRepository
         self.handoffAcknowledgementDefaults = handoffAcknowledgementDefaults
+        self.debugRecorder = debugRecorder
         handoffAcknowledgementStorageKey = Self.handoffAcknowledgementStorageKey(
             customerID: customerID
         )
@@ -107,6 +236,8 @@ final class CustomerRequestsStore {
     }
 
     func load() async {
+        let startedAt = Date()
+        recordStoreStart("load")
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
@@ -114,22 +245,68 @@ final class CustomerRequestsStore {
         do {
             pets = try await petRepository.pets(customerID: customerID)
             requests = try await requestRepository.requests(customerID: customerID)
-            bookings = try await bookingRepository.bookings(
-                participantID: customerID,
-                role: .customer
-            )
+            try await loadRequestPhotos(for: requests)
+            do {
+                bookings = try await bookingRepository.bookings(
+                    participantID: customerID,
+                    role: .customer
+                )
+            } catch BookingRepositoryError.cancelled {
+                bookings = []
+                recordStoreCancelled("load.bookingHandoff", startedAt: startedAt)
+            } catch {
+                bookings = []
+                recordStoreFailure(
+                    "load.bookingHandoff",
+                    error: error,
+                    mappedMessage: nil,
+                    startedAt: startedAt,
+                    level: .warning
+                )
+            }
 
             if selectedPetID == nil {
                 selectedPetID = pets.first?.id
             }
+            recordStoreSuccess(
+                "load",
+                startedAt: startedAt,
+                metadata: [
+                    "petCount": "\(pets.count)",
+                    "requestCount": "\(requests.count)",
+                    "bookingCount": "\(bookings.count)",
+                ]
+            )
+        } catch CustomerPetRepositoryError.cancelled {
+            recordStoreCancelled("load", startedAt: startedAt)
+        } catch CustomerRequestRepositoryError.cancelled {
+            recordStoreCancelled("load", startedAt: startedAt)
         } catch let error as CustomerPetRepositoryError {
             errorMessage = message(for: error, action: "load")
+            recordStoreFailure(
+                "load",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt
+            )
         } catch let error as CustomerRequestRepositoryError {
             errorMessage = message(for: error, action: "load")
-        } catch let error as BookingRepositoryError {
-            errorMessage = message(for: error, action: "load bookings")
+            recordStoreFailure(
+                "load",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt
+            )
+        } catch where AppDebugErrorClassifier.isCancellation(error) {
+            recordStoreCancelled("load", startedAt: startedAt)
         } catch {
             errorMessage = message(for: CustomerRequestRepositoryError.unavailable, action: "load")
+            recordStoreFailure(
+                "load",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt
+            )
         }
     }
 
@@ -149,6 +326,21 @@ final class CustomerRequestsStore {
 
     func offers(for request: CustomerGroomingRequest) -> [CustomerOfferReview] {
         offerReviewsByRequestID[request.id] ?? []
+    }
+
+    func requestPhotos(for request: CustomerGroomingRequest) -> [GroomingRequestPhoto] {
+        requestPhotosByRequestID[request.id, default: []]
+            .sorted {
+                if $0.sortOrder == $1.sortOrder {
+                    $0.fileName < $1.fileName
+                } else {
+                    $0.sortOrder < $1.sortOrder
+                }
+            }
+    }
+
+    func requestPhotoData(for photo: GroomingRequestPhoto) -> Data? {
+        requestPhotoDataByID[photo.id]
     }
 
     func request(withID id: UUID) -> CustomerGroomingRequest? {
@@ -179,6 +371,24 @@ final class CustomerRequestsStore {
         noticeMessage = nil
     }
 
+    func addPendingPhoto(
+        data: Data,
+        contentType: GroomingRequestPhotoContentType
+    ) {
+        guard data.count <= Self.maximumRequestPhotoBytes else {
+            errorMessage = "Choose a request photo smaller than 10 MB."
+            return
+        }
+
+        pendingRequestPhotos.append(
+            PendingGroomingRequestPhoto(
+                data: data,
+                contentType: contentType
+            )
+        )
+        errorMessage = nil
+    }
+
     func acknowledgeBookingHandoff(for handoff: CustomerRequestBookingHandoff) {
         let insertion = acknowledgedBookingHandoffRequestIDs.insert(handoff.request.id)
         guard insertion.inserted else { return }
@@ -190,13 +400,16 @@ final class CustomerRequestsStore {
             participantID: customerID,
             role: .customer,
             repository: bookingRepository,
-            initialBookings: [booking]
+            initialBookings: [booking],
+            debugRecorder: debugRecorder
         )
     }
 
     func loadOffers(for request: CustomerGroomingRequest) async {
         guard !loadingOfferRequestIDs.contains(request.id) else { return }
 
+        let startedAt = Date()
+        recordStoreStart("loadOffers", metadata: ["requestID": request.id.uuidString])
         loadingOfferRequestIDs.insert(request.id)
         offerErrorsByRequestID[request.id] = nil
         defer {
@@ -210,12 +423,38 @@ final class CustomerRequestsStore {
                     requestID: request.id
                 )
             )
+            recordStoreSuccess(
+                "loadOffers",
+                startedAt: startedAt,
+                metadata: [
+                    "requestID": request.id.uuidString,
+                    "offerCount": "\(offerReviewsByRequestID[request.id, default: []].count)",
+                ]
+            )
+        } catch CustomerRequestRepositoryError.cancelled {
+            recordStoreCancelled("loadOffers", startedAt: startedAt)
         } catch let error as CustomerRequestRepositoryError {
             offerErrorsByRequestID[request.id] = message(for: error, action: "load offers")
+            recordStoreFailure(
+                "loadOffers",
+                error: error,
+                mappedMessage: offerErrorsByRequestID[request.id],
+                startedAt: startedAt,
+                metadata: ["requestID": request.id.uuidString]
+            )
+        } catch where AppDebugErrorClassifier.isCancellation(error) {
+            recordStoreCancelled("loadOffers", startedAt: startedAt)
         } catch {
             offerErrorsByRequestID[request.id] = message(
                 for: CustomerRequestRepositoryError.unavailable,
                 action: "load offers"
+            )
+            recordStoreFailure(
+                "loadOffers",
+                error: error,
+                mappedMessage: offerErrorsByRequestID[request.id],
+                startedAt: startedAt,
+                metadata: ["requestID": request.id.uuidString]
             )
         }
     }
@@ -223,6 +462,8 @@ final class CustomerRequestsStore {
     func publish() async {
         guard !isSubmitting else { return }
 
+        let startedAt = Date()
+        recordStoreStart("publish")
         errorMessage = nil
         noticeMessage = nil
         publishResult = nil
@@ -232,9 +473,23 @@ final class CustomerRequestsStore {
             draft = try makeDraft()
         } catch let error as CustomerRequestFormError {
             errorMessage = error.message
+            recordStoreFailure(
+                "publish",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt,
+                level: .warning
+            )
             return
         } catch {
             errorMessage = "Check the request details and try again."
+            recordStoreFailure(
+                "publish",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt,
+                level: .warning
+            )
             return
         }
 
@@ -246,7 +501,17 @@ final class CustomerRequestsStore {
                 customerID: customerID,
                 draft: draft
             )
+            for photo in pendingRequestPhotos {
+                _ = try await requestRepository.uploadRequestPhoto(
+                    customerID: customerID,
+                    requestID: result.requestID,
+                    data: photo.data,
+                    contentType: photo.contentType,
+                    caption: nil
+                )
+            }
             requests = try await requestRepository.requests(customerID: customerID)
+            try await loadRequestPhotos(for: requests)
             publishResult = result
             noticeMessage = result.matchCount == 1
                 ? "Request published. 1 groomer matched."
@@ -254,10 +519,34 @@ final class CustomerRequestsStore {
             isShowingWizard = false
             resetForm()
             selectedPetID = pets.first?.id
+            recordStoreSuccess(
+                "publish",
+                startedAt: startedAt,
+                metadata: [
+                    "matchCount": "\(result.matchCount)",
+                    "pendingPhotoCount": "\(pendingRequestPhotos.count)",
+                ]
+            )
+        } catch CustomerRequestRepositoryError.cancelled {
+            recordStoreCancelled("publish", startedAt: startedAt)
         } catch let error as CustomerRequestRepositoryError {
             errorMessage = message(for: error, action: "publish")
+            recordStoreFailure(
+                "publish",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt
+            )
+        } catch where AppDebugErrorClassifier.isCancellation(error) {
+            recordStoreCancelled("publish", startedAt: startedAt)
         } catch {
             errorMessage = message(for: CustomerRequestRepositoryError.unavailable, action: "publish")
+            recordStoreFailure(
+                "publish",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt
+            )
         }
     }
 
@@ -275,6 +564,14 @@ final class CustomerRequestsStore {
             return
         }
 
+        let startedAt = Date()
+        recordStoreStart(
+            "accept",
+            metadata: [
+                "requestID": request.id.uuidString,
+                "offerID": offerReview.offer.id.uuidString,
+            ]
+        )
         acceptingOfferIDs.insert(offerReview.offer.id)
         errorMessage = nil
         noticeMessage = nil
@@ -294,12 +591,29 @@ final class CustomerRequestsStore {
             noticeMessage = didApplyLocalState
                 ? "Offer accepted. Booking confirmed."
                 : "Offer accepted. Booking confirmed. Refresh this request if the offer state does not update."
+            recordStoreSuccess("accept", startedAt: startedAt)
+        } catch BookingRepositoryError.cancelled {
+            recordStoreCancelled("accept", startedAt: startedAt)
         } catch let error as BookingRepositoryError {
             errorMessage = message(for: error, action: "accept offer")
+            recordStoreFailure(
+                "accept",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt
+            )
+        } catch where AppDebugErrorClassifier.isCancellation(error) {
+            recordStoreCancelled("accept", startedAt: startedAt)
         } catch {
             errorMessage = message(
                 for: BookingRepositoryError.unavailable,
                 action: "accept offer"
+            )
+            recordStoreFailure(
+                "accept",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt
             )
         }
     }
@@ -311,6 +625,8 @@ final class CustomerRequestsStore {
             return
         }
 
+        let startedAt = Date()
+        recordStoreStart("cancel", metadata: ["requestID": request.id.uuidString])
         cancellingRequestIDs.insert(request.id)
         errorMessage = nil
         noticeMessage = nil
@@ -329,13 +645,53 @@ final class CustomerRequestsStore {
             noticeMessage = didApplyLocalState
                 ? "Request cancelled."
                 : "Request cancelled. Refresh requests to see the latest state."
+            recordStoreSuccess("cancel", startedAt: startedAt)
+        } catch CustomerRequestRepositoryError.cancelled {
+            recordStoreCancelled("cancel", startedAt: startedAt)
         } catch let error as CustomerRequestRepositoryError {
             errorMessage = message(for: error, action: "cancel")
+            recordStoreFailure(
+                "cancel",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt
+            )
+        } catch where AppDebugErrorClassifier.isCancellation(error) {
+            recordStoreCancelled("cancel", startedAt: startedAt)
         } catch {
             errorMessage = message(
                 for: CustomerRequestRepositoryError.unavailable,
                 action: "cancel"
             )
+            recordStoreFailure(
+                "cancel",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt
+            )
+        }
+    }
+
+    func validateWizardStep(
+        _ step: CustomerRequestWizardStep,
+        now: Date = Date()
+    ) -> CustomerRequestWizardStepValidation {
+        switch step {
+        case .pet:
+            return validatePetStep()
+        case .service:
+            return .valid
+        case .time:
+            return validateTimeAndLocationStep(now: now)
+        case .details:
+            return validateDetailsStep()
+        case .review:
+            for requiredStep in CustomerRequestWizardStep.allCases where requiredStep != .review {
+                let validation = validateWizardStep(requiredStep, now: now)
+                guard validation.isValid else { return validation }
+            }
+
+            return .valid
         }
     }
 
@@ -353,11 +709,6 @@ final class CustomerRequestsStore {
             )
         }
 
-        let serviceType = try required(
-            self.serviceType,
-            field: "Service type",
-            range: 1...80
-        )
         let serviceNotes = try optional(
             self.serviceNotes,
             field: "Service notes",
@@ -379,24 +730,109 @@ final class CustomerRequestsStore {
             )
         }
 
+        let streetAddress = try streetAddressValue(self.streetAddress)
+        let city = try required(city, field: "City", range: 1...100)
+        guard let stateCode else {
+            throw CustomerRequestFormError(message: "Choose a state.")
+        }
+        let zipCode = try zipCodeValue(self.zipCode)
+        let travelRadius = locationMode == .customerComesToGroomer
+            ? CustomerRequestTravelRange.clampedMiles(Double(travelRadiusMiles))
+            : nil
+
         return GroomingRequestDraft(
             petID: selectedPetID,
             serviceType: serviceType,
             serviceNotes: serviceNotes,
             preferredStart: preferredStart,
             preferredEnd: preferredEnd,
-            city: try required(city, field: "City", range: 1...100),
-            state: try required(state, field: "State", range: 2...80),
-            zipCode: try required(zipCode, field: "ZIP code", range: 3...20)
+            locationMode: locationMode,
+            streetAddress: streetAddress,
+            city: city,
+            stateCode: stateCode,
+            zipCode: zipCode,
+            travelRadiusMiles: travelRadius
         )
     }
 
+    private func validatePetStep() -> CustomerRequestWizardStepValidation {
+        guard !pets.isEmpty else {
+            return CustomerRequestWizardStepValidation(
+                fields: [.pet],
+                message: "Add a pet before continuing."
+            )
+        }
+
+        guard let selectedPetID,
+              pets.contains(where: { $0.id == selectedPetID }) else {
+            return CustomerRequestWizardStepValidation(
+                fields: [.pet],
+                message: "Choose a pet before continuing."
+            )
+        }
+
+        return .valid
+    }
+
+    private func validateTimeAndLocationStep(
+        now: Date
+    ) -> CustomerRequestWizardStepValidation {
+        var fields: Set<CustomerRequestWizardValidationField> = []
+
+        let earliestPreferredStart = now.addingTimeInterval(
+            Self.minimumPreferredStartLeadTime
+        )
+        if preferredStart < earliestPreferredStart || preferredEnd <= preferredStart {
+            fields.insert(.timeWindow)
+        }
+
+        let street = streetAddress.trimmingCharacters(in: .whitespacesAndNewlines)
+        if street.isEmpty || !Self.hasStreetAddressNumberAndName(street) {
+            fields.insert(.streetAddress)
+        }
+
+        if city.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            fields.insert(.city)
+        }
+
+        if stateCode == nil {
+            fields.insert(.state)
+        }
+
+        if !Self.isValidZipCode(zipCode) {
+            fields.insert(.zipCode)
+        }
+
+        guard !fields.isEmpty else { return .valid }
+
+        return CustomerRequestWizardStepValidation(
+            fields: fields,
+            message: CustomerRequestWizardStepValidation.requiredFieldsMessage
+        )
+    }
+
+    private func validateDetailsStep() -> CustomerRequestWizardStepValidation {
+        let notes = serviceNotes.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard notes.count <= 2000 else {
+            return CustomerRequestWizardStepValidation(
+                fields: [.notes],
+                message: "Service notes must be 2,000 characters or fewer."
+            )
+        }
+
+        return .valid
+    }
+
     private func resetForm(now: Date = Date()) {
-        serviceType = ""
+        serviceType = .fullGroom
         serviceNotes = ""
+        locationMode = .groomerComesToCustomer
+        streetAddress = ""
         city = ""
-        state = ""
+        stateCode = nil
         zipCode = ""
+        travelRadiusMiles = 15
+        pendingRequestPhotos = []
 
         let defaults = Self.defaultPreferredRange(now: now)
         preferredStart = defaults.start
@@ -436,7 +872,9 @@ final class CustomerRequestsStore {
                         status: nextStatus,
                         withdrawnAt: review.offer.withdrawnAt
                     ),
-                    groomerProfile: review.groomerProfile
+                    groomerProfile: review.groomerProfile,
+                    matchScore: review.matchScore,
+                    matchReason: review.matchReason
                 )
             }
         )
@@ -495,7 +933,9 @@ final class CustomerRequestsStore {
                         status: nextStatus,
                         withdrawnAt: review.offer.withdrawnAt
                     ),
-                    groomerProfile: review.groomerProfile
+                    groomerProfile: review.groomerProfile,
+                    matchScore: review.matchScore,
+                    matchReason: review.matchReason
                 )
             }
         )
@@ -533,6 +973,61 @@ final class CustomerRequestsStore {
         return trimmed
     }
 
+    private func zipCodeValue(_ value: String) throws -> String {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard Self.isValidZipCode(trimmed) else {
+            throw CustomerRequestFormError(message: "Enter a valid 5-digit ZIP code.")
+        }
+        return trimmed
+    }
+
+    private func streetAddressValue(_ value: String) throws -> String {
+        let trimmed = try required(value, field: "Street address", range: 1...160)
+        guard Self.hasStreetAddressNumberAndName(trimmed) else {
+            throw CustomerRequestFormError(
+                message: "Enter a street address with a street number and name."
+            )
+        }
+
+        return trimmed
+    }
+
+    private static func hasStreetAddressNumberAndName(_ value: String) -> Bool {
+        let hasStreetNumber = value.range(of: #"[0-9]"#, options: .regularExpression) != nil
+        let hasStreetName = value.range(of: #"[A-Za-z]"#, options: .regularExpression) != nil
+        return hasStreetNumber && hasStreetName
+    }
+
+    private static func isValidZipCode(_ value: String) -> Bool {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        let pattern = #"^[0-9]{5}(-[0-9]{4})?$"#
+        return trimmed.range(of: pattern, options: .regularExpression) != nil
+    }
+
+    private func loadRequestPhotos(
+        for requests: [CustomerGroomingRequest]
+    ) async throws {
+        let photos = try await requestRepository.requestPhotos(
+            customerID: customerID,
+            requestIDs: requests.map(\.id)
+        )
+        requestPhotosByRequestID = Dictionary(grouping: photos, by: \.requestID)
+        requestPhotoDataByID = await requestPhotoDataMap(for: photos)
+    }
+
+    private func requestPhotoDataMap(
+        for photos: [GroomingRequestPhoto]
+    ) async -> [UUID: Data] {
+        var dataByID: [UUID: Data] = [:]
+        for photo in photos {
+            guard let data = try? await requestRepository.requestPhotoData(photo) else {
+                continue
+            }
+            dataByID[photo.id] = data
+        }
+        return dataByID
+    }
+
     private func message(
         for error: CustomerPetRepositoryError,
         action: String
@@ -542,6 +1037,8 @@ final class CustomerRequestsStore {
             "This account cannot \(action) customer pets."
         case .networkUnavailable:
             "Check your connection and try again."
+        case .cancelled:
+            "The pet information load was cancelled."
         case .unavailable:
             "We could not \(action) pet information. Please try again."
         }
@@ -566,6 +1063,8 @@ final class CustomerRequestsStore {
             "Check the request details and try again."
         case .networkUnavailable:
             "Check your connection and try again."
+        case .cancelled:
+            "The request action was cancelled."
         case .unavailable:
             "We could not \(action) grooming requests. Please try again."
         }
@@ -604,9 +1103,87 @@ final class CustomerRequestsStore {
             "Check the offer and try again."
         case .networkUnavailable:
             "Check your connection and try again."
+        case .cancelled:
+            "The booking action was cancelled."
         case .unavailable:
             "We could not \(action). Please try again."
         }
+    }
+
+    private var debugScope: String {
+        "customer.requests"
+    }
+
+    private func recordStoreStart(
+        _ operation: String,
+        metadata: [String: String] = [:]
+    ) {
+        var eventMetadata = metadata
+        eventMetadata["operation"] = operation
+        eventMetadata["customerID"] = customerID.uuidString
+        debugRecorder?.record(
+            level: .info,
+            category: .store,
+            source: "CustomerRequestsStore.\(operation)",
+            scope: debugScope,
+            message: "start",
+            metadata: eventMetadata
+        )
+    }
+
+    private func recordStoreSuccess(
+        _ operation: String,
+        startedAt: Date,
+        metadata: [String: String] = [:]
+    ) {
+        var eventMetadata = metadata
+        eventMetadata["operation"] = operation
+        debugRecorder?.record(
+            level: .info,
+            category: .store,
+            source: "CustomerRequestsStore.\(operation)",
+            scope: debugScope,
+            message: "success",
+            durationMs: Int(Date().timeIntervalSince(startedAt) * 1_000),
+            metadata: eventMetadata
+        )
+    }
+
+    private func recordStoreFailure(
+        _ operation: String,
+        error: any Error,
+        mappedMessage: String?,
+        startedAt: Date,
+        level: AppDebugEventLevel = .error,
+        metadata: [String: String] = [:]
+    ) {
+        var eventMetadata = metadata
+        eventMetadata["operation"] = operation
+        debugRecorder?.record(
+            level: level,
+            category: .store,
+            source: "CustomerRequestsStore.\(operation)",
+            scope: debugScope,
+            message: mappedMessage ?? "failure",
+            underlyingError: error,
+            durationMs: Int(Date().timeIntervalSince(startedAt) * 1_000),
+            metadata: eventMetadata
+        )
+    }
+
+    private func recordStoreCancelled(
+        _ operation: String,
+        startedAt: Date
+    ) {
+        debugRecorder?.record(
+            level: .info,
+            category: .store,
+            source: "CustomerRequestsStore.\(operation)",
+            scope: debugScope,
+            message: "cancelled ignored",
+            durationMs: Int(Date().timeIntervalSince(startedAt) * 1_000),
+            metadata: ["operation": operation]
+        )
     }
 
     private static func defaultPreferredRange(now: Date) -> (start: Date, end: Date) {
@@ -682,5 +1259,21 @@ struct CustomerRequestActionCardItem: Equatable, Hashable, Identifiable, Sendabl
 
     var isBookingHandoff: Bool {
         handoff != nil
+    }
+}
+
+struct PendingGroomingRequestPhoto: Equatable, Identifiable, Sendable {
+    let id: UUID
+    let data: Data
+    let contentType: GroomingRequestPhotoContentType
+
+    init(
+        id: UUID = UUID(),
+        data: Data,
+        contentType: GroomingRequestPhotoContentType
+    ) {
+        self.id = id
+        self.data = data
+        self.contentType = contentType
     }
 }

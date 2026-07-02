@@ -5,13 +5,20 @@ nonisolated enum GroomerTab: CaseIterable, Identifiable, Equatable {
     case messages
     case account
 
+    static let visibleCases: [Self] = [
+        .requests,
+        .bookings,
+        .messages,
+        .account,
+    ]
+
     var id: Self { self }
 
     var title: String {
         switch self {
-        case .requests: "Requests"
+        case .requests: "Board"
         case .offers: "Offers"
-        case .bookings: "Bookings"
+        case .bookings: "Schedule"
         case .messages: "Messages"
         case .account: "Account"
         }

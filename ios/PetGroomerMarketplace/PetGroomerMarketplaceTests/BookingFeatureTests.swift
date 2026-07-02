@@ -26,6 +26,132 @@ struct BookingsStoreTests {
     }
 
     @Test @MainActor
+    func loadFailureCreatesPersistentPageErrorState() async throws {
+        let repository = BookingRepositoryFake(
+            bookingsResult: .failure(.unavailable)
+        )
+        let store = BookingsStore(
+            participantID: UUID(),
+            role: .groomer,
+            repository: repository
+        )
+
+        await store.load()
+
+        #expect(repository.bookingsCallCount == 1)
+        #expect(store.bookings.isEmpty)
+        #expect(store.errorMessage == "We could not load bookings. Please try again.")
+
+        let presentation = BookingsFeedbackPresentation(
+            role: .groomer,
+            bookings: store.bookings,
+            isLoading: store.isLoading,
+            errorMessage: store.errorMessage
+        )
+
+        #expect(presentation.persistentLoadError?.title == "We Could Not Load Schedule")
+        #expect(presentation.persistentLoadError?.message == "We could not load bookings. Please try again.")
+        #expect(presentation.persistentLoadError?.actionTitle == "Try Again")
+        #expect(presentation.toastError == nil)
+    }
+
+    @Test @MainActor
+    func loadCancellationIsLoggedButDoesNotSetUserError() async throws {
+        let writer = AppDebugEventWriterSpy()
+        let recorder = AppDebugEventRecorder(
+            writer: writer,
+            emitsToOSLog: false
+        )
+        let repository = BookingRepositoryFake(
+            bookingsResult: .failure(.cancelled)
+        )
+        let store = BookingsStore(
+            participantID: UUID(),
+            role: .customer,
+            repository: repository,
+            debugRecorder: recorder
+        )
+
+        await store.load()
+
+        #expect(repository.bookingsCallCount == 1)
+        #expect(store.bookings.isEmpty)
+        #expect(store.errorMessage == nil)
+        #expect(store.isLoading == false)
+        #expect(
+            recorder.events.contains {
+                $0.level == .info
+                    && $0.category == .store
+                    && $0.source == "BookingsStore.load"
+                    && $0.message == "cancelled ignored"
+            }
+        )
+        #expect(recorder.events.contains { $0.level == .error } == false)
+    }
+
+    @Test @MainActor
+    func debugBookingRepositoryRecordsFailureMetadata() async throws {
+        let writer = AppDebugEventWriterSpy()
+        let recorder = AppDebugEventRecorder(
+            writer: writer,
+            emitsToOSLog: false
+        )
+        let base = BookingRepositoryFake(
+            bookingsResult: .failure(.networkUnavailable)
+        )
+        let repository = DebugBookingRepository(
+            base: base,
+            debugRecorder: recorder
+        )
+
+        await #expect(throws: BookingRepositoryError.networkUnavailable) {
+            _ = try await repository.bookings(
+                participantID: UUID(),
+                role: .customer
+            )
+        }
+
+        let event = try #require(
+            recorder.events.first { $0.source == "BookingRepository.bookings" }
+        )
+        #expect(event.level == .error)
+        #expect(event.category == .repository)
+        #expect(event.scope == "customer.bookings")
+        #expect(event.metadata["operation"] == "bookings")
+        #expect(event.metadata["role"] == "customer")
+        #expect(event.underlyingErrorType == "BookingRepositoryError")
+        #expect(event.underlyingErrorCode == "networkUnavailable")
+    }
+
+    @Test @MainActor
+    func operationFailureCreatesOperationScopedToastWithoutPersistentLoadError() async throws {
+        let booking = Self.booking(status: .completed)
+        let repository = BookingRepositoryFake(
+            bookingsResult: .success([booking])
+        )
+        let store = BookingsStore(
+            participantID: booking.customerID,
+            role: .customer,
+            repository: repository
+        )
+        await store.load()
+
+        await store.cancel(booking)
+
+        let presentation = BookingsFeedbackPresentation(
+            role: .customer,
+            bookings: store.bookings,
+            isLoading: store.isLoading,
+            errorMessage: store.errorMessage
+        )
+
+        #expect(presentation.persistentLoadError == nil)
+        #expect(presentation.toastError?.scope == .operation("customer.bookings.operation"))
+        #expect(presentation.toastError?.sourceKey == "customer.bookings.operation-error")
+        #expect(presentation.toastError?.message == "This booking can no longer be cancelled.")
+    }
+
+    @Test @MainActor
     func cancelConfirmedBookingUpdatesLocalStatus() async throws {
         let customerID = UUID()
         let booking = Self.booking(customerID: customerID)
@@ -168,6 +294,162 @@ struct BookingsStoreTests {
     }
 
     @Test @MainActor
+    func customerSubmitsStructuredPetFitReviewOutcomes() async throws {
+        let customerID = UUID()
+        let booking = Self.booking(
+            customerID: customerID,
+            status: .completed,
+            completedAt: "2026-06-22T18:05:00Z"
+        )
+        let review = BookingReview(
+            id: UUID(),
+            bookingID: booking.id,
+            customerID: booking.customerID,
+            groomerID: booking.groomerID,
+            rating: 4,
+            content: nil,
+            createdAt: "2026-06-22T19:00:00Z"
+        )
+        let repository = BookingRepositoryFake(
+            bookingsResult: .success([booking]),
+            reviewResult: .success(
+                CreateReviewResult(
+                    review: review,
+                    groomerRatingAverage: 4,
+                    groomerRatingCount: 1
+                )
+            )
+        )
+        let store = BookingsStore(
+            participantID: customerID,
+            role: .customer,
+            repository: repository
+        )
+        let selectedOutcomes = [
+            BookingReviewPetFitOutcomeDraft(
+                signal: .serviceFit(.curlyCoat),
+                outcome: .positive
+            ),
+            BookingReviewPetFitOutcomeDraft(
+                signal: .careFlag(.anxious),
+                outcome: .negative
+            )
+        ]
+        await store.load()
+
+        await store.createReview(
+            for: booking,
+            rating: 4,
+            content: "",
+            petFitOutcomes: selectedOutcomes
+        )
+
+        #expect(repository.reviewCallCount == 1)
+        #expect(repository.lastReviewDraft == BookingReviewDraft(
+            rating: 4,
+            content: nil,
+            petFitOutcomes: selectedOutcomes
+        ))
+    }
+
+    @Test
+    func reviewPetFitOutcomeSelectionsDefaultToEmptyOutcomes() {
+        let signals: [PetFitSignal] = [
+            .breedGroup(.poodle),
+            .careFlag(.anxious),
+            .serviceFit(.gentleHandling)
+        ]
+
+        let selections = BookingReviewPetFitOutcomeSelection.defaults(
+            for: signals
+        )
+
+        #expect(selections.map(\.signal) == signals)
+        #expect(selections.map(\.outcome) == [nil, nil, nil])
+        #expect(selections.selectedOutcomes.isEmpty)
+    }
+
+    @Test
+    func reviewPetFitOutcomeSelectionsBuildSelectedOutcomesOnly() {
+        var selections = BookingReviewPetFitOutcomeSelection.defaults(
+            for: [
+                .breedGroup(.poodle),
+                .careFlag(.anxious),
+                .serviceFit(.gentleHandling)
+            ]
+        )
+        selections[0].outcome = .positive
+        selections[2].outcome = .negative
+
+        #expect(selections.selectedOutcomes == [
+            BookingReviewPetFitOutcomeDraft(
+                signal: .breedGroup(.poodle),
+                outcome: .positive
+            ),
+            BookingReviewPetFitOutcomeDraft(
+                signal: .serviceFit(.gentleHandling),
+                outcome: .negative
+            )
+        ])
+    }
+
+    @Test
+    func createReviewParametersEncodePetFitOutcomesRpcPayload() throws {
+        let bookingID = UUID(uuidString: "AAAAAAAA-BBBB-4CCC-8DDD-EEEEEEEEEEEE")!
+        let parameters = CreateReviewParameters(
+            bookingID: bookingID,
+            draft: BookingReviewDraft(
+                rating: 5,
+                content: "Patient handling",
+                petFitOutcomes: [
+                    BookingReviewPetFitOutcomeDraft(
+                        signal: .serviceFit(.gentleHandling),
+                        outcome: .positive
+                    ),
+                    BookingReviewPetFitOutcomeDraft(
+                        signal: .careFlag(.senior),
+                        outcome: .negative
+                    )
+                ]
+            )
+        )
+
+        let payload = try Self.encodedJSONObject(parameters)
+
+        #expect(payload["p_booking_id"] as? String == bookingID.uuidString.lowercased())
+        #expect(payload["p_rating"] as? Int == 5)
+        #expect(payload["p_content"] as? String == "Patient handling")
+
+        let outcomes = try #require(payload["p_pet_fit_outcomes"] as? [[String: String]])
+        #expect(outcomes == [
+            [
+                "trait_type": "service_fit",
+                "trait_value": "gentle_handling",
+                "outcome": "positive"
+            ],
+            [
+                "trait_type": "care_flag",
+                "trait_value": "senior",
+                "outcome": "negative"
+            ]
+        ])
+    }
+
+    @Test
+    func createReviewParametersEncodeEmptyPetFitOutcomes() throws {
+        let parameters = CreateReviewParameters(
+            bookingID: UUID(uuidString: "AAAAAAAA-BBBB-4CCC-8DDD-EEEEEEEEEEEE")!,
+            draft: BookingReviewDraft(rating: 5, content: nil)
+        )
+
+        let payload = try Self.encodedJSONObject(parameters)
+
+        #expect(payload["p_content"] is NSNull)
+        let outcomes = try #require(payload["p_pet_fit_outcomes"] as? [Any])
+        #expect(outcomes.isEmpty)
+    }
+
+    @Test @MainActor
     func invalidReviewDoesNotCallRepository() async throws {
         let booking = Self.booking(status: .completed)
         let repository = BookingRepositoryFake(
@@ -235,6 +517,115 @@ struct BookingsStoreTests {
         #expect(booking.participantSummary(for: .groomer) == "Customer ref 12345678")
     }
 
+    @Test
+    func bookingPresentationUsesGroomerNameAndAppointmentLocationContext() {
+        let booking = Self.booking(
+            serviceType: .bathAndBrush,
+            groomerBusinessName: " Ava Chen ",
+            locationMode: .groomerComesToCustomer,
+            customerStreetAddress: "123 Pine Street",
+            customerCity: "Seattle",
+            customerState: "WA",
+            customerZipCode: "98101"
+        )
+
+        #expect(booking.partnerDisplayTitle(for: .customer) == "Ava Chen")
+        #expect(booking.appointmentServiceTitle == "Bath & Brush")
+        #expect(booking.appointmentLocationTitle == "Groomer Comes To Customer")
+        #expect(booking.appointmentAddressSummary == "123 Pine Street, Seattle, WA 98101")
+    }
+
+    @Test
+    func bookingPresentationUsesGroomerLocationFallbackWhenCustomerVisits() {
+        let booking = Self.booking(
+            groomerBusinessName: nil,
+            groomerBaseStreetAddress: "456 Groomer Lane",
+            groomerBaseCity: "Austin",
+            groomerBaseState: "TX",
+            groomerBaseZipCode: "78701",
+            locationMode: .customerComesToGroomer
+        )
+
+        #expect(booking.partnerDisplayTitle(for: .customer) == "Groomer Name")
+        #expect(booking.appointmentLocationTitle == "Customer Comes To Groomer")
+        #expect(booking.appointmentAddressSummary == "456 Groomer Lane, Austin, TX 78701")
+    }
+
+    @Test
+    func completedBookingDerivesReviewablePetFitSignalsFromRequestContext() throws {
+        let booking = Self.booking(
+            status: .completed,
+            completedAt: "2026-06-22T18:05:00Z",
+            serviceType: .fullGroom,
+            requestPetSnapshot: try Self.petSnapshot(
+                breed: "Toy Poodle",
+                size: "Giant",
+                weightLbs: 16,
+                birthday: "2013-06-24",
+                temperament: "Anxious"
+            )
+        )
+
+        #expect(
+            booking.reviewableFitSignals.map(\.id) == [
+                "coat_type:curly_wavy",
+                "breed_group:poodle",
+                "size_band:S",
+                "care_flag:anxious",
+                "care_flag:senior",
+                "service_fit:curly_coat",
+                "service_fit:full_haircut_styling",
+                "service_fit:gentle_handling",
+                "service_fit:senior_care"
+            ]
+        )
+    }
+
+    @Test
+    func reviewablePetFitSignalsRequireCompletedBookingAndRequestContext() throws {
+        let confirmedBooking = Self.booking(
+            status: .confirmed,
+            serviceType: .haircutOnly,
+            requestPetSnapshot: try Self.petSnapshot(
+                breed: "West Highland White Terrier",
+                weightLbs: 22
+            )
+        )
+        let missingContextBooking = Self.booking(
+            status: .completed,
+            completedAt: "2026-06-22T18:05:00Z",
+            serviceType: .haircutOnly,
+            requestPetSnapshot: nil
+        )
+
+        #expect(confirmedBooking.reviewableFitSignals.isEmpty)
+        #expect(missingContextBooking.reviewableFitSignals.isEmpty)
+    }
+
+    @Test
+    func bookingReviewableSignalsIncludeTerrierServiceFitAndSizeContext() throws {
+        let booking = Self.booking(
+            status: .completed,
+            completedAt: "2026-06-22T18:05:00Z",
+            serviceType: .haircutOnly,
+            requestPetSnapshot: try Self.petSnapshot(
+                breed: "West Highland White Terrier",
+                weightLbs: 42
+            )
+        )
+
+        #expect(
+            booking.reviewableFitSignals.map(\.id) == [
+                "coat_type:wire",
+                "breed_group:terrier",
+                "size_band:L",
+                "service_fit:full_haircut_styling",
+                "service_fit:hand_stripping_carding",
+                "service_fit:terrier_coat"
+            ]
+        )
+    }
+
     private static func booking(
         id: UUID = UUID(),
         requestID: UUID = UUID(),
@@ -243,7 +634,19 @@ struct BookingsStoreTests {
         groomerID: UUID = UUID(),
         status: BookingStatus = .confirmed,
         completedAt: String? = nil,
-        review: BookingReview? = nil
+        review: BookingReview? = nil,
+        serviceType: GroomingServiceType? = nil,
+        groomerBusinessName: String? = nil,
+        groomerBaseStreetAddress: String? = nil,
+        groomerBaseCity: String? = nil,
+        groomerBaseState: String? = nil,
+        groomerBaseZipCode: String? = nil,
+        locationMode: GroomingLocationMode? = nil,
+        customerStreetAddress: String? = nil,
+        customerCity: String? = nil,
+        customerState: String? = nil,
+        customerZipCode: String? = nil,
+        requestPetSnapshot: GroomingRequestPetSnapshot? = nil
     ) -> Booking {
         Booking(
             id: id,
@@ -261,7 +664,51 @@ struct BookingsStoreTests {
             completedBy: completedAt == nil ? nil : groomerID,
             createdAt: "2026-06-20T12:00:00Z",
             updatedAt: "2026-06-20T12:00:00Z",
-            review: review
+            review: review,
+            serviceType: serviceType,
+            requestPetSnapshot: requestPetSnapshot,
+            groomerBusinessName: groomerBusinessName,
+            groomerBaseStreetAddress: groomerBaseStreetAddress,
+            groomerBaseCity: groomerBaseCity,
+            groomerBaseState: groomerBaseState,
+            groomerBaseZipCode: groomerBaseZipCode,
+            locationMode: locationMode,
+            customerStreetAddress: customerStreetAddress,
+            customerCity: customerCity,
+            customerState: customerState,
+            customerZipCode: customerZipCode
+        )
+    }
+
+    private static func petSnapshot(
+        breed: String? = nil,
+        size: String? = "S",
+        weightLbs: Double? = 16,
+        birthday: String? = nil,
+        temperament: String? = nil
+    ) throws -> GroomingRequestPetSnapshot {
+        GroomingRequestPetSnapshot(
+            id: UUID(uuidString: "11111111-2222-4333-8444-555555555555")!,
+            name: "Mochi",
+            species: "Dog",
+            breed: breed,
+            coatType: nil,
+            size: size,
+            weightLbs: weightLbs,
+            birthday: birthday,
+            temperament: temperament,
+            medicalNotes: nil,
+            groomingNotes: nil,
+            snapshotAt: nil
+        )
+    }
+
+    private static func encodedJSONObject<T: Encodable>(
+        _ value: T
+    ) throws -> [String: Any] {
+        let data = try JSONEncoder().encode(value)
+        return try #require(
+            JSONSerialization.jsonObject(with: data) as? [String: Any]
         )
     }
 }

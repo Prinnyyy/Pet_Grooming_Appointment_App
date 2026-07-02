@@ -1,8 +1,12 @@
 import PhotosUI
 import SwiftUI
+import UIKit
 
 struct CustomerPetsView: View {
     private let displayName: String
+    private let customerProfileRepository: (any CustomerProfileRepository)?
+    private let onActiveRequestSelected: (UUID) -> Void
+    private let onBookingChatSelected: (Booking) -> Void
     @State private var petStore: CustomerPetsStore
     @State private var requestStore: CustomerRequestsStore
     @State private var bookingStore: BookingsStore
@@ -11,17 +15,25 @@ struct CustomerPetsView: View {
         customerID: UUID,
         displayName: String? = nil,
         repository: any CustomerPetRepository,
+        customerProfileRepository: (any CustomerProfileRepository)? = nil,
         requestRepository: any CustomerRequestRepository,
-        bookingRepository: any BookingRepository
+        bookingRepository: any BookingRepository,
+        debugRecorder: AppDebugEventRecorder? = nil,
+        onActiveRequestSelected: @escaping (UUID) -> Void = { _ in },
+        onBookingChatSelected: @escaping (Booking) -> Void = { _ in }
     ) {
         let trimmedName = displayName?.trimmingCharacters(
             in: .whitespacesAndNewlines
         ) ?? ""
         self.displayName = trimmedName.isEmpty ? "there" : trimmedName
+        self.customerProfileRepository = customerProfileRepository
+        self.onActiveRequestSelected = onActiveRequestSelected
+        self.onBookingChatSelected = onBookingChatSelected
         _petStore = State(
             initialValue: CustomerPetsStore(
                 customerID: customerID,
-                repository: repository
+                repository: repository,
+                debugRecorder: debugRecorder
             )
         )
         _requestStore = State(
@@ -29,14 +41,16 @@ struct CustomerPetsView: View {
                 customerID: customerID,
                 petRepository: repository,
                 requestRepository: requestRepository,
-                bookingRepository: bookingRepository
+                bookingRepository: bookingRepository,
+                debugRecorder: debugRecorder
             )
         )
         _bookingStore = State(
             initialValue: BookingsStore(
                 participantID: customerID,
                 role: .customer,
-                repository: bookingRepository
+                repository: bookingRepository,
+                debugRecorder: debugRecorder
             )
         )
     }
@@ -52,18 +66,21 @@ struct CustomerPetsView: View {
             screenContent
         }
         .toolbar(.hidden, for: .navigationBar)
-        .safeAreaInset(edge: .bottom) {
+        .background {
             CustomerHomeStatusView(
                 petStore: petStore,
                 requestStore: requestStore,
-                bookingStore: bookingStore
+                nextBookingPresentation: nextBookingPresentation
             )
         }
         .sheet(isPresented: $petStore.isShowingPetForm) {
             CustomerPetFormView(store: petStore)
         }
         .sheet(isPresented: $requestStore.isShowingWizard) {
-            CustomerRequestWizardView(store: requestStore) {
+            CustomerRequestWizardView(
+                store: requestStore,
+                customerProfileRepository: customerProfileRepository
+            ) {
                 requestStore.cancelWizard()
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
                     petStore.startCreate()
@@ -92,12 +109,14 @@ struct CustomerPetsView: View {
                 CustomerHomePetsSection(store: petStore)
 
                 CustomerHomeActiveRequestSection(
-                    presentation: activeRequestPresentation
+                    presentation: activeRequestPresentation,
+                    onSelectRequest: onActiveRequestSelected
                 )
 
                 CustomerHomeNextBookingSection(
-                    booking: nextBooking,
-                    store: bookingStore
+                    presentation: nextBookingPresentation,
+                    store: bookingStore,
+                    onOpenChat: onBookingChatSelected
                 )
             }
             .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
@@ -123,18 +142,17 @@ struct CustomerPetsView: View {
 
     private var nextBooking: Booking? {
         bookingStore.bookings
-            .sorted { lhs, rhs in
-                let lhsDate = GroomingRequestDateFormatting.parsedDate(
-                    from: lhs.scheduledStart
-                ) ?? .distantFuture
-                let rhsDate = GroomingRequestDateFormatting.parsedDate(
-                    from: rhs.scheduledStart
-                ) ?? .distantFuture
+            .filter { $0.status == .confirmed }
+            .sortedByScheduledStart(ascending: true)
+            .first
+    }
 
-                return lhsDate < rhsDate
-            }
-            .first { $0.status == .confirmed }
-            ?? bookingStore.bookings.first
+    private var nextBookingPresentation: CustomerHomeNextBookingPresentation {
+        CustomerHomeNextBookingPresentation(
+            booking: nextBooking,
+            isLoading: bookingStore.isLoading,
+            loadErrorMessage: bookingStore.errorMessage
+        )
     }
 
     @MainActor
@@ -172,6 +190,46 @@ struct CustomerHomeActiveRequestPresentation: Equatable {
 
     var shouldShowLoadingCard: Bool {
         false
+    }
+}
+
+struct CustomerHomeNextBookingPresentation: Equatable {
+    let booking: Booking?
+    let isLoading: Bool
+    let loadErrorMessage: String?
+
+    init(
+        booking: Booking?,
+        isLoading: Bool,
+        loadErrorMessage: String? = nil
+    ) {
+        self.booking = booking
+        self.isLoading = isLoading
+        self.loadErrorMessage = loadErrorMessage
+    }
+
+    var shouldShowBooking: Bool {
+        booking != nil
+    }
+
+    var shouldShowLoading: Bool {
+        false
+    }
+
+    var shouldShowLoadError: Bool {
+        false
+    }
+
+    var shouldShowEmptyText: Bool {
+        booking == nil
+    }
+
+    var shouldShowEmptyCard: Bool {
+        false
+    }
+
+    var globalErrorPrompt: GroomlyGlobalFeedbackError? {
+        nil
     }
 }
 
@@ -306,6 +364,17 @@ private struct CustomerHomeRequestHero: View {
                 .buttonStyle(.plain)
                 .disabled(isDisabled)
                 .accessibilityIdentifier("customer.home.start-request")
+
+                if isDisabled {
+                    Label(
+                        "Add a pet profile before starting a grooming request.",
+                        systemImage: "pawprint"
+                    )
+                    .font(DesignTokens.Typography.caption.weight(.semibold))
+                    .foregroundStyle(.white.opacity(0.92))
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("customer.home.start-request.requirement")
+                }
             }
             .padding(DesignTokens.Spacing.xl)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -367,18 +436,20 @@ private struct CustomerHomePetTile: View {
             store.startEdit(pet)
         } label: {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                Text(avatar)
-                    .font(.system(size: 58))
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 116)
-                    .background(avatarBackground)
-                    .clipShape(
-                        RoundedRectangle(
-                            cornerRadius: DesignTokens.CornerRadius.input,
-                            style: .continuous
-                        )
+                CustomerHomePetAvatarImage(
+                    data: store.primaryPhotoData(for: pet),
+                    fallbackText: avatar,
+                    background: avatarBackground
+                )
+                .frame(maxWidth: .infinity)
+                .frame(height: 116)
+                .clipShape(
+                    RoundedRectangle(
+                        cornerRadius: DesignTokens.CornerRadius.input,
+                        style: .continuous
                     )
-                    .accessibilityHidden(true)
+                )
+                .accessibilityHidden(true)
 
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     Text(pet.name)
@@ -392,10 +463,18 @@ private struct CustomerHomePetTile: View {
                         .foregroundStyle(DesignTokens.Colors.secondaryText)
                         .lineLimit(1)
                         .minimumScaleFactor(0.82)
+
+                    if let weightAndSize = pet.displayWeightAndSize {
+                        Text(weightAndSize)
+                            .font(DesignTokens.Typography.caption.weight(.semibold))
+                            .foregroundStyle(DesignTokens.Colors.textTertiary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.82)
+                    }
                 }
             }
             .padding(DesignTokens.Spacing.md)
-            .frame(width: 172, height: 232, alignment: .topLeading)
+            .frame(width: 172, height: 252, alignment: .topLeading)
             .background(DesignTokens.Colors.surface)
             .clipShape(
                 RoundedRectangle(
@@ -428,16 +507,16 @@ private struct CustomerHomePetTile: View {
     }
 
     private var petBreedLine: String {
-        let breed = pet.breed?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let breed = pet.displayBreed?.trimmingCharacters(in: .whitespacesAndNewlines)
         if let breed, !breed.isEmpty {
             return breed
         }
 
-        return pet.species
+        return pet.displaySpecies
     }
 
     private var avatar: String {
-        let searchText = "\(pet.breed ?? "") \(pet.species)"
+        let searchText = "\(pet.displayBreed ?? "") \(pet.displaySpecies)"
             .lowercased()
 
         if searchText.contains("poodle") {
@@ -465,6 +544,22 @@ private struct CustomerHomePetTile: View {
     }
 }
 
+private struct CustomerHomePetAvatarImage: View {
+    let data: Data?
+    let fallbackText: String
+    let background: Color
+
+    var body: some View {
+        GroomlyModuleImage(data: data) {
+            Text(fallbackText)
+                .font(.system(size: 58))
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(background)
+        }
+        .background(background)
+    }
+}
+
 private struct CustomerHomeAddPetTile: View {
     let action: () -> Void
 
@@ -482,7 +577,7 @@ private struct CustomerHomeAddPetTile: View {
                     .font(DesignTokens.Typography.body.weight(.bold))
                     .foregroundStyle(DesignTokens.Colors.textTertiary)
             }
-            .frame(width: 172, height: 232)
+            .frame(width: 172, height: 252)
             .background(DesignTokens.Colors.surface.opacity(0.34))
             .clipShape(
                 RoundedRectangle(
@@ -508,6 +603,7 @@ private struct CustomerHomeAddPetTile: View {
 
 private struct CustomerHomeActiveRequestSection: View {
     let presentation: CustomerHomeActiveRequestPresentation
+    let onSelectRequest: (UUID) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
@@ -516,19 +612,16 @@ private struct CustomerHomeActiveRequestSection: View {
                 .foregroundStyle(DesignTokens.Colors.textPrimary)
 
             if presentation.shouldShowCarousel {
-                CustomerRequestActionCardSummaryCarousel(cards: presentation.cards)
+                CustomerRequestActionCardSummaryCarousel(
+                    cards: presentation.cards,
+                    onSelectRequest: onSelectRequest
+                )
                     .accessibilityIdentifier("customer.home.active-request.carousel")
             } else {
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                    Text(CustomerRequestEmptyCopy.title)
-                        .font(DesignTokens.Typography.headline.weight(.bold))
-                        .foregroundStyle(DesignTokens.Colors.textPrimary)
-
-                    Text(CustomerRequestEmptyCopy.message)
-                        .font(DesignTokens.Typography.body)
-                        .foregroundStyle(DesignTokens.Colors.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+                CustomerHomeInlineEmptyText(
+                    title: CustomerRequestEmptyCopy.title,
+                    message: CustomerRequestEmptyCopy.message
+                )
                 .padding(.vertical, DesignTokens.Spacing.sm)
                 .accessibilityIdentifier("customer.home.active-request.empty")
             }
@@ -537,8 +630,9 @@ private struct CustomerHomeActiveRequestSection: View {
 }
 
 private struct CustomerHomeNextBookingSection: View {
-    let booking: Booking?
+    let presentation: CustomerHomeNextBookingPresentation
     let store: BookingsStore
+    let onOpenChat: (Booking) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
@@ -546,300 +640,593 @@ private struct CustomerHomeNextBookingSection: View {
                 .font(.title2.weight(.bold))
                 .foregroundStyle(DesignTokens.Colors.textPrimary)
 
-            if store.isLoading, booking == nil {
+            if presentation.shouldShowLoading {
                 GroomlyLoadingView(
                     title: "Loading Booking…",
                     message: "Checking confirmed appointments.",
                     accent: .customer
                 )
                 .accessibilityIdentifier("customer.home.next-booking.loading")
-            } else if let booking {
+            } else if let booking = presentation.booking {
                 NavigationLink {
                     BookingDetailView(
                         bookingID: booking.id,
                         role: .customer,
-                        store: store
+                        store: store,
+                        onOpenChat: onOpenChat
                     )
                 } label: {
-                    CustomerHomeNextBookingCard(booking: booking)
+                    BookingSummaryRow(
+                        booking: booking,
+                        role: .customer
+                    )
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("customer.home.next-booking.view")
             } else {
-                GroomlyCard {
-                    CustomerHomeDetailHeader(
-                        title: "No Booking Yet",
-                        subtitle: "Accepted offers will appear here as upcoming appointments.",
-                        systemImage: "calendar.badge.clock"
-                    )
-                }
+                CustomerHomeInlineEmptyText(
+                    title: "No Upcoming Booking",
+                    message: "Accepted offers will appear here as upcoming appointments."
+                )
+                .padding(.vertical, DesignTokens.Spacing.sm)
+                .accessibilityIdentifier("customer.home.next-booking.empty")
             }
         }
-    }
-}
-
-private struct CustomerHomeNextBookingCard: View {
-    let booking: Booking
-
-    var body: some View {
-        GroomlyCard {
-            HStack(spacing: DesignTokens.Spacing.lg) {
-                Text("💇🏻‍♀️")
-                    .font(.system(size: 30))
-                    .frame(width: 64, height: 64)
-                    .background(DesignTokens.Colors.customerPrimary)
-                    .clipShape(
-                        RoundedRectangle(
-                            cornerRadius: DesignTokens.CornerRadius.input,
-                            style: .continuous
-                        )
-                    )
-                    .accessibilityHidden(true)
-
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                    Text(booking.participantSummary(for: .customer))
-                        .font(DesignTokens.Typography.headline.weight(.bold))
-                        .foregroundStyle(DesignTokens.Colors.textPrimary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.82)
-
-                    Text(bookingTime)
-                        .font(DesignTokens.Typography.body)
-                        .foregroundStyle(DesignTokens.Colors.secondaryText)
-                        .lineLimit(2)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-                Image(systemName: "chevron.right")
-                    .font(DesignTokens.Typography.title.weight(.semibold))
-                    .foregroundStyle(DesignTokens.Colors.border)
-                    .accessibilityHidden(true)
-            }
-        }
-    }
-
-    private var bookingTime: String {
-        GroomingRequestDateFormatting.displayString(from: booking.scheduledStart)
     }
 }
 
 private struct CustomerHomeStatusView: View {
     let petStore: CustomerPetsStore
     let requestStore: CustomerRequestsStore
-    let bookingStore: BookingsStore
+    let nextBookingPresentation: CustomerHomeNextBookingPresentation
 
     var body: some View {
         VStack(spacing: DesignTokens.Spacing.sm) {
             CustomerPetsStatusView(store: petStore)
             CustomerRequestsStatusView(store: requestStore)
 
-            if let errorMessage = bookingStore.errorMessage {
-                GroomlyErrorBanner(
-                    title: "We Could Not Load Bookings",
-                    message: errorMessage
-                )
-                .padding(.horizontal, DesignTokens.Spacing.standard)
-                .padding(.vertical, DesignTokens.Spacing.sm)
+            if let errorPrompt = nextBookingPresentation.globalErrorPrompt {
+                GroomlyGlobalFeedbackForwarder(error: errorPrompt)
             }
         }
     }
 }
 
-private struct CustomerHomeDetailHeader: View {
+private struct CustomerHomeInlineEmptyText: View {
     let title: String
-    let subtitle: String
-    let systemImage: String
+    let message: String
 
     var body: some View {
-        HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
-            Image(systemName: systemImage)
-                .font(DesignTokens.Typography.headline)
-                .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
-                .frame(width: 44, height: 44)
-                .background(DesignTokens.Colors.customerPrimary.opacity(0.14))
-                .clipShape(DesignTokens.Shapes.circular)
-                .accessibilityHidden(true)
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+            Text(title)
+                .font(DesignTokens.Typography.headline.weight(.bold))
+                .foregroundStyle(DesignTokens.Colors.textPrimary)
 
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                Text(title)
-                    .font(DesignTokens.Typography.headline.weight(.bold))
-                    .foregroundStyle(DesignTokens.Colors.textPrimary)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                Text(subtitle)
-                    .font(DesignTokens.Typography.body)
-                    .foregroundStyle(DesignTokens.Colors.secondaryText)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            Text(message)
+                .font(DesignTokens.Typography.body)
+                .foregroundStyle(DesignTokens.Colors.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
-        .accessibilityElement(children: .combine)
     }
 }
 
-private struct CustomerPetCardView: View {
-    let pet: CustomerPet
-    let photos: [CustomerPetPhoto]
+private struct CustomerPetFormView: View {
     @Bindable var store: CustomerPetsStore
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                DesignTokens.Colors.background
+                    .ignoresSafeArea()
+
+                ScrollView {
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                        CustomerPetFormHero(
+                            title: store.formTitle,
+                            subtitle: "Keep the details groomers need before you start a request."
+                        )
+
+                        CustomerPetFormCard(title: "Pet Card Avatar", systemImage: "camera.fill") {
+                            CustomerPetFormPhotoModule(store: store)
+                        }
+
+                        CustomerPetFormCard(title: "Profile", systemImage: "pawprint.fill") {
+                            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                                TextField("Pet name", text: $store.formName)
+                                    .textContentType(.name)
+                                    .groomlyFormField()
+
+                                CustomerPetFormChoiceRow(
+                                    title: "Species",
+                                    subtitle: store.formSpecies.title
+                                ) {
+                                    ForEach(CustomerPetSpecies.allCases) { species in
+                                        CustomerPetFormChip(
+                                            title: species.title,
+                                            isSelected: store.formSpecies == species
+                                        ) {
+                                            store.updateFormSpecies(species)
+                                        }
+                                    }
+                                }
+
+                                CustomerPetFormChoiceRow(
+                                    title: "Breed",
+                                    subtitle: store.formBreed.title
+                                ) {
+                                    ForEach(CustomerPetBreed.options(for: store.formSpecies)) { breed in
+                                        CustomerPetFormChip(
+                                            title: breed.title,
+                                            isSelected: store.formBreed == breed
+                                        ) {
+                                            store.updateFormBreed(breed)
+                                        }
+                                    }
+                                }
+
+                                CustomerPetFormChoiceRow(
+                                    title: "Coat Type",
+                                    subtitle: store.formCoatType.title
+                                ) {
+                                    ForEach(CustomerPetCoatType.displayOptions) { coatType in
+                                        CustomerPetFormChip(
+                                            title: coatType.title,
+                                            isSelected: store.formCoatType == coatType
+                                        ) {
+                                            store.formCoatType = coatType
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        CustomerPetFormCard(title: "Details", systemImage: "heart.text.square.fill") {
+                            VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                                CustomerPetWeightControl(
+                                    weight: $store.formWeightLbs,
+                                    weightText: weightText,
+                                    sizeTitle: CustomerPetSizeCode
+                                        .code(forWeightLbs: store.formWeightLbs)
+                                        .title
+                                )
+
+                                CustomerPetBirthdayControl(
+                                    isKnown: birthdayKnownBinding,
+                                    date: birthdayBinding
+                                )
+
+                                CustomerPetFormChoiceRow(
+                                    title: "Temperament",
+                                    subtitle: store.formTemperament.title
+                                ) {
+                                    ForEach(CustomerPetTemperament.displayOptions) { temperament in
+                                        CustomerPetFormChip(
+                                            title: temperament.title,
+                                            isSelected: store.formTemperament == temperament
+                                        ) {
+                                            store.formTemperament = temperament
+                                        }
+                                    }
+                                }
+
+                                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                                    Text("Care Notes")
+                                        .font(DesignTokens.Typography.body.weight(.bold))
+                                        .foregroundStyle(DesignTokens.Colors.textPrimary)
+
+                                    CustomerPetFormLabeledTextField(
+                                        title: "Medical Notes",
+                                        placeholder: "Allergies, medication, injuries",
+                                        text: $store.formMedicalNotes
+                                    )
+
+                                    CustomerPetFormLabeledTextField(
+                                        title: "Grooming Notes",
+                                        placeholder: "Anxiety, coat needs, handling preferences",
+                                        text: $store.formGroomingNotes
+                                    )
+                                }
+                            }
+                        }
+
+                        if let errorMessage = store.errorMessage {
+                            GroomlyErrorBanner(
+                                title: "Check Pet Details",
+                                message: errorMessage
+                            )
+                            .accessibilityIdentifier("customer.pets.form-error")
+                        }
+                    }
+                    .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+                    .padding(.top, DesignTokens.Spacing.lg)
+                    .padding(.bottom, DesignTokens.Spacing.xl * 5)
+                }
+            }
+            .tint(DesignTokens.Colors.customerPrimaryDark)
+            .navigationTitle("")
+            .navigationBarTitleDisplayMode(.inline)
+            .safeAreaInset(edge: .bottom) {
+                CustomerPetFormBottomBar(store: store)
+            }
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        store.cancelForm()
+                    }
+                    .disabled(store.isSaving)
+                }
+            }
+        }
+        .interactiveDismissDisabled(store.isSaving)
+    }
+
+    private var birthdayKnownBinding: Binding<Bool> {
+        Binding(
+            get: { store.formBirthdayDate != nil },
+            set: { isKnown in
+                store.formBirthdayDate = isKnown
+                    ? store.formBirthdayDate ?? Date()
+                    : nil
+            }
+        )
+    }
+
+    private var birthdayBinding: Binding<Date> {
+        Binding(
+            get: { store.formBirthdayDate ?? Date() },
+            set: { store.formBirthdayDate = $0 }
+        )
+    }
+
+    private var weightText: String {
+        if store.formWeightLbs < 10 {
+            return "<10 lbs"
+        }
+        if store.formWeightLbs > 100 {
+            return ">100 lbs"
+        }
+        return "\(Int(store.formWeightLbs.rounded())) lbs"
+    }
+}
+
+private struct CustomerPetFormPhotoModule: View {
+    @Bindable var store: CustomerPetsStore
+
+    var body: some View {
+        VStack(spacing: DesignTokens.Spacing.md) {
+            CustomerPetFormAvatarPreview(data: store.formAvatarPhotoData)
+
+            VStack(spacing: DesignTokens.Spacing.xs) {
+                Text(statusTitle)
+                    .font(DesignTokens.Typography.headline)
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Text(statusMessage)
+                    .font(DesignTokens.Typography.body)
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            CustomerPetFormPhotoPicker(store: store)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private var statusTitle: String {
+        if !store.pendingFormPhotos.isEmpty {
+            return "New avatar selected"
+        }
+
+        if store.formAvatarPhotoData != nil {
+            return "Current pet card avatar"
+        }
+
+        return "No avatar photo"
+    }
+
+    private var statusMessage: String {
+        if !store.pendingFormPhotos.isEmpty {
+            return "Save Pet to replace the pet card avatar."
+        }
+
+        if store.formAvatarPhotoData != nil {
+            return "Shown on Home and pet cards."
+        }
+
+        return "Choose one photo for this pet's card."
+    }
+}
+
+private struct CustomerPetFormAvatarPreview: View {
+    let data: Data?
+
+    var body: some View {
+        GroomlyModuleImage(data: data) {
+            Image(systemName: "pawprint.fill")
+                .font(.system(size: 42, weight: .semibold))
+                .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(DesignTokens.Colors.customerPrimary.opacity(0.16))
+        }
+        .frame(width: 112, height: 112)
+        .background(DesignTokens.Colors.customerPrimary.opacity(0.12))
+        .clipShape(DesignTokens.Shapes.circular)
+        .overlay {
+            Circle()
+                .stroke(DesignTokens.Colors.customerPrimary.opacity(0.34), lineWidth: 2)
+        }
+        .groomlyShadow(DesignTokens.Shadows.smallCard)
+        .accessibilityHidden(true)
+    }
+}
+
+private struct CustomerPetFormHero: View {
+    let title: String
+    let subtitle: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            Text(title)
+                .font(.system(size: 34, weight: .bold))
+                .foregroundStyle(DesignTokens.Colors.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Text(subtitle)
+                .font(DesignTokens.Typography.body)
+                .foregroundStyle(DesignTokens.Colors.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+}
+
+private struct CustomerPetFormCard<Content: View>: View {
+    let title: String
+    let systemImage: String
+    let content: Content
+
+    init(
+        title: String,
+        systemImage: String,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.title = title
+        self.systemImage = systemImage
+        self.content = content()
+    }
 
     var body: some View {
         GroomlyCard {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
-                    Image(systemName: "pawprint.fill")
-                        .font(DesignTokens.Typography.headline)
+                HStack(spacing: DesignTokens.Spacing.md) {
+                    Image(systemName: systemImage)
+                        .font(DesignTokens.Typography.body.weight(.bold))
                         .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
-                        .frame(width: 44, height: 44)
+                        .frame(width: 38, height: 38)
                         .background(DesignTokens.Colors.customerPrimary.opacity(0.16))
                         .clipShape(DesignTokens.Shapes.circular)
                         .accessibilityHidden(true)
 
-                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                        Text(pet.name)
-                            .font(DesignTokens.Typography.headline)
-                            .foregroundStyle(DesignTokens.Colors.textPrimary)
-
-                        if !detailLine.isEmpty {
-                            Text(detailLine)
-                                .font(DesignTokens.Typography.body)
-                                .foregroundStyle(DesignTokens.Colors.secondaryText)
-                        }
-                    }
-
-                    Spacer(minLength: DesignTokens.Spacing.md)
-
-                    Menu {
-                        Button("Edit") {
-                            store.startEdit(pet)
-                        }
-
-                        Button("Remove", role: .destructive) {
-                            Task {
-                                await store.softDelete(pet)
-                            }
-                        }
-                    } label: {
-                        Image(systemName: "ellipsis.circle")
-                            .font(DesignTokens.Typography.headline)
-                            .foregroundStyle(DesignTokens.Colors.textSecondary)
-                            .accessibilityLabel("Pet actions")
-                    }
-                    .disabled(store.isBusy)
+                    Text(title)
+                        .font(DesignTokens.Typography.headline)
+                        .foregroundStyle(DesignTokens.Colors.textPrimary)
                 }
 
-                if let notes = notesLine {
-                    Text(notes)
-                        .font(DesignTokens.Typography.caption)
-                        .foregroundStyle(DesignTokens.Colors.secondaryText)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-
-                Divider()
-                    .overlay(DesignTokens.Colors.divider)
-
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                    HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
-                        GroomlyStatusChip(
-                            "\(photos.count) photo\(photos.count == 1 ? "" : "s")",
-                            systemImage: "photo",
-                            tone: .customer
-                        )
-
-                        Spacer(minLength: DesignTokens.Spacing.md)
-
-                        CustomerPetPhotoUploadButton(
-                            pet: pet,
-                            store: store
-                        )
-                    }
-
-                    ForEach(photos) { photo in
-                        CustomerPetPhotoRow(
-                            photo: photo,
-                            store: store
-                        )
-                    }
-                }
+                content
             }
         }
     }
+}
 
-    private var detailLine: String {
-        [pet.species, pet.breed, pet.size]
-            .compactMap { $0 }
-            .filter { !$0.isEmpty }
-            .joined(separator: " • ")
+private struct CustomerPetFormChoiceRow<Content: View>: View {
+    let title: String
+    let subtitle: String
+    let content: Content
+
+    init(
+        title: String,
+        subtitle: String,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.title = title
+        self.subtitle = subtitle
+        self.content = content()
     }
 
-    private var notesLine: String? {
-        let values = [
-            pet.temperament.map { "Temperament: \($0)" },
-            pet.medicalNotes.map { "Medical: \($0)" },
-            pet.groomingNotes.map { "Grooming: \($0)" },
-        ]
-        .compactMap { $0 }
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(title)
+                    .font(DesignTokens.Typography.body.weight(.bold))
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
 
-        return values.isEmpty ? nil : values.joined(separator: "\n")
+                Spacer(minLength: DesignTokens.Spacing.md)
+
+                Text(subtitle)
+                    .font(DesignTokens.Typography.caption)
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                    .lineLimit(1)
+            }
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: DesignTokens.Spacing.sm) {
+                    content
+                }
+                .padding(.vertical, DesignTokens.Spacing.xs)
+            }
+        }
     }
 }
 
-private struct CustomerPetPhotoRow: View {
-    let photo: CustomerPetPhoto
+private struct CustomerPetFormChip: View {
+    let title: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(title)
+                .font(DesignTokens.Typography.body.weight(.bold))
+                .foregroundStyle(
+                    isSelected
+                        ? DesignTokens.Colors.customerPrimaryDark
+                        : DesignTokens.Colors.textSecondary
+                )
+                .lineLimit(1)
+                .padding(.horizontal, DesignTokens.Spacing.lg)
+                .frame(height: 44)
+                .background {
+                    Capsule()
+                        .fill(
+                            isSelected
+                                ? DesignTokens.Colors.customerPrimary.opacity(0.18)
+                                : DesignTokens.Colors.surface
+                        )
+                }
+                .overlay {
+                    Capsule()
+                        .stroke(
+                            isSelected
+                                ? DesignTokens.Colors.customerPrimary
+                                : DesignTokens.Colors.border,
+                            lineWidth: isSelected ? 1.5 : 1
+                        )
+                }
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+private struct CustomerPetFormLabeledTextField: View {
+    let title: String
+    let placeholder: String
+    @Binding var text: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+            Text(title)
+                .font(DesignTokens.Typography.caption.weight(.bold))
+                .foregroundStyle(DesignTokens.Colors.textSecondary)
+
+            TextField(placeholder, text: $text, axis: .vertical)
+                .lineLimit(2...5)
+                .groomlyFormField()
+        }
+    }
+}
+
+private struct CustomerPetWeightControl: View {
+    @Binding var weight: Double
+    let weightText: String
+    let sizeTitle: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            HStack(alignment: .firstTextBaseline) {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                    Text("Weight")
+                        .font(DesignTokens.Typography.body.weight(.bold))
+                        .foregroundStyle(DesignTokens.Colors.textPrimary)
+
+                    Text("Size is calculated automatically")
+                        .font(DesignTokens.Typography.caption)
+                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+                }
+
+                Spacer(minLength: DesignTokens.Spacing.md)
+
+                VStack(alignment: .trailing, spacing: DesignTokens.Spacing.xs) {
+                    Text(weightText)
+                        .font(DesignTokens.Typography.headline)
+                        .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
+
+                    Text(sizeTitle)
+                        .font(DesignTokens.Typography.caption.weight(.bold))
+                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+                }
+            }
+
+            Slider(value: $weight, in: 5...101, step: 1)
+                .tint(DesignTokens.Colors.customerPrimary)
+        }
+    }
+}
+
+private struct CustomerPetBirthdayControl: View {
+    @Binding var isKnown: Bool
+    @Binding var date: Date
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            Toggle("Birthday Known", isOn: $isKnown)
+                .font(DesignTokens.Typography.body.weight(.bold))
+                .foregroundStyle(DesignTokens.Colors.textPrimary)
+                .tint(DesignTokens.Colors.customerPrimary)
+
+            if isKnown {
+                DatePicker(
+                    "Birthday",
+                    selection: $date,
+                    in: ...Date(),
+                    displayedComponents: .date
+                )
+                .datePickerStyle(.compact)
+            }
+        }
+    }
+}
+
+private struct CustomerPetFormBottomBar: View {
     @Bindable var store: CustomerPetsStore
 
     var body: some View {
-        HStack(spacing: DesignTokens.Spacing.sm) {
-            Image(systemName: "photo")
-                .foregroundStyle(DesignTokens.Colors.textTertiary)
-                .accessibilityHidden(true)
-
-            Text(photo.fileName)
-                .font(DesignTokens.Typography.caption)
-                .foregroundStyle(DesignTokens.Colors.secondaryText)
-                .lineLimit(1)
-
-            Spacer(minLength: DesignTokens.Spacing.sm)
-
-            Button(role: .destructive) {
+        VStack(spacing: 0) {
+            Button {
                 Task {
-                    await store.deletePhoto(photo)
+                    await store.savePet()
                 }
             } label: {
-                Label("Delete", systemImage: "trash")
+                Text(store.isSaving ? "Saving..." : "Save Pet")
             }
-            .font(DesignTokens.Typography.caption.weight(.semibold))
-            .foregroundStyle(DesignTokens.Colors.error)
-            .buttonStyle(.plain)
-            .disabled(store.isBusy)
+            .buttonStyle(GroomlyPrimaryButtonStyle(accent: .customer))
+            .disabled(store.isSaving)
+            .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+            .padding(.vertical, DesignTokens.Spacing.md)
+            .background(.ultraThinMaterial)
         }
-        .padding(.vertical, DesignTokens.Spacing.xs)
     }
 }
 
-private struct CustomerPetPhotoUploadButton: View {
-    let pet: CustomerPet
+private struct CustomerPetFormPhotoPicker: View {
     @Bindable var store: CustomerPetsStore
     @State private var selectedPhotoItem: PhotosPickerItem?
 
     var body: some View {
+        let avatarActionTitle = store.formAvatarPhotoData == nil ? "Choose Avatar" : "Change Avatar"
+
         PhotosPicker(
             selection: $selectedPhotoItem,
             matching: .images
         ) {
-            Label("Add Photo", systemImage: "plus.circle")
+            Label(
+                avatarActionTitle,
+                systemImage: "camera.fill"
+            )
                 .lineLimit(1)
         }
         .buttonStyle(GroomlySecondaryButtonStyle(isFullWidth: false))
-        .disabled(store.isBusy)
+        .disabled(store.isSaving)
         .onChange(of: selectedPhotoItem) { _, newItem in
             guard let newItem else { return }
             Task {
-                await upload(newItem)
+                await addPendingPhoto(newItem)
             }
         }
     }
 
-    private func upload(_ item: PhotosPickerItem) async {
+    private func addPendingPhoto(_ item: PhotosPickerItem) async {
         defer { selectedPhotoItem = nil }
 
         guard let data = try? await item.loadTransferable(type: Data.self) else {
@@ -852,96 +1239,10 @@ private struct CustomerPetPhotoUploadButton: View {
             .compactMap(CustomerPetPhotoContentType.init(uniformType:))
             .first ?? .jpeg
 
-        await store.uploadPhoto(
-            pet: pet,
+        store.addPendingFormPhoto(
             data: data,
             contentType: contentType
         )
-    }
-}
-
-private struct CustomerPetFormView: View {
-    @Bindable var store: CustomerPetsStore
-
-    var body: some View {
-        NavigationStack {
-            Form {
-                Section("Basics") {
-                    TextField("Name", text: $store.formName)
-                        .textContentType(.name)
-                        .groomlyFormField()
-
-                    TextField("Species", text: $store.formSpecies)
-                        .groomlyFormField()
-
-                    TextField("Breed", text: $store.formBreed)
-                        .groomlyFormField()
-
-                    TextField("Size", text: $store.formSize)
-                        .groomlyFormField()
-                }
-                .listRowBackground(Color.clear)
-
-                Section("Optional details") {
-                    TextField("Weight in lbs", text: $store.formWeightLbs)
-                        .keyboardType(.decimalPad)
-                        .groomlyFormField()
-
-                    TextField("Birthday YYYY-MM-DD", text: $store.formBirthday)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        .groomlyFormField()
-
-                    TextField("Temperament", text: $store.formTemperament, axis: .vertical)
-                        .lineLimit(2...4)
-                        .groomlyFormField()
-
-                    TextField("Medical notes", text: $store.formMedicalNotes, axis: .vertical)
-                        .lineLimit(2...5)
-                        .groomlyFormField()
-
-                    TextField("Grooming notes", text: $store.formGroomingNotes, axis: .vertical)
-                        .lineLimit(2...5)
-                        .groomlyFormField()
-                }
-                .listRowBackground(Color.clear)
-
-                if let errorMessage = store.errorMessage {
-                    Section {
-                        GroomlyErrorBanner(
-                            title: "Check Pet Details",
-                            message: errorMessage
-                        )
-                    }
-                    .listRowBackground(Color.clear)
-                    .accessibilityIdentifier("customer.pets.form-error")
-                }
-            }
-            .formStyle(.grouped)
-            .scrollContentBackground(.hidden)
-            .background(DesignTokens.Colors.background)
-            .tint(DesignTokens.Colors.customerPrimaryDark)
-            .navigationTitle(store.formTitle)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        store.cancelForm()
-                    }
-                    .disabled(store.isSaving)
-                }
-
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
-                        Task {
-                            await store.savePet()
-                        }
-                    }
-                    .disabled(store.isSaving)
-                }
-            }
-        }
-        .interactiveDismissDisabled(store.isSaving)
     }
 }
 
@@ -949,45 +1250,36 @@ private struct CustomerPetsStatusView: View {
     let store: CustomerPetsStore
 
     var body: some View {
-        VStack(spacing: 0) {
-            GroomlyNoticeForwarder(message: store.noticeMessage) { message in
+        GroomlyGlobalFeedbackForwarder(
+            noticeMessage: store.noticeMessage,
+            clearNotice: { message in
                 guard store.noticeMessage == message else { return }
                 store.noticeMessage = nil
-            }
-
-            if hasInlineStatus {
-                inlineStatus
-            }
-        }
+            },
+            error: errorPrompt,
+            progress: progressPrompt
+        )
     }
 
-    private var inlineStatus: some View {
-        VStack(spacing: DesignTokens.Spacing.sm) {
-            if store.isSaving || store.isUploading {
-                GroomlyStatusProgressToast(
-                    store.isUploading ? "Uploading…" : "Saving…",
-                    tint: DesignTokens.Colors.customerPrimary
-                )
-            }
-
-            if let errorMessage = store.errorMessage,
-               !store.isShowingPetForm {
-                GroomlyErrorBanner(
-                    title: "We Could Not Update Your Pets",
-                    message: errorMessage
-                )
-            }
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.horizontal, DesignTokens.Spacing.standard)
-        .padding(.vertical, DesignTokens.Spacing.sm)
-        .animation(.easeInOut(duration: 0.24), value: hasInlineStatus)
+    private var errorPrompt: GroomlyGlobalFeedbackError? {
+        guard let errorMessage = store.errorMessage,
+              !store.isShowingPetForm else { return nil }
+        return GroomlyGlobalFeedbackError(
+            scope: .page("customer.pets"),
+            sourceKey: "customer.pets.error",
+            title: "We Could Not Update Your Pets",
+            message: errorMessage
+        )
     }
 
-    private var hasInlineStatus: Bool {
-        store.isSaving
-            || store.isUploading
-            || (store.errorMessage != nil && !store.isShowingPetForm)
+    private var progressPrompt: GroomlyGlobalFeedbackProgress? {
+        guard store.isSaving || store.isUploading else { return nil }
+        return GroomlyGlobalFeedbackProgress(
+            scope: .operation("customer.pets.save"),
+            sourceKey: "customer.pets.save-progress",
+            title: store.isUploading ? "Uploading…" : "Saving…",
+            tone: .customer
+        )
     }
 }
 
@@ -1019,7 +1311,8 @@ private final class CustomerPetsPreviewRepository: CustomerPetRepository {
                 name: "Mochi",
                 species: "Dog",
                 breed: "Shiba Inu",
-                size: "Small",
+                coatType: nil,
+                size: "M",
                 weightLbs: 22,
                 birthday: "2022-03-10",
                 temperament: "Friendly",
@@ -1033,7 +1326,8 @@ private final class CustomerPetsPreviewRepository: CustomerPetRepository {
                 name: "Biscuit",
                 species: "Dog",
                 breed: "Pomeranian",
-                size: "Small",
+                coatType: nil,
+                size: "S",
                 weightLbs: 12,
                 birthday: "2023-05-14",
                 temperament: "Playful",
@@ -1062,6 +1356,7 @@ private final class CustomerPetsPreviewRepository: CustomerPetRepository {
             name: draft.name,
             species: draft.species,
             breed: draft.breed,
+            coatType: draft.coatType,
             size: draft.size,
             weightLbs: draft.weightLbs,
             birthday: draft.birthday,
@@ -1084,6 +1379,7 @@ private final class CustomerPetsPreviewRepository: CustomerPetRepository {
             name: draft.name,
             species: draft.species,
             breed: draft.breed,
+            coatType: draft.coatType,
             size: draft.size,
             weightLbs: draft.weightLbs,
             birthday: draft.birthday,
@@ -1135,7 +1431,8 @@ private final class CustomerHomePreviewRequestRepository: CustomerRequestReposit
                     name: "Mochi",
                     species: "Dog",
                     breed: "Toy Poodle",
-                    size: "Small",
+                    coatType: nil,
+                    size: "S",
                     weightLbs: 18,
                     birthday: nil,
                     temperament: "Gentle",
@@ -1144,13 +1441,16 @@ private final class CustomerHomePreviewRequestRepository: CustomerRequestReposit
                     snapshotAt: "2026-06-20T12:00:00Z"
                 ),
                 photoSnapshot: [],
-                serviceType: "Full Groom",
+                serviceType: .fullGroom,
                 serviceNotes: "Trim and brush out.",
                 preferredStart: "2026-06-24T16:00:00Z",
                 preferredEnd: "2026-06-24T18:00:00Z",
+                locationMode: .groomerComesToCustomer,
+                streetAddress: "123 Pine Street",
                 city: "Seattle",
                 state: "WA",
                 zipCode: "98101",
+                travelRadiusMiles: nil,
                 status: .open,
                 expiresAt: "2026-06-23T12:00:00Z",
                 createdAt: "2026-06-20T12:00:00Z",
@@ -1173,6 +1473,29 @@ private final class CustomerHomePreviewRequestRepository: CustomerRequestReposit
         GroomingRequestPublishResult(
             requestID: UUID(),
             matchCount: 2
+        )
+    }
+
+    func uploadRequestPhoto(
+        customerID: UUID,
+        requestID: UUID,
+        data: Data,
+        contentType: GroomingRequestPhotoContentType,
+        caption: String?
+    ) async throws -> GroomingRequestPhoto {
+        GroomingRequestPhoto(
+            id: UUID(),
+            requestID: requestID,
+            customerID: customerID,
+            storageBucket: "request-photos",
+            storagePath: GroomingRequestPhotoPath.make(
+                customerID: customerID,
+                requestID: requestID,
+                contentType: contentType
+            ),
+            caption: caption,
+            sortOrder: 0,
+            createdAt: "2026-06-20T14:00:00Z"
         )
     }
 

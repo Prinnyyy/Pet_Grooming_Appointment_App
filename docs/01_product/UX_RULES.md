@@ -18,12 +18,16 @@
 ## Marketplace Behavior
 
 - A customer publishes one open request rather than selecting and repeatedly contacting individual groomers.
+- Pet-fit matching v1 is request-first: the customer gives pet/service context, Groomly distributes the request to eligible groomers, and the customer chooses from concrete groomer offers.
+- Do not expose a public all-groomer directory or direct customer slot booking in pet-fit v1. Groomer availability supports offer feasibility before it becomes customer self-booking.
 - A groomer may dismiss an assigned request privately. The customer remains in a neutral waiting state.
 - A groomer has at most one active offer per request and may withdraw it according to backend rules.
 - A customer can accept only one offer. The UI must wait for the atomic backend result before showing a booking.
 - A cancelled booking remains a cancellation outcome for that booking; do not imply that the original request or accepted offer reopened.
 - Hide completion and review actions until their backend transitions exist.
 - Do not show actions that are invalid for the current request, match, offer, or booking status.
+- Groomer-claimed specialty labels are not proof of expertise. User-facing fit copy must distinguish claimed availability from evidence-backed outcomes such as completed similar bookings, relevant positive reviews, or repeat customers.
+- Match explanations should favor concise evidence language such as "Portfolio match", "Similar completed bookings", or "Good fit for small terriers" rather than opaque scores.
 
 ## Groomly UI Copy Rules
 

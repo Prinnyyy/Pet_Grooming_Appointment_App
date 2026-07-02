@@ -5,6 +5,7 @@ struct AppRootView: View {
     let authenticationBootstrapState: AuthenticationBootstrapState
     let authenticationStore: AuthenticationStore?
     let profileRepository: (any ProfileRepository)?
+    let customerProfileRepository: (any CustomerProfileRepository)?
     let customerPetRepository: (any CustomerPetRepository)?
     let customerRequestRepository: (any CustomerRequestRepository)?
     let bookingRepository: (any BookingRepository)?
@@ -18,6 +19,7 @@ struct AppRootView: View {
         authenticationBootstrapState: AuthenticationBootstrapState = .ready,
         authenticationStore: AuthenticationStore? = nil,
         profileRepository: (any ProfileRepository)? = nil,
+        customerProfileRepository: (any CustomerProfileRepository)? = nil,
         customerPetRepository: (any CustomerPetRepository)? = nil,
         customerRequestRepository: (any CustomerRequestRepository)? = nil,
         bookingRepository: (any BookingRepository)? = nil,
@@ -30,6 +32,7 @@ struct AppRootView: View {
         self.authenticationBootstrapState = authenticationBootstrapState
         self.authenticationStore = authenticationStore
         self.profileRepository = profileRepository
+        self.customerProfileRepository = customerProfileRepository
         self.customerPetRepository = customerPetRepository
         self.customerRequestRepository = customerRequestRepository
         self.bookingRepository = bookingRepository
@@ -44,6 +47,7 @@ struct AppRootView: View {
         case .authentication:
             if let authenticationStore,
                let profileRepository,
+               let customerProfileRepository,
                let customerPetRepository,
                let customerRequestRepository,
                let bookingRepository,
@@ -53,6 +57,7 @@ struct AppRootView: View {
                 AuthenticationGateView(
                     store: authenticationStore,
                     profileRepository: profileRepository,
+                    customerProfileRepository: customerProfileRepository,
                     customerPetRepository: customerPetRepository,
                     customerRequestRepository: customerRequestRepository,
                     bookingRepository: bookingRepository,

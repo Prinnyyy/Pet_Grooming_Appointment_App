@@ -3,6 +3,11 @@
 
 # Local Supabase credentials; never commit.
 supabase_api_key
+supabase_environment_variables
+supabase/.temp/
 
 # Local iOS Supabase environment; publishable key is injected at build time.
 ios/PetGroomerMarketplace/Config/Supabase.local.xcconfig
+
+# Local TestOps run artifacts.
+artifacts/testops/

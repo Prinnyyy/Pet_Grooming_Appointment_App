@@ -9,12 +9,16 @@ final class SupabaseGroomerRequestRepository: GroomerRequestRepository {
         """
     private static let requestColumns = """
         id,customer_id,pet_id,pet_snapshot,photo_snapshot,service_type,service_notes,\
-        preferred_start,preferred_end,city,state,zip_code,status,expires_at,created_at,updated_at
+        preferred_start,preferred_end,location_mode,street_address,city,state,zip_code,\
+        travel_radius_miles,status,expires_at,created_at,updated_at
         """
     private static let offerColumns = """
         id,request_id,match_id,customer_id,groomer_id,proposed_start,proposed_end,\
         price_estimate,message,status,expires_at,withdrawn_at,created_at,updated_at
         """
+    private static let requestPhotoColumns =
+        "id,request_id,customer_id,storage_bucket,storage_path,caption,sort_order,created_at"
+    private static let requestPhotoBucketID = PhotoStorageBucketID.groomingRequest.rawValue
 
     private let client: SupabaseClient
 
@@ -82,6 +86,39 @@ final class SupabaseGroomerRequestRepository: GroomerRequestRepository {
                     offer: latestOffersByRequestID[row.requestID]
                 )
             }
+        } catch {
+            throw Self.map(error)
+        }
+    }
+
+    func requestPhotos(
+        groomerID: UUID,
+        requestIDs: [UUID]
+    ) async throws -> [GroomingRequestPhoto] {
+        let ids = Self.uniqueLowercaseStrings(from: requestIDs)
+        guard !ids.isEmpty else { return [] }
+
+        do {
+            let rows: [GroomingRequestPhotoRow] = try await client
+                .from("request_photos")
+                .select(Self.requestPhotoColumns)
+                .in("request_id", values: ids)
+                .order("sort_order")
+                .order("created_at")
+                .execute()
+                .value
+
+            return rows.map(\.photo)
+        } catch {
+            throw Self.map(error)
+        }
+    }
+
+    func requestPhotoData(_ photo: GroomingRequestPhoto) async throws -> Data {
+        do {
+            return try await client.storage
+                .from(Self.requestPhotoBucketID)
+                .download(path: photo.storagePath)
         } catch {
             throw Self.map(error)
         }
@@ -164,6 +201,10 @@ final class SupabaseGroomerRequestRepository: GroomerRequestRepository {
     }
 
     private static func map(_ error: any Error) -> GroomerRequestRepositoryError {
+        if AppDebugErrorClassifier.isCancellation(error) {
+            return .cancelled
+        }
+
         if let repositoryError = error as? GroomerRequestRepositoryError {
             return repositoryError
         }
@@ -188,6 +229,8 @@ final class SupabaseGroomerRequestRepository: GroomerRequestRepository {
                     return .noLongerOfferable
                 case "active_offer_exists":
                     return .activeOfferExists
+                case "groomer_unavailable":
+                    return .groomerUnavailable
                 case "offer_not_found", "invalid_offer":
                     return .offerNotFound
                 case "offer_not_withdrawable":
@@ -215,6 +258,45 @@ final class SupabaseGroomerRequestRepository: GroomerRequestRepository {
         }
 
         return .unavailable
+    }
+
+    private static func uniqueLowercaseStrings(from ids: [UUID]) -> [String] {
+        Array(Set(ids)).map { $0.uuidString.lowercased() }
+    }
+}
+
+private struct GroomingRequestPhotoRow: Decodable {
+    let id: UUID
+    let requestID: UUID
+    let customerID: UUID
+    let storageBucket: String
+    let storagePath: String
+    let caption: String?
+    let sortOrder: Int
+    let createdAt: String?
+
+    var photo: GroomingRequestPhoto {
+        GroomingRequestPhoto(
+            id: id,
+            requestID: requestID,
+            customerID: customerID,
+            storageBucket: storageBucket,
+            storagePath: storagePath,
+            caption: caption,
+            sortOrder: sortOrder,
+            createdAt: createdAt
+        )
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case requestID = "request_id"
+        case customerID = "customer_id"
+        case storageBucket = "storage_bucket"
+        case storagePath = "storage_path"
+        case caption
+        case sortOrder = "sort_order"
+        case createdAt = "created_at"
     }
 }
 
@@ -324,13 +406,16 @@ private struct GroomerMatchedGroomingRequestRow: Decodable {
     let petID: UUID?
     let petSnapshot: GroomingRequestPetSnapshot
     let photoSnapshot: [GroomingRequestPhotoSnapshot]
-    let serviceType: String
+    let serviceType: GroomingServiceType
     let serviceNotes: String?
     let preferredStart: String
     let preferredEnd: String
+    let locationMode: GroomingLocationMode
+    let streetAddress: String
     let city: String
     let state: String
     let zipCode: String
+    let travelRadiusMiles: Int?
     let status: GroomingRequestStatus
     let expiresAt: String
     let createdAt: String
@@ -347,9 +432,12 @@ private struct GroomerMatchedGroomingRequestRow: Decodable {
             serviceNotes: serviceNotes,
             preferredStart: preferredStart,
             preferredEnd: preferredEnd,
+            locationMode: locationMode,
+            streetAddress: streetAddress,
             city: city,
             state: state,
             zipCode: zipCode,
+            travelRadiusMiles: travelRadiusMiles,
             status: status,
             expiresAt: expiresAt,
             createdAt: createdAt,
@@ -367,9 +455,12 @@ private struct GroomerMatchedGroomingRequestRow: Decodable {
         case serviceNotes = "service_notes"
         case preferredStart = "preferred_start"
         case preferredEnd = "preferred_end"
+        case locationMode = "location_mode"
+        case streetAddress = "street_address"
         case city
         case state
         case zipCode = "zip_code"
+        case travelRadiusMiles = "travel_radius_miles"
         case status
         case expiresAt = "expires_at"
         case createdAt = "created_at"

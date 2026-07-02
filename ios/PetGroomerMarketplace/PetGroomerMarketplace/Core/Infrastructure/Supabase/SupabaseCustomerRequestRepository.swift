@@ -5,14 +5,20 @@ import Supabase
 final class SupabaseCustomerRequestRepository: CustomerRequestRepository {
     private static let requestColumns = """
         id,customer_id,pet_id,pet_snapshot,photo_snapshot,service_type,service_notes,\
-        preferred_start,preferred_end,city,state,zip_code,status,expires_at,created_at,updated_at
+        preferred_start,preferred_end,location_mode,street_address,city,state,zip_code,\
+        travel_radius_miles,status,expires_at,created_at,updated_at
         """
     private static let offerColumns = """
         id,request_id,match_id,customer_id,groomer_id,proposed_start,proposed_end,\
         price_estimate,message,status,expires_at,withdrawn_at,created_at,updated_at
         """
+    private static let offerMatchEvidenceColumns =
+        "id,match_score,match_reason"
     private static let groomerProfileColumns =
-        "user_id,business_name,bio,years_experience,base_city,base_state,service_radius_miles,rating_avg,rating_count,is_active,is_verified"
+        "user_id,business_name,bio,years_experience,base_city,base_state,service_radius_miles,service_location_mode,rating_avg,rating_count,is_active,is_verified"
+    private static let requestPhotoColumns =
+        "id,request_id,customer_id,storage_bucket,storage_path,caption,sort_order,created_at"
+    fileprivate static let requestPhotoBucketID = PhotoStorageBucketID.groomingRequest.rawValue
 
     private let client: SupabaseClient
 
@@ -54,6 +60,8 @@ final class SupabaseCustomerRequestRepository: CustomerRequestRepository {
 
             let groomerIDs = Set(offerRows.map(\.groomerID))
                 .map { $0.uuidString.lowercased() }
+            let matchIDs = Set(offerRows.map(\.matchID))
+                .map { $0.uuidString.lowercased() }
 
             let profileRows: [CustomerOfferGroomerProfileRow] = try await client
                 .from("groomer_profiles")
@@ -62,16 +70,65 @@ final class SupabaseCustomerRequestRepository: CustomerRequestRepository {
                 .execute()
                 .value
 
+            let matchRows: [CustomerOfferMatchEvidenceRow] = try await client
+                .from("request_matches")
+                .select(Self.offerMatchEvidenceColumns)
+                .eq("customer_id", value: customerID.uuidString.lowercased())
+                .eq("request_id", value: requestID.uuidString.lowercased())
+                .in("id", values: matchIDs)
+                .execute()
+                .value
+
             let profilesByID = Dictionary(
                 uniqueKeysWithValues: profileRows.map { ($0.userID, $0.profile) }
             )
+            let matchEvidenceByID = Dictionary(
+                uniqueKeysWithValues: matchRows.map { ($0.id, $0) }
+            )
 
             return offerRows.map { row in
-                CustomerOfferReview(
+                let matchEvidence = matchEvidenceByID[row.matchID]
+                return CustomerOfferReview(
                     offer: row.offer,
-                    groomerProfile: profilesByID[row.groomerID]
+                    groomerProfile: profilesByID[row.groomerID],
+                    matchScore: matchEvidence?.matchScore,
+                    matchReason: matchEvidence?.matchReason
                 )
             }
+        } catch {
+            throw Self.map(error)
+        }
+    }
+
+    func requestPhotos(
+        customerID: UUID,
+        requestIDs: [UUID]
+    ) async throws -> [GroomingRequestPhoto] {
+        let ids = Self.uniqueLowercaseStrings(from: requestIDs)
+        guard !ids.isEmpty else { return [] }
+
+        do {
+            let rows: [GroomingRequestPhotoRow] = try await client
+                .from("request_photos")
+                .select(Self.requestPhotoColumns)
+                .eq("customer_id", value: customerID.uuidString.lowercased())
+                .in("request_id", values: ids)
+                .order("sort_order")
+                .order("created_at")
+                .execute()
+                .value
+
+            return rows.map(\.photo)
+        } catch {
+            throw Self.map(error)
+        }
+    }
+
+    func requestPhotoData(_ photo: GroomingRequestPhoto) async throws -> Data {
+        do {
+            return try await client.storage
+                .from(Self.requestPhotoBucketID)
+                .download(path: photo.storagePath)
         } catch {
             throw Self.map(error)
         }
@@ -102,6 +159,63 @@ final class SupabaseCustomerRequestRepository: CustomerRequestRepository {
         }
     }
 
+    func uploadRequestPhoto(
+        customerID: UUID,
+        requestID: UUID,
+        data: Data,
+        contentType: GroomingRequestPhotoContentType,
+        caption: String?
+    ) async throws -> GroomingRequestPhoto {
+        let storagePath = GroomingRequestPhotoPath.make(
+            customerID: customerID,
+            requestID: requestID,
+            contentType: contentType
+        )
+
+        do {
+            try await client.storage
+                .from(Self.requestPhotoBucketID)
+                .upload(
+                    storagePath,
+                    data: data,
+                    options: FileOptions(
+                        contentType: contentType.mimeType,
+                        upsert: false
+                    )
+                )
+
+            let rows: [GroomingRequestPhotoRow] = try await client
+                .from("request_photos")
+                .insert(
+                    GroomingRequestPhotoInsertRow(
+                        requestID: requestID,
+                        customerID: customerID,
+                        storagePath: storagePath,
+                        caption: Self.normalized(caption)
+                    )
+                )
+                .select(Self.requestPhotoColumns)
+                .execute()
+                .value
+
+            guard rows.count == 1, let photo = rows.first?.photo else {
+                _ = try? await client.storage
+                    .from(Self.requestPhotoBucketID)
+                    .remove(paths: [storagePath])
+                throw CustomerRequestRepositoryError.unavailable
+            }
+
+            return photo
+        } catch let error as CustomerRequestRepositoryError {
+            throw error
+        } catch {
+            _ = try? await client.storage
+                .from(Self.requestPhotoBucketID)
+                .remove(paths: [storagePath])
+            throw Self.map(error)
+        }
+    }
+
     func cancelRequest(
         requestID: UUID
     ) async throws -> CancelGroomingRequestResult {
@@ -127,6 +241,10 @@ final class SupabaseCustomerRequestRepository: CustomerRequestRepository {
     }
 
     private static func map(_ error: any Error) -> CustomerRequestRepositoryError {
+        if AppDebugErrorClassifier.isCancellation(error) {
+            return .cancelled
+        }
+
         if let repositoryError = error as? CustomerRequestRepositoryError {
             return repositoryError
         }
@@ -173,6 +291,15 @@ final class SupabaseCustomerRequestRepository: CustomerRequestRepository {
 
         return .unavailable
     }
+
+    private static func normalized(_ value: String?) -> String? {
+        let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return trimmed.isEmpty ? nil : trimmed
+    }
+
+    private static func uniqueLowercaseStrings(from ids: [UUID]) -> [String] {
+        Array(Set(ids)).map { $0.uuidString.lowercased() }
+    }
 }
 
 private struct GroomingRequestRow: Decodable {
@@ -181,13 +308,16 @@ private struct GroomingRequestRow: Decodable {
     let petID: UUID?
     let petSnapshot: GroomingRequestPetSnapshot
     let photoSnapshot: [GroomingRequestPhotoSnapshot]
-    let serviceType: String
+    let serviceType: GroomingServiceType
     let serviceNotes: String?
     let preferredStart: String
     let preferredEnd: String
+    let locationMode: GroomingLocationMode
+    let streetAddress: String
     let city: String
     let state: String
     let zipCode: String
+    let travelRadiusMiles: Int?
     let status: GroomingRequestStatus
     let expiresAt: String
     let createdAt: String
@@ -204,9 +334,12 @@ private struct GroomingRequestRow: Decodable {
             serviceNotes: serviceNotes,
             preferredStart: preferredStart,
             preferredEnd: preferredEnd,
+            locationMode: locationMode,
+            streetAddress: streetAddress,
             city: city,
             state: state,
             zipCode: zipCode,
+            travelRadiusMiles: travelRadiusMiles,
             status: status,
             expiresAt: expiresAt,
             createdAt: createdAt,
@@ -224,9 +357,12 @@ private struct GroomingRequestRow: Decodable {
         case serviceNotes = "service_notes"
         case preferredStart = "preferred_start"
         case preferredEnd = "preferred_end"
+        case locationMode = "location_mode"
+        case streetAddress = "street_address"
         case city
         case state
         case zipCode = "zip_code"
+        case travelRadiusMiles = "travel_radius_miles"
         case status
         case expiresAt = "expires_at"
         case createdAt = "created_at"
@@ -332,6 +468,7 @@ private struct CustomerOfferGroomerProfileRow: Decodable {
     let baseCity: String?
     let baseState: String?
     let serviceRadiusMiles: Int?
+    let serviceLocationMode: GroomingLocationMode?
     let ratingAverage: Double
     let ratingCount: Int
     let isActive: Bool
@@ -346,6 +483,7 @@ private struct CustomerOfferGroomerProfileRow: Decodable {
             baseCity: baseCity,
             baseState: baseState,
             serviceRadiusMiles: serviceRadiusMiles,
+            serviceLocationMode: serviceLocationMode,
             ratingAverage: ratingAverage,
             ratingCount: ratingCount,
             isActive: isActive,
@@ -361,10 +499,23 @@ private struct CustomerOfferGroomerProfileRow: Decodable {
         case baseCity = "base_city"
         case baseState = "base_state"
         case serviceRadiusMiles = "service_radius_miles"
+        case serviceLocationMode = "service_location_mode"
         case ratingAverage = "rating_avg"
         case ratingCount = "rating_count"
         case isActive = "is_active"
         case isVerified = "is_verified"
+    }
+}
+
+private struct CustomerOfferMatchEvidenceRow: Decodable {
+    let id: UUID
+    let matchScore: Double?
+    let matchReason: String?
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case matchScore = "match_score"
+        case matchReason = "match_reason"
     }
 }
 
@@ -374,7 +525,7 @@ private struct CreateGroomingRequestParameters: Encodable {
     func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(draft.petID.uuidString.lowercased(), forKey: .petID)
-        try container.encode(draft.serviceType, forKey: .serviceType)
+        try container.encode(draft.serviceType.rawValue, forKey: .serviceType)
         if let serviceNotes = draft.serviceNotes {
             try container.encode(serviceNotes, forKey: .serviceNotes)
         } else {
@@ -388,9 +539,16 @@ private struct CreateGroomingRequestParameters: Encodable {
             GroomingRequestDateFormatting.serverString(from: draft.preferredEnd),
             forKey: .preferredEnd
         )
+        try container.encode(draft.locationMode.rawValue, forKey: .locationMode)
+        try container.encode(draft.streetAddress, forKey: .streetAddress)
         try container.encode(draft.city, forKey: .city)
-        try container.encode(draft.state, forKey: .state)
+        try container.encode(draft.stateCode.rawValue, forKey: .state)
         try container.encode(draft.zipCode, forKey: .zipCode)
+        if let travelRadiusMiles = draft.travelRadiusMiles {
+            try container.encode(travelRadiusMiles, forKey: .travelRadiusMiles)
+        } else {
+            try container.encodeNil(forKey: .travelRadiusMiles)
+        }
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -399,9 +557,71 @@ private struct CreateGroomingRequestParameters: Encodable {
         case serviceNotes = "p_service_notes"
         case preferredStart = "p_preferred_start"
         case preferredEnd = "p_preferred_end"
+        case locationMode = "p_location_mode"
+        case streetAddress = "p_street_address"
         case city = "p_city"
         case state = "p_state"
         case zipCode = "p_zip_code"
+        case travelRadiusMiles = "p_travel_radius_miles"
+    }
+}
+
+private struct GroomingRequestPhotoRow: Decodable {
+    let id: UUID
+    let requestID: UUID
+    let customerID: UUID
+    let storageBucket: String
+    let storagePath: String
+    let caption: String?
+    let sortOrder: Int
+    let createdAt: String?
+
+    var photo: GroomingRequestPhoto {
+        GroomingRequestPhoto(
+            id: id,
+            requestID: requestID,
+            customerID: customerID,
+            storageBucket: storageBucket,
+            storagePath: storagePath,
+            caption: caption,
+            sortOrder: sortOrder,
+            createdAt: createdAt
+        )
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case requestID = "request_id"
+        case customerID = "customer_id"
+        case storageBucket = "storage_bucket"
+        case storagePath = "storage_path"
+        case caption
+        case sortOrder = "sort_order"
+        case createdAt = "created_at"
+    }
+}
+
+private struct GroomingRequestPhotoInsertRow: Encodable {
+    let requestID: UUID
+    let customerID: UUID
+    let storagePath: String
+    let caption: String?
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(requestID.uuidString.lowercased(), forKey: .requestID)
+        try container.encode(customerID.uuidString.lowercased(), forKey: .customerID)
+        try container.encode(SupabaseCustomerRequestRepository.requestPhotoBucketID, forKey: .storageBucket)
+        try container.encode(storagePath, forKey: .storagePath)
+        try container.encodeIfPresent(caption, forKey: .caption)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case requestID = "request_id"
+        case customerID = "customer_id"
+        case storageBucket = "storage_bucket"
+        case storagePath = "storage_path"
+        case caption
     }
 }
 

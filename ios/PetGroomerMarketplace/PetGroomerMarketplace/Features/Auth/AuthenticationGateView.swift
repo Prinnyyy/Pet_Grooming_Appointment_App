@@ -3,6 +3,7 @@ import SwiftUI
 struct AuthenticationGateView: View {
     @Bindable var store: AuthenticationStore
     let profileRepository: any ProfileRepository
+    let customerProfileRepository: any CustomerProfileRepository
     let customerPetRepository: any CustomerPetRepository
     let customerRequestRepository: any CustomerRequestRepository
     let bookingRepository: any BookingRepository
@@ -34,6 +35,7 @@ struct AuthenticationGateView: View {
                     session: session,
                     authenticationStore: store,
                     profileRepository: profileRepository,
+                    customerProfileRepository: customerProfileRepository,
                     customerPetRepository: customerPetRepository,
                     customerRequestRepository: customerRequestRepository,
                     bookingRepository: bookingRepository,

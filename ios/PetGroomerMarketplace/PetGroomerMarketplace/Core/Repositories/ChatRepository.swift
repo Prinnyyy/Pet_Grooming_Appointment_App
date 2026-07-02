@@ -5,6 +5,7 @@ enum ChatRepositoryError: Error, Equatable, Sendable {
     case conversationNotFound
     case invalidMessage
     case networkUnavailable
+    case cancelled
     case unavailable
 }
 

@@ -24,6 +24,47 @@ struct GroomerRequestsStoreTests {
     }
 
     @Test @MainActor
+    func loadRecordsStructuredDebugEventsForEmptyMatchedRequestResult() async throws {
+        let groomerID = UUID()
+        let recorder = AppDebugEventRecorder(
+            writer: AppDebugEventWriterSpy(),
+            emitsToOSLog: false
+        )
+        let repository = GroomerRequestRepositoryFake(
+            matchedRequestsResult: .success([])
+        )
+        let store = GroomerRequestsStore(
+            groomerID: groomerID,
+            repository: repository,
+            debugRecorder: recorder
+        )
+
+        await store.load()
+
+        let start = try #require(
+            recorder.events.first {
+                $0.source == "GroomerRequestsStore.load"
+                    && $0.message == "start"
+            }
+        )
+        let success = try #require(
+            recorder.events.first {
+                $0.source == "GroomerRequestsStore.load"
+                    && $0.message == "success"
+            }
+        )
+
+        #expect(start.scope == "groomer.requests")
+        #expect(start.metadata["operation"] == "load")
+        #expect(start.metadata["groomerID"] == groomerID.uuidString.prefix(8).uppercased())
+        #expect(success.scope == "groomer.requests")
+        #expect(success.metadata["operation"] == "load")
+        #expect(success.metadata["matchedRequestCount"] == "0")
+        #expect(success.metadata["requestPhotoCount"] == "0")
+        #expect(success.metadata["downloadedPhotoCount"] == "0")
+    }
+
+    @Test @MainActor
     func dismissCallsRepositoryAndRemovesMatch() async throws {
         let groomerID = UUID()
         let matchedRequest = Self.matchedRequest(groomerID: groomerID)
@@ -167,6 +208,35 @@ struct GroomerRequestsStoreTests {
     }
 
     @Test @MainActor
+    func submitOfferUnavailableRangePreservesMatchAndShowsAvailabilityError() async throws {
+        let groomerID = UUID()
+        let matchedRequest = Self.matchedRequest(groomerID: groomerID)
+        let repository = GroomerRequestRepositoryFake(
+            matchedRequestsResult: .success([matchedRequest]),
+            createOfferResult: .failure(.groomerUnavailable)
+        )
+        let store = GroomerRequestsStore(
+            groomerID: groomerID,
+            repository: repository
+        )
+        await store.load()
+
+        let start = Date(timeIntervalSince1970: 1_783_000_000)
+        await store.submitOffer(
+            for: matchedRequest,
+            proposedStart: start,
+            proposedEnd: start.addingTimeInterval(2 * 60 * 60),
+            priceEstimateText: "125",
+            message: "",
+            now: start.addingTimeInterval(-60 * 60)
+        )
+
+        #expect(repository.createOfferCallCount == 1)
+        #expect(store.matchedRequests == [matchedRequest])
+        #expect(store.errorMessage == "Choose a time within your availability and outside time off.")
+    }
+
+    @Test @MainActor
     func pendingOfferCanBeWithdrawnAndReturnsMatchToViewed() async throws {
         let groomerID = UUID()
         let offerID = UUID()
@@ -202,9 +272,78 @@ struct GroomerRequestsStoreTests {
         #expect(store.noticeMessage == "Offer withdrawn.")
     }
 
+    @Test @MainActor
+    func fitEvidencePresentationUsesExplanationFirstCopyWithoutRawScore() {
+        let matchedRequest = Self.matchedRequest(
+            groomerID: UUID(),
+            matchScore: 94.6,
+            matchReason: """
+            Same city and service location. Pet-fit evidence: curly coats with positive reviews, poodles from completed bookings.
+            """
+        )
+
+        let presentation = matchedRequest.fitEvidencePresentation
+
+        #expect(presentation?.scoreText == nil)
+        #expect(
+            presentation?.reason
+                == "Same city and service location. Pet-fit evidence: curly coats with positive reviews, poodles from completed bookings."
+        )
+        #expect(
+            presentation?.listSummary
+                == "Location And Service Fit: Same city and service location. Earned Evidence: curly coats with positive reviews, poodles from completed bookings."
+        )
+    }
+
+    @Test @MainActor
+    func fitEvidencePresentationLabelsStarterSignalsAsLowConfidence() {
+        let matchedRequest = Self.matchedRequest(
+            groomerID: UUID(),
+            matchScore: 86,
+            matchReason: """
+            Same city and service location. Groomer fit signals: portfolio tag for poodles, claim for gentle handling.
+            """
+        )
+
+        let presentation = matchedRequest.fitEvidencePresentation
+
+        #expect(presentation?.scoreText == nil)
+        #expect(
+            presentation?.listSummary
+                == "Location And Service Fit: Same city and service location. Starter Signals: portfolio tag for poodles, claim for gentle handling."
+        )
+    }
+
+    @Test @MainActor
+    func matchSummaryDoesNotExposeRawScoreAsMatchPercentage() {
+        let matchedRequest = Self.matchedRequest(
+            groomerID: UUID(),
+            status: .viewed,
+            matchScore: 88,
+            matchReason: """
+            Same city and service location. Pet-fit evidence: gentle handling.
+            """
+        )
+
+        #expect(matchedRequest.matchSummary == "Viewed · Fit evidence available")
+    }
+
+    @Test @MainActor
+    func fitEvidencePresentationIgnoresBlankReason() {
+        let matchedRequest = Self.matchedRequest(
+            groomerID: UUID(),
+            matchScore: 91,
+            matchReason: "   \n  "
+        )
+
+        #expect(matchedRequest.fitEvidencePresentation == nil)
+    }
+
     private static func matchedRequest(
         groomerID: UUID,
         status: RequestMatchStatus = .visible,
+        matchScore: Double? = 100,
+        matchReason: String? = "same_city",
         offerID: UUID? = nil
     ) -> GroomerMatchedRequest {
         let requestID = UUID()
@@ -217,8 +356,8 @@ struct GroomerRequestsStoreTests {
                 requestID: requestID,
                 groomerID: groomerID,
                 customerID: customerID,
-                matchScore: 100,
-                matchReason: "same_city",
+                matchScore: matchScore,
+                matchReason: matchReason,
                 dismissReason: nil,
                 status: status,
                 viewedAt: nil,
@@ -235,7 +374,8 @@ struct GroomerRequestsStoreTests {
                     name: "Mochi",
                     species: "Dog",
                     breed: "Corgi",
-                    size: "Small",
+                    coatType: nil,
+                    size: "M",
                     weightLbs: 22,
                     birthday: nil,
                     temperament: "Gentle",
@@ -244,13 +384,16 @@ struct GroomerRequestsStoreTests {
                     snapshotAt: "2026-06-20T12:00:00Z"
                 ),
                 photoSnapshot: [],
-                serviceType: "Full groom",
+                serviceType: .fullGroom,
                 serviceNotes: nil,
                 preferredStart: "2026-06-22T16:00:00Z",
                 preferredEnd: "2026-06-22T18:00:00Z",
+                locationMode: .groomerComesToCustomer,
+                streetAddress: "123 Pine Street",
                 city: "Seattle",
                 state: "WA",
                 zipCode: "98101",
+                travelRadiusMiles: nil,
                 status: .open,
                 expiresAt: "2026-06-22T12:00:00Z",
                 createdAt: "2026-06-20T12:00:00Z",

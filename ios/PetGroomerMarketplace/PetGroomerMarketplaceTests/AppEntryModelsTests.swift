@@ -25,6 +25,55 @@ struct AppEntryModelsTests {
         #expect(AppEntryRoute.productionDefault == .authentication)
         #expect(AppEntryRoute.authentication.id == .authentication)
     }
+
+    @Test @MainActor
+    func uiTestsCanForceSignedOutAuthenticationAtLaunch() {
+        let configuration = AppLaunchConfiguration(
+            arguments: [
+                "PetGroomerMarketplaceUITests",
+                "--groomly-ui-test-signed-out-auth",
+            ]
+        )
+
+        #expect(configuration.usesSignedOutAuthSessionRepository)
+    }
+
+    @Test @MainActor
+    func testOpsLaunchArgumentsParseRunScenarioAndSessionControls() {
+        let configuration = AppLaunchConfiguration(
+            arguments: [
+                "PetGroomerMarketplace",
+                "--groomly-testops-run-id",
+                "TESTOPS-20260701-123456",
+                "--groomly-testops-scenario",
+                "marketplace_full_lifecycle",
+                "--groomly-testops-clear-session",
+                "--groomly-testops-disable-animations",
+            ]
+        )
+
+        #expect(configuration.testOps.runID == "TESTOPS-20260701-123456")
+        #expect(configuration.testOps.scenarioID == "marketplace_full_lifecycle")
+        #expect(configuration.testOps.clearsSessionBeforeRestore)
+        #expect(configuration.testOps.disablesAnimations)
+        #expect(configuration.testOps.isEnabled)
+        #expect(configuration.usesSignedOutAuthSessionRepository == false)
+    }
+
+    @Test @MainActor
+    func testOpsLaunchArgumentsIgnoreMissingValuesSafely() {
+        let configuration = AppLaunchConfiguration(
+            arguments: [
+                "PetGroomerMarketplace",
+                "--groomly-testops-run-id",
+                "--groomly-testops-scenario",
+            ]
+        )
+
+        #expect(configuration.testOps.runID == nil)
+        #expect(configuration.testOps.scenarioID == nil)
+        #expect(configuration.testOps.isEnabled == false)
+    }
 }
 
 struct TabModelsTests {
@@ -38,10 +87,10 @@ struct TabModelsTests {
 
     @Test
     func groomerTabsHaveExactOrderTitlesAndSymbols() {
-        #expect(GroomerTab.allCases == [.requests, .offers, .bookings, .messages, .account])
-        #expect(GroomerTab.allCases.map(\.title) == ["Requests", "Offers", "Bookings", "Messages", "Account"])
-        #expect(GroomerTab.allCases.map(\.systemImage) == ["tray.full", "tag", "calendar", "message", "person.crop.circle"])
-        #expect(GroomerTab.allCases.allSatisfy { $0.id == $0 })
+        #expect(GroomerTab.visibleCases == [.requests, .bookings, .messages, .account])
+        #expect(GroomerTab.visibleCases.map(\.title) == ["Board", "Schedule", "Messages", "Account"])
+        #expect(GroomerTab.visibleCases.map(\.systemImage) == ["tray.full", "calendar", "message", "person.crop.circle"])
+        #expect(GroomerTab.visibleCases.allSatisfy { $0.id == $0 })
     }
 }
 
@@ -57,22 +106,180 @@ struct GroomlyFeedbackCenterTests {
     }
 
     @Test @MainActor
-    func newNoticeReplacesExistingNoticeAndMakesPreviousCountdownStale() {
+    func sheetNoticeOverlayUsesSheetBottomClearance() {
+        #expect(GroomlyGlobalFeedbackOverlay.sheetBottomClearance < GroomlyGlobalFeedbackOverlay.bottomTabBarClearance)
+    }
+
+    @Test @MainActor
+    func newNoticeWaitsUntilVisibleNoticeDismissesBeforeShowing() async throws {
         let center = GroomlyFeedbackCenter()
 
         let firstID = center.showNotice("Request Cancelled.")
         let secondID = center.showNotice("Message Sent.")
 
         #expect(firstID != secondID)
-        #expect(center.notice?.id == secondID)
-        #expect(center.notice?.message == "Message Sent.")
+        #expect(center.notice?.id == firstID)
+        #expect(center.notice?.message == "Request Cancelled.")
 
         center.clearNotice(id: firstID)
+        #expect(center.notice == nil)
+
+        try await waitForFeedbackQueueAdvance()
+
         #expect(center.notice?.id == secondID)
         #expect(center.notice?.message == "Message Sent.")
 
         center.clearNotice(id: secondID)
         #expect(center.notice == nil)
+    }
+
+    @Test @MainActor
+    func globalFeedbackCenterQueuesMixedPromptTypesOneAtATime() async throws {
+        let center = GroomlyFeedbackCenter()
+        let error = GroomlyGlobalFeedbackError(
+            title: "Booking Update Failed",
+            message: "We could not load bookings. Please try again."
+        )
+        let progress = GroomlyGlobalFeedbackProgress(
+            title: "Completing…",
+            tone: .groomer
+        )
+
+        let noticeID = center.showNotice("Request Cancelled.")
+        center.showError(error)
+        center.showProgress(progress)
+
+        #expect(center.notice?.id == noticeID)
+        #expect(center.error == nil)
+        #expect(center.progress == nil)
+
+        center.clearNotice(id: noticeID)
+        #expect(center.hasVisiblePrompt == false)
+
+        try await waitForFeedbackQueueAdvance()
+
+        #expect(center.notice == nil)
+        #expect(center.error?.title == error.title)
+        #expect(center.error?.message == error.message)
+        #expect(center.progress == nil)
+
+        center.clearError(matching: error)
+        #expect(center.hasVisiblePrompt == false)
+
+        try await waitForFeedbackQueueAdvance()
+
+        #expect(center.notice == nil)
+        #expect(center.error == nil)
+        #expect(center.progress?.title == progress.title)
+        #expect(center.progress?.tone == progress.tone)
+
+        center.clearProgress(matching: progress)
+
+        #expect(center.error == nil)
+        #expect(center.progress == nil)
+    }
+
+    @Test @MainActor
+    func errorPromptAutoDismissesAndDoesNotReplayUntilSourceClears() async throws {
+        let center = GroomlyFeedbackCenter()
+        let error = GroomlyGlobalFeedbackError(
+            title: "Booking Update Failed",
+            message: "We could not load bookings. Please try again."
+        )
+
+        center.showError(error)
+        #expect(center.error?.title == error.title)
+
+        try await waitForFeedbackPromptAutoDismiss()
+
+        #expect(center.error == nil)
+        #expect(center.hasVisiblePrompt == false)
+
+        center.showError(error)
+        #expect(center.error == nil)
+
+        center.clearError(matching: error)
+        center.showError(error)
+        #expect(center.error?.title == error.title)
+    }
+
+    @Test @MainActor
+    func clearingPageScopeRemovesOnlyPageScopedToastPrompts() async throws {
+        let center = GroomlyFeedbackCenter()
+        let pageScope = GroomlyFeedbackScope.page("customer.bookings")
+        let pageError = GroomlyGlobalFeedbackError(
+            scope: pageScope,
+            sourceKey: "bookings.load",
+            title: "Booking Update Failed",
+            message: "We could not load bookings. Please try again."
+        )
+        let queuedPageError = GroomlyGlobalFeedbackError(
+            scope: pageScope,
+            sourceKey: "bookings.refresh",
+            title: "Booking Refresh Failed",
+            message: "Pull to refresh and try again."
+        )
+        let operationError = GroomlyGlobalFeedbackError(
+            scope: .operation("bookings.cancel"),
+            sourceKey: "bookings.cancel",
+            title: "Cancellation Failed",
+            message: "We could not cancel this booking."
+        )
+
+        center.showError(pageError)
+        center.showError(queuedPageError)
+        center.showError(operationError)
+
+        #expect(center.error == pageError)
+
+        center.clearTransientPrompts(in: pageScope)
+        #expect(center.error == nil)
+
+        try await waitForFeedbackQueueAdvance()
+
+        #expect(center.error == operationError)
+        #expect(center.error?.scope == .operation("bookings.cancel"))
+    }
+
+    @Test @MainActor
+    func persistentErrorsKeepStableScopeAndSourceIdentity() {
+        let error = GroomlyPersistentFeedbackError(
+            scope: .page("customer.bookings"),
+            sourceKey: "bookings.load",
+            title: "We Could Not Load Bookings",
+            message: "Check your connection and try again.",
+            actionTitle: "Try Again"
+        )
+        let sameSource = GroomlyPersistentFeedbackError(
+            scope: .page("customer.bookings"),
+            sourceKey: "bookings.load",
+            title: "We Could Not Load Bookings",
+            message: "Check your connection and try again.",
+            actionTitle: "Try Again"
+        )
+        let otherPage = GroomlyPersistentFeedbackError(
+            scope: .page("customer.requests"),
+            sourceKey: "bookings.load",
+            title: "We Could Not Load Bookings",
+            message: "Check your connection and try again.",
+            actionTitle: "Try Again"
+        )
+
+        #expect(error.identityKey == sameSource.identityKey)
+        #expect(error.identityKey != otherPage.identityKey)
+        #expect(error.actionTitle == "Try Again")
+    }
+
+    private func waitForFeedbackQueueAdvance() async throws {
+        try await Task.sleep(
+            nanoseconds: GroomlyFeedbackCenter.queuedPromptAdvanceDelayNanoseconds + 370_000_000
+        )
+    }
+
+    private func waitForFeedbackPromptAutoDismiss() async throws {
+        try await Task.sleep(
+            nanoseconds: GroomlyFeedbackCenter.errorDismissDelayNanoseconds + 350_000_000
+        )
     }
 }
 
@@ -127,6 +334,17 @@ struct DebugDiagnosticsTests {
 
 struct AuthenticationStoreTests {
     @Test @MainActor
+    func signedOutLaunchAuthRepositoryDoesNotRestoreCachedSession() async {
+        let store = AuthenticationStore(
+            repository: SignedOutAuthSessionRepository()
+        )
+
+        await store.start()
+
+        #expect(store.rootState == .signedOut)
+    }
+
+    @Test @MainActor
     func restoresExistingSession() async {
         let session = AuthSessionSnapshot(
             userID: UUID(),
@@ -138,6 +356,24 @@ struct AuthenticationStoreTests {
         await store.start()
 
         #expect(store.rootState == .signedIn(session))
+    }
+
+    @Test @MainActor
+    func canClearLocalSessionBeforeRestoreForTestOps() async {
+        let session = AuthSessionSnapshot(
+            userID: UUID(),
+            email: "user@example.com"
+        )
+        let repository = AuthSessionRepositoryFake(currentSession: session)
+        let store = AuthenticationStore(
+            repository: repository,
+            clearsSessionBeforeRestore: true
+        )
+
+        await store.start()
+
+        #expect(repository.signOutCallCount == 1)
+        #expect(store.rootState == .signedOut)
     }
 
     @Test @MainActor
@@ -207,6 +443,36 @@ struct AuthenticationStoreTests {
         #expect(repository.signInCallCount == 0)
         #expect(store.errorMessage == "Enter a valid email address.")
     }
+
+    #if DEBUG
+    @Test @MainActor
+    func debugQuickLoginSignsInWithEmbeddedAccounts() async {
+        let cases: [(DebugQuickLoginAccount, String)] = [
+            (.customer, "prinnyyyyy@gmail.com"),
+            (.groomer, "liafenyua@gmail.com")
+        ]
+
+        for (account, expectedEmail) in cases {
+            let expectedSession = AuthSessionSnapshot(
+                userID: UUID(),
+                email: expectedEmail
+            )
+            let repository = AuthSessionRepositoryFake()
+            repository.signInResult = .success(expectedSession)
+            let store = AuthenticationStore(repository: repository)
+            await store.start()
+
+            await store.signInWithDebugAccount(account)
+
+            #expect(store.mode == .signIn)
+            #expect(repository.signInCallCount == 1)
+            #expect(repository.lastEmail == expectedEmail)
+            #expect(repository.lastPassword == "Lian532911")
+            #expect(store.rootState == .signedIn(expectedSession))
+            #expect(store.password.isEmpty)
+        }
+    }
+    #endif
 
     @Test @MainActor
     func signOutReturnsToSignedOutState() async {
@@ -464,6 +730,7 @@ private final class AuthSessionRepositoryFake: AuthSessionRepository {
     var signOutResult: Result<Void, AuthSessionError> = .success(())
 
     private(set) var lastEmail: String?
+    private(set) var lastPassword: String?
     private(set) var signInCallCount = 0
     private(set) var signOutCallCount = 0
 
@@ -493,6 +760,7 @@ private final class AuthSessionRepositoryFake: AuthSessionRepository {
         password: String
     ) async throws -> AuthSignUpOutcome {
         lastEmail = email
+        lastPassword = password
         return try signUpResult.get()
     }
 
@@ -502,6 +770,7 @@ private final class AuthSessionRepositoryFake: AuthSessionRepository {
     ) async throws -> AuthSessionSnapshot {
         signInCallCount += 1
         lastEmail = email
+        lastPassword = password
         return try signInResult.get()
     }
 

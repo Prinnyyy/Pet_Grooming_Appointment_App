@@ -13,7 +13,9 @@ required_files=(
   "docs/00_memory/CURRENT_STATE.md"
   "docs/00_memory/FEATURE_INDEX.md"
   "docs/06_tasks/TASK_LEDGER.md"
-  "docs/05_workflow/CODEX_WORKFLOW.md"
+  "docs/05_workflow/SINGLE_AGENT_WORKFLOW.md"
+  "docs/05_workflow/CONTEXT_AND_RECOVERY.md"
+  "docs/05_workflow/TOOLING_POLICY.md"
 )
 
 for file in "${required_files[@]}"; do

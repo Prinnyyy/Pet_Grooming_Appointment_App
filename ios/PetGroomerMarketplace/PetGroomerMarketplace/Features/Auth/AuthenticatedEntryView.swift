@@ -3,6 +3,7 @@ import SwiftUI
 struct AuthenticatedEntryView: View {
     let session: AuthSessionSnapshot
     @Bindable var authenticationStore: AuthenticationStore
+    private let customerProfileRepository: any CustomerProfileRepository
     private let customerPetRepository: any CustomerPetRepository
     private let customerRequestRepository: any CustomerRequestRepository
     private let bookingRepository: any BookingRepository
@@ -15,6 +16,7 @@ struct AuthenticatedEntryView: View {
         session: AuthSessionSnapshot,
         authenticationStore: AuthenticationStore,
         profileRepository: any ProfileRepository,
+        customerProfileRepository: any CustomerProfileRepository,
         customerPetRepository: any CustomerPetRepository,
         customerRequestRepository: any CustomerRequestRepository,
         bookingRepository: any BookingRepository,
@@ -24,6 +26,7 @@ struct AuthenticatedEntryView: View {
     ) {
         self.session = session
         self.authenticationStore = authenticationStore
+        self.customerProfileRepository = customerProfileRepository
         self.customerPetRepository = customerPetRepository
         self.customerRequestRepository = customerRequestRepository
         self.bookingRepository = bookingRepository
@@ -54,11 +57,12 @@ struct AuthenticatedEntryView: View {
                 CustomerTabView(
                     customerID: profile.userID,
                     customerDisplayName: profile.displayName,
+                    customerProfileRepository: customerProfileRepository,
                     petRepository: customerPetRepository,
                     requestRepository: customerRequestRepository,
                     bookingRepository: bookingRepository,
                     chatRepository: chatRepository,
-                    accountContent: accountContent(for: profile)
+                    accountContent: customerAccountContent(for: profile)
                 )
 
             case let .groomer(profile):
@@ -68,7 +72,8 @@ struct AuthenticatedEntryView: View {
                     requestRepository: groomerRequestRepository,
                     bookingRepository: bookingRepository,
                     chatRepository: chatRepository,
-                    accountContent: accountContent(for: profile)
+                    accountContent: genericAccountContent(for: profile),
+                    onSignOut: signOut
                 )
 
             case let .failure(message):
@@ -78,6 +83,15 @@ struct AuthenticatedEntryView: View {
         .task(id: session.userID) {
             await store.load(userID: session.userID)
         }
+        .environment(\.appDebugEventRecorder, appDebugRecorder)
+    }
+
+    private var appDebugRecorder: AppDebugEventRecorder? {
+        #if DEBUG
+        AppDebugEventRecorder.shared
+        #else
+        nil
+        #endif
     }
 
     private var loadingView: some View {
@@ -134,7 +148,19 @@ struct AuthenticatedEntryView: View {
         .accessibilityIdentifier("profile.load-error")
     }
 
-    private func accountContent(for profile: MarketplaceProfile) -> AnyView {
+    private func customerAccountContent(for profile: MarketplaceProfile) -> AnyView {
+        AnyView(
+            CustomerAccountView(
+                session: session,
+                profile: profile,
+                authenticationStore: authenticationStore,
+                repository: customerProfileRepository,
+                debugRecorder: appDebugRecorder
+            )
+        )
+    }
+
+    private func genericAccountContent(for profile: MarketplaceProfile) -> AnyView {
         AnyView(
             AuthenticatedAccountView(
                 session: session,

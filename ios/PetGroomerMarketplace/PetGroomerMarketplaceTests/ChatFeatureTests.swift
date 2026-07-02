@@ -67,7 +67,101 @@ struct ChatStoreTests {
         #expect(repository.lastSenderID == conversation.customerID)
         #expect(repository.lastBody == "Hello")
         #expect(store.messages(for: conversation.id) == [sent])
-        #expect(store.noticeMessage == "Message sent.")
+        #expect(store.noticeMessage == nil)
+    }
+
+    @Test @MainActor
+    func conversationPreviewUsesKnownLatestMessageBody() async throws {
+        let conversation = Self.conversation(latestMessageBody: " See you Friday. ")
+        let store = ChatStore(
+            participantID: conversation.customerID,
+            role: .customer,
+            repository: ChatRepositoryFake()
+        )
+
+        #expect(store.previewText(for: conversation) == "See you Friday.")
+    }
+
+    @Test @MainActor
+    func conversationPreviewPrefersLoadedLatestMessageBody() async throws {
+        let conversation = Self.conversation(latestMessageBody: "Original preview")
+        let older = Self.message(
+            id: UUID(uuidString: "11111111-1111-4111-8111-111111111111")!,
+            conversationID: conversation.id,
+            body: "Earlier note"
+        )
+        let latest = Self.message(
+            id: UUID(uuidString: "22222222-2222-4222-8222-222222222222")!,
+            conversationID: conversation.id,
+            body: "Latest body"
+        )
+        let repository = ChatRepositoryFake(
+            messagesResult: .success([older, latest])
+        )
+        let store = ChatStore(
+            participantID: conversation.customerID,
+            role: .customer,
+            repository: repository
+        )
+
+        await store.loadMessages(for: conversation)
+
+        #expect(store.previewText(for: conversation) == "Latest body")
+    }
+
+    @Test @MainActor
+    func conversationLookupFindsLoadedBookingConversation() async throws {
+        let bookingID = UUID()
+        let conversation = Self.conversation(bookingID: bookingID)
+        let store = ChatStore(
+            participantID: conversation.customerID,
+            role: .customer,
+            repository: ChatRepositoryFake(
+                conversationsResult: .success([conversation])
+            )
+        )
+
+        await store.loadConversations()
+
+        #expect(store.conversation(forBookingID: bookingID) == conversation)
+    }
+
+    @Test @MainActor
+    func missingBookingConversationReportsSafeUnavailableMessage() async throws {
+        let store = ChatStore(
+            participantID: UUID(),
+            role: .customer,
+            repository: ChatRepositoryFake()
+        )
+
+        store.reportMissingConversationForBooking()
+
+        #expect(store.errorMessage == "Booking chat is not available yet.")
+    }
+
+    @Test @MainActor
+    func completedConversationOlderThanSevenDaysDoesNotSend() async throws {
+        let conversation = Self.conversation(
+            status: .completed,
+            completedAt: "2026-06-01T18:00:00Z"
+        )
+        let repository = ChatRepositoryFake()
+        let store = ChatStore(
+            participantID: conversation.customerID,
+            role: .customer,
+            repository: repository,
+            now: { Date(timeIntervalSince1970: 1_781_028_000) }
+        )
+
+        #expect(store.canSendMessages(in: conversation) == false)
+
+        await store.sendMessage(in: conversation, body: "Hello")
+
+        #expect(repository.sendCallCount == 0)
+        #expect(
+            store.errorMessage ==
+                "This conversation is read-only because the booking ended more than 7 days ago."
+        )
     }
 
     @Test @MainActor
@@ -148,7 +242,10 @@ struct ChatStoreTests {
         scheduledStart: String? = nil,
         scheduledEnd: String? = nil,
         priceEstimate: Double? = nil,
-        groomerBusinessName: String? = nil
+        status: BookingStatus? = nil,
+        completedAt: String? = nil,
+        groomerBusinessName: String? = nil,
+        latestMessageBody: String? = nil
     ) -> ChatConversation {
         ChatConversation(
             id: id,
@@ -159,7 +256,10 @@ struct ChatStoreTests {
             scheduledStart: scheduledStart,
             scheduledEnd: scheduledEnd,
             priceEstimate: priceEstimate,
+            bookingStatus: status,
+            completedAt: completedAt,
             groomerBusinessName: groomerBusinessName,
+            latestMessageBody: latestMessageBody,
             createdAt: "2026-06-21T05:00:00Z",
             updatedAt: "2026-06-21T05:00:00Z"
         )

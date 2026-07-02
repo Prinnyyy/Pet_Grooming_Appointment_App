@@ -7,16 +7,25 @@ enum GroomerRequestRepositoryError: Error, Equatable, Sendable {
     case requestNoLongerOpen
     case noLongerOfferable
     case activeOfferExists
+    case groomerUnavailable
     case offerNotFound
     case noLongerWithdrawable
     case invalidInput
     case networkUnavailable
+    case cancelled
     case unavailable
 }
 
 @MainActor
 protocol GroomerRequestRepository: AnyObject {
     func matchedRequests(groomerID: UUID) async throws -> [GroomerMatchedRequest]
+
+    func requestPhotos(
+        groomerID: UUID,
+        requestIDs: [UUID]
+    ) async throws -> [GroomingRequestPhoto]
+
+    func requestPhotoData(_ photo: GroomingRequestPhoto) async throws -> Data
 
     func dismiss(
         matchID: UUID,
@@ -30,4 +39,17 @@ protocol GroomerRequestRepository: AnyObject {
     func withdrawOffer(
         offerID: UUID
     ) async throws -> WithdrawGroomerOfferResult
+}
+
+extension GroomerRequestRepository {
+    func requestPhotos(
+        groomerID: UUID,
+        requestIDs: [UUID]
+    ) async throws -> [GroomingRequestPhoto] {
+        []
+    }
+
+    func requestPhotoData(_ photo: GroomingRequestPhoto) async throws -> Data {
+        throw GroomerRequestRepositoryError.unavailable
+    }
 }

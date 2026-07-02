@@ -14,10 +14,60 @@ enum AuthenticationMode: String, CaseIterable, Identifiable {
     var id: Self { self }
 }
 
+#if DEBUG
+enum DebugQuickLoginAccount: CaseIterable, Identifiable {
+    case customer
+    case groomer
+
+    var id: Self { self }
+
+    var title: String {
+        switch self {
+        case .customer:
+            "Customer"
+        case .groomer:
+            "Groomer"
+        }
+    }
+
+    var accessibilityIdentifier: String {
+        switch self {
+        case .customer:
+            "auth.debug-login.customer"
+        case .groomer:
+            "auth.debug-login.groomer"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .customer:
+            "person.fill"
+        case .groomer:
+            "scissors"
+        }
+    }
+
+    var email: String {
+        switch self {
+        case .customer:
+            "prinnyyyyy@gmail.com"
+        case .groomer:
+            "liafenyua@gmail.com"
+        }
+    }
+
+    var password: String {
+        "Lian532911"
+    }
+}
+#endif
+
 @MainActor
 @Observable
 final class AuthenticationStore {
     private let repository: any AuthSessionRepository
+    private let clearsSessionBeforeRestore: Bool
     private var didRestoreSession = false
     private var isObservingSession = false
 
@@ -37,8 +87,12 @@ final class AuthenticationStore {
     var errorMessage: String?
     var noticeMessage: String?
 
-    init(repository: any AuthSessionRepository) {
+    init(
+        repository: any AuthSessionRepository,
+        clearsSessionBeforeRestore: Bool = false
+    ) {
         self.repository = repository
+        self.clearsSessionBeforeRestore = clearsSessionBeforeRestore
     }
 
     func start() async {
@@ -48,7 +102,12 @@ final class AuthenticationStore {
 
         if !didRestoreSession {
             didRestoreSession = true
-            apply(repository.currentSession())
+            if clearsSessionBeforeRestore {
+                try? await repository.signOut()
+                apply(nil)
+            } else {
+                apply(repository.currentSession())
+            }
         }
 
         let stateChanges = await repository.sessionStateChanges()
@@ -120,6 +179,16 @@ final class AuthenticationStore {
             errorMessage = message(for: .unavailable)
         }
     }
+
+    #if DEBUG
+    func signInWithDebugAccount(_ account: DebugQuickLoginAccount) async {
+        mode = .signIn
+        email = account.email
+        password = account.password
+        passwordConfirmation = ""
+        await submit()
+    }
+    #endif
 
     func signOut() async {
         guard !isSubmitting else { return }

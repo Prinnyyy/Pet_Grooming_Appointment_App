@@ -195,7 +195,19 @@ struct AuthenticationView: View {
 
                     formHeader
 
+                    #if DEBUG
+                    if store.mode == .signIn {
+                        Spacer(minLength: DesignTokens.Spacing.lg)
+
+                        debugQuickLoginActions
+
+                        Spacer(minLength: DesignTokens.Spacing.xl)
+                    } else {
+                        Spacer(minLength: DesignTokens.Spacing.xl + DesignTokens.Spacing.lg)
+                    }
+                    #else
                     Spacer(minLength: DesignTokens.Spacing.xl + DesignTokens.Spacing.lg)
+                    #endif
 
                     authFields
 
@@ -358,6 +370,36 @@ struct AuthenticationView: View {
         }
         .frame(maxWidth: .infinity)
     }
+
+    #if DEBUG
+    private var debugQuickLoginActions: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            Text("Quick Login")
+                .font(DesignTokens.Typography.caption.weight(.bold))
+                .foregroundStyle(DesignTokens.Colors.textTertiary)
+                .textCase(.uppercase)
+
+            HStack(spacing: DesignTokens.Spacing.sm) {
+                ForEach(DebugQuickLoginAccount.allCases) { account in
+                    Button {
+                        Task {
+                            await store.signInWithDebugAccount(account)
+                        }
+                    } label: {
+                        Label(account.title, systemImage: account.systemImage)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.84)
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(GroomlySecondaryButtonStyle(accent: .neutral))
+                    .disabled(store.isSubmitting)
+                    .accessibilityIdentifier(account.accessibilityIdentifier)
+                }
+            }
+        }
+        .padding(.top, DesignTokens.Spacing.sm)
+    }
+    #endif
 
     @ViewBuilder
     private var feedback: some View {

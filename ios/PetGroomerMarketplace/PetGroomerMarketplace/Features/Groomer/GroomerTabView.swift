@@ -1,13 +1,16 @@
 import SwiftUI
 
 struct GroomerTabView: View {
+    @Environment(\.appDebugEventRecorder) private var debugRecorder
     let groomerID: UUID?
     let profileRepository: (any GroomerProfileRepository)?
     let requestRepository: (any GroomerRequestRepository)?
     let bookingRepository: (any BookingRepository)?
     let chatRepository: (any ChatRepository)?
     let accountContent: AnyView?
+    let onSignOut: (() -> Void)?
     @State private var selection: GroomerTab = .requests
+    @State private var focusedConversationBookingID: UUID?
     @State private var feedbackCenter = GroomlyFeedbackCenter()
 
     init(
@@ -16,7 +19,8 @@ struct GroomerTabView: View {
         requestRepository: (any GroomerRequestRepository)? = nil,
         bookingRepository: (any BookingRepository)? = nil,
         chatRepository: (any ChatRepository)? = nil,
-        accountContent: AnyView? = nil
+        accountContent: AnyView? = nil,
+        onSignOut: (() -> Void)? = nil
     ) {
         self.groomerID = groomerID
         self.profileRepository = profileRepository
@@ -24,11 +28,12 @@ struct GroomerTabView: View {
         self.bookingRepository = bookingRepository
         self.chatRepository = chatRepository
         self.accountContent = accountContent
+        self.onSignOut = onSignOut
     }
 
     var body: some View {
         TabView(selection: $selection) {
-            ForEach(GroomerTab.allCases) { tab in
+            ForEach(GroomerTab.visibleCases) { tab in
                 NavigationStack {
                     destination(for: tab)
                         .background(DesignTokens.Colors.background)
@@ -47,6 +52,22 @@ struct GroomerTabView: View {
         .overlay(alignment: .bottom) {
             GroomlyGlobalFeedbackOverlay(center: feedbackCenter)
         }
+        .onAppear {
+            feedbackCenter.setDebugRecorder(debugRecorder)
+        }
+        .onChange(of: selection) { oldValue, newValue in
+            debugRecorder?.record(
+                level: .info,
+                category: .navigation,
+                source: "GroomerTabView.selection",
+                scope: "groomer.\(newValue.debugKey)",
+                message: "\(oldValue.debugKey) -> \(newValue.debugKey)",
+                metadata: [
+                    "from": "groomer.\(oldValue.debugKey)",
+                    "to": "groomer.\(newValue.debugKey)",
+                ]
+            )
+        }
         .accessibilityIdentifier("groomer.tabs")
     }
 
@@ -57,7 +78,8 @@ struct GroomerTabView: View {
            let requestRepository {
             GroomerRequestsView(
                 groomerID: groomerID,
-                repository: requestRepository
+                repository: requestRepository,
+                debugRecorder: debugRecorder
             )
         } else if tab == .bookings,
                   let groomerID,
@@ -65,7 +87,9 @@ struct GroomerTabView: View {
             BookingsView(
                 participantID: groomerID,
                 role: .groomer,
-                repository: bookingRepository
+                repository: bookingRepository,
+                debugRecorder: debugRecorder,
+                onOpenChat: openBookingChat
             )
         } else if tab == .messages,
                   let groomerID,
@@ -73,7 +97,9 @@ struct GroomerTabView: View {
             ChatConversationsView(
                 participantID: groomerID,
                 role: .groomer,
-                repository: chatRepository
+                repository: chatRepository,
+                debugRecorder: debugRecorder,
+                focusedBookingID: $focusedConversationBookingID
             )
         } else if tab == .account,
            let groomerID,
@@ -81,7 +107,9 @@ struct GroomerTabView: View {
             GroomerProfileManagementView(
                 groomerID: groomerID,
                 repository: profileRepository,
-                accountContent: accountContent
+                debugRecorder: debugRecorder,
+                accountContent: accountContent,
+                onSignOut: onSignOut
             )
         } else if tab == .account, let accountContent {
             accountContent
@@ -92,6 +120,30 @@ struct GroomerTabView: View {
                 systemImage: tab.systemImage,
                 accent: .groomer
             )
+        }
+    }
+
+    private func openBookingChat(_ booking: Booking) {
+        focusedConversationBookingID = booking.id
+        withAnimation(.easeInOut(duration: 0.22)) {
+            selection = .messages
+        }
+    }
+}
+
+private extension GroomerTab {
+    var debugKey: String {
+        switch self {
+        case .requests:
+            "requests"
+        case .offers:
+            "offers"
+        case .bookings:
+            "bookings"
+        case .messages:
+            "messages"
+        case .account:
+            "account"
         }
     }
 }

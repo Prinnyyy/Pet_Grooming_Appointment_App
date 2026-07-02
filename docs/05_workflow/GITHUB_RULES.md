@@ -8,6 +8,14 @@
 
 ## Branching
 
+Current canonical work branch:
+
+```text
+codex/pet-fit-structure-cleanup
+```
+
+Use this branch for implementation, documentation, commits, and pushes unless the user explicitly names another branch.
+
 Recommended branch format:
 
 ```text
@@ -30,6 +38,6 @@ Do not open or update PRs unless explicitly asked.
 ## Issue Policy
 
 If using GitHub issues:
-- Link task files to issue IDs.
+- Link the relevant `TASK_LEDGER.md` row, worklog entry, or archived task record to issue IDs.
 - Do not close issues automatically.
 - Summarize work and risks before asking for review.

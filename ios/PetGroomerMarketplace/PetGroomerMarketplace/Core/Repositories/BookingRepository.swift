@@ -15,6 +15,7 @@ enum BookingRepositoryError: Error, Equatable, Sendable {
     case invalidReview
     case invalidInput
     case networkUnavailable
+    case cancelled
     case unavailable
 }
 

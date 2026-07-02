@@ -8,6 +8,7 @@ enum CustomerRequestRepositoryError: Error, Equatable, Sendable {
     case petNotFound
     case invalidInput
     case networkUnavailable
+    case cancelled
     case unavailable
 }
 
@@ -20,12 +21,40 @@ protocol CustomerRequestRepository: AnyObject {
         requestID: UUID
     ) async throws -> [CustomerOfferReview]
 
+    func requestPhotos(
+        customerID: UUID,
+        requestIDs: [UUID]
+    ) async throws -> [GroomingRequestPhoto]
+
+    func requestPhotoData(_ photo: GroomingRequestPhoto) async throws -> Data
+
     func createRequest(
         customerID: UUID,
         draft: GroomingRequestDraft
     ) async throws -> GroomingRequestPublishResult
 
+    func uploadRequestPhoto(
+        customerID: UUID,
+        requestID: UUID,
+        data: Data,
+        contentType: GroomingRequestPhotoContentType,
+        caption: String?
+    ) async throws -> GroomingRequestPhoto
+
     func cancelRequest(
         requestID: UUID
     ) async throws -> CancelGroomingRequestResult
+}
+
+extension CustomerRequestRepository {
+    func requestPhotos(
+        customerID: UUID,
+        requestIDs: [UUID]
+    ) async throws -> [GroomingRequestPhoto] {
+        []
+    }
+
+    func requestPhotoData(_ photo: GroomingRequestPhoto) async throws -> Data {
+        throw CustomerRequestRepositoryError.unavailable
+    }
 }

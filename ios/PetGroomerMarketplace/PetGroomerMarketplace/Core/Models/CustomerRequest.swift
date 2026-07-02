@@ -6,23 +6,30 @@ struct CustomerGroomingRequest: Equatable, Hashable, Identifiable, Sendable {
     let petID: UUID?
     let petSnapshot: GroomingRequestPetSnapshot
     let photoSnapshot: [GroomingRequestPhotoSnapshot]
-    let serviceType: String
+    let serviceType: GroomingServiceType
     let serviceNotes: String?
     let preferredStart: String
     let preferredEnd: String
+    let locationMode: GroomingLocationMode
+    let streetAddress: String
     let city: String
     let state: String
     let zipCode: String
+    let travelRadiusMiles: Int?
     let status: GroomingRequestStatus
     let expiresAt: String
     let createdAt: String
     let updatedAt: String
 
     var title: String {
-        "\(serviceType) for \(petSnapshot.name)"
+        "\(serviceType.title) for \(petSnapshot.name)"
     }
 
     var locationSummary: String {
+        "\(streetAddress), \(city), \(state) \(zipCode)"
+    }
+
+    var compactLocationSummary: String {
         "\(city), \(state) \(zipCode)"
     }
 
@@ -40,9 +47,12 @@ struct CustomerGroomingRequest: Equatable, Hashable, Identifiable, Sendable {
             serviceNotes: serviceNotes,
             preferredStart: preferredStart,
             preferredEnd: preferredEnd,
+            locationMode: locationMode,
+            streetAddress: streetAddress,
             city: city,
             state: state,
             zipCode: zipCode,
+            travelRadiusMiles: travelRadiusMiles,
             status: status,
             expiresAt: expiresAt,
             createdAt: createdAt,
@@ -56,6 +66,7 @@ struct GroomingRequestPetSnapshot: Decodable, Equatable, Hashable, Sendable {
     let name: String
     let species: String
     let breed: String?
+    let coatType: String?
     let size: String?
     let weightLbs: Double?
     let birthday: String?
@@ -69,6 +80,7 @@ struct GroomingRequestPetSnapshot: Decodable, Equatable, Hashable, Sendable {
         case name
         case species
         case breed
+        case coatType = "coat_type"
         case size
         case weightLbs = "weight_lbs"
         case birthday
@@ -149,13 +161,16 @@ nonisolated enum GroomingRequestStatus:
 
 struct GroomingRequestDraft: Equatable, Sendable {
     let petID: UUID
-    let serviceType: String
+    let serviceType: GroomingServiceType
     let serviceNotes: String?
     let preferredStart: Date
     let preferredEnd: Date
+    let locationMode: GroomingLocationMode
+    let streetAddress: String
     let city: String
-    let state: String
+    let stateCode: USStateCode
     let zipCode: String
+    let travelRadiusMiles: Int?
 }
 
 struct GroomingRequestPublishResult: Equatable, Sendable {
@@ -172,6 +187,20 @@ struct CancelGroomingRequestResult: Equatable, Sendable {
 struct CustomerOfferReview: Equatable, Identifiable, Sendable {
     let offer: GroomerOffer
     let groomerProfile: GroomerProfile?
+    let matchScore: Double?
+    let matchReason: String?
+
+    nonisolated init(
+        offer: GroomerOffer,
+        groomerProfile: GroomerProfile?,
+        matchScore: Double? = nil,
+        matchReason: String? = nil
+    ) {
+        self.offer = offer
+        self.groomerProfile = groomerProfile
+        self.matchScore = matchScore
+        self.matchReason = matchReason
+    }
 
     var id: UUID {
         offer.id
@@ -217,6 +246,34 @@ struct CustomerOfferReview: Equatable, Identifiable, Sendable {
 
     var isPending: Bool {
         offer.status == .pending
+    }
+
+    var fitEvidencePresentation: CustomerOfferFitPresentation? {
+        guard
+            let rawReason = matchReason,
+            !rawReason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        else {
+            return nil
+        }
+
+        let reason = rawReason.trimmingCharacters(in: .whitespacesAndNewlines)
+        return CustomerOfferFitPresentation(
+            scoreText: nil,
+            reason: reason
+        )
+    }
+}
+
+struct CustomerOfferFitPresentation:
+    Equatable,
+    Hashable,
+    Sendable
+{
+    let scoreText: String?
+    let reason: String
+
+    var listSummary: String {
+        MatchFitEvidenceReasonFormatter.explanationSummary(from: reason)
     }
 }
 

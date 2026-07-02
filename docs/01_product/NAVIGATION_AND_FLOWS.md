@@ -26,11 +26,10 @@ Production restores the Supabase Auth session, loads the signed-in user's profil
 
 ### Groomer Tabs
 
-1. Requests
-2. Offers
-3. Bookings
-4. Messages
-5. Account
+1. Board
+2. Schedule
+3. Messages
+4. Account
 
 Each tab owns a `NavigationStack`. Primary tasks should remain reachable from the corresponding tab without unnecessary modal or navigation depth.
 
@@ -52,17 +51,34 @@ Sign up or sign in
 
 Publishing calls `create_grooming_request`; acceptance calls `accept_groomer_offer` and then refreshes owned request/offer state; review creation calls `create_review`. Failure keeps the user on the actionable screen with recoverable input intact.
 
+## Pet-Fit Matching V1 Flow
+
+Pet-fit matching v1 preserves the existing request-first flow:
+
+```text
+Customer creates pet profile
+→ Customer publishes a grooming request with pet/service/location/time context
+→ Backend creates eligible request matches with explainable fit reasons
+→ Groomers review assigned requests and make concrete offers
+→ Customer compares received offers and fit explanations
+→ Customer accepts one offer
+→ Booking and conversation are created atomically
+→ Completed booking review feeds future evidence
+```
+
+The customer does not browse a public all-groomer directory or directly reserve a groomer time slot in v1. Groomer availability, portfolio tags, claimed specialties, and structured reviews are used to improve request distribution and offer explanation while keeping booking creation behind offer acceptance.
+
 ## Groomer Flow
 
 ```text
 Sign up or sign in
 → Select Groomer role when profile is missing
-→ Complete profile, services, and portfolio
-→ Browse assigned matched requests
+→ Complete profile, services, and availability
+→ Browse assigned matched requests on Board
 → Open request detail
 → Dismiss or make an offer
 → Customer accepts offer
-→ View booking and conversation
+→ View booking on Schedule and conversation in Messages
 → Complete booking
 ```
 

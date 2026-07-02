@@ -5,13 +5,28 @@ import Observation
 @Observable
 final class GroomerProfileStore {
     static let maximumPhotoBytes = 10 * 1024 * 1024
+    static let maximumAvatarPhotoBytes = 5 * 1024 * 1024
 
     private let groomerID: UUID
     private let repository: any GroomerProfileRepository
+    private let profileSnapshotCache: any ProfileSnapshotCaching
+    private let debugRecorder: AppDebugEventRecorder?
+    private var profileMutationRevision = 0
 
     private(set) var profile: GroomerProfile?
+    private(set) var cachedProfileSnapshot: ProfileSnapshot?
     private(set) var services: [GroomerService] = []
     private(set) var portfolioPhotos: [GroomerPortfolioPhoto] = []
+    private(set) var portfolioPhotoDataByID: [UUID: Data] = [:]
+    private(set) var portfolioFitTags: [GroomerPortfolioFitTag] = []
+    private(set) var selectedPortfolioFitTagIDsByPhotoID: [UUID: Set<String>] = [:]
+    private(set) var availabilityWindows: [GroomerAvailabilityWindow] = []
+    private(set) var bookingPreferences: GroomerBookingPreferences?
+    private(set) var timeOffWindows: [GroomerTimeOffWindow] = []
+    private(set) var fitClaims: [GroomerFitClaim] = []
+    private(set) var petFitEvidenceSummary: [GroomerPetFitEvidenceSummary] = []
+    private(set) var selectedFitClaimIDs: Set<String> = []
+    private(set) var avatarPhotoData: Data?
     private(set) var isLoading = false
     private(set) var isSaving = false
     private(set) var isUploading = false
@@ -21,55 +36,225 @@ final class GroomerProfileStore {
 
     var businessName = ""
     var bio = ""
-    var yearsExperience = ""
+    var yearsExperience = 0
+    var baseStreetAddress = ""
     var baseCity = ""
     var baseState = ""
-    var serviceRadiusMiles = ""
+    var baseStateCode: USStateCode?
+    var baseZipCode = ""
+    var serviceRadiusMiles = 12
+    var serviceLocationModes: Set<GroomingLocationMode> = []
     var isActive = false
 
     var isShowingServiceForm = false
     var editingServiceID: UUID?
     var serviceTitle = ""
+    var serviceType: GroomingServiceType = .fullGroom
     var serviceDescription = ""
     var serviceBasePrice = ""
     var serviceDurationMinutes = ""
+    var serviceUsesCustomSizeRange = false
     var selectedServiceSizes: Set<GroomerServicePetSize> = []
     var serviceIsActive = true
+    var availabilityDayStates: [GroomerAvailabilityDayState] =
+        GroomerAvailabilityDayState.defaultStates()
+    var availabilityTimezone = TimeZone.current.identifier
+    var maxAppointmentsPerDay = 4
+    var minimumAdvanceNoticeDays = 0
+    var autoAcceptBookings = false
+    var isShowingTimeOffForm = false
+    var timeOffTitle = ""
+    var timeOffStartDate = Date()
+    var timeOffEndDate = Date()
 
     var serviceFormTitle: String {
         editingServiceID == nil ? "Add Service" : "Edit Service"
     }
 
     var isBusy: Bool {
-        isLoading || isSaving || isUploading
+        (isLoading && profile == nil) || isSaving || isUploading
+    }
+
+    var shouldShowInitialLoading: Bool {
+        isLoading && profile == nil && cachedProfileSnapshot == nil
+    }
+
+    var profileDisplayName: String {
+        Self.normalized(profile?.businessName)
+            ?? Self.normalized(cachedProfileSnapshot?.displayName)
+            ?? "Groomer Profile"
+    }
+
+    var profileDetailText: String {
+        if let profile {
+            return Self.detailText(for: profile)
+        }
+
+        return Self.normalized(cachedProfileSnapshot?.detailText)
+            ?? "★ New profile"
+    }
+
+    var selectedCoreFitClaimCount: Int {
+        selectedFitClaimCount { $0.group != .sizeBand }
+    }
+
+    var selectedSizeBandFitClaimCount: Int {
+        selectedFitClaimCount { $0.group == .sizeBand }
+    }
+
+    var selectedSizeBandRange: ClosedRange<Int> {
+        let selectedIndices = Self.sizeBandSignals.enumerated().compactMap { index, signal in
+            selectedFitClaimIDs.contains(signal.id) ? index : nil
+        }
+        guard let lowerBound = selectedIndices.min(),
+              let upperBound = selectedIndices.max() else {
+            return Self.fullSizeBandRange
+        }
+        return lowerBound...upperBound
+    }
+
+    var sizeBandFitClaimRangeTitle: String {
+        Self.sizeBandRangeTitle(for: selectedSizeBandRange)
+    }
+
+    var selectedServiceSizeRange: ClosedRange<Int> {
+        let selectedIndices = Self.serviceSizeOptions.enumerated().compactMap { index, size in
+            selectedServiceSizes.contains(size) ? index : nil
+        }
+        guard let lowerBound = selectedIndices.min(),
+              let upperBound = selectedIndices.max() else {
+            return Self.normalizedServiceSizeRange(
+                lowerIndex: selectedSizeBandRange.lowerBound,
+                upperIndex: selectedSizeBandRange.upperBound
+            )
+        }
+        return lowerBound...upperBound
+    }
+
+    var serviceSizeRangeTitle: String {
+        Self.serviceSizeRangeTitle(for: selectedServiceSizeRange)
     }
 
     init(
         groomerID: UUID,
-        repository: any GroomerProfileRepository
+        repository: any GroomerProfileRepository,
+        profileSnapshotCache: any ProfileSnapshotCaching = FileProfileSnapshotCache.shared,
+        debugRecorder: AppDebugEventRecorder? = nil
     ) {
         self.groomerID = groomerID
         self.repository = repository
+        self.profileSnapshotCache = profileSnapshotCache
+        self.debugRecorder = debugRecorder
     }
 
     func load() async {
+        let startedAt = Date()
+        recordStoreStart("load")
+        let loadRevision = profileMutationRevision
         isLoading = true
         errorMessage = nil
-        defer { isLoading = false }
+        populateCachedProfileSnapshot()
 
         do {
             let loadedProfile = try await repository.profile(groomerID: groomerID)
             let loadedServices = try await repository.services(groomerID: groomerID)
             let loadedPhotos = try await repository.portfolioPhotos(groomerID: groomerID)
+            let loadedPortfolioFitTags = try await repository.portfolioFitTags(
+                groomerID: groomerID
+            )
+            let loadedAvailability = try await repository.availabilityWindows(groomerID: groomerID)
+            let loadedBookingPreferences = try await repository.bookingPreferences(groomerID: groomerID)
+            let loadedTimeOff = try await repository.timeOffWindows(groomerID: groomerID)
+            let loadedFitClaims = try await repository.fitClaims(groomerID: groomerID)
+            let loadedPetFitEvidenceSummary = try await repository.petFitEvidenceSummary(
+                groomerID: groomerID
+            )
+
+            guard loadRevision == profileMutationRevision else {
+                isLoading = false
+                return
+            }
 
             profile = loadedProfile
             services = loadedServices
             portfolioPhotos = loadedPhotos
+            portfolioPhotoDataByID = [:]
+            populatePortfolioFitTags(
+                with: loadedPortfolioFitTags,
+                visiblePhotos: loadedPhotos
+            )
+            availabilityWindows = loadedAvailability
+            bookingPreferences = loadedBookingPreferences
+            timeOffWindows = loadedTimeOff
+            populateFitClaims(with: loadedFitClaims)
+            populatePetFitEvidenceSummary(with: loadedPetFitEvidenceSummary)
             populateProfileForm(with: loadedProfile)
+            populateAvailabilityForm(with: loadedAvailability)
+            populateBookingPreferencesForm(with: loadedBookingPreferences)
+            resetTimeOffForm()
+            isLoading = false
+            saveProfileSnapshot(profile: loadedProfile, avatarData: avatarPhotoData)
+
+            let loadedAvatarPhoto = await avatarPhotoPayload(
+                from: loadedProfile.avatarPath
+            )
+            guard loadRevision == profileMutationRevision else {
+                return
+            }
+            if let loadedAvatarPath = loadedAvatarPhoto.path,
+               loadedAvatarPath != profile?.avatarPath,
+               var profile {
+                profile.avatarPath = loadedAvatarPath
+                self.profile = profile
+            }
+            avatarPhotoData = loadedAvatarPhoto.data ?? cachedProfileSnapshot?.avatarData
+            saveProfileSnapshot(profile: profile, avatarData: avatarPhotoData)
+
+            let loadedPortfolioPhotoData = await portfolioPhotoDataMap(
+                for: loadedPhotos
+            )
+            guard loadRevision == profileMutationRevision else {
+                recordStoreCancelled(
+                    "load",
+                    startedAt: startedAt,
+                    metadata: ["reason": "stale mutation revision"]
+                )
+                return
+            }
+            portfolioPhotoDataByID = loadedPortfolioPhotoData
+            recordStoreSuccess(
+                "load",
+                startedAt: startedAt,
+                metadata: [
+                    "serviceCount": "\(services.count)",
+                    "portfolioPhotoCount": "\(portfolioPhotos.count)",
+                    "fitClaimCount": "\(fitClaims.count)",
+                ]
+            )
+        } catch GroomerProfileRepositoryError.cancelled {
+            isLoading = false
+            recordStoreCancelled("load", startedAt: startedAt)
         } catch let error as GroomerProfileRepositoryError {
+            isLoading = false
             errorMessage = message(for: error, action: "load")
+            recordStoreFailure(
+                "load",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt
+            )
+        } catch where AppDebugErrorClassifier.isCancellation(error) {
+            isLoading = false
+            recordStoreCancelled("load", startedAt: startedAt)
         } catch {
+            isLoading = false
             errorMessage = message(for: .unavailable, action: "load")
+            recordStoreFailure(
+                "load",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt
+            )
         }
     }
 
@@ -81,6 +266,40 @@ final class GroomerProfileStore {
                 $0.sortOrder < $1.sortOrder
             }
         }
+    }
+
+    func portfolioPhotoData(for photo: GroomerPortfolioPhoto) -> Data? {
+        portfolioPhotoDataByID[photo.id]
+    }
+
+    var portfolioOverviewSummary: String {
+        switch portfolioPhotos.count {
+        case 0:
+            "No work photos"
+        case 1:
+            "1 work photo"
+        default:
+            "\(portfolioPhotos.count) work photos"
+        }
+    }
+
+    func portfolioFitTagSummary(for photo: GroomerPortfolioPhoto) -> String {
+        let tags = portfolioFitTags(for: photo)
+        guard !tags.isEmpty else {
+            return "No fit notes"
+        }
+
+        let visibleTitles = tags.prefix(2).map(\.signal.title)
+        let summary = visibleTitles.joined(separator: " • ")
+        let remainingCount = tags.count - visibleTitles.count
+
+        return remainingCount > 0
+            ? "\(summary) +\(remainingCount)"
+            : summary
+    }
+
+    func sortedPetFitEvidenceSummary() -> [GroomerPetFitEvidenceSummary] {
+        petFitEvidenceSummary.sorted(by: Self.sortPetFitEvidenceSummary)
     }
 
     func saveProfile() async {
@@ -101,15 +320,21 @@ final class GroomerProfileStore {
         }
 
         isSaving = true
+        profileMutationRevision += 1
         defer { isSaving = false }
 
         do {
-            let updatedProfile = try await repository.updateProfile(
+            let currentAvatarPath = profile?.avatarPath
+            var updatedProfile = try await repository.updateProfile(
                 groomerID: groomerID,
                 draft: draft
             )
+            if updatedProfile.avatarPath == nil {
+                updatedProfile.avatarPath = currentAvatarPath
+            }
             profile = updatedProfile
             populateProfileForm(with: updatedProfile)
+            saveProfileSnapshot(profile: updatedProfile, avatarData: avatarPhotoData)
             noticeMessage = "Groomer profile saved."
         } catch let error as GroomerProfileRepositoryError {
             errorMessage = message(for: error, action: "save")
@@ -128,10 +353,12 @@ final class GroomerProfileStore {
 
     func startEditService(_ service: GroomerService) {
         editingServiceID = service.id
+        serviceType = service.serviceType
         serviceTitle = service.title
         serviceDescription = service.description ?? ""
         serviceBasePrice = Self.displayPrice(service.basePrice)
         serviceDurationMinutes = String(service.durationMinutes)
+        serviceUsesCustomSizeRange = !service.acceptedPetSizes.isEmpty
         selectedServiceSizes = Set(service.acceptedPetSizes)
         serviceIsActive = service.isActive
         errorMessage = nil
@@ -143,6 +370,37 @@ final class GroomerProfileStore {
         isShowingServiceForm = false
         editingServiceID = nil
         resetServiceForm()
+    }
+
+    func setServiceUsesCustomSizeRange(_ isEnabled: Bool) {
+        errorMessage = nil
+        noticeMessage = nil
+        serviceUsesCustomSizeRange = isEnabled
+
+        if isEnabled, selectedServiceSizes.isEmpty {
+            setServiceAcceptedPetSizeRange(
+                lowerIndex: selectedSizeBandRange.lowerBound,
+                upperIndex: selectedSizeBandRange.upperBound,
+                clearsNotice: false
+            )
+        } else if !isEnabled {
+            selectedServiceSizes = []
+        }
+    }
+
+    func setServiceAcceptedPetSizeRange(lowerIndex: Int, upperIndex: Int) {
+        setServiceAcceptedPetSizeRange(
+            lowerIndex: lowerIndex,
+            upperIndex: upperIndex,
+            clearsNotice: true
+        )
+    }
+
+    func serviceSizePolicySummary(for service: GroomerService) -> String {
+        if service.acceptedPetSizes.isEmpty {
+            return "Follows Fit Signals: \(sizeBandFitClaimRangeTitle)"
+        }
+        return "Custom range: \(Self.serviceSizeRangeTitle(for: service.acceptedPetSizes))"
     }
 
     func saveService() async {
@@ -236,6 +494,7 @@ final class GroomerProfileStore {
                 caption: nil
             )
             portfolioPhotos.append(photo)
+            portfolioPhotoDataByID[photo.id] = data
             noticeMessage = "Portfolio photo was uploaded."
         } catch let error as GroomerProfileRepositoryError {
             errorMessage = message(for: error, action: "upload")
@@ -255,6 +514,8 @@ final class GroomerProfileStore {
         do {
             try await repository.deletePortfolioPhoto(photo)
             portfolioPhotos.removeAll { $0.id == photo.id }
+            portfolioPhotoDataByID[photo.id] = nil
+            removePortfolioFitTags(for: photo.id)
             noticeMessage = "Portfolio photo was deleted."
         } catch let error as GroomerProfileRepositoryError {
             errorMessage = message(for: error, action: "delete photo")
@@ -263,21 +524,523 @@ final class GroomerProfileStore {
         }
     }
 
+    func uploadAvatarPhoto(
+        data: Data,
+        contentType: GroomerAvatarPhotoContentType
+    ) async {
+        guard !isUploading else { return }
+
+        guard data.count <= Self.maximumAvatarPhotoBytes else {
+            errorMessage = "Choose an avatar photo smaller than 5 MB."
+            return
+        }
+
+        isUploading = true
+        profileMutationRevision += 1
+        errorMessage = nil
+        noticeMessage = nil
+        defer { isUploading = false }
+
+        do {
+            let avatarPath = try await repository.uploadAvatarPhoto(
+                groomerID: groomerID,
+                data: data,
+                contentType: contentType
+            )
+            if var profile {
+                profile.avatarPath = avatarPath
+                self.profile = profile
+            }
+            avatarPhotoData = data
+            saveProfileSnapshot(profile: profile, avatarData: data)
+            noticeMessage = "Profile photo was updated."
+        } catch let error as GroomerProfileRepositoryError {
+            errorMessage = message(for: error, action: "upload avatar")
+        } catch {
+            errorMessage = message(for: .unavailable, action: "upload avatar")
+        }
+    }
+
+    func setAvailability(
+        day: GroomerAvailabilityWeekday,
+        isEnabled: Bool,
+        startMinutes: Int,
+        endMinutes: Int
+    ) {
+        guard let index = availabilityDayStates.firstIndex(where: { $0.weekday == day }) else {
+            return
+        }
+
+        availabilityDayStates[index].isEnabled = isEnabled
+        availabilityDayStates[index].startMinutes = startMinutes
+        availabilityDayStates[index].endMinutes = endMinutes
+    }
+
+    func saveAvailability() async {
+        guard !isSaving else { return }
+
+        errorMessage = nil
+        noticeMessage = nil
+
+        let profileDraft: GroomerProfileDraft
+        let drafts: [GroomerAvailabilityDraft]
+        let preferencesDraft: GroomerBookingPreferencesDraft
+        do {
+            profileDraft = try makeProfileDraft()
+            drafts = try makeAvailabilityDrafts()
+            preferencesDraft = try makeBookingPreferencesDraft()
+        } catch let error as GroomerProfileFormError {
+            errorMessage = error.message
+            return
+        } catch {
+            errorMessage = "Check your availability and try again."
+            return
+        }
+
+        isSaving = true
+        profileMutationRevision += 1
+        defer { isSaving = false }
+
+        do {
+            let currentAvatarPath = profile?.avatarPath
+            var updatedProfile = try await repository.updateProfile(
+                groomerID: groomerID,
+                draft: profileDraft
+            )
+            if updatedProfile.avatarPath == nil {
+                updatedProfile.avatarPath = currentAvatarPath
+            }
+            let updatedWindows = try await repository.replaceAvailability(
+                groomerID: groomerID,
+                drafts: drafts
+            )
+            let updatedPreferences = try await repository.updateBookingPreferences(
+                groomerID: groomerID,
+                draft: preferencesDraft
+            )
+            profile = updatedProfile
+            availabilityWindows = updatedWindows
+            bookingPreferences = updatedPreferences
+            populateProfileForm(with: updatedProfile)
+            populateAvailabilityForm(with: updatedWindows)
+            populateBookingPreferencesForm(with: updatedPreferences)
+            noticeMessage = "Availability saved."
+        } catch let error as GroomerProfileRepositoryError {
+            errorMessage = message(for: error, action: "save availability")
+        } catch {
+            errorMessage = message(for: .unavailable, action: "save availability")
+        }
+    }
+
+    func startCreateTimeOff() {
+        resetTimeOffForm()
+        errorMessage = nil
+        noticeMessage = nil
+        isShowingTimeOffForm = true
+    }
+
+    func cancelTimeOffForm() {
+        resetTimeOffForm()
+        isShowingTimeOffForm = false
+    }
+
+    func createTimeOff() async {
+        guard !isSaving else { return }
+
+        errorMessage = nil
+        noticeMessage = nil
+
+        let draft: GroomerTimeOffDraft
+        do {
+            draft = try makeTimeOffDraft()
+        } catch let error as GroomerProfileFormError {
+            errorMessage = error.message
+            return
+        } catch {
+            errorMessage = "Check your time off dates and try again."
+            return
+        }
+
+        isSaving = true
+        defer { isSaving = false }
+
+        do {
+            let window = try await repository.createTimeOff(
+                groomerID: groomerID,
+                draft: draft
+            )
+            timeOffWindows.append(window)
+            timeOffWindows.sort {
+                if $0.startDate == $1.startDate {
+                    $0.title < $1.title
+                } else {
+                    $0.startDate < $1.startDate
+                }
+            }
+            isShowingTimeOffForm = false
+            resetTimeOffForm()
+            noticeMessage = "Time off added."
+        } catch let error as GroomerProfileRepositoryError {
+            errorMessage = message(for: error, action: "save time off")
+        } catch {
+            errorMessage = message(for: .unavailable, action: "save time off")
+        }
+    }
+
+    func deleteTimeOff(_ window: GroomerTimeOffWindow) async {
+        guard !isSaving else { return }
+
+        isSaving = true
+        errorMessage = nil
+        noticeMessage = nil
+        defer { isSaving = false }
+
+        do {
+            try await repository.deleteTimeOff(window)
+            timeOffWindows.removeAll { $0.id == window.id }
+            noticeMessage = "Time off removed."
+        } catch let error as GroomerProfileRepositoryError {
+            errorMessage = message(for: error, action: "delete time off")
+        } catch {
+            errorMessage = message(for: .unavailable, action: "delete time off")
+        }
+    }
+
+    func isFitClaimSelected(_ signal: PetFitSignal) -> Bool {
+        selectedFitClaimIDs.contains(signal.id)
+    }
+
+    func selectedFitClaimCount(in group: PetFitSignal.Group) -> Int {
+        selectedFitClaimCount { $0.group == group }
+    }
+
+    func ensureSizeBandFitClaimRange() {
+        setSizeBandFitClaimRange(
+            lowerIndex: selectedSizeBandRange.lowerBound,
+            upperIndex: selectedSizeBandRange.upperBound,
+            clearsNotice: false
+        )
+    }
+
+    func setSizeBandFitClaimRange(
+        lowerIndex: Int,
+        upperIndex: Int
+    ) {
+        setSizeBandFitClaimRange(
+            lowerIndex: lowerIndex,
+            upperIndex: upperIndex,
+            clearsNotice: true
+        )
+    }
+
+    func toggleFitClaim(_ signal: PetFitSignal) {
+        errorMessage = nil
+        noticeMessage = nil
+
+        if selectedFitClaimIDs.contains(signal.id) {
+            selectedFitClaimIDs.remove(signal.id)
+            return
+        }
+
+        guard signal.group == .sizeBand
+                || selectedCoreFitClaimCount < GroomerFitClaim.maximumActiveClaims else {
+            errorMessage = Self.fitClaimLimitMessage
+            return
+        }
+
+        selectedFitClaimIDs.insert(signal.id)
+    }
+
+    @discardableResult
+    func saveFitClaims() async -> String? {
+        guard !isSaving else { return nil }
+
+        errorMessage = nil
+        noticeMessage = nil
+
+        guard selectedCoreFitClaimCount <= GroomerFitClaim.maximumActiveClaims else {
+            errorMessage = Self.fitClaimLimitMessage
+            return nil
+        }
+
+        let drafts = makeFitClaimDrafts()
+
+        isSaving = true
+        defer { isSaving = false }
+
+        do {
+            let updatedClaims = try await repository.replaceFitClaims(
+                groomerID: groomerID,
+                drafts: drafts
+            )
+            populateFitClaims(with: updatedClaims)
+            let successMessage = "Fit signals saved."
+            noticeMessage = successMessage
+            return successMessage
+        } catch let error as GroomerProfileRepositoryError {
+            errorMessage = message(for: error, action: "save fit signals")
+        } catch {
+            errorMessage = message(for: .unavailable, action: "save fit signals")
+        }
+        return nil
+    }
+
+    func portfolioFitTags(for photo: GroomerPortfolioPhoto) -> [GroomerPortfolioFitTag] {
+        portfolioFitTags.filter { $0.portfolioPhotoID == photo.id }
+    }
+
+    func isPortfolioFitTagSelected(
+        _ signal: PetFitSignal,
+        for photo: GroomerPortfolioPhoto
+    ) -> Bool {
+        selectedPortfolioFitTagIDsByPhotoID[photo.id]?.contains(signal.id) == true
+    }
+
+    func togglePortfolioFitTag(
+        _ signal: PetFitSignal,
+        for photo: GroomerPortfolioPhoto
+    ) {
+        errorMessage = nil
+        noticeMessage = nil
+
+        var selectedIDs = selectedPortfolioFitTagIDsByPhotoID[photo.id] ?? []
+        if selectedIDs.contains(signal.id) {
+            selectedIDs.remove(signal.id)
+            if selectedIDs.isEmpty {
+                selectedPortfolioFitTagIDsByPhotoID.removeValue(forKey: photo.id)
+            } else {
+                selectedPortfolioFitTagIDsByPhotoID[photo.id] = selectedIDs
+            }
+            return
+        }
+
+        guard selectedIDs.count < GroomerPortfolioFitTag.maximumTagsPerPhoto else {
+            errorMessage = "Choose up to \(GroomerPortfolioFitTag.maximumTagsPerPhoto) tags for each portfolio photo."
+            return
+        }
+
+        selectedIDs.insert(signal.id)
+        selectedPortfolioFitTagIDsByPhotoID[photo.id] = selectedIDs
+    }
+
+    func savePortfolioFitTags(for photo: GroomerPortfolioPhoto) async {
+        guard !isSaving else { return }
+
+        errorMessage = nil
+        noticeMessage = nil
+
+        guard portfolioPhotos.contains(where: { $0.id == photo.id }) else {
+            errorMessage = "We could not save tags for that portfolio photo."
+            return
+        }
+
+        let selectedIDs = selectedPortfolioFitTagIDsByPhotoID[photo.id] ?? []
+        guard selectedIDs.count <= GroomerPortfolioFitTag.maximumTagsPerPhoto else {
+            errorMessage = "Choose up to \(GroomerPortfolioFitTag.maximumTagsPerPhoto) tags for each portfolio photo."
+            return
+        }
+
+        let drafts = makePortfolioFitTagDrafts(for: photo)
+
+        isSaving = true
+        defer { isSaving = false }
+
+        do {
+            let updatedTags = try await repository.replacePortfolioFitTags(
+                groomerID: groomerID,
+                photoID: photo.id,
+                drafts: drafts
+            )
+            replacePortfolioFitTags(for: photo.id, with: updatedTags)
+            noticeMessage = "Portfolio tags saved."
+        } catch let error as GroomerProfileRepositoryError {
+            errorMessage = message(for: error, action: "save portfolio tags")
+        } catch {
+            errorMessage = message(for: .unavailable, action: "save portfolio tags")
+        }
+    }
+
     private func populateProfileForm(with profile: GroomerProfile) {
         businessName = profile.businessName ?? ""
         bio = profile.bio ?? ""
-        yearsExperience = profile.yearsExperience.map(String.init) ?? ""
+        yearsExperience = min(max(profile.yearsExperience ?? 0, 0), 5)
+        baseStreetAddress = profile.baseStreetAddress ?? ""
         baseCity = profile.baseCity ?? ""
         baseState = profile.baseState ?? ""
-        serviceRadiusMiles = profile.serviceRadiusMiles.map(String.init) ?? ""
+        baseStateCode = profile.baseState.flatMap(USStateCode.init(rawValue:))
+        baseZipCode = profile.baseZipCode ?? ""
+        serviceRadiusMiles = min(max(profile.serviceRadiusMiles ?? 12, 5), 50)
+        serviceLocationModes = profile.effectiveServiceLocationModes
         isActive = profile.isActive
     }
 
+    private func populateCachedProfileSnapshot() {
+        guard let snapshot = profileSnapshotCache.snapshot(userID: groomerID) else {
+            return
+        }
+
+        cachedProfileSnapshot = snapshot
+        if avatarPhotoData == nil {
+            avatarPhotoData = snapshot.avatarData
+        }
+    }
+
+    private func saveProfileSnapshot(
+        profile: GroomerProfile?,
+        avatarData: Data?
+    ) {
+        let displayName = Self.normalized(profile?.businessName)
+            ?? Self.normalized(cachedProfileSnapshot?.displayName)
+            ?? "Groomer Profile"
+        let snapshot = ProfileSnapshot(
+            userID: groomerID,
+            displayName: displayName,
+            detailText: profile.map(Self.detailText(for:))
+                ?? Self.normalized(cachedProfileSnapshot?.detailText),
+            avatarData: avatarData
+        )
+        cachedProfileSnapshot = snapshot
+        profileSnapshotCache.save(snapshot)
+    }
+
+    private static func detailText(for profile: GroomerProfile) -> String {
+        guard profile.ratingCount > 0 else {
+            return "★ New profile"
+        }
+
+        return "★ \(profile.ratingAverage.formatted(.number.precision(.fractionLength(1)))) · \(profile.ratingCount) review\(profile.ratingCount == 1 ? "" : "s")"
+    }
+
+    private static func normalized(_ value: String?) -> String? {
+        let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return trimmed.isEmpty ? nil : trimmed
+    }
+
+    private func avatarPhotoPayload(from storagePath: String?) async -> (
+        path: String?,
+        data: Data?
+    ) {
+        let preferredPath = normalizedStoragePath(storagePath)
+        let latestPath: String?
+
+        do {
+            latestPath = normalizedStoragePath(
+                try await repository.latestAvatarPhotoPath(
+                    groomerID: groomerID
+                )
+            )
+        } catch {
+            latestPath = nil
+        }
+
+        var seenPaths: Set<String> = []
+        for candidatePath in [latestPath, preferredPath].compactMap({ $0 })
+            where seenPaths.insert(candidatePath).inserted {
+            if let data = try? await repository.avatarPhotoData(
+                storagePath: candidatePath
+            ) {
+                return (candidatePath, data)
+            }
+        }
+
+        return (preferredPath, nil)
+    }
+
+    private func normalizedStoragePath(_ storagePath: String?) -> String? {
+        let trimmed = storagePath?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return trimmed.isEmpty ? nil : trimmed
+    }
+
+    private func portfolioPhotoDataMap(
+        for photos: [GroomerPortfolioPhoto]
+    ) async -> [UUID: Data] {
+        var dataByID: [UUID: Data] = [:]
+        for photo in photos {
+            guard let data = try? await repository.portfolioPhotoData(photo) else {
+                continue
+            }
+            dataByID[photo.id] = data
+        }
+        return dataByID
+    }
+
+    private func populateAvailabilityForm(with windows: [GroomerAvailabilityWindow]) {
+        var states = GroomerAvailabilityDayState.defaultStates()
+        for window in windows {
+            guard let index = states.firstIndex(where: { $0.weekday == window.weekday }) else {
+                continue
+            }
+            states[index] = GroomerAvailabilityDayState(
+                weekday: window.weekday,
+                isEnabled: window.isEnabled,
+                startMinutes: window.startMinutes,
+                endMinutes: window.endMinutes
+            )
+        }
+        availabilityDayStates = states
+        if let timezone = windows.first?.timezone {
+            availabilityTimezone = timezone
+        }
+    }
+
+    private func populateBookingPreferencesForm(with preferences: GroomerBookingPreferences) {
+        maxAppointmentsPerDay = min(max(preferences.maxAppointmentsPerDay, 1), 12)
+        minimumAdvanceNoticeDays = min(max(preferences.minimumAdvanceNoticeDays, 0), 2)
+        autoAcceptBookings = preferences.autoAcceptBookings
+    }
+
+    private func populateFitClaims(with claims: [GroomerFitClaim]) {
+        fitClaims = claims.sorted(by: Self.sortFitClaims)
+        let supportedSignals = Set(GroomerFitClaim.availableSignals)
+        selectedFitClaimIDs = Set(
+            claims
+                .filter { $0.isActive && supportedSignals.contains($0.signal) }
+                .map { $0.signal.id }
+        )
+    }
+
+    private func populatePetFitEvidenceSummary(with summaries: [GroomerPetFitEvidenceSummary]) {
+        let supportedSignals = Set(PetFitSignal.allCases)
+        petFitEvidenceSummary = summaries
+            .filter { $0.groomerID == groomerID && supportedSignals.contains($0.signal) }
+            .sorted(by: Self.sortPetFitEvidenceSummary)
+    }
+
+    private func populatePortfolioFitTags(
+        with tags: [GroomerPortfolioFitTag],
+        visiblePhotos: [GroomerPortfolioPhoto]
+    ) {
+        let visiblePhotoIDs = Set(visiblePhotos.map(\.id))
+        let supportedSignals = Set(PetFitSignal.allCases)
+        let visibleTags = tags.filter {
+            visiblePhotoIDs.contains($0.portfolioPhotoID) &&
+                supportedSignals.contains($0.signal)
+        }
+
+        portfolioFitTags = visibleTags.sorted(by: Self.sortPortfolioFitTags)
+        selectedPortfolioFitTagIDsByPhotoID = Dictionary(
+            grouping: visibleTags,
+            by: \.portfolioPhotoID
+        )
+        .mapValues { tags in
+            Set(tags.map { $0.signal.id })
+        }
+    }
+
+    private func resetTimeOffForm() {
+        timeOffTitle = ""
+        let today = Calendar.current.startOfDay(for: Date())
+        timeOffStartDate = today
+        timeOffEndDate = today
+    }
+
     private func resetServiceForm() {
-        serviceTitle = ""
+        serviceType = .fullGroom
+        serviceTitle = GroomingServiceType.fullGroom.title
         serviceDescription = ""
         serviceBasePrice = ""
         serviceDurationMinutes = ""
+        serviceUsesCustomSizeRange = false
         selectedServiceSizes = []
         serviceIsActive = true
     }
@@ -290,6 +1053,31 @@ final class GroomerProfileStore {
         services[index] = service
     }
 
+    private func removePortfolioFitTags(for photoID: UUID) {
+        portfolioFitTags.removeAll { $0.portfolioPhotoID == photoID }
+        selectedPortfolioFitTagIDsByPhotoID.removeValue(forKey: photoID)
+    }
+
+    private func replacePortfolioFitTags(
+        for photoID: UUID,
+        with tags: [GroomerPortfolioFitTag]
+    ) {
+        removePortfolioFitTags(for: photoID)
+
+        let supportedSignals = Set(PetFitSignal.allCases)
+        let supportedTags = tags.filter {
+            $0.portfolioPhotoID == photoID && supportedSignals.contains($0.signal)
+        }
+
+        portfolioFitTags.append(contentsOf: supportedTags)
+        portfolioFitTags.sort(by: Self.sortPortfolioFitTags)
+
+        let selectedIDs = Set(supportedTags.map { $0.signal.id })
+        if !selectedIDs.isEmpty {
+            selectedPortfolioFitTagIDsByPhotoID[photoID] = selectedIDs
+        }
+    }
+
     private func makeProfileDraft() throws -> GroomerProfileDraft {
         let draft = GroomerProfileDraft(
             businessName: try optional(
@@ -297,36 +1085,37 @@ final class GroomerProfileStore {
                 field: "Business name",
                 maximum: 120
             ),
-            bio: try optional(bio, field: "Bio", maximum: 2000),
-            yearsExperience: try optionalInteger(
-                yearsExperience,
-                field: "Years of experience",
-                range: 0...80
+            bio: try optional(bio, field: "Biography", maximum: 2000),
+            yearsExperience: min(max(yearsExperience, 0), 5),
+            baseStreetAddress: try optional(
+                baseStreetAddress,
+                field: "Street address",
+                maximum: 160
             ),
             baseCity: try optional(baseCity, field: "City", maximum: 100),
-            baseState: try optional(baseState, field: "State", maximum: 80),
-            serviceRadiusMiles: try optionalInteger(
-                serviceRadiusMiles,
-                field: "Service radius",
-                range: 1...250
-            ),
+            baseStateCode: baseStateCode,
+            baseZipCode: try optionalZipCode(baseZipCode),
+            serviceRadiusMiles: min(max(serviceRadiusMiles, 5), 50),
+            serviceLocationMode: serviceLocationModes.primaryMode,
+            serviceLocationModes: serviceLocationModes,
             isActive: isActive
         )
 
         if draft.isActive,
            (draft.businessName == nil
+            || draft.baseStreetAddress == nil
             || draft.baseCity == nil
-            || draft.baseState == nil
+            || draft.baseStateCode == nil
+            || draft.baseZipCode == nil
             || draft.serviceRadiusMiles == nil) {
             throw GroomerProfileFormError(
-                message: "Complete business name, city, state, and service radius before going active."
+                message: "Complete business name, address, city, state, ZIP, and service radius before going active."
             )
         }
 
-        if let baseState = draft.baseState,
-           baseState.count < 2 {
+        if draft.isActive, draft.serviceLocationModes.isEmpty {
             throw GroomerProfileFormError(
-                message: "State must be 2–80 characters."
+                message: "Choose whether you travel to customers or host appointments before going active."
             )
         }
 
@@ -334,8 +1123,10 @@ final class GroomerProfileStore {
     }
 
     private func makeServiceDraft() throws -> GroomerServiceDraft {
-        GroomerServiceDraft(
-            title: try required(serviceTitle, field: "Service title", range: 1...80),
+        let serviceTitle = serviceType.title
+        return GroomerServiceDraft(
+            serviceType: serviceType,
+            title: serviceTitle,
             description: try optional(
                 serviceDescription,
                 field: "Description",
@@ -347,11 +1138,170 @@ final class GroomerProfileStore {
                 field: "Duration",
                 range: 15...720
             ),
-            acceptedPetSizes: GroomerServicePetSize.allCases.filter {
-                selectedServiceSizes.contains($0)
-            },
+            acceptedPetSizes: serviceUsesCustomSizeRange
+                ? GroomerServicePetSize.allCases.filter { selectedServiceSizes.contains($0) }
+                : [],
             isActive: serviceIsActive
         )
+    }
+
+    private func makeAvailabilityDrafts() throws -> [GroomerAvailabilityDraft] {
+        try availabilityDayStates
+            .sorted { $0.weekday.rawValue < $1.weekday.rawValue }
+            .map { state in
+                guard state.startMinutes >= 0,
+                      state.endMinutes <= 23 * 60 + 59 else {
+                    throw GroomerProfileFormError(
+                        message: "\(state.weekday.title) availability must stay within one day."
+                    )
+                }
+
+                if state.isEnabled, state.endMinutes <= state.startMinutes {
+                    throw GroomerProfileFormError(
+                        message: "\(state.weekday.title) availability needs an end time after the start time."
+                    )
+                }
+
+                return GroomerAvailabilityDraft(
+                    weekday: state.weekday,
+                    startMinutes: state.startMinutes,
+                    endMinutes: state.endMinutes,
+                    isEnabled: state.isEnabled,
+                    timezone: availabilityTimezone
+                )
+            }
+    }
+
+    private func makeBookingPreferencesDraft() throws -> GroomerBookingPreferencesDraft {
+        guard (1...12).contains(maxAppointmentsPerDay) else {
+            throw GroomerProfileFormError(
+                message: "Max appointments per day must be 1–12."
+            )
+        }
+
+        guard (0...2).contains(minimumAdvanceNoticeDays) else {
+            throw GroomerProfileFormError(
+                message: "Minimum advance notice must be Same day, 1 day, or 2 days."
+            )
+        }
+
+        return GroomerBookingPreferencesDraft(
+            maxAppointmentsPerDay: maxAppointmentsPerDay,
+            minimumAdvanceNoticeDays: minimumAdvanceNoticeDays,
+            autoAcceptBookings: autoAcceptBookings
+        )
+    }
+
+    private func makeTimeOffDraft() throws -> GroomerTimeOffDraft {
+        let title = try required(
+            timeOffTitle,
+            field: "Time off title",
+            range: 1...80
+        )
+        let startDate = Calendar.current.startOfDay(for: timeOffStartDate)
+        let endDate = Calendar.current.startOfDay(for: timeOffEndDate)
+
+        guard endDate >= startDate else {
+            throw GroomerProfileFormError(
+                message: "Time off end date must be on or after the start date."
+            )
+        }
+
+        return GroomerTimeOffDraft(
+            title: title,
+            startDate: Self.dateString(from: startDate),
+            endDate: Self.dateString(from: endDate)
+        )
+    }
+
+    private func makeFitClaimDrafts() -> [GroomerFitClaimDraft] {
+        let supportedSignals = Set(PetFitSignal.allCases)
+        let knownSignals = Set(
+            fitClaims
+                .map(\.signal)
+                .filter { supportedSignals.contains($0) }
+        )
+        let selectedSignals = Set(
+            GroomerFitClaim.availableSignals.filter {
+                selectedFitClaimIDs.contains($0.id)
+            }
+        )
+
+        return knownSignals
+            .union(selectedSignals)
+            .sorted(by: Self.sortFitSignals)
+            .map { signal in
+                GroomerFitClaimDraft(
+                    signal: signal,
+                    isActive: selectedFitClaimIDs.contains(signal.id)
+                )
+            }
+    }
+
+    private func selectedFitClaimCount(
+        where matches: (PetFitSignal) -> Bool
+    ) -> Int {
+        GroomerFitClaim.availableSignals.reduce(0) { count, signal in
+            guard matches(signal), selectedFitClaimIDs.contains(signal.id) else {
+                return count
+            }
+            return count + 1
+        }
+    }
+
+    private func setSizeBandFitClaimRange(
+        lowerIndex: Int,
+        upperIndex: Int,
+        clearsNotice: Bool
+    ) {
+        if clearsNotice {
+            errorMessage = nil
+            noticeMessage = nil
+        }
+
+        let range = Self.normalizedSizeBandRange(
+            lowerIndex: lowerIndex,
+            upperIndex: upperIndex
+        )
+        let sizeBandIDs = Set(Self.sizeBandSignals.map(\.id))
+        selectedFitClaimIDs.subtract(sizeBandIDs)
+
+        for index in range {
+            selectedFitClaimIDs.insert(Self.sizeBandSignals[index].id)
+        }
+    }
+
+    private func setServiceAcceptedPetSizeRange(
+        lowerIndex: Int,
+        upperIndex: Int,
+        clearsNotice: Bool
+    ) {
+        if clearsNotice {
+            errorMessage = nil
+            noticeMessage = nil
+        }
+
+        let range = Self.normalizedServiceSizeRange(
+            lowerIndex: lowerIndex,
+            upperIndex: upperIndex
+        )
+        serviceUsesCustomSizeRange = true
+        selectedServiceSizes = Set(
+            Self.serviceSizeOptions.enumerated().compactMap { index, size in
+                range.contains(index) ? size : nil
+            }
+        )
+    }
+
+    private func makePortfolioFitTagDrafts(
+        for photo: GroomerPortfolioPhoto
+    ) -> [GroomerPortfolioFitTagDraft] {
+        let selectedIDs = selectedPortfolioFitTagIDsByPhotoID[photo.id] ?? []
+
+        return GroomerPortfolioFitTag.availableSignals
+            .filter { selectedIDs.contains($0.id) }
+            .sorted(by: Self.sortFitSignals)
+            .map { GroomerPortfolioFitTagDraft(signal: $0) }
     }
 
     private func required(
@@ -407,6 +1357,20 @@ final class GroomerProfileStore {
         return try integer(trimmed, field: field, range: range)
     }
 
+    private func optionalZipCode(_ value: String) throws -> String? {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+
+        let pattern = #"^[0-9]{5}(-[0-9]{4})?$"#
+        guard trimmed.range(of: pattern, options: .regularExpression) != nil else {
+            throw GroomerProfileFormError(
+                message: "ZIP must be a valid 5-digit ZIP code."
+            )
+        }
+
+        return trimmed
+    }
+
     private func integer(
         _ value: String,
         field: String,
@@ -447,6 +1411,146 @@ final class GroomerProfileStore {
         return String(format: "%.2f", price)
     }
 
+    private static func sortFitClaims(
+        _ lhs: GroomerFitClaim,
+        _ rhs: GroomerFitClaim
+    ) -> Bool {
+        sortFitSignals(lhs.signal, rhs.signal)
+    }
+
+    private static func sortPortfolioFitTags(
+        _ lhs: GroomerPortfolioFitTag,
+        _ rhs: GroomerPortfolioFitTag
+    ) -> Bool {
+        if lhs.portfolioPhotoID == rhs.portfolioPhotoID {
+            return sortFitSignals(lhs.signal, rhs.signal)
+        }
+        return lhs.portfolioPhotoID.uuidString < rhs.portfolioPhotoID.uuidString
+    }
+
+    private static func sortPetFitEvidenceSummary(
+        _ lhs: GroomerPetFitEvidenceSummary,
+        _ rhs: GroomerPetFitEvidenceSummary
+    ) -> Bool {
+        if lhs.confidenceTier.sortOrder != rhs.confidenceTier.sortOrder {
+            return lhs.confidenceTier.sortOrder < rhs.confidenceTier.sortOrder
+        }
+        if lhs.completedBookingCount != rhs.completedBookingCount {
+            return lhs.completedBookingCount > rhs.completedBookingCount
+        }
+        if lhs.positiveReviewOutcomeCount != rhs.positiveReviewOutcomeCount {
+            return lhs.positiveReviewOutcomeCount > rhs.positiveReviewOutcomeCount
+        }
+        if lhs.structuredReviewOutcomeCount != rhs.structuredReviewOutcomeCount {
+            return lhs.structuredReviewOutcomeCount > rhs.structuredReviewOutcomeCount
+        }
+        return sortFitSignals(lhs.signal, rhs.signal)
+    }
+
+    private static func sortFitSignals(
+        _ lhs: PetFitSignal,
+        _ rhs: PetFitSignal
+    ) -> Bool {
+        if lhs.sortOrder == rhs.sortOrder {
+            if lhs.title == rhs.title {
+                return lhs.id < rhs.id
+            }
+            return lhs.title < rhs.title
+        }
+        return lhs.sortOrder < rhs.sortOrder
+    }
+
+    private static var fitClaimLimitMessage: String {
+        "Choose up to \(GroomerFitClaim.maximumActiveClaims) core fit signals. Size experience does not use this limit."
+    }
+
+    private static var sizeBandSignals: [PetFitSignal] {
+        CustomerPetSizeCode.allCases.map { PetFitSignal.sizeBand($0) }
+    }
+
+    private static var fullSizeBandRange: ClosedRange<Int> {
+        0...(sizeBandSignals.count - 1)
+    }
+
+    private static func normalizedSizeBandRange(
+        lowerIndex: Int,
+        upperIndex: Int
+    ) -> ClosedRange<Int> {
+        let maximumIndex = sizeBandSignals.count - 1
+        let lowerBound = min(max(lowerIndex, 0), maximumIndex)
+        let upperBound = min(max(upperIndex, 0), maximumIndex)
+        return min(lowerBound, upperBound)...max(lowerBound, upperBound)
+    }
+
+    private static func sizeBandRangeTitle(
+        for range: ClosedRange<Int>
+    ) -> String {
+        let normalizedRange = normalizedSizeBandRange(
+            lowerIndex: range.lowerBound,
+            upperIndex: range.upperBound
+        )
+        let codes = CustomerPetSizeCode.allCases
+        let lower = codes[normalizedRange.lowerBound]
+        let upper = codes[normalizedRange.upperBound]
+        return "\(lower.title)-\(upper.title) (\(lower.lowerWeightLabel)-\(upper.upperWeightLabel))"
+    }
+
+    private static var serviceSizeOptions: [GroomerServicePetSize] {
+        GroomerServicePetSize.allCases
+    }
+
+    private static var fullServiceSizeRange: ClosedRange<Int> {
+        0...(serviceSizeOptions.count - 1)
+    }
+
+    private static func normalizedServiceSizeRange(
+        lowerIndex: Int,
+        upperIndex: Int
+    ) -> ClosedRange<Int> {
+        let maximumIndex = serviceSizeOptions.count - 1
+        let lowerBound = min(max(lowerIndex, 0), maximumIndex)
+        let upperBound = min(max(upperIndex, 0), maximumIndex)
+        return min(lowerBound, upperBound)...max(lowerBound, upperBound)
+    }
+
+    private static func serviceSizeRangeTitle(
+        for sizes: [GroomerServicePetSize]
+    ) -> String {
+        let selectedIndices = serviceSizeOptions.enumerated().compactMap { index, size in
+            sizes.contains(size) ? index : nil
+        }
+        guard let lowerBound = selectedIndices.min(),
+              let upperBound = selectedIndices.max() else {
+            return serviceSizeRangeTitle(for: fullServiceSizeRange)
+        }
+        return serviceSizeRangeTitle(for: lowerBound...upperBound)
+    }
+
+    private static func serviceSizeRangeTitle(
+        for range: ClosedRange<Int>
+    ) -> String {
+        let normalizedRange = normalizedServiceSizeRange(
+            lowerIndex: range.lowerBound,
+            upperIndex: range.upperBound
+        )
+        let lower = serviceSizeOptions[normalizedRange.lowerBound]
+        let upper = serviceSizeOptions[normalizedRange.upperBound]
+        if lower == upper {
+            return "\(lower.title) (\(lower.singleWeightLabel))"
+        }
+        return "\(lower.title)-\(upper.title) (\(lower.lowerWeightLabel)-\(upper.upperWeightLabel))"
+    }
+
+    static func dateString(from date: Date) -> String {
+        let components = Calendar.current.dateComponents([.year, .month, .day], from: date)
+        return String(
+            format: "%04d-%02d-%02d",
+            components.year ?? 0,
+            components.month ?? 1,
+            components.day ?? 1
+        )
+    }
+
     private func message(
         for error: GroomerProfileRepositoryError,
         action: String
@@ -456,12 +1560,155 @@ final class GroomerProfileStore {
             "This account cannot \(action) groomer profile details."
         case .networkUnavailable:
             "Check your connection and try again."
+        case .cancelled:
+            "The profile action was cancelled."
         case .unavailable:
             "We could not \(action) groomer profile details. Please try again."
+        }
+    }
+
+    private var debugScope: String {
+        "groomer.profile"
+    }
+
+    private func recordStoreStart(
+        _ operation: String,
+        metadata: [String: String] = [:]
+    ) {
+        var eventMetadata = metadata
+        eventMetadata["operation"] = operation
+        eventMetadata["groomerID"] = groomerID.uuidString
+        debugRecorder?.record(
+            level: .info,
+            category: .store,
+            source: "GroomerProfileStore.\(operation)",
+            scope: debugScope,
+            message: "start",
+            metadata: eventMetadata
+        )
+    }
+
+    private func recordStoreSuccess(
+        _ operation: String,
+        startedAt: Date,
+        metadata: [String: String] = [:]
+    ) {
+        var eventMetadata = metadata
+        eventMetadata["operation"] = operation
+        debugRecorder?.record(
+            level: .info,
+            category: .store,
+            source: "GroomerProfileStore.\(operation)",
+            scope: debugScope,
+            message: "success",
+            durationMs: Int(Date().timeIntervalSince(startedAt) * 1_000),
+            metadata: eventMetadata
+        )
+    }
+
+    private func recordStoreFailure(
+        _ operation: String,
+        error: any Error,
+        mappedMessage: String?,
+        startedAt: Date
+    ) {
+        debugRecorder?.record(
+            level: .error,
+            category: .store,
+            source: "GroomerProfileStore.\(operation)",
+            scope: debugScope,
+            message: mappedMessage ?? "failure",
+            underlyingError: error,
+            durationMs: Int(Date().timeIntervalSince(startedAt) * 1_000),
+            metadata: ["operation": operation]
+        )
+    }
+
+    private func recordStoreCancelled(
+        _ operation: String,
+        startedAt: Date,
+        metadata: [String: String] = [:]
+    ) {
+        var eventMetadata = metadata
+        eventMetadata["operation"] = operation
+        debugRecorder?.record(
+            level: .info,
+            category: .store,
+            source: "GroomerProfileStore.\(operation)",
+            scope: debugScope,
+            message: "cancelled ignored",
+            durationMs: Int(Date().timeIntervalSince(startedAt) * 1_000),
+            metadata: eventMetadata
+        )
+    }
+}
+
+private extension CustomerPetSizeCode {
+    var lowerWeightLabel: String {
+        switch self {
+        case .xs:
+            "<10lb"
+        case .s:
+            "10lb"
+        case .m:
+            "20lb"
+        case .l:
+            "40lb"
+        case .xl:
+            "60lb"
+        case .xxl:
+            "80lb"
+        case .giant:
+            "101lb"
+        }
+    }
+
+    var upperWeightLabel: String {
+        switch self {
+        case .xs:
+            "9lb"
+        case .s:
+            "19lb"
+        case .m:
+            "39lb"
+        case .l:
+            "59lb"
+        case .xl:
+            "79lb"
+        case .xxl:
+            "100lb"
+        case .giant:
+            "101+lb"
         }
     }
 }
 
 private struct GroomerProfileFormError: Error {
     let message: String
+}
+
+struct GroomerAvailabilityDayState: Equatable, Identifiable {
+    let weekday: GroomerAvailabilityWeekday
+    var isEnabled: Bool
+    var startMinutes: Int
+    var endMinutes: Int
+
+    var id: GroomerAvailabilityWeekday { weekday }
+
+    var summary: String {
+        isEnabled
+            ? "\(GroomerAvailabilityWindow.displayTime(fromMinutes: startMinutes)) - \(GroomerAvailabilityWindow.displayTime(fromMinutes: endMinutes))"
+            : "Unavailable"
+    }
+
+    static func defaultStates() -> [GroomerAvailabilityDayState] {
+        GroomerAvailabilityWeekday.allCases.map {
+            GroomerAvailabilityDayState(
+                weekday: $0,
+                isEnabled: false,
+                startMinutes: 9 * 60,
+                endMinutes: 17 * 60
+            )
+        }
+    }
 }

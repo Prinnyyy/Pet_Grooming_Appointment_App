@@ -4,11 +4,13 @@
 
 - Project: `ios/PetGroomerMarketplace/PetGroomerMarketplace.xcodeproj`
 - Shared scheme: `PetGroomerMarketplace`
-- Destination: `platform=iOS Simulator,OS=18.4,name=iPhone 16 Pro`
+- Build destination: `generic/platform=iOS Simulator`
+- Test destination: auto-discovered concrete iPhone simulator from the current Xcode installation
 - Minimum deployment target: iOS 18.0
 - Swift language mode: Swift 6
 
 The scripts address the project directly. They do not discover or prefer the internal `project.xcworkspace` inside the `.xcodeproj` bundle.
+CI jobs that require a fixed simulator image should set `CODEX_IOS_DESTINATION` explicitly.
 
 ## Build
 
@@ -26,6 +28,34 @@ Run both the Swift Testing unit target and XCTest UI target:
 ./scripts/ios-test.sh
 ```
 
+## TestOps
+
+Unified lifecycle automation and run templates live under `docs/04_ios/testops/README.md`.
+
+Useful entrypoints:
+
+```bash
+./scripts/testops-unit.sh
+node scripts/testops.mjs doctor --dry-run
+node scripts/testops.mjs run backend --scenario marketplace_full_lifecycle
+node scripts/testops.mjs run backend --scenario marketplace_full_lifecycle --matrix smoke5
+node scripts/testops.mjs run matching --scenario request_matching_eval --matrix matching_baseline
+./scripts/ios-testops-e2e.sh marketplace_full_lifecycle
+```
+
+Remote backend execution and cleanup require explicit operator approval, `--execute`, and `TESTOPS_REMOTE_WRITE_APPROVED=1`.
+
+## Debug Event Logs
+
+For local app repros, DEBUG builds expose `Account -> Debug Console` and write structured JSONL events to the booted simulator app container. Use:
+
+```bash
+./scripts/ios-debug-events.sh tail 100
+./scripts/ios-debug-events.sh path
+```
+
+The full usage and instrumentation rules live in `docs/04_ios/DEBUG_CONSOLE.md`.
+
 ## Environment Overrides
 
 All defaults can be overridden explicitly:
@@ -33,7 +63,7 @@ All defaults can be overridden explicitly:
 ```bash
 CODEX_IOS_PROJECT=/path/to/App.xcodeproj \
 CODEX_IOS_SCHEME=App \
-CODEX_IOS_DESTINATION='platform=iOS Simulator,OS=18.4,name=iPhone 16 Pro' \
+CODEX_IOS_DESTINATION='platform=iOS Simulator,OS=26.5,name=iPhone 17 Pro' \
 ./scripts/ios-build.sh
 ```
 
@@ -41,7 +71,7 @@ The same variables are supported by `./scripts/ios-test.sh`.
 
 ## Supabase Environment
 
-The tracked `ios/PetGroomerMarketplace/Config/Supabase.xcconfig` contains empty defaults and optionally includes `Supabase.local.xcconfig`. The local file is Git-ignored and populated from the authorized Supabase project through MCP. The tracked `AppInfo.plist` expands these build settings into the runtime bundle.
+The tracked `ios/PetGroomerMarketplace/Config/Supabase.xcconfig` contains empty defaults and optionally includes `Supabase.local.xcconfig`. The local file is Git-ignored and populated from the authorized Supabase project. The tracked `AppInfo.plist` expands these build settings into the runtime bundle.
 
 Required local values:
 

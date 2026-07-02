@@ -2,7 +2,9 @@
 
 ## Canonical Source
 
-`Fresh_Pet_Groomer_Marketplace_Engineering_Brief.md` is the product and engineering source for the fresh rebuild. This document is the concise working summary used by feature tasks.
+This file is the active product source for feature work. It replaces the original root rebuild brief as the daily working entrypoint.
+
+The full original rebuild brief is archived for historical comparison at `../09_frozen/product_briefs/FRESH_PET_GROOMER_MARKETPLACE_ENGINEERING_BRIEF_2026-07-02.md`. Do not read the archive by default.
 
 ## Product Definition
 
@@ -19,6 +21,19 @@ Open Grooming Request
 ```
 
 Customers do not repeatedly target individual groomers. A groomer chooses whether to respond to an eligible request, and a booking exists only after the customer accepts an offer.
+
+## Pet-Fit Matching Direction
+
+The post-MVP direction keeps the request-first marketplace model and makes the matching layer more pet-specific. Groomly should help a customer find a groomer who fits this pet and this service need, then let the groomer compete through a concrete offer.
+
+Pet-fit matching v1 is evidence-based and explainable:
+
+- Customer requests provide pet traits, service need, location mode, photos, and a preferred time window.
+- Groomer profiles provide service coverage, availability, portfolio, and low-weight claimed specialties.
+- Completed bookings and structured customer reviews create higher-confidence evidence over time.
+- Match scores and reasons must be understandable enough to show as user-facing fit explanations.
+
+Groomly is not shifting to a customer-facing public groomer directory, direct slot booking, or AI/ML recommender in v1. Customer choice remains anchored in received offers, not in browsing a static list of all groomers.
 
 ## Target Users
 
@@ -47,7 +62,7 @@ Customers do not repeatedly target individual groomers. A groomer chooses whethe
 
 - Payments, refunds, disputes, subscriptions, and dynamic pricing.
 - Push notifications and social login.
-- Complex calendars, map-first experiences, AI recommendations, and advanced matching.
+- Complex calendars, map-first experiences, AI recommendations, machine-learning recommendations, public groomer directory browsing, direct customer slot booking, and advanced matching beyond explainable pet-fit v1.
 - Realtime chat polish, typing indicators, and read-receipt polish.
 - Admin tools and multi-pet request bundles.
 - Favorites behavior. The Fresh Brief lists a `favorites` table but defines no fields, user flow, screen, or acceptance criterion; no schema or UI will be created without a separate product decision.
@@ -63,4 +78,6 @@ Customers do not repeatedly target individual groomers. A groomer chooses whethe
 
 ## Current State
 
-T-001 provides the buildable SwiftUI baseline, authentication placeholder, explicit role routes, customer/groomer tab shells, and minimal design tokens. No MVP product or backend feature is implemented yet.
+The MVP marketplace flow is implemented at the current contract level: email/password authentication, role onboarding, customer pet profiles, grooming request creation, groomer matched-request review and offers, customer offer acceptance, bookings, participant text chat, completion, and completed-booking review.
+
+Groomly UI adaptation is complete for implemented MVP screens. Post-MVP pet-fit and availability work now supports fixed pet/request contracts, groomer availability enforcement in matching/offer/acceptance paths, explainable fit evidence, structured review outcomes, groomer fit-signal/portfolio tags, and an owner evidence dashboard. The app remains request-first: no public groomer directory, customer direct slot booking, payments, push notifications, or admin dashboard is active.

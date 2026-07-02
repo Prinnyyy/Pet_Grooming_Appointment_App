@@ -11,6 +11,14 @@ final class SupabaseBookingRepository: BookingRepository {
     private static let reviewColumns = """
         id,booking_id,customer_id,groomer_id,rating,content,created_at
         """
+    private static let reviewPetFitOutcomeColumns = """
+        id,review_id,booking_id,customer_id,groomer_id,trait_type,trait_value,\
+        outcome,created_at
+        """
+    private static let groomerSummaryColumns =
+        "user_id,business_name,base_street_address,base_city,base_state,base_zip_code"
+    private static let requestLocationColumns =
+        "id,service_type,pet_snapshot,location_mode,street_address,city,state,zip_code"
 
     private let client: SupabaseClient
 
@@ -41,9 +49,19 @@ final class SupabaseBookingRepository: BookingRepository {
             let reviewMap = try await reviewsByBookingID(
                 bookingIDs: rows.map(\.id)
             )
+            let groomerSummaries = await groomerSummaries(
+                for: rows.map(\.groomerID)
+            )
+            let requestLocations = await requestLocations(
+                for: rows.map(\.requestID)
+            )
 
             return rows.map { row in
-                row.booking(review: reviewMap[row.id])
+                row.booking(
+                    review: reviewMap[row.id],
+                    groomerSummary: groomerSummaries[row.groomerID],
+                    requestLocation: requestLocations[row.requestID]
+                )
             }
         } catch {
             throw Self.map(error)
@@ -151,6 +169,10 @@ final class SupabaseBookingRepository: BookingRepository {
     }
 
     private static func map(_ error: any Error) -> BookingRepositoryError {
+        if AppDebugErrorClassifier.isCancellation(error) {
+            return .cancelled
+        }
+
         if let repositoryError = error as? BookingRepositoryError {
             return repositoryError
         }
@@ -161,7 +183,13 @@ final class SupabaseBookingRepository: BookingRepository {
                 return .notAllowed
             case "22023":
                 switch postgrestError.message {
-                case "invalid_rating", "invalid_review_content":
+                case "invalid_rating",
+                     "invalid_review_content",
+                     "invalid_review_outcomes",
+                     "too_many_review_outcomes",
+                     "invalid_review_outcome_trait",
+                     "invalid_review_outcome_value",
+                     "duplicate_review_outcome":
                     return .invalidReview
                 default:
                     return .invalidInput
@@ -230,9 +258,99 @@ final class SupabaseBookingRepository: BookingRepository {
             .execute()
             .value
 
-        return Dictionary(
-            uniqueKeysWithValues: rows.map { ($0.bookingID, $0.review) }
+        let outcomesByReviewID = try await reviewPetFitOutcomesByReviewID(
+            reviewIDs: rows.map(\.id)
         )
+
+        return Dictionary(
+            uniqueKeysWithValues: rows.map {
+                (
+                    $0.bookingID,
+                    $0.review(
+                        petFitOutcomes: outcomesByReviewID[$0.id, default: []]
+                    )
+                )
+            }
+        )
+    }
+
+    private func reviewPetFitOutcomesByReviewID(
+        reviewIDs: [UUID]
+    ) async throws -> [UUID: [BookingReviewPetFitOutcomeRecord]] {
+        let ids = uniqueLowercaseStrings(from: reviewIDs)
+        guard !ids.isEmpty else { return [:] }
+
+        let rows: [BookingReviewPetFitOutcomeRow] = try await client
+            .from("review_pet_fit_outcomes")
+            .select(Self.reviewPetFitOutcomeColumns)
+            .in("review_id", values: ids)
+            .order("created_at")
+            .execute()
+            .value
+
+        var recordsByReviewID: [UUID: [BookingReviewPetFitOutcomeRecord]] = [:]
+        for row in rows {
+            guard let record = row.record else { continue }
+            recordsByReviewID[row.reviewID, default: []].append(record)
+        }
+
+        return recordsByReviewID.mapValues {
+            $0.sorted {
+                if $0.signal.sortOrder == $1.signal.sortOrder {
+                    $0.title < $1.title
+                } else {
+                    $0.signal.sortOrder < $1.signal.sortOrder
+                }
+            }
+        }
+    }
+
+    private func groomerSummaries(
+        for groomerIDs: [UUID]
+    ) async -> [UUID: BookingGroomerSummary] {
+        let ids = uniqueLowercaseStrings(from: groomerIDs)
+        guard !ids.isEmpty else { return [:] }
+
+        do {
+            let rows: [BookingGroomerSummaryRow] = try await client
+                .from("groomer_profiles")
+                .select(Self.groomerSummaryColumns)
+                .in("user_id", values: ids)
+                .execute()
+                .value
+
+            return Dictionary(
+                uniqueKeysWithValues: rows.map { ($0.userID, $0.summary) }
+            )
+        } catch {
+            return [:]
+        }
+    }
+
+    private func requestLocations(
+        for requestIDs: [UUID]
+    ) async -> [UUID: BookingRequestLocation] {
+        let ids = uniqueLowercaseStrings(from: requestIDs)
+        guard !ids.isEmpty else { return [:] }
+
+        do {
+            let rows: [BookingRequestLocationRow] = try await client
+                .from("grooming_requests")
+                .select(Self.requestLocationColumns)
+                .in("id", values: ids)
+                .execute()
+                .value
+
+            return Dictionary(
+                uniqueKeysWithValues: rows.map { ($0.id, $0.location) }
+            )
+        } catch {
+            return [:]
+        }
+    }
+
+    private func uniqueLowercaseStrings(from ids: [UUID]) -> [String] {
+        Array(Set(ids)).map { $0.uuidString.lowercased() }
     }
 }
 
@@ -253,7 +371,11 @@ private struct BookingRow: Decodable {
     let createdAt: String
     let updatedAt: String
 
-    func booking(review: BookingReview?) -> Booking {
+    func booking(
+        review: BookingReview?,
+        groomerSummary: BookingGroomerSummary?,
+        requestLocation: BookingRequestLocation?
+    ) -> Booking {
         Booking(
             id: id,
             requestID: requestID,
@@ -270,7 +392,19 @@ private struct BookingRow: Decodable {
             completedBy: completedBy,
             createdAt: createdAt,
             updatedAt: updatedAt,
-            review: review
+            review: review,
+            serviceType: requestLocation?.serviceType,
+            requestPetSnapshot: requestLocation?.petSnapshot,
+            groomerBusinessName: groomerSummary?.businessName,
+            groomerBaseStreetAddress: groomerSummary?.baseStreetAddress,
+            groomerBaseCity: groomerSummary?.baseCity,
+            groomerBaseState: groomerSummary?.baseState,
+            groomerBaseZipCode: groomerSummary?.baseZipCode,
+            locationMode: requestLocation?.locationMode,
+            customerStreetAddress: requestLocation?.streetAddress,
+            customerCity: requestLocation?.city,
+            customerState: requestLocation?.state,
+            customerZipCode: requestLocation?.zipCode
         )
     }
 
@@ -293,6 +427,86 @@ private struct BookingRow: Decodable {
     }
 }
 
+private struct BookingGroomerSummary: Sendable {
+    let businessName: String?
+    let baseStreetAddress: String?
+    let baseCity: String?
+    let baseState: String?
+    let baseZipCode: String?
+}
+
+private struct BookingGroomerSummaryRow: Decodable {
+    let userID: UUID
+    let businessName: String?
+    let baseStreetAddress: String?
+    let baseCity: String?
+    let baseState: String?
+    let baseZipCode: String?
+
+    var summary: BookingGroomerSummary {
+        BookingGroomerSummary(
+            businessName: businessName,
+            baseStreetAddress: baseStreetAddress,
+            baseCity: baseCity,
+            baseState: baseState,
+            baseZipCode: baseZipCode
+        )
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case userID = "user_id"
+        case businessName = "business_name"
+        case baseStreetAddress = "base_street_address"
+        case baseCity = "base_city"
+        case baseState = "base_state"
+        case baseZipCode = "base_zip_code"
+    }
+}
+
+private struct BookingRequestLocation: Sendable {
+    let serviceType: GroomingServiceType
+    let petSnapshot: GroomingRequestPetSnapshot
+    let locationMode: GroomingLocationMode
+    let streetAddress: String
+    let city: String
+    let state: String
+    let zipCode: String
+}
+
+private struct BookingRequestLocationRow: Decodable {
+    let id: UUID
+    let serviceType: GroomingServiceType
+    let petSnapshot: GroomingRequestPetSnapshot
+    let locationMode: GroomingLocationMode
+    let streetAddress: String
+    let city: String
+    let state: String
+    let zipCode: String
+
+    var location: BookingRequestLocation {
+        BookingRequestLocation(
+            serviceType: serviceType,
+            petSnapshot: petSnapshot,
+            locationMode: locationMode,
+            streetAddress: streetAddress,
+            city: city,
+            state: state,
+            zipCode: zipCode
+        )
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case serviceType = "service_type"
+        case petSnapshot = "pet_snapshot"
+        case locationMode = "location_mode"
+        case streetAddress = "street_address"
+        case city
+        case state
+        case zipCode = "zip_code"
+    }
+}
+
 private struct BookingReviewRow: Decodable {
     let id: UUID
     let bookingID: UUID
@@ -302,7 +516,9 @@ private struct BookingReviewRow: Decodable {
     let content: String?
     let createdAt: String
 
-    var review: BookingReview {
+    func review(
+        petFitOutcomes: [BookingReviewPetFitOutcomeRecord] = []
+    ) -> BookingReview {
         BookingReview(
             id: id,
             bookingID: bookingID,
@@ -310,7 +526,8 @@ private struct BookingReviewRow: Decodable {
             groomerID: groomerID,
             rating: rating,
             content: content,
-            createdAt: createdAt
+            createdAt: createdAt,
+            petFitOutcomes: petFitOutcomes
         )
     }
 
@@ -321,6 +538,47 @@ private struct BookingReviewRow: Decodable {
         case groomerID = "groomer_id"
         case rating
         case content
+        case createdAt = "created_at"
+    }
+}
+
+private struct BookingReviewPetFitOutcomeRow: Decodable {
+    let id: UUID
+    let reviewID: UUID
+    let bookingID: UUID
+    let customerID: UUID
+    let groomerID: UUID
+    let traitType: String
+    let traitValue: String
+    let outcomeRawValue: String
+    let createdAt: String
+
+    var record: BookingReviewPetFitOutcomeRecord? {
+        guard let signal = PetFitSignal.stored(
+            traitType: traitType,
+            traitValue: traitValue
+        ),
+              let outcome = BookingReviewPetFitOutcome(rawValue: outcomeRawValue)
+        else {
+            return nil
+        }
+
+        return BookingReviewPetFitOutcomeRecord(
+            id: id,
+            signal: signal,
+            outcome: outcome
+        )
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case reviewID = "review_id"
+        case bookingID = "booking_id"
+        case customerID = "customer_id"
+        case groomerID = "groomer_id"
+        case traitType = "trait_type"
+        case traitValue = "trait_value"
+        case outcomeRawValue = "outcome"
         case createdAt = "created_at"
     }
 }
@@ -482,7 +740,7 @@ private struct CompleteBookingParameters: Encodable {
     }
 }
 
-private struct CreateReviewParameters: Encodable {
+nonisolated struct CreateReviewParameters: Encodable {
     let bookingID: UUID
     let draft: BookingReviewDraft
 
@@ -496,11 +754,14 @@ private struct CreateReviewParameters: Encodable {
         } else {
             try container.encodeNil(forKey: .content)
         }
+
+        try container.encode(draft.petFitOutcomes, forKey: .petFitOutcomes)
     }
 
     private enum CodingKeys: String, CodingKey {
         case bookingID = "p_booking_id"
         case rating = "p_rating"
         case content = "p_content"
+        case petFitOutcomes = "p_pet_fit_outcomes"
     }
 }

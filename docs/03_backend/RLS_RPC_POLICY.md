@@ -1,78 +1,68 @@
 # RLS and RPC Policy
 
-## Current Status
+This is the active access-control policy index. It records current rules, not deployment history.
 
-T-004 owner-scoped profile/avatar policies and T-007 `create_my_profile` are deployed and validated. T-008 explicit column grants, owner-scoped `pets`/`pet_photos` RLS, and private pet-photo Storage policies are deployed and backend-validated. T-010 groomer profile/services/portfolio grants, RLS, and private portfolio Storage policies are deployed and backend-validated; a corrective migration merged equivalent permissive SELECT policies. T-012 `grooming_requests`, `request_matches`, `create_grooming_request`, and `dismiss_request_match` are deployed and backend-validated; corrective migrations resolved the request-match conflict-target ambiguity and capped request photo snapshots at 20 metadata rows. T-015 `groomer_offers`, `create_groomer_offer`, and `withdraw_groomer_offer` are deployed and backend-validated. T-018 `bookings`, `conversations`, `accept_groomer_offer`, and `cancel_booking` are deployed and backend-validated, including uniqueness, participant RLS, controlled cancellation, competing-offer closure, and confirmed groomer overlap rejection. T-020 `messages` is deployed and backend-validated for text-only participant reads/inserts. T-021 `reviews`, `complete_booking`, and `create_review` are deployed and backend-validated, including participant RLS, groomer-only completion, customer-only completed-booking review creation, duplicate-review rejection, and server-maintained groomer rating summary. T-044 `cancel_grooming_request` is deployed and backend-validated for customer-owned open/offer-state request cancellation. The Storage DELETE policies are restricted to `authenticated` and match behavior-tested owner-only predicates. Approved rollback-only checks and remote smokes left zero persisted validation data.
+Archived pre-trim version: `../09_frozen/backend_policies/RLS_RPC_POLICY_2026-07-02_PRE_INDEX_TRIM.md`.
 
-T-012, T-015, T-018, T-021, and T-044 intentionally use nine `SECURITY DEFINER` RPCs in `public` so authenticated clients can invoke controlled multi-row writes while direct request/match/offer/booking/conversation/review table inserts, updates, and deletes remain denied. This produces Supabase security advisor WARNs by design. The functions keep an empty `search_path`, revoke `PUBLIC`/`anon` execution, grant only `authenticated`/`service_role`, and perform explicit auth, role, ownership, current-state, range, uniqueness, and conflict checks.
+## Current Contract
 
-## RLS Baseline
+- RLS and explicit grants are both required. RLS controls rows; grants control relation/function access.
+- Auth identity comes from Supabase Auth. App role, ownership, and participant relationships come from database rows, not user-editable metadata.
+- iOS uses repositories/services for all Supabase reads, RPC calls, and uploads. SwiftUI views must not call Supabase directly.
+- Critical multi-row writes and status transitions use controlled RPCs. Direct table writes are denied where they could bypass ownership, status, limits, uniqueness, matching, booking, review, or evidence rules.
+- Public `SECURITY DEFINER` RPCs are allowed only when they perform explicit auth/role/ownership/status checks, use a safe search path, revoke broad execution, and grant only intended roles.
+- Private helpers under `app_private` remain non-client helpers unless a specific migration exposes a controlled wrapper.
 
-- Enable RLS on every table in an exposed schema.
-- Use explicit `TO authenticated` or `TO anon` policy roles and add ownership/relationship predicates; role membership alone is not authorization.
-- Treat `auth.uid()` as nullable and require authenticated identity where ownership is expected.
-- Use both `USING` and `WITH CHECK` for ownership-sensitive updates, with a matching select policy where updates require row visibility.
-- Index ownership and relationship columns used by policies when the owning schema task verifies the access path.
-- Never use user-editable Auth `user_metadata` as an authorization source.
-- Views exposed to clients must obey underlying RLS, such as with `security_invoker`, or be kept out of exposed schemas and revoked from client roles.
-
-## Data API Grants
-
-RLS controls rows after a request can access a relation; Postgres grants control whether `anon` or `authenticated` can access the relation at all. Every schema task must review and test both layers. Do not assume a new table is automatically available through the Data API.
-
-## Planned Access Matrix
+## Access Matrix
 
 | Resource | Customer | Groomer | Direct Critical Writes |
 |---|---|---|---|
-| Own `profiles`/role profile | read/update owned safe fields | read/update owned safe fields | Role changes denied after onboarding except a future privileged process |
-| `pets`, `pet_photos` | CRUD owned active records | no general direct access | Ownership reassignment denied |
-| Groomer profile/services/portfolio | read marketplace-safe active data | manage own | Verification/rating summary denied to client |
-| `grooming_requests` | read own; controlled cancel where specified | read only through own active match | Publication/matching/status transitions controlled |
-| `request_matches` | no management | read/update own allowed transition via controlled operation | Insert and system statuses denied |
-| `groomer_offers` | read for owned request | read own | Create/withdraw/accept/status changes controlled by RPC/approved operation |
-| `bookings` | read own | read own | Insert and critical transitions denied |
-| `conversations`, `messages` | booking participant only; text message insert as self | booking participant only; text message insert as self | Non-participant access denied; message update/delete denied |
-| `reviews` | read own booking review; create once through `create_review` only after completion | read own booking review | Direct insert/update/delete denied to authenticated clients |
-
-## RPC Requirements
-
-Use RPCs for multi-row writes, status transitions, role/ownership validation that must not be bypassed, limits, conflict protection, and atomic operations.
-
-Each RPC must:
-
-1. Reject unauthenticated callers.
-2. Resolve role/ownership from trusted database state, not client payload or user-editable metadata.
-3. Validate current status and all input ranges/limits.
-4. Lock or constrain rows where concurrency could violate uniqueness.
-5. Commit every required change atomically or none.
-6. Return a stable typed result/error contract documented for the iOS repository.
-7. Have explicit execute privileges for only the intended caller role.
-
-Prefer invoker security when it can satisfy the operation. If a function genuinely requires `SECURITY DEFINER`, place privileged helpers outside exposed schemas, set a safe search path, revoke default `PUBLIC` execute, grant narrowly, perform explicit identity/ownership checks, and verify with security advisors. Never add definer security merely to bypass an RLS error.
+| `profiles`, `customer_profiles`, `groomer_profiles` | Own safe profile/contact/avatar fields | Own safe profile/business/avatar fields | Role changes denied after onboarding except future privileged process |
+| `pets`, `pet_photos` | CRUD owned active pets/photos | No general direct access | Ownership reassignment denied |
+| Groomer services, portfolio, availability, preferences, time off | Marketplace-safe active reads where intended | Manage own rows | Availability/preferences enforced by matching/offer/acceptance RPCs |
+| `grooming_requests`, `request_photos` | Read own; create/cancel through controlled path; upload owned open request photos | Read only through active match | Publication, matching, and status transitions controlled |
+| `request_matches` | Read offered match evidence for own requests only | Read/update own allowed match state | Insert/system statuses denied |
+| `groomer_offers` | Read offers on owned requests; accept one through RPC | Create/withdraw own offers through RPC | Offer status transitions controlled |
+| `bookings` | Participant read; allowed cancellation/review path | Participant read; allowed cancellation/completion path | Insert and critical transitions controlled |
+| `conversations`, `messages` | Booking participant only | Booking participant only | Message insert as self only; update/delete denied |
+| `reviews`, `review_pet_fit_outcomes` | Create one review through RPC for own completed booking; read own | Read own booking review/outcomes | Direct outcome DML denied |
+| Evidence summary and fit claims/tags | No owner dashboard contract | Manage own claims/tags; read own aggregate evidence through owner RPC | Claims/tags are low-confidence signals only and do not create eligibility |
 
 ## Controlled Operations
 
-- `create_my_profile`: creates the authenticated non-anonymous caller's shared profile and exactly one matching role marker atomically; role changes are rejected and same-role retries preserve the stored name.
-- `create_grooming_request`: creates the request and authorized matches from customer-owned pet data.
-- `cancel_grooming_request`: lets the owning customer cancel only `open` or `has_offers` requests, declines pending offers, and hides visible/viewed/offered matches.
-- `dismiss_request_match`: changes only the calling groomer's match.
-- `create_groomer_offer` / `withdraw_groomer_offer`: enforce match, state, range, conflict, and active-offer rules.
-- `accept_groomer_offer`: atomically creates booking/conversation and closes the request and competing offers.
-- `cancel_booking`: applies only an allowed role-specific cancellation transition.
-- `messages`: direct insert is allowed only for the authenticated conversation participant as `sender_id`; direct update/delete is denied.
-- `complete_booking`: only the booked groomer completes a confirmed booking.
-- `create_review`: only the booked customer reviews a completed booking once.
+Public controlled RPCs currently include:
+
+- `create_my_profile`
+- `create_grooming_request`
+- `cancel_grooming_request`
+- `dismiss_request_match`
+- `create_groomer_offer`
+- `withdraw_groomer_offer`
+- `accept_groomer_offer`
+- `cancel_booking`
+- `complete_booking`
+- `create_review`
+- `get_my_groomer_pet_fit_evidence_summary`
+
+These operations must reject unauthenticated callers, resolve role and ownership from trusted database state, validate current status and inputs, lock or constrain rows where concurrency matters, commit atomically, return stable typed results/errors, and expose execute privileges only to intended roles.
 
 ## Required Negative Tests
 
-- Anonymous callers cannot execute onboarding; anonymous authenticated JWTs are rejected.
-- A caller cannot switch an existing profile role or read/update another caller's profile.
-- Customer A cannot read or mutate Customer B pets or profile-private data.
-- Groomer A cannot read an unmatched request or mutate Groomer B profile/services.
-- A customer cannot directly insert a booking or request match.
-- A groomer cannot directly create a booking or accept an offer.
-- A non-participant cannot read or insert conversation messages or chat attachments.
-- A customer cannot review an incomplete or unrelated booking.
-- Direct status edits cannot bypass limits, ownership, uniqueness, or overlap checks.
+Every backend access change must cover the relevant negative cases:
 
-Official implementation reference: [Supabase Row Level Security](https://supabase.com/docs/guides/database/postgres/row-level-security).
+- Anonymous callers cannot execute onboarding or controlled RPCs.
+- A user cannot switch role, read/update another user's private profile, or reassign ownership.
+- Customers cannot read another customer's pets, private request data, bookings, reviews, or unoffered match evidence.
+- Groomers cannot read unmatched requests or manage another groomer's profile, services, portfolio, availability, claims, tags, or evidence dashboard.
+- Direct request, match, offer, booking, review, evidence, and outcome writes cannot bypass controlled RPC rules.
+- Non-participants cannot read or insert conversation messages.
+- Customers cannot review incomplete, unrelated, or already reviewed bookings.
+- Storage metadata and table predicates must agree with bucket object policies when files are involved.
+
+## Update Rules
+
+- Exact SQL, signatures, constraints, policies, grants, and function bodies belong in `../../supabase/migrations/`.
+- Update this file only when the active access contract changes.
+- Put long migration narratives in task closeout or frozen archives, not here.
+
+Official reference: [Supabase Row Level Security](https://supabase.com/docs/guides/database/postgres/row-level-security).

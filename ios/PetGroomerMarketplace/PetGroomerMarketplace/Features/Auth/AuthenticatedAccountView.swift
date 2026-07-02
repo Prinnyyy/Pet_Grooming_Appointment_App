@@ -12,44 +12,40 @@ struct AuthenticatedAccountView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                    GroomlySectionHeader(
-                        "Account",
-                        subtitle: "Your active Groomly profile."
-                    )
+                    AccountTabTitle("Account")
 
                     GroomlyCard {
-                        HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
-                            Image(systemName: "person.crop.circle.fill")
-                                .font(DesignTokens.Typography.largeTitle)
-                                .foregroundStyle(profile.role.accountAccentColor)
+                        HStack(alignment: .center, spacing: DesignTokens.Spacing.lg) {
+                            GroomlyDefaultProfileAvatar(
+                                tone: profile.role.defaultAvatarTone,
+                                symbolSize: 30
+                            )
                                 .frame(
-                                    width: DesignTokens.Spacing.xl + DesignTokens.Spacing.xl,
-                                    height: DesignTokens.Spacing.xl + DesignTokens.Spacing.xl
+                                    width: 72,
+                                    height: 72
                                 )
-                                .background(profile.role.accountAccentBackground)
-                                .clipShape(DesignTokens.Shapes.circular)
+                                .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
                                 .accessibilityHidden(true)
 
-                            VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                                 Text(profile.displayName)
                                     .font(DesignTokens.Typography.title)
                                     .foregroundStyle(DesignTokens.Colors.textPrimary)
+                                    .lineLimit(1)
                                     .fixedSize(horizontal: false, vertical: true)
 
-                                HStack(spacing: DesignTokens.Spacing.sm) {
-                                    GroomlyStatusChip(
-                                        profile.role.title,
-                                        systemImage: profile.role.accountSystemImage,
-                                        tone: profile.role.accountChipTone
-                                    )
-
-                                    if let maskedEmail {
-                                        Text(maskedEmail)
-                                            .font(DesignTokens.Typography.caption)
-                                            .foregroundStyle(DesignTokens.Colors.textSecondary)
-                                            .lineLimit(1)
-                                    }
+                                if let emailSummary {
+                                    Text(emailSummary)
+                                        .font(DesignTokens.Typography.body)
+                                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+                                        .lineLimit(1)
                                 }
+
+                                GroomlyStatusChip(
+                                    profile.role.accountRoleLabel,
+                                    tone: profile.role.accountChipTone
+                                )
+                                .padding(.top, DesignTokens.Spacing.xs)
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
                         }
@@ -64,7 +60,7 @@ struct AuthenticatedAccountView: View {
                         .accessibilityIdentifier("auth.error")
                     }
 
-                #if DEBUG
+                    #if DEBUG
                     NavigationLink {
                         DebugPanelView(
                             diagnostics: DebugDiagnostics.current(
@@ -73,11 +69,21 @@ struct AuthenticatedAccountView: View {
                             )
                         )
                     } label: {
-                        Label("Debug Panel", systemImage: "ladybug")
+                        Label("Debug Console", systemImage: "ladybug")
+                            .font(DesignTokens.Typography.headline)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(DesignTokens.Spacing.lg)
+                            .background(DesignTokens.Colors.surfaceRaised)
+                            .clipShape(
+                                RoundedRectangle(
+                                    cornerRadius: DesignTokens.CornerRadius.card,
+                                    style: .continuous
+                                )
+                            )
                     }
-                    .buttonStyle(GroomlySecondaryButtonStyle(accent: .neutral))
-                    .accessibilityIdentifier("debug.panel.link")
-                #endif
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("account.debug-console")
+                    #endif
 
                     Button(role: .destructive) {
                         Task {
@@ -85,50 +91,70 @@ struct AuthenticatedAccountView: View {
                         }
                     } label: {
                         HStack(spacing: DesignTokens.Spacing.sm) {
+                            Spacer(minLength: 0)
+
                             if authenticationStore.isSubmitting {
                                 ProgressView()
-                                    .tint(DesignTokens.Colors.textSecondary)
+                                    .tint(DesignTokens.Colors.error)
                             }
 
                             Text(
                                 authenticationStore.isSubmitting
-                                    ? "Signing out…"
+                                    ? "Signing Out..."
                                     : "Sign Out"
                             )
+                            .font(DesignTokens.Typography.headline)
+                            .foregroundStyle(DesignTokens.Colors.error)
+
+                            Spacer(minLength: 0)
                         }
+                        .padding(.vertical, DesignTokens.Spacing.md)
                     }
-                    .buttonStyle(GroomlySecondaryButtonStyle(accent: .neutral))
+                    .buttonStyle(.plain)
                     .disabled(authenticationStore.isSubmitting)
                     .accessibilityIdentifier("auth.sign-out")
                 }
                 .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-                .padding(.vertical, DesignTokens.Spacing.lg)
+                .padding(.top, DesignTokens.Spacing.xl)
+                .padding(.bottom, DesignTokens.Spacing.xl + DesignTokens.Spacing.xl)
             }
         }
-        .navigationTitle("Account")
+        .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .accessibilityIdentifier("account.authenticated")
     }
 
-    private var maskedEmail: String? {
-        guard let email = session.email else { return nil }
-        return Self.maskedEmail(email)
+    private var emailSummary: String? {
+        session.email
+    }
+}
+
+struct AccountTabTitle: View {
+    let title: String
+
+    init(_ title: String) {
+        self.title = title
     }
 
-    private static func maskedEmail(_ email: String) -> String {
-        let pieces = email.split(separator: "@", maxSplits: 1)
-        guard pieces.count == 2 else {
-            return "Email hidden"
-        }
-
-        let local = String(pieces[0])
-        let domain = String(pieces[1]).lowercased()
-        let prefix = local.first.map(String.init) ?? "•"
-        return "\(prefix)•••@\(domain)"
+    var body: some View {
+        Text(title)
+            .font(.system(size: 36, weight: .bold))
+            .foregroundStyle(DesignTokens.Colors.textPrimary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.top, DesignTokens.Spacing.sm)
     }
 }
 
 private extension UserRole {
+    var accountRoleLabel: String {
+        switch self {
+        case .customer:
+            "Pet Owner"
+        case .groomer:
+            "Groomer"
+        }
+    }
+
     var accountChipTone: GroomlyStatusChip.Tone {
         switch self {
         case .customer:
@@ -138,30 +164,12 @@ private extension UserRole {
         }
     }
 
-    var accountAccentColor: Color {
+    var defaultAvatarTone: GroomlyDefaultProfileAvatarTone {
         switch self {
         case .customer:
-            DesignTokens.Colors.customerPrimaryDark
+            .customer
         case .groomer:
-            DesignTokens.Colors.groomerAccentDark
-        }
-    }
-
-    var accountAccentBackground: Color {
-        switch self {
-        case .customer:
-            DesignTokens.Colors.customerPrimary.opacity(0.14)
-        case .groomer:
-            DesignTokens.Colors.groomerAccent.opacity(0.14)
-        }
-    }
-
-    var accountSystemImage: String {
-        switch self {
-        case .customer:
-            "pawprint.fill"
-        case .groomer:
-            "scissors"
+            .groomer
         }
     }
 }

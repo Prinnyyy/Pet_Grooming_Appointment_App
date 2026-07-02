@@ -1,16 +1,19 @@
 import SwiftUI
+import UIKit
 
 struct GroomerRequestsView: View {
     @State private var store: GroomerRequestsStore
 
     init(
         groomerID: UUID,
-        repository: any GroomerRequestRepository
+        repository: any GroomerRequestRepository,
+        debugRecorder: AppDebugEventRecorder? = nil
     ) {
         _store = State(
             initialValue: GroomerRequestsStore(
                 groomerID: groomerID,
-                repository: repository
+                repository: repository,
+                debugRecorder: debugRecorder
             )
         )
     }
@@ -35,7 +38,7 @@ struct GroomerRequestsView: View {
                 .disabled(store.isBusy)
             }
         }
-        .safeAreaInset(edge: .bottom) {
+        .background {
             GroomerRequestsStatusView(store: store)
         }
         .task {
@@ -137,7 +140,7 @@ private struct GroomerRequestSummaryRow: View {
                             .foregroundStyle(DesignTokens.Colors.textPrimary)
                             .fixedSize(horizontal: false, vertical: true)
 
-                        Text(matchedRequest.request.serviceType)
+                        Text(matchedRequest.request.serviceType.title)
                             .font(DesignTokens.Typography.caption)
                             .foregroundStyle(DesignTokens.Colors.textSecondary)
                     }
@@ -156,6 +159,13 @@ private struct GroomerRequestSummaryRow: View {
                 }
                 .font(DesignTokens.Typography.caption)
                 .foregroundStyle(DesignTokens.Colors.textSecondary)
+
+                if let fitEvidence = matchedRequest.fitEvidencePresentation {
+                    GroomerFitEvidenceBlock(
+                        presentation: fitEvidence,
+                        isCompact: true
+                    )
+                }
 
                 HStack(spacing: DesignTokens.Spacing.sm) {
                     Text(matchedRequest.matchSummary)
@@ -225,6 +235,7 @@ private struct GroomerRequestDetailView: View {
                         matchCard(for: matchedRequest)
                         requestCard(for: matchedRequest)
                         petSnapshotCard(for: matchedRequest)
+                        requestPhotosCard(for: matchedRequest)
                         scheduleLocationCard(for: matchedRequest)
                         offerSection(for: matchedRequest)
                         actionsCard(for: matchedRequest)
@@ -267,7 +278,7 @@ private struct GroomerRequestDetailView: View {
                             .font(DesignTokens.Typography.title)
                             .foregroundStyle(DesignTokens.Colors.textPrimary)
 
-                        Text(matchedRequest.request.serviceType)
+                        Text(matchedRequest.request.serviceType.title)
                             .font(DesignTokens.Typography.body)
                             .foregroundStyle(DesignTokens.Colors.textSecondary)
                     }
@@ -298,19 +309,11 @@ private struct GroomerRequestDetailView: View {
                     systemImage: matchedRequest.match.status.groomerSystemImage
                 )
 
-                if let score = matchedRequest.match.matchScore {
-                    DetailMetadataRow(
-                        title: "Score",
-                        value: "\(Int(score.rounded()))",
-                        systemImage: "gauge.with.dots.needle.50percent"
+                if let fitEvidence = matchedRequest.fitEvidencePresentation {
+                    GroomerFitEvidenceBlock(
+                        presentation: fitEvidence,
+                        isCompact: false
                     )
-                }
-
-                if let reason = matchedRequest.match.matchReason {
-                    Text(reason)
-                        .font(DesignTokens.Typography.body)
-                        .foregroundStyle(DesignTokens.Colors.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
         }
@@ -324,7 +327,7 @@ private struct GroomerRequestDetailView: View {
                 HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
                     DetailMetadataRow(
                         title: "Service",
-                        value: matchedRequest.request.serviceType,
+                        value: matchedRequest.request.serviceType.title,
                         systemImage: "scissors"
                     )
 
@@ -421,6 +424,46 @@ private struct GroomerRequestDetailView: View {
                     value: matchedRequest.request.zipCode,
                     systemImage: "number"
                 )
+                DetailMetadataRow(
+                    title: "Service Mode",
+                    value: matchedRequest.request.locationMode.requestDetailTitle,
+                    systemImage: "location.fill"
+                )
+                DetailMetadataRow(
+                    title: "Street",
+                    value: matchedRequest.request.streetAddress,
+                    systemImage: "house.fill"
+                )
+                if matchedRequest.request.locationMode == .customerComesToGroomer,
+                   let travelRadiusMiles = matchedRequest.request.travelRadiusMiles {
+                    DetailMetadataRow(
+                        title: "Travel Radius",
+                        value: "\(travelRadiusMiles) miles",
+                        systemImage: "point.topleft.down.curvedto.point.bottomright.up"
+                    )
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func requestPhotosCard(
+        for matchedRequest: GroomerMatchedRequest
+    ) -> some View {
+        let photos = store.requestPhotos(for: matchedRequest)
+        if !photos.isEmpty {
+            DetailShellCard(
+                title: "Request Photos",
+                subtitle: "\(photos.count) photo\(photos.count == 1 ? "" : "s") attached to this request."
+            ) {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                    ForEach(photos) { photo in
+                        GroomerRequestPhotoRow(
+                            photo: photo,
+                            data: store.requestPhotoData(for: photo)
+                        )
+                    }
+                }
             }
         }
     }
@@ -538,7 +581,7 @@ private struct GroomerRequestDetailView: View {
                             .font(DesignTokens.Typography.headline)
                             .foregroundStyle(DesignTokens.Colors.textPrimary)
 
-                        Text("Use the customer's preferred window as the starting point.")
+                        Text(CustomerRequestMatchingCopy.groomerOfferGuidance)
                             .font(DesignTokens.Typography.caption)
                             .foregroundStyle(DesignTokens.Colors.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
@@ -679,6 +722,61 @@ private struct GroomerRequestDetailView: View {
     }
 }
 
+private struct GroomerFitEvidenceBlock: View {
+    let presentation: GroomerMatchFitPresentation
+    let isCompact: Bool
+
+    var body: some View {
+        HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
+            Image(systemName: "sparkles")
+                .font(DesignTokens.Typography.caption.weight(.semibold))
+                .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
+                .frame(
+                    width: DesignTokens.Spacing.xl,
+                    height: DesignTokens.Spacing.xl
+                )
+                .background(DesignTokens.Colors.groomerAccent.opacity(0.14))
+                .clipShape(DesignTokens.Shapes.circular)
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
+                    Text("Fit Evidence")
+                        .font(DesignTokens.Typography.caption.weight(.semibold))
+                        .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
+
+                    if let scoreText = presentation.scoreText {
+                        Text(scoreText)
+                            .font(DesignTokens.Typography.caption.weight(.semibold))
+                            .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
+                            .padding(.horizontal, DesignTokens.Spacing.sm)
+                            .padding(.vertical, 3)
+                            .background(DesignTokens.Colors.groomerAccent.opacity(0.14))
+                            .clipShape(Capsule())
+                    }
+                }
+
+                Text(presentation.listSummary)
+                    .font(isCompact ? DesignTokens.Typography.caption : DesignTokens.Typography.body)
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                    .lineLimit(isCompact ? 2 : nil)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(DesignTokens.Spacing.md)
+        .background {
+            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input, style: .continuous)
+                .fill(DesignTokens.Colors.groomerAccent.opacity(0.08))
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input, style: .continuous)
+                .stroke(DesignTokens.Colors.groomerAccent.opacity(0.24), lineWidth: 1)
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
 private struct DetailShellCard<Content: View>: View {
     let title: String
     let subtitle: String?
@@ -736,6 +834,52 @@ private struct DetailMetadataRow: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .accessibilityElement(children: .combine)
+    }
+}
+
+private struct GroomerRequestPhotoRow: View {
+    let photo: GroomingRequestPhoto
+    let data: Data?
+
+    var body: some View {
+        HStack(spacing: DesignTokens.Spacing.md) {
+            GroomerRequestPhotoThumbnail(data: data)
+
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                Text(photo.caption ?? photo.fileName)
+                    .font(DesignTokens.Typography.body.weight(.semibold))
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+                    .lineLimit(1)
+
+                if photo.caption != nil {
+                    Text(photo.fileName)
+                        .font(DesignTokens.Typography.caption)
+                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+                        .lineLimit(1)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct GroomerRequestPhotoThumbnail: View {
+    let data: Data?
+
+    var body: some View {
+        GroomlyModuleImage(data: data) {
+            Image(systemName: "photo")
+                .font(DesignTokens.Typography.caption.weight(.semibold))
+                .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(DesignTokens.Colors.groomerAccent.opacity(0.14))
+        }
+        .frame(width: 58, height: 58)
+        .clipShape(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+        )
+        .accessibilityHidden(true)
     }
 }
 
@@ -810,6 +954,17 @@ private extension GroomingRequestStatus {
     }
 }
 
+private extension GroomingLocationMode {
+    var requestDetailTitle: String {
+        switch self {
+        case .groomerComesToCustomer:
+            "Groomer travels to customer"
+        case .customerComesToGroomer:
+            "Customer can visit groomer"
+        }
+    }
+}
+
 private extension RequestMatchStatus {
     var groomerSystemImage: String {
         isDismissible ? "sparkles" : "checkmark"
@@ -865,56 +1020,57 @@ private struct GroomerRequestsStatusView: View {
     let store: GroomerRequestsStore
 
     var body: some View {
-        VStack(spacing: 0) {
-            GroomlyNoticeForwarder(message: store.noticeMessage) { message in
+        GroomlyGlobalFeedbackForwarder(
+            noticeMessage: store.noticeMessage,
+            clearNotice: { message in
                 guard store.noticeMessage == message else { return }
                 store.noticeMessage = nil
-            }
+            },
+            error: errorPrompt,
+            progress: progressPrompt
+        )
+    }
 
-            if hasInlineStatus {
-                inlineStatus
-            }
+    private var errorPrompt: GroomlyGlobalFeedbackError? {
+        guard let errorMessage = store.errorMessage else { return nil }
+        return GroomlyGlobalFeedbackError(
+            scope: .page("groomer.requests"),
+            sourceKey: "groomer.requests.error",
+            title: "Request Update Failed",
+            message: errorMessage
+        )
+    }
+
+    private var progressPrompt: GroomlyGlobalFeedbackProgress? {
+        if store.isDismissing {
+            return GroomlyGlobalFeedbackProgress(
+                scope: .operation("groomer.requests.dismiss"),
+                sourceKey: "groomer.requests.dismiss-progress",
+                title: "Dismissing…",
+                tone: .groomer
+            )
         }
-    }
 
-    private var inlineStatus: some View {
-        VStack(spacing: DesignTokens.Spacing.sm) {
-            if store.isDismissing {
-                progressRow("Dismissing…")
-            }
-
-            if store.isSubmittingOffer {
-                progressRow("Submitting Offer…")
-            }
-
-            if store.isWithdrawingOffer {
-                progressRow("Withdrawing Offer…")
-            }
-
-            if let errorMessage = store.errorMessage {
-                GroomlyErrorBanner(
-                    title: "Request Update Failed",
-                    message: errorMessage
-                )
-            }
+        if store.isSubmittingOffer {
+            return GroomlyGlobalFeedbackProgress(
+                scope: .operation("groomer.requests.offer"),
+                sourceKey: "groomer.requests.offer-progress",
+                title: "Submitting Offer…",
+                tone: .groomer
+            )
         }
-        .frame(maxWidth: .infinity)
-        .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-        .padding(.vertical, DesignTokens.Spacing.sm)
-        .animation(.easeInOut(duration: 0.24), value: hasInlineStatus)
-    }
 
-    private var hasInlineStatus: Bool {
-        store.isDismissing ||
-            store.isSubmittingOffer ||
-            store.isWithdrawingOffer ||
-            store.errorMessage != nil
-    }
+        if store.isWithdrawingOffer {
+            return GroomlyGlobalFeedbackProgress(
+                scope: .operation("groomer.requests.withdraw"),
+                sourceKey: "groomer.requests.withdraw-progress",
+                title: "Withdrawing Offer…",
+                tone: .groomer
+            )
+        }
 
-    private func progressRow(_ title: String) -> some View {
-        GroomlyStatusProgressToast(title, tint: DesignTokens.Colors.groomerAccent)
+        return nil
     }
-
 }
 
 #if DEBUG
@@ -937,7 +1093,7 @@ private final class GroomerRequestsPreviewRepository: GroomerRequestRepository {
                 groomerID: UUID(),
                 customerID: UUID(),
                 matchScore: 100,
-                matchReason: "Same city",
+                matchReason: "Same city and service location. Pet-fit evidence: curly coats with positive reviews.",
                 dismissReason: nil,
                 status: .visible,
                 viewedAt: nil,
@@ -954,8 +1110,9 @@ private final class GroomerRequestsPreviewRepository: GroomerRequestRepository {
                     name: "Mochi",
                     species: "Dog",
                     breed: "Corgi",
-                    size: "Small",
-                    weightLbs: 22,
+                    coatType: nil,
+                    size: "M",
+            weightLbs: 22,
                     birthday: nil,
                     temperament: "Gentle",
                     medicalNotes: nil,
@@ -963,13 +1120,16 @@ private final class GroomerRequestsPreviewRepository: GroomerRequestRepository {
                     snapshotAt: "2026-06-20T12:00:00Z"
                 ),
                 photoSnapshot: [],
-                serviceType: "Full groom",
+                serviceType: .fullGroom,
                 serviceNotes: "Sensitive paws.",
                 preferredStart: "2026-06-22T16:00:00Z",
                 preferredEnd: "2026-06-22T18:00:00Z",
+                locationMode: .groomerComesToCustomer,
+                streetAddress: "123 Pine Street",
                 city: "Seattle",
                 state: "WA",
                 zipCode: "98101",
+                travelRadiusMiles: nil,
                 status: .open,
                 expiresAt: "2026-06-22T12:00:00Z",
                 createdAt: "2026-06-20T12:00:00Z",

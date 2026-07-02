@@ -213,11 +213,11 @@
 			);
 			mainGroup = 745AD11F2FE615CA006373E9;
 			minimizedProjectReferenceProxies = 1;
-			preferredProjectObjectVersion = 77;
-			productRefGroup = 745AD1292FE615CA006373E9 /* Products */;
 			packageReferences = (
 				A50000042FE7000000000004 /* XCRemoteSwiftPackageReference "supabase-swift" */,
 			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 745AD1292FE615CA006373E9 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -288,25 +288,6 @@
 			targetProxy = 745AD1402FE615CC006373E9 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
-
-/* Begin XCRemoteSwiftPackageReference section */
-		A50000042FE7000000000004 /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/supabase/supabase-swift.git";
-			requirement = {
-				kind = exactVersion;
-				version = 2.46.0;
-			};
-		};
-/* End XCRemoteSwiftPackageReference section */
-
-/* Begin XCSwiftPackageProductDependency section */
-		A50000052FE7000000000005 /* Supabase */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = A50000042FE7000000000004 /* XCRemoteSwiftPackageReference "supabase-swift" */;
-			productName = Supabase;
-		};
-/* End XCSwiftPackageProductDependency section */
 
 /* Begin XCBuildConfiguration section */
 		745AD1472FE615CC006373E9 /* Debug */ = {
@@ -604,6 +585,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		A50000042FE7000000000004 /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/supabase/supabase-swift.git";
+			requirement = {
+				kind = exactVersion;
+				version = 2.46.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		A50000052FE7000000000005 /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A50000042FE7000000000004 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Supabase;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 745AD1202FE615CA006373E9 /* Project object */;
 }

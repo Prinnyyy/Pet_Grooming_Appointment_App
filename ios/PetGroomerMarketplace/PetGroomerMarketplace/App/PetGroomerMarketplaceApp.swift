@@ -11,6 +11,7 @@ struct PetGroomerMarketplaceApp: App {
                 authenticationBootstrapState: composition.authenticationBootstrapState,
                 authenticationStore: composition.authenticationStore,
                 profileRepository: composition.profileRepository,
+                customerProfileRepository: composition.customerProfileRepository,
                 customerPetRepository: composition.customerPetRepository,
                 customerRequestRepository: composition.customerRequestRepository,
                 bookingRepository: composition.bookingRepository,
@@ -18,6 +19,11 @@ struct PetGroomerMarketplaceApp: App {
                 groomerProfileRepository: composition.groomerProfileRepository,
                 groomerRequestRepository: composition.groomerRequestRepository
             )
+            .transaction { transaction in
+                if composition.launchConfiguration.testOps.disablesAnimations {
+                    transaction.animation = nil
+                }
+            }
         }
     }
 }
