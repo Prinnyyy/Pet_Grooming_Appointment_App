@@ -37,11 +37,14 @@ No active next Groomly UI, pet-fit, availability, backend, or screenshot task is
 - Context/recovery tiers: `docs/05_workflow/CONTEXT_AND_RECOVERY.md`
 - Tooling policy: `docs/05_workflow/TOOLING_POLICY.md`
 - Search ignore rules: `.rgignore`
+- Context hygiene check: `scripts/context-hygiene-check.mjs`
+- Current Groomly UI notes: `docs/08_design/UI_IMPLEMENTATION_NOTES.md`
 - Design screenshots: `docs/08_design/screenshots/`
 - Frozen archives: `docs/09_frozen/README.md`
 - Frozen task records: `docs/09_frozen/task_records_2026-06-26/`
-- Groomly design prompt: `docs/08_design/Apply Groomly Design Prototype to Existing SwiftUI App.md`
-- Groomly prototype: `docs/08_design/Groomly.html`
+- Historical design prompts: `docs/09_frozen/design_prompts/`
+- Historical product briefs: `docs/09_frozen/product_briefs/`
+- Groomly prototype source: `docs/08_design/Groomly.html`
 - Existing SwiftUI design tokens: `ios/PetGroomerMarketplace/PetGroomerMarketplace/DesignSystem/DesignTokens.swift`
 
 ## Validation Commands

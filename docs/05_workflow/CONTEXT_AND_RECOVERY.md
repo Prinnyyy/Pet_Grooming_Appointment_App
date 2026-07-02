@@ -1,108 +1,109 @@
 # Context and Recovery
 
-Use this file to decide what to read, when to update durable memory, and how to recover after compaction or interruption.
+Use this file to decide what to read, when to expand context, how to recover after interruption, and how to keep active Markdown small.
 
-## Access Tiers
+## Access Layers
 
-### Tier 0: Startup
+| Layer | Default Read Rule | Files |
+|---|---|---|
+| L0 Minimal startup | Read only for the current task; every run starts here | `AGENTS.md`; targeted top sections of `docs/00_memory/CURRENT_STATE.md`; targeted top rows of `docs/06_tasks/TASK_LEDGER.md`; an active task file only when explicitly provided/requested |
+| L1 Task index | After classifying the task, read one index for that domain | `docs/README.md`; `docs/00_memory/FEATURE_INDEX.md`; `docs/03_backend/SUPABASE_CONTRACT.md`; `docs/04_ios/testops/README.md`; `docs/10_project_structure/README.md` |
+| L2 Domain rules | Read only targeted sections needed for implementation or validation | Product docs, architecture docs, backend policy docs, iOS/TestOps runbooks, active workflow policy files |
+| L3 Trace/history | Search first, then read line ranges | `docs/00_memory/WORKLOG.md`; `docs/00_memory/PROJECT_MEMORY.md`; `docs/07_decisions/DECISION_LOG.md`; `docs/10_project_structure/REORGANIZATION_LOG.md` |
+| L4 Frozen/heavy | Default prohibited; use only with a specific recovery, comparison, seed, design-source, or migration-trace reason | `docs/09_frozen/**`; Groomly HTML/export; T-129 seed tables; generated artifacts; broad migration scans |
 
-Read these only when they are needed for the current task:
+## Expansion Rules
 
-- `AGENTS.md`: operating rules for this repository.
-- `docs/00_memory/CURRENT_STATE.md`: fast-path current branch, baseline, risks, and next task when state matters.
-- `docs/06_tasks/TASK_LEDGER.md`: active/recent task ID/status source when choosing or updating a task.
-- An active task file only when the user explicitly provides or requests one.
+- Start with L0.
+- Add at most one L1 index before deciding the specific domain context.
+- Expand to L2 only when the task cannot be implemented or validated from L0/L1.
+- Use L3 only for traceability, recovery, or resolving a current conflict.
+- Use L4 only when the user asks for historical context or the task explicitly needs ignored/heavy material.
 
-Do not read broad product, backend, workflow, or archive files during startup by default.
-Do not load historical archives, full frozen task records, or Groomly HTML during startup.
+Search before reading:
 
-### Tier 1: Task Domain
+```sh
+rg -n "<task id|keyword>" <target directory>
+sed -n '<start>,<end>p' <file>
+```
 
-Read one focused domain set after the task is known:
-
-- Product, role, navigation, or UX work: targeted files under `docs/01_product/`.
-- SwiftUI, module, data-flow, or repository work: targeted files under `docs/02_architecture/` and `docs/04_ios/`.
-- Supabase, RLS, RPC, Storage, or migrations: targeted files under `docs/03_backend/` plus local migrations.
-- Screenshot-driven UI work: `docs/06_tasks/SCREENSHOT_UI_REWORK_TASK_TEMPLATE.md` and the relevant files under `docs/08_design/`.
-- Workflow or tooling changes: targeted files under `docs/05_workflow/`.
-
-Prefer `rg` and narrow file reads over loading a whole section. Default `rg` searches honor `.rgignore`; add `--no-ignore` only when the ignored path is explicitly required.
-
-### Tier 2: Trace and History
-
-Read these only when the task explicitly needs traceability or recovery:
-
-- `docs/00_memory/WORKLOG.md`: recent closeout index only; older entries are in frozen worklog archives.
-- `docs/00_memory/FEATURE_INDEX.md`: targeted feature lookup only.
-- `docs/00_memory/PROJECT_MEMORY.md`: compressed background only.
-- `docs/07_decisions/DECISION_LOG.md`: durable architecture/product decisions only.
-- `docs/09_frozen/**`: historical comparison or recovery only.
-- Root reference material such as `Fresh_Pet_Groomer_Marketplace_Engineering_Brief.md`, `CLAUDE.md`, and `CLAUDE_reference/`: original or owner-maintained reference only, not daily startup context.
-
-When using Tier 2, search before reading:
-
-1. Run `rg -n "<task id|keyword>" <target directory>` to find the exact section or file.
-2. Open only the relevant line range with `sed -n` or a targeted file read.
-3. Avoid full-file reads of archived worklogs, task ledgers, task records, Groomly HTML, or pre-trim current-state snapshots unless the user explicitly asks for full historical context.
-4. If the needed file is ignored by `.rgignore`, rerun the targeted search with `rg --no-ignore`; do not broaden the search to the whole repository.
+Default searches must honor `.rgignore`. Do not use broad `rg --files -g '*.md'` as a default Markdown inventory because `-g` can re-include ignored seed Markdown files. Use plain `rg --files`, targeted directories, or explicit exclude patterns. Add `--no-ignore` only when the ignored path is required.
 
 ## Do Not Read By Default
 
-Do not load these during ordinary tasks unless directly relevant:
-
 - Full `WORKLOG.md`.
-- Full `TASK_LEDGER.md` when only the latest task ID or recent status is needed.
-- Full archived worklogs, task ledgers, task records, or current-state snapshots.
-- Groomly HTML design exports; prefer `UI_IMPLEMENTATION_NOTES.md`, `design_tokens.json`, and targeted screenshots first.
-- Frozen full backend contract snapshots; start with the active fast-path `SUPABASE_CONTRACT.md`.
-- Full `SCREEN_INVENTORY.md`.
-- Full `FEATURE_INDEX.md`.
+- Full `TASK_LEDGER.md` when only task ID/status is needed.
+- Full `FEATURE_INDEX.md` or `SCREEN_INVENTORY.md`.
 - All workflow policy files.
-- Task templates when no task/template work is being done.
-- Frozen archives.
+- Task templates when no template work is being done.
+- Frozen archives and current-state/worklog/task-ledger snapshots.
+- Groomly HTML/export; prefer `UI_IMPLEMENTATION_NOTES.md`, `design_tokens.json`, and screenshots.
+- T-129 seed profile tables; use their README unless parser/test work needs table content.
 - Root original brief and Claude reference files.
 
-`.rgignore` also excludes heavy historical and machine-readable paths from ordinary searches. These files still exist and may be read with `rg --no-ignore` or direct file reads when the task requires them.
+## Stop Conditions For Context
+
+Stop and report before continuing when:
+
+- The task needs L4 context but the purpose is unclear.
+- Current docs conflict with source code or script behavior.
+- Memory docs are missing a critical current fact.
+- A broad read would be needed to continue safely.
+- User work in the target files would be overwritten.
+- The task has expanded into multiple primary tasks.
 
 ## Durable Memory
 
-Update durable memory only when future runs need the new fact.
+Update durable memory only when future runs need the changed fact.
 
-- `CURRENT_STATE.md`: current branch, latest completed task, build/test status, known risks, and active next-task facts.
-- `WORKLOG.md`: meaningful implementation history and closeout checkpoints.
-- `TASK_LEDGER.md`: task numbering and status.
-- `FEATURE_INDEX.md`: added, removed, or materially changed features.
-- `docs/07_decisions/DECISION_LOG.md`: durable architecture or product decisions.
+Single sources of truth:
+
+- Task ID/status/next number: `docs/06_tasks/TASK_LEDGER.md`.
+- Current branch/latest validation/current risks: `docs/00_memory/CURRENT_STATE.md`.
+- Recent closeout evidence: `docs/00_memory/WORKLOG.md`.
+- Durable decisions: `docs/07_decisions/DECISION_LOG.md`.
+- Feature-to-doc/code routing: `docs/00_memory/FEATURE_INDEX.md`.
+- Tooling, credential, remote-write rules: `docs/05_workflow/TOOLING_POLICY.md`.
+- TestOps commands: `docs/04_ios/testops/RUNBOOK.md`.
 
 Do not store secrets, full source files, generated logs, large diffs, or unverified assumptions in memory files.
 
 ## Context Hygiene
 
-Run this check at the end of every task that updates `CURRENT_STATE.md`, `WORKLOG.md`, `TASK_LEDGER.md`, or other durable coordination docs.
+Run the context hygiene check at the end of any task that updates durable memory, task ledgers, workflow rules, or active coordination docs:
 
 ```sh
-wc -w docs/00_memory/CURRENT_STATE.md docs/00_memory/WORKLOG.md docs/06_tasks/TASK_LEDGER.md
+node scripts/context-hygiene-check.mjs
 ```
 
-Keep active files below these soft limits:
+Soft budgets:
 
-- `CURRENT_STATE.md`: 2,500 words.
-- `WORKLOG.md`: 5,000 words.
-- `TASK_LEDGER.md`: 4,000 words.
+| File | Limit |
+|---|---:|
+| `AGENTS.md` | 800 words |
+| `docs/00_memory/CURRENT_STATE.md` | 1,200 words |
+| `docs/00_memory/WORKLOG.md` | 2,500 words |
+| `docs/06_tasks/TASK_LEDGER.md` | 1,800 words |
+| `docs/00_memory/FEATURE_INDEX.md` | 1,200 words |
+| `docs/00_memory/PROJECT_MEMORY.md` | 600 words |
+| `docs/07_decisions/DECISION_LOG.md` | 2,500 words |
+| `docs/01_product/DESIGN_SYSTEM.md` | 900 words |
+| `docs/08_design/UI_IMPLEMENTATION_NOTES.md` | 900 words |
+| `docs/03_backend/RLS_RPC_POLICY.md` | 1,200 words |
+| `docs/03_backend/STORAGE_POLICY.md` | 700 words |
+| `docs/03_backend/MIGRATION_RULES.md` | 900 words |
+| `docs/04_ios/testops/TESTOPS_MEMORY.md` | 400 words |
 
 If a file exceeds its limit, do the smallest safe rolling archive before final reporting:
 
-- `CURRENT_STATE.md`: snapshot the pre-trim file to `docs/09_frozen/current_state_snapshots/CURRENT_STATE_<YYYY-MM-DD>_PRE_CONTEXT_TRIM.md`, then keep only current branch, latest task, next task ID, active validation state, guardrails, risks, and pointers.
-- `WORKLOG.md`: keep the newest 8-12 closeout entries in the active file and move older verbatim entries to `docs/09_frozen/worklogs/WORKLOG_<YYYY-MM-DD>_to_<YYYY-MM-DD>.md`.
-- `TASK_LEDGER.md`: keep active, blocked, and roughly the latest 12 task rows in the active ledger. Move older completed rows to `docs/09_frozen/task_ledgers/TASK_LEDGER_<FIRST_TASK>_TO_<LAST_TASK>_<YYYY-MM-DD>.md`.
+- `CURRENT_STATE.md`: snapshot to `docs/09_frozen/current_state_snapshots/`, then keep only current facts and pointers.
+- `WORKLOG.md`: keep newest 8-10 closeout entries active; move older verbatim entries to `docs/09_frozen/worklogs/`.
+- `TASK_LEDGER.md`: keep active, blocked, and latest 12-15 rows active; move older completed rows to `docs/09_frozen/task_ledgers/`.
+- Decision/backend/product indexes: archive the pre-trim file under the matching `docs/09_frozen/` family, then keep the active file as an index/current-rule document.
 
-After creating a new archive family or path, update the relevant active index:
+After creating a new archive family or path, update `docs/README.md`, `docs/10_project_structure/README.md`, `docs/09_frozen/README.md`, and any active pointer that references the family.
 
-- `docs/00_memory/CURRENT_STATE.md` for fast-path pointers.
-- `docs/README.md` and `docs/10_project_structure/README.md` for discoverability.
-- `docs/09_frozen/README.md` for frozen archive ownership.
-
-Do not run iOS build or simulator launch for context hygiene alone. Use docs/workflow validation such as `git diff --check`, word counts, and targeted `rg` reference checks.
+Do not run iOS build or simulator launch for context hygiene alone.
 
 ## Recovery
 
@@ -114,8 +115,8 @@ After interruption, stale context, or compaction:
 4. Read the active task file only if the user explicitly provided or requested one.
 5. Run `git status --short`.
 6. Run `git diff --stat`.
-7. Search `WORKLOG.md` or frozen archives for the newest relevant closeout only if the next step is unclear.
-8. Identify partial changes and separate them from unrelated user work.
+7. Search `WORKLOG.md` or frozen archives only if the next step remains unclear.
+8. Separate partial changes from unrelated user work.
 9. Choose the next smallest safe step.
 
 Do not reconstruct archived subagent state, load old report chains, repeat completed validation automatically, or revert changes without explicit user approval.
@@ -126,13 +127,6 @@ Prefer compaction at task boundaries.
 
 - Below 30% context used: usually continue if the next task is small.
 - 30% to 50%: compact before medium, risky, or file-heavy tasks.
-- At or above 50%: write a closeout or checkpoint, then compact before starting the next task.
+- At or above 50%: write a checkpoint, then compact before starting the next task.
 
-Minimum checkpoint fields:
-
-- task ID and status,
-- files changed or inspected,
-- validation attempted or deferred,
-- key decisions or evidence,
-- known risks,
-- next context needed.
+Minimum checkpoint fields: task ID/status, files changed or inspected, validation attempted/deferred, key decisions or evidence, known risks, next context needed.

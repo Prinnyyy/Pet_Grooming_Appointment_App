@@ -2,6 +2,95 @@
 
 This log records repository structure changes so future agents do not lose track of moved paths.
 
+## 2026-07-02 - Active Design Document Slimming
+
+Scope:
+
+- Preserve full design-system and Groomly UI audit history in frozen archives.
+- Keep active design entrypoints focused on current UI rules, screenshot workflow, tokens, and safety boundaries.
+- Add design-doc word budgets to the context hygiene check.
+
+Moved or trimmed paths:
+
+| Active path | Frozen path | Reason |
+|---|---|---|
+| `docs/01_product/DESIGN_SYSTEM.md` | `docs/09_frozen/design_notes/DESIGN_SYSTEM_2026-07-02_PRE_SLIM.md` | Remove completed T-023 through T-035 historical narrative and long component tables from active product context. |
+| `docs/08_design/UI_IMPLEMENTATION_NOTES.md` | `docs/09_frozen/design_notes/UI_IMPLEMENTATION_NOTES_2026-07-02_PRE_SLIM.md` | Remove long prototype file inventory, screen catalog, mapping table, and asset audit from active design context. |
+
+Validation:
+
+- `git diff --check` passed.
+- `node scripts/context-hygiene-check.mjs` passed with active design docs under budget.
+
+## 2026-07-02 - Pointer and Lightweight Template Cleanup
+
+Scope:
+
+- Remove active compatibility/template files after preserving their original text in frozen archives.
+- Keep Claude-specific files active because the user still uses Claude, but update their paths to current product/design/workflow entrypoints.
+
+Moved or removed paths:
+
+| Old active path | Frozen/current path | Reason |
+|---|---|---|
+| `docs/00_memory/DECISION_LOG.md` | `docs/09_frozen/memory_pointers/DECISION_LOG_POINTER_2026-07-02.md`; current source is `docs/07_decisions/DECISION_LOG.md` | The compatibility pointer no longer justifies an active file. |
+| `docs/05_workflow/LIGHTWEIGHT_FINAL_REPORT_TEMPLATE.md` | `docs/09_frozen/workflow_templates/LIGHTWEIGHT_FINAL_REPORT_TEMPLATE_2026-07-02.md`; current source is `AGENTS.md` final-response rules | The template duplicated active workflow closeout rules. |
+| `docs/06_tasks/LIGHTWEIGHT_TASK_PROMPT_TEMPLATE.md` | `docs/09_frozen/task_templates/LIGHTWEIGHT_TASK_PROMPT_TEMPLATE_2026-07-02.md`; current source is `docs/06_tasks/TASK_LEDGER.md` plus workflow rules | Generic prompt specs are no longer created by default. |
+| `docs/06_tasks/TASK_INTAKE_TEMPLATE.md` | `docs/09_frozen/task_templates/TASK_INTAKE_TEMPLATE_2026-07-02.md`; current source is `docs/06_tasks/TASK_LEDGER.md` plus short inline spec fields when needed | Generic intake files are no longer active workflow artifacts. |
+| `CLAUDE.md`, `CLAUDE_reference/` | Kept active with corrected pointers to `PRODUCT_BRIEF.md`, `UI_IMPLEMENTATION_NOTES.md`, and current task/memory docs | The user still uses Claude, so these files remain but must not point at deleted active files. |
+
+Validation:
+
+- Active stale-reference search passed outside historical worklog/reorganization text.
+- `git diff --check` passed.
+- `node scripts/context-hygiene-check.mjs` passed.
+
+## 2026-07-02 - Active Historical Pointer Cleanup
+
+Scope:
+
+- Remove completed historical prompt/brief files from active context after preserving their original text in frozen archives.
+- Route future product and design work through current concise entrypoints instead of root or active pointer files.
+
+Moved or removed paths:
+
+| Old active path | Frozen/current path | Reason |
+|---|---|---|
+| `Fresh_Pet_Groomer_Marketplace_Engineering_Brief.md` | `docs/09_frozen/product_briefs/FRESH_PET_GROOMER_MARKETPLACE_ENGINEERING_BRIEF_2026-07-02.md`; current source is `docs/01_product/PRODUCT_BRIEF.md` | The root brief was a completed rebuild source and no longer belongs in daily active context. |
+| `docs/08_design/Apply Groomly Design Prototype to Existing SwiftUI App.md` | `docs/09_frozen/design_prompts/GROOMLY_DESIGN_PROMPT_2026-07-02_PRE_INDEX_TRIM.md`; current source is `docs/08_design/UI_IMPLEMENTATION_NOTES.md` | The active pointer had served its compatibility purpose and kept a historical prompt visible in active docs. |
+
+Validation:
+
+- Active reference search passed after updating product, design, structure, and README indexes.
+- `git diff --check` passed.
+- `node scripts/context-hygiene-check.mjs` passed.
+
+## 2026-07-02 - Indexed AI Collaboration Rules and Policy Trims
+
+Scope:
+
+- Turn active workflow docs into L0-L4 access rules and single-source task protocol.
+- Move long historical policy/index/design text out of active context while preserving verbatim archives.
+- Add a read-only context hygiene check for word budgets, links, hidden paths, and stale credential wording.
+
+Changed paths:
+
+| Path | Change | Reason |
+|---|---|---|
+| `AGENTS.md` | Compressed to hard entry rules. | Keep startup context small and route details to workflow docs. |
+| `docs/05_workflow/CONTEXT_AND_RECOVERY.md` | Rewritten around L0-L4 access, expansion rules, recovery, and budgets. | Make context growth explicit and verifiable. |
+| `docs/00_memory/FEATURE_INDEX.md` | Rewritten as a compact routing index. | Remove task timelines from active lookup context. |
+| `docs/03_backend/RLS_RPC_POLICY.md`, `STORAGE_POLICY.md`, `MIGRATION_RULES.md` | Rewritten as current-rule indexes. | Keep backend history traceable without loading it by default. |
+| `docs/04_ios/testops/TESTOPS_MEMORY.md` | Rewritten as current capability/limit memory. | Keep TestOps task history in ledger/worklog/results instead. |
+| Historical Groomly design task prompt | Replaced by a short active pointer to frozen full text. T-147 later removed that active pointer entirely. | Avoid loading a completed historical UI task prompt as active context. |
+| `scripts/context-hygiene-check.mjs` | Added read-only hygiene check. | Give future tasks one command for context budget and search-path validation. |
+
+New archive families:
+
+- `docs/09_frozen/backend_policies/`
+- `docs/09_frozen/feature_indexes/`
+- `docs/09_frozen/design_prompts/`
+
 ## 2026-07-02 - Markdown Fast-Path and Search Hygiene
 
 Scope:
@@ -36,7 +125,7 @@ Scope:
 - Reduce active workflow Markdown entrypoints without changing app behavior, Supabase schema, migrations, scripts, or root source ownership.
 - Consolidate duplicated context/recovery rules into one active access-tier document.
 - Consolidate duplicated tool/MCP/Superpowers/validation rules into one active tooling policy.
-- Keep root `CLAUDE.md`, `CLAUDE_reference/`, and `Fresh_Pet_Groomer_Marketplace_Engineering_Brief.md` in place, but mark them as on-demand reference rather than default startup context.
+- Keep root `CLAUDE.md` and `CLAUDE_reference/` in place, but mark them as on-demand reference rather than default startup context. The former root product brief was still kept at this time and later archived by the 2026-07-02 active historical pointer cleanup.
 
 Moved paths:
 
@@ -129,7 +218,7 @@ Paths intentionally not moved:
 
 - `ios/`: Xcode references and build scripts depend on this layout.
 - `supabase/migrations/`: migration filenames and ordering are part of the backend audit trail.
-- `Fresh_Pet_Groomer_Marketplace_Engineering_Brief.md`: active docs cite this root path as the canonical original brief.
+- Former root product brief: active docs cited it as the canonical original brief at the time. It was later archived under `docs/09_frozen/product_briefs/` and removed from the repository root.
 - `CLAUDE.md` and `CLAUDE_reference/`: existing owner notes explicitly keep this reference area at the root.
 - `.codex/config.toml`: active Codex project configuration.
 - `scripts/`: stable command entrypoints used by workflow docs and task closeouts.

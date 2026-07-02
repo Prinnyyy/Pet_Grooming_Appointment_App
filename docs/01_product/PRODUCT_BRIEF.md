@@ -2,7 +2,9 @@
 
 ## Canonical Source
 
-`Fresh_Pet_Groomer_Marketplace_Engineering_Brief.md` is the product and engineering source for the fresh rebuild. This document is the concise working summary used by feature tasks.
+This file is the active product source for feature work. It replaces the original root rebuild brief as the daily working entrypoint.
+
+The full original rebuild brief is archived for historical comparison at `../09_frozen/product_briefs/FRESH_PET_GROOMER_MARKETPLACE_ENGINEERING_BRIEF_2026-07-02.md`. Do not read the archive by default.
 
 ## Product Definition
 

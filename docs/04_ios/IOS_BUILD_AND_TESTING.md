@@ -39,6 +39,7 @@ Useful entrypoints:
 node scripts/testops.mjs doctor --dry-run
 node scripts/testops.mjs run backend --scenario marketplace_full_lifecycle
 node scripts/testops.mjs run backend --scenario marketplace_full_lifecycle --matrix smoke5
+node scripts/testops.mjs run matching --scenario request_matching_eval --matrix matching_baseline
 ./scripts/ios-testops-e2e.sh marketplace_full_lifecycle
 ```
 

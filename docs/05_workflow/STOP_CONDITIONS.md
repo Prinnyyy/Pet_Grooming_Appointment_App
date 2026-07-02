@@ -7,6 +7,7 @@ Codex must stop and report when any condition occurs.
 - The task requires more than one major feature.
 - The task begins to affect unrelated screens/modules.
 - The task requires a product decision not documented.
+- The task cannot be completed without turning one requested task into multiple independent tasks.
 
 ## Safety Stop
 
@@ -14,6 +15,7 @@ Codex must stop and report when any condition occurs.
 - Secrets are required.
 - Remote state is uncertain.
 - User changes would be overwritten.
+- Commit, push, PR, remote write, seed, cleanup, migration apply, or dependency changes are needed without explicit user approval.
 
 ## Technical Stop
 
@@ -41,6 +43,11 @@ Codex must stop and report when any condition occurs.
 - Conversation context conflicts with memory docs.
 - Memory docs are missing critical project facts.
 - Current code differs greatly from documented architecture.
+- Current docs conflict with source code, scripts, migrations, or verified tool behavior.
+- L4 frozen/heavy context is needed but the reason is not specific.
+- The next step would require broad full-file reads of archives, Groomly HTML/export, T-129 seed tables, large migrations, or large Swift files.
+- Default search would need to bypass `.rgignore` without a targeted reason.
+- `rg --files -g '*.md'` or another broad inventory would re-include ignored heavy Markdown as routine context.
 
 ## Required Stop Report
 

@@ -22,4 +22,4 @@ Claude consults **on demand**, not every session.
 ## 索引 / Index
 
 - [CLAUDE_INCREMENTAL_BUILD_PLAN.md](CLAUDE_INCREMENTAL_BUILD_PLAN.md) — 用户提供的 T-002 分阶段构建
-  路线图快照（2026-06-20 记录）。当前状态见 `docs/06_tasks/TASK_LEDGER.md`；历史详版见 `docs/09_frozen/task_records_2026-06-26/T-002_INCREMENTAL_BUILD_ROADMAP.md`。
+  路线图快照（2026-06-20 记录）。当前产品入口见 `docs/01_product/PRODUCT_BRIEF.md`，当前状态见 `docs/06_tasks/TASK_LEDGER.md`；历史详版见 `docs/09_frozen/task_records_2026-06-26/T-002_INCREMENTAL_BUILD_ROADMAP.md`。

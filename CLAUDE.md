@@ -22,21 +22,25 @@ Without explicit user authorization, Claude must not modify project files, inclu
 
 ## Current Task Reading Rules
 
-For the next Groomly screen-specific task, read only:
+For current project work, start with:
 
 - `AGENTS.md`
 - `docs/05_workflow/SINGLE_AGENT_WORKFLOW.md`
 - `docs/05_workflow/CONTEXT_AND_RECOVERY.md` when read-budget or recovery decisions matter
 - targeted sections of `docs/00_memory/CURRENT_STATE.md`
 - `docs/06_tasks/TASK_LEDGER.md` only when choosing or updating task status
+
+For product or UI tasks, add only the relevant current entrypoints:
+
+- `docs/01_product/PRODUCT_BRIEF.md`
 - `docs/06_tasks/SCREENSHOT_UI_REWORK_TASK_TEMPLATE.md` when a screenshot task is active
-- `docs/08_design/Apply Groomly Design Prototype to Existing SwiftUI App.md`
 - `docs/08_design/UI_IMPLEMENTATION_NOTES.md`
+- `docs/08_design/screenshots/README.md` when screenshot assets are involved
 - `docs/08_design/design_tokens.json`
 - `docs/01_product/DESIGN_SYSTEM.md`
 - the relevant SwiftUI files for the selected screen
 
-Do not read backend docs, old task files, archived workflow docs, frozen snapshots, or full worklog history unless the user explicitly asks for that context or the task directly requires it.
+Do not read backend docs, old task files, archived workflow docs, frozen snapshots, historical design prompts, archived product briefs, or full worklog history unless the user explicitly asks for that context or the task directly requires it.
 
 ## Non-Negotiable Boundaries
 
@@ -65,6 +69,8 @@ Use the selected task file's validation commands. Standard SwiftUI screen slices
 - Current state: `docs/00_memory/CURRENT_STATE.md`
 - Task ledger: `docs/06_tasks/TASK_LEDGER.md`
 - Context/recovery: `docs/05_workflow/CONTEXT_AND_RECOVERY.md`
+- Product brief: `docs/01_product/PRODUCT_BRIEF.md`
 - Product rules: `docs/01_product/`
 - Backend contract: `docs/03_backend/`
-- Groomly design source: `docs/08_design/`
+- Current Groomly design notes: `docs/08_design/UI_IMPLEMENTATION_NOTES.md`
+- Frozen archives: `docs/09_frozen/README.md`

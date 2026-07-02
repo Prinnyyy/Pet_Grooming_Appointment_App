@@ -1,8 +1,52 @@
 # Worklog
 
-This file is the active recent closeout index, newest first. It intentionally keeps only the newest entries needed for recovery. Older verbatim history is archived at `docs/09_frozen/worklogs/WORKLOG_2026-06-20_to_2026-07-01.md`.
+This file is the active recent closeout index, newest first. It intentionally keeps only the newest entries needed for recovery. Older verbatim history is archived at `docs/09_frozen/worklogs/WORKLOG_2026-06-20_to_2026-07-01.md` and `docs/09_frozen/worklogs/WORKLOG_2026-07-01_T-132_TO_T-136.md`.
 
 Current branch, next task ID, and current baseline live in `docs/00_memory/CURRENT_STATE.md` and `docs/06_tasks/TASK_LEDGER.md`. Older `Next:` lines and branch references are historical closeout notes, not current instructions.
+
+```text
+Date: 2026-07-02
+Task: T-149 - Active design document slimming.
+Files changed: docs/01_product/DESIGN_SYSTEM.md, docs/08_design/UI_IMPLEMENTATION_NOTES.md, docs/09_frozen/design_notes/, scripts/context-hygiene-check.mjs, docs/05_workflow/CONTEXT_AND_RECOVERY.md, docs indexes, CURRENT_STATE.md, WORKLOG.md, TASK_LEDGER.md.
+Checks: `git diff --check` passed. `node scripts/context-hygiene-check.mjs` passed with `DESIGN_SYSTEM.md` and `UI_IMPLEMENTATION_NOTES.md` under the new 900-word budgets. Archive/reference checks confirmed the full pre-slim design texts exist under `docs/09_frozen/design_notes/`.
+Simulator launch: Skipped because this was docs/design-context cleanup only and did not affect iOS app/UI behavior.
+Result: Active design docs now keep only current design-system rules, Groomly visual summary, screenshot rework boundaries, and source routing. Full historical T-023 through T-035 design-system narrative and prototype audit details are preserved in frozen design-note archives.
+Risks: No Swift source, Supabase schema/RLS/RPC/Storage, migrations, seed data, dependencies, simulator, or remote state changed.
+Next: Use T-150 for the next new bugfix or iteration task unless the user explicitly names another task ID.
+```
+
+```text
+Date: 2026-07-02
+Task: T-148 - Pointer/template cleanup and Claude path correction.
+Files changed: docs/00_memory/DECISION_LOG.md, docs/05_workflow/LIGHTWEIGHT_FINAL_REPORT_TEMPLATE.md, docs/06_tasks/LIGHTWEIGHT_TASK_PROMPT_TEMPLATE.md, docs/06_tasks/TASK_INTAKE_TEMPLATE.md, docs/09_frozen/memory_pointers/, docs/09_frozen/workflow_templates/, docs/09_frozen/task_templates/, CLAUDE.md, CLAUDE_reference/, docs indexes, CURRENT_STATE.md, WORKLOG.md, TASK_LEDGER.md.
+Checks: `git diff --check` passed. `node scripts/context-hygiene-check.mjs` passed. Active stale-reference search found no deleted active paths outside historical worklog/reorganization audit text.
+Simulator launch: Skipped because this was docs/archive cleanup only and did not affect iOS app/UI behavior.
+Result: The memory decision-log compatibility pointer and low-use lightweight workflow/task templates were archived under `docs/09_frozen/` and removed from active docs. Claude files remain active, with stale Fresh Brief and Groomly prompt references corrected to current product/design/workflow entrypoints.
+Risks: No iOS source, Supabase schema/RLS/RPC/Storage, migrations, seed data, dependencies, simulator, or remote state changed.
+Next: Use T-149 for the next new bugfix or iteration task unless the user explicitly names another task ID.
+```
+
+```text
+Date: 2026-07-02
+Task: T-147 - Active historical pointer and root brief cleanup.
+Files changed: Fresh_Pet_Groomer_Marketplace_Engineering_Brief.md, docs/09_frozen/product_briefs/FRESH_PET_GROOMER_MARKETPLACE_ENGINEERING_BRIEF_2026-07-02.md, docs/08_design/Apply Groomly Design Prototype to Existing SwiftUI App.md, README.md, PRODUCT_BRIEF.md, UI_IMPLEMENTATION_NOTES.md, DECISION_LOG.md, project-structure indexes, frozen archive index, CURRENT_STATE.md, WORKLOG.md, TASK_LEDGER.md.
+Checks: `git diff --check` passed. `node scripts/context-hygiene-check.mjs` passed. Active reference search confirmed the deleted active files are no longer used outside the reorganization-log move record and frozen archive pointers.
+Simulator launch: Skipped because this was docs/archive cleanup only and did not affect iOS app/UI behavior.
+Result: The original root product/engineering brief is now frozen under `docs/09_frozen/product_briefs/` and removed from the repository root. The active Groomly design prompt pointer was deleted because the full prompt is already frozen. Active product/design work now routes through `docs/01_product/PRODUCT_BRIEF.md` and `docs/08_design/UI_IMPLEMENTATION_NOTES.md`.
+Risks: No iOS source, Supabase schema/RLS/RPC/Storage, migrations, seed data, dependencies, simulator, or remote state changed.
+Next: Use T-148 for the next new bugfix or iteration task unless the user explicitly names another task ID.
+```
+
+```text
+Date: 2026-07-02
+Task: T-146 - AI collaboration context indexing and policy trim.
+Files changed: AGENTS.md, workflow/context/stop docs, docs indexes, FEATURE_INDEX.md, backend policy docs, TestOps memory, Groomly design prompt pointer, frozen archives, context hygiene script, CURRENT_STATE.md, WORKLOG.md, TASK_LEDGER.md.
+Checks: `git diff --check` passed. `node scripts/context-hygiene-check.mjs` passed word budgets, active Markdown link scan, default hidden-path checks, and stale TestOps credential wording checks. Targeted searches confirmed frozen archives remain default-hidden and TestOps credential docs match script behavior.
+Simulator launch: Skipped because this was docs/workflow/search-hygiene only and did not affect iOS app/UI behavior.
+Result: Active AI collaboration docs now use an explicit L0-L4 access model, stronger context stop conditions, compact single-purpose policy/index files, frozen pre-trim archives for historical trace, and one read-only context hygiene command for future closeouts.
+Risks: No iOS source, Supabase schema/RLS/RPC/Storage, migrations, seed data, dependencies, simulator, or remote state changed. Historical details remain in frozen archives and should be read only with targeted recovery/comparison reasons.
+Next: Use T-147 for the next new bugfix or iteration task unless the user explicitly names another task ID.
+```
 
 ```text
 Date: 2026-07-02
@@ -99,54 +143,4 @@ Checks: Confirmed branch `codex/pet-fit-structure-cleanup`. Before starting T-13
 Result: T-137 is completed locally and the first authorized remote `smoke5` lifecycle has passed with cleanup. TestOps now has a thin CLI, reusable core module, Node built-in unit test script, and the documented `smoke5` backend lifecycle case catalog covering five seeded customer/groomer pairs. Dry-run remains the default and prints sanitized plans; execute/cleanup remain gated by `--execute` plus `TESTOPS_REMOTE_WRITE_APPROVED=1`.
 Risks: No Supabase schema, RLS, RPC, Storage bucket/policy, or migration changed. Remote lifecycle test rows were created and then removed by `TESTOPS:<run_id>` tag; local ignored artifacts under `artifacts/testops/` retain the run summaries.
 Next: Stop unless the user asks to commit/push T-137 or authorizes remote `smoke5` execution.
-```
-
-```text
-Date: 2026-07-01
-Task: T-136 - Unified TestOps automation module.
-Files changed: App launch configuration/composition, AuthenticationStore, AppDebugEventRecorder, DebugPanelView, TestOps launch smoke test, TestOps unit tests, scripts/testops.mjs, scripts/ios-testops-e2e.sh, docs/04_ios/testops/*, docs indexes, CURRENT_STATE.md, WORKLOG.md, TASK_LEDGER.md.
-Checks: Confirmed branch `codex/pet-fit-structure-cleanup`. RED focused TestOps tests failed before implementation on missing launch-argument parsing, session-clear control, TestOps event category/snapshot, and structured metadata. GREEN focused tests passed after adding DEBUG-only TestOps launch configuration, recorder integration, auth-session clearing, sanitizer coverage, and Debug Console TestOps snapshot. `./scripts/ios-testops-e2e.sh marketplace_full_lifecycle` passed. Installing the latest debug app on the booted simulator and launching with TestOps args produced a `category=test` JSONL event readable through `./scripts/ios-debug-events.sh`. `node --check scripts/testops.mjs`, `node scripts/testops.mjs doctor --dry-run`, `node scripts/testops.mjs run backend --scenario marketplace_full_lifecycle`, `./scripts/supabase-check.sh`, full `./scripts/ios-test.sh`, `./scripts/ios-build.sh`, and `git diff --check` passed.
-Result: T-136 is completed. The project now has a unified local TestOps module with indexed docs, backend lifecycle dry-run/execute/cleanup/report scaffolding, explicit remote-write gating, TestOps launch args for clean UI automation sessions, Debug Console `category=test` visibility, JSONL/OSLog context, and a reusable TestOps XCUITest launch wrapper.
-Risks: No Supabase schema, RLS, RPC, Storage bucket/policy, migration, or remote data changed. Backend lifecycle execution remains disabled unless an operator explicitly passes `--execute` and sets `TESTOPS_REMOTE_WRITE_APPROVED=1`; cleanup should be run only for tagged `TESTOPS:<run_id>` artifacts.
-Next: Stop unless the user asks to commit/push or starts T-137.
-```
-
-```text
-Date: 2026-07-01
-Task: T-135 - Remote seed T-129 customer test accounts.
-Files changed: scripts/seed-t129-customers.mjs, T-129_CUSTOMER_TEST_PROFILES.md, CURRENT_STATE.md, WORKLOG.md, TASK_LEDGER.md.
-Checks: Confirmed branch `codex/pet-fit-structure-cleanup`. `node scripts/seed-t129-customers.mjs` dry-run parsed 50 customer profiles and planned 100 pets. Authorized remote execution created 50 Supabase Auth users and verified 50 profiles, 50 customer profiles, and 100 pets. Idempotency re-run passed with 0 users created, 50 users updated, and the same remote row counts. Password-login smoke for `groomly.customer001@example.com` passed and returned app role `customer`. Authenticated RLS pet read for that account returned the expected 2 pets. `./scripts/supabase-check.sh` and `git diff --check` passed.
-Result: The T-129 customer resource set now exists in remote Supabase project `lqmasbuqzvcvtawonjlb` as login-capable customer accounts with profile contact/address data and exactly one dog plus one cat pet profile each. The reusable seed script is idempotent for the `groomly.customerNNN@example.com` email set and refuses to overwrite public profiles with a non-customer role.
-Risks: This was a remote data seed only. No Supabase schema, RLS, RPC, Storage bucket/policy, migration, Swift runtime code, image object, request, booking, chat, or review changed. The GTC-019 Great Dane fixture was corrected from 118 lb to 101 lb to match the deployed pet weight constraint.
-Next: Stop unless the user asks to commit/push or starts T-136.
-```
-
-```text
-Date: 2026-07-01
-Task: T-134 - Remote seed T-129 groomer test accounts.
-Files changed: scripts/seed-t129-groomers.mjs, T-129_GROOMER_TEST_PROFILES.md, CURRENT_STATE.md, WORKLOG.md, TASK_LEDGER.md.
-Checks: Confirmed branch `codex/pet-fit-structure-cleanup`. `node scripts/seed-t129-groomers.mjs` dry-run parsed 50 groomer profiles and planned 150 services, 246 availability windows, 50 booking preferences, and 508 fit claims. Authorized remote execution created 50 Supabase Auth users and verified 50 profiles, 50 active groomer profiles, 150 services, 246 availability rows, 50 preferences, and 508 fit claims. Idempotency re-run passed with 0 users created, 50 users updated, and the same remote row counts. Password-login smoke for `groomly.groomer001@example.com` passed and returned app role `groomer`. Linked SQL count verification passed. `git diff --check` passed.
-Result: The T-129 groomer resource set now exists in remote Supabase project `lqmasbuqzvcvtawonjlb` as login-capable groomer accounts with active marketplace profile data, services, availability, booking preferences, and fit signals. The reusable seed script is idempotent for the `groomly.groomerNNN@example.com` email set and refuses to overwrite public profiles with a non-groomer role.
-Risks: This was a remote data seed only. No Supabase schema, RLS, RPC, Storage bucket/policy, migration, Swift runtime code, or customer test accounts changed.
-Next: Stop unless the user asks to commit/push or starts T-135.
-```
-
-```text
-Date: 2026-07-01
-Task: T-133 - Customer profile save permission fix.
-Files changed: SupabaseCustomerProfileRepository, CustomerProfileFeatureTests, CURRENT_STATE.md, WORKLOG.md, TASK_LEDGER.md.
-Checks: Confirmed branch `codex/pet-fit-structure-cleanup`. Debug Console JSONL showed `CustomerProfileRepository.updateProfile` failing on `table=customer_profiles` with `underlyingErrorCode=notAllowed`. RED focused test failed before implementation because the safe update payload did not exist. GREEN focused test passed after adding a customer-profile update payload that omits `user_id`. `./scripts/ios-build.sh` passed. `git diff --check` passed.
-Result: Customer Profile saves no longer use a `customer_profiles` upsert that includes `user_id` on existing-row updates. Existing customer profile rows now use `update` with only the owner-editable safe address/contact fields, matching the deployed T-127 column grants; missing profile rows fall back to `insert` with `user_id`.
-Risks: No Supabase schema, RLS, RPC, Storage, migration, or remote data changed. The profile update remains a sequential write across `profiles` and `customer_profiles`, not an atomic RPC.
-Next: Stop unless the user asks to commit/push or starts T-134.
-```
-
-```text
-Date: 2026-07-01
-Task: T-132 - Customer profile address autocomplete and sheet feedback visibility.
-Files changed: GroomlyAddressSearch, GroomlyFeedbackPrimitives, CustomerProfileSettingsView, CustomerRequestsView, CustomerProfileFeatureTests, AppEntryModelsTests, CURRENT_STATE.md, WORKLOG.md, TASK_LEDGER.md.
-Checks: Confirmed branch `codex/pet-fit-structure-cleanup`. RED focused CustomerProfile address-search test failed before implementation because the Customer Profile address suggestion aliases did not exist. GREEN focused tests passed for shared Customer Profile address suggestion de-duplication and sheet feedback bottom-clearance behavior. `./scripts/ios-build.sh` passed. XcodeBuildMCP simulator build/run passed. `git diff --check` passed.
-Result: Customer Profile address entry now uses the shared MapKit-backed address autocomplete/resolve implementation instead of plain text-only fields. The customer request wizard sheet now mounts the same global feedback overlay with sheet bottom clearance, so tapping `Use Profile Address` when the customer profile has no saved complete address shows the no-address prompt while the sheet remains open.
-Risks: No Supabase schema, RLS, RPC, Storage, repository contract, auth, or remote data changed. The wizard still uses the existing global feedback center; this did not add a second toast system.
-Next: Stop unless the user asks to commit/push or starts T-133.
 ```

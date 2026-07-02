@@ -20,6 +20,14 @@ Archived files may contain old TODOs, old paths, old branch/task references, or 
 - `worklogs/`: verbatim archived worklog entries moved out of active `docs/00_memory/WORKLOG.md`.
 - `task_ledgers/`: archived completed task-ledger rows moved out of active `docs/06_tasks/TASK_LEDGER.md`.
 - `backend_contracts/`: archived long-form `docs/03_backend/SUPABASE_CONTRACT.md` snapshots moved out of the active fast-path backend contract.
+- `backend_policies/`: archived pre-trim backend policy/runbook files such as RLS/RPC, Storage, and migration rules.
+- `feature_indexes/`: archived pre-trim feature index snapshots moved out of the active routing index.
+- `design_prompts/`: archived historical design-task prompts moved out of active design context.
+- `design_notes/`: archived pre-slim design-system and Groomly UI audit notes moved out of active design context.
+- `product_briefs/`: archived original product/engineering briefs moved out of active root context.
+- `memory_pointers/`: removed compatibility pointers that no longer need active paths.
+- `workflow_templates/`: removed low-use workflow templates whose rules now live in active workflow docs.
+- `task_templates/`: removed generic task templates superseded by ledger/worklog rules and the screenshot task template.
 
 ## Rule
 

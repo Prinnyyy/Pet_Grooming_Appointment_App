@@ -1,69 +1,55 @@
 # Project Documentation Index
 
-This folder is the durable project memory and coordination layer for Codex.
-
-Use it to avoid relying on long conversation context.
+This folder is the durable project memory and coordination layer for Codex. Use it to avoid relying on long conversation context.
 
 ## Sections
 
-- `00_memory/`: current state, worklog, feature index, project memory, and compatibility pointers
-- `01_product/`: product definition, user roles, flows, design system
-- `02_architecture/`: iOS/client architecture and module boundaries
-- `03_backend/`: Supabase schema, RLS, RPC, storage, migrations
-- `04_ios/`: Swift, SwiftUI, build, testing, accessibility, and DEBUG diagnostic rules
-- `05_workflow/`: active lightweight single-agent workflow, context/recovery guide, tooling policy, and stop rules
-- `06_tasks/`: active task ledger, templates, handoff notes, review template
-- `07_decisions/`: ADRs and decision templates
-- `08_design/`: Groomly prototype, normalized screenshots, design prompt, implementation notes, and extracted design tokens
-- `09_frozen/`: frozen historical snapshots, detailed task records, disabled agent roles, archived workflow docs/reports, and setup prompts
+- `00_memory/`: current state, recent worklog, feature routing, and project memory
+- `01_product/`: product definition, user roles, flows, screen inventory, UX, and design system
+- `02_architecture/`: iOS/client architecture, data flow, boundaries, error handling, and fixtures
+- `03_backend/`: Supabase fast-path contract, RLS/RPC policy, Storage policy, and migration rules
+- `04_ios/`: Swift, SwiftUI, build/test, Debug Console, accessibility, and TestOps runbooks
+- `05_workflow/`: active workflow, context/recovery, tooling, GitHub, and stop rules
+- `06_tasks/`: active task ledger, screenshot checklist, reviewed SQL artifacts, and handoff/review templates
+- `07_decisions/`: canonical durable decision log and ADR template
+- `08_design/`: Groomly implementation notes, screenshots, and tokens; historical prompts and long design audits live in frozen archives
+- `09_frozen/`: frozen history and pre-trim snapshots; default searches should not read it
 - `10_project_structure/`: current path map and reorganization history
+
+## Access Model
+
+- L0 startup: `../AGENTS.md`, targeted `00_memory/CURRENT_STATE.md`, targeted `06_tasks/TASK_LEDGER.md`.
+- L1 task indexes: this file, `00_memory/FEATURE_INDEX.md`, `03_backend/SUPABASE_CONTRACT.md`, `04_ios/testops/README.md`, `10_project_structure/README.md`.
+- L2 domain rules: targeted product, architecture, backend, iOS, TestOps, workflow files.
+- L3 trace/history: targeted `WORKLOG.md`, `PROJECT_MEMORY.md`, decision log, and reorganization log.
+- L4 frozen/heavy: `09_frozen/**`, Groomly HTML/export, T-129 seed tables, generated artifacts. Read only with a specific reason.
+
+Default searches honor `../.rgignore`. Do not use broad `rg --files -g '*.md'` as the default Markdown inventory because it can re-include ignored seed Markdown.
 
 ## Quick Path Lookup
 
-- Current structure map: `10_project_structure/README.md`
-- Structure change log: `10_project_structure/REORGANIZATION_LOG.md`
-- Default search ignore rules: `../.rgignore`
-- Task folder guide: `06_tasks/README.md`
+- Agent rules: `../AGENTS.md`
+- Current state and branch baseline: `00_memory/CURRENT_STATE.md`
+- Task numbering/status source: `06_tasks/TASK_LEDGER.md`
+- Feature routing index: `00_memory/FEATURE_INDEX.md`
+- Workflow rules: `05_workflow/SINGLE_AGENT_WORKFLOW.md`
+- Context/recovery and budgets: `05_workflow/CONTEXT_AND_RECOVERY.md`
+- Tooling and validation policy: `05_workflow/TOOLING_POLICY.md`
+- Stop conditions: `05_workflow/STOP_CONDITIONS.md`
+- Context hygiene check: `../scripts/context-hygiene-check.mjs`
+- Durable decisions: `07_decisions/DECISION_LOG.md`
+- Project structure map: `10_project_structure/README.md`
 - Test resource index: `02_architecture/test_resources/README.md`
-- Debug Console and structured event logs: `04_ios/DEBUG_CONSOLE.md`
-- TestOps automation module: `04_ios/testops/README.md`
-- Reviewed SQL task drafts: `06_tasks/sql_reviews/`
+- TestOps index: `04_ios/testops/README.md`
 - Design screenshots: `08_design/screenshots/`
 - Frozen archive guide: `09_frozen/README.md`
-- Frozen detailed task records: `09_frozen/task_records_2026-06-26/`
-- Frozen active-memory snapshots: `09_frozen/current_state_snapshots/`
-- Frozen worklog archives: `09_frozen/worklogs/`
-- Frozen task-ledger archives: `09_frozen/task_ledgers/`
-- Frozen backend contract snapshots: `09_frozen/backend_contracts/`
-- Frozen Superpowers plans/specs: `09_frozen/superpowers_2026-06-26/`
-- Frozen consolidated workflow docs: `09_frozen/workflow_docs_2026-06-26/`
-- Frozen workflow archive: `09_frozen/workflow_archive_2026-06-24/`
-- Frozen disabled agent archive: `09_frozen/agent_team_archive_2026-06-24/`
-- Deployed/prepared Supabase migration mirrors: `../supabase/migrations/`
-- SwiftUI source root: `../ios/PetGroomerMarketplace/PetGroomerMarketplace/`
 
 ## Current Baseline
 
-Use these active files first:
+The canonical work branch is `codex/pet-fit-structure-cleanup` unless the user explicitly names another branch. New bugfix and iteration work should use the next available task ID from `06_tasks/TASK_LEDGER.md`.
 
-- Current state and branch baseline: `00_memory/CURRENT_STATE.md`
-- Task numbering and status source: `06_tasks/TASK_LEDGER.md`
-- Workflow rules: `05_workflow/SINGLE_AGENT_WORKFLOW.md`
-- Context/recovery access tiers: `05_workflow/CONTEXT_AND_RECOVERY.md`
-- Tooling and validation policy: `05_workflow/TOOLING_POLICY.md`
-- Durable decisions: `07_decisions/DECISION_LOG.md`
-- Project structure map: `10_project_structure/README.md`
+Detailed task records T-001 through T-088 are archived under `09_frozen/task_records_2026-06-26/`. Use `06_tasks/TASK_LEDGER.md` as the single active task-status and task-numbering record.
 
-The canonical work branch is `codex/pet-fit-structure-cleanup` unless the user explicitly names another branch. New bugfix and iteration work should use the next available task ID from the ledger instead of reopening completed task records.
+Keep active memory and policy files compact. When a file exceeds the budgets in `05_workflow/CONTEXT_AND_RECOVERY.md`, archive old content under the matching `09_frozen/` family and keep only current facts/indexes active.
 
-Detailed task records T-001 through T-088 were merged out of the active task directory and archived under `09_frozen/task_records_2026-06-26/`. Use `06_tasks/TASK_LEDGER.md` as the single active task-status and task-numbering record.
-
-Keep active memory files compact. `00_memory/CURRENT_STATE.md`, `00_memory/WORKLOG.md`, and `06_tasks/TASK_LEDGER.md` should stay within the context hygiene limits in `05_workflow/CONTEXT_AND_RECOVERY.md`; older details belong in `09_frozen/current_state_snapshots/`, `09_frozen/worklogs/`, or `09_frozen/task_ledgers/`.
-
-The Groomly UI foundation and completion sequences are completed for implemented MVP screens; their detailed historical records are in the task-record archive.
-
-No active next Groomly UI, pet-fit, availability, backend, or screenshot task is currently defined. Start new work only from an explicit user request and the next available task ID.
-
-Read active docs progressively. Start with the files above, then open product, architecture, backend, iOS, design, workflow, or frozen files only when the task requires that domain. Default `rg` searches honor `../.rgignore`; use `rg --no-ignore` only for explicitly needed ignored paths.
-
-T-022 remains completed, but its post-MVP next-task suggestions are frozen and must not auto-start. Use `09_frozen/pre_groomly_ui_2026-06-21/` only to recover or compare pre-Groomly context.
+No active next product task is defined by this index. Start new work only from an explicit user request and the next available task ID.
