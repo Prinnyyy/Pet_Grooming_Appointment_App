@@ -6,8 +6,8 @@ Update this only when project state meaningfully changes. Keep this file as a fa
 
 - Date: 2026-07-02
 - Updated by: Codex
-- Latest completed task: T-143 TestOps edge unit tests and safety hardening.
-- Next task ID: T-144, unless the user explicitly names another task ID or branch.
+- Latest completed task: T-145 TestOps modern Supabase secret support and authorized remote matching run.
+- Next task ID: T-146, unless the user explicitly names another task ID or branch.
 
 ## Fast Path
 
@@ -35,7 +35,7 @@ Update this only when project state meaningfully changes. Keep this file as a fa
 - Last iOS build: `./scripts/ios-build.sh` passed on 2026-07-01 during T-137 using `generic/platform=iOS Simulator`.
 - Last full iOS test: `./scripts/ios-test.sh` passed on 2026-07-01 during T-137, including TestOps launch smoke coverage.
 - Last docs/workflow validation: T-142 `git diff --check`, active Markdown link check, decision-log reference checks, `.rgignore` behavior checks, seed parser dry-runs, archive path checks, and word-count checks passed.
-- Last TestOps unit validation: T-143 `./scripts/testops-unit.sh` passed 17 Node tests covering core and edge cases.
+- Last TestOps unit validation: T-145 `./scripts/testops-unit.sh` passed 24 Node tests covering core, edge, matching evaluation, modern `sb_secret` service credentials, and Auth token normalization.
 - Last Supabase CLI readiness: T-139 confirmed sequential `supabase projects list`, `supabase migration list --linked`, and `supabase db push --linked --dry-run` succeed from this checkout.
 - Known live failing behavior: none currently recorded.
 
@@ -65,7 +65,8 @@ Update this only when project state meaningfully changes. Keep this file as a fa
 - Linked Supabase CLI commands must run sequentially, never in parallel, to avoid `cli_login_postgres` temporary-login races.
 - `SUPABASE_DB_PASSWORD` is not currently needed for normal local linked CLI use while saved credentials remain valid.
 - Local `supabase_api_key` / `SUPABASE_SECRET_KEY=sb_secret_...` is not a CLI PAT, not a database password, and not a JWT service-role key. Do not substitute it into scripts that send `SUPABASE_SERVICE_ROLE_KEY` as Bearer auth.
-- TestOps rejects modern `sb_secret_...` and publishable keys as `SUPABASE_SERVICE_ROLE_KEY` before remote lifecycle writes; current execute mode still expects a JWT-shaped legacy service-role key.
+- TestOps accepts either legacy `SUPABASE_SERVICE_ROLE_KEY=eyJ...` or modern `SUPABASE_SECRET_KEY=sb_secret_...` for server verification/cleanup. Modern secret keys are sent as `apikey` only, never Bearer. Seed scripts still expect legacy JWT-shaped service-role keys.
+- Matching TestOps is available as `node scripts/testops.mjs run matching --scenario request_matching_eval --matrix matching_baseline`. Dry-run is local/read-only; remote execute creates tagged request rows and still requires explicit authorization, `--execute`, `--cleanup`, and `TESTOPS_REMOTE_WRITE_APPROVED=1`. Authorized T-145 remote matching run passed 8/8 and verified zero tagged request residue.
 - Remote data writes, migrations, cleanup, seed execution, commits, pushes, and PRs require explicit user approval.
 
 ## Current Known Risks

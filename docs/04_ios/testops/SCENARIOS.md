@@ -37,6 +37,28 @@ UI path:
 - Next expansion: sign in customer, publish request, sign out/sign in groomer, create offer, sign out/sign in customer, accept offer, sign out/sign in groomer, complete booking, sign out/sign in customer, create review.
 - UI assertions must use accessibility identifiers plus backend/Debug verification, not screenshots.
 
+## `request_matching_eval`
+
+Goal: prove request matching behavior, not full booking lifecycle.
+
+Backend path:
+
+1. Customer signs in with a T-129 seeded account.
+2. Script loads the customer's active dog pet selected by the case.
+3. Customer creates a tagged grooming request through `create_grooming_request`.
+4. Script signs in the target groomer to resolve the target user id.
+5. Service-role verification loads all `request_matches` rows for that request.
+6. Script asserts target groomer inclusion or exclusion according to the case.
+7. Positive target cases assert expected `match_reason` fragments, such as `Preferred time fits` or `Can suggest another time on your preferred day`.
+8. Optional cleanup deletes only rows tagged with `TESTOPS:<run_id>`.
+
+Baseline matrix:
+
+- `matching_baseline` runs 8 fixed cases from `TEST_CASES.md`.
+- Dry-run is the default and prints the redacted plan plus local candidate projection.
+- Remote execution still requires `--execute` and `TESTOPS_REMOTE_WRITE_APPROVED=1`.
+- This scenario creates grooming requests only. It does not create offers, bookings, chat rows, completion, reviews, image uploads, or Storage objects.
+
 ## Future Scenario Candidates
 
 - `request_no_match_diagnostics`: create a request expected to produce zero matches and verify Debug Console event provenance.

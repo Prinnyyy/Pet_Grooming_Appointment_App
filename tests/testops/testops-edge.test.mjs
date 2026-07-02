@@ -12,6 +12,7 @@ import {
   makeBackendPlans,
   parseCustomerProfiles,
   parseGroomerProfiles,
+  requiredServerCredential,
   runMarketplaceLifecycle,
   safeErrorMessage,
 } from "../../scripts/testops-core.mjs";
@@ -90,13 +91,12 @@ test("backend plan generation rejects unsafe run ids before building remote tags
   assert.equal(plan.request.travelRadiusMiles, 15);
 });
 
-test("service role validation rejects modern secret and publishable keys before remote writes", () => {
-  for (const badKey of ["sb_secret_123", "sb_publishable_123", "anon-key"]) {
+test("service credential validation supports modern secret keys and rejects unsafe public keys", () => {
+  for (const badKey of ["sb_publishable_123", "anon-key"]) {
     assert.throws(
       () => new SupabaseREST("https://example.supabase.co", "sb_publishable_client", badKey),
       (error) => {
-        assert.match(error.message, /JWT-shaped legacy service-role key/);
-        assert.doesNotMatch(error.message, /sb_secret_123/);
+        assert.match(error.message, /service credential/);
         assert.doesNotMatch(error.message, /sb_publishable_123/);
         return true;
       }
@@ -109,6 +109,60 @@ test("service role validation rejects modern secret and publishable keys before 
     jwtServiceRoleKey
   );
   assert.equal(api.requireServiceRole(), jwtServiceRoleKey);
+  assert.equal(api.headers(jwtServiceRoleKey).apikey, jwtServiceRoleKey);
+  assert.equal(api.headers(jwtServiceRoleKey).Authorization, `Bearer ${jwtServiceRoleKey}`);
+
+  const secretAPI = new SupabaseREST(
+    "https://example.supabase.co",
+    "sb_publishable_client",
+    "sb_secret_server"
+  );
+  assert.equal(secretAPI.requireServiceRole(), "sb_secret_server");
+  assert.deepEqual(secretAPI.headers("sb_secret_server"), {
+    apikey: "sb_secret_server",
+    "Content-Type": "application/json",
+  });
+  assert.equal(secretAPI.headers("user.jwt.token").apikey, "sb_publishable_client");
+  assert.equal(secretAPI.headers("user.jwt.token").Authorization, "Bearer user.jwt.token");
+});
+
+test("sign in normalizes Supabase snake-case access token", async () => {
+  const api = new SupabaseREST(
+    "https://example.supabase.co",
+    "sb_publishable_client",
+    "sb_secret_server"
+  );
+  api.request = async () => ({
+    access_token: "user.jwt.token",
+    token_type: "bearer",
+    user: { id: "user-1" },
+  });
+
+  const session = await api.signIn("customer@example.com", "password");
+
+  assert.equal(session.accessToken, "user.jwt.token");
+  assert.equal(session.access_token, "user.jwt.token");
+  assert.equal(session.user.id, "user-1");
+});
+
+test("server credential env falls back to modern Supabase secret key", () => {
+  assert.equal(
+    requiredServerCredential({
+      SUPABASE_SERVICE_ROLE_KEY: jwtServiceRoleKey,
+      SUPABASE_SECRET_KEY: "sb_secret_server",
+    }),
+    jwtServiceRoleKey
+  );
+  assert.equal(
+    requiredServerCredential({
+      SUPABASE_SECRET_KEY: "sb_secret_server",
+    }),
+    "sb_secret_server"
+  );
+  assert.throws(
+    () => requiredServerCredential({}),
+    /SUPABASE_SERVICE_ROLE_KEY or SUPABASE_SECRET_KEY is required/
+  );
 });
 
 test("safe error messages redact modern keys, JWTs, emails, UUIDs, and signed URLs", () => {

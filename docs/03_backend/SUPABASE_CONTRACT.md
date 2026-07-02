@@ -78,7 +78,7 @@ Exact signatures, grants, error behavior, table constraints, and policy predicat
 - Multi-row writes, status transitions, ownership checks, limits, conflict protection, and server-owned match/review calculations use controlled RPCs.
 - Linked Supabase CLI commands must run sequentially. Do not parallelize linked migration, push, query, or advisor commands.
 - Remote DDL, migration repair, seed execution, cleanup, destructive operations, and remote writes require explicit user authorization.
-- `supabase_api_key` / `SUPABASE_SECRET_KEY=sb_secret_...` is not a CLI PAT, not the remote DB password, and not a JWT-shaped service-role key. Scripts that send `SUPABASE_SERVICE_ROLE_KEY` as Bearer auth still need a compatible legacy JWT-shaped service-role key unless they are explicitly updated.
+- `supabase_api_key` / `SUPABASE_SECRET_KEY=sb_secret_...` is not a CLI PAT, not the remote DB password, and not a JWT-shaped service-role key. TestOps has an explicit `apikey`-only server credential path for `sb_secret_...`; scripts that send service credentials as Bearer auth still need a compatible legacy JWT-shaped service-role key unless they are explicitly updated.
 - The legacy project ref is never a schema, data, migration, or verification source for this rebuild.
 
 ## Update Rules

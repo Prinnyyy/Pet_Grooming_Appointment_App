@@ -19,12 +19,22 @@ Linked files:
 ## Decisions
 
 ```text
+Date: 2026-07-02
+Decision: Support modern Supabase `sb_secret_...` keys in TestOps as `apikey`-only server credentials.
+Context: Remote Matching TestOps was authorized, but the local environment provided `SUPABASE_SECRET_KEY=sb_secret_...` rather than a legacy JWT-shaped `SUPABASE_SERVICE_ROLE_KEY`. Passing an opaque secret key as Bearer auth makes PostgREST try to decode it as a JWT and fail.
+Options considered: Require the user to provide a legacy service-role JWT; keep using MCP SQL fallback; or update TestOps to support modern secret-key semantics while preserving JWT support.
+Reason: Supabase now documents `sb_secret_...` as the elevated server-side project key and states it is not a JWT. TestOps can safely use it for server verification and tagged cleanup by sending it only as `apikey`, while authenticated user flows continue to send user session JWTs in `Authorization`.
+Consequences: TestOps remote execute/cleanup can use either `SUPABASE_SERVICE_ROLE_KEY` with a legacy JWT or `SUPABASE_SECRET_KEY` with a modern secret key. Seed scripts are unchanged and still require a JWT-shaped legacy service-role key until separately updated. Secret values must still never be printed, committed, or embedded in iOS app configuration.
+Linked files: scripts/testops-core.mjs, scripts/testops.mjs, docs/04_ios/testops/RUNBOOK.md, docs/05_workflow/TOOLING_POLICY.md, docs/03_backend/MIGRATION_RULES.md
+```
+
+```text
 Date: 2026-07-01
 Decision: Separate Supabase CLI credentials from project API keys in all local runbooks.
 Context: The local Supabase CLI is already authenticated and linked: `supabase projects list`, `supabase migration list --linked`, and `supabase db push --linked --dry-run` all succeed sequentially. A new ignored `supabase_environment_variables` file contains project URL/publishable/secret-key values, and the existing `supabase_api_key` value is a modern `sb_secret_...` project secret key.
 Options considered: Ask for `SUPABASE_DB_PASSWORD` anyway; use `sb_secret_...` as `SUPABASE_SERVICE_ROLE_KEY`; or document the exact credential roles and keep the current CLI link as the normal path.
 Reason: Supabase CLI login uses a PAT (`sbp_...`) and the linked DB credential is already saved locally, while modern `sb_secret_...` keys are not JWTs and fail when scripts send them as `Authorization: Bearer ...`.
-Consequences: Do not request `SUPABASE_DB_PASSWORD` unless relinking, CI/no-keychain work, or a real DB-password failure requires it. Do not use `supabase_api_key`, `SUPABASE_SECRET_KEY`, or `sb_secret_...` for `supabase login`, `SUPABASE_SERVICE_ROLE_KEY`, or Bearer auth. Existing seed/TestOps scripts still require a JWT-shaped legacy service-role key unless updated for modern secret-key `apikey` semantics. Linked CLI commands remain sequential only.
+Consequences: Do not request `SUPABASE_DB_PASSWORD` unless relinking, CI/no-keychain work, or a real DB-password failure requires it. Do not use `supabase_api_key`, `SUPABASE_SECRET_KEY`, or `sb_secret_...` for `supabase login` or Bearer auth. This decision's TestOps limitation was superseded by the 2026-07-02 TestOps `sb_secret` support decision; seed scripts still require a JWT-shaped legacy service-role key unless separately updated for modern secret-key `apikey` semantics. Linked CLI commands remain sequential only.
 Linked files: docs/05_workflow/TOOLING_POLICY.md, docs/03_backend/MIGRATION_RULES.md, docs/03_backend/SUPABASE_CONTRACT.md, docs/04_ios/testops/RUNBOOK.md, docs/04_ios/testops/TEST_CASES.md
 ```
 

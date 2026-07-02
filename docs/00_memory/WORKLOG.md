@@ -6,12 +6,35 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-02
+Task: T-145 - TestOps modern Supabase secret support and authorized remote matching run.
+Files changed: scripts/testops-core.mjs, scripts/testops.mjs, tests/testops/testops-edge.test.mjs, Supabase/TestOps docs, decision log, results index, CURRENT_STATE.md, WORKLOG.md, TASK_LEDGER.md.
+Checks: RED `node --test tests/testops/testops-edge.test.mjs` failed on missing `sb_secret` server-credential support, then GREEN passed. A second RED caught missing Supabase `access_token` normalization, then GREEN passed. `./scripts/testops-unit.sh` passed 24 Node tests. `node --check scripts/testops-core.mjs`, `node --check scripts/testops.mjs`, `git diff --check`, and context word-count checks passed. Supabase changelog was checked for relevant REST/Auth/API-key breaking-change context.
+Remote: After explicit user authorization, `node scripts/testops.mjs run matching --scenario request_matching_eval --matrix matching_baseline --run-id TESTOPS-MATCH-REMOTE-20260702 --execute --cleanup` passed 8/8 against project `lqmasbuqzvcvtawonjlb`. Cleanup deleted each tagged request and associated matches; read-only verification returned `remainingTaggedRequests=0`.
+Simulator launch: Skipped because this changed Node TestOps automation/docs and ran backend remote TestOps only, not iOS app/UI behavior.
+Result: TestOps now accepts either legacy `SUPABASE_SERVICE_ROLE_KEY=eyJ...` or modern `SUPABASE_SECRET_KEY=sb_secret_...` for server verification and tagged cleanup. Modern secret keys are sent as `apikey` only, never Bearer, and Auth sign-in responses are normalized from `access_token` to internal `accessToken`.
+Risks: No Supabase schema/RLS/RPC/Storage, migration, seed data, iOS source, dependency, or persistent remote test data changed. Seed scripts still require JWT-shaped legacy service-role keys until separately updated.
+Next: Use T-146 for the next new bugfix or iteration task unless the user explicitly names another task ID.
+```
+
+```text
+Date: 2026-07-02
+Task: T-144 - Matching TestOps.
+Files changed: scripts/testops.mjs, scripts/testops-core.mjs, tests/testops/testops-matching.test.mjs, TestOps docs, CURRENT_STATE.md, WORKLOG.md, TASK_LEDGER.md.
+Checks: RED `node --test tests/testops/testops-matching.test.mjs` failed on missing Matching TestOps exports, then GREEN passed after implementation. `./scripts/testops-unit.sh` passed 22 Node tests. `node scripts/testops.mjs run matching --scenario request_matching_eval --matrix matching_baseline --run-id TESTOPS-MATCH-DRYRUN` passed and printed 8 redacted matching plans with local candidate projection. `node --check scripts/testops-core.mjs`, `node --check scripts/testops.mjs`, and `git diff --check` passed.
+Simulator launch: Skipped because this changed local Node TestOps automation and docs only, not iOS app/UI behavior.
+Result: TestOps now has `request_matching_eval` with the `matching_baseline` matrix. The suite covers target groomer include/exclude assertions, same-day capacity versus exact preferred-window reason fragments, and local hard-filter projection for service type, location mode, and request-day availability using T-129 seed metadata. Remote execution remains gated and creates only tagged grooming requests, with optional tagged cleanup.
+Risks: No Supabase schema/RLS/RPC/Storage, migration, seed data, iOS source, dependency, or remote state changed during T-144. Remote matching execute was later run in T-145, which also added modern `sb_secret` TestOps support.
+Next: Use T-145 for the next new bugfix or iteration task unless the user explicitly names another task ID.
+```
+
+```text
+Date: 2026-07-02
 Task: T-143 - TestOps edge unit tests and safety hardening.
 Files changed: scripts/testops-core.mjs, scripts/testops-unit.sh, tests/testops/testops-edge.test.mjs, TestOps docs, CURRENT_STATE.md, WORKLOG.md, TASK_LEDGER.md.
 Checks: RED `node --test tests/testops/testops-edge.test.mjs` failed on missing edge protections, then GREEN passed after implementation. `node --test tests/testops/testops-core.test.mjs` passed. `./scripts/testops-unit.sh` passed 17 Node tests. `node --check scripts/testops-core.mjs`, `node --check scripts/testops.mjs`, and `git diff --check` passed.
 Simulator launch: Skipped because this changed local Node TestOps automation and docs only, not iOS app/UI behavior.
 Result: TestOps now has dedicated edge coverage for empty/duplicate/unsafe seed resources, unsafe run ids, service-role credential type mistakes, stronger redaction of modern Supabase keys/JWTs/signed URLs, zero-tag cleanup, and zero-match lifecycle failure messages. `SupabaseREST` rejects non-JWT service-role values during construction so remote execute fails before lifecycle writes, and `./scripts/testops-unit.sh` runs every `tests/testops/*.test.mjs` file.
-Risks: No Supabase schema/RLS/RPC/Storage, migration, seed data, remote write, iOS source, or dependency changed. Existing remote execute still requires a JWT-shaped legacy service-role key until TestOps is explicitly updated for modern `sb_secret_...` `apikey` semantics.
+Risks: No Supabase schema/RLS/RPC/Storage, migration, seed data, remote write, iOS source, or dependency changed during T-143. T-145 later updated TestOps for modern `sb_secret_...` `apikey` semantics.
 Next: Use T-144 for the next new bugfix or iteration task unless the user explicitly names another task ID.
 ```
 

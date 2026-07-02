@@ -12,8 +12,25 @@ export const GROOMER_RESOURCE = path.join(
 );
 export const ARTIFACT_DIR = path.join(PROJECT_ROOT, "artifacts/testops");
 export const DEFAULT_SCENARIO = "marketplace_full_lifecycle";
+export const MATCHING_SCENARIO = "request_matching_eval";
+export const MATCHING_BASELINE_MATRIX = "matching_baseline";
 export const REMOTE_WRITE_ENV = "TESTOPS_REMOTE_WRITE_APPROVED";
 export const SERVICE_ROLE_KEY_ENV = ["SUPABASE", "SERVICE", "ROLE", "KEY"].join("_");
+const SIZE_ORDER = ["XS", "S", "M", "L", "XL", "XXL", "Giant"];
+const LOCATION_MODES = {
+  mobile: ["groomer_comes_to_customer"],
+  studio: ["customer_comes_to_groomer"],
+  both: ["groomer_comes_to_customer", "customer_comes_to_groomer"],
+};
+const WEEKDAYS = new Map([
+  ["Mon", 1],
+  ["Tue", 2],
+  ["Wed", 3],
+  ["Thu", 4],
+  ["Fri", 5],
+  ["Sat", 6],
+  ["Sun", 7],
+]);
 
 export const SMOKE5_CASES = [
   {
@@ -53,6 +70,105 @@ export const SMOKE5_CASES = [
   },
 ];
 
+export const MATCHING_BASELINE_CASES = [
+  {
+    caseID: "TC-MATCH-001",
+    customerSeedID: "GTC-001",
+    targetGroomerSeedID: "GTG-001",
+    purpose: "curly Toy Poodle exact preferred window should reach a curly/full-groom groomer",
+    serviceType: "full_groom",
+    locationMode: "customer_comes_to_groomer",
+    timing: "exact_daytime",
+    preferredWeekdays: [1, 2, 3, 4, 5],
+    targetShouldMatch: true,
+    reasonIncludes: ["Preferred time fits"],
+  },
+  {
+    caseID: "TC-MATCH-002",
+    customerSeedID: "GTC-001",
+    targetGroomerSeedID: "GTG-001",
+    purpose: "curly Toy Poodle late preferred window should still reach same-day-capacity groomer",
+    serviceType: "full_groom",
+    locationMode: "customer_comes_to_groomer",
+    timing: "same_day_late",
+    preferredWeekdays: [1, 2, 3, 4, 5],
+    targetShouldMatch: true,
+    reasonIncludes: ["Can suggest another time on your preferred day"],
+  },
+  {
+    caseID: "TC-MATCH-003",
+    customerSeedID: "GTC-003",
+    targetGroomerSeedID: "GTG-003",
+    purpose: "wire Miniature Schnauzer should reach a wire/terrier studio groomer",
+    serviceType: "full_groom",
+    locationMode: "customer_comes_to_groomer",
+    timing: "exact_daytime",
+    preferredWeekdays: [3, 4, 5, 6, 0],
+    targetShouldMatch: true,
+    reasonIncludes: ["Preferred time fits"],
+  },
+  {
+    caseID: "TC-MATCH-004",
+    customerSeedID: "GTC-016",
+    targetGroomerSeedID: "GTG-006",
+    purpose: "large double-coat German Shepherd should reach a large-dog coat-care groomer",
+    serviceType: "full_groom",
+    locationMode: "customer_comes_to_groomer",
+    timing: "exact_daytime",
+    preferredWeekdays: [1, 2, 3, 4, 5],
+    targetShouldMatch: true,
+    reasonIncludes: ["Preferred time fits"],
+  },
+  {
+    caseID: "TC-MATCH-005",
+    customerSeedID: "GTC-049",
+    targetGroomerSeedID: "GTG-041",
+    purpose: "Orange County Standard Poodle should reach an OC curly/full-groom groomer",
+    serviceType: "full_groom",
+    locationMode: "customer_comes_to_groomer",
+    timing: "exact_daytime",
+    preferredWeekdays: [2, 3, 4, 5, 6],
+    targetShouldMatch: true,
+    reasonIncludes: ["Preferred time fits"],
+  },
+  {
+    caseID: "TC-MATCH-006",
+    customerSeedID: "GTC-002",
+    targetGroomerSeedID: "GTG-002",
+    purpose: "service hard filter should exclude a groomer without full_groom service",
+    serviceType: "full_groom",
+    locationMode: "groomer_comes_to_customer",
+    timing: "exact_daytime",
+    preferredWeekdays: [2, 3, 4, 5, 6],
+    targetShouldMatch: false,
+    excludedBy: "service_type_mismatch",
+  },
+  {
+    caseID: "TC-MATCH-007",
+    customerSeedID: "GTC-001",
+    targetGroomerSeedID: "GTG-005",
+    purpose: "location-mode hard filter should exclude mobile-only groomer for studio request",
+    serviceType: "full_groom",
+    locationMode: "customer_comes_to_groomer",
+    timing: "exact_daytime",
+    preferredWeekdays: [1, 2, 3, 4, 5],
+    targetShouldMatch: false,
+    excludedBy: "location_mode_mismatch",
+  },
+  {
+    caseID: "TC-MATCH-008",
+    customerSeedID: "GTC-001",
+    targetGroomerSeedID: "GTG-001",
+    purpose: "request-day hard filter should exclude a groomer without enabled availability that day",
+    serviceType: "full_groom",
+    locationMode: "customer_comes_to_groomer",
+    timing: "exact_daytime",
+    preferredWeekdays: [0],
+    targetShouldMatch: false,
+    excludedBy: "request_day_unavailable",
+  },
+];
+
 export function parseCustomerProfiles(filePath = CUSTOMER_RESOURCE) {
   const markdown = fs.readFileSync(filePath, "utf8");
   const profiles = markdown
@@ -60,7 +176,7 @@ export function parseCustomerProfiles(filePath = CUSTOMER_RESOURCE) {
     .filter((line) => line.startsWith("| GTC-"))
     .map((line) => {
       const cells = cellsFromRow(line, 7);
-      const [seedID, email, password, nicknameContact, addressValue] = cells;
+      const [seedID, email, password, nicknameContact, addressValue, dogValue, catValue] = cells;
       const [nickname] = nicknameContact.split(" / ").map((value) => value.trim());
       return {
         seedID,
@@ -68,6 +184,7 @@ export function parseCustomerProfiles(filePath = CUSTOMER_RESOURCE) {
         password,
         displayName: nickname,
         address: parseAddress(addressValue),
+        pets: [parsePet(dogValue, "Dog"), parsePet(catValue, "Cat")],
       };
     });
   validateSeedProfiles(profiles, "customer");
@@ -81,10 +198,29 @@ export function parseGroomerProfiles(filePath = GROOMER_RESOURCE) {
     .filter((line) => line.startsWith("| GTG-"))
     .map((line) => {
       const cells = cellsFromRow(line, 12);
-      const [seedID, email, password, displayBusiness, , addressValue] = cells;
+      const [
+        seedID,
+        email,
+        password,
+        displayBusiness,
+        ,
+        addressValue,
+        modesRadius,
+        ,
+        sizeExperience,
+        fitSignals,
+        availability,
+        services,
+      ] = cells;
       const [displayName, businessName] = displayBusiness
         .split(" / ")
         .map((value) => value.trim());
+      const sizeBands = expandSizeExperience(sizeExperience);
+      const fitClaims = uniqueClaims([
+        ...fitSignals.split(";").map((entry) => parseFitSignal(entry.trim())),
+        ...sizeBands.map((size) => ({ traitType: "size_band", traitValue: size })),
+      ]);
+      const availabilityPlan = parseAvailabilitySafe(availability);
       return {
         seedID,
         email,
@@ -92,6 +228,13 @@ export function parseGroomerProfiles(filePath = GROOMER_RESOURCE) {
         displayName,
         businessName,
         address: parseAddress(addressValue),
+        location: parseModesRadius(modesRadius),
+        sizeExperience,
+        sizeBands,
+        fitClaims,
+        availabilityWindows: availabilityPlan.windows,
+        bookingPreferences: availabilityPlan.preferences,
+        services: services.split(";").map((entry) => parseService(entry.trim())),
       };
     });
   validateSeedProfiles(profiles, "groomer");
@@ -135,6 +278,14 @@ export function requiredEnv(name, env = process.env) {
   const value = env[name]?.trim();
   if (!value) {
     throw new Error(`${name} is required.`);
+  }
+  return value;
+}
+
+export function requiredServerCredential(env = process.env) {
+  const value = env[SERVICE_ROLE_KEY_ENV]?.trim() || env.SUPABASE_SECRET_KEY?.trim();
+  if (!value) {
+    throw new Error(`${SERVICE_ROLE_KEY_ENV} or SUPABASE_SECRET_KEY is required.`);
   }
   return value;
 }
@@ -240,6 +391,199 @@ export function makeBackendPlan({
       priceEstimate: 105,
       message: `TESTOPS:${runID} proposed full groom appointment.`,
     },
+  };
+}
+
+export function makeMatchingPlans({
+  scenarioID = MATCHING_SCENARIO,
+  matrix = MATCHING_BASELINE_MATRIX,
+  runID,
+  customerProfiles = parseCustomerProfiles(),
+  groomerProfiles = parseGroomerProfiles(),
+} = {}) {
+  assertSupportedMatchingScenario(scenarioID);
+  if (matrix !== MATCHING_BASELINE_MATRIX) {
+    throw new Error(`Unsupported matching matrix: ${matrix}`);
+  }
+
+  const baseRunID = validateRunID(runID ?? makeRunID());
+  return MATCHING_BASELINE_CASES.map((entry) =>
+    makeMatchingPlan({
+      runID: `${baseRunID}-${entry.caseID}`,
+      scenarioID,
+      entry,
+      customer: requireSeed(customerProfiles, entry.customerSeedID),
+      targetGroomer: requireSeed(groomerProfiles, entry.targetGroomerSeedID),
+    })
+  );
+}
+
+export function makeMatchingPlan({
+  runID,
+  scenarioID = MATCHING_SCENARIO,
+  entry,
+  customer,
+  targetGroomer,
+}) {
+  assertSupportedMatchingScenario(scenarioID);
+  validateRunID(runID);
+  const pet = selectDogPet(customer, entry.petName);
+  const slot = matchingSlot(entry.preferredWeekdays, entry.timing);
+  const travelRadiusMiles =
+    entry.locationMode === "customer_comes_to_groomer" ? 15 : null;
+
+  return {
+    runID,
+    scenarioID,
+    caseID: entry.caseID,
+    purpose: entry.purpose,
+    customer,
+    pet,
+    targetGroomer,
+    request: {
+      serviceType: entry.serviceType,
+      serviceNotes: `TESTOPS:${runID} ${scenarioID} ${entry.caseID} matching evaluation request.`,
+      preferredStart: slot.preferredStart,
+      preferredEnd: slot.preferredEnd,
+      locationMode: entry.locationMode,
+      streetAddress: customer.address.street,
+      city: customer.address.city,
+      state: customer.address.state,
+      zipCode: customer.address.zip,
+      travelRadiusMiles,
+    },
+    timing: {
+      kind: entry.timing,
+      localISOWeekday: slot.localISOWeekday,
+      localStartTime: slot.localStartTime,
+      localEndTime: slot.localEndTime,
+    },
+    expectation: {
+      targetGroomerSeedID: entry.targetGroomerSeedID,
+      targetShouldMatch: entry.targetShouldMatch,
+      minimumMatchCount: entry.targetShouldMatch ? 1 : 0,
+      reasonIncludes: entry.reasonIncludes ?? [],
+      excludedBy: entry.excludedBy ?? null,
+    },
+  };
+}
+
+export function projectMatchingCandidates(plan, groomerProfiles = parseGroomerProfiles()) {
+  const evaluated = groomerProfiles.map((groomer) => evaluateGroomerForPlan(plan, groomer));
+  const candidates = evaluated.filter((entry) => entry.eligible);
+  const excluded = evaluated.filter((entry) => !entry.eligible);
+  const target =
+    evaluated.find((entry) => entry.seedID === plan.expectation.targetGroomerSeedID)
+      ?? {
+        seedID: plan.expectation.targetGroomerSeedID,
+        eligible: false,
+        excludedReasons: ["target_not_found"],
+        overlapTraits: [],
+      };
+
+  return {
+    runID: plan.runID,
+    caseID: plan.caseID,
+    candidateCount: candidates.length,
+    candidates,
+    excluded,
+    target,
+  };
+}
+
+export async function runMatchingEvaluation(api, plan) {
+  const startedAt = new Date().toISOString();
+  const phases = [];
+  const serviceToken = api.requireServiceRole();
+
+  const customerSession = await timed(phases, "customer.signIn", () =>
+    api.signIn(plan.customer.email, plan.customer.password)
+  );
+  const customerID = customerSession.user.id;
+
+  const pets = await timed(phases, "customer.loadPets", () =>
+    api.restSelect(
+      "pets",
+      `select=id,name,species,breed,coat_type,weight_lbs&customer_id=eq.${customerID}&is_active=eq.true&order=created_at.asc`,
+      customerSession.accessToken
+    )
+  );
+  const dog =
+    pets.find((candidate) => candidate.species === "Dog" && candidate.name === plan.pet.name)
+      ?? pets.find((candidate) => candidate.species === "Dog")
+      ?? pets[0];
+  if (!dog) {
+    throw new Error(`No active pet found for ${plan.customer.seedID}.`);
+  }
+
+  const requestRows = await timed(phases, "customer.createRequest", () =>
+    api.rpc(
+      "create_grooming_request",
+      {
+        p_pet_id: dog.id,
+        p_service_type: plan.request.serviceType,
+        p_service_notes: plan.request.serviceNotes,
+        p_preferred_start: plan.request.preferredStart,
+        p_preferred_end: plan.request.preferredEnd,
+        p_location_mode: plan.request.locationMode,
+        p_street_address: plan.request.streetAddress,
+        p_city: plan.request.city,
+        p_state: plan.request.state,
+        p_zip_code: plan.request.zipCode,
+        p_travel_radius_miles: plan.request.travelRadiusMiles,
+      },
+      customerSession.accessToken
+    )
+  );
+  const requestID = firstValue(requestRows, "request_id");
+  const matchCount = Number(firstValue(requestRows, "match_count") ?? 0);
+  if (!requestID) {
+    throw new Error("create_grooming_request did not return request_id.");
+  }
+
+  const groomerSession = await timed(phases, "targetGroomer.signIn", () =>
+    api.signIn(plan.targetGroomer.email, plan.targetGroomer.password)
+  );
+  const targetGroomerID = groomerSession.user.id;
+
+  const matches = await timed(phases, "service.loadRequestMatches", () =>
+    api.restSelect(
+      "request_matches",
+      `select=id,groomer_id,match_score,match_reason,status&request_id=eq.${requestID}&order=match_score.desc`,
+      serviceToken
+    )
+  );
+  const targetMatch =
+    matches.find((match) => match.groomer_id === targetGroomerID) ?? null;
+  const assertions = assertMatchingResult(plan, {
+    requestID,
+    matchCount,
+    targetMatch,
+  });
+
+  return {
+    runID: plan.runID,
+    scenarioID: plan.scenarioID,
+    caseID: plan.caseID,
+    startedAt,
+    finishedAt: new Date().toISOString(),
+    customer: safeActor(plan.customer, customerID),
+    targetGroomer: safeActor(plan.targetGroomer, targetGroomerID),
+    pet: {
+      name: plan.pet.name,
+      breed: plan.pet.breed,
+      coatType: plan.pet.coatType,
+      size: plan.pet.size,
+    },
+    ids: { requestID },
+    matchCount,
+    target: {
+      matched: Boolean(targetMatch),
+      matchScore: targetMatch?.match_score ?? null,
+      matchReason: targetMatch?.match_reason ?? null,
+    },
+    assertions,
+    phases,
   };
 }
 
@@ -503,16 +847,17 @@ export class SupabaseREST {
     this.url = url.replace(/\/$/, "");
     this.publishableKey = publishableKey;
     this.serviceRoleKey = serviceRoleKey;
-    if (serviceRoleKey && !isLegacyJWTKey(serviceRoleKey)) {
+    this.serviceCredentialKind = serviceCredentialKind(serviceRoleKey);
+    if (serviceRoleKey && this.serviceCredentialKind === "unsupported") {
       throw new Error(
-        `${SERVICE_ROLE_KEY_ENV} must be a JWT-shaped legacy service-role key; ` +
-          "modern project secret or publishable keys are not supported here."
+        `${SERVICE_ROLE_KEY_ENV} must be a JWT-shaped legacy service-role key ` +
+          "or a modern sb_secret service credential; public keys are not supported here."
       );
     }
   }
 
   async signIn(email, password) {
-    return this.request(
+    const payload = await this.request(
       "/auth/v1/token?grant_type=password",
       {
         method: "POST",
@@ -521,6 +866,10 @@ export class SupabaseREST {
       },
       "auth"
     );
+    return {
+      ...payload,
+      accessToken: payload?.accessToken ?? payload?.access_token,
+    };
   }
 
   async rpc(name, params, accessToken) {
@@ -562,25 +911,30 @@ export class SupabaseREST {
     if (!this.serviceRoleKey) {
       throw new Error(`${SERVICE_ROLE_KEY_ENV} is required.`);
     }
-    if (!isLegacyJWTKey(this.serviceRoleKey)) {
+    if (this.serviceCredentialKind === "unsupported") {
       throw new Error(
-        `${SERVICE_ROLE_KEY_ENV} must be a JWT-shaped legacy service-role key; ` +
-          "modern project secret or publishable keys are not supported here."
+        `${SERVICE_ROLE_KEY_ENV} must be a JWT-shaped legacy service-role key ` +
+          "or a modern sb_secret service credential; public keys are not supported here."
       );
     }
     return this.serviceRoleKey;
   }
 
   headers(accessToken, extra = {}) {
-    return {
+    const isServiceCredential =
+      accessToken === this.serviceRoleKey && this.serviceCredentialKind !== "none";
+    const headers = {
       apikey:
-        accessToken === this.serviceRoleKey
+        isServiceCredential
           ? this.serviceRoleKey
           : this.publishableKey,
-      Authorization: `Bearer ${accessToken}`,
       "Content-Type": "application/json",
       ...extra,
     };
+    if (!(isServiceCredential && this.serviceCredentialKind === "modern-secret")) {
+      headers.Authorization = `Bearer ${accessToken}`;
+    }
+    return headers;
   }
 
   async request(resourcePath, init, kind) {
@@ -618,6 +972,38 @@ export function redactedPlan(plan) {
   };
 }
 
+export function redactedMatchingPlan(plan) {
+  const projection = projectMatchingCandidates(plan);
+  return {
+    runID: plan.runID,
+    scenarioID: plan.scenarioID,
+    caseID: plan.caseID,
+    purpose: plan.purpose,
+    customer: {
+      seedID: plan.customer.seedID,
+      emailDomain: emailDomain(plan.customer.email),
+    },
+    pet: {
+      name: plan.pet.name,
+      species: plan.pet.species,
+      breed: plan.pet.breed,
+      coatType: plan.pet.coatType,
+      size: plan.pet.size,
+    },
+    targetGroomer: {
+      seedID: plan.targetGroomer.seedID,
+      emailDomain: emailDomain(plan.targetGroomer.email),
+    },
+    request: plan.request,
+    timing: plan.timing,
+    expectation: plan.expectation,
+    localProjection: {
+      candidateCount: projection.candidateCount,
+      target: projection.target,
+    },
+  };
+}
+
 export function redactedResult(result) {
   return {
     ...result,
@@ -632,6 +1018,15 @@ export function writeArtifacts(result, artifactDir = ARTIFACT_DIR) {
   const markdownPath = path.join(artifactDir, `${result.runID}.md`);
   fs.writeFileSync(jsonPath, `${JSON.stringify(result, null, 2)}\n`);
   fs.writeFileSync(markdownPath, renderReport(result));
+  return { jsonPath, markdownPath };
+}
+
+export function writeMatchingArtifacts(result, artifactDir = ARTIFACT_DIR) {
+  fs.mkdirSync(artifactDir, { recursive: true });
+  const jsonPath = path.join(artifactDir, `${result.runID}.json`);
+  const markdownPath = path.join(artifactDir, `${result.runID}.md`);
+  fs.writeFileSync(jsonPath, `${JSON.stringify(result, null, 2)}\n`);
+  fs.writeFileSync(markdownPath, renderMatchingReport(result));
   return { jsonPath, markdownPath };
 }
 
@@ -662,6 +1057,46 @@ export function renderReport(result) {
 \`\`\`json
 ${JSON.stringify(result.verification, null, 2)}
 \`\`\`
+
+## Phases
+
+| Phase | Status | Duration ms | Error |
+|---|---:|---:|---|
+${phaseRows}
+`;
+}
+
+export function renderMatchingReport(result) {
+  const phaseRows = result.phases
+    .map((phase) =>
+      `| ${phase.phase} | ${phase.status} | ${phase.durationMs} | ${safeErrorMessage(phase.error ?? "")} |`
+    )
+    .join("\n");
+  return `# TestOps Matching Run ${result.runID}
+
+| Field | Value |
+|---|---|
+| Scenario | ${result.scenarioID} |
+| Case | ${result.caseID ?? ""} |
+| Started | ${result.startedAt} |
+| Finished | ${result.finishedAt} |
+| Customer | ${result.customer.seedID} / ${result.customer.userRef} |
+| Target Groomer | ${result.targetGroomer.seedID} / ${result.targetGroomer.userRef} |
+| Pet | ${result.pet?.name ?? ""} / ${result.pet?.breed ?? ""} / ${result.pet?.coatType ?? ""} / ${result.pet?.size ?? ""} |
+| Request | ${shortRef(result.ids.requestID)} |
+| Match count | ${result.matchCount} |
+| Target matched | ${result.target.matched ? "yes" : "no"} |
+| Target score | ${result.target.matchScore ?? ""} |
+
+## Assertions
+
+\`\`\`json
+${JSON.stringify(result.assertions, null, 2)}
+\`\`\`
+
+## Target Reason
+
+${safeErrorMessage(result.target.matchReason ?? "")}
 
 ## Phases
 
@@ -755,10 +1190,156 @@ function nextWeekdaySlot(weekdays) {
   };
 }
 
+function matchingSlot(weekdays, kind) {
+  const allowed = new Set(weekdays);
+  const date = new Date();
+  date.setUTCDate(date.getUTCDate() + 4);
+  while (!allowed.has(date.getUTCDay())) {
+    date.setUTCDate(date.getUTCDate() + 1);
+  }
+
+  const year = date.getUTCFullYear();
+  const month = date.getUTCMonth();
+  const day = date.getUTCDate();
+  const localISOWeekday = date.getUTCDay() === 0 ? 7 : date.getUTCDay();
+  if (kind === "same_day_late") {
+    return {
+      preferredStart: new Date(Date.UTC(year, month, day, 23, 0, 0)).toISOString(),
+      preferredEnd: new Date(Date.UTC(year, month, day + 1, 2, 0, 0)).toISOString(),
+      localISOWeekday,
+      localStartTime: "16:00",
+      localEndTime: "19:00",
+    };
+  }
+  if (kind !== "exact_daytime") {
+    throw new Error(`Unsupported matching timing: ${kind}`);
+  }
+  return {
+    preferredStart: new Date(Date.UTC(year, month, day, 17, 0, 0)).toISOString(),
+    preferredEnd: new Date(Date.UTC(year, month, day, 19, 0, 0)).toISOString(),
+    localISOWeekday,
+    localStartTime: "10:00",
+    localEndTime: "12:00",
+  };
+}
+
 function assertSupportedScenario(scenarioID) {
   if (scenarioID !== DEFAULT_SCENARIO) {
     throw new Error(`Unsupported scenario: ${scenarioID}`);
   }
+}
+
+function assertSupportedMatchingScenario(scenarioID) {
+  if (scenarioID !== MATCHING_SCENARIO) {
+    throw new Error(`Unsupported matching scenario: ${scenarioID}`);
+  }
+}
+
+function assertMatchingResult(plan, { requestID, matchCount, targetMatch }) {
+  const assertions = {};
+  if (matchCount < plan.expectation.minimumMatchCount) {
+    throw new Error(
+      `Request ${shortRef(requestID)} produced ${matchCount} matches; expected at least ${plan.expectation.minimumMatchCount}.`
+    );
+  }
+  assertions.matchCount = "passed";
+
+  if (plan.expectation.targetShouldMatch && !targetMatch) {
+    throw new Error(
+      `Expected ${plan.expectation.targetGroomerSeedID} to receive request ${shortRef(requestID)}.`
+    );
+  }
+  if (!plan.expectation.targetShouldMatch && targetMatch) {
+    throw new Error(
+      `Expected ${plan.expectation.targetGroomerSeedID} to be excluded from request ${shortRef(requestID)}.`
+    );
+  }
+  assertions.targetMatch = "passed";
+
+  const reason = String(targetMatch?.match_reason ?? "");
+  for (const required of plan.expectation.reasonIncludes) {
+    if (!reason.includes(required)) {
+      throw new Error(
+        `Expected ${plan.expectation.targetGroomerSeedID} match reason to include "${required}".`
+      );
+    }
+  }
+  assertions.reason = "passed";
+  return assertions;
+}
+
+function evaluateGroomerForPlan(plan, groomer) {
+  const excludedReasons = [];
+  if (!groomer.location?.modes?.includes(plan.request.locationMode)) {
+    excludedReasons.push("location_mode_mismatch");
+  }
+  if (
+    groomer.address?.state !== plan.request.state
+      && groomer.address?.city?.toLowerCase() !== plan.request.city.toLowerCase()
+  ) {
+    excludedReasons.push("location_mismatch");
+  }
+  if (!groomer.services?.some((service) => service.serviceType === plan.request.serviceType)) {
+    excludedReasons.push("service_type_mismatch");
+  }
+  if (
+    !groomer.availabilityWindows?.some(
+      (window) => window.isEnabled && window.weekday === plan.timing.localISOWeekday
+    )
+  ) {
+    excludedReasons.push("request_day_unavailable");
+  }
+
+  const requestTraits = traitsForMatchingPet(plan.pet, plan.request.serviceType);
+  const groomerClaims = new Set(
+    (groomer.fitClaims ?? []).map((claim) => `${claim.traitType}:${claim.traitValue}`)
+  );
+  const overlapTraits = requestTraits.filter((trait) =>
+    groomerClaims.has(`${trait.traitType}:${trait.traitValue}`)
+  );
+
+  return {
+    seedID: groomer.seedID,
+    eligible: excludedReasons.length === 0,
+    excludedReasons,
+    overlapTraits,
+  };
+}
+
+function traitsForMatchingPet(pet, serviceType) {
+  const traits = [
+    { traitType: "coat_type", traitValue: pet.coatType },
+    { traitType: "size_band", traitValue: pet.size },
+  ];
+  const serviceTrait = serviceFitTrait(serviceType);
+  if (serviceTrait) {
+    traits.push({ traitType: "service_fit", traitValue: serviceTrait });
+  }
+  return uniqueClaims(traits);
+}
+
+function serviceFitTrait(serviceType) {
+  switch (serviceType) {
+    case "full_groom":
+    case "haircut_only":
+      return "full_haircut_styling";
+    case "de_shedding":
+      return "de_shedding_treatment";
+    case "nail_trim":
+      return "nail_paw_care";
+    default:
+      return null;
+  }
+}
+
+function selectDogPet(customer, petName) {
+  const dog =
+    customer.pets?.find((pet) => pet.species === "Dog" && (!petName || pet.name === petName))
+      ?? customer.pets?.find((pet) => pet.species === "Dog");
+  if (!dog) {
+    throw new Error(`No dog pet found for ${customer.seedID}.`);
+  }
+  return dog;
 }
 
 function validateSeedProfiles(profiles, kind) {
@@ -814,6 +1395,19 @@ function isLegacyJWTKey(value) {
   return /^eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(value);
 }
 
+function serviceCredentialKind(value) {
+  if (!value) {
+    return "none";
+  }
+  if (isLegacyJWTKey(value)) {
+    return "legacy-jwt";
+  }
+  if (/^sb_secret_[A-Za-z0-9._+=/-]+$/.test(value)) {
+    return "modern-secret";
+  }
+  return "unsupported";
+}
+
 function cellsFromRow(line, expectedCount) {
   const cells = line
     .split("|")
@@ -838,12 +1432,189 @@ function parseAddress(value) {
   };
 }
 
+function parsePet(value, species) {
+  const parts = value.split(";").map((part) => part.trim());
+  if (parts.length !== 7) {
+    return partialPet(parts, species);
+  }
+  const [name, breed, coatType, weightValue, birthday, temperament, notesValue] = parts;
+  const weightMatch = weightValue.match(/^(\d+(?:\.\d+)?)\s*lb$/);
+  const notesMatch = notesValue.match(/^notes:\s*(.+)$/i);
+  if (!weightMatch || !notesMatch) {
+    throw new Error(`Invalid pet details.`);
+  }
+  const weightLbs = Number.parseFloat(weightMatch[1]);
+  return {
+    name,
+    species,
+    breed,
+    coatType,
+    weightLbs,
+    birthday,
+    temperament,
+    groomingNotes: notesMatch[1],
+    size: sizeCodeForWeight(weightLbs),
+  };
+}
+
+function partialPet(parts, species) {
+  return {
+    name: parts[0] || `${species} pet`,
+    species,
+    breed: parts[1] || "Unspecified",
+    coatType: "not_sure",
+    weightLbs: null,
+    birthday: null,
+    temperament: "Not Sure",
+    groomingNotes: "",
+    size: "M",
+  };
+}
+
+function sizeCodeForWeight(weightLbs) {
+  if (weightLbs < 10) {
+    return "XS";
+  }
+  if (weightLbs < 20) {
+    return "S";
+  }
+  if (weightLbs < 40) {
+    return "M";
+  }
+  if (weightLbs < 60) {
+    return "L";
+  }
+  if (weightLbs < 80) {
+    return "XL";
+  }
+  if (weightLbs <= 100) {
+    return "XXL";
+  }
+  return "Giant";
+}
+
+function parseModesRadius(value) {
+  const match = value.match(/^(mobile|studio|both)\s*\/\s*(\d+)\s*mi$/);
+  if (!match) {
+    throw new Error(`Invalid modes/radius value.`);
+  }
+  return {
+    modes: LOCATION_MODES[match[1]],
+    radiusMiles: Number.parseInt(match[2], 10),
+  };
+}
+
+function parseAvailabilitySafe(value) {
+  try {
+    return parseAvailability(value);
+  } catch {
+    return {
+      windows: [],
+      preferences: {
+        maxAppointmentsPerDay: null,
+        minimumAdvanceNoticeDays: null,
+      },
+    };
+  }
+}
+
+function parseAvailability(value) {
+  const [windowPart, maxPart, advancePart] = value.split(";").map((part) => part.trim());
+  const maxMatch = maxPart?.match(/^max\/day\s+(\d+)$/);
+  const advanceMatch = advancePart?.match(/^advance\s+(\d+)d$/);
+  if (!maxMatch || !advanceMatch) {
+    throw new Error(`Invalid availability preferences.`);
+  }
+
+  return {
+    windows: windowPart.split(",").flatMap((part) => parseAvailabilityWindow(part.trim())),
+    preferences: {
+      maxAppointmentsPerDay: Number.parseInt(maxMatch[1], 10),
+      minimumAdvanceNoticeDays: Number.parseInt(advanceMatch[1], 10),
+    },
+  };
+}
+
+function parseAvailabilityWindow(value) {
+  const match = value.match(/^([A-Za-z]{3})(?:-([A-Za-z]{3}))?\s+(\d{2}:\d{2})-(\d{2}:\d{2})$/);
+  if (!match) {
+    throw new Error(`Invalid availability window.`);
+  }
+  const startDay = weekdayNumber(match[1]);
+  const endDay = match[2] ? weekdayNumber(match[2]) : startDay;
+  if (endDay < startDay) {
+    throw new Error(`Availability ranges must not wrap weeks.`);
+  }
+  return range(startDay, endDay).map((weekday) => ({
+    weekday,
+    startTime: match[3],
+    endTime: match[4],
+    isEnabled: true,
+    timezone: "America/Los_Angeles",
+  }));
+}
+
+function weekdayNumber(value) {
+  const weekday = WEEKDAYS.get(value);
+  if (!weekday) {
+    throw new Error(`Unknown weekday.`);
+  }
+  return weekday;
+}
+
+function parseFitSignal(value) {
+  const [traitType, traitValue] = value.split(":").map((part) => part.trim());
+  if (!traitType || !traitValue) {
+    throw new Error(`Invalid fit signal.`);
+  }
+  return { traitType, traitValue };
+}
+
+function expandSizeExperience(value) {
+  const [start, end] = value.split("-");
+  const startIndex = SIZE_ORDER.indexOf(start);
+  const endIndex = SIZE_ORDER.indexOf(end);
+  if (startIndex === -1 || endIndex === -1 || endIndex < startIndex) {
+    throw new Error(`Invalid size experience.`);
+  }
+  return SIZE_ORDER.slice(startIndex, endIndex + 1);
+}
+
+function uniqueClaims(claims) {
+  const seen = new Set();
+  return claims.filter((claim) => {
+    const key = `${claim.traitType}:${claim.traitValue}`;
+    if (seen.has(key)) {
+      return false;
+    }
+    seen.add(key);
+    return true;
+  });
+}
+
+function parseService(value) {
+  const match = value.match(/^([a-z_]+)\s+\$(\d+)\/(\d+)m$/);
+  if (!match) {
+    throw new Error(`Invalid service value.`);
+  }
+  return {
+    serviceType: match[1],
+    basePrice: Number.parseInt(match[2], 10),
+    durationMinutes: Number.parseInt(match[3], 10),
+    isActive: true,
+  };
+}
+
 function requireSeed(profiles, seedID) {
   const profile = profiles.find((candidate) => candidate.seedID === seedID);
   if (!profile) {
     throw new Error(`Could not find seed ${seedID}.`);
   }
   return profile;
+}
+
+function range(start, end) {
+  return Array.from({ length: end - start + 1 }, (_, index) => start + index);
 }
 
 function firstValue(rows, key) {
