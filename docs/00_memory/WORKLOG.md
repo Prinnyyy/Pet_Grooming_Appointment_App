@@ -6,6 +6,16 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-06
+Task: T-154 - Request expiry conversion.
+Files changed: `20260706211524_t154_request_expiry_conversion.sql`, migration tests, memory docs.
+Checks: RED/GREEN `node --test tests/migrations/request-expiry.test.mjs`; `node --test tests/migrations/*.test.mjs`; pre-apply `supabase migration list --linked` and `supabase db push --linked --dry-run`; authorized `supabase db push --linked`; post-apply migration list/dry-run; function metadata/execute-privilege SQL; cron/pg_cron SQL; rollback-contained expiry conversion SQL; residue/stale-request SQL; `supabase db lint --linked --fail-on none`; `supabase db advisors --linked --type all --level warn --fail-on none`; `git diff --check`; `./scripts/ios-build.sh`; `./scripts/ios-test.sh`.
+Result: T-154 applied `20260706211524_t154_request_expiry_conversion.sql` to project `lqmasbuqzvcvtawonjlb`. It adds private `app_private.expire_grooming_requests(integer)` batch processing, moves stale `open`/`has_offers` requests to `expired`, expires linked pending offers and active/offered matches, grants execute only to `service_role`, installs `pg_cron`, and schedules `groomly_expire_grooming_requests` every 5 minutes. Existing Swift expired-state filtering/presentation was validated through the full iOS test entrypoint.
+Risks: Rollback SQL verified conversion behavior with zero residue, and there are currently zero stale open/has-offers requests. Advisors did not flag the private T-154 function. Baseline advisors still report pre-existing authenticated SECURITY DEFINER RPC warnings and Auth leaked-password protection.
+Next: Use T-155 unless the user names another task ID.
+```
+
+```text
+Date: 2026-07-06
 Task: T-153 - Customer in-app notification center.
 Files changed: `customer_notifications` migration, customer notification model/repository/store/view, Customer Home bell navigation, debug repository wrapper, Swift/SQL tests, screen/feature/memory docs.
 Checks: RED SQL migration test and RED Swift store compile test; `node --test tests/migrations/customer-notifications.test.mjs`; `supabase migration list --linked`; `supabase db push --linked --dry-run`; authorized `supabase db push --linked`; post-apply migration list/dry-run; rollback SQL metadata/RLS/RPC/event-trigger checks; security/performance advisors; XcodeBuildMCP Customer Home bell/list目检; `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; `git diff --check`; `node scripts/context-hygiene-check.mjs`.

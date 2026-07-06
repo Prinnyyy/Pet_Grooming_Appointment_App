@@ -6,8 +6,8 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-06
 - Updated by: Codex
-- Latest completed task: T-153 Customer in-app notification center.
-- Next task ID: T-154, unless the user explicitly names another task ID or branch.
+- Latest completed task: T-154 Request expiry conversion.
+- Next task ID: T-155, unless the user explicitly names another task ID or branch.
 
 ## Fast Path
 
@@ -33,10 +33,10 @@ Key frozen archive families: current-state snapshots, worklogs, task ledgers, ba
 
 ## Validation Baseline
 
-- Last iOS build: `./scripts/ios-build.sh` passed on 2026-07-06 during T-153 local implementation.
-- Last full iOS test: `./scripts/ios-test.sh` passed on 2026-07-06 during T-153 local implementation.
-- Last Supabase migration apply: authorized `supabase db push --linked` applied `20260706203710_t153_customer_notifications.sql` to project `lqmasbuqzvcvtawonjlb` on 2026-07-06.
-- Last Supabase live validation: T-153 post-apply migration list/dry-run, rollback metadata/RLS/RPC/event-trigger SQL checks, security/performance advisors, and XcodeBuildMCP Customer Home bell/list目检 passed on 2026-07-06.
+- Last iOS build: `./scripts/ios-build.sh` passed on 2026-07-06 during T-154 local implementation.
+- Last full iOS test: `./scripts/ios-test.sh` passed on 2026-07-06 during T-154 local implementation.
+- Last Supabase migration apply: authorized `supabase db push --linked` applied `20260706211524_t154_request_expiry_conversion.sql` to project `lqmasbuqzvcvtawonjlb` on 2026-07-06.
+- Last Supabase live post-apply validation: T-154 migration list/dry-run, function metadata/execute-privilege SQL, cron/pg_cron SQL, rollback-contained expiry conversion SQL, residue/stale-request SQL, lint, and advisors passed on 2026-07-06.
 - Last TestOps unit validation: T-145 `./scripts/testops-unit.sh` passed 24 Node tests.
 - Last remote TestOps run: T-145 authorized `matching_baseline` passed 8/8 and cleanup left zero tagged request residue.
 - Last docs/workflow validation: T-153 `git diff --check` and `node scripts/context-hygiene-check.mjs` passed before closeout.
@@ -74,8 +74,9 @@ Key frozen archive families: current-state snapshots, worklogs, task ledgers, ba
 - T-129 seed profile Markdown files are machine-readable parser inputs and excluded from default search. Do not reformat or archive them without updating scripts/tests.
 - Deferred features remain out of scope unless explicitly requested: public directory, direct booking, payments, realtime chat, attachments, push notifications/APNs, maps/calendar integrations, moderation/disputes, and admin tooling.
 - Large Swift context risks remain `CustomerRequestsView.swift` and `GroomerProfileManagementView.swift`; split only in a dedicated Standard refactor task.
-- Security advisor still reports pre-existing public authenticated `SECURITY DEFINER` RPC warnings and Auth leaked-password protection. T-153 mark-read RPCs are security invoker and were not flagged.
+- T-154 installed `pg_cron` 1.6.4 and scheduled `groomly_expire_grooming_requests` every 5 minutes to call `app_private.expire_grooming_requests(250)`.
+- Security advisor still reports pre-existing public authenticated `SECURITY DEFINER` RPC warnings and Auth leaked-password protection. T-153 mark-read RPCs are security invoker and were not flagged; T-154 private `app_private` function was not flagged and is executable by `service_role` only.
 
 ## Next Recommended Task
 
-- Use T-154 for request expiry conversion unless the user names another task.
+- Use T-155 for backfill matching unless the user names another task.
