@@ -7,6 +7,7 @@ nonisolated enum GroomerTab: CaseIterable, Identifiable, Equatable {
 
     static let visibleCases: [Self] = [
         .requests,
+        .offers,
         .bookings,
         .messages,
         .account,

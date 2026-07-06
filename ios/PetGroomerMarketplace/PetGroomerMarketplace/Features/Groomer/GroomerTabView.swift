@@ -81,6 +81,13 @@ struct GroomerTabView: View {
                 repository: requestRepository,
                 debugRecorder: debugRecorder
             )
+        } else if tab == .offers,
+                  let groomerID,
+                  let requestRepository {
+            GroomerOffersView(
+                groomerID: groomerID,
+                repository: requestRepository
+            )
         } else if tab == .bookings,
                   let groomerID,
                   let bookingRepository {
@@ -116,7 +123,7 @@ struct GroomerTabView: View {
         } else {
             FeaturePlaceholderView(
                 title: tab.title,
-                message: "Groomer \(tab.title.lowercased()) is not connected yet.",
+                message: "Sign in with a groomer account to load this area.",
                 systemImage: tab.systemImage,
                 accent: .groomer
             )

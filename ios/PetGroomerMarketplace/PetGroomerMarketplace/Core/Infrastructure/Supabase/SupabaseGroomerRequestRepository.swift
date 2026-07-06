@@ -16,6 +16,11 @@ final class SupabaseGroomerRequestRepository: GroomerRequestRepository {
         id,request_id,match_id,customer_id,groomer_id,proposed_start,proposed_end,\
         price_estimate,message,status,expires_at,withdrawn_at,created_at,updated_at
         """
+    private static let bookingColumns = """
+        id,request_id,offer_id,customer_id,groomer_id,scheduled_start,scheduled_end,\
+        price_estimate,status,cancelled_by,cancelled_at,completed_at,completed_by,\
+        created_at,updated_at
+        """
     private static let requestPhotoColumns =
         "id,request_id,customer_id,storage_bucket,storage_path,caption,sort_order,created_at"
     private static let requestPhotoBucketID = PhotoStorageBucketID.groomingRequest.rawValue
@@ -84,6 +89,38 @@ final class SupabaseGroomerRequestRepository: GroomerRequestRepository {
                     match: row.match,
                     request: request,
                     offer: latestOffersByRequestID[row.requestID]
+                )
+            }
+        } catch {
+            throw Self.map(error)
+        }
+    }
+
+    func offers(groomerID: UUID) async throws -> [GroomerOfferListItem] {
+        do {
+            let offerRows: [GroomerOfferRow] = try await client
+                .from("groomer_offers")
+                .select(Self.offerColumns)
+                .eq("groomer_id", value: groomerID.uuidString.lowercased())
+                .order("created_at", ascending: false)
+                .execute()
+                .value
+
+            guard !offerRows.isEmpty else { return [] }
+
+            let requestsByID = await visibleRequestsByID(
+                requestIDs: offerRows.map(\.requestID)
+            )
+            let bookingsByOfferID = await visibleBookingsByOfferID(
+                groomerID: groomerID,
+                offerIDs: offerRows.map(\.id)
+            )
+
+            return offerRows.map { row in
+                GroomerOfferListItem(
+                    offer: row.offer,
+                    request: requestsByID[row.requestID],
+                    booking: bookingsByOfferID[row.id]
                 )
             }
         } catch {
@@ -260,6 +297,52 @@ final class SupabaseGroomerRequestRepository: GroomerRequestRepository {
         return .unavailable
     }
 
+    private func visibleRequestsByID(
+        requestIDs: [UUID]
+    ) async -> [UUID: GroomerMatchedGroomingRequest] {
+        let ids = Self.uniqueLowercaseStrings(from: requestIDs)
+        guard !ids.isEmpty else { return [:] }
+
+        do {
+            let rows: [GroomerMatchedGroomingRequestRow] = try await client
+                .from("grooming_requests")
+                .select(Self.requestColumns)
+                .in("id", values: ids)
+                .execute()
+                .value
+
+            return Dictionary(
+                uniqueKeysWithValues: rows.map { ($0.id, $0.request) }
+            )
+        } catch {
+            return [:]
+        }
+    }
+
+    private func visibleBookingsByOfferID(
+        groomerID: UUID,
+        offerIDs: [UUID]
+    ) async -> [UUID: Booking] {
+        let ids = Self.uniqueLowercaseStrings(from: offerIDs)
+        guard !ids.isEmpty else { return [:] }
+
+        do {
+            let rows: [GroomerOfferBookingRow] = try await client
+                .from("bookings")
+                .select(Self.bookingColumns)
+                .eq("groomer_id", value: groomerID.uuidString.lowercased())
+                .in("offer_id", values: ids)
+                .execute()
+                .value
+
+            return Dictionary(
+                uniqueKeysWithValues: rows.map { ($0.offerID, $0.booking) }
+            )
+        } catch {
+            return [:]
+        }
+    }
+
     private static func uniqueLowercaseStrings(from ids: [UUID]) -> [String] {
         Array(Set(ids)).map { $0.uuidString.lowercased() }
     }
@@ -348,6 +431,63 @@ private struct GroomerOfferRow: Decodable {
         case status
         case expiresAt = "expires_at"
         case withdrawnAt = "withdrawn_at"
+        case createdAt = "created_at"
+        case updatedAt = "updated_at"
+    }
+}
+
+private struct GroomerOfferBookingRow: Decodable {
+    let id: UUID
+    let requestID: UUID
+    let offerID: UUID
+    let customerID: UUID
+    let groomerID: UUID
+    let scheduledStart: String
+    let scheduledEnd: String
+    let priceEstimate: Double
+    let status: BookingStatus
+    let cancelledBy: UUID?
+    let cancelledAt: String?
+    let completedAt: String?
+    let completedBy: UUID?
+    let createdAt: String
+    let updatedAt: String
+
+    var booking: Booking {
+        Booking(
+            id: id,
+            requestID: requestID,
+            offerID: offerID,
+            customerID: customerID,
+            groomerID: groomerID,
+            scheduledStart: scheduledStart,
+            scheduledEnd: scheduledEnd,
+            priceEstimate: priceEstimate,
+            status: status,
+            cancelledBy: cancelledBy,
+            cancelledAt: cancelledAt,
+            completedAt: completedAt,
+            completedBy: completedBy,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            review: nil
+        )
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case requestID = "request_id"
+        case offerID = "offer_id"
+        case customerID = "customer_id"
+        case groomerID = "groomer_id"
+        case scheduledStart = "scheduled_start"
+        case scheduledEnd = "scheduled_end"
+        case priceEstimate = "price_estimate"
+        case status
+        case cancelledBy = "cancelled_by"
+        case cancelledAt = "cancelled_at"
+        case completedAt = "completed_at"
+        case completedBy = "completed_by"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
     }

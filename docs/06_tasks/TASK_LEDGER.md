@@ -2,7 +2,7 @@
 
 Track only current, blocked, and recent tasks here so Codex does not continue automatically. Detailed completed rows T-000 through T-127 are archived at `docs/09_frozen/task_ledgers/TASK_LEDGER_T-000_TO_T-127_2026-07-01.md`; T-128 through T-132 are archived at `docs/09_frozen/task_ledgers/TASK_LEDGER_T-128_TO_T-132_2026-07-02.md`; T-133 through T-136 are archived at `docs/09_frozen/task_ledgers/TASK_LEDGER_T-133_TO_T-136_2026-07-06.md`. Detailed standalone task records T-001 through T-088 and workflow task records remain archived under `docs/09_frozen/task_records_2026-06-26/`.
 
-Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup` and assign new bugfix/iteration work to `T-152` unless the user explicitly names another branch or task ID.
+Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup` and assign new bugfix/iteration work to `T-153` unless the user explicitly names another branch or task ID.
 
 Active blocked task: none.
 
@@ -10,6 +10,7 @@ Active blocked task: none.
 
 | ID | Task | Status | Mode | Files/Docs | Checks | Notes |
 |---|---|---|---|---|---|---|
+| T-152 | Groomer Offers tab | completed | Standard | Groomer tab routing, `GroomerOffersView`, `GroomerOffersStore`, groomer offer list models/repository adapter, `SCREEN_INVENTORY`, memory docs | RED compile test for missing offers surface; `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; XcodeBuildMCP iPhone 17 Offers-tab目检; `git diff --check`; `node scripts/context-hygiene-check.mjs` | Restores `.offers` to visible groomer tabs, replaces the unreachable Offers fallback with a real submitted-offer list grouped by status, and preserves offer creation/withdrawal inside Board/request detail. No Supabase schema/RLS/RPC/Storage, migration, dependency, seed, commit, push, or remote write changed. |
 | T-151 | Recheck active Markdown baseline and harden AGENTS rules | completed | Quick | `AGENTS.md`, memory docs, task/worklog rolling archives, project-structure log | `git diff --check`; `node scripts/context-hygiene-check.mjs`; active stale-reference searches | Confirms active docs now use the T-151/T-152 baseline, adds non-canonical external-report and link-update guardrails, and rolls older active memory rows to frozen archives. No iOS/Supabase/runtime behavior changed. |
 | T-150 | Restore correct task baseline and archive external audit drafts | completed | Quick | root external reports, frozen external-agent archive, ignore/search rules, memory docs | `git diff --check`; `node scripts/context-hygiene-check.mjs` | Confirms `codex/pet-fit-structure-cleanup` is the active baseline after T-149, moves the two non-canonical external reports out of root context, and keeps future root copies ignored. No iOS/Supabase/runtime behavior changed. |
 | T-149 | Active design document slimming | completed | Quick | `DESIGN_SYSTEM.md`, `UI_IMPLEMENTATION_NOTES.md`, frozen design-note archives, context hygiene budgets, docs indexes, memory docs | `git diff --check`; `node scripts/context-hygiene-check.mjs`; archive/reference checks | Archives full pre-slim design-system and Groomly UI audit text under `docs/09_frozen/design_notes/`, rewrites active design entrypoints as short current-rule/index files, and adds design-doc word budgets to context hygiene. No iOS/Supabase/runtime behavior changed. |

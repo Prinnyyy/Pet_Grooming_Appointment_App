@@ -72,6 +72,69 @@ struct GroomerMatchFitPresentation:
     }
 }
 
+struct GroomerOfferListItem:
+    Equatable,
+    Hashable,
+    Identifiable,
+    Sendable
+{
+    let offer: GroomerOffer
+    let request: GroomerMatchedGroomingRequest?
+    let booking: Booking?
+
+    var id: UUID {
+        offer.id
+    }
+
+    var title: String {
+        if let request {
+            return "\(request.serviceType.title) for \(request.petSnapshot.name)"
+        }
+
+        if let booking,
+           let serviceType = booking.serviceType,
+           let petSnapshot = booking.requestPetSnapshot {
+            return "\(serviceType.title) for \(petSnapshot.name)"
+        }
+
+        return "Offer \(offer.referenceCode)"
+    }
+
+    var subtitle: String {
+        if let request {
+            return "\(request.city), \(request.state) \(request.zipCode)"
+        }
+
+        if let booking {
+            return booking.appointmentAddressSummary
+        }
+
+        return "Request \(offer.requestReferenceCode)"
+    }
+
+    var timeSummary: String {
+        "\(GroomingRequestDateFormatting.displayString(from: offer.proposedStart)) – \(GroomingRequestDateFormatting.displayString(from: offer.proposedEnd))"
+    }
+
+    var createdAtDate: Date {
+        GroomingRequestDateFormatting.parsedDate(from: offer.createdAt ?? "")
+            ?? .distantPast
+    }
+}
+
+struct GroomerOfferListSection:
+    Equatable,
+    Identifiable,
+    Sendable
+{
+    let status: GroomerOfferStatus
+    let offers: [GroomerOfferListItem]
+
+    var id: GroomerOfferStatus {
+        status
+    }
+}
+
 nonisolated enum MatchFitEvidenceReasonFormatter {
     private struct Marker {
         let range: Range<String.Index>
@@ -303,6 +366,14 @@ struct GroomerOffer: Equatable, Hashable, Identifiable, Sendable {
         )
     }
 
+    var referenceCode: String {
+        Self.referenceCode(for: id)
+    }
+
+    var requestReferenceCode: String {
+        Self.referenceCode(for: requestID)
+    }
+
     func replacing(
         status: GroomerOfferStatus,
         withdrawnAt: String?
@@ -323,6 +394,10 @@ struct GroomerOffer: Equatable, Hashable, Identifiable, Sendable {
             createdAt: createdAt,
             updatedAt: updatedAt
         )
+    }
+
+    private static func referenceCode(for id: UUID) -> String {
+        String(id.uuidString.prefix(8)).uppercased()
     }
 }
 

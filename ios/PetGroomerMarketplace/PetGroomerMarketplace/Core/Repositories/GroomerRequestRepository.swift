@@ -20,6 +20,8 @@ enum GroomerRequestRepositoryError: Error, Equatable, Sendable {
 protocol GroomerRequestRepository: AnyObject {
     func matchedRequests(groomerID: UUID) async throws -> [GroomerMatchedRequest]
 
+    func offers(groomerID: UUID) async throws -> [GroomerOfferListItem]
+
     func requestPhotos(
         groomerID: UUID,
         requestIDs: [UUID]
@@ -42,6 +44,10 @@ protocol GroomerRequestRepository: AnyObject {
 }
 
 extension GroomerRequestRepository {
+    func offers(groomerID: UUID) async throws -> [GroomerOfferListItem] {
+        []
+    }
+
     func requestPhotos(
         groomerID: UUID,
         requestIDs: [UUID]

@@ -6,6 +6,16 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-06
+Task: T-152 - Groomer Offers tab.
+Files changed: Groomer tab routing, `GroomerOffersView`, `GroomerOffersStore`, groomer offer list models/repository adapter, tests, `SCREEN_INVENTORY`, memory docs.
+Checks: RED compile failure for missing offers list surface; `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; XcodeBuildMCP iPhone 17 Offers-tab目检; `git diff --check`; `node scripts/context-hygiene-check.mjs`.
+Result: Groomers now have a visible Offers tab showing submitted offers grouped by status with readable request or booking context when available.
+Risks: No Supabase schema/RLS/RPC/Storage, migrations, dependencies, seed data, remote writes, commits, or pushes changed. Offer creation and withdrawal remain in Board/request detail.
+Next: Use T-153 unless the user names another task ID.
+```
+
+```text
+Date: 2026-07-06
 Task: T-151 - Active Markdown baseline recheck and AGENTS hardening.
 Files changed: AGENTS.md, memory docs, ledger/worklog rolling archives, project-structure log.
 Checks: `git diff --check`; `node scripts/context-hygiene-check.mjs`; active stale-reference searches.
