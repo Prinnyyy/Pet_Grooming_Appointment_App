@@ -1,0 +1,15 @@
+# Frozen and historical archives are never default search context.
+docs/09_frozen/**
+
+# Generated/local artifacts.
+artifacts/**
+supabase/.temp/**
+
+# Local credential-class files.
+supabase_api_key
+supabase_environment_variables
+ios/PetGroomerMarketplace/Config/Supabase.local.xcconfig
+
+# Large design exports; use targeted paths only when a UI task needs them.
+docs/08_design/Groomly/**
+docs/08_design/Groomly.html

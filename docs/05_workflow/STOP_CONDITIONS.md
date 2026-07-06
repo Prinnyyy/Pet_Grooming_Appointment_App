@@ -1,48 +1,36 @@
 # Stop Conditions
 
-Codex must stop and report when any condition occurs.
+Stop and report when any condition occurs.
 
-## Scope Stop
+## Scope
 
-- The task requires more than one major feature.
-- The task begins to affect unrelated screens/modules.
-- The task requires a product decision not documented.
+- The task becomes more than one primary task.
+- The change begins touching unrelated screens/modules.
+- A required product decision is undocumented.
+- A screenshot implies a new feature beyond visual-only or existing-feature rewire scope.
 
-## Safety Stop
+## Safety
 
-- A destructive database operation appears necessary.
-- Secrets are required.
-- Remote state is uncertain.
 - User changes would be overwritten.
+- A secret, local credential, or remote environment value is needed.
+- Destructive database or filesystem action appears necessary.
+- Supabase remote writes, migration apply, seed, cleanup, reset, or repair would be needed without explicit approval.
+- Commit, push, PR, branch reset, rebase, or merge would be needed without explicit approval.
 
-## Technical Stop
+## Context
 
-- The first required build or test attempt fails; report the first real error and stop unless the user approves a follow-up.
-- A required completion `git diff --check` attempt fails.
-- The app cannot be launched in the iOS Simulator when simulator launch is required for the task.
-- Required scheme/simulator cannot be detected when app build or simulator launch is required.
-- Supabase schema cannot be verified.
+- Active docs conflict with code facts.
+- Required facts only appear in L4 archive and the recovery reason is unclear.
+- The task would require full-reading frozen archives, seed tables, full design exports, or large unrelated Swift files.
+
+## Validation
+
+- The first required validation attempt fails.
+- A required simulator launch fails for a UI/app task.
+- Required scheme/simulator cannot be detected for an app validation task.
 - Tests fail for reasons unrelated to the current task.
 
-## Groomly UI Stop
-
-- The uploaded screenshot or Groomly design source cannot be read.
-- Design asset source, safety, or licensing is unclear.
-- A screenshot module cannot be mapped to an existing SwiftUI surface, Store/repository/model path, or clearly identified new feature.
-- The screenshot or prototype requires backend schema, RLS, RPC, Storage policy, repository contract, or new persistence changes.
-- The screenshot or prototype requires a deferred feature such as request cancellation, favorites, attachments, read receipts, realtime chat, signed URL image rendering, payments, push notifications, maps, calendars, or admin tooling.
-- The screenshot or prototype implies a new navigation model, role capability, or product flow not already documented.
-- The UI change would require direct Supabase access from SwiftUI.
-- The implementation would reintroduce task-card flow, send-task wording, or customer-facing rejection language.
-- The first T-023C, T-023D1, or T-023D2 build attempt fails outside a clearly task-caused compile issue; report the first real error and stop.
-
-## Context Stop
-
-- Conversation context conflicts with memory docs.
-- Memory docs are missing critical project facts.
-- Current code differs greatly from documented architecture.
-
-## Required Stop Report
+## Stop Report
 
 ```text
 Stop reason:

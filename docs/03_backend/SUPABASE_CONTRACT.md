@@ -2,7 +2,7 @@
 
 ## Contract Status
 
-This backend contract is derived from `Fresh_Pet_Groomer_Marketplace_Engineering_Brief.md`. The T-004 profile/avatar foundation, T-007 atomic profile-onboarding RPC, T-008 pet/photo schema and private bucket, T-010 groomer profile/services/portfolio backend, T-012 grooming request/match backend, T-015 groomer offer backend, T-018 booking/conversation backend, T-020 text-message backend, T-021 completion/review backend, and T-044 customer request cancellation backend are deployed to the fresh Supabase project and mirrored under `supabase/migrations/`. T-044 request-cancel metadata, grants, advisors, and rollback-only behavior checks are validated under the approved MCP-only boundary. The original project visible through MCP is a legacy project and is not a target for this rebuild.
+This is the active Supabase contract. The old Fresh Brief is archived historical context only. The T-004 profile/avatar foundation, T-007 atomic profile-onboarding RPC, T-008 pet/photo schema and private bucket, T-010 groomer profile/services/portfolio backend, T-012 grooming request/match backend, T-015 groomer offer backend, T-018 booking/conversation backend, T-020 text-message backend, T-021 completion/review backend, and T-044 customer request cancellation backend are deployed to the fresh Supabase project and mirrored under `supabase/migrations/`. T-044 request-cancel metadata, grants, advisors, and rollback-only behavior checks are validated under the approved MCP-only boundary. The original project visible through MCP is a legacy project and is not a target for this rebuild.
 
 Once migrations exist, reviewed migrations and verified deployed metadata are authoritative. This document must remain synchronized with them and must never claim a planned object is deployed.
 
@@ -47,7 +47,7 @@ All Supabase migration and validation operations must target only the task-autho
 | `conversations` | Participant boundary created with booking | `id`, optional request, booking/customer/groomer references, timestamps | Booking participants only | T-018 |
 | `messages` | Text-only conversation messages | `id`, `conversation_id`, `sender_id`, `body`, timestamp | Conversation participants read; sender must be a participant; update/delete denied to authenticated clients | T-020 |
 | `reviews` | One customer review for a completed booking | `id`, unique `booking_id`, customer/groomer references, rating/content, timestamp | Booking participants read through RLS; booked customer creates once through `create_review`; direct authenticated insert/update/delete denied | T-021 |
-| `favorites` | Name reserved by the Fresh Brief without a defined flow or fields | No contract approved | No access, migration, repository, or UI authorized | deferred |
+| `favorites` | Deferred name with no approved flow or fields | No contract approved | No access, migration, repository, or UI authorized | deferred |
 
 ## Planned Status Values
 

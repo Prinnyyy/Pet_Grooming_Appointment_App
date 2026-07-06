@@ -1,43 +1,33 @@
 # Project Documentation Index
 
-This folder is the durable project memory and coordination layer for Codex.
+This folder is the durable project memory and coordination layer. It is designed for indexed, minimal reads.
 
-Use it to avoid relying on long conversation context.
+## Access Model
+
+| Layer | Default Rule | Use |
+|---|---|---|
+| L0 | Read every task | `../AGENTS.md`; targeted top sections of `00_memory/CURRENT_STATE.md` and `06_tasks/TASK_LEDGER.md` only when needed |
+| L1 | Read by task type | `00_memory/FEATURE_INDEX.md`, `03_backend/SUPABASE_CONTRACT.md`, `04_ios/IOS_BUILD_AND_TESTING.md`, `05_workflow/README.md`, `10_project_structure/README.md` |
+| L2 | Targeted section only | Product, architecture, backend, iOS, TestOps, and workflow manuals |
+| L3 | Targeted recovery | `00_memory/WORKLOG.md`, `07_decisions/DECISION_LOG.md`, project structure logs |
+| L4 | Default forbidden | `09_frozen/**`, generated artifacts, full design exports, seed tables, old task records |
 
 ## Sections
 
-- `00_memory/`: compressed long-term project memory and recovery files
-- `01_product/`: product definition, user roles, flows, design system
-- `02_architecture/`: iOS/client architecture and module boundaries
-- `03_backend/`: Supabase schema, RLS, RPC, storage, migrations
-- `04_ios/`: Swift, SwiftUI, build, testing, accessibility rules
-- `05_workflow/`: lightweight single-agent Codex workflow, context management, and tool policies
-- `06_tasks/`: task ledger, task template, handoff notes, review template
-- `07_decisions/`: ADRs and decision templates
-- `08_design/`: Groomly prototype, design prompt, implementation notes, and extracted design tokens
-- `09_frozen/`: frozen pre-phase snapshots used only for recovery or comparison
+- `00_memory/`: current state, feature index, project memory, recent worklog.
+- `01_product/`: product rules, roles, flows, screen inventory, design system.
+- `02_architecture/`: iOS architecture, module boundaries, data flow, fixtures.
+- `03_backend/`: Supabase contract, RLS/RPC, Storage, migration rules.
+- `04_ios/`: Swift, SwiftUI, build, testing, accessibility rules.
+- `05_workflow/`: active workflow, context/recovery, tooling, stop rules.
+- `06_tasks/`: compact ledger and task templates only.
+- `07_decisions/`: durable decision log and ADR template.
+- `08_design/`: current visual notes, tokens, and design assets.
+- `09_frozen/`: historical archive; use only with a targeted recovery reason.
+- `10_project_structure/`: path ownership and reorganization log.
 
-## Active Task
+## Current Task State
 
-The completed Groomly foundation sequence is `06_tasks/T-023_GROOMLY_UI_FOUNDATION_SEQUENCE.md`.
+Use `06_tasks/TASK_LEDGER.md` for task numbering and active/recent status. Detailed T-001 through T-048 task records are archived under `09_frozen/task_records_2026-07-06/`.
 
-Completed screen slices:
-
-- `06_tasks/T-024_GROOMLY_AUTH_ONBOARDING_UI.md`
-- `06_tasks/T-025_GROOMLY_CUSTOMER_PETS_UI.md`
-- `06_tasks/T-026_GROOMLY_CUSTOMER_REQUESTS_LIST_STATUS_UI.md`
-- `06_tasks/T-027_GROOMLY_CUSTOMER_REQUEST_WIZARD_UI.md`
-- `06_tasks/T-028_GROOMLY_CUSTOMER_REQUEST_DETAIL_OFFERS_UI.md`
-- `06_tasks/T-029_GROOMLY_GROOMER_REQUESTS_FEED_DETAIL_UI.md`
-- `06_tasks/T-030_GROOMLY_GROOMER_OFFER_FORM_STATUS_UI.md`
-- `06_tasks/T-031_GROOMLY_GROOMER_PROFILE_SERVICES_UI.md`
-- `06_tasks/T-032_GROOMLY_GROOMER_PORTFOLIO_UI.md`
-- `06_tasks/T-033_GROOMLY_BOOKINGS_UI.md`
-- `06_tasks/T-034_GROOMLY_CHAT_UI.md`
-- `06_tasks/T-035_GROOMLY_ACCOUNT_TABS_DEBUG_FINAL_UI.md`
-
-The Groomly UI completion sequence `06_tasks/T-026_TO_T-035_GROOMLY_UI_COMPLETION_SEQUENCE.md` is completed for implemented MVP screens.
-
-No active next Groomly UI task is currently defined.
-
-T-022 remains completed, but its post-MVP next-task suggestions are frozen and must not auto-start. Use `09_frozen/pre_groomly_ui_2026-06-21/` only to recover or compare pre-Groomly context.
+Run `node ../scripts/context-hygiene-check.mjs` after durable memory or task-ledger edits.

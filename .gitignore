@@ -6,3 +6,10 @@ supabase_api_key
 
 # Local iOS Supabase environment; publishable key is injected at build time.
 ios/PetGroomerMarketplace/Config/Supabase.local.xcconfig
+
+# Local Supabase environment exports; never commit.
+supabase_environment_variables
+supabase/.temp/
+
+# Generated agent/build artifacts.
+artifacts/

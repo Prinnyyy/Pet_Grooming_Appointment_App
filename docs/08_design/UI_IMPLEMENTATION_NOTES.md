@@ -2,7 +2,7 @@
 
 ## 1. Design Sources Inspected
 
-- `docs/08_design/Apply Groomly Design Prototype to Existing SwiftUI App.md`
+- `docs/09_frozen/design_prompts/Apply Groomly Design Prototype to Existing SwiftUI App.md`
 - `docs/08_design/Groomly.html`
 - `docs/08_design/Groomly/Groomly.html`
 - `docs/08_design/Groomly/Groomly.dc.html`
