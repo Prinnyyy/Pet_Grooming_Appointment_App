@@ -28,6 +28,7 @@ Archived files may contain old TODOs, old paths, old branch/task references, or 
 - `memory_pointers/`: removed compatibility pointers that no longer need active paths.
 - `workflow_templates/`: removed low-use workflow templates whose rules now live in active workflow docs.
 - `task_templates/`: removed generic task templates superseded by ledger/worklog rules and the screenshot task template.
+- `external_agent_reports/`: non-canonical agent-generated audits or plans moved out of repo-root active context.
 
 ## Rule
 

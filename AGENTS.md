@@ -26,11 +26,14 @@ Read only what the task needs:
 
 Default searches must honor `.rgignore`. Do not use broad `rg --files -g '*.md'` as a default Markdown inventory because it can re-include ignored seed tables. Use `rg --no-ignore` only for explicitly needed frozen archives, machine-readable seed profiles, generated artifacts, or full design exports.
 
+Root-level or external-agent status/roadmap Markdown is not authoritative. Treat it as review input only; active branch, task number, validation, and product facts must come from the active sources above. If such drafts need preservation, move them under `docs/09_frozen/external_agent_reports/` and update active pointers in the same task.
+
 ## Task Rules
 
 - Preserve user work; run `git status --short` before edits.
 - Current branch baseline is `codex/pet-fit-structure-cleanup`; do not continue work from another branch unless the user names it.
 - Use the next available task ID from `docs/06_tasks/TASK_LEDGER.md` for new bugfix or iteration work.
+- If branch, task ID, or status evidence conflicts, stop and verify `CURRENT_STATE.md` plus `TASK_LEDGER.md`; never infer the next task from stale task filenames, archived notes, or external reports.
 - One primary task only. Do not start adjacent features, broad refactors, or unrelated cleanup.
 - Make a short plan before non-trivial edits.
 - Keep SwiftUI views thin and route business logic through Store/ViewModel/repository boundaries.
@@ -64,6 +67,8 @@ If a required validation fails, report the first real error and stop unless the 
 Briefly review the diff when files changed. Record closeout in `docs/06_tasks/TASK_LEDGER.md` and `docs/00_memory/WORKLOG.md` when the task changes durable workflow/product state or app behavior. Update `docs/00_memory/CURRENT_STATE.md` only when a future run needs the changed fact.
 
 After durable memory or task-ledger changes, run context hygiene. Archive old active memory/task rows immediately if thresholds are exceeded.
+
+When moving, deleting, or archiving Markdown, update linked indexes, source-of-truth notes, and ignore/search rules in the same change.
 
 Before `/compact`, write a concise checkpoint with task ID/status, files changed, validation, risks, and next context. Stop when the requested task is complete.
 

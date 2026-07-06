@@ -11,3 +11,7 @@ ios/PetGroomerMarketplace/Config/Supabase.local.xcconfig
 
 # Local TestOps run artifacts.
 artifacts/testops/
+
+# External agent draft reports; archive under docs/09_frozen/external_agent_reports/ when needed.
+APP_STATUS_OVERVIEW.md
+V1.0_RELEASE_TASK_PLAN.md

@@ -4,10 +4,10 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Last Updated
 
-- Date: 2026-07-02
+- Date: 2026-07-06
 - Updated by: Codex
-- Latest completed task: T-149 active design document slimming.
-- Next task ID: T-150, unless the user explicitly names another task ID or branch.
+- Latest completed task: T-151 active Markdown baseline recheck and AGENTS hardening.
+- Next task ID: T-152, unless the user explicitly names another task ID or branch.
 
 ## Fast Path
 
@@ -28,6 +28,7 @@ Key frozen archive families: current-state snapshots, worklogs, task ledgers, ba
 - Current branch baseline: `codex/pet-fit-structure-cleanup`.
 - GitHub repository: `Prinnyyy/Pet_Grooming_Appointment_App`.
 - Continue implementation, documentation, commit, and push work from this branch unless the user explicitly names another branch.
+- Do not treat `main` as the current work baseline until the user explicitly asks to reconcile it.
 - Do not commit, push, create PRs, seed, cleanup, migrate, or make remote writes without explicit user approval.
 
 ## Validation Baseline
@@ -36,7 +37,7 @@ Key frozen archive families: current-state snapshots, worklogs, task ledgers, ba
 - Last full iOS test: `./scripts/ios-test.sh` passed on 2026-07-01 during T-137.
 - Last TestOps unit validation: T-145 `./scripts/testops-unit.sh` passed 24 Node tests.
 - Last remote TestOps run: T-145 authorized `matching_baseline` passed 8/8 and cleanup left zero tagged request residue.
-- Last docs/workflow validation: T-149 `git diff --check` and `node scripts/context-hygiene-check.mjs` passed before closeout.
+- Last docs/workflow validation: T-151 `git diff --check` and `node scripts/context-hygiene-check.mjs` passed before closeout.
 - Known live failing behavior: none currently recorded.
 
 ## Active Product State
@@ -67,7 +68,7 @@ Key frozen archive families: current-state snapshots, worklogs, task ledgers, ba
 
 - Active memory/task files are intentionally concise. Do not expand them into full history.
 - Backend policy files are now current-rule indexes; use migrations or frozen pre-trim snapshots for detailed historical trace.
-- The original root product/engineering brief, old Groomly design task prompt, pre-slim design notes, removed memory pointer, and removed generic lightweight templates are archived under `docs/09_frozen/`; use `docs/01_product/PRODUCT_BRIEF.md`, `docs/01_product/DESIGN_SYSTEM.md`, `docs/08_design/UI_IMPLEMENTATION_NOTES.md`, `docs/07_decisions/DECISION_LOG.md`, and active workflow/task docs as entrypoints.
+- The original root product/engineering brief, old Groomly design task prompt, pre-slim design notes, removed memory pointer, removed generic lightweight templates, and external agent audit drafts are archived under `docs/09_frozen/`; use `docs/01_product/PRODUCT_BRIEF.md`, `docs/01_product/DESIGN_SYSTEM.md`, `docs/08_design/UI_IMPLEMENTATION_NOTES.md`, `docs/07_decisions/DECISION_LOG.md`, and active workflow/task docs as entrypoints. External agent reports are review input only and must not reset branch, task ID, validation, or product status.
 - T-129 seed profile Markdown files are machine-readable parser inputs and excluded from default search. Do not reformat or archive them without updating scripts/tests.
 - Deferred features remain out of scope unless explicitly requested: public directory, direct booking, payments, realtime chat, attachments, push notifications, maps/calendar integrations, moderation/disputes, and admin tooling.
 - Large Swift context risks remain `CustomerRequestsView.swift` and `GroomerProfileManagementView.swift`; split only in a dedicated Standard refactor task.

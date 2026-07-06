@@ -2,6 +2,50 @@
 
 This log records repository structure changes so future agents do not lose track of moved paths.
 
+## 2026-07-06 - Active Markdown Baseline Recheck and AGENTS Hardening
+
+Scope:
+
+- Recheck active Markdown status after the T-150 branch/task-baseline correction.
+- Harden `AGENTS.md` so external agent reports cannot override active branch, task numbering, validation, or product facts.
+- Roll older active task/worklog rows into frozen archives after adding T-151.
+
+Moved or changed paths:
+
+| Path | Change | Reason |
+|---|---|---|
+| `AGENTS.md` | Added external-report, conflict-verification, and Markdown pointer-update guardrails. | Keep future agents from treating generated root reports or stale task filenames as source-of-truth documents. |
+| `docs/06_tasks/TASK_LEDGER.md` | Added T-151, set next ID to T-152, and removed T-133 through T-136 from active rows. | Keep active task state focused on current/recent work. |
+| `docs/09_frozen/task_ledgers/TASK_LEDGER_T-133_TO_T-136_2026-07-06.md` | New archive. | Preserve completed T-133 through T-136 rows verbatim. |
+| `docs/00_memory/WORKLOG.md` | Added T-151 and removed T-137 through T-140 from active entries. | Keep active closeout recovery under context budget. |
+| `docs/09_frozen/worklogs/WORKLOG_2026-07-01_T-137_TO_T-140.md` | New archive. | Preserve completed T-137 through T-140 closeouts verbatim. |
+
+Validation:
+
+- `git diff --check` passed.
+- `node scripts/context-hygiene-check.mjs` passed.
+- Active stale-reference searches confirmed no old main-derived task-number baseline remains outside frozen archives.
+
+## 2026-07-06 - External Agent Draft Archive and Branch Baseline Correction
+
+Scope:
+
+- Restore the active local baseline to `codex/pet-fit-structure-cleanup`, where T-149 is the latest completed task before this correction.
+- Move external agent audit drafts out of the repository root so they are not mistaken for active source-of-truth documents.
+- Ignore future root copies of those drafts in Git and default text search.
+
+Moved paths:
+
+| Old path | New path | Reason |
+|---|---|---|
+| `APP_STATUS_OVERVIEW.md` | `docs/09_frozen/external_agent_reports/APP_STATUS_OVERVIEW_2026-07-06.md` | Preserve non-canonical audit input without exposing it as active context. |
+| `V1.0_RELEASE_TASK_PLAN.md` | `docs/09_frozen/external_agent_reports/V1.0_RELEASE_TASK_PLAN_2026-07-06.md` | Preserve non-canonical planning draft without allowing it to reset task numbering. |
+
+Validation:
+
+- `git diff --check` passed.
+- `node scripts/context-hygiene-check.mjs` passed.
+
 ## 2026-07-02 - Active Design Document Slimming
 
 Scope:

@@ -1,8 +1,28 @@
 # Worklog
 
-This file is the active recent closeout index, newest first. It intentionally keeps only the newest entries needed for recovery. Older verbatim history is archived at `docs/09_frozen/worklogs/WORKLOG_2026-06-20_to_2026-07-01.md` and `docs/09_frozen/worklogs/WORKLOG_2026-07-01_T-132_TO_T-136.md`.
+This file is the active recent closeout index, newest first. It intentionally keeps only the newest entries needed for recovery. Older verbatim history is archived at `docs/09_frozen/worklogs/WORKLOG_2026-06-20_to_2026-07-01.md`, `docs/09_frozen/worklogs/WORKLOG_2026-07-01_T-132_TO_T-136.md`, and `docs/09_frozen/worklogs/WORKLOG_2026-07-01_T-137_TO_T-140.md`.
 
 Current branch, next task ID, and current baseline live in `docs/00_memory/CURRENT_STATE.md` and `docs/06_tasks/TASK_LEDGER.md`. Older `Next:` lines and branch references are historical closeout notes, not current instructions.
+
+```text
+Date: 2026-07-06
+Task: T-151 - Active Markdown baseline recheck and AGENTS hardening.
+Files changed: AGENTS.md, memory docs, ledger/worklog rolling archives, project-structure log.
+Checks: `git diff --check`; `node scripts/context-hygiene-check.mjs`; active stale-reference searches.
+Result: Active docs use the T-151/T-152 baseline and AGENTS now rejects external reports as authoritative sources.
+Risks: Docs-only. No iOS, Supabase, runtime, seed, simulator, commit, or push change.
+Next: Use T-152 unless the user names another task ID.
+```
+
+```text
+Date: 2026-07-06
+Task: T-150 - Restore correct task baseline and archive external audit drafts.
+Files changed: moved root reports to frozen; updated ignore/search and memory/ledger/archive indexes.
+Checks: `git diff --check`; `node scripts/context-hygiene-check.mjs`.
+Result: Active baseline is `codex/pet-fit-structure-cleanup`; T-151 is next.
+Risks: Docs-only. `main` remote reconciliation needs explicit approval.
+Next: Use T-151 unless the user names another task ID.
+```
 
 ```text
 Date: 2026-07-02
@@ -102,45 +122,4 @@ Simulator launch: Skipped because this was docs/workflow-only and did not affect
 Result: Post-task context hygiene is now part of the repository workflow. Future tasks that update durable memory must check active memory sizes and roll old content into frozen archives before final reporting when thresholds are exceeded.
 Risks: Docs/workflow-only. No iOS source, Supabase schema/RLS/RPC/Storage, scripts, dependencies, or remote state changed.
 Next: Use T-142 for the next new bugfix or iteration task unless the user explicitly names another task ID.
-```
-
-```text
-Date: 2026-07-01
-Task: T-140 - Context footprint and memory archive trim.
-Files changed: CURRENT_STATE.md, WORKLOG.md, TASK_LEDGER.md, CONTEXT_AND_RECOVERY.md, and frozen archive snapshots for pre-trim current state, worklog, and task ledger history.
-Checks: `git diff --check` passed. `wc -w docs/00_memory/CURRENT_STATE.md docs/00_memory/WORKLOG.md docs/06_tasks/TASK_LEDGER.md` confirmed the three active hot files total under 4k words. Archive-reference `rg` check found the new frozen paths from active memory files. Active-path `rg` check returned no matches, confirming workflow startup docs do not point at frozen context as a default source.
-Simulator launch: Skipped because this was docs/workflow-only and did not affect app/UI behavior.
-Result: Active context hot files were trimmed from about 48.5k words to about 4.0k words by replacing long active history with fast-path current state, recent worklog entries, and recent task ledger rows. Full pre-trim content is preserved under `docs/09_frozen/`.
-Risks: Docs/workflow-only. Historical content is preserved under docs/09_frozen; no iOS source, Supabase schema/RLS/RPC/Storage, scripts, dependencies, or remote state changed.
-Next: Use T-141 for the next new bugfix or iteration task unless the user explicitly names another task ID.
-```
-
-```text
-Date: 2026-07-01
-Task: T-139 - Supabase CLI credential taxonomy documentation update.
-Files changed: .gitignore, TOOLING_POLICY.md, MIGRATION_RULES.md, SUPABASE_CONTRACT.md, TestOps docs, T-129 seed resource docs, decision logs, project-structure docs, CURRENT_STATE.md, WORKLOG.md, TASK_LEDGER.md.
-Checks: Confirmed branch `codex/pet-fit-structure-cleanup`. Reviewed current Supabase CLI/API-key documentation references. Prior sequential `supabase projects list`, `supabase migration list --linked`, and `supabase db push --linked --dry-run` all passed from this checkout. `git diff --check` passed.
-Result: Local Supabase docs now consistently separate `SUPABASE_ACCESS_TOKEN=sbp_...` CLI login tokens, `SUPABASE_DB_PASSWORD` remote Postgres passwords, publishable client keys, modern `sb_secret_...` project secret keys, and JWT-shaped legacy `SUPABASE_SERVICE_ROLE_KEY` values. The current local CLI login/link state does not need `SUPABASE_DB_PASSWORD` for normal commands, and current seed/TestOps docs warn not to substitute `sb_secret_...` into scripts that still send service-role auth as Bearer. `supabase_environment_variables` is now ignored alongside `supabase_api_key`.
-Risks: Documentation-only plus ignore-rule update. No Supabase schema, RLS, RPC, Storage, migration, seed data, iOS source, build setting, or remote data changed. Existing seed/TestOps scripts still need a future code update before they can use modern `sb_secret_...` project secret keys directly.
-Next: Stop unless the user asks to commit/push or starts T-140.
-```
-
-```text
-Date: 2026-07-01
-Task: T-138 - Supabase tooling and credential usage rules update.
-Files changed: TOOLING_POLICY.md, MIGRATION_RULES.md, SUPABASE_CONTRACT.md, DECISION_LOG.md, CURRENT_STATE.md, WORKLOG.md, TASK_LEDGER.md.
-Checks: Confirmed branch `codex/pet-fit-structure-cleanup`. Reviewed current Supabase CLI docs/changelog references. `supabase --version` returned 2.107.0. Sequential `supabase migration list --linked` succeeded and showed Local/Remote migration history aligned through `20260701050012`. `git diff --check` passed.
-Result: Local Supabase operating rules now explicitly forbid parallel linked CLI commands, require one sequential `migration list --linked` before diagnosing `cli_login_postgres`/SASL errors as drift, and preserve `migration repair` as recovery-only. Ignored Supabase credential files may be inspected only after explicit user authorization for the current operation, and only into ephemeral environment variables; later T-139 clarifies that the local `supabase_api_key` value is `sb_secret_...`, not a JWT service-role key. MCP SQL is documented as a read-only verification/tagged-cleanup fallback, not a normal migration path.
-Risks: Documentation-only. No Supabase schema, RLS, RPC, Storage, migration, seed data, iOS source, build setting, or remote data changed.
-Next: Stop unless the user asks to commit/push current T-137/T-138 local changes or starts T-139.
-```
-
-```text
-Date: 2026-07-01
-Task: T-137 - TestOps unit tests and smoke case catalog.
-Files changed: scripts/testops.mjs, scripts/testops-core.mjs, scripts/testops-unit.sh, tests/testops/testops-core.test.mjs, docs/04_ios/testops/TEST_CASES.md, TestOps docs/indexes, IOS_BUILD_AND_TESTING.md, FEATURE_INDEX.md, CURRENT_STATE.md, WORKLOG.md, TASK_LEDGER.md.
-Checks: Confirmed branch `codex/pet-fit-structure-cleanup`. Before starting T-137, committed and pushed T-136 as `5ea1665` (`chore: add TestOps automation scaffold`). RED `node --test tests/testops/testops-core.test.mjs` failed before implementation because `scripts/testops-core.mjs` did not exist. GREEN `./scripts/testops-unit.sh` passed after splitting the CLI into a testable core and adding parser, plan, matrix, safety gate, redaction, report, and cleanup tests. `node --check scripts/testops.mjs`, `node --check scripts/testops-core.mjs`, `node scripts/testops.mjs doctor --dry-run`, `node scripts/testops.mjs run backend --scenario marketplace_full_lifecycle --matrix smoke5`, `node scripts/testops.mjs cleanup --run-id TESTOPS-DRYRUN`, `./scripts/supabase-check.sh`, full `./scripts/ios-test.sh`, `./scripts/ios-build.sh`, and `git diff --check` passed. After explicit authorization, remote `smoke5` first exposed an invalid `travelRadiusMiles=null` plan for `customer_comes_to_groomer`; fixing the core to match app behavior with 15 miles made local TestOps unit/check/dry-run pass again. Authorized remote `smoke5` then passed 5/5, SQL final-state verification confirmed 5 booked requests, 5 completed bookings, and 5 five-star reviews, and tagged cleanup deleted 5 requests, 76 matches, 5 offers, 5 bookings, 5 conversations, and 5 reviews with zero tagged requests/offers/reviews remaining.
-Result: T-137 is completed locally and the first authorized remote `smoke5` lifecycle has passed with cleanup. TestOps now has a thin CLI, reusable core module, Node built-in unit test script, and the documented `smoke5` backend lifecycle case catalog covering five seeded customer/groomer pairs. Dry-run remains the default and prints sanitized plans; execute/cleanup remain gated by `--execute` plus `TESTOPS_REMOTE_WRITE_APPROVED=1`.
-Risks: No Supabase schema, RLS, RPC, Storage bucket/policy, or migration changed. Remote lifecycle test rows were created and then removed by `TESTOPS:<run_id>` tag; local ignored artifacts under `artifacts/testops/` retain the run summaries.
-Next: Stop unless the user asks to commit/push T-137 or authorizes remote `smoke5` execution.
 ```
