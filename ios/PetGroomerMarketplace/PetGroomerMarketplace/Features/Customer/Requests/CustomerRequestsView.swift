@@ -131,7 +131,9 @@ struct CustomerRequestsView: View {
                             focusedRequestID: $focusedRequestID,
                             onViewBooking: { handoff in
                                 selectedBookingHandoff = handoff
-                                store.acknowledgeBookingHandoff(for: handoff)
+                                Task {
+                                    await store.acknowledgeBookingHandoff(for: handoff)
+                                }
                             },
                             onCancelRequest: { request in
                                 pendingCancelRequest = request

@@ -44,6 +44,16 @@ protocol CustomerRequestRepository: AnyObject {
     func cancelRequest(
         requestID: UUID
     ) async throws -> CancelGroomingRequestResult
+
+    func acknowledgedBookingHandoffRequestIDs(
+        customerID: UUID
+    ) async throws -> Set<UUID>
+
+    func acknowledgeBookingHandoff(
+        customerID: UUID,
+        requestID: UUID,
+        bookingID: UUID
+    ) async throws
 }
 
 extension CustomerRequestRepository {
@@ -57,4 +67,16 @@ extension CustomerRequestRepository {
     func requestPhotoData(_ photo: GroomingRequestPhoto) async throws -> Data {
         throw CustomerRequestRepositoryError.unavailable
     }
+
+    func acknowledgedBookingHandoffRequestIDs(
+        customerID: UUID
+    ) async throws -> Set<UUID> {
+        []
+    }
+
+    func acknowledgeBookingHandoff(
+        customerID: UUID,
+        requestID: UUID,
+        bookingID: UUID
+    ) async throws {}
 }

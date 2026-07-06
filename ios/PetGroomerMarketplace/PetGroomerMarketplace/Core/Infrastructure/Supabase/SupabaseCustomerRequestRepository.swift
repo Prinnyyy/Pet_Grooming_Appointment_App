@@ -240,6 +240,41 @@ final class SupabaseCustomerRequestRepository: CustomerRequestRepository {
         }
     }
 
+    func acknowledgedBookingHandoffRequestIDs(
+        customerID: UUID
+    ) async throws -> Set<UUID> {
+        do {
+            let rows: [AcknowledgedBookingHandoffRequestIDRow] = try await client
+                .rpc("get_acknowledged_booking_handoff_request_ids")
+                .execute()
+                .value
+
+            return Set(rows.map(\.requestID))
+        } catch {
+            throw Self.map(error)
+        }
+    }
+
+    func acknowledgeBookingHandoff(
+        customerID: UUID,
+        requestID: UUID,
+        bookingID: UUID
+    ) async throws {
+        do {
+            try await client
+                .rpc(
+                    "acknowledge_booking_handoff",
+                    params: AcknowledgeBookingHandoffParameters(
+                        requestID: requestID,
+                        bookingID: bookingID
+                    )
+                )
+                .execute()
+        } catch {
+            throw Self.map(error)
+        }
+    }
+
     private static func map(_ error: any Error) -> CustomerRequestRepositoryError {
         if AppDebugErrorClassifier.isCancellation(error) {
             return .cancelled
@@ -635,5 +670,29 @@ private struct CancelGroomingRequestParameters: Encodable {
 
     private enum CodingKeys: String, CodingKey {
         case requestID = "p_request_id"
+    }
+}
+
+private struct AcknowledgedBookingHandoffRequestIDRow: Decodable {
+    let requestID: UUID
+
+    private enum CodingKeys: String, CodingKey {
+        case requestID = "request_id"
+    }
+}
+
+private struct AcknowledgeBookingHandoffParameters: Encodable {
+    let requestID: UUID
+    let bookingID: UUID
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(requestID.uuidString.lowercased(), forKey: .requestID)
+        try container.encode(bookingID.uuidString.lowercased(), forKey: .bookingID)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case requestID = "p_request_id"
+        case bookingID = "p_booking_id"
     }
 }

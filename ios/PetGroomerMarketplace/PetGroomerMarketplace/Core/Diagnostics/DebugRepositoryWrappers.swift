@@ -295,6 +295,48 @@ final class DebugCustomerRequestRepository: CustomerRequestRepository {
             try await base.cancelRequest(requestID: requestID)
         }
     }
+
+    func acknowledgedBookingHandoffRequestIDs(
+        customerID: UUID
+    ) async throws -> Set<UUID> {
+        try await debugRepositoryCall(
+            recorder: debugRecorder,
+            source: "CustomerRequestRepository.acknowledgedBookingHandoffRequestIDs",
+            scope: "customer.requests",
+            operation: "acknowledgedBookingHandoffRequestIDs",
+            metadata: [
+                "customerID": customerID.uuidString,
+                "rpc": "get_acknowledged_booking_handoff_request_ids",
+            ]
+        ) {
+            try await base.acknowledgedBookingHandoffRequestIDs(customerID: customerID)
+        }
+    }
+
+    func acknowledgeBookingHandoff(
+        customerID: UUID,
+        requestID: UUID,
+        bookingID: UUID
+    ) async throws {
+        try await debugRepositoryCall(
+            recorder: debugRecorder,
+            source: "CustomerRequestRepository.acknowledgeBookingHandoff",
+            scope: "customer.requests",
+            operation: "acknowledgeBookingHandoff",
+            metadata: [
+                "customerID": customerID.uuidString,
+                "requestID": requestID.uuidString,
+                "bookingID": bookingID.uuidString,
+                "rpc": "acknowledge_booking_handoff",
+            ]
+        ) {
+            try await base.acknowledgeBookingHandoff(
+                customerID: customerID,
+                requestID: requestID,
+                bookingID: bookingID
+            )
+        }
+    }
 }
 
 @MainActor

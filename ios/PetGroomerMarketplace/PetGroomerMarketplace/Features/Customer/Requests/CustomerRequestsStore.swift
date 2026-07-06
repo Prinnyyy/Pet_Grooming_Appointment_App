@@ -264,6 +264,7 @@ final class CustomerRequestsStore {
                     level: .warning
                 )
             }
+            await loadAcknowledgedBookingHandoffs(startedAt: startedAt)
 
             if selectedPetID == nil {
                 selectedPetID = pets.first?.id
@@ -389,10 +390,55 @@ final class CustomerRequestsStore {
         errorMessage = nil
     }
 
-    func acknowledgeBookingHandoff(for handoff: CustomerRequestBookingHandoff) {
+    func acknowledgeBookingHandoff(for handoff: CustomerRequestBookingHandoff) async {
         let insertion = acknowledgedBookingHandoffRequestIDs.insert(handoff.request.id)
         guard insertion.inserted else { return }
         persistAcknowledgedBookingHandoffRequestIDs()
+
+        let startedAt = Date()
+        recordStoreStart(
+            "acknowledgeBookingHandoff",
+            metadata: [
+                "requestID": handoff.request.id.uuidString,
+                "bookingID": handoff.booking.id.uuidString,
+            ]
+        )
+        do {
+            try await requestRepository.acknowledgeBookingHandoff(
+                customerID: customerID,
+                requestID: handoff.request.id,
+                bookingID: handoff.booking.id
+            )
+            recordStoreSuccess(
+                "acknowledgeBookingHandoff",
+                startedAt: startedAt,
+                metadata: [
+                    "requestID": handoff.request.id.uuidString,
+                    "bookingID": handoff.booking.id.uuidString,
+                ]
+            )
+        } catch CustomerRequestRepositoryError.cancelled {
+            recordStoreCancelled(
+                "acknowledgeBookingHandoff",
+                startedAt: startedAt
+            )
+        } catch let error as CustomerRequestRepositoryError {
+            recordStoreFailure(
+                "acknowledgeBookingHandoff",
+                error: error,
+                mappedMessage: nil,
+                startedAt: startedAt,
+                level: .warning
+            )
+        } catch {
+            recordStoreFailure(
+                "acknowledgeBookingHandoff",
+                error: error,
+                mappedMessage: nil,
+                startedAt: startedAt,
+                level: .warning
+            )
+        }
     }
 
     func bookingDetailStore(for booking: Booking) -> BookingsStore {
@@ -1208,6 +1254,47 @@ final class CustomerRequestsStore {
             }
 
             return lhs.id.uuidString < rhs.id.uuidString
+        }
+    }
+
+    private func loadAcknowledgedBookingHandoffs(startedAt: Date) async {
+        do {
+            let remoteAcknowledgedRequestIDs =
+                try await requestRepository.acknowledgedBookingHandoffRequestIDs(
+                    customerID: customerID
+                )
+            guard !remoteAcknowledgedRequestIDs.isEmpty else { return }
+
+            acknowledgedBookingHandoffRequestIDs.formUnion(remoteAcknowledgedRequestIDs)
+            persistAcknowledgedBookingHandoffRequestIDs()
+            recordStoreSuccess(
+                "load.bookingHandoffAcknowledgements",
+                startedAt: startedAt,
+                metadata: [
+                    "acknowledgementCount": "\(acknowledgedBookingHandoffRequestIDs.count)",
+                ]
+            )
+        } catch CustomerRequestRepositoryError.cancelled {
+            recordStoreCancelled(
+                "load.bookingHandoffAcknowledgements",
+                startedAt: startedAt
+            )
+        } catch let error as CustomerRequestRepositoryError {
+            recordStoreFailure(
+                "load.bookingHandoffAcknowledgements",
+                error: error,
+                mappedMessage: nil,
+                startedAt: startedAt,
+                level: .warning
+            )
+        } catch {
+            recordStoreFailure(
+                "load.bookingHandoffAcknowledgements",
+                error: error,
+                mappedMessage: nil,
+                startedAt: startedAt,
+                level: .warning
+            )
         }
     }
 

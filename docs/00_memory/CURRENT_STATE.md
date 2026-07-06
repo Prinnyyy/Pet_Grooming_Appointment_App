@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-06
 - Updated by: Codex
-- Latest completed task: T-155 Backfill matching after groomer activation/availability changes.
+- Latest completed task: T-156 Booking handoff read-state persistence.
 - Current task: none active.
-- Next task ID: T-156 unless the user explicitly names another task ID or branch.
+- Next task ID: T-157 unless the user explicitly names another task ID or branch.
 
 ## Fast Path
 
@@ -34,13 +34,13 @@ Key frozen archive families: current-state snapshots, worklogs, task ledgers, ba
 
 ## Validation Baseline
 
-- Last iOS build: `./scripts/ios-build.sh` passed on 2026-07-06 during T-155 closeout.
+- Last iOS build: `./scripts/ios-build.sh` passed on 2026-07-06 during T-156 local implementation.
 - Last full iOS test: `./scripts/ios-test.sh` passed on 2026-07-06 during T-154 local implementation. T-155 attempted `./scripts/ios-test.sh` on 2026-07-06; it failed one unrelated T-153 `CustomerNotificationsStoreTests.markAllReadReplacesNotificationsWithRepositoryResult()` same-timestamp ordering assertion after 229/230 tests passed.
-- Last Supabase migration apply: authorized `supabase db push --linked` applied `20260706213507_t155_backfill_matching.sql` to project `lqmasbuqzvcvtawonjlb` on 2026-07-06.
-- Last Supabase live post-apply validation: T-155 migration list/dry-run, function metadata/execute-privilege SQL, trigger SQL, RPC-definition SQL, rollback-contained backfill SQL, residue SQL, lint, advisors, and remote matching TestOps cleanup passed on 2026-07-06.
+- Last Supabase migration apply: authorized `supabase db push --linked` applied `20260706220736_t156_booking_handoff_read_state.sql` to project `lqmasbuqzvcvtawonjlb` on 2026-07-06.
+- Last Supabase live post-apply validation: T-156 migration list/dry-run, table/RLS/policy/grant/function metadata SQL, rollback-contained RLS/RPC validation, zero-residue SQL, lint, and advisors passed on 2026-07-06.
 - Last TestOps unit validation: T-145 `./scripts/testops-unit.sh` passed 24 Node tests.
 - Last remote TestOps run: T-155 authorized `matching_baseline` run `TESTOPS-T155-MATCH-20260706-*` passed 8/8 and cleanup left zero tagged request/match residue.
-- Last docs/workflow validation: T-153 `git diff --check` and `node scripts/context-hygiene-check.mjs` passed before closeout.
+- Last docs/workflow validation: T-156 `git diff --check` and `node scripts/context-hygiene-check.mjs` passed.
 - Known live failing behavior: none currently recorded.
 
 ## Active Product State
@@ -77,8 +77,9 @@ Key frozen archive families: current-state snapshots, worklogs, task ledgers, ba
 - Large Swift context risks remain `CustomerRequestsView.swift` and `GroomerProfileManagementView.swift`; split only in a dedicated Standard refactor task.
 - T-155 installed private reusable request-match insertion plus backfill triggers for groomer activation and availability-related changes.
 - T-154 installed `pg_cron` 1.6.4 and scheduled `groomly_expire_grooming_requests` every 5 minutes to call `app_private.expire_grooming_requests(250)`.
-- Security advisor still reports pre-existing public authenticated `SECURITY DEFINER` RPC warnings and Auth leaked-password protection. T-153 mark-read RPCs are security invoker and were not flagged; T-154/T-155 private `app_private` functions were not flagged.
+- T-156 added durable customer booking handoff acknowledgement read state with `UserDefaults` fallback and applied the backing table/RLS/RPC migration.
+- Security advisor still reports pre-existing public authenticated `SECURITY DEFINER` RPC warnings and Auth leaked-password protection. T-153/T-156 RPCs are security invoker and were not flagged; T-154/T-155 private `app_private` functions were not flagged.
 
 ## Next Recommended Task
 
-- Start T-156 handoff-card read-state persistence unless the user names another task.
+- Start T-157 unless the user names another task.

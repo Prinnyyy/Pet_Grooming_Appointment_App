@@ -515,7 +515,7 @@ struct CustomerRequestsStoreTests {
         #expect(store.bookingHandoffs.map(\.request.id) == [bookedRequest.id])
         #expect(store.bookingHandoffs.first?.booking.id == booking.id)
 
-        store.acknowledgeBookingHandoff(for: store.bookingHandoffs[0])
+        await store.acknowledgeBookingHandoff(for: store.bookingHandoffs[0])
 
         #expect(store.bookingHandoffs.isEmpty)
         #expect(store.requests.first?.status == .booked)
@@ -588,7 +588,7 @@ struct CustomerRequestsStoreTests {
 
         await firstStore.load()
         let handoff = try #require(firstStore.bookingHandoffs.first)
-        firstStore.acknowledgeBookingHandoff(for: handoff)
+        await firstStore.acknowledgeBookingHandoff(for: handoff)
 
         let secondStore = CustomerRequestsStore(
             customerID: customerID,
@@ -608,6 +608,123 @@ struct CustomerRequestsStoreTests {
 
         #expect(secondStore.bookingHandoffs.isEmpty)
         #expect(secondStore.acknowledgedBookingHandoffRequestIDs.contains(bookedRequest.id))
+    }
+
+    @Test @MainActor
+    func bookingHandoffLoadMergesRemoteAcknowledgementsWithLocalFallback() async throws {
+        let customerID = UUID()
+        let suiteName = "CustomerRequestsStoreTests.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suiteName))
+        defer {
+            defaults.removePersistentDomain(forName: suiteName)
+        }
+
+        let pet = Self.pet(customerID: customerID)
+        let remoteAcknowledgedRequest = Self.request(
+            customerID: customerID,
+            petID: pet.id,
+            status: .booked
+        )
+        let localAcknowledgedRequest = Self.request(
+            customerID: customerID,
+            petID: pet.id,
+            status: .booked
+        )
+        let visibleRequest = Self.request(
+            customerID: customerID,
+            petID: pet.id,
+            status: .booked
+        )
+        defaults.set(
+            [localAcknowledgedRequest.id.uuidString],
+            forKey: "groomly.customerRequests.bookingHandoffAcknowledgements.\(customerID.uuidString)"
+        )
+        let requestRepository = CustomerRequestRepositoryFake(
+            requestsResult: .success([
+                remoteAcknowledgedRequest,
+                localAcknowledgedRequest,
+                visibleRequest,
+            ]),
+            acknowledgedBookingHandoffRequestIDsResult: .success([remoteAcknowledgedRequest.id])
+        )
+        let bookingRepository = CustomerRequestBookingRepositoryFake(
+            bookingsResult: .success([
+                Self.booking(requestID: remoteAcknowledgedRequest.id, customerID: customerID, status: .confirmed),
+                Self.booking(requestID: localAcknowledgedRequest.id, customerID: customerID, status: .confirmed),
+                Self.booking(requestID: visibleRequest.id, customerID: customerID, status: .confirmed),
+            ])
+        )
+        let store = CustomerRequestsStore(
+            customerID: customerID,
+            petRepository: CustomerRequestPetRepositoryFake(
+                petsResult: .success([pet])
+            ),
+            requestRepository: requestRepository,
+            bookingRepository: bookingRepository,
+            handoffAcknowledgementDefaults: defaults
+        )
+
+        await store.load()
+
+        #expect(requestRepository.acknowledgedBookingHandoffRequestIDsCallCount == 1)
+        #expect(requestRepository.lastAcknowledgedBookingHandoffCustomerID == customerID)
+        #expect(store.acknowledgedBookingHandoffRequestIDs == [
+            remoteAcknowledgedRequest.id,
+            localAcknowledgedRequest.id,
+        ])
+        #expect(store.bookingHandoffs.map(\.request.id) == [visibleRequest.id])
+    }
+
+    @Test @MainActor
+    func acknowledgeBookingHandoffKeepsLocalFallbackWhenRemoteWriteFails() async throws {
+        let customerID = UUID()
+        let suiteName = "CustomerRequestsStoreTests.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suiteName))
+        defer {
+            defaults.removePersistentDomain(forName: suiteName)
+        }
+
+        let pet = Self.pet(customerID: customerID)
+        let bookedRequest = Self.request(
+            customerID: customerID,
+            petID: pet.id,
+            status: .booked
+        )
+        let booking = Self.booking(
+            requestID: bookedRequest.id,
+            customerID: customerID,
+            status: .confirmed
+        )
+        let requestRepository = CustomerRequestRepositoryFake(
+            requestsResult: .success([bookedRequest]),
+            acknowledgeBookingHandoffResult: .failure(.networkUnavailable)
+        )
+        let store = CustomerRequestsStore(
+            customerID: customerID,
+            petRepository: CustomerRequestPetRepositoryFake(
+                petsResult: .success([pet])
+            ),
+            requestRepository: requestRepository,
+            bookingRepository: CustomerRequestBookingRepositoryFake(
+                bookingsResult: .success([booking])
+            ),
+            handoffAcknowledgementDefaults: defaults
+        )
+        await store.load()
+        let handoff = try #require(store.bookingHandoffs.first)
+
+        await store.acknowledgeBookingHandoff(for: handoff)
+
+        #expect(requestRepository.acknowledgeBookingHandoffCallCount == 1)
+        #expect(requestRepository.lastAcknowledgedBookingHandoffRequestID == bookedRequest.id)
+        #expect(requestRepository.lastAcknowledgedBookingHandoffBookingID == booking.id)
+        #expect(store.bookingHandoffs.isEmpty)
+        #expect(store.acknowledgedBookingHandoffRequestIDs.contains(bookedRequest.id))
+        #expect(
+            defaults.stringArray(
+                forKey: "groomly.customerRequests.bookingHandoffAcknowledgements.\(customerID.uuidString)"
+            ) == [bookedRequest.id.uuidString]
+        )
     }
 
     @Test @MainActor
@@ -722,7 +839,7 @@ struct CustomerRequestsStoreTests {
         #expect(store.visibleActionCards.last?.handoff?.booking.id == confirmedBooking.id)
 
         let handoff = try #require(store.visibleActionCards.last?.handoff)
-        store.acknowledgeBookingHandoff(for: handoff)
+        await store.acknowledgeBookingHandoff(for: handoff)
 
         #expect(store.visibleActionCards.map(\.request.id) == [
             openRequest.id,
@@ -1718,12 +1835,16 @@ private final class CustomerRequestRepositoryFake: CustomerRequestRepository {
     var createResult: Result<GroomingRequestPublishResult, CustomerRequestRepositoryError>
     var uploadRequestPhotoResult: Result<GroomingRequestPhoto, CustomerRequestRepositoryError>
     var cancelResult: Result<CancelGroomingRequestResult, CustomerRequestRepositoryError>
+    var acknowledgedBookingHandoffRequestIDsResult: Result<Set<UUID>, CustomerRequestRepositoryError>
+    var acknowledgeBookingHandoffResult: Result<Void, CustomerRequestRepositoryError>
 
     private(set) var requestsCallCount = 0
     private(set) var offersCallCount = 0
     private(set) var createCallCount = 0
     private(set) var uploadRequestPhotoCallCount = 0
     private(set) var cancelCallCount = 0
+    private(set) var acknowledgedBookingHandoffRequestIDsCallCount = 0
+    private(set) var acknowledgeBookingHandoffCallCount = 0
     private(set) var lastCustomerID: UUID?
     private(set) var lastOfferCustomerID: UUID?
     private(set) var lastOfferRequestID: UUID?
@@ -1734,6 +1855,9 @@ private final class CustomerRequestRepositoryFake: CustomerRequestRepository {
     private(set) var lastUploadData: Data?
     private(set) var lastUploadContentType: GroomingRequestPhotoContentType?
     private(set) var lastUploadCaption: String?
+    private(set) var lastAcknowledgedBookingHandoffCustomerID: UUID?
+    private(set) var lastAcknowledgedBookingHandoffRequestID: UUID?
+    private(set) var lastAcknowledgedBookingHandoffBookingID: UUID?
 
     init(
         requestsResult: Result<[CustomerGroomingRequest], CustomerRequestRepositoryError> = .success([]),
@@ -1743,13 +1867,19 @@ private final class CustomerRequestRepositoryFake: CustomerRequestRepository {
         uploadRequestPhotoResult: Result<GroomingRequestPhoto, CustomerRequestRepositoryError> =
             .failure(.unavailable),
         cancelResult: Result<CancelGroomingRequestResult, CustomerRequestRepositoryError> =
-            .failure(.unavailable)
+            .failure(.unavailable),
+        acknowledgedBookingHandoffRequestIDsResult: Result<Set<UUID>, CustomerRequestRepositoryError> =
+            .success([]),
+        acknowledgeBookingHandoffResult: Result<Void, CustomerRequestRepositoryError> =
+            .success(())
     ) {
         self.requestsResult = requestsResult
         self.offersResult = offersResult
         self.createResult = createResult
         self.uploadRequestPhotoResult = uploadRequestPhotoResult
         self.cancelResult = cancelResult
+        self.acknowledgedBookingHandoffRequestIDsResult = acknowledgedBookingHandoffRequestIDsResult
+        self.acknowledgeBookingHandoffResult = acknowledgeBookingHandoffResult
     }
 
     func requests(customerID: UUID) async throws -> [CustomerGroomingRequest] {
@@ -1799,6 +1929,26 @@ private final class CustomerRequestRepositoryFake: CustomerRequestRepository {
         cancelCallCount += 1
         lastCancelRequestID = requestID
         return try cancelResult.get()
+    }
+
+    func acknowledgedBookingHandoffRequestIDs(
+        customerID: UUID
+    ) async throws -> Set<UUID> {
+        acknowledgedBookingHandoffRequestIDsCallCount += 1
+        lastAcknowledgedBookingHandoffCustomerID = customerID
+        return try acknowledgedBookingHandoffRequestIDsResult.get()
+    }
+
+    func acknowledgeBookingHandoff(
+        customerID: UUID,
+        requestID: UUID,
+        bookingID: UUID
+    ) async throws {
+        acknowledgeBookingHandoffCallCount += 1
+        lastAcknowledgedBookingHandoffCustomerID = customerID
+        lastAcknowledgedBookingHandoffRequestID = requestID
+        lastAcknowledgedBookingHandoffBookingID = bookingID
+        try acknowledgeBookingHandoffResult.get()
     }
 }
 

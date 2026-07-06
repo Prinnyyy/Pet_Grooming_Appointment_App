@@ -1,8 +1,19 @@
 # Worklog
 
-This file is the active recent closeout index, newest first. It intentionally keeps only the newest entries needed for recovery. Older verbatim history is archived at `docs/09_frozen/worklogs/WORKLOG_2026-06-20_to_2026-07-01.md`, `docs/09_frozen/worklogs/WORKLOG_2026-07-01_T-132_TO_T-136.md`, and `docs/09_frozen/worklogs/WORKLOG_2026-07-01_T-137_TO_T-140.md`.
+This file is the active recent closeout index, newest first. It intentionally keeps only the newest entries needed for recovery. Older verbatim history is archived under `docs/09_frozen/worklogs/`.
 
 Current branch, next task ID, and current baseline live in `docs/00_memory/CURRENT_STATE.md` and `docs/06_tasks/TASK_LEDGER.md`. Older `Next:` lines and branch references are historical closeout notes, not current instructions.
+
+```text
+Date: 2026-07-06
+Task: T-156 - Booking handoff read-state persistence.
+Files changed: `20260706220736_t156_booking_handoff_read_state.sql`, Customer request repository/store/view wiring, migration and Store tests, memory docs.
+Checks: RED/GREEN `node --test tests/migrations/booking-handoff-read-state.test.mjs`; RED/GREEN targeted `CustomerRequestsStoreTests`; `node --test tests/migrations/*.test.mjs`; `supabase migration list --linked`; sequential dry-run; authorized `supabase db push --linked`; post-apply metadata/RLS/RPC/grant SQL; rollback RLS/RPC validation; zero-residue SQL; sequential lint/advisors; `git diff --check`; `./scripts/ios-build.sh`.
+Remote: After explicit user authorization, `supabase db push --linked` applied `20260706220736_t156_booking_handoff_read_state.sql`; post-apply migration list and dry-run aligned, metadata/RLS/RPC/grant SQL passed, rollback-contained RLS/RPC validation passed, and zero-residue SQL returned 0.
+Result: T-156 is complete. Booking handoff acknowledgements now use durable customer-owned backend state through repository/store boundaries while preserving local offline fallback.
+Risks: Existing advisors remain pre-existing SECURITY DEFINER/Auth warnings. T-156 RPCs are security invoker and were not newly flagged.
+Next: Use T-157 unless the user names another task.
+```
 
 ```text
 Date: 2026-07-06
@@ -106,60 +117,4 @@ Simulator launch: Skipped because this was docs/workflow/search-hygiene only and
 Result: Active AI collaboration docs now use an explicit L0-L4 access model, stronger context stop conditions, compact single-purpose policy/index files, frozen pre-trim archives for historical trace, and one read-only context hygiene command for future closeouts.
 Risks: No iOS source, Supabase schema/RLS/RPC/Storage, migrations, seed data, dependencies, simulator, or remote state changed. Historical details remain in frozen archives and should be read only with targeted recovery/comparison reasons.
 Next: Use T-147 for the next new bugfix or iteration task unless the user explicitly names another task ID.
-```
-
-```text
-Date: 2026-07-02
-Task: T-145 - TestOps modern Supabase secret support and authorized remote matching run.
-Files changed: scripts/testops-core.mjs, scripts/testops.mjs, tests/testops/testops-edge.test.mjs, Supabase/TestOps docs, decision log, results index, CURRENT_STATE.md, WORKLOG.md, TASK_LEDGER.md.
-Checks: RED `node --test tests/testops/testops-edge.test.mjs` failed on missing `sb_secret` server-credential support, then GREEN passed. A second RED caught missing Supabase `access_token` normalization, then GREEN passed. `./scripts/testops-unit.sh` passed 24 Node tests. `node --check scripts/testops-core.mjs`, `node --check scripts/testops.mjs`, `git diff --check`, and context word-count checks passed. Supabase changelog was checked for relevant REST/Auth/API-key breaking-change context.
-Remote: After explicit user authorization, `node scripts/testops.mjs run matching --scenario request_matching_eval --matrix matching_baseline --run-id TESTOPS-MATCH-REMOTE-20260702 --execute --cleanup` passed 8/8 against project `lqmasbuqzvcvtawonjlb`. Cleanup deleted each tagged request and associated matches; read-only verification returned `remainingTaggedRequests=0`.
-Simulator launch: Skipped because this changed Node TestOps automation/docs and ran backend remote TestOps only, not iOS app/UI behavior.
-Result: TestOps now accepts either legacy `SUPABASE_SERVICE_ROLE_KEY=eyJ...` or modern `SUPABASE_SECRET_KEY=sb_secret_...` for server verification and tagged cleanup. Modern secret keys are sent as `apikey` only, never Bearer, and Auth sign-in responses are normalized from `access_token` to internal `accessToken`.
-Risks: No Supabase schema/RLS/RPC/Storage, migration, seed data, iOS source, dependency, or persistent remote test data changed. Seed scripts still require JWT-shaped legacy service-role keys until separately updated.
-Next: Use T-146 for the next new bugfix or iteration task unless the user explicitly names another task ID.
-```
-
-```text
-Date: 2026-07-02
-Task: T-144 - Matching TestOps.
-Files changed: scripts/testops.mjs, scripts/testops-core.mjs, tests/testops/testops-matching.test.mjs, TestOps docs, CURRENT_STATE.md, WORKLOG.md, TASK_LEDGER.md.
-Checks: RED `node --test tests/testops/testops-matching.test.mjs` failed on missing Matching TestOps exports, then GREEN passed after implementation. `./scripts/testops-unit.sh` passed 22 Node tests. `node scripts/testops.mjs run matching --scenario request_matching_eval --matrix matching_baseline --run-id TESTOPS-MATCH-DRYRUN` passed and printed 8 redacted matching plans with local candidate projection. `node --check scripts/testops-core.mjs`, `node --check scripts/testops.mjs`, and `git diff --check` passed.
-Simulator launch: Skipped because this changed local Node TestOps automation and docs only, not iOS app/UI behavior.
-Result: TestOps now has `request_matching_eval` with the `matching_baseline` matrix. The suite covers target groomer include/exclude assertions, same-day capacity versus exact preferred-window reason fragments, and local hard-filter projection for service type, location mode, and request-day availability using T-129 seed metadata. Remote execution remains gated and creates only tagged grooming requests, with optional tagged cleanup.
-Risks: No Supabase schema/RLS/RPC/Storage, migration, seed data, iOS source, dependency, or remote state changed during T-144. Remote matching execute was later run in T-145, which also added modern `sb_secret` TestOps support.
-Next: Use T-145 for the next new bugfix or iteration task unless the user explicitly names another task ID.
-```
-
-```text
-Date: 2026-07-02
-Task: T-143 - TestOps edge unit tests and safety hardening.
-Files changed: scripts/testops-core.mjs, scripts/testops-unit.sh, tests/testops/testops-edge.test.mjs, TestOps docs, CURRENT_STATE.md, WORKLOG.md, TASK_LEDGER.md.
-Checks: RED `node --test tests/testops/testops-edge.test.mjs` failed on missing edge protections, then GREEN passed after implementation. `node --test tests/testops/testops-core.test.mjs` passed. `./scripts/testops-unit.sh` passed 17 Node tests. `node --check scripts/testops-core.mjs`, `node --check scripts/testops.mjs`, and `git diff --check` passed.
-Simulator launch: Skipped because this changed local Node TestOps automation and docs only, not iOS app/UI behavior.
-Result: TestOps now has dedicated edge coverage for empty/duplicate/unsafe seed resources, unsafe run ids, service-role credential type mistakes, stronger redaction of modern Supabase keys/JWTs/signed URLs, zero-tag cleanup, and zero-match lifecycle failure messages. `SupabaseREST` rejects non-JWT service-role values during construction so remote execute fails before lifecycle writes, and `./scripts/testops-unit.sh` runs every `tests/testops/*.test.mjs` file.
-Risks: No Supabase schema/RLS/RPC/Storage, migration, seed data, remote write, iOS source, or dependency changed during T-143. T-145 later updated TestOps for modern `sb_secret_...` `apikey` semantics.
-Next: Use T-144 for the next new bugfix or iteration task unless the user explicitly names another task ID.
-```
-
-```text
-Date: 2026-07-02
-Task: T-142 - Markdown information architecture and search hygiene optimization.
-Files changed: .rgignore, AGENTS.md, decision logs, SUPABASE_CONTRACT.md, test-resource docs, workflow docs, docs indexes, CURRENT_STATE.md, WORKLOG.md, TASK_LEDGER.md, and frozen backend contract snapshot.
-Checks: `git diff --check` passed. Active Markdown link check passed. Decision-log reference checks confirmed `docs/07_decisions/DECISION_LOG.md` is the canonical full decision source and `docs/00_memory/DECISION_LOG.md` is a pointer. `.rgignore` behavior checks confirmed default `rg` skips frozen archives and T-129 seed tables while `rg --no-ignore` can target them. T-129 seed parser dry-runs passed for groomer and customer profiles. Word-count checks confirmed active hot files remain below thresholds and `SUPABASE_CONTRACT.md` is now a fast-path file.
-Simulator launch: Skipped because this was docs/workflow/search-hygiene only and did not affect app/UI behavior.
-Result: The active Markdown information architecture now has one complete decision-log source, a fast-path backend contract with frozen long-form archive, a test-resource index for machine-readable seed tables, and tool-level search defaults that keep frozen/heavy paths out of ordinary `rg` context.
-Risks: Docs/workflow/search-hygiene only. No iOS source, Supabase schema/RLS/RPC/Storage, migrations, seed data, dependencies, or remote state changed. T-129 profile tables remain active because seed/TestOps parsers depend on their Markdown row shape.
-Next: Use T-143 for the next new bugfix or iteration task unless the user explicitly names another task ID.
-```
-
-```text
-Date: 2026-07-02
-Task: T-141 - Automatic context hygiene workflow rules.
-Files changed: AGENTS.md, SINGLE_AGENT_WORKFLOW.md, CONTEXT_AND_RECOVERY.md, docs indexes, memory guide, task guide, CURRENT_STATE.md, WORKLOG.md, TASK_LEDGER.md.
-Checks: `git diff --check` passed. Context-hygiene rule search found the new AGENTS/workflow rules. Archive path existence check passed. Active-path check returned no frozen startup-source matches. Markdown link check across touched index/rule files passed. Word-count check confirmed `CURRENT_STATE.md`, `WORKLOG.md`, and `TASK_LEDGER.md` remain below thresholds.
-Simulator launch: Skipped because this was docs/workflow-only and did not affect app/UI behavior.
-Result: Post-task context hygiene is now part of the repository workflow. Future tasks that update durable memory must check active memory sizes and roll old content into frozen archives before final reporting when thresholds are exceeded.
-Risks: Docs/workflow-only. No iOS source, Supabase schema/RLS/RPC/Storage, scripts, dependencies, or remote state changed.
-Next: Use T-142 for the next new bugfix or iteration task unless the user explicitly names another task ID.
 ```
