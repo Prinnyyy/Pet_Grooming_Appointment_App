@@ -10,6 +10,8 @@ struct CustomerPetsView: View {
     @State private var petStore: CustomerPetsStore
     @State private var requestStore: CustomerRequestsStore
     @State private var bookingStore: BookingsStore
+    @State private var notificationStore: CustomerNotificationsStore
+    @State private var isShowingNotifications = false
 
     init(
         customerID: UUID,
@@ -17,6 +19,7 @@ struct CustomerPetsView: View {
         repository: any CustomerPetRepository,
         customerProfileRepository: (any CustomerProfileRepository)? = nil,
         requestRepository: any CustomerRequestRepository,
+        notificationRepository: any CustomerNotificationRepository,
         bookingRepository: any BookingRepository,
         debugRecorder: AppDebugEventRecorder? = nil,
         onActiveRequestSelected: @escaping (UUID) -> Void = { _ in },
@@ -53,6 +56,12 @@ struct CustomerPetsView: View {
                 debugRecorder: debugRecorder
             )
         )
+        _notificationStore = State(
+            initialValue: CustomerNotificationsStore(
+                customerID: customerID,
+                repository: notificationRepository
+            )
+        )
     }
 
     var body: some View {
@@ -87,6 +96,9 @@ struct CustomerPetsView: View {
                 }
             }
         }
+        .navigationDestination(isPresented: $isShowingNotifications) {
+            CustomerNotificationsView(store: notificationStore)
+        }
         .task {
             await loadHome()
         }
@@ -98,7 +110,10 @@ struct CustomerPetsView: View {
             LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
                 CustomerHomeHeader(
                     displayName: displayName,
-                    notificationAction: {}
+                    unreadNotificationCount: notificationStore.unreadCount,
+                    notificationAction: {
+                        isShowingNotifications = true
+                    }
                 )
 
                 CustomerHomeRequestHero(
@@ -160,6 +175,7 @@ struct CustomerPetsView: View {
         await petStore.load()
         await requestStore.load()
         await bookingStore.load()
+        await notificationStore.load()
     }
 
     private func startGroomingRequest() {
@@ -235,6 +251,7 @@ struct CustomerHomeNextBookingPresentation: Equatable {
 
 private struct CustomerHomeHeader: View {
     let displayName: String
+    let unreadNotificationCount: Int
     let notificationAction: () -> Void
 
     var body: some View {
@@ -282,10 +299,12 @@ private struct CustomerHomeHeader: View {
                         )
                         .groomlyShadow(DesignTokens.Shadows.smallCard)
 
-                    Circle()
-                        .fill(DesignTokens.Colors.groomerAccent)
-                        .frame(width: 10, height: 10)
-                        .offset(x: -10, y: 9)
+                    if unreadNotificationCount > 0 {
+                        Circle()
+                            .fill(DesignTokens.Colors.groomerAccent)
+                            .frame(width: 10, height: 10)
+                            .offset(x: -10, y: 9)
+                    }
                 }
             }
             .buttonStyle(.plain)
@@ -1291,6 +1310,7 @@ private struct CustomerPetsStatusView: View {
             displayName: "Lian",
             repository: CustomerPetsPreviewRepository(),
             requestRepository: CustomerHomePreviewRequestRepository(),
+            notificationRepository: CustomerHomePreviewNotificationRepository(),
             bookingRepository: CustomerHomePreviewBookingRepository()
         )
     }
@@ -1507,6 +1527,21 @@ private final class CustomerHomePreviewRequestRepository: CustomerRequestReposit
             requestStatus: .cancelled,
             cancelledTimestamp: "2026-06-20T14:00:00Z"
         )
+    }
+}
+
+@MainActor
+private final class CustomerHomePreviewNotificationRepository: CustomerNotificationRepository {
+    func notifications(customerID: UUID) async throws -> [CustomerNotification] {
+        []
+    }
+
+    func markRead(notificationID: UUID) async throws -> CustomerNotification {
+        throw CustomerNotificationRepositoryError.unavailable
+    }
+
+    func markAllRead(customerID: UUID) async throws -> [CustomerNotification] {
+        []
     }
 }
 

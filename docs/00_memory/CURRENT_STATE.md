@@ -7,7 +7,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - Date: 2026-07-06
 - Updated by: Codex
 - Latest completed task: T-152 Groomer Offers tab.
-- Next task ID: T-153, unless the user explicitly names another task ID or branch.
+- Next task ID: T-153 remote DDL/RLS verification gate, then T-154 unless the user explicitly names another task ID or branch.
 
 ## Fast Path
 
@@ -33,18 +33,18 @@ Key frozen archive families: current-state snapshots, worklogs, task ledgers, ba
 
 ## Validation Baseline
 
-- Last iOS build: `./scripts/ios-build.sh` passed on 2026-07-06 during T-152.
-- Last full iOS test: `./scripts/ios-test.sh` passed on 2026-07-06 during T-152.
+- Last iOS build: `./scripts/ios-build.sh` passed on 2026-07-06 during T-153 local implementation.
+- Last full iOS test: `./scripts/ios-test.sh` passed on 2026-07-06 during T-153 local implementation.
 - Last TestOps unit validation: T-145 `./scripts/testops-unit.sh` passed 24 Node tests.
 - Last remote TestOps run: T-145 authorized `matching_baseline` passed 8/8 and cleanup left zero tagged request residue.
-- Last docs/workflow validation: T-152 `git diff --check` and `node scripts/context-hygiene-check.mjs` passed before closeout.
+- Last docs/workflow validation: T-153 `git diff --check` and `node scripts/context-hygiene-check.mjs` passed before closeout.
 - Known live failing behavior: none currently recorded.
 
 ## Active Product State
 
 - MVP marketplace flow is complete at the current contract level: customer request -> groomer offers -> customer accepts -> booking/chat -> groomer completes -> customer reviews.
 - Production uses real Supabase Auth, authoritative profile loading, and customer/groomer role separation. No production path fabricates a session/profile.
-- Implemented iOS areas include Auth, role onboarding, customer pets, customer requests/offers, groomer requests/offers, groomer submitted-offer tracking, bookings, text chat, groomer profile/services/portfolio, Customer Account profile settings, Debug Console, and TestOps support.
+- Implemented iOS areas include Auth, role onboarding, customer pets, customer requests/offers, customer in-app notifications, groomer requests/offers, groomer submitted-offer tracking, bookings, text chat, groomer profile/services/portfolio, Customer Account profile settings, Debug Console, and TestOps support.
 - Groomly UI adaptation is complete for implemented MVP screens. Future UI work is screenshot-driven and must map screenshot modules to existing SwiftUI/Store/repository/model paths or stop for new-feature approval.
 
 ## Active Workflow State
@@ -72,7 +72,8 @@ Key frozen archive families: current-state snapshots, worklogs, task ledgers, ba
 - T-129 seed profile Markdown files are machine-readable parser inputs and excluded from default search. Do not reformat or archive them without updating scripts/tests.
 - Deferred features remain out of scope unless explicitly requested: public directory, direct booking, payments, realtime chat, attachments, push notifications, maps/calendar integrations, moderation/disputes, and admin tooling.
 - Large Swift context risks remain `CustomerRequestsView.swift` and `GroomerProfileManagementView.swift`; split only in a dedicated Standard refactor task.
+- T-153 customer notifications are implemented locally and `supabase db push --linked --dry-run` is clean, but remote Supabase does not have `customer_notifications`/RPCs until the user explicitly authorizes applying migration `20260706203710_t153_customer_notifications.sql`.
 
 ## Next Recommended Task
 
-- If continuing the revised Groomly 1.0 queue, use T-153 for the Customer in-app notification center. Treat it as a Deep Supabase task requiring an explicit validation plan and separate approval before remote DDL or other remote writes.
+- Get explicit authorization to apply the T-153 migration and run RLS/RPC/live-flow checks; then use T-154 for request expiry conversion unless the user names another task.

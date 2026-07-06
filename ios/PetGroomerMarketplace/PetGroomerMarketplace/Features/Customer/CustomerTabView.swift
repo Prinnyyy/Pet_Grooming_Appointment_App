@@ -7,6 +7,7 @@ struct CustomerTabView: View {
     let customerProfileRepository: (any CustomerProfileRepository)?
     let petRepository: (any CustomerPetRepository)?
     let requestRepository: (any CustomerRequestRepository)?
+    let notificationRepository: (any CustomerNotificationRepository)?
     let bookingRepository: (any BookingRepository)?
     let chatRepository: (any ChatRepository)?
     let accountContent: AnyView?
@@ -21,6 +22,7 @@ struct CustomerTabView: View {
         customerProfileRepository: (any CustomerProfileRepository)? = nil,
         petRepository: (any CustomerPetRepository)? = nil,
         requestRepository: (any CustomerRequestRepository)? = nil,
+        notificationRepository: (any CustomerNotificationRepository)? = nil,
         bookingRepository: (any BookingRepository)? = nil,
         chatRepository: (any ChatRepository)? = nil,
         accountContent: AnyView? = nil
@@ -30,6 +32,7 @@ struct CustomerTabView: View {
         self.customerProfileRepository = customerProfileRepository
         self.petRepository = petRepository
         self.requestRepository = requestRepository
+        self.notificationRepository = notificationRepository
         self.bookingRepository = bookingRepository
         self.chatRepository = chatRepository
         self.accountContent = accountContent
@@ -81,6 +84,7 @@ struct CustomerTabView: View {
            let customerID,
            let petRepository,
            let requestRepository,
+           let notificationRepository,
            let bookingRepository {
             CustomerPetsView(
                 customerID: customerID,
@@ -88,6 +92,7 @@ struct CustomerTabView: View {
                 repository: petRepository,
                 customerProfileRepository: customerProfileRepository,
                 requestRepository: requestRepository,
+                notificationRepository: notificationRepository,
                 bookingRepository: bookingRepository,
                 debugRecorder: debugRecorder,
                 onActiveRequestSelected: { requestID in

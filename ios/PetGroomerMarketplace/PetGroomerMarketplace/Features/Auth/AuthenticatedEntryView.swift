@@ -6,6 +6,7 @@ struct AuthenticatedEntryView: View {
     private let customerProfileRepository: any CustomerProfileRepository
     private let customerPetRepository: any CustomerPetRepository
     private let customerRequestRepository: any CustomerRequestRepository
+    private let customerNotificationRepository: any CustomerNotificationRepository
     private let bookingRepository: any BookingRepository
     private let chatRepository: any ChatRepository
     private let groomerProfileRepository: any GroomerProfileRepository
@@ -19,6 +20,7 @@ struct AuthenticatedEntryView: View {
         customerProfileRepository: any CustomerProfileRepository,
         customerPetRepository: any CustomerPetRepository,
         customerRequestRepository: any CustomerRequestRepository,
+        customerNotificationRepository: any CustomerNotificationRepository,
         bookingRepository: any BookingRepository,
         chatRepository: any ChatRepository,
         groomerProfileRepository: any GroomerProfileRepository,
@@ -29,6 +31,7 @@ struct AuthenticatedEntryView: View {
         self.customerProfileRepository = customerProfileRepository
         self.customerPetRepository = customerPetRepository
         self.customerRequestRepository = customerRequestRepository
+        self.customerNotificationRepository = customerNotificationRepository
         self.bookingRepository = bookingRepository
         self.chatRepository = chatRepository
         self.groomerProfileRepository = groomerProfileRepository
@@ -60,6 +63,7 @@ struct AuthenticatedEntryView: View {
                     customerProfileRepository: customerProfileRepository,
                     petRepository: customerPetRepository,
                     requestRepository: customerRequestRepository,
+                    notificationRepository: customerNotificationRepository,
                     bookingRepository: bookingRepository,
                     chatRepository: chatRepository,
                     accountContent: customerAccountContent(for: profile)

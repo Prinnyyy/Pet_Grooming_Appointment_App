@@ -9,6 +9,7 @@ struct AppComposition {
     let customerProfileRepository: (any CustomerProfileRepository)?
     let customerPetRepository: (any CustomerPetRepository)?
     let customerRequestRepository: (any CustomerRequestRepository)?
+    let customerNotificationRepository: (any CustomerNotificationRepository)?
     let bookingRepository: (any BookingRepository)?
     let chatRepository: (any ChatRepository)?
     let groomerProfileRepository: (any GroomerProfileRepository)?
@@ -49,6 +50,10 @@ struct AppComposition {
                 base: SupabaseCustomerRequestRepository(client: client),
                 debugRecorder: debugRecorder
             )
+            let customerNotificationRepository = DebugCustomerNotificationRepository(
+                base: SupabaseCustomerNotificationRepository(client: client),
+                debugRecorder: debugRecorder
+            )
             let bookingRepository = DebugBookingRepository(
                 base: SupabaseBookingRepository(client: client),
                 debugRecorder: debugRecorder
@@ -69,6 +74,7 @@ struct AppComposition {
             let customerProfileRepository = SupabaseCustomerProfileRepository(client: client)
             let customerPetRepository = SupabaseCustomerPetRepository(client: client)
             let customerRequestRepository = SupabaseCustomerRequestRepository(client: client)
+            let customerNotificationRepository = SupabaseCustomerNotificationRepository(client: client)
             let bookingRepository = SupabaseBookingRepository(client: client)
             let chatRepository = SupabaseChatRepository(client: client)
             let groomerProfileRepository = SupabaseGroomerProfileRepository(client: client)
@@ -81,6 +87,7 @@ struct AppComposition {
             self.customerProfileRepository = customerProfileRepository
             self.customerPetRepository = customerPetRepository
             self.customerRequestRepository = customerRequestRepository
+            self.customerNotificationRepository = customerNotificationRepository
             self.bookingRepository = bookingRepository
             self.chatRepository = chatRepository
             self.groomerProfileRepository = groomerProfileRepository
@@ -99,6 +106,7 @@ struct AppComposition {
             customerProfileRepository = nil
             customerPetRepository = nil
             customerRequestRepository = nil
+            customerNotificationRepository = nil
             bookingRepository = nil
             chatRepository = nil
             groomerProfileRepository = nil

@@ -8,6 +8,7 @@ struct AppRootView: View {
     let customerProfileRepository: (any CustomerProfileRepository)?
     let customerPetRepository: (any CustomerPetRepository)?
     let customerRequestRepository: (any CustomerRequestRepository)?
+    let customerNotificationRepository: (any CustomerNotificationRepository)?
     let bookingRepository: (any BookingRepository)?
     let chatRepository: (any ChatRepository)?
     let groomerProfileRepository: (any GroomerProfileRepository)?
@@ -22,6 +23,7 @@ struct AppRootView: View {
         customerProfileRepository: (any CustomerProfileRepository)? = nil,
         customerPetRepository: (any CustomerPetRepository)? = nil,
         customerRequestRepository: (any CustomerRequestRepository)? = nil,
+        customerNotificationRepository: (any CustomerNotificationRepository)? = nil,
         bookingRepository: (any BookingRepository)? = nil,
         chatRepository: (any ChatRepository)? = nil,
         groomerProfileRepository: (any GroomerProfileRepository)? = nil,
@@ -35,6 +37,7 @@ struct AppRootView: View {
         self.customerProfileRepository = customerProfileRepository
         self.customerPetRepository = customerPetRepository
         self.customerRequestRepository = customerRequestRepository
+        self.customerNotificationRepository = customerNotificationRepository
         self.bookingRepository = bookingRepository
         self.chatRepository = chatRepository
         self.groomerProfileRepository = groomerProfileRepository
@@ -50,6 +53,7 @@ struct AppRootView: View {
                let customerProfileRepository,
                let customerPetRepository,
                let customerRequestRepository,
+               let customerNotificationRepository,
                let bookingRepository,
                let chatRepository,
                let groomerProfileRepository,
@@ -60,6 +64,7 @@ struct AppRootView: View {
                     customerProfileRepository: customerProfileRepository,
                     customerPetRepository: customerPetRepository,
                     customerRequestRepository: customerRequestRepository,
+                    customerNotificationRepository: customerNotificationRepository,
                     bookingRepository: bookingRepository,
                     chatRepository: chatRepository,
                     groomerProfileRepository: groomerProfileRepository,

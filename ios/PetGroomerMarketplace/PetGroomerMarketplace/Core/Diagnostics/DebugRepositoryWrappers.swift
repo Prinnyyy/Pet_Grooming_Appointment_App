@@ -56,6 +56,7 @@ private enum AppDebugRepositoryCancellation {
         switch error {
         case BookingRepositoryError.cancelled,
              CustomerRequestRepositoryError.cancelled,
+             CustomerNotificationRepositoryError.cancelled,
              CustomerProfileRepositoryError.cancelled,
              CustomerPetRepositoryError.cancelled,
              ChatRepositoryError.cancelled,
@@ -292,6 +293,67 @@ final class DebugCustomerRequestRepository: CustomerRequestRepository {
             metadata: ["requestID": requestID.uuidString, "rpc": "cancel_grooming_request"]
         ) {
             try await base.cancelRequest(requestID: requestID)
+        }
+    }
+}
+
+@MainActor
+final class DebugCustomerNotificationRepository: CustomerNotificationRepository {
+    private let base: any CustomerNotificationRepository
+    private let debugRecorder: AppDebugEventRecorder?
+
+    init(
+        base: any CustomerNotificationRepository,
+        debugRecorder: AppDebugEventRecorder?
+    ) {
+        self.base = base
+        self.debugRecorder = debugRecorder
+    }
+
+    func notifications(customerID: UUID) async throws -> [CustomerNotification] {
+        try await debugRepositoryCall(
+            recorder: debugRecorder,
+            source: "CustomerNotificationRepository.notifications",
+            scope: "customer.notifications",
+            operation: "notifications",
+            metadata: [
+                "customerID": customerID.uuidString,
+                "table": "customer_notifications",
+            ]
+        ) {
+            try await base.notifications(customerID: customerID)
+        }
+    }
+
+    func markRead(
+        notificationID: UUID
+    ) async throws -> CustomerNotification {
+        try await debugRepositoryCall(
+            recorder: debugRecorder,
+            source: "CustomerNotificationRepository.markRead",
+            scope: "customer.notifications",
+            operation: "markRead",
+            metadata: [
+                "notificationID": notificationID.uuidString,
+                "rpc": "mark_customer_notification_read",
+            ]
+        ) {
+            try await base.markRead(notificationID: notificationID)
+        }
+    }
+
+    func markAllRead(customerID: UUID) async throws -> [CustomerNotification] {
+        try await debugRepositoryCall(
+            recorder: debugRecorder,
+            source: "CustomerNotificationRepository.markAllRead",
+            scope: "customer.notifications",
+            operation: "markAllRead",
+            metadata: [
+                "customerID": customerID.uuidString,
+                "rpc": "mark_all_customer_notifications_read",
+            ]
+        ) {
+            try await base.markAllRead(customerID: customerID)
         }
     }
 }

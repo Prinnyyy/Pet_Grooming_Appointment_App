@@ -6,6 +6,7 @@ struct AuthenticationGateView: View {
     let customerProfileRepository: any CustomerProfileRepository
     let customerPetRepository: any CustomerPetRepository
     let customerRequestRepository: any CustomerRequestRepository
+    let customerNotificationRepository: any CustomerNotificationRepository
     let bookingRepository: any BookingRepository
     let chatRepository: any ChatRepository
     let groomerProfileRepository: any GroomerProfileRepository
@@ -38,6 +39,7 @@ struct AuthenticationGateView: View {
                     customerProfileRepository: customerProfileRepository,
                     customerPetRepository: customerPetRepository,
                     customerRequestRepository: customerRequestRepository,
+                    customerNotificationRepository: customerNotificationRepository,
                     bookingRepository: bookingRepository,
                     chatRepository: chatRepository,
                     groomerProfileRepository: groomerProfileRepository,
