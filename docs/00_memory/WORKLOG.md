@@ -6,6 +6,16 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-06
+Task: T-155 - Backfill matching after groomer activation/availability changes.
+Files changed: `20260706213507_t155_backfill_matching.sql`, `tests/migrations/backfill-matching.test.mjs`, memory docs.
+Checks: RED/GREEN `node --test tests/migrations/backfill-matching.test.mjs`; `node --test tests/migrations/*.test.mjs`; authorized `supabase db push --linked`; post-apply migration list/dry-run, function privilege SQL, trigger SQL, RPC-definition SQL, rollback backfill SQL, residue SQL; remote `matching_baseline` TestOps 8/8 with cleanup and zero residue; lint/advisors; `git diff --check`; `./scripts/ios-build.sh`; `ios-test` earlier failed one unrelated T-153 notification-order assertion.
+Result: T-155 applied `20260706213507_t155_backfill_matching.sql` to `lqmasbuqzvcvtawonjlb`. It extracts reusable private request-match insertion, makes `public.create_grooming_request` reuse it, and backfills missing matches after groomer activation plus availability window, booking preference, and time-off changes. Private backfill functions grant execute only to `service_role`; trigger functions are not externally executable.
+Risks: Rollback SQL verified activation, availability, preference, time-off, duplicate, inactive, and expired paths with zero tagged residue. Existing advisors remain public authenticated SECURITY DEFINER RPC warnings and Auth leaked-password protection. The unrelated T-153 same-timestamp notification-order test failure remains outside T-155 scope.
+Next: Use T-156 unless the user names another task ID.
+```
+
+```text
+Date: 2026-07-06
 Task: T-154 - Request expiry conversion.
 Files changed: `20260706211524_t154_request_expiry_conversion.sql`, migration tests, memory docs.
 Checks: RED/GREEN `node --test tests/migrations/request-expiry.test.mjs`; `node --test tests/migrations/*.test.mjs`; pre-apply `supabase migration list --linked` and `supabase db push --linked --dry-run`; authorized `supabase db push --linked`; post-apply migration list/dry-run; function metadata/execute-privilege SQL; cron/pg_cron SQL; rollback-contained expiry conversion SQL; residue/stale-request SQL; `supabase db lint --linked --fail-on none`; `supabase db advisors --linked --type all --level warn --fail-on none`; `git diff --check`; `./scripts/ios-build.sh`; `./scripts/ios-test.sh`.

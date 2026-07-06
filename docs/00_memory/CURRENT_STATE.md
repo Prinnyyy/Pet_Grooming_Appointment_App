@@ -6,8 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-06
 - Updated by: Codex
-- Latest completed task: T-154 Request expiry conversion.
-- Next task ID: T-155, unless the user explicitly names another task ID or branch.
+- Latest completed task: T-155 Backfill matching after groomer activation/availability changes.
+- Current task: none active.
+- Next task ID: T-156 unless the user explicitly names another task ID or branch.
 
 ## Fast Path
 
@@ -33,12 +34,12 @@ Key frozen archive families: current-state snapshots, worklogs, task ledgers, ba
 
 ## Validation Baseline
 
-- Last iOS build: `./scripts/ios-build.sh` passed on 2026-07-06 during T-154 local implementation.
-- Last full iOS test: `./scripts/ios-test.sh` passed on 2026-07-06 during T-154 local implementation.
-- Last Supabase migration apply: authorized `supabase db push --linked` applied `20260706211524_t154_request_expiry_conversion.sql` to project `lqmasbuqzvcvtawonjlb` on 2026-07-06.
-- Last Supabase live post-apply validation: T-154 migration list/dry-run, function metadata/execute-privilege SQL, cron/pg_cron SQL, rollback-contained expiry conversion SQL, residue/stale-request SQL, lint, and advisors passed on 2026-07-06.
+- Last iOS build: `./scripts/ios-build.sh` passed on 2026-07-06 during T-155 closeout.
+- Last full iOS test: `./scripts/ios-test.sh` passed on 2026-07-06 during T-154 local implementation. T-155 attempted `./scripts/ios-test.sh` on 2026-07-06; it failed one unrelated T-153 `CustomerNotificationsStoreTests.markAllReadReplacesNotificationsWithRepositoryResult()` same-timestamp ordering assertion after 229/230 tests passed.
+- Last Supabase migration apply: authorized `supabase db push --linked` applied `20260706213507_t155_backfill_matching.sql` to project `lqmasbuqzvcvtawonjlb` on 2026-07-06.
+- Last Supabase live post-apply validation: T-155 migration list/dry-run, function metadata/execute-privilege SQL, trigger SQL, RPC-definition SQL, rollback-contained backfill SQL, residue SQL, lint, advisors, and remote matching TestOps cleanup passed on 2026-07-06.
 - Last TestOps unit validation: T-145 `./scripts/testops-unit.sh` passed 24 Node tests.
-- Last remote TestOps run: T-145 authorized `matching_baseline` passed 8/8 and cleanup left zero tagged request residue.
+- Last remote TestOps run: T-155 authorized `matching_baseline` run `TESTOPS-T155-MATCH-20260706-*` passed 8/8 and cleanup left zero tagged request/match residue.
 - Last docs/workflow validation: T-153 `git diff --check` and `node scripts/context-hygiene-check.mjs` passed before closeout.
 - Known live failing behavior: none currently recorded.
 
@@ -74,9 +75,10 @@ Key frozen archive families: current-state snapshots, worklogs, task ledgers, ba
 - T-129 seed profile Markdown files are machine-readable parser inputs and excluded from default search. Do not reformat or archive them without updating scripts/tests.
 - Deferred features remain out of scope unless explicitly requested: public directory, direct booking, payments, realtime chat, attachments, push notifications/APNs, maps/calendar integrations, moderation/disputes, and admin tooling.
 - Large Swift context risks remain `CustomerRequestsView.swift` and `GroomerProfileManagementView.swift`; split only in a dedicated Standard refactor task.
+- T-155 installed private reusable request-match insertion plus backfill triggers for groomer activation and availability-related changes.
 - T-154 installed `pg_cron` 1.6.4 and scheduled `groomly_expire_grooming_requests` every 5 minutes to call `app_private.expire_grooming_requests(250)`.
-- Security advisor still reports pre-existing public authenticated `SECURITY DEFINER` RPC warnings and Auth leaked-password protection. T-153 mark-read RPCs are security invoker and were not flagged; T-154 private `app_private` function was not flagged and is executable by `service_role` only.
+- Security advisor still reports pre-existing public authenticated `SECURITY DEFINER` RPC warnings and Auth leaked-password protection. T-153 mark-read RPCs are security invoker and were not flagged; T-154/T-155 private `app_private` functions were not flagged.
 
 ## Next Recommended Task
 
-- Use T-155 for backfill matching unless the user names another task.
+- Start T-156 handoff-card read-state persistence unless the user names another task.
