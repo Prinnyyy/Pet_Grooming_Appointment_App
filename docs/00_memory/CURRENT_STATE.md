@@ -6,8 +6,8 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-06
 - Updated by: Codex
-- Latest completed task: T-152 Groomer Offers tab.
-- Next task ID: T-153 remote DDL/RLS verification gate, then T-154 unless the user explicitly names another task ID or branch.
+- Latest completed task: T-153 Customer in-app notification center.
+- Next task ID: T-154, unless the user explicitly names another task ID or branch.
 
 ## Fast Path
 
@@ -35,6 +35,8 @@ Key frozen archive families: current-state snapshots, worklogs, task ledgers, ba
 
 - Last iOS build: `./scripts/ios-build.sh` passed on 2026-07-06 during T-153 local implementation.
 - Last full iOS test: `./scripts/ios-test.sh` passed on 2026-07-06 during T-153 local implementation.
+- Last Supabase migration apply: authorized `supabase db push --linked` applied `20260706203710_t153_customer_notifications.sql` to project `lqmasbuqzvcvtawonjlb` on 2026-07-06.
+- Last Supabase live validation: T-153 post-apply migration list/dry-run, rollback metadata/RLS/RPC/event-trigger SQL checks, security/performance advisors, and XcodeBuildMCP Customer Home bell/list目检 passed on 2026-07-06.
 - Last TestOps unit validation: T-145 `./scripts/testops-unit.sh` passed 24 Node tests.
 - Last remote TestOps run: T-145 authorized `matching_baseline` passed 8/8 and cleanup left zero tagged request residue.
 - Last docs/workflow validation: T-153 `git diff --check` and `node scripts/context-hygiene-check.mjs` passed before closeout.
@@ -70,10 +72,10 @@ Key frozen archive families: current-state snapshots, worklogs, task ledgers, ba
 - Backend policy files are now current-rule indexes; use migrations or frozen pre-trim snapshots for detailed historical trace.
 - The original root product/engineering brief, old Groomly design task prompt, pre-slim design notes, removed memory pointer, removed generic lightweight templates, and external agent audit drafts are archived under `docs/09_frozen/`; use `docs/01_product/PRODUCT_BRIEF.md`, `docs/01_product/DESIGN_SYSTEM.md`, `docs/08_design/UI_IMPLEMENTATION_NOTES.md`, `docs/07_decisions/DECISION_LOG.md`, and active workflow/task docs as entrypoints. External agent reports are review input only and must not reset branch, task ID, validation, or product status.
 - T-129 seed profile Markdown files are machine-readable parser inputs and excluded from default search. Do not reformat or archive them without updating scripts/tests.
-- Deferred features remain out of scope unless explicitly requested: public directory, direct booking, payments, realtime chat, attachments, push notifications, maps/calendar integrations, moderation/disputes, and admin tooling.
+- Deferred features remain out of scope unless explicitly requested: public directory, direct booking, payments, realtime chat, attachments, push notifications/APNs, maps/calendar integrations, moderation/disputes, and admin tooling.
 - Large Swift context risks remain `CustomerRequestsView.swift` and `GroomerProfileManagementView.swift`; split only in a dedicated Standard refactor task.
-- T-153 customer notifications are implemented locally and `supabase db push --linked --dry-run` is clean, but remote Supabase does not have `customer_notifications`/RPCs until the user explicitly authorizes applying migration `20260706203710_t153_customer_notifications.sql`.
+- Security advisor still reports pre-existing public authenticated `SECURITY DEFINER` RPC warnings and Auth leaked-password protection. T-153 mark-read RPCs are security invoker and were not flagged.
 
 ## Next Recommended Task
 
-- Get explicit authorization to apply the T-153 migration and run RLS/RPC/live-flow checks; then use T-154 for request expiry conversion unless the user names another task.
+- Use T-154 for request expiry conversion unless the user names another task.

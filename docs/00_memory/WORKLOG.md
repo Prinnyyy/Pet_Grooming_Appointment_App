@@ -8,10 +8,10 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 Date: 2026-07-06
 Task: T-153 - Customer in-app notification center.
 Files changed: `customer_notifications` migration, customer notification model/repository/store/view, Customer Home bell navigation, debug repository wrapper, Swift/SQL tests, screen/feature/memory docs.
-Checks: RED SQL migration test and RED Swift store compile test; `node --test tests/migrations/customer-notifications.test.mjs`; `supabase migration list --linked`; `supabase db push --linked --dry-run`; `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; `git diff --check`; `node scripts/context-hygiene-check.mjs`.
+Checks: RED SQL migration test and RED Swift store compile test; `node --test tests/migrations/customer-notifications.test.mjs`; `supabase migration list --linked`; `supabase db push --linked --dry-run`; authorized `supabase db push --linked`; post-apply migration list/dry-run; rollback SQL metadata/RLS/RPC/event-trigger checks; security/performance advisors; XcodeBuildMCP Customer Home bell/list目检; `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; `git diff --check`; `node scripts/context-hygiene-check.mjs`.
 Result: Customer Home bell now routes to a Customer notification list backed by repository/store boundaries, with timestamped read/unread system notifications and mark-read actions. The local migration creates the notification table, RLS policies, mark-read RPCs, and first event triggers for request published/cancelled and booking confirmed/cancelled.
-Risks: Remote DDL was not applied, and live RLS/RPC/UI verification against Supabase was not run, because remote writes require separate explicit user authorization. Until `20260706203710_t153_customer_notifications.sql` is applied, production Supabase will not have the notification table/RPCs.
-Next: Get explicit authorization to apply the T-153 migration and run RLS/RPC/live-flow checks; after that, continue to T-154 unless the user names another task.
+Risks: `20260706203710_t153_customer_notifications.sql` is applied to authorized project `lqmasbuqzvcvtawonjlb`. Security advisor still reports pre-existing public authenticated `SECURITY DEFINER` RPC warnings and Auth leaked-password protection; T-153 mark-read RPCs are security invoker and were not flagged. APNs push remains deferred.
+Next: Use T-154 unless the user names another task ID.
 ```
 
 ```text
