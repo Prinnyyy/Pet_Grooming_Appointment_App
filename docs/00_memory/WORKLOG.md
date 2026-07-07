@@ -6,6 +6,17 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-07
+Task: T-157 - APNs credential availability note.
+Files changed: memory docs only.
+Checks: `git diff --check`; `node scripts/context-hygiene-check.mjs`.
+Remote: No remote writes.
+Result: Recorded that the user currently has a free Apple Developer account, so APNs Auth Key / Push Notifications capability is not available yet. T-157 Edge Function deployment remains blocked until Apple Developer Program upgrade provides APNs Key ID, Team ID, topic confirmation, and `.p8` private key.
+Risks: In-app notifications and the T-157 database/iOS foundation remain usable; actual remote APNs delivery is deferred.
+Next: Commit this note. Continue APNs deployment only after paid Apple Developer Program credentials are available.
+```
+
+```text
+Date: 2026-07-07
 Task: T-158 - Public RPC wrapper hardening.
 Files changed: `20260707174825_t158_public_rpc_wrapper_hardening.sql`, migration tests, RLS/RPC policy, memory docs.
 Checks: RED/GREEN `node --test tests/migrations/public-rpc-wrapper-hardening.test.mjs`; `node --test tests/migrations/*.test.mjs`; `node --test tests/functions/customer-push-dispatcher.test.mjs`; authorized `supabase db push --linked`; post-apply `supabase db push --linked --dry-run`; public/private RPC metadata SQL; rollback authenticated wrapper execution SQL; `supabase db advisors --linked --type all --level warn --fail-on none`; `supabase db lint --linked --fail-on none`; `git diff --check`; `node scripts/context-hygiene-check.mjs`; `./scripts/ios-build.sh`.

@@ -7,8 +7,8 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - Date: 2026-07-07
 - Updated by: Codex
 - Latest completed task: T-158 Public RPC wrapper hardening.
-- Current task: T-157 Customer APNs push notification foundation, remote DB applied and validated; Edge Function deploy is blocked by missing APNs secrets.
-- Next task ID: continue T-157 APNs secret setup and Edge Function deploy unless the user explicitly names another task ID or branch.
+- Current task: T-157 Customer APNs push notification foundation, remote DB applied and validated; Edge Function deploy is blocked until paid Apple Developer Program access provides APNs credentials.
+- Next task ID: continue T-157 APNs secret setup and Edge Function deploy after Apple Developer Program upgrade, unless the user explicitly names another task ID or branch.
 
 ## Fast Path
 
@@ -79,10 +79,10 @@ Key frozen archive families: current-state snapshots, worklogs, task ledgers, ba
 - T-155 installed private reusable request-match insertion plus backfill triggers for groomer activation and availability-related changes.
 - T-154 installed `pg_cron` 1.6.4 and scheduled `groomly_expire_grooming_requests` every 5 minutes to call `app_private.expire_grooming_requests(250)`.
 - T-156 added durable customer booking handoff acknowledgement read state with `UserDefaults` fallback and applied the backing table/RLS/RPC migration.
-- T-157 applied customer APNs token registration tables/RPCs, push delivery state, new-offer/new-message notification event triggers, and corrective token-validation migrations. `supabase secrets list` returned no APNs secrets, so `dispatch-customer-push-notifications` is not deployed.
+- T-157 applied customer APNs token registration tables/RPCs, push delivery state, new-offer/new-message notification event triggers, and corrective token-validation migrations. The user currently has a free Apple Developer account, so APNs Auth Key / Push Notifications capability is not available yet; `dispatch-customer-push-notifications` is not deployed.
 - T-158 moved advisor-flagged public authenticated `SECURITY DEFINER` RPCs behind public `SECURITY INVOKER` wrappers and private `app_private` helpers.
 - Security advisor currently reports only Auth leaked-password protection. Public authenticated `SECURITY DEFINER` RPC warnings are cleared.
 
 ## Next Recommended Task
 
-- Continue T-157 by setting or confirming `APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_TOPIC`, and `APNS_PRIVATE_KEY`, then deploy `dispatch-customer-push-notifications`, unless the user names another task.
+- Continue T-157 after Apple Developer Program upgrade by setting `APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_TOPIC`, and `APNS_PRIVATE_KEY`, then deploy `dispatch-customer-push-notifications`, unless the user names another task.
