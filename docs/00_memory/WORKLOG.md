@@ -6,6 +6,17 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-07
+Task: T-159 - Private RPC lint cleanup.
+Files changed: `20260707183427_t159_private_rpc_lint_cleanup.sql`, `tests/migrations/private-rpc-lint-cleanup.test.mjs`, memory docs.
+Checks: RED/GREEN `node --test tests/migrations/private-rpc-lint-cleanup.test.mjs`; `node --test tests/migrations/*.test.mjs`; pre-apply migration list/dry-run; authorized `supabase db push --linked`; post-apply migration list/dry-run; RPC metadata SQL; `supabase db lint --linked --fail-on none`; `supabase db advisors --linked --type all --level warn --fail-on none`; `git diff --check`; context hygiene.
+Remote: Applied `20260707183427_t159_private_rpc_lint_cleanup.sql` to `lqmasbuqzvcvtawonjlb`.
+Result: `app_private.accept_groomer_offer(uuid)` and `app_private.complete_booking(uuid)` no longer contain the unread PL/pgSQL variables previously reported by `supabase db lint`; lint now reports no schema errors.
+Risks: Advisors still report only Auth leaked-password protection. T-157 APNs Edge Function deployment remains blocked by missing paid Apple Developer Program APNs credentials.
+Next: Commit/push T-159. Use T-160 for the next non-APNs task unless the user resumes T-157 after Apple Developer Program upgrade.
+```
+
+```text
+Date: 2026-07-07
 Task: T-157 - APNs credential availability note.
 Files changed: memory docs only.
 Checks: `git diff --check`; `node scripts/context-hygiene-check.mjs`.

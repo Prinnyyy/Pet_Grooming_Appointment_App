@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-07
 - Updated by: Codex
-- Latest completed task: T-158 Public RPC wrapper hardening.
-- Current task: T-157 Customer APNs push notification foundation, remote DB applied and validated; Edge Function deploy is blocked until paid Apple Developer Program access provides APNs credentials.
-- Next task ID: continue T-157 APNs secret setup and Edge Function deploy after Apple Developer Program upgrade, unless the user explicitly names another task ID or branch.
+- Latest completed task: T-159 Private RPC lint cleanup.
+- Current task: T-157 Customer APNs push notification foundation remains blocked until paid Apple Developer Program access provides APNs credentials.
+- Next task ID: use T-160 for new non-APNs work, unless the user resumes T-157 after Apple Developer Program upgrade.
 
 ## Fast Path
 
@@ -36,9 +36,9 @@ Key frozen archive families: current-state snapshots, worklogs, task ledgers, ba
 
 - Last iOS build: `./scripts/ios-build.sh` passed on 2026-07-07 during T-158 closeout.
 - Last full iOS test: `./scripts/ios-test.sh` passed on 2026-07-06 during T-154 local implementation. T-155 attempted `./scripts/ios-test.sh` on 2026-07-06; it failed one unrelated T-153 `CustomerNotificationsStoreTests.markAllReadReplacesNotificationsWithRepositoryResult()` same-timestamp ordering assertion after 229/230 tests passed.
-- Last Supabase migration apply: authorized `supabase db push --linked` applied `20260707174825_t158_public_rpc_wrapper_hardening.sql` to project `lqmasbuqzvcvtawonjlb` on 2026-07-07.
-- Last Supabase live post-apply validation: T-158 dry-run, public/private RPC metadata SQL, rollback wrapper execution SQL, lint, and advisors ran on 2026-07-07.
-- Prepared unapplied Supabase migration: none; sequential `supabase db push --linked --dry-run` reported the remote database is up to date after T-157 corrective migrations.
+- Last Supabase migration apply: authorized `supabase db push --linked` applied `20260707183427_t159_private_rpc_lint_cleanup.sql` to project `lqmasbuqzvcvtawonjlb` on 2026-07-07.
+- Last Supabase live post-apply validation: T-159 migration list/dry-run, public/private RPC metadata SQL, `supabase db lint`, and advisors ran on 2026-07-07.
+- Prepared unapplied Supabase migration: none; sequential `supabase db push --linked --dry-run` reported the remote database is up to date after T-159.
 - Last TestOps unit validation: T-145 `./scripts/testops-unit.sh` passed 24 Node tests.
 - Last remote TestOps run: T-155 authorized `matching_baseline` run `TESTOPS-T155-MATCH-20260706-*` passed 8/8 and cleanup left zero tagged request/match residue.
 - Last docs/workflow validation: T-158 `git diff --check` and `node scripts/context-hygiene-check.mjs` passed on 2026-07-07.
@@ -81,8 +81,9 @@ Key frozen archive families: current-state snapshots, worklogs, task ledgers, ba
 - T-156 added durable customer booking handoff acknowledgement read state with `UserDefaults` fallback and applied the backing table/RLS/RPC migration.
 - T-157 applied customer APNs token registration tables/RPCs, push delivery state, new-offer/new-message notification event triggers, and corrective token-validation migrations. The user currently has a free Apple Developer account, so APNs Auth Key / Push Notifications capability is not available yet; `dispatch-customer-push-notifications` is not deployed.
 - T-158 moved advisor-flagged public authenticated `SECURITY DEFINER` RPCs behind public `SECURITY INVOKER` wrappers and private `app_private` helpers.
-- Security advisor currently reports only Auth leaked-password protection. Public authenticated `SECURITY DEFINER` RPC warnings are cleared.
+- T-159 rebuilt `app_private.accept_groomer_offer(uuid)` and `app_private.complete_booking(uuid)` without the unread PL/pgSQL variables previously flagged by `supabase db lint`.
+- Security advisor currently reports only Auth leaked-password protection. Public authenticated `SECURITY DEFINER` RPC warnings are cleared, and `supabase db lint` reports no schema errors.
 
 ## Next Recommended Task
 
-- Continue T-157 after Apple Developer Program upgrade by setting `APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_TOPIC`, and `APNS_PRIVATE_KEY`, then deploy `dispatch-customer-push-notifications`, unless the user names another task.
+- Use T-160 for the next non-APNs task the user selects. Continue T-157 APNs deployment only after Apple Developer Program credentials are available.
