@@ -17,6 +17,7 @@ struct CustomerRequestsView: View {
     @State private var pendingCancelRequest: CustomerGroomingRequest?
     @State private var selectedBookingHandoff: CustomerRequestBookingHandoff?
     @Binding private var focusedRequestID: UUID?
+    private let customerProfileRepository: (any CustomerProfileRepository)?
     private let onBookingChatSelected: (Booking) -> Void
 
     init(
@@ -24,11 +25,13 @@ struct CustomerRequestsView: View {
         petRepository: any CustomerPetRepository,
         requestRepository: any CustomerRequestRepository,
         bookingRepository: any BookingRepository,
+        customerProfileRepository: (any CustomerProfileRepository)? = nil,
         debugRecorder: AppDebugEventRecorder? = nil,
         focusedRequestID: Binding<UUID?> = .constant(nil),
         onBookingChatSelected: @escaping (Booking) -> Void = { _ in }
     ) {
         _focusedRequestID = focusedRequestID
+        self.customerProfileRepository = customerProfileRepository
         self.onBookingChatSelected = onBookingChatSelected
         _store = State(
             initialValue: CustomerRequestsStore(
@@ -42,6 +45,8 @@ struct CustomerRequestsView: View {
     }
 
     var body: some View {
+        @Bindable var store = store
+
         ZStack {
             DesignTokens.Colors.background
                 .ignoresSafeArea()
@@ -78,6 +83,12 @@ struct CustomerRequestsView: View {
             }
         } message: {
             Text("This closes the request and any pending offers. Confirmed bookings are managed from Bookings.")
+        }
+        .sheet(isPresented: $store.isShowingWizard) {
+            CustomerRequestWizardView(
+                store: store,
+                customerProfileRepository: customerProfileRepository
+            )
         }
         .navigationDestination(item: $selectedBookingHandoff) { handoff in
             BookingDetailView(
@@ -141,6 +152,17 @@ struct CustomerRequestsView: View {
                         )
                         .accessibilityIdentifier("customer.requests.progress-carousel")
                     }
+
+                    if !cancelledRequests.isEmpty {
+                        CustomerCancelledRequestsSection(
+                            requests: cancelledRequests,
+                            store: store,
+                            onRepublishRequest: { request in
+                                store.startRepublish(from: request)
+                            }
+                        )
+                        .accessibilityIdentifier("customer.requests.cancelled-section")
+                    }
                 }
                 .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
                 .padding(.top, DesignTokens.Spacing.xl)
@@ -156,6 +178,18 @@ struct CustomerRequestsView: View {
 
     private var visibleCardCount: Int {
         store.visibleActionCards.count
+    }
+
+    private var cancelledRequests: [CustomerGroomingRequest] {
+        store.requests
+            .filter { $0.status == .cancelled }
+            .sorted { lhs, rhs in
+                if lhs.updatedAt != rhs.updatedAt {
+                    return lhs.updatedAt > rhs.updatedAt
+                }
+
+                return lhs.id.uuidString < rhs.id.uuidString
+            }
     }
 }
 
@@ -1010,6 +1044,78 @@ private struct CustomerRequestActionLabel: View {
     }
 }
 
+private struct CustomerCancelledRequestsSection: View {
+    let requests: [CustomerGroomingRequest]
+    let store: CustomerRequestsStore
+    let onRepublishRequest: (CustomerGroomingRequest) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            GroomlySectionHeader(
+                "Closed Requests",
+                subtitle: "Cancelled requests can be reviewed and used to start a new request."
+            )
+
+            LazyVStack(spacing: DesignTokens.Spacing.md) {
+                ForEach(requests) { request in
+                    NavigationLink {
+                        CustomerRequestDetailView(
+                            requestID: request.id,
+                            store: store,
+                            onRepublishRequest: onRepublishRequest
+                        )
+                    } label: {
+                        CustomerCancelledRequestRow(request: request)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+}
+
+private struct CustomerCancelledRequestRow: View {
+    let request: CustomerGroomingRequest
+
+    var body: some View {
+        GroomlyCard {
+            HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
+                Text(request.petSnapshot.displayEmoji)
+                    .font(.system(size: 26))
+                    .frame(width: 48, height: 48)
+                    .background(request.avatarBackground)
+                    .clipShape(DesignTokens.Shapes.circular)
+                    .accessibilityHidden(true)
+
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                    Text(request.title)
+                        .font(DesignTokens.Typography.headline)
+                        .foregroundStyle(DesignTokens.Colors.textPrimary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.82)
+
+                    Text(timeSummary)
+                        .font(DesignTokens.Typography.caption)
+                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+                        .lineLimit(1)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                GroomlyStatusChip(
+                    "Cancelled",
+                    systemImage: "xmark.circle.fill",
+                    tone: .neutral
+                )
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    private var timeSummary: String {
+        "\(GroomingRequestDateFormatting.displayString(from: request.preferredStart)) - \(GroomingRequestDateFormatting.displayString(from: request.preferredEnd))"
+    }
+}
+
 private struct CustomerRequestsEmptyDashboard: View {
     var body: some View {
         GroomlyEmptyState(
@@ -1115,6 +1221,17 @@ private extension GroomingRequestPetSnapshot {
 struct CustomerRequestDetailView: View {
     let requestID: UUID
     let store: CustomerRequestsStore
+    let onRepublishRequest: (CustomerGroomingRequest) -> Void
+
+    init(
+        requestID: UUID,
+        store: CustomerRequestsStore,
+        onRepublishRequest: @escaping (CustomerGroomingRequest) -> Void = { _ in }
+    ) {
+        self.requestID = requestID
+        self.store = store
+        self.onRepublishRequest = onRepublishRequest
+    }
 
     var body: some View {
         if let request = store.request(withID: requestID) {
@@ -1133,6 +1250,17 @@ struct CustomerRequestDetailView: View {
                         petSnapshotCard(request)
                         requestPhotosCard(request)
                         scheduleLocationCard(request)
+
+                        if request.status == .cancelled {
+                            CustomerRequestRepublishCard(
+                                title: "Create New Request",
+                                subtitle: "Start a new request from these saved details.",
+                                actionTitle: "Create New Request",
+                                action: {
+                                    onRepublishRequest(request)
+                                }
+                            )
+                        }
 
                         CustomerOfferReviewSection(
                             request: request,
@@ -1311,6 +1439,46 @@ struct CustomerRequestDetailView: View {
                         tone: .customer
                     )
                 }
+            }
+        }
+    }
+}
+
+struct CustomerRequestRepublishCard: View {
+    let title: String
+    let subtitle: String
+    let actionTitle: String
+    let accessibilityIdentifier: String
+    let action: () -> Void
+
+    init(
+        title: String,
+        subtitle: String,
+        actionTitle: String,
+        accessibilityIdentifier: String = "customer.requests.republish",
+        action: @escaping () -> Void
+    ) {
+        self.title = title
+        self.subtitle = subtitle
+        self.actionTitle = actionTitle
+        self.accessibilityIdentifier = accessibilityIdentifier
+        self.action = action
+    }
+
+    var body: some View {
+        GroomlyCard {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                DetailCardHeader(
+                    title: title,
+                    subtitle: subtitle,
+                    systemImage: "arrow.clockwise.circle.fill"
+                )
+
+                Button(action: action) {
+                    Label(actionTitle, systemImage: "plus.circle.fill")
+                }
+                .buttonStyle(GroomlyPrimaryButtonStyle(accent: .customer))
+                .accessibilityIdentifier(accessibilityIdentifier)
             }
         }
     }
@@ -2214,10 +2382,10 @@ struct CustomerRequestWizardView: View {
 
     private let onAddPet: (() -> Void)?
     private let customerProfileRepository: (any CustomerProfileRepository)?
-    @State private var currentStep: CustomerRequestWizardStep = .pet
+    @State private var currentStep: CustomerRequestWizardStep
     @State private var selectedServiceOption: CustomerRequestServiceOption?
     @State private var selectedDate: Date
-    @State private var selectedTimeWindow: CustomerRequestTimeWindowOption = .afternoon
+    @State private var selectedTimeWindow: CustomerRequestTimeWindowOption
     @State private var isFlexibleWithTime = false
     @State private var selectedRequestPhotoItem: PhotosPickerItem?
     @State private var invalidFields: Set<CustomerRequestWizardValidationField> = []
@@ -2231,7 +2399,11 @@ struct CustomerRequestWizardView: View {
         self.store = store
         self.customerProfileRepository = customerProfileRepository
         self.onAddPet = onAddPet
+        _currentStep = State(initialValue: store.wizardInitialStep)
         _selectedDate = State(initialValue: store.preferredStart)
+        _selectedTimeWindow = State(
+            initialValue: store.wizardInitialStep == .review ? .detailed : .afternoon
+        )
         _selectedServiceOption = State(
             initialValue: store.serviceType
         )
@@ -2748,7 +2920,17 @@ struct CustomerRequestWizardView: View {
     }
 
     private func applyInitialDefaults() {
+        currentStep = store.wizardInitialStep
+        selectedDate = store.preferredStart
         selectedServiceOption = store.serviceType
+        guard store.wizardInitialStep != .review else {
+            selectedTimeWindow = .detailed
+            isFlexibleWithTime = false
+            return
+        }
+
+        selectedTimeWindow = .afternoon
+        isFlexibleWithTime = false
         applySelectedTimeWindow()
     }
 

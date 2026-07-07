@@ -113,6 +113,7 @@ struct CustomerTabView: View {
                 petRepository: petRepository,
                 requestRepository: requestRepository,
                 bookingRepository: bookingRepository,
+                customerProfileRepository: customerProfileRepository,
                 debugRecorder: debugRecorder,
                 focusedRequestID: $focusedRequestID,
                 onBookingChatSelected: openBookingChat
@@ -124,6 +125,9 @@ struct CustomerTabView: View {
                 participantID: customerID,
                 role: .customer,
                 repository: bookingRepository,
+                petRepository: petRepository,
+                requestRepository: requestRepository,
+                customerProfileRepository: customerProfileRepository,
                 debugRecorder: debugRecorder,
                 onOpenChat: openBookingChat
             )

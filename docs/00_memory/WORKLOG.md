@@ -6,6 +6,16 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-07
+Task: T-162 - Cancelled request/booking repost flow.
+Files changed: Customer request Store/View, BookingsView, CustomerTabView, Customer request feature tests, memory docs, and frozen worklog archive for T-150 through T-154.
+Checks: RED/GREEN targeted `CustomerRequestsStoreTests`; `git diff --check`; `./scripts/ios-build.sh`; `node scripts/context-hygiene-check.mjs`.
+Result: Customers can start a new request from a cancelled request or cancelled booking. The existing five-step wizard opens at Review with original request details prefilled, cached request photos copied into the new draft upload path, and publish still creating a fresh request id.
+Risks: No Supabase schema/RLS/RPC change. Cancelled booking repost requires the matching original request to load; otherwise the Store reports a recoverable refresh error. Full `ios-test` remains blocked by the known T-153 notification ordering test.
+Next: Use T-163 unless the user resumes T-157 after Apple Developer Program upgrade.
+```
+
+```text
+Date: 2026-07-07
 Task: T-161 - App Store privacy baseline.
 Files changed: iOS `PrivacyInfo.xcprivacy`, App Store privacy checklist, manifest tests, memory docs, and frozen worklog archive for T-146 through T-149.
 Checks: RED/GREEN `node --test tests/ios/app-store-privacy.test.mjs`; `plutil -lint` for the privacy manifest; `./scripts/ios-build.sh`; built-app manifest presence check; `git diff --check`; `node scripts/context-hygiene-check.mjs`.
@@ -99,54 +109,4 @@ Checks: RED/GREEN `node --test tests/migrations/backfill-matching.test.mjs`; `no
 Result: T-155 applied `20260706213507_t155_backfill_matching.sql` to `lqmasbuqzvcvtawonjlb`. It extracts reusable private request-match insertion, makes `public.create_grooming_request` reuse it, and backfills missing matches after groomer activation plus availability window, booking preference, and time-off changes. Private backfill functions grant execute only to `service_role`; trigger functions are not externally executable.
 Risks: Rollback SQL verified activation, availability, preference, time-off, duplicate, inactive, and expired paths with zero tagged residue. Existing advisors remain public authenticated SECURITY DEFINER RPC warnings and Auth leaked-password protection. The unrelated T-153 same-timestamp notification-order test failure remains outside T-155 scope.
 Next: Use T-156 unless the user names another task ID.
-```
-
-```text
-Date: 2026-07-06
-Task: T-154 - Request expiry conversion.
-Files changed: `20260706211524_t154_request_expiry_conversion.sql`, migration tests, memory docs.
-Checks: RED/GREEN `node --test tests/migrations/request-expiry.test.mjs`; `node --test tests/migrations/*.test.mjs`; pre-apply `supabase migration list --linked` and `supabase db push --linked --dry-run`; authorized `supabase db push --linked`; post-apply migration list/dry-run; function metadata/execute-privilege SQL; cron/pg_cron SQL; rollback-contained expiry conversion SQL; residue/stale-request SQL; `supabase db lint --linked --fail-on none`; `supabase db advisors --linked --type all --level warn --fail-on none`; `git diff --check`; `./scripts/ios-build.sh`; `./scripts/ios-test.sh`.
-Result: T-154 applied `20260706211524_t154_request_expiry_conversion.sql` to project `lqmasbuqzvcvtawonjlb`. It adds private `app_private.expire_grooming_requests(integer)` batch processing, moves stale `open`/`has_offers` requests to `expired`, expires linked pending offers and active/offered matches, grants execute only to `service_role`, installs `pg_cron`, and schedules `groomly_expire_grooming_requests` every 5 minutes. Existing Swift expired-state filtering/presentation was validated through the full iOS test entrypoint.
-Risks: Rollback SQL verified conversion behavior with zero residue, and there are currently zero stale open/has-offers requests. Advisors did not flag the private T-154 function. Baseline advisors still report pre-existing authenticated SECURITY DEFINER RPC warnings and Auth leaked-password protection.
-Next: Use T-155 unless the user names another task ID.
-```
-
-```text
-Date: 2026-07-06
-Task: T-153 - Customer in-app notification center.
-Files changed: `customer_notifications` migration, customer notification model/repository/store/view, Customer Home bell navigation, debug repository wrapper, Swift/SQL tests, screen/feature/memory docs.
-Checks: RED SQL migration test and RED Swift store compile test; `node --test tests/migrations/customer-notifications.test.mjs`; `supabase migration list --linked`; `supabase db push --linked --dry-run`; authorized `supabase db push --linked`; post-apply migration list/dry-run; rollback SQL metadata/RLS/RPC/event-trigger checks; security/performance advisors; XcodeBuildMCP Customer Home bell/list目检; `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; `git diff --check`; `node scripts/context-hygiene-check.mjs`.
-Result: Customer Home bell now routes to a Customer notification list backed by repository/store boundaries, with timestamped read/unread system notifications and mark-read actions. The local migration creates the notification table, RLS policies, mark-read RPCs, and first event triggers for request published/cancelled and booking confirmed/cancelled.
-Risks: `20260706203710_t153_customer_notifications.sql` is applied to authorized project `lqmasbuqzvcvtawonjlb`. Security advisor still reports pre-existing public authenticated `SECURITY DEFINER` RPC warnings and Auth leaked-password protection; T-153 mark-read RPCs are security invoker and were not flagged. APNs push remains deferred.
-Next: Use T-154 unless the user names another task ID.
-```
-
-```text
-Date: 2026-07-06
-Task: T-152 - Groomer Offers tab.
-Files changed: Groomer tab routing, `GroomerOffersView`, `GroomerOffersStore`, groomer offer list models/repository adapter, tests, `SCREEN_INVENTORY`, memory docs.
-Checks: RED compile failure for missing offers list surface; `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; XcodeBuildMCP iPhone 17 Offers-tab目检; `git diff --check`; `node scripts/context-hygiene-check.mjs`.
-Result: Groomers now have a visible Offers tab showing submitted offers grouped by status with readable request or booking context when available.
-Risks: No Supabase schema/RLS/RPC/Storage, migrations, dependencies, seed data, remote writes, commits, or pushes changed. Offer creation and withdrawal remain in Board/request detail.
-Next: Use T-153 unless the user names another task ID.
-```
-
-```text
-Date: 2026-07-06
-Task: T-151 - Active Markdown baseline recheck and AGENTS hardening.
-Files changed: AGENTS.md, memory docs, ledger/worklog rolling archives, project-structure log.
-Checks: `git diff --check`; `node scripts/context-hygiene-check.mjs`; active stale-reference searches.
-Result: Active docs use the T-151/T-152 baseline and AGENTS now rejects external reports as authoritative sources.
-Risks: Docs-only. No iOS, Supabase, runtime, seed, simulator, commit, or push change.
-Next: Use T-152 unless the user names another task ID.
-```
-
-```text
-Date: 2026-07-06
-Task: T-150 - Restore correct task baseline and archive external audit drafts.
-Files changed: moved root reports to frozen; updated ignore/search and memory/ledger/archive indexes.
-Checks: `git diff --check`; `node scripts/context-hygiene-check.mjs`.
-Result: Active baseline is `codex/pet-fit-structure-cleanup`; T-151 is next.
-Risks: Docs-only. `main` remote reconciliation needs explicit approval.
-Next: Use T-151 unless the user names another task ID.
 ```

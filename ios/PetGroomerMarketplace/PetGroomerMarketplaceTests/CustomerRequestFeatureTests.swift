@@ -261,6 +261,169 @@ struct CustomerRequestsStoreTests {
     }
 
     @Test @MainActor
+    func startRepublishFromCancelledRequestPrefillsReviewDraftAndCreatesNewRequest() async throws {
+        let customerID = UUID()
+        let pet = Self.pet(customerID: customerID)
+        let originalRequestID = UUID()
+        let newRequestID = UUID()
+        let preferredStartValue = GroomingRequestDateFormatting.serverString(
+            from: Date().addingTimeInterval(2 * 24 * 60 * 60)
+        )
+        let preferredEndValue = GroomingRequestDateFormatting.serverString(
+            from: try #require(
+                GroomingRequestDateFormatting.parsedDate(from: preferredStartValue)
+            ).addingTimeInterval(90 * 60)
+        )
+        let preferredStart = try #require(
+            GroomingRequestDateFormatting.parsedDate(from: preferredStartValue)
+        )
+        let preferredEnd = try #require(
+            GroomingRequestDateFormatting.parsedDate(from: preferredEndValue)
+        )
+        let originalRequest = Self.request(
+            id: originalRequestID,
+            customerID: customerID,
+            petID: pet.id,
+            status: .cancelled,
+            serviceType: .bathAndBrush,
+            serviceNotes: "Use hypoallergenic shampoo.",
+            preferredStart: preferredStartValue,
+            preferredEnd: preferredEndValue,
+            locationMode: .customerComesToGroomer,
+            streetAddress: "456 Cedar Ave",
+            city: "Bellevue",
+            state: "WA",
+            zipCode: "98004",
+            travelRadiusMiles: 24
+        )
+        let originalPhoto = GroomingRequestPhoto(
+            id: UUID(),
+            requestID: originalRequestID,
+            customerID: customerID,
+            storageBucket: "request-photos",
+            storagePath: "customer/original/photo.png",
+            caption: nil,
+            sortOrder: 0,
+            createdAt: "2026-06-22T16:00:00Z"
+        )
+        let copiedPhotoData = Data([1, 2, 3, 4])
+        let requestRepository = CustomerRequestRepositoryFake(
+            requestsResult: .success([originalRequest]),
+            createResult: .success(
+                GroomingRequestPublishResult(
+                    requestID: newRequestID,
+                    matchCount: 3
+                )
+            ),
+            uploadRequestPhotoResult: .success(
+                GroomingRequestPhoto(
+                    id: UUID(),
+                    requestID: newRequestID,
+                    customerID: customerID,
+                    storageBucket: "request-photos",
+                    storagePath: "customer/new/photo.png",
+                    caption: nil,
+                    sortOrder: 0,
+                    createdAt: nil
+                )
+            ),
+            requestPhotosResult: .success([originalPhoto]),
+            requestPhotoDataByID: [originalPhoto.id: copiedPhotoData]
+        )
+        let store = CustomerRequestsStore(
+            customerID: customerID,
+            petRepository: CustomerRequestPetRepositoryFake(
+                petsResult: .success([pet])
+            ),
+            requestRepository: requestRepository,
+            bookingRepository: CustomerRequestBookingRepositoryFake()
+        )
+        await store.load()
+
+        store.startRepublish(from: originalRequest, now: Date())
+
+        #expect(store.isShowingWizard)
+        #expect(store.wizardInitialStep == .review)
+        #expect(store.selectedPetID == pet.id)
+        #expect(store.serviceType == .bathAndBrush)
+        #expect(store.serviceNotes == "Use hypoallergenic shampoo.")
+        #expect(store.preferredStart == preferredStart)
+        #expect(store.preferredEnd == preferredEnd)
+        #expect(store.locationMode == .customerComesToGroomer)
+        #expect(store.streetAddress == "456 Cedar Ave")
+        #expect(store.city == "Bellevue")
+        #expect(store.stateCode == .washington)
+        #expect(store.zipCode == "98004")
+        #expect(store.travelRadiusMiles == 24)
+        #expect(store.pendingRequestPhotos.map(\.data) == [copiedPhotoData])
+        #expect(store.pendingRequestPhotos.map(\.contentType) == [.png])
+
+        await store.publish()
+
+        #expect(requestRepository.createCallCount == 1)
+        #expect(requestRepository.lastDraft?.petID == pet.id)
+        #expect(requestRepository.lastDraft?.serviceType == .bathAndBrush)
+        #expect(requestRepository.lastDraft?.serviceNotes == "Use hypoallergenic shampoo.")
+        #expect(requestRepository.lastDraft?.preferredStart == preferredStart)
+        #expect(requestRepository.lastDraft?.preferredEnd == preferredEnd)
+        #expect(requestRepository.lastDraft?.locationMode == .customerComesToGroomer)
+        #expect(requestRepository.lastDraft?.streetAddress == "456 Cedar Ave")
+        #expect(requestRepository.lastDraft?.city == "Bellevue")
+        #expect(requestRepository.lastDraft?.stateCode == .washington)
+        #expect(requestRepository.lastDraft?.zipCode == "98004")
+        #expect(requestRepository.lastDraft?.travelRadiusMiles == 24)
+        #expect(requestRepository.uploadRequestPhotoCallCount == 1)
+        #expect(requestRepository.lastUploadRequestID == newRequestID)
+        #expect(requestRepository.lastUploadRequestID != originalRequestID)
+        #expect(requestRepository.lastUploadData == copiedPhotoData)
+        #expect(requestRepository.lastUploadContentType == .png)
+        #expect(store.isShowingWizard == false)
+        #expect(store.noticeMessage == "Request published. 3 groomers matched.")
+    }
+
+    @Test @MainActor
+    func startRepublishFromCancelledBookingUsesMatchingOriginalRequest() async throws {
+        let customerID = UUID()
+        let pet = Self.pet(customerID: customerID)
+        let originalRequest = Self.request(
+            customerID: customerID,
+            petID: pet.id,
+            status: .booked,
+            serviceType: .nailTrim,
+            serviceNotes: "Keep nails short."
+        )
+        let cancelledBooking = Self.booking(
+            requestID: originalRequest.id,
+            customerID: customerID,
+            status: .cancelledByCustomer
+        )
+        let store = CustomerRequestsStore(
+            customerID: customerID,
+            petRepository: CustomerRequestPetRepositoryFake(
+                petsResult: .success([pet])
+            ),
+            requestRepository: CustomerRequestRepositoryFake(
+                requestsResult: .success([originalRequest])
+            ),
+            bookingRepository: CustomerRequestBookingRepositoryFake()
+        )
+        await store.load()
+
+        let didStart = store.startRepublish(
+            from: cancelledBooking,
+            originalRequest: store.request(withID: cancelledBooking.requestID),
+            now: Date()
+        )
+
+        #expect(didStart)
+        #expect(store.isShowingWizard)
+        #expect(store.wizardInitialStep == .review)
+        #expect(store.selectedPetID == pet.id)
+        #expect(store.serviceType == .nailTrim)
+        #expect(store.serviceNotes == "Keep nails short.")
+    }
+
+    @Test @MainActor
     func oversizedRequestPhotoIsRejectedBeforePublish() async throws {
         let store = CustomerRequestsStore(
             customerID: UUID(),
@@ -1642,12 +1805,23 @@ struct CustomerRequestsStoreTests {
     }
 
     private static func request(
+        id: UUID = UUID(),
         customerID: UUID,
         petID: UUID,
-        status: GroomingRequestStatus = .open
+        status: GroomingRequestStatus = .open,
+        serviceType: GroomingServiceType = .fullGroom,
+        serviceNotes: String? = nil,
+        preferredStart: String = "2026-06-22T16:00:00Z",
+        preferredEnd: String = "2026-06-22T18:00:00Z",
+        locationMode: GroomingLocationMode = .groomerComesToCustomer,
+        streetAddress: String = "123 Pine Street",
+        city: String = "Seattle",
+        state: String = "WA",
+        zipCode: String = "98101",
+        travelRadiusMiles: Int? = nil
     ) -> CustomerGroomingRequest {
         CustomerGroomingRequest(
-            id: UUID(),
+            id: id,
             customerID: customerID,
             petID: petID,
             petSnapshot: GroomingRequestPetSnapshot(
@@ -1665,16 +1839,16 @@ struct CustomerRequestsStoreTests {
                 snapshotAt: "2026-06-20T12:00:00Z"
             ),
             photoSnapshot: [],
-            serviceType: .fullGroom,
-            serviceNotes: nil,
-            preferredStart: "2026-06-22T16:00:00Z",
-            preferredEnd: "2026-06-22T18:00:00Z",
-            locationMode: .groomerComesToCustomer,
-            streetAddress: "123 Pine Street",
-            city: "Seattle",
-            state: "WA",
-            zipCode: "98101",
-            travelRadiusMiles: nil,
+            serviceType: serviceType,
+            serviceNotes: serviceNotes,
+            preferredStart: preferredStart,
+            preferredEnd: preferredEnd,
+            locationMode: locationMode,
+            streetAddress: streetAddress,
+            city: city,
+            state: state,
+            zipCode: zipCode,
+            travelRadiusMiles: travelRadiusMiles,
             status: status,
             expiresAt: "2026-06-22T12:00:00Z",
             createdAt: "2026-06-20T12:00:00Z",
@@ -1835,6 +2009,8 @@ private final class CustomerRequestRepositoryFake: CustomerRequestRepository {
     var createResult: Result<GroomingRequestPublishResult, CustomerRequestRepositoryError>
     var uploadRequestPhotoResult: Result<GroomingRequestPhoto, CustomerRequestRepositoryError>
     var cancelResult: Result<CancelGroomingRequestResult, CustomerRequestRepositoryError>
+    var requestPhotosResult: Result<[GroomingRequestPhoto], CustomerRequestRepositoryError>
+    var requestPhotoDataByID: [UUID: Data]
     var acknowledgedBookingHandoffRequestIDsResult: Result<Set<UUID>, CustomerRequestRepositoryError>
     var acknowledgeBookingHandoffResult: Result<Void, CustomerRequestRepositoryError>
 
@@ -1843,12 +2019,17 @@ private final class CustomerRequestRepositoryFake: CustomerRequestRepository {
     private(set) var createCallCount = 0
     private(set) var uploadRequestPhotoCallCount = 0
     private(set) var cancelCallCount = 0
+    private(set) var requestPhotosCallCount = 0
+    private(set) var requestPhotoDataCallCount = 0
     private(set) var acknowledgedBookingHandoffRequestIDsCallCount = 0
     private(set) var acknowledgeBookingHandoffCallCount = 0
     private(set) var lastCustomerID: UUID?
     private(set) var lastOfferCustomerID: UUID?
     private(set) var lastOfferRequestID: UUID?
     private(set) var lastCancelRequestID: UUID?
+    private(set) var lastRequestPhotoCustomerID: UUID?
+    private(set) var lastRequestPhotoRequestIDs: [UUID] = []
+    private(set) var lastRequestPhotoDataID: UUID?
     private(set) var lastDraft: GroomingRequestDraft?
     private(set) var lastUploadCustomerID: UUID?
     private(set) var lastUploadRequestID: UUID?
@@ -1868,6 +2049,9 @@ private final class CustomerRequestRepositoryFake: CustomerRequestRepository {
             .failure(.unavailable),
         cancelResult: Result<CancelGroomingRequestResult, CustomerRequestRepositoryError> =
             .failure(.unavailable),
+        requestPhotosResult: Result<[GroomingRequestPhoto], CustomerRequestRepositoryError> =
+            .success([]),
+        requestPhotoDataByID: [UUID: Data] = [:],
         acknowledgedBookingHandoffRequestIDsResult: Result<Set<UUID>, CustomerRequestRepositoryError> =
             .success([]),
         acknowledgeBookingHandoffResult: Result<Void, CustomerRequestRepositoryError> =
@@ -1878,6 +2062,8 @@ private final class CustomerRequestRepositoryFake: CustomerRequestRepository {
         self.createResult = createResult
         self.uploadRequestPhotoResult = uploadRequestPhotoResult
         self.cancelResult = cancelResult
+        self.requestPhotosResult = requestPhotosResult
+        self.requestPhotoDataByID = requestPhotoDataByID
         self.acknowledgedBookingHandoffRequestIDsResult = acknowledgedBookingHandoffRequestIDsResult
         self.acknowledgeBookingHandoffResult = acknowledgeBookingHandoffResult
     }
@@ -1895,6 +2081,25 @@ private final class CustomerRequestRepositoryFake: CustomerRequestRepository {
         lastOfferCustomerID = customerID
         lastOfferRequestID = requestID
         return try offersResult.get()
+    }
+
+    func requestPhotos(
+        customerID: UUID,
+        requestIDs: [UUID]
+    ) async throws -> [GroomingRequestPhoto] {
+        requestPhotosCallCount += 1
+        lastRequestPhotoCustomerID = customerID
+        lastRequestPhotoRequestIDs = requestIDs
+        return try requestPhotosResult.get()
+    }
+
+    func requestPhotoData(_ photo: GroomingRequestPhoto) async throws -> Data {
+        requestPhotoDataCallCount += 1
+        lastRequestPhotoDataID = photo.id
+        guard let data = requestPhotoDataByID[photo.id] else {
+            throw CustomerRequestRepositoryError.unavailable
+        }
+        return data
     }
 
     func createRequest(

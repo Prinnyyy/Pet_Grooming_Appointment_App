@@ -127,6 +127,7 @@ final class CustomerRequestsStore {
     var noticeMessage: String?
     var publishResult: GroomingRequestPublishResult?
     var isShowingWizard = false
+    var wizardInitialStep: CustomerRequestWizardStep = .pet
 
     var selectedPetID: UUID?
     var serviceType: GroomingServiceType = .fullGroom
@@ -314,10 +315,59 @@ final class CustomerRequestsStore {
     func startCreate() {
         resetForm()
         selectedPetID = pets.first?.id
+        wizardInitialStep = .pet
         errorMessage = nil
         noticeMessage = nil
         publishResult = nil
         isShowingWizard = true
+    }
+
+    func startRepublish(
+        from request: CustomerGroomingRequest,
+        now: Date = Date()
+    ) {
+        resetForm(now: now)
+        selectedPetID = republishPetID(for: request)
+        serviceType = request.serviceType
+        serviceNotes = request.serviceNotes ?? ""
+        locationMode = request.locationMode
+        streetAddress = request.streetAddress
+        city = request.city
+        stateCode = USStateCode(rawValue: request.state.uppercased())
+        zipCode = request.zipCode
+        travelRadiusMiles = request.travelRadiusMiles ?? 15
+
+        let range = republishPreferredRange(from: request, now: now)
+        preferredStart = range.start
+        preferredEnd = range.end
+        pendingRequestPhotos = republishPendingPhotos(from: request)
+
+        wizardInitialStep = .review
+        errorMessage = nil
+        noticeMessage = nil
+        publishResult = nil
+        isShowingWizard = true
+    }
+
+    @discardableResult
+    func startRepublish(
+        from booking: Booking,
+        originalRequest: CustomerGroomingRequest?,
+        now: Date = Date()
+    ) -> Bool {
+        guard booking.status.isCancellation else {
+            errorMessage = "Only cancelled bookings can start a new request."
+            return false
+        }
+
+        guard let originalRequest,
+              originalRequest.id == booking.requestID else {
+            errorMessage = "Original request details are unavailable. Refresh bookings and try again."
+            return false
+        }
+
+        startRepublish(from: originalRequest, now: now)
+        return true
     }
 
     func cancelWizard() {
@@ -565,6 +615,7 @@ final class CustomerRequestsStore {
             isShowingWizard = false
             resetForm()
             selectedPetID = pets.first?.id
+            wizardInitialStep = .pet
             recordStoreSuccess(
                 "publish",
                 startedAt: startedAt,
@@ -883,6 +934,78 @@ final class CustomerRequestsStore {
         let defaults = Self.defaultPreferredRange(now: now)
         preferredStart = defaults.start
         preferredEnd = defaults.end
+    }
+
+    private func republishPetID(for request: CustomerGroomingRequest) -> UUID? {
+        let candidateIDs = [
+            request.petID,
+            request.petSnapshot.id,
+        ].compactMap { $0 }
+
+        for candidateID in candidateIDs where pets.contains(where: { $0.id == candidateID }) {
+            return candidateID
+        }
+
+        return pets.first?.id
+    }
+
+    private func republishPreferredRange(
+        from request: CustomerGroomingRequest,
+        now: Date
+    ) -> (start: Date, end: Date) {
+        let earliestPreferredStart = now.addingTimeInterval(
+            Self.minimumPreferredStartLeadTime
+        )
+        guard
+            let start = GroomingRequestDateFormatting.parsedDate(
+                from: request.preferredStart
+            ),
+            let end = GroomingRequestDateFormatting.parsedDate(
+                from: request.preferredEnd
+            ),
+            start >= earliestPreferredStart,
+            end > start
+        else {
+            return Self.defaultPreferredRange(now: now)
+        }
+
+        return (start, end)
+    }
+
+    private func republishPendingPhotos(
+        from request: CustomerGroomingRequest
+    ) -> [PendingGroomingRequestPhoto] {
+        requestPhotos(for: request).compactMap { photo in
+            guard let data = requestPhotoData(for: photo),
+                  data.count <= Self.maximumRequestPhotoBytes else {
+                return nil
+            }
+
+            return PendingGroomingRequestPhoto(
+                data: data,
+                contentType: Self.republishContentType(for: photo)
+            )
+        }
+    }
+
+    private static func republishContentType(
+        for photo: GroomingRequestPhoto
+    ) -> GroomingRequestPhotoContentType {
+        let fileExtension = photo.fileName
+            .split(separator: ".")
+            .last
+            .map { String($0).lowercased() }
+
+        switch fileExtension {
+        case "png":
+            return .png
+        case "heic":
+            return .heic
+        case "heif":
+            return .heif
+        default:
+            return .jpeg
+        }
     }
 
     private func applyAcceptanceResult(

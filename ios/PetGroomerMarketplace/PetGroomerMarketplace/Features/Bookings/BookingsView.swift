@@ -2,8 +2,10 @@ import SwiftUI
 
 struct BookingsView: View {
     private let role: UserRole
+    private let customerProfileRepository: (any CustomerProfileRepository)?
     private let onOpenChat: (Booking) -> Void
     @State private var store: BookingsStore
+    @State private var requestStore: CustomerRequestsStore?
     @State private var selectedScope: BookingListScope = .upcoming
     @State private var selectedScheduleDayKey: String?
 
@@ -11,10 +13,14 @@ struct BookingsView: View {
         participantID: UUID,
         role: UserRole,
         repository: any BookingRepository,
+        petRepository: (any CustomerPetRepository)? = nil,
+        requestRepository: (any CustomerRequestRepository)? = nil,
+        customerProfileRepository: (any CustomerProfileRepository)? = nil,
         debugRecorder: AppDebugEventRecorder? = nil,
         onOpenChat: @escaping (Booking) -> Void = { _ in }
     ) {
         self.role = role
+        self.customerProfileRepository = customerProfileRepository
         self.onOpenChat = onOpenChat
         _store = State(
             initialValue: BookingsStore(
@@ -24,6 +30,21 @@ struct BookingsView: View {
                 debugRecorder: debugRecorder
             )
         )
+        if role == .customer,
+           let petRepository,
+           let requestRepository {
+            _requestStore = State(
+                initialValue: CustomerRequestsStore(
+                    customerID: participantID,
+                    petRepository: petRepository,
+                    requestRepository: requestRepository,
+                    bookingRepository: repository,
+                    debugRecorder: debugRecorder
+                )
+            )
+        } else {
+            _requestStore = State(initialValue: nil)
+        }
     }
 
     var body: some View {
@@ -41,6 +62,18 @@ struct BookingsView: View {
                 role: role,
                 presentation: feedbackPresentation
             )
+
+            if let requestStore {
+                CustomerRequestsStatusView(store: requestStore)
+            }
+        }
+        .sheet(isPresented: requestWizardPresented) {
+            if let requestStore {
+                CustomerRequestWizardView(
+                    store: requestStore,
+                    customerProfileRepository: customerProfileRepository
+                )
+            }
         }
         .refreshable {
             await store.load()
@@ -91,7 +124,11 @@ struct BookingsView: View {
                                     bookingID: booking.id,
                                     role: role,
                                     store: store,
-                                    onOpenChat: onOpenChat
+                                    onOpenChat: onOpenChat,
+                                    onCreateNewRequestFromCancelledBooking:
+                                        requestStore == nil ? nil : { booking in
+                                            startNewRequestFromCancelledBooking(booking)
+                                        }
                                 )
                             } label: {
                                 BookingSummaryRow(
@@ -170,6 +207,31 @@ struct BookingsView: View {
             isLoading: store.isLoading,
             errorMessage: store.errorMessage
         )
+    }
+
+    private var requestWizardPresented: Binding<Bool> {
+        Binding(
+            get: {
+                requestStore?.isShowingWizard == true
+            },
+            set: { isPresented in
+                if !isPresented {
+                    requestStore?.cancelWizard()
+                }
+            }
+        )
+    }
+
+    private func startNewRequestFromCancelledBooking(_ booking: Booking) {
+        guard let requestStore else { return }
+
+        Task {
+            await requestStore.load()
+            _ = requestStore.startRepublish(
+                from: booking,
+                originalRequest: requestStore.request(withID: booking.requestID)
+            )
+        }
     }
 
     private func persistentLoadErrorView(
@@ -938,17 +1000,21 @@ struct BookingDetailView: View {
     let role: UserRole
     let store: BookingsStore
     let onOpenChat: (Booking) -> Void
+    let onCreateNewRequestFromCancelledBooking: ((Booking) -> Void)?
 
     init(
         bookingID: UUID,
         role: UserRole,
         store: BookingsStore,
-        onOpenChat: @escaping (Booking) -> Void = { _ in }
+        onOpenChat: @escaping (Booking) -> Void = { _ in },
+        onCreateNewRequestFromCancelledBooking: ((Booking) -> Void)? = nil
     ) {
         self.bookingID = bookingID
         self.role = role
         self.store = store
         self.onOpenChat = onOpenChat
+        self.onCreateNewRequestFromCancelledBooking =
+            onCreateNewRequestFromCancelledBooking
     }
 
     var body: some View {
@@ -974,6 +1040,20 @@ struct BookingDetailView: View {
                             BookingDetailFactRow("Service Location", value: booking.appointmentLocationTitle)
                             BookingDetailFactRow("Address", value: booking.appointmentAddressSummary)
                             BookingDetailFactRow("Price", value: booking.priceSummary)
+                        }
+
+                        if role == .customer,
+                           booking.status.isCancellation,
+                           let onCreateNewRequestFromCancelledBooking {
+                            CustomerRequestRepublishCard(
+                                title: "Create New Request",
+                                subtitle: "Start a new request from the original appointment details.",
+                                actionTitle: "Create New Request",
+                                accessibilityIdentifier: "customer.bookings.republish",
+                                action: {
+                                    onCreateNewRequestFromCancelledBooking(booking)
+                                }
+                            )
                         }
 
                         BookingPartnerOverviewCard(
