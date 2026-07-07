@@ -6,6 +6,16 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-07
+Task: T-161 - App Store privacy baseline.
+Files changed: iOS `PrivacyInfo.xcprivacy`, App Store privacy checklist, manifest tests, memory docs, and frozen worklog archive for T-146 through T-149.
+Checks: RED/GREEN `node --test tests/ios/app-store-privacy.test.mjs`; `plutil -lint` for the privacy manifest; `./scripts/ios-build.sh`; built-app manifest presence check; `git diff --check`; `node scripts/context-hygiene-check.mjs`.
+Result: Adds the Groomly 1.0 privacy manifest with no tracking, app-functionality data declarations, `UserDefaults` reason `CA92.1`, and file timestamp reason `C617.1`. Documents App Store Connect nutrition-label posture plus blocking Privacy Policy URL and Support URL placeholders.
+Risks: Real production Privacy Policy URL and Support URL remain TBD and must be provided before App Store metadata submission. Full `ios-test` remains blocked by the known T-153 notification ordering test.
+Next: Use T-162 unless the user resumes T-157 after Apple Developer Program upgrade.
+```
+
+```text
+Date: 2026-07-07
 Task: T-160 - Account deletion flow.
 Files changed: `20260707191034_t160_account_deletion.sql`, `supabase/functions/delete-account/`, Auth session repository/store/UI, local profile/pet-photo cache cleanup, Node/Swift tests, memory docs.
 Checks: RED/GREEN Node migration/function tests; pre-apply dry-run/lint; authorized remote `supabase db push --linked`; post-apply migration list, metadata SQL, advisors; `supabase functions deploy delete-account`; `supabase functions list`; `git diff --check`; `./scripts/ios-build.sh`; targeted `AuthenticationStoreTests`. Full `./scripts/ios-test.sh` still fails the known T-153 notification ordering test.
@@ -139,48 +149,4 @@ Checks: `git diff --check`; `node scripts/context-hygiene-check.mjs`.
 Result: Active baseline is `codex/pet-fit-structure-cleanup`; T-151 is next.
 Risks: Docs-only. `main` remote reconciliation needs explicit approval.
 Next: Use T-151 unless the user names another task ID.
-```
-
-```text
-Date: 2026-07-02
-Task: T-149 - Active design document slimming.
-Files changed: docs/01_product/DESIGN_SYSTEM.md, docs/08_design/UI_IMPLEMENTATION_NOTES.md, docs/09_frozen/design_notes/, scripts/context-hygiene-check.mjs, docs/05_workflow/CONTEXT_AND_RECOVERY.md, docs indexes, CURRENT_STATE.md, WORKLOG.md, TASK_LEDGER.md.
-Checks: `git diff --check` passed. `node scripts/context-hygiene-check.mjs` passed with `DESIGN_SYSTEM.md` and `UI_IMPLEMENTATION_NOTES.md` under the new 900-word budgets. Archive/reference checks confirmed the full pre-slim design texts exist under `docs/09_frozen/design_notes/`.
-Simulator launch: Skipped because this was docs/design-context cleanup only and did not affect iOS app/UI behavior.
-Result: Active design docs now keep only current design-system rules, Groomly visual summary, screenshot rework boundaries, and source routing. Full historical T-023 through T-035 design-system narrative and prototype audit details are preserved in frozen design-note archives.
-Risks: No Swift source, Supabase schema/RLS/RPC/Storage, migrations, seed data, dependencies, simulator, or remote state changed.
-Next: Use T-150 for the next new bugfix or iteration task unless the user explicitly names another task ID.
-```
-
-```text
-Date: 2026-07-02
-Task: T-148 - Pointer/template cleanup and Claude path correction.
-Files changed: docs/00_memory/DECISION_LOG.md, docs/05_workflow/LIGHTWEIGHT_FINAL_REPORT_TEMPLATE.md, docs/06_tasks/LIGHTWEIGHT_TASK_PROMPT_TEMPLATE.md, docs/06_tasks/TASK_INTAKE_TEMPLATE.md, docs/09_frozen/memory_pointers/, docs/09_frozen/workflow_templates/, docs/09_frozen/task_templates/, CLAUDE.md, CLAUDE_reference/, docs indexes, CURRENT_STATE.md, WORKLOG.md, TASK_LEDGER.md.
-Checks: `git diff --check` passed. `node scripts/context-hygiene-check.mjs` passed. Active stale-reference search found no deleted active paths outside historical worklog/reorganization audit text.
-Simulator launch: Skipped because this was docs/archive cleanup only and did not affect iOS app/UI behavior.
-Result: The memory decision-log compatibility pointer and low-use lightweight workflow/task templates were archived under `docs/09_frozen/` and removed from active docs. Claude files remain active, with stale Fresh Brief and Groomly prompt references corrected to current product/design/workflow entrypoints.
-Risks: No iOS source, Supabase schema/RLS/RPC/Storage, migrations, seed data, dependencies, simulator, or remote state changed.
-Next: Use T-149 for the next new bugfix or iteration task unless the user explicitly names another task ID.
-```
-
-```text
-Date: 2026-07-02
-Task: T-147 - Active historical pointer and root brief cleanup.
-Files changed: Fresh_Pet_Groomer_Marketplace_Engineering_Brief.md, docs/09_frozen/product_briefs/FRESH_PET_GROOMER_MARKETPLACE_ENGINEERING_BRIEF_2026-07-02.md, docs/08_design/Apply Groomly Design Prototype to Existing SwiftUI App.md, README.md, PRODUCT_BRIEF.md, UI_IMPLEMENTATION_NOTES.md, DECISION_LOG.md, project-structure indexes, frozen archive index, CURRENT_STATE.md, WORKLOG.md, TASK_LEDGER.md.
-Checks: `git diff --check` passed. `node scripts/context-hygiene-check.mjs` passed. Active reference search confirmed the deleted active files are no longer used outside the reorganization-log move record and frozen archive pointers.
-Simulator launch: Skipped because this was docs/archive cleanup only and did not affect iOS app/UI behavior.
-Result: The original root product/engineering brief is now frozen under `docs/09_frozen/product_briefs/` and removed from the repository root. The active Groomly design prompt pointer was deleted because the full prompt is already frozen. Active product/design work now routes through `docs/01_product/PRODUCT_BRIEF.md` and `docs/08_design/UI_IMPLEMENTATION_NOTES.md`.
-Risks: No iOS source, Supabase schema/RLS/RPC/Storage, migrations, seed data, dependencies, simulator, or remote state changed.
-Next: Use T-148 for the next new bugfix or iteration task unless the user explicitly names another task ID.
-```
-
-```text
-Date: 2026-07-02
-Task: T-146 - AI collaboration context indexing and policy trim.
-Files changed: AGENTS.md, workflow/context/stop docs, docs indexes, FEATURE_INDEX.md, backend policy docs, TestOps memory, Groomly design prompt pointer, frozen archives, context hygiene script, CURRENT_STATE.md, WORKLOG.md, TASK_LEDGER.md.
-Checks: `git diff --check` passed. `node scripts/context-hygiene-check.mjs` passed word budgets, active Markdown link scan, default hidden-path checks, and stale TestOps credential wording checks. Targeted searches confirmed frozen archives remain default-hidden and TestOps credential docs match script behavior.
-Simulator launch: Skipped because this was docs/workflow/search-hygiene only and did not affect iOS app/UI behavior.
-Result: Active AI collaboration docs now use an explicit L0-L4 access model, stronger context stop conditions, compact single-purpose policy/index files, frozen pre-trim archives for historical trace, and one read-only context hygiene command for future closeouts.
-Risks: No iOS source, Supabase schema/RLS/RPC/Storage, migrations, seed data, dependencies, simulator, or remote state changed. Historical details remain in frozen archives and should be read only with targeted recovery/comparison reasons.
-Next: Use T-147 for the next new bugfix or iteration task unless the user explicitly names another task ID.
 ```

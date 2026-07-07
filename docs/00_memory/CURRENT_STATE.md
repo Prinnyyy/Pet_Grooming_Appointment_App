@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-07
 - Updated by: Codex
-- Latest completed task: T-160 Account deletion flow.
+- Latest completed task: T-161 App Store privacy baseline.
 - Current task: none active; T-157 APNs deployment remains externally blocked.
-- Next task ID: use T-161 unless the user resumes T-157 after Apple Developer Program upgrade.
+- Next task ID: use T-162 unless the user resumes T-157 after Apple Developer Program upgrade.
 
 ## Fast Path
 
@@ -34,14 +34,14 @@ Key frozen archive families: current-state snapshots, worklogs, task ledgers, ba
 
 ## Validation Baseline
 
-- Last iOS build: `./scripts/ios-build.sh` passed on 2026-07-07 during T-160 closeout.
+- Last iOS build: `./scripts/ios-build.sh` passed on 2026-07-07 during T-161 closeout.
 - Last full iOS test attempt: `./scripts/ios-test.sh` on 2026-07-07 failed the known T-153 `CustomerNotificationsStoreTests.markAllReadReplacesNotificationsWithRepositoryResult()` same-timestamp ordering assertion; UI smoke tests passed 3/3, and targeted `AuthenticationStoreTests` passed afterward.
 - Last Supabase migration apply: authorized `supabase db push --linked` applied `20260707191034_t160_account_deletion.sql` to project `lqmasbuqzvcvtawonjlb` on 2026-07-07.
 - Last Supabase live post-apply validation: T-160 migration list confirmed local/remote parity for `20260707191034`; metadata SQL verified account deletion table/RLS/grants/RPCs; security/performance advisors ran; `supabase functions deploy delete-account` and `supabase functions list` confirmed `delete-account` is ACTIVE with JWT verification on. Post-apply `supabase db push --linked --dry-run` and `supabase db lint --linked` could not rerun because `SUPABASE_DB_PASSWORD` is not configured for direct Postgres CLI connections.
 - Prepared unapplied Supabase migration: none known by `supabase migration list --linked`; post-apply dry-run requires `SUPABASE_DB_PASSWORD`.
 - Last TestOps unit validation: T-145 `./scripts/testops-unit.sh` passed 24 Node tests.
 - Last remote TestOps run: T-155 authorized `matching_baseline` run `TESTOPS-T155-MATCH-20260706-*` passed 8/8 and cleanup left zero tagged request/match residue.
-- Last docs/workflow validation: T-160 `git diff --check` and context hygiene passed on 2026-07-07.
+- Last docs/workflow validation: T-161 `git diff --check` and context hygiene passed on 2026-07-07.
 - Known validation failure: full `./scripts/ios-test.sh` is currently blocked by the existing T-153 customer notification same-timestamp ordering test, not by T-160 account deletion.
 
 ## Active Product State
@@ -83,8 +83,9 @@ Key frozen archive families: current-state snapshots, worklogs, task ledgers, ba
 - T-158 moved advisor-flagged public authenticated `SECURITY DEFINER` RPCs behind public `SECURITY INVOKER` wrappers and private `app_private` helpers.
 - T-159 rebuilt `app_private.accept_groomer_offer(uuid)` and `app_private.complete_booking(uuid)` without the unread PL/pgSQL variables previously flagged by `supabase db lint`.
 - T-160 adds account deletion audit/anonymization RPCs, service-role status RPCs, a deployed `delete-account` Edge Function, Account double-confirm delete UI, and local snapshot cleanup. The Edge Function uses authenticated user context and Supabase Auth admin soft delete (`deleteUser(user_id, true)`) after database anonymization.
+- T-161 adds `PrivacyInfo.xcprivacy` to the iOS app, documents App Store Connect privacy/support URL blockers, and records the Groomly 1.0 privacy nutrition-label posture. Real production Privacy Policy URL and Support URL remain required before App Store metadata submission.
 - Current-remote advisors report baseline security INFO for `customer_push_tokens` RLS-enabled/no-policy, Auth leaked-password protection WARN, and existing performance INFOs for unindexed foreign keys/unused indexes. T-160 also adds a new expected unused-index INFO for `account_deletion_requests_user_status_idx` immediately after creation. Public authenticated `SECURITY DEFINER` RPC warnings are cleared.
 
 ## Next Recommended Task
 
-- Use T-161 for the next non-APNs task. Continue T-157 APNs deployment only after Apple Developer Program credentials are available.
+- Use T-162 for the next non-APNs task. Continue T-157 APNs deployment only after Apple Developer Program credentials are available.
