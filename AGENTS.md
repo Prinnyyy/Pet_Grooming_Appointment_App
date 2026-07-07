@@ -11,6 +11,7 @@ Use these files as the active workflow sources:
 - `docs/05_workflow/SINGLE_AGENT_WORKFLOW.md`: task flow and completion gate.
 - `docs/05_workflow/CONTEXT_AND_RECOVERY.md`: context tiers, recovery, compaction, and hygiene budgets.
 - `docs/05_workflow/TOOLING_POLICY.md`: tools, validation, Supabase, Git, and remote-write rules.
+- `docs/05_workflow/GITHUB_RULES.md`: commit messages, branches, PRs, tags, and reconciliation rules.
 - `docs/05_workflow/STOP_CONDITIONS.md`: when to stop and report.
 
 Do not use archived agent-team or subagent workflows unless the user explicitly re-enables them.

@@ -35,6 +35,7 @@ Default searches honor `../.rgignore`. Do not use broad `rg --files -g '*.md'` a
 - Workflow rules: `05_workflow/SINGLE_AGENT_WORKFLOW.md`
 - Context/recovery and budgets: `05_workflow/CONTEXT_AND_RECOVERY.md`
 - Tooling and validation policy: `05_workflow/TOOLING_POLICY.md`
+- Git/GitHub rules: `05_workflow/GITHUB_RULES.md`
 - Stop conditions: `05_workflow/STOP_CONDITIONS.md`
 - Context hygiene check: `../scripts/context-hygiene-check.mjs`
 - Durable decisions: `07_decisions/DECISION_LOG.md`
@@ -52,4 +53,4 @@ Detailed task records T-001 through T-088 are archived under `09_frozen/task_rec
 
 Keep active memory and policy files compact. When a file exceeds the budgets in `05_workflow/CONTEXT_AND_RECOVERY.md`, archive old content under the matching `09_frozen/` family and keep only current facts/indexes active.
 
-No active next product task is defined by this index. Start new work only from an explicit user request and the next available task ID.
+This index does not define active work. Start new work only from an explicit user request and the next available task ID in `06_tasks/TASK_LEDGER.md`.

@@ -2,6 +2,41 @@
 
 This log records repository structure changes so future agents do not lose track of moved paths.
 
+## 2026-07-07 - T-166 Ledger Rolling Archive
+
+| Active source | Frozen path | Reason |
+|---|---|---|
+| `docs/06_tasks/TASK_LEDGER.md` rows T-151 through T-152 | `docs/09_frozen/task_ledgers/TASK_LEDGER_T-151_TO_T-152_2026-07-07.md` | Keep the active ledger under the hygiene 15-row window after adding T-166. |
+
+## 2026-07-07 - Context Hygiene v2 Rolling Archive
+
+Scope:
+
+- Add context hygiene checks for task/branch drift, rolling active windows, expanded budgets, active Markdown total, and missing `rg` handling.
+- Move older active worklog entries so the new rolling-window check can pass.
+
+Moved path:
+
+| Active source | Frozen path | Reason |
+|---|---|---|
+| `docs/00_memory/WORKLOG.md` entries T-155 through older T-157 details | `docs/09_frozen/worklogs/WORKLOG_2026-07-06_TO_2026-07-07_T-155_TO_T-157.md` | Keep active worklog under the hygiene v2 10-entry recovery window while preserving closeouts verbatim. |
+
+## 2026-07-07 - Docs Governance Truth Cleanup
+
+Scope:
+
+- Treat the root docs governance optimization plan as external review input, not an active source of project truth.
+- Preserve the current-state pre-cleanup text before trimming active memory.
+- Roll completed T-146 through T-150 ledger rows out of the active task ledger.
+
+Moved or copied paths:
+
+| Old path | New path | Reason |
+|---|---|---|
+| `DOCS_GOVERNANCE_OPTIMIZATION_PLAN.md` | `docs/09_frozen/external_agent_reports/DOCS_GOVERNANCE_OPTIMIZATION_PLAN_2026-07-07.md` | Preserve the audit plan without exposing it as active root context. |
+| `docs/00_memory/CURRENT_STATE.md` | `docs/09_frozen/current_state_snapshots/CURRENT_STATE_2026-07-07_PRE_T163_DOCS_GOVERNANCE.md` | Preserve pre-trim current-state detail before T-163 memory cleanup. |
+| `docs/06_tasks/TASK_LEDGER.md` rows T-146 through T-150 | `docs/09_frozen/task_ledgers/TASK_LEDGER_T-146_TO_T-150_2026-07-07.md` | Keep the active ledger focused on current/recent tasks after adding T-163. |
+
 ## 2026-07-06 - Active Markdown Baseline Recheck and AGENTS Hardening
 
 Scope:

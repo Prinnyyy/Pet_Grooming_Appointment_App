@@ -12,7 +12,7 @@ Detailed task records, including T-001 through T-088 and completed Groomly UI re
 docs/09_frozen/task_records_2026-06-26/
 ```
 
-No active next Groomly UI, pet-fit, availability, backend, or screenshot task is currently defined. Start new work only from an explicit user request and the next available task ID in the ledger.
+This Claude guide does not define active work. Start new work only from an explicit user request and the next available task ID in the ledger.
 
 ## Claude's Role
 

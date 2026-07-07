@@ -83,4 +83,4 @@ Product correctness and accessibility take priority over visual matching when a 
 - Images need useful accessibility labels unless decorative.
 - Reuse shared primitives before creating feature-local variants.
 - Preserve the Open Request -> Groomer Offer -> Customer Confirmation -> Booking model.
-- Keep dark-mode changes, new brand assets, public groomer directory, direct booking, payments, attachments, maps/calendar, admin tools, and push notifications out of scope unless explicitly requested.
+- Keep dark-mode changes, new brand assets, public groomer directory, direct booking, payments, attachments, maps/calendar, admin tools, and push behavior beyond the approved T-153/T-157 notification scope out of scope unless explicitly requested.

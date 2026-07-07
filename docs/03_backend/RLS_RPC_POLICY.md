@@ -25,7 +25,11 @@ Archived pre-trim version: `../09_frozen/backend_policies/RLS_RPC_POLICY_2026-07
 | `groomer_offers` | Read offers on owned requests; accept one through RPC | Create/withdraw own offers through RPC | Offer status transitions controlled |
 | `bookings` | Participant read; allowed cancellation/review path | Participant read; allowed cancellation/completion path | Insert and critical transitions controlled |
 | `conversations`, `messages` | Booking participant only | Booking participant only | Message insert as self only; update/delete denied |
+| `customer_notifications` | Read own; update own read state; mark-read RPCs | No direct access | Inserts and push state are system/service-role paths |
+| `customer_booking_handoff_acknowledgements` | Read/acknowledge own confirmed booking handoff | No direct access | Insert through acknowledgement path only |
+| `customer_push_tokens` | Register/unregister own device tokens through RPC | No access | Push claim/delivery updates are service-role only |
 | `reviews`, `review_pet_fit_outcomes` | Create one review through RPC for own completed booking; read own | Read own booking review/outcomes | Direct outcome DML denied |
+| `account_deletion_requests` | Read own deletion request; request deletion through RPC | Read own deletion request; request deletion through RPC | Auth soft-delete/failure recording is service-role only |
 | Evidence summary and fit claims/tags | No owner dashboard contract | Manage own claims/tags; read own aggregate evidence through owner RPC | Claims/tags are low-confidence signals only and do not create eligibility |
 
 ## Controlled Operations
@@ -43,8 +47,15 @@ Public controlled RPCs currently include:
 - `complete_booking`
 - `create_review`
 - `get_my_groomer_pet_fit_evidence_summary`
+- `mark_customer_notification_read`
+- `mark_all_customer_notifications_read`
+- `get_acknowledged_booking_handoff_request_ids`
+- `acknowledge_booking_handoff`
+- `register_customer_push_token`
+- `unregister_customer_push_token`
+- `request_account_deletion`
 
-These operations must reject unauthenticated callers, resolve role and ownership from trusted database state, validate current status and inputs, lock or constrain rows where concurrency matters, commit atomically, return stable typed results/errors, and expose execute privileges only to intended roles.
+These operations must reject unauthenticated callers, resolve role and ownership from trusted database state, validate current status and inputs, lock or constrain rows where concurrency matters, commit atomically, return stable typed results/errors, and expose execute privileges only to intended roles. Service-role-only operations include push claim/delivery recording and account-deletion Auth finalization/failure recording.
 
 ## Required Negative Tests
 
@@ -57,6 +68,8 @@ Every backend access change must cover the relevant negative cases:
 - Direct request, match, offer, booking, review, evidence, and outcome writes cannot bypass controlled RPC rules.
 - Non-participants cannot read or insert conversation messages.
 - Customers cannot review incomplete, unrelated, or already reviewed bookings.
+- Customers cannot read another customer's notifications, push tokens, handoff acknowledgements, or account deletion request.
+- Authenticated users cannot execute service-role push delivery or account deletion finalization RPCs.
 - Storage metadata and table predicates must agree with bucket object policies when files are involved.
 
 ## Update Rules

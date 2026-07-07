@@ -75,7 +75,7 @@ UI changes must preserve:
 
 ## Deferred Prototype Concepts
 
-Stop and ask before implementing any of these from a screenshot or prototype: direct public groomer discovery, direct slot booking, full schedule/calendar workflows beyond existing booking surfaces, payments/payouts/refunds, favorites, maps, chat attachments, read receipts, typing indicators, push notifications, admin tools, demo role switching, demo data, or any fake production success path.
+Stop and ask before implementing any of these from a screenshot or prototype: direct public groomer discovery, direct slot booking, full schedule/calendar workflows beyond existing booking surfaces, payments/payouts/refunds, favorites, maps, chat attachments, read receipts, typing indicators, push behavior beyond the approved T-153/T-157 notification scope, admin tools, demo role switching, demo data, or any fake production success path.
 
 ## Asset Notes
 

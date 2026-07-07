@@ -32,7 +32,7 @@ Codex must stop and report when any condition occurs.
 - Design asset source, safety, or licensing is unclear.
 - A screenshot module cannot be mapped to an existing SwiftUI surface, Store/repository/model path, or clearly identified new feature.
 - The screenshot or prototype requires backend schema, RLS, RPC, Storage policy, repository contract, or new persistence changes.
-- The screenshot or prototype requires a deferred feature such as request cancellation, favorites, attachments, read receipts, realtime chat, signed URL image rendering, payments, push notifications, maps, calendars, or admin tooling.
+- The screenshot or prototype requires a deferred feature such as favorites, attachments, read receipts, realtime chat, signed URL image rendering, payments, push behavior beyond the approved T-153/T-157 notification scope, maps, calendars, or admin tooling.
 - The screenshot or prototype implies a new navigation model, role capability, or product flow not already documented.
 - The UI change would require direct Supabase access from SwiftUI.
 - The implementation would reintroduce task-card flow, send-task wording, or customer-facing rejection language.

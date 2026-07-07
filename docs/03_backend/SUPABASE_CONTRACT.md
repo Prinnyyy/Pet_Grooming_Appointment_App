@@ -8,7 +8,7 @@ Full pre-trim contract text is archived at `../09_frozen/backend_contracts/SUPAB
 
 - Authorized fresh project: `Pet Groomer Marketplace`, ref `lqmasbuqzvcvtawonjlb`, organization `Prinnyyy`, region `us-west-1`.
 - Forbidden legacy project: `Prinnyyy's Project`, ref `swdiiyypysyxbnfrxxsv`. Do not inspect, branch, migrate, reset, or mutate it for this rebuild.
-- Remote verification baseline: T-128 repaired remote/local migration-version drift. `supabase migration list --linked` aligns local and remote history, and `supabase db push --linked --dry-run` returns `Remote database is up to date.`
+- Remote verification baseline: T-128 repaired remote/local migration-version drift. Latest recorded remote migration list aligns through `20260707191034_t160_account_deletion.sql`; post-apply direct dry-run/lint may require `SUPABASE_DB_PASSWORD` when the saved linked credential is insufficient.
 - Local CLI readiness baseline: T-139 confirmed sequential `supabase projects list`, `supabase migration list --linked`, and `supabase db push --linked --dry-run` work from this checkout without `SUPABASE_DB_PASSWORD`.
 - Local migration mirror: `../../supabase/migrations/` is the append-only source for applied and prepared migrations. Do not rename or hand-invent migration filenames.
 - Full historical contract detail before this fast-path trim is frozen for comparison only. Current implementation truth comes from migrations plus focused active backend policy files.
@@ -51,7 +51,10 @@ Core deployed data areas:
 - Groomer marketplace data: services, portfolio photos, availability windows, booking preferences, time off windows, fit claims, and portfolio fit tags.
 - Request lifecycle: grooming requests, request photos, request matches, groomer offers, bookings, conversations, text messages, reviews, and structured pet-fit outcomes.
 - Pet-fit matching: private SQL helper functions, evidence summary view, match scoring/reason text, claim/tag low-confidence signals, negative-evidence suppression, availability-aware matching, and request day-capacity matching.
+- Customer operational state: `customer_notifications`, `customer_booking_handoff_acknowledgements`, `customer_push_tokens`, and `account_deletion_requests`.
+- Automation: request-expiry cron job, match backfill triggers for groomer activation/availability changes, customer notification triggers, and account-deletion service-role finalization RPCs.
 - Storage buckets: legacy `avatars`, dedicated `groomer-avatars`, dedicated `customer-avatars`, `pet-photos`, `groomer-portfolio`, and `request-photos`. `chat-attachments` remains deferred.
+- Edge Functions: `delete-account` is deployed with JWT verification; `dispatch-customer-push-notifications` source exists but is not deployed until APNs secrets are available.
 
 Controlled public RPCs currently include:
 
@@ -66,6 +69,20 @@ Controlled public RPCs currently include:
 - `complete_booking`
 - `create_review`
 - `get_my_groomer_pet_fit_evidence_summary`
+- `mark_customer_notification_read`
+- `mark_all_customer_notifications_read`
+- `get_acknowledged_booking_handoff_request_ids`
+- `acknowledge_booking_handoff`
+- `register_customer_push_token`
+- `unregister_customer_push_token`
+- `request_account_deletion`
+
+Service-role controlled RPCs currently include:
+
+- `claim_customer_push_notifications`
+- `record_customer_push_delivery`
+- `record_account_deletion_auth_soft_deleted`
+- `record_account_deletion_failure`
 
 Exact signatures, grants, error behavior, table constraints, and policy predicates belong to the owning migrations and `RLS_RPC_POLICY.md`.
 
@@ -85,7 +102,7 @@ Exact signatures, grants, error behavior, table constraints, and policy predicat
 
 When backend behavior changes:
 
-- Update local migrations first and verify the linked project according to `MIGRATION_RULES.md`.
+- Update local migrations and the active backend contract docs in the same task before closeout; verify the linked project according to `MIGRATION_RULES.md` before claiming remote deployment.
 - Update this file only for changed deployed scope, guardrails, or source-of-truth routing.
 - Update `RLS_RPC_POLICY.md` for access, grants, function security, or negative-test changes.
 - Update `STORAGE_POLICY.md` for bucket, object path, MIME/size, or Storage policy changes.

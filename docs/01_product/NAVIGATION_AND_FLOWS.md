@@ -111,7 +111,7 @@ Accepted booking
 → Text messages load and send through `messages`
 ```
 
-T-020 messaging is text-only. The list/detail can show booking schedule and price context; customers may also see an active groomer's public business name through the existing `groomer_profiles` read policy. Groomer-side customer names remain support references until a customer profile presentation contract exists. Realtime updates, attachments, typing indicators, read receipts, moderation, and push notifications are not part of the current flow.
+T-020 messaging is text-only. The list/detail can show booking schedule and price context; customers may also see an active groomer's public business name through the existing `groomer_profiles` read policy. Groomer-side customer names remain support references until a customer profile presentation contract exists. Realtime updates, attachments, typing indicators, read receipts, and moderation are not part of the current flow. Customer in-app notifications are active; APNs dispatch remains blocked until T-157 resumes with paid Apple Developer credentials.
 
 ## Navigation Failure Rules
 

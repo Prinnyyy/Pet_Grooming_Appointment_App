@@ -23,7 +23,7 @@ Detailed task records, including T-001 through T-088 and completed Groomly UI re
 docs/09_frozen/task_records_2026-06-26/
 ```
 
-No active next Groomly UI, pet-fit, availability, backend, or screenshot task is currently defined. Start new work only from an explicit user request and the next available task ID in the ledger.
+This README does not define active work. Start new work only from an explicit user request and the next available task ID in the ledger.
 
 ## Main References
 
@@ -36,6 +36,7 @@ No active next Groomly UI, pet-fit, availability, backend, or screenshot task is
 - Workflow rules: `docs/05_workflow/SINGLE_AGENT_WORKFLOW.md`
 - Context/recovery tiers: `docs/05_workflow/CONTEXT_AND_RECOVERY.md`
 - Tooling policy: `docs/05_workflow/TOOLING_POLICY.md`
+- Git/GitHub rules: `docs/05_workflow/GITHUB_RULES.md`
 - Search ignore rules: `.rgignore`
 - Context hygiene check: `scripts/context-hygiene-check.mjs`
 - Current Groomly UI notes: `docs/08_design/UI_IMPLEMENTATION_NOTES.md`

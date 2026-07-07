@@ -7,6 +7,7 @@ Do not store minor implementation details here.
 ## Format
 
 ```text
+Decision ID:
 Date:
 Decision:
 Context:
@@ -17,6 +18,39 @@ Linked files:
 ```
 
 ## Decisions
+
+```text
+Decision ID: D-003
+Date: 2026-07-07
+Decision: Require task-prefixed Git/GitHub operations for new commits and release actions.
+Context: The governance audit found mixed commit-message styles, no machine-readable task prefix requirement, no release tag rule, and no explicit `main` reconciliation boundary.
+Options considered: Keep the lightweight "clear message" rule; enforce task-prefixed commits only; or also define branch cleanup, checkpoint, PR, tag, and `main` reconciliation rules.
+Reason: The full rule set keeps git history traceable to `TASK_LEDGER.md` without weakening the existing requirement for explicit user approval before repository mutations.
+Consequences: New commits should use `T-xxx: <type>: <summary>`, with allowed types documented in `GITHUB_RULES.md`. Tags and `main` reconciliation remain user-approved explicit tasks, and the known `main` governance divergence around commit `2fddf7b` must not be merged implicitly.
+Linked files: docs/05_workflow/GITHUB_RULES.md, docs/05_workflow/TOOLING_POLICY.md, docs/06_tasks/TASK_LEDGER.md
+```
+
+```text
+Decision ID: D-002
+Date: 2026-07-07
+Decision: Treat the root docs governance optimization plan as external review input, not as a source of current project facts.
+Context: `DOCS_GOVERNANCE_OPTIMIZATION_PLAN.md` correctly identifies useful governance work, but its baseline can lag active memory and must not override branch, task numbering, validation, or product state.
+Options considered: Keep the root file active; delete it; or archive it as review evidence while executing compatible improvements through the active ledger.
+Reason: The active workflow already requires external agent reports to be non-authoritative. Preserving the plan in frozen history keeps the audit available without letting a root draft reset current facts.
+Consequences: The root plan is moved to `docs/09_frozen/external_agent_reports/`. Future governance work should be split into scoped tasks using the next task ID from `TASK_LEDGER.md`, and any plan claim must be checked against active memory before implementation.
+Linked files: docs/09_frozen/external_agent_reports/DOCS_GOVERNANCE_OPTIMIZATION_PLAN_2026-07-07.md, AGENTS.md, docs/06_tasks/TASK_LEDGER.md, docs/00_memory/CURRENT_STATE.md
+```
+
+```text
+Decision ID: D-001
+Date: 2026-07-07
+Decision: Promote customer notification work from deferred concept to approved scoped product behavior through T-153 and T-157.
+Context: Product/design docs still described push notifications as wholly deferred after T-153 implemented customer in-app notifications and T-157 applied the APNs database/iOS foundation. T-157 remains blocked only for APNs dispatch deployment because paid Apple Developer credentials are unavailable.
+Options considered: Keep all push wording deferred; mark push delivery fully active; or distinguish implemented in-app notifications, applied APNs foundation, and blocked dispatch deployment.
+Reason: The third option matches the repository state without granting new push-notification scope from screenshots or prototypes.
+Consequences: Active docs may reference customer in-app notifications and the blocked APNs foundation as current facts. New push behavior beyond T-153/T-157 still requires explicit user approval, and APNs dispatch deployment waits for Apple Developer Program credentials.
+Linked files: docs/01_product/PRODUCT_BRIEF.md, docs/01_product/NAVIGATION_AND_FLOWS.md, docs/01_product/DESIGN_SYSTEM.md, docs/08_design/UI_IMPLEMENTATION_NOTES.md, docs/05_workflow/STOP_CONDITIONS.md, docs/06_tasks/TASK_LEDGER.md
+```
 
 ```text
 Date: 2026-07-02

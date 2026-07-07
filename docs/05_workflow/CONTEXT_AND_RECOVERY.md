@@ -76,23 +76,7 @@ Run the context hygiene check at the end of any task that updates durable memory
 node scripts/context-hygiene-check.mjs
 ```
 
-Soft budgets:
-
-| File | Limit |
-|---|---:|
-| `AGENTS.md` | 800 words |
-| `docs/00_memory/CURRENT_STATE.md` | 1,200 words |
-| `docs/00_memory/WORKLOG.md` | 2,500 words |
-| `docs/06_tasks/TASK_LEDGER.md` | 1,800 words |
-| `docs/00_memory/FEATURE_INDEX.md` | 1,200 words |
-| `docs/00_memory/PROJECT_MEMORY.md` | 600 words |
-| `docs/07_decisions/DECISION_LOG.md` | 2,500 words |
-| `docs/01_product/DESIGN_SYSTEM.md` | 900 words |
-| `docs/08_design/UI_IMPLEMENTATION_NOTES.md` | 900 words |
-| `docs/03_backend/RLS_RPC_POLICY.md` | 1,200 words |
-| `docs/03_backend/STORAGE_POLICY.md` | 700 words |
-| `docs/03_backend/MIGRATION_RULES.md` | 900 words |
-| `docs/04_ios/testops/TESTOPS_MEMORY.md` | 400 words |
+Budget limits live in `scripts/context-hygiene-check.mjs`. Do not copy the numeric table here; run the script to see the current per-file budgets, active Markdown total budget, worklog entry limit, and task-ledger row limit.
 
 If a file exceeds its limit, do the smallest safe rolling archive before final reporting:
 

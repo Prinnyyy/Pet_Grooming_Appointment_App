@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-07
 - Updated by: Codex
-- Latest completed task: T-166 Git/GitHub rules hardening.
+- Latest completed task: T-162 Cancelled request/booking repost flow.
 - Current task: none active; T-157 APNs deployment remains externally blocked.
-- Next task ID: use T-167 unless the user resumes T-157 after Apple Developer Program upgrade.
+- Next task ID: use T-163 unless the user resumes T-157 after Apple Developer Program upgrade.
 
 ## Fast Path
 
@@ -19,7 +19,6 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - Workflow: `docs/05_workflow/SINGLE_AGENT_WORKFLOW.md`.
 - Context/recovery/budgets: `docs/05_workflow/CONTEXT_AND_RECOVERY.md`.
 - Tooling/validation/remote writes: `docs/05_workflow/TOOLING_POLICY.md`.
-- Git/GitHub rules: `docs/05_workflow/GITHUB_RULES.md`.
 - Context hygiene command: `node scripts/context-hygiene-check.mjs`.
 - Frozen archive guide: `docs/09_frozen/README.md`.
 
@@ -42,7 +41,7 @@ Frozen history lives under `docs/09_frozen/`.
 - Prepared unapplied Supabase migration: none known by `supabase migration list --linked`; post-apply dry-run requires `SUPABASE_DB_PASSWORD`.
 - Last TestOps unit validation: T-145 `./scripts/testops-unit.sh` passed 24 Node tests.
 - Last remote TestOps run: T-155 authorized `matching_baseline` run `TESTOPS-T155-MATCH-20260706-*` passed 8/8 and cleanup left zero tagged request/match residue.
-- Last docs/workflow validation: T-166 `git diff --check` and context hygiene passed on 2026-07-07.
+- Last docs/workflow validation: T-162 `git diff --check` and context hygiene passed on 2026-07-07.
 - Known validation failure: full `./scripts/ios-test.sh` is currently blocked by the existing T-153 customer notification same-timestamp ordering test, not by T-162 cancellation repost work.
 
 ## Active Product State
@@ -76,11 +75,19 @@ Frozen history lives under `docs/09_frozen/`.
 - Backend policy files are now current-rule indexes; use migrations or frozen pre-trim snapshots for detailed historical trace.
 - The original root product/engineering brief, old Groomly design task prompt, pre-slim design notes, removed memory pointer, removed generic lightweight templates, and external agent audit drafts are archived under `docs/09_frozen/`; use `docs/01_product/PRODUCT_BRIEF.md`, `docs/01_product/DESIGN_SYSTEM.md`, `docs/08_design/UI_IMPLEMENTATION_NOTES.md`, `docs/07_decisions/DECISION_LOG.md`, and active workflow/task docs as entrypoints. External agent reports are review input only and must not reset branch, task ID, validation, or product status.
 - T-129 seed profile Markdown files are machine-readable parser inputs and excluded from default search. Do not reformat or archive them without updating scripts/tests.
-- Deferred features remain out of scope unless explicitly requested: public directory, direct booking, payments, realtime chat, attachments, maps/calendar integrations, moderation/disputes, and admin tooling. Customer in-app notifications are active, and the T-157 APNs database/iOS foundation is remotely applied, but push dispatch is not deployed until paid Apple Developer credentials and APNs secrets exist.
+- Deferred features remain out of scope unless explicitly requested: public directory, direct booking, payments, realtime chat, attachments, maps/calendar integrations, moderation/disputes, and admin tooling. T-157 APNs database foundation is remotely applied, but push dispatch is not deployed until APNs secrets exist.
 - Large Swift context risks remain `CustomerRequestsView.swift` and `GroomerProfileManagementView.swift`; split only in a dedicated Standard refactor task.
-- Recent applied backend/app tasks T-153 through T-162 are recorded in `TASK_LEDGER.md`, `WORKLOG.md`, migrations, and source. Active cross-task risks to remember: known T-153 notification ordering test failure, T-157 APNs deployment block, T-160 App Store Privacy Policy/Support URL blockers, and T-162 cancelled-booking repost dependency on loading the original request.
+- T-155 installed private reusable request-match insertion plus backfill triggers for groomer activation and availability-related changes.
+- T-154 installed `pg_cron` 1.6.4 and scheduled `groomly_expire_grooming_requests` every 5 minutes to call `app_private.expire_grooming_requests(250)`.
+- T-156 added durable customer booking handoff acknowledgement read state with `UserDefaults` fallback and applied the backing table/RLS/RPC migration.
+- T-157 applied customer APNs token registration tables/RPCs, push delivery state, new-offer/new-message notification event triggers, and corrective token-validation migrations. The user currently has a free Apple Developer account, so APNs Auth Key / Push Notifications capability is not available yet; `dispatch-customer-push-notifications` is not deployed.
+- T-158 moved advisor-flagged public authenticated `SECURITY DEFINER` RPCs behind public `SECURITY INVOKER` wrappers and private `app_private` helpers.
+- T-159 rebuilt `app_private.accept_groomer_offer(uuid)` and `app_private.complete_booking(uuid)` without the unread PL/pgSQL variables previously flagged by `supabase db lint`.
+- T-160 adds account deletion audit/anonymization RPCs, service-role status RPCs, a deployed `delete-account` Edge Function, Account double-confirm delete UI, and local snapshot cleanup. The Edge Function uses authenticated user context and Supabase Auth admin soft delete (`deleteUser(user_id, true)`) after database anonymization.
+- T-161 adds `PrivacyInfo.xcprivacy` to the iOS app, documents App Store Connect privacy/support URL blockers, and records the Groomly 1.0 privacy nutrition-label posture. Real production Privacy Policy URL and Support URL remain required before App Store metadata submission.
+- T-162 adds Customer repost entry points for cancelled requests/bookings without schema changes. Cancelled booking repost depends on loading the matching original request; if unavailable, the Store surfaces a recoverable refresh error.
 - Current-remote advisors report baseline `customer_push_tokens` RLS/no-policy INFO, Auth leaked-password protection WARN, existing performance INFOs, and expected fresh-index INFO for T-160. Public authenticated `SECURITY DEFINER` RPC warnings are cleared.
 
 ## Next Recommended Task
 
-- Use T-167 for the next non-APNs task: Realtime foreground chat. Continue T-157 APNs deployment only after Apple Developer Program credentials are available.
+- Use T-163 for the next non-APNs task: Realtime foreground chat. Continue T-157 APNs deployment only after Apple Developer Program credentials are available.
