@@ -78,6 +78,17 @@ final class SupabaseAuthSessionRepository: AuthSessionRepository {
         }
     }
 
+    func deleteAccount() async throws {
+        do {
+            try await client.functions.invoke(
+                "delete-account",
+                options: FunctionInvokeOptions(method: .post)
+            )
+        } catch {
+            throw Self.mapAccountDeletion(error)
+        }
+    }
+
     private static func snapshot(from session: Session) -> AuthSessionSnapshot {
         AuthSessionSnapshot(
             userID: session.user.id,
@@ -118,5 +129,25 @@ final class SupabaseAuthSessionRepository: AuthSessionRepository {
         }
 
         return .unavailable
+    }
+
+    private static func mapAccountDeletion(
+        _ error: any Error
+    ) -> AuthSessionError {
+        if let urlError = error as? URLError {
+            switch urlError.code {
+            case .notConnectedToInternet,
+                 .networkConnectionLost,
+                 .timedOut,
+                 .cannotConnectToHost,
+                 .cannotFindHost,
+                 .dnsLookupFailed:
+                return .networkUnavailable
+            default:
+                return .accountDeletionFailed
+            }
+        }
+
+        return .accountDeletionFailed
     }
 }

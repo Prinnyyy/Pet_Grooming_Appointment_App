@@ -68,6 +68,7 @@ enum DebugQuickLoginAccount: CaseIterable, Identifiable {
 final class AuthenticationStore {
     private let repository: any AuthSessionRepository
     private let clearsSessionBeforeRestore: Bool
+    private let localAccountCleanup: (UUID) -> Void
     private var didRestoreSession = false
     private var isObservingSession = false
 
@@ -89,10 +90,12 @@ final class AuthenticationStore {
 
     init(
         repository: any AuthSessionRepository,
-        clearsSessionBeforeRestore: Bool = false
+        clearsSessionBeforeRestore: Bool = false,
+        localAccountCleanup: @escaping (UUID) -> Void = { _ in }
     ) {
         self.repository = repository
         self.clearsSessionBeforeRestore = clearsSessionBeforeRestore
+        self.localAccountCleanup = localAccountCleanup
     }
 
     func start() async {
@@ -218,6 +221,33 @@ final class AuthenticationStore {
         }
     }
 
+    func deleteAccount() async {
+        guard !isSubmitting else { return }
+        guard case let .signedIn(session) = rootState else {
+            errorMessage = message(for: .accountDeletionFailed)
+            return
+        }
+
+        errorMessage = nil
+        noticeMessage = nil
+        isSubmitting = true
+        defer { isSubmitting = false }
+
+        do {
+            try await repository.deleteAccount()
+            localAccountCleanup(session.userID)
+            try? await repository.signOut()
+            mode = .signIn
+            email = ""
+            clearPasswords()
+            rootState = .signedOut
+        } catch let error as AuthSessionError {
+            errorMessage = message(for: error)
+        } catch {
+            errorMessage = message(for: .accountDeletionFailed)
+        }
+    }
+
     private func apply(_ session: AuthSessionSnapshot?) {
         rootState = session.map(AuthenticationRootState.signedIn) ?? .signedOut
     }
@@ -246,6 +276,8 @@ final class AuthenticationStore {
             "Too many attempts. Please wait and try again."
         case .networkUnavailable:
             "Check your connection and try again."
+        case .accountDeletionFailed:
+            "We could not delete your account. Please try again."
         case .unavailable:
             "Authentication is temporarily unavailable. Please try again."
         }

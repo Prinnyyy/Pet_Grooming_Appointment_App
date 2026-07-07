@@ -27,4 +27,8 @@ final class SignedOutAuthSessionRepository: AuthSessionRepository {
     }
 
     func signOut() async throws {}
+
+    func deleteAccount() async throws {
+        throw AuthSessionError.accountDeletionFailed
+    }
 }

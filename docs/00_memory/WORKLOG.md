@@ -6,6 +6,17 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-07
+Task: T-160 - Account deletion flow.
+Files changed: `20260707191034_t160_account_deletion.sql`, `supabase/functions/delete-account/`, Auth session repository/store/UI, local profile/pet-photo cache cleanup, Node/Swift tests, memory docs.
+Checks: RED/GREEN Node migration/function tests; pre-apply dry-run/lint; authorized remote `supabase db push --linked`; post-apply migration list, metadata SQL, advisors; `supabase functions deploy delete-account`; `supabase functions list`; `git diff --check`; `./scripts/ios-build.sh`; targeted `AuthenticationStoreTests`. Full `./scripts/ios-test.sh` still fails the known T-153 notification ordering test.
+Remote: Applied `20260707191034_t160_account_deletion.sql` to `lqmasbuqzvcvtawonjlb` and deployed `delete-account` with JWT verification enabled. Post-apply `supabase db push --linked --dry-run` and `supabase db lint --linked` could not rerun because `SUPABASE_DB_PASSWORD` is not configured for direct Postgres CLI connections.
+Result: Completed. Adds account deletion audit/anonymization RPCs, service-role completion/failure RPCs, user-auth Edge Function that soft-deletes the Auth user with `deleteUser(user_id, true)`, Account double-confirm delete UI, and local snapshot cleanup after successful deletion.
+Risks: Advisors still report baseline `customer_push_tokens` RLS-enabled/no-policy INFO, Auth leaked-password protection WARN, existing performance INFOs, and a new expected unused-index INFO for `account_deletion_requests_user_status_idx` because the index has just been created.
+Next: Use T-161 for the next non-APNs task unless the user resumes T-157 after Apple Developer Program upgrade.
+```
+
+```text
+Date: 2026-07-07
 Task: T-159 - Private RPC lint cleanup.
 Files changed: `20260707183427_t159_private_rpc_lint_cleanup.sql`, `tests/migrations/private-rpc-lint-cleanup.test.mjs`, memory docs.
 Checks: RED/GREEN `node --test tests/migrations/private-rpc-lint-cleanup.test.mjs`; `node --test tests/migrations/*.test.mjs`; pre-apply migration list/dry-run; authorized `supabase db push --linked`; post-apply migration list/dry-run; RPC metadata SQL; `supabase db lint --linked --fail-on none`; `supabase db advisors --linked --type all --level warn --fail-on none`; `git diff --check`; context hygiene.

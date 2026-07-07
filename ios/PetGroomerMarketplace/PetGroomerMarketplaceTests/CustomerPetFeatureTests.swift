@@ -932,6 +932,7 @@ private final class CustomerPetPhotoCacheFake: CustomerPetPhotoCaching {
     private var snapshotsByPhotoID: [UUID: CustomerPetPhotoSnapshot]
     private(set) var savedSnapshots: [CustomerPetPhotoSnapshot] = []
     private(set) var removedPhotoIDs: [UUID] = []
+    private(set) var removedCustomerIDs: [UUID] = []
 
     init(snapshots: [CustomerPetPhotoSnapshot] = []) {
         snapshotsByPhotoID = Dictionary(
@@ -967,5 +968,12 @@ private final class CustomerPetPhotoCacheFake: CustomerPetPhotoCaching {
     func remove(photoID: UUID) {
         snapshotsByPhotoID[photoID] = nil
         removedPhotoIDs.append(photoID)
+    }
+
+    func removeAll(customerID: UUID) {
+        snapshotsByPhotoID = snapshotsByPhotoID.filter { _, snapshot in
+            snapshot.customerID != customerID
+        }
+        removedCustomerIDs.append(customerID)
     }
 }

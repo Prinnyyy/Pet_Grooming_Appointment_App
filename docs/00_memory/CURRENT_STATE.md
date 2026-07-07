@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-07
 - Updated by: Codex
-- Latest completed task: T-159 Private RPC lint cleanup.
-- Current task: T-157 Customer APNs push notification foundation remains blocked until paid Apple Developer Program access provides APNs credentials.
-- Next task ID: use T-160 for new non-APNs work, unless the user resumes T-157 after Apple Developer Program upgrade.
+- Latest completed task: T-160 Account deletion flow.
+- Current task: none active; T-157 APNs deployment remains externally blocked.
+- Next task ID: use T-161 unless the user resumes T-157 after Apple Developer Program upgrade.
 
 ## Fast Path
 
@@ -34,15 +34,15 @@ Key frozen archive families: current-state snapshots, worklogs, task ledgers, ba
 
 ## Validation Baseline
 
-- Last iOS build: `./scripts/ios-build.sh` passed on 2026-07-07 during T-158 closeout.
-- Last full iOS test: `./scripts/ios-test.sh` passed on 2026-07-06 during T-154 local implementation. T-155 attempted `./scripts/ios-test.sh` on 2026-07-06; it failed one unrelated T-153 `CustomerNotificationsStoreTests.markAllReadReplacesNotificationsWithRepositoryResult()` same-timestamp ordering assertion after 229/230 tests passed.
-- Last Supabase migration apply: authorized `supabase db push --linked` applied `20260707183427_t159_private_rpc_lint_cleanup.sql` to project `lqmasbuqzvcvtawonjlb` on 2026-07-07.
-- Last Supabase live post-apply validation: T-159 migration list/dry-run, public/private RPC metadata SQL, `supabase db lint`, and advisors ran on 2026-07-07.
-- Prepared unapplied Supabase migration: none; sequential `supabase db push --linked --dry-run` reported the remote database is up to date after T-159.
+- Last iOS build: `./scripts/ios-build.sh` passed on 2026-07-07 during T-160 closeout.
+- Last full iOS test attempt: `./scripts/ios-test.sh` on 2026-07-07 failed the known T-153 `CustomerNotificationsStoreTests.markAllReadReplacesNotificationsWithRepositoryResult()` same-timestamp ordering assertion; UI smoke tests passed 3/3, and targeted `AuthenticationStoreTests` passed afterward.
+- Last Supabase migration apply: authorized `supabase db push --linked` applied `20260707191034_t160_account_deletion.sql` to project `lqmasbuqzvcvtawonjlb` on 2026-07-07.
+- Last Supabase live post-apply validation: T-160 migration list confirmed local/remote parity for `20260707191034`; metadata SQL verified account deletion table/RLS/grants/RPCs; security/performance advisors ran; `supabase functions deploy delete-account` and `supabase functions list` confirmed `delete-account` is ACTIVE with JWT verification on. Post-apply `supabase db push --linked --dry-run` and `supabase db lint --linked` could not rerun because `SUPABASE_DB_PASSWORD` is not configured for direct Postgres CLI connections.
+- Prepared unapplied Supabase migration: none known by `supabase migration list --linked`; post-apply dry-run requires `SUPABASE_DB_PASSWORD`.
 - Last TestOps unit validation: T-145 `./scripts/testops-unit.sh` passed 24 Node tests.
 - Last remote TestOps run: T-155 authorized `matching_baseline` run `TESTOPS-T155-MATCH-20260706-*` passed 8/8 and cleanup left zero tagged request/match residue.
-- Last docs/workflow validation: T-158 `git diff --check` and `node scripts/context-hygiene-check.mjs` passed on 2026-07-07.
-- Known live failing behavior: none currently recorded.
+- Last docs/workflow validation: T-160 `git diff --check` and context hygiene passed on 2026-07-07.
+- Known validation failure: full `./scripts/ios-test.sh` is currently blocked by the existing T-153 customer notification same-timestamp ordering test, not by T-160 account deletion.
 
 ## Active Product State
 
@@ -82,8 +82,9 @@ Key frozen archive families: current-state snapshots, worklogs, task ledgers, ba
 - T-157 applied customer APNs token registration tables/RPCs, push delivery state, new-offer/new-message notification event triggers, and corrective token-validation migrations. The user currently has a free Apple Developer account, so APNs Auth Key / Push Notifications capability is not available yet; `dispatch-customer-push-notifications` is not deployed.
 - T-158 moved advisor-flagged public authenticated `SECURITY DEFINER` RPCs behind public `SECURITY INVOKER` wrappers and private `app_private` helpers.
 - T-159 rebuilt `app_private.accept_groomer_offer(uuid)` and `app_private.complete_booking(uuid)` without the unread PL/pgSQL variables previously flagged by `supabase db lint`.
-- Security advisor currently reports only Auth leaked-password protection. Public authenticated `SECURITY DEFINER` RPC warnings are cleared, and `supabase db lint` reports no schema errors.
+- T-160 adds account deletion audit/anonymization RPCs, service-role status RPCs, a deployed `delete-account` Edge Function, Account double-confirm delete UI, and local snapshot cleanup. The Edge Function uses authenticated user context and Supabase Auth admin soft delete (`deleteUser(user_id, true)`) after database anonymization.
+- Current-remote advisors report baseline security INFO for `customer_push_tokens` RLS-enabled/no-policy, Auth leaked-password protection WARN, and existing performance INFOs for unindexed foreign keys/unused indexes. T-160 also adds a new expected unused-index INFO for `account_deletion_requests_user_status_idx` immediately after creation. Public authenticated `SECURITY DEFINER` RPC warnings are cleared.
 
 ## Next Recommended Task
 
-- Use T-160 for the next non-APNs task the user selects. Continue T-157 APNs deployment only after Apple Developer Program credentials are available.
+- Use T-161 for the next non-APNs task. Continue T-157 APNs deployment only after Apple Developer Program credentials are available.

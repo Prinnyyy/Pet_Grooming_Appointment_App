@@ -102,7 +102,13 @@ struct AppComposition {
             authenticationStore = AuthenticationStore(
                 repository: authRepository,
                 clearsSessionBeforeRestore:
-                    launchConfiguration.testOps.clearsSessionBeforeRestore
+                    launchConfiguration.testOps.clearsSessionBeforeRestore,
+                localAccountCleanup: { userID in
+                    FileProfileSnapshotCache.shared.remove(userID: userID)
+                    FileCustomerPetPhotoCache.shared.removeAll(
+                        customerID: userID
+                    )
+                }
             )
             CustomerPushNotificationRegistrationCoordinator.shared.configure(
                 repository: customerPushNotificationRepository

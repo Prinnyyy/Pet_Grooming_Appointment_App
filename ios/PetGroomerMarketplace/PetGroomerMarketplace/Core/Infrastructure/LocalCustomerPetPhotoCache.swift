@@ -17,6 +17,7 @@ protocol CustomerPetPhotoCaching: AnyObject {
     func snapshot(photo: CustomerPetPhoto) -> CustomerPetPhotoSnapshot?
     func save(_ snapshot: CustomerPetPhotoSnapshot)
     func remove(photoID: UUID)
+    func removeAll(customerID: UUID)
 }
 
 @MainActor
@@ -115,6 +116,29 @@ final class FileCustomerPetPhotoCache: CustomerPetPhotoCaching {
 
     func remove(photoID: UUID) {
         try? fileManager.removeItem(at: snapshotURL(photoID: photoID))
+    }
+
+    func removeAll(customerID: UUID) {
+        guard let urls = try? fileManager.contentsOfDirectory(
+            at: directoryURL,
+            includingPropertiesForKeys: nil,
+            options: [.skipsHiddenFiles]
+        ) else {
+            return
+        }
+
+        for url in urls where url.pathExtension == "json" {
+            guard let data = try? Data(contentsOf: url),
+                  let snapshot = try? decoder.decode(
+                    CustomerPetPhotoSnapshot.self,
+                    from: data
+                  ),
+                  snapshot.customerID == customerID else {
+                continue
+            }
+
+            try? fileManager.removeItem(at: url)
+        }
     }
 
     private func snapshotURL(photoID: UUID) -> URL {

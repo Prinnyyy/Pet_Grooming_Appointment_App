@@ -489,6 +489,57 @@ struct AuthenticationStoreTests {
         #expect(repository.signOutCallCount == 1)
         #expect(store.rootState == .signedOut)
     }
+
+    @Test @MainActor
+    func deleteAccountAnonymizesAuthUserClearsLocalStateAndSignsOut() async {
+        let session = AuthSessionSnapshot(
+            userID: UUID(),
+            email: "user@example.com"
+        )
+        let repository = AuthSessionRepositoryFake(currentSession: session)
+        var cleanedUserIDs: [UUID] = []
+        let store = AuthenticationStore(
+            repository: repository,
+            localAccountCleanup: { userID in
+                cleanedUserIDs.append(userID)
+            }
+        )
+        await store.start()
+
+        await store.deleteAccount()
+
+        #expect(repository.deleteAccountCallCount == 1)
+        #expect(repository.signOutCallCount == 1)
+        #expect(cleanedUserIDs == [session.userID])
+        #expect(store.rootState == .signedOut)
+        #expect(store.mode == .signIn)
+        #expect(store.email.isEmpty)
+        #expect(store.password.isEmpty)
+        #expect(store.passwordConfirmation.isEmpty)
+    }
+
+    @Test @MainActor
+    func deleteAccountFailureKeepsSignedInSessionAndShowsRecoveryCopy() async {
+        let session = AuthSessionSnapshot(
+            userID: UUID(),
+            email: "user@example.com"
+        )
+        let repository = AuthSessionRepositoryFake(currentSession: session)
+        repository.deleteAccountResult = .failure(.accountDeletionFailed)
+        let store = AuthenticationStore(repository: repository)
+        await store.start()
+
+        await store.deleteAccount()
+
+        #expect(repository.deleteAccountCallCount == 1)
+        #expect(repository.signOutCallCount == 0)
+        #expect(store.rootState == .signedIn(session))
+        #expect(
+            store.errorMessage
+                == "We could not delete your account. Please try again."
+        )
+        #expect(store.isSubmitting == false)
+    }
 }
 
 struct AuthenticatedEntryStoreTests {
@@ -728,11 +779,13 @@ private final class AuthSessionRepositoryFake: AuthSessionRepository {
     var signInResult: Result<AuthSessionSnapshot, AuthSessionError> =
         .failure(.unavailable)
     var signOutResult: Result<Void, AuthSessionError> = .success(())
+    var deleteAccountResult: Result<Void, AuthSessionError> = .success(())
 
     private(set) var lastEmail: String?
     private(set) var lastPassword: String?
     private(set) var signInCallCount = 0
     private(set) var signOutCallCount = 0
+    private(set) var deleteAccountCallCount = 0
 
     init(
         currentSession: AuthSessionSnapshot? = nil,
@@ -777,5 +830,10 @@ private final class AuthSessionRepositoryFake: AuthSessionRepository {
     func signOut() async throws {
         signOutCallCount += 1
         try signOutResult.get()
+    }
+
+    func deleteAccount() async throws {
+        deleteAccountCallCount += 1
+        try deleteAccountResult.get()
     }
 }

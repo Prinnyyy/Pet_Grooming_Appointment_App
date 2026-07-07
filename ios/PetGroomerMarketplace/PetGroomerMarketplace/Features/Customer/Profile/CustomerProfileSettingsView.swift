@@ -86,34 +86,9 @@ struct CustomerAccountView: View {
                     .accessibilityIdentifier("account.debug-console")
                     #endif
 
-                    Button(role: .destructive) {
-                        Task {
-                            await authenticationStore.signOut()
-                        }
-                    } label: {
-                        HStack(spacing: DesignTokens.Spacing.sm) {
-                            Spacer(minLength: 0)
-
-                            if authenticationStore.isSubmitting {
-                                ProgressView()
-                                    .tint(DesignTokens.Colors.error)
-                            }
-
-                            Text(
-                                authenticationStore.isSubmitting
-                                    ? "Signing Out..."
-                                    : "Sign Out"
-                            )
-                            .font(DesignTokens.Typography.headline)
-                            .foregroundStyle(DesignTokens.Colors.error)
-
-                            Spacer(minLength: 0)
-                        }
-                        .padding(.vertical, DesignTokens.Spacing.md)
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(authenticationStore.isSubmitting)
-                    .accessibilityIdentifier("auth.sign-out")
+                    AccountDangerActions(
+                        authenticationStore: authenticationStore
+                    )
                 }
                 .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
                 .padding(.top, DesignTokens.Spacing.xl)

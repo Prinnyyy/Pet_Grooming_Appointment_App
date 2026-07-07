@@ -16,6 +16,7 @@ enum AuthSessionError: Error, Equatable, Sendable {
     case weakPassword
     case rateLimited
     case networkUnavailable
+    case accountDeletionFailed
     case unavailable
 }
 
@@ -26,4 +27,5 @@ protocol AuthSessionRepository: AnyObject {
     func signUp(email: String, password: String) async throws -> AuthSignUpOutcome
     func signIn(email: String, password: String) async throws -> AuthSessionSnapshot
     func signOut() async throws
+    func deleteAccount() async throws
 }
