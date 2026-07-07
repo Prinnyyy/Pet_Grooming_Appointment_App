@@ -2,6 +2,9 @@ import SwiftUI
 
 @main
 struct PetGroomerMarketplaceApp: App {
+    @UIApplicationDelegateAdaptor(CustomerPushNotificationAppDelegate.self)
+    private var customerPushNotificationAppDelegate
+
     private let composition = AppComposition()
 
     var body: some Scene {

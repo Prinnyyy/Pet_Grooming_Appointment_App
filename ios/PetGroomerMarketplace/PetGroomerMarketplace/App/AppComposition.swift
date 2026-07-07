@@ -10,6 +10,7 @@ struct AppComposition {
     let customerPetRepository: (any CustomerPetRepository)?
     let customerRequestRepository: (any CustomerRequestRepository)?
     let customerNotificationRepository: (any CustomerNotificationRepository)?
+    let customerPushNotificationRepository: (any CustomerPushNotificationRepository)?
     let bookingRepository: (any BookingRepository)?
     let chatRepository: (any ChatRepository)?
     let groomerProfileRepository: (any GroomerProfileRepository)?
@@ -54,6 +55,10 @@ struct AppComposition {
                 base: SupabaseCustomerNotificationRepository(client: client),
                 debugRecorder: debugRecorder
             )
+            let customerPushNotificationRepository = DebugCustomerPushNotificationRepository(
+                base: SupabaseCustomerPushNotificationRepository(client: client),
+                debugRecorder: debugRecorder
+            )
             let bookingRepository = DebugBookingRepository(
                 base: SupabaseBookingRepository(client: client),
                 debugRecorder: debugRecorder
@@ -75,6 +80,7 @@ struct AppComposition {
             let customerPetRepository = SupabaseCustomerPetRepository(client: client)
             let customerRequestRepository = SupabaseCustomerRequestRepository(client: client)
             let customerNotificationRepository = SupabaseCustomerNotificationRepository(client: client)
+            let customerPushNotificationRepository = SupabaseCustomerPushNotificationRepository(client: client)
             let bookingRepository = SupabaseBookingRepository(client: client)
             let chatRepository = SupabaseChatRepository(client: client)
             let groomerProfileRepository = SupabaseGroomerProfileRepository(client: client)
@@ -88,6 +94,7 @@ struct AppComposition {
             self.customerPetRepository = customerPetRepository
             self.customerRequestRepository = customerRequestRepository
             self.customerNotificationRepository = customerNotificationRepository
+            self.customerPushNotificationRepository = customerPushNotificationRepository
             self.bookingRepository = bookingRepository
             self.chatRepository = chatRepository
             self.groomerProfileRepository = groomerProfileRepository
@@ -96,6 +103,9 @@ struct AppComposition {
                 repository: authRepository,
                 clearsSessionBeforeRestore:
                     launchConfiguration.testOps.clearsSessionBeforeRestore
+            )
+            CustomerPushNotificationRegistrationCoordinator.shared.configure(
+                repository: customerPushNotificationRepository
             )
         } catch {
             authenticationBootstrapState = .configurationError(
@@ -107,11 +117,15 @@ struct AppComposition {
             customerPetRepository = nil
             customerRequestRepository = nil
             customerNotificationRepository = nil
+            customerPushNotificationRepository = nil
             bookingRepository = nil
             chatRepository = nil
             groomerProfileRepository = nil
             groomerRequestRepository = nil
             authenticationStore = nil
+            CustomerPushNotificationRegistrationCoordinator.shared.configure(
+                repository: nil
+            )
         }
     }
 }

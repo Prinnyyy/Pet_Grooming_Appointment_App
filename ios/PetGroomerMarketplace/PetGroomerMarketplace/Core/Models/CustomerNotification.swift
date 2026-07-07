@@ -57,6 +57,8 @@ nonisolated enum CustomerNotificationKind:
     case requestCancelled = "request_cancelled"
     case bookingConfirmed = "booking_confirmed"
     case bookingCancelled = "booking_cancelled"
+    case newOffer = "new_offer"
+    case newMessage = "new_message"
 
     var defaultTitle: String {
         switch self {
@@ -68,6 +70,10 @@ nonisolated enum CustomerNotificationKind:
             "Booking confirmed"
         case .bookingCancelled:
             "Booking cancelled"
+        case .newOffer:
+            "New offer received"
+        case .newMessage:
+            "New message"
         }
     }
 
@@ -81,6 +87,10 @@ nonisolated enum CustomerNotificationKind:
             "checkmark.seal.fill"
         case .bookingCancelled:
             "calendar.badge.xmark"
+        case .newOffer:
+            "tag.fill"
+        case .newMessage:
+            "message.fill"
         }
     }
 }

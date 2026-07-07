@@ -87,7 +87,25 @@ struct AuthenticatedEntryView: View {
         .task(id: session.userID) {
             await store.load(userID: session.userID)
         }
+        .task(id: activeCustomerIDForPushRegistration) {
+            await CustomerPushNotificationRegistrationCoordinator.shared
+                .activate(customerID: activeCustomerIDForPushRegistration)
+        }
+        .onDisappear {
+            Task {
+                await CustomerPushNotificationRegistrationCoordinator.shared
+                    .activate(customerID: nil)
+            }
+        }
         .environment(\.appDebugEventRecorder, appDebugRecorder)
+    }
+
+    private var activeCustomerIDForPushRegistration: UUID? {
+        if case let .customer(profile) = store.state {
+            profile.userID
+        } else {
+            nil
+        }
     }
 
     private var appDebugRecorder: AppDebugEventRecorder? {

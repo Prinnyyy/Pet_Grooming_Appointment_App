@@ -5,6 +5,39 @@ This file is the active recent closeout index, newest first. It intentionally ke
 Current branch, next task ID, and current baseline live in `docs/00_memory/CURRENT_STATE.md` and `docs/06_tasks/TASK_LEDGER.md`. Older `Next:` lines and branch references are historical closeout notes, not current instructions.
 
 ```text
+Date: 2026-07-07
+Task: T-158 - Public RPC wrapper hardening.
+Files changed: `20260707174825_t158_public_rpc_wrapper_hardening.sql`, migration tests, RLS/RPC policy, memory docs.
+Checks: RED/GREEN `node --test tests/migrations/public-rpc-wrapper-hardening.test.mjs`; `node --test tests/migrations/*.test.mjs`; `node --test tests/functions/customer-push-dispatcher.test.mjs`; authorized `supabase db push --linked`; post-apply `supabase db push --linked --dry-run`; public/private RPC metadata SQL; rollback authenticated wrapper execution SQL; `supabase db advisors --linked --type all --level warn --fail-on none`; `supabase db lint --linked --fail-on none`; `git diff --check`; `node scripts/context-hygiene-check.mjs`; `./scripts/ios-build.sh`.
+Remote: Applied `20260707174825_t158_public_rpc_wrapper_hardening.sql` to `lqmasbuqzvcvtawonjlb`.
+Result: Ten public authenticated RPCs that advisors flagged as `SECURITY DEFINER` are now public `SECURITY INVOKER` wrappers calling private `app_private` helpers with the original privileged function bodies. Public API names/signatures remain stable.
+Risks: Advisors now only report Auth leaked-password protection. `db lint` still reports two pre-existing unread variables in private helper bodies. T-157 Edge Function deployment remains blocked until APNs secrets exist.
+Next: Commit/push the T-157/T-158 changes, then continue T-157 APNs secret setup and function deploy when the secret values are available.
+```
+
+```text
+Date: 2026-07-07
+Task: T-157 - Customer APNs push notification foundation remote apply checkpoint.
+Files changed: T-157 corrective migrations for push token validation/conflict/constraint handling, migration tests, memory docs.
+Checks: Authorized sequential `supabase db push --linked`; post-apply `supabase db push --linked --dry-run`; metadata/RLS/index/constraint SQL; public RPC grant/security metadata SQL; trigger SQL; rollback claim/record validation; rollback authenticated register/unregister validation; `node --test tests/migrations/*.test.mjs`; `node --test tests/functions/customer-push-dispatcher.test.mjs`; `supabase db lint --linked --fail-on none`; `supabase db advisors --linked --type all --level warn --fail-on none`; `supabase secrets list --output-format json`; `git diff --check`; `node scripts/context-hygiene-check.mjs`; `./scripts/ios-build.sh`.
+Remote: Applied `20260706230112_t157_customer_push_notifications.sql` plus corrective migrations through `20260707172322_t157_fix_push_token_constraint.sql` to `lqmasbuqzvcvtawonjlb`. `supabase secrets list` returned no APNs secrets, so the Edge Function was not deployed.
+Result: The remote database now has customer APNs token registration, push delivery state, service-role dispatch RPCs, new-offer/new-message notification events, and corrected token validation for real APNs tokens.
+Risks: Production push dispatch is still inactive until `APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_TOPIC`, and `APNS_PRIVATE_KEY` are configured and `supabase functions deploy dispatch-customer-push-notifications` is run. Advisors still report pre-existing public authenticated SECURITY DEFINER RPC warnings and Auth leaked-password protection.
+Next: Configure or confirm APNs secrets, then deploy `dispatch-customer-push-notifications`; do not start a new task unless the user explicitly redirects.
+```
+
+```text
+Date: 2026-07-06
+Task: T-157 - Customer APNs push notification foundation.
+Files changed: `20260706230112_t157_customer_push_notifications.sql`, `supabase/functions/dispatch-customer-push-notifications/`, customer push notification model/repository/store/coordinator/AppDelegate wiring, notification kind extension, migration/function/Swift tests, memory docs.
+Checks: RED/GREEN `node --test tests/migrations/customer-push-notifications.test.mjs`; RED/GREEN `node --test tests/functions/customer-push-dispatcher.test.mjs`; RED/GREEN targeted `CustomerPushNotificationRegistrationStoreTests`; `node --test tests/migrations/*.test.mjs`; dispatcher tests; sequential `supabase migration list --linked`; sequential `supabase db push --linked --dry-run`.
+Remote: No remote writes. Dry-run shows only `20260706230112_t157_customer_push_notifications.sql` pending after T-156. APNs secrets were not set, the Edge Function was not deployed, and post-apply SQL/advisors were not run.
+Result: Local T-157 implementation is ready for authorization. It adds customer APNs token registration, push delivery state on durable customer notifications, controlled service-role dispatch RPCs, new `new_offer`/`new_message` notification events, and an Edge Function that sends APNs from system notification copy only.
+Risks: The local app can request APNs permission after a Customer session loads, but remote token RPCs do not exist until the migration is applied. Production push also requires APNs secrets (`APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_TOPIC`, `APNS_PRIVATE_KEY`) and `supabase functions deploy dispatch-customer-push-notifications`.
+Next: Get explicit authorization for remote T-157 DDL/deploy steps, or pause before remote writes.
+```
+
+```text
 Date: 2026-07-06
 Task: T-156 - Booking handoff read-state persistence.
 Files changed: `20260706220736_t156_booking_handoff_read_state.sql`, Customer request repository/store/view wiring, migration and Store tests, memory docs.

@@ -4,11 +4,11 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Last Updated
 
-- Date: 2026-07-06
+- Date: 2026-07-07
 - Updated by: Codex
-- Latest completed task: T-156 Booking handoff read-state persistence.
-- Current task: none active.
-- Next task ID: T-157 unless the user explicitly names another task ID or branch.
+- Latest completed task: T-158 Public RPC wrapper hardening.
+- Current task: T-157 Customer APNs push notification foundation, remote DB applied and validated; Edge Function deploy is blocked by missing APNs secrets.
+- Next task ID: continue T-157 APNs secret setup and Edge Function deploy unless the user explicitly names another task ID or branch.
 
 ## Fast Path
 
@@ -34,13 +34,14 @@ Key frozen archive families: current-state snapshots, worklogs, task ledgers, ba
 
 ## Validation Baseline
 
-- Last iOS build: `./scripts/ios-build.sh` passed on 2026-07-06 during T-156 local implementation.
+- Last iOS build: `./scripts/ios-build.sh` passed on 2026-07-07 during T-158 closeout.
 - Last full iOS test: `./scripts/ios-test.sh` passed on 2026-07-06 during T-154 local implementation. T-155 attempted `./scripts/ios-test.sh` on 2026-07-06; it failed one unrelated T-153 `CustomerNotificationsStoreTests.markAllReadReplacesNotificationsWithRepositoryResult()` same-timestamp ordering assertion after 229/230 tests passed.
-- Last Supabase migration apply: authorized `supabase db push --linked` applied `20260706220736_t156_booking_handoff_read_state.sql` to project `lqmasbuqzvcvtawonjlb` on 2026-07-06.
-- Last Supabase live post-apply validation: T-156 migration list/dry-run, table/RLS/policy/grant/function metadata SQL, rollback-contained RLS/RPC validation, zero-residue SQL, lint, and advisors passed on 2026-07-06.
+- Last Supabase migration apply: authorized `supabase db push --linked` applied `20260707174825_t158_public_rpc_wrapper_hardening.sql` to project `lqmasbuqzvcvtawonjlb` on 2026-07-07.
+- Last Supabase live post-apply validation: T-158 dry-run, public/private RPC metadata SQL, rollback wrapper execution SQL, lint, and advisors ran on 2026-07-07.
+- Prepared unapplied Supabase migration: none; sequential `supabase db push --linked --dry-run` reported the remote database is up to date after T-157 corrective migrations.
 - Last TestOps unit validation: T-145 `./scripts/testops-unit.sh` passed 24 Node tests.
 - Last remote TestOps run: T-155 authorized `matching_baseline` run `TESTOPS-T155-MATCH-20260706-*` passed 8/8 and cleanup left zero tagged request/match residue.
-- Last docs/workflow validation: T-156 `git diff --check` and `node scripts/context-hygiene-check.mjs` passed.
+- Last docs/workflow validation: T-158 `git diff --check` and `node scripts/context-hygiene-check.mjs` passed on 2026-07-07.
 - Known live failing behavior: none currently recorded.
 
 ## Active Product State
@@ -73,13 +74,15 @@ Key frozen archive families: current-state snapshots, worklogs, task ledgers, ba
 - Backend policy files are now current-rule indexes; use migrations or frozen pre-trim snapshots for detailed historical trace.
 - The original root product/engineering brief, old Groomly design task prompt, pre-slim design notes, removed memory pointer, removed generic lightweight templates, and external agent audit drafts are archived under `docs/09_frozen/`; use `docs/01_product/PRODUCT_BRIEF.md`, `docs/01_product/DESIGN_SYSTEM.md`, `docs/08_design/UI_IMPLEMENTATION_NOTES.md`, `docs/07_decisions/DECISION_LOG.md`, and active workflow/task docs as entrypoints. External agent reports are review input only and must not reset branch, task ID, validation, or product status.
 - T-129 seed profile Markdown files are machine-readable parser inputs and excluded from default search. Do not reformat or archive them without updating scripts/tests.
-- Deferred features remain out of scope unless explicitly requested: public directory, direct booking, payments, realtime chat, attachments, push notifications/APNs, maps/calendar integrations, moderation/disputes, and admin tooling.
+- Deferred features remain out of scope unless explicitly requested: public directory, direct booking, payments, realtime chat, attachments, maps/calendar integrations, moderation/disputes, and admin tooling. T-157 APNs database foundation is remotely applied, but push dispatch is not deployed until APNs secrets exist.
 - Large Swift context risks remain `CustomerRequestsView.swift` and `GroomerProfileManagementView.swift`; split only in a dedicated Standard refactor task.
 - T-155 installed private reusable request-match insertion plus backfill triggers for groomer activation and availability-related changes.
 - T-154 installed `pg_cron` 1.6.4 and scheduled `groomly_expire_grooming_requests` every 5 minutes to call `app_private.expire_grooming_requests(250)`.
 - T-156 added durable customer booking handoff acknowledgement read state with `UserDefaults` fallback and applied the backing table/RLS/RPC migration.
-- Security advisor still reports pre-existing public authenticated `SECURITY DEFINER` RPC warnings and Auth leaked-password protection. T-153/T-156 RPCs are security invoker and were not flagged; T-154/T-155 private `app_private` functions were not flagged.
+- T-157 applied customer APNs token registration tables/RPCs, push delivery state, new-offer/new-message notification event triggers, and corrective token-validation migrations. `supabase secrets list` returned no APNs secrets, so `dispatch-customer-push-notifications` is not deployed.
+- T-158 moved advisor-flagged public authenticated `SECURITY DEFINER` RPCs behind public `SECURITY INVOKER` wrappers and private `app_private` helpers.
+- Security advisor currently reports only Auth leaked-password protection. Public authenticated `SECURITY DEFINER` RPC warnings are cleared.
 
 ## Next Recommended Task
 
-- Start T-157 unless the user names another task.
+- Continue T-157 by setting or confirming `APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_TOPIC`, and `APNS_PRIVATE_KEY`, then deploy `dispatch-customer-push-notifications`, unless the user names another task.

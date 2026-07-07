@@ -10,8 +10,8 @@ Archived pre-trim version: `../09_frozen/backend_policies/RLS_RPC_POLICY_2026-07
 - Auth identity comes from Supabase Auth. App role, ownership, and participant relationships come from database rows, not user-editable metadata.
 - iOS uses repositories/services for all Supabase reads, RPC calls, and uploads. SwiftUI views must not call Supabase directly.
 - Critical multi-row writes and status transitions use controlled RPCs. Direct table writes are denied where they could bypass ownership, status, limits, uniqueness, matching, booking, review, or evidence rules.
-- Public `SECURITY DEFINER` RPCs are allowed only when they perform explicit auth/role/ownership/status checks, use a safe search path, revoke broad execution, and grant only intended roles.
-- Private helpers under `app_private` remain non-client helpers unless a specific migration exposes a controlled wrapper.
+- Public controlled RPCs use `SECURITY INVOKER` API wrappers with a safe search path and explicit execute grants.
+- Privileged `SECURITY DEFINER` logic lives under `app_private`, performs explicit auth/role/ownership/status checks, revokes broad execution, and is reached only through controlled wrappers or trigger/service-role paths.
 
 ## Access Matrix
 

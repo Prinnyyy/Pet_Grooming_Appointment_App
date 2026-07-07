@@ -57,6 +57,7 @@ private enum AppDebugRepositoryCancellation {
         case BookingRepositoryError.cancelled,
              CustomerRequestRepositoryError.cancelled,
              CustomerNotificationRepositoryError.cancelled,
+             CustomerPushNotificationRepositoryError.cancelled,
              CustomerProfileRepositoryError.cancelled,
              CustomerPetRepositoryError.cancelled,
              ChatRepositoryError.cancelled,
@@ -334,6 +335,70 @@ final class DebugCustomerRequestRepository: CustomerRequestRepository {
                 customerID: customerID,
                 requestID: requestID,
                 bookingID: bookingID
+            )
+        }
+    }
+}
+
+@MainActor
+final class DebugCustomerPushNotificationRepository:
+    CustomerPushNotificationRepository
+{
+    private let base: any CustomerPushNotificationRepository
+    private let debugRecorder: AppDebugEventRecorder?
+
+    init(
+        base: any CustomerPushNotificationRepository,
+        debugRecorder: AppDebugEventRecorder?
+    ) {
+        self.base = base
+        self.debugRecorder = debugRecorder
+    }
+
+    func registerDeviceToken(
+        customerID: UUID,
+        token: CustomerPushNotificationDeviceToken,
+        installationID: UUID,
+        environment: CustomerPushNotificationEnvironment
+    ) async throws {
+        try await debugRepositoryCall(
+            recorder: debugRecorder,
+            source: "CustomerPushNotificationRepository.registerDeviceToken",
+            scope: "customer.push",
+            operation: "registerDeviceToken",
+            metadata: [
+                "customerID": customerID.uuidString,
+                "installationID": installationID.uuidString,
+                "environment": environment.rawValue,
+                "rpc": "register_customer_push_token",
+            ]
+        ) {
+            try await base.registerDeviceToken(
+                customerID: customerID,
+                token: token,
+                installationID: installationID,
+                environment: environment
+            )
+        }
+    }
+
+    func unregisterDeviceToken(
+        token: CustomerPushNotificationDeviceToken,
+        installationID: UUID
+    ) async throws {
+        try await debugRepositoryCall(
+            recorder: debugRecorder,
+            source: "CustomerPushNotificationRepository.unregisterDeviceToken",
+            scope: "customer.push",
+            operation: "unregisterDeviceToken",
+            metadata: [
+                "installationID": installationID.uuidString,
+                "rpc": "unregister_customer_push_token",
+            ]
+        ) {
+            try await base.unregisterDeviceToken(
+                token: token,
+                installationID: installationID
             )
         }
     }
