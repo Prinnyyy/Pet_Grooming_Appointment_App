@@ -4,15 +4,16 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Last Updated
 
-- Date: 2026-07-07
+- Date: 2026-07-08
 - Updated by: Codex
-- Latest completed task: T-166 Git/GitHub rules hardening.
+- Latest completed task: T-173 Main governance divergence reconciliation.
 - Current task: none active; T-157 APNs deployment remains externally blocked.
-- Next task ID: use T-167 unless the user resumes T-157 after Apple Developer Program upgrade.
+- Next task ID: use T-174 unless the user resumes T-157 after Apple Developer Program upgrade.
 
 ## Fast Path
 
 - Task source of truth: `docs/06_tasks/TASK_LEDGER.md`.
+- Managed roadmap: `docs/06_tasks/ROADMAP.md`.
 - Recent closeouts: `docs/00_memory/WORKLOG.md`.
 - Canonical decision log: `docs/07_decisions/DECISION_LOG.md`.
 - Feature routing: `docs/00_memory/FEATURE_INDEX.md`.
@@ -30,7 +31,7 @@ Frozen history lives under `docs/09_frozen/`.
 - Current branch baseline: `codex/pet-fit-structure-cleanup`.
 - GitHub repository: `Prinnyyy/Pet_Grooming_Appointment_App`.
 - Continue implementation, documentation, commit, and push work from this branch unless the user explicitly names another branch.
-- Do not treat `main` as the current work baseline until the user explicitly asks to reconcile it.
+- Do not treat `main` as the current work baseline. T-173 reviewed main-only commit `2fddf7b`; it is superseded and must not be merged back into this branch.
 - Do not commit, push, create PRs, seed, cleanup, migrate, or make remote writes without explicit user approval.
 
 ## Validation Baseline
@@ -42,7 +43,7 @@ Frozen history lives under `docs/09_frozen/`.
 - Prepared unapplied Supabase migration: none known by `supabase migration list --linked`; post-apply dry-run requires `SUPABASE_DB_PASSWORD`.
 - Last TestOps unit validation: T-145 `./scripts/testops-unit.sh` passed 24 Node tests.
 - Last remote TestOps run: T-155 authorized `matching_baseline` run `TESTOPS-T155-MATCH-20260706-*` passed 8/8 and cleanup left zero tagged request/match residue.
-- Last docs/workflow validation: T-166 `git diff --check` and context hygiene passed on 2026-07-07.
+- Last docs/workflow validation: T-173 read-only main divergence git review, `git diff --check`, context hygiene, and targeted divergence search passed on 2026-07-08.
 - Known validation failure: full `./scripts/ios-test.sh` is currently blocked by the existing T-153 customer notification same-timestamp ordering test, not by T-162 cancellation repost work.
 
 ## Active Product State
@@ -57,9 +58,12 @@ Frozen history lives under `docs/09_frozen/`.
 
 - Default context model is L0-L4 in `CONTEXT_AND_RECOVERY.md`.
 - Startup reads stay minimal: `AGENTS.md`, then targeted current-state/task-ledger sections only when needed.
+- Periodic documentation-governance reviews use `docs/06_tasks/META_REVIEW_TEMPLATE.md` every 10 completed tasks or weekly.
+- Changes to `AGENTS.md`, `CLAUDE.md`, or `docs/05_workflow/**` must be standalone numbered tasks with a decision-log entry and context hygiene.
+- Main reconciliation: `2fddf7b` is reviewed/superseded. Future alignment should carry this branch's governed docs forward or cherry-pick only explicitly reviewed non-stale changes.
 - Default `rg` searches honor `.rgignore`; do not use broad `rg --files -g '*.md'` as the default Markdown inventory.
 - Do not read full `WORKLOG.md`, full `TASK_LEDGER.md`, frozen archives, Groomly HTML/export, or T-129 seed tables by default.
-- After durable memory, ledger, workflow, or coordination-doc changes, run `node scripts/context-hygiene-check.mjs` and archive old content immediately if budgets are exceeded.
+- After durable memory, ledger, workflow, or coordination-doc changes, run `node scripts/context-hygiene-check.mjs`; it now checks budgets plus last-verified freshness, migration mirror count, ROADMAP/ledger evidence, and Feature Index paths.
 
 ## Supabase and TestOps Guardrails
 
@@ -74,7 +78,7 @@ Frozen history lives under `docs/09_frozen/`.
 
 - Active memory/task files are intentionally concise. Do not expand them into full history.
 - Backend policy files are now current-rule indexes; use migrations or frozen pre-trim snapshots for detailed historical trace.
-- The original root product/engineering brief, old Groomly design task prompt, pre-slim design notes, removed memory pointer, removed generic lightweight templates, and external agent audit drafts are archived under `docs/09_frozen/`; use `docs/01_product/PRODUCT_BRIEF.md`, `docs/01_product/DESIGN_SYSTEM.md`, `docs/08_design/UI_IMPLEMENTATION_NOTES.md`, `docs/07_decisions/DECISION_LOG.md`, and active workflow/task docs as entrypoints. External agent reports are review input only and must not reset branch, task ID, validation, or product status.
+- The original root product/engineering brief, old Groomly design task prompt, pre-slim design notes, removed memory pointer, removed generic/lightweight templates, old Claude reference snapshots, and external agent audit drafts are archived under `docs/09_frozen/`; use `docs/06_tasks/ROADMAP.md`, `docs/01_product/PRODUCT_BRIEF.md`, `docs/01_product/DESIGN_SYSTEM.md`, `docs/08_design/UI_IMPLEMENTATION_NOTES.md`, `docs/07_decisions/DECISION_LOG.md`, `CLAUDE.md`, and active workflow/task docs as entrypoints. External agent reports are review input only and must not reset branch, task ID, validation, or product status.
 - T-129 seed profile Markdown files are machine-readable parser inputs and excluded from default search. Do not reformat or archive them without updating scripts/tests.
 - Deferred features remain out of scope unless explicitly requested: public directory, direct booking, payments, realtime chat, attachments, maps/calendar integrations, moderation/disputes, and admin tooling. Customer in-app notifications are active, and the T-157 APNs database/iOS foundation is remotely applied, but push dispatch is not deployed until paid Apple Developer credentials and APNs secrets exist.
 - Large Swift context risks remain `CustomerRequestsView.swift` and `GroomerProfileManagementView.swift`; split only in a dedicated Standard refactor task.
@@ -83,4 +87,4 @@ Frozen history lives under `docs/09_frozen/`.
 
 ## Next Recommended Task
 
-- Use T-167 for the next non-APNs task: Realtime foreground chat. Continue T-157 APNs deployment only after Apple Developer Program credentials are available.
+- Use T-174 next unless resuming T-157 after Apple Developer credentials. Suggested product candidate: realtime chat.

@@ -7,7 +7,7 @@ This file is the first stop when a path is unclear. It records the current folde
 - `AGENTS.md`: repository operating rules for Codex.
 - `.rgignore`: default ripgrep ignore rules for historical archives, generated artifacts, machine-readable seed profile tables, and large design exports.
 - `README.md`: short project overview and validation commands.
-- `CLAUDE.md` and `CLAUDE_reference/`: Claude-maintained root reference area. Keep separate from `docs/` by design.
+- `CLAUDE.md`: Claude minimum active entrypoint. Old Claude reference snapshots are frozen, not active root context.
 - `.codex/config.toml`: active local Codex project configuration.
 - `docs/09_frozen/agent_team_archive_2026-06-24/archive_agents/`: historical disabled agent role cards.
 - `docs/09_frozen/task_records_2026-06-26/`: detailed historical task records moved out of the active task directory.
@@ -23,6 +23,8 @@ This file is the first stop when a path is unclear. It records the current folde
 - `docs/09_frozen/design_prompts/`: archived historical design-task prompts moved out of active design context.
 - `docs/09_frozen/design_notes/`: archived pre-slim design-system and Groomly UI audit notes moved out of active design context.
 - `docs/09_frozen/product_briefs/`: archived original product/engineering briefs moved out of active root context.
+- `docs/09_frozen/project_structure/`: archived full structure logs moved out of the active reorganization index.
+- `docs/09_frozen/claude_reference_2026-07-08/`: archived old Claude-only reference snapshots moved out of active root context.
 - `docs/09_frozen/memory_pointers/`: archived removed compatibility pointers.
 - `docs/09_frozen/workflow_templates/`: archived removed low-use workflow templates.
 - `docs/09_frozen/task_templates/`: archived removed generic task templates.
@@ -42,7 +44,7 @@ This file is the first stop when a path is unclear. It records the current folde
 - `docs/03_backend/`: Supabase contract, RLS/RPC policy, storage policy, and migration rules.
 - `docs/04_ios/`: Swift, SwiftUI, build, testing, accessibility, and DEBUG diagnostic rules.
 - `docs/05_workflow/`: active single-agent workflow, context/recovery access tiers, tooling policy, GitHub rules, and stop rules.
-- `docs/06_tasks/`: active task ledger, screenshot task checklist, handoff/review templates, and task-specific artifacts. Detailed completed task records are frozen under `docs/09_frozen/task_records_2026-06-26/`.
+- `docs/06_tasks/`: active task ledger, managed roadmap, screenshot/meta-review templates, and task-specific artifacts. Detailed completed task records are frozen under `docs/09_frozen/task_records_2026-06-26/`.
 - `docs/06_tasks/sql_reviews/`: reviewed SQL drafts that were attached to task records before being mirrored as migrations.
 - `docs/07_decisions/`: ADR template and canonical decision log.
 - `docs/08_design/`: Groomly design prototype, normalized screenshot assets, extracted tokens, and implementation notes.
@@ -68,6 +70,8 @@ This file is the first stop when a path is unclear. It records the current folde
 - Frozen design prompts: `docs/09_frozen/design_prompts/`.
 - Frozen design notes: `docs/09_frozen/design_notes/`.
 - Frozen product briefs: `docs/09_frozen/product_briefs/`.
+- Frozen structure logs: `docs/09_frozen/project_structure/`.
+- Frozen Claude references: `docs/09_frozen/claude_reference_2026-07-08/`.
 - Removed memory pointers: `docs/09_frozen/memory_pointers/`.
 - Removed workflow templates: `docs/09_frozen/workflow_templates/`.
 - Removed task templates: `docs/09_frozen/task_templates/`.
@@ -88,7 +92,7 @@ Path move details live in `docs/10_project_structure/REORGANIZATION_LOG.md`.
 
 - Swift/Xcode source files under `ios/`.
 - Any file under `supabase/migrations/`.
-- `CLAUDE.md` or `CLAUDE_reference/`.
+- `CLAUDE.md`.
 - `AGENTS.md`.
 - `.rgignore`.
 - `.codex/config.toml`.

@@ -10,7 +10,7 @@ This folder is the durable project memory and coordination layer for Codex. Use 
 - `03_backend/`: Supabase fast-path contract, RLS/RPC policy, Storage policy, and migration rules
 - `04_ios/`: Swift, SwiftUI, build/test, Debug Console, accessibility, and TestOps runbooks
 - `05_workflow/`: active workflow, context/recovery, tooling, GitHub, and stop rules
-- `06_tasks/`: active task ledger, screenshot checklist, reviewed SQL artifacts, and handoff/review templates
+- `06_tasks/`: active task ledger, managed roadmap, screenshot/meta-review templates, and reviewed SQL artifacts
 - `07_decisions/`: canonical durable decision log and ADR template
 - `08_design/`: Groomly implementation notes, screenshots, and tokens; historical prompts and long design audits live in frozen archives
 - `09_frozen/`: frozen history and pre-trim snapshots; default searches should not read it
@@ -31,6 +31,7 @@ Default searches honor `../.rgignore`. Do not use broad `rg --files -g '*.md'` a
 - Agent rules: `../AGENTS.md`
 - Current state and branch baseline: `00_memory/CURRENT_STATE.md`
 - Task numbering/status source: `06_tasks/TASK_LEDGER.md`
+- Managed roadmap: `06_tasks/ROADMAP.md`
 - Feature routing index: `00_memory/FEATURE_INDEX.md`
 - Workflow rules: `05_workflow/SINGLE_AGENT_WORKFLOW.md`
 - Context/recovery and budgets: `05_workflow/CONTEXT_AND_RECOVERY.md`

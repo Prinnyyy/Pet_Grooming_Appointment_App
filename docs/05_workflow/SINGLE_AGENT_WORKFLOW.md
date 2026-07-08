@@ -63,6 +63,19 @@ Durable memory updates are limited to changed facts:
 
 After durable memory or ledger changes, run context hygiene and archive old rows/content in the same task if thresholds are exceeded.
 
+## Rule Change Tasks
+
+Changes to `AGENTS.md`, `CLAUDE.md`, or any file under `docs/05_workflow/` are workflow-rule changes.
+
+Workflow-rule changes must:
+
+- Use a standalone `T-###` task; do not bundle them with app, backend, design, or cleanup work.
+- Update `docs/07_decisions/DECISION_LOG.md` with the rule decision and affected files.
+- Update task closeout and current state when the changed rule affects future runs.
+- Run `git diff --check` and `node scripts/context-hygiene-check.mjs` before closeout.
+
+Stop and split scope if a workflow-rule change appears during another task.
+
 ## Screenshot UI Tasks
 
 One uploaded screenshot is one primary task unless the user explicitly says otherwise.

@@ -1,5 +1,7 @@
 # Supabase Contract
 
+Last verified: 2026-07-08.
+
 This is the active fast-path backend contract. It records current authoritative facts and points to the right detailed source instead of embedding every historical table, RPC, Storage, and migration note.
 
 Full pre-trim contract text is archived at `../09_frozen/backend_contracts/SUPABASE_CONTRACT_2026-07-01_PRE_FAST_PATH_TRIM.md`.
@@ -10,7 +12,7 @@ Full pre-trim contract text is archived at `../09_frozen/backend_contracts/SUPAB
 - Forbidden legacy project: `Prinnyyy's Project`, ref `swdiiyypysyxbnfrxxsv`. Do not inspect, branch, migrate, reset, or mutate it for this rebuild.
 - Remote verification baseline: T-128 repaired remote/local migration-version drift. Latest recorded remote migration list aligns through `20260707191034_t160_account_deletion.sql`; post-apply direct dry-run/lint may require `SUPABASE_DB_PASSWORD` when the saved linked credential is insufficient.
 - Local CLI readiness baseline: T-139 confirmed sequential `supabase projects list`, `supabase migration list --linked`, and `supabase db push --linked --dry-run` work from this checkout without `SUPABASE_DB_PASSWORD`.
-- Local migration mirror: `../../supabase/migrations/` is the append-only source for applied and prepared migrations. Do not rename or hand-invent migration filenames.
+- Local migration mirror: `../../supabase/migrations/` is the append-only source for applied and prepared migrations. Local migration mirror count: 55 files. Do not rename or hand-invent migration filenames.
 - Full historical contract detail before this fast-path trim is frozen for comparison only. Current implementation truth comes from migrations plus focused active backend policy files.
 
 ## Read Order

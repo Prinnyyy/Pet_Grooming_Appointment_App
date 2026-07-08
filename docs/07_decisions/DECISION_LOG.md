@@ -20,6 +20,61 @@ Linked files:
 ## Decisions
 
 ```text
+Decision ID: D-008
+Date: 2026-07-08
+Decision: Treat `main` commit `2fddf7b` as reviewed and superseded by this branch's governance architecture.
+Context: `2fddf7b` is present only on `main`/`origin/main` and is not an ancestor of `codex/pet-fit-structure-cleanup`.
+Options considered: Merge it back; ignore it without record; or document it as superseded after review.
+Reason: The commit resets active docs to T-049/T-050-era state, removes the active `GITHUB_RULES.md`, and reorganizes frozen archives differently from the current indexed model.
+Consequences: Do not merge `2fddf7b` into this branch. Future `main` reconciliation should carry this branch's governed docs forward or cherry-pick only explicitly reviewed non-stale changes.
+Linked files: docs/05_workflow/GITHUB_RULES.md, docs/00_memory/CURRENT_STATE.md, docs/06_tasks/TASK_LEDGER.md
+```
+
+```text
+Decision ID: D-007
+Date: 2026-07-08
+Decision: Workflow-rule file changes must be standalone governed tasks.
+Context: Changes to `AGENTS.md`, `CLAUDE.md`, and active workflow docs can alter every future agent run.
+Options considered: Allow incidental edits; require standalone task only; or require standalone task plus decision and hygiene.
+Reason: Rule changes need traceable intent, source-of-truth updates, and a machine check before they influence future context recovery.
+Consequences: Any change to `AGENTS.md`, `CLAUDE.md`, or `docs/05_workflow/**` must use its own `T-###`, update this decision log, and run context hygiene before closeout.
+Linked files: AGENTS.md, CLAUDE.md, docs/05_workflow/SINGLE_AGENT_WORKFLOW.md, docs/05_workflow/STOP_CONDITIONS.md
+```
+
+```text
+Decision ID: D-006
+Date: 2026-07-08
+Decision: Treat context hygiene as the machine check for active-doc fact drift.
+Context: v2 checked budgets and basic current-state/ledger consistency, but stale verification dates, migration mirror drift, roadmap/task evidence gaps, and broken Feature Index read-first paths could still pass.
+Options considered: Keep manual review; add separate scripts; or extend the existing hygiene check.
+Reason: One local read-only gate is easier for future agents to run after coordination-doc changes.
+Consequences: Key indexes carry `Last verified` markers, `SUPABASE_CONTRACT.md` records the migration mirror count, ROADMAP task IDs must have ledger evidence, and Feature Index read-first paths must resolve.
+Linked files: scripts/context-hygiene-check.mjs, tests/docs/context-hygiene-check.test.mjs, docs/05_workflow/CONTEXT_AND_RECOVERY.md, docs/06_tasks/ROADMAP.md, docs/00_memory/FEATURE_INDEX.md, docs/03_backend/SUPABASE_CONTRACT.md
+```
+
+```text
+Decision ID: D-005
+Date: 2026-07-07
+Decision: Make preflight the local gate for migration and Edge Function static tests.
+Context: `tests/migrations/` and `tests/functions/` existed, but preflight did not run them.
+Options considered: Leave tests ad hoc; add separate scripts; or run both directories from preflight while keeping remote Supabase validation explicit.
+Reason: Preflight is the lightweight readiness check and can catch local backend regressions without remote writes.
+Consequences: Migration and Edge Function tasks should add/update local Node tests before remote validation. Preflight does not replace authorized migration list, dry-run, apply, metadata, advisors, or live deploy checks.
+Linked files: scripts/preflight.sh, tests/scripts/preflight.test.mjs, docs/04_ios/IOS_BUILD_AND_TESTING.md, docs/03_backend/MIGRATION_RULES.md
+```
+
+```text
+Decision ID: D-004
+Date: 2026-07-07
+Decision: Use `docs/06_tasks/ROADMAP.md` as the only managed roadmap index.
+Context: External V1.0 roadmap drafts were useful review input but carried stale task numbers and could mislead agents into treating old plans as current state.
+Options considered: Keep external reports frozen only; restore a root roadmap; or adopt a governed active roadmap that summarizes milestones while leaving task IDs to `TASK_LEDGER.md`.
+Reason: A managed roadmap gives future agents planning context without letting archived reports allocate task IDs or override current facts.
+Consequences: External roadmap drafts stay frozen. `ROADMAP.md` may hold milestones, DoD, candidate work, and completed mapping, but implementation task numbering/status remains owned by `TASK_LEDGER.md`.
+Linked files: docs/06_tasks/ROADMAP.md, docs/06_tasks/TASK_LEDGER.md, AGENTS.md, docs/05_workflow/CONTEXT_AND_RECOVERY.md
+```
+
+```text
 Decision ID: D-003
 Date: 2026-07-07
 Decision: Require task-prefixed Git/GitHub operations for new commits and release actions.

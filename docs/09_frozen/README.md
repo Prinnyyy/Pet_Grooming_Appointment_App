@@ -25,6 +25,8 @@ Archived files may contain old TODOs, old paths, old branch/task references, or 
 - `design_prompts/`: archived historical design-task prompts moved out of active design context.
 - `design_notes/`: archived pre-slim design-system and Groomly UI audit notes moved out of active design context.
 - `product_briefs/`: archived original product/engineering briefs moved out of active root context.
+- `project_structure/`: archived full structure logs moved out of the active reorganization index.
+- `claude_reference_2026-07-08/`: archived old Claude-only reference snapshots moved out of the active root.
 - `memory_pointers/`: removed compatibility pointers that no longer need active paths.
 - `workflow_templates/`: removed low-use workflow templates whose rules now live in active workflow docs.
 - `task_templates/`: removed generic task templates superseded by ledger/worklog rules and the screenshot task template.

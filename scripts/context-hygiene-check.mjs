@@ -8,6 +8,8 @@ const PROJECT_ROOT = path.resolve(
 const ACTIVE_MARKDOWN_TOTAL_LIMIT = 32000;
 const WORKLOG_ENTRY_LIMIT = 10;
 const TASK_LEDGER_ROW_LIMIT = 15;
+const LAST_VERIFIED_MAX_AGE_DAYS = 45;
+const CHECK_DATE_TEXT = process.env.CONTEXT_HYGIENE_NOW ?? new Date().toISOString().slice(0, 10);
 
 const WORD_LIMITS = new Map([
   ["AGENTS.md", 800],
@@ -17,6 +19,7 @@ const WORD_LIMITS = new Map([
   ["docs/00_memory/CURRENT_STATE.md", 1200],
   ["docs/00_memory/WORKLOG.md", 2500],
   ["docs/06_tasks/TASK_LEDGER.md", 1800],
+  ["docs/06_tasks/ROADMAP.md", 1800],
   ["docs/00_memory/FEATURE_INDEX.md", 1200],
   ["docs/00_memory/PROJECT_MEMORY.md", 600],
   ["docs/07_decisions/DECISION_LOG.md", 2500],
@@ -49,6 +52,13 @@ const CURRENT_CREDENTIAL_DOCS = [
   "docs/05_workflow/TOOLING_POLICY.md",
 ];
 
+const LAST_VERIFIED_DOCS = [
+  "docs/00_memory/FEATURE_INDEX.md",
+  "docs/03_backend/SUPABASE_CONTRACT.md",
+  "docs/03_backend/MIGRATION_RULES.md",
+  "docs/06_tasks/ROADMAP.md",
+];
+
 const failures = [];
 
 function run(command, args) {
@@ -73,6 +83,15 @@ function runRequired(command, args) {
 
 function words(text) {
   return text.match(/\S+/g)?.length ?? 0;
+}
+
+function parseDateOnly(dateText) {
+  const match = dateText.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) {
+    return null;
+  }
+  const [, year, month, day] = match;
+  return Date.UTC(Number(year), Number(month) - 1, Number(day));
 }
 
 function read(filePath) {
@@ -208,6 +227,169 @@ function ledgerRows(ledgerText) {
   }));
 }
 
+function checkLastVerifiedDates() {
+  const today = parseDateOnly(CHECK_DATE_TEXT);
+  if (today === null) {
+    failures.push(`CONTEXT_HYGIENE_NOW must be YYYY-MM-DD when set; got ${CHECK_DATE_TEXT}`);
+    return;
+  }
+
+  for (const filePath of LAST_VERIFIED_DOCS) {
+    const text = readOptional(filePath);
+    const match = text.match(/Last verified:\s*(\d{4}-\d{2}-\d{2})/i);
+    if (!match) {
+      failures.push(`${filePath} is missing a Last verified: YYYY-MM-DD marker`);
+      continue;
+    }
+
+    const verifiedAt = parseDateOnly(match[1]);
+    if (verifiedAt === null) {
+      failures.push(`${filePath} has an invalid Last verified date: ${match[1]}`);
+      continue;
+    }
+
+    const ageDays = Math.floor((today - verifiedAt) / 86_400_000);
+    if (ageDays < 0) {
+      failures.push(`${filePath} last verified ${match[1]} is in the future relative to ${CHECK_DATE_TEXT}`);
+    } else if (ageDays > LAST_VERIFIED_MAX_AGE_DAYS) {
+      failures.push(`${filePath} last verified ${match[1]} is stale: ${ageDays} days old, limit ${LAST_VERIFIED_MAX_AGE_DAYS}`);
+    }
+  }
+}
+
+function checkMigrationMirrorCount() {
+  const contract = readOptional("docs/03_backend/SUPABASE_CONTRACT.md");
+  const match = contract.match(/Local migration mirror count:\s*(\d+)\s+files?/i);
+  if (!match) {
+    failures.push("docs/03_backend/SUPABASE_CONTRACT.md is missing Local migration mirror count");
+    return;
+  }
+
+  const migrationsDir = path.join(PROJECT_ROOT, "supabase/migrations");
+  const actualCount = fs.existsSync(migrationsDir)
+    ? fs.readdirSync(migrationsDir).filter((entry) => entry.endsWith(".sql")).length
+    : 0;
+  const documentedCount = Number.parseInt(match[1], 10);
+  if (actualCount !== documentedCount) {
+    failures.push(`migration mirror count mismatch: SUPABASE_CONTRACT documents ${documentedCount}, filesystem has ${actualCount}`);
+  }
+}
+
+function expandTaskRange(startId, endId) {
+  const start = taskNumber(startId);
+  const end = taskNumber(endId);
+  if (start === null || end === null || end < start) {
+    return [startId];
+  }
+  const ids = [];
+  for (let task = start; task <= end; task += 1) {
+    ids.push(`T-${String(task).padStart(3, "0")}`);
+  }
+  return ids;
+}
+
+function taskIdsInText(text) {
+  const ids = new Set();
+  for (const match of text.matchAll(/\b(T-\d{3})\.\.\.(T-\d{3})\b/g)) {
+    for (const id of expandTaskRange(match[1], match[2])) {
+      ids.add(id);
+    }
+  }
+  for (const match of text.matchAll(/\b(T-\d{3})(?!\+)\b/g)) {
+    ids.add(match[1]);
+  }
+  return [...ids];
+}
+
+function allLedgerRows() {
+  const rows = ledgerRows(readOptional("docs/06_tasks/TASK_LEDGER.md"));
+  const archiveDir = path.join(PROJECT_ROOT, "docs/09_frozen/task_ledgers");
+  if (fs.existsSync(archiveDir)) {
+    for (const entry of fs.readdirSync(archiveDir).filter((fileName) => fileName.endsWith(".md"))) {
+      rows.push(...ledgerRows(fs.readFileSync(path.join(archiveDir, entry), "utf8")));
+    }
+  }
+  return rows;
+}
+
+function roadmapStatusSegments(line) {
+  return line
+    .split(/[;|]/)
+    .map((segment) => segment.trim())
+    .filter(Boolean);
+}
+
+function checkRoadmapLedgerAlignment() {
+  const roadmap = readOptional("docs/06_tasks/ROADMAP.md");
+  const statusById = new Map(allLedgerRows().map((row) => [row.id, row.status]));
+
+  for (const line of roadmap.split(/\r?\n/)) {
+    const ids = taskIdsInText(line);
+    if (ids.length === 0) {
+      continue;
+    }
+    const lower = line.toLowerCase();
+    const isCompletedMapping = lower.includes("completed mapping");
+    const completedIds = isCompletedMapping
+      ? []
+      : roadmapStatusSegments(line)
+        .filter((segment) => /\bcomplete\b/i.test(segment))
+        .flatMap(taskIdsInText);
+    const blockedIds = isCompletedMapping
+      ? []
+      : roadmapStatusSegments(line)
+        .filter((segment) => /\bblocked\b/i.test(segment))
+        .flatMap(taskIdsInText);
+
+    for (const id of ids) {
+      const status = statusById.get(id);
+      if (!status) {
+        failures.push(`ROADMAP.md references ${id} without task-ledger evidence`);
+      } else if (completedIds.includes(id) && status !== "completed") {
+        failures.push(`ROADMAP.md marks ${id} complete but task ledger status is ${status}`);
+      } else if (blockedIds.includes(id) && status !== "blocked") {
+        failures.push(`ROADMAP.md marks ${id} blocked but task ledger status is ${status}`);
+      }
+    }
+  }
+}
+
+function resolveFeatureIndexTarget(target) {
+  if (target.startsWith("docs/") || target.startsWith("supabase/") || target.startsWith("ios/")) {
+    return target;
+  }
+  return path.join("docs", target);
+}
+
+function checkFeatureIndexCoverage() {
+  const featureIndex = readOptional("docs/00_memory/FEATURE_INDEX.md");
+  let checkedRows = 0;
+
+  for (const line of featureIndex.split(/\r?\n/)) {
+    if (!line.startsWith("|") || /^\|\s*-/.test(line) || line.includes("| Feature Area |")) {
+      continue;
+    }
+    const cells = line.split("|").map((cell) => cell.trim());
+    const readFirst = cells[2] ?? "";
+    const targets = [...readFirst.matchAll(/`([^`]+)`/g)].map((match) => match[1]);
+    if (targets.length === 0) {
+      failures.push(`Feature Index row has no read-first target: ${line}`);
+      continue;
+    }
+    checkedRows += 1;
+    for (const target of targets) {
+      const resolved = resolveFeatureIndexTarget(target);
+      if (!fs.existsSync(path.join(PROJECT_ROOT, resolved))) {
+        failures.push(`Feature Index read-first target is missing: ${target} (${resolved})`);
+      }
+    }
+  }
+
+  if (checkedRows === 0) {
+    failures.push("Feature Index has no feature rows to check");
+  }
+}
+
 function checkCurrentFacts() {
   const currentState = readOptional("docs/00_memory/CURRENT_STATE.md");
   const taskLedger = readOptional("docs/06_tasks/TASK_LEDGER.md");
@@ -257,6 +439,10 @@ checkMarkdownLinks(activeFiles);
 checkActiveMarkdownTotal(activeFiles);
 checkIgnoredPaths();
 checkCredentialClaims();
+checkLastVerifiedDates();
+checkMigrationMirrorCount();
+checkRoadmapLedgerAlignment();
+checkFeatureIndexCoverage();
 checkCurrentFacts();
 checkRollingWindowSizes();
 

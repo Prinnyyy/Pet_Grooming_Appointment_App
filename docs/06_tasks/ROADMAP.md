@@ -1,0 +1,59 @@
+# Managed Roadmap
+
+Last verified: 2026-07-08.
+
+This is the governed planning index. It summarizes approved direction and candidate work without assigning task IDs. Task status stays in `TASK_LEDGER.md`; current branch, validation, and risks stay in `../00_memory/CURRENT_STATE.md`.
+
+## Adoption Rules
+
+- External agent reports and root roadmap drafts are review input only.
+- A roadmap item becomes managed only after the user asks to adopt or execute it.
+- Do not copy old task numbers from external plans; implementation uses the next `T-###` from `TASK_LEDGER.md`.
+- Scope/release/planning changes need a `../07_decisions/DECISION_LOG.md` entry.
+- Completed items must point to the closing ledger row or evidence.
+- Do not start the next roadmap item automatically. One user request equals one primary task.
+
+Inputs: active facts from `TASK_LEDGER.md`, `../00_memory/CURRENT_STATE.md`, and `../00_memory/FEATURE_INDEX.md`; review input from frozen external reports only.
+
+## V1.0 DoD
+
+No placeholder UI or non-persisting required fields; authorized images render or are explicitly deferred; expiry, backfill, cancellation recovery, notifications, and foreground chat are clear; account deletion, privacy/support URLs, Privacy Manifest, App Store notes, build/test/E2E gates, and new Supabase advisor findings are ready.
+
+Boundary: Open Request -> Groomer Offer -> Customer Confirmation -> Booking; no SwiftUI direct Supabase access; remote writes require explicit authorization.
+
+Out of V1.0 unless explicitly changed: payments, subscriptions, public directory, map-first discovery, AI recommendations, multi-pet requests, favorites, chat attachments, read receipts, groomer review replies, request editing, admin tooling, and social login.
+
+## Milestones
+
+| Milestone | Goal | Status | Exit Signal |
+|---|---|---|---|
+| G0 Docs governance | Keep docs indexed and bounded. | T-163...T-173 complete; future governance only as needed. | Startup uses active indexes, not stale root/frozen plans. |
+| M1 Half-finished surfaces | Remove incomplete UI/data behavior. | T-152 and T-154 complete; images, request persistence, deep-link/SMTP remain candidates. | No placeholder surfaces or misleading inputs. |
+| M2 Marketplace timeliness | Make request/offer/booking/chat state timely. | T-153, T-155, T-156, T-162 complete; T-157 dispatch blocked; realtime chat candidate. | Timely notifications/chat and cross-device states. |
+| M3 Compliance and ops | Satisfy App Store and ops basics. | T-160 and T-161 complete; URLs, crash/analytics, accessibility/copy, performance remain. | Metadata and operational evidence are ready. |
+| M4 Quality expansion | Make tests/checks systematic. | T-165/T-168 started docs/preflight coverage. | Required checks are documented, runnable, and task-typed. |
+| M5 Release | Prepare TestFlight/App Store release. | Proposed only. | M1-M4 exits are satisfied and user authorizes release/tag work. |
+
+## Candidate Backlog
+
+| Roadmap ID | Milestone | Candidate | Status |
+|---|---|---|---|
+| R-001 | G0 | Testing/migration workflow rules | Complete T-168 |
+| R-002 | G0 | Active document structure reduction | Complete T-169 |
+| R-003 | G0 | Context hygiene v3 fact checks | Complete T-170 |
+| R-004 | G0 | Periodic meta-review template | Complete T-171 |
+| R-016 | G0 | Rule-change process | Complete T-172 |
+| R-017 | G0 | Main governance divergence reconciliation | Complete T-173 |
+| R-005 | M1 | Private image rendering | Candidate |
+| R-006 | M1 | Request wizard persistence decision | Candidate |
+| R-007 | M1 | Email deep link and production SMTP | Candidate |
+| R-008 | M2 | Realtime foreground chat | Candidate |
+| R-009 | M2 | APNs dispatch deploy | Blocked on Apple/APNs secrets |
+| R-010 | M3 | Privacy/Support URLs | Blocked |
+| R-011 | M3 | Crash/funnel events | Candidate |
+| R-012 | M3 | Accessibility and copy audit | Candidate |
+| R-013 | M3 | Performance/network resilience | Candidate |
+| R-014 | M4 | Store/model/state/UI test expansion | Candidate |
+| R-015 | M5 | E2E/security, TestFlight, App Store | Proposed |
+
+Completed mapping: T-152 M1; T-153/T-155/T-156/T-162 M2; T-154 M1/M2; T-157 M2 blocked for dispatch; T-160/T-161 M3; T-163...T-173 G0.

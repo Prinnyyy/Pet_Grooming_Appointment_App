@@ -28,6 +28,14 @@ Run both the Swift Testing unit target and XCTest UI target:
 ./scripts/ios-test.sh
 ```
 
+Repository static backend tests are part of preflight, not the iOS test script:
+
+```bash
+./scripts/preflight.sh
+```
+
+Preflight runs `tests/migrations/*.test.mjs` and `tests/functions/*.test.mjs` when present. These tests are local/static only; they do not replace authorized Supabase remote validation for Deep backend tasks.
+
 ## TestOps
 
 Unified lifecycle automation and run templates live under `docs/04_ios/testops/README.md`.
@@ -86,5 +94,6 @@ Do not use a secret or service-role key. If the local file is absent or invalid,
 
 - Keep the shared scheme checked into `xcshareddata/xcschemes`.
 - Use the scripts for repository build and test checks.
+- Add or update local Node tests for new migrations and Edge Function helpers before remote validation.
 - If a task needs a different simulator or project, use an environment override instead of changing the safe defaults.
 - Stop after two focused repair attempts for task-related build failures.

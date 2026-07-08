@@ -8,6 +8,7 @@ Codex must stop and report when any condition occurs.
 - The task begins to affect unrelated screens/modules.
 - The task requires a product decision not documented.
 - The task cannot be completed without turning one requested task into multiple independent tasks.
+- A change to `AGENTS.md`, `CLAUDE.md`, or `docs/05_workflow/**` appears inside a non-rule task.
 
 ## Safety Stop
 

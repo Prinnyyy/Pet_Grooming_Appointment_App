@@ -7,7 +7,7 @@ Use this file to decide what to read, when to expand context, how to recover aft
 | Layer | Default Read Rule | Files |
 |---|---|---|
 | L0 Minimal startup | Read only for the current task; every run starts here | `AGENTS.md`; targeted top sections of `docs/00_memory/CURRENT_STATE.md`; targeted top rows of `docs/06_tasks/TASK_LEDGER.md`; an active task file only when explicitly provided/requested |
-| L1 Task index | After classifying the task, read one index for that domain | `docs/README.md`; `docs/00_memory/FEATURE_INDEX.md`; `docs/03_backend/SUPABASE_CONTRACT.md`; `docs/04_ios/testops/README.md`; `docs/10_project_structure/README.md` |
+| L1 Task index | After classifying the task, read one index for that domain | `docs/README.md`; `docs/00_memory/FEATURE_INDEX.md`; `docs/06_tasks/ROADMAP.md` for planning tasks; `docs/03_backend/SUPABASE_CONTRACT.md`; `docs/04_ios/testops/README.md`; `docs/10_project_structure/README.md` |
 | L2 Domain rules | Read only targeted sections needed for implementation or validation | Product docs, architecture docs, backend policy docs, iOS/TestOps runbooks, active workflow policy files |
 | L3 Trace/history | Search first, then read line ranges | `docs/00_memory/WORKLOG.md`; `docs/00_memory/PROJECT_MEMORY.md`; `docs/07_decisions/DECISION_LOG.md`; `docs/10_project_structure/REORGANIZATION_LOG.md` |
 | L4 Frozen/heavy | Default prohibited; use only with a specific recovery, comparison, seed, design-source, or migration-trace reason | `docs/09_frozen/**`; Groomly HTML/export; T-129 seed tables; generated artifacts; broad migration scans |
@@ -76,7 +76,7 @@ Run the context hygiene check at the end of any task that updates durable memory
 node scripts/context-hygiene-check.mjs
 ```
 
-Budget limits live in `scripts/context-hygiene-check.mjs`. Do not copy the numeric table here; run the script to see the current per-file budgets, active Markdown total budget, worklog entry limit, and task-ledger row limit.
+Budget limits and fact checks live in `scripts/context-hygiene-check.mjs`. Do not copy the numeric table here; run the script to see current budgets plus last-verified, migration-count, ROADMAP/ledger, and Feature Index path checks.
 
 If a file exceeds its limit, do the smallest safe rolling archive before final reporting:
 

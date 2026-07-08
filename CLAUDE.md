@@ -13,12 +13,15 @@ docs/09_frozen/task_records_2026-06-26/
 ```
 
 This Claude guide does not define active work. Start new work only from an explicit user request and the next available task ID in the ledger.
+Historical Claude-only reference snapshots live under `docs/09_frozen/claude_reference_2026-07-08/` and are not default startup context.
 
 ## Claude's Role
 
 Claude Code's role in this project is review, not implementation.
 
 Without explicit user authorization, Claude must not modify project files, including Swift, Xcode, Supabase, scripts, configuration, or docs. Allowed default actions are read-only review, analysis, and recommendations.
+
+Changes to `AGENTS.md`, `CLAUDE.md`, or `docs/05_workflow/**` must be a standalone numbered task with a decision-log entry and context hygiene.
 
 ## Current Task Reading Rules
 

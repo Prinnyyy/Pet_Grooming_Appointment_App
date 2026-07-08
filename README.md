@@ -28,9 +28,11 @@ This README does not define active work. Start new work only from an explicit us
 ## Main References
 
 - Agent rules: `AGENTS.md`
+- Claude guide: `CLAUDE.md`
 - Current state: `docs/00_memory/CURRENT_STATE.md`
 - Project structure index: `docs/10_project_structure/README.md`
 - Task ledger: `docs/06_tasks/TASK_LEDGER.md`
+- Managed roadmap: `docs/06_tasks/ROADMAP.md`
 - Durable decisions: `docs/07_decisions/DECISION_LOG.md`
 - Task folder guide: `docs/06_tasks/README.md`
 - Workflow rules: `docs/05_workflow/SINGLE_AGENT_WORKFLOW.md`

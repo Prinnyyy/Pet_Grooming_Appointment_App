@@ -48,4 +48,6 @@ Write summaries in English, imperative or noun-phrase style, and keep them speci
 ## Branch Hygiene
 
 - Delete local or remote branches only after user approval and after confirming the branch was merged or intentionally abandoned.
-- Reconciling `main` is a separate explicit task. The known `main` governance divergence around commit `2fddf7b` must be handled by a dedicated review; prefer this branch's active documentation architecture unless the user decides otherwise.
+- Reconciling `main` is a separate explicit task.
+- T-173 reviewed the `main`-only governance commit `2fddf7b`. Do not merge that commit back into this branch: it resets docs to a T-049/T-050-era architecture and deletes or restores paths superseded here.
+- Future `main` alignment should merge this branch's governed documentation forward, or cherry-pick only explicitly reviewed non-stale changes.

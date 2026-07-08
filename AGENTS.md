@@ -27,7 +27,7 @@ Read only what the task needs:
 
 Default searches must honor `.rgignore`. Do not use broad `rg --files -g '*.md'` as a default Markdown inventory because it can re-include ignored seed tables. Use `rg --no-ignore` only for explicitly needed frozen archives, machine-readable seed profiles, generated artifacts, or full design exports.
 
-Root-level or external-agent status/roadmap Markdown is not authoritative. Treat it as review input only; active branch, task number, validation, and product facts must come from the active sources above. If such drafts need preservation, move them under `docs/09_frozen/external_agent_reports/` and update active pointers in the same task.
+Root-level or external-agent status/roadmap Markdown is not authoritative. Treat it as review input only; active branch, task number, validation, and product facts must come from the active sources above. If such drafts need preservation, move them under `docs/09_frozen/external_agent_reports/` and update active pointers in the same task. If the user approves roadmap adoption, summarize it in `docs/06_tasks/ROADMAP.md` without copying old task IDs as active IDs.
 
 ## Task Rules
 
@@ -37,6 +37,7 @@ Root-level or external-agent status/roadmap Markdown is not authoritative. Treat
 - If branch, task ID, or status evidence conflicts, stop and verify `CURRENT_STATE.md` plus `TASK_LEDGER.md`; never infer the next task from stale task filenames, archived notes, or external reports.
 - One primary task only. Do not start adjacent features, broad refactors, or unrelated cleanup.
 - Make a short plan before non-trivial edits.
+- Changes to `AGENTS.md`, `CLAUDE.md`, or `docs/05_workflow/**` must be a standalone task with a decision-log entry and context hygiene.
 - Keep SwiftUI views thin and route business logic through Store/ViewModel/repository boundaries.
 - Keep backend access behind repository/service boundaries.
 - Do not invent Supabase schema facts or perform destructive database operations.
