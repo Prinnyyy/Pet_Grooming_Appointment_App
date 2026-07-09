@@ -78,7 +78,7 @@ struct BookingsView: View {
         .refreshable {
             await store.load()
         }
-        .task {
+        .foregroundRefreshable {
             await store.load()
         }
     }

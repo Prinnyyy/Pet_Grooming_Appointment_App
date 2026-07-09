@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-09
 - Updated by: Codex
-- Latest completed task: T-204 Groomer notification center UI.
+- Latest completed task: T-205 Foreground state timeliness.
 - Current task: none; T-157 APNs remains externally blocked.
-- Next task ID: use T-205 unless the user resumes T-157 after Apple Developer Program upgrade.
+- Next task ID: use T-206 unless the user resumes T-157 after Apple Developer Program upgrade.
 
 ## Fast Path
 
@@ -36,7 +36,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Validation Baseline
 
-- Last iOS build: `./scripts/ios-build.sh` passed on 2026-07-09 during T-204 groomer notification center UI.
+- Last iOS build: `./scripts/ios-build.sh` passed on 2026-07-09 during T-205 foreground state timeliness.
 - Last full iOS test attempt: `./scripts/ios-test.sh` passed on 2026-07-09 during T-201 release readiness dry run, including UI smoke tests 3/3 and full app/unit coverage.
 - Last Supabase migration apply: T-160 applied `20260707191034_t160_account_deletion.sql` to `lqmasbuqzvcvtawonjlb` on 2026-07-07 and confirmed parity/RLS/grants/RPCs/advisors/deployment.
 - Prepared unapplied Supabase migration: T-203 `20260709073051_t203_groomer_notifications.sql` is local-only until explicit remote migration authorization.
@@ -47,7 +47,8 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - Last private image work: T-199 added transient retry and cancellation-safe refresh behavior to the shared private image loader.
 - Last focused feature validation: T-200 CustomerNotificationsStoreTests passed on 2026-07-09 after RED/GREEN same-timestamp ordering coverage.
 - Last groomer notification UI: T-204 added Alerts, unread badge, read states, request/booking/message routing, and focused Store tests.
-- Last docs validation: T-204 context hygiene and `git diff --check` passed on 2026-07-09.
+- Last foreground refresh: T-205 added scene-active/realtime-fallback refresh for request/offer/booking/notification surfaces.
+- Last docs validation: T-205 context hygiene and `git diff --check` passed on 2026-07-09.
 - Known iOS validation failure: none currently recorded; full `./scripts/ios-test.sh` passed during T-201.
 
 ## Active Product State
@@ -55,7 +56,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - MVP marketplace flow is complete at the current contract level: customer request -> groomer offers -> customer accepts -> booking/chat -> groomer completes -> customer reviews.
 - Production uses real Supabase Auth, authoritative profile loading, and role separation. No production path fabricates a session/profile.
 - Auth email/deep-link design is documented; Q-07 waits for production auth domain and SMTP credentials.
-- Implemented iOS areas include auth/role onboarding, customer pets/requests/offers, notifications, groomer requests/offers, bookings/reviews, foreground chat, groomer/customer profile/account surfaces, privacy/support links, private images, Debug Console, local ops evidence, accessibility/copy checks, and TestOps.
+- Implemented iOS areas include auth/role onboarding, customer pets/requests/offers/notifications, groomer requests/offers, bookings/reviews, foreground chat, profile/account surfaces, privacy/support links, private images, Debug Console, ops evidence, accessibility/copy checks, and TestOps.
 - Private Storage images use authenticated `.download(path:)` behind `PrivateImageLoader`; shared cache hashes paths, retries transient downloads once, and clears on local account cleanup.
 - Customers can create a new request from cancelled requests/bookings via explicit republish. Unpublished request wizard drafts are sheet-ephemeral: cancel/dismiss discards them, while publish failure preserves input for correction.
 - Groomly UI adaptation is complete for implemented MVP screens. Future UI work is screenshot-driven and must map screenshot modules to existing SwiftUI/Store/repository/model paths or stop for new-feature approval.
@@ -66,7 +67,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - Startup reads stay minimal: `AGENTS.md`, then targeted current-state/task-ledger sections only when needed.
 - Periodic documentation-governance reviews use `docs/06_tasks/META_REVIEW_TEMPLATE.md` every 10 completed tasks or weekly.
 - Last meta-review: T-196 on 2026-07-09.
-- V1.0 ideal-operation packages are adopted in `docs/06_tasks/ROADMAP_EXECUTION_QUEUE.md`; Q-16 and Q-17 are complete, and sequencing continues at Q-18.
+- V1.0 ideal-operation packages are adopted in `docs/06_tasks/ROADMAP_EXECUTION_QUEUE.md`; Q-16...Q-18 are complete, and sequencing continues at Q-19.
 - Changes to `AGENTS.md`, `CLAUDE.md`, or `docs/05_workflow/**` must be standalone numbered tasks with a decision-log entry and context hygiene.
 - T-180 records standing user approval for automatic task-completion Git commit and push. This approval is limited to current-task changes after validation passes; T-186 requires stopping without auto pull/rebase/merge/reset/force-push if the push fails or is rejected.
 - T-184 keeps active Markdown under a 36k hard limit, 95% structural-review warning, and deterministic `node scripts/context-rotate.mjs` archive rotation.
@@ -99,4 +100,4 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Next Recommended Task
 
-- Use T-205 next. Recommended package is Q-18 foreground state timeliness. T-203 migration remains local-only until explicit remote apply authorization. Q-90...Q-92 remain blocked on Apple/APNs/release or production SMTP credentials.
+- Use T-206 next. Recommended package is Q-19 offer domain tests. T-203 migration remains local-only until explicit remote apply authorization. Q-90...Q-92 remain blocked on Apple/APNs/release or production SMTP credentials.

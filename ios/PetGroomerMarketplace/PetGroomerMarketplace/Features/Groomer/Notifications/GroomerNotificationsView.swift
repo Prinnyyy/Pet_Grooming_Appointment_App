@@ -35,7 +35,7 @@ struct GroomerNotificationsView: View {
                 }
             }
         }
-        .task {
+        .foregroundRefreshable {
             await store.load()
         }
         .accessibilityIdentifier("groomer.notifications")

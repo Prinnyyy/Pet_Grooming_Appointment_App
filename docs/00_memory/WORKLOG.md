@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-09
+Task: T-205 - Foreground state timeliness.
+Files changed: foreground refresh gate/modifier, customer home/requests/bookings/notifications views, groomer requests/offers/bookings/notifications views, focused tests, roadmap, current state, task ledger, and worklog.
+Checks: ForegroundRefreshGateTests RED/GREEN; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
+Result: Closes Q-18 by moving the affected marketplace screens from one-time task loading to a shared foreground refresh path with initial load, scene-active refresh, realtime-fallback polling, throttling, and in-flight dedupe.
+Risks: This is local UI refresh behavior only. No Supabase schema, migration, remote write, realtime channel contract, Auth config, seed, TestOps remote execution, deploy, APNs, release upload, tag, PR, merge/rebase/reset, or force-push changed.
+Next: Use T-206 for the next user-chosen task; recommended queue start is Q-19 offer domain tests.
+```
+
+```text
+Date: 2026-07-09
 Task: T-204 - Groomer notification center UI.
 Files changed: groomer notification model/repository/store/view, groomer tab routing, app composition injection, debug repository wrapper, focused tests, roadmap, current state, task ledger, and worklog.
 Checks: GroomerNotificationsStoreTests RED/GREEN; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
 Result: Closes Q-17 by adding the groomer Alerts tab, unread badge source, notification list states, mark-read/mark-all-read actions, request/booking/message routing, Supabase repository access, and Debug Console repository events.
 Risks: T-203 groomer notification migration remains local-only until explicit remote migration authorization, so linked live Supabase data will not exist until then. No Supabase remote write, migration apply, Auth config, seed, TestOps remote execution, deploy, APNs, release upload, tag, PR, merge/rebase/reset, or force-push changed.
-Next: Use T-205 for the next user-chosen task; recommended queue start is Q-18 foreground state timeliness.
 ```
 
 ```text
@@ -66,13 +75,4 @@ Files changed: DesignTokens, primary action primitives, BookingsStore copy, cust
 Checks: Focused BookingsStore/customer pet/design-token accessibility tests; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
 Result: Closes Q-12/R-012 by adding contrast-checked semantic color constants, improving primary button text contrast, making booking-vs-schedule load failure copy role-specific, and giving customer pet cards a single readable VoiceOver summary and hint.
 Risks: No Supabase schema, migration, remote write, navigation, persistence contract, dependency, PR, tag, merge/rebase/reset, or force-push changed. Runtime VoiceOver pass was limited to code/test/build validation because XcodeBuildMCP UI tools were unavailable in this session.
-```
-
-```text
-Date: 2026-07-09
-Task: T-197 - Local operational crash and funnel evidence.
-Files changed: AppOperationalEvent recorder, app composition/root/auth entry instrumentation, debug/privacy docs, roadmap, current state, task ledger, and worklog.
-Checks: Focused AppOperationalEventTests; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
-Result: Closes Q-11/R-011 by adding sanitized local-only JSONL lifecycle/funnel evidence for launch, foreground/background, auth restored/signed out, role resolved/onboarding, profile-load failure, and suspected prior-run interruption. DEBUG builds mirror these events into Debug Console Recent Events.
-Risks: No third-party SDK, network analytics, crash-report upload, Supabase schema, migration, seed, app metadata remote write, repository setting, PR, tag, merge/rebase/reset, or force-push changed.
 ```

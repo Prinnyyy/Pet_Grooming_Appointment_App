@@ -99,7 +99,7 @@ struct CustomerRequestsView: View {
             )
         }
         .toolbar(.hidden, for: .navigationBar)
-        .task {
+        .foregroundRefreshable {
             await store.load()
         }
     }

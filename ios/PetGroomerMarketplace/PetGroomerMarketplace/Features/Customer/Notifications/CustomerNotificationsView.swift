@@ -30,7 +30,7 @@ struct CustomerNotificationsView: View {
                 }
             }
         }
-        .task {
+        .foregroundRefreshable {
             await store.load()
         }
         .accessibilityIdentifier("customer.notifications")

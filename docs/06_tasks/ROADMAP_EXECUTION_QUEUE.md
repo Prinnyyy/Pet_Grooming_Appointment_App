@@ -8,7 +8,7 @@ Source: T-202 adopted root review input `../../V1.0_RELEASE_TASK_PLAN.md`; that 
 
 ## Selection Rules
 
-- Start with the first unblocked Q-18...Q-33 unless the user names another package.
+- Start with the first unblocked Q-19...Q-33 unless the user names another package.
 - Split any package that combines Supabase writes with visible SwiftUI or grows beyond one reviewable task.
 - Get explicit authorization before migrations, Auth config writes, remote TestOps, seeds, deploys, release uploads, or other non-Git remote writes.
 - Do not start Q-90...Q-92 until credentials and authorization are recorded.
@@ -18,7 +18,6 @@ Source: T-202 adopted root review input `../../V1.0_RELEASE_TASK_PLAN.md`; that 
 
 | Order | Roadmap | Package | Mode | Scope | Validation |
 |---|---|---|---|---|---|
-| Q-18 | R-025 | P-03 Foreground state timeliness | Standard | Scene refresh and Realtime fallback for matches/offers/bookings/notifications. | Store refresh tests; iOS build |
 | Q-19 | R-028 | UT-01 Offer domain tests | Standard | Offer states, accepted/stale conflicts, withdraw rejection, empty/error lists. | Focused offer tests |
 | Q-20 | R-028 | UT-02 Notification domain tests | Standard | Ordering, mark-all-read, concurrent read, event coverage, unknown types. | Focused notification tests |
 | Q-21 | R-025 | P-04 Local appointment reminders | Standard | Local reminder scheduler, permission copy, refusal, revoke on cancel/complete. | Scheduler tests; iOS build |

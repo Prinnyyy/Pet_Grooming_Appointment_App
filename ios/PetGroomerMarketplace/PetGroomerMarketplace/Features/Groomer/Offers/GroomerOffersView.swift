@@ -35,7 +35,7 @@ struct GroomerOffersView: View {
                 .disabled(store.isLoading)
             }
         }
-        .task {
+        .foregroundRefreshable {
             await store.load()
         }
         .accessibilityIdentifier("groomer.offers")

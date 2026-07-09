@@ -41,7 +41,7 @@ struct GroomerRequestsView: View {
         .background {
             GroomerRequestsStatusView(store: store)
         }
-        .task {
+        .foregroundRefreshable {
             await store.load()
         }
     }

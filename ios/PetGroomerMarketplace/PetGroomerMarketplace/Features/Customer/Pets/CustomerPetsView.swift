@@ -99,7 +99,7 @@ struct CustomerPetsView: View {
         .navigationDestination(isPresented: $isShowingNotifications) {
             CustomerNotificationsView(store: notificationStore)
         }
-        .task {
+        .foregroundRefreshable {
             await loadHome()
         }
         .accessibilityIdentifier("customer.home")
