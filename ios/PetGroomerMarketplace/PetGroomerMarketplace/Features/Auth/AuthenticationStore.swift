@@ -162,7 +162,8 @@ final class AuthenticationStore {
             case .signUp:
                 let outcome = try await repository.signUp(
                     email: normalizedEmail,
-                    password: password
+                    password: password,
+                    redirectTo: AuthCallbackConfiguration.callbackURL
                 )
                 clearPasswords()
 
@@ -180,6 +181,37 @@ final class AuthenticationStore {
             errorMessage = message(for: error)
         } catch {
             errorMessage = message(for: .unavailable)
+        }
+    }
+
+    func handleAuthCallback(_ url: URL) async {
+        guard !isSubmitting else { return }
+
+        errorMessage = nil
+        noticeMessage = nil
+
+        guard AuthCallbackConfiguration.isSupportedCallback(url) else {
+            errorMessage = message(for: .invalidCallback)
+            return
+        }
+
+        if AuthCallbackConfiguration.callbackErrorParameters(from: url).isEmpty == false {
+            errorMessage = message(for: .invalidCallback)
+            return
+        }
+
+        isSubmitting = true
+        defer { isSubmitting = false }
+
+        do {
+            let session = try await repository.handleAuthCallback(url)
+            clearPasswords()
+            rootState = .signedIn(session)
+            noticeMessage = "Email confirmed. You are signed in."
+        } catch let error as AuthSessionError {
+            errorMessage = message(for: error)
+        } catch {
+            errorMessage = message(for: .invalidCallback)
         }
     }
 
@@ -278,6 +310,8 @@ final class AuthenticationStore {
             "Check your connection and try again."
         case .accountDeletionFailed:
             "We could not delete your account. Please try again."
+        case .invalidCallback:
+            "This sign-in link is expired or invalid. Please request a new email link."
         case .unavailable:
             "Authentication is temporarily unavailable. Please try again."
         }

@@ -1,13 +1,15 @@
 # Auth Email and Deep Link Design
 
-Last verified: 2026-07-09. Source task: T-193/Q-06. This is a design contract only; no Supabase dashboard setting, Management API patch, DNS record, iOS entitlement, or remote write has been applied.
+Last verified: 2026-07-09. Source tasks: T-193/Q-06 design, T-217/Q-29 local iOS callback implementation. No Supabase dashboard setting, Management API patch, DNS record, associated-domain entitlement, SMTP setting, or remote write has been applied.
 
 ## Current State
 
-- iOS sign-up uses `SupabaseAuthSessionRepository.signUp(email:password:)` without `redirectTo`.
-- `AppInfo.plist` has Supabase URL/key entries but no `CFBundleURLTypes`.
+- iOS sign-up passes `redirectTo: com.prinnyyy.petgroomermarketplace://auth/callback`.
+- `AppInfo.plist` registers `CFBundleURLTypes` for `com.prinnyyy.petgroomermarketplace`.
+- SwiftUI `.onOpenURL` routes supported Auth callbacks through `AuthenticationStore`, which handles error fragments before delegating session exchange to Supabase Swift.
 - No associated-domains entitlement exists.
 - Hosted Supabase Auth settings are the production configuration surface; this repo has no tracked local Auth config file.
+- The linked Supabase Auth URL allow list has not been changed in T-217; apply `com.prinnyyy.petgroomermarketplace://auth/callback` remotely only after explicit Auth config authorization.
 
 ## Provider
 
@@ -41,20 +43,20 @@ Authentication templates must cover confirm signup, reset password, magic link/O
 
 Use `{{ .ConfirmationURL }}` for the first implementation unless Q-07 explicitly adds a custom token-hash verification endpoint. If a template manually constructs a token-hash link, it must use `{{ .RedirectTo }}` rather than `{{ .SiteURL }}` when `redirectTo` is passed. Disable email tracking in the SMTP provider so Auth links are not rewritten.
 
-## iOS Behavior for Q-07
+## iOS Behavior
 
-- Add `CFBundleURLTypes` for `com.prinnyyy.petgroomermarketplace`.
+- `CFBundleURLTypes` for `com.prinnyyy.petgroomermarketplace` is configured.
 - After a production domain is chosen, add Associated Domains entitlement for `applinks:<production-auth-domain>`.
-- Pass the selected redirect URL to sign-up, resend confirmation, password recovery, and future OTP/magic-link flows.
+- Pass the selected redirect URL to sign-up. Resend confirmation, password recovery, and future OTP/magic-link flows must use the same callback if those surfaces are added.
 - Handle incoming URLs with SwiftUI `.onOpenURL`; route valid Auth callbacks through the Supabase Auth session exchange path and show a scoped auth error for `error` or `error_code` fragments.
 - Never log full callback URLs because they can contain tokens or session fragments.
 
 ## Validation Gate for Q-07
 
-- Supabase Auth URL allow list contains only the approved exact production/staging URLs plus the dev scheme.
-- SMTP sends a confirmation email to a non-team test address.
-- Email links open the installed app on iOS and fall back to the HTTPS page when not installed.
-- App callback handling has unit coverage for success, expired token, denied redirect, and malformed URL.
+- Before remote verification, Supabase Auth URL allow list must contain only the approved exact production/staging URLs plus the dev scheme.
+- Before SMTP verification, SMTP must send a confirmation email to a non-team test address.
+- Email links should open the installed app on iOS with the custom scheme; production HTTPS fallback waits for the production auth domain and associated-domain file.
+- App callback handling has unit coverage for success, remote error fragment, and malformed URL.
 - `git diff --check`, targeted auth tests, iOS build, and a manual simulator/device callback smoke pass.
 
 Official references: [Supabase Auth SMTP](https://supabase.com/docs/guides/auth/auth-smtp), [Redirect URLs](https://supabase.com/docs/guides/auth/redirect-urls), [Email Templates](https://supabase.com/docs/guides/auth/auth-email-templates), [Native Mobile Deep Linking](https://supabase.com/docs/guides/auth/native-mobile-deep-linking), [Swift signUp redirectTo](https://supabase.com/docs/reference/swift/auth-signup), and Apple Universal Links/custom URL scheme documentation.

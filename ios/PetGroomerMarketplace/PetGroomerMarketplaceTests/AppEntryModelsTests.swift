@@ -408,8 +408,74 @@ struct AuthenticationStoreTests {
                 == "Check your email to confirm your account, then sign in."
         )
         #expect(repository.lastEmail == "new@example.com")
+        #expect(
+            repository.lastRedirectURL?.absoluteString
+                == "com.prinnyyy.petgroomermarketplace://auth/callback"
+        )
         #expect(store.password.isEmpty)
         #expect(store.passwordConfirmation.isEmpty)
+    }
+
+    @Test @MainActor
+    func successfulAuthCallbackSignsInWithoutExposingURLTokens() async {
+        let session = AuthSessionSnapshot(
+            userID: UUID(),
+            email: "new@example.com"
+        )
+        let repository = AuthSessionRepositoryFake()
+        repository.handleAuthCallbackResult = .success(session)
+        let store = AuthenticationStore(repository: repository)
+        await store.start()
+        let callbackURL = URL(
+            string:
+                "com.prinnyyy.petgroomermarketplace://auth/callback?code=abc123&secret=must-not-display"
+        )!
+
+        await store.handleAuthCallback(callbackURL)
+
+        #expect(repository.handleAuthCallbackCallCount == 1)
+        #expect(repository.lastAuthCallbackURL == callbackURL)
+        #expect(store.rootState == .signedIn(session))
+        #expect(store.noticeMessage == "Email confirmed. You are signed in.")
+        #expect(store.errorMessage == nil)
+    }
+
+    @Test @MainActor
+    func authCallbackErrorFragmentShowsSafeRecoveryCopy() async {
+        let repository = AuthSessionRepositoryFake()
+        let store = AuthenticationStore(repository: repository)
+        await store.start()
+        let callbackURL = URL(
+            string:
+                "com.prinnyyy.petgroomermarketplace://auth/callback#error=access_denied&error_code=otp_expired&error_description=Email+link+expired"
+        )!
+
+        await store.handleAuthCallback(callbackURL)
+
+        #expect(repository.handleAuthCallbackCallCount == 0)
+        #expect(store.rootState == .signedOut)
+        #expect(
+            store.errorMessage
+                == "This sign-in link is expired or invalid. Please request a new email link."
+        )
+    }
+
+    @Test @MainActor
+    func malformedAuthCallbackDoesNotCallRepository() async {
+        let repository = AuthSessionRepositoryFake()
+        let store = AuthenticationStore(repository: repository)
+        await store.start()
+        let callbackURL = URL(
+            string: "com.prinnyyy.petgroomermarketplace://wrong/path?code=abc123"
+        )!
+
+        await store.handleAuthCallback(callbackURL)
+
+        #expect(repository.handleAuthCallbackCallCount == 0)
+        #expect(
+            store.errorMessage
+                == "This sign-in link is expired or invalid. Please request a new email link."
+        )
     }
 
     @Test @MainActor
@@ -780,12 +846,17 @@ private final class AuthSessionRepositoryFake: AuthSessionRepository {
         .failure(.unavailable)
     var signOutResult: Result<Void, AuthSessionError> = .success(())
     var deleteAccountResult: Result<Void, AuthSessionError> = .success(())
+    var handleAuthCallbackResult: Result<AuthSessionSnapshot, AuthSessionError> =
+        .failure(.unavailable)
 
     private(set) var lastEmail: String?
     private(set) var lastPassword: String?
+    private(set) var lastRedirectURL: URL?
+    private(set) var lastAuthCallbackURL: URL?
     private(set) var signInCallCount = 0
     private(set) var signOutCallCount = 0
     private(set) var deleteAccountCallCount = 0
+    private(set) var handleAuthCallbackCallCount = 0
 
     init(
         currentSession: AuthSessionSnapshot? = nil,
@@ -810,11 +881,19 @@ private final class AuthSessionRepositoryFake: AuthSessionRepository {
 
     func signUp(
         email: String,
-        password: String
+        password: String,
+        redirectTo: URL?
     ) async throws -> AuthSignUpOutcome {
         lastEmail = email
         lastPassword = password
+        lastRedirectURL = redirectTo
         return try signUpResult.get()
+    }
+
+    func handleAuthCallback(_ url: URL) async throws -> AuthSessionSnapshot {
+        handleAuthCallbackCallCount += 1
+        lastAuthCallbackURL = url
+        return try handleAuthCallbackResult.get()
     }
 
     func signIn(

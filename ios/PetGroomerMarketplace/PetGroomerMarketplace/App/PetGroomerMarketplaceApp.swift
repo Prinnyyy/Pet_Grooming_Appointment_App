@@ -37,6 +37,11 @@ struct PetGroomerMarketplaceApp: App {
             .onChange(of: scenePhase) { _, newPhase in
                 composition.operationalEventRecorder.recordScenePhase(newPhase)
             }
+            .onOpenURL { url in
+                Task {
+                    await composition.authenticationStore?.handleAuthCallback(url)
+                }
+            }
         }
     }
 }

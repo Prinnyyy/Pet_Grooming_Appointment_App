@@ -17,6 +17,7 @@ enum AuthSessionError: Error, Equatable, Sendable {
     case rateLimited
     case networkUnavailable
     case accountDeletionFailed
+    case invalidCallback
     case unavailable
 }
 
@@ -24,7 +25,12 @@ enum AuthSessionError: Error, Equatable, Sendable {
 protocol AuthSessionRepository: AnyObject {
     func currentSession() -> AuthSessionSnapshot?
     func sessionStateChanges() async -> AsyncStream<AuthSessionSnapshot?>
-    func signUp(email: String, password: String) async throws -> AuthSignUpOutcome
+    func signUp(
+        email: String,
+        password: String,
+        redirectTo: URL?
+    ) async throws -> AuthSignUpOutcome
+    func handleAuthCallback(_ url: URL) async throws -> AuthSessionSnapshot
     func signIn(email: String, password: String) async throws -> AuthSessionSnapshot
     func signOut() async throws
     func deleteAccount() async throws

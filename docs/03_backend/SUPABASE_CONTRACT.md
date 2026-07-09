@@ -58,7 +58,7 @@ Core deployed data areas:
 - Automation: request-expiry cron job, match backfill triggers for groomer activation/availability changes, customer/groomer notification triggers, and account-deletion service-role finalization RPCs.
 - Storage buckets: legacy `avatars`, dedicated `groomer-avatars`, dedicated `customer-avatars`, `pet-photos`, `groomer-portfolio`, and `request-photos`. `chat-attachments` remains deferred.
 - Edge Functions: `delete-account` is deployed with JWT verification; `dispatch-customer-push-notifications` source exists but is not deployed until APNs secrets are available.
-- Auth email/deep-link production design is documented in `AUTH_EMAIL_DEEP_LINK_DESIGN.md`; SMTP, redirect URLs, email templates, iOS URL scheme, and associated domains are not yet configured.
+- Auth email/deep-link design is documented in `AUTH_EMAIL_DEEP_LINK_DESIGN.md`; iOS custom-scheme callback handling is local, while Supabase Auth redirect allow list, SMTP, email templates, HTTPS production domain, and associated domains still require explicit remote/configuration work.
 
 Controlled public RPCs currently include:
 

@@ -35,12 +35,14 @@ final class SupabaseAuthSessionRepository: AuthSessionRepository {
 
     func signUp(
         email: String,
-        password: String
+        password: String,
+        redirectTo: URL?
     ) async throws -> AuthSignUpOutcome {
         do {
             let response = try await client.auth.signUp(
                 email: email,
-                password: password
+                password: password,
+                redirectTo: redirectTo
             )
 
             if let session = response.session {
@@ -52,6 +54,15 @@ final class SupabaseAuthSessionRepository: AuthSessionRepository {
             )
         } catch {
             throw Self.map(error)
+        }
+    }
+
+    func handleAuthCallback(_ url: URL) async throws -> AuthSessionSnapshot {
+        do {
+            let session = try await client.auth.session(from: url)
+            return Self.snapshot(from: session)
+        } catch {
+            throw Self.mapCallback(error)
         }
     }
 
@@ -129,6 +140,26 @@ final class SupabaseAuthSessionRepository: AuthSessionRepository {
         }
 
         return .unavailable
+    }
+
+    private static func mapCallback(
+        _ error: any Error
+    ) -> AuthSessionError {
+        if let urlError = error as? URLError {
+            switch urlError.code {
+            case .notConnectedToInternet,
+                 .networkConnectionLost,
+                 .timedOut,
+                 .cannotConnectToHost,
+                 .cannotFindHost,
+                 .dnsLookupFailed:
+                return .networkUnavailable
+            default:
+                return .invalidCallback
+            }
+        }
+
+        return .invalidCallback
     }
 
     private static func mapAccountDeletion(

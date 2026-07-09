@@ -14,9 +14,14 @@ final class SignedOutAuthSessionRepository: AuthSessionRepository {
 
     func signUp(
         email: String,
-        password: String
+        password: String,
+        redirectTo: URL?
     ) async throws -> AuthSignUpOutcome {
         throw AuthSessionError.unavailable
+    }
+
+    func handleAuthCallback(_ url: URL) async throws -> AuthSessionSnapshot {
+        throw AuthSessionError.invalidCallback
     }
 
     func signIn(

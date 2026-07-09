@@ -6,12 +6,30 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-09
+Task: T-218 - Meta-review and context hygiene.
+Files changed: current state, task ledger, worklog, roadmap, and frozen rotated rows.
+Checks: `git status --short`; `git diff --check`; context hygiene; commit and push.
+Result: Runs the required 10-task cadence review after T-207, rotates excess active ledger/worklog rows, confirms active roadmap/queue/current-state pointers align at Q-30/T-219, and records the new meta-review marker.
+Risks: Documentation governance only. No product code, Supabase schema, migration, remote write, Auth config, seed, TestOps remote execution, deploy, APNs dispatch, release upload, tag, PR, merge/rebase/reset, or force-push changed.
+Next: Use T-219 for the next user-chosen task; recommended queue start is Q-30 list pagination/load audit.
+```
+
+```text
+Date: 2026-07-09
+Task: T-217 - Free-tier auth deep link.
+Files changed: auth callback configuration/model, auth repositories, AuthenticationStore, app URL handling, Info.plist URL scheme, auth callback tests, backend auth docs, roadmap, current state, task ledger, and worklog.
+Checks: AuthenticationStore RED/GREEN; full `./scripts/ios-test.sh`; `./scripts/supabase-check.sh`; `./scripts/ios-build.sh`; `plutil -lint ios/PetGroomerMarketplace/Config/AppInfo.plist`; simulator openurl smoke; `git diff --check`; context hygiene; commit and push.
+Result: Closes Q-29/R-027 by passing the Supabase sign-up redirect URL, registering `com.prinnyyy.petgroomermarketplace://auth/callback`, handling supported callback links through AuthenticationStore, and showing safe expired/invalid link copy without exposing callback tokens.
+Risks: Local iOS callback implementation and docs only. Supabase Auth redirect allow-list, SMTP, production HTTPS domain, associated domains, migrations, seeds, deploys, release upload, tag, PR, merge/rebase/reset, and force-push were not changed.
+```
+
+```text
+Date: 2026-07-09
 Task: T-216 - State-machine edge tests.
 Files changed: appointment reminder scheduler, AppointmentReminderPlan tests, roadmap, current state, task ledger, and worklog.
 Checks: AppointmentReminderPlan RED/GREEN; full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
 Result: Closes Q-28/R-028 by adding focused reminder idempotence coverage for duplicate booking rows and making local appointment reminder planning dedupe by stable reminder identifier while preserving first valid reminder order.
 Risks: Local iOS planner/test hardening only. No Supabase schema, migration, remote write, repository API signature, UI layout redesign, Auth config, seed, TestOps remote execution, deploy, APNs dispatch, release upload, tag, PR, merge/rebase/reset, or force-push changed.
-Next: Use T-217 for the next user-chosen task; recommended queue start is Q-29 free-tier email verification/deep link.
 ```
 
 ```text
@@ -57,22 +75,4 @@ Files changed: customer request root/dashboard/detail/wizard/status SwiftUI file
 Checks: Full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
 Result: Closes Q-23/R-026 by splitting the oversized CustomerRequestsView surface into focused root, dashboard, detail, wizard, and status/preview files while preserving runtime behavior.
 Risks: Structure-only request UI refactor plus one stale test expectation alignment for the existing groomer Alerts tab. No Supabase schema, migration, remote write, repository API signature, Auth config, seed, TestOps remote execution, deploy, APNs dispatch, release upload, tag, PR, merge/rebase/reset, or force-push changed.
-```
-
-```text
-Date: 2026-07-09
-Task: T-210 - Unread badge propagation.
-Files changed: chat model/store/repository/view, customer/groomer tab badge rules and shared tab-level stores, customer home notification store injection, focused chat/badge tests, roadmap, current state, task ledger, and worklog.
-Checks: ChatStore/TabBadge RED/GREEN; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
-Result: Closes Q-22/R-025 by propagating notification and chat badge counts at customer/groomer tab roots, loading shared badge sources on tab startup, showing customer Home notification badges, customer/groomer Messages unread badges, groomer Alerts unread badges, and clearing local chat unread state when a thread is opened.
-Risks: Chat unread state is local/session-scoped because no read-receipt schema exists in the Standard Q-22 scope. No Supabase schema, migration, remote write, repository API signature, Auth config, seed, TestOps remote execution, deploy, APNs dispatch, release upload, tag, PR, merge/rebase/reset, or force-push changed.
-```
-
-```text
-Date: 2026-07-09
-Task: T-209 - Local appointment reminders.
-Files changed: appointment reminder scheduler, bookings store/view, customer requests store, focused booking/request tests, roadmap, current state, task ledger, and worklog.
-Checks: Appointment reminder planner/store RED/GREEN; CustomerRequests accept reminder RED/GREEN; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
-Result: Closes Q-21/R-025 by adding local notification reminder planning/scheduling for future confirmed bookings, page-level refusal copy when local notifications are disabled, reminder sync after booking load and offer acceptance, and reminder cancellation after booking cancel/complete.
-Risks: Local notifications require user authorization at runtime. No Supabase schema, migration, remote write, repository API, Auth config, seed, TestOps remote execution, deploy, APNs dispatch, release upload, tag, PR, merge/rebase/reset, or force-push changed.
 ```
