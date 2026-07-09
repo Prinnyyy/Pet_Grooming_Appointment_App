@@ -6,12 +6,22 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-08
+Task: T-179 - Active Markdown budget reduction.
+Files changed: context hygiene script, structure/product indexes, decision log, roadmap, task ledger/archive, worklog/archive, current state, structure log, and frozen external report.
+Checks: `node scripts/context-hygiene-check.mjs`; `CONTEXT_HYGIENE_FORCE_NO_RG=1 node scripts/context-hygiene-check.mjs`; `node --test tests/docs/context-hygiene-check.test.mjs`; `git diff --check`.
+Result: Lowers active rolling windows to 8 worklog entries and 12 ledger rows, tightens decision/structure budgets, trims active index prose, and archives the adopted watch-items plan. Active Markdown is below the 85% waterline.
+Audit: Kept current facts; compressed routing/index prose in project structure, screen inventory, navigation, UX, and current risks; archived older rolling-window rows verbatim. No referenced active file was deleted.
+Risks: Docs/workflow tooling only. No iOS source, Supabase command, migration, runtime behavior, simulator, commit, push, or remote write changed.
+Next: Use T-180 for the next non-APNs task; product candidate remains private image rendering unless the user chooses otherwise.
+```
+
+```text
+Date: 2026-07-08
 Task: T-178 - Context hygiene v5 path checks.
 Files changed: context hygiene script/tests, structure log, task ledger/archive, worklog/archive, current state, and roadmap.
 Checks: RED/GREEN `node --test tests/docs/context-hygiene-check.test.mjs`; `node scripts/context-hygiene-check.mjs`; `CONTEXT_HYGIENE_FORCE_NO_RG=1 node scripts/context-hygiene-check.mjs`; `git diff --check`.
 Result: Hygiene now checks inline backtick paths, reports the checked count, warns when active Markdown total is at or above 85% of the 32k limit, and uses English failure text for fact-extraction failures. The new check caught two stale removed-template source references in the structure log; they now point only to frozen targets.
 Risks: Docs/workflow tooling only. No iOS source, Supabase command, migration, runtime behavior, simulator, commit, push, or remote write changed. Active Markdown remains above the 85% warning line; T-179 should execute the planned budget-reduction batch.
-Next: Use T-179 for the active Markdown budget-reduction batch unless the user chooses another task.
 ```
 
 ```text
@@ -65,32 +75,5 @@ Task: T-172 - Rule-change process.
 Files changed: AGENTS/Claude/workflow rules, stop conditions, decision log, roadmap, task ledger/archive, worklog/archive, and current state.
 Checks: `git diff --check`; `node scripts/context-hygiene-check.mjs`; targeted rule search.
 Result: Changes to `AGENTS.md`, `CLAUDE.md`, or `docs/05_workflow/**` now require a standalone numbered task, a decision-log entry, and context hygiene. Non-rule tasks must stop rather than make incidental rule edits.
-Risks: Docs/workflow only. No iOS source, Supabase command, migration, runtime behavior, simulator, commit, or push changed.
-```
-
-```text
-Date: 2026-07-08
-Task: T-171 - Periodic meta-review template.
-Files changed: meta-review template, task/docs indexes, roadmap, task ledger/archive, worklog/archive, and current state.
-Checks: `git diff --check`; `node scripts/context-hygiene-check.mjs`.
-Result: Adds `docs/06_tasks/META_REVIEW_TEMPLATE.md`, requiring a documentation-governance review every 10 completed tasks or weekly. The template keeps scope to active Markdown, context hygiene, task/roadmap consistency, root drafts, and rule friction.
-Risks: Docs/workflow only. No iOS source, Supabase command, migration, runtime behavior, simulator, commit, or push changed.
-```
-
-```text
-Date: 2026-07-08
-Task: T-170 - Context hygiene v3 fact checks.
-Files changed: context hygiene script/tests, Feature Index, Supabase contract, migration rules, context workflow, roadmap, task ledger/archive, worklog/archive, current state, decision log, and structure log.
-Checks: RED/GREEN `node --test tests/docs/context-hygiene-check.test.mjs`; `node scripts/context-hygiene-check.mjs`; `git diff --check`.
-Result: Hygiene now verifies last-verified freshness, local migration mirror count, ROADMAP-to-ledger task evidence/status, and Feature Index read-first path coverage. Backend fast path records 55 local migration mirrors.
-Risks: Docs/workflow tooling only. No iOS source, Supabase command, migration, runtime behavior, simulator, commit, or push changed.
-```
-
-```text
-Date: 2026-07-08
-Task: T-169 - Active document structure reduction.
-Files changed: reorganization log, Claude guide/archive, task/docs/frozen indexes, roadmap, task ledger/archive, worklog/archive, current state.
-Checks: `git diff --check`; `node scripts/context-hygiene-check.mjs`; targeted stale-reference searches.
-Result: Active structure history is now a compact index backed by a frozen full snapshot. Old `CLAUDE_reference/` snapshots and generic handoff/review templates moved to frozen, and active ledger/worklog windows rolled forward.
 Risks: Docs/workflow only. No iOS source, Supabase command, migration, runtime behavior, simulator, commit, or push changed.
 ```

@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-08
 - Updated by: Codex
-- Latest completed task: T-178 Context hygiene v5 path checks.
+- Latest completed task: T-179 Active Markdown budget reduction.
 - Current task: none active; T-157 APNs deployment remains externally blocked.
-- Next task ID: use T-179 unless the user resumes T-157 after Apple Developer Program upgrade.
+- Next task ID: use T-180 unless the user resumes T-157 after Apple Developer Program upgrade.
 
 ## Fast Path
 
@@ -37,13 +37,13 @@ Frozen history lives under `docs/09_frozen/`.
 ## Validation Baseline
 
 - Last iOS build: `./scripts/ios-build.sh` passed on 2026-07-07 during T-162 closeout.
-- Last full iOS test attempt: `./scripts/ios-test.sh` on 2026-07-07 failed the known T-153 `CustomerNotificationsStoreTests.markAllReadReplacesNotificationsWithRepositoryResult()` same-timestamp ordering assertion; UI smoke tests passed 3/3, and targeted `AuthenticationStoreTests` passed afterward.
+- Last full iOS test attempt: `./scripts/ios-test.sh` on 2026-07-07 failed the known T-153 same-timestamp notification ordering assertion; UI smoke tests passed 3/3, and targeted `AuthenticationStoreTests` passed afterward.
 - Last Supabase migration apply: authorized `supabase db push --linked` applied `20260707191034_t160_account_deletion.sql` to project `lqmasbuqzvcvtawonjlb` on 2026-07-07.
-- Last Supabase live post-apply validation: T-160 migration list confirmed local/remote parity for `20260707191034`; metadata SQL verified account deletion table/RLS/grants/RPCs; security/performance advisors ran; `supabase functions deploy delete-account` and `supabase functions list` confirmed `delete-account` is ACTIVE with JWT verification on. Post-apply `supabase db push --linked --dry-run` and `supabase db lint --linked` could not rerun because `SUPABASE_DB_PASSWORD` is not configured for direct Postgres CLI connections.
+- Last Supabase live post-apply validation: T-160 confirmed migration parity for `20260707191034`, account deletion metadata/RLS/grants/RPCs, advisors, and active `delete-account` deployment with JWT verification. Post-apply dry-run/lint still need `SUPABASE_DB_PASSWORD`.
 - Prepared unapplied Supabase migration: none known by `supabase migration list --linked`; post-apply dry-run requires `SUPABASE_DB_PASSWORD`.
 - Last TestOps unit validation: T-145 `./scripts/testops-unit.sh` passed 24 Node tests.
 - Last remote TestOps run: T-155 authorized `matching_baseline` run `TESTOPS-T155-MATCH-20260706-*` passed 8/8 and cleanup left zero tagged request/match residue.
-- Last docs/workflow validation: T-178 context hygiene v5, RED/GREEN hygiene tests, context hygiene with and without `rg`, and `git diff --check` passed on 2026-07-08.
+- Last docs/workflow validation: T-179 active Markdown budget reduction, context hygiene with and without `rg`, hygiene tests, and `git diff --check` passed on 2026-07-08.
 - Known validation failure: full `./scripts/ios-test.sh` is currently blocked by the existing T-153 customer notification same-timestamp ordering test, not by T-162 cancellation repost work.
 
 ## Active Product State
@@ -65,7 +65,7 @@ Frozen history lives under `docs/09_frozen/`.
 - Decision log is an active index backed by frozen snapshots. The pre-T-174 full text lives in `docs/09_frozen/decisions/DECISION_LOG_2026-07-08_PRE_T174_TRIM.md`.
 - Default `rg` searches honor `.rgignore`; do not use broad `rg --files -g '*.md'` as the default Markdown inventory.
 - Do not read full `WORKLOG.md`, full `TASK_LEDGER.md`, frozen archives, Groomly HTML/export, or T-129 seed tables by default.
-- After durable memory, ledger, workflow, or coordination-doc changes, run `node scripts/context-hygiene-check.mjs`; it now checks budgets plus backtick path integrity, last-verified freshness, migration mirror count, ROADMAP/ledger evidence, Feature Index paths, fail-closed current facts, meta-review cadence, and ledger row length.
+- After durable memory, ledger, workflow, or coordination-doc changes, run `node scripts/context-hygiene-check.mjs`; it now checks budgets plus backtick path integrity, last-verified freshness, migration mirror count, ROADMAP/ledger evidence, Feature Index paths, fail-closed current facts, meta-review cadence, and ledger row length. Active Markdown is below the 85% warning line after T-179.
 
 ## Supabase and TestOps Guardrails
 
@@ -80,13 +80,14 @@ Frozen history lives under `docs/09_frozen/`.
 
 - Active memory/task files are intentionally concise. Do not expand them into full history.
 - Backend policy files are now current-rule indexes; use migrations or frozen pre-trim snapshots for detailed historical trace.
-- The original root product/engineering brief, old Groomly design task prompt, pre-slim design notes, removed memory pointer, removed generic/lightweight templates, old Claude reference snapshots, and external agent audit drafts are archived under `docs/09_frozen/`; use `docs/06_tasks/ROADMAP.md`, `docs/01_product/PRODUCT_BRIEF.md`, `docs/01_product/DESIGN_SYSTEM.md`, `docs/08_design/UI_IMPLEMENTATION_NOTES.md`, `docs/07_decisions/DECISION_LOG.md`, `CLAUDE.md`, and active workflow/task docs as entrypoints. External agent reports are review input only and must not reset branch, task ID, validation, or product status.
+- Historical briefs, Groomly prompts, pre-slim notes, removed pointers/templates, Claude snapshots, and external audits are frozen under `docs/09_frozen/`. Active entrypoints are ROADMAP, PRODUCT_BRIEF, DESIGN_SYSTEM, UI_IMPLEMENTATION_NOTES, DECISION_LOG, CLAUDE, and workflow/task docs. External reports are review input only.
 - T-129 seed profile Markdown files are machine-readable parser inputs and excluded from default search. Do not reformat or archive them without updating scripts/tests.
-- Deferred features remain out of scope unless explicitly requested: public directory, direct booking, payments, realtime chat, attachments, maps/calendar integrations, moderation/disputes, and admin tooling. Customer in-app notifications are active, and the T-157 APNs database/iOS foundation is remotely applied, but push dispatch is not deployed until paid Apple Developer credentials and APNs secrets exist.
+- Deferred unless explicitly requested: public directory, direct booking, payments, realtime chat, attachments, maps/calendar integrations, moderation/disputes, admin tooling.
+- Customer in-app notifications are active. T-157 APNs database/iOS foundation is remotely applied; push dispatch waits for Apple Developer credentials and APNs secrets.
 - Large Swift context risks remain `CustomerRequestsView.swift` and `GroomerProfileManagementView.swift`; split only in a dedicated Standard refactor task.
-- Recent applied backend/app tasks T-153 through T-162 are recorded in `TASK_LEDGER.md`, `WORKLOG.md`, migrations, and source. Active cross-task risks to remember: known T-153 notification ordering test failure, T-157 APNs deployment block, T-160 App Store Privacy Policy/Support URL blockers, and T-162 cancelled-booking repost dependency on loading the original request.
-- Current-remote advisors report baseline `customer_push_tokens` RLS/no-policy INFO, Auth leaked-password protection WARN, existing performance INFOs, and expected fresh-index INFO for T-160. Public authenticated `SECURITY DEFINER` RPC warnings are cleared.
+- Active cross-task risks: known T-153 notification ordering test failure, T-157 APNs deployment block, T-160 Privacy/Support URL blockers, and T-162 cancelled-booking repost dependency on loading the original request.
+- Current remote advisors: baseline `customer_push_tokens` RLS/no-policy INFO, Auth leaked-password protection WARN, existing performance INFOs, expected T-160 fresh-index INFO. Public authenticated `SECURITY DEFINER` RPC warnings are cleared.
 
 ## Next Recommended Task
 
-- Use T-179 next for the active Markdown budget-reduction batch unless resuming T-157 after Apple Developer credentials.
+- Use T-180 next unless resuming T-157 after Apple Developer credentials. Suggested product candidate: private image rendering.

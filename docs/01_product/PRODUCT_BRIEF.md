@@ -4,7 +4,7 @@
 
 This file is the active product source for feature work. It replaces the original root rebuild brief as the daily working entrypoint.
 
-The full original rebuild brief is archived for historical comparison at `../09_frozen/product_briefs/FRESH_PET_GROOMER_MARKETPLACE_ENGINEERING_BRIEF_2026-07-02.md`. Do not read the archive by default.
+The original rebuild brief is archived at `../09_frozen/product_briefs/FRESH_PET_GROOMER_MARKETPLACE_ENGINEERING_BRIEF_2026-07-02.md`; do not read it by default.
 
 ## Product Definition
 
@@ -13,27 +13,16 @@ Pet Groomer Marketplace is an iOS marketplace where a pet owner publishes one op
 ## Core Product Model
 
 ```text
-Open Grooming Request
-→ Matched Groomers
-→ Groomer Offers
-→ Customer Confirmation
-→ Booking
+Open Request -> Matches -> Offers -> Customer Confirmation -> Booking
 ```
 
 Customers do not repeatedly target individual groomers. A groomer chooses whether to respond to an eligible request, and a booking exists only after the customer accepts an offer.
 
 ## Pet-Fit Matching Direction
 
-The post-MVP direction keeps the request-first marketplace model and makes the matching layer more pet-specific. Groomly should help a customer find a groomer who fits this pet and this service need, then let the groomer compete through a concrete offer.
+Pet-fit v1 keeps the request-first model and makes matching more pet-specific. Inputs include pet traits, service need, location mode, photos, preferred time, groomer service coverage, availability, portfolio, low-weight claimed specialties, completed bookings, and structured reviews. Match reasons must be explainable enough for user-facing fit copy.
 
-Pet-fit matching v1 is evidence-based and explainable:
-
-- Customer requests provide pet traits, service need, location mode, photos, and a preferred time window.
-- Groomer profiles provide service coverage, availability, portfolio, and low-weight claimed specialties.
-- Completed bookings and structured customer reviews create higher-confidence evidence over time.
-- Match scores and reasons must be understandable enough to show as user-facing fit explanations.
-
-Groomly is not shifting to a customer-facing public groomer directory, direct slot booking, or AI/ML recommender in v1. Customer choice remains anchored in received offers, not in browsing a static list of all groomers.
+Groomly is not shifting to a public groomer directory, direct slot booking, or AI/ML recommender in v1. Customer choice stays anchored in received offers.
 
 ## Target Users
 
@@ -43,28 +32,21 @@ Groomly is not shifting to a customer-facing public groomer directory, direct sl
 
 ## Core Jobs To Be Done
 
-1. A customer can publish one clear request and receive options without repeatedly contacting groomers.
-2. A groomer can browse suitable requests and respond only when interested.
-3. Both parties can move one accepted offer into a consistent, conflict-safe booking and complete the service lifecycle.
+1. Customers publish clear requests and receive options without repeatedly contacting groomers.
+2. Groomers browse suitable requests and respond only when interested.
+3. One accepted offer becomes a conflict-safe booking and service lifecycle.
 
 ## MVP Scope
 
-- Email/password authentication and role onboarding.
-- Customer and groomer profiles, pet profiles, and required image uploads.
-- Grooming request publication and groomer request matching.
-- Groomer offer submission and customer offer review.
-- Atomic offer acceptance, one booking per request, and groomer overlap protection.
-- Role-specific booking lists, participant-only chat, completion, and one review per completed booking.
-- Visible loading, empty, validation, permission, conflict, and general error states.
-- Developer-only diagnostics and backend permission verification without exposing secrets.
+- Email/password auth, role onboarding, customer/groomer profiles, pet profiles, and required images.
+- Request publication, groomer matching, offer submission/review, atomic offer acceptance, one booking per request, and groomer overlap protection.
+- Role-specific bookings, participant-only chat, completion, one review per completed booking, visible async/error states, and safe developer diagnostics.
 
 ## Deferred Scope
 
-- Payments, refunds, disputes, subscriptions, and dynamic pricing.
-- Push notifications and social login.
-- Complex calendars, map-first experiences, AI recommendations, machine-learning recommendations, public groomer directory browsing, direct customer slot booking, and advanced matching beyond explainable pet-fit v1.
-- Realtime chat polish, typing indicators, and read-receipt polish.
-- Admin tools and multi-pet request bundles.
+- Payments, refunds, disputes, subscriptions, dynamic pricing, push notifications, and social login.
+- Complex calendars, maps-first discovery, AI/ML recommendations, public groomer directory, direct customer slot booking, and matching beyond explainable pet-fit v1.
+- Realtime chat polish, typing indicators, read receipts, admin tools, and multi-pet request bundles.
 - Favorites behavior. The Fresh Brief lists a `favorites` table but defines no fields, user flow, screen, or acceptance criterion; no schema or UI will be created without a separate product decision.
 
 ## Product Constraints
@@ -78,6 +60,4 @@ Groomly is not shifting to a customer-facing public groomer directory, direct sl
 
 ## Current State
 
-The MVP marketplace flow is implemented at the current contract level: email/password authentication, role onboarding, customer pet profiles, grooming request creation, groomer matched-request review and offers, customer offer acceptance, bookings, participant text chat, completion, and completed-booking review.
-
-Groomly UI adaptation is complete for implemented MVP screens. Post-MVP pet-fit and availability work now supports fixed pet/request contracts, groomer availability enforcement in matching/offer/acceptance paths, explainable fit evidence, structured review outcomes, groomer fit-signal/portfolio tags, an owner evidence dashboard, customer in-app notifications, and a blocked APNs foundation for future customer push dispatch. The app remains request-first: no public groomer directory, customer direct slot booking, payments, chat attachments, maps/calendar integrations, moderation/disputes, or admin dashboard is active. APNs dispatch is not active until T-157 resumes with paid Apple Developer credentials.
+The MVP marketplace flow is implemented at the current contract level, and Groomly UI adaptation is complete for implemented screens. Post-MVP work added fixed pet/request contracts, availability-aware matching/offer/acceptance paths, explainable fit evidence, structured review outcomes, groomer fit-signal/portfolio tags, an owner evidence dashboard, customer in-app notifications, and a blocked APNs foundation. The app remains request-first; APNs dispatch waits for T-157 paid Apple Developer credentials.

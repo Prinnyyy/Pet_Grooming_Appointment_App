@@ -1,80 +1,47 @@
 # UX Rules
 
-## General
+## Interaction Basics
 
-- Every asynchronous read has loading, content, empty, and visible error states as applicable.
-- Every mutation exposes progress, prevents duplicate submission, and reports failure without fabricating success.
+- Every async read has appropriate loading, content, empty, and visible error states.
+- Every mutation shows progress, prevents duplicate submission, and never fabricates success.
 - Preserve recoverable form input after network, permission, conflict, or validation errors.
-- Keep primary actions shallow in navigation and use user-facing language instead of backend terminology.
-- Respect Dynamic Type, VoiceOver labels, sufficient contrast, and minimum interactive target sizes.
+- Keep primary actions shallow and use user-facing language instead of backend terms.
+- Respect Dynamic Type, VoiceOver labels, contrast, and minimum target sizes.
 
 ## Forms
 
-- Validate required fields before submission and repeat critical validation on the backend.
-- Explain invalid time windows, non-negative price requirements, missing images, and required profile fields next to the relevant input.
-- Disable submission only for an understandable reason; show that reason where it is not obvious.
-- On successful mutations, refresh authoritative backend state before presenting the durable result.
+- Validate required fields before submit and repeat critical checks on the backend.
+- Explain invalid time windows, non-negative prices, missing images, and required profile fields next to the input.
+- Disable submission only for an understandable reason and show that reason when it is not obvious.
+- After success, refresh authoritative backend state before presenting the durable result.
 
-## Marketplace Behavior
+## Marketplace Rules
 
-- A customer publishes one open request rather than selecting and repeatedly contacting individual groomers.
-- Pet-fit matching v1 is request-first: the customer gives pet/service context, Groomly distributes the request to eligible groomers, and the customer chooses from concrete groomer offers.
-- Do not expose a public all-groomer directory or direct customer slot booking in pet-fit v1. Groomer availability supports offer feasibility before it becomes customer self-booking.
-- A groomer may dismiss an assigned request privately. The customer remains in a neutral waiting state.
-- A groomer has at most one active offer per request and may withdraw it according to backend rules.
-- A customer can accept only one offer. The UI must wait for the atomic backend result before showing a booking.
-- A cancelled booking remains a cancellation outcome for that booking; do not imply that the original request or accepted offer reopened.
-- Hide completion and review actions until their backend transitions exist.
-- Do not show actions that are invalid for the current request, match, offer, or booking status.
-- Groomer-claimed specialty labels are not proof of expertise. User-facing fit copy must distinguish claimed availability from evidence-backed outcomes such as completed similar bookings, relevant positive reviews, or repeat customers.
-- Match explanations should favor concise evidence language such as "Portfolio match", "Similar completed bookings", or "Good fit for small terriers" rather than opaque scores.
+- V1 is request-first: customers publish open requests; groomers receive matches and make concrete offers.
+- Do not expose a public all-groomer directory or direct customer slot booking in pet-fit v1.
+- Groomer dismissals are private and use neutral wording such as "Not a fit".
+- A groomer has at most one active offer per request and may withdraw it only under backend rules.
+- A customer can accept only one offer; the UI waits for the atomic backend result before showing a booking.
+- Cancelled bookings remain cancelled; do not imply that the original request or accepted offer reopened.
+- Hide completion/review actions until their backend transitions exist.
+- Do not show actions invalid for the current request, match, offer, or booking status.
+- Fit copy must distinguish claimed specialties from evidence such as completed similar bookings, relevant reviews, or repeat customers.
 
-## Groomly UI Copy Rules
+## Copy
 
-Use warm marketplace-oriented language during the Groomly UI phase.
+Preferred terms: Groomly, Find a groomer, Start a grooming request, Publish request, Open requests, Make offer, Review offers, Accept offer, Booking confirmed, Not a fit, Waiting for offers, No offers yet.
 
-Preferred terms:
+Avoid: Task card, Send task, Reject customer, Reject task, Recipient, Submission, Card exchange.
 
-- Groomly
-- Find a groomer
-- Start a grooming request
-- Publish request
-- Open requests
-- Make offer
-- Review offers
-- Accept offer
-- Booking confirmed
-- Not a fit
-- Waiting for offers
-- No offers yet
+## Privacy and Errors
 
-Avoid old or misleading terms:
-
-- Task card
-- Send task
-- Reject customer
-- Reject task
-- Recipient
-- Submission
-- Card exchange
-
-For groomer dismissals, use private, neutral wording such as "Not a fit". Do not show customer-facing rejection language. Customers should stay in a neutral waiting or no-offers state.
-
-## Privacy
-
-- Before booking, show a groomer only the pet/service/time/approximate-location information needed to decide whether to offer.
+- Before booking, show groomers only pet/service/time/approximate-location context needed to decide whether to offer.
 - Do not reveal unnecessary customer contact or private profile details before booking.
 - Chat is available only after booking and only to booking participants.
 - Diagnostic screens must not display passwords, full API keys, access tokens, or refresh tokens.
-
-## Status and Error Language
-
 - Translate backend states into clear outcomes without exposing raw database or RLS wording.
-- Permission failure: explain that the action is unavailable and preserve the screen state.
-- Conflict: refresh current data and explain why the requested time or transition cannot proceed.
-- Session expiry: return to authentication without silently losing an unsent recoverable draft where safe.
-- Unknown failure: show a safe general message and record sanitized diagnostic context.
+- Unknown failures show a safe message and record sanitized diagnostic context.
 
 ## Fixtures
 
-Preview and test fixtures may demonstrate states in Xcode previews and automated tests. Production builds must not switch to fixture-backed repositories, local success paths, or demo credentials.
+Preview/test fixtures may demonstrate states. Production builds must not switch to fixture-backed repositories, local success paths, or demo credentials.

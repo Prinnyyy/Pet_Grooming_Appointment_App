@@ -31,6 +31,7 @@ Validation for the task is recorded in `../06_tasks/TASK_LEDGER.md` and `../00_m
 
 | Date | Task | Summary | Detail |
 |---|---|---|---|
+| 2026-07-08 | T-179 | Archived the adopted watch-items plan, lowered active memory windows, and compressed active indexes below the 85% waterline. | `../09_frozen/external_agent_reports/`, `../09_frozen/task_ledgers/`, `../09_frozen/worklogs/`, `README.md` |
 | 2026-07-08 | T-178 | Added backtick path integrity checks and rolled T-164 ledger row plus T-168 worklog entry to frozen. | `../../scripts/context-hygiene-check.mjs`, `../09_frozen/task_ledgers/`, `../09_frozen/worklogs/` |
 | 2026-07-08 | T-177 | Cleaned dead governance-plan ignore entries, expanded ROADMAP DoD, and rolled T-163 ledger row plus T-167 worklog entry to frozen. | `../../.rgignore`, `../../.gitignore`, `../06_tasks/ROADMAP.md`, `../09_frozen/task_ledgers/`, `../09_frozen/worklogs/` |
 | 2026-07-08 | T-176 | Removed AGENTS branch-baseline duplication, updated Claude routing, and rolled T-162 ledger row plus T-166 worklog entry to frozen. | `../../AGENTS.md`, `../../CLAUDE.md`, `../09_frozen/task_ledgers/`, `../09_frozen/worklogs/` |

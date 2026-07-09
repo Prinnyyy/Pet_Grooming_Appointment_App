@@ -7,8 +7,8 @@ const PROJECT_ROOT = path.resolve(
 );
 const ACTIVE_MARKDOWN_TOTAL_LIMIT = 32000;
 const ACTIVE_MARKDOWN_WARN_RATIO = 0.85;
-const WORKLOG_ENTRY_LIMIT = 10;
-const TASK_LEDGER_ROW_LIMIT = 15;
+const WORKLOG_ENTRY_LIMIT = 8;
+const TASK_LEDGER_ROW_LIMIT = 12;
 const TASK_LEDGER_ROW_CHAR_LIMIT = 700;
 const LAST_VERIFIED_MAX_AGE_DAYS = 45;
 const CHECK_DATE_TEXT = process.env.CONTEXT_HYGIENE_NOW ?? new Date().toISOString().slice(0, 10);
@@ -26,7 +26,7 @@ const WORD_LIMITS = new Map([
   ["docs/06_tasks/ROADMAP.md", 1800],
   ["docs/00_memory/FEATURE_INDEX.md", 1200],
   ["docs/00_memory/PROJECT_MEMORY.md", 600],
-  ["docs/07_decisions/DECISION_LOG.md", 2500],
+  ["docs/07_decisions/DECISION_LOG.md", 1800],
   ["docs/01_product/DESIGN_SYSTEM.md", 900],
   ["docs/01_product/SCREEN_INVENTORY.md", 1500],
   ["docs/08_design/UI_IMPLEMENTATION_NOTES.md", 900],
@@ -36,7 +36,7 @@ const WORD_LIMITS = new Map([
   ["docs/03_backend/MIGRATION_RULES.md", 900],
   ["docs/04_ios/testops/TESTOPS_MEMORY.md", 400],
   ["docs/05_workflow/TOOLING_POLICY.md", 1500],
-  ["docs/10_project_structure/REORGANIZATION_LOG.md", 2500],
+  ["docs/10_project_structure/REORGANIZATION_LOG.md", 1200],
 ]);
 
 const STALE_CREDENTIAL_PATTERNS = [

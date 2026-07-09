@@ -42,7 +42,7 @@ Out of V1.0 unless explicitly changed: payments, subscriptions, public directory
 
 | Milestone | Goal | Status | Exit Signal |
 |---|---|---|---|
-| G0 Docs governance | Keep docs indexed and bounded. | T-163...T-178 complete. | Startup uses active indexes, not stale root/frozen plans. |
+| G0 Docs governance | Keep docs indexed and bounded. | T-163...T-179 complete. | Startup uses active indexes, not stale root/frozen plans. |
 | M1 Half-finished surfaces | Remove incomplete UI/data behavior. | T-152 and T-154 complete; images, request persistence, deep-link/SMTP remain candidates. | No placeholder surfaces or misleading inputs. |
 | M2 Marketplace timeliness | Make request/offer/booking/chat state timely. | T-153, T-155, T-156, T-162 complete; T-157 dispatch blocked; realtime chat candidate. | Timely notifications/chat and cross-device states. |
 | M3 Compliance and ops | Satisfy App Store and ops basics. | T-160 and T-161 complete; URLs, crash/analytics, accessibility/copy, performance remain. | Metadata and operational evidence are ready. |
@@ -75,5 +75,6 @@ Out of V1.0 unless explicitly changed: payments, subscriptions, public directory
 | R-020 | G0 | Entrypoint and branch fact-source alignment | Complete T-176 |
 | R-021 | G0 | ROADMAP DoD and ignore cleanup | Complete T-177 |
 | R-022 | G0 | Backtick path and Markdown waterline checks | Complete T-178 |
+| R-023 | G0 | Active Markdown budget reduction | Complete T-179 |
 
-Completed mapping: T-152 M1; T-153/T-155/T-156/T-162 M2; T-154 M1/M2; T-157 M2 blocked for dispatch; T-160/T-161 M3; T-163...T-178 G0.
+Completed mapping: T-152 M1; T-153/T-155/T-156/T-162 M2; T-154 M1/M2; T-157 M2 blocked for dispatch; T-160/T-161 M3; T-163...T-179 G0.

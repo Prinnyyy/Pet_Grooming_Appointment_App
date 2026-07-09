@@ -1,102 +1,55 @@
 # Project Structure Index
 
-This file is the first stop when a path is unclear. It records the current folder ownership map and the few paths that were intentionally left in place because moving them would create more risk than readability.
+First stop when a path is unclear. Keep this file as a routing table, not a history log.
 
-## Top-Level Map
+## Root Paths
 
-- `AGENTS.md`: repository operating rules for Codex.
-- `.rgignore`: default ripgrep ignore rules for historical archives, generated artifacts, machine-readable seed profile tables, and large design exports.
-- `README.md`: short project overview and validation commands.
-- `CLAUDE.md`: Claude minimum active entrypoint. Old Claude reference snapshots are frozen, not active root context.
-- `.codex/config.toml`: active local Codex project configuration.
-- `docs/09_frozen/agent_team_archive_2026-06-24/archive_agents/`: historical disabled agent role cards.
-- `docs/09_frozen/task_records_2026-06-26/`: detailed historical task records moved out of the active task directory.
-- `docs/09_frozen/superpowers_2026-06-26/`: historical Superpowers plans/specs moved out of the active docs directory.
-- `docs/09_frozen/workflow_docs_2026-06-26/`: superseded workflow/context/tool policy docs consolidated into active workflow entrypoints.
-- `docs/09_frozen/workspace_initialization_2026-06-24/`: historical workspace initialization prompt archive.
-- `docs/09_frozen/current_state_snapshots/`: pre-trim snapshots of active current-state memory.
-- `docs/09_frozen/worklogs/`: archived verbatim worklog history moved out of the active worklog.
-- `docs/09_frozen/task_ledgers/`: archived completed task-ledger rows moved out of the active ledger.
-- `docs/09_frozen/decisions/`: archived verbatim decision-log snapshots moved out of the active decision index.
-- `docs/09_frozen/backend_contracts/`: archived long-form backend contract snapshots moved out of the active fast-path backend contract.
-- `docs/09_frozen/backend_policies/`: archived pre-trim backend policy/runbook snapshots moved out of active backend context.
-- `docs/09_frozen/feature_indexes/`: archived pre-trim feature index snapshots moved out of active memory context.
-- `docs/09_frozen/design_prompts/`: archived historical design-task prompts moved out of active design context.
-- `docs/09_frozen/design_notes/`: archived pre-slim design-system and Groomly UI audit notes moved out of active design context.
-- `docs/09_frozen/product_briefs/`: archived original product/engineering briefs moved out of active root context.
-- `docs/09_frozen/project_structure/`: archived full structure logs moved out of the active reorganization index.
-- `docs/09_frozen/claude_reference_2026-07-08/`: archived old Claude-only reference snapshots moved out of active root context.
-- `docs/09_frozen/memory_pointers/`: archived removed compatibility pointers.
-- `docs/09_frozen/workflow_templates/`: archived removed low-use workflow templates.
-- `docs/09_frozen/task_templates/`: archived removed generic task templates.
-- `ios/`: Xcode project, SwiftUI app code, tests, and local iOS configuration. Do not move files here without also validating Xcode project references and running the iOS build script.
-- `supabase/migrations/`: append-only local mirrors for applied or prepared Supabase migrations. Do not rename, reorder, or nest these files.
-- `supabase/drafts/`: draft backend material when present.
-- `scripts/`: repository validation, TestOps automation, and helper commands.
-- `scripts/context-hygiene-check.mjs`: read-only Markdown/context budget, link, hidden-path, and credential-wording check.
-- `docs/`: durable project memory, task records, workflow rules, design references, decisions, and this structure index.
-- `supabase_api_key` and `supabase_environment_variables`: local ignored Supabase credential files. Inspect only with explicit user authorization for the current operation; never move into docs, print, or commit.
+| Path | Purpose |
+|---|---|
+| `AGENTS.md` | Codex operating rules. |
+| `CLAUDE.md` | Claude minimum active entrypoint. |
+| `README.md` | Short project overview and validation commands. |
+| `.rgignore` | Default search exclusions for frozen archives, seed tables, and large design exports. |
+| `.codex/config.toml` | Local Codex project configuration. |
+| `docs/` | Active durable memory, product, architecture, backend, workflow, task, decision, design, and structure docs. |
+| `ios/` | Xcode project, SwiftUI app, and tests. Validate Xcode references before moving anything here. |
+| `supabase/migrations/` | Append-only local migration mirrors. Do not rename or reorder. |
+| `supabase/drafts/` | Draft backend material when present. |
+| `scripts/` | Validation, context hygiene, TestOps, and helper commands. |
+| ignored local secrets | `supabase_api_key` and `supabase_environment_variables`; inspect only with explicit authorization and never commit. |
 
-## Docs Map
+## Docs Paths
 
-- `docs/00_memory/`: current state, feature index, project memory, and worklog.
-- `docs/01_product/`: product definitions, roles, flows, screen inventory, and UX rules.
-- `docs/02_architecture/`: app architecture, data flow, boundaries, error handling, and fixtures.
-- `docs/03_backend/`: Supabase contract, RLS/RPC policy, storage policy, and migration rules.
-- `docs/04_ios/`: Swift, SwiftUI, build, testing, accessibility, and DEBUG diagnostic rules.
-- `docs/05_workflow/`: active single-agent workflow, context/recovery access tiers, tooling policy, GitHub rules, and stop rules.
-- `docs/06_tasks/`: active task ledger, managed roadmap, screenshot/meta-review templates, and task-specific artifacts. Detailed completed task records are frozen under `docs/09_frozen/task_records_2026-06-26/`.
-- `docs/06_tasks/sql_reviews/`: reviewed SQL drafts that were attached to task records before being mirrored as migrations.
-- `docs/07_decisions/`: ADR template and canonical decision log.
-- `docs/08_design/`: Groomly design prototype, normalized screenshot assets, extracted tokens, and implementation notes.
-- `docs/09_frozen/`: frozen historical snapshots, archived workflow material, disabled agent roles, and initialization prompts for comparison or recovery only.
-- `docs/10_project_structure/`: current path map and reorganization history.
+| Directory | Purpose |
+|---|---|
+| `docs/00_memory/` | Current state, feature routing, project memory, recent worklog. |
+| `docs/01_product/` | Product rules, roles, flows, screen inventory, UX rules. |
+| `docs/02_architecture/` | App architecture, data flow, boundaries, error handling, fixtures. |
+| `docs/03_backend/` | Supabase fast path, RLS/RPC, storage, migration rules. |
+| `docs/04_ios/` | Swift, SwiftUI, build, testing, accessibility, debug, TestOps. |
+| `docs/05_workflow/` | Active workflow, context/recovery, tooling, Git, stop rules. |
+| `docs/06_tasks/` | Active ledger, managed roadmap, screenshot/meta-review templates, SQL review index. |
+| `docs/07_decisions/` | Decision log and ADR template. |
+| `docs/08_design/` | Active Groomly visual notes and screenshot assets. |
+| `docs/09_frozen/` | Historical archives; never read by default. |
+| `docs/10_project_structure/` | This map and compact reorganization index. |
 
-## Task Search Guide
+## Task Search
 
-- Current task state: `docs/00_memory/CURRENT_STATE.md`.
-- Active/recent task ledger: `docs/06_tasks/TASK_LEDGER.md`.
-- Archived task ledger rows: `docs/09_frozen/task_ledgers/`.
-- Archived decision snapshots: `docs/09_frozen/decisions/`.
-- Archived worklog history: `docs/09_frozen/worklogs/`.
-- Archived current-state snapshots: `docs/09_frozen/current_state_snapshots/`.
-- Frozen detailed task records: `docs/09_frozen/task_records_2026-06-26/`.
-- Task folder guide: `docs/06_tasks/README.md`.
-- Workflow rules: `docs/05_workflow/SINGLE_AGENT_WORKFLOW.md`.
-- Context and recovery tiers: `docs/05_workflow/CONTEXT_AND_RECOVERY.md`.
-- Tooling policy: `docs/05_workflow/TOOLING_POLICY.md`.
-- Backend contract: `docs/03_backend/SUPABASE_CONTRACT.md`.
-- Full pre-trim backend contract snapshots: `docs/09_frozen/backend_contracts/`.
-- Frozen backend policy snapshots: `docs/09_frozen/backend_policies/`.
-- Frozen feature index snapshots: `docs/09_frozen/feature_indexes/`.
-- Frozen design prompts: `docs/09_frozen/design_prompts/`.
-- Frozen design notes: `docs/09_frozen/design_notes/`.
-- Frozen product briefs: `docs/09_frozen/product_briefs/`.
-- Frozen structure logs: `docs/09_frozen/project_structure/`.
-- Frozen Claude references: `docs/09_frozen/claude_reference_2026-07-08/`.
-- Removed memory pointers: `docs/09_frozen/memory_pointers/`.
-- Removed workflow templates: `docs/09_frozen/workflow_templates/`.
-- Removed task templates: `docs/09_frozen/task_templates/`.
-- Test resource index: `docs/02_architecture/test_resources/README.md`.
-- iOS source root: `ios/PetGroomerMarketplace/PetGroomerMarketplace/`.
-- iOS tests: `ios/PetGroomerMarketplace/PetGroomerMarketplaceTests/`.
-- Debug Console and structured event logs: `docs/04_ios/DEBUG_CONSOLE.md`.
-- TestOps automation module: `docs/04_ios/testops/README.md`.
-- Design screenshot assets: `docs/08_design/screenshots/`.
-- Frozen workflow archive: `docs/09_frozen/workflow_archive_2026-06-24/`.
-- Frozen disabled agent archive: `docs/09_frozen/agent_team_archive_2026-06-24/`.
+- Current state: `../00_memory/CURRENT_STATE.md`.
+- Current task ledger: `../06_tasks/TASK_LEDGER.md`.
+- Recent worklog: `../00_memory/WORKLOG.md`.
+- Managed roadmap: `../06_tasks/ROADMAP.md`.
+- Workflow: `../05_workflow/SINGLE_AGENT_WORKFLOW.md`.
+- Context tiers: `../05_workflow/CONTEXT_AND_RECOVERY.md`.
+- Tooling and remote gates: `../05_workflow/TOOLING_POLICY.md`.
+- Backend contract: `../03_backend/SUPABASE_CONTRACT.md`.
+- Frozen archive guide: `../09_frozen/README.md`.
+- Move history: `REORGANIZATION_LOG.md`.
 
-## Move History
+## Do Not Move Without Follow-Up Approval
 
-Path move details live in `docs/10_project_structure/REORGANIZATION_LOG.md`.
-
-## Do Not Move Without Explicit Follow-Up Approval
-
-- Swift/Xcode source files under `ios/`.
-- Any file under `supabase/migrations/`.
-- `CLAUDE.md`.
-- `AGENTS.md`.
-- `.rgignore`.
-- `.codex/config.toml`.
-- `scripts/`.
-- Ignored local secrets such as `supabase_api_key` and `supabase_environment_variables`.
+- Swift/Xcode files under `../../ios/`.
+- Any file under `../../supabase/migrations/`.
+- `../../AGENTS.md`, `../../CLAUDE.md`, `.rgignore`, `.codex/config.toml`, and `../../scripts/`.
+- Ignored local secret files.
