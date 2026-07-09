@@ -32,7 +32,7 @@ Root-level or external-agent status/roadmap Markdown is not authoritative. Treat
 ## Task Rules
 
 - Preserve user work; run `git status --short` before edits.
-- Current branch baseline is `codex/pet-fit-structure-cleanup`; do not continue work from another branch unless the user names it.
+- Work branch baseline comes from `docs/00_memory/CURRENT_STATE.md`; do not continue work from another branch unless the user names it.
 - Use the next available task ID from `docs/06_tasks/TASK_LEDGER.md` for new bugfix or iteration work.
 - If branch, task ID, or status evidence conflicts, stop and verify `CURRENT_STATE.md` plus `TASK_LEDGER.md`; never infer the next task from stale task filenames, archived notes, or external reports.
 - One primary task only. Do not start adjacent features, broad refactors, or unrelated cleanup.

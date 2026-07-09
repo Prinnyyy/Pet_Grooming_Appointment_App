@@ -32,6 +32,8 @@ For current project work, start with:
 - `docs/05_workflow/CONTEXT_AND_RECOVERY.md` when read-budget or recovery decisions matter
 - targeted sections of `docs/00_memory/CURRENT_STATE.md`
 - `docs/06_tasks/TASK_LEDGER.md` only when choosing or updating task status
+- `docs/06_tasks/ROADMAP.md` when planning or milestone review matters
+- `docs/07_decisions/DECISION_LOG.md` when reviewing rule or scope decisions
 
 For product or UI tasks, add only the relevant current entrypoints:
 
@@ -71,7 +73,10 @@ Use the selected task file's validation commands. Standard SwiftUI screen slices
 
 - Current state: `docs/00_memory/CURRENT_STATE.md`
 - Task ledger: `docs/06_tasks/TASK_LEDGER.md`
+- Managed roadmap: `docs/06_tasks/ROADMAP.md`
 - Context/recovery: `docs/05_workflow/CONTEXT_AND_RECOVERY.md`
+- Git rules: `docs/05_workflow/GITHUB_RULES.md`
+- Decisions: `docs/07_decisions/DECISION_LOG.md`
 - Product brief: `docs/01_product/PRODUCT_BRIEF.md`
 - Product rules: `docs/01_product/`
 - Backend contract: `docs/03_backend/`

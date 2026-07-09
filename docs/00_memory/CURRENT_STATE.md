@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-08
 - Updated by: Codex
-- Latest completed task: T-175 Context hygiene v4 failure-mode checks.
+- Latest completed task: T-176 Entrypoint and branch fact-source alignment.
 - Current task: none active; T-157 APNs deployment remains externally blocked.
-- Next task ID: use T-176 unless the user resumes T-157 after Apple Developer Program upgrade.
+- Next task ID: use T-177 unless the user resumes T-157 after Apple Developer Program upgrade.
 
 ## Fast Path
 
@@ -43,7 +43,7 @@ Frozen history lives under `docs/09_frozen/`.
 - Prepared unapplied Supabase migration: none known by `supabase migration list --linked`; post-apply dry-run requires `SUPABASE_DB_PASSWORD`.
 - Last TestOps unit validation: T-145 `./scripts/testops-unit.sh` passed 24 Node tests.
 - Last remote TestOps run: T-155 authorized `matching_baseline` run `TESTOPS-T155-MATCH-20260706-*` passed 8/8 and cleanup left zero tagged request/match residue.
-- Last docs/workflow validation: T-175 RED/GREEN context hygiene tests, `git diff --check`, context hygiene, rg-fallback check, and ledger row-length check passed on 2026-07-08.
+- Last docs/workflow validation: T-176 entrypoint/fact-source update, `git diff --check`, and context hygiene passed on 2026-07-08.
 - Known validation failure: full `./scripts/ios-test.sh` is currently blocked by the existing T-153 customer notification same-timestamp ordering test, not by T-162 cancellation repost work.
 
 ## Active Product State
@@ -89,4 +89,4 @@ Frozen history lives under `docs/09_frozen/`.
 
 ## Next Recommended Task
 
-- Use T-176 next unless resuming T-157 after Apple Developer credentials. Suggested governance candidate: batch C entrypoint/fact-source alignment from the archived review fix plan; product candidate remains realtime chat.
+- Use T-177 next unless resuming T-157 after Apple Developer credentials. Suggested governance candidate: batch D cleanup/ROADMAP DoD expansion from the archived review fix plan; product candidate remains realtime chat.

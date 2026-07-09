@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-08
+Task: T-176 - Entrypoint and branch fact-source alignment.
+Files changed: AGENTS.md, CLAUDE.md, decision log, roadmap, task ledger/archive, worklog/archive, current state, and structure log.
+Checks: `git diff --check`; `node scripts/context-hygiene-check.mjs`.
+Result: `AGENTS.md` no longer hardcodes the branch baseline and now points to CURRENT_STATE for that fact. `CLAUDE.md` now routes planning/milestone review to ROADMAP and rule/scope review to DECISION_LOG/Git rules.
+Risks: Docs/rules only. No iOS source, Supabase command, migration, runtime behavior, simulator, push, or remote write changed. T-176 is not yet committed or pushed.
+Next: Use T-177 for batch D low-priority cleanup unless the user chooses a different task.
+```
+
+```text
+Date: 2026-07-08
 Task: T-175 - Context hygiene v4 failure-mode checks.
 Files changed: context hygiene script/tests, meta-review template, decision log, roadmap, task ledger/archive, worklog/archive, current state, and structure log.
 Checks: RED/GREEN `node --test tests/docs/context-hygiene-check.test.mjs`; `node scripts/context-hygiene-check.mjs`; `git diff --check`.
 Result: Hygiene now falls back to `git ls-files` when `rg` is unavailable, fails closed on missing current fact patterns, checks meta-review cadence by completed-task distance, and fails on ledger table rows over 700 characters. T-157 ledger row is compressed while preserving APNs unlock variables.
 Risks: Docs/workflow tooling only. No iOS source, Supabase command, migration, runtime behavior, simulator, push, or remote write changed. T-174 was committed locally as `d708db5` before starting this batch; T-175 is not yet committed or pushed.
-Next: Use T-176 for batch C entrypoint/fact-source alignment unless the user chooses a different task.
 ```
 
 ```text
@@ -83,14 +92,5 @@ Task: T-167 - Managed ROADMAP adoption.
 Files changed: ROADMAP.md, task/docs indexes, AGENTS.md, CONTEXT_AND_RECOVERY.md, task ledger, decision log, current state, worklog archive, context hygiene script/tests.
 Checks: RED/GREEN `node --test tests/docs/context-hygiene-check.test.mjs`; `git diff --check`; `node scripts/context-hygiene-check.mjs`.
 Result: Adds a governed roadmap that converts external V1.0 drafts into milestone/candidate indexes without copying old task IDs as active IDs. Task numbering remains owned by TASK_LEDGER, and ROADMAP has a hygiene budget.
-Risks: Docs/workflow only. No iOS source, Supabase command, migration, runtime behavior, simulator, commit, or push changed.
-```
-
-```text
-Date: 2026-07-07
-Task: T-166 - Git/GitHub rules hardening.
-Files changed: GITHUB_RULES.md, TOOLING_POLICY.md, root/docs README indexes, decision log, active ledger, frozen ledger archive, current state, and reorganization log.
-Checks: `git diff --check`; `node scripts/context-hygiene-check.mjs`.
-Result: Git rules now require `T-xxx: <type>: <summary>` commit messages, same-task commit scope, approved checkpoint commits, explicit push/PR/tag gates, branch cleanup rules, and a dedicated `main` reconciliation task for the known 2fddf7b governance divergence.
 Risks: Docs/workflow only. No iOS source, Supabase command, migration, runtime behavior, simulator, commit, or push changed.
 ```
