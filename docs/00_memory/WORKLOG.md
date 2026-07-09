@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-09
+Task: T-224 - Customer request test split.
+Files changed: customer request feature test files, current state, task ledger, worklog, and structure log.
+Checks: `@Test` count 60 before and after; file sizes 10K-23K; full `./scripts/ios-test.sh`; `git diff --check`; context hygiene; commit and push.
+Result: Implements Context Optimization Task B by splitting the 94K `CustomerRequestFeatureTests.swift` into a base test file, four same-suite extension files, and one internal fakes file. Test bodies and names were moved without behavior changes; shared helpers and fakes were widened only from file-private to internal for cross-file access.
+Risks: Test-target code movement only. No app Swift, Xcode project, workflow rule, Supabase schema, migration, remote write, seed, release upload, tag, PR, merge/rebase/reset, or force-push changed. Root `CONTEXT_OPTIMIZATION_TASK_PLAN.md` remains external plan input until the serial tasks are complete.
+Next: Use T-225 for Context Optimization Task C if continuing the external plan; otherwise use the next user-chosen task.
+```
+
+```text
+Date: 2026-07-09
 Task: T-223 - Xcode script output filtering.
 Files changed: iOS build/test scripts, current state, task ledger, worklog, and structure log.
 Checks: `bash -n scripts/ios-build.sh scripts/ios-test.sh`; `./scripts/ios-build.sh` success with 7-line output; `./scripts/ios-test.sh` success with 16-line output; expected invalid-destination `ios-test.sh` failure returned 1 with 47-line output; `git diff --check`; context hygiene; commit and push.
 Result: Implements Context Optimization Task A by sending full `xcodebuild` output for build/test scripts to temp logs while printing bounded success/failure summaries and preserving exit-code semantics.
 Risks: Script-output filtering only. No Swift, Xcode project, workflow rule, Supabase schema, migration, remote write, seed, release upload, tag, PR, merge/rebase/reset, or force-push changed. Root `CONTEXT_OPTIMIZATION_TASK_PLAN.md` remains external plan input until the serial tasks are complete.
-Next: Use T-224 for Context Optimization Task B if continuing the external plan; otherwise use the next user-chosen task.
 ```
 
 ```text
@@ -66,13 +75,4 @@ Files changed: auth callback configuration/model, auth repositories, Authenticat
 Checks: AuthenticationStore RED/GREEN; full `./scripts/ios-test.sh`; `./scripts/supabase-check.sh`; `./scripts/ios-build.sh`; `plutil -lint ios/PetGroomerMarketplace/Config/AppInfo.plist`; simulator openurl smoke; `git diff --check`; context hygiene; commit and push.
 Result: Closes Q-29/R-027 by passing the Supabase sign-up redirect URL, registering `com.prinnyyy.petgroomermarketplace://auth/callback`, handling supported callback links through AuthenticationStore, and showing safe expired/invalid link copy without exposing callback tokens.
 Risks: Local iOS callback implementation and docs only. Supabase Auth redirect allow-list, SMTP, production HTTPS domain, associated domains, migrations, seeds, deploys, release upload, tag, PR, merge/rebase/reset, and force-push were not changed.
-```
-
-```text
-Date: 2026-07-09
-Task: T-216 - State-machine edge tests.
-Files changed: appointment reminder scheduler, AppointmentReminderPlan tests, roadmap, current state, task ledger, and worklog.
-Checks: AppointmentReminderPlan RED/GREEN; full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
-Result: Closes Q-28/R-028 by adding focused reminder idempotence coverage for duplicate booking rows and making local appointment reminder planning dedupe by stable reminder identifier while preserving first valid reminder order.
-Risks: Local iOS planner/test hardening only. No Supabase schema, migration, remote write, repository API signature, UI layout redesign, Auth config, seed, TestOps remote execution, deploy, APNs dispatch, release upload, tag, PR, merge/rebase/reset, or force-push changed.
 ```
