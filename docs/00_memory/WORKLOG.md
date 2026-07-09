@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-09
+Task: T-232 - Account deletion conflict-target correction.
+Files changed: append-only account-deletion function migration, static regression test, current state, task ledger, and worklog.
+Checks: Remote constraint/function evidence; focused RED/GREEN; 45 migration and 10 Edge tests; `./scripts/preflight.sh`; linked list/dry-run/apply/parity; post-apply function source; linked database lint; `git diff --check`; context hygiene.
+Result: The account-deletion upsert now targets `account_deletion_requests_user_key` by constraint name, removing the PL/pgSQL output-column ambiguity. Remote lint reports no schema errors.
+Risks: A rollback-only function execution exposed an independent 42501 failure from direct `storage.objects` deletion. No test residue remained; T-233 owns the Storage API correction and Edge deployment.
+Next: Use T-233 to move account Storage cleanup to the service-role Storage API.
+```
+
+```text
+Date: 2026-07-09
 Task: T-231 - Groomer in-app notification remote parity.
 Files changed: notification negative-contract rollback SQL and static test; roadmap, queue, current state, task ledger, and worklog. Existing T-203 migration was applied remotely.
 Checks: Current Supabase docs/changelog; migration/Edge preflight; 8/8 rollback-only negative checks; linked migration parity/dry-run; catalog, grants, RLS, RPC, trigger, and residue queries; linked lint; security/performance advisors; full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; `git diff --check`; context hygiene.
 Result: Q-35 is complete. Groomer in-app notifications now have remote table/RLS/RPC/trigger parity and the existing iOS list/read behavior is backed by the live schema. The rollback validator was corrected to use PL/pgSQL row counts and authenticated temp-result privileges.
 Risks: APNs, groomer push tokens, push dispatch, and paid Apple work remain excluded. Advisor output contains only known APNs/Auth-plan and Q-36 index findings. Runtime lint exposed a separate account-deletion conflict ambiguity, assigned next as T-232.
-Next: Use T-232 to correct the account-deletion conflict target before continuing Q-36.
 ```
 
 ```text
@@ -65,14 +74,5 @@ Task: T-225 - Groomer profile test split.
 Files changed: groomer profile feature test files, current state, task ledger, worklog, and structure log.
 Checks: pre-change full `./scripts/ios-test.sh` rerun passed after an initial unrelated `ForegroundRefreshGateTests` flake; `@Test` count 45 before and after; `GroomerProfileStoreTests` count 39 before and after; file sizes 8K-20.5K plus 17.8K fakes; full `./scripts/ios-test.sh`; `git diff --check`; context hygiene; commit and push.
 Result: Implements Context Optimization Task C by splitting the 70K `GroomerProfileFeatureTests.swift` into a base test file, three same-suite extension files, and one test fakes file. Test names/bodies were preserved; shared helpers and fakes were widened only where cross-file access required it, with the groomer snapshot cache fake renamed to avoid a same-target customer test fake collision.
-Risks: Test-target code movement only. No app Swift, Xcode project, workflow rule, Supabase schema, migration, remote write, seed, release upload, tag, PR, merge/rebase/reset, or force-push changed. Root `CONTEXT_OPTIMIZATION_TASK_PLAN.md` remains external plan input until the serial tasks are complete.
-```
-
-```text
-Date: 2026-07-09
-Task: T-224 - Customer request test split.
-Files changed: customer request feature test files, current state, task ledger, worklog, and structure log.
-Checks: `@Test` count 60 before and after; file sizes 10K-23K; full `./scripts/ios-test.sh`; `git diff --check`; context hygiene; commit and push.
-Result: Implements Context Optimization Task B by splitting the 94K `CustomerRequestFeatureTests.swift` into a base test file, four same-suite extension files, and one internal fakes file. Test bodies and names were moved without behavior changes; shared helpers and fakes were widened only from file-private to internal for cross-file access.
 Risks: Test-target code movement only. No app Swift, Xcode project, workflow rule, Supabase schema, migration, remote write, seed, release upload, tag, PR, merge/rebase/reset, or force-push changed. Root `CONTEXT_OPTIMIZATION_TASK_PLAN.md` remains external plan input until the serial tasks are complete.
 ```
