@@ -26,6 +26,7 @@ Archived pre-trim version: `../09_frozen/backend_policies/RLS_RPC_POLICY_2026-07
 | `bookings` | Participant read; allowed cancellation/review path | Participant read; allowed cancellation/completion path | Insert and critical transitions controlled |
 | `conversations`, `messages` | Booking participant only | Booking participant only | Message insert as self only; update/delete denied |
 | `customer_notifications` | Read own; update own read state; mark-read RPCs | No direct access | Inserts and push state are system/service-role paths |
+| `groomer_notifications` | No direct access | Read own; update own read state; mark-read RPCs | Inserts are system trigger paths |
 | `customer_booking_handoff_acknowledgements` | Read/acknowledge own confirmed booking handoff | No direct access | Insert through acknowledgement path only |
 | `customer_push_tokens` | Register/unregister own device tokens through RPC | No access | Push claim/delivery updates are service-role only |
 | `reviews`, `review_pet_fit_outcomes` | Create one review through RPC for own completed booking; read own | Read own booking review/outcomes | Direct outcome DML denied |
@@ -49,6 +50,8 @@ Public controlled RPCs currently include:
 - `get_my_groomer_pet_fit_evidence_summary`
 - `mark_customer_notification_read`
 - `mark_all_customer_notifications_read`
+- `mark_groomer_notification_read`
+- `mark_all_groomer_notifications_read`
 - `get_acknowledged_booking_handoff_request_ids`
 - `acknowledge_booking_handoff`
 - `register_customer_push_token`
@@ -69,6 +72,7 @@ Every backend access change must cover the relevant negative cases:
 - Non-participants cannot read or insert conversation messages.
 - Customers cannot review incomplete, unrelated, or already reviewed bookings.
 - Customers cannot read another customer's notifications, push tokens, handoff acknowledgements, or account deletion request.
+- Groomers cannot read another groomer's notifications or create notification rows directly.
 - Authenticated users cannot execute service-role push delivery or account deletion finalization RPCs.
 - Storage metadata and table predicates must agree with bucket object policies when files are involved.
 

@@ -97,7 +97,7 @@ External blockers that do not block the local ideal-operation target: APNs dispa
 | R-021 | G0 | ROADMAP DoD and ignore cleanup | Complete T-177 |
 | R-022 | G0 | Backtick path and Markdown waterline checks | Complete T-178 |
 | R-023 | G0 | Active Markdown budget reduction | Complete T-179 |
-| R-024 | M6 | Groomer notification symmetry | Planned Q-16 through Q-17 |
+| R-024 | M6 | Groomer notification symmetry | Q-16 complete T-203; Q-17 planned |
 | R-025 | M6 | Foreground state timeliness, local reminders, unread badges | Planned Q-18, Q-21, Q-22 |
 | R-026 | M7 | Large SwiftUI/Store structural refactors | Planned Q-23 through Q-24 |
 | R-027 | M7 | Recovery, auth callback, and pagination robustness | Planned Q-27, Q-29, Q-30 |
@@ -105,6 +105,6 @@ External blockers that do not block the local ideal-operation target: APNs dispa
 | R-029 | M8 | Ideal-operation walkthrough and readiness rehearsal | Planned Q-32 through Q-33 |
 | R-030 | D | Paid/external release operations | Blocked Q-90 through Q-92 |
 
-Completed mapping: T-152/T-154/T-188...T-193 M1; T-153/T-155/T-156/T-162/T-194 M2; T-157 M2 blocked for dispatch; T-160/T-161/T-195/T-197...T-199 M3; T-200 M4; T-201 M5 local dry run; T-163...T-179 G0.
+Completed mapping: T-152/T-154/T-188...T-193 M1; T-153/T-155/T-156/T-162/T-194 M2; T-157 M2 blocked for dispatch; T-160/T-161/T-195/T-197...T-199 M3; T-200 M4; T-201 M5 local dry run; T-203 M6 local backend prep; T-163...T-179 G0.
 
-Execution sequencing: use `ROADMAP_EXECUTION_QUEUE.md` to select the next adoptable package. The queue is planning input only; each adopted package receives the next `T-###` from `TASK_LEDGER.md`. Active V1.0 ideal-operation sequencing begins at Q-16.
+Execution sequencing: use `ROADMAP_EXECUTION_QUEUE.md` to select the next adoptable package. The queue is planning input only; each adopted package receives the next `T-###` from `TASK_LEDGER.md`. Active V1.0 ideal-operation sequencing continues at Q-17.

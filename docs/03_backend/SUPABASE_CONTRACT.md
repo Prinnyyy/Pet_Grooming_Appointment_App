@@ -12,7 +12,7 @@ Full pre-trim contract text is archived at `../09_frozen/backend_contracts/SUPAB
 - Forbidden legacy project: `Prinnyyy's Project`, ref `swdiiyypysyxbnfrxxsv`. Do not inspect, branch, migrate, reset, or mutate it for this rebuild.
 - Remote verification baseline: T-128 repaired remote/local migration-version drift. Latest recorded remote migration list aligns through `20260707191034_t160_account_deletion.sql`; post-apply direct dry-run/lint may require `SUPABASE_DB_PASSWORD` when the saved linked credential is insufficient.
 - Local CLI readiness baseline: T-139 confirmed sequential `supabase projects list`, `supabase migration list --linked`, and `supabase db push --linked --dry-run` work from this checkout without `SUPABASE_DB_PASSWORD`.
-- Local migration mirror: `../../supabase/migrations/` is the append-only source for applied and prepared migrations. Local migration mirror count: 55 files. Do not rename or hand-invent migration filenames.
+- Local migration mirror: `../../supabase/migrations/` is the append-only source for applied and prepared migrations. Local migration mirror count: 56 files. Do not rename or hand-invent migration filenames.
 - Full historical contract detail before this fast-path trim is frozen for comparison only. Current implementation truth comes from migrations plus focused active backend policy files.
 
 ## Read Order
@@ -54,8 +54,8 @@ Core deployed data areas:
 - Groomer marketplace data: services, portfolio photos, availability windows, booking preferences, time off windows, fit claims, and portfolio fit tags.
 - Request lifecycle: grooming requests, request photos, request matches, groomer offers, bookings, conversations, text messages, reviews, and structured pet-fit outcomes.
 - Pet-fit matching: private SQL helper functions, evidence summary view, match scoring/reason text, claim/tag low-confidence signals, negative-evidence suppression, availability-aware matching, and request day-capacity matching.
-- Customer operational state: `customer_notifications`, `customer_booking_handoff_acknowledgements`, `customer_push_tokens`, and `account_deletion_requests`.
-- Automation: request-expiry cron job, match backfill triggers for groomer activation/availability changes, customer notification triggers, and account-deletion service-role finalization RPCs.
+- Customer/groomer operational state: `customer_notifications`, `groomer_notifications`, `customer_booking_handoff_acknowledgements`, `customer_push_tokens`, and `account_deletion_requests`.
+- Automation: request-expiry cron job, match backfill triggers for groomer activation/availability changes, customer/groomer notification triggers, and account-deletion service-role finalization RPCs.
 - Storage buckets: legacy `avatars`, dedicated `groomer-avatars`, dedicated `customer-avatars`, `pet-photos`, `groomer-portfolio`, and `request-photos`. `chat-attachments` remains deferred.
 - Edge Functions: `delete-account` is deployed with JWT verification; `dispatch-customer-push-notifications` source exists but is not deployed until APNs secrets are available.
 - Auth email/deep-link production design is documented in `AUTH_EMAIL_DEEP_LINK_DESIGN.md`; SMTP, redirect URLs, email templates, iOS URL scheme, and associated domains are not yet configured.
@@ -75,6 +75,8 @@ Controlled public RPCs currently include:
 - `get_my_groomer_pet_fit_evidence_summary`
 - `mark_customer_notification_read`
 - `mark_all_customer_notifications_read`
+- `mark_groomer_notification_read`
+- `mark_all_groomer_notifications_read`
 - `get_acknowledged_booking_handoff_request_ids`
 - `acknowledge_booking_handoff`
 - `register_customer_push_token`

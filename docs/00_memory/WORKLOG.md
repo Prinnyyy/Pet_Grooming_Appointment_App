@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-09
+Task: T-203 - Groomer notification backend.
+Files changed: groomer notification migration/tests, backend contract/RLS docs, roadmap, current state, task ledger, and worklog.
+Checks: RED/GREEN groomer migration test; migration test suite; preflight; supabase-check; `git diff --check`; context hygiene; commit and push.
+Result: Closes Q-16 locally by adding `groomer_notifications`, owner RLS/grants, read-state RPCs, and trigger-created notifications for matched requests, accepted offers/bookings, customer booking cancellations, and customer messages.
+Risks: Remote migration apply was not run and still needs explicit authorization. No iOS UI, Auth config, seed, remote TestOps, deploy, APNs, release upload, tag, PR, merge/rebase/reset, or force-push changed.
+Next: Use T-204 for the next user-chosen task; recommended queue start is Q-17 groomer notification center UI.
+```
+
+```text
+Date: 2026-07-09
 Task: T-202 - V1.0 ideal-operation task series.
 Files changed: roadmap, execution queue, decision log, current state, task ledger, and worklog.
 Checks: `git diff --check`; context hygiene; commit and push.
 Result: Adopts root `V1.0_RELEASE_TASK_PLAN.md` review input into governed ROADMAP/ROADMAP_EXECUTION_QUEUE packages without preassigning future T IDs. Active queue now starts at Q-16 and covers groomer notification symmetry, local timeliness, structural refactors, unit expansion, robustness, and ideal-operation verification.
 Risks: No app code, Supabase schema, migration, Auth config, seed, TestOps remote execution, deploy, release upload, tag, PR, merge/rebase/reset, or force-push changed. Q-16 requires explicit Supabase migration authorization before linked remote apply; Q-90...Q-92 remain externally blocked.
-Next: Use T-203 for the next user-chosen task; recommended queue start is Q-16 unless the user selects another package.
 ```
 
 ```text
@@ -66,13 +75,4 @@ Files changed: roadmap, current state, task ledger, worklog, and context hygiene
 Checks: `git status --short`; `git diff --check`; `node scripts/context-hygiene-check.mjs`; targeted status/URL grep; context rotation; commit and push.
 Result: Runs the required 10-task documentation governance review after T-195, fixes ROADMAP wording that marked completed tasks as waiting due to mixed "blocked" segments, and keeps active memory/ledger windows within policy.
 Risks: Documentation-governance only. No Swift behavior, Supabase schema, migration, seed, app metadata remote write, repository setting, PR, tag, merge/rebase/reset, or force-push changed.
-```
-
-```text
-Date: 2026-07-09
-Task: T-195 - Privacy and Support URLs.
-Files changed: release privacy/support pages, App Store privacy checklist, AppReleaseLinks, Account legal link UI, privacy tests, roadmap, current state, task ledger, and worklog.
-Checks: App Store privacy Node test RED/GREEN; `./scripts/ios-build.sh`; link checks; `git diff --check`; context hygiene; commit and push.
-Result: Closes Q-10/R-010 by replacing Privacy Policy and Support URL blockers with public HTTPS GitHub release pages and exposing those links from customer, groomer, and generic Account surfaces through a shared app URL configuration.
-Risks: No App Store Connect setting, GitHub repository setting, custom domain, legal entity contact, Supabase schema, migration, seed, or other non-Git remote write changed.
 ```
