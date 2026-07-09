@@ -133,6 +133,7 @@ nonisolated enum GroomingRequestStatus:
     case booked
     case cancelled
     case expired
+    case unknown
 
     var title: String {
         switch self {
@@ -146,6 +147,8 @@ nonisolated enum GroomingRequestStatus:
             "Cancelled"
         case .expired:
             "Expired"
+        case .unknown:
+            "Unknown"
         }
     }
 
@@ -153,9 +156,20 @@ nonisolated enum GroomingRequestStatus:
         switch self {
         case .open, .hasOffers:
             true
-        case .booked, .cancelled, .expired:
+        case .booked, .cancelled, .expired, .unknown:
             false
         }
+    }
+
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let rawValue = try container.decode(String.self)
+        self = Self(rawValue: rawValue) ?? .unknown
+    }
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
     }
 }
 

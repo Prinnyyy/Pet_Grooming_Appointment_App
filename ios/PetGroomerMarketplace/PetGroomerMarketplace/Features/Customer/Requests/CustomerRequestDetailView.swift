@@ -948,7 +948,7 @@ private extension GroomingRequestStatus {
             .customer
         case .booked:
             .success
-        case .cancelled, .expired:
+        case .cancelled, .expired, .unknown:
             .neutral
         }
     }
@@ -965,6 +965,8 @@ private extension GroomingRequestStatus {
             "xmark.circle"
         case .expired:
             "hourglass"
+        case .unknown:
+            "questionmark.circle"
         }
     }
 }
@@ -976,7 +978,7 @@ private extension GroomerOfferStatus {
             .customer
         case .acceptedByCustomer:
             .success
-        case .declinedByCustomer, .withdrawnByGroomer, .expired:
+        case .declinedByCustomer, .withdrawnByGroomer, .expired, .unknown:
             .neutral
         }
     }
@@ -993,6 +995,8 @@ private extension GroomerOfferStatus {
             "arrow.uturn.backward"
         case .expired:
             "hourglass"
+        case .unknown:
+            "questionmark.circle"
         }
     }
 }

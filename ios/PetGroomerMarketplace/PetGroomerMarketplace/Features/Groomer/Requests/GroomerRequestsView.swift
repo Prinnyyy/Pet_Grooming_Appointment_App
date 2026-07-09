@@ -980,7 +980,7 @@ private extension GroomerOfferStatus {
             .success
         case .declinedByCustomer, .expired:
             .error
-        case .withdrawnByGroomer:
+        case .withdrawnByGroomer, .unknown:
             .neutral
         }
     }
@@ -997,6 +997,8 @@ private extension GroomerOfferStatus {
             "arrow.uturn.backward.circle"
         case .expired:
             "clock.badge.exclamationmark"
+        case .unknown:
+            "questionmark.circle"
         }
     }
 
@@ -1012,6 +1014,8 @@ private extension GroomerOfferStatus {
             "You withdrew this offer."
         case .expired:
             "This offer expired before the customer accepted it."
+        case .unknown:
+            "The current offer status is unavailable. Refresh before taking action."
         }
     }
 }

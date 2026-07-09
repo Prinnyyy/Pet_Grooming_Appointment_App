@@ -295,6 +295,7 @@ nonisolated enum RequestMatchStatus:
     case offered
     case hidden
     case expired
+    case unknown
 
     static let activeValues = [
         visible.rawValue,
@@ -316,6 +317,8 @@ nonisolated enum RequestMatchStatus:
             "Hidden"
         case .expired:
             "Expired"
+        case .unknown:
+            "Unknown"
         }
     }
 
@@ -323,7 +326,7 @@ nonisolated enum RequestMatchStatus:
         switch self {
         case .visible, .viewed:
             true
-        case .dismissed, .offered, .hidden, .expired:
+        case .dismissed, .offered, .hidden, .expired, .unknown:
             false
         }
     }
@@ -332,9 +335,20 @@ nonisolated enum RequestMatchStatus:
         switch self {
         case .visible, .viewed:
             true
-        case .dismissed, .offered, .hidden, .expired:
+        case .dismissed, .offered, .hidden, .expired, .unknown:
             false
         }
+    }
+
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let rawValue = try container.decode(String.self)
+        self = Self(rawValue: rawValue) ?? .unknown
+    }
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
     }
 }
 
@@ -413,6 +427,7 @@ nonisolated enum GroomerOfferStatus:
     case declinedByCustomer = "declined_by_customer"
     case withdrawnByGroomer = "withdrawn_by_groomer"
     case expired
+    case unknown
 
     var title: String {
         switch self {
@@ -426,7 +441,20 @@ nonisolated enum GroomerOfferStatus:
             "Withdrawn"
         case .expired:
             "Expired"
+        case .unknown:
+            "Unknown"
         }
+    }
+
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let rawValue = try container.decode(String.self)
+        self = Self(rawValue: rawValue) ?? .unknown
+    }
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
     }
 }
 

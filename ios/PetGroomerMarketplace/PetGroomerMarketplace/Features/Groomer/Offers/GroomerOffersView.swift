@@ -442,6 +442,8 @@ private extension GroomerOfferStatus {
             "Withdrawn"
         case .expired:
             "Expired"
+        case .unknown:
+            "Unknown"
         }
     }
 
@@ -453,7 +455,7 @@ private extension GroomerOfferStatus {
             .success
         case .declinedByCustomer, .expired:
             .error
-        case .withdrawnByGroomer:
+        case .withdrawnByGroomer, .unknown:
             .neutral
         }
     }
@@ -470,6 +472,8 @@ private extension GroomerOfferStatus {
             "arrow.uturn.backward.circle"
         case .expired:
             "clock.badge.exclamationmark"
+        case .unknown:
+            "questionmark.circle"
         }
     }
 
@@ -485,6 +489,8 @@ private extension GroomerOfferStatus {
             "Withdrawn by you."
         case .expired:
             "Expired before customer acceptance."
+        case .unknown:
+            "Status unavailable. Refresh before taking action."
         }
     }
 }

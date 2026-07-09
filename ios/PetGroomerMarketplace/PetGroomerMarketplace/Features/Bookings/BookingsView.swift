@@ -1008,6 +1008,8 @@ private extension Booking {
             "Booking Completed"
         case .cancelledByCustomer, .cancelledByGroomer:
             "Booking Cancelled"
+        case .unknown:
+            "Booking Status Unknown"
         }
     }
 
@@ -1701,6 +1703,8 @@ private extension BookingStatus {
             "checkmark.circle.fill"
         case .cancelledByCustomer, .cancelledByGroomer:
             "xmark.circle.fill"
+        case .unknown:
+            "questionmark.circle"
         }
     }
 
@@ -1712,6 +1716,8 @@ private extension BookingStatus {
             .success
         case .cancelledByCustomer, .cancelledByGroomer:
             .error
+        case .unknown:
+            .neutral
         }
     }
 }

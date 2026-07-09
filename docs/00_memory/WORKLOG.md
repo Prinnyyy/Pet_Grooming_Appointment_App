@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-09
+Task: T-214 - Decode and cache tolerance tests.
+Files changed: marketplace status models, affected status UI surfaces, DecodeToleranceFeatureTests, roadmap, current state, task ledger, and worklog.
+Checks: Focused DecodeTolerance RED/GREEN; full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
+Result: Closes Q-26/R-028 by adding safe unknown-status decode fallbacks, neutral unknown-status UI handling, malformed-date display tolerance, null optional pet snapshot coverage, and oversized corrupt private image cache rejection coverage.
+Risks: Local iOS/model/test hardening only. No Supabase schema, migration, remote write, repository API signature, UI layout redesign, Auth config, seed, TestOps remote execution, deploy, APNs dispatch, release upload, tag, PR, merge/rebase/reset, or force-push changed.
+Next: Use T-215 for the next user-chosen task; recommended queue start is Q-27 republish hardening.
+```
+
+```text
+Date: 2026-07-09
 Task: T-213 - Time and boundary contract tests.
 Files changed: time-boundary migration contract tests, roadmap, current state, task ledger, and worklog.
 Checks: Focused `node --test tests/migrations/time-boundary-contract.test.mjs`; `node --test tests/migrations/*.test.mjs`; `./scripts/supabase-check.sh`; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
 Result: Closes Q-25/R-028 by adding focused backend contract coverage for groomer-local request-day matching, exact offer/booking availability windows, time-off overlap, minimum advance notice, daily capacity, expiry edge conversion, and service size-band limits.
 Risks: Test-only backend contract coverage. No Supabase schema, migration, remote write, repository API signature, UI layout, Auth config, seed, TestOps remote execution, deploy, APNs dispatch, release upload, tag, PR, merge/rebase/reset, or force-push changed.
-Next: Use T-214 for the next user-chosen task; recommended queue start is Q-26 decode/data tolerance tests.
 ```
 
 ```text
@@ -66,13 +75,4 @@ Files changed: current state, task ledger, worklog, frozen rotated ledger/worklo
 Checks: `git status --short`; `git diff --check`; context hygiene; commit and push.
 Result: Runs the required 10-task cadence review after T-206, rotates excess active ledger/worklog rows, confirms active roadmap/queue/current-state pointers align, and keeps Q-20 as the next roadmap package.
 Risks: Governance-only cleanup. No app code, Supabase schema, migration, remote write, Auth config, seed, TestOps remote execution, deploy, APNs, release upload, tag, PR, merge/rebase/reset, or force-push changed.
-```
-
-```text
-Date: 2026-07-09
-Task: T-206 - Offer domain tests.
-Files changed: GroomerOffersFeatureTests, GroomerRequestFeatureTests, GroomerRequestsStore, roadmap, current state, task ledger, and worklog.
-Checks: GroomerOffersStoreTests/GroomerRequestsStoreTests RED/GREEN; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
-Result: Closes Q-19/R-028 by adding focused coverage for offer empty/cancelled list states, stale request and active-offer conflicts, and rejected accepted-offer withdrawal. Production change clears stale success notice before local withdraw rejection.
-Risks: No Supabase schema, migration, remote write, repository API, UI layout, dependency, Auth config, seed, TestOps remote execution, deploy, APNs, release upload, tag, PR, merge/rebase/reset, or force-push changed.
 ```

@@ -392,6 +392,13 @@ private struct CustomerRequestTimelineList: View {
                 .offers(state: .upcoming),
                 .booking(state: .upcoming),
             ]
+        case .unknown:
+            [
+                .published(createdAt: request.createdAt, state: .complete),
+                .matching(title: "Request Status Unknown", subtitle: "Refresh to check the latest status", state: .stopped),
+                .offers(state: .upcoming),
+                .booking(state: .upcoming),
+            ]
         }
     }
 }
@@ -953,6 +960,8 @@ private extension CustomerGroomingRequest {
             "Cancelled\nRequest"
         case .expired:
             "Expired\nRequest"
+        case .unknown:
+            "Unknown\nStatus"
         }
     }
 
@@ -979,6 +988,8 @@ private extension CustomerGroomingRequest {
             "Cancelled"
         case .expired:
             "Expired"
+        case .unknown:
+            "Unknown"
         }
     }
 
@@ -994,6 +1005,8 @@ private extension CustomerGroomingRequest {
             "xmark.circle.fill"
         case .expired:
             "hourglass"
+        case .unknown:
+            "questionmark.circle"
         }
     }
 
@@ -1005,7 +1018,7 @@ private extension CustomerGroomingRequest {
             .warning
         case .booked:
             .success
-        case .cancelled, .expired:
+        case .cancelled, .expired, .unknown:
             .neutral
         }
     }

@@ -714,6 +714,8 @@ private extension ChatConversation {
             "Booking Completed"
         case .cancelledByCustomer, .cancelledByGroomer:
             "Booking Cancelled"
+        case .unknown:
+            "Booking Status Unknown"
         case nil:
             "Booking Chat"
         }
@@ -725,6 +727,8 @@ private extension ChatConversation {
             "checkmark"
         case .cancelledByCustomer, .cancelledByGroomer:
             "xmark"
+        case .unknown:
+            "questionmark"
         case nil:
             "message"
         }

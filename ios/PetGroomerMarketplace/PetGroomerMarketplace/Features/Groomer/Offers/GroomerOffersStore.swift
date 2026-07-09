@@ -100,5 +100,6 @@ private extension GroomerOfferStatus {
         .declinedByCustomer,
         .withdrawnByGroomer,
         .expired,
+        .unknown,
     ]
 }

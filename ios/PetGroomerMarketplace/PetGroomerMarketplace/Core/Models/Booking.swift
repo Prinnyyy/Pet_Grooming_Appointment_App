@@ -495,6 +495,7 @@ nonisolated enum BookingStatus:
     case completed
     case cancelledByCustomer = "cancelled_by_customer"
     case cancelledByGroomer = "cancelled_by_groomer"
+    case unknown
 
     var title: String {
         switch self {
@@ -506,6 +507,8 @@ nonisolated enum BookingStatus:
             "Cancelled by customer"
         case .cancelledByGroomer:
             "Cancelled by groomer"
+        case .unknown:
+            "Unknown"
         }
     }
 
@@ -513,9 +516,20 @@ nonisolated enum BookingStatus:
         switch self {
         case .cancelledByCustomer, .cancelledByGroomer:
             true
-        case .confirmed, .completed:
+        case .confirmed, .completed, .unknown:
             false
         }
+    }
+
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let rawValue = try container.decode(String.self)
+        self = Self(rawValue: rawValue) ?? .unknown
+    }
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
     }
 }
 
