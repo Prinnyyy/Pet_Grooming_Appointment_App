@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-09
 - Updated by: Codex
-- Latest completed task: T-232 account deletion conflict-target correction.
+- Latest completed task: T-233 account deletion Storage API correction.
 - Current task: none; T-157 APNs remains externally blocked.
-- Next task ID: use T-233 unless the user resumes T-157 after Apple Developer Program upgrade.
+- Next task ID: use T-234 unless the user resumes T-157 after Apple Developer Program upgrade.
 
 ## Fast Path
 
@@ -32,9 +32,10 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Validation Baseline
 
-- T-232 conflict-target regression, migration parity, function-source check, and linked lint passed; T-231 notification parity and full iOS tests/build also passed.
+- T-233 account-deletion Edge/migration tests, remote rollback runtime, migration parity, lint/advisors, Edge v2 deploy, and full iOS test/build passed.
 - Recent focused coverage: T-224 customer request test split; T-225 groomer profile test split; T-226 groomer profile store split; T-230 four request/offer pagination retry/dedupe/end cases.
-- Last Supabase migration apply: T-232 `20260709211119_t232_fix_account_deletion_conflict.sql` applied to `lqmasbuqzvcvtawonjlb` on 2026-07-09; named constraint source, parity, and lint were verified.
+- Last Supabase migration apply: T-233 `20260709212440_t233_move_account_storage_cleanup_to_api.sql` applied to `lqmasbuqzvcvtawonjlb` on 2026-07-09; runtime rollback, zero residue, parity, lint, and advisors were verified.
+- Last Edge Function deploy: `delete-account` version 2 is active with JWT verification and service-role Storage API cleanup across six user-prefixed image buckets.
 - Last TestOps unit validation: T-222 `./scripts/testops-unit.sh` passed 24 Node tests.
 - Last TestOps dry-run: T-222 doctor, marketplace `smoke5`, and matching baseline passed without remote writes.
 - Last release readiness dry run: T-222 recorded final local/read-only ideal-operation evidence with Auth/APNs and index-tuning advisor findings.
@@ -93,4 +94,4 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Next Recommended Task
 
-- Use T-233 to move account Storage cleanup out of SQL before continuing Q-36. Q-36 may add only the two T-228-evidenced indexes.
+- Use T-234 for authorized Q-36 and add only the two T-228-evidenced foreign-key indexes.

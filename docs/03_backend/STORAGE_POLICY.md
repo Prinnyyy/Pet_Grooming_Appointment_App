@@ -29,6 +29,7 @@ Public buckets are not the default. Use signed URLs or authenticated object read
 - Delete and replacement operations require the same ownership checks as upload.
 - Avoid broad bucket listing. Scope reads to authorized prefixes or metadata-backed paths.
 - Storage failure is a visible production failure; never substitute local fixture images as uploaded content.
+- Account deletion lists only the deleting user's UUID prefix in the six active/legacy image buckets and removes objects through the service-role Storage API before Auth soft deletion. Never delete or mutate `storage.objects` directly with SQL.
 - Logs and Debug Console output may show bucket/environment and sanitized path context, never signed tokens or credentials.
 
 ## Access Summary

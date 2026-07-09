@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-09
+Task: T-233 - Account deletion Storage API correction.
+Files changed: account-deletion Edge Function and tests; append-only SQL migration and static test; rollback-only runtime SQL; Storage/backend/feature docs; current state, roadmap, task ledger, and worklog.
+Checks: Official Storage list/delete docs; Edge and migration RED/GREEN; recursive/paged/1000-object batch cases; exact T-232/T-233 function comparison; 45 migration and 10 Edge tests; `./scripts/preflight.sh`; `./scripts/supabase-check.sh`; linked dry-run/apply/parity; rollback-only runtime and zero-residue query; linked lint; security/performance advisors; Edge version 2 active with JWT verification; full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; `git diff --check`; context hygiene.
+Result: Account deletion no longer mutates `storage.objects` from SQL. After transactional anonymization, the Edge Function recursively lists the user's UUID prefix in six current/legacy buckets, removes objects in batches of at most 1000, and only then soft-deletes Auth. Storage failure is recorded and blocks Auth deletion.
+Risks: The production function deployment is verified by version/status and unit-boundary coverage; no live end-user account was destructively deleted. Advisor output remains limited to known APNs/Auth-plan and Q-36 index findings.
+Next: Use T-234 for authorized Q-36 evidence-backed foreign-key indexes.
+```
+
+```text
+Date: 2026-07-09
 Task: T-232 - Account deletion conflict-target correction.
 Files changed: append-only account-deletion function migration, static regression test, current state, task ledger, and worklog.
 Checks: Remote constraint/function evidence; focused RED/GREEN; 45 migration and 10 Edge tests; `./scripts/preflight.sh`; linked list/dry-run/apply/parity; post-apply function source; linked database lint; `git diff --check`; context hygiene.
 Result: The account-deletion upsert now targets `account_deletion_requests_user_key` by constraint name, removing the PL/pgSQL output-column ambiguity. Remote lint reports no schema errors.
 Risks: A rollback-only function execution exposed an independent 42501 failure from direct `storage.objects` deletion. No test residue remained; T-233 owns the Storage API correction and Edge deployment.
-Next: Use T-233 to move account Storage cleanup to the service-role Storage API.
 ```
 
 ```text
@@ -66,13 +75,4 @@ Files changed: groomer profile store files, current state, task ledger, worklog,
 Checks: pre-change `./scripts/ios-build.sh`; member declarations 163 before and after; file sizes 4.3K-16.2K; `./scripts/ios-build.sh`; full `./scripts/ios-test.sh`; `git diff --check`; context hygiene; commit and push.
 Result: Implements Context Optimization Task D by splitting the 59K app-target `GroomerProfileStore.swift` into base plus Profile, ServicesAvailability, Portfolio, FitSignals, and Support extension files. Stored properties and initializer stayed in the base file; behavior was preserved with minimal visibility widening required for cross-file extensions. The completed external plan was archived under `docs/09_frozen/external_agent_reports/CONTEXT_OPTIMIZATION_TASK_PLAN_2026-07-09.md`.
 Risks: App-target code movement only. No SwiftUI view, repository, model, `project.pbxproj`, workflow rule, Supabase schema, migration, remote write, seed, release upload, tag, PR, merge/rebase/reset, or force-push changed.
-```
-
-```text
-Date: 2026-07-09
-Task: T-225 - Groomer profile test split.
-Files changed: groomer profile feature test files, current state, task ledger, worklog, and structure log.
-Checks: pre-change full `./scripts/ios-test.sh` rerun passed after an initial unrelated `ForegroundRefreshGateTests` flake; `@Test` count 45 before and after; `GroomerProfileStoreTests` count 39 before and after; file sizes 8K-20.5K plus 17.8K fakes; full `./scripts/ios-test.sh`; `git diff --check`; context hygiene; commit and push.
-Result: Implements Context Optimization Task C by splitting the 70K `GroomerProfileFeatureTests.swift` into a base test file, three same-suite extension files, and one test fakes file. Test names/bodies were preserved; shared helpers and fakes were widened only where cross-file access required it, with the groomer snapshot cache fake renamed to avoid a same-target customer test fake collision.
-Risks: Test-target code movement only. No app Swift, Xcode project, workflow rule, Supabase schema, migration, remote write, seed, release upload, tag, PR, merge/rebase/reset, or force-push changed. Root `CONTEXT_OPTIMIZATION_TASK_PLAN.md` remains external plan input until the serial tasks are complete.
 ```
