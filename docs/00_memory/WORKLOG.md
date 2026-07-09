@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-08
+Task: T-175 - Context hygiene v4 failure-mode checks.
+Files changed: context hygiene script/tests, meta-review template, decision log, roadmap, task ledger/archive, worklog/archive, current state, and structure log.
+Checks: RED/GREEN `node --test tests/docs/context-hygiene-check.test.mjs`; `node scripts/context-hygiene-check.mjs`; `git diff --check`.
+Result: Hygiene now falls back to `git ls-files` when `rg` is unavailable, fails closed on missing current fact patterns, checks meta-review cadence by completed-task distance, and fails on ledger table rows over 700 characters. T-157 ledger row is compressed while preserving APNs unlock variables.
+Risks: Docs/workflow tooling only. No iOS source, Supabase command, migration, runtime behavior, simulator, push, or remote write changed. T-174 was committed locally as `d708db5` before starting this batch; T-175 is not yet committed or pushed.
+Next: Use T-176 for batch C entrypoint/fact-source alignment unless the user chooses a different task.
+```
+
+```text
+Date: 2026-07-08
 Task: T-174 - Decision log prearchive and governance review intake.
 Files changed: decision log, frozen decision snapshot, frozen external review plan, frozen indexes, roadmap, task ledger/archive, worklog/archive, current state, and structure log.
 Checks: `git diff --check`; `node scripts/context-hygiene-check.mjs`; decision-log word count; archive path checks; `git log` checks for `01c80e4` and `6d1da33`.
 Result: Batch A from the governance review fix plan is applied. `01c80e4` and `6d1da33` are recorded as a one-time historical exception, the active decision log is trimmed below 1500 words with a verbatim frozen snapshot, and the adopted root review plan is archived as external input.
 Risks: Docs/governance only. No history rewrite, commit, push, branch switch, iOS source, Supabase command, migration, runtime behavior, or simulator changed.
-Next: Use T-175 for batch B hygiene v4 unless the user chooses a different task.
 ```
 
 ```text
@@ -84,13 +93,4 @@ Files changed: GITHUB_RULES.md, TOOLING_POLICY.md, root/docs README indexes, dec
 Checks: `git diff --check`; `node scripts/context-hygiene-check.mjs`.
 Result: Git rules now require `T-xxx: <type>: <summary>` commit messages, same-task commit scope, approved checkpoint commits, explicit push/PR/tag gates, branch cleanup rules, and a dedicated `main` reconciliation task for the known 2fddf7b governance divergence.
 Risks: Docs/workflow only. No iOS source, Supabase command, migration, runtime behavior, simulator, commit, or push changed.
-```
-
-```text
-Date: 2026-07-07
-Task: T-165 - Context hygiene v2 truth checks.
-Files changed: context hygiene script/tests, CONTEXT_AND_RECOVERY.md, frozen worklog archive, memory docs.
-Checks: RED/GREEN `node --test tests/docs/context-hygiene-check.test.mjs`; `node scripts/context-hygiene-check.mjs`; `git diff --check`.
-Result: Hygiene now detects branch/latest/next task drift, rolling-window overflow, active Markdown total budget, expanded file budgets, and missing `rg` without TypeError.
-Risks: Docs/workflow tooling only. No iOS source, Supabase command, migration, runtime behavior, simulator, commit, or push changed.
 ```

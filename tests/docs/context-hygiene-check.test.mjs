@@ -41,6 +41,10 @@ function createFixture({ branch = "codex/test-baseline", latest = "T-005", next 
     "",
     `- Current branch baseline: \`${branch}\`.`,
     "",
+    "## Active Workflow State",
+    "",
+    `- Last meta-review: ${latest} on 2026-07-08.`,
+    "",
   ].join("\n"));
   writeFixtureFile(root, "docs/06_tasks/TASK_LEDGER.md", [
     "# Task Ledger",
@@ -124,6 +128,8 @@ function createFixture({ branch = "codex/test-baseline", latest = "T-005", next 
 
   mkdirSync(path.join(root, "docs/09_frozen"), { recursive: true });
   mkdirSync(path.join(root, "docs/08_design"), { recursive: true });
+  spawnSync("git", ["init"], { cwd: root, encoding: "utf8" });
+  spawnSync("git", ["add", "."], { cwd: root, encoding: "utf8" });
   return root;
 }
 
@@ -179,13 +185,13 @@ test("context hygiene fails when the managed roadmap exceeds its budget", () => 
   assert.match(result.stderr, /docs\/06_tasks\/ROADMAP\.md has \d+ words, limit 1800/i);
 });
 
-test("context hygiene reports a clean missing-rg error", () => {
+test("context hygiene falls back to git ls-files when rg is unavailable", () => {
   const root = createFixture();
-  const result = runHygiene(root, { PATH: "" });
+  const result = runHygiene(root, { CONTEXT_HYGIENE_FORCE_NO_RG: "1" });
 
-  assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /Unable to run rg/i);
-  assert.doesNotMatch(result.stderr, /TypeError|Cannot read properties/i);
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /warn: rg unavailable, \.rgignore behavior checks skipped/i);
+  assert.match(result.stdout, /Active Markdown files: \d+/i);
 });
 
 test("context hygiene fails when a last-verified marker is stale", () => {
@@ -316,4 +322,134 @@ test("context hygiene checks roadmap complete and blocked status per segment", (
   const result = runHygiene(root);
 
   assert.equal(result.status, 0, result.stderr);
+});
+
+test("context hygiene fails closed when current-state facts cannot be extracted", () => {
+  const root = createFixture();
+  writeFixtureFile(root, "docs/00_memory/CURRENT_STATE.md", [
+    "# Current State",
+    "",
+    "- Last completed task: T-005 fixture task.",
+    "- Next task ID: use T-006 unless directed otherwise.",
+    "",
+    "## Branch and Baseline",
+    "",
+    "- Current branch baseline: `codex/test-baseline`.",
+    "",
+    "## Active Workflow State",
+    "",
+    "- Last meta-review: T-005 on 2026-07-08.",
+    "",
+  ].join("\n"));
+
+  const result = runHygiene(root);
+
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /CURRENT_STATE\.md 缺少可提取的 latest completed task/i);
+});
+
+test("context hygiene fails when the meta-review marker is missing", () => {
+  const root = createFixture();
+  writeFixtureFile(root, "docs/00_memory/CURRENT_STATE.md", [
+    "# Current State",
+    "",
+    "- Latest completed task: T-005 fixture task.",
+    "- Next task ID: use T-006 unless directed otherwise.",
+    "",
+    "## Branch and Baseline",
+    "",
+    "- Current branch baseline: `codex/test-baseline`.",
+    "",
+  ].join("\n"));
+
+  const result = runHygiene(root);
+
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /CURRENT_STATE\.md 缺少可提取的 Last meta-review marker/i);
+});
+
+test("context hygiene fails when meta-review is ten completed tasks old", () => {
+  const root = createFixture({ latest: "T-015", next: "T-016" });
+  writeFixtureFile(root, "docs/00_memory/CURRENT_STATE.md", [
+    "# Current State",
+    "",
+    "- Latest completed task: T-015 fixture task.",
+    "- Next task ID: use T-016 unless directed otherwise.",
+    "",
+    "## Branch and Baseline",
+    "",
+    "- Current branch baseline: `codex/test-baseline`.",
+    "",
+    "## Active Workflow State",
+    "",
+    "- Last meta-review: T-005 on 2026-07-08.",
+    "",
+  ].join("\n"));
+  writeFixtureFile(root, "docs/06_tasks/TASK_LEDGER.md", [
+    "# Task Ledger",
+    "",
+    "Current branch and task-numbering baseline: use `codex/test-baseline`; use `T-016` for the next task unless directed otherwise.",
+    "",
+    "| ID | Task | Status | Mode | Milestone | Files/Docs | Checks | Notes |",
+    "|---|---|---|---|---|---|---|---|",
+    "| T-015 | Fixture task | completed | Quick | G0 | docs | check | done |",
+    "",
+  ].join("\n"));
+
+  const result = runHygiene(root);
+
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /Last meta-review T-005 is 10 completed tasks behind/i);
+});
+
+test("context hygiene allows meta-review at nine completed tasks old", () => {
+  const root = createFixture({ latest: "T-014", next: "T-015" });
+  writeFixtureFile(root, "docs/00_memory/CURRENT_STATE.md", [
+    "# Current State",
+    "",
+    "- Latest completed task: T-014 fixture task.",
+    "- Next task ID: use T-015 unless directed otherwise.",
+    "",
+    "## Branch and Baseline",
+    "",
+    "- Current branch baseline: `codex/test-baseline`.",
+    "",
+    "## Active Workflow State",
+    "",
+    "- Last meta-review: T-005 on 2026-07-08.",
+    "",
+  ].join("\n"));
+  writeFixtureFile(root, "docs/06_tasks/TASK_LEDGER.md", [
+    "# Task Ledger",
+    "",
+    "Current branch and task-numbering baseline: use `codex/test-baseline`; use `T-015` for the next task unless directed otherwise.",
+    "",
+    "| ID | Task | Status | Mode | Milestone | Files/Docs | Checks | Notes |",
+    "|---|---|---|---|---|---|---|---|",
+    "| T-014 | Fixture task | completed | Quick | G0 | docs | check | done |",
+    "",
+  ].join("\n"));
+
+  const result = runHygiene(root);
+
+  assert.equal(result.status, 0, result.stderr);
+});
+
+test("context hygiene fails when a task ledger row is too long", () => {
+  const root = createFixture();
+  writeFixtureFile(root, "docs/06_tasks/TASK_LEDGER.md", [
+    "# Task Ledger",
+    "",
+    "Current branch and task-numbering baseline: use `codex/test-baseline`; use `T-006` for the next task unless directed otherwise.",
+    "",
+    "| ID | Task | Status | Mode | Milestone | Files/Docs | Checks | Notes |",
+    "|---|---|---|---|---|---|---|---|",
+    `| T-005 | Fixture task | completed | Quick | G0 | docs | check | ${"long note ".repeat(90)} |`,
+    "",
+  ].join("\n"));
+
+  const result = runHygiene(root);
+
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /TASK_LEDGER\.md table row \d+ has \d+ characters, limit 700/i);
 });

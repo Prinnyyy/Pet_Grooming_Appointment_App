@@ -27,3 +27,9 @@ Add targeted `rg` checks for the specific concern being audited.
 ## Closeout
 
 Record only current facts and actions taken. If no changes are needed, add a compact ledger/worklog closeout and do not expand durable memory.
+
+Update `docs/00_memory/CURRENT_STATE.md` with:
+
+```text
+- Last meta-review: T-### on YYYY-MM-DD.
+```

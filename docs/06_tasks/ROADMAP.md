@@ -27,7 +27,7 @@ Out of V1.0 unless explicitly changed: payments, subscriptions, public directory
 
 | Milestone | Goal | Status | Exit Signal |
 |---|---|---|---|
-| G0 Docs governance | Keep docs indexed and bounded. | T-163...T-174 complete; batch B hygiene v4 remains candidate. | Startup uses active indexes, not stale root/frozen plans. |
+| G0 Docs governance | Keep docs indexed and bounded. | T-163...T-175 complete; batch C entrypoint alignment remains candidate. | Startup uses active indexes, not stale root/frozen plans. |
 | M1 Half-finished surfaces | Remove incomplete UI/data behavior. | T-152 and T-154 complete; images, request persistence, deep-link/SMTP remain candidates. | No placeholder surfaces or misleading inputs. |
 | M2 Marketplace timeliness | Make request/offer/booking/chat state timely. | T-153, T-155, T-156, T-162 complete; T-157 dispatch blocked; realtime chat candidate. | Timely notifications/chat and cross-device states. |
 | M3 Compliance and ops | Satisfy App Store and ops basics. | T-160 and T-161 complete; URLs, crash/analytics, accessibility/copy, performance remain. | Metadata and operational evidence are ready. |
@@ -45,7 +45,8 @@ Out of V1.0 unless explicitly changed: payments, subscriptions, public directory
 | R-016 | G0 | Rule-change process | Complete T-172 |
 | R-017 | G0 | Main governance divergence reconciliation | Complete T-173 |
 | R-018 | G0 | Decision log prearchive and governance review intake | Complete T-174 |
-| R-019 | G0 | Context hygiene v4 failure-mode checks | Candidate |
+| R-019 | G0 | Context hygiene v4 failure-mode checks | Complete T-175 |
+| R-020 | G0 | Entrypoint and branch fact-source alignment | Candidate |
 | R-005 | M1 | Private image rendering | Candidate |
 | R-006 | M1 | Request wizard persistence decision | Candidate |
 | R-007 | M1 | Email deep link and production SMTP | Candidate |
@@ -58,4 +59,4 @@ Out of V1.0 unless explicitly changed: payments, subscriptions, public directory
 | R-014 | M4 | Store/model/state/UI test expansion | Candidate |
 | R-015 | M5 | E2E/security, TestFlight, App Store | Proposed |
 
-Completed mapping: T-152 M1; T-153/T-155/T-156/T-162 M2; T-154 M1/M2; T-157 M2 blocked for dispatch; T-160/T-161 M3; T-163...T-174 G0.
+Completed mapping: T-152 M1; T-153/T-155/T-156/T-162 M2; T-154 M1/M2; T-157 M2 blocked for dispatch; T-160/T-161 M3; T-163...T-175 G0.

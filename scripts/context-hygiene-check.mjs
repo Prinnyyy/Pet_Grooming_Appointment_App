@@ -8,8 +8,10 @@ const PROJECT_ROOT = path.resolve(
 const ACTIVE_MARKDOWN_TOTAL_LIMIT = 32000;
 const WORKLOG_ENTRY_LIMIT = 10;
 const TASK_LEDGER_ROW_LIMIT = 15;
+const TASK_LEDGER_ROW_CHAR_LIMIT = 700;
 const LAST_VERIFIED_MAX_AGE_DAYS = 45;
 const CHECK_DATE_TEXT = process.env.CONTEXT_HYGIENE_NOW ?? new Date().toISOString().slice(0, 10);
+const FORCE_NO_RG = process.env.CONTEXT_HYGIENE_FORCE_NO_RG === "1";
 
 const WORD_LIMITS = new Map([
   ["AGENTS.md", 800],
@@ -61,6 +63,26 @@ const LAST_VERIFIED_DOCS = [
 
 const failures = [];
 
+function detectRgAvailable() {
+  if (FORCE_NO_RG) {
+    return false;
+  }
+  const result = spawnSync("rg", ["--version"], {
+    cwd: PROJECT_ROOT,
+    encoding: "utf8",
+  });
+  return !result.error && result.status === 0;
+}
+
+const RG_AVAILABLE = detectRgAvailable();
+
+// Keep this in sync with .rgignore for the active Markdown fallback path.
+const DEFAULT_CONTEXT_EXCLUDE_PREFIXES = [
+  "docs/09_frozen/",
+  "docs/02_architecture/test_resources/T-129_",
+  "docs/08_design/Groomly",
+];
+
 function run(command, args) {
   return spawnSync(command, args, {
     cwd: PROJECT_ROOT,
@@ -108,6 +130,33 @@ function readOptional(filePath) {
 }
 
 function activeMarkdownFiles() {
+  if (!RG_AVAILABLE) {
+    const result = runRequired("git", [
+      "ls-files",
+      "--cached",
+      "--others",
+      "--exclude-standard",
+      "--",
+      "AGENTS.md",
+      "README.md",
+      "CLAUDE.md",
+      "docs",
+    ]);
+    if (!result) {
+      return [];
+    }
+    if (result.status !== 0) {
+      failures.push(`rg unavailable and git ls-files fallback failed: ${(result.stderr ?? result.stdout ?? "").trim()}`);
+      return [];
+    }
+    return [...new Set(result.stdout
+      .trim()
+      .split(/\r?\n/)
+      .filter(Boolean)
+      .filter((filePath) => filePath.endsWith(".md"))
+      .filter((filePath) => !DEFAULT_CONTEXT_EXCLUDE_PREFIXES.some((prefix) => filePath.startsWith(prefix))))];
+  }
+
   const result = runRequired("rg", ["--files", "AGENTS.md", "README.md", "docs"]);
   if (!result) {
     return [];
@@ -174,6 +223,11 @@ function checkActiveMarkdownTotal(files) {
 }
 
 function checkIgnoredPaths() {
+  if (!RG_AVAILABLE) {
+    console.log("warn: rg unavailable, .rgignore behavior checks skipped");
+    return;
+  }
+
   const frozen = runRequired("rg", ["--files", "docs/09_frozen"]);
   if (frozen?.stdout.trim()) {
     failures.push("docs/09_frozen is visible to default rg --files");
@@ -405,6 +459,20 @@ function checkCurrentFacts() {
     .map((row) => row.id)
     .sort((a, b) => taskNumber(b) - taskNumber(a))[0] ?? null;
 
+  const requiredFacts = [
+    ["CURRENT_STATE.md", "latest completed task", currentLatest],
+    ["CURRENT_STATE.md", "next task ID", currentNext],
+    ["CURRENT_STATE.md", "current branch baseline", currentBranch],
+    ["TASK_LEDGER.md", "next task ID", ledgerNext],
+    ["TASK_LEDGER.md", "branch baseline", ledgerBranch],
+    ["TASK_LEDGER.md", "latest completed row", latestLedgerCompleted],
+  ];
+  for (const [fileName, factName, value] of requiredFacts) {
+    if (!value) {
+      failures.push(`${fileName} 缺少可提取的 ${factName}（措辞可能已漂移，检查正则与文档措辞是否同步）`);
+    }
+  }
+
   if (currentLatest && latestLedgerCompleted && currentLatest !== latestLedgerCompleted) {
     failures.push(`latest completed task mismatch: CURRENT_STATE has ${currentLatest}, TASK_LEDGER has ${latestLedgerCompleted}`);
   }
@@ -413,6 +481,31 @@ function checkCurrentFacts() {
   }
   if (currentBranch && ledgerBranch && currentBranch !== ledgerBranch) {
     failures.push(`branch baseline mismatch: CURRENT_STATE has ${currentBranch}, TASK_LEDGER has ${ledgerBranch}`);
+  }
+}
+
+function checkMetaReviewCadence() {
+  const currentState = readOptional("docs/00_memory/CURRENT_STATE.md");
+  const match = currentState.match(/Last meta-review:\s*(T-\d{3})\s+on\s+(\d{4}-\d{2}-\d{2})/i);
+  if (!match) {
+    failures.push("CURRENT_STATE.md 缺少可提取的 Last meta-review marker（措辞可能已漂移，检查正则与文档措辞是否同步）");
+    return;
+  }
+
+  const [, metaReviewTask] = match;
+  const latestCompleted = allLedgerRows()
+    .filter((row) => row.status === "completed")
+    .map((row) => row.id)
+    .sort((a, b) => taskNumber(b) - taskNumber(a))[0] ?? null;
+
+  if (!latestCompleted) {
+    failures.push("TASK_LEDGER.md 缺少可提取的 latest completed row（无法校验 meta-review cadence）");
+    return;
+  }
+
+  const completedDelta = taskNumber(latestCompleted) - taskNumber(metaReviewTask);
+  if (completedDelta >= 10) {
+    failures.push(`Last meta-review ${metaReviewTask} is ${completedDelta} completed tasks behind ${latestCompleted}; run a meta-review task`);
   }
 }
 
@@ -431,6 +524,12 @@ function checkRollingWindowSizes() {
   if (taskRows > TASK_LEDGER_ROW_LIMIT) {
     failures.push(`TASK_LEDGER.md has ${taskRows} active rows, limit ${TASK_LEDGER_ROW_LIMIT}`);
   }
+
+  for (const [index, line] of taskLedger.split(/\r?\n/).entries()) {
+    if (line.startsWith("| T-") && line.length > TASK_LEDGER_ROW_CHAR_LIMIT) {
+      failures.push(`TASK_LEDGER.md table row ${index + 1} has ${line.length} characters, limit ${TASK_LEDGER_ROW_CHAR_LIMIT}`);
+    }
+  }
 }
 
 const activeFiles = activeMarkdownFiles();
@@ -444,6 +543,7 @@ checkMigrationMirrorCount();
 checkRoadmapLedgerAlignment();
 checkFeatureIndexCoverage();
 checkCurrentFacts();
+checkMetaReviewCadence();
 checkRollingWindowSizes();
 
 if (failures.length > 0) {
