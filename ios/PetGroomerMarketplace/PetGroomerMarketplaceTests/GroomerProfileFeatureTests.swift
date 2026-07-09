@@ -802,6 +802,53 @@ struct GroomerProfileStoreTests {
     }
 
     @Test @MainActor
+    func loadMarksPortfolioPhotoUnavailableWhenImageDataCannotBeRead() async {
+        let groomerID = UUID()
+        let photo = Self.photo(groomerID: groomerID)
+        let repository = GroomerProfileRepositoryFake(
+            profileResult: .success(Self.profile(groomerID: groomerID)),
+            portfolioResult: .success([photo]),
+            portfolioPhotoDataResultsByID: [
+                photo.id: .failure(.unavailable),
+            ]
+        )
+        let store = GroomerProfileStore(
+            groomerID: groomerID,
+            repository: repository
+        )
+
+        await store.load()
+
+        #expect(repository.portfolioPhotoDataCallCount == 1)
+        #expect(store.portfolioPhotos == [photo])
+        #expect(store.portfolioPhotoData(for: photo) == nil)
+        #expect(store.isPortfolioPhotoDataUnavailable(photo))
+        #expect(store.errorMessage == nil)
+    }
+
+    @Test @MainActor
+    func portfolioArtworkPresentationDistinguishesLoadingAndUnavailableStates() {
+        let loading = GroomerPortfolioArtworkPresentation(
+            hasImageData: false,
+            isUnavailable: false
+        )
+        let unavailable = GroomerPortfolioArtworkPresentation(
+            hasImageData: false,
+            isUnavailable: true
+        )
+        let available = GroomerPortfolioArtworkPresentation(
+            hasImageData: true,
+            isUnavailable: false
+        )
+
+        #expect(loading.title == "Loading photo")
+        #expect(loading.systemImage == "photo.on.rectangle")
+        #expect(unavailable.title == "Photo unavailable")
+        #expect(unavailable.systemImage == "exclamationmark.triangle.fill")
+        #expect(available.title == nil)
+    }
+
+    @Test @MainActor
     func portfolioArtworkLayoutUsesSharedModuleImagePolicy() {
         let containerSize = CGSize(width: 120, height: 120)
 
@@ -1422,6 +1469,7 @@ private final class GroomerProfileRepositoryFake: GroomerProfileRepository {
     var uploadResult: Result<GroomerPortfolioPhoto, GroomerProfileRepositoryError>
     var uploadAvatarResult: Result<String, GroomerProfileRepositoryError>
     var avatarPhotoDataResult: Result<Data, GroomerProfileRepositoryError>?
+    var portfolioPhotoDataResultsByID: [UUID: Result<Data, GroomerProfileRepositoryError>]
     var deletePhotoResult: Result<Void, GroomerProfileRepositoryError>
     var replaceAvailabilityResult: Result<[GroomerAvailabilityWindow], GroomerProfileRepositoryError>?
     var createTimeOffResult: Result<GroomerTimeOffWindow, GroomerProfileRepositoryError>?
@@ -1488,6 +1536,7 @@ private final class GroomerProfileRepositoryFake: GroomerProfileRepository {
         uploadAvatarResult: Result<String, GroomerProfileRepositoryError> =
             .failure(.unavailable),
         avatarPhotoDataResult: Result<Data, GroomerProfileRepositoryError>? = nil,
+        portfolioPhotoDataResultsByID: [UUID: Result<Data, GroomerProfileRepositoryError>] = [:],
         deletePhotoResult: Result<Void, GroomerProfileRepositoryError> =
             .success(()),
         replaceAvailabilityResult: Result<[GroomerAvailabilityWindow], GroomerProfileRepositoryError>? = nil,
@@ -1515,6 +1564,7 @@ private final class GroomerProfileRepositoryFake: GroomerProfileRepository {
         self.uploadResult = uploadResult
         self.uploadAvatarResult = uploadAvatarResult
         self.avatarPhotoDataResult = avatarPhotoDataResult
+        self.portfolioPhotoDataResultsByID = portfolioPhotoDataResultsByID
         self.deletePhotoResult = deletePhotoResult
         self.replaceAvailabilityResult = replaceAvailabilityResult
         self.createTimeOffResult = createTimeOffResult
@@ -1760,6 +1810,9 @@ private final class GroomerProfileRepositoryFake: GroomerProfileRepository {
                 try await Task.sleep(nanoseconds: 10_000_000)
             }
             throw GroomerProfileRepositoryError.unavailable
+        }
+        if let result = portfolioPhotoDataResultsByID[photo.id] {
+            return try result.get()
         }
         return Data("portfolio".utf8)
     }

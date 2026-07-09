@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-09
 - Updated by: Codex
-- Latest completed task: T-190 Customer private images.
+- Latest completed task: T-191 Groomer private images.
 - Current task: none active; T-157 APNs deployment remains externally blocked.
-- Next task ID: use T-191 unless the user resumes T-157 after Apple Developer Program upgrade.
+- Next task ID: use T-192 unless the user resumes T-157 after Apple Developer Program upgrade.
 
 ## Fast Path
 
@@ -39,15 +39,15 @@ Frozen history lives under `docs/09_frozen/`.
 
 ## Validation Baseline
 
-- Last iOS build: XcodeBuildMCP `build_sim` passed on 2026-07-09 during T-190 closeout.
+- Last iOS build: XcodeBuildMCP `build_sim` passed on 2026-07-09 during T-191 closeout.
 - Last full iOS test attempt: `./scripts/ios-test.sh` on 2026-07-07 failed the known T-153 same-timestamp notification ordering assertion; UI smoke tests passed 3/3, and targeted `AuthenticationStoreTests` passed afterward.
 - Last Supabase migration apply: authorized `supabase db push --linked` applied `20260707191034_t160_account_deletion.sql` to project `lqmasbuqzvcvtawonjlb` on 2026-07-07.
 - Last Supabase live post-apply validation: T-160 confirmed migration parity for `20260707191034`, account deletion metadata/RLS/grants/RPCs, advisors, and active `delete-account` deployment with JWT verification. Post-apply dry-run/lint still need `SUPABASE_DB_PASSWORD`.
 - Prepared unapplied Supabase migration: none known by `supabase migration list --linked`; post-apply dry-run requires `SUPABASE_DB_PASSWORD`.
 - Last TestOps unit validation: T-145 `./scripts/testops-unit.sh` passed 24 Node tests.
 - Last remote TestOps run: T-155 authorized `matching_baseline` run `TESTOPS-T155-MATCH-20260706-*` passed 8/8 and cleanup left zero tagged request/match residue.
-- Last private image work: T-190 completed customer request wizard pet-photo avatars and request-photo unavailable states; T-189 added the shared loader/cache.
-- Last docs/workflow validation: T-190 customer private images, context hygiene, and `git diff --check` passed on 2026-07-09.
+- Last private image work: T-191 completed groomer portfolio loading/unavailable presentation; T-190 completed customer request wizard pet-photo avatars and request-photo unavailable states; T-189 added the shared loader/cache.
+- Last docs/workflow validation: T-191 groomer private images, context hygiene, and `git diff --check` passed on 2026-07-09.
 - Known validation failure: full `./scripts/ios-test.sh` is currently blocked by the existing T-153 customer notification same-timestamp ordering test, not by T-162 cancellation repost work.
 
 ## Active Product State
@@ -97,4 +97,4 @@ Frozen history lives under `docs/09_frozen/`.
 
 ## Next Recommended Task
 
-- Use T-191 next unless resuming T-157 after Apple Developer credentials. Recommended roadmap package: Q-04/R-005 groomer private images.
+- Use T-192 next unless resuming T-157 after Apple Developer credentials. Recommended roadmap package: Q-05/R-006 request wizard persistence decision.

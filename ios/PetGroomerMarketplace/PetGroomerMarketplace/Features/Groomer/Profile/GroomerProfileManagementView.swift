@@ -2563,8 +2563,10 @@ private struct GroomerPortfolioPhotoCard: View {
         GroomlyCard(padding: DesignTokens.Spacing.xs) {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
                 ZStack(alignment: .topTrailing) {
+                    let data = store.portfolioPhotoData(for: photo)
                     GroomerPortfolioPhotoArtwork(
-                        data: store.portfolioPhotoData(for: photo)
+                        data: data,
+                        isUnavailable: store.isPortfolioPhotoDataUnavailable(photo)
                     )
 
                     Button(role: .destructive) {
@@ -2628,15 +2630,35 @@ private struct GroomerPortfolioPhotoCard: View {
 
 private struct GroomerPortfolioPhotoArtwork: View {
     let data: Data?
+    let isUnavailable: Bool
 
     var body: some View {
-        GroomlyModuleImage(data: data) {
-            Rectangle()
-                .fill(DesignTokens.Colors.groomerAccent.opacity(0.08))
+        let presentation = GroomerPortfolioArtworkPresentation(
+            hasImageData: data != nil,
+            isUnavailable: isUnavailable
+        )
 
-            Image(systemName: "photo.on.rectangle")
-                .font(DesignTokens.Typography.headline)
-                .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
+        GroomlyModuleImage(data: data) {
+            ZStack {
+                Rectangle()
+                    .fill(presentation.backgroundColor)
+
+                VStack(spacing: DesignTokens.Spacing.xs) {
+                    Image(systemName: presentation.systemImage)
+                        .font(DesignTokens.Typography.headline)
+                        .foregroundStyle(presentation.foregroundColor)
+
+                    if let title = presentation.title {
+                        Text(title)
+                            .font(DesignTokens.Typography.caption.weight(.semibold))
+                            .foregroundStyle(presentation.foregroundColor)
+                            .lineLimit(2)
+                            .multilineTextAlignment(.center)
+                            .minimumScaleFactor(0.82)
+                            .padding(.horizontal, DesignTokens.Spacing.xs)
+                    }
+                }
+            }
         }
         .frame(maxWidth: .infinity)
         .aspectRatio(1, contentMode: .fit)
@@ -2647,7 +2669,45 @@ private struct GroomerPortfolioPhotoArtwork: View {
                 style: .continuous
             )
         )
-        .accessibilityHidden(true)
+        .accessibilityLabel(presentation.accessibilityLabel)
+    }
+}
+
+struct GroomerPortfolioArtworkPresentation: Equatable {
+    let title: String?
+    let systemImage: String
+    let isUnavailable: Bool
+
+    init(hasImageData: Bool, isUnavailable: Bool) {
+        if hasImageData {
+            title = nil
+            systemImage = "photo"
+            self.isUnavailable = false
+        } else if isUnavailable {
+            title = "Photo unavailable"
+            systemImage = "exclamationmark.triangle.fill"
+            self.isUnavailable = true
+        } else {
+            title = "Loading photo"
+            systemImage = "photo.on.rectangle"
+            self.isUnavailable = false
+        }
+    }
+
+    var accessibilityLabel: String {
+        title ?? "Portfolio photo"
+    }
+
+    var foregroundColor: Color {
+        isUnavailable
+            ? DesignTokens.Colors.warning
+            : DesignTokens.Colors.groomerAccentDark
+    }
+
+    var backgroundColor: Color {
+        isUnavailable
+            ? DesignTokens.Colors.warning.opacity(0.12)
+            : DesignTokens.Colors.groomerAccent.opacity(0.08)
     }
 }
 

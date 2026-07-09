@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-09
+Task: T-191 - Groomer private images.
+Files changed: groomer profile store/view portfolio presentation, groomer profile tests, private image audit, current state, task ledger, and worklog.
+Checks: GroomerProfileStoreTests; XcodeBuildMCP build; XcodeBuildMCP launch spot check for auth landing; `git diff --check`; context hygiene; commit and push.
+Result: Closes Q-04/R-005 by tracking groomer portfolio image-load attempts, rendering portfolio photos through the shared module image path, and showing distinct loading versus unavailable states when private image data cannot be read.
+Risks: No Supabase schema, policy, migration, or remote write changed. Cross-user avatars in bookings/chat/notifications still need a future data-contract decision.
+Next: Use T-192 unless resuming T-157 after Apple Developer credentials. Recommended roadmap package is Q-05/R-006 request wizard persistence decision.
+```
+
+```text
+Date: 2026-07-09
 Task: T-190 - Customer private images.
 Files changed: customer request store/view image presentation, customer request tests, private image audit, current state, task ledger, and worklog.
 Checks: Customer requests/pets store tests; XcodeBuildMCP build; XcodeBuildMCP launch spot check for auth landing; `git diff --check`; context hygiene; commit and push.
 Result: Closes Q-03/R-005 by loading customer pet photo metadata/data into request flows, rendering request wizard pet avatars with `GroomlyModuleImage`, and showing `Photo unavailable` when request-photo metadata exists but image data cannot be read.
 Risks: No Supabase schema, policy, migration, or remote write changed. Cross-user avatars in bookings/chat/notifications still need a future data-contract decision.
-Next: Use T-191 unless resuming T-157 after Apple Developer credentials. Recommended roadmap package is Q-04/R-005 groomer private images.
 ```
 
 ```text
@@ -49,7 +58,6 @@ Checks: `git diff --check`; `node scripts/context-rotate.mjs --apply`; `node scr
 Result: Removes active 85% warning/waterline closeout and stop rules, keeps 95% active Markdown as structural-review scheduling only, corrects the T-185 meta-review marker to 2026-07-08, and requires agents to stop without auto pull/rebase/merge/reset/force-push when automatic push fails or is rejected.
 Risks: Documentation-only workflow change. No Swift, Supabase, runtime, simulator, PR, tag, merge/rebase/reset, seed, migration, or non-Git remote write changed.
 ```
-
 ```text
 Date: 2026-07-09
 Task: T-185 - Root external draft cleanup and meta-review.
@@ -66,13 +74,4 @@ Files changed: AGENTS.md, context/recovery workflow rules, decision log/archive,
 Checks: `node scripts/context-rotate.mjs --apply`; `node scripts/context-hygiene-check.mjs`; `git diff --check`; commit and push.
 Result: Implements Batch B of the context-budget redesign. Active workflow rules now use `context-rotate` for rolling-window overflow, define FIXED/WINDOW/INDEX write discipline, treat 95% active Markdown as structural-review signal, and archive the adopted root redesign plan.
 Risks: Documentation-only workflow change. No Swift, Supabase, runtime, simulator, PR, tag, merge/rebase/reset, seed, migration, or non-Git remote write changed.
-```
-
-```text
-Date: 2026-07-09
-Task: T-183 - Context budget redesign tooling.
-Files changed: context hygiene policy/check scripts, context rotate script, docs tests, decision log/archive, current state, task ledger, and worklog.
-Checks: `node --test tests/docs/`; `node scripts/context-rotate.mjs`; `node scripts/context-rotate.mjs --apply`; `node scripts/context-hygiene-check.mjs`; `CONTEXT_HYGIENE_FORCE_NO_RG=1 node scripts/context-hygiene-check.mjs`; `git diff --check`; commit and push.
-Result: Implements Batch A of the context-budget redesign: 36k hard total, no 85% warning, 95% structural-review warning, 650-word default active Markdown budget, full budget coverage output, decision-log 8-entry window, shared constants, and deterministic archive rotation.
-Risks: Docs/tooling-only change. Workflow text alignment and root plan archival are intentionally deferred to T-184 Batch B. No Swift, Supabase, runtime, simulator, PR, tag, merge/rebase/reset, seed, migration, or non-Git remote write changed.
 ```

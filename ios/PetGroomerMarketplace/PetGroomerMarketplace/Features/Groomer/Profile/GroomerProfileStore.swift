@@ -18,6 +18,7 @@ final class GroomerProfileStore {
     private(set) var services: [GroomerService] = []
     private(set) var portfolioPhotos: [GroomerPortfolioPhoto] = []
     private(set) var portfolioPhotoDataByID: [UUID: Data] = [:]
+    private(set) var attemptedPortfolioPhotoDataIDs: Set<UUID> = []
     private(set) var portfolioFitTags: [GroomerPortfolioFitTag] = []
     private(set) var selectedPortfolioFitTagIDsByPhotoID: [UUID: Set<String>] = [:]
     private(set) var availabilityWindows: [GroomerAvailabilityWindow] = []
@@ -179,6 +180,7 @@ final class GroomerProfileStore {
             services = loadedServices
             portfolioPhotos = loadedPhotos
             portfolioPhotoDataByID = [:]
+            attemptedPortfolioPhotoDataIDs = []
             populatePortfolioFitTags(
                 with: loadedPortfolioFitTags,
                 visiblePhotos: loadedPhotos
@@ -210,7 +212,7 @@ final class GroomerProfileStore {
             avatarPhotoData = loadedAvatarPhoto.data ?? cachedProfileSnapshot?.avatarData
             saveProfileSnapshot(profile: profile, avatarData: avatarPhotoData)
 
-            let loadedPortfolioPhotoData = await portfolioPhotoDataMap(
+            let loadedPortfolioPhotoPayload = await portfolioPhotoDataMap(
                 for: loadedPhotos
             )
             guard loadRevision == profileMutationRevision else {
@@ -221,7 +223,8 @@ final class GroomerProfileStore {
                 )
                 return
             }
-            portfolioPhotoDataByID = loadedPortfolioPhotoData
+            portfolioPhotoDataByID = loadedPortfolioPhotoPayload.dataByID
+            attemptedPortfolioPhotoDataIDs = loadedPortfolioPhotoPayload.attemptedPhotoIDs
             recordStoreSuccess(
                 "load",
                 startedAt: startedAt,
@@ -270,6 +273,11 @@ final class GroomerProfileStore {
 
     func portfolioPhotoData(for photo: GroomerPortfolioPhoto) -> Data? {
         portfolioPhotoDataByID[photo.id]
+    }
+
+    func isPortfolioPhotoDataUnavailable(_ photo: GroomerPortfolioPhoto) -> Bool {
+        attemptedPortfolioPhotoDataIDs.contains(photo.id) &&
+            portfolioPhotoDataByID[photo.id] == nil
     }
 
     var portfolioOverviewSummary: String {
@@ -495,6 +503,7 @@ final class GroomerProfileStore {
             )
             portfolioPhotos.append(photo)
             portfolioPhotoDataByID[photo.id] = data
+            attemptedPortfolioPhotoDataIDs.insert(photo.id)
             noticeMessage = "Portfolio photo was uploaded."
         } catch let error as GroomerProfileRepositoryError {
             errorMessage = message(for: error, action: "upload")
@@ -515,6 +524,7 @@ final class GroomerProfileStore {
             try await repository.deletePortfolioPhoto(photo)
             portfolioPhotos.removeAll { $0.id == photo.id }
             portfolioPhotoDataByID[photo.id] = nil
+            attemptedPortfolioPhotoDataIDs.remove(photo.id)
             removePortfolioFitTags(for: photo.id)
             noticeMessage = "Portfolio photo was deleted."
         } catch let error as GroomerProfileRepositoryError {
@@ -953,15 +963,17 @@ final class GroomerProfileStore {
 
     private func portfolioPhotoDataMap(
         for photos: [GroomerPortfolioPhoto]
-    ) async -> [UUID: Data] {
+    ) async -> (dataByID: [UUID: Data], attemptedPhotoIDs: Set<UUID>) {
         var dataByID: [UUID: Data] = [:]
+        var attemptedPhotoIDs: Set<UUID> = []
         for photo in photos {
+            attemptedPhotoIDs.insert(photo.id)
             guard let data = try? await repository.portfolioPhotoData(photo) else {
                 continue
             }
             dataByID[photo.id] = data
         }
-        return dataByID
+        return (dataByID, attemptedPhotoIDs)
     }
 
     private func populateAvailabilityForm(with windows: [GroomerAvailabilityWindow]) {
