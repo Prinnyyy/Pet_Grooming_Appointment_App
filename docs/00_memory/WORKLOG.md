@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-09
+Task: T-204 - Groomer notification center UI.
+Files changed: groomer notification model/repository/store/view, groomer tab routing, app composition injection, debug repository wrapper, focused tests, roadmap, current state, task ledger, and worklog.
+Checks: GroomerNotificationsStoreTests RED/GREEN; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
+Result: Closes Q-17 by adding the groomer Alerts tab, unread badge source, notification list states, mark-read/mark-all-read actions, request/booking/message routing, Supabase repository access, and Debug Console repository events.
+Risks: T-203 groomer notification migration remains local-only until explicit remote migration authorization, so linked live Supabase data will not exist until then. No Supabase remote write, migration apply, Auth config, seed, TestOps remote execution, deploy, APNs, release upload, tag, PR, merge/rebase/reset, or force-push changed.
+Next: Use T-205 for the next user-chosen task; recommended queue start is Q-18 foreground state timeliness.
+```
+
+```text
+Date: 2026-07-09
 Task: T-203 - Groomer notification backend.
 Files changed: groomer notification migration/tests, backend contract/RLS docs, roadmap, current state, task ledger, and worklog.
 Checks: RED/GREEN groomer migration test; migration test suite; preflight; supabase-check; `git diff --check`; context hygiene; commit and push.
 Result: Closes Q-16 locally by adding `groomer_notifications`, owner RLS/grants, read-state RPCs, and trigger-created notifications for matched requests, accepted offers/bookings, customer booking cancellations, and customer messages.
 Risks: Remote migration apply was not run and still needs explicit authorization. No iOS UI, Auth config, seed, remote TestOps, deploy, APNs, release upload, tag, PR, merge/rebase/reset, or force-push changed.
-Next: Use T-204 for the next user-chosen task; recommended queue start is Q-17 groomer notification center UI.
 ```
 
 ```text
@@ -66,13 +75,4 @@ Files changed: AppOperationalEvent recorder, app composition/root/auth entry ins
 Checks: Focused AppOperationalEventTests; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
 Result: Closes Q-11/R-011 by adding sanitized local-only JSONL lifecycle/funnel evidence for launch, foreground/background, auth restored/signed out, role resolved/onboarding, profile-load failure, and suspected prior-run interruption. DEBUG builds mirror these events into Debug Console Recent Events.
 Risks: No third-party SDK, network analytics, crash-report upload, Supabase schema, migration, seed, app metadata remote write, repository setting, PR, tag, merge/rebase/reset, or force-push changed.
-```
-
-```text
-Date: 2026-07-09
-Task: T-196 - Scheduled documentation meta-review.
-Files changed: roadmap, current state, task ledger, worklog, and context hygiene rotation archives.
-Checks: `git status --short`; `git diff --check`; `node scripts/context-hygiene-check.mjs`; targeted status/URL grep; context rotation; commit and push.
-Result: Runs the required 10-task documentation governance review after T-195, fixes ROADMAP wording that marked completed tasks as waiting due to mixed "blocked" segments, and keeps active memory/ledger windows within policy.
-Risks: Documentation-governance only. No Swift behavior, Supabase schema, migration, seed, app metadata remote write, repository setting, PR, tag, merge/rebase/reset, or force-push changed.
 ```

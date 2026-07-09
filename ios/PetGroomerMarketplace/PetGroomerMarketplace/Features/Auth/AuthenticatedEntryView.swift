@@ -11,6 +11,7 @@ struct AuthenticatedEntryView: View {
     private let chatRepository: any ChatRepository
     private let groomerProfileRepository: any GroomerProfileRepository
     private let groomerRequestRepository: any GroomerRequestRepository
+    private let groomerNotificationRepository: any GroomerNotificationRepository
     private let operationalEventRecorder: AppOperationalEventRecorder?
     @State private var store: AuthenticatedEntryStore
 
@@ -26,6 +27,7 @@ struct AuthenticatedEntryView: View {
         chatRepository: any ChatRepository,
         groomerProfileRepository: any GroomerProfileRepository,
         groomerRequestRepository: any GroomerRequestRepository,
+        groomerNotificationRepository: any GroomerNotificationRepository,
         operationalEventRecorder: AppOperationalEventRecorder? = nil
     ) {
         self.session = session
@@ -38,6 +40,7 @@ struct AuthenticatedEntryView: View {
         self.chatRepository = chatRepository
         self.groomerProfileRepository = groomerProfileRepository
         self.groomerRequestRepository = groomerRequestRepository
+        self.groomerNotificationRepository = groomerNotificationRepository
         self.operationalEventRecorder = operationalEventRecorder
         _store = State(
             initialValue: AuthenticatedEntryStore(
@@ -77,6 +80,7 @@ struct AuthenticatedEntryView: View {
                     groomerID: profile.userID,
                     profileRepository: groomerProfileRepository,
                     requestRepository: groomerRequestRepository,
+                    notificationRepository: groomerNotificationRepository,
                     bookingRepository: bookingRepository,
                     chatRepository: chatRepository,
                     accountContent: genericAccountContent(for: profile),

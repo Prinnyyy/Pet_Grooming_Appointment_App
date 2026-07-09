@@ -11,6 +11,7 @@ struct AuthenticationGateView: View {
     let chatRepository: any ChatRepository
     let groomerProfileRepository: any GroomerProfileRepository
     let groomerRequestRepository: any GroomerRequestRepository
+    let groomerNotificationRepository: any GroomerNotificationRepository
     let operationalEventRecorder: AppOperationalEventRecorder?
 
     var body: some View {
@@ -45,6 +46,7 @@ struct AuthenticationGateView: View {
                     chatRepository: chatRepository,
                     groomerProfileRepository: groomerProfileRepository,
                     groomerRequestRepository: groomerRequestRepository,
+                    groomerNotificationRepository: groomerNotificationRepository,
                     operationalEventRecorder: operationalEventRecorder
                 )
             }

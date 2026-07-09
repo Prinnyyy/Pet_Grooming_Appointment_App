@@ -15,6 +15,7 @@ struct AppComposition {
     let chatRepository: (any ChatRepository)?
     let groomerProfileRepository: (any GroomerProfileRepository)?
     let groomerRequestRepository: (any GroomerRequestRepository)?
+    let groomerNotificationRepository: (any GroomerNotificationRepository)?
     let authenticationStore: AuthenticationStore?
     let operationalEventRecorder: AppOperationalEventRecorder
 
@@ -78,6 +79,10 @@ struct AppComposition {
                 base: SupabaseGroomerRequestRepository(client: client),
                 debugRecorder: debugRecorder
             )
+            let groomerNotificationRepository = DebugGroomerNotificationRepository(
+                base: SupabaseGroomerNotificationRepository(client: client),
+                debugRecorder: debugRecorder
+            )
             #else
             let customerProfileRepository = SupabaseCustomerProfileRepository(client: client)
             let customerPetRepository = SupabaseCustomerPetRepository(client: client)
@@ -88,6 +93,7 @@ struct AppComposition {
             let chatRepository = SupabaseChatRepository(client: client)
             let groomerProfileRepository = SupabaseGroomerProfileRepository(client: client)
             let groomerRequestRepository = SupabaseGroomerRequestRepository(client: client)
+            let groomerNotificationRepository = SupabaseGroomerNotificationRepository(client: client)
             #endif
 
             authenticationBootstrapState = .ready
@@ -102,6 +108,7 @@ struct AppComposition {
             self.chatRepository = chatRepository
             self.groomerProfileRepository = groomerProfileRepository
             self.groomerRequestRepository = groomerRequestRepository
+            self.groomerNotificationRepository = groomerNotificationRepository
             authenticationStore = AuthenticationStore(
                 repository: authRepository,
                 clearsSessionBeforeRestore:
@@ -132,6 +139,7 @@ struct AppComposition {
             chatRepository = nil
             groomerProfileRepository = nil
             groomerRequestRepository = nil
+            groomerNotificationRepository = nil
             authenticationStore = nil
             CustomerPushNotificationRegistrationCoordinator.shared.configure(
                 repository: nil

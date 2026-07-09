@@ -3,6 +3,7 @@ nonisolated enum GroomerTab: CaseIterable, Identifiable, Equatable {
     case offers
     case bookings
     case messages
+    case notifications
     case account
 
     static let visibleCases: [Self] = [
@@ -10,6 +11,7 @@ nonisolated enum GroomerTab: CaseIterable, Identifiable, Equatable {
         .offers,
         .bookings,
         .messages,
+        .notifications,
         .account,
     ]
 
@@ -21,6 +23,7 @@ nonisolated enum GroomerTab: CaseIterable, Identifiable, Equatable {
         case .offers: "Offers"
         case .bookings: "Schedule"
         case .messages: "Messages"
+        case .notifications: "Alerts"
         case .account: "Account"
         }
     }
@@ -31,6 +34,7 @@ nonisolated enum GroomerTab: CaseIterable, Identifiable, Equatable {
         case .offers: "tag"
         case .bookings: "calendar"
         case .messages: "message"
+        case .notifications: "bell"
         case .account: "person.crop.circle"
         }
     }

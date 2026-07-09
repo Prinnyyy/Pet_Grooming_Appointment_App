@@ -5,18 +5,21 @@ struct GroomerTabView: View {
     let groomerID: UUID?
     let profileRepository: (any GroomerProfileRepository)?
     let requestRepository: (any GroomerRequestRepository)?
+    let notificationRepository: (any GroomerNotificationRepository)?
     let bookingRepository: (any BookingRepository)?
     let chatRepository: (any ChatRepository)?
     let accountContent: AnyView?
     let onSignOut: (() -> Void)?
     @State private var selection: GroomerTab = .requests
     @State private var focusedConversationBookingID: UUID?
+    @State private var notificationStore: GroomerNotificationsStore?
     @State private var feedbackCenter = GroomlyFeedbackCenter()
 
     init(
         groomerID: UUID? = nil,
         profileRepository: (any GroomerProfileRepository)? = nil,
         requestRepository: (any GroomerRequestRepository)? = nil,
+        notificationRepository: (any GroomerNotificationRepository)? = nil,
         bookingRepository: (any BookingRepository)? = nil,
         chatRepository: (any ChatRepository)? = nil,
         accountContent: AnyView? = nil,
@@ -25,10 +28,17 @@ struct GroomerTabView: View {
         self.groomerID = groomerID
         self.profileRepository = profileRepository
         self.requestRepository = requestRepository
+        self.notificationRepository = notificationRepository
         self.bookingRepository = bookingRepository
         self.chatRepository = chatRepository
         self.accountContent = accountContent
         self.onSignOut = onSignOut
+        _notificationStore = State(
+            initialValue: Self.makeNotificationStore(
+                groomerID: groomerID,
+                repository: notificationRepository
+            )
+        )
     }
 
     var body: some View {
@@ -41,6 +51,7 @@ struct GroomerTabView: View {
                 .tabItem {
                     Label(tab.title, systemImage: tab.systemImage)
                 }
+                .badge(tab == .notifications ? notificationUnreadCount : 0)
                 .tag(tab)
             }
         }
@@ -108,6 +119,12 @@ struct GroomerTabView: View {
                 debugRecorder: debugRecorder,
                 focusedBookingID: $focusedConversationBookingID
             )
+        } else if tab == .notifications,
+                  let notificationStore {
+            GroomerNotificationsView(
+                store: notificationStore,
+                routeAction: openNotificationRoute
+            )
         } else if tab == .account,
            let groomerID,
            let profileRepository {
@@ -136,6 +153,38 @@ struct GroomerTabView: View {
             selection = .messages
         }
     }
+
+    private var notificationUnreadCount: Int {
+        notificationStore?.unreadCount ?? 0
+    }
+
+    private func openNotificationRoute(_ route: GroomerNotificationRoute) {
+        withAnimation(.easeInOut(duration: 0.22)) {
+            switch route {
+            case .requests:
+                selection = .requests
+            case .offers:
+                selection = .offers
+            case .bookings:
+                selection = .bookings
+            case let .messages(bookingID):
+                focusedConversationBookingID = bookingID
+                selection = .messages
+            }
+        }
+    }
+
+    private static func makeNotificationStore(
+        groomerID: UUID?,
+        repository: (any GroomerNotificationRepository)?
+    ) -> GroomerNotificationsStore? {
+        guard let groomerID, let repository else { return nil }
+
+        return GroomerNotificationsStore(
+            groomerID: groomerID,
+            repository: repository
+        )
+    }
 }
 
 private extension GroomerTab {
@@ -149,6 +198,8 @@ private extension GroomerTab {
             "bookings"
         case .messages:
             "messages"
+        case .notifications:
+            "notifications"
         case .account:
             "account"
         }

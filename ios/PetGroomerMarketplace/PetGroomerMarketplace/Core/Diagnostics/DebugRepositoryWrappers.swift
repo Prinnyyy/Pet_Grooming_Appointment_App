@@ -62,6 +62,7 @@ private enum AppDebugRepositoryCancellation {
              CustomerPetRepositoryError.cancelled,
              ChatRepositoryError.cancelled,
              GroomerProfileRepositoryError.cancelled,
+             GroomerNotificationRepositoryError.cancelled,
              GroomerRequestRepositoryError.cancelled:
             true
         default:
@@ -461,6 +462,67 @@ final class DebugCustomerNotificationRepository: CustomerNotificationRepository 
             ]
         ) {
             try await base.markAllRead(customerID: customerID)
+        }
+    }
+}
+
+@MainActor
+final class DebugGroomerNotificationRepository: GroomerNotificationRepository {
+    private let base: any GroomerNotificationRepository
+    private let debugRecorder: AppDebugEventRecorder?
+
+    init(
+        base: any GroomerNotificationRepository,
+        debugRecorder: AppDebugEventRecorder?
+    ) {
+        self.base = base
+        self.debugRecorder = debugRecorder
+    }
+
+    func notifications(groomerID: UUID) async throws -> [GroomerNotification] {
+        try await debugRepositoryCall(
+            recorder: debugRecorder,
+            source: "GroomerNotificationRepository.notifications",
+            scope: "groomer.notifications",
+            operation: "notifications",
+            metadata: [
+                "groomerID": groomerID.uuidString,
+                "table": "groomer_notifications",
+            ]
+        ) {
+            try await base.notifications(groomerID: groomerID)
+        }
+    }
+
+    func markRead(
+        notificationID: UUID
+    ) async throws -> GroomerNotification {
+        try await debugRepositoryCall(
+            recorder: debugRecorder,
+            source: "GroomerNotificationRepository.markRead",
+            scope: "groomer.notifications",
+            operation: "markRead",
+            metadata: [
+                "notificationID": notificationID.uuidString,
+                "rpc": "mark_groomer_notification_read",
+            ]
+        ) {
+            try await base.markRead(notificationID: notificationID)
+        }
+    }
+
+    func markAllRead(groomerID: UUID) async throws -> [GroomerNotification] {
+        try await debugRepositoryCall(
+            recorder: debugRecorder,
+            source: "GroomerNotificationRepository.markAllRead",
+            scope: "groomer.notifications",
+            operation: "markAllRead",
+            metadata: [
+                "groomerID": groomerID.uuidString,
+                "rpc": "mark_all_groomer_notifications_read",
+            ]
+        ) {
+            try await base.markAllRead(groomerID: groomerID)
         }
     }
 }

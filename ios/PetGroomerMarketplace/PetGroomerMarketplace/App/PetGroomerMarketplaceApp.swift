@@ -23,6 +23,7 @@ struct PetGroomerMarketplaceApp: App {
                 chatRepository: composition.chatRepository,
                 groomerProfileRepository: composition.groomerProfileRepository,
                 groomerRequestRepository: composition.groomerRequestRepository,
+                groomerNotificationRepository: composition.groomerNotificationRepository,
                 operationalEventRecorder: composition.operationalEventRecorder
             )
             .transaction { transaction in
