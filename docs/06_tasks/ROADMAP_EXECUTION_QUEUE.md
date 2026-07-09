@@ -8,7 +8,7 @@ Source: T-202 adopted root review input `../../V1.0_RELEASE_TASK_PLAN.md`; that 
 
 ## Selection Rules
 
-- Start with the first unblocked Q-28...Q-33 unless the user names another package.
+- Start with the first unblocked Q-29...Q-33 unless the user names another package.
 - Split any package that combines Supabase writes with visible SwiftUI or grows beyond one reviewable task.
 - Get explicit authorization before migrations, Auth config writes, remote TestOps, seeds, deploys, release uploads, or other non-Git remote writes.
 - Do not start Q-90...Q-92 until credentials and authorization are recorded.
@@ -18,7 +18,6 @@ Source: T-202 adopted root review input `../../V1.0_RELEASE_TASK_PLAN.md`; that 
 
 | Order | Roadmap | Package | Mode | Scope | Validation |
 |---|---|---|---|---|---|
-| Q-28 | R-028 | UT-05 State-machine edge tests | Standard | Draft retention/discard, republish mapping, refresh dedupe, reminder idempotence. | Focused state tests |
 | Q-29 | R-027 | P-09 Free-tier email verification/deep link | Deep | Supabase default email plus custom URL scheme; document production gap. | Auth/callback tests; device/simulator check |
 | Q-30 | R-027 | P-10 List pagination/load audit | Standard | Request/offer/booking/message/notification limits and pagination. | Audit note; pagination tests |
 | Q-31 | R-028 | UT-06 Backend contract negatives | Deep | Notification RLS and protected RPC rejection tests. | Node/Supabase contract tests |

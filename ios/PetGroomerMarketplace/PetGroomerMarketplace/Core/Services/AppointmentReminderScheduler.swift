@@ -30,7 +30,8 @@ enum AppointmentReminderPlan {
         role: UserRole,
         now: Date
     ) -> [AppointmentReminder] {
-        bookings.compactMap { booking in
+        var seenIdentifiers: Set<String> = []
+        return bookings.compactMap { booking in
             guard booking.status == .confirmed,
                   let scheduledStart = booking.scheduledStartDate,
                   scheduledStart > now
@@ -38,10 +39,14 @@ enum AppointmentReminderPlan {
 
             let fireDate = scheduledStart.addingTimeInterval(-60 * 60)
             guard fireDate > now else { return nil }
+            let identifier = identifier(for: booking.id, role: role)
+            guard seenIdentifiers.insert(identifier).inserted else {
+                return nil
+            }
 
             return AppointmentReminder(
                 bookingID: booking.id,
-                identifier: identifier(for: booking.id, role: role),
+                identifier: identifier,
                 title: "Upcoming Grooming Appointment",
                 body: body(for: booking, role: role),
                 fireDate: fireDate

@@ -874,6 +874,31 @@ struct AppointmentReminderPlanTests {
                 )
         )
     }
+
+    @Test @MainActor
+    func plannerDeduplicatesRepeatedBookingRowsByReminderIdentifier() throws {
+        let now = try #require(
+            GroomingRequestDateFormatting.parsedDate(
+                from: "2026-08-22T14:00:00Z"
+            )
+        )
+        let bookingID = UUID(uuidString: "11111111-2222-4333-8444-555555555555")!
+        let booking = BookingsStoreTests.booking(
+            id: bookingID,
+            status: .confirmed,
+            scheduledStart: "2026-08-22T16:00:00Z"
+        )
+
+        let reminders = AppointmentReminderPlan.reminders(
+            for: [booking, booking],
+            role: .customer,
+            now: now
+        )
+
+        #expect(reminders.map(\.identifier) == [
+            "groomly.appointment-reminder.customer.11111111-2222-4333-8444-555555555555",
+        ])
+    }
 }
 
 private final class AppointmentReminderSchedulerFake:

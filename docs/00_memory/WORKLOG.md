@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-09
+Task: T-216 - State-machine edge tests.
+Files changed: appointment reminder scheduler, AppointmentReminderPlan tests, roadmap, current state, task ledger, and worklog.
+Checks: AppointmentReminderPlan RED/GREEN; full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
+Result: Closes Q-28/R-028 by adding focused reminder idempotence coverage for duplicate booking rows and making local appointment reminder planning dedupe by stable reminder identifier while preserving first valid reminder order.
+Risks: Local iOS planner/test hardening only. No Supabase schema, migration, remote write, repository API signature, UI layout redesign, Auth config, seed, TestOps remote execution, deploy, APNs dispatch, release upload, tag, PR, merge/rebase/reset, or force-push changed.
+Next: Use T-217 for the next user-chosen task; recommended queue start is Q-29 free-tier email verification/deep link.
+```
+
+```text
+Date: 2026-07-09
 Task: T-215 - Republish hardening.
 Files changed: customer requests store, CustomerRequestsStore republish tests, roadmap, current state, task ledger, and worklog.
 Checks: CustomerRequestsStore RED/GREEN; full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
 Result: Closes Q-27/R-027 by making request-photo metadata failure non-blocking for loaded original requests, keeping cancelled/expired request details available for republish, skipping missing/oversized copied photos, resetting expired preferred windows to a future default range, and refusing cancelled-booking republish when the original request is unavailable.
 Risks: Local iOS store/test hardening only. No Supabase schema, migration, remote write, repository API signature, UI layout redesign, Auth config, seed, TestOps remote execution, deploy, APNs dispatch, release upload, tag, PR, merge/rebase/reset, or force-push changed.
-Next: Use T-216 for the next user-chosen task; recommended queue start is Q-28 state-machine edge tests.
 ```
 
 ```text
@@ -66,13 +75,4 @@ Files changed: appointment reminder scheduler, bookings store/view, customer req
 Checks: Appointment reminder planner/store RED/GREEN; CustomerRequests accept reminder RED/GREEN; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
 Result: Closes Q-21/R-025 by adding local notification reminder planning/scheduling for future confirmed bookings, page-level refusal copy when local notifications are disabled, reminder sync after booking load and offer acceptance, and reminder cancellation after booking cancel/complete.
 Risks: Local notifications require user authorization at runtime. No Supabase schema, migration, remote write, repository API, Auth config, seed, TestOps remote execution, deploy, APNs dispatch, release upload, tag, PR, merge/rebase/reset, or force-push changed.
-```
-
-```text
-Date: 2026-07-09
-Task: T-208 - Notification domain tests.
-Files changed: customer/groomer notification models, customer/groomer notification focused tests, roadmap, current state, task ledger, and worklog.
-Checks: CustomerNotificationsStoreTests/GroomerNotificationsStoreTests RED/GREEN; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
-Result: Closes Q-20/R-028 by covering duplicate concurrent read/mark-all guards, mark-all failure/cancellation state preservation, repository debug event metadata, and unknown notification kind decode fallback for customer and groomer notifications.
-Risks: No Supabase schema, migration, remote write, repository API, UI layout, Auth config, seed, TestOps remote execution, deploy, APNs, release upload, tag, PR, merge/rebase/reset, or force-push changed.
 ```
