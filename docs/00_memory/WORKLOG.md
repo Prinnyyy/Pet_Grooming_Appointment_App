@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-09
+Task: T-198 - Accessibility and copy audit.
+Files changed: DesignTokens, primary action primitives, BookingsStore copy, customer pet model/view accessibility, focused accessibility/copy tests, accessibility checklist, roadmap, current state, task ledger, and worklog.
+Checks: Focused BookingsStore/customer pet/design-token accessibility tests; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
+Result: Closes Q-12/R-012 by adding contrast-checked semantic color constants, improving primary button text contrast, making booking-vs-schedule load failure copy role-specific, and giving customer pet cards a single readable VoiceOver summary and hint.
+Risks: No Supabase schema, migration, remote write, navigation, persistence contract, dependency, PR, tag, merge/rebase/reset, or force-push changed. Runtime VoiceOver pass was limited to code/test/build validation because XcodeBuildMCP UI tools were unavailable in this session.
+Next: Use T-199 unless resuming T-157 after Apple Developer credentials. Q-09/APNs dispatch remains externally blocked; next unblocked package is Q-13/R-013 Performance and network resilience.
+```
+
+```text
+Date: 2026-07-09
 Task: T-197 - Local operational crash and funnel evidence.
 Files changed: AppOperationalEvent recorder, app composition/root/auth entry instrumentation, debug/privacy docs, roadmap, current state, task ledger, and worklog.
 Checks: Focused AppOperationalEventTests; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
 Result: Closes Q-11/R-011 by adding sanitized local-only JSONL lifecycle/funnel evidence for launch, foreground/background, auth restored/signed out, role resolved/onboarding, profile-load failure, and suspected prior-run interruption. DEBUG builds mirror these events into Debug Console Recent Events.
 Risks: No third-party SDK, network analytics, crash-report upload, Supabase schema, migration, seed, app metadata remote write, repository setting, PR, tag, merge/rebase/reset, or force-push changed.
-Next: Use T-198 unless resuming T-157 after Apple Developer credentials. Q-09/APNs dispatch remains externally blocked; next unblocked package is Q-12/R-012 Accessibility and copy audit.
 ```
 
 ```text
@@ -65,13 +74,5 @@ Task: T-191 - Groomer private images.
 Files changed: groomer profile store/view portfolio presentation, groomer profile tests, private image audit, current state, task ledger, and worklog.
 Checks: GroomerProfileStoreTests; XcodeBuildMCP build; XcodeBuildMCP launch spot check for auth landing; `git diff --check`; context hygiene; commit and push.
 Result: Closes Q-04/R-005 by tracking groomer portfolio image-load attempts, rendering portfolio photos through the shared module image path, and showing distinct loading versus unavailable states when private image data cannot be read.
-Risks: No Supabase schema, policy, migration, or remote write changed. Cross-user avatars in bookings/chat/notifications still need a future data-contract decision.
-```
-```text
-Date: 2026-07-09
-Task: T-190 - Customer private images.
-Files changed: customer request store/view image presentation, customer request tests, private image audit, current state, task ledger, and worklog.
-Checks: Customer requests/pets store tests; XcodeBuildMCP build; XcodeBuildMCP launch spot check for auth landing; `git diff --check`; context hygiene; commit and push.
-Result: Closes Q-03/R-005 by loading customer pet photo metadata/data into request flows, rendering request wizard pet avatars with `GroomlyModuleImage`, and showing `Photo unavailable` when request-photo metadata exists but image data cannot be read.
 Risks: No Supabase schema, policy, migration, or remote write changed. Cross-user avatars in bookings/chat/notifications still need a future data-contract decision.
 ```

@@ -109,6 +109,27 @@ struct CustomerPetsStoreTests {
     }
 
     @Test
+    func petAccessibilitySummaryUsesReadableBreedSpeciesAndWeight() {
+        let pet = CustomerPet(
+            id: UUID(),
+            customerID: UUID(),
+            name: "Mochi",
+            species: "Dog",
+            breed: "Toy Poodle",
+            coatType: nil,
+            size: "S",
+            weightLbs: 12.2,
+            birthday: nil,
+            temperament: nil,
+            medicalNotes: nil,
+            groomingNotes: nil,
+            isActive: true
+        )
+
+        #expect(pet.accessibilitySummary == "Toy Poodle, Dog, 12 pounds, size S")
+    }
+
+    @Test
     func breedOptionsKeepUnspecifiedFirstAndAlphabetizeRemaining() {
         let dogOptions = CustomerPetBreed.options(for: .dog)
         let dogTitles = dogOptions.map(\.title)

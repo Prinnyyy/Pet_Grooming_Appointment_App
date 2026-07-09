@@ -43,7 +43,7 @@ struct GroomlyPrimaryButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(DesignTokens.Typography.body.weight(.semibold))
-            .foregroundStyle(isEnabled ? DesignTokens.Colors.surface : DesignTokens.Colors.textTertiary)
+            .foregroundStyle(isEnabled ? DesignTokens.Colors.primaryButtonForeground : DesignTokens.Colors.textTertiary)
             .frame(maxWidth: isFullWidth ? .infinity : nil, minHeight: 44)
             .padding(.horizontal, DesignTokens.Spacing.lg)
             .padding(.vertical, DesignTokens.Spacing.md)

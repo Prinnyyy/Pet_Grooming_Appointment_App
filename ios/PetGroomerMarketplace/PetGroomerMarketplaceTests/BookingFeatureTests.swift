@@ -40,7 +40,7 @@ struct BookingsStoreTests {
 
         #expect(repository.bookingsCallCount == 1)
         #expect(store.bookings.isEmpty)
-        #expect(store.errorMessage == "We could not load bookings. Please try again.")
+        #expect(store.errorMessage == "We could not load your schedule. Please try again.")
 
         let presentation = BookingsFeedbackPresentation(
             role: .groomer,
@@ -50,8 +50,35 @@ struct BookingsStoreTests {
         )
 
         #expect(presentation.persistentLoadError?.title == "We Could Not Load Schedule")
-        #expect(presentation.persistentLoadError?.message == "We could not load bookings. Please try again.")
+        #expect(presentation.persistentLoadError?.message == "We could not load your schedule. Please try again.")
         #expect(presentation.persistentLoadError?.actionTitle == "Try Again")
+        #expect(presentation.toastError == nil)
+    }
+
+    @Test @MainActor
+    func customerLoadFailureUsesBookingSpecificCopy() async throws {
+        let repository = BookingRepositoryFake(
+            bookingsResult: .failure(.unavailable)
+        )
+        let store = BookingsStore(
+            participantID: UUID(),
+            role: .customer,
+            repository: repository
+        )
+
+        await store.load()
+
+        #expect(store.errorMessage == "We could not load your bookings. Please try again.")
+
+        let presentation = BookingsFeedbackPresentation(
+            role: .customer,
+            bookings: store.bookings,
+            isLoading: store.isLoading,
+            errorMessage: store.errorMessage
+        )
+
+        #expect(presentation.persistentLoadError?.title == "We Could Not Load Bookings")
+        #expect(presentation.persistentLoadError?.message == "We could not load your bookings. Please try again.")
         #expect(presentation.toastError == nil)
     }
 

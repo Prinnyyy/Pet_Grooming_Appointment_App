@@ -10,25 +10,44 @@ enum DesignTokens {
         let spread: CGFloat
     }
 
+    nonisolated enum ColorHex {
+        static let appBackground: UInt = 0xFAF7F2
+        static let surface: UInt = 0xFFFFFF
+        static let border: UInt = 0xE8E2D8
+        static let borderSoft: UInt = 0xEFEAE1
+        static let textPrimary: UInt = 0x232323
+        static let textSecondary: UInt = 0x6F767E
+        static let textTertiary: UInt = 0x69717A
+        static let customerPrimary: UInt = 0x7ECFC0
+        static let customerPrimaryDark: UInt = 0x5FBFAE
+        static let groomerAccent: UInt = 0xFF9A8B
+        static let groomerAccentDark: UInt = 0xF58575
+        static let success: UInt = 0x6CBF84
+        static let warning: UInt = 0xF2B84B
+        static let error: UInt = 0xE56B6F
+        static let primaryButtonForeground = textPrimary
+    }
+
     enum Colors {
-        static let appBackground = Color(hex: 0xFAF7F2)
-        static let surface = Color(hex: 0xFFFFFF)
-        static let surfaceRaised = Color(hex: 0xFFFFFF)
-        static let border = Color(hex: 0xE8E2D8)
-        static let borderSoft = Color(hex: 0xEFEAE1)
+        static let appBackground = Color(hex: ColorHex.appBackground)
+        static let surface = Color(hex: ColorHex.surface)
+        static let surfaceRaised = Color(hex: ColorHex.surface)
+        static let border = Color(hex: ColorHex.border)
+        static let borderSoft = Color(hex: ColorHex.borderSoft)
         static let divider = borderSoft
-        static let textPrimary = Color(hex: 0x232323)
-        static let textSecondary = Color(hex: 0x6F767E)
-        static let textTertiary = Color(hex: 0x9AA0A6)
-        static let customerPrimary = Color(hex: 0x7ECFC0)
-        static let customerPrimaryDark = Color(hex: 0x5FBFAE)
+        static let textPrimary = Color(hex: ColorHex.textPrimary)
+        static let textSecondary = Color(hex: ColorHex.textSecondary)
+        static let textTertiary = Color(hex: ColorHex.textTertiary)
+        static let customerPrimary = Color(hex: ColorHex.customerPrimary)
+        static let customerPrimaryDark = Color(hex: ColorHex.customerPrimaryDark)
         static let customerPrimaryPressed = customerPrimaryDark
-        static let groomerAccent = Color(hex: 0xFF9A8B)
-        static let groomerAccentDark = Color(hex: 0xF58575)
+        static let groomerAccent = Color(hex: ColorHex.groomerAccent)
+        static let groomerAccentDark = Color(hex: ColorHex.groomerAccentDark)
         static let groomerAccentPressed = groomerAccentDark
-        static let success = Color(hex: 0x6CBF84)
-        static let warning = Color(hex: 0xF2B84B)
-        static let error = Color(hex: 0xE56B6F)
+        static let success = Color(hex: ColorHex.success)
+        static let warning = Color(hex: ColorHex.warning)
+        static let error = Color(hex: ColorHex.error)
+        static let primaryButtonForeground = Color(hex: ColorHex.primaryButtonForeground)
 
         static let background = appBackground
         static let primaryText = textPrimary

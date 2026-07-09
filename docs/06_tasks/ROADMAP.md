@@ -45,7 +45,7 @@ Out of V1.0 unless explicitly changed: payments, subscriptions, public directory
 | G0 Docs governance | Keep docs indexed and bounded. | T-163...T-179 complete. | Startup uses active indexes, not stale root/frozen plans. |
 | M1 Half-finished surfaces | Remove incomplete UI/data behavior. | T-152, T-154, T-188 through T-192 complete; T-193 design complete with implementation dependency. | No placeholder surfaces or misleading inputs. |
 | M2 Marketplace timeliness | Make request/offer/booking/chat state timely. | T-153, T-155, T-156, T-162, and T-194 complete; T-157 dispatch blocked. | Timely notifications/chat and cross-device states. |
-| M3 Compliance and ops | Satisfy App Store and ops basics. | T-160, T-161, T-195, and T-197 complete; accessibility/copy and performance remain. | Metadata and operational evidence are ready. |
+| M3 Compliance and ops | Satisfy App Store and ops basics. | T-160, T-161, T-195, T-197, and T-198 complete; performance remains. | Metadata and operational evidence are ready. |
 | M4 Quality expansion | Make tests/checks systematic. | T-165/T-168 started docs/preflight coverage. | Required checks are documented, runnable, and task-typed. |
 | M5 Release | Prepare TestFlight/App Store release. | Proposed only. | M1-M4 exits are satisfied and user authorizes release/tag work. |
 
@@ -64,7 +64,7 @@ Out of V1.0 unless explicitly changed: payments, subscriptions, public directory
 | R-009 | M2 | APNs dispatch deploy | Blocked on Apple/APNs secrets |
 | R-010 | M3 | Privacy/Support URLs | Complete T-195 |
 | R-011 | M3 | Crash/funnel events | Complete T-197 |
-| R-012 | M3 | Accessibility and copy audit | Candidate |
+| R-012 | M3 | Accessibility and copy audit | Complete T-198 |
 | R-013 | M3 | Performance/network resilience | Candidate |
 | R-014 | M4 | Store/model/state/UI test expansion | Candidate |
 | R-015 | M5 | E2E/security, TestFlight, App Store | Proposed |
@@ -77,6 +77,6 @@ Out of V1.0 unless explicitly changed: payments, subscriptions, public directory
 | R-022 | G0 | Backtick path and Markdown waterline checks | Complete T-178 |
 | R-023 | G0 | Active Markdown budget reduction | Complete T-179 |
 
-Completed mapping: T-152/T-154/T-188...T-193 M1; T-153/T-155/T-156/T-162/T-194 M2; T-157 M2 blocked for dispatch; T-160/T-161/T-195/T-197 M3; T-163...T-179 G0.
+Completed mapping: T-152/T-154/T-188...T-193 M1; T-153/T-155/T-156/T-162/T-194 M2; T-157 M2 blocked for dispatch; T-160/T-161/T-195/T-197/T-198 M3; T-163...T-179 G0.
 
 Execution sequencing: use `ROADMAP_EXECUTION_QUEUE.md` to select the next adoptable package. The queue is planning input only; each adopted package receives the next `T-###` from `TASK_LEDGER.md`.

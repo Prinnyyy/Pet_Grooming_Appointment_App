@@ -16,26 +16,26 @@ struct CustomerPet: Equatable, Identifiable, Sendable {
     let groomingNotes: String?
     let isActive: Bool
 
-    var displaySpecies: String {
+    nonisolated var displaySpecies: String {
         CustomerPetSpecies(storedValue: species)?.title ?? species
     }
 
-    var displayBreed: String? {
+    nonisolated var displayBreed: String? {
         guard let breed else { return nil }
         return CustomerPetBreed(storedValue: breed)?.title ?? breed
     }
 
-    var displayCoatType: String? {
+    nonisolated var displayCoatType: String? {
         guard let coatType else { return nil }
         return CustomerPetCoatType(storedValue: coatType)?.title ?? coatType
     }
 
-    var displaySize: String? {
+    nonisolated var displaySize: String? {
         guard let size else { return nil }
         return CustomerPetSizeCode(storedValue: size)?.title ?? size
     }
 
-    var displayWeightAndSize: String? {
+    nonisolated var displayWeightAndSize: String? {
         let sizeTitle = displaySize
             ?? weightLbs.map { CustomerPetSizeCode.code(forWeightLbs: $0).title }
 
@@ -49,6 +49,32 @@ struct CustomerPet: Equatable, Identifiable, Sendable {
             return weightTitle
         }
         return "\(weightTitle) • \(sizeTitle)"
+    }
+
+    nonisolated var accessibilitySummary: String {
+        var parts: [String] = []
+
+        if let breed = displayBreed?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !breed.isEmpty {
+            parts.append(breed)
+        }
+
+        parts.append(displaySpecies)
+
+        let sizeTitle = displaySize
+            ?? weightLbs.map { CustomerPetSizeCode.code(forWeightLbs: $0).title }
+        if let weightLbs {
+            let roundedWeight = Int(weightLbs.rounded())
+            if let sizeTitle, !sizeTitle.isEmpty {
+                parts.append("\(roundedWeight) pounds, size \(sizeTitle)")
+            } else {
+                parts.append("\(roundedWeight) pounds")
+            }
+        } else if let sizeTitle, !sizeTitle.isEmpty {
+            parts.append("size \(sizeTitle)")
+        }
+
+        return parts.joined(separator: ", ")
     }
 }
 

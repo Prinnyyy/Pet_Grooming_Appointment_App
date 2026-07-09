@@ -511,6 +511,10 @@ private struct CustomerHomePetTile: View {
             .groomlyShadow(DesignTokens.Shadows.smallCard)
         }
         .buttonStyle(.plain)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(pet.name)
+        .accessibilityValue(pet.accessibilitySummary)
+        .accessibilityHint("Opens pet profile for editing.")
         .contextMenu {
             Button("Edit") {
                 store.startEdit(pet)
@@ -616,6 +620,8 @@ private struct CustomerHomeAddPetTile: View {
             )
         }
         .buttonStyle(.plain)
+        .accessibilityLabel("Add Pet")
+        .accessibilityHint("Opens the pet profile form.")
         .accessibilityIdentifier("customer.pets.add")
     }
 }

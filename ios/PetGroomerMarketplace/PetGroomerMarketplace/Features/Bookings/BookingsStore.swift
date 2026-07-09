@@ -304,7 +304,20 @@ final class BookingsStore {
         case .cancelled:
             "The booking action was cancelled."
         case .unavailable:
-            "We could not \(action) bookings. Please try again."
+            unavailableMessage(action: action)
+        }
+    }
+
+    private func unavailableMessage(action: String) -> String {
+        guard action == "load" else {
+            return "We could not \(action) bookings. Please try again."
+        }
+
+        switch role {
+        case .customer:
+            return "We could not load your bookings. Please try again."
+        case .groomer:
+            return "We could not load your schedule. Please try again."
         }
     }
 
