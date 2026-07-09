@@ -34,6 +34,8 @@ struct GroomerNotification:
             .bookings(bookingID: relatedBookingID)
         case .newMessage:
             .messages(bookingID: relatedBookingID)
+        case .unknown:
+            .requests(requestID: nil)
         }
     }
 
@@ -68,6 +70,7 @@ nonisolated enum GroomerNotificationKind:
     case offerAccepted = "offer_accepted"
     case bookingCancelledByCustomer = "booking_cancelled_by_customer"
     case newMessage = "new_message"
+    case unknown
 
     var defaultTitle: String {
         switch self {
@@ -79,6 +82,8 @@ nonisolated enum GroomerNotificationKind:
             "Booking cancelled"
         case .newMessage:
             "New message"
+        case .unknown:
+            "Notification"
         }
     }
 
@@ -92,7 +97,15 @@ nonisolated enum GroomerNotificationKind:
             "calendar.badge.xmark"
         case .newMessage:
             "message.fill"
+        case .unknown:
+            "bell.fill"
         }
+    }
+
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let rawValue = try container.decode(String.self)
+        self = Self(rawValue: rawValue) ?? .unknown
     }
 }
 

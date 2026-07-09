@@ -132,6 +132,113 @@ struct GroomerNotificationsStoreTests {
         #expect(store.unreadCount == 0)
     }
 
+    @Test @MainActor
+    func duplicateConcurrentMarkAllReadOnlyCallsRepositoryOnce() async throws {
+        let groomerID = UUID()
+        let unread = Self.notification(
+            groomerID: groomerID,
+            kind: .newMatch,
+            isRead: false
+        )
+        let read = unread.replacingReadState(
+            isRead: true,
+            readAt: "2026-07-09T12:30:00Z"
+        )
+        let repository = GroomerNotificationRepositoryFake(
+            notificationsResult: .success([unread]),
+            markAllReadResult: .success([read])
+        )
+        repository.markAllReadDelayNanoseconds = 80_000_000
+        let store = GroomerNotificationsStore(
+            groomerID: groomerID,
+            repository: repository
+        )
+        await store.load()
+
+        let firstTask = Task { await store.markAllRead() }
+        await Task.yield()
+        await store.markAllRead()
+        await firstTask.value
+
+        #expect(repository.markAllReadCallCount == 1)
+        #expect(store.notifications == [read])
+        #expect(store.unreadCount == 0)
+    }
+
+    @Test @MainActor
+    func loadCancellationPreservesExistingNotificationsWithoutError() async throws {
+        let groomerID = UUID()
+        let existing = Self.notification(
+            groomerID: groomerID,
+            kind: .newMessage,
+            isRead: false
+        )
+        let repository = GroomerNotificationRepositoryFake(
+            notificationsResult: .success([existing])
+        )
+        let store = GroomerNotificationsStore(
+            groomerID: groomerID,
+            repository: repository
+        )
+        await store.load()
+
+        repository.notificationsResult = .failure(.cancelled)
+        await store.load()
+
+        #expect(repository.notificationsCallCount == 2)
+        #expect(store.notifications == [existing])
+        #expect(store.unreadCount == 1)
+        #expect(store.errorMessage == nil)
+    }
+
+    @Test
+    func unknownGroomerNotificationKindDecodesToUnknownFallback() throws {
+        let decoded = try JSONDecoder().decode(
+            GroomerNotificationKind.self,
+            from: Data(#""backend_added_new_kind""#.utf8)
+        )
+
+        #expect(decoded.rawValue == "unknown")
+        #expect(decoded.defaultTitle == "Notification")
+        #expect(decoded.systemImage == "bell.fill")
+    }
+
+    @Test @MainActor
+    func debugRepositoryRecordsGroomerNotificationCancellationAsInfoEvent() async throws {
+        let groomerID = UUID()
+        let writer = AppDebugEventWriterSpy()
+        let recorder = AppDebugEventRecorder(
+            writer: writer,
+            emitsToOSLog: false
+        )
+        let repository = DebugGroomerNotificationRepository(
+            base: GroomerNotificationRepositoryFake(
+                notificationsResult: .failure(.cancelled)
+            ),
+            debugRecorder: recorder
+        )
+
+        do {
+            _ = try await repository.notifications(groomerID: groomerID)
+        } catch GroomerNotificationRepositoryError.cancelled {
+        }
+
+        let event = try #require(
+            recorder.events.first {
+                $0.source == "GroomerNotificationRepository.notifications"
+            }
+        )
+        #expect(event.level == .info)
+        #expect(event.category == .repository)
+        #expect(event.scope == "groomer.notifications")
+        #expect(event.message == "cancelled")
+        #expect(event.metadata["operation"] == "notifications")
+        #expect(event.metadata["table"] == "groomer_notifications")
+        #expect(event.metadata["groomerID"] == groomerID.uuidString.prefix(8).uppercased())
+        #expect(event.underlyingErrorType == "GroomerNotificationRepositoryError")
+        #expect(event.underlyingErrorCode == "cancelled")
+    }
+
     @Test
     func notificationsMapToExpectedGroomerRoutes() {
         let requestID = UUID()
@@ -200,6 +307,7 @@ private final class GroomerNotificationRepositoryFake: GroomerNotificationReposi
     var notificationsResult: Result<[GroomerNotification], GroomerNotificationRepositoryError>
     var markReadResult: Result<GroomerNotification, GroomerNotificationRepositoryError>
     var markAllReadResult: Result<[GroomerNotification], GroomerNotificationRepositoryError>
+    var markAllReadDelayNanoseconds: UInt64 = 0
 
     private(set) var notificationsCallCount = 0
     private(set) var markReadCallCount = 0
@@ -233,6 +341,9 @@ private final class GroomerNotificationRepositoryFake: GroomerNotificationReposi
     func markAllRead(groomerID: UUID) async throws -> [GroomerNotification] {
         markAllReadCallCount += 1
         lastMarkAllGroomerID = groomerID
+        if markAllReadDelayNanoseconds > 0 {
+            try await Task.sleep(nanoseconds: markAllReadDelayNanoseconds)
+        }
         return try markAllReadResult.get()
     }
 }

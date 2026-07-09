@@ -59,6 +59,7 @@ nonisolated enum CustomerNotificationKind:
     case bookingCancelled = "booking_cancelled"
     case newOffer = "new_offer"
     case newMessage = "new_message"
+    case unknown
 
     var defaultTitle: String {
         switch self {
@@ -74,6 +75,8 @@ nonisolated enum CustomerNotificationKind:
             "New offer received"
         case .newMessage:
             "New message"
+        case .unknown:
+            "Notification"
         }
     }
 
@@ -91,6 +94,14 @@ nonisolated enum CustomerNotificationKind:
             "tag.fill"
         case .newMessage:
             "message.fill"
+        case .unknown:
+            "bell.fill"
         }
+    }
+
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let rawValue = try container.decode(String.self)
+        self = Self(rawValue: rawValue) ?? .unknown
     }
 }

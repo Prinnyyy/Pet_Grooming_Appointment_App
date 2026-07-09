@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-09
+Task: T-208 - Notification domain tests.
+Files changed: customer/groomer notification models, customer/groomer notification focused tests, roadmap, current state, task ledger, and worklog.
+Checks: CustomerNotificationsStoreTests/GroomerNotificationsStoreTests RED/GREEN; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
+Result: Closes Q-20/R-028 by covering duplicate concurrent read/mark-all guards, mark-all failure/cancellation state preservation, repository debug event metadata, and unknown notification kind decode fallback for customer and groomer notifications.
+Risks: No Supabase schema, migration, remote write, repository API, UI layout, Auth config, seed, TestOps remote execution, deploy, APNs, release upload, tag, PR, merge/rebase/reset, or force-push changed.
+Next: Use T-209 for the next user-chosen task; recommended queue start is Q-21 local appointment reminders.
+```
+
+```text
+Date: 2026-07-09
 Task: T-207 - Meta-review and context hygiene.
 Files changed: current state, task ledger, worklog, frozen rotated ledger/worklog rows.
 Checks: `git status --short`; `git diff --check`; context hygiene; commit and push.
 Result: Runs the required 10-task cadence review after T-206, rotates excess active ledger/worklog rows, confirms active roadmap/queue/current-state pointers align, and keeps Q-20 as the next roadmap package.
 Risks: Governance-only cleanup. No app code, Supabase schema, migration, remote write, Auth config, seed, TestOps remote execution, deploy, APNs, release upload, tag, PR, merge/rebase/reset, or force-push changed.
-Next: Use T-208 for the next user-chosen task; recommended queue start is Q-20 notification domain tests.
 ```
 
 ```text
@@ -66,13 +75,4 @@ Files changed: release readiness evidence, App Store privacy pointer, Supabase c
 Checks: Preflight; TestOps unit; App Store privacy test; TestOps doctor/backend smoke5/matching dry-runs; TestOps launch smoke; Supabase check; Supabase security/performance advisors; full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
 Result: Closes Q-15/R-015 for local/read-only release readiness. Release evidence confirms E2E dry-runs, privacy checks, advisors, and iOS build/test gates pass without remote writes.
 Risks: Security advisor still reports the known Auth leaked-password protection WARN. Q-07 production auth domain/SMTP and Q-09 APNs dispatch remain externally blocked. No TestFlight upload, App Store Connect change, remote TestOps execution, migration, seed, deploy, tag, PR, merge/rebase/reset, or force-push changed.
-```
-
-```text
-Date: 2026-07-09
-Task: T-200 - Notification ordering test expansion.
-Files changed: CustomerNotificationsFeatureTests, roadmap, current state, task ledger, and worklog.
-Checks: CustomerNotificationsStoreTests RED/GREEN; full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
-Result: Closes Q-14/R-014 by making same-timestamp customer notification ordering deterministic in Store tests, replacing the flaky mark-all read assertion with stable display-order expectations, and restoring the full iOS test gate to passing.
-Risks: No production Swift code, Supabase schema, migration, remote write, UI behavior, dependency, PR, tag, merge/rebase/reset, or force-push changed. Q-09/APNs dispatch remains externally blocked by missing Apple/APNs credentials.
 ```
