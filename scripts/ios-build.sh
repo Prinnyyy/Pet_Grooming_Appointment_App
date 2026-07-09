@@ -25,8 +25,19 @@ echo "Project: $project"
 echo "Scheme: $scheme"
 echo "Destination: $destination"
 
-xcodebuild \
+log_file="$(mktemp -t ios-build)"
+echo "Full log: $log_file"
+
+if xcodebuild \
   -project "$project" \
   -scheme "$scheme" \
   -destination "$destination" \
-  build
+  build > "$log_file" 2>&1; then
+  echo "BUILD SUCCEEDED"
+  grep -E "warning:" "$log_file" | sort -u | head -n 15 || true
+else
+  echo "BUILD FAILED"
+  grep -E "error:" "$log_file" | sort -u | head -n 40 || true
+  tail -n 30 "$log_file"
+  exit 1
+fi

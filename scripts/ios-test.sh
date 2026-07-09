@@ -29,8 +29,19 @@ echo "Project: $project"
 echo "Scheme: $scheme"
 echo "Destination: $destination"
 
-xcodebuild \
+log_file="$(mktemp -t ios-test)"
+echo "Full log: $log_file"
+
+if xcodebuild \
   -project "$project" \
   -scheme "$scheme" \
   -destination "$destination" \
-  test
+  test > "$log_file" 2>&1; then
+  echo "TEST SUCCEEDED"
+  grep -E "Test Suite|Executed .* tests" "$log_file" | tail -n 10 || true
+else
+  echo "TEST FAILED"
+  grep -E "error:|✘|failed|FAILED" "$log_file" | sort -u | head -n 60 || true
+  tail -n 40 "$log_file"
+  exit 1
+fi

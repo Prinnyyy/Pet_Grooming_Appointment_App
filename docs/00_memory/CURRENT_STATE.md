@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-09
 - Updated by: Codex
-- Latest completed task: T-222 Ideal-operation readiness rehearsal.
+- Latest completed task: T-223 Xcode script output filtering.
 - Current task: none; T-157 APNs remains externally blocked.
-- Next task ID: use T-223 unless the user resumes T-157 after Apple Developer Program upgrade.
+- Next task ID: use T-224 unless the user resumes T-157 after Apple Developer Program upgrade.
 
 ## Fast Path
 
@@ -32,8 +32,8 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Validation Baseline
 
-- Last validation: T-222 Supabase CLI help, TestOps unit/dry-runs, supabase-check, linked advisors, migration tests, iOS test/build, `git diff --check`, and context hygiene passed on 2026-07-09 with non-blocking advisor findings recorded.
-- Recent focused coverage: T-219 list pagination page-contract and Store paging behavior; T-220 notification RLS and service-role-only RPC negative contracts; T-221 local dual-role TestOps lifecycle planning and matching evidence; T-222 ideal-operation readiness rehearsal.
+- Last validation: T-223 `./scripts/ios-build.sh` passed with 7-line output, `./scripts/ios-test.sh` passed with 16-line output, expected invalid-destination test failure returned 1 with 47-line output, and `bash -n`, `git diff --check`, and context hygiene passed on 2026-07-09.
+- Recent focused coverage: T-219 pagination; T-220 notification negatives; T-221 dual-role planning; T-222 readiness rehearsal; T-223 Xcode script output filtering.
 - Last Supabase migration apply: T-160 applied `20260707191034_t160_account_deletion.sql` to `lqmasbuqzvcvtawonjlb` on 2026-07-07 and confirmed parity/RLS/grants/RPCs/advisors/deployment.
 - Prepared unapplied Supabase migration: T-203 `20260709073051_t203_groomer_notifications.sql` is local-only until explicit remote migration authorization.
 - Last TestOps unit validation: T-222 `./scripts/testops-unit.sh` passed 24 Node tests.
@@ -94,4 +94,4 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Next Recommended Task
 
-- Use T-223 next for the next user-chosen task. No unblocked roadmap execution queue item remains. T-203 migration remains local-only until explicit remote apply authorization. Q-90...Q-92 remain blocked on Apple/APNs/release or production SMTP credentials.
+- Use T-224 for Context Optimization Task B if continuing the external plan; otherwise use the next user-chosen task. No unblocked roadmap execution queue item remains. T-203 migration remains local-only until explicit remote apply authorization. Q-90...Q-92 remain blocked on Apple/APNs/release or production SMTP credentials.

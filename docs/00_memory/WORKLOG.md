@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-09
+Task: T-223 - Xcode script output filtering.
+Files changed: iOS build/test scripts, current state, task ledger, worklog, and structure log.
+Checks: `bash -n scripts/ios-build.sh scripts/ios-test.sh`; `./scripts/ios-build.sh` success with 7-line output; `./scripts/ios-test.sh` success with 16-line output; expected invalid-destination `ios-test.sh` failure returned 1 with 47-line output; `git diff --check`; context hygiene; commit and push.
+Result: Implements Context Optimization Task A by sending full `xcodebuild` output for build/test scripts to temp logs while printing bounded success/failure summaries and preserving exit-code semantics.
+Risks: Script-output filtering only. No Swift, Xcode project, workflow rule, Supabase schema, migration, remote write, seed, release upload, tag, PR, merge/rebase/reset, or force-push changed. Root `CONTEXT_OPTIMIZATION_TASK_PLAN.md` remains external plan input until the serial tasks are complete.
+Next: Use T-224 for Context Optimization Task B if continuing the external plan; otherwise use the next user-chosen task.
+```
+
+```text
+Date: 2026-07-09
 Task: T-222 - Ideal-operation readiness rehearsal.
 Files changed: Release readiness evidence, TestOps results index, roadmap execution queue, roadmap, current state, task ledger, and worklog.
 Checks: Supabase CLI version/help; TestOps unit; TestOps doctor dry-run; backend `marketplace_full_lifecycle` smoke5 dry-run; matching baseline dry-run; `./scripts/supabase-check.sh`; linked Supabase security/performance advisors; `node --test tests/migrations/*.test.mjs`; full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
 Result: Closes Q-33/R-029/M8 by recording the final local/read-only ideal-operation readiness rehearsal after Q-16 through Q-32. Local TestOps planning, matching projections, backend contracts, Supabase contract checks, linked advisors, iOS tests, and iOS build were exercised on the current branch.
 Risks: Advisors now report non-blocking findings: known Auth leaked-password protection WARN, `customer_push_tokens` RLS-without-policy INFO tied to externally blocked APNs work, and INFO-level index tuning findings. No Supabase schema, migration, remote write, seed, remote TestOps execute, Auth config, deploy, APNs dispatch, release upload, tag, PR, merge/rebase/reset, or force-push changed.
-Next: Use T-223 for the next user-chosen task. No unblocked V1.0 ideal-operation queue item remains; Q-90...Q-92 remain blocked on Apple/APNs/release or production SMTP credentials and explicit authorization.
 ```
 
 ```text
@@ -66,13 +75,4 @@ Files changed: appointment reminder scheduler, AppointmentReminderPlan tests, ro
 Checks: AppointmentReminderPlan RED/GREEN; full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
 Result: Closes Q-28/R-028 by adding focused reminder idempotence coverage for duplicate booking rows and making local appointment reminder planning dedupe by stable reminder identifier while preserving first valid reminder order.
 Risks: Local iOS planner/test hardening only. No Supabase schema, migration, remote write, repository API signature, UI layout redesign, Auth config, seed, TestOps remote execution, deploy, APNs dispatch, release upload, tag, PR, merge/rebase/reset, or force-push changed.
-```
-
-```text
-Date: 2026-07-09
-Task: T-215 - Republish hardening.
-Files changed: customer requests store, CustomerRequestsStore republish tests, roadmap, current state, task ledger, and worklog.
-Checks: CustomerRequestsStore RED/GREEN; full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
-Result: Closes Q-27/R-027 by making request-photo metadata failure non-blocking for loaded original requests, keeping cancelled/expired request details available for republish, skipping missing/oversized copied photos, resetting expired preferred windows to a future default range, and refusing cancelled-booking republish when the original request is unavailable.
-Risks: Local iOS store/test hardening only. No Supabase schema, migration, remote write, repository API signature, UI layout redesign, Auth config, seed, TestOps remote execution, deploy, APNs dispatch, release upload, tag, PR, merge/rebase/reset, or force-push changed.
 ```
