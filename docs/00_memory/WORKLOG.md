@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-08
+Task: T-174 - Decision log prearchive and governance review intake.
+Files changed: decision log, frozen decision snapshot, frozen external review plan, frozen indexes, roadmap, task ledger/archive, worklog/archive, current state, and structure log.
+Checks: `git diff --check`; `node scripts/context-hygiene-check.mjs`; decision-log word count; archive path checks; `git log` checks for `01c80e4` and `6d1da33`.
+Result: Batch A from the governance review fix plan is applied. `01c80e4` and `6d1da33` are recorded as a one-time historical exception, the active decision log is trimmed below 1500 words with a verbatim frozen snapshot, and the adopted root review plan is archived as external input.
+Risks: Docs/governance only. No history rewrite, commit, push, branch switch, iOS source, Supabase command, migration, runtime behavior, or simulator changed.
+Next: Use T-175 for batch B hygiene v4 unless the user chooses a different task.
+```
+
+```text
+Date: 2026-07-08
 Task: T-173 - Main governance divergence reconciliation.
 Files changed: GitHub rules, decision log, roadmap, task ledger/archive, worklog/archive, current state, and structure log.
 Checks: read-only `git show`/branch containment/ancestor checks for `2fddf7b`; `git diff --check`; `node scripts/context-hygiene-check.mjs`; targeted divergence search.
 Result: Main-only commit `2fddf7b` is reviewed and marked superseded. It should not be merged back because it resets docs to a T-049/T-050-era architecture, deletes active `GITHUB_RULES.md`, and reorganizes archives differently from the current governed model.
 Risks: Docs/git-governance only. No branch switch, merge, commit, push, iOS source, Supabase command, migration, runtime behavior, or simulator changed.
-Next: Use T-174 unless the user resumes T-157 after Apple Developer Program upgrade.
 ```
 
 ```text
@@ -84,13 +93,4 @@ Files changed: context hygiene script/tests, CONTEXT_AND_RECOVERY.md, frozen wor
 Checks: RED/GREEN `node --test tests/docs/context-hygiene-check.test.mjs`; `node scripts/context-hygiene-check.mjs`; `git diff --check`.
 Result: Hygiene now detects branch/latest/next task drift, rolling-window overflow, active Markdown total budget, expanded file budgets, and missing `rg` without TypeError.
 Risks: Docs/workflow tooling only. No iOS source, Supabase command, migration, runtime behavior, simulator, commit, or push changed.
-```
-
-```text
-Date: 2026-07-07
-Task: T-164 - Backend contract catch-up.
-Files changed: SUPABASE_CONTRACT.md, RLS_RPC_POLICY.md, memory docs.
-Checks: `git diff --check`; `node scripts/context-hygiene-check.mjs`; targeted migration-object reference search.
-Result: Active backend contract indexes now cover T-153 through T-160 customer notification, handoff, APNs foundation, account deletion, automation, Edge Function, and controlled/service-role RPC facts.
-Risks: Docs-only. No Supabase remote command, migration, iOS source, runtime behavior, simulator, commit, or push changed.
 ```

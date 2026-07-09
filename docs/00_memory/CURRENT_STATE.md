@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-08
 - Updated by: Codex
-- Latest completed task: T-173 Main governance divergence reconciliation.
+- Latest completed task: T-174 Decision log prearchive and governance review intake.
 - Current task: none active; T-157 APNs deployment remains externally blocked.
-- Next task ID: use T-174 unless the user resumes T-157 after Apple Developer Program upgrade.
+- Next task ID: use T-175 unless the user resumes T-157 after Apple Developer Program upgrade.
 
 ## Fast Path
 
@@ -43,7 +43,7 @@ Frozen history lives under `docs/09_frozen/`.
 - Prepared unapplied Supabase migration: none known by `supabase migration list --linked`; post-apply dry-run requires `SUPABASE_DB_PASSWORD`.
 - Last TestOps unit validation: T-145 `./scripts/testops-unit.sh` passed 24 Node tests.
 - Last remote TestOps run: T-155 authorized `matching_baseline` run `TESTOPS-T155-MATCH-20260706-*` passed 8/8 and cleanup left zero tagged request/match residue.
-- Last docs/workflow validation: T-173 read-only main divergence git review, `git diff --check`, context hygiene, and targeted divergence search passed on 2026-07-08.
+- Last docs/workflow validation: T-174 decision-log snapshot/trim, `git diff --check`, context hygiene, decision-log word count, archive path checks, and git-history checks passed on 2026-07-08.
 - Known validation failure: full `./scripts/ios-test.sh` is currently blocked by the existing T-153 customer notification same-timestamp ordering test, not by T-162 cancellation repost work.
 
 ## Active Product State
@@ -61,6 +61,7 @@ Frozen history lives under `docs/09_frozen/`.
 - Periodic documentation-governance reviews use `docs/06_tasks/META_REVIEW_TEMPLATE.md` every 10 completed tasks or weekly.
 - Changes to `AGENTS.md`, `CLAUDE.md`, or `docs/05_workflow/**` must be standalone numbered tasks with a decision-log entry and context hygiene.
 - Main reconciliation: `2fddf7b` is reviewed/superseded. Future alignment should carry this branch's governed docs forward or cherry-pick only explicitly reviewed non-stale changes.
+- Decision log is an active index backed by frozen snapshots. The pre-T-174 full text lives in `docs/09_frozen/decisions/DECISION_LOG_2026-07-08_PRE_T174_TRIM.md`.
 - Default `rg` searches honor `.rgignore`; do not use broad `rg --files -g '*.md'` as the default Markdown inventory.
 - Do not read full `WORKLOG.md`, full `TASK_LEDGER.md`, frozen archives, Groomly HTML/export, or T-129 seed tables by default.
 - After durable memory, ledger, workflow, or coordination-doc changes, run `node scripts/context-hygiene-check.mjs`; it now checks budgets plus last-verified freshness, migration mirror count, ROADMAP/ledger evidence, and Feature Index paths.
@@ -87,4 +88,4 @@ Frozen history lives under `docs/09_frozen/`.
 
 ## Next Recommended Task
 
-- Use T-174 next unless resuming T-157 after Apple Developer credentials. Suggested product candidate: realtime chat.
+- Use T-175 next unless resuming T-157 after Apple Developer credentials. Suggested governance candidate: batch B hygiene v4 from the archived review fix plan; product candidate remains realtime chat.

@@ -17,6 +17,7 @@ This file is the first stop when a path is unclear. It records the current folde
 - `docs/09_frozen/current_state_snapshots/`: pre-trim snapshots of active current-state memory.
 - `docs/09_frozen/worklogs/`: archived verbatim worklog history moved out of the active worklog.
 - `docs/09_frozen/task_ledgers/`: archived completed task-ledger rows moved out of the active ledger.
+- `docs/09_frozen/decisions/`: archived verbatim decision-log snapshots moved out of the active decision index.
 - `docs/09_frozen/backend_contracts/`: archived long-form backend contract snapshots moved out of the active fast-path backend contract.
 - `docs/09_frozen/backend_policies/`: archived pre-trim backend policy/runbook snapshots moved out of active backend context.
 - `docs/09_frozen/feature_indexes/`: archived pre-trim feature index snapshots moved out of active memory context.
@@ -56,6 +57,7 @@ This file is the first stop when a path is unclear. It records the current folde
 - Current task state: `docs/00_memory/CURRENT_STATE.md`.
 - Active/recent task ledger: `docs/06_tasks/TASK_LEDGER.md`.
 - Archived task ledger rows: `docs/09_frozen/task_ledgers/`.
+- Archived decision snapshots: `docs/09_frozen/decisions/`.
 - Archived worklog history: `docs/09_frozen/worklogs/`.
 - Archived current-state snapshots: `docs/09_frozen/current_state_snapshots/`.
 - Frozen detailed task records: `docs/09_frozen/task_records_2026-06-26/`.

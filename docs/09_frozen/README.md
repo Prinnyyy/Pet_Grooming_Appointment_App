@@ -19,6 +19,7 @@ Archived files may contain old TODOs, old paths, old branch/task references, or 
 - `current_state_snapshots/`: pre-trim snapshots of active `CURRENT_STATE.md` before context-footprint cleanup.
 - `worklogs/`: verbatim archived worklog entries moved out of active `docs/00_memory/WORKLOG.md`.
 - `task_ledgers/`: archived completed task-ledger rows moved out of active `docs/06_tasks/TASK_LEDGER.md`.
+- `decisions/`: verbatim decision-log snapshots moved out of active `docs/07_decisions/DECISION_LOG.md`.
 - `backend_contracts/`: archived long-form `docs/03_backend/SUPABASE_CONTRACT.md` snapshots moved out of the active fast-path backend contract.
 - `backend_policies/`: archived pre-trim backend policy/runbook files such as RLS/RPC, Storage, and migration rules.
 - `feature_indexes/`: archived pre-trim feature index snapshots moved out of the active routing index.

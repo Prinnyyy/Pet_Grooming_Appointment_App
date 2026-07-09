@@ -31,6 +31,7 @@ Validation for the task is recorded in `../06_tasks/TASK_LEDGER.md` and `../00_m
 
 | Date | Task | Summary | Detail |
 |---|---|---|---|
+| 2026-07-08 | T-174 | Snapshotted and trimmed the active decision log, archived the adopted governance review fix plan, and rolled T-160/T-164 ledger/worklog entries to frozen. | `../09_frozen/decisions/`, `../09_frozen/external_agent_reports/`, `../09_frozen/task_ledgers/`, `../09_frozen/worklogs/` |
 | 2026-07-08 | T-173 | Recorded `main` commit `2fddf7b` as superseded and rolled T-159 ledger row plus T-163 worklog entry to frozen. | `../05_workflow/GITHUB_RULES.md`, `../09_frozen/task_ledgers/`, `../09_frozen/worklogs/` |
 | 2026-07-08 | T-172 | Added standalone rule-change process and rolled T-158 ledger row plus T-162 worklog entry to frozen. | `../05_workflow/SINGLE_AGENT_WORKFLOW.md`, `../09_frozen/task_ledgers/`, `../09_frozen/worklogs/` |
 | 2026-07-08 | T-171 | Added periodic meta-review template and rolled T-156 ledger row plus T-161 worklog entry to frozen. | `../06_tasks/META_REVIEW_TEMPLATE.md`, `../09_frozen/task_ledgers/`, `../09_frozen/worklogs/` |

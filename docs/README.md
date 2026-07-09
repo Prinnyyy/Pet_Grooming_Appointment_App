@@ -39,7 +39,7 @@ Default searches honor `../.rgignore`. Do not use broad `rg --files -g '*.md'` a
 - Git/GitHub rules: `05_workflow/GITHUB_RULES.md`
 - Stop conditions: `05_workflow/STOP_CONDITIONS.md`
 - Context hygiene check: `../scripts/context-hygiene-check.mjs`
-- Durable decisions: `07_decisions/DECISION_LOG.md`
+- Durable decisions: `07_decisions/DECISION_LOG.md`; frozen full snapshots: `09_frozen/decisions/`
 - Project structure map: `10_project_structure/README.md`
 - Test resource index: `02_architecture/test_resources/README.md`
 - TestOps index: `04_ios/testops/README.md`
