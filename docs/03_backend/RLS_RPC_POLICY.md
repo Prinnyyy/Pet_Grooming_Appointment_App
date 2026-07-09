@@ -76,6 +76,8 @@ Every backend access change must cover the relevant negative cases:
 - Authenticated users cannot execute service-role push delivery or account deletion finalization RPCs.
 - Storage metadata and table predicates must agree with bucket object policies when files are involved.
 
+Current notification negative-test evidence: `../06_tasks/sql_reviews/T-220_NOTIFICATION_RLS_NEGATIVE_CONTRACT.sql` plus `../../tests/migrations/notification-rls-negative-contract.test.mjs`.
+
 ## Update Rules
 
 - Exact SQL, signatures, constraints, policies, grants, and function bodies belong in `../../supabase/migrations/`.

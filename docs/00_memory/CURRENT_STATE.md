@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-09
 - Updated by: Codex
-- Latest completed task: T-219 List pagination/load audit.
+- Latest completed task: T-220 Backend contract negatives.
 - Current task: none; T-157 APNs remains externally blocked.
-- Next task ID: use T-220 unless the user resumes T-157 after Apple Developer Program upgrade.
+- Next task ID: use T-221 unless the user resumes T-157 after Apple Developer Program upgrade.
 
 ## Fast Path
 
@@ -32,8 +32,8 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Validation Baseline
 
-- Last validation: T-219 full `./scripts/ios-test.sh`, `./scripts/ios-build.sh`, `git diff --check`, and context hygiene passed on 2026-07-09.
-- Recent focused coverage: T-216 reminder idempotence; T-217 sign-up redirect URL, callback sign-in, callback error fragments, and malformed callback rejection; T-219 list pagination page-contract and Store paging behavior.
+- Last validation: T-220 notification negative RED/GREEN, all migration Node tests, `./scripts/supabase-check.sh`, `git diff --check`, and context hygiene passed on 2026-07-09.
+- Recent focused coverage: T-217 sign-up redirect URL, callback sign-in, callback error fragments, and malformed callback rejection; T-219 list pagination page-contract and Store paging behavior; T-220 notification RLS and service-role-only RPC negative contracts.
 - Last Supabase migration apply: T-160 applied `20260707191034_t160_account_deletion.sql` to `lqmasbuqzvcvtawonjlb` on 2026-07-07 and confirmed parity/RLS/grants/RPCs/advisors/deployment.
 - Prepared unapplied Supabase migration: T-203 `20260709073051_t203_groomer_notifications.sql` is local-only until explicit remote migration authorization.
 - Last TestOps unit validation: T-201 `./scripts/testops-unit.sh` passed 24 Node tests.
@@ -61,7 +61,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - Startup reads stay minimal: `AGENTS.md`, then targeted current-state/task-ledger sections only when needed.
 - Periodic documentation-governance reviews use `docs/06_tasks/META_REVIEW_TEMPLATE.md` every 10 completed tasks or weekly.
 - Last meta-review: T-218 on 2026-07-09.
-- V1.0 ideal-operation packages are adopted in `docs/06_tasks/ROADMAP_EXECUTION_QUEUE.md`; Q-16...Q-30 are complete, and sequencing continues at Q-31.
+- V1.0 ideal-operation packages are adopted in `docs/06_tasks/ROADMAP_EXECUTION_QUEUE.md`; Q-16...Q-31 are complete, and sequencing continues at Q-32.
 - Changes to `AGENTS.md`, `CLAUDE.md`, or `docs/05_workflow/**` must be standalone numbered tasks with a decision-log entry and context hygiene.
 - T-180 records standing user approval for task-completion Git commit and push. This approval is limited to current-task changes after validation passes; T-186 requires stopping without auto pull/rebase/merge/reset/force-push if the push fails or is rejected.
 - T-184 keeps active Markdown under a 36k hard limit, 95% structural-review warning, and deterministic `node scripts/context-rotate.mjs` archive rotation.
@@ -94,4 +94,4 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Next Recommended Task
 
-- Use T-220 next. Recommended package is Q-31 backend contract negatives. T-203 migration remains local-only until explicit remote apply authorization. Q-90...Q-92 remain blocked on Apple/APNs/release or production SMTP credentials.
+- Use T-221 next. Recommended package is Q-32 dual-role E2E walkthrough. T-203 migration remains local-only until explicit remote apply authorization. Q-90...Q-92 remain blocked on Apple/APNs/release or production SMTP credentials.
