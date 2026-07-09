@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-09
 - Updated by: Codex
-- Latest completed task: T-193 Email deep-link and SMTP design.
-- Current task: none active; T-157 APNs deployment remains externally blocked.
-- Next task ID: use T-194 unless the user resumes T-157 after Apple Developer Program upgrade.
+- Latest completed task: T-194 Realtime foreground chat.
+- Current task: none active; T-157 APNs remains externally blocked.
+- Next task ID: use T-195 unless the user resumes T-157 after Apple Developer Program upgrade.
 
 ## Fast Path
 
@@ -16,15 +16,15 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - Managed roadmap: `docs/06_tasks/ROADMAP.md`.
 - Roadmap execution queue: `docs/06_tasks/ROADMAP_EXECUTION_QUEUE.md`.
 - Private image rendering audit: `docs/04_ios/PRIVATE_IMAGE_RENDERING_AUDIT.md`.
-- Recent closeouts: `docs/00_memory/WORKLOG.md`.
-- Canonical decision log: `docs/07_decisions/DECISION_LOG.md`.
+- Closeouts: `docs/00_memory/WORKLOG.md`.
+- Decisions: `docs/07_decisions/DECISION_LOG.md`.
 - Feature routing: `docs/00_memory/FEATURE_INDEX.md`.
 - Workflow: `docs/05_workflow/SINGLE_AGENT_WORKFLOW.md`.
-- Context/recovery/budgets: `docs/05_workflow/CONTEXT_AND_RECOVERY.md`.
+- Context/recovery: `docs/05_workflow/CONTEXT_AND_RECOVERY.md`.
 - Tooling/validation/remote writes: `docs/05_workflow/TOOLING_POLICY.md`.
 - Git/GitHub rules: `docs/05_workflow/GITHUB_RULES.md`.
 - Context hygiene command: `node scripts/context-hygiene-check.mjs`.
-- Frozen archive guide: `docs/09_frozen/README.md`.
+- Frozen archives: `docs/09_frozen/README.md`.
 
 Frozen history lives under `docs/09_frozen/`.
 
@@ -32,14 +32,14 @@ Frozen history lives under `docs/09_frozen/`.
 
 - Current branch baseline: `codex/pet-fit-structure-cleanup`.
 - GitHub repository: `Prinnyyy/Pet_Grooming_Appointment_App`.
-- Continue implementation, documentation, commit, and push work from this branch unless the user explicitly names another branch.
+- Continue implementation, docs, commit, and push work from this branch unless the user names another branch.
 - Do not treat `main` as the current work baseline. T-173 reviewed main-only commit `2fddf7b`; it is superseded and must not be merged back into this branch.
 - Standing Git approval is active: after required validation passes, commit and push each completed task's own changes on this branch automatically.
-- PRs, tags, branch deletion, merge/rebase/reset, seeds, unrelated cleanup, migrations, Supabase writes, repository-setting changes, and other non-Git remote writes still require explicit user approval.
+- PRs, tags, branch deletion, merge/rebase/reset, seeds, migrations, Supabase writes, repository settings, and other non-Git remote writes still require approval.
 
 ## Validation Baseline
 
-- Last iOS build: XcodeBuildMCP `build_sim` passed on 2026-07-09 during T-192 closeout.
+- Last iOS build: `./scripts/ios-build.sh` passed on 2026-07-09 during T-194 closeout.
 - Last full iOS test attempt: `./scripts/ios-test.sh` on 2026-07-07 failed the known T-153 same-timestamp notification ordering assertion; UI smoke tests passed 3/3, and targeted `AuthenticationStoreTests` passed afterward.
 - Last Supabase migration apply: authorized `supabase db push --linked` applied `20260707191034_t160_account_deletion.sql` to project `lqmasbuqzvcvtawonjlb` on 2026-07-07.
 - Last Supabase live post-apply validation: T-160 confirmed migration parity for `20260707191034`, account deletion metadata/RLS/grants/RPCs, advisors, and active `delete-account` deployment with JWT verification. Post-apply dry-run/lint still need `SUPABASE_DB_PASSWORD`.
@@ -47,15 +47,16 @@ Frozen history lives under `docs/09_frozen/`.
 - Last TestOps unit validation: T-145 `./scripts/testops-unit.sh` passed 24 Node tests.
 - Last remote TestOps run: T-155 authorized `matching_baseline` run `TESTOPS-T155-MATCH-20260706-*` passed 8/8 and cleanup left zero tagged request/match residue.
 - Last private image work: T-191 completed groomer portfolio loading/unavailable presentation; T-190 completed customer request wizard pet-photo avatars and request-photo unavailable states; T-189 added the shared loader/cache.
-- Last docs/workflow validation: T-193 email deep-link/SMTP design, context hygiene, and `git diff --check` passed on 2026-07-09.
+- Last focused feature validation: T-194 focused ChatStoreTests passed on 2026-07-09.
+- Last docs validation: T-194 context hygiene and `git diff --check` passed on 2026-07-09.
 - Known validation failure: full `./scripts/ios-test.sh` is currently blocked by the existing T-153 customer notification same-timestamp ordering test, not by T-162 cancellation repost work.
 
 ## Active Product State
 
 - MVP marketplace flow is complete at the current contract level: customer request -> groomer offers -> customer accepts -> booking/chat -> groomer completes -> customer reviews.
-- Production uses real Supabase Auth, authoritative profile loading, and customer/groomer role separation. No production path fabricates a session/profile.
+- Production uses real Supabase Auth, authoritative profile loading, and role separation. No production path fabricates a session/profile.
 - Auth email/deep-link design is documented; Q-07 waits for production auth domain and SMTP credentials.
-- Implemented iOS areas include Auth, role onboarding, customer pets, customer requests/offers, customer in-app notifications, groomer requests/offers, groomer submitted-offer tracking, bookings, text chat, groomer profile/services/portfolio, Customer Account profile settings, Debug Console, and TestOps support.
+- Implemented iOS areas include Auth, role onboarding, customer pets, customer requests/offers, customer in-app notifications, groomer requests/offers, groomer submitted-offer tracking, bookings, text chat with foreground realtime message refresh, groomer profile/services/portfolio, Customer Account profile settings, Debug Console, and TestOps support.
 - Private Storage images use authenticated `.download(path:)` behind `PrivateImageLoader`; shared cache hashes paths and clears on local account cleanup.
 - Customers can create a new request from cancelled requests/bookings via explicit republish. Unpublished request wizard drafts are sheet-ephemeral: cancel/dismiss discards them, while publish failure preserves input for correction.
 - Groomly UI adaptation is complete for implemented MVP screens. Future UI work is screenshot-driven and must map screenshot modules to existing SwiftUI/Store/repository/model paths or stop for new-feature approval.
@@ -90,7 +91,7 @@ Frozen history lives under `docs/09_frozen/`.
 - Backend policy files are now current-rule indexes; use migrations or frozen pre-trim snapshots for detailed historical trace.
 - Historical briefs, Groomly prompts, pre-slim notes, removed pointers/templates, Claude snapshots, and external audits are frozen under `docs/09_frozen/`. T-185 moved remaining root external drafts into `docs/09_frozen/external_agent_reports/`. Active entrypoints are ROADMAP, PRODUCT_BRIEF, DESIGN_SYSTEM, UI_IMPLEMENTATION_NOTES, DECISION_LOG, CLAUDE, and workflow/task docs. External reports are review input only.
 - T-129 seed profile Markdown files are machine-readable parser inputs and excluded from default search. Do not reformat or archive them without updating scripts/tests.
-- Deferred unless explicitly requested: public directory, direct booking, payments, realtime chat, attachments, maps/calendar integrations, moderation/disputes, admin tooling.
+- Deferred unless explicitly requested: public directory, direct booking, payments, chat attachments/read receipts, maps/calendar integrations, moderation/disputes, admin tooling.
 - Customer in-app notifications are active. T-157 APNs database/iOS foundation is remotely applied; push dispatch waits for Apple Developer credentials and APNs secrets.
 - Large Swift context risks remain `CustomerRequestsView.swift` and `GroomerProfileManagementView.swift`; split only in a dedicated Standard refactor task.
 - Active cross-task risks: known T-153 notification ordering test failure, T-157 APNs deployment block, T-160 Privacy/Support URL blockers, and T-162 cancelled-booking repost dependency on loading the original request.
@@ -98,4 +99,4 @@ Frozen history lives under `docs/09_frozen/`.
 
 ## Next Recommended Task
 
-- Use T-194 next. Q-07 is blocked until auth domain/SMTP inputs exist; next unblocked package is Q-08/R-008 realtime foreground chat.
+- Use T-195 next. Q-09/APNs dispatch remains blocked until Apple/APNs credentials exist; next unblocked package is Q-10/R-010 Privacy and Support URLs.

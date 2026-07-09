@@ -15,6 +15,9 @@ final class ChatStore {
     private(set) var isLoadingConversations = false
     private(set) var loadingConversationIDs: Set<UUID> = []
     private(set) var sendingConversationIDs: Set<UUID> = []
+    private var messageSubscriptionTasks: [UUID: Task<Void, Never>] = [:]
+    private var messageSubscriptionIDs: [UUID: UUID] = [:]
+    private var startingMessageSubscriptionIDs: Set<UUID> = []
 
     var errorMessage: String?
     var noticeMessage: String?
@@ -230,6 +233,91 @@ final class ChatStore {
         }
     }
 
+    func startMessageSubscription(for conversation: ChatConversation) async {
+        guard messageSubscriptionTasks[conversation.id] == nil,
+              !startingMessageSubscriptionIDs.contains(conversation.id) else {
+            return
+        }
+
+        let startedAt = Date()
+        let metadata = ["conversationID": conversation.id.uuidString]
+        recordStoreStart("startMessageSubscription", metadata: metadata)
+        startingMessageSubscriptionIDs.insert(conversation.id)
+        defer { startingMessageSubscriptionIDs.remove(conversation.id) }
+
+        do {
+            let stream = try await repository.messageEvents(
+                conversationID: conversation.id
+            )
+            let subscriptionID = UUID()
+            messageSubscriptionIDs[conversation.id] = subscriptionID
+            messageSubscriptionTasks[conversation.id] = Task { [weak self] in
+                for await message in stream {
+                    guard !Task.isCancelled else { break }
+                    self?.receiveMessageEvent(
+                        message,
+                        expectedConversationID: conversation.id
+                    )
+                }
+                self?.finishMessageSubscription(
+                    conversationID: conversation.id,
+                    subscriptionID: subscriptionID
+                )
+            }
+            recordStoreSuccess(
+                "startMessageSubscription",
+                startedAt: startedAt,
+                metadata: metadata
+            )
+        } catch ChatRepositoryError.cancelled {
+            recordStoreCancelled("startMessageSubscription", startedAt: startedAt)
+        } catch let error as ChatRepositoryError {
+            recordStoreFailure(
+                "startMessageSubscription",
+                error: error,
+                mappedMessage: nil,
+                startedAt: startedAt
+            )
+        } catch where AppDebugErrorClassifier.isCancellation(error) {
+            recordStoreCancelled("startMessageSubscription", startedAt: startedAt)
+        } catch {
+            recordStoreFailure(
+                "startMessageSubscription",
+                error: error,
+                mappedMessage: nil,
+                startedAt: startedAt
+            )
+        }
+    }
+
+    func stopMessageSubscription(for conversationID: UUID) {
+        guard let task = messageSubscriptionTasks.removeValue(forKey: conversationID) else {
+            return
+        }
+        messageSubscriptionIDs.removeValue(forKey: conversationID)
+        task.cancel()
+        recordStoreInfo(
+            "stopMessageSubscription",
+            message: "stopped",
+            metadata: ["conversationID": conversationID.uuidString]
+        )
+    }
+
+    func stopAllMessageSubscriptions() {
+        guard !messageSubscriptionTasks.isEmpty else { return }
+        let count = messageSubscriptionTasks.count
+        for task in messageSubscriptionTasks.values {
+            task.cancel()
+        }
+        messageSubscriptionTasks.removeAll()
+        messageSubscriptionIDs.removeAll()
+        recordStoreInfo(
+            "stopAllMessageSubscriptions",
+            message: "stopped",
+            metadata: ["subscriptionCount": "\(count)"]
+        )
+    }
+
     private func append(_ message: ChatMessage) {
         var messages = messagesByConversationID[message.conversationID] ?? []
         guard !messages.contains(where: { $0.id == message.id }) else { return }
@@ -241,6 +329,40 @@ final class ChatStore {
             return $0.createdAt < $1.createdAt
         }
         messagesByConversationID[message.conversationID] = messages
+    }
+
+    private func receiveMessageEvent(
+        _ message: ChatMessage,
+        expectedConversationID: UUID
+    ) {
+        guard message.conversationID == expectedConversationID else { return }
+        let previousCount = messagesByConversationID[message.conversationID]?.count ?? 0
+        append(message)
+        let currentCount = messagesByConversationID[message.conversationID]?.count ?? 0
+        recordStoreInfo(
+            "messageEvent",
+            message: currentCount == previousCount ? "duplicate ignored" : "received",
+            metadata: [
+                "conversationID": message.conversationID.uuidString,
+                "messageID": message.id.uuidString,
+            ]
+        )
+    }
+
+    private func finishMessageSubscription(
+        conversationID: UUID,
+        subscriptionID: UUID
+    ) {
+        guard messageSubscriptionIDs[conversationID] == subscriptionID else {
+            return
+        }
+        messageSubscriptionIDs.removeValue(forKey: conversationID)
+        messageSubscriptionTasks.removeValue(forKey: conversationID)
+        recordStoreInfo(
+            "messageSubscriptionFinished",
+            message: "finished",
+            metadata: ["conversationID": conversationID.uuidString]
+        )
     }
 
     private static func normalizedPreview(_ value: String?) -> String? {
@@ -326,6 +448,23 @@ final class ChatStore {
             underlyingError: error,
             durationMs: Int(Date().timeIntervalSince(startedAt) * 1_000),
             metadata: ["operation": operation]
+        )
+    }
+
+    private func recordStoreInfo(
+        _ operation: String,
+        message: String,
+        metadata: [String: String] = [:]
+    ) {
+        var eventMetadata = metadata
+        eventMetadata["operation"] = operation
+        debugRecorder?.record(
+            level: .info,
+            category: .store,
+            source: "ChatStore.\(operation)",
+            scope: debugScope,
+            message: message,
+            metadata: eventMetadata
         )
     }
 

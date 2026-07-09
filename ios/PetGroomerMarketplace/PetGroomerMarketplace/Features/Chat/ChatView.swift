@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct ChatConversationsView: View {
+    @Environment(\.scenePhase) private var scenePhase
     private let participantID: UUID
     private let role: UserRole
     @Binding private var focusedBookingID: UUID?
@@ -54,6 +55,13 @@ struct ChatConversationsView: View {
         .task {
             await store.loadConversations()
             openFocusedConversationIfPossible()
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            guard newPhase == .active else { return }
+            Task {
+                await store.loadConversations()
+                openFocusedConversationIfPossible()
+            }
         }
         .onChange(of: focusedBookingID) { _, _ in
             guard focusedBookingID != nil else { return }
@@ -226,6 +234,7 @@ private struct CustomerMessagesTitle: View {
 
 private struct ChatThreadView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.scenePhase) private var scenePhase
     let participantID: UUID
     let role: UserRole
     let conversation: ChatConversation
@@ -272,6 +281,25 @@ private struct ChatThreadView: View {
         }
         .task(id: conversation.id) {
             await store.loadMessages(for: conversation)
+            await store.startMessageSubscription(for: conversation)
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            switch newPhase {
+            case .active:
+                Task {
+                    await store.loadMessages(for: conversation)
+                    await store.startMessageSubscription(for: conversation)
+                }
+            case .background:
+                store.stopMessageSubscription(for: conversation.id)
+            case .inactive:
+                break
+            @unknown default:
+                break
+            }
+        }
+        .onDisappear {
+            store.stopMessageSubscription(for: conversation.id)
         }
         .background {
             ChatStatusView(store: store, role: role)
@@ -831,6 +859,14 @@ private final class ChatPreviewRepository: ChatRepository {
             body: body,
             createdAt: "2026-06-21T05:02:00Z"
         )
+    }
+
+    func messageEvents(
+        conversationID: UUID
+    ) async throws -> AsyncStream<ChatMessage> {
+        AsyncStream { continuation in
+            continuation.finish()
+        }
     }
 }
 #endif

@@ -25,4 +25,8 @@ protocol ChatRepository: AnyObject {
         senderID: UUID,
         body: String
     ) async throws -> ChatMessage
+
+    func messageEvents(
+        conversationID: UUID
+    ) async throws -> AsyncStream<ChatMessage>
 }

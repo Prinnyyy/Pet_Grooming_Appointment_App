@@ -113,6 +113,47 @@ final class SupabaseChatRepository: ChatRepository {
         }
     }
 
+    func messageEvents(
+        conversationID: UUID
+    ) async throws -> AsyncStream<ChatMessage> {
+        do {
+            let normalizedConversationID = conversationID.uuidString.lowercased()
+            let channel = client.channel("messages:\(normalizedConversationID)")
+            let insertStream = channel.postgresChange(
+                InsertAction.self,
+                table: "messages",
+                filter: .eq("conversation_id", value: normalizedConversationID)
+            )
+
+            try await channel.subscribeWithError()
+
+            let client = self.client
+            return AsyncStream { continuation in
+                let task = Task {
+                    for await action in insertStream {
+                        guard !Task.isCancelled else { break }
+                        if let row = try? action.decodeRecord(
+                            as: ChatMessageRow.self,
+                            decoder: JSONDecoder()
+                        ) {
+                            continuation.yield(row.message)
+                        }
+                    }
+                    continuation.finish()
+                }
+
+                continuation.onTermination = { _ in
+                    task.cancel()
+                    Task {
+                        await client.removeChannel(channel)
+                    }
+                }
+            }
+        } catch {
+            throw Self.map(error)
+        }
+    }
+
     private static func map(_ error: any Error) -> ChatRepositoryError {
         if AppDebugErrorClassifier.isCancellation(error) {
             return .cancelled

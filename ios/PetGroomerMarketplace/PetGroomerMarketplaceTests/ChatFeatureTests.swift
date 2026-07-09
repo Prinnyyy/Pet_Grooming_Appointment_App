@@ -200,6 +200,122 @@ struct ChatStoreTests {
         #expect(store.noticeMessage == nil)
     }
 
+    @Test @MainActor
+    func messageSubscriptionAppendsRemoteMessagesAndDeduplicates() async throws {
+        let conversation = Self.conversation(latestMessageBody: "Original preview")
+        let remoteMessage = Self.message(
+            id: UUID(uuidString: "33333333-3333-4333-8333-333333333333")!,
+            conversationID: conversation.id,
+            senderID: conversation.groomerID,
+            body: "Remote hello"
+        )
+        let repository = ChatRepositoryFake()
+        let store = ChatStore(
+            participantID: conversation.customerID,
+            role: .customer,
+            repository: repository
+        )
+
+        await store.startMessageSubscription(for: conversation)
+        repository.yieldMessageEvent(remoteMessage)
+        repository.yieldMessageEvent(remoteMessage)
+        try await Self.waitForMessages([remoteMessage], in: store, conversationID: conversation.id)
+
+        #expect(repository.messageEventsCallCount == 1)
+        #expect(repository.lastMessageEventsConversationID == conversation.id)
+        #expect(store.messages(for: conversation.id) == [remoteMessage])
+        #expect(store.previewText(for: conversation) == "Remote hello")
+    }
+
+    @Test @MainActor
+    func startingSameMessageSubscriptionTwiceKeepsSingleStream() async throws {
+        let conversation = Self.conversation()
+        let repository = ChatRepositoryFake()
+        let store = ChatStore(
+            participantID: conversation.customerID,
+            role: .customer,
+            repository: repository
+        )
+
+        await store.startMessageSubscription(for: conversation)
+        await store.startMessageSubscription(for: conversation)
+
+        #expect(repository.messageEventsCallCount == 1)
+    }
+
+    @Test @MainActor
+    func stoppingMessageSubscriptionIgnoresLaterEvents() async throws {
+        let conversation = Self.conversation()
+        let firstMessage = Self.message(
+            id: UUID(uuidString: "44444444-4444-4444-8444-444444444444")!,
+            conversationID: conversation.id,
+            body: "Before stop"
+        )
+        let laterMessage = Self.message(
+            id: UUID(uuidString: "55555555-5555-4555-8555-555555555555")!,
+            conversationID: conversation.id,
+            body: "After stop"
+        )
+        let repository = ChatRepositoryFake()
+        let store = ChatStore(
+            participantID: conversation.customerID,
+            role: .customer,
+            repository: repository
+        )
+
+        await store.startMessageSubscription(for: conversation)
+        repository.yieldMessageEvent(firstMessage)
+        try await Self.waitForMessages([firstMessage], in: store, conversationID: conversation.id)
+
+        store.stopMessageSubscription(for: conversation.id)
+        repository.yieldMessageEvent(laterMessage)
+        try await Task.sleep(nanoseconds: 25_000_000)
+
+        #expect(store.messages(for: conversation.id) == [firstMessage])
+    }
+
+    @Test @MainActor
+    func finishedMessageSubscriptionCanBeStartedAgain() async throws {
+        let conversation = Self.conversation()
+        let repository = ChatRepositoryFake()
+        let store = ChatStore(
+            participantID: conversation.customerID,
+            role: .customer,
+            repository: repository
+        )
+
+        await store.startMessageSubscription(for: conversation)
+        repository.finishMessageEvents()
+
+        for _ in 0..<20 {
+            await store.startMessageSubscription(for: conversation)
+            if repository.messageEventsCallCount == 2 {
+                break
+            }
+            try await Task.sleep(nanoseconds: 10_000_000)
+        }
+
+        #expect(repository.messageEventsCallCount == 2)
+    }
+
+    @Test @MainActor
+    func messageSubscriptionFailureDoesNotShowUserFacingError() async throws {
+        let conversation = Self.conversation()
+        let repository = ChatRepositoryFake(
+            messageEventsResult: .failure(.networkUnavailable)
+        )
+        let store = ChatStore(
+            participantID: conversation.customerID,
+            role: .customer,
+            repository: repository
+        )
+
+        await store.startMessageSubscription(for: conversation)
+
+        #expect(repository.messageEventsCallCount == 1)
+        #expect(store.errorMessage == nil)
+    }
+
     @Test
     func conversationReferencesAreShortAndRoleSpecific() {
         let conversation = Self.conversation(
@@ -279,6 +395,21 @@ struct ChatStoreTests {
             createdAt: "2026-06-21T05:01:00Z"
         )
     }
+
+    @MainActor
+    private static func waitForMessages(
+        _ expectedMessages: [ChatMessage],
+        in store: ChatStore,
+        conversationID: UUID
+    ) async throws {
+        for _ in 0..<20 {
+            if store.messages(for: conversationID) == expectedMessages {
+                return
+            }
+            try await Task.sleep(nanoseconds: 10_000_000)
+        }
+        #expect(store.messages(for: conversationID) == expectedMessages)
+    }
 }
 
 @MainActor
@@ -286,6 +417,7 @@ private final class ChatRepositoryFake: ChatRepository {
     var conversationsResult: Result<[ChatConversation], ChatRepositoryError>
     var messagesResult: Result<[ChatMessage], ChatRepositoryError>
     var sendResult: Result<ChatMessage, ChatRepositoryError>
+    var messageEventsResult: Result<Void, ChatRepositoryError>
 
     private(set) var conversationsCallCount = 0
     private(set) var messagesCallCount = 0
@@ -296,17 +428,22 @@ private final class ChatRepositoryFake: ChatRepository {
     private(set) var lastSentConversationID: UUID?
     private(set) var lastSenderID: UUID?
     private(set) var lastBody: String?
+    private(set) var messageEventsCallCount = 0
+    private(set) var lastMessageEventsConversationID: UUID?
+    private var messageEventContinuations: [AsyncStream<ChatMessage>.Continuation] = []
 
     init(
         conversationsResult: Result<[ChatConversation], ChatRepositoryError> =
             .success([]),
         messagesResult: Result<[ChatMessage], ChatRepositoryError> = .success([]),
         sendResult: Result<ChatMessage, ChatRepositoryError> =
-            .failure(.unavailable)
+            .failure(.unavailable),
+        messageEventsResult: Result<Void, ChatRepositoryError> = .success(())
     ) {
         self.conversationsResult = conversationsResult
         self.messagesResult = messagesResult
         self.sendResult = sendResult
+        self.messageEventsResult = messageEventsResult
     }
 
     func conversations(
@@ -338,4 +475,25 @@ private final class ChatRepositoryFake: ChatRepository {
         lastBody = body
         return try sendResult.get()
     }
+
+    func messageEvents(
+        conversationID: UUID
+    ) async throws -> AsyncStream<ChatMessage> {
+        messageEventsCallCount += 1
+        lastMessageEventsConversationID = conversationID
+        try messageEventsResult.get()
+        return AsyncStream { continuation in
+            messageEventContinuations.append(continuation)
+        }
+    }
+
+    func yieldMessageEvent(_ message: ChatMessage) {
+        messageEventContinuations.last?.yield(message)
+    }
+
+    func finishMessageEvents() {
+        messageEventContinuations.last?.finish()
+        _ = messageEventContinuations.popLast()
+    }
+
 }

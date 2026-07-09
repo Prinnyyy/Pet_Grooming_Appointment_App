@@ -782,6 +782,24 @@ final class DebugChatRepository: ChatRepository {
             )
         }
     }
+
+    func messageEvents(
+        conversationID: UUID
+    ) async throws -> AsyncStream<ChatMessage> {
+        try await debugRepositoryCall(
+            recorder: debugRecorder,
+            source: "ChatRepository.messageEvents",
+            scope: "messages.thread",
+            operation: "messageEvents",
+            metadata: [
+                "conversationID": conversationID.uuidString,
+                "table": "messages",
+                "event": "insert",
+            ]
+        ) {
+            try await base.messageEvents(conversationID: conversationID)
+        }
+    }
 }
 
 @MainActor

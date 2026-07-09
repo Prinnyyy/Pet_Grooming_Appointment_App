@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-09
+Task: T-194 - Realtime foreground chat.
+Files changed: chat repository protocol, Supabase chat repository, Debug chat wrapper, ChatStore, ChatView, ChatFeatureTests, current state, task ledger, and worklog.
+Checks: Supabase changelog/docs review; focused ChatStoreTests; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
+Result: Closes Q-08/R-008 by adding foreground message INSERT streaming through the repository boundary, thread subscribe/unsubscribe lifecycle, foreground refresh for the messages list/thread, and debug events for subscription lifecycle/message events.
+Risks: No Supabase migration, RLS, replication setting, remote write, attachment, or read-receipt behavior changed. Live two-role smoke was skipped because sending messages would require unauthorized remote writes/test data.
+Next: Use T-195 unless resuming T-157 after Apple Developer credentials. Q-09/APNs dispatch remains externally blocked; next unblocked package is Q-10/R-010 Privacy and Support URLs.
+```
+
+```text
+Date: 2026-07-09
 Task: T-193 - Email deep-link and SMTP design.
 Files changed: auth email/deep-link design, Supabase contract, decision log, current state, task ledger, and worklog.
 Checks: Supabase changelog/docs review; local auth/config grep; `git diff --check`; context hygiene; commit and push.
 Result: Closes Q-06/R-007 by defining Resend-backed Supabase custom SMTP, exact HTTPS-first redirect URL policy, dev/test custom scheme fallback, required email templates/secrets, and iOS callback behavior for Q-07.
 Risks: No Supabase dashboard setting, Management API write, DNS, iOS entitlement, URL scheme, migration, or remote write changed. Q-07 implementation waits for a production auth domain and SMTP credentials.
-Next: Use T-194 unless resuming T-157 after Apple Developer credentials. Q-07/R-007 implementation is externally blocked; next unblocked package is Q-08/R-008 realtime foreground chat unless the user provides email domain/SMTP inputs.
 ```
 
 ```text
@@ -66,13 +75,4 @@ Files changed: ROADMAP, roadmap execution queue, task directory guide, decision 
 Checks: `git diff --check`; `node scripts/context-hygiene-check.mjs`; commit and push.
 Result: Adds `docs/06_tasks/ROADMAP_EXECUTION_QUEUE.md` as the bounded planning layer between ROADMAP candidates and task-ledger execution. The queue defines Q-01 through Q-15 from R-005 through R-015 without assigning future T IDs in ROADMAP.
 Risks: Documentation/planning-only change. No Swift, Supabase, runtime, simulator, PR, tag, merge/rebase/reset, seed, migration, or non-Git remote write changed.
-```
-
-```text
-Date: 2026-07-08
-Task: T-186 - Stale workflow 85% wording cleanup and push-failure rule.
-Files changed: AGENTS, workflow rules, decision log/archive, current state, task ledger, worklog, and structure log.
-Checks: `git diff --check`; `node scripts/context-rotate.mjs --apply`; `node scripts/context-hygiene-check.mjs`; `node scripts/context-rotate.mjs`; commit and push.
-Result: Removes active 85% warning/waterline closeout and stop rules, keeps 95% active Markdown as structural-review scheduling only, corrects the T-185 meta-review marker to 2026-07-08, and requires agents to stop without auto pull/rebase/merge/reset/force-push when automatic push fails or is rejected.
-Risks: Documentation-only workflow change. No Swift, Supabase, runtime, simulator, PR, tag, merge/rebase/reset, seed, migration, or non-Git remote write changed.
 ```
