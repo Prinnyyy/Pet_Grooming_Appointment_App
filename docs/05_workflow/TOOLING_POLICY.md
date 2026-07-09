@@ -9,7 +9,7 @@ Use tools only when they reduce uncertainty, implement the requested scope, or v
 3. Keep file edits inside the active task scope.
 4. Do not read or expose secrets.
 5. Do not use destructive commands unless the user explicitly requests that operation.
-6. Do not make remote writes without explicit user approval.
+6. Do not make non-Git remote writes without explicit user approval.
 7. Do not add validation merely because a tool is available.
 
 ## Validation
@@ -96,11 +96,21 @@ If tool output conflicts with repository files, identify the conflict and prefer
 
 Read-only commands such as `git status`, `git diff`, and `git log` are allowed.
 
-Commit, push, reset, rebase, PR creation, merge, branch deletion, and repository-setting changes require explicit user approval.
+The user has granted standing approval for task-completion Git commits and pushes. After a task is complete and required validation has passed, commit and push the current task's own changes automatically.
+
+Reset, rebase, PR creation/update, merge, branch deletion, tags, repository-setting changes, and any non-Git remote writes still require explicit user approval.
 
 Commit-message, branch, PR, tag, and `main` reconciliation conventions live in `GITHUB_RULES.md`.
 
-When committing or pushing, include a concise traceability record in the user-facing closeout: what changed, why it changed, validation run, known risks, branch, and commit/push result.
+Automatic commit/push guardrails:
+
+- Review `git status --short` and the staged diff before committing.
+- Stage only current-task files.
+- Do not include unrelated user work.
+- Do not commit or push if validation failed, secrets appear in the diff, the branch is unclear, or the user disabled auto Git for the task.
+- Push only the current work branch.
+
+When committing or pushing, include a concise traceability record in the user-facing closeout: what changed, why it changed, validation run, known risks, branch, commit hash, and push result.
 
 ## Superpowers
 

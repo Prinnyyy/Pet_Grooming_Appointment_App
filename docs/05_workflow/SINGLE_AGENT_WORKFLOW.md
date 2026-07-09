@@ -7,7 +7,8 @@ Default workflow for this repository. It keeps each run bounded, recoverable, an
 - Complete one primary task per run.
 - Preserve user work and inspect `git status --short` before edits.
 - Use targeted context only; access tiers live in `CONTEXT_AND_RECOVERY.md`.
-- Do not start adjacent features, broad refactors, commits, pushes, seeds, cleanup, or remote writes unless explicitly requested.
+- Do not start adjacent features, broad refactors, seeds, cleanup, or non-Git remote writes unless explicitly requested.
+- Standing Git approval is active: after a task is complete and required validation passes, commit and push that task's own changes automatically.
 - No subagents or archived agent-team orchestration unless the user explicitly re-enables them.
 - Write a short plan before non-trivial edits.
 - Use one validation attempt by mode unless the user approves more.
@@ -25,8 +26,9 @@ Default workflow for this repository. It keeps each run bounded, recoverable, an
 8. Update task closeout and durable memory only when the completion gate requires it.
 9. Run context hygiene if durable memory or task ledgers changed.
 10. Launch the simulator only when required.
-11. Write a checkpoint before manual compaction.
-12. Stop.
+11. Create a task-scoped commit and push the current branch when completion and validation have passed.
+12. Write a checkpoint before manual compaction.
+13. Stop.
 
 ## Modes
 
@@ -62,6 +64,21 @@ Durable memory updates are limited to changed facts:
 - `docs/07_decisions/DECISION_LOG.md`: durable architecture/product decisions.
 
 After durable memory or ledger changes, run context hygiene and archive old rows/content in the same task if thresholds are exceeded.
+
+## Automatic Git Closeout
+
+The user has granted standing approval for Codex to commit and push each completed task.
+
+Automatic commit/push requirements:
+
+- Run required validation for the task mode first.
+- Review `git status --short` and the diff before staging.
+- Stage only files changed for the current task.
+- Use the task-prefixed commit format from `GITHUB_RULES.md`.
+- Push only the current work branch.
+- Skip commit/push and report why if validation fails, the branch is unclear, secrets appear in the diff, unrelated user work would be included, or the user explicitly disables auto Git for the task.
+
+This standing approval does not authorize PR creation, tags, branch deletion, merge/rebase/reset, Supabase writes, seeds, cleanup, or other remote operations.
 
 ## Rule Change Tasks
 

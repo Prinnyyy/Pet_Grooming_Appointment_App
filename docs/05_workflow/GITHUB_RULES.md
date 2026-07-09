@@ -1,6 +1,6 @@
 # GitHub Rules
 
-Use this file for repository operations. Authorization gates live in `TOOLING_POLICY.md`: commit, push, PR, merge, reset, rebase, tag, branch deletion, and repository-setting changes still require explicit user approval.
+Use this file for repository operations. Authorization gates live in `TOOLING_POLICY.md`: task-completion commit/push has standing user approval; PR, merge, reset, rebase, tag, branch deletion, repository-setting changes, and non-Git remote writes still require explicit user approval.
 
 ## Repository
 
@@ -41,7 +41,8 @@ Write summaries in English, imperative or noun-phrase style, and keep them speci
 
 ## Pushes, PRs, and Tags
 
-- Push only the branch that was just committed and only after user approval.
+- Push the current work branch automatically after a task-scoped completion commit passes validation.
+- Push only the branch that was just committed.
 - PR creation or update requires a user request and must include task ID, validation, known risks, and any skipped checks.
 - Release tags use `vX.Y.Z` and require explicit user approval. Do not infer a release tag from a roadmap or task name.
 

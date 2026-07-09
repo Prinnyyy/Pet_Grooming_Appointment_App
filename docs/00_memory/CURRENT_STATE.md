@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-08
 - Updated by: Codex
-- Latest completed task: T-179 Active Markdown budget reduction.
+- Latest completed task: T-180 Standing Git auto-push authorization.
 - Current task: none active; T-157 APNs deployment remains externally blocked.
-- Next task ID: use T-180 unless the user resumes T-157 after Apple Developer Program upgrade.
+- Next task ID: use T-181 unless the user resumes T-157 after Apple Developer Program upgrade.
 
 ## Fast Path
 
@@ -32,7 +32,8 @@ Frozen history lives under `docs/09_frozen/`.
 - GitHub repository: `Prinnyyy/Pet_Grooming_Appointment_App`.
 - Continue implementation, documentation, commit, and push work from this branch unless the user explicitly names another branch.
 - Do not treat `main` as the current work baseline. T-173 reviewed main-only commit `2fddf7b`; it is superseded and must not be merged back into this branch.
-- Do not commit, push, create PRs, seed, cleanup, migrate, or make remote writes without explicit user approval.
+- Standing Git approval is active: after required validation passes, commit and push each completed task's own changes on this branch automatically.
+- PRs, tags, branch deletion, merge/rebase/reset, seeds, cleanup, migrations, Supabase writes, repository-setting changes, and other non-Git remote writes still require explicit user approval.
 
 ## Validation Baseline
 
@@ -61,6 +62,7 @@ Frozen history lives under `docs/09_frozen/`.
 - Periodic documentation-governance reviews use `docs/06_tasks/META_REVIEW_TEMPLATE.md` every 10 completed tasks or weekly.
 - Last meta-review: T-175 on 2026-07-08.
 - Changes to `AGENTS.md`, `CLAUDE.md`, or `docs/05_workflow/**` must be standalone numbered tasks with a decision-log entry and context hygiene.
+- T-180 records standing user approval for automatic task-completion Git commit and push. This approval is limited to current-task changes after validation passes.
 - Main reconciliation: `2fddf7b` is reviewed/superseded. Future alignment should carry this branch's governed docs forward or cherry-pick only explicitly reviewed non-stale changes.
 - Decision log is an active index backed by frozen snapshots. The pre-T-174 full text lives in `docs/09_frozen/decisions/DECISION_LOG_2026-07-08_PRE_T174_TRIM.md`.
 - Default `rg` searches honor `.rgignore`; do not use broad `rg --files -g '*.md'` as the default Markdown inventory.

@@ -6,13 +6,22 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-08
+Task: T-180 - Standing Git auto-push authorization.
+Files changed: AGENTS.md, workflow Git/tooling rules, decision log, task ledger, worklog, and current state.
+Checks: `git diff --check`; `node scripts/context-hygiene-check.mjs`; staged diff check; commit and push.
+Result: Records the user's standing approval for automatic task-completion commits and pushes. The workflow now commits and pushes the current task's own changes after required validation passes, while keeping PRs, tags, merge/rebase/reset, branch deletion, Supabase writes, seeds, cleanup, non-Git remote writes, and unrelated user work outside that approval.
+Risks: Documentation-only rule change. Future agents must still skip auto Git when validation fails, secrets appear in the diff, the branch is unclear, or unrelated user work would be included.
+Next: Use T-181 for the next non-APNs task unless resuming T-157 after Apple Developer credentials.
+```
+
+```text
+Date: 2026-07-08
 Task: T-179 - Active Markdown budget reduction.
 Files changed: context hygiene script, structure/product indexes, decision log, roadmap, task ledger/archive, worklog/archive, current state, structure log, and frozen external report.
 Checks: `node scripts/context-hygiene-check.mjs`; `CONTEXT_HYGIENE_FORCE_NO_RG=1 node scripts/context-hygiene-check.mjs`; `node --test tests/docs/context-hygiene-check.test.mjs`; `git diff --check`.
 Result: Lowers active rolling windows to 8 worklog entries and 12 ledger rows, tightens decision/structure budgets, trims active index prose, and archives the adopted watch-items plan. Active Markdown is below the 85% waterline.
 Audit: Kept current facts; compressed routing/index prose in project structure, screen inventory, navigation, UX, and current risks; archived older rolling-window rows verbatim. No referenced active file was deleted.
 Risks: Docs/workflow tooling only. No iOS source, Supabase command, migration, runtime behavior, simulator, commit, push, or remote write changed.
-Next: Use T-180 for the next non-APNs task; product candidate remains private image rendering unless the user chooses otherwise.
 ```
 
 ```text
@@ -67,13 +76,4 @@ Files changed: GitHub rules, decision log, roadmap, task ledger/archive, worklog
 Checks: read-only `git show`/branch containment/ancestor checks for `2fddf7b`; `git diff --check`; `node scripts/context-hygiene-check.mjs`; targeted divergence search.
 Result: Main-only commit `2fddf7b` is reviewed and marked superseded. It should not be merged back because it resets docs to a T-049/T-050-era architecture, deletes active `GITHUB_RULES.md`, and reorganizes archives differently from the current governed model.
 Risks: Docs/git-governance only. No branch switch, merge, commit, push, iOS source, Supabase command, migration, runtime behavior, or simulator changed.
-```
-
-```text
-Date: 2026-07-08
-Task: T-172 - Rule-change process.
-Files changed: AGENTS/Claude/workflow rules, stop conditions, decision log, roadmap, task ledger/archive, worklog/archive, and current state.
-Checks: `git diff --check`; `node scripts/context-hygiene-check.mjs`; targeted rule search.
-Result: Changes to `AGENTS.md`, `CLAUDE.md`, or `docs/05_workflow/**` now require a standalone numbered task, a decision-log entry, and context hygiene. Non-rule tasks must stop rather than make incidental rule edits.
-Risks: Docs/workflow only. No iOS source, Supabase command, migration, runtime behavior, simulator, commit, or push changed.
 ```
