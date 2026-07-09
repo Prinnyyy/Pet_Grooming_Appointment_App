@@ -1,43 +1,24 @@
 import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
+import {
+  ACTIVE_MARKDOWN_STRUCTURE_REVIEW_RATIO,
+  ACTIVE_MARKDOWN_TOTAL_LIMIT,
+  DECISION_LOG_ENTRY_LIMIT,
+  DEFAULT_WORD_LIMIT,
+  TASK_LEDGER_ROW_CHAR_LIMIT,
+  TASK_LEDGER_ROW_LIMIT,
+  WORD_LIMITS,
+  WORKLOG_ENTRY_LIMIT,
+} from "./context-hygiene-policy.mjs";
 
 const PROJECT_ROOT = path.resolve(
   process.env.CONTEXT_HYGIENE_PROJECT_ROOT ?? path.resolve(import.meta.dirname, ".."),
 );
-const ACTIVE_MARKDOWN_TOTAL_LIMIT = 32000;
-const ACTIVE_MARKDOWN_WARN_RATIO = 0.85;
-const WORKLOG_ENTRY_LIMIT = 8;
-const TASK_LEDGER_ROW_LIMIT = 12;
-const TASK_LEDGER_ROW_CHAR_LIMIT = 700;
 const LAST_VERIFIED_MAX_AGE_DAYS = 45;
 const CHECK_DATE_TEXT = process.env.CONTEXT_HYGIENE_NOW ?? new Date().toISOString().slice(0, 10);
 const FORCE_NO_RG = process.env.CONTEXT_HYGIENE_FORCE_NO_RG === "1";
 // All console/failure output is English.
-
-const WORD_LIMITS = new Map([
-  ["AGENTS.md", 800],
-  ["README.md", 500],
-  ["CLAUDE.md", 600],
-  ["docs/README.md", 800],
-  ["docs/00_memory/CURRENT_STATE.md", 1200],
-  ["docs/00_memory/WORKLOG.md", 2500],
-  ["docs/06_tasks/TASK_LEDGER.md", 1800],
-  ["docs/06_tasks/ROADMAP.md", 1800],
-  ["docs/00_memory/FEATURE_INDEX.md", 1200],
-  ["docs/00_memory/PROJECT_MEMORY.md", 600],
-  ["docs/07_decisions/DECISION_LOG.md", 1800],
-  ["docs/01_product/DESIGN_SYSTEM.md", 900],
-  ["docs/01_product/SCREEN_INVENTORY.md", 1500],
-  ["docs/08_design/UI_IMPLEMENTATION_NOTES.md", 900],
-  ["docs/03_backend/SUPABASE_CONTRACT.md", 1100],
-  ["docs/03_backend/RLS_RPC_POLICY.md", 1200],
-  ["docs/03_backend/STORAGE_POLICY.md", 700],
-  ["docs/03_backend/MIGRATION_RULES.md", 900],
-  ["docs/04_ios/testops/TESTOPS_MEMORY.md", 400],
-  ["docs/05_workflow/TOOLING_POLICY.md", 1500],
-  ["docs/10_project_structure/REORGANIZATION_LOG.md", 1200],
-]);
 
 const STALE_CREDENTIAL_PATTERNS = [
   /current execute mode still expects/i,
@@ -180,16 +161,23 @@ function activeMarkdownFiles() {
   return [...new Set(files)];
 }
 
-function checkWordLimits() {
+function checkWordLimits(files) {
   console.log("Word budgets:");
-  for (const [filePath, limit] of WORD_LIMITS.entries()) {
+  let capTotal = 0;
+  for (const filePath of [...files].sort()) {
+    const limit = WORD_LIMITS.get(filePath) ?? DEFAULT_WORD_LIMIT;
+    capTotal += limit;
     const count = words(readOptional(filePath));
     const status = count <= limit ? "ok" : "over";
-    console.log(`  ${status.padEnd(4)} ${String(count).padStart(5)} / ${String(limit).padStart(5)} ${filePath}`);
+    const source = WORD_LIMITS.has(filePath) ? "explicit" : "default";
+    console.log(`  ${status.padEnd(4)} ${String(count).padStart(5)} / ${String(limit).padStart(5)} ${source.padEnd(8)} ${filePath}`);
     if (count > limit) {
       failures.push(`${filePath} has ${count} words, limit ${limit}`);
     }
   }
+  // Per-file caps guard local growth. They intentionally do not have to sum to
+  // the total active Markdown limit; the total check measures actual words.
+  console.log(`Budget coverage: ${files.length}/${files.length} files (sum of caps: ${capTotal})`);
 }
 
 function checkMarkdownLinks(files) {
@@ -274,10 +262,10 @@ function checkActiveMarkdownTotal(files) {
     total += words(readOptional(filePath));
   }
   const status = total <= ACTIVE_MARKDOWN_TOTAL_LIMIT ? "ok" : "over";
-  console.log(`Active Markdown total: ${status} ${total} / ${ACTIVE_MARKDOWN_TOTAL_LIMIT}`);
   const ratio = total / ACTIVE_MARKDOWN_TOTAL_LIMIT;
-  if (ratio >= ACTIVE_MARKDOWN_WARN_RATIO && total <= ACTIVE_MARKDOWN_TOTAL_LIMIT) {
-    console.log(`warn: active Markdown total at ${Math.round(ratio * 100)}% of limit`);
+  console.log(`Active Markdown total: ${status} ${total} / ${ACTIVE_MARKDOWN_TOTAL_LIMIT} (${Math.round(ratio * 100)}%)`);
+  if (ratio >= ACTIVE_MARKDOWN_STRUCTURE_REVIEW_RATIO && total <= ACTIVE_MARKDOWN_TOTAL_LIMIT) {
+    console.log(`warn: active Markdown total at ${Math.round(ratio * 100)}%; schedule a structural context review`);
   }
   if (total > ACTIVE_MARKDOWN_TOTAL_LIMIT) {
     failures.push(`active Markdown has ${total} words, limit ${ACTIVE_MARKDOWN_TOTAL_LIMIT}`);
@@ -574,17 +562,23 @@ function checkMetaReviewCadence() {
 function checkRollingWindowSizes() {
   const worklog = readOptional("docs/00_memory/WORKLOG.md");
   const taskLedger = readOptional("docs/06_tasks/TASK_LEDGER.md");
+  const decisionLog = readOptional("docs/07_decisions/DECISION_LOG.md");
   const worklogEntries = [...worklog.matchAll(/^Task:\s*T-\d{3}/gm)].length;
   const taskRows = ledgerRows(taskLedger).length;
+  const decisionEntries = [...decisionLog.matchAll(/```text\s+Decision ID:\s*D-\d{3}[\s\S]*?\n```/g)].length;
 
   console.log(`Worklog entries: ${worklogEntries} / ${WORKLOG_ENTRY_LIMIT}`);
   console.log(`Task ledger rows: ${taskRows} / ${TASK_LEDGER_ROW_LIMIT}`);
+  console.log(`Decision log entries: ${decisionEntries} / ${DECISION_LOG_ENTRY_LIMIT}`);
 
   if (worklogEntries > WORKLOG_ENTRY_LIMIT) {
     failures.push(`WORKLOG.md has ${worklogEntries} active entries, limit ${WORKLOG_ENTRY_LIMIT}`);
   }
   if (taskRows > TASK_LEDGER_ROW_LIMIT) {
     failures.push(`TASK_LEDGER.md has ${taskRows} active rows, limit ${TASK_LEDGER_ROW_LIMIT}`);
+  }
+  if (decisionEntries > DECISION_LOG_ENTRY_LIMIT) {
+    failures.push(`DECISION_LOG.md has ${decisionEntries} active decisions, limit ${DECISION_LOG_ENTRY_LIMIT}`);
   }
 
   for (const [index, line] of taskLedger.split(/\r?\n/).entries()) {
@@ -595,7 +589,7 @@ function checkRollingWindowSizes() {
 }
 
 const activeFiles = activeMarkdownFiles();
-checkWordLimits();
+checkWordLimits(activeFiles);
 checkMarkdownLinks(activeFiles);
 checkBacktickPathIntegrity(activeFiles);
 checkActiveMarkdownTotal(activeFiles);

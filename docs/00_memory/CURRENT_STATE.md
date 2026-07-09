@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-09
 - Updated by: Codex
-- Latest completed task: T-182 Active Markdown waterline cleanup rule.
+- Latest completed task: T-183 Context budget redesign tooling.
 - Current task: none active; T-157 APNs deployment remains externally blocked.
-- Next task ID: use T-183 unless the user resumes T-157 after Apple Developer Program upgrade.
+- Next task ID: use T-184 unless the user resumes T-157 after Apple Developer Program upgrade.
 
 ## Fast Path
 
@@ -44,7 +44,7 @@ Frozen history lives under `docs/09_frozen/`.
 - Prepared unapplied Supabase migration: none known by `supabase migration list --linked`; post-apply dry-run requires `SUPABASE_DB_PASSWORD`.
 - Last TestOps unit validation: T-145 `./scripts/testops-unit.sh` passed 24 Node tests.
 - Last remote TestOps run: T-155 authorized `matching_baseline` run `TESTOPS-T155-MATCH-20260706-*` passed 8/8 and cleanup left zero tagged request/match residue.
-- Last docs/workflow validation: T-182 active Markdown waterline cleanup rule, context hygiene, and `git diff --check` passed on 2026-07-09.
+- Last docs/workflow validation: T-183 context budget tooling, docs tests, context hygiene with and without `rg`, rotate dry-run, and `git diff --check` passed on 2026-07-09.
 - Known validation failure: full `./scripts/ios-test.sh` is currently blocked by the existing T-153 customer notification same-timestamp ordering test, not by T-162 cancellation repost work.
 
 ## Active Product State
@@ -63,7 +63,7 @@ Frozen history lives under `docs/09_frozen/`.
 - Last meta-review: T-175 on 2026-07-08.
 - Changes to `AGENTS.md`, `CLAUDE.md`, or `docs/05_workflow/**` must be standalone numbered tasks with a decision-log entry and context hygiene.
 - T-180 records standing user approval for automatic task-completion Git commit and push. This approval is limited to current-task changes after validation passes.
-- T-182 makes the active Markdown 85% waterline a cleanup trigger; future durable-doc tasks should trim/archive until the warning clears.
+- T-183 replaces the hygiene-side 85% cleanup trigger with a 36k hard limit, 95% structural-review warning, default 650-word budget for unlisted active Markdown, decision-log window checks, and `node scripts/context-rotate.mjs` for deterministic archive rotation. T-184 should align workflow docs and archive the root redesign plan.
 - Main reconciliation: `2fddf7b` is reviewed/superseded. Future alignment should carry this branch's governed docs forward or cherry-pick only explicitly reviewed non-stale changes.
 - Decision log is an active index backed by frozen snapshots. The pre-T-174 full text lives in `docs/09_frozen/decisions/DECISION_LOG_2026-07-08_PRE_T174_TRIM.md`.
 - Default `rg` searches honor `.rgignore`; do not use broad `rg --files -g '*.md'` as the default Markdown inventory.
@@ -93,4 +93,4 @@ Frozen history lives under `docs/09_frozen/`.
 
 ## Next Recommended Task
 
-- Use T-183 next unless resuming T-157 after Apple Developer credentials. Suggested product candidate: private image rendering.
+- Use T-184 next for context-budget workflow text alignment unless resuming T-157 after Apple Developer credentials. Suggested product candidate after governance work: private image rendering.

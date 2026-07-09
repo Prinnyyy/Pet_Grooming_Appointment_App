@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-09
+Task: T-183 - Context budget redesign tooling.
+Files changed: context hygiene policy/check scripts, context rotate script, docs tests, decision log/archive, current state, task ledger, and worklog.
+Checks: `node --test tests/docs/`; `node scripts/context-rotate.mjs`; `node scripts/context-rotate.mjs --apply`; `node scripts/context-hygiene-check.mjs`; `CONTEXT_HYGIENE_FORCE_NO_RG=1 node scripts/context-hygiene-check.mjs`; `git diff --check`; commit and push.
+Result: Implements Batch A of the context-budget redesign: 36k hard total, no 85% warning, 95% structural-review warning, 650-word default active Markdown budget, full budget coverage output, decision-log 8-entry window, shared constants, and deterministic archive rotation.
+Risks: Docs/tooling-only change. Workflow text alignment and root plan archival are intentionally deferred to T-184 Batch B. No Swift, Supabase, runtime, simulator, PR, tag, merge/rebase/reset, seed, migration, or non-Git remote write changed.
+Next: Use T-184 for context-budget workflow text alignment unless resuming T-157 after Apple Developer credentials.
+```
+
+```text
+Date: 2026-07-09
 Task: T-182 - Active Markdown waterline cleanup rule.
 Files changed: AGENTS, workflow rules, decision log, current state, task ledger, worklog, and frozen ledger/worklog archives.
 Checks: `git diff --check`; `node scripts/context-hygiene-check.mjs` with no active Markdown 85% warning; staged diff check; commit and push.
 Result: Makes the active Markdown 85% waterline a mandatory cleanup trigger for durable-doc closeout, clarifies unrelated cleanup vs context-hygiene cleanup, and archives older active ledger/worklog rows so current active Markdown is below the warning line.
 Risks: Documentation-only rule change. No Swift, Supabase, runtime, PR, tag, merge/rebase/reset, seed, migration, or non-Git remote write changed.
-Next: Use T-183 for the next non-APNs task unless resuming T-157 after Apple Developer credentials.
 ```
 
 ```text

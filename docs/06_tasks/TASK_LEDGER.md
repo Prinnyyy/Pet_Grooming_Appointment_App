@@ -2,7 +2,7 @@
 
 Track only current, blocked, and recent tasks here so Codex does not continue automatically. Older completed rows through T-176 are archived under `docs/09_frozen/task_ledgers/`; active blocked T-157 remains below. Notes should keep conclusions and pointers only; validation detail belongs in `docs/00_memory/WORKLOG.md` or frozen worklogs. Detailed task records T-001 through T-088 and workflow task records remain archived under `docs/09_frozen/task_records_2026-06-26/`.
 
-Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup`; use `T-183` for the next non-APNs task unless the user explicitly names another branch or task ID.
+Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup`; use `T-184` for the next non-APNs task unless the user explicitly names another branch or task ID.
 
 Active blocked task: T-157 is waiting on paid Apple Developer Program access before APNs secrets (`APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_TOPIC`, `APNS_PRIVATE_KEY`) and Edge Function deploy.
 
@@ -10,6 +10,7 @@ Active blocked task: T-157 is waiting on paid Apple Developer Program access bef
 
 | ID | Task | Status | Mode | Milestone | Files/Docs | Checks | Notes |
 |---|---|---|---|---|---|---|---|
+| T-183 | Context budget redesign tooling | completed | Quick | G0 | hygiene/rotate scripts, docs tests, decision log, frozen decisions, memory docs | docs tests; rotate dry-run/apply; context hygiene with and without `rg`; `git diff --check`; commit and push | Implements Batch A of the root redesign plan: 36k hard total, no 85% warning, 95% structural-review warning, 650-word default active Markdown budget, decision-log window checks, shared constants, and deterministic `context-rotate`. Batch B remains T-184. |
 | T-182 | Active Markdown waterline cleanup rule | completed | Quick | G0 | `AGENTS.md`, workflow rules, decision log, memory docs, frozen archives | `git diff --check`; context hygiene with no 85% warning; commit and push | Makes the active Markdown 85% waterline a cleanup trigger, clarifies unrelated cleanup vs hygiene cleanup, and archives older ledger/worklog rows to bring active Markdown below the warning line. |
 | T-181 | Current-state stale pointer correction | completed | Quick | G0 | current state, task ledger, worklog, frozen archives | `git diff --check`; context hygiene; commit and push | Corrects stale T-180 next-task and validation-current-state text found during follow-up review, updates the next task to T-182, and rolls T-170/T-173 out of active windows. No app/runtime/backend behavior changed. |
 | T-180 | Standing Git auto-push authorization | completed | Quick | G0 | `AGENTS.md`, workflow/Git rules, decision log, memory docs | `git diff --check`; context hygiene; commit and push | Records the user's standing approval for automatic task-completion commits and pushes after required validation passes. Guardrails keep PRs/tags/merge/reset/rebase/non-Git remote writes and unrelated user work outside this approval. |
