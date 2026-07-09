@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-09
+Task: T-231 - Groomer in-app notification remote parity.
+Files changed: notification negative-contract rollback SQL and static test; roadmap, queue, current state, task ledger, and worklog. Existing T-203 migration was applied remotely.
+Checks: Current Supabase docs/changelog; migration/Edge preflight; 8/8 rollback-only negative checks; linked migration parity/dry-run; catalog, grants, RLS, RPC, trigger, and residue queries; linked lint; security/performance advisors; full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; `git diff --check`; context hygiene.
+Result: Q-35 is complete. Groomer in-app notifications now have remote table/RLS/RPC/trigger parity and the existing iOS list/read behavior is backed by the live schema. The rollback validator was corrected to use PL/pgSQL row counts and authenticated temp-result privileges.
+Risks: APNs, groomer push tokens, push dispatch, and paid Apple work remain excluded. Advisor output contains only known APNs/Auth-plan and Q-36 index findings. Runtime lint exposed a separate account-deletion conflict ambiguity, assigned next as T-232.
+Next: Use T-232 to correct the account-deletion conflict target before continuing Q-36.
+```
+
+```text
+Date: 2026-07-09
 Task: T-230 - Request and offer visible pagination.
 Files changed: shared pagination model/action primitive; customer request/offer Stores, views, and tests; groomer request/offer Stores, views, and tests; pagination audit; roadmap/queue/current state/task ledger/worklog.
 Checks: Four Store pagination RED/GREEN cases; focused customer/groomer request and groomer offer suites; full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; XcodeBuildMCP build/run plus customer Requests navigation/screenshot; `git diff --check`; context hygiene.
 Result: Q-38 adds one shared explicit Load More interaction to customer requests, customer request offers, groomer matched requests, and groomer offers. All four preserve loaded rows and next-page state across failure, retry the same page, deduplicate stable IDs, and stop at the terminal page.
 Risks: No schema, migration, Supabase write, TestOps execute, seed, deploy, APNs, release upload, PR, merge/rebase/reset, or force-push. The live customer account had fewer than 50 rows, so conditional button visibility is covered by Store tests while Simulator verification covered the surrounding production screen.
-Next: Use T-231 for authorized Q-35 groomer in-app notification remote parity.
 ```
 
 ```text
@@ -66,13 +75,4 @@ Files changed: customer request feature test files, current state, task ledger, 
 Checks: `@Test` count 60 before and after; file sizes 10K-23K; full `./scripts/ios-test.sh`; `git diff --check`; context hygiene; commit and push.
 Result: Implements Context Optimization Task B by splitting the 94K `CustomerRequestFeatureTests.swift` into a base test file, four same-suite extension files, and one internal fakes file. Test bodies and names were moved without behavior changes; shared helpers and fakes were widened only from file-private to internal for cross-file access.
 Risks: Test-target code movement only. No app Swift, Xcode project, workflow rule, Supabase schema, migration, remote write, seed, release upload, tag, PR, merge/rebase/reset, or force-push changed. Root `CONTEXT_OPTIMIZATION_TASK_PLAN.md` remains external plan input until the serial tasks are complete.
-```
-
-```text
-Date: 2026-07-09
-Task: T-223 - Xcode script output filtering.
-Files changed: iOS build/test scripts, current state, task ledger, worklog, and structure log.
-Checks: `bash -n scripts/ios-build.sh scripts/ios-test.sh`; `./scripts/ios-build.sh` success with 7-line output; `./scripts/ios-test.sh` success with 16-line output; expected invalid-destination `ios-test.sh` failure returned 1 with 47-line output; `git diff --check`; context hygiene; commit and push.
-Result: Implements Context Optimization Task A by sending full `xcodebuild` output for build/test scripts to temp logs while printing bounded success/failure summaries and preserving exit-code semantics.
-Risks: Script-output filtering only. No Swift, Xcode project, workflow rule, Supabase schema, migration, remote write, seed, release upload, tag, PR, merge/rebase/reset, or force-push changed. Root `CONTEXT_OPTIMIZATION_TASK_PLAN.md` remains external plan input until the serial tasks are complete.
 ```

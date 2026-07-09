@@ -136,10 +136,19 @@ test("Q-31 has a rollback-only runtime validation script for notification negati
   assert.match(rollbackValidationSql, /rollback;/i);
   assert.match(rollbackValidationSql, /set local role authenticated/i);
   assert.match(rollbackValidationSql, /request\.jwt\.claims/i);
+  assert.match(
+    rollbackValidationSql,
+    /grant select, insert on t220_notification_contract_results to authenticated/i,
+  );
   assert.match(rollbackValidationSql, /'customer_cross_read_count'[\s\S]*?count\(\*\)\s*=\s*0/i);
   assert.match(rollbackValidationSql, /'groomer_cross_read_count'[\s\S]*?count\(\*\)\s*=\s*0/i);
   assert.match(rollbackValidationSql, /'customer_insert_rejected'[\s\S]*?v_rejected\s*=\s*true/i);
   assert.match(rollbackValidationSql, /'groomer_insert_rejected'[\s\S]*?v_rejected\s*=\s*true/i);
   assert.match(rollbackValidationSql, /claim_customer_push_notifications\(1\)/i);
   assert.match(rollbackValidationSql, /record_customer_push_delivery\(/i);
+  assert.doesNotMatch(
+    rollbackValidationSql,
+    /from\s*\(\s*update\s+public\.(customer|groomer)_notifications/i,
+    "Postgres does not allow UPDATE RETURNING directly inside a FROM subquery",
+  );
 });

@@ -146,6 +146,8 @@ create temporary table t220_notification_contract_results (
   details text
 );
 
+grant select, insert on t220_notification_contract_results to authenticated;
+
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"22000000-0000-4000-8000-000000000001","role":"authenticated","is_anonymous":false}';
 
@@ -157,18 +159,24 @@ select
 from public.customer_notifications
 where customer_id = '22000000-0000-4000-8000-000000000002';
 
-insert into t220_notification_contract_results (check_name, passed, details)
-select
-  'customer_cross_update_count',
-  count(*) = 0,
-  count(*)::text
-from (
+do $$
+declare
+  v_updated_count integer;
+begin
   update public.customer_notifications
   set is_read = true,
       read_at = statement_timestamp()
-  where id = '22000000-0000-4000-8000-100000000002'
-  returning id
-) as updated_rows;
+  where id = '22000000-0000-4000-8000-100000000002';
+
+  get diagnostics v_updated_count = row_count;
+
+  insert into t220_notification_contract_results (check_name, passed, details)
+  values (
+    'customer_cross_update_count',
+    v_updated_count = 0,
+    v_updated_count::text
+  );
+end $$;
 
 do $$
 declare
@@ -240,18 +248,24 @@ select
 from public.groomer_notifications
 where groomer_id = '22000000-0000-4000-8000-000000000004';
 
-insert into t220_notification_contract_results (check_name, passed, details)
-select
-  'groomer_cross_update_count',
-  count(*) = 0,
-  count(*)::text
-from (
+do $$
+declare
+  v_updated_count integer;
+begin
   update public.groomer_notifications
   set is_read = true,
       read_at = statement_timestamp()
-  where id = '22000000-0000-4000-8000-200000000002'
-  returning id
-) as updated_rows;
+  where id = '22000000-0000-4000-8000-200000000002';
+
+  get diagnostics v_updated_count = row_count;
+
+  insert into t220_notification_contract_results (check_name, passed, details)
+  values (
+    'groomer_cross_update_count',
+    v_updated_count = 0,
+    v_updated_count::text
+  );
+end $$;
 
 do $$
 declare

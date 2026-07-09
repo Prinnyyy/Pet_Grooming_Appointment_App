@@ -74,7 +74,7 @@ The sequence explicitly excludes APNs dispatch, `customer_push_tokens` advisor n
 | M6 Free-mode timeliness | Make local/foreground updates symmetric without APNs. | Q-16 through Q-18 and Q-21 through Q-22 complete. | Groomer/customer notifications, foreground refresh, local reminders, and unread badges are covered. |
 | M7 Structural and edge resilience | Reduce oversized surfaces and close edge-case gaps. | Q-23 through Q-31 complete. | Request/profile surfaces are split, republish/pagination/auth/backend contract edges are tested, and unit coverage increases. |
 | M8 Ideal operation verification | Prove the local V1.0 lifecycle end to end. | Q-32 complete T-221; Q-33 complete T-222. | Dual-role walkthrough evidence and readiness dry run pass. |
-| M9 Backend remediation | Resolve non-Apple backend parity and advisor findings with evidence before writes. | Q-34 complete T-228; Q-35 through Q-37 planned. | Groomer in-app notifications have remote parity, index changes are justified, and remote TestOps evidence passes with cleanup. |
+| M9 Backend remediation | Resolve non-Apple backend parity and advisor findings with evidence before writes. | Q-34 complete T-228; Q-35 complete T-231; Q-36 and Q-37 planned. | Groomer in-app notifications have remote parity, index changes are justified, and remote TestOps evidence passes with cleanup. |
 | M10 UI verification and list scale | Complete no-screenshot lifecycle automation and visible pagination. | Q-38 complete T-230; Q-39 through Q-42 planned. | Supported lists can advance beyond page one and the seeded dual-role UI lifecycle passes end to end. |
 | D Apple external blockers | Track APNs and release work that requires paid Apple capabilities. | Excluded Q-90 and Q-91 remain blocked. | Only starts after credentials and explicit authorization exist. |
 | E Non-Apple service blockers | Track production Auth services that require external credentials or a plan decision. | Blocked Q-92 and Q-93. | SMTP/domain credentials or Supabase Pro capability plus explicit Auth authorization exist. |
@@ -106,20 +106,20 @@ The sequence explicitly excludes APNs dispatch, `customer_push_tokens` advisor n
 | R-021 | G0 | ROADMAP DoD and ignore cleanup | Complete T-177 |
 | R-022 | G0 | Backtick path and Markdown waterline checks | Complete T-178 |
 | R-023 | G0 | Active Markdown budget reduction | Complete T-179 |
-| R-024 | M6 | Groomer notification symmetry | Local implementation complete T-203 and T-204; remote migration parity continues under R-031/Q-35 |
+| R-024 | M6 | Groomer notification symmetry | Complete T-203, T-204, and remote parity T-231 |
 | R-025 | M6 | Foreground state timeliness, local reminders, unread badges | Q-18 complete T-205; Q-21 complete T-209; Q-22 complete T-210 |
 | R-026 | M7 | Large SwiftUI/Store structural refactors | Complete T-211 and T-212 |
 | R-027 | M7 | Recovery, auth callback, and pagination robustness | Q-27 complete T-215; Q-29 complete T-217; Q-30 complete T-219 |
 | R-028 | M4/M7 | Focused unit and contract test expansion toward 400 tests | Q-19 complete T-206; Q-20 complete T-208; Q-25 complete T-213; Q-26 complete T-214; Q-28 complete T-216; Q-31 complete T-220 |
 | R-029 | M8 | Ideal-operation walkthrough and readiness rehearsal | Complete T-221 and T-222 |
 | R-030 | D | Paid Apple/APNs release operations | Excluded from current remediation; blocked Q-90 and Q-91 |
-| R-031 | M9 | Groomer in-app notification remote parity | Planned Q-35; existing T-203 migration authorized for remote application on 2026-07-09 |
+| R-031 | M9 | Groomer in-app notification remote parity | Complete Q-35/T-231; T-203 migration applied and verified remotely on 2026-07-09 |
 | R-032 | M9 | Supabase advisor evidence and index tuning | Q-34 audit complete T-228; Q-36 is authorized to add only the two evidenced FK indexes |
 | R-033 | E | Production Auth service hardening | Blocked Q-92 SMTP/domain and Q-93 Pro-only leaked-password protection |
 | R-034 | M9 | Remote TestOps lifecycle and matching evidence | Planned Q-37; remote execution and cleanup authorized on 2026-07-09 |
 | R-035 | M10 | No-screenshot dual-role UI lifecycle automation | Planned Q-41 and authorized dependent Q-42 |
 | R-036 | M10 | Visible list pagination completion | Q-38 complete T-230; Q-39 and Q-40 planned |
 
-Completed mapping: T-152/T-154/T-188...T-193/T-217 M1 auth/UI foundations; T-153/T-155/T-156/T-162/T-194 M2; T-157 M2 blocked for dispatch; T-160/T-161/T-195/T-197...T-199 M3; T-200/T-206/T-208/T-213/T-214/T-216/T-220 M4 focused tests and backend contract negatives; T-201 M5 local dry run; T-203...T-205/T-209/T-210 M6 groomer notification, foreground refresh, local reminders, and unread badges; T-211/T-212/T-214...T-217/T-219/T-220 M7 request/profile splits, decode/cache tolerance, republish hardening, state-machine edge tests, auth callback implementation, list pagination hardening, and backend negative contracts; T-221/T-222 M8 dual-role evidence and readiness rehearsal; T-230 M10 request/offer visible pagination; T-163...T-179/T-207/T-218 G0.
+Completed mapping: T-152/T-154/T-188...T-193/T-217 M1 auth/UI foundations; T-153/T-155/T-156/T-162/T-194 M2; T-157 M2 blocked for dispatch; T-160/T-161/T-195/T-197...T-199 M3; T-200/T-206/T-208/T-213/T-214/T-216/T-220 M4 focused tests and backend contract negatives; T-201 M5 local dry run; T-203...T-205/T-209/T-210/T-231 M6 groomer notification, foreground refresh, local reminders, unread badges, and remote notification parity; T-211/T-212/T-214...T-217/T-219/T-220 M7 request/profile splits, decode/cache tolerance, republish hardening, state-machine edge tests, auth callback implementation, list pagination hardening, and backend negative contracts; T-221/T-222 M8 dual-role evidence and readiness rehearsal; T-230 M10 request/offer visible pagination; T-163...T-179/T-207/T-218 G0.
 
-Execution sequencing: use `ROADMAP_EXECUTION_QUEUE.md` to select the next dependency-satisfied package. Each adopted package receives the next `T-###`. Q-35 through Q-37 and dependent Q-42 have remote authorization recorded on 2026-07-09; prerequisites and per-task safety gates still apply. Q-90/Q-91 remain excluded, while Q-92/Q-93 remain blocked.
+Execution sequencing: use `ROADMAP_EXECUTION_QUEUE.md` to select the next dependency-satisfied package. Each adopted package receives the next `T-###`. Q-36, Q-37, and dependent Q-42 have remote authorization recorded on 2026-07-09; prerequisites and per-task safety gates still apply. Q-90/Q-91 remain excluded, while Q-92/Q-93 remain blocked.
