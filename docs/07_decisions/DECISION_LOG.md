@@ -18,6 +18,15 @@ Linked files:
 ## Active Decisions
 
 ```text
+Decision ID: D-019
+Date: 2026-07-09
+Decision: Keep customer request wizard drafts ephemeral to the active sheet.
+Context: Q-05/R-006 required a persistence decision for partially entered grooming request input. Cross-session or disk persistence would add stale location/photo risk and cross-account cleanup requirements; silently retaining hidden sheet state after cancel/dismiss also conflicts with the current explicit start-create and republish entry points.
+Consequences: Request wizard input is not saved to disk or restored across app launches. Back/cancel and swipe dismiss discard unpublished draft fields/photos and reset the next create flow to defaults. Publish failures preserve input so customers can correct validation/backend errors, and explicit republish remains the only prefilled request flow.
+Linked files: ios/PetGroomerMarketplace/PetGroomerMarketplace/Features/Customer/Requests/CustomerRequestsStore.swift, ios/PetGroomerMarketplace/PetGroomerMarketplace/Features/Customer/Requests/CustomerRequestsView.swift, ios/PetGroomerMarketplace/PetGroomerMarketplaceTests/CustomerRequestFeatureTests.swift
+```
+
+```text
 Decision ID: D-018
 Date: 2026-07-09
 Decision: Use a bounded roadmap execution queue between ROADMAP candidates and task-ledger work.
@@ -80,15 +89,6 @@ Consequences: T-179 lowers rolling windows to 8 worklog entries and 12 ledger ro
 Linked files: scripts/context-hygiene-check.mjs, docs/00_memory/WORKLOG.md, docs/06_tasks/TASK_LEDGER.md, docs/10_project_structure/README.md
 ```
 
-```text
-Decision ID: D-011
-Date: 2026-07-08
-Decision: Keep branch baseline as a single active fact in CURRENT_STATE.
-Context: `AGENTS.md`, `TASK_LEDGER.md`, and `CURRENT_STATE.md` all named the branch baseline, but hygiene checked only the latter two.
-Consequences: `AGENTS.md` now points to `CURRENT_STATE.md` for branch baseline. `TASK_LEDGER.md` keeps its task-numbering baseline and remains checked against CURRENT_STATE by hygiene. Claude's entry map includes ROADMAP, Git rules, and this decision log for planning and rule review.
-Linked files: AGENTS.md, CLAUDE.md, docs/00_memory/CURRENT_STATE.md, docs/06_tasks/TASK_LEDGER.md, docs/07_decisions/DECISION_LOG.md
-```
-
 
 ## Archived Decision Index
 
@@ -96,6 +96,7 @@ Full text for the entries below is preserved in `../09_frozen/decisions/DECISION
 
 | Date | Decision | Current entry point |
 |---|---|---|
+| 2026-07-08 | Keep branch baseline as a single active fact in CURRENT_STATE. | `../09_frozen/decisions/DECISION_LOG_D-011_2026-07-09.md` |
 | 2026-07-08 | Track meta-review cadence by completed-task distance, not wall-clock age. | `../09_frozen/decisions/DECISION_LOG_D-010_2026-07-09.md` |
 | 2026-07-08 | Record the T-163 through T-173 batch commits as a one-time historical exception. | `../09_frozen/decisions/DECISION_LOG_D-009_2026-07-09.md` |
 | 2026-07-08 | Treat `main` commit `2fddf7b` as reviewed and superseded by this branch's governance architecture. | `../09_frozen/decisions/DECISION_LOG_D-008_2026-07-09.md` |

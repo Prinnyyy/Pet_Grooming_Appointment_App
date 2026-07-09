@@ -374,8 +374,23 @@ final class CustomerRequestsStore {
         return true
     }
 
-    func cancelWizard() {
+    func setWizardPresentation(
+        _ isPresented: Bool,
+        now: Date = Date()
+    ) {
+        if isPresented {
+            isShowingWizard = true
+        } else {
+            cancelWizard(now: now)
+        }
+    }
+
+    func cancelWizard(now: Date = Date()) {
         isShowingWizard = false
+        resetForm(now: now)
+        selectedPetID = pets.first?.id
+        wizardInitialStep = .pet
+        publishResult = nil
         errorMessage = nil
     }
 

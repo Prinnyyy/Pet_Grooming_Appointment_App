@@ -343,6 +343,110 @@ struct CustomerRequestsStoreTests {
     }
 
     @Test @MainActor
+    func cancelWizardDiscardsUnpublishedDraftAndReturnsToDefaultCreateState() async throws {
+        let customerID = UUID()
+        let firstPet = Self.pet(customerID: customerID)
+        let secondPet = CustomerPet(
+            id: UUID(),
+            customerID: customerID,
+            name: "Biscuit",
+            species: "Dog",
+            breed: "Shih Tzu",
+            coatType: nil,
+            size: "S",
+            weightLbs: 14,
+            birthday: nil,
+            temperament: "Calm",
+            medicalNotes: nil,
+            groomingNotes: nil,
+            isActive: true
+        )
+        let resetNow = Date(timeIntervalSinceReferenceDate: 825_000_000)
+        let store = CustomerRequestsStore(
+            customerID: customerID,
+            petRepository: CustomerRequestPetRepositoryFake(
+                petsResult: .success([firstPet, secondPet])
+            ),
+            requestRepository: CustomerRequestRepositoryFake(),
+            bookingRepository: CustomerRequestBookingRepositoryFake()
+        )
+        await store.load()
+
+        store.startCreate()
+        store.selectedPetID = secondPet.id
+        store.serviceType = .nailTrim
+        store.serviceNotes = "Nervous with dryers."
+        store.preferredStart = resetNow.addingTimeInterval(4 * 60 * 60)
+        store.preferredEnd = resetNow.addingTimeInterval(5 * 60 * 60)
+        store.locationMode = .customerComesToGroomer
+        store.streetAddress = "456 Cedar Ave"
+        store.city = "Irvine"
+        store.stateCode = .california
+        store.zipCode = "92618"
+        store.travelRadiusMiles = 42
+        store.addPendingPhoto(data: Data([0x01, 0x02]), contentType: .png)
+        store.errorMessage = "Draft validation error"
+
+        store.cancelWizard(now: resetNow)
+
+        #expect(store.isShowingWizard == false)
+        #expect(store.wizardInitialStep == .pet)
+        #expect(store.selectedPetID == firstPet.id)
+        #expect(store.serviceType == .fullGroom)
+        #expect(store.serviceNotes == "")
+        #expect(store.preferredStart == resetNow.addingTimeInterval(24 * 60 * 60))
+        #expect(store.preferredEnd == resetNow.addingTimeInterval(26 * 60 * 60))
+        #expect(store.locationMode == .groomerComesToCustomer)
+        #expect(store.streetAddress == "")
+        #expect(store.city == "")
+        #expect(store.stateCode == nil)
+        #expect(store.zipCode == "")
+        #expect(store.travelRadiusMiles == 15)
+        #expect(store.pendingRequestPhotos.isEmpty)
+        #expect(store.errorMessage == nil)
+    }
+
+    @Test @MainActor
+    func sheetDismissDiscardsUnpublishedWizardDraft() async throws {
+        let customerID = UUID()
+        let pet = Self.pet(customerID: customerID)
+        let resetNow = Date(timeIntervalSinceReferenceDate: 825_100_000)
+        let store = CustomerRequestsStore(
+            customerID: customerID,
+            petRepository: CustomerRequestPetRepositoryFake(
+                petsResult: .success([pet])
+            ),
+            requestRepository: CustomerRequestRepositoryFake(),
+            bookingRepository: CustomerRequestBookingRepositoryFake()
+        )
+        await store.load()
+
+        store.startCreate()
+        store.serviceType = .customRequest
+        store.serviceNotes = "Please call first."
+        store.streetAddress = "789 Maple St"
+        store.city = "Anaheim"
+        store.stateCode = .california
+        store.zipCode = "92805"
+        store.addPendingPhoto(data: Data([0x03]), contentType: .jpeg)
+
+        store.setWizardPresentation(false, now: resetNow)
+
+        #expect(store.isShowingWizard == false)
+        #expect(store.wizardInitialStep == .pet)
+        #expect(store.selectedPetID == pet.id)
+        #expect(store.serviceType == .fullGroom)
+        #expect(store.serviceNotes == "")
+        #expect(store.streetAddress == "")
+        #expect(store.city == "")
+        #expect(store.stateCode == nil)
+        #expect(store.zipCode == "")
+        #expect(store.pendingRequestPhotos.isEmpty)
+        #expect(store.preferredStart == resetNow.addingTimeInterval(24 * 60 * 60))
+        #expect(store.preferredEnd == resetNow.addingTimeInterval(26 * 60 * 60))
+    }
+
+    @Test @MainActor
     func startRepublishFromCancelledRequestPrefillsReviewDraftAndCreatesNewRequest() async throws {
         let customerID = UUID()
         let pet = Self.pet(customerID: customerID)

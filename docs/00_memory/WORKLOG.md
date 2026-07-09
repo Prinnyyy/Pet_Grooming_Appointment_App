@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-09
+Task: T-192 - Request wizard persistence decision.
+Files changed: customer request store/view wizard presentation, customer request tests, decision log, current state, task ledger, and worklog.
+Checks: CustomerRequestsStoreTests; XcodeBuildMCP build; `git diff --check`; context hygiene; commit and push.
+Result: Closes Q-05/R-006 by deciding request wizard drafts are ephemeral to the active sheet. Back/cancel and swipe dismiss discard unpublished draft fields/photos and reset default create state; publish failures still preserve input and explicit republish remains the only prefilled flow.
+Risks: No Supabase schema, policy, migration, remote write, new persistence store, or visible copy change. Full iOS tests still have the known T-153 same-timestamp notification ordering blocker.
+Next: Use T-193 unless resuming T-157 after Apple Developer credentials. Recommended roadmap package is Q-06/R-007 email deep-link and SMTP design.
+```
+
+```text
+Date: 2026-07-09
 Task: T-191 - Groomer private images.
 Files changed: groomer profile store/view portfolio presentation, groomer profile tests, private image audit, current state, task ledger, and worklog.
 Checks: GroomerProfileStoreTests; XcodeBuildMCP build; XcodeBuildMCP launch spot check for auth landing; `git diff --check`; context hygiene; commit and push.
 Result: Closes Q-04/R-005 by tracking groomer portfolio image-load attempts, rendering portfolio photos through the shared module image path, and showing distinct loading versus unavailable states when private image data cannot be read.
 Risks: No Supabase schema, policy, migration, or remote write changed. Cross-user avatars in bookings/chat/notifications still need a future data-contract decision.
-Next: Use T-192 unless resuming T-157 after Apple Developer credentials. Recommended roadmap package is Q-05/R-006 request wizard persistence decision.
 ```
 
 ```text
@@ -65,13 +74,4 @@ Files changed: frozen external reports, current state, task ledger, worklog, and
 Checks: `git diff --check`; `node scripts/context-hygiene-check.mjs`; `node scripts/context-rotate.mjs`; targeted meta-review `rg`; commit and push.
 Result: Preserves the ignored root APP_STATUS_OVERVIEW and V1.0 release-plan v3.1 drafts under `docs/09_frozen/external_agent_reports/`, removes root copies, and records the scheduled meta-review. Targeted review found stale 85% wording in active workflow docs that needs a standalone T-186 rule cleanup.
 Risks: Documentation/archive cleanup only. No Swift, Supabase, runtime, simulator, PR, tag, merge/rebase/reset, seed, migration, or non-Git remote write changed.
-```
-
-```text
-Date: 2026-07-09
-Task: T-184 - Context budget workflow alignment.
-Files changed: AGENTS.md, context/recovery workflow rules, decision log/archive, frozen external plan, current state, task ledger, and worklog.
-Checks: `node scripts/context-rotate.mjs --apply`; `node scripts/context-hygiene-check.mjs`; `git diff --check`; commit and push.
-Result: Implements Batch B of the context-budget redesign. Active workflow rules now use `context-rotate` for rolling-window overflow, define FIXED/WINDOW/INDEX write discipline, treat 95% active Markdown as structural-review signal, and archive the adopted root redesign plan.
-Risks: Documentation-only workflow change. No Swift, Supabase, runtime, simulator, PR, tag, merge/rebase/reset, seed, migration, or non-Git remote write changed.
 ```

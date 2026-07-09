@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-09
 - Updated by: Codex
-- Latest completed task: T-191 Groomer private images.
+- Latest completed task: T-192 Request wizard persistence decision.
 - Current task: none active; T-157 APNs deployment remains externally blocked.
-- Next task ID: use T-192 unless the user resumes T-157 after Apple Developer Program upgrade.
+- Next task ID: use T-193 unless the user resumes T-157 after Apple Developer Program upgrade.
 
 ## Fast Path
 
@@ -39,7 +39,7 @@ Frozen history lives under `docs/09_frozen/`.
 
 ## Validation Baseline
 
-- Last iOS build: XcodeBuildMCP `build_sim` passed on 2026-07-09 during T-191 closeout.
+- Last iOS build: XcodeBuildMCP `build_sim` passed on 2026-07-09 during T-192 closeout.
 - Last full iOS test attempt: `./scripts/ios-test.sh` on 2026-07-07 failed the known T-153 same-timestamp notification ordering assertion; UI smoke tests passed 3/3, and targeted `AuthenticationStoreTests` passed afterward.
 - Last Supabase migration apply: authorized `supabase db push --linked` applied `20260707191034_t160_account_deletion.sql` to project `lqmasbuqzvcvtawonjlb` on 2026-07-07.
 - Last Supabase live post-apply validation: T-160 confirmed migration parity for `20260707191034`, account deletion metadata/RLS/grants/RPCs, advisors, and active `delete-account` deployment with JWT verification. Post-apply dry-run/lint still need `SUPABASE_DB_PASSWORD`.
@@ -47,7 +47,7 @@ Frozen history lives under `docs/09_frozen/`.
 - Last TestOps unit validation: T-145 `./scripts/testops-unit.sh` passed 24 Node tests.
 - Last remote TestOps run: T-155 authorized `matching_baseline` run `TESTOPS-T155-MATCH-20260706-*` passed 8/8 and cleanup left zero tagged request/match residue.
 - Last private image work: T-191 completed groomer portfolio loading/unavailable presentation; T-190 completed customer request wizard pet-photo avatars and request-photo unavailable states; T-189 added the shared loader/cache.
-- Last docs/workflow validation: T-191 groomer private images, context hygiene, and `git diff --check` passed on 2026-07-09.
+- Last docs/workflow validation: T-192 request wizard persistence, context hygiene, and `git diff --check` passed on 2026-07-09.
 - Known validation failure: full `./scripts/ios-test.sh` is currently blocked by the existing T-153 customer notification same-timestamp ordering test, not by T-162 cancellation repost work.
 
 ## Active Product State
@@ -56,7 +56,7 @@ Frozen history lives under `docs/09_frozen/`.
 - Production uses real Supabase Auth, authoritative profile loading, and customer/groomer role separation. No production path fabricates a session/profile.
 - Implemented iOS areas include Auth, role onboarding, customer pets, customer requests/offers, customer in-app notifications, groomer requests/offers, groomer submitted-offer tracking, bookings, text chat, groomer profile/services/portfolio, Customer Account profile settings, Debug Console, and TestOps support.
 - Private Storage images use authenticated `.download(path:)` behind `PrivateImageLoader`; shared cache hashes paths and clears on local account cleanup.
-- Customers can create a new request from cancelled requests and cancelled bookings. The flow reuses the existing request wizard at Review, pre-fills from the original request, and creates a new request id on publish.
+- Customers can create a new request from cancelled requests/bookings via explicit republish. Unpublished request wizard drafts are sheet-ephemeral: cancel/dismiss discards them, while publish failure preserves input for correction.
 - Groomly UI adaptation is complete for implemented MVP screens. Future UI work is screenshot-driven and must map screenshot modules to existing SwiftUI/Store/repository/model paths or stop for new-feature approval.
 
 ## Active Workflow State
@@ -97,4 +97,4 @@ Frozen history lives under `docs/09_frozen/`.
 
 ## Next Recommended Task
 
-- Use T-192 next unless resuming T-157 after Apple Developer credentials. Recommended roadmap package: Q-05/R-006 request wizard persistence decision.
+- Use T-193 next unless resuming T-157 after Apple Developer credentials. Recommended roadmap package: Q-06/R-007 email deep-link and SMTP design.

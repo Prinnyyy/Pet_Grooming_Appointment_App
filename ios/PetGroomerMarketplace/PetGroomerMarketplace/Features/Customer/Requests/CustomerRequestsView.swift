@@ -84,7 +84,7 @@ struct CustomerRequestsView: View {
         } message: {
             Text("This closes the request and any pending offers. Confirmed bookings are managed from Bookings.")
         }
-        .sheet(isPresented: $store.isShowingWizard) {
+        .sheet(isPresented: wizardPresentationBinding) {
             CustomerRequestWizardView(
                 store: store,
                 customerProfileRepository: customerProfileRepository
@@ -113,6 +113,17 @@ struct CustomerRequestsView: View {
                 if !isPresented {
                     pendingCancelRequest = nil
                 }
+            }
+        )
+    }
+
+    private var wizardPresentationBinding: Binding<Bool> {
+        Binding(
+            get: {
+                store.isShowingWizard
+            },
+            set: { isPresented in
+                store.setWizardPresentation(isPresented)
             }
         )
     }
