@@ -61,6 +61,49 @@ struct GroomerOffersStoreTests {
     }
 
     @Test @MainActor
+    func loadEmptyResultClearsExistingOffersAndSections() async throws {
+        let groomerID = UUID()
+        let existing = Self.offerItem(groomerID: groomerID, status: .pending)
+        let repository = GroomerOfferListRepositoryFake(
+            offersResult: .success([existing])
+        )
+        let store = GroomerOffersStore(
+            groomerID: groomerID,
+            repository: repository
+        )
+        await store.load()
+
+        repository.offersResult = .success([])
+        await store.load()
+
+        #expect(repository.offersCallCount == 2)
+        #expect(store.offers.isEmpty)
+        #expect(store.sections.isEmpty)
+        #expect(store.errorMessage == nil)
+    }
+
+    @Test @MainActor
+    func loadCancelledPreservesExistingOffersWithoutShowingError() async throws {
+        let groomerID = UUID()
+        let existing = Self.offerItem(groomerID: groomerID, status: .pending)
+        let repository = GroomerOfferListRepositoryFake(
+            offersResult: .success([existing])
+        )
+        let store = GroomerOffersStore(
+            groomerID: groomerID,
+            repository: repository
+        )
+        await store.load()
+
+        repository.offersResult = .failure(.cancelled)
+        await store.load()
+
+        #expect(repository.offersCallCount == 2)
+        #expect(store.offers == [existing])
+        #expect(store.errorMessage == nil)
+    }
+
+    @Test @MainActor
     func offerItemUsesRequestSummaryWhenRequestIsVisible() {
         let groomerID = UUID()
         let item = Self.offerItem(groomerID: groomerID, status: .pending)

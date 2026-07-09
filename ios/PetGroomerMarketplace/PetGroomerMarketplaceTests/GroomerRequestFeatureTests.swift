@@ -237,6 +237,64 @@ struct GroomerRequestsStoreTests {
     }
 
     @Test @MainActor
+    func submitOfferRequestNoLongerOpenPreservesMatchAndShowsStaleRequestError() async throws {
+        let groomerID = UUID()
+        let matchedRequest = Self.matchedRequest(groomerID: groomerID)
+        let repository = GroomerRequestRepositoryFake(
+            matchedRequestsResult: .success([matchedRequest]),
+            createOfferResult: .failure(.requestNoLongerOpen)
+        )
+        let store = GroomerRequestsStore(
+            groomerID: groomerID,
+            repository: repository
+        )
+        await store.load()
+
+        let start = Date(timeIntervalSince1970: 1_783_000_000)
+        await store.submitOffer(
+            for: matchedRequest,
+            proposedStart: start,
+            proposedEnd: start.addingTimeInterval(2 * 60 * 60),
+            priceEstimateText: "125",
+            message: "",
+            now: start.addingTimeInterval(-60 * 60)
+        )
+
+        #expect(repository.createOfferCallCount == 1)
+        #expect(store.matchedRequests == [matchedRequest])
+        #expect(store.errorMessage == "This request can no longer receive offers.")
+    }
+
+    @Test @MainActor
+    func submitOfferActiveOfferConflictPreservesMatchAndShowsConflictError() async throws {
+        let groomerID = UUID()
+        let matchedRequest = Self.matchedRequest(groomerID: groomerID)
+        let repository = GroomerRequestRepositoryFake(
+            matchedRequestsResult: .success([matchedRequest]),
+            createOfferResult: .failure(.activeOfferExists)
+        )
+        let store = GroomerRequestsStore(
+            groomerID: groomerID,
+            repository: repository
+        )
+        await store.load()
+
+        let start = Date(timeIntervalSince1970: 1_783_000_000)
+        await store.submitOffer(
+            for: matchedRequest,
+            proposedStart: start,
+            proposedEnd: start.addingTimeInterval(2 * 60 * 60),
+            priceEstimateText: "125",
+            message: "",
+            now: start.addingTimeInterval(-60 * 60)
+        )
+
+        #expect(repository.createOfferCallCount == 1)
+        #expect(store.matchedRequests == [matchedRequest])
+        #expect(store.errorMessage == "You already have an active offer for this request.")
+    }
+
+    @Test @MainActor
     func pendingOfferCanBeWithdrawnAndReturnsMatchToViewed() async throws {
         let groomerID = UUID()
         let offerID = UUID()
@@ -270,6 +328,47 @@ struct GroomerRequestsStoreTests {
         #expect(store.matchedRequests.first?.request.status == .open)
         #expect(store.matchedRequests.first?.offer?.status == .withdrawnByGroomer)
         #expect(store.noticeMessage == "Offer withdrawn.")
+    }
+
+    @Test @MainActor
+    func acceptedOfferWithdrawalIsRejectedWithoutCallingRepositoryAndClearsStaleNotice() async throws {
+        let groomerID = UUID()
+        let offerID = UUID()
+        let pendingRequest = Self.matchedRequest(
+            groomerID: groomerID,
+            status: .offered,
+            offerID: offerID
+        )
+        let repository = GroomerRequestRepositoryFake(
+            matchedRequestsResult: .success([pendingRequest]),
+            withdrawOfferResult: .success(
+                WithdrawGroomerOfferResult(
+                    offerID: offerID,
+                    offerStatus: .withdrawnByGroomer,
+                    withdrawnTimestamp: "2026-06-20T14:00:00Z",
+                    requestStatus: .open
+                )
+            )
+        )
+        let store = GroomerRequestsStore(
+            groomerID: groomerID,
+            repository: repository
+        )
+        await store.load()
+        await store.withdrawOffer(for: pendingRequest)
+        #expect(store.noticeMessage == "Offer withdrawn.")
+
+        let acceptedRequest = Self.matchedRequest(
+            groomerID: groomerID,
+            status: .offered,
+            offerID: UUID(),
+            offerStatus: .acceptedByCustomer
+        )
+        await store.withdrawOffer(for: acceptedRequest)
+
+        #expect(repository.withdrawOfferCallCount == 1)
+        #expect(store.errorMessage == "This offer can no longer be withdrawn.")
+        #expect(store.noticeMessage == nil)
     }
 
     @Test @MainActor
@@ -344,7 +443,8 @@ struct GroomerRequestsStoreTests {
         status: RequestMatchStatus = .visible,
         matchScore: Double? = 100,
         matchReason: String? = "same_city",
-        offerID: UUID? = nil
+        offerID: UUID? = nil,
+        offerStatus: GroomerOfferStatus = .pending
     ) -> GroomerMatchedRequest {
         let requestID = UUID()
         let customerID = UUID()
@@ -410,9 +510,11 @@ struct GroomerRequestsStoreTests {
                     proposedEnd: "2026-06-22T18:00:00Z",
                     priceEstimate: 125,
                     message: "I can help.",
-                    status: .pending,
+                    status: offerStatus,
                     expiresAt: "2026-06-22T12:00:00Z",
-                    withdrawnAt: nil,
+                    withdrawnAt: offerStatus == .withdrawnByGroomer
+                        ? "2026-06-21T13:00:00Z"
+                        : nil,
                     createdAt: "2026-06-20T12:00:00Z",
                     updatedAt: "2026-06-20T12:00:00Z"
                 )

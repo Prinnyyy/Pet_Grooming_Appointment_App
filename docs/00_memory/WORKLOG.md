@@ -6,12 +6,30 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-09
+Task: T-207 - Meta-review and context hygiene.
+Files changed: current state, task ledger, worklog, frozen rotated ledger/worklog rows.
+Checks: `git status --short`; `git diff --check`; context hygiene; commit and push.
+Result: Runs the required 10-task cadence review after T-206, rotates excess active ledger/worklog rows, confirms active roadmap/queue/current-state pointers align, and keeps Q-20 as the next roadmap package.
+Risks: Governance-only cleanup. No app code, Supabase schema, migration, remote write, Auth config, seed, TestOps remote execution, deploy, APNs, release upload, tag, PR, merge/rebase/reset, or force-push changed.
+Next: Use T-208 for the next user-chosen task; recommended queue start is Q-20 notification domain tests.
+```
+
+```text
+Date: 2026-07-09
+Task: T-206 - Offer domain tests.
+Files changed: GroomerOffersFeatureTests, GroomerRequestFeatureTests, GroomerRequestsStore, roadmap, current state, task ledger, and worklog.
+Checks: GroomerOffersStoreTests/GroomerRequestsStoreTests RED/GREEN; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
+Result: Closes Q-19/R-028 by adding focused coverage for offer empty/cancelled list states, stale request and active-offer conflicts, and rejected accepted-offer withdrawal. Production change clears stale success notice before local withdraw rejection.
+Risks: No Supabase schema, migration, remote write, repository API, UI layout, dependency, Auth config, seed, TestOps remote execution, deploy, APNs, release upload, tag, PR, merge/rebase/reset, or force-push changed.
+```
+
+```text
+Date: 2026-07-09
 Task: T-205 - Foreground state timeliness.
 Files changed: foreground refresh gate/modifier, customer home/requests/bookings/notifications views, groomer requests/offers/bookings/notifications views, focused tests, roadmap, current state, task ledger, and worklog.
 Checks: ForegroundRefreshGateTests RED/GREEN; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
 Result: Closes Q-18 by moving the affected marketplace screens from one-time task loading to a shared foreground refresh path with initial load, scene-active refresh, realtime-fallback polling, throttling, and in-flight dedupe.
 Risks: This is local UI refresh behavior only. No Supabase schema, migration, remote write, realtime channel contract, Auth config, seed, TestOps remote execution, deploy, APNs, release upload, tag, PR, merge/rebase/reset, or force-push changed.
-Next: Use T-206 for the next user-chosen task; recommended queue start is Q-19 offer domain tests.
 ```
 
 ```text
@@ -57,22 +75,4 @@ Files changed: CustomerNotificationsFeatureTests, roadmap, current state, task l
 Checks: CustomerNotificationsStoreTests RED/GREEN; full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
 Result: Closes Q-14/R-014 by making same-timestamp customer notification ordering deterministic in Store tests, replacing the flaky mark-all read assertion with stable display-order expectations, and restoring the full iOS test gate to passing.
 Risks: No production Swift code, Supabase schema, migration, remote write, UI behavior, dependency, PR, tag, merge/rebase/reset, or force-push changed. Q-09/APNs dispatch remains externally blocked by missing Apple/APNs credentials.
-```
-
-```text
-Date: 2026-07-09
-Task: T-199 - Private image network resilience.
-Files changed: PrivateImageLoader, PrivateImageLoaderTests, roadmap, current state, task ledger, and worklog.
-Checks: PrivateImageLoaderTests RED/GREEN; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
-Result: Closes Q-13/R-013 by adding one retry for transient private-image downloads, using fresh remote data instead of stale cache after transient refresh failures, and treating cancelled refreshes as cancellation instead of cached success.
-Risks: No Supabase schema, migration, storage policy, remote write, repository API, visible UI layout, dependency, PR, tag, merge/rebase/reset, or force-push changed. Full iOS tests still have the known T-153 notification-ordering blocker.
-```
-
-```text
-Date: 2026-07-09
-Task: T-198 - Accessibility and copy audit.
-Files changed: DesignTokens, primary action primitives, BookingsStore copy, customer pet model/view accessibility, focused accessibility/copy tests, accessibility checklist, roadmap, current state, task ledger, and worklog.
-Checks: Focused BookingsStore/customer pet/design-token accessibility tests; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
-Result: Closes Q-12/R-012 by adding contrast-checked semantic color constants, improving primary button text contrast, making booking-vs-schedule load failure copy role-specific, and giving customer pet cards a single readable VoiceOver summary and hint.
-Risks: No Supabase schema, migration, remote write, navigation, persistence contract, dependency, PR, tag, merge/rebase/reset, or force-push changed. Runtime VoiceOver pass was limited to code/test/build validation because XcodeBuildMCP UI tools were unavailable in this session.
 ```

@@ -262,6 +262,9 @@ final class GroomerRequestsStore {
 
     func withdrawOffer(for matchedRequest: GroomerMatchedRequest) async {
         guard !isWithdrawingOffer else { return }
+        errorMessage = nil
+        noticeMessage = nil
+
         guard let offer = matchedRequest.offer else {
             errorMessage = "No offer is available to withdraw."
             return
@@ -277,8 +280,6 @@ final class GroomerRequestsStore {
             "withdrawOffer",
             metadata: ["offerID": offer.id.uuidString]
         )
-        errorMessage = nil
-        noticeMessage = nil
         defer { isWithdrawingOffer = false }
 
         do {

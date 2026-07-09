@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-09
 - Updated by: Codex
-- Latest completed task: T-205 Foreground state timeliness.
+- Latest completed task: T-207 Meta-review and context hygiene.
 - Current task: none; T-157 APNs remains externally blocked.
-- Next task ID: use T-206 unless the user resumes T-157 after Apple Developer Program upgrade.
+- Next task ID: use T-208 unless the user resumes T-157 after Apple Developer Program upgrade.
 
 ## Fast Path
 
@@ -36,19 +36,16 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Validation Baseline
 
-- Last iOS build: `./scripts/ios-build.sh` passed on 2026-07-09 during T-205 foreground state timeliness.
+- Last iOS build: `./scripts/ios-build.sh` passed on 2026-07-09 during T-206 offer domain tests.
 - Last full iOS test attempt: `./scripts/ios-test.sh` passed on 2026-07-09 during T-201 release readiness dry run, including UI smoke tests 3/3 and full app/unit coverage.
 - Last Supabase migration apply: T-160 applied `20260707191034_t160_account_deletion.sql` to `lqmasbuqzvcvtawonjlb` on 2026-07-07 and confirmed parity/RLS/grants/RPCs/advisors/deployment.
 - Prepared unapplied Supabase migration: T-203 `20260709073051_t203_groomer_notifications.sql` is local-only until explicit remote migration authorization.
 - Last TestOps unit validation: T-201 `./scripts/testops-unit.sh` passed 24 Node tests.
 - Last TestOps dry-run validation: T-201 `doctor --dry-run`, marketplace `smoke5` dry-run, matching baseline dry-run, and TestOps launch smoke passed without remote writes.
 - Last release readiness dry run: T-201 recorded local/read-only evidence in `docs/04_ios/release/RELEASE_READINESS_DRY_RUN.md`; Supabase security advisor had only the known Auth leaked-password protection WARN and performance advisor had no issues.
-- Last remote TestOps run: T-155 authorized `matching_baseline` run `TESTOPS-T155-MATCH-20260706-*` passed 8/8 and cleanup left zero tagged request/match residue.
-- Last private image work: T-199 added transient retry and cancellation-safe refresh behavior to the shared private image loader.
-- Last focused feature validation: T-200 CustomerNotificationsStoreTests passed on 2026-07-09 after RED/GREEN same-timestamp ordering coverage.
-- Last groomer notification UI: T-204 added Alerts, unread badge, read states, request/booking/message routing, and focused Store tests.
-- Last foreground refresh: T-205 added scene-active/realtime-fallback refresh for request/offer/booking/notification surfaces.
-- Last docs validation: T-205 context hygiene and `git diff --check` passed on 2026-07-09.
+- Last remote TestOps run: T-155 authorized `matching_baseline` passed 8/8 and cleanup left zero tagged request/match residue.
+- Recent focused validations: T-200 customer notifications, T-204 groomer notifications, T-205 foreground refresh, and T-206 offer domain tests passed their focused RED/GREEN checks.
+- Last docs validation: T-207 context hygiene and `git diff --check` passed on 2026-07-09.
 - Known iOS validation failure: none currently recorded; full `./scripts/ios-test.sh` passed during T-201.
 
 ## Active Product State
@@ -66,8 +63,8 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - Default context model is L0-L4 in `CONTEXT_AND_RECOVERY.md`.
 - Startup reads stay minimal: `AGENTS.md`, then targeted current-state/task-ledger sections only when needed.
 - Periodic documentation-governance reviews use `docs/06_tasks/META_REVIEW_TEMPLATE.md` every 10 completed tasks or weekly.
-- Last meta-review: T-196 on 2026-07-09.
-- V1.0 ideal-operation packages are adopted in `docs/06_tasks/ROADMAP_EXECUTION_QUEUE.md`; Q-16...Q-18 are complete, and sequencing continues at Q-19.
+- Last meta-review: T-207 on 2026-07-09.
+- V1.0 ideal-operation packages are adopted in `docs/06_tasks/ROADMAP_EXECUTION_QUEUE.md`; Q-16...Q-19 are complete, and sequencing continues at Q-20.
 - Changes to `AGENTS.md`, `CLAUDE.md`, or `docs/05_workflow/**` must be standalone numbered tasks with a decision-log entry and context hygiene.
 - T-180 records standing user approval for automatic task-completion Git commit and push. This approval is limited to current-task changes after validation passes; T-186 requires stopping without auto pull/rebase/merge/reset/force-push if the push fails or is rejected.
 - T-184 keeps active Markdown under a 36k hard limit, 95% structural-review warning, and deterministic `node scripts/context-rotate.mjs` archive rotation.
