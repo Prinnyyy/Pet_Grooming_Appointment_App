@@ -94,6 +94,16 @@ struct CustomerNotificationsView: View {
                             }
                         }
                     }
+
+                    if store.canLoadMore || store.isLoadingMore {
+                        GroomlyLoadMoreButton(
+                            isLoading: store.isLoadingMore,
+                            accent: .customer,
+                            accessibilityIdentifier: "customer.notifications.load-more"
+                        ) {
+                            await store.loadNextPage()
+                        }
+                    }
                 }
                 .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
                 .padding(.vertical, DesignTokens.Spacing.lg)

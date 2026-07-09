@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-09
+Task: T-236 - Booking and notification visible pagination.
+Files changed: Booking/customer notification/groomer notification Stores, views, and tests; pagination audit; roadmap/queue/current state/task ledger/worklog.
+Checks: Three pagination RED/GREEN cases; focused suites; full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; XcodeBuildMCP build/run and customer Booking/Notification navigation; `git diff --check`; context hygiene.
+Result: Q-39 exposes the shared Load More interaction on customer bookings, groomer schedule, and both notification lists. Append loads use separate busy state, retain rows/cursor on failure, retry the same page, deduplicate IDs, and hide at the terminal page; mark-all-read preserves the loaded notification window.
+Risks: The live customer account had fewer than 50 bookings/notifications, so conditional Load More visibility is covered by Store tests while Simulator verification covered the production screens. No schema or remote write.
+Next: Use T-237 for Q-40 conversation and message-history pagination.
+```
+
+```text
+Date: 2026-07-09
 Task: T-235 - Remote TestOps lifecycle and matching evidence.
 Files changed: TestOps doctor/result/artifact redaction, three unit suites, durable remote run record/results index/TestOps memory, roadmap/queue/current state/task ledger/worklog.
 Checks: Doctor/dry-runs; redaction RED/GREEN; `./scripts/testops-unit.sh` 28/28; authorized remote smoke5 5/5; authorized matching baseline 8/8; 10 lifecycle and 16 matching artifact scans with zero unsafe files; linked tagged-residue queries returned zero; `git diff --check`; context hygiene.
 Result: Q-37 proves five full backend marketplace lifecycles and eight matching cases against the linked project with scoped cleanup. Console and artifact entity IDs are now 8-character refs, and doctor correctly recognizes modern server credentials.
 Risks: The first smoke run passed/cleaned up but revealed full UUIDs in console/JSON. Execution stopped, unsafe generated artifacts were deleted, regression coverage was added, and clean R2 runs replaced the evidence. No raw artifact is committed.
-Next: Use T-236 for Q-39 booking and notification pagination.
 ```
 
 ```text
@@ -66,13 +75,4 @@ Files changed: current state, feature index, task ledger, worklog, and frozen ro
 Checks: Git status/diff; context hygiene; 56-file migration mirror count; root-report tracking/ignore/frozen checks; targeted branch/task/queue fact scan.
 Result: Resolves the 10-task cadence gate. All 69 active Markdown files remain within individual budgets; root external reports are ignored/untracked with frozen copies; migration and roadmap facts align. The 95% total is observed, but no duplicate active source is safe to remove.
 Risks: Governance closeout only. No workflow rule, app/backend behavior, Supabase write, migration, TestOps execute, seed, deploy, release action, or APNs work changed.
-```
-
-```text
-Date: 2026-07-09
-Task: T-228 - Supabase advisor index evidence audit.
-Files changed: index audit, Supabase contract, roadmap/queue, current state, task ledger, and worklog.
-Checks: Current Supabase docs/changelog and CLI help; linked performance advisor; sequential read-only catalog/index/table/pg_stat queries; transaction-local safe EXPLAIN; Supabase/diff checks. Context hygiene requires the scheduled T-229 meta-review.
-Result: Q-34 classifies all 12 FK and 8 unused-index INFO findings. Only handoff `booking_id` and request-photo `customer_id` need indexes; 10 FK findings already have usable indexes. No unused index is safe to remove from current low-cardinality evidence.
-Risks: Read-only remote inspection plus docs only. No schema/config/data write, migration, statistics reset, TestOps execute, seed, deploy, release action, or APNs work occurred. Q-36 still requires explicit migration authorization.
 ```

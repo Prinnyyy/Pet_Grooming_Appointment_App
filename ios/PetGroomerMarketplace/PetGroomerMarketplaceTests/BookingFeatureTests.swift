@@ -4,6 +4,55 @@ import Testing
 
 struct BookingsStoreTests {
     @Test @MainActor
+    func paginationRetriesThenAppendsUniqueBookingsAndStopsAtLastPage() async {
+        let participantID = UUID()
+        let first = Self.booking(
+            customerID: participantID,
+            scheduledStart: "2026-08-23T16:00:00Z"
+        )
+        let second = Self.booking(
+            customerID: participantID,
+            scheduledStart: "2026-08-22T16:00:00Z"
+        )
+        let repository = BookingRepositoryFake(
+            bookingPages: [
+                .success(ListPage(items: [first], request: .first, hasMore: true)),
+                .failure(.networkUnavailable),
+                .success(
+                    ListPage(
+                        items: [first, second],
+                        request: .first.next,
+                        hasMore: false
+                    )
+                ),
+            ]
+        )
+        let scheduler = AppointmentReminderSchedulerFake()
+        let store = BookingsStore(
+            participantID: participantID,
+            role: .customer,
+            repository: repository,
+            appointmentReminderScheduler: scheduler
+        )
+
+        await store.load()
+        await store.loadNextPage()
+
+        #expect(store.bookings.map(\.id) == [first.id])
+        #expect(store.canLoadMore == true)
+        #expect(store.isLoading == false)
+        #expect(store.isLoadingMore == false)
+        #expect(store.errorMessage == "Check your connection and try again.")
+
+        await store.loadNextPage()
+
+        #expect(repository.receivedBookingPages == [.first, .first.next, .first.next])
+        #expect(store.bookings.map(\.id) == [first.id, second.id])
+        #expect(store.canLoadMore == false)
+        #expect(scheduler.syncCallCount == 2)
+    }
+
+    @Test @MainActor
     func loadFetchesRoleSpecificBookings() async throws {
         let participantID = UUID()
         let booking = Self.booking(customerID: participantID)
@@ -936,11 +985,13 @@ private final class AppointmentReminderSchedulerFake:
 @MainActor
 private final class BookingRepositoryFake: BookingRepository {
     var bookingsResult: Result<[Booking], BookingRepositoryError>
+    var bookingPages: [Result<ListPage<Booking>, BookingRepositoryError>]
     var cancelResult: Result<CancelBookingResult, BookingRepositoryError>
     var completeResult: Result<CompleteBookingResult, BookingRepositoryError>
     var reviewResult: Result<CreateReviewResult, BookingRepositoryError>
 
     private(set) var bookingsCallCount = 0
+    private(set) var receivedBookingPages: [ListPageRequest] = []
     private(set) var cancelCallCount = 0
     private(set) var completeCallCount = 0
     private(set) var reviewCallCount = 0
@@ -953,6 +1004,7 @@ private final class BookingRepositoryFake: BookingRepository {
 
     init(
         bookingsResult: Result<[Booking], BookingRepositoryError> = .success([]),
+        bookingPages: [Result<ListPage<Booking>, BookingRepositoryError>] = [],
         cancelResult: Result<CancelBookingResult, BookingRepositoryError> =
             .failure(.unavailable),
         completeResult: Result<CompleteBookingResult, BookingRepositoryError> =
@@ -961,6 +1013,7 @@ private final class BookingRepositoryFake: BookingRepository {
             .failure(.unavailable)
     ) {
         self.bookingsResult = bookingsResult
+        self.bookingPages = bookingPages
         self.cancelResult = cancelResult
         self.completeResult = completeResult
         self.reviewResult = reviewResult
@@ -974,6 +1027,26 @@ private final class BookingRepositoryFake: BookingRepository {
         lastParticipantID = participantID
         lastRole = role
         return try bookingsResult.get()
+    }
+
+    func bookings(
+        participantID: UUID,
+        role: UserRole,
+        page: ListPageRequest
+    ) async throws -> ListPage<Booking> {
+        bookingsCallCount += 1
+        lastParticipantID = participantID
+        lastRole = role
+        receivedBookingPages.append(page)
+        if !bookingPages.isEmpty {
+            return try bookingPages.removeFirst().get()
+        }
+
+        return ListPage(
+            items: try bookingsResult.get(),
+            request: page,
+            hasMore: false
+        )
     }
 
     func acceptOffer(

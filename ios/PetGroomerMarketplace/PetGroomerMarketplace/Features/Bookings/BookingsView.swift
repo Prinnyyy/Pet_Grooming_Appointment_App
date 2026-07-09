@@ -142,6 +142,16 @@ struct BookingsView: View {
                         }
                     }
                 }
+
+                if store.canLoadMore || store.isLoadingMore {
+                    GroomlyLoadMoreButton(
+                        isLoading: store.isLoadingMore,
+                        accent: .customer,
+                        accessibilityIdentifier: "customer.bookings.load-more"
+                    ) {
+                        await store.loadNextPage()
+                    }
+                }
             }
             .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
             .padding(.top, DesignTokens.Spacing.xl)
@@ -194,6 +204,16 @@ struct BookingsView: View {
                         store: store,
                         onOpenChat: onOpenChat
                     )
+                }
+
+                if store.canLoadMore || store.isLoadingMore {
+                    GroomlyLoadMoreButton(
+                        isLoading: store.isLoadingMore,
+                        accent: .groomer,
+                        accessibilityIdentifier: "groomer.schedule.load-more"
+                    ) {
+                        await store.loadNextPage()
+                    }
                 }
             }
             .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)

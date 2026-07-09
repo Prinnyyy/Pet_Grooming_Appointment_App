@@ -4,6 +4,52 @@ import Testing
 
 struct CustomerNotificationsStoreTests {
     @Test @MainActor
+    func paginationRetriesThenAppendsUniqueNotificationsAndStopsAtLastPage() async {
+        let customerID = UUID()
+        let first = Self.notification(
+            customerID: customerID,
+            kind: .newOffer,
+            createdAt: "2026-07-06T12:00:00Z"
+        )
+        let second = Self.notification(
+            customerID: customerID,
+            kind: .bookingConfirmed,
+            createdAt: "2026-07-06T11:00:00Z"
+        )
+        let repository = CustomerNotificationRepositoryFake(
+            notificationPages: [
+                .success(ListPage(items: [first], request: .first, hasMore: true)),
+                .failure(.networkUnavailable),
+                .success(
+                    ListPage(
+                        items: [first, second],
+                        request: .first.next,
+                        hasMore: false
+                    )
+                ),
+            ]
+        )
+        let store = CustomerNotificationsStore(
+            customerID: customerID,
+            repository: repository
+        )
+
+        await store.load()
+        await store.loadNextPage()
+
+        #expect(store.notifications.map(\.id) == [first.id])
+        #expect(store.canLoadMore == true)
+        #expect(store.isLoadingMore == false)
+        #expect(store.errorMessage == "Notifications unavailable. Check your connection and try again.")
+
+        await store.loadNextPage()
+
+        #expect(repository.receivedNotificationPages == [.first, .first.next, .first.next])
+        #expect(store.notifications.map(\.id) == [first.id, second.id])
+        #expect(store.canLoadMore == false)
+    }
+
+    @Test @MainActor
     func loadFetchesNotificationsAndTracksUnreadCount() async throws {
         let customerID = UUID()
         let unread = Self.notification(
@@ -264,11 +310,13 @@ struct CustomerNotificationsStoreTests {
 @MainActor
 private final class CustomerNotificationRepositoryFake: CustomerNotificationRepository {
     var notificationsResult: Result<[CustomerNotification], CustomerNotificationRepositoryError>
+    var notificationPages: [Result<ListPage<CustomerNotification>, CustomerNotificationRepositoryError>]
     var markReadResult: Result<CustomerNotification, CustomerNotificationRepositoryError>
     var markAllReadResult: Result<[CustomerNotification], CustomerNotificationRepositoryError>
     var markReadDelayNanoseconds: UInt64 = 0
 
     private(set) var notificationsCallCount = 0
+    private(set) var receivedNotificationPages: [ListPageRequest] = []
     private(set) var markReadCallCount = 0
     private(set) var markAllReadCallCount = 0
     private(set) var lastCustomerID: UUID?
@@ -277,10 +325,12 @@ private final class CustomerNotificationRepositoryFake: CustomerNotificationRepo
 
     init(
         notificationsResult: Result<[CustomerNotification], CustomerNotificationRepositoryError> = .success([]),
+        notificationPages: [Result<ListPage<CustomerNotification>, CustomerNotificationRepositoryError>] = [],
         markReadResult: Result<CustomerNotification, CustomerNotificationRepositoryError> = .failure(.unavailable),
         markAllReadResult: Result<[CustomerNotification], CustomerNotificationRepositoryError> = .success([])
     ) {
         self.notificationsResult = notificationsResult
+        self.notificationPages = notificationPages
         self.markReadResult = markReadResult
         self.markAllReadResult = markAllReadResult
     }
@@ -289,6 +339,24 @@ private final class CustomerNotificationRepositoryFake: CustomerNotificationRepo
         notificationsCallCount += 1
         lastCustomerID = customerID
         return try notificationsResult.get()
+    }
+
+    func notifications(
+        customerID: UUID,
+        page: ListPageRequest
+    ) async throws -> ListPage<CustomerNotification> {
+        notificationsCallCount += 1
+        lastCustomerID = customerID
+        receivedNotificationPages.append(page)
+        if !notificationPages.isEmpty {
+            return try notificationPages.removeFirst().get()
+        }
+
+        return ListPage(
+            items: try notificationsResult.get(),
+            request: page,
+            hasMore: false
+        )
     }
 
     func markRead(notificationID: UUID) async throws -> CustomerNotification {

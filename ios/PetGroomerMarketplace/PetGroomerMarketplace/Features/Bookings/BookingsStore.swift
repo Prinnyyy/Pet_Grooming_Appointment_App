@@ -12,6 +12,7 @@ final class BookingsStore {
 
     private(set) var bookings: [Booking] = []
     private(set) var isLoading = false
+    private(set) var isLoadingMore = false
     private(set) var isCancelling = false
     private(set) var isCompleting = false
     private(set) var isSubmittingReview = false
@@ -22,7 +23,7 @@ final class BookingsStore {
     var appointmentReminderNotice: String?
 
     var isBusy: Bool {
-        isLoading || isCancelling || isCompleting || isSubmittingReview
+        isLoading || isLoadingMore || isCancelling || isCompleting || isSubmittingReview
     }
 
     var canLoadMore: Bool {
@@ -51,6 +52,8 @@ final class BookingsStore {
     }
 
     func load() async {
+        guard !isLoading, !isLoadingMore else { return }
+
         let startedAt = Date()
         recordStoreStart("load")
         isLoading = true
@@ -98,13 +101,15 @@ final class BookingsStore {
     }
 
     func loadNextPage() async {
-        guard !isLoading, let pageRequest = nextPageRequest else { return }
+        guard !isLoading,
+              !isLoadingMore,
+              let pageRequest = nextPageRequest else { return }
 
         let startedAt = Date()
         recordStoreStart("loadNextPage")
-        isLoading = true
+        isLoadingMore = true
         errorMessage = nil
-        defer { isLoading = false }
+        defer { isLoadingMore = false }
 
         do {
             let page = try await repository.bookings(
@@ -112,7 +117,7 @@ final class BookingsStore {
                 role: role,
                 page: pageRequest
             )
-            bookings.append(contentsOf: page.items)
+            bookings = ListPageMerge.appendingUnique(page.items, to: bookings)
             nextPageRequest = page.nextRequest
             recordStoreSuccess(
                 "loadNextPage",

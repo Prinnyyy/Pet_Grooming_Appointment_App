@@ -4,6 +4,52 @@ import Testing
 
 struct GroomerNotificationsStoreTests {
     @Test @MainActor
+    func paginationRetriesThenAppendsUniqueNotificationsAndStopsAtLastPage() async {
+        let groomerID = UUID()
+        let first = Self.notification(
+            groomerID: groomerID,
+            kind: .newMatch,
+            createdAt: "2026-07-09T12:00:00Z"
+        )
+        let second = Self.notification(
+            groomerID: groomerID,
+            kind: .offerAccepted,
+            createdAt: "2026-07-09T11:00:00Z"
+        )
+        let repository = GroomerNotificationRepositoryFake(
+            notificationPages: [
+                .success(ListPage(items: [first], request: .first, hasMore: true)),
+                .failure(.networkUnavailable),
+                .success(
+                    ListPage(
+                        items: [first, second],
+                        request: .first.next,
+                        hasMore: false
+                    )
+                ),
+            ]
+        )
+        let store = GroomerNotificationsStore(
+            groomerID: groomerID,
+            repository: repository
+        )
+
+        await store.load()
+        await store.loadNextPage()
+
+        #expect(store.notifications.map(\.id) == [first.id])
+        #expect(store.canLoadMore == true)
+        #expect(store.isLoadingMore == false)
+        #expect(store.errorMessage == "Notifications unavailable. Check your connection and try again.")
+
+        await store.loadNextPage()
+
+        #expect(repository.receivedNotificationPages == [.first, .first.next, .first.next])
+        #expect(store.notifications.map(\.id) == [first.id, second.id])
+        #expect(store.canLoadMore == false)
+    }
+
+    @Test @MainActor
     func loadFetchesNotificationsAndTracksUnreadCount() async throws {
         let groomerID = UUID()
         let unread = Self.notification(
@@ -305,11 +351,13 @@ struct GroomerNotificationsStoreTests {
 @MainActor
 private final class GroomerNotificationRepositoryFake: GroomerNotificationRepository {
     var notificationsResult: Result<[GroomerNotification], GroomerNotificationRepositoryError>
+    var notificationPages: [Result<ListPage<GroomerNotification>, GroomerNotificationRepositoryError>]
     var markReadResult: Result<GroomerNotification, GroomerNotificationRepositoryError>
     var markAllReadResult: Result<[GroomerNotification], GroomerNotificationRepositoryError>
     var markAllReadDelayNanoseconds: UInt64 = 0
 
     private(set) var notificationsCallCount = 0
+    private(set) var receivedNotificationPages: [ListPageRequest] = []
     private(set) var markReadCallCount = 0
     private(set) var markAllReadCallCount = 0
     private(set) var lastGroomerID: UUID?
@@ -318,10 +366,12 @@ private final class GroomerNotificationRepositoryFake: GroomerNotificationReposi
 
     init(
         notificationsResult: Result<[GroomerNotification], GroomerNotificationRepositoryError> = .success([]),
+        notificationPages: [Result<ListPage<GroomerNotification>, GroomerNotificationRepositoryError>] = [],
         markReadResult: Result<GroomerNotification, GroomerNotificationRepositoryError> = .failure(.unavailable),
         markAllReadResult: Result<[GroomerNotification], GroomerNotificationRepositoryError> = .success([])
     ) {
         self.notificationsResult = notificationsResult
+        self.notificationPages = notificationPages
         self.markReadResult = markReadResult
         self.markAllReadResult = markAllReadResult
     }
@@ -330,6 +380,24 @@ private final class GroomerNotificationRepositoryFake: GroomerNotificationReposi
         notificationsCallCount += 1
         lastGroomerID = groomerID
         return try notificationsResult.get()
+    }
+
+    func notifications(
+        groomerID: UUID,
+        page: ListPageRequest
+    ) async throws -> ListPage<GroomerNotification> {
+        notificationsCallCount += 1
+        lastGroomerID = groomerID
+        receivedNotificationPages.append(page)
+        if !notificationPages.isEmpty {
+            return try notificationPages.removeFirst().get()
+        }
+
+        return ListPage(
+            items: try notificationsResult.get(),
+            request: page,
+            hasMore: false
+        )
     }
 
     func markRead(notificationID: UUID) async throws -> GroomerNotification {

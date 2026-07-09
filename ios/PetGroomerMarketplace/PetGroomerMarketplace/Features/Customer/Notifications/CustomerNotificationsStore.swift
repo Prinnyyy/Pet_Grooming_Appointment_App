@@ -9,13 +9,19 @@ final class CustomerNotificationsStore {
 
     private(set) var notifications: [CustomerNotification] = []
     private(set) var isLoading = false
+    private(set) var isLoadingMore = false
     private(set) var isMarkingAllRead = false
     private(set) var markingNotificationIDs: Set<UUID> = []
+    private(set) var nextPageRequest: ListPageRequest?
 
     var errorMessage: String?
 
     var unreadCount: Int {
         notifications.filter { !$0.isRead }.count
+    }
+
+    var canLoadMore: Bool {
+        nextPageRequest != nil
     }
 
     init(
@@ -27,16 +33,48 @@ final class CustomerNotificationsStore {
     }
 
     func load() async {
-        guard !isLoading else { return }
+        guard !isLoading, !isLoadingMore else { return }
 
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
 
         do {
-            notifications = Self.displayOrdered(
-                try await repository.notifications(customerID: customerID)
+            let page = try await repository.notifications(
+                customerID: customerID,
+                page: .first
             )
+            notifications = Self.displayOrdered(page.items)
+            nextPageRequest = page.nextRequest
+        } catch CustomerNotificationRepositoryError.cancelled {
+            return
+        } catch let error as CustomerNotificationRepositoryError {
+            errorMessage = Self.message(for: error, action: "load")
+        } catch where AppDebugErrorClassifier.isCancellation(error) {
+            return
+        } catch {
+            errorMessage = Self.message(for: .unavailable, action: "load")
+        }
+    }
+
+    func loadNextPage() async {
+        guard !isLoading,
+              !isLoadingMore,
+              let pageRequest = nextPageRequest else { return }
+
+        isLoadingMore = true
+        errorMessage = nil
+        defer { isLoadingMore = false }
+
+        do {
+            let page = try await repository.notifications(
+                customerID: customerID,
+                page: pageRequest
+            )
+            notifications = Self.displayOrdered(
+                ListPageMerge.appendingUnique(page.items, to: notifications)
+            )
+            nextPageRequest = page.nextRequest
         } catch CustomerNotificationRepositoryError.cancelled {
             return
         } catch let error as CustomerNotificationRepositoryError {
@@ -79,7 +117,7 @@ final class CustomerNotificationsStore {
         defer { isMarkingAllRead = false }
 
         do {
-            notifications = Self.displayOrdered(
+            applyUpdates(
                 try await repository.markAllRead(customerID: customerID)
             )
         } catch CustomerNotificationRepositoryError.cancelled {
@@ -105,6 +143,13 @@ final class CustomerNotificationsStore {
 
         notifications[index] = notification
         notifications = Self.displayOrdered(notifications)
+    }
+
+    private func applyUpdates(_ updates: [CustomerNotification]) {
+        let updatesByID = Dictionary(uniqueKeysWithValues: updates.map { ($0.id, $0) })
+        notifications = Self.displayOrdered(
+            notifications.map { updatesByID[$0.id] ?? $0 }
+        )
     }
 
     private static func displayOrdered(
