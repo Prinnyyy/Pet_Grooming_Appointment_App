@@ -31,6 +31,7 @@ Validation for the task is recorded in `../06_tasks/TASK_LEDGER.md` and `../00_m
 
 | Date | Task | Summary | Detail |
 |---|---|---|---|
+| 2026-07-08 | T-177 | Cleaned dead governance-plan ignore entries, expanded ROADMAP DoD, and rolled T-163 ledger row plus T-167 worklog entry to frozen. | `../../.rgignore`, `../../.gitignore`, `../06_tasks/ROADMAP.md`, `../09_frozen/task_ledgers/`, `../09_frozen/worklogs/` |
 | 2026-07-08 | T-176 | Removed AGENTS branch-baseline duplication, updated Claude routing, and rolled T-162 ledger row plus T-166 worklog entry to frozen. | `../../AGENTS.md`, `../../CLAUDE.md`, `../09_frozen/task_ledgers/`, `../09_frozen/worklogs/` |
 | 2026-07-08 | T-175 | Added hygiene v4 failure-mode checks and rolled T-161 ledger row plus T-165 worklog entry to frozen. | `../../scripts/context-hygiene-check.mjs`, `../09_frozen/task_ledgers/`, `../09_frozen/worklogs/` |
 | 2026-07-08 | T-174 | Snapshotted and trimmed the active decision log, archived the adopted governance review fix plan, and rolled T-160/T-164 ledger/worklog entries to frozen. | `../09_frozen/decisions/`, `../09_frozen/external_agent_reports/`, `../09_frozen/task_ledgers/`, `../09_frozen/worklogs/` |

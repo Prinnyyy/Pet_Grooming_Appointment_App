@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-08
+Task: T-177 - ROADMAP DoD and ignore cleanup.
+Files changed: `.rgignore`, `.gitignore`, roadmap, task ledger/archive, worklog/archive, current state, and structure log.
+Checks: `git diff --check`; `node scripts/context-hygiene-check.mjs`; targeted ignore/root-draft checks.
+Result: Removes the dead `DOCS_GOVERNANCE_OPTIMIZATION_PLAN.md` ignore entry, expands V1.0 DoD into a checklist, and reorders ROADMAP candidate rows by R ID. Root `APP_STATUS_OVERVIEW.md` and `V1.0_RELEASE_TASK_PLAN.md` remain ignored live drafts; frozen 2026-07-06 copies remain adopted review snapshots.
+Risks: Docs/governance only. No iOS source, Supabase command, migration, runtime behavior, simulator, push, or remote write changed. T-177 is not yet committed or pushed.
+Next: Use T-178 for the next non-APNs task; product candidate remains private image rendering unless the user chooses otherwise.
+```
+
+```text
+Date: 2026-07-08
 Task: T-176 - Entrypoint and branch fact-source alignment.
 Files changed: AGENTS.md, CLAUDE.md, decision log, roadmap, task ledger/archive, worklog/archive, current state, and structure log.
 Checks: `git diff --check`; `node scripts/context-hygiene-check.mjs`.
 Result: `AGENTS.md` no longer hardcodes the branch baseline and now points to CURRENT_STATE for that fact. `CLAUDE.md` now routes planning/milestone review to ROADMAP and rule/scope review to DECISION_LOG/Git rules.
 Risks: Docs/rules only. No iOS source, Supabase command, migration, runtime behavior, simulator, push, or remote write changed. T-176 is not yet committed or pushed.
-Next: Use T-177 for batch D low-priority cleanup unless the user chooses a different task.
 ```
 
 ```text
@@ -84,13 +93,4 @@ Files changed: preflight script/test, iOS testing docs, migration rules, roadmap
 Checks: RED/GREEN `node --test tests/scripts/preflight.test.mjs`; `./scripts/preflight.sh`; `git diff --check`; `node scripts/context-hygiene-check.mjs`.
 Result: Preflight now runs local migration and Edge Function Node tests when present. Docs require local migration/function tests before authorized remote backend validation and record Edge Function/pg_cron gates.
 Risks: Docs/workflow/script only. No iOS source, Supabase command, migration, runtime behavior, simulator, commit, or push changed.
-```
-
-```text
-Date: 2026-07-07
-Task: T-167 - Managed ROADMAP adoption.
-Files changed: ROADMAP.md, task/docs indexes, AGENTS.md, CONTEXT_AND_RECOVERY.md, task ledger, decision log, current state, worklog archive, context hygiene script/tests.
-Checks: RED/GREEN `node --test tests/docs/context-hygiene-check.test.mjs`; `git diff --check`; `node scripts/context-hygiene-check.mjs`.
-Result: Adds a governed roadmap that converts external V1.0 drafts into milestone/candidate indexes without copying old task IDs as active IDs. Task numbering remains owned by TASK_LEDGER, and ROADMAP has a hygiene budget.
-Risks: Docs/workflow only. No iOS source, Supabase command, migration, runtime behavior, simulator, commit, or push changed.
 ```
