@@ -1854,14 +1854,19 @@ struct CustomerRequestsStoreTests {
             requestID: request.id,
             status: .declinedByCustomer
         )
+        let acceptedBooking = Self.booking(
+            requestID: request.id,
+            customerID: customerID
+        )
         let requestRepository = CustomerRequestRepositoryFake(
             requestsResult: .success([request]),
             offersResult: .success([acceptedPending, competingPending])
         )
         let bookingRepository = CustomerRequestBookingRepositoryFake(
+            bookingsResult: .success([acceptedBooking]),
             acceptResult: .success(
                 AcceptGroomerOfferResult(
-                    bookingID: UUID(),
+                    bookingID: acceptedBooking.id,
                     conversationID: UUID(),
                     requestID: request.id,
                     offerID: acceptedOfferID,
@@ -1871,13 +1876,15 @@ struct CustomerRequestsStoreTests {
                 )
             )
         )
+        let scheduler = CustomerRequestAppointmentReminderSchedulerFake()
         let store = CustomerRequestsStore(
             customerID: customerID,
             petRepository: CustomerRequestPetRepositoryFake(
                 petsResult: .success([pet])
             ),
             requestRepository: requestRepository,
-            bookingRepository: bookingRepository
+            bookingRepository: bookingRepository,
+            appointmentReminderScheduler: scheduler
         )
         await store.load()
         await store.loadOffers(for: request)
@@ -1905,6 +1912,9 @@ struct CustomerRequestsStoreTests {
         #expect(statusesByOfferID[acceptedOfferID] == .acceptedByCustomer)
         #expect(statusesByOfferID[competingOfferID] == .declinedByCustomer)
         #expect(store.noticeMessage == "Offer accepted. Booking confirmed.")
+        #expect(scheduler.syncCallCount == 1)
+        #expect(scheduler.lastSyncedBookings == [acceptedBooking])
+        #expect(scheduler.lastSyncedRole == .customer)
     }
 
     @Test @MainActor
@@ -2221,6 +2231,27 @@ private final class CustomerRequestPetRepositoryFake: CustomerPetRepository {
         }
         return try result.get()
     }
+}
+
+private final class CustomerRequestAppointmentReminderSchedulerFake:
+    AppointmentReminderScheduling,
+    @unchecked Sendable
+{
+    private(set) var syncCallCount = 0
+    private(set) var lastSyncedBookings: [Booking]?
+    private(set) var lastSyncedRole: UserRole?
+
+    func syncReminders(
+        for bookings: [Booking],
+        role: UserRole
+    ) async -> AppointmentReminderSyncResult {
+        syncCallCount += 1
+        lastSyncedBookings = bookings
+        lastSyncedRole = role
+        return .scheduled(count: bookings.count)
+    }
+
+    func cancelReminder(for bookingID: UUID, role: UserRole) async {}
 }
 
 @MainActor

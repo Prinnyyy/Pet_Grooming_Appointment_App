@@ -7,6 +7,7 @@ final class BookingsStore {
     private let participantID: UUID
     private let role: UserRole
     private let repository: any BookingRepository
+    private let appointmentReminderScheduler: any AppointmentReminderScheduling
     private let debugRecorder: AppDebugEventRecorder?
 
     private(set) var bookings: [Booking] = []
@@ -17,6 +18,7 @@ final class BookingsStore {
 
     var errorMessage: String?
     var noticeMessage: String?
+    var appointmentReminderNotice: String?
 
     var isBusy: Bool {
         isLoading || isCancelling || isCompleting || isSubmittingReview
@@ -27,11 +29,14 @@ final class BookingsStore {
         role: UserRole,
         repository: any BookingRepository,
         initialBookings: [Booking] = [],
+        appointmentReminderScheduler: any AppointmentReminderScheduling =
+            AppointmentReminderScheduler.shared,
         debugRecorder: AppDebugEventRecorder? = nil
     ) {
         self.participantID = participantID
         self.role = role
         self.repository = repository
+        self.appointmentReminderScheduler = appointmentReminderScheduler
         self.debugRecorder = debugRecorder
         bookings = initialBookings
     }
@@ -57,6 +62,7 @@ final class BookingsStore {
                 startedAt: startedAt,
                 metadata: ["bookingCount": "\(bookings.count)"]
             )
+            await syncAppointmentReminders()
         } catch BookingRepositoryError.cancelled {
             recordStoreCancelled("load", startedAt: startedAt)
         } catch let error as BookingRepositoryError {
@@ -107,6 +113,10 @@ final class BookingsStore {
             } else {
                 noticeMessage = "Booking cancelled. Refresh bookings to see the latest state. The original request and offers remain closed."
             }
+            await appointmentReminderScheduler.cancelReminder(
+                for: booking.id,
+                role: role
+            )
             recordStoreSuccess("cancel", startedAt: startedAt)
         } catch BookingRepositoryError.cancelled {
             recordStoreCancelled("cancel", startedAt: startedAt)
@@ -161,6 +171,10 @@ final class BookingsStore {
             } else {
                 noticeMessage = "Booking completed. Refresh bookings to see the latest state."
             }
+            await appointmentReminderScheduler.cancelReminder(
+                for: booking.id,
+                role: role
+            )
             recordStoreSuccess("complete", startedAt: startedAt)
         } catch BookingRepositoryError.cancelled {
             recordStoreCancelled("complete", startedAt: startedAt)
@@ -323,6 +337,44 @@ final class BookingsStore {
 
     private var debugScope: String {
         "\(role.appDebugScopePrefix).bookings"
+    }
+
+    private func syncAppointmentReminders() async {
+        let result = await appointmentReminderScheduler.syncReminders(
+            for: bookings,
+            role: role
+        )
+
+        switch result {
+        case .scheduled:
+            appointmentReminderNotice = nil
+        case .refused:
+            appointmentReminderNotice =
+                "Appointment reminders are off. Enable notifications in Settings to receive local reminders."
+            recordReminderSync(result: result)
+        case .unavailable:
+            recordReminderSync(result: result)
+        }
+    }
+
+    private func recordReminderSync(result: AppointmentReminderSyncResult) {
+        let message = switch result {
+        case .scheduled:
+            "scheduled"
+        case .refused:
+            "permission refused"
+        case .unavailable:
+            "unavailable"
+        }
+
+        debugRecorder?.record(
+            level: result == .unavailable ? .warning : .info,
+            category: .store,
+            source: "BookingsStore.appointmentReminders",
+            scope: debugScope,
+            message: message,
+            metadata: ["role": role.appDebugName]
+        )
     }
 
     private func recordStoreStart(_ operation: String) {

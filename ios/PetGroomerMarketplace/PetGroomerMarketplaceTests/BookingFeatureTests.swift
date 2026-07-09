@@ -26,6 +26,95 @@ struct BookingsStoreTests {
     }
 
     @Test @MainActor
+    func loadSyncsUpcomingConfirmedAppointmentReminders() async throws {
+        let participantID = UUID()
+        let booking = Self.booking(
+            id: UUID(uuidString: "11111111-2222-4333-8444-555555555555")!,
+            customerID: participantID,
+            scheduledStart: "2026-08-22T16:00:00Z"
+        )
+        let repository = BookingRepositoryFake(
+            bookingsResult: .success([booking])
+        )
+        let scheduler = AppointmentReminderSchedulerFake()
+        let store = BookingsStore(
+            participantID: participantID,
+            role: .customer,
+            repository: repository,
+            appointmentReminderScheduler: scheduler
+        )
+
+        await store.load()
+
+        #expect(scheduler.syncCallCount == 1)
+        #expect(scheduler.lastSyncedBookings == [booking])
+        #expect(scheduler.lastSyncedRole == .customer)
+        #expect(store.appointmentReminderNotice == nil)
+    }
+
+    @Test @MainActor
+    func loadRecordsReminderRefusalWithoutReplacingBookingErrorState() async throws {
+        let booking = Self.booking(scheduledStart: "2026-08-22T16:00:00Z")
+        let repository = BookingRepositoryFake(
+            bookingsResult: .success([booking])
+        )
+        let scheduler = AppointmentReminderSchedulerFake(syncResult: .refused)
+        let store = BookingsStore(
+            participantID: booking.customerID,
+            role: .customer,
+            repository: repository,
+            appointmentReminderScheduler: scheduler
+        )
+
+        await store.load()
+
+        #expect(store.errorMessage == nil)
+        #expect(store.appointmentReminderNotice == "Appointment reminders are off. Enable notifications in Settings to receive local reminders.")
+    }
+
+    @Test @MainActor
+    func cancelAndCompleteRevokeAppointmentReminderAfterSuccessfulStateChange() async throws {
+        let groomerID = UUID()
+        let booking = Self.booking(
+            groomerID: groomerID,
+            scheduledStart: "2026-08-22T16:00:00Z"
+        )
+        let repository = BookingRepositoryFake(
+            bookingsResult: .success([booking]),
+            cancelResult: .success(
+                CancelBookingResult(
+                    bookingID: booking.id,
+                    bookingStatus: .cancelledByGroomer,
+                    cancelledTimestamp: "2026-06-21T12:00:00Z",
+                    cancelledBy: groomerID
+                )
+            ),
+            completeResult: .success(
+                CompleteBookingResult(
+                    bookingID: booking.id,
+                    bookingStatus: .completed,
+                    completedTimestamp: "2026-06-22T18:05:00Z",
+                    completedBy: groomerID
+                )
+            )
+        )
+        let scheduler = AppointmentReminderSchedulerFake()
+        let store = BookingsStore(
+            participantID: groomerID,
+            role: .groomer,
+            repository: repository,
+            appointmentReminderScheduler: scheduler
+        )
+        await store.load()
+
+        await store.cancel(booking)
+        await store.complete(booking)
+
+        #expect(scheduler.cancelledReminderIDs == [booking.id, booking.id])
+        #expect(scheduler.cancelledRoles == [.groomer, .groomer])
+    }
+
+    @Test @MainActor
     func loadFailureCreatesPersistentPageErrorState() async throws {
         let repository = BookingRepositoryFake(
             bookingsResult: .failure(.unavailable)
@@ -653,7 +742,7 @@ struct BookingsStoreTests {
         )
     }
 
-    private static func booking(
+    fileprivate static func booking(
         id: UUID = UUID(),
         requestID: UUID = UUID(),
         offerID: UUID = UUID(),
@@ -673,7 +762,9 @@ struct BookingsStoreTests {
         customerCity: String? = nil,
         customerState: String? = nil,
         customerZipCode: String? = nil,
-        requestPetSnapshot: GroomingRequestPetSnapshot? = nil
+        requestPetSnapshot: GroomingRequestPetSnapshot? = nil,
+        scheduledStart: String = "2026-06-22T16:00:00Z",
+        scheduledEnd: String = "2026-06-22T18:00:00Z"
     ) -> Booking {
         Booking(
             id: id,
@@ -681,8 +772,8 @@ struct BookingsStoreTests {
             offerID: offerID,
             customerID: customerID,
             groomerID: groomerID,
-            scheduledStart: "2026-06-22T16:00:00Z",
-            scheduledEnd: "2026-06-22T18:00:00Z",
+            scheduledStart: scheduledStart,
+            scheduledEnd: scheduledEnd,
             priceEstimate: 125,
             status: status,
             cancelledBy: nil,
@@ -737,6 +828,83 @@ struct BookingsStoreTests {
         return try #require(
             JSONSerialization.jsonObject(with: data) as? [String: Any]
         )
+    }
+}
+
+struct AppointmentReminderPlanTests {
+    @Test @MainActor
+    func plannerKeepsOnlyFutureConfirmedBookings() throws {
+        let now = try #require(
+            GroomingRequestDateFormatting.parsedDate(
+                from: "2026-08-22T14:00:00Z"
+            )
+        )
+        let eligible = BookingsStoreTests.booking(
+            id: UUID(uuidString: "11111111-2222-4333-8444-555555555555")!,
+            status: .confirmed,
+            scheduledStart: "2026-08-22T16:00:00Z"
+        )
+        let cancelled = BookingsStoreTests.booking(
+            id: UUID(uuidString: "22222222-2222-4333-8444-555555555555")!,
+            status: .cancelledByCustomer,
+            scheduledStart: "2026-08-22T16:00:00Z"
+        )
+        let past = BookingsStoreTests.booking(
+            id: UUID(uuidString: "33333333-2222-4333-8444-555555555555")!,
+            status: .confirmed,
+            scheduledStart: "2026-08-22T13:00:00Z"
+        )
+
+        let reminders = AppointmentReminderPlan.reminders(
+            for: [eligible, cancelled, past],
+            role: .customer,
+            now: now
+        )
+
+        #expect(reminders.count == 1)
+        #expect(reminders.first?.bookingID == eligible.id)
+        #expect(
+            reminders.first?.identifier ==
+                "groomly.appointment-reminder.customer.11111111-2222-4333-8444-555555555555"
+        )
+        #expect(
+            reminders.first?.fireDate ==
+                GroomingRequestDateFormatting.parsedDate(
+                    from: "2026-08-22T15:00:00Z"
+                )
+        )
+    }
+}
+
+private final class AppointmentReminderSchedulerFake:
+    AppointmentReminderScheduling,
+    @unchecked Sendable
+{
+    var syncResult: AppointmentReminderSyncResult
+
+    private(set) var syncCallCount = 0
+    private(set) var lastSyncedBookings: [Booking]?
+    private(set) var lastSyncedRole: UserRole?
+    private(set) var cancelledReminderIDs: [UUID] = []
+    private(set) var cancelledRoles: [UserRole] = []
+
+    init(syncResult: AppointmentReminderSyncResult = .scheduled(count: 1)) {
+        self.syncResult = syncResult
+    }
+
+    func syncReminders(
+        for bookings: [Booking],
+        role: UserRole
+    ) async -> AppointmentReminderSyncResult {
+        syncCallCount += 1
+        lastSyncedBookings = bookings
+        lastSyncedRole = role
+        return syncResult
+    }
+
+    func cancelReminder(for bookingID: UUID, role: UserRole) async {
+        cancelledReminderIDs.append(bookingID)
+        cancelledRoles.append(role)
     }
 }
 

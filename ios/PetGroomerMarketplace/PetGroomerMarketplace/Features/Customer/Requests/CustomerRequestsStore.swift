@@ -105,6 +105,7 @@ final class CustomerRequestsStore {
     private let petRepository: any CustomerPetRepository
     private let requestRepository: any CustomerRequestRepository
     private let bookingRepository: any BookingRepository
+    private let appointmentReminderScheduler: any AppointmentReminderScheduling
     private let handoffAcknowledgementDefaults: UserDefaults
     private let handoffAcknowledgementStorageKey: String
     private let debugRecorder: AppDebugEventRecorder?
@@ -215,6 +216,8 @@ final class CustomerRequestsStore {
         petRepository: any CustomerPetRepository,
         requestRepository: any CustomerRequestRepository,
         bookingRepository: any BookingRepository,
+        appointmentReminderScheduler: any AppointmentReminderScheduling =
+            AppointmentReminderScheduler.shared,
         handoffAcknowledgementDefaults: UserDefaults = .standard,
         now: Date = Date(),
         debugRecorder: AppDebugEventRecorder? = nil
@@ -223,6 +226,7 @@ final class CustomerRequestsStore {
         self.petRepository = petRepository
         self.requestRepository = requestRepository
         self.bookingRepository = bookingRepository
+        self.appointmentReminderScheduler = appointmentReminderScheduler
         self.handoffAcknowledgementDefaults = handoffAcknowledgementDefaults
         self.debugRecorder = debugRecorder
         handoffAcknowledgementStorageKey = Self.handoffAcknowledgementStorageKey(
@@ -726,6 +730,10 @@ final class CustomerRequestsStore {
                 requestID: request.id
             )
             await refreshAfterAcceptance(requestID: request.id)
+            await appointmentReminderScheduler.syncReminders(
+                for: bookings,
+                role: .customer
+            )
             noticeMessage = didApplyLocalState
                 ? "Offer accepted. Booking confirmed."
                 : "Offer accepted. Booking confirmed. Refresh this request if the offer state does not update."

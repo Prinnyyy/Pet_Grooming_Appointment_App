@@ -99,6 +99,8 @@ struct BookingsView: View {
 
                 BookingScopeControl(selection: $selectedScope)
 
+                appointmentReminderNotice
+
                 if store.isLoading, store.bookings.isEmpty {
                     GroomlyLoadingView(
                         title: "Loading Bookings...",
@@ -153,6 +155,8 @@ struct BookingsView: View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
                 CustomerTabTitle("Schedule")
+
+                appointmentReminderNotice
 
                 GroomerScheduleDayStrip(
                     days: scheduleDays,
@@ -220,6 +224,39 @@ struct BookingsView: View {
                 }
             }
         )
+    }
+
+    @ViewBuilder
+    private var appointmentReminderNotice: some View {
+        if let message = store.appointmentReminderNotice {
+            HStack(alignment: .top, spacing: DesignTokens.Spacing.sm) {
+                Image(systemName: "bell.slash")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(role.primaryColor)
+
+                Text(message)
+                    .font(.footnote)
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(DesignTokens.Spacing.md)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(DesignTokens.Colors.surface)
+            .clipShape(
+                RoundedRectangle(
+                    cornerRadius: DesignTokens.CornerRadius.card,
+                    style: .continuous
+                )
+            )
+            .overlay(
+                RoundedRectangle(
+                    cornerRadius: DesignTokens.CornerRadius.card,
+                    style: .continuous
+                )
+                .stroke(DesignTokens.Colors.borderSoft, lineWidth: 1)
+            )
+            .accessibilityIdentifier("bookings.appointment-reminder-notice")
+        }
     }
 
     private func startNewRequestFromCancelledBooking(_ booking: Booking) {

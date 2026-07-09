@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-09
+Task: T-209 - Local appointment reminders.
+Files changed: appointment reminder scheduler, bookings store/view, customer requests store, focused booking/request tests, roadmap, current state, task ledger, and worklog.
+Checks: Appointment reminder planner/store RED/GREEN; CustomerRequests accept reminder RED/GREEN; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
+Result: Closes Q-21/R-025 by adding local notification reminder planning/scheduling for future confirmed bookings, page-level refusal copy when local notifications are disabled, reminder sync after booking load and offer acceptance, and reminder cancellation after booking cancel/complete.
+Risks: Local notifications require user authorization at runtime. No Supabase schema, migration, remote write, repository API, Auth config, seed, TestOps remote execution, deploy, APNs dispatch, release upload, tag, PR, merge/rebase/reset, or force-push changed.
+Next: Use T-210 for the next user-chosen task; recommended queue start is Q-22 unread badge propagation.
+```
+
+```text
+Date: 2026-07-09
 Task: T-208 - Notification domain tests.
 Files changed: customer/groomer notification models, customer/groomer notification focused tests, roadmap, current state, task ledger, and worklog.
 Checks: CustomerNotificationsStoreTests/GroomerNotificationsStoreTests RED/GREEN; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
 Result: Closes Q-20/R-028 by covering duplicate concurrent read/mark-all guards, mark-all failure/cancellation state preservation, repository debug event metadata, and unknown notification kind decode fallback for customer and groomer notifications.
 Risks: No Supabase schema, migration, remote write, repository API, UI layout, Auth config, seed, TestOps remote execution, deploy, APNs, release upload, tag, PR, merge/rebase/reset, or force-push changed.
-Next: Use T-209 for the next user-chosen task; recommended queue start is Q-21 local appointment reminders.
 ```
 
 ```text
@@ -66,13 +75,4 @@ Files changed: roadmap, execution queue, decision log, current state, task ledge
 Checks: `git diff --check`; context hygiene; commit and push.
 Result: Adopts root `V1.0_RELEASE_TASK_PLAN.md` review input into governed ROADMAP/ROADMAP_EXECUTION_QUEUE packages without preassigning future T IDs. Active queue now starts at Q-16 and covers groomer notification symmetry, local timeliness, structural refactors, unit expansion, robustness, and ideal-operation verification.
 Risks: No app code, Supabase schema, migration, Auth config, seed, TestOps remote execution, deploy, release upload, tag, PR, merge/rebase/reset, or force-push changed. Q-16 requires explicit Supabase migration authorization before linked remote apply; Q-90...Q-92 remain externally blocked.
-```
-
-```text
-Date: 2026-07-09
-Task: T-201 - Release readiness dry run.
-Files changed: release readiness evidence, App Store privacy pointer, Supabase check script, roadmap, current state, task ledger, and worklog.
-Checks: Preflight; TestOps unit; App Store privacy test; TestOps doctor/backend smoke5/matching dry-runs; TestOps launch smoke; Supabase check; Supabase security/performance advisors; full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
-Result: Closes Q-15/R-015 for local/read-only release readiness. Release evidence confirms E2E dry-runs, privacy checks, advisors, and iOS build/test gates pass without remote writes.
-Risks: Security advisor still reports the known Auth leaked-password protection WARN. Q-07 production auth domain/SMTP and Q-09 APNs dispatch remain externally blocked. No TestFlight upload, App Store Connect change, remote TestOps execution, migration, seed, deploy, tag, PR, merge/rebase/reset, or force-push changed.
 ```
