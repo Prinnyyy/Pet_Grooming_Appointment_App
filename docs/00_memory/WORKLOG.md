@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-09
+Task: T-212 - Split groomer profile surfaces.
+Files changed: groomer profile root/account/profile form/services/portfolio/fit/availability/status SwiftUI files, roadmap, current state, task ledger, and worklog.
+Checks: Full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
+Result: Closes Q-24/R-026 by splitting the oversized GroomerProfileManagementView surface into focused account, profile form, services, portfolio, fit signals, availability, and status/preview files while preserving runtime behavior.
+Risks: Structure-only groomer profile refactor. No Supabase schema, migration, remote write, repository API signature, Auth config, seed, TestOps remote execution, deploy, APNs dispatch, release upload, tag, PR, merge/rebase/reset, or force-push changed.
+Next: Use T-213 for the next user-chosen task; recommended queue start is Q-25 time and boundary tests.
+```
+
+```text
+Date: 2026-07-09
 Task: T-211 - Split customer requests view.
 Files changed: customer request root/dashboard/detail/wizard/status SwiftUI files, stale groomer tab model test expectation, roadmap, current state, task ledger, and worklog.
 Checks: Full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
 Result: Closes Q-23/R-026 by splitting the oversized CustomerRequestsView surface into focused root, dashboard, detail, wizard, and status/preview files while preserving runtime behavior.
 Risks: Structure-only request UI refactor plus one stale test expectation alignment for the existing groomer Alerts tab. No Supabase schema, migration, remote write, repository API signature, Auth config, seed, TestOps remote execution, deploy, APNs dispatch, release upload, tag, PR, merge/rebase/reset, or force-push changed.
-Next: Use T-212 for the next user-chosen task; recommended queue start is Q-24 split groomer profile surfaces.
 ```
 
 ```text
@@ -66,13 +75,4 @@ Files changed: foreground refresh gate/modifier, customer home/requests/bookings
 Checks: ForegroundRefreshGateTests RED/GREEN; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
 Result: Closes Q-18 by moving the affected marketplace screens from one-time task loading to a shared foreground refresh path with initial load, scene-active refresh, realtime-fallback polling, throttling, and in-flight dedupe.
 Risks: This is local UI refresh behavior only. No Supabase schema, migration, remote write, realtime channel contract, Auth config, seed, TestOps remote execution, deploy, APNs, release upload, tag, PR, merge/rebase/reset, or force-push changed.
-```
-
-```text
-Date: 2026-07-09
-Task: T-204 - Groomer notification center UI.
-Files changed: groomer notification model/repository/store/view, groomer tab routing, app composition injection, debug repository wrapper, focused tests, roadmap, current state, task ledger, and worklog.
-Checks: GroomerNotificationsStoreTests RED/GREEN; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
-Result: Closes Q-17 by adding the groomer Alerts tab, unread badge source, notification list states, mark-read/mark-all-read actions, request/booking/message routing, Supabase repository access, and Debug Console repository events.
-Risks: T-203 groomer notification migration remains local-only until explicit remote migration authorization, so linked live Supabase data will not exist until then. No Supabase remote write, migration apply, Auth config, seed, TestOps remote execution, deploy, APNs, release upload, tag, PR, merge/rebase/reset, or force-push changed.
 ```

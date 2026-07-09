@@ -8,7 +8,7 @@ Source: T-202 adopted root review input `../../V1.0_RELEASE_TASK_PLAN.md`; that 
 
 ## Selection Rules
 
-- Start with the first unblocked Q-24...Q-33 unless the user names another package.
+- Start with the first unblocked Q-25...Q-33 unless the user names another package.
 - Split any package that combines Supabase writes with visible SwiftUI or grows beyond one reviewable task.
 - Get explicit authorization before migrations, Auth config writes, remote TestOps, seeds, deploys, release uploads, or other non-Git remote writes.
 - Do not start Q-90...Q-92 until credentials and authorization are recorded.
@@ -18,7 +18,6 @@ Source: T-202 adopted root review input `../../V1.0_RELEASE_TASK_PLAN.md`; that 
 
 | Order | Roadmap | Package | Mode | Scope | Validation |
 |---|---|---|---|---|---|
-| Q-24 | R-026 | P-07 Split groomer profile surfaces | Standard | Structure-only services/portfolio/availability/fit split. | Full iOS test/build |
 | Q-25 | R-028 | UT-03 Time and boundary tests | Standard | Midnight/DST, expiry edge, time-off overlap, size limits, daily capacity. | Focused time/matching tests |
 | Q-26 | R-028 | UT-04 Decode/data tolerance tests | Standard | Optional fields, unknown enums, bad dates, null/empty arrays, cache/image corruption. | Focused decoding/cache tests |
 | Q-27 | R-027 | P-08 T-162 republish hardening | Standard | Missing/expired original requests and missing photos. | RED/GREEN republish tests |
