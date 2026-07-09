@@ -15,16 +15,24 @@ final class SupabaseGroomerNotificationRepository: GroomerNotificationRepository
     }
 
     func notifications(groomerID: UUID) async throws -> [GroomerNotification] {
+        try await notifications(groomerID: groomerID, page: .first).items
+    }
+
+    func notifications(
+        groomerID: UUID,
+        page: ListPageRequest
+    ) async throws -> ListPage<GroomerNotification> {
         do {
             let rows: [GroomerNotificationRow] = try await client
                 .from("groomer_notifications")
                 .select(Self.notificationColumns)
                 .eq("groomer_id", value: groomerID.uuidString.lowercased())
                 .order("created_at", ascending: false)
+                .range(from: page.offset, to: page.inclusiveRangeEnd)
                 .execute()
                 .value
 
-            return rows.map(\.notification)
+            return ListPage(items: rows.map(\.notification), request: page)
         } catch {
             throw Self.map(error)
         }

@@ -16,10 +16,21 @@ enum CustomerRequestRepositoryError: Error, Equatable, Sendable {
 protocol CustomerRequestRepository: AnyObject {
     func requests(customerID: UUID) async throws -> [CustomerGroomingRequest]
 
+    func requests(
+        customerID: UUID,
+        page: ListPageRequest
+    ) async throws -> ListPage<CustomerGroomingRequest>
+
     func offers(
         customerID: UUID,
         requestID: UUID
     ) async throws -> [CustomerOfferReview]
+
+    func offers(
+        customerID: UUID,
+        requestID: UUID,
+        page: ListPageRequest
+    ) async throws -> ListPage<CustomerOfferReview>
 
     func requestPhotos(
         customerID: UUID,
@@ -57,6 +68,29 @@ protocol CustomerRequestRepository: AnyObject {
 }
 
 extension CustomerRequestRepository {
+    func requests(
+        customerID: UUID,
+        page: ListPageRequest
+    ) async throws -> ListPage<CustomerGroomingRequest> {
+        ListPage(
+            items: try await requests(customerID: customerID),
+            request: page,
+            hasMore: false
+        )
+    }
+
+    func offers(
+        customerID: UUID,
+        requestID: UUID,
+        page: ListPageRequest
+    ) async throws -> ListPage<CustomerOfferReview> {
+        ListPage(
+            items: try await offers(customerID: customerID, requestID: requestID),
+            request: page,
+            hasMore: false
+        )
+    }
+
     func requestPhotos(
         customerID: UUID,
         requestIDs: [UUID]

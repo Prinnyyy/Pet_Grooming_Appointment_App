@@ -34,16 +34,24 @@ final class SupabaseCustomerRequestRepository: CustomerRequestRepository {
     }
 
     func requests(customerID: UUID) async throws -> [CustomerGroomingRequest] {
+        try await requests(customerID: customerID, page: .first).items
+    }
+
+    func requests(
+        customerID: UUID,
+        page: ListPageRequest
+    ) async throws -> ListPage<CustomerGroomingRequest> {
         do {
             let rows: [GroomingRequestRow] = try await client
                 .from("grooming_requests")
                 .select(Self.requestColumns)
                 .eq("customer_id", value: customerID.uuidString.lowercased())
                 .order("created_at", ascending: false)
+                .range(from: page.offset, to: page.inclusiveRangeEnd)
                 .execute()
                 .value
 
-            return rows.map(\.request)
+            return ListPage(items: rows.map(\.request), request: page)
         } catch {
             throw Self.map(error)
         }
@@ -53,6 +61,18 @@ final class SupabaseCustomerRequestRepository: CustomerRequestRepository {
         customerID: UUID,
         requestID: UUID
     ) async throws -> [CustomerOfferReview] {
+        try await offers(
+            customerID: customerID,
+            requestID: requestID,
+            page: .first
+        ).items
+    }
+
+    func offers(
+        customerID: UUID,
+        requestID: UUID,
+        page: ListPageRequest
+    ) async throws -> ListPage<CustomerOfferReview> {
         do {
             let offerRows: [CustomerOfferRow] = try await client
                 .from("groomer_offers")
@@ -60,10 +80,13 @@ final class SupabaseCustomerRequestRepository: CustomerRequestRepository {
                 .eq("customer_id", value: customerID.uuidString.lowercased())
                 .eq("request_id", value: requestID.uuidString.lowercased())
                 .order("created_at", ascending: false)
+                .range(from: page.offset, to: page.inclusiveRangeEnd)
                 .execute()
                 .value
 
-            guard !offerRows.isEmpty else { return [] }
+            guard !offerRows.isEmpty else {
+                return ListPage(items: [], request: page)
+            }
 
             let groomerIDs = Set(offerRows.map(\.groomerID))
                 .map { $0.uuidString.lowercased() }
@@ -93,7 +116,7 @@ final class SupabaseCustomerRequestRepository: CustomerRequestRepository {
                 uniqueKeysWithValues: matchRows.map { ($0.id, $0) }
             )
 
-            return offerRows.map { row in
+            let offers = offerRows.map { row in
                 let matchEvidence = matchEvidenceByID[row.matchID]
                 return CustomerOfferReview(
                     offer: row.offer,
@@ -102,6 +125,7 @@ final class SupabaseCustomerRequestRepository: CustomerRequestRepository {
                     matchReason: matchEvidence?.matchReason
                 )
             }
+            return ListPage(items: offers, request: page)
         } catch {
             throw Self.map(error)
         }

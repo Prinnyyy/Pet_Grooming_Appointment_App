@@ -39,6 +39,13 @@ final class SupabaseGroomerRequestRepository: GroomerRequestRepository {
     }
 
     func matchedRequests(groomerID: UUID) async throws -> [GroomerMatchedRequest] {
+        try await matchedRequests(groomerID: groomerID, page: .first).items
+    }
+
+    func matchedRequests(
+        groomerID: UUID,
+        page: ListPageRequest
+    ) async throws -> ListPage<GroomerMatchedRequest> {
         do {
             let matchRows: [GroomerRequestMatchRow] = try await client
                 .from("request_matches")
@@ -46,10 +53,13 @@ final class SupabaseGroomerRequestRepository: GroomerRequestRepository {
                 .eq("groomer_id", value: groomerID.uuidString.lowercased())
                 .in("status", values: RequestMatchStatus.activeValues)
                 .order("created_at", ascending: false)
+                .range(from: page.offset, to: page.inclusiveRangeEnd)
                 .execute()
                 .value
 
-            guard !matchRows.isEmpty else { return [] }
+            guard !matchRows.isEmpty else {
+                return ListPage(items: [], request: page)
+            }
 
             let requestIDs = matchRows.map {
                 $0.requestID.uuidString.lowercased()
@@ -87,7 +97,7 @@ final class SupabaseGroomerRequestRepository: GroomerRequestRepository {
                 latestOffersByRequestID[row.requestID] = row.offer
             }
 
-            return matchRows.compactMap { row in
+            let matchedRequests: [GroomerMatchedRequest] = matchRows.compactMap { row in
                 guard let request = requestsByID[row.requestID] else {
                     return nil
                 }
@@ -98,22 +108,33 @@ final class SupabaseGroomerRequestRepository: GroomerRequestRepository {
                     offer: latestOffersByRequestID[row.requestID]
                 )
             }
+            return ListPage(items: matchedRequests, request: page)
         } catch {
             throw Self.map(error)
         }
     }
 
     func offers(groomerID: UUID) async throws -> [GroomerOfferListItem] {
+        try await offers(groomerID: groomerID, page: .first).items
+    }
+
+    func offers(
+        groomerID: UUID,
+        page: ListPageRequest
+    ) async throws -> ListPage<GroomerOfferListItem> {
         do {
             let offerRows: [GroomerOfferRow] = try await client
                 .from("groomer_offers")
                 .select(Self.offerColumns)
                 .eq("groomer_id", value: groomerID.uuidString.lowercased())
                 .order("created_at", ascending: false)
+                .range(from: page.offset, to: page.inclusiveRangeEnd)
                 .execute()
                 .value
 
-            guard !offerRows.isEmpty else { return [] }
+            guard !offerRows.isEmpty else {
+                return ListPage(items: [], request: page)
+            }
 
             let requestsByID = await visibleRequestsByID(
                 requestIDs: offerRows.map(\.requestID)
@@ -123,13 +144,14 @@ final class SupabaseGroomerRequestRepository: GroomerRequestRepository {
                 offerIDs: offerRows.map(\.id)
             )
 
-            return offerRows.map { row in
+            let offers = offerRows.map { row in
                 GroomerOfferListItem(
                     offer: row.offer,
                     request: requestsByID[row.requestID],
                     booking: bookingsByOfferID[row.id]
                 )
             }
+            return ListPage(items: offers, request: page)
         } catch {
             throw Self.map(error)
         }

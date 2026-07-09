@@ -88,6 +88,14 @@ final class DebugBookingRepository: BookingRepository {
         participantID: UUID,
         role: UserRole
     ) async throws -> [Booking] {
+        try await bookings(participantID: participantID, role: role, page: .first).items
+    }
+
+    func bookings(
+        participantID: UUID,
+        role: UserRole,
+        page: ListPageRequest
+    ) async throws -> ListPage<Booking> {
         try await debugRepositoryCall(
             recorder: debugRecorder,
             source: "BookingRepository.bookings",
@@ -97,9 +105,11 @@ final class DebugBookingRepository: BookingRepository {
                 "participantID": participantID.uuidString,
                 "role": role.appDebugName,
                 "table": "bookings",
+                "limit": "\(page.limit)",
+                "offset": "\(page.offset)",
             ]
         ) {
-            try await base.bookings(participantID: participantID, role: role)
+            try await base.bookings(participantID: participantID, role: role, page: page)
         }
     }
 
@@ -175,14 +185,26 @@ final class DebugCustomerRequestRepository: CustomerRequestRepository {
     }
 
     func requests(customerID: UUID) async throws -> [CustomerGroomingRequest] {
+        try await requests(customerID: customerID, page: .first).items
+    }
+
+    func requests(
+        customerID: UUID,
+        page: ListPageRequest
+    ) async throws -> ListPage<CustomerGroomingRequest> {
         try await debugRepositoryCall(
             recorder: debugRecorder,
             source: "CustomerRequestRepository.requests",
             scope: "customer.requests",
             operation: "requests",
-            metadata: ["customerID": customerID.uuidString, "table": "grooming_requests"]
+            metadata: [
+                "customerID": customerID.uuidString,
+                "table": "grooming_requests",
+                "limit": "\(page.limit)",
+                "offset": "\(page.offset)",
+            ]
         ) {
-            try await base.requests(customerID: customerID)
+            try await base.requests(customerID: customerID, page: page)
         }
     }
 
@@ -190,6 +212,14 @@ final class DebugCustomerRequestRepository: CustomerRequestRepository {
         customerID: UUID,
         requestID: UUID
     ) async throws -> [CustomerOfferReview] {
+        try await offers(customerID: customerID, requestID: requestID, page: .first).items
+    }
+
+    func offers(
+        customerID: UUID,
+        requestID: UUID,
+        page: ListPageRequest
+    ) async throws -> ListPage<CustomerOfferReview> {
         try await debugRepositoryCall(
             recorder: debugRecorder,
             source: "CustomerRequestRepository.offers",
@@ -199,9 +229,11 @@ final class DebugCustomerRequestRepository: CustomerRequestRepository {
                 "customerID": customerID.uuidString,
                 "requestID": requestID.uuidString,
                 "table": "groomer_offers",
+                "limit": "\(page.limit)",
+                "offset": "\(page.offset)",
             ]
         ) {
-            try await base.offers(customerID: customerID, requestID: requestID)
+            try await base.offers(customerID: customerID, requestID: requestID, page: page)
         }
     }
 
@@ -419,6 +451,13 @@ final class DebugCustomerNotificationRepository: CustomerNotificationRepository 
     }
 
     func notifications(customerID: UUID) async throws -> [CustomerNotification] {
+        try await notifications(customerID: customerID, page: .first).items
+    }
+
+    func notifications(
+        customerID: UUID,
+        page: ListPageRequest
+    ) async throws -> ListPage<CustomerNotification> {
         try await debugRepositoryCall(
             recorder: debugRecorder,
             source: "CustomerNotificationRepository.notifications",
@@ -427,9 +466,11 @@ final class DebugCustomerNotificationRepository: CustomerNotificationRepository 
             metadata: [
                 "customerID": customerID.uuidString,
                 "table": "customer_notifications",
+                "limit": "\(page.limit)",
+                "offset": "\(page.offset)",
             ]
         ) {
-            try await base.notifications(customerID: customerID)
+            try await base.notifications(customerID: customerID, page: page)
         }
     }
 
@@ -480,6 +521,13 @@ final class DebugGroomerNotificationRepository: GroomerNotificationRepository {
     }
 
     func notifications(groomerID: UUID) async throws -> [GroomerNotification] {
+        try await notifications(groomerID: groomerID, page: .first).items
+    }
+
+    func notifications(
+        groomerID: UUID,
+        page: ListPageRequest
+    ) async throws -> ListPage<GroomerNotification> {
         try await debugRepositoryCall(
             recorder: debugRecorder,
             source: "GroomerNotificationRepository.notifications",
@@ -488,9 +536,11 @@ final class DebugGroomerNotificationRepository: GroomerNotificationRepository {
             metadata: [
                 "groomerID": groomerID.uuidString,
                 "table": "groomer_notifications",
+                "limit": "\(page.limit)",
+                "offset": "\(page.offset)",
             ]
         ) {
-            try await base.notifications(groomerID: groomerID)
+            try await base.notifications(groomerID: groomerID, page: page)
         }
     }
 
@@ -792,6 +842,14 @@ final class DebugChatRepository: ChatRepository {
         participantID: UUID,
         role: UserRole
     ) async throws -> [ChatConversation] {
+        try await conversations(participantID: participantID, role: role, page: .first).items
+    }
+
+    func conversations(
+        participantID: UUID,
+        role: UserRole,
+        page: ListPageRequest
+    ) async throws -> ListPage<ChatConversation> {
         try await debugRepositoryCall(
             recorder: debugRecorder,
             source: "ChatRepository.conversations",
@@ -801,23 +859,37 @@ final class DebugChatRepository: ChatRepository {
                 "participantID": participantID.uuidString,
                 "role": role.appDebugName,
                 "table": "conversations",
+                "limit": "\(page.limit)",
+                "offset": "\(page.offset)",
             ]
         ) {
-            try await base.conversations(participantID: participantID, role: role)
+            try await base.conversations(participantID: participantID, role: role, page: page)
         }
     }
 
     func messages(
         conversationID: UUID
     ) async throws -> [ChatMessage] {
+        try await messages(conversationID: conversationID, page: .first).items
+    }
+
+    func messages(
+        conversationID: UUID,
+        page: ListPageRequest
+    ) async throws -> ListPage<ChatMessage> {
         try await debugRepositoryCall(
             recorder: debugRecorder,
             source: "ChatRepository.messages",
             scope: "messages.thread",
             operation: "messages",
-            metadata: ["conversationID": conversationID.uuidString, "table": "messages"]
+            metadata: [
+                "conversationID": conversationID.uuidString,
+                "table": "messages",
+                "limit": "\(page.limit)",
+                "offset": "\(page.offset)",
+            ]
         ) {
-            try await base.messages(conversationID: conversationID)
+            try await base.messages(conversationID: conversationID, page: page)
         }
     }
 
@@ -1168,8 +1240,44 @@ final class DebugGroomerRequestRepository: GroomerRequestRepository {
     }
 
     func matchedRequests(groomerID: UUID) async throws -> [GroomerMatchedRequest] {
-        try await requestCall("matchedRequests", groomerID: groomerID, table: "request_matches") {
-            try await base.matchedRequests(groomerID: groomerID)
+        try await matchedRequests(groomerID: groomerID, page: .first).items
+    }
+
+    func matchedRequests(
+        groomerID: UUID,
+        page: ListPageRequest
+    ) async throws -> ListPage<GroomerMatchedRequest> {
+        try await requestCall(
+            "matchedRequests",
+            groomerID: groomerID,
+            table: "request_matches",
+            metadata: [
+                "limit": "\(page.limit)",
+                "offset": "\(page.offset)",
+            ]
+        ) {
+            try await base.matchedRequests(groomerID: groomerID, page: page)
+        }
+    }
+
+    func offers(groomerID: UUID) async throws -> [GroomerOfferListItem] {
+        try await offers(groomerID: groomerID, page: .first).items
+    }
+
+    func offers(
+        groomerID: UUID,
+        page: ListPageRequest
+    ) async throws -> ListPage<GroomerOfferListItem> {
+        try await requestCall(
+            "offers",
+            groomerID: groomerID,
+            table: "groomer_offers",
+            metadata: [
+                "limit": "\(page.limit)",
+                "offset": "\(page.offset)",
+            ]
+        ) {
+            try await base.offers(groomerID: groomerID, page: page)
         }
     }
 

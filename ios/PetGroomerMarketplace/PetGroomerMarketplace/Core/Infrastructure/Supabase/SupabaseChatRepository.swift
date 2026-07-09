@@ -23,6 +23,18 @@ final class SupabaseChatRepository: ChatRepository {
         participantID: UUID,
         role: UserRole
     ) async throws -> [ChatConversation] {
+        try await conversations(
+            participantID: participantID,
+            role: role,
+            page: .first
+        ).items
+    }
+
+    func conversations(
+        participantID: UUID,
+        role: UserRole,
+        page: ListPageRequest
+    ) async throws -> ListPage<ChatConversation> {
         do {
             let participantColumn = switch role {
             case .customer:
@@ -36,6 +48,7 @@ final class SupabaseChatRepository: ChatRepository {
                 .select(Self.conversationColumns)
                 .eq(participantColumn, value: participantID.uuidString.lowercased())
                 .order("updated_at", ascending: false)
+                .range(from: page.offset, to: page.inclusiveRangeEnd)
                 .execute()
                 .value
 
@@ -52,13 +65,14 @@ final class SupabaseChatRepository: ChatRepository {
                 [UUID: String]()
             }
 
-            return rows.map { row in
+            let conversations = rows.map { row in
                 row.conversation(
                     bookingSummary: bookingSummaries[row.bookingID],
                     groomerBusinessName: groomerBusinessNames[row.groomerID],
                     latestMessage: latestMessages[row.id]
                 )
             }
+            return ListPage(items: conversations, request: page)
         } catch {
             throw Self.map(error)
         }
@@ -67,6 +81,16 @@ final class SupabaseChatRepository: ChatRepository {
     func messages(
         conversationID: UUID
     ) async throws -> [ChatMessage] {
+        try await messages(
+            conversationID: conversationID,
+            page: .first
+        ).items
+    }
+
+    func messages(
+        conversationID: UUID,
+        page: ListPageRequest
+    ) async throws -> ListPage<ChatMessage> {
         do {
             let rows: [ChatMessageRow] = try await client
                 .from("messages")
@@ -74,10 +98,11 @@ final class SupabaseChatRepository: ChatRepository {
                 .eq("conversation_id", value: conversationID.uuidString.lowercased())
                 .order("created_at", ascending: true)
                 .order("id", ascending: true)
+                .range(from: page.offset, to: page.inclusiveRangeEnd)
                 .execute()
                 .value
 
-            return rows.map(\.message)
+            return ListPage(items: rows.map(\.message), request: page)
         } catch {
             throw Self.map(error)
         }

@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-09
+Task: T-219 - List pagination/load audit.
+Files changed: shared pagination model, list repository protocols and Supabase implementations, debug repository wrappers, BookingsStore, ChatStore, pagination tests, audit doc, roadmap, current state, task ledger, and worklog.
+Checks: ListPagination RED/GREEN; full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
+Result: Closes Q-30/R-027 by adding a bounded first-page contract, limit+1 Supabase ranges for request/offer/booking/message/notification repositories, debug wrapper forwarding, and next-page state/methods for bookings and chat.
+Risks: Local iOS pagination/query-boundary hardening only. No Supabase schema, migration, remote write, Auth config, seed, TestOps remote execution, deploy, APNs dispatch, release upload, tag, PR, merge/rebase/reset, or force-push changed. Most UI surfaces still consume first page only; the audit doc records deferred visible load-more controls.
+Next: Use T-220 for the next user-chosen task; recommended queue start is Q-31 backend contract negatives.
+```
+
+```text
+Date: 2026-07-09
 Task: T-218 - Meta-review and context hygiene.
 Files changed: current state, task ledger, worklog, roadmap, and frozen rotated rows.
 Checks: `git status --short`; `git diff --check`; context hygiene; commit and push.
 Result: Runs the required 10-task cadence review after T-207, rotates excess active ledger/worklog rows, confirms active roadmap/queue/current-state pointers align at Q-30/T-219, and records the new meta-review marker.
 Risks: Documentation governance only. No product code, Supabase schema, migration, remote write, Auth config, seed, TestOps remote execution, deploy, APNs dispatch, release upload, tag, PR, merge/rebase/reset, or force-push changed.
-Next: Use T-219 for the next user-chosen task; recommended queue start is Q-30 list pagination/load audit.
 ```
 
 ```text
@@ -66,13 +75,4 @@ Files changed: groomer profile root/account/profile form/services/portfolio/fit/
 Checks: Full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
 Result: Closes Q-24/R-026 by splitting the oversized GroomerProfileManagementView surface into focused account, profile form, services, portfolio, fit signals, availability, and status/preview files while preserving runtime behavior.
 Risks: Structure-only groomer profile refactor. No Supabase schema, migration, remote write, repository API signature, Auth config, seed, TestOps remote execution, deploy, APNs dispatch, release upload, tag, PR, merge/rebase/reset, or force-push changed.
-```
-
-```text
-Date: 2026-07-09
-Task: T-211 - Split customer requests view.
-Files changed: customer request root/dashboard/detail/wizard/status SwiftUI files, stale groomer tab model test expectation, roadmap, current state, task ledger, and worklog.
-Checks: Full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
-Result: Closes Q-23/R-026 by splitting the oversized CustomerRequestsView surface into focused root, dashboard, detail, wizard, and status/preview files while preserving runtime behavior.
-Risks: Structure-only request UI refactor plus one stale test expectation alignment for the existing groomer Alerts tab. No Supabase schema, migration, remote write, repository API signature, Auth config, seed, TestOps remote execution, deploy, APNs dispatch, release upload, tag, PR, merge/rebase/reset, or force-push changed.
 ```

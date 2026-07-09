@@ -26,6 +26,12 @@ protocol BookingRepository: AnyObject {
         role: UserRole
     ) async throws -> [Booking]
 
+    func bookings(
+        participantID: UUID,
+        role: UserRole,
+        page: ListPageRequest
+    ) async throws -> ListPage<Booking>
+
     func acceptOffer(
         offerID: UUID
     ) async throws -> AcceptGroomerOfferResult
@@ -42,4 +48,32 @@ protocol BookingRepository: AnyObject {
         bookingID: UUID,
         draft: BookingReviewDraft
     ) async throws -> CreateReviewResult
+}
+
+extension BookingRepository {
+    func bookings(
+        participantID: UUID,
+        role: UserRole,
+        page: ListPageRequest
+    ) async throws -> ListPage<Booking> {
+        ListPage(
+            items: try await bookings(
+                participantID: participantID,
+                role: role
+            ),
+            request: page,
+            hasMore: false
+        )
+    }
+
+    func firstBookingPage(
+        participantID: UUID,
+        role: UserRole
+    ) async throws -> ListPage<Booking> {
+        try await bookings(
+            participantID: participantID,
+            role: role,
+            page: .first
+        )
+    }
 }

@@ -12,6 +12,8 @@ final class ChatStore {
 
     private(set) var conversations: [ChatConversation] = []
     private(set) var messagesByConversationID: [UUID: [ChatMessage]] = [:]
+    private(set) var nextConversationPageRequest: ListPageRequest?
+    private(set) var nextMessagePageRequestByConversationID: [UUID: ListPageRequest] = [:]
     private(set) var isLoadingConversations = false
     private(set) var loadingConversationIDs: Set<UUID> = []
     private(set) var sendingConversationIDs: Set<UUID> = []
@@ -31,6 +33,10 @@ final class ChatStore {
 
     var unreadConversationCount: Int {
         conversations.filter(hasUnreadMessages).count
+    }
+
+    var canLoadMoreConversations: Bool {
+        nextConversationPageRequest != nil
     }
 
     init(
@@ -57,6 +63,10 @@ final class ChatStore {
 
     func isSendingMessage(for conversationID: UUID) -> Bool {
         sendingConversationIDs.contains(conversationID)
+    }
+
+    func canLoadMoreMessages(for conversationID: UUID) -> Bool {
+        nextMessagePageRequestByConversationID[conversationID] != nil
     }
 
     func canSendMessages(in conversation: ChatConversation) -> Bool {
@@ -106,14 +116,20 @@ final class ChatStore {
         defer { isLoadingConversations = false }
 
         do {
-            conversations = try await repository.conversations(
+            let page = try await repository.conversations(
                 participantID: participantID,
-                role: role
+                role: role,
+                page: .first
             )
+            conversations = page.items
+            nextConversationPageRequest = page.nextRequest
             recordStoreSuccess(
                 "loadConversations",
                 startedAt: startedAt,
-                metadata: ["conversationCount": "\(conversations.count)"]
+                metadata: [
+                    "conversationCount": "\(conversations.count)",
+                    "hasMore": "\(canLoadMoreConversations)",
+                ]
             )
         } catch ChatRepositoryError.cancelled {
             recordStoreCancelled("loadConversations", startedAt: startedAt)
@@ -138,6 +154,56 @@ final class ChatStore {
         }
     }
 
+    func loadNextConversationsPage() async {
+        guard !isLoadingConversations,
+              let pageRequest = nextConversationPageRequest else { return }
+
+        let startedAt = Date()
+        recordStoreStart("loadNextConversationsPage")
+        isLoadingConversations = true
+        errorMessage = nil
+        defer { isLoadingConversations = false }
+
+        do {
+            let page = try await repository.conversations(
+                participantID: participantID,
+                role: role,
+                page: pageRequest
+            )
+            conversations.append(contentsOf: page.items)
+            nextConversationPageRequest = page.nextRequest
+            recordStoreSuccess(
+                "loadNextConversationsPage",
+                startedAt: startedAt,
+                metadata: [
+                    "conversationCount": "\(conversations.count)",
+                    "loadedCount": "\(page.items.count)",
+                    "hasMore": "\(canLoadMoreConversations)",
+                ]
+            )
+        } catch ChatRepositoryError.cancelled {
+            recordStoreCancelled("loadNextConversationsPage", startedAt: startedAt)
+        } catch let error as ChatRepositoryError {
+            errorMessage = message(for: error, action: "load conversations")
+            recordStoreFailure(
+                "loadNextConversationsPage",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt
+            )
+        } catch where AppDebugErrorClassifier.isCancellation(error) {
+            recordStoreCancelled("loadNextConversationsPage", startedAt: startedAt)
+        } catch {
+            errorMessage = message(for: .unavailable, action: "load conversations")
+            recordStoreFailure(
+                "loadNextConversationsPage",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt
+            )
+        }
+    }
+
     func loadMessages(for conversation: ChatConversation) async {
         guard !loadingConversationIDs.contains(conversation.id) else { return }
 
@@ -151,8 +217,12 @@ final class ChatStore {
         defer { loadingConversationIDs.remove(conversation.id) }
 
         do {
-            messagesByConversationID[conversation.id] =
-                try await repository.messages(conversationID: conversation.id)
+            let page = try await repository.messages(
+                conversationID: conversation.id,
+                page: .first
+            )
+            messagesByConversationID[conversation.id] = page.items
+            nextMessagePageRequestByConversationID[conversation.id] = page.nextRequest
             markConversationRead(conversation.id)
             recordStoreSuccess(
                 "loadMessages",
@@ -160,6 +230,7 @@ final class ChatStore {
                 metadata: [
                     "conversationID": conversation.id.uuidString,
                     "messageCount": "\(messagesByConversationID[conversation.id]?.count ?? 0)",
+                    "hasMore": "\(canLoadMoreMessages(for: conversation.id))",
                 ]
             )
         } catch ChatRepositoryError.cancelled {
@@ -178,6 +249,60 @@ final class ChatStore {
             errorMessage = message(for: .unavailable, action: "load messages")
             recordStoreFailure(
                 "loadMessages",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt
+            )
+        }
+    }
+
+    func loadNextMessagesPage(for conversation: ChatConversation) async {
+        guard !loadingConversationIDs.contains(conversation.id),
+              let pageRequest = nextMessagePageRequestByConversationID[conversation.id] else { return }
+
+        let startedAt = Date()
+        recordStoreStart(
+            "loadNextMessagesPage",
+            metadata: ["conversationID": conversation.id.uuidString]
+        )
+        loadingConversationIDs.insert(conversation.id)
+        errorMessage = nil
+        defer { loadingConversationIDs.remove(conversation.id) }
+
+        do {
+            let page = try await repository.messages(
+                conversationID: conversation.id,
+                page: pageRequest
+            )
+            messagesByConversationID[conversation.id, default: []].append(contentsOf: page.items)
+            nextMessagePageRequestByConversationID[conversation.id] = page.nextRequest
+            markConversationRead(conversation.id)
+            recordStoreSuccess(
+                "loadNextMessagesPage",
+                startedAt: startedAt,
+                metadata: [
+                    "conversationID": conversation.id.uuidString,
+                    "messageCount": "\(messagesByConversationID[conversation.id]?.count ?? 0)",
+                    "loadedCount": "\(page.items.count)",
+                    "hasMore": "\(canLoadMoreMessages(for: conversation.id))",
+                ]
+            )
+        } catch ChatRepositoryError.cancelled {
+            recordStoreCancelled("loadNextMessagesPage", startedAt: startedAt)
+        } catch let error as ChatRepositoryError {
+            errorMessage = message(for: error, action: "load messages")
+            recordStoreFailure(
+                "loadNextMessagesPage",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt
+            )
+        } catch where AppDebugErrorClassifier.isCancellation(error) {
+            recordStoreCancelled("loadNextMessagesPage", startedAt: startedAt)
+        } catch {
+            errorMessage = message(for: .unavailable, action: "load messages")
+            recordStoreFailure(
+                "loadNextMessagesPage",
                 error: error,
                 mappedMessage: errorMessage,
                 startedAt: startedAt

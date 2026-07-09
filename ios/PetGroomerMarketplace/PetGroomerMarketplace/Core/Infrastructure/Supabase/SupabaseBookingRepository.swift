@@ -30,6 +30,18 @@ final class SupabaseBookingRepository: BookingRepository {
         participantID: UUID,
         role: UserRole
     ) async throws -> [Booking] {
+        try await bookings(
+            participantID: participantID,
+            role: role,
+            page: .first
+        ).items
+    }
+
+    func bookings(
+        participantID: UUID,
+        role: UserRole,
+        page: ListPageRequest
+    ) async throws -> ListPage<Booking> {
         do {
             let participantColumn = switch role {
             case .customer:
@@ -43,6 +55,7 @@ final class SupabaseBookingRepository: BookingRepository {
                 .select(Self.bookingColumns)
                 .eq(participantColumn, value: participantID.uuidString.lowercased())
                 .order("scheduled_start", ascending: false)
+                .range(from: page.offset, to: page.inclusiveRangeEnd)
                 .execute()
                 .value
 
@@ -56,13 +69,14 @@ final class SupabaseBookingRepository: BookingRepository {
                 for: rows.map(\.requestID)
             )
 
-            return rows.map { row in
+            let bookings = rows.map { row in
                 row.booking(
                     review: reviewMap[row.id],
                     groomerSummary: groomerSummaries[row.groomerID],
                     requestLocation: requestLocations[row.requestID]
                 )
             }
+            return ListPage(items: bookings, request: page)
         } catch {
             throw Self.map(error)
         }

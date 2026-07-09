@@ -15,6 +15,7 @@ final class BookingsStore {
     private(set) var isCancelling = false
     private(set) var isCompleting = false
     private(set) var isSubmittingReview = false
+    private(set) var nextPageRequest: ListPageRequest?
 
     var errorMessage: String?
     var noticeMessage: String?
@@ -22,6 +23,10 @@ final class BookingsStore {
 
     var isBusy: Bool {
         isLoading || isCancelling || isCompleting || isSubmittingReview
+    }
+
+    var canLoadMore: Bool {
+        nextPageRequest != nil
     }
 
     init(
@@ -53,14 +58,20 @@ final class BookingsStore {
         defer { isLoading = false }
 
         do {
-            bookings = try await repository.bookings(
+            let page = try await repository.bookings(
                 participantID: participantID,
-                role: role
+                role: role,
+                page: .first
             )
+            bookings = page.items
+            nextPageRequest = page.nextRequest
             recordStoreSuccess(
                 "load",
                 startedAt: startedAt,
-                metadata: ["bookingCount": "\(bookings.count)"]
+                metadata: [
+                    "bookingCount": "\(bookings.count)",
+                    "hasMore": "\(canLoadMore)",
+                ]
             )
             await syncAppointmentReminders()
         } catch BookingRepositoryError.cancelled {
@@ -79,6 +90,56 @@ final class BookingsStore {
             errorMessage = message(for: .unavailable, action: "load")
             recordStoreFailure(
                 "load",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt
+            )
+        }
+    }
+
+    func loadNextPage() async {
+        guard !isLoading, let pageRequest = nextPageRequest else { return }
+
+        let startedAt = Date()
+        recordStoreStart("loadNextPage")
+        isLoading = true
+        errorMessage = nil
+        defer { isLoading = false }
+
+        do {
+            let page = try await repository.bookings(
+                participantID: participantID,
+                role: role,
+                page: pageRequest
+            )
+            bookings.append(contentsOf: page.items)
+            nextPageRequest = page.nextRequest
+            recordStoreSuccess(
+                "loadNextPage",
+                startedAt: startedAt,
+                metadata: [
+                    "bookingCount": "\(bookings.count)",
+                    "loadedCount": "\(page.items.count)",
+                    "hasMore": "\(canLoadMore)",
+                ]
+            )
+            await syncAppointmentReminders()
+        } catch BookingRepositoryError.cancelled {
+            recordStoreCancelled("loadNextPage", startedAt: startedAt)
+        } catch let error as BookingRepositoryError {
+            errorMessage = message(for: error, action: "load")
+            recordStoreFailure(
+                "loadNextPage",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt
+            )
+        } catch where AppDebugErrorClassifier.isCancellation(error) {
+            recordStoreCancelled("loadNextPage", startedAt: startedAt)
+        } catch {
+            errorMessage = message(for: .unavailable, action: "load")
+            recordStoreFailure(
+                "loadNextPage",
                 error: error,
                 mappedMessage: errorMessage,
                 startedAt: startedAt

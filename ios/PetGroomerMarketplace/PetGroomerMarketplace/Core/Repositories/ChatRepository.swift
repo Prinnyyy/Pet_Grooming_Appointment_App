@@ -16,9 +16,20 @@ protocol ChatRepository: AnyObject {
         role: UserRole
     ) async throws -> [ChatConversation]
 
+    func conversations(
+        participantID: UUID,
+        role: UserRole,
+        page: ListPageRequest
+    ) async throws -> ListPage<ChatConversation>
+
     func messages(
         conversationID: UUID
     ) async throws -> [ChatMessage]
+
+    func messages(
+        conversationID: UUID,
+        page: ListPageRequest
+    ) async throws -> ListPage<ChatMessage>
 
     func sendMessage(
         conversationID: UUID,
@@ -29,4 +40,43 @@ protocol ChatRepository: AnyObject {
     func messageEvents(
         conversationID: UUID
     ) async throws -> AsyncStream<ChatMessage>
+}
+
+extension ChatRepository {
+    func conversations(
+        participantID: UUID,
+        role: UserRole,
+        page: ListPageRequest
+    ) async throws -> ListPage<ChatConversation> {
+        ListPage(
+            items: try await conversations(
+                participantID: participantID,
+                role: role
+            ),
+            request: page,
+            hasMore: false
+        )
+    }
+
+    func firstConversationPage(
+        participantID: UUID,
+        role: UserRole
+    ) async throws -> ListPage<ChatConversation> {
+        try await conversations(
+            participantID: participantID,
+            role: role,
+            page: .first
+        )
+    }
+
+    func messages(
+        conversationID: UUID,
+        page: ListPageRequest
+    ) async throws -> ListPage<ChatMessage> {
+        ListPage(
+            items: try await messages(conversationID: conversationID),
+            request: page,
+            hasMore: false
+        )
+    }
 }
