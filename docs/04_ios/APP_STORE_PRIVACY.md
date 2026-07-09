@@ -11,6 +11,8 @@ This is the Groomly 1.0 privacy submission checklist. Keep it aligned with `ios/
 
 These GitHub-hosted URLs are the current canonical release URLs for Groomly 1.0. Replace them in this document, `AppReleaseLinks.swift`, and App Store Connect if a custom production domain is adopted later.
 
+Latest local release-readiness evidence: `release/RELEASE_READINESS_DRY_RUN.md`.
+
 ## Tracking
 
 - No tracking.

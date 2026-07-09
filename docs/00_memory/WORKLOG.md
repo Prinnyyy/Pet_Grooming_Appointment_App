@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-09
+Task: T-201 - Release readiness dry run.
+Files changed: release readiness evidence, App Store privacy pointer, Supabase check script, roadmap, current state, task ledger, and worklog.
+Checks: Preflight; TestOps unit; App Store privacy test; TestOps doctor/backend smoke5/matching dry-runs; TestOps launch smoke; Supabase check; Supabase security/performance advisors; full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
+Result: Closes Q-15/R-015 for local/read-only release readiness. Release evidence confirms E2E dry-runs, privacy checks, advisors, and iOS build/test gates pass without remote writes.
+Risks: Security advisor still reports the known Auth leaked-password protection WARN. Q-07 production auth domain/SMTP and Q-09 APNs dispatch remain externally blocked. No TestFlight upload, App Store Connect change, remote TestOps execution, migration, seed, deploy, tag, PR, merge/rebase/reset, or force-push changed.
+Next: Use T-202 for the next user-chosen task. No unblocked roadmap queue package remains; Q-07 and Q-09 require external credentials/authorization.
+```
+
+```text
+Date: 2026-07-09
 Task: T-200 - Notification ordering test expansion.
 Files changed: CustomerNotificationsFeatureTests, roadmap, current state, task ledger, and worklog.
 Checks: CustomerNotificationsStoreTests RED/GREEN; full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
 Result: Closes Q-14/R-014 by making same-timestamp customer notification ordering deterministic in Store tests, replacing the flaky mark-all read assertion with stable display-order expectations, and restoring the full iOS test gate to passing.
 Risks: No production Swift code, Supabase schema, migration, remote write, UI behavior, dependency, PR, tag, merge/rebase/reset, or force-push changed. Q-09/APNs dispatch remains externally blocked by missing Apple/APNs credentials.
-Next: Use T-201 unless resuming T-157 after Apple Developer credentials. Next package is Q-15/R-015 release readiness dry run, with APNs dispatch recorded as an external blocker unless credentials become available.
 ```
 
 ```text
@@ -66,13 +75,4 @@ Files changed: chat repository protocol, Supabase chat repository, Debug chat wr
 Checks: Supabase changelog/docs review; focused ChatStoreTests; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
 Result: Closes Q-08/R-008 by adding foreground message INSERT streaming through the repository boundary, thread subscribe/unsubscribe lifecycle, foreground refresh for the messages list/thread, and debug events for subscription lifecycle/message events.
 Risks: No Supabase migration, RLS, replication setting, remote write, attachment, or read-receipt behavior changed. Live two-role smoke was skipped because sending messages would require unauthorized remote writes/test data.
-```
-
-```text
-Date: 2026-07-09
-Task: T-193 - Email deep-link and SMTP design.
-Files changed: auth email/deep-link design, Supabase contract, decision log, current state, task ledger, and worklog.
-Checks: Supabase changelog/docs review; local auth/config grep; `git diff --check`; context hygiene; commit and push.
-Result: Closes Q-06/R-007 by defining Resend-backed Supabase custom SMTP, exact HTTPS-first redirect URL policy, dev/test custom scheme fallback, required email templates/secrets, and iOS callback behavior for Q-07.
-Risks: No Supabase dashboard setting, Management API write, DNS, iOS entitlement, URL scheme, migration, or remote write changed. Q-07 implementation waits for a production auth domain and SMTP credentials.
 ```

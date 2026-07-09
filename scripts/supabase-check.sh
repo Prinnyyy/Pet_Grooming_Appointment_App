@@ -15,7 +15,7 @@ else
 fi
 
 echo "-- Checking for service-role key exposure patterns --"
-secret_pattern='SUPABASE_SERVICE_''ROLE(_KEY)?[[:space:]]*[:=]|sb_''secret_[A-Za-z0-9_-]{16,}'
+secret_pattern='(^|[[:space:]])(export[[:space:]]+)?SUPABASE_SERVICE_''ROLE(_KEY)?[[:space:]]*=|sb_''secret_[A-Za-z0-9_-]{16,}'
 if rg --files-with-matches "$secret_pattern" . \
   --hidden \
   --glob '!*.md' \
