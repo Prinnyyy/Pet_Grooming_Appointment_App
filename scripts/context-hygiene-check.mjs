@@ -6,12 +6,14 @@ const PROJECT_ROOT = path.resolve(
   process.env.CONTEXT_HYGIENE_PROJECT_ROOT ?? path.resolve(import.meta.dirname, ".."),
 );
 const ACTIVE_MARKDOWN_TOTAL_LIMIT = 32000;
+const ACTIVE_MARKDOWN_WARN_RATIO = 0.85;
 const WORKLOG_ENTRY_LIMIT = 10;
 const TASK_LEDGER_ROW_LIMIT = 15;
 const TASK_LEDGER_ROW_CHAR_LIMIT = 700;
 const LAST_VERIFIED_MAX_AGE_DAYS = 45;
 const CHECK_DATE_TEXT = process.env.CONTEXT_HYGIENE_NOW ?? new Date().toISOString().slice(0, 10);
 const FORCE_NO_RG = process.env.CONTEXT_HYGIENE_FORCE_NO_RG === "1";
+// All console/failure output is English.
 
 const WORD_LIMITS = new Map([
   ["AGENTS.md", 800],
@@ -60,6 +62,9 @@ const LAST_VERIFIED_DOCS = [
   "docs/03_backend/MIGRATION_RULES.md",
   "docs/06_tasks/ROADMAP.md",
 ];
+
+// Future intentional references to missing example paths must include a reason here.
+const BACKTICK_PATH_ALLOWLIST = [];
 
 const failures = [];
 
@@ -210,6 +215,59 @@ function checkMarkdownLinks(files) {
   console.log(`Local Markdown links checked: ${checked}`);
 }
 
+function isCheckableBacktickPath(rawPath) {
+  if (/[ *<>#{}]/.test(rawPath)) {
+    return false;
+  }
+  return rawPath.startsWith("docs/")
+    || rawPath.startsWith("scripts/")
+    || rawPath.startsWith("supabase/")
+    || rawPath.startsWith("ios/")
+    || rawPath.startsWith("tests/")
+    || rawPath.startsWith("../")
+    || rawPath.startsWith("./")
+    || ["AGENTS.md", "README.md", "CLAUDE.md"].includes(rawPath);
+}
+
+function resolveBacktickPath(filePath, rawPath) {
+  if (rawPath.startsWith("../")) {
+    return path.resolve(PROJECT_ROOT, path.dirname(filePath), rawPath);
+  }
+  if (rawPath.startsWith("./")) {
+    return path.resolve(PROJECT_ROOT, rawPath.slice(2));
+  }
+  return path.resolve(PROJECT_ROOT, rawPath);
+}
+
+function checkBacktickPathIntegrity(files) {
+  let checked = 0;
+  for (const filePath of files) {
+    const lines = read(filePath).split(/\r?\n/);
+    let inFence = false;
+    for (const line of lines) {
+      if (/^\s*```/.test(line)) {
+        inFence = !inFence;
+        continue;
+      }
+      if (inFence) {
+        continue;
+      }
+
+      for (const match of line.matchAll(/`([^`\n]+)`/g)) {
+        const rawPath = match[1].trim();
+        if (!rawPath || BACKTICK_PATH_ALLOWLIST.includes(rawPath) || !isCheckableBacktickPath(rawPath)) {
+          continue;
+        }
+        checked += 1;
+        if (!fs.existsSync(resolveBacktickPath(filePath, rawPath))) {
+          failures.push(`${filePath} references missing backtick path: ${rawPath}`);
+        }
+      }
+    }
+  }
+  console.log(`Backtick paths checked: ${checked}`);
+}
+
 function checkActiveMarkdownTotal(files) {
   let total = 0;
   for (const filePath of files) {
@@ -217,6 +275,10 @@ function checkActiveMarkdownTotal(files) {
   }
   const status = total <= ACTIVE_MARKDOWN_TOTAL_LIMIT ? "ok" : "over";
   console.log(`Active Markdown total: ${status} ${total} / ${ACTIVE_MARKDOWN_TOTAL_LIMIT}`);
+  const ratio = total / ACTIVE_MARKDOWN_TOTAL_LIMIT;
+  if (ratio >= ACTIVE_MARKDOWN_WARN_RATIO && total <= ACTIVE_MARKDOWN_TOTAL_LIMIT) {
+    console.log(`warn: active Markdown total at ${Math.round(ratio * 100)}% of limit`);
+  }
   if (total > ACTIVE_MARKDOWN_TOTAL_LIMIT) {
     failures.push(`active Markdown has ${total} words, limit ${ACTIVE_MARKDOWN_TOTAL_LIMIT}`);
   }
@@ -469,7 +531,7 @@ function checkCurrentFacts() {
   ];
   for (const [fileName, factName, value] of requiredFacts) {
     if (!value) {
-      failures.push(`${fileName} 缺少可提取的 ${factName}（措辞可能已漂移，检查正则与文档措辞是否同步）`);
+      failures.push(`${fileName} is missing an extractable ${factName} (wording may have drifted from the expected pattern)`);
     }
   }
 
@@ -488,7 +550,7 @@ function checkMetaReviewCadence() {
   const currentState = readOptional("docs/00_memory/CURRENT_STATE.md");
   const match = currentState.match(/Last meta-review:\s*(T-\d{3})\s+on\s+(\d{4}-\d{2}-\d{2})/i);
   if (!match) {
-    failures.push("CURRENT_STATE.md 缺少可提取的 Last meta-review marker（措辞可能已漂移，检查正则与文档措辞是否同步）");
+    failures.push("CURRENT_STATE.md is missing an extractable Last meta-review marker (wording may have drifted from the expected pattern)");
     return;
   }
 
@@ -499,7 +561,7 @@ function checkMetaReviewCadence() {
     .sort((a, b) => taskNumber(b) - taskNumber(a))[0] ?? null;
 
   if (!latestCompleted) {
-    failures.push("TASK_LEDGER.md 缺少可提取的 latest completed row（无法校验 meta-review cadence）");
+    failures.push("TASK_LEDGER.md is missing an extractable latest completed row (cannot check meta-review cadence)");
     return;
   }
 
@@ -535,6 +597,7 @@ function checkRollingWindowSizes() {
 const activeFiles = activeMarkdownFiles();
 checkWordLimits();
 checkMarkdownLinks(activeFiles);
+checkBacktickPathIntegrity(activeFiles);
 checkActiveMarkdownTotal(activeFiles);
 checkIgnoredPaths();
 checkCredentialClaims();

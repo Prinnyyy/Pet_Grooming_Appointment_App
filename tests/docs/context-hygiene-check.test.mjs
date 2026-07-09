@@ -194,6 +194,99 @@ test("context hygiene falls back to git ls-files when rg is unavailable", () => 
   assert.match(result.stdout, /Active Markdown files: \d+/i);
 });
 
+test("context hygiene fails when a backtick path is missing", () => {
+  const root = createFixture();
+  writeFixtureFile(root, "docs/01_product/USER_ROLES.md", [
+    "# User Roles",
+    "",
+    "Read `docs/01_product/MISSING.md` before changing roles.",
+    "",
+  ].join("\n"));
+
+  const result = runHygiene(root);
+
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /docs\/01_product\/USER_ROLES\.md references missing backtick path: docs\/01_product\/MISSING\.md/i);
+});
+
+test("context hygiene resolves relative backtick paths and skips placeholders", () => {
+  const root = createFixture();
+  writeFixtureFile(root, "docs/06_tasks/ROADMAP.md", [
+    "# Managed Roadmap",
+    "",
+    "Last verified: 2026-07-08.",
+    "",
+    "Inputs: `../00_memory/CURRENT_STATE.md`, `docs/09_frozen/**`, and `docs/<area>/EXAMPLE.md`.",
+    "",
+    "| Roadmap ID | Milestone | Candidate | Status |",
+    "|---|---|---|---|",
+    "| R-001 | G0 | Fixture item | Complete T-005 |",
+    "",
+  ].join("\n"));
+
+  const result = runHygiene(root);
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /Backtick paths checked: \d+/i);
+});
+
+test("context hygiene warns when active Markdown total is above the warning ratio", () => {
+  const root = createFixture();
+  writeFixtureFile(root, "docs/01_product/DESIGN_SYSTEM.md", [
+    "# Design System",
+    "",
+    `${"design ".repeat(700)}`,
+    "",
+  ].join("\n"));
+  writeFixtureFile(root, "docs/01_product/SCREEN_INVENTORY.md", [
+    "# Screen Inventory",
+    "",
+    `${"screen ".repeat(1200)}`,
+    "",
+  ].join("\n"));
+  writeFixtureFile(root, "docs/00_memory/WORKLOG.md", [
+    "# Worklog",
+    "",
+    "```text",
+    "Task: T-005 - Fixture task.",
+    "```",
+    "",
+    `${"worklog ".repeat(2300)}`,
+    "",
+  ].join("\n"));
+  writeFixtureFile(root, "docs/06_tasks/TASK_LEDGER.md", [
+    "# Task Ledger",
+    "",
+    `Current branch and task-numbering baseline: use \`codex/test-baseline\`; use \`T-006\` for the next task unless directed otherwise.`,
+    "",
+    "| ID | Task | Status | Mode | Milestone | Files/Docs | Checks | Notes |",
+    "|---|---|---|---|---|---|---|---|",
+    "| T-005 | Fixture task | completed | Quick | G0 | docs | check | done |",
+    "",
+    `${"ledger ".repeat(1700)}`,
+    "",
+  ].join("\n"));
+  writeFixtureFile(root, "docs/05_workflow/TOOLING_POLICY.md", [
+    "# Tooling Policy",
+    "",
+    `${"tooling ".repeat(1300)}`,
+    "",
+  ].join("\n"));
+  for (let index = 1; index <= 10; index += 1) {
+    writeFixtureFile(root, `docs/98_fixture/extra_${index}.md`, [
+      `# Extra Fixture ${index}`,
+      "",
+      `${"extra ".repeat(2000)}`,
+      "",
+    ].join("\n"));
+  }
+
+  const result = runHygiene(root);
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /warn: active Markdown total at \d+% of limit/i);
+});
+
 test("context hygiene fails when a last-verified marker is stale", () => {
   const root = createFixture();
   writeFixtureFile(root, "docs/00_memory/FEATURE_INDEX.md", [
@@ -345,7 +438,7 @@ test("context hygiene fails closed when current-state facts cannot be extracted"
   const result = runHygiene(root);
 
   assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /CURRENT_STATE\.md 缺少可提取的 latest completed task/i);
+  assert.match(result.stderr, /CURRENT_STATE\.md is missing an extractable latest completed task/i);
 });
 
 test("context hygiene fails when the meta-review marker is missing", () => {
@@ -365,7 +458,7 @@ test("context hygiene fails when the meta-review marker is missing", () => {
   const result = runHygiene(root);
 
   assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /CURRENT_STATE\.md 缺少可提取的 Last meta-review marker/i);
+  assert.match(result.stderr, /CURRENT_STATE\.md is missing an extractable Last meta-review marker/i);
 });
 
 test("context hygiene fails when meta-review is ten completed tasks old", () => {

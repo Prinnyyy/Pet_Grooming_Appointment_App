@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-08
+Task: T-178 - Context hygiene v5 path checks.
+Files changed: context hygiene script/tests, structure log, task ledger/archive, worklog/archive, current state, and roadmap.
+Checks: RED/GREEN `node --test tests/docs/context-hygiene-check.test.mjs`; `node scripts/context-hygiene-check.mjs`; `CONTEXT_HYGIENE_FORCE_NO_RG=1 node scripts/context-hygiene-check.mjs`; `git diff --check`.
+Result: Hygiene now checks inline backtick paths, reports the checked count, warns when active Markdown total is at or above 85% of the 32k limit, and uses English failure text for fact-extraction failures. The new check caught two stale removed-template source references in the structure log; they now point only to frozen targets.
+Risks: Docs/workflow tooling only. No iOS source, Supabase command, migration, runtime behavior, simulator, commit, push, or remote write changed. Active Markdown remains above the 85% warning line; T-179 should execute the planned budget-reduction batch.
+Next: Use T-179 for the active Markdown budget-reduction batch unless the user chooses another task.
+```
+
+```text
+Date: 2026-07-08
 Task: T-177 - ROADMAP DoD and ignore cleanup.
 Files changed: `.rgignore`, `.gitignore`, roadmap, task ledger/archive, worklog/archive, current state, and structure log.
 Checks: `git diff --check`; `node scripts/context-hygiene-check.mjs`; targeted ignore/root-draft checks.
 Result: Removes the dead `DOCS_GOVERNANCE_OPTIMIZATION_PLAN.md` ignore entry, expands V1.0 DoD into a checklist, and reorders ROADMAP candidate rows by R ID. Root `APP_STATUS_OVERVIEW.md` and `V1.0_RELEASE_TASK_PLAN.md` remain ignored live drafts; frozen 2026-07-06 copies remain adopted review snapshots.
 Risks: Docs/governance only. No iOS source, Supabase command, migration, runtime behavior, simulator, push, or remote write changed. T-177 is not yet committed or pushed.
-Next: Use T-178 for the next non-APNs task; product candidate remains private image rendering unless the user chooses otherwise.
 ```
 
 ```text
@@ -84,13 +93,4 @@ Files changed: reorganization log, Claude guide/archive, task/docs/frozen indexe
 Checks: `git diff --check`; `node scripts/context-hygiene-check.mjs`; targeted stale-reference searches.
 Result: Active structure history is now a compact index backed by a frozen full snapshot. Old `CLAUDE_reference/` snapshots and generic handoff/review templates moved to frozen, and active ledger/worklog windows rolled forward.
 Risks: Docs/workflow only. No iOS source, Supabase command, migration, runtime behavior, simulator, commit, or push changed.
-```
-
-```text
-Date: 2026-07-07
-Task: T-168 - Testing and migration workflow rules.
-Files changed: preflight script/test, iOS testing docs, migration rules, roadmap, task ledger, current state, worklog/archive, decision log, and reorganization log.
-Checks: RED/GREEN `node --test tests/scripts/preflight.test.mjs`; `./scripts/preflight.sh`; `git diff --check`; `node scripts/context-hygiene-check.mjs`.
-Result: Preflight now runs local migration and Edge Function Node tests when present. Docs require local migration/function tests before authorized remote backend validation and record Edge Function/pg_cron gates.
-Risks: Docs/workflow/script only. No iOS source, Supabase command, migration, runtime behavior, simulator, commit, or push changed.
 ```

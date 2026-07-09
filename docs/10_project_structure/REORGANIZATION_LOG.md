@@ -20,8 +20,8 @@ Moved or copied paths:
 | `docs/10_project_structure/REORGANIZATION_LOG.md` pre-T-169 full text | `../09_frozen/project_structure/REORGANIZATION_LOG_2026-06-24_TO_2026-07-07_PRE_T169.md` | Preserve old detailed move history while keeping the active log short. |
 | `CLAUDE_reference/CLAUDE_INDEX.md` | `../09_frozen/claude_reference_2026-07-08/CLAUDE_INDEX.md` | Old Claude reference index pointed to historical T-002 planning material already superseded by active roadmap/task docs. |
 | `CLAUDE_reference/CLAUDE_INCREMENTAL_BUILD_PLAN.md` | `../09_frozen/claude_reference_2026-07-08/CLAUDE_INCREMENTAL_BUILD_PLAN.md` | Preserve the old T-002 roadmap snapshot without exposing it to default root searches. |
-| `docs/06_tasks/HANDOFF_TEMPLATE.md` | `../09_frozen/task_templates/HANDOFF_TEMPLATE_2026-07-08.md` | Generic handoff template is superseded by the compact checkpoint rule in active workflow docs. |
-| `docs/06_tasks/REVIEW_TEMPLATE.md` | `../09_frozen/task_templates/REVIEW_TEMPLATE_2026-07-08.md` | Generic review checklist is superseded by task validation, closeout, and hygiene gates. |
+| Removed docs/06_tasks/HANDOFF_TEMPLATE.md | `../09_frozen/task_templates/HANDOFF_TEMPLATE_2026-07-08.md` | Generic handoff template is superseded by the compact checkpoint rule in active workflow docs. |
+| Removed docs/06_tasks/REVIEW_TEMPLATE.md | `../09_frozen/task_templates/REVIEW_TEMPLATE_2026-07-08.md` | Generic review checklist is superseded by task validation, closeout, and hygiene gates. |
 | `docs/06_tasks/TASK_LEDGER.md` row T-154 | `../09_frozen/task_ledgers/TASK_LEDGER_T-154_2026-07-07.md` | Keep the active ledger under the 15-row window after adding T-169. |
 | `docs/00_memory/WORKLOG.md` entry T-159 | `../09_frozen/worklogs/WORKLOG_2026-07-07_T-159.md` | Keep the active worklog under the 10-entry window after adding T-169. |
 
@@ -31,6 +31,7 @@ Validation for the task is recorded in `../06_tasks/TASK_LEDGER.md` and `../00_m
 
 | Date | Task | Summary | Detail |
 |---|---|---|---|
+| 2026-07-08 | T-178 | Added backtick path integrity checks and rolled T-164 ledger row plus T-168 worklog entry to frozen. | `../../scripts/context-hygiene-check.mjs`, `../09_frozen/task_ledgers/`, `../09_frozen/worklogs/` |
 | 2026-07-08 | T-177 | Cleaned dead governance-plan ignore entries, expanded ROADMAP DoD, and rolled T-163 ledger row plus T-167 worklog entry to frozen. | `../../.rgignore`, `../../.gitignore`, `../06_tasks/ROADMAP.md`, `../09_frozen/task_ledgers/`, `../09_frozen/worklogs/` |
 | 2026-07-08 | T-176 | Removed AGENTS branch-baseline duplication, updated Claude routing, and rolled T-162 ledger row plus T-166 worklog entry to frozen. | `../../AGENTS.md`, `../../CLAUDE.md`, `../09_frozen/task_ledgers/`, `../09_frozen/worklogs/` |
 | 2026-07-08 | T-175 | Added hygiene v4 failure-mode checks and rolled T-161 ledger row plus T-165 worklog entry to frozen. | `../../scripts/context-hygiene-check.mjs`, `../09_frozen/task_ledgers/`, `../09_frozen/worklogs/` |
