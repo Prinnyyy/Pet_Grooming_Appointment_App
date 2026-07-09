@@ -96,16 +96,31 @@ final class SupabaseChatRepository: ChatRepository {
                 .from("messages")
                 .select(Self.messageColumns)
                 .eq("conversation_id", value: conversationID.uuidString.lowercased())
-                .order("created_at", ascending: true)
-                .order("id", ascending: true)
+                .order("created_at", ascending: false)
+                .order("id", ascending: false)
                 .range(from: page.offset, to: page.inclusiveRangeEnd)
                 .execute()
                 .value
 
-            return ListPage(items: rows.map(\.message), request: page)
+            return Self.messagePage(
+                fromDescendingMessages: rows.map(\.message),
+                request: page
+            )
         } catch {
             throw Self.map(error)
         }
+    }
+
+    nonisolated static func messagePage(
+        fromDescendingMessages messages: [ChatMessage],
+        request: ListPageRequest
+    ) -> ListPage<ChatMessage> {
+        let descendingPage = ListPage(items: messages, request: request)
+        return ListPage(
+            items: Array(descendingPage.items.reversed()),
+            request: request,
+            hasMore: descendingPage.hasMore
+        )
     }
 
     func sendMessage(

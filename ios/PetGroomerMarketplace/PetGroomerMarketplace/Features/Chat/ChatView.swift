@@ -136,6 +136,16 @@ struct ChatConversationsView: View {
                             }
                         }
                     }
+
+                    if store.canLoadMoreConversations || store.isLoadingMoreConversations {
+                        GroomlyLoadMoreButton(
+                            isLoading: store.isLoadingMoreConversations,
+                            accent: role.groomlySecondaryAccent,
+                            accessibilityIdentifier: "chat.conversations.load-more"
+                        ) {
+                            await store.loadNextConversationsPage()
+                        }
+                    }
                 }
                 .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
                 .padding(.top, DesignTokens.Spacing.xl)
@@ -237,6 +247,16 @@ private struct CustomerMessagesTitle: View {
             .foregroundStyle(DesignTokens.Colors.textPrimary)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.top, DesignTokens.Spacing.sm)
+    }
+}
+
+nonisolated enum ChatThreadScrollPolicy {
+    static func shouldScrollToBottom(
+        previousLatestMessageID: UUID?,
+        currentLatestMessageID: UUID?
+    ) -> Bool {
+        guard currentLatestMessageID != nil else { return false }
+        return previousLatestMessageID != currentLatestMessageID
     }
 }
 
@@ -353,6 +373,29 @@ private struct ChatThreadView: View {
                         )
                         .accessibilityIdentifier("chat.messages.empty")
                     } else {
+                        if store.canLoadMoreMessages(for: conversation.id)
+                            || store.isLoadingEarlierMessages(for: conversation.id) {
+                            GroomlyLoadMoreButton(
+                                isLoading: store.isLoadingEarlierMessages(
+                                    for: conversation.id
+                                ),
+                                accent: role.groomlySecondaryAccent,
+                                accessibilityIdentifier: "chat.messages.load-earlier",
+                                title: "Load Earlier Messages",
+                                systemImage: "chevron.up",
+                                loadingAccessibilityLabel: "Loading earlier messages"
+                            ) {
+                                let anchorMessageID = store.messages(
+                                    for: conversation.id
+                                ).first?.id
+                                await store.loadNextMessagesPage(for: conversation)
+                                await Task.yield()
+                                if let anchorMessageID {
+                                    proxy.scrollTo(anchorMessageID, anchor: .top)
+                                }
+                            }
+                        }
+
                         ForEach(store.messages(for: conversation.id)) { message in
                             ChatMessageRow(
                                 message: message,
@@ -371,7 +414,13 @@ private struct ChatThreadView: View {
                 .padding(.top, DesignTokens.Spacing.lg)
                 .padding(.bottom, DesignTokens.Spacing.xl * 2)
             }
-            .onChange(of: store.messages(for: conversation.id).count) { _, _ in
+            .onChange(of: store.messages(for: conversation.id).last?.id) {
+                previousLatestMessageID,
+                currentLatestMessageID in
+                guard ChatThreadScrollPolicy.shouldScrollToBottom(
+                    previousLatestMessageID: previousLatestMessageID,
+                    currentLatestMessageID: currentLatestMessageID
+                ) else { return }
                 withAnimation(.easeOut(duration: 0.2)) {
                     proxy.scrollTo("chat-thread-bottom", anchor: .bottom)
                 }
@@ -776,6 +825,15 @@ private extension UserRole {
     }
 
     var groomlyLoadingAccent: GroomlyLoadingView.Accent {
+        switch self {
+        case .customer:
+            .customer
+        case .groomer:
+            .groomer
+        }
+    }
+
+    var groomlySecondaryAccent: GroomlySecondaryButtonStyle.Accent {
         switch self {
         case .customer:
             .customer

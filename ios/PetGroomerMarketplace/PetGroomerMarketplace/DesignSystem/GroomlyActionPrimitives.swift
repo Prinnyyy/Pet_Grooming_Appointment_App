@@ -155,17 +155,26 @@ struct GroomlyLoadMoreButton: View {
     let isLoading: Bool
     let accent: GroomlySecondaryButtonStyle.Accent
     let accessibilityIdentifier: String
+    let title: String
+    let systemImage: String
+    let loadingAccessibilityLabel: String
     let action: () async -> Void
 
     init(
         isLoading: Bool,
         accent: GroomlySecondaryButtonStyle.Accent,
         accessibilityIdentifier: String,
+        title: String = "Load More",
+        systemImage: String = "chevron.down",
+        loadingAccessibilityLabel: String = "Loading more",
         action: @escaping () async -> Void
     ) {
         self.isLoading = isLoading
         self.accent = accent
         self.accessibilityIdentifier = accessibilityIdentifier
+        self.title = title
+        self.systemImage = systemImage
+        self.loadingAccessibilityLabel = loadingAccessibilityLabel
         self.action = action
     }
 
@@ -176,13 +185,13 @@ struct GroomlyLoadMoreButton: View {
             }
         } label: {
             ZStack {
-                Label("Load More", systemImage: "chevron.down")
+                Label(title, systemImage: systemImage)
                     .opacity(isLoading ? 0 : 1)
 
                 if isLoading {
                     ProgressView()
                         .tint(DesignTokens.Colors.textSecondary)
-                        .accessibilityLabel("Loading more")
+                        .accessibilityLabel(loadingAccessibilityLabel)
                 }
             }
             .frame(maxWidth: .infinity, minHeight: 24)

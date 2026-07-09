@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-09
 - Updated by: Codex
-- Latest completed task: T-236 booking and notification visible pagination.
+- Latest completed task: T-237 conversation and message-history visible pagination.
 - Current task: none; T-157 APNs remains externally blocked.
-- Next task ID: use T-237 unless the user resumes T-157 after Apple Developer Program upgrade.
+- Next task ID: use T-238 unless the user resumes T-157 after Apple Developer Program upgrade.
 
 ## Fast Path
 
@@ -32,8 +32,8 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Validation Baseline
 
-- T-236 booking and customer/groomer notification pagination focused tests, full iOS test/build, and Simulator navigation passed.
-- Recent focused coverage: T-230 four request/offer pagination retry/dedupe/end cases; T-236 three booking/notification pagination retry/dedupe/end cases.
+- T-237 Chat repository order, Store retry/dedupe/end, scroll-policy focused tests, full iOS test/build, and Simulator list/thread verification passed.
+- Recent focused coverage: T-230 request/offer; T-236 booking/notification; T-237 conversation/message pagination and scroll behavior.
 - Last Supabase migration apply: T-234 `20260709214425_t234_add_evidence_backed_fk_indexes.sql` applied to `lqmasbuqzvcvtawonjlb` on 2026-07-09; parity, catalog, forced plans, and advisor delta were verified.
 - Last Edge Function deploy: `delete-account` version 2 is active with JWT verification and service-role Storage API cleanup across six user-prefixed image buckets.
 - Last TestOps unit validation: T-222 `./scripts/testops-unit.sh` passed 24 Node tests.
@@ -51,7 +51,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - Implemented iOS areas include auth/onboarding, marketplace flow, notifications, foreground chat, profile/account surfaces, privacy/support links, private images, Debug Console, ops evidence, accessibility/copy checks, and TestOps.
 - Customer/groomer tab roots load shared notification/chat badge sources. Customer Home, Messages, and groomer Alerts display badges; chat unread state is local/session-scoped and clears on thread open.
 - Customer request UI and groomer profile UI were split into focused SwiftUI files in T-211/T-212.
-- Request, offer, booking, message, and notification repositories use bounded first-page list reads with a shared limit+1 page contract. Request, offer, booking, and notification surfaces expose shared Load More controls with retry, dedupe, and terminal-page state; conversation/message UI paging remains queued.
+- Request, offer, booking, message, and notification repositories use bounded limit+1 page reads. All supported list surfaces expose retry-preserving, deduplicating terminal-page controls; message threads fetch the newest window first and preserve their reader anchor when prepending history.
 - Private Storage images use authenticated `.download(path:)` through `PrivateImageLoader`; cache hashes paths, retries transient downloads once, and clears on local account cleanup.
 - Customers can create a new request from cancelled requests/bookings via explicit republish. Republish tolerates missing request photos and expired preferred windows. Unpublished wizard drafts are sheet-ephemeral.
 - Groomly UI adaptation is complete for implemented MVP screens. Future UI work is screenshot-driven and must map modules to existing SwiftUI/Store/repository/model paths or stop for approval.
@@ -62,7 +62,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - Startup reads stay minimal: `AGENTS.md`, then targeted current-state/task-ledger sections only when needed.
 - Periodic documentation-governance reviews use `docs/06_tasks/META_REVIEW_TEMPLATE.md` every 10 completed tasks or weekly.
 - Last meta-review: T-229 on 2026-07-09.
-- V1.0 ideal-operation Q-16...Q-39 are complete. Q-40 and Q-41 remain local work; dependent Q-42 retains remote authorization.
+- V1.0 ideal-operation Q-16...Q-40 are complete. Q-41 remains local work; dependent Q-42 retains remote authorization.
 - Changes to `AGENTS.md`, `CLAUDE.md`, or `docs/05_workflow/**` must be standalone numbered tasks with a decision-log entry and context hygiene.
 - T-180 records standing user approval for task-completion Git commit and push. This approval is limited to current-task changes after validation passes; T-186 requires stopping without auto pull/rebase/merge/reset/force-push if the push fails or is rejected.
 - T-184 keeps active Markdown under a 36k hard limit, 95% structural-review warning, and deterministic `node scripts/context-rotate.mjs` archive rotation.
@@ -95,4 +95,4 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Next Recommended Task
 
-- Use T-237 for Q-40 conversation and message-history pagination.
+- Use T-238 for Q-41 UI TestOps harness and stable selectors.

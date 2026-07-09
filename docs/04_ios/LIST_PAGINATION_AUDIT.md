@@ -21,19 +21,20 @@ Purpose: record the V1.0 list-load contract for request, offer, booking, message
 | Groomer matched requests | `GroomerRequestRepository.matchedRequests(groomerID:page:)` | `request_matches` | `created_at` desc | Store and shared Load More control complete T-230 |
 | Groomer offers | `GroomerRequestRepository.offers(groomerID:page:)` | `groomer_offers` | `created_at` desc | Store and shared Load More control complete T-230 |
 | Bookings | `BookingRepository.bookings(participantID:role:page:)` | `bookings` | `scheduled_start` desc | Customer/groomer Store and shared Load More control complete T-236 |
-| Conversations | `ChatRepository.conversations(participantID:role:page:)` | `conversations` | `updated_at` desc | Store has next-page state |
-| Messages | `ChatRepository.messages(conversationID:page:)` | `messages` | `created_at`, `id` asc | Store supports next page |
+| Conversations | `ChatRepository.conversations(participantID:role:page:)` | `conversations` | `updated_at` desc | Store and shared Load More control complete T-237 |
+| Messages | `ChatRepository.messages(conversationID:page:)` | `messages` | Fetch `created_at`, `id` desc; display asc | Newest first page and anchored earlier-message control complete T-237 |
 | Customer notifications | `CustomerNotificationRepository.notifications(customerID:page:)` | `customer_notifications` | `created_at` desc | Store and shared Load More control complete T-236 |
 | Groomer notifications | `GroomerNotificationRepository.notifications(groomerID:page:)` | `groomer_notifications` | `created_at` desc | Store and shared Load More control complete T-236 |
 
-## Deferred UI Work
+## Visible Interaction
 
-- Conversation and message-history UI pagination remains Q-40 work.
 - Customer/groomer request and offer lists use the same explicit Load More interaction. A failed next page preserves existing rows and the page cursor so the same action retries safely.
 - Booking and notification lists follow the same retry-preserving interaction. Notification mark-all-read updates the loaded window without discarding its next-page cursor.
+- Conversation lists use the shared Load More control. Threads fetch the newest bounded window first; Load Earlier Messages prepends ordered unique history and restores the previous first-message anchor.
 
 ## Tests
 
 - `ListPaginationFeatureTests` covers default page bounds, `limit + 1` trimming, `hasMore`, booking next-page append, and chat message next-page append.
 - Customer/groomer request and offer Store suites cover first-page reset, failed-page retry, ordered unique append, and terminal-page state.
 - Booking and customer/groomer notification Store suites cover failed-page retry, stable-ID dedupe, and terminal-page state.
+- Chat tests cover newest-window repository order, conversation/history failed-page retry, stable-ID dedupe, terminal state, and no bottom-scroll trigger when history is prepended.

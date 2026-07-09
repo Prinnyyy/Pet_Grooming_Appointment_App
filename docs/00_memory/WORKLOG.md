@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-09
+Task: T-237 - Conversation and message-history visible pagination.
+Files changed: Chat Supabase repository, Store, conversation/thread views, shared Load More primitive, Chat tests, pagination audit, roadmap/queue/current state/task ledger/worklog.
+Checks: Repository order, Store retry/dedupe/end, and scroll-policy RED/GREEN tests; focused Chat/ListPagination suites; full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; XcodeBuildMCP build/run plus customer Messages list/thread/screenshot; `git diff --check`; context hygiene.
+Result: Q-40 completes visible list pagination. Conversations use independent append state and shared Load More. Threads open on the newest bounded message window, prepend unique earlier pages, restore the old first-message anchor, and auto-scroll only when the latest message changes.
+Risks: The live customer account had only two conversations and short histories, so conditional pagination controls and anchor policy are covered by unit tests while Simulator verification covered production list/thread rendering. No schema or remote write.
+Next: Use T-238 for Q-41 UI TestOps harness and stable selectors.
+```
+
+```text
+Date: 2026-07-09
 Task: T-236 - Booking and notification visible pagination.
 Files changed: Booking/customer notification/groomer notification Stores, views, and tests; pagination audit; roadmap/queue/current state/task ledger/worklog.
 Checks: Three pagination RED/GREEN cases; focused suites; full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; XcodeBuildMCP build/run and customer Booking/Notification navigation; `git diff --check`; context hygiene.
 Result: Q-39 exposes the shared Load More interaction on customer bookings, groomer schedule, and both notification lists. Append loads use separate busy state, retain rows/cursor on failure, retry the same page, deduplicate IDs, and hide at the terminal page; mark-all-read preserves the loaded notification window.
 Risks: The live customer account had fewer than 50 bookings/notifications, so conditional Load More visibility is covered by Store tests while Simulator verification covered the production screens. No schema or remote write.
-Next: Use T-237 for Q-40 conversation and message-history pagination.
 ```
 
 ```text
@@ -40,7 +49,6 @@ Checks: Official Storage list/delete docs; Edge and migration RED/GREEN; recursi
 Result: Account deletion no longer mutates `storage.objects` from SQL. After transactional anonymization, the Edge Function recursively lists the user's UUID prefix in six current/legacy buckets, removes objects in batches of at most 1000, and only then soft-deletes Auth. Storage failure is recorded and blocks Auth deletion.
 Risks: The production function deployment is verified by version/status and unit-boundary coverage; no live end-user account was destructively deleted. Advisor output remains limited to known APNs/Auth-plan and Q-36 index findings.
 ```
-
 ```text
 Date: 2026-07-09
 Task: T-232 - Account deletion conflict-target correction.
@@ -66,13 +74,4 @@ Files changed: shared pagination model/action primitive; customer request/offer 
 Checks: Four Store pagination RED/GREEN cases; focused customer/groomer request and groomer offer suites; full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; XcodeBuildMCP build/run plus customer Requests navigation/screenshot; `git diff --check`; context hygiene.
 Result: Q-38 adds one shared explicit Load More interaction to customer requests, customer request offers, groomer matched requests, and groomer offers. All four preserve loaded rows and next-page state across failure, retry the same page, deduplicate stable IDs, and stop at the terminal page.
 Risks: No schema, migration, Supabase write, TestOps execute, seed, deploy, APNs, release upload, PR, merge/rebase/reset, or force-push. The live customer account had fewer than 50 rows, so conditional button visibility is covered by Store tests while Simulator verification covered the surrounding production screen.
-```
-
-```text
-Date: 2026-07-09
-Task: T-229 - Periodic meta-review.
-Files changed: current state, feature index, task ledger, worklog, and frozen rotations.
-Checks: Git status/diff; context hygiene; 56-file migration mirror count; root-report tracking/ignore/frozen checks; targeted branch/task/queue fact scan.
-Result: Resolves the 10-task cadence gate. All 69 active Markdown files remain within individual budgets; root external reports are ignored/untracked with frozen copies; migration and roadmap facts align. The 95% total is observed, but no duplicate active source is safe to remove.
-Risks: Governance closeout only. No workflow rule, app/backend behavior, Supabase write, migration, TestOps execute, seed, deploy, release action, or APNs work changed.
 ```

@@ -15,7 +15,9 @@ final class ChatStore {
     private(set) var nextConversationPageRequest: ListPageRequest?
     private(set) var nextMessagePageRequestByConversationID: [UUID: ListPageRequest] = [:]
     private(set) var isLoadingConversations = false
+    private(set) var isLoadingMoreConversations = false
     private(set) var loadingConversationIDs: Set<UUID> = []
+    private(set) var loadingEarlierMessageConversationIDs: Set<UUID> = []
     private(set) var sendingConversationIDs: Set<UUID> = []
     private var readConversationTimestamps: [UUID: String] = [:]
     private var messageSubscriptionTasks: [UUID: Task<Void, Never>] = [:]
@@ -27,7 +29,9 @@ final class ChatStore {
 
     var isBusy: Bool {
         isLoadingConversations
+            || isLoadingMoreConversations
             || !loadingConversationIDs.isEmpty
+            || !loadingEarlierMessageConversationIDs.isEmpty
             || !sendingConversationIDs.isEmpty
     }
 
@@ -63,6 +67,10 @@ final class ChatStore {
 
     func isSendingMessage(for conversationID: UUID) -> Bool {
         sendingConversationIDs.contains(conversationID)
+    }
+
+    func isLoadingEarlierMessages(for conversationID: UUID) -> Bool {
+        loadingEarlierMessageConversationIDs.contains(conversationID)
     }
 
     func canLoadMoreMessages(for conversationID: UUID) -> Bool {
@@ -109,6 +117,8 @@ final class ChatStore {
     }
 
     func loadConversations() async {
+        guard !isLoadingConversations, !isLoadingMoreConversations else { return }
+
         let startedAt = Date()
         recordStoreStart("loadConversations")
         isLoadingConversations = true
@@ -156,13 +166,14 @@ final class ChatStore {
 
     func loadNextConversationsPage() async {
         guard !isLoadingConversations,
+              !isLoadingMoreConversations,
               let pageRequest = nextConversationPageRequest else { return }
 
         let startedAt = Date()
         recordStoreStart("loadNextConversationsPage")
-        isLoadingConversations = true
+        isLoadingMoreConversations = true
         errorMessage = nil
-        defer { isLoadingConversations = false }
+        defer { isLoadingMoreConversations = false }
 
         do {
             let page = try await repository.conversations(
@@ -170,7 +181,10 @@ final class ChatStore {
                 role: role,
                 page: pageRequest
             )
-            conversations.append(contentsOf: page.items)
+            conversations = ListPageMerge.appendingUnique(
+                page.items,
+                to: conversations
+            )
             nextConversationPageRequest = page.nextRequest
             recordStoreSuccess(
                 "loadNextConversationsPage",
@@ -205,7 +219,8 @@ final class ChatStore {
     }
 
     func loadMessages(for conversation: ChatConversation) async {
-        guard !loadingConversationIDs.contains(conversation.id) else { return }
+        guard !loadingConversationIDs.contains(conversation.id),
+              !loadingEarlierMessageConversationIDs.contains(conversation.id) else { return }
 
         let startedAt = Date()
         recordStoreStart(
@@ -221,7 +236,9 @@ final class ChatStore {
                 conversationID: conversation.id,
                 page: .first
             )
-            messagesByConversationID[conversation.id] = page.items
+            messagesByConversationID[conversation.id] = Self.messagesInDisplayOrder(
+                page.items
+            )
             nextMessagePageRequestByConversationID[conversation.id] = page.nextRequest
             markConversationRead(conversation.id)
             recordStoreSuccess(
@@ -258,6 +275,7 @@ final class ChatStore {
 
     func loadNextMessagesPage(for conversation: ChatConversation) async {
         guard !loadingConversationIDs.contains(conversation.id),
+              !loadingEarlierMessageConversationIDs.contains(conversation.id),
               let pageRequest = nextMessagePageRequestByConversationID[conversation.id] else { return }
 
         let startedAt = Date()
@@ -265,16 +283,21 @@ final class ChatStore {
             "loadNextMessagesPage",
             metadata: ["conversationID": conversation.id.uuidString]
         )
-        loadingConversationIDs.insert(conversation.id)
+        loadingEarlierMessageConversationIDs.insert(conversation.id)
         errorMessage = nil
-        defer { loadingConversationIDs.remove(conversation.id) }
+        defer { loadingEarlierMessageConversationIDs.remove(conversation.id) }
 
         do {
             let page = try await repository.messages(
                 conversationID: conversation.id,
                 page: pageRequest
             )
-            messagesByConversationID[conversation.id, default: []].append(contentsOf: page.items)
+            messagesByConversationID[conversation.id] = Self.messagesInDisplayOrder(
+                ListPageMerge.appendingUnique(
+                    page.items,
+                    to: messagesByConversationID[conversation.id, default: []]
+                )
+            )
             nextMessagePageRequestByConversationID[conversation.id] = page.nextRequest
             markConversationRead(conversation.id)
             recordStoreSuccess(
@@ -468,13 +491,20 @@ final class ChatStore {
         var messages = messagesByConversationID[message.conversationID] ?? []
         guard !messages.contains(where: { $0.id == message.id }) else { return }
         messages.append(message)
-        messages.sort {
+        messagesByConversationID[message.conversationID] = Self.messagesInDisplayOrder(
+            messages
+        )
+    }
+
+    private static func messagesInDisplayOrder(
+        _ messages: [ChatMessage]
+    ) -> [ChatMessage] {
+        messages.sorted {
             if $0.createdAt == $1.createdAt {
                 return $0.id.uuidString < $1.id.uuidString
             }
             return $0.createdAt < $1.createdAt
         }
-        messagesByConversationID[message.conversationID] = messages
     }
 
     private func receiveMessageEvent(

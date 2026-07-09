@@ -4,6 +4,154 @@ import Testing
 
 struct ChatStoreTests {
     @Test @MainActor
+    func conversationPaginationRetriesThenAppendsUniqueRowsAndStopsAtLastPage() async {
+        let participantID = UUID()
+        let first = Self.conversation(customerID: participantID)
+        let second = Self.conversation(customerID: participantID)
+        let repository = ChatRepositoryFake(
+            conversationPages: [
+                .success(ListPage(items: [first], request: .first, hasMore: true)),
+                .failure(.networkUnavailable),
+                .success(
+                    ListPage(
+                        items: [first, second],
+                        request: .first.next,
+                        hasMore: false
+                    )
+                ),
+            ]
+        )
+        let store = ChatStore(
+            participantID: participantID,
+            role: .customer,
+            repository: repository
+        )
+
+        await store.loadConversations()
+        await store.loadNextConversationsPage()
+
+        #expect(store.conversations.map(\.id) == [first.id])
+        #expect(store.canLoadMoreConversations == true)
+        #expect(store.isLoadingMoreConversations == false)
+        #expect(store.errorMessage == "Check your connection and try again.")
+
+        await store.loadNextConversationsPage()
+
+        #expect(repository.receivedConversationPages == [.first, .first.next, .first.next])
+        #expect(store.conversations.map(\.id) == [first.id, second.id])
+        #expect(store.canLoadMoreConversations == false)
+    }
+
+    @Test @MainActor
+    func olderMessagePaginationRetriesThenPrependsUniqueHistoryAndStops() async {
+        let conversation = Self.conversation()
+        let oldest = Self.message(
+            conversationID: conversation.id,
+            createdAt: "2026-06-21T05:01:00Z"
+        )
+        let older = Self.message(
+            conversationID: conversation.id,
+            createdAt: "2026-06-21T05:02:00Z"
+        )
+        let recent = Self.message(
+            conversationID: conversation.id,
+            createdAt: "2026-06-21T05:03:00Z"
+        )
+        let newest = Self.message(
+            conversationID: conversation.id,
+            createdAt: "2026-06-21T05:04:00Z"
+        )
+        let repository = ChatRepositoryFake(
+            messagePages: [
+                .success(
+                    ListPage(
+                        items: [recent, newest],
+                        request: .first,
+                        hasMore: true
+                    )
+                ),
+                .failure(.networkUnavailable),
+                .success(
+                    ListPage(
+                        items: [oldest, older, recent],
+                        request: .first.next,
+                        hasMore: false
+                    )
+                ),
+            ]
+        )
+        let store = ChatStore(
+            participantID: conversation.customerID,
+            role: .customer,
+            repository: repository
+        )
+
+        await store.loadMessages(for: conversation)
+        await store.loadNextMessagesPage(for: conversation)
+
+        #expect(store.messages(for: conversation.id) == [recent, newest])
+        #expect(store.canLoadMoreMessages(for: conversation.id) == true)
+        #expect(store.isLoadingEarlierMessages(for: conversation.id) == false)
+        #expect(store.errorMessage == "Check your connection and try again.")
+
+        await store.loadNextMessagesPage(for: conversation)
+
+        #expect(repository.receivedMessagePages == [.first, .first.next, .first.next])
+        #expect(store.messages(for: conversation.id) == [oldest, older, recent, newest])
+        #expect(store.canLoadMoreMessages(for: conversation.id) == false)
+    }
+
+    @Test @MainActor
+    func repositoryMessagePageKeepsNewestWindowInDisplayOrder() {
+        let conversationID = UUID()
+        let oldest = Self.message(
+            conversationID: conversationID,
+            createdAt: "2026-06-21T05:01:00Z"
+        )
+        let middle = Self.message(
+            conversationID: conversationID,
+            createdAt: "2026-06-21T05:02:00Z"
+        )
+        let newest = Self.message(
+            conversationID: conversationID,
+            createdAt: "2026-06-21T05:03:00Z"
+        )
+
+        let page = SupabaseChatRepository.messagePage(
+            fromDescendingMessages: [newest, middle, oldest],
+            request: ListPageRequest(limit: 2)
+        )
+
+        #expect(page.items == [middle, newest])
+        #expect(page.hasMore == true)
+        #expect(page.nextRequest == ListPageRequest(limit: 2, offset: 2))
+    }
+
+    @Test
+    func threadScrollPolicyIgnoresPrependedHistoryButFollowsNewLatestMessage() {
+        let currentLatestID = UUID()
+
+        #expect(
+            ChatThreadScrollPolicy.shouldScrollToBottom(
+                previousLatestMessageID: currentLatestID,
+                currentLatestMessageID: currentLatestID
+            ) == false
+        )
+        #expect(
+            ChatThreadScrollPolicy.shouldScrollToBottom(
+                previousLatestMessageID: currentLatestID,
+                currentLatestMessageID: UUID()
+            ) == true
+        )
+        #expect(
+            ChatThreadScrollPolicy.shouldScrollToBottom(
+                previousLatestMessageID: nil,
+                currentLatestMessageID: currentLatestID
+            ) == true
+        )
+    }
+
+    @Test @MainActor
     func loadConversationsFetchesRoleScopedRows() async throws {
         let participantID = UUID()
         let conversation = Self.conversation(customerID: participantID)
@@ -500,11 +648,15 @@ struct ChatStoreTests {
 private final class ChatRepositoryFake: ChatRepository {
     var conversationsResult: Result<[ChatConversation], ChatRepositoryError>
     var messagesResult: Result<[ChatMessage], ChatRepositoryError>
+    var conversationPages: [Result<ListPage<ChatConversation>, ChatRepositoryError>]
+    var messagePages: [Result<ListPage<ChatMessage>, ChatRepositoryError>]
     var sendResult: Result<ChatMessage, ChatRepositoryError>
     var messageEventsResult: Result<Void, ChatRepositoryError>
 
     private(set) var conversationsCallCount = 0
     private(set) var messagesCallCount = 0
+    private(set) var receivedConversationPages: [ListPageRequest] = []
+    private(set) var receivedMessagePages: [ListPageRequest] = []
     private(set) var sendCallCount = 0
     private(set) var lastParticipantID: UUID?
     private(set) var lastRole: UserRole?
@@ -520,12 +672,16 @@ private final class ChatRepositoryFake: ChatRepository {
         conversationsResult: Result<[ChatConversation], ChatRepositoryError> =
             .success([]),
         messagesResult: Result<[ChatMessage], ChatRepositoryError> = .success([]),
+        conversationPages: [Result<ListPage<ChatConversation>, ChatRepositoryError>] = [],
+        messagePages: [Result<ListPage<ChatMessage>, ChatRepositoryError>] = [],
         sendResult: Result<ChatMessage, ChatRepositoryError> =
             .failure(.unavailable),
         messageEventsResult: Result<Void, ChatRepositoryError> = .success(())
     ) {
         self.conversationsResult = conversationsResult
         self.messagesResult = messagesResult
+        self.conversationPages = conversationPages
+        self.messagePages = messagePages
         self.sendResult = sendResult
         self.messageEventsResult = messageEventsResult
     }
@@ -540,12 +696,50 @@ private final class ChatRepositoryFake: ChatRepository {
         return try conversationsResult.get()
     }
 
+    func conversations(
+        participantID: UUID,
+        role: UserRole,
+        page: ListPageRequest
+    ) async throws -> ListPage<ChatConversation> {
+        conversationsCallCount += 1
+        lastParticipantID = participantID
+        lastRole = role
+        receivedConversationPages.append(page)
+        if !conversationPages.isEmpty {
+            return try conversationPages.removeFirst().get()
+        }
+
+        return ListPage(
+            items: try conversationsResult.get(),
+            request: page,
+            hasMore: false
+        )
+    }
+
     func messages(
         conversationID: UUID
     ) async throws -> [ChatMessage] {
         messagesCallCount += 1
         lastConversationID = conversationID
         return try messagesResult.get()
+    }
+
+    func messages(
+        conversationID: UUID,
+        page: ListPageRequest
+    ) async throws -> ListPage<ChatMessage> {
+        messagesCallCount += 1
+        lastConversationID = conversationID
+        receivedMessagePages.append(page)
+        if !messagePages.isEmpty {
+            return try messagePages.removeFirst().get()
+        }
+
+        return ListPage(
+            items: try messagesResult.get(),
+            request: page,
+            hasMore: false
+        )
     }
 
     func sendMessage(
