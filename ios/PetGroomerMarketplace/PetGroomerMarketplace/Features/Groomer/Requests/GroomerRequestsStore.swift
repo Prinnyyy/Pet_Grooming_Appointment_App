@@ -14,15 +14,21 @@ final class GroomerRequestsStore {
     private(set) var requestPhotosByRequestID: [UUID: [GroomingRequestPhoto]] = [:]
     private(set) var requestPhotoDataByID: [UUID: Data] = [:]
     private(set) var isLoading = false
+    private(set) var isLoadingMore = false
     private(set) var isDismissing = false
     private(set) var isSubmittingOffer = false
     private(set) var isWithdrawingOffer = false
+    private(set) var nextPageRequest: ListPageRequest?
 
     var errorMessage: String?
     var noticeMessage: String?
 
     var isBusy: Bool {
-        isLoading || isDismissing || isSubmittingOffer || isWithdrawingOffer
+        isLoading || isLoadingMore || isDismissing || isSubmittingOffer || isWithdrawingOffer
+    }
+
+    var canLoadMore: Bool {
+        nextPageRequest != nil
     }
 
     init(
@@ -57,6 +63,8 @@ final class GroomerRequestsStore {
     }
 
     func load() async {
+        guard !isLoading, !isLoadingMore else { return }
+
         let startedAt = Date()
         recordStoreStart("load")
         isLoading = true
@@ -64,9 +72,12 @@ final class GroomerRequestsStore {
         defer { isLoading = false }
 
         do {
-            matchedRequests = try await repository.matchedRequests(
-                groomerID: groomerID
+            let page = try await repository.matchedRequests(
+                groomerID: groomerID,
+                page: .first
             )
+            matchedRequests = page.items
+            nextPageRequest = page.nextRequest
             try await loadRequestPhotos(for: matchedRequests)
             recordStoreSuccess(
                 "load",
@@ -75,6 +86,7 @@ final class GroomerRequestsStore {
                     "matchedRequestCount": "\(matchedRequests.count)",
                     "requestPhotoCount": "\(requestPhotosByRequestID.values.flatMap { $0 }.count)",
                     "downloadedPhotoCount": "\(requestPhotoDataByID.count)",
+                    "hasMore": "\(canLoadMore)",
                 ]
             )
         } catch GroomerRequestRepositoryError.cancelled {
@@ -93,6 +105,60 @@ final class GroomerRequestsStore {
             errorMessage = message(for: .unavailable, action: "load")
             recordStoreFailure(
                 "load",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt
+            )
+        }
+    }
+
+    func loadNextPage() async {
+        guard !isLoading,
+              !isLoadingMore,
+              let pageRequest = nextPageRequest else { return }
+
+        let startedAt = Date()
+        recordStoreStart("loadNextPage")
+        isLoadingMore = true
+        errorMessage = nil
+        defer { isLoadingMore = false }
+
+        do {
+            let page = try await repository.matchedRequests(
+                groomerID: groomerID,
+                page: pageRequest
+            )
+            try await loadAdditionalRequestPhotos(for: page.items)
+            matchedRequests = ListPageMerge.appendingUnique(
+                page.items,
+                to: matchedRequests
+            )
+            nextPageRequest = page.nextRequest
+            recordStoreSuccess(
+                "loadNextPage",
+                startedAt: startedAt,
+                metadata: [
+                    "loadedCount": "\(page.items.count)",
+                    "matchedRequestCount": "\(matchedRequests.count)",
+                    "hasMore": "\(canLoadMore)",
+                ]
+            )
+        } catch GroomerRequestRepositoryError.cancelled {
+            recordStoreCancelled("loadNextPage", startedAt: startedAt)
+        } catch let error as GroomerRequestRepositoryError {
+            errorMessage = message(for: error, action: "load")
+            recordStoreFailure(
+                "loadNextPage",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt
+            )
+        } catch where AppDebugErrorClassifier.isCancellation(error) {
+            recordStoreCancelled("loadNextPage", startedAt: startedAt)
+        } catch {
+            errorMessage = message(for: .unavailable, action: "load")
+            recordStoreFailure(
+                "loadNextPage",
                 error: error,
                 mappedMessage: errorMessage,
                 startedAt: startedAt
@@ -437,6 +503,25 @@ final class GroomerRequestsStore {
         )
         requestPhotosByRequestID = Dictionary(grouping: photos, by: \.requestID)
         requestPhotoDataByID = await requestPhotoDataMap(for: photos)
+    }
+
+    private func loadAdditionalRequestPhotos(
+        for matchedRequests: [GroomerMatchedRequest]
+    ) async throws {
+        let photos = try await repository.requestPhotos(
+            groomerID: groomerID,
+            requestIDs: matchedRequests.map(\.request.id)
+        )
+        for (requestID, requestPhotos) in Dictionary(grouping: photos, by: \.requestID) {
+            requestPhotosByRequestID[requestID] = ListPageMerge.appendingUnique(
+                requestPhotos,
+                to: requestPhotosByRequestID[requestID, default: []]
+            )
+        }
+        requestPhotoDataByID.merge(
+            await requestPhotoDataMap(for: photos),
+            uniquingKeysWith: { _, newValue in newValue }
+        )
     }
 
     private func requestPhotoDataMap(

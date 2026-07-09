@@ -16,10 +16,10 @@ Purpose: record the V1.0 list-load contract for request, offer, booking, message
 
 | Surface | Repository method | Supabase table | Ordering | Pagination status |
 |---|---|---|---|---|
-| Customer requests | `CustomerRequestRepository.requests(customerID:page:)` | `grooming_requests` | `created_at` desc | First-page range applied |
-| Customer offers | `CustomerRequestRepository.offers(customerID:requestID:page:)` | `groomer_offers` | `created_at` desc | First-page range applied |
-| Groomer matched requests | `GroomerRequestRepository.matchedRequests(groomerID:page:)` | `request_matches` | `created_at` desc | First-page range applied |
-| Groomer offers | `GroomerRequestRepository.offers(groomerID:page:)` | `groomer_offers` | `created_at` desc | First-page range applied |
+| Customer requests | `CustomerRequestRepository.requests(customerID:page:)` | `grooming_requests` | `created_at` desc | Store and shared Load More control complete T-230 |
+| Customer offers | `CustomerRequestRepository.offers(customerID:requestID:page:)` | `groomer_offers` | `created_at` desc | Per-request Store and shared Load More control complete T-230 |
+| Groomer matched requests | `GroomerRequestRepository.matchedRequests(groomerID:page:)` | `request_matches` | `created_at` desc | Store and shared Load More control complete T-230 |
+| Groomer offers | `GroomerRequestRepository.offers(groomerID:page:)` | `groomer_offers` | `created_at` desc | Store and shared Load More control complete T-230 |
 | Bookings | `BookingRepository.bookings(participantID:role:page:)` | `bookings` | `scheduled_start` desc | Store supports next page |
 | Conversations | `ChatRepository.conversations(participantID:role:page:)` | `conversations` | `updated_at` desc | Store has next-page state |
 | Messages | `ChatRepository.messages(conversationID:page:)` | `messages` | `created_at`, `id` asc | Store supports next page |
@@ -28,10 +28,11 @@ Purpose: record the V1.0 list-load contract for request, offer, booking, message
 
 ## Deferred UI Work
 
-- Current V1.0 screens still call first-page load for most lists.
-- `BookingsStore` and `ChatStore` expose next-page methods/state for future "Load more" controls or scroll-triggered pagination.
-- Customer request, groomer request, offer, and notification UI controls remain deferred until product design requests visible pagination.
+- `BookingsStore` and `ChatStore` expose next-page methods/state; their visible controls remain Q-39/Q-40 work.
+- Customer and groomer notification UI pagination remains Q-39 work.
+- Customer/groomer request and offer lists use the same explicit Load More interaction. A failed next page preserves existing rows and the page cursor so the same action retries safely.
 
 ## Tests
 
 - `ListPaginationFeatureTests` covers default page bounds, `limit + 1` trimming, `hasMore`, booking next-page append, and chat message next-page append.
+- Customer/groomer request and offer Store suites cover first-page reset, failed-page retry, ordered unique append, and terminal-page state.

@@ -176,6 +176,16 @@ struct CustomerRequestsView: View {
                         )
                         .accessibilityIdentifier("customer.requests.cancelled-section")
                     }
+
+                    if store.canLoadMoreRequests || store.isLoadingMoreRequests {
+                        GroomlyLoadMoreButton(
+                            isLoading: store.isLoadingMoreRequests,
+                            accent: .customer,
+                            accessibilityIdentifier: "customer.requests.load-more"
+                        ) {
+                            await store.loadNextRequestsPage()
+                        }
+                    }
                 }
                 .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
                 .padding(.top, DesignTokens.Spacing.xl)

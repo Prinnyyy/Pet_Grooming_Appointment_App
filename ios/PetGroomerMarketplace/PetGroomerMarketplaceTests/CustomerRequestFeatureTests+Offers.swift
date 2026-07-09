@@ -4,6 +4,54 @@ import Testing
 
 extension CustomerRequestsStoreTests {
     @Test @MainActor
+    func offerPaginationRetriesThenAppendsUniqueRowsAndStopsAtLastPage() async {
+        let customerID = UUID()
+        let request = Self.request(customerID: customerID, petID: UUID())
+        let first = Self.offerReview(
+            customerID: customerID,
+            requestID: request.id,
+            createdAt: "2026-06-20T14:00:00Z"
+        )
+        let second = Self.offerReview(
+            customerID: customerID,
+            requestID: request.id,
+            createdAt: "2026-06-20T13:00:00Z"
+        )
+        let repository = CustomerRequestRepositoryFake(
+            offerPages: [
+                .success(ListPage(items: [first], request: .first, hasMore: true)),
+                .failure(.networkUnavailable),
+                .success(
+                    ListPage(
+                        items: [first, second],
+                        request: .first.next,
+                        hasMore: false
+                    )
+                ),
+            ]
+        )
+        let store = CustomerRequestsStore(
+            customerID: customerID,
+            petRepository: CustomerRequestPetRepositoryFake(),
+            requestRepository: repository,
+            bookingRepository: CustomerRequestBookingRepositoryFake()
+        )
+
+        await store.loadOffers(for: request)
+        await store.loadNextOffersPage(for: request)
+
+        #expect(store.offers(for: request).map(\.id) == [first.id])
+        #expect(store.canLoadMoreOffers(for: request) == true)
+        #expect(store.offerError(for: request) == "Check your connection and try again.")
+
+        await store.loadNextOffersPage(for: request)
+
+        #expect(repository.receivedOfferPages == [.first, .first.next, .first.next])
+        #expect(store.offers(for: request).map(\.id) == [first.id, second.id])
+        #expect(store.canLoadMoreOffers(for: request) == false)
+    }
+
+    @Test @MainActor
     func loadOffersPopulatesOfferReviewsForRequest() async throws {
         let customerID = UUID()
         let request = Self.request(customerID: customerID, petID: UUID())

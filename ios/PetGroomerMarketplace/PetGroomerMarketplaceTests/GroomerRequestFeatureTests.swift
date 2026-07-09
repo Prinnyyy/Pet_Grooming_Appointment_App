@@ -4,6 +4,43 @@ import Testing
 
 struct GroomerRequestsStoreTests {
     @Test @MainActor
+    func requestPaginationRetriesThenAppendsUniqueRowsAndStopsAtLastPage() async {
+        let groomerID = UUID()
+        let first = Self.matchedRequest(groomerID: groomerID)
+        let second = Self.matchedRequest(groomerID: groomerID)
+        let repository = GroomerRequestRepositoryFake(
+            matchedRequestPages: [
+                .success(ListPage(items: [first], request: .first, hasMore: true)),
+                .failure(.networkUnavailable),
+                .success(
+                    ListPage(
+                        items: [first, second],
+                        request: .first.next,
+                        hasMore: false
+                    )
+                ),
+            ]
+        )
+        let store = GroomerRequestsStore(
+            groomerID: groomerID,
+            repository: repository
+        )
+
+        await store.load()
+        await store.loadNextPage()
+
+        #expect(store.matchedRequests.map(\.id) == [first.id])
+        #expect(store.canLoadMore == true)
+        #expect(store.errorMessage == "Check your connection and try again.")
+
+        await store.loadNextPage()
+
+        #expect(repository.receivedMatchedRequestPages == [.first, .first.next, .first.next])
+        #expect(store.matchedRequests.map(\.id) == [first.id, second.id])
+        #expect(store.canLoadMore == false)
+    }
+
+    @Test @MainActor
     func loadPopulatesMatchedRequests() async throws {
         let groomerID = UUID()
         let matchedRequest = Self.matchedRequest(groomerID: groomerID)
@@ -529,6 +566,7 @@ private final class GroomerRequestRepositoryFake: GroomerRequestRepository {
     var dismissResult: Result<DismissRequestMatchResult, GroomerRequestRepositoryError>
     var createOfferResult: Result<CreateGroomerOfferResult, GroomerRequestRepositoryError>
     var withdrawOfferResult: Result<WithdrawGroomerOfferResult, GroomerRequestRepositoryError>
+    var matchedRequestPages: [Result<ListPage<GroomerMatchedRequest>, GroomerRequestRepositoryError>]
 
     private(set) var matchedRequestsCallCount = 0
     private(set) var dismissCallCount = 0
@@ -539,6 +577,7 @@ private final class GroomerRequestRepositoryFake: GroomerRequestRepository {
     private(set) var lastDismissReason: String?
     private(set) var lastOfferDraft: GroomerOfferDraft?
     private(set) var lastWithdrawnOfferID: UUID?
+    private(set) var receivedMatchedRequestPages: [ListPageRequest] = []
 
     init(
         matchedRequestsResult: Result<[GroomerMatchedRequest], GroomerRequestRepositoryError> = .success([]),
@@ -547,18 +586,38 @@ private final class GroomerRequestRepositoryFake: GroomerRequestRepository {
         createOfferResult: Result<CreateGroomerOfferResult, GroomerRequestRepositoryError> =
             .failure(.unavailable),
         withdrawOfferResult: Result<WithdrawGroomerOfferResult, GroomerRequestRepositoryError> =
-            .failure(.unavailable)
+            .failure(.unavailable),
+        matchedRequestPages: [Result<ListPage<GroomerMatchedRequest>, GroomerRequestRepositoryError>] = []
     ) {
         self.matchedRequestsResult = matchedRequestsResult
         self.dismissResult = dismissResult
         self.createOfferResult = createOfferResult
         self.withdrawOfferResult = withdrawOfferResult
+        self.matchedRequestPages = matchedRequestPages
     }
 
     func matchedRequests(groomerID: UUID) async throws -> [GroomerMatchedRequest] {
         matchedRequestsCallCount += 1
         lastGroomerID = groomerID
         return try matchedRequestsResult.get()
+    }
+
+    func matchedRequests(
+        groomerID: UUID,
+        page: ListPageRequest
+    ) async throws -> ListPage<GroomerMatchedRequest> {
+        matchedRequestsCallCount += 1
+        lastGroomerID = groomerID
+        receivedMatchedRequestPages.append(page)
+        if !matchedRequestPages.isEmpty {
+            return try matchedRequestPages.removeFirst().get()
+        }
+
+        return ListPage(
+            items: try matchedRequestsResult.get(),
+            request: page,
+            hasMore: false
+        )
     }
 
     func dismiss(

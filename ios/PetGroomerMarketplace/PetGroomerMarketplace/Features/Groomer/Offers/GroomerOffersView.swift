@@ -68,6 +68,24 @@ struct GroomerOffersView: View {
                         ForEach(store.sections) { section in
                             GroomerOfferSectionView(section: section)
                         }
+
+                        if let errorMessage = store.errorMessage {
+                            GroomlyErrorBanner(
+                                title: "More Offers Unavailable",
+                                message: errorMessage
+                            )
+                            .accessibilityIdentifier("groomer.offers.load-more-error")
+                        }
+
+                        if store.canLoadMore || store.isLoadingMore {
+                            GroomlyLoadMoreButton(
+                                isLoading: store.isLoadingMore,
+                                accent: .groomer,
+                                accessibilityIdentifier: "groomer.offers.load-more"
+                            ) {
+                                await store.loadNextPage()
+                            }
+                        }
                     }
                 }
                 .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)

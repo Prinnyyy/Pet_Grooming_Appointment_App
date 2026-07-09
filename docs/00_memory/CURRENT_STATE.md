@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-09
 - Updated by: Codex
-- Latest completed task: T-229 periodic meta-review.
+- Latest completed task: T-230 request and offer visible pagination.
 - Current task: none; T-157 APNs remains externally blocked.
-- Next task ID: use T-230 unless the user resumes T-157 after Apple Developer Program upgrade.
+- Next task ID: use T-231 unless the user resumes T-157 after Apple Developer Program upgrade.
 
 ## Fast Path
 
@@ -28,14 +28,14 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - Continue implementation, docs, commit, and push work from this branch unless the user names another branch.
 - Do not treat `main` as the current work baseline. T-173 reviewed main-only commit `2fddf7b`; it is superseded and must not be merged back into this branch.
 - Standing Git approval is active: after required validation passes, commit and push each completed task's own changes on this branch automatically.
-- PRs, tags, branch deletion, merge/rebase/reset, seeds, migrations, Supabase writes, repository settings, and other non-Git remote writes require approval.
+- PRs, tags, branch deletion, merge/rebase/reset, seeds, migrations, Supabase writes, repository settings, and other non-Git remote writes require approval. Authorization covers queued Q-35, Q-36, Q-37, and Q-42; it excludes future work and Q-92/Q-93 prerequisites.
 
 ## Validation Baseline
 
-- T-229 docs governance and T-228 linked index audit gates passed. Last iOS validation remains T-226.
-- Recent focused coverage: T-222 readiness rehearsal; T-223 Xcode script output filtering; T-224 customer request test split; T-225 groomer profile test split; T-226 groomer profile store split.
+- T-230 focused/full iOS tests, build, and Simulator verification passed; T-229 docs governance and T-228 linked index audit gates also passed.
+- Recent focused coverage: T-224 customer request test split; T-225 groomer profile test split; T-226 groomer profile store split; T-230 four request/offer pagination retry/dedupe/end cases.
 - Last Supabase migration apply: T-160 applied `20260707191034_t160_account_deletion.sql` to `lqmasbuqzvcvtawonjlb` on 2026-07-07 and confirmed parity/RLS/grants/RPCs/advisors/deployment.
-- Prepared unapplied Supabase migration: T-203 `20260709073051_t203_groomer_notifications.sql` is local-only until explicit remote migration authorization.
+- Prepared migration: T-203 `20260709073051_t203_groomer_notifications.sql` is authorized for Q-35 after T-231 safety checks.
 - Last TestOps unit validation: T-222 `./scripts/testops-unit.sh` passed 24 Node tests.
 - Last TestOps dry-run: T-222 doctor, marketplace `smoke5`, and matching baseline passed without remote writes.
 - Last release readiness dry run: T-222 recorded final local/read-only ideal-operation evidence with Auth/APNs and index-tuning advisor findings.
@@ -50,7 +50,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - Implemented iOS areas include auth/onboarding, marketplace flow, notifications, foreground chat, profile/account surfaces, privacy/support links, private images, Debug Console, ops evidence, accessibility/copy checks, and TestOps.
 - Customer/groomer tab roots load shared notification/chat badge sources. Customer Home, Messages, and groomer Alerts display badges; chat unread state is local/session-scoped and clears on thread open.
 - Customer request UI and groomer profile UI were split into focused SwiftUI files in T-211/T-212.
-- Request, offer, booking, message, and notification repositories use bounded first-page list reads with a shared limit+1 page contract; Bookings and Chat stores expose next-page state/methods, while other visible load-more controls remain deferred in the list pagination audit.
+- Request, offer, booking, message, and notification repositories use bounded first-page list reads with a shared limit+1 page contract. Customer requests/offers and groomer requests/offers now expose explicit shared Load More controls with retry, dedupe, and terminal-page state; booking, notification, and chat UI paging remain queued.
 - Private Storage images use authenticated `.download(path:)` through `PrivateImageLoader`; cache hashes paths, retries transient downloads once, and clears on local account cleanup.
 - Customers can create a new request from cancelled requests/bookings via explicit republish. Republish tolerates missing request photos and expired preferred windows. Unpublished wizard drafts are sheet-ephemeral.
 - Groomly UI adaptation is complete for implemented MVP screens. Future UI work is screenshot-driven and must map modules to existing SwiftUI/Store/repository/model paths or stop for approval.
@@ -61,7 +61,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - Startup reads stay minimal: `AGENTS.md`, then targeted current-state/task-ledger sections only when needed.
 - Periodic documentation-governance reviews use `docs/06_tasks/META_REVIEW_TEMPLATE.md` every 10 completed tasks or weekly.
 - Last meta-review: T-229 on 2026-07-09.
-- V1.0 ideal-operation Q-16...Q-33 and post-readiness Q-34 are complete; Q-35...Q-37 remain gated and Q-38 is next locally.
+- V1.0 ideal-operation Q-16...Q-34 and Q-38 are complete. Q-35...Q-37 and dependent Q-42 now have remote authorization; Q-39...Q-41 remain local prerequisites or follow-up work.
 - Changes to `AGENTS.md`, `CLAUDE.md`, or `docs/05_workflow/**` must be standalone numbered tasks with a decision-log entry and context hygiene.
 - T-180 records standing user approval for task-completion Git commit and push. This approval is limited to current-task changes after validation passes; T-186 requires stopping without auto pull/rebase/merge/reset/force-push if the push fails or is rejected.
 - T-184 keeps active Markdown under a 36k hard limit, 95% structural-review warning, and deterministic `node scripts/context-rotate.mjs` archive rotation.
@@ -94,4 +94,4 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Next Recommended Task
 
-- Use T-230 for local Q-38 request/offer pagination. Q-35...Q-37 remain gated; Q-36 may add only the two T-228-evidenced indexes after explicit authorization.
+- Use T-231 for authorized Q-35 groomer in-app notification remote parity. Q-36 may add only the two T-228-evidenced indexes; Q-37 remote TestOps must retain its redaction and zero-residue cleanup gates.

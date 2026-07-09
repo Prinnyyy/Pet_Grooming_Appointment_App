@@ -9,8 +9,14 @@ final class GroomerOffersStore {
 
     private(set) var offers: [GroomerOfferListItem] = []
     private(set) var isLoading = false
+    private(set) var isLoadingMore = false
+    private(set) var nextPageRequest: ListPageRequest?
 
     var errorMessage: String?
+
+    var canLoadMore: Bool {
+        nextPageRequest != nil
+    }
 
     var sections: [GroomerOfferListSection] {
         GroomerOfferStatus.displayOrder.compactMap { status in
@@ -35,16 +41,48 @@ final class GroomerOffersStore {
     }
 
     func load() async {
-        guard !isLoading else { return }
+        guard !isLoading, !isLoadingMore else { return }
 
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
 
         do {
-            offers = Self.displayOrdered(
-                try await repository.offers(groomerID: groomerID)
+            let page = try await repository.offers(
+                groomerID: groomerID,
+                page: .first
             )
+            offers = Self.displayOrdered(page.items)
+            nextPageRequest = page.nextRequest
+        } catch GroomerRequestRepositoryError.cancelled {
+            return
+        } catch let error as GroomerRequestRepositoryError {
+            errorMessage = Self.message(for: error)
+        } catch where AppDebugErrorClassifier.isCancellation(error) {
+            return
+        } catch {
+            errorMessage = Self.message(for: .unavailable)
+        }
+    }
+
+    func loadNextPage() async {
+        guard !isLoading,
+              !isLoadingMore,
+              let pageRequest = nextPageRequest else { return }
+
+        isLoadingMore = true
+        errorMessage = nil
+        defer { isLoadingMore = false }
+
+        do {
+            let page = try await repository.offers(
+                groomerID: groomerID,
+                page: pageRequest
+            )
+            offers = Self.displayOrdered(
+                ListPageMerge.appendingUnique(page.items, to: offers)
+            )
+            nextPageRequest = page.nextRequest
         } catch GroomerRequestRepositoryError.cancelled {
             return
         } catch let error as GroomerRequestRepositoryError {

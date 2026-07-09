@@ -117,6 +117,16 @@ struct GroomerRequestsView: View {
                             }
                             .buttonStyle(.plain)
                         }
+
+                        if store.canLoadMore || store.isLoadingMore {
+                            GroomlyLoadMoreButton(
+                                isLoading: store.isLoadingMore,
+                                accent: .groomer,
+                                accessibilityIdentifier: "groomer.requests.load-more"
+                            ) {
+                                await store.loadNextPage()
+                            }
+                        }
                     }
                 }
                 .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)

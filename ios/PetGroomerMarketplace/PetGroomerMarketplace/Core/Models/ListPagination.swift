@@ -44,3 +44,14 @@ nonisolated struct ListPage<Item> {
         hasMore ? request.next : nil
     }
 }
+
+nonisolated enum ListPageMerge {
+    static func appendingUnique<Item: Identifiable>(
+        _ newItems: [Item],
+        to existingItems: [Item]
+    ) -> [Item] where Item.ID: Hashable {
+        var seenIDs = Set(existingItems.map(\.id))
+        let uniqueNewItems = newItems.filter { seenIDs.insert($0.id).inserted }
+        return existingItems + uniqueNewItems
+    }
+}

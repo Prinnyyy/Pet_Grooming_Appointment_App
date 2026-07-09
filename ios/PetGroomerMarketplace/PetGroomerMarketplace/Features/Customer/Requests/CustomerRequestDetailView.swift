@@ -391,7 +391,8 @@ private struct CustomerOfferReviewSection: View {
                         accent: .customer
                     )
                         .accessibilityIdentifier("customer.offers.loading")
-                } else if let errorMessage = store.offerError(for: request) {
+                } else if offers.isEmpty,
+                          let errorMessage = store.offerError(for: request) {
                     GroomlyErrorBanner(
                         title: "We Could Not Load Offers",
                         message: errorMessage
@@ -440,6 +441,25 @@ private struct CustomerOfferReviewSection: View {
                                 isHistorical: true
                             )
                             .accessibilityIdentifier("customer.offers.history-list")
+                        }
+
+                        if let errorMessage = store.offerError(for: request) {
+                            GroomlyErrorBanner(
+                                title: "More Offers Unavailable",
+                                message: errorMessage
+                            )
+                            .accessibilityIdentifier("customer.offers.load-more-error")
+                        }
+
+                        if store.canLoadMoreOffers(for: request)
+                            || store.isLoadingMoreOffers(for: request) {
+                            GroomlyLoadMoreButton(
+                                isLoading: store.isLoadingMoreOffers(for: request),
+                                accent: .customer,
+                                accessibilityIdentifier: "customer.offers.load-more"
+                            ) {
+                                await store.loadNextOffersPage(for: request)
+                            }
                         }
                     }
                 }

@@ -4,6 +4,48 @@ import Testing
 
 extension CustomerRequestsStoreTests {
     @Test @MainActor
+    func requestPaginationRetriesThenAppendsUniqueRowsAndStopsAtLastPage() async {
+        let customerID = UUID()
+        let pet = Self.pet(customerID: customerID)
+        let first = Self.request(customerID: customerID, petID: pet.id)
+        let second = Self.request(customerID: customerID, petID: pet.id)
+        let repository = CustomerRequestRepositoryFake(
+            requestPages: [
+                .success(ListPage(items: [first], request: .first, hasMore: true)),
+                .failure(.networkUnavailable),
+                .success(
+                    ListPage(
+                        items: [first, second],
+                        request: .first.next,
+                        hasMore: false
+                    )
+                ),
+            ]
+        )
+        let store = CustomerRequestsStore(
+            customerID: customerID,
+            petRepository: CustomerRequestPetRepositoryFake(
+                petsResult: .success([pet])
+            ),
+            requestRepository: repository,
+            bookingRepository: CustomerRequestBookingRepositoryFake()
+        )
+
+        await store.load()
+        await store.loadNextRequestsPage()
+
+        #expect(store.requests.map(\.id) == [first.id])
+        #expect(store.canLoadMoreRequests == true)
+        #expect(store.errorMessage == "Check your connection and try again.")
+
+        await store.loadNextRequestsPage()
+
+        #expect(repository.receivedRequestPages == [.first, .first.next, .first.next])
+        #expect(store.requests.map(\.id) == [first.id, second.id])
+        #expect(store.canLoadMoreRequests == false)
+    }
+
+    @Test @MainActor
     func cancelOpenRequestCallsRepositoryAndUpdatesLocalState() async throws {
         let customerID = UUID()
         let pet = Self.pet(customerID: customerID)

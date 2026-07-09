@@ -120,11 +120,15 @@ final class CustomerRequestsStore {
     private(set) var offerReviewsByRequestID: [UUID: [CustomerOfferReview]] = [:]
     private(set) var offerErrorsByRequestID: [UUID: String] = [:]
     private(set) var loadingOfferRequestIDs: Set<UUID> = []
+    private(set) var loadingMoreOfferRequestIDs: Set<UUID> = []
+    private(set) var isLoadingMoreRequests = false
     private(set) var acceptingOfferIDs: Set<UUID> = []
     private(set) var cancellingRequestIDs: Set<UUID> = []
     private(set) var acknowledgedBookingHandoffRequestIDs: Set<UUID> = []
     private(set) var isLoading = false
     private(set) var isSubmitting = false
+    private(set) var nextRequestsPageRequest: ListPageRequest?
+    private(set) var nextOfferPageRequestByRequestID: [UUID: ListPageRequest] = [:]
 
     var errorMessage: String?
     var noticeMessage: String?
@@ -146,7 +150,15 @@ final class CustomerRequestsStore {
     private(set) var pendingRequestPhotos: [PendingGroomingRequestPhoto] = []
 
     var isBusy: Bool {
-        isLoading || isSubmitting || !acceptingOfferIDs.isEmpty || !cancellingRequestIDs.isEmpty
+        isLoading
+            || isLoadingMoreRequests
+            || isSubmitting
+            || !acceptingOfferIDs.isEmpty
+            || !cancellingRequestIDs.isEmpty
+    }
+
+    var canLoadMoreRequests: Bool {
+        nextRequestsPageRequest != nil
     }
 
     var selectedPet: CustomerPet? {
@@ -243,6 +255,8 @@ final class CustomerRequestsStore {
     }
 
     func load() async {
+        guard !isLoading, !isLoadingMoreRequests else { return }
+
         let startedAt = Date()
         recordStoreStart("load")
         isLoading = true
@@ -252,7 +266,12 @@ final class CustomerRequestsStore {
         do {
             pets = try await petRepository.pets(customerID: customerID)
             await loadPetPhotosForWizard(startedAt: startedAt)
-            requests = try await requestRepository.requests(customerID: customerID)
+            let requestPage = try await requestRepository.requests(
+                customerID: customerID,
+                page: .first
+            )
+            requests = requestPage.items
+            nextRequestsPageRequest = requestPage.nextRequest
             await loadRequestPhotosForRepublish(startedAt: startedAt)
             do {
                 bookings = try await bookingRepository.bookings(
@@ -284,6 +303,7 @@ final class CustomerRequestsStore {
                     "petCount": "\(pets.count)",
                     "petPhotoCount": "\(petPhotosByPetID.values.reduce(0) { $0 + $1.count })",
                     "requestCount": "\(requests.count)",
+                    "hasMoreRequests": "\(canLoadMoreRequests)",
                     "bookingCount": "\(bookings.count)",
                 ]
             )
@@ -313,6 +333,63 @@ final class CustomerRequestsStore {
             errorMessage = message(for: CustomerRequestRepositoryError.unavailable, action: "load")
             recordStoreFailure(
                 "load",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt
+            )
+        }
+    }
+
+    func loadNextRequestsPage() async {
+        guard !isLoading,
+              !isLoadingMoreRequests,
+              let pageRequest = nextRequestsPageRequest else { return }
+
+        let startedAt = Date()
+        recordStoreStart("loadNextRequestsPage")
+        isLoadingMoreRequests = true
+        errorMessage = nil
+        defer { isLoadingMoreRequests = false }
+
+        do {
+            let page = try await requestRepository.requests(
+                customerID: customerID,
+                page: pageRequest
+            )
+            requests = ListPageMerge.appendingUnique(page.items, to: requests)
+            nextRequestsPageRequest = page.nextRequest
+            await loadAdditionalRequestPhotos(
+                for: page.items,
+                startedAt: startedAt
+            )
+            recordStoreSuccess(
+                "loadNextRequestsPage",
+                startedAt: startedAt,
+                metadata: [
+                    "loadedCount": "\(page.items.count)",
+                    "requestCount": "\(requests.count)",
+                    "hasMore": "\(canLoadMoreRequests)",
+                ]
+            )
+        } catch CustomerRequestRepositoryError.cancelled {
+            recordStoreCancelled("loadNextRequestsPage", startedAt: startedAt)
+        } catch let error as CustomerRequestRepositoryError {
+            errorMessage = message(for: error, action: "load")
+            recordStoreFailure(
+                "loadNextRequestsPage",
+                error: error,
+                mappedMessage: errorMessage,
+                startedAt: startedAt
+            )
+        } catch where AppDebugErrorClassifier.isCancellation(error) {
+            recordStoreCancelled("loadNextRequestsPage", startedAt: startedAt)
+        } catch {
+            errorMessage = message(
+                for: CustomerRequestRepositoryError.unavailable,
+                action: "load"
+            )
+            recordStoreFailure(
+                "loadNextRequestsPage",
                 error: error,
                 mappedMessage: errorMessage,
                 startedAt: startedAt
@@ -402,6 +479,10 @@ final class CustomerRequestsStore {
         offerReviewsByRequestID[request.id] ?? []
     }
 
+    func canLoadMoreOffers(for request: CustomerGroomingRequest) -> Bool {
+        nextOfferPageRequestByRequestID[request.id] != nil
+    }
+
     func requestPhotos(for request: CustomerGroomingRequest) -> [GroomingRequestPhoto] {
         requestPhotosByRequestID[request.id, default: []]
             .sorted {
@@ -453,6 +534,10 @@ final class CustomerRequestsStore {
 
     func isLoadingOffers(for request: CustomerGroomingRequest) -> Bool {
         loadingOfferRequestIDs.contains(request.id)
+    }
+
+    func isLoadingMoreOffers(for request: CustomerGroomingRequest) -> Bool {
+        loadingMoreOfferRequestIDs.contains(request.id)
     }
 
     func isCancelling(_ request: CustomerGroomingRequest) -> Bool {
@@ -558,18 +643,20 @@ final class CustomerRequestsStore {
         }
 
         do {
-            offerReviewsByRequestID[request.id] = Self.displayOrdered(
-                try await requestRepository.offers(
-                    customerID: customerID,
-                    requestID: request.id
-                )
+            let page = try await requestRepository.offers(
+                customerID: customerID,
+                requestID: request.id,
+                page: .first
             )
+            offerReviewsByRequestID[request.id] = Self.displayOrdered(page.items)
+            setNextOfferPageRequest(page.nextRequest, for: request.id)
             recordStoreSuccess(
                 "loadOffers",
                 startedAt: startedAt,
                 metadata: [
                     "requestID": request.id.uuidString,
                     "offerCount": "\(offerReviewsByRequestID[request.id, default: []].count)",
+                    "hasMore": "\(canLoadMoreOffers(for: request))",
                 ]
             )
         } catch CustomerRequestRepositoryError.cancelled {
@@ -592,6 +679,74 @@ final class CustomerRequestsStore {
             )
             recordStoreFailure(
                 "loadOffers",
+                error: error,
+                mappedMessage: offerErrorsByRequestID[request.id],
+                startedAt: startedAt,
+                metadata: ["requestID": request.id.uuidString]
+            )
+        }
+    }
+
+    func loadNextOffersPage(for request: CustomerGroomingRequest) async {
+        guard !loadingOfferRequestIDs.contains(request.id),
+              let pageRequest = nextOfferPageRequestByRequestID[request.id] else { return }
+
+        let startedAt = Date()
+        recordStoreStart(
+            "loadNextOffersPage",
+            metadata: ["requestID": request.id.uuidString]
+        )
+        loadingOfferRequestIDs.insert(request.id)
+        loadingMoreOfferRequestIDs.insert(request.id)
+        offerErrorsByRequestID[request.id] = nil
+        defer {
+            loadingOfferRequestIDs.remove(request.id)
+            loadingMoreOfferRequestIDs.remove(request.id)
+        }
+
+        do {
+            let page = try await requestRepository.offers(
+                customerID: customerID,
+                requestID: request.id,
+                page: pageRequest
+            )
+            offerReviewsByRequestID[request.id] = Self.displayOrdered(
+                ListPageMerge.appendingUnique(
+                    page.items,
+                    to: offerReviewsByRequestID[request.id, default: []]
+                )
+            )
+            setNextOfferPageRequest(page.nextRequest, for: request.id)
+            recordStoreSuccess(
+                "loadNextOffersPage",
+                startedAt: startedAt,
+                metadata: [
+                    "requestID": request.id.uuidString,
+                    "loadedCount": "\(page.items.count)",
+                    "offerCount": "\(offerReviewsByRequestID[request.id, default: []].count)",
+                    "hasMore": "\(canLoadMoreOffers(for: request))",
+                ]
+            )
+        } catch CustomerRequestRepositoryError.cancelled {
+            recordStoreCancelled("loadNextOffersPage", startedAt: startedAt)
+        } catch let error as CustomerRequestRepositoryError {
+            offerErrorsByRequestID[request.id] = message(for: error, action: "load offers")
+            recordStoreFailure(
+                "loadNextOffersPage",
+                error: error,
+                mappedMessage: offerErrorsByRequestID[request.id],
+                startedAt: startedAt,
+                metadata: ["requestID": request.id.uuidString]
+            )
+        } catch where AppDebugErrorClassifier.isCancellation(error) {
+            recordStoreCancelled("loadNextOffersPage", startedAt: startedAt)
+        } catch {
+            offerErrorsByRequestID[request.id] = message(
+                for: CustomerRequestRepositoryError.unavailable,
+                action: "load offers"
+            )
+            recordStoreFailure(
+                "loadNextOffersPage",
                 error: error,
                 mappedMessage: offerErrorsByRequestID[request.id],
                 startedAt: startedAt,
@@ -651,7 +806,12 @@ final class CustomerRequestsStore {
                     caption: nil
                 )
             }
-            requests = try await requestRepository.requests(customerID: customerID)
+            let requestPage = try await requestRepository.requests(
+                customerID: customerID,
+                page: .first
+            )
+            requests = requestPage.items
+            nextRequestsPageRequest = requestPage.nextRequest
             try await loadRequestPhotos(for: requests)
             publishResult = result
             noticeMessage = result.matchCount == 1
@@ -1102,13 +1262,20 @@ final class CustomerRequestsStore {
 
     private func refreshAfterAcceptance(requestID: UUID) async {
         do {
-            requests = try await requestRepository.requests(customerID: customerID)
-            offerReviewsByRequestID[requestID] = Self.displayOrdered(
-                try await requestRepository.offers(
-                    customerID: customerID,
-                    requestID: requestID
-                )
+            let requestPage = try await requestRepository.requests(
+                customerID: customerID,
+                page: .first
             )
+            requests = requestPage.items
+            nextRequestsPageRequest = requestPage.nextRequest
+
+            let offerPage = try await requestRepository.offers(
+                customerID: customerID,
+                requestID: requestID,
+                page: .first
+            )
+            offerReviewsByRequestID[requestID] = Self.displayOrdered(offerPage.items)
+            setNextOfferPageRequest(offerPage.nextRequest, for: requestID)
             bookings = try await bookingRepository.bookings(
                 participantID: customerID,
                 role: .customer
@@ -1248,6 +1415,49 @@ final class CustomerRequestsStore {
                 startedAt: startedAt,
                 level: .warning
             )
+        }
+    }
+
+    private func loadAdditionalRequestPhotos(
+        for requests: [CustomerGroomingRequest],
+        startedAt: Date
+    ) async {
+        do {
+            let photos = try await requestRepository.requestPhotos(
+                customerID: customerID,
+                requestIDs: requests.map(\.id)
+            )
+            for (requestID, requestPhotos) in Dictionary(grouping: photos, by: \.requestID) {
+                requestPhotosByRequestID[requestID] = ListPageMerge.appendingUnique(
+                    requestPhotos,
+                    to: requestPhotosByRequestID[requestID, default: []]
+                )
+            }
+            requestPhotoDataByID.merge(
+                await requestPhotoDataMap(for: photos),
+                uniquingKeysWith: { _, newValue in newValue }
+            )
+        } catch CustomerRequestRepositoryError.cancelled {
+            recordStoreCancelled("loadNextRequestsPage.requestPhotos", startedAt: startedAt)
+        } catch {
+            recordStoreFailure(
+                "loadNextRequestsPage.requestPhotos",
+                error: error,
+                mappedMessage: nil,
+                startedAt: startedAt,
+                level: .warning
+            )
+        }
+    }
+
+    private func setNextOfferPageRequest(
+        _ pageRequest: ListPageRequest?,
+        for requestID: UUID
+    ) {
+        if let pageRequest {
+            nextOfferPageRequestByRequestID[requestID] = pageRequest
+        } else {
+            nextOfferPageRequestByRequestID.removeValue(forKey: requestID)
         }
     }
 

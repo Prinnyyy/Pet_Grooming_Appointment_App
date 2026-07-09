@@ -97,6 +97,8 @@ final class CustomerRequestRepositoryFake: CustomerRequestRepository {
     var requestPhotoDataByID: [UUID: Data]
     var acknowledgedBookingHandoffRequestIDsResult: Result<Set<UUID>, CustomerRequestRepositoryError>
     var acknowledgeBookingHandoffResult: Result<Void, CustomerRequestRepositoryError>
+    var requestPages: [Result<ListPage<CustomerGroomingRequest>, CustomerRequestRepositoryError>]
+    var offerPages: [Result<ListPage<CustomerOfferReview>, CustomerRequestRepositoryError>]
 
     private(set) var requestsCallCount = 0
     private(set) var offersCallCount = 0
@@ -123,6 +125,8 @@ final class CustomerRequestRepositoryFake: CustomerRequestRepository {
     private(set) var lastAcknowledgedBookingHandoffCustomerID: UUID?
     private(set) var lastAcknowledgedBookingHandoffRequestID: UUID?
     private(set) var lastAcknowledgedBookingHandoffBookingID: UUID?
+    private(set) var receivedRequestPages: [ListPageRequest] = []
+    private(set) var receivedOfferPages: [ListPageRequest] = []
 
     init(
         requestsResult: Result<[CustomerGroomingRequest], CustomerRequestRepositoryError> = .success([]),
@@ -139,7 +143,9 @@ final class CustomerRequestRepositoryFake: CustomerRequestRepository {
         acknowledgedBookingHandoffRequestIDsResult: Result<Set<UUID>, CustomerRequestRepositoryError> =
             .success([]),
         acknowledgeBookingHandoffResult: Result<Void, CustomerRequestRepositoryError> =
-            .success(())
+            .success(()),
+        requestPages: [Result<ListPage<CustomerGroomingRequest>, CustomerRequestRepositoryError>] = [],
+        offerPages: [Result<ListPage<CustomerOfferReview>, CustomerRequestRepositoryError>] = []
     ) {
         self.requestsResult = requestsResult
         self.offersResult = offersResult
@@ -150,11 +156,32 @@ final class CustomerRequestRepositoryFake: CustomerRequestRepository {
         self.requestPhotoDataByID = requestPhotoDataByID
         self.acknowledgedBookingHandoffRequestIDsResult = acknowledgedBookingHandoffRequestIDsResult
         self.acknowledgeBookingHandoffResult = acknowledgeBookingHandoffResult
+        self.requestPages = requestPages
+        self.offerPages = offerPages
     }
 
     func requests(customerID: UUID) async throws -> [CustomerGroomingRequest] {
         requestsCallCount += 1
+        lastCustomerID = customerID
         return try requestsResult.get()
+    }
+
+    func requests(
+        customerID: UUID,
+        page: ListPageRequest
+    ) async throws -> ListPage<CustomerGroomingRequest> {
+        requestsCallCount += 1
+        lastCustomerID = customerID
+        receivedRequestPages.append(page)
+        if !requestPages.isEmpty {
+            return try requestPages.removeFirst().get()
+        }
+
+        return ListPage(
+            items: try requestsResult.get(),
+            request: page,
+            hasMore: false
+        )
     }
 
     func offers(
@@ -165,6 +192,26 @@ final class CustomerRequestRepositoryFake: CustomerRequestRepository {
         lastOfferCustomerID = customerID
         lastOfferRequestID = requestID
         return try offersResult.get()
+    }
+
+    func offers(
+        customerID: UUID,
+        requestID: UUID,
+        page: ListPageRequest
+    ) async throws -> ListPage<CustomerOfferReview> {
+        offersCallCount += 1
+        lastOfferCustomerID = customerID
+        lastOfferRequestID = requestID
+        receivedOfferPages.append(page)
+        if !offerPages.isEmpty {
+            return try offerPages.removeFirst().get()
+        }
+
+        return ListPage(
+            items: try offersResult.get(),
+            request: page,
+            hasMore: false
+        )
     }
 
     func requestPhotos(

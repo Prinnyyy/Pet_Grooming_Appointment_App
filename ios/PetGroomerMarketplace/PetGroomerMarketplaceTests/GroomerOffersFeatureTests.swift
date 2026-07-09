@@ -4,6 +4,51 @@ import Testing
 
 struct GroomerOffersStoreTests {
     @Test @MainActor
+    func paginationRetriesThenAppendsUniqueOffersAndStopsAtLastPage() async {
+        let groomerID = UUID()
+        let first = Self.offerItem(
+            groomerID: groomerID,
+            status: .pending,
+            createdAt: "2026-06-22T14:00:00Z"
+        )
+        let second = Self.offerItem(
+            groomerID: groomerID,
+            status: .acceptedByCustomer,
+            createdAt: "2026-06-22T13:00:00Z"
+        )
+        let repository = GroomerOfferListRepositoryFake(
+            offerPages: [
+                .success(ListPage(items: [first], request: .first, hasMore: true)),
+                .failure(.networkUnavailable),
+                .success(
+                    ListPage(
+                        items: [first, second],
+                        request: .first.next,
+                        hasMore: false
+                    )
+                ),
+            ]
+        )
+        let store = GroomerOffersStore(
+            groomerID: groomerID,
+            repository: repository
+        )
+
+        await store.load()
+        await store.loadNextPage()
+
+        #expect(store.offers.map(\.id) == [first.id])
+        #expect(store.canLoadMore == true)
+        #expect(store.errorMessage == "Offers unavailable. Check your connection and try again.")
+
+        await store.loadNextPage()
+
+        #expect(repository.receivedOfferPages == [.first, .first.next, .first.next])
+        #expect(store.offers.map(\.id) == [first.id, second.id])
+        #expect(store.canLoadMore == false)
+    }
+
+    @Test @MainActor
     func loadPopulatesOffersAndGroupsThemByStatus() async throws {
         let groomerID = UUID()
         let pending = Self.offerItem(
@@ -186,14 +231,18 @@ struct GroomerOffersStoreTests {
 @MainActor
 private final class GroomerOfferListRepositoryFake: GroomerRequestRepository {
     var offersResult: Result<[GroomerOfferListItem], GroomerRequestRepositoryError>
+    var offerPages: [Result<ListPage<GroomerOfferListItem>, GroomerRequestRepositoryError>]
 
     private(set) var offersCallCount = 0
     private(set) var lastGroomerID: UUID?
+    private(set) var receivedOfferPages: [ListPageRequest] = []
 
     init(
-        offersResult: Result<[GroomerOfferListItem], GroomerRequestRepositoryError> = .success([])
+        offersResult: Result<[GroomerOfferListItem], GroomerRequestRepositoryError> = .success([]),
+        offerPages: [Result<ListPage<GroomerOfferListItem>, GroomerRequestRepositoryError>] = []
     ) {
         self.offersResult = offersResult
+        self.offerPages = offerPages
     }
 
     func matchedRequests(groomerID: UUID) async throws -> [GroomerMatchedRequest] {
@@ -204,6 +253,24 @@ private final class GroomerOfferListRepositoryFake: GroomerRequestRepository {
         offersCallCount += 1
         lastGroomerID = groomerID
         return try offersResult.get()
+    }
+
+    func offers(
+        groomerID: UUID,
+        page: ListPageRequest
+    ) async throws -> ListPage<GroomerOfferListItem> {
+        offersCallCount += 1
+        lastGroomerID = groomerID
+        receivedOfferPages.append(page)
+        if !offerPages.isEmpty {
+            return try offerPages.removeFirst().get()
+        }
+
+        return ListPage(
+            items: try offersResult.get(),
+            request: page,
+            hasMore: false
+        )
     }
 
     func dismiss(

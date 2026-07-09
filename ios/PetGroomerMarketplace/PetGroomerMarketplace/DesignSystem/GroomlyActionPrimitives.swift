@@ -151,6 +151,48 @@ struct GroomlySecondaryButtonStyle: ButtonStyle {
     }
 }
 
+struct GroomlyLoadMoreButton: View {
+    let isLoading: Bool
+    let accent: GroomlySecondaryButtonStyle.Accent
+    let accessibilityIdentifier: String
+    let action: () async -> Void
+
+    init(
+        isLoading: Bool,
+        accent: GroomlySecondaryButtonStyle.Accent,
+        accessibilityIdentifier: String,
+        action: @escaping () async -> Void
+    ) {
+        self.isLoading = isLoading
+        self.accent = accent
+        self.accessibilityIdentifier = accessibilityIdentifier
+        self.action = action
+    }
+
+    var body: some View {
+        Button {
+            Task {
+                await action()
+            }
+        } label: {
+            ZStack {
+                Label("Load More", systemImage: "chevron.down")
+                    .opacity(isLoading ? 0 : 1)
+
+                if isLoading {
+                    ProgressView()
+                        .tint(DesignTokens.Colors.textSecondary)
+                        .accessibilityLabel("Loading more")
+                }
+            }
+            .frame(maxWidth: .infinity, minHeight: 24)
+        }
+        .buttonStyle(GroomlySecondaryButtonStyle(accent: accent))
+        .disabled(isLoading)
+        .accessibilityIdentifier(accessibilityIdentifier)
+    }
+}
+
 struct GroomlyCard<Content: View>: View {
     private let isSelected: Bool
     private let padding: CGFloat

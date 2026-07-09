@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-09
+Task: T-230 - Request and offer visible pagination.
+Files changed: shared pagination model/action primitive; customer request/offer Stores, views, and tests; groomer request/offer Stores, views, and tests; pagination audit; roadmap/queue/current state/task ledger/worklog.
+Checks: Four Store pagination RED/GREEN cases; focused customer/groomer request and groomer offer suites; full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; XcodeBuildMCP build/run plus customer Requests navigation/screenshot; `git diff --check`; context hygiene.
+Result: Q-38 adds one shared explicit Load More interaction to customer requests, customer request offers, groomer matched requests, and groomer offers. All four preserve loaded rows and next-page state across failure, retry the same page, deduplicate stable IDs, and stop at the terminal page.
+Risks: No schema, migration, Supabase write, TestOps execute, seed, deploy, APNs, release upload, PR, merge/rebase/reset, or force-push. The live customer account had fewer than 50 rows, so conditional button visibility is covered by Store tests while Simulator verification covered the surrounding production screen.
+Next: Use T-231 for authorized Q-35 groomer in-app notification remote parity.
+```
+
+```text
+Date: 2026-07-09
 Task: T-229 - Periodic meta-review.
 Files changed: current state, feature index, task ledger, worklog, and frozen rotations.
 Checks: Git status/diff; context hygiene; 56-file migration mirror count; root-report tracking/ignore/frozen checks; targeted branch/task/queue fact scan.
 Result: Resolves the 10-task cadence gate. All 69 active Markdown files remain within individual budgets; root external reports are ignored/untracked with frozen copies; migration and roadmap facts align. The 95% total is observed, but no duplicate active source is safe to remove.
 Risks: Governance closeout only. No workflow rule, app/backend behavior, Supabase write, migration, TestOps execute, seed, deploy, release action, or APNs work changed.
-Next: Use T-230 for local Q-38 while Q-35 through Q-37 remain gated.
 ```
 
 ```text
@@ -66,13 +75,4 @@ Files changed: iOS build/test scripts, current state, task ledger, worklog, and 
 Checks: `bash -n scripts/ios-build.sh scripts/ios-test.sh`; `./scripts/ios-build.sh` success with 7-line output; `./scripts/ios-test.sh` success with 16-line output; expected invalid-destination `ios-test.sh` failure returned 1 with 47-line output; `git diff --check`; context hygiene; commit and push.
 Result: Implements Context Optimization Task A by sending full `xcodebuild` output for build/test scripts to temp logs while printing bounded success/failure summaries and preserving exit-code semantics.
 Risks: Script-output filtering only. No Swift, Xcode project, workflow rule, Supabase schema, migration, remote write, seed, release upload, tag, PR, merge/rebase/reset, or force-push changed. Root `CONTEXT_OPTIMIZATION_TASK_PLAN.md` remains external plan input until the serial tasks are complete.
-```
-
-```text
-Date: 2026-07-09
-Task: T-222 - Ideal-operation readiness rehearsal.
-Files changed: Release readiness evidence, TestOps results index, roadmap execution queue, roadmap, current state, task ledger, and worklog.
-Checks: Supabase CLI version/help; TestOps unit; TestOps doctor dry-run; backend `marketplace_full_lifecycle` smoke5 dry-run; matching baseline dry-run; `./scripts/supabase-check.sh`; linked Supabase security/performance advisors; `node --test tests/migrations/*.test.mjs`; full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
-Result: Closes Q-33/R-029/M8 by recording the final local/read-only ideal-operation readiness rehearsal after Q-16 through Q-32. Local TestOps planning, matching projections, backend contracts, Supabase contract checks, linked advisors, iOS tests, and iOS build were exercised on the current branch.
-Risks: Advisors now report non-blocking findings: known Auth leaked-password protection WARN, `customer_push_tokens` RLS-without-policy INFO tied to externally blocked APNs work, and INFO-level index tuning findings. No Supabase schema, migration, remote write, seed, remote TestOps execute, Auth config, deploy, APNs dispatch, release upload, tag, PR, merge/rebase/reset, or force-push changed.
 ```
