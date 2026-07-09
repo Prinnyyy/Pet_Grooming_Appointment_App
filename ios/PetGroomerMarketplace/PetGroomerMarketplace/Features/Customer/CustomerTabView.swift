@@ -14,6 +14,8 @@ struct CustomerTabView: View {
     @State private var selection: CustomerTab = .home
     @State private var focusedRequestID: UUID?
     @State private var focusedConversationBookingID: UUID?
+    @State private var notificationStore: CustomerNotificationsStore?
+    @State private var chatStore: ChatStore?
     @State private var feedbackCenter = GroomlyFeedbackCenter()
 
     init(
@@ -36,6 +38,18 @@ struct CustomerTabView: View {
         self.bookingRepository = bookingRepository
         self.chatRepository = chatRepository
         self.accountContent = accountContent
+        _notificationStore = State(
+            initialValue: Self.makeNotificationStore(
+                customerID: customerID,
+                repository: notificationRepository
+            )
+        )
+        _chatStore = State(
+            initialValue: Self.makeChatStore(
+                customerID: customerID,
+                repository: chatRepository
+            )
+        )
     }
 
     var body: some View {
@@ -48,6 +62,12 @@ struct CustomerTabView: View {
                 .tabItem {
                     Label(tab.title, systemImage: tab.systemImage)
                 }
+                .badge(
+                    tab.badgeCount(
+                        unreadNotificationCount: notificationUnreadCount,
+                        unreadMessageCount: messageUnreadCount
+                    )
+                )
                 .tag(tab)
             }
         }
@@ -61,6 +81,9 @@ struct CustomerTabView: View {
         }
         .onAppear {
             feedbackCenter.setDebugRecorder(debugRecorder)
+        }
+        .task {
+            await refreshBadgeSources()
         }
         .onChange(of: selection) { oldValue, newValue in
             debugRecorder?.record(
@@ -95,6 +118,7 @@ struct CustomerTabView: View {
                 notificationRepository: notificationRepository,
                 bookingRepository: bookingRepository,
                 debugRecorder: debugRecorder,
+                notificationStore: notificationStore,
                 onActiveRequestSelected: { requestID in
                     focusedRequestID = requestID
                     withAnimation(.easeInOut(duration: 0.22)) {
@@ -139,6 +163,7 @@ struct CustomerTabView: View {
                 role: .customer,
                 repository: chatRepository,
                 debugRecorder: debugRecorder,
+                store: chatStore,
                 focusedBookingID: $focusedConversationBookingID
             )
         } else if tab == .account, let accountContent {
@@ -157,6 +182,48 @@ struct CustomerTabView: View {
         focusedConversationBookingID = booking.id
         withAnimation(.easeInOut(duration: 0.22)) {
             selection = .messages
+        }
+    }
+
+    private var notificationUnreadCount: Int {
+        notificationStore?.unreadCount ?? 0
+    }
+
+    private var messageUnreadCount: Int {
+        chatStore?.unreadConversationCount ?? 0
+    }
+
+    private static func makeNotificationStore(
+        customerID: UUID?,
+        repository: (any CustomerNotificationRepository)?
+    ) -> CustomerNotificationsStore? {
+        guard let customerID, let repository else { return nil }
+
+        return CustomerNotificationsStore(
+            customerID: customerID,
+            repository: repository
+        )
+    }
+
+    private static func makeChatStore(
+        customerID: UUID?,
+        repository: (any ChatRepository)?
+    ) -> ChatStore? {
+        guard let customerID, let repository else { return nil }
+
+        return ChatStore(
+            participantID: customerID,
+            role: .customer,
+            repository: repository
+        )
+    }
+
+    private func refreshBadgeSources() async {
+        if let notificationStore {
+            await notificationStore.load()
+        }
+        if let chatStore {
+            await chatStore.loadConversations()
         }
     }
 }

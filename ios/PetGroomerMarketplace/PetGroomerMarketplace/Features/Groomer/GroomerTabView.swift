@@ -13,6 +13,7 @@ struct GroomerTabView: View {
     @State private var selection: GroomerTab = .requests
     @State private var focusedConversationBookingID: UUID?
     @State private var notificationStore: GroomerNotificationsStore?
+    @State private var chatStore: ChatStore?
     @State private var feedbackCenter = GroomlyFeedbackCenter()
 
     init(
@@ -39,6 +40,12 @@ struct GroomerTabView: View {
                 repository: notificationRepository
             )
         )
+        _chatStore = State(
+            initialValue: Self.makeChatStore(
+                groomerID: groomerID,
+                repository: chatRepository
+            )
+        )
     }
 
     var body: some View {
@@ -51,7 +58,12 @@ struct GroomerTabView: View {
                 .tabItem {
                     Label(tab.title, systemImage: tab.systemImage)
                 }
-                .badge(tab == .notifications ? notificationUnreadCount : 0)
+                .badge(
+                    tab.badgeCount(
+                        unreadNotificationCount: notificationUnreadCount,
+                        unreadMessageCount: messageUnreadCount
+                    )
+                )
                 .tag(tab)
             }
         }
@@ -65,6 +77,9 @@ struct GroomerTabView: View {
         }
         .onAppear {
             feedbackCenter.setDebugRecorder(debugRecorder)
+        }
+        .task {
+            await refreshBadgeSources()
         }
         .onChange(of: selection) { oldValue, newValue in
             debugRecorder?.record(
@@ -117,6 +132,7 @@ struct GroomerTabView: View {
                 role: .groomer,
                 repository: chatRepository,
                 debugRecorder: debugRecorder,
+                store: chatStore,
                 focusedBookingID: $focusedConversationBookingID
             )
         } else if tab == .notifications,
@@ -158,6 +174,10 @@ struct GroomerTabView: View {
         notificationStore?.unreadCount ?? 0
     }
 
+    private var messageUnreadCount: Int {
+        chatStore?.unreadConversationCount ?? 0
+    }
+
     private func openNotificationRoute(_ route: GroomerNotificationRoute) {
         withAnimation(.easeInOut(duration: 0.22)) {
             switch route {
@@ -184,6 +204,28 @@ struct GroomerTabView: View {
             groomerID: groomerID,
             repository: repository
         )
+    }
+
+    private static func makeChatStore(
+        groomerID: UUID?,
+        repository: (any ChatRepository)?
+    ) -> ChatStore? {
+        guard let groomerID, let repository else { return nil }
+
+        return ChatStore(
+            participantID: groomerID,
+            role: .groomer,
+            repository: repository
+        )
+    }
+
+    private func refreshBadgeSources() async {
+        if let notificationStore {
+            await notificationStore.load()
+        }
+        if let chatStore {
+            await chatStore.loadConversations()
+        }
     }
 }
 

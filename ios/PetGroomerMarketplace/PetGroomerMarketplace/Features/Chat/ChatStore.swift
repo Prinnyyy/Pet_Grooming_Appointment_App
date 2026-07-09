@@ -15,6 +15,7 @@ final class ChatStore {
     private(set) var isLoadingConversations = false
     private(set) var loadingConversationIDs: Set<UUID> = []
     private(set) var sendingConversationIDs: Set<UUID> = []
+    private var readConversationTimestamps: [UUID: String] = [:]
     private var messageSubscriptionTasks: [UUID: Task<Void, Never>] = [:]
     private var messageSubscriptionIDs: [UUID: UUID] = [:]
     private var startingMessageSubscriptionIDs: Set<UUID> = []
@@ -26,6 +27,10 @@ final class ChatStore {
         isLoadingConversations
             || !loadingConversationIDs.isEmpty
             || !sendingConversationIDs.isEmpty
+    }
+
+    var unreadConversationCount: Int {
+        conversations.filter(hasUnreadMessages).count
     }
 
     init(
@@ -73,6 +78,20 @@ final class ChatStore {
 
     func conversation(forBookingID bookingID: UUID) -> ChatConversation? {
         conversations.first { $0.bookingID == bookingID }
+    }
+
+    func hasUnreadMessages(in conversation: ChatConversation) -> Bool {
+        guard let latestMessageSenderID = conversation.latestMessageSenderID,
+              latestMessageSenderID != participantID,
+              let latestMessageCreatedAt = conversation.latestMessageCreatedAt else {
+            return false
+        }
+
+        guard let readAt = readConversationTimestamps[conversation.id] else {
+            return true
+        }
+
+        return latestMessageCreatedAt > readAt
     }
 
     func reportMissingConversationForBooking() {
@@ -134,6 +153,7 @@ final class ChatStore {
         do {
             messagesByConversationID[conversation.id] =
                 try await repository.messages(conversationID: conversation.id)
+            markConversationRead(conversation.id)
             recordStoreSuccess(
                 "loadMessages",
                 startedAt: startedAt,
@@ -205,6 +225,7 @@ final class ChatStore {
                 body: normalizedBody
             )
             append(message)
+            markConversationRead(conversation.id)
             recordStoreSuccess(
                 "sendMessage",
                 startedAt: startedAt,
@@ -338,6 +359,7 @@ final class ChatStore {
         guard message.conversationID == expectedConversationID else { return }
         let previousCount = messagesByConversationID[message.conversationID]?.count ?? 0
         append(message)
+        markConversationRead(message.conversationID)
         let currentCount = messagesByConversationID[message.conversationID]?.count ?? 0
         recordStoreInfo(
             "messageEvent",
@@ -371,6 +393,31 @@ final class ChatStore {
             .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
             ?? ""
         return normalized.isEmpty ? nil : normalized
+    }
+
+    private func markConversationRead(_ conversationID: UUID) {
+        let loadedLatest = messagesByConversationID[conversationID]?.last?.createdAt
+        let conversationLatest = conversations.first {
+            $0.id == conversationID
+        }?.latestMessageCreatedAt
+
+        let readAt: String?
+        switch (loadedLatest, conversationLatest) {
+        case let (loaded?, conversation?):
+            readAt = max(loaded, conversation)
+        case let (loaded?, nil):
+            readAt = loaded
+        case let (nil, conversation?):
+            readAt = conversation
+        case (nil, nil):
+            readAt = nil
+        }
+
+        guard let readAt else {
+            return
+        }
+
+        readConversationTimestamps[conversationID] = readAt
     }
 
     private func message(

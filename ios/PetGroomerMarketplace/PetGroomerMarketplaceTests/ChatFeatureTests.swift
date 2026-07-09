@@ -127,6 +127,85 @@ struct ChatStoreTests {
     }
 
     @Test @MainActor
+    func unreadConversationCountTracksLatestMessagesFromOtherParticipant() async throws {
+        let participantID = UUID(uuidString: "11111111-1111-4111-8111-111111111111")!
+        let otherParticipantID = UUID(uuidString: "22222222-2222-4222-8222-222222222222")!
+        let unreadConversation = Self.conversation(
+            customerID: participantID,
+            groomerID: otherParticipantID,
+            latestMessageSenderID: otherParticipantID,
+            latestMessageCreatedAt: "2026-06-21T05:10:00Z",
+            latestMessageBody: "Could you confirm pickup?"
+        )
+        let ownLatestConversation = Self.conversation(
+            customerID: participantID,
+            groomerID: otherParticipantID,
+            latestMessageSenderID: participantID,
+            latestMessageCreatedAt: "2026-06-21T05:11:00Z",
+            latestMessageBody: "Thanks"
+        )
+        let emptyConversation = Self.conversation(
+            customerID: participantID,
+            groomerID: otherParticipantID
+        )
+        let store = ChatStore(
+            participantID: participantID,
+            role: .customer,
+            repository: ChatRepositoryFake(
+                conversationsResult: .success([
+                    unreadConversation,
+                    ownLatestConversation,
+                    emptyConversation,
+                ])
+            )
+        )
+
+        await store.loadConversations()
+
+        #expect(store.unreadConversationCount == 1)
+        #expect(store.hasUnreadMessages(in: unreadConversation))
+        #expect(!store.hasUnreadMessages(in: ownLatestConversation))
+        #expect(!store.hasUnreadMessages(in: emptyConversation))
+    }
+
+    @Test @MainActor
+    func loadingMessagesMarksConversationReadForBadgeCount() async throws {
+        let participantID = UUID(uuidString: "11111111-1111-4111-8111-111111111111")!
+        let otherParticipantID = UUID(uuidString: "22222222-2222-4222-8222-222222222222")!
+        let conversation = Self.conversation(
+            customerID: participantID,
+            groomerID: otherParticipantID,
+            latestMessageSenderID: otherParticipantID,
+            latestMessageCreatedAt: "2026-06-21T05:10:00Z",
+            latestMessageBody: "Could you confirm pickup?"
+        )
+        let repository = ChatRepositoryFake(
+            conversationsResult: .success([conversation]),
+            messagesResult: .success([
+                Self.message(
+                    conversationID: conversation.id,
+                    senderID: otherParticipantID,
+                    body: "Could you confirm pickup?",
+                    createdAt: "2026-06-21T05:10:00Z"
+                )
+            ])
+        )
+        let store = ChatStore(
+            participantID: participantID,
+            role: .customer,
+            repository: repository
+        )
+
+        await store.loadConversations()
+        #expect(store.unreadConversationCount == 1)
+
+        await store.loadMessages(for: conversation)
+
+        #expect(store.unreadConversationCount == 0)
+        #expect(!store.hasUnreadMessages(in: conversation))
+    }
+
+    @Test @MainActor
     func missingBookingConversationReportsSafeUnavailableMessage() async throws {
         let store = ChatStore(
             participantID: UUID(),
@@ -361,6 +440,8 @@ struct ChatStoreTests {
         status: BookingStatus? = nil,
         completedAt: String? = nil,
         groomerBusinessName: String? = nil,
+        latestMessageSenderID: UUID? = nil,
+        latestMessageCreatedAt: String? = nil,
         latestMessageBody: String? = nil
     ) -> ChatConversation {
         ChatConversation(
@@ -375,6 +456,8 @@ struct ChatStoreTests {
             bookingStatus: status,
             completedAt: completedAt,
             groomerBusinessName: groomerBusinessName,
+            latestMessageSenderID: latestMessageSenderID,
+            latestMessageCreatedAt: latestMessageCreatedAt,
             latestMessageBody: latestMessageBody,
             createdAt: "2026-06-21T05:00:00Z",
             updatedAt: "2026-06-21T05:00:00Z"
@@ -385,14 +468,15 @@ struct ChatStoreTests {
         id: UUID = UUID(),
         conversationID: UUID = UUID(),
         senderID: UUID = UUID(),
-        body: String = "Hello"
+        body: String = "Hello",
+        createdAt: String = "2026-06-21T05:01:00Z"
     ) -> ChatMessage {
         ChatMessage(
             id: id,
             conversationID: conversationID,
             senderID: senderID,
             body: body,
-            createdAt: "2026-06-21T05:01:00Z"
+            createdAt: createdAt
         )
     }
 

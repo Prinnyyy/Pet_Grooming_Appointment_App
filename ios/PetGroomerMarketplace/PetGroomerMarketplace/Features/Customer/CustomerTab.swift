@@ -26,4 +26,18 @@ nonisolated enum CustomerTab: CaseIterable, Identifiable, Equatable {
         case .account: "person.crop.circle"
         }
     }
+
+    func badgeCount(
+        unreadNotificationCount: Int,
+        unreadMessageCount: Int
+    ) -> Int {
+        switch self {
+        case .home:
+            unreadNotificationCount
+        case .messages:
+            unreadMessageCount
+        case .requests, .bookings, .account:
+            0
+        }
+    }
 }

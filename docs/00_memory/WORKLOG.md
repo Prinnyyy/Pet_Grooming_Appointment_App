@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-09
+Task: T-210 - Unread badge propagation.
+Files changed: chat model/store/repository/view, customer/groomer tab badge rules and shared tab-level stores, customer home notification store injection, focused chat/badge tests, roadmap, current state, task ledger, and worklog.
+Checks: ChatStore/TabBadge RED/GREEN; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
+Result: Closes Q-22/R-025 by propagating notification and chat badge counts at customer/groomer tab roots, loading shared badge sources on tab startup, showing customer Home notification badges, customer/groomer Messages unread badges, groomer Alerts unread badges, and clearing local chat unread state when a thread is opened.
+Risks: Chat unread state is local/session-scoped because no read-receipt schema exists in the Standard Q-22 scope. No Supabase schema, migration, remote write, repository API signature, Auth config, seed, TestOps remote execution, deploy, APNs dispatch, release upload, tag, PR, merge/rebase/reset, or force-push changed.
+Next: Use T-211 for the next user-chosen task; recommended queue start is Q-23 split `CustomerRequestsView.swift`.
+```
+
+```text
+Date: 2026-07-09
 Task: T-209 - Local appointment reminders.
 Files changed: appointment reminder scheduler, bookings store/view, customer requests store, focused booking/request tests, roadmap, current state, task ledger, and worklog.
 Checks: Appointment reminder planner/store RED/GREEN; CustomerRequests accept reminder RED/GREEN; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
 Result: Closes Q-21/R-025 by adding local notification reminder planning/scheduling for future confirmed bookings, page-level refusal copy when local notifications are disabled, reminder sync after booking load and offer acceptance, and reminder cancellation after booking cancel/complete.
 Risks: Local notifications require user authorization at runtime. No Supabase schema, migration, remote write, repository API, Auth config, seed, TestOps remote execution, deploy, APNs dispatch, release upload, tag, PR, merge/rebase/reset, or force-push changed.
-Next: Use T-210 for the next user-chosen task; recommended queue start is Q-22 unread badge propagation.
 ```
 
 ```text
@@ -66,13 +75,4 @@ Files changed: groomer notification migration/tests, backend contract/RLS docs, 
 Checks: RED/GREEN groomer migration test; migration test suite; preflight; supabase-check; `git diff --check`; context hygiene; commit and push.
 Result: Closes Q-16 locally by adding `groomer_notifications`, owner RLS/grants, read-state RPCs, and trigger-created notifications for matched requests, accepted offers/bookings, customer booking cancellations, and customer messages.
 Risks: Remote migration apply was not run and still needs explicit authorization. No iOS UI, Auth config, seed, remote TestOps, deploy, APNs, release upload, tag, PR, merge/rebase/reset, or force-push changed.
-```
-
-```text
-Date: 2026-07-09
-Task: T-202 - V1.0 ideal-operation task series.
-Files changed: roadmap, execution queue, decision log, current state, task ledger, and worklog.
-Checks: `git diff --check`; context hygiene; commit and push.
-Result: Adopts root `V1.0_RELEASE_TASK_PLAN.md` review input into governed ROADMAP/ROADMAP_EXECUTION_QUEUE packages without preassigning future T IDs. Active queue now starts at Q-16 and covers groomer notification symmetry, local timeliness, structural refactors, unit expansion, robustness, and ideal-operation verification.
-Risks: No app code, Supabase schema, migration, Auth config, seed, TestOps remote execution, deploy, release upload, tag, PR, merge/rebase/reset, or force-push changed. Q-16 requires explicit Supabase migration authorization before linked remote apply; Q-90...Q-92 remain externally blocked.
 ```

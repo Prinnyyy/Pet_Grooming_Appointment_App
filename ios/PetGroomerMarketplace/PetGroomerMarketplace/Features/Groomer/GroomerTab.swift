@@ -38,4 +38,18 @@ nonisolated enum GroomerTab: CaseIterable, Identifiable, Equatable {
         case .account: "person.crop.circle"
         }
     }
+
+    func badgeCount(
+        unreadNotificationCount: Int,
+        unreadMessageCount: Int
+    ) -> Int {
+        switch self {
+        case .messages:
+            unreadMessageCount
+        case .notifications:
+            unreadNotificationCount
+        case .requests, .offers, .bookings, .account:
+            0
+        }
+    }
 }

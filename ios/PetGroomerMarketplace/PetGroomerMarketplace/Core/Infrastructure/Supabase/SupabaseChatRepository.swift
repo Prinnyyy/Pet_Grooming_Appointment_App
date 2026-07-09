@@ -10,7 +10,8 @@ final class SupabaseChatRepository: ChatRepository {
         "id,scheduled_start,scheduled_end,price_estimate,status,completed_at"
     private static let groomerSummaryColumns = "user_id,business_name"
     private static let messageColumns = "id,conversation_id,sender_id,body,created_at"
-    private static let latestMessageColumns = "id,conversation_id,body,created_at"
+    private static let latestMessageColumns =
+        "id,conversation_id,sender_id,body,created_at"
 
     private let client: SupabaseClient
 
@@ -41,7 +42,7 @@ final class SupabaseChatRepository: ChatRepository {
             let bookingSummaries = await bookingSummaries(
                 for: rows.map(\.bookingID)
             )
-            let latestMessageBodies = await latestMessageBodies(
+            let latestMessages = await latestMessages(
                 for: rows.map(\.id)
             )
             let groomerBusinessNames = switch role {
@@ -55,7 +56,7 @@ final class SupabaseChatRepository: ChatRepository {
                 row.conversation(
                     bookingSummary: bookingSummaries[row.bookingID],
                     groomerBusinessName: groomerBusinessNames[row.groomerID],
-                    latestMessageBody: latestMessageBodies[row.id]
+                    latestMessage: latestMessages[row.id]
                 )
             }
         } catch {
@@ -242,9 +243,9 @@ final class SupabaseChatRepository: ChatRepository {
         }
     }
 
-    private func latestMessageBodies(
+    private func latestMessages(
         for conversationIDs: [UUID]
-    ) async -> [UUID: String] {
+    ) async -> [UUID: ChatLatestMessageRow] {
         let ids = uniqueLowercaseStrings(from: conversationIDs)
         guard !ids.isEmpty else { return [:] }
 
@@ -258,11 +259,11 @@ final class SupabaseChatRepository: ChatRepository {
                 .execute()
                 .value
 
-            var bodiesByConversationID: [UUID: String] = [:]
-            for row in rows where bodiesByConversationID[row.conversationID] == nil {
-                bodiesByConversationID[row.conversationID] = row.body
+            var messagesByConversationID: [UUID: ChatLatestMessageRow] = [:]
+            for row in rows where messagesByConversationID[row.conversationID] == nil {
+                messagesByConversationID[row.conversationID] = row
             }
-            return bodiesByConversationID
+            return messagesByConversationID
         } catch {
             return [:]
         }
@@ -285,7 +286,7 @@ private struct ChatConversationRow: Decodable {
     func conversation(
         bookingSummary: ChatBookingSummary?,
         groomerBusinessName: String?,
-        latestMessageBody: String?
+        latestMessage: ChatLatestMessageRow?
     ) -> ChatConversation {
         ChatConversation(
             id: id,
@@ -299,7 +300,9 @@ private struct ChatConversationRow: Decodable {
             bookingStatus: bookingSummary?.status,
             completedAt: bookingSummary?.completedAt,
             groomerBusinessName: groomerBusinessName,
-            latestMessageBody: latestMessageBody,
+            latestMessageSenderID: latestMessage?.senderID,
+            latestMessageCreatedAt: latestMessage?.createdAt,
+            latestMessageBody: latestMessage?.body,
             createdAt: createdAt,
             updatedAt: updatedAt
         )
@@ -371,12 +374,14 @@ private struct ChatGroomerSummaryRow: Decodable {
 private struct ChatLatestMessageRow: Decodable {
     let id: UUID
     let conversationID: UUID
+    let senderID: UUID
     let body: String
     let createdAt: String
 
     private enum CodingKeys: String, CodingKey {
         case id
         case conversationID = "conversation_id"
+        case senderID = "sender_id"
         case body
         case createdAt = "created_at"
     }

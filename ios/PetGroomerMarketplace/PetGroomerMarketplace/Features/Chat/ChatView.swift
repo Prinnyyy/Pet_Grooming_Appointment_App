@@ -13,13 +13,14 @@ struct ChatConversationsView: View {
         role: UserRole,
         repository: any ChatRepository,
         debugRecorder: AppDebugEventRecorder? = nil,
+        store: ChatStore? = nil,
         focusedBookingID: Binding<UUID?> = .constant(nil)
     ) {
         self.participantID = participantID
         self.role = role
         _focusedBookingID = focusedBookingID
         _store = State(
-            initialValue: ChatStore(
+            initialValue: store ?? ChatStore(
                 participantID: participantID,
                 role: role,
                 repository: repository,
@@ -174,6 +175,13 @@ private struct ChatConversationRow: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
 
                 VStack(alignment: .trailing, spacing: DesignTokens.Spacing.sm) {
+                    if store.hasUnreadMessages(in: conversation) {
+                        Circle()
+                            .fill(role.chatAccentColor)
+                            .frame(width: 10, height: 10)
+                            .accessibilityHidden(true)
+                    }
+
                     Text(ChatDateFormatting.relativeSummary(from: conversation.updatedAt))
                         .font(DesignTokens.Typography.caption)
                         .foregroundStyle(DesignTokens.Colors.textTertiary)
@@ -824,6 +832,9 @@ private final class ChatPreviewRepository: ChatRepository {
         scheduledEnd: "2026-06-22T18:00:00Z",
         priceEstimate: 95,
         groomerBusinessName: "Fresh Coat Grooming",
+        latestMessageSenderID: UUID(),
+        latestMessageCreatedAt: "2026-06-21T05:01:00Z",
+        latestMessageBody: "See you then.",
         createdAt: "2026-06-21T05:00:00Z",
         updatedAt: "2026-06-21T05:00:00Z"
     )

@@ -18,7 +18,6 @@ Source: T-202 adopted root review input `../../V1.0_RELEASE_TASK_PLAN.md`; that 
 
 | Order | Roadmap | Package | Mode | Scope | Validation |
 |---|---|---|---|---|---|
-| Q-22 | R-025 | P-05 Unread badge propagation | Standard | Customer/groomer notification and chat badge counts. | Badge tests; iOS build |
 | Q-23 | R-026 | P-06 Split `CustomerRequestsView.swift` | Standard | Structure-only wizard/list/detail split; behavior preserved. | Full iOS test/build |
 | Q-24 | R-026 | P-07 Split groomer profile surfaces | Standard | Structure-only services/portfolio/availability/fit split. | Full iOS test/build |
 | Q-25 | R-028 | UT-03 Time and boundary tests | Standard | Midnight/DST, expiry edge, time-off overlap, size limits, daily capacity. | Focused time/matching tests |

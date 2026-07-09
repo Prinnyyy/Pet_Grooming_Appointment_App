@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-09
 - Updated by: Codex
-- Latest completed task: T-209 Local appointment reminders.
+- Latest completed task: T-210 Unread badge propagation.
 - Current task: none; T-157 APNs remains externally blocked.
-- Next task ID: use T-210 unless the user resumes T-157 after Apple Developer Program upgrade.
+- Next task ID: use T-211 unless the user resumes T-157 after Apple Developer Program upgrade.
 
 ## Fast Path
 
@@ -36,7 +36,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Validation Baseline
 
-- Last iOS build: `./scripts/ios-build.sh` passed on 2026-07-09 during T-209 local appointment reminders.
+- Last iOS build: `./scripts/ios-build.sh` passed on 2026-07-09 during T-210 unread badge propagation.
 - Last full iOS test attempt: `./scripts/ios-test.sh` passed on 2026-07-09 during T-201 release readiness dry run, including UI smoke tests 3/3 and full app/unit coverage.
 - Last Supabase migration apply: T-160 applied `20260707191034_t160_account_deletion.sql` to `lqmasbuqzvcvtawonjlb` on 2026-07-07 and confirmed parity/RLS/grants/RPCs/advisors/deployment.
 - Prepared unapplied Supabase migration: T-203 `20260709073051_t203_groomer_notifications.sql` is local-only until explicit remote migration authorization.
@@ -44,8 +44,8 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - Last TestOps dry-run validation: T-201 `doctor --dry-run`, marketplace `smoke5` dry-run, matching baseline dry-run, and TestOps launch smoke passed without remote writes.
 - Last release readiness dry run: T-201 recorded local/read-only evidence in `docs/04_ios/release/RELEASE_READINESS_DRY_RUN.md`; Supabase security advisor had only the known Auth leaked-password protection WARN and performance advisor had no issues.
 - Last remote TestOps run: T-155 authorized `matching_baseline` passed 8/8 and cleanup left zero tagged request/match residue.
-- Recent focused validations: T-206 offer domain, T-208 notification domain, and T-209 appointment reminder tests passed their focused RED/GREEN checks.
-- Last docs validation: T-209 context hygiene and `git diff --check` passed on 2026-07-09.
+- Recent focused validations: T-206 offer domain, T-208 notification domain, T-209 appointment reminder, and T-210 chat/badge propagation tests passed their focused RED/GREEN checks.
+- Last docs validation: T-210 context hygiene and `git diff --check` passed on 2026-07-09.
 - Known iOS validation failure: none currently recorded; full `./scripts/ios-test.sh` passed during T-201.
 
 ## Active Product State
@@ -54,6 +54,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - Production uses real Supabase Auth, authoritative profile loading, and role separation. No production path fabricates a session/profile.
 - Auth email/deep-link design is documented; Q-07 waits for production auth domain and SMTP credentials.
 - Implemented iOS areas include auth/role onboarding, customer pets/requests/offers/notifications, groomer requests/offers, bookings/reviews, foreground chat, profile/account surfaces, privacy/support links, private images, Debug Console, ops evidence, accessibility/copy checks, and TestOps.
+- Customer and groomer tab roots load shared notification/chat badge sources. Customer Home, customer/groomer Messages, and groomer Alerts display unread badges; chat unread state is local/session-scoped and clears when a thread is opened.
 - Private Storage images use authenticated `.download(path:)` behind `PrivateImageLoader`; shared cache hashes paths, retries transient downloads once, and clears on local account cleanup.
 - Customers can create a new request from cancelled requests/bookings via explicit republish. Unpublished request wizard drafts are sheet-ephemeral: cancel/dismiss discards them, while publish failure preserves input for correction.
 - Groomly UI adaptation is complete for implemented MVP screens. Future UI work is screenshot-driven and must map screenshot modules to existing SwiftUI/Store/repository/model paths or stop for new-feature approval.
