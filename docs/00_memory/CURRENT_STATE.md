@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-08
 - Updated by: Codex
-- Latest completed task: T-180 Standing Git auto-push authorization.
+- Latest completed task: T-181 Current-state stale pointer correction.
 - Current task: none active; T-157 APNs deployment remains externally blocked.
-- Next task ID: use T-181 unless the user resumes T-157 after Apple Developer Program upgrade.
+- Next task ID: use T-182 unless the user resumes T-157 after Apple Developer Program upgrade.
 
 ## Fast Path
 
@@ -44,7 +44,7 @@ Frozen history lives under `docs/09_frozen/`.
 - Prepared unapplied Supabase migration: none known by `supabase migration list --linked`; post-apply dry-run requires `SUPABASE_DB_PASSWORD`.
 - Last TestOps unit validation: T-145 `./scripts/testops-unit.sh` passed 24 Node tests.
 - Last remote TestOps run: T-155 authorized `matching_baseline` run `TESTOPS-T155-MATCH-20260706-*` passed 8/8 and cleanup left zero tagged request/match residue.
-- Last docs/workflow validation: T-179 active Markdown budget reduction, context hygiene with and without `rg`, hygiene tests, and `git diff --check` passed on 2026-07-08.
+- Last docs/workflow validation: T-181 current-state stale pointer correction, context hygiene, and `git diff --check` passed on 2026-07-08.
 - Known validation failure: full `./scripts/ios-test.sh` is currently blocked by the existing T-153 customer notification same-timestamp ordering test, not by T-162 cancellation repost work.
 
 ## Active Product State
@@ -67,7 +67,7 @@ Frozen history lives under `docs/09_frozen/`.
 - Decision log is an active index backed by frozen snapshots. The pre-T-174 full text lives in `docs/09_frozen/decisions/DECISION_LOG_2026-07-08_PRE_T174_TRIM.md`.
 - Default `rg` searches honor `.rgignore`; do not use broad `rg --files -g '*.md'` as the default Markdown inventory.
 - Do not read full `WORKLOG.md`, full `TASK_LEDGER.md`, frozen archives, Groomly HTML/export, or T-129 seed tables by default.
-- After durable memory, ledger, workflow, or coordination-doc changes, run `node scripts/context-hygiene-check.mjs`; it now checks budgets plus backtick path integrity, last-verified freshness, migration mirror count, ROADMAP/ledger evidence, Feature Index paths, fail-closed current facts, meta-review cadence, and ledger row length. Active Markdown is below the 85% warning line after T-179.
+- After durable memory, ledger, workflow, or coordination-doc changes, run `node scripts/context-hygiene-check.mjs`; it checks budgets plus backtick path integrity, last-verified freshness, migration mirror count, ROADMAP/ledger evidence, Feature Index paths, fail-closed current facts, meta-review cadence, and ledger row length. Active Markdown is below the hard limit but currently warns above 85%.
 
 ## Supabase and TestOps Guardrails
 
@@ -92,4 +92,4 @@ Frozen history lives under `docs/09_frozen/`.
 
 ## Next Recommended Task
 
-- Use T-180 next unless resuming T-157 after Apple Developer credentials. Suggested product candidate: private image rendering.
+- Use T-182 next unless resuming T-157 after Apple Developer credentials. Suggested product candidate: private image rendering.

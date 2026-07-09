@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-08
+Task: T-181 - Current-state stale pointer correction.
+Files changed: current state, task ledger, worklog, and frozen ledger/worklog archives.
+Checks: `git diff --check`; `node scripts/context-hygiene-check.mjs`; staged diff check; commit and push.
+Result: Corrects stale T-180 next-task, validation-baseline, and active-Markdown-waterline text found during follow-up review. The next non-APNs task is now T-182 in both CURRENT_STATE and TASK_LEDGER.
+Risks: Documentation-only correction. No Swift, Supabase, runtime, workflow-rule, PR, tag, merge/rebase/reset, seed, cleanup, or non-Git remote write changed.
+Next: Use T-182 for the next non-APNs task unless resuming T-157 after Apple Developer credentials.
+```
+
+```text
+Date: 2026-07-08
 Task: T-180 - Standing Git auto-push authorization.
 Files changed: AGENTS.md, workflow Git/tooling rules, decision log, task ledger, worklog, and current state.
 Checks: `git diff --check`; `node scripts/context-hygiene-check.mjs`; staged diff check; commit and push.
 Result: Records the user's standing approval for automatic task-completion commits and pushes. The workflow now commits and pushes the current task's own changes after required validation passes, while keeping PRs, tags, merge/rebase/reset, branch deletion, Supabase writes, seeds, cleanup, non-Git remote writes, and unrelated user work outside that approval.
 Risks: Documentation-only rule change. Future agents must still skip auto Git when validation fails, secrets appear in the diff, the branch is unclear, or unrelated user work would be included.
-Next: Use T-181 for the next non-APNs task unless resuming T-157 after Apple Developer credentials.
 ```
 
 ```text
@@ -67,13 +76,4 @@ Files changed: decision log, frozen decision snapshot, frozen external review pl
 Checks: `git diff --check`; `node scripts/context-hygiene-check.mjs`; decision-log word count; archive path checks; `git log` checks for `01c80e4` and `6d1da33`.
 Result: Batch A from the governance review fix plan is applied. `01c80e4` and `6d1da33` are recorded as a one-time historical exception, the active decision log is trimmed below 1500 words with a verbatim frozen snapshot, and the adopted root review plan is archived as external input.
 Risks: Docs/governance only. No history rewrite, commit, push, branch switch, iOS source, Supabase command, migration, runtime behavior, or simulator changed.
-```
-
-```text
-Date: 2026-07-08
-Task: T-173 - Main governance divergence reconciliation.
-Files changed: GitHub rules, decision log, roadmap, task ledger/archive, worklog/archive, current state, and structure log.
-Checks: read-only `git show`/branch containment/ancestor checks for `2fddf7b`; `git diff --check`; `node scripts/context-hygiene-check.mjs`; targeted divergence search.
-Result: Main-only commit `2fddf7b` is reviewed and marked superseded. It should not be merged back because it resets docs to a T-049/T-050-era architecture, deletes active `GITHUB_RULES.md`, and reorganizes archives differently from the current governed model.
-Risks: Docs/git-governance only. No branch switch, merge, commit, push, iOS source, Supabase command, migration, runtime behavior, or simulator changed.
 ```
