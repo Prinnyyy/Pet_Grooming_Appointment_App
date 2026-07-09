@@ -1489,6 +1489,11 @@ private struct CustomerRequestPhotoRow: View {
     let data: Data?
 
     var body: some View {
+        let presentation = CustomerRequestPhotoRowPresentation(
+            photo: photo,
+            data: data
+        )
+
         HStack(spacing: DesignTokens.Spacing.md) {
             RequestPhotoThumbnail(
                 data: data,
@@ -1497,21 +1502,44 @@ private struct CustomerRequestPhotoRow: View {
             )
 
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                Text(photo.caption ?? photo.fileName)
+                Text(presentation.title)
                     .font(DesignTokens.Typography.body.weight(.semibold))
                     .foregroundStyle(DesignTokens.Colors.textPrimary)
                     .lineLimit(1)
 
-                if photo.caption != nil {
-                    Text(photo.fileName)
+                if let detail = presentation.detail {
+                    Text(detail)
                         .font(DesignTokens.Typography.caption)
-                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+                        .foregroundStyle(
+                            presentation.isUnavailable
+                                ? DesignTokens.Colors.warning
+                                : DesignTokens.Colors.textSecondary
+                        )
                         .lineLimit(1)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .accessibilityElement(children: .combine)
+    }
+}
+
+struct CustomerRequestPhotoRowPresentation: Equatable {
+    let title: String
+    let detail: String?
+    let isUnavailable: Bool
+
+    init(photo: GroomingRequestPhoto, data: Data?) {
+        title = photo.caption ?? photo.fileName
+        isUnavailable = data == nil
+
+        if isUnavailable {
+            detail = "Photo unavailable"
+        } else if photo.caption != nil {
+            detail = photo.fileName
+        } else {
+            detail = nil
+        }
     }
 }
 
@@ -2511,6 +2539,7 @@ struct CustomerRequestWizardView: View {
             ForEach(store.pets) { pet in
                 CustomerRequestPetChoiceCard(
                     pet: pet,
+                    petPhotoData: store.primaryPetPhotoData(for: pet),
                     isSelected: store.selectedPetID == pet.id,
                     isInvalid: invalidFields.contains(.pet)
                 ) {
@@ -2664,7 +2693,10 @@ struct CustomerRequestWizardView: View {
                     let pendingPhotoCount = store.pendingRequestPhotos.count
 
                     if let pet = store.selectedPet {
-                        CustomerRequestPhotoPreviewTile(pet: pet)
+                        CustomerRequestPhotoPreviewTile(
+                            pet: pet,
+                            petPhotoData: store.primaryPetPhotoData(for: pet)
+                        )
                     }
 
                     PhotosPicker(
@@ -3222,6 +3254,7 @@ private struct CustomerRequestWizardPrimaryButtonStyle: ButtonStyle {
 
 private struct CustomerRequestPetChoiceCard: View {
     let pet: CustomerPet
+    let petPhotoData: Data?
     let isSelected: Bool
     let isInvalid: Bool
     let action: () -> Void
@@ -3229,7 +3262,11 @@ private struct CustomerRequestPetChoiceCard: View {
     var body: some View {
         Button(action: action) {
             HStack(spacing: DesignTokens.Spacing.lg) {
-                CustomerRequestWizardPetAvatar(pet: pet, size: 84)
+                CustomerRequestWizardPetAvatar(
+                    pet: pet,
+                    data: petPhotoData,
+                    size: 84
+                )
 
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     Text(pet.name)
@@ -3890,9 +3927,14 @@ private struct CustomerRequestAddressFields: View {
 
 private struct CustomerRequestPhotoPreviewTile: View {
     let pet: CustomerPet
+    let petPhotoData: Data?
 
     var body: some View {
-        CustomerRequestWizardPetAvatar(pet: pet, size: 112)
+        CustomerRequestWizardPetAvatar(
+            pet: pet,
+            data: petPhotoData,
+            size: 112
+        )
             .clipShape(
                 RoundedRectangle(
                     cornerRadius: DesignTokens.CornerRadius.input,
@@ -3944,20 +3986,25 @@ private struct CustomerRequestAddPhotoTile: View {
 
 private struct CustomerRequestWizardPetAvatar: View {
     let pet: CustomerPet
+    let data: Data?
     let size: CGFloat
 
     var body: some View {
-        Text(avatar)
-            .font(.system(size: size * 0.5))
-            .frame(width: size, height: size)
-            .background(avatarBackground)
-            .clipShape(
-                RoundedRectangle(
-                    cornerRadius: DesignTokens.CornerRadius.input,
-                    style: .continuous
-                )
+        GroomlyModuleImage(data: data) {
+            Text(avatar)
+                .font(.system(size: size * 0.5))
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(avatarBackground)
+        }
+        .frame(width: size, height: size)
+        .background(avatarBackground)
+        .clipShape(
+            RoundedRectangle(
+                cornerRadius: DesignTokens.CornerRadius.input,
+                style: .continuous
             )
-            .accessibilityHidden(true)
+        )
+        .accessibilityHidden(true)
     }
 
     private var avatar: String {

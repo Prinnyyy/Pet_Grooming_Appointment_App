@@ -110,6 +110,8 @@ final class CustomerRequestsStore {
     private let debugRecorder: AppDebugEventRecorder?
 
     private(set) var pets: [CustomerPet] = []
+    private(set) var petPhotosByPetID: [UUID: [CustomerPetPhoto]] = [:]
+    private(set) var petPhotoDataByID: [UUID: Data] = [:]
     private(set) var requests: [CustomerGroomingRequest] = []
     private(set) var requestPhotosByRequestID: [UUID: [GroomingRequestPhoto]] = [:]
     private(set) var requestPhotoDataByID: [UUID: Data] = [:]
@@ -245,6 +247,7 @@ final class CustomerRequestsStore {
 
         do {
             pets = try await petRepository.pets(customerID: customerID)
+            await loadPetPhotosForWizard(startedAt: startedAt)
             requests = try await requestRepository.requests(customerID: customerID)
             try await loadRequestPhotos(for: requests)
             do {
@@ -275,6 +278,7 @@ final class CustomerRequestsStore {
                 startedAt: startedAt,
                 metadata: [
                     "petCount": "\(pets.count)",
+                    "petPhotoCount": "\(petPhotosByPetID.values.reduce(0) { $0 + $1.count })",
                     "requestCount": "\(requests.count)",
                     "bookingCount": "\(bookings.count)",
                 ]
@@ -392,6 +396,28 @@ final class CustomerRequestsStore {
 
     func requestPhotoData(for photo: GroomingRequestPhoto) -> Data? {
         requestPhotoDataByID[photo.id]
+    }
+
+    func petPhotos(for pet: CustomerPet) -> [CustomerPetPhoto] {
+        petPhotosByPetID[pet.id, default: []]
+            .sorted {
+                if $0.sortOrder == $1.sortOrder {
+                    $0.fileName < $1.fileName
+                } else {
+                    $0.sortOrder < $1.sortOrder
+                }
+            }
+    }
+
+    func primaryPetPhotoData(for pet: CustomerPet) -> Data? {
+        let photos = petPhotos(for: pet)
+        if let newestAvailableData = photos.reversed().lazy.compactMap({
+            self.petPhotoDataByID[$0.id]
+        }).first {
+            return newestAvailableData
+        }
+
+        return nil
     }
 
     func request(withID id: UUID) -> CustomerGroomingRequest? {
@@ -1182,6 +1208,40 @@ final class CustomerRequestsStore {
         )
         requestPhotosByRequestID = Dictionary(grouping: photos, by: \.requestID)
         requestPhotoDataByID = await requestPhotoDataMap(for: photos)
+    }
+
+    private func loadPetPhotosForWizard(startedAt: Date) async {
+        do {
+            let photos = try await petRepository.photos(customerID: customerID)
+            petPhotosByPetID = Dictionary(grouping: photos, by: \.petID)
+            petPhotoDataByID = await petPhotoDataMap(for: photos)
+        } catch CustomerPetRepositoryError.cancelled {
+            recordStoreCancelled("load.petPhotos", startedAt: startedAt)
+        } catch {
+            petPhotosByPetID = [:]
+            petPhotoDataByID = [:]
+            recordStoreFailure(
+                "load.petPhotos",
+                error: error,
+                mappedMessage: nil,
+                startedAt: startedAt,
+                level: .warning
+            )
+        }
+    }
+
+    private func petPhotoDataMap(
+        for photos: [CustomerPetPhoto]
+    ) async -> [UUID: Data] {
+        var dataByID: [UUID: Data] = [:]
+        for photo in photos {
+            do {
+                dataByID[photo.id] = try await petRepository.photoData(photo)
+            } catch {
+                continue
+            }
+        }
+        return dataByID
     }
 
     private func requestPhotoDataMap(

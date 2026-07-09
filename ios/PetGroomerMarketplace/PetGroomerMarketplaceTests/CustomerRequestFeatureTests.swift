@@ -44,6 +44,88 @@ struct CustomerRequestsStoreTests {
     }
 
     @Test @MainActor
+    func loadPopulatesPrimaryPetPhotoDataForRequestWizard() async throws {
+        let customerID = UUID()
+        let pet = Self.pet(customerID: customerID)
+        let photo = Self.petPhoto(customerID: customerID, petID: pet.id)
+        let photoData = Data([0x41, 0x42, 0x43])
+        let petRepository = CustomerRequestPetRepositoryFake(
+            petsResult: .success([pet]),
+            photosResult: .success([photo]),
+            photoDataResultsByPhotoID: [
+                photo.id: .success(photoData),
+            ]
+        )
+        let store = CustomerRequestsStore(
+            customerID: customerID,
+            petRepository: petRepository,
+            requestRepository: CustomerRequestRepositoryFake(),
+            bookingRepository: CustomerRequestBookingRepositoryFake()
+        )
+
+        await store.load()
+
+        #expect(petRepository.photosCallCount == 1)
+        #expect(petRepository.photoDataCallCount == 1)
+        #expect(store.primaryPetPhotoData(for: pet) == photoData)
+    }
+
+    @Test @MainActor
+    func loadIgnoresUnavailablePetPhotoDataForRequestWizard() async throws {
+        let customerID = UUID()
+        let pet = Self.pet(customerID: customerID)
+        let photo = Self.petPhoto(customerID: customerID, petID: pet.id)
+        let petRepository = CustomerRequestPetRepositoryFake(
+            petsResult: .success([pet]),
+            photosResult: .success([photo]),
+            photoDataResultsByPhotoID: [
+                photo.id: .failure(.unavailable),
+            ]
+        )
+        let store = CustomerRequestsStore(
+            customerID: customerID,
+            petRepository: petRepository,
+            requestRepository: CustomerRequestRepositoryFake(),
+            bookingRepository: CustomerRequestBookingRepositoryFake()
+        )
+
+        await store.load()
+
+        #expect(petRepository.photosCallCount == 1)
+        #expect(petRepository.photoDataCallCount == 1)
+        #expect(store.primaryPetPhotoData(for: pet) == nil)
+        #expect(store.errorMessage == nil)
+    }
+
+    @Test @MainActor
+    func requestPhotoPresentationMarksMissingImageDataUnavailable() {
+        let photo = GroomingRequestPhoto(
+            id: UUID(),
+            requestID: UUID(),
+            customerID: UUID(),
+            storageBucket: PhotoStorageBucketID.groomingRequest.rawValue,
+            storagePath: "customer/request/before.png",
+            caption: "Before bath",
+            sortOrder: 0,
+            createdAt: nil
+        )
+
+        let unavailable = CustomerRequestPhotoRowPresentation(
+            photo: photo,
+            data: nil
+        )
+        let available = CustomerRequestPhotoRowPresentation(
+            photo: photo,
+            data: Data([0x11])
+        )
+
+        #expect(unavailable.title == "Before bath")
+        #expect(unavailable.detail == "Photo unavailable")
+        #expect(available.title == "Before bath")
+        #expect(available.detail == "before.png")
+    }
+
+    @Test @MainActor
     func publishTrimsDraftCallsRepositoryAndReloadsRequests() async throws {
         let customerID = UUID()
         let pet = Self.pet(customerID: customerID)
@@ -1953,16 +2035,42 @@ struct CustomerRequestsStoreTests {
             review: nil
         )
     }
+
+    private static func petPhoto(
+        customerID: UUID,
+        petID: UUID,
+        sortOrder: Int = 0,
+        isPrimary: Bool = true
+    ) -> CustomerPetPhoto {
+        CustomerPetPhoto(
+            id: UUID(),
+            petID: petID,
+            customerID: customerID,
+            storageBucket: PhotoStorageBucketID.customerPet.rawValue,
+            storagePath: "\(customerID.uuidString.lowercased())/\(petID.uuidString.lowercased())/avatar.jpg",
+            caption: nil,
+            sortOrder: sortOrder,
+            isPrimary: isPrimary
+        )
+    }
 }
 
 @MainActor
 private final class CustomerRequestPetRepositoryFake: CustomerPetRepository {
     var petsResult: Result<[CustomerPet], CustomerPetRepositoryError>
+    var photosResult: Result<[CustomerPetPhoto], CustomerPetRepositoryError>
+    var photoDataResultsByPhotoID: [UUID: Result<Data, CustomerPetRepositoryError>]
+    private(set) var photosCallCount = 0
+    private(set) var photoDataCallCount = 0
 
     init(
-        petsResult: Result<[CustomerPet], CustomerPetRepositoryError> = .success([])
+        petsResult: Result<[CustomerPet], CustomerPetRepositoryError> = .success([]),
+        photosResult: Result<[CustomerPetPhoto], CustomerPetRepositoryError> = .success([]),
+        photoDataResultsByPhotoID: [UUID: Result<Data, CustomerPetRepositoryError>] = [:]
     ) {
         self.petsResult = petsResult
+        self.photosResult = photosResult
+        self.photoDataResultsByPhotoID = photoDataResultsByPhotoID
     }
 
     func pets(customerID: UUID) async throws -> [CustomerPet] {
@@ -1970,7 +2078,8 @@ private final class CustomerRequestPetRepositoryFake: CustomerPetRepository {
     }
 
     func photos(customerID: UUID) async throws -> [CustomerPetPhoto] {
-        []
+        photosCallCount += 1
+        return try photosResult.get()
     }
 
     func createPet(
@@ -2000,6 +2109,14 @@ private final class CustomerRequestPetRepositoryFake: CustomerPetRepository {
     }
 
     func deletePhoto(_ photo: CustomerPetPhoto) async throws {}
+
+    func photoData(_ photo: CustomerPetPhoto) async throws -> Data {
+        photoDataCallCount += 1
+        guard let result = photoDataResultsByPhotoID[photo.id] else {
+            throw CustomerPetRepositoryError.unavailable
+        }
+        return try result.get()
+    }
 }
 
 @MainActor

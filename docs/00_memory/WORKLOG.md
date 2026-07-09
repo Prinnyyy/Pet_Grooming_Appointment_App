@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-09
+Task: T-190 - Customer private images.
+Files changed: customer request store/view image presentation, customer request tests, private image audit, current state, task ledger, and worklog.
+Checks: Customer requests/pets store tests; XcodeBuildMCP build; XcodeBuildMCP launch spot check for auth landing; `git diff --check`; context hygiene; commit and push.
+Result: Closes Q-03/R-005 by loading customer pet photo metadata/data into request flows, rendering request wizard pet avatars with `GroomlyModuleImage`, and showing `Photo unavailable` when request-photo metadata exists but image data cannot be read.
+Risks: No Supabase schema, policy, migration, or remote write changed. Cross-user avatars in bookings/chat/notifications still need a future data-contract decision.
+Next: Use T-191 unless resuming T-157 after Apple Developer credentials. Recommended roadmap package is Q-04/R-005 groomer private images.
+```
+
+```text
+Date: 2026-07-09
 Task: T-189 - Shared private image renderer.
 Files changed: private image loader/cache, Supabase private image data source, customer/groomer image repositories, private image audit, current state, task ledger, and worklog.
 Checks: Focused `PrivateImageCacheKeyTests`/`PrivateImageLoaderTests`; iOS build; `git diff --check`; context hygiene; commit and push.
 Result: Closes Q-02/R-005 by adding a shared authenticated private-image loader with hashed file cache, replacing direct repository Storage downloads, preserving legacy groomer avatar fallback, and clearing the shared private image cache during local account cleanup.
 Risks: No Supabase schema, policy, migration, or remote write changed. UI surfaces still need Q-03/Q-04 follow-up work for customer/groomer presentation polish and broader cache adoption.
-Next: Use T-190 unless resuming T-157 after Apple Developer credentials. Recommended roadmap package is Q-03/R-005 customer private images.
 ```
 
 ```text
@@ -66,13 +75,4 @@ Files changed: context hygiene policy/check scripts, context rotate script, docs
 Checks: `node --test tests/docs/`; `node scripts/context-rotate.mjs`; `node scripts/context-rotate.mjs --apply`; `node scripts/context-hygiene-check.mjs`; `CONTEXT_HYGIENE_FORCE_NO_RG=1 node scripts/context-hygiene-check.mjs`; `git diff --check`; commit and push.
 Result: Implements Batch A of the context-budget redesign: 36k hard total, no 85% warning, 95% structural-review warning, 650-word default active Markdown budget, full budget coverage output, decision-log 8-entry window, shared constants, and deterministic archive rotation.
 Risks: Docs/tooling-only change. Workflow text alignment and root plan archival are intentionally deferred to T-184 Batch B. No Swift, Supabase, runtime, simulator, PR, tag, merge/rebase/reset, seed, migration, or non-Git remote write changed.
-```
-
-```text
-Date: 2026-07-09
-Task: T-182 - Active Markdown waterline cleanup rule.
-Files changed: AGENTS, workflow rules, decision log, current state, task ledger, worklog, and frozen ledger/worklog archives.
-Checks: `git diff --check`; `node scripts/context-hygiene-check.mjs` with no active Markdown 85% warning; staged diff check; commit and push.
-Result: Makes the active Markdown 85% waterline a mandatory cleanup trigger for durable-doc closeout, clarifies unrelated cleanup vs context-hygiene cleanup, and archives older active ledger/worklog rows so current active Markdown is below the warning line.
-Risks: Documentation-only rule change. No Swift, Supabase, runtime, PR, tag, merge/rebase/reset, seed, migration, or non-Git remote write changed.
 ```
