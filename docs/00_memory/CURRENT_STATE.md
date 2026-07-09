@@ -4,11 +4,11 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Last Updated
 
-- Date: 2026-07-08
+- Date: 2026-07-09
 - Updated by: Codex
-- Latest completed task: T-188 Private image contract audit.
+- Latest completed task: T-189 Shared private image renderer.
 - Current task: none active; T-157 APNs deployment remains externally blocked.
-- Next task ID: use T-189 unless the user resumes T-157 after Apple Developer Program upgrade.
+- Next task ID: use T-190 unless the user resumes T-157 after Apple Developer Program upgrade.
 
 ## Fast Path
 
@@ -39,7 +39,7 @@ Frozen history lives under `docs/09_frozen/`.
 
 ## Validation Baseline
 
-- Last iOS build: `./scripts/ios-build.sh` passed on 2026-07-07 during T-162 closeout.
+- Last iOS build: XcodeBuildMCP `build_sim` passed on 2026-07-09 during T-189 closeout.
 - Last full iOS test attempt: `./scripts/ios-test.sh` on 2026-07-07 failed the known T-153 same-timestamp notification ordering assertion; UI smoke tests passed 3/3, and targeted `AuthenticationStoreTests` passed afterward.
 - Last Supabase migration apply: authorized `supabase db push --linked` applied `20260707191034_t160_account_deletion.sql` to project `lqmasbuqzvcvtawonjlb` on 2026-07-07.
 - Last Supabase live post-apply validation: T-160 confirmed migration parity for `20260707191034`, account deletion metadata/RLS/grants/RPCs, advisors, and active `delete-account` deployment with JWT verification. Post-apply dry-run/lint still need `SUPABASE_DB_PASSWORD`.
@@ -47,7 +47,8 @@ Frozen history lives under `docs/09_frozen/`.
 - Last TestOps unit validation: T-145 `./scripts/testops-unit.sh` passed 24 Node tests.
 - Last remote TestOps run: T-155 authorized `matching_baseline` run `TESTOPS-T155-MATCH-20260706-*` passed 8/8 and cleanup left zero tagged request/match residue.
 - Last private image audit: T-188 verified Storage buckets/RLS with read-only linked Supabase queries and local Swift Storage/UI greps on 2026-07-09.
-- Last docs/workflow validation: T-188 private image audit, context hygiene, and `git diff --check` passed on 2026-07-09.
+- Last private image implementation: T-189 added the shared authenticated private image loader/cache and repository integration on 2026-07-09.
+- Last docs/workflow validation: T-189 shared private image renderer, context hygiene, and `git diff --check` passed on 2026-07-09.
 - Known validation failure: full `./scripts/ios-test.sh` is currently blocked by the existing T-153 customer notification same-timestamp ordering test, not by T-162 cancellation repost work.
 
 ## Active Product State
@@ -55,6 +56,7 @@ Frozen history lives under `docs/09_frozen/`.
 - MVP marketplace flow is complete at the current contract level: customer request -> groomer offers -> customer accepts -> booking/chat -> groomer completes -> customer reviews.
 - Production uses real Supabase Auth, authoritative profile loading, and customer/groomer role separation. No production path fabricates a session/profile.
 - Implemented iOS areas include Auth, role onboarding, customer pets, customer requests/offers, customer in-app notifications, groomer requests/offers, groomer submitted-offer tracking, bookings, text chat, groomer profile/services/portfolio, Customer Account profile settings, Debug Console, and TestOps support.
+- Private Storage images use authenticated `.download(path:)` behind `PrivateImageLoader`; shared cache hashes paths and clears on local account cleanup.
 - Customers can create a new request from cancelled requests and cancelled bookings. The flow reuses the existing request wizard at Review, pre-fills from the original request, and creates a new request id on publish.
 - Groomly UI adaptation is complete for implemented MVP screens. Future UI work is screenshot-driven and must map screenshot modules to existing SwiftUI/Store/repository/model paths or stop for new-feature approval.
 
@@ -96,4 +98,4 @@ Frozen history lives under `docs/09_frozen/`.
 
 ## Next Recommended Task
 
-- Use T-189 next unless resuming T-157 after Apple Developer credentials. Recommended roadmap package: Q-02/R-005 shared private image renderer.
+- Use T-190 next unless resuming T-157 after Apple Developer credentials. Recommended roadmap package: Q-03/R-005 customer private images.

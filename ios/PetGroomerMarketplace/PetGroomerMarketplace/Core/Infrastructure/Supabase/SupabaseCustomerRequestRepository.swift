@@ -21,9 +21,16 @@ final class SupabaseCustomerRequestRepository: CustomerRequestRepository {
     fileprivate static let requestPhotoBucketID = PhotoStorageBucketID.groomingRequest.rawValue
 
     private let client: SupabaseClient
+    private let privateImageLoader: any PrivateImageLoading
 
-    init(client: SupabaseClient) {
+    init(
+        client: SupabaseClient,
+        privateImageLoader: (any PrivateImageLoading)? = nil
+    ) {
         self.client = client
+        self.privateImageLoader = privateImageLoader ?? PrivateImageLoader(
+            dataSource: SupabasePrivateImageDataSource(client: client)
+        )
     }
 
     func requests(customerID: UUID) async throws -> [CustomerGroomingRequest] {
@@ -126,9 +133,10 @@ final class SupabaseCustomerRequestRepository: CustomerRequestRepository {
 
     func requestPhotoData(_ photo: GroomingRequestPhoto) async throws -> Data {
         do {
-            return try await client.storage
-                .from(Self.requestPhotoBucketID)
-                .download(path: photo.storagePath)
+            return try await privateImageLoader.loadData(
+                bucketID: Self.requestPhotoBucketID,
+                storagePath: photo.storagePath
+            )
         } catch {
             throw Self.map(error)
         }
@@ -204,6 +212,12 @@ final class SupabaseCustomerRequestRepository: CustomerRequestRepository {
                     .remove(paths: [storagePath])
                 throw CustomerRequestRepositoryError.unavailable
             }
+
+            privateImageLoader.saveData(
+                data,
+                bucketID: Self.requestPhotoBucketID,
+                storagePath: storagePath
+            )
 
             return photo
         } catch let error as CustomerRequestRepositoryError {

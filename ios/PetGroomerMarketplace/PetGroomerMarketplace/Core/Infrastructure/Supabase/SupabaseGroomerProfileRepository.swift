@@ -27,9 +27,16 @@ final class SupabaseGroomerProfileRepository: GroomerProfileRepository {
     private static let legacyAvatarBucketID = "avatars"
 
     private let client: SupabaseClient
+    private let privateImageLoader: any PrivateImageLoading
 
-    init(client: SupabaseClient) {
+    init(
+        client: SupabaseClient,
+        privateImageLoader: (any PrivateImageLoading)? = nil
+    ) {
         self.client = client
+        self.privateImageLoader = privateImageLoader ?? PrivateImageLoader(
+            dataSource: SupabasePrivateImageDataSource(client: client)
+        )
     }
 
     func profile(groomerID: UUID) async throws -> GroomerProfile {
@@ -318,6 +325,12 @@ final class SupabaseGroomerProfileRepository: GroomerProfileRepository {
                 throw GroomerProfileRepositoryError.unavailable
             }
 
+            privateImageLoader.saveData(
+                data,
+                bucketID: Self.bucketID,
+                storagePath: storagePath
+            )
+
             return photo
         } catch let error as GroomerProfileRepositoryError {
             throw error
@@ -331,9 +344,10 @@ final class SupabaseGroomerProfileRepository: GroomerProfileRepository {
 
     func portfolioPhotoData(_ photo: GroomerPortfolioPhoto) async throws -> Data {
         do {
-            return try await client.storage
-                .from(Self.bucketID)
-                .download(path: photo.storagePath)
+            return try await privateImageLoader.loadData(
+                bucketID: Self.bucketID,
+                storagePath: photo.storagePath
+            )
         } catch {
             throw Self.map(error)
         }
@@ -344,6 +358,10 @@ final class SupabaseGroomerProfileRepository: GroomerProfileRepository {
             try await client.storage
                 .from(Self.bucketID)
                 .remove(paths: [photo.storagePath])
+            privateImageLoader.removeData(
+                bucketID: Self.bucketID,
+                storagePath: photo.storagePath
+            )
 
             try await client
                 .from("groomer_portfolio_photos")
@@ -393,6 +411,12 @@ final class SupabaseGroomerProfileRepository: GroomerProfileRepository {
                 throw GroomerProfileRepositoryError.unavailable
             }
 
+            privateImageLoader.saveData(
+                data,
+                bucketID: Self.avatarBucketID,
+                storagePath: storagePath
+            )
+
             if let oldAvatarPath,
                oldAvatarPath != storagePath {
                 await removeAvatarPhoto(oldAvatarPath)
@@ -411,9 +435,10 @@ final class SupabaseGroomerProfileRepository: GroomerProfileRepository {
         var lastError: (any Error)?
         for bucketID in Self.avatarReadBucketIDs {
             do {
-                return try await client.storage
-                    .from(bucketID)
-                    .download(path: storagePath)
+                return try await privateImageLoader.loadData(
+                    bucketID: bucketID,
+                    storagePath: storagePath
+                )
             } catch {
                 lastError = error
             }
@@ -431,6 +456,10 @@ final class SupabaseGroomerProfileRepository: GroomerProfileRepository {
             _ = try? await client.storage
                 .from(bucketID)
                 .remove(paths: [storagePath])
+            privateImageLoader.removeData(
+                bucketID: bucketID,
+                storagePath: storagePath
+            )
         }
     }
 

@@ -8,9 +8,16 @@ final class SupabaseCustomerPetRepository: CustomerPetRepository {
     fileprivate static let bucketID = PhotoStorageBucketID.customerPet.rawValue
 
     private let client: SupabaseClient
+    private let privateImageLoader: any PrivateImageLoading
 
-    init(client: SupabaseClient) {
+    init(
+        client: SupabaseClient,
+        privateImageLoader: (any PrivateImageLoading)? = nil
+    ) {
         self.client = client
+        self.privateImageLoader = privateImageLoader ?? PrivateImageLoader(
+            dataSource: SupabasePrivateImageDataSource(client: client)
+        )
     }
 
     func pets(customerID: UUID) async throws -> [CustomerPet] {
@@ -164,6 +171,12 @@ final class SupabaseCustomerPetRepository: CustomerPetRepository {
                 throw CustomerPetRepositoryError.unavailable
             }
 
+            privateImageLoader.saveData(
+                data,
+                bucketID: Self.bucketID,
+                storagePath: storagePath
+            )
+
             return photo
         } catch let error as CustomerPetRepositoryError {
             throw error
@@ -177,9 +190,10 @@ final class SupabaseCustomerPetRepository: CustomerPetRepository {
 
     func photoData(_ photo: CustomerPetPhoto) async throws -> Data {
         do {
-            return try await client.storage
-                .from(Self.bucketID)
-                .download(path: photo.storagePath)
+            return try await privateImageLoader.loadData(
+                bucketID: Self.bucketID,
+                storagePath: photo.storagePath
+            )
         } catch {
             throw Self.map(error)
         }
@@ -190,6 +204,10 @@ final class SupabaseCustomerPetRepository: CustomerPetRepository {
             try await client.storage
                 .from(Self.bucketID)
                 .remove(paths: [photo.storagePath])
+            privateImageLoader.removeData(
+                bucketID: Self.bucketID,
+                storagePath: photo.storagePath
+            )
 
             try await client
                 .from("pet_photos")

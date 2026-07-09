@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-09
+Task: T-189 - Shared private image renderer.
+Files changed: private image loader/cache, Supabase private image data source, customer/groomer image repositories, private image audit, current state, task ledger, and worklog.
+Checks: Focused `PrivateImageCacheKeyTests`/`PrivateImageLoaderTests`; iOS build; `git diff --check`; context hygiene; commit and push.
+Result: Closes Q-02/R-005 by adding a shared authenticated private-image loader with hashed file cache, replacing direct repository Storage downloads, preserving legacy groomer avatar fallback, and clearing the shared private image cache during local account cleanup.
+Risks: No Supabase schema, policy, migration, or remote write changed. UI surfaces still need Q-03/Q-04 follow-up work for customer/groomer presentation polish and broader cache adoption.
+Next: Use T-190 unless resuming T-157 after Apple Developer credentials. Recommended roadmap package is Q-03/R-005 customer private images.
+```
+
+```text
+Date: 2026-07-09
 Task: T-188 - Private image contract audit.
 Files changed: private image audit, Storage policy, roadmap execution queue, current state, task ledger, and worklog.
 Checks: Supabase read-only bucket/RLS queries; Storage code/UI grep; `git diff --check`; context hygiene; commit and push.
 Result: Closes Q-01/R-005 by confirming the deployed private bucket/RLS contract, authenticated Storage download usage, current rendered image surfaces, local cache coverage, and gaps for the shared image renderer.
 Risks: Audit/docs-only change. No Swift behavior, schema, migration, simulator, PR, tag, merge/rebase/reset, seed, or non-Git remote write changed.
-Next: Use T-189 unless resuming T-157 after Apple Developer credentials. Recommended roadmap package is Q-02/R-005 shared private image renderer.
 ```
 
 ```text
@@ -66,13 +75,4 @@ Files changed: AGENTS, workflow rules, decision log, current state, task ledger,
 Checks: `git diff --check`; `node scripts/context-hygiene-check.mjs` with no active Markdown 85% warning; staged diff check; commit and push.
 Result: Makes the active Markdown 85% waterline a mandatory cleanup trigger for durable-doc closeout, clarifies unrelated cleanup vs context-hygiene cleanup, and archives older active ledger/worklog rows so current active Markdown is below the warning line.
 Risks: Documentation-only rule change. No Swift, Supabase, runtime, PR, tag, merge/rebase/reset, seed, migration, or non-Git remote write changed.
-```
-
-```text
-Date: 2026-07-08
-Task: T-181 - Current-state stale pointer correction.
-Files changed: current state, task ledger, worklog, and frozen ledger/worklog archives.
-Checks: `git diff --check`; `node scripts/context-hygiene-check.mjs`; staged diff check; commit and push.
-Result: Corrects stale T-180 next-task, validation-baseline, and active-Markdown-waterline text found during follow-up review. The next non-APNs task is now T-182 in both CURRENT_STATE and TASK_LEDGER.
-Risks: Documentation-only correction. No Swift, Supabase, runtime, workflow-rule, PR, tag, merge/rebase/reset, seed, cleanup, or non-Git remote write changed.
 ```

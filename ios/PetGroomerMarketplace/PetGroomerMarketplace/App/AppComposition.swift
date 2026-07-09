@@ -105,6 +105,7 @@ struct AppComposition {
                     launchConfiguration.testOps.clearsSessionBeforeRestore,
                 localAccountCleanup: { userID in
                     FileProfileSnapshotCache.shared.remove(userID: userID)
+                    FilePrivateImageCache.shared.removeAll()
                     FileCustomerPetPhotoCache.shared.removeAll(
                         customerID: userID
                     )

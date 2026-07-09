@@ -9,9 +9,16 @@ final class SupabaseCustomerProfileRepository: CustomerProfileRepository {
     private static let avatarBucketID = PhotoStorageBucketID.customerAvatar.rawValue
 
     private let client: SupabaseClient
+    private let privateImageLoader: any PrivateImageLoading
 
-    init(client: SupabaseClient) {
+    init(
+        client: SupabaseClient,
+        privateImageLoader: (any PrivateImageLoading)? = nil
+    ) {
         self.client = client
+        self.privateImageLoader = privateImageLoader ?? PrivateImageLoader(
+            dataSource: SupabasePrivateImageDataSource(client: client)
+        )
     }
 
     func profile(customerID: UUID) async throws -> CustomerProfileDetails {
@@ -158,6 +165,12 @@ final class SupabaseCustomerProfileRepository: CustomerProfileRepository {
                 throw CustomerProfileRepositoryError.unavailable
             }
 
+            privateImageLoader.saveData(
+                data,
+                bucketID: Self.avatarBucketID,
+                storagePath: storagePath
+            )
+
             if let oldAvatarPath,
                oldAvatarPath != storagePath {
                 await removeAvatarPhoto(oldAvatarPath)
@@ -174,9 +187,10 @@ final class SupabaseCustomerProfileRepository: CustomerProfileRepository {
 
     func avatarPhotoData(storagePath: String) async throws -> Data {
         do {
-            return try await client.storage
-                .from(Self.avatarBucketID)
-                .download(path: storagePath)
+            return try await privateImageLoader.loadData(
+                bucketID: Self.avatarBucketID,
+                storagePath: storagePath
+            )
         } catch {
             throw Self.map(error)
         }
@@ -225,6 +239,10 @@ final class SupabaseCustomerProfileRepository: CustomerProfileRepository {
         _ = try? await client.storage
             .from(Self.avatarBucketID)
             .remove(paths: [storagePath])
+        privateImageLoader.removeData(
+            bucketID: Self.avatarBucketID,
+            storagePath: storagePath
+        )
     }
 
     private static func latestAvatarPhotoPath(

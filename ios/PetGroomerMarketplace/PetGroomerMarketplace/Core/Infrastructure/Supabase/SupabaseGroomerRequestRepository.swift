@@ -26,9 +26,16 @@ final class SupabaseGroomerRequestRepository: GroomerRequestRepository {
     private static let requestPhotoBucketID = PhotoStorageBucketID.groomingRequest.rawValue
 
     private let client: SupabaseClient
+    private let privateImageLoader: any PrivateImageLoading
 
-    init(client: SupabaseClient) {
+    init(
+        client: SupabaseClient,
+        privateImageLoader: (any PrivateImageLoading)? = nil
+    ) {
         self.client = client
+        self.privateImageLoader = privateImageLoader ?? PrivateImageLoader(
+            dataSource: SupabasePrivateImageDataSource(client: client)
+        )
     }
 
     func matchedRequests(groomerID: UUID) async throws -> [GroomerMatchedRequest] {
@@ -153,9 +160,10 @@ final class SupabaseGroomerRequestRepository: GroomerRequestRepository {
 
     func requestPhotoData(_ photo: GroomingRequestPhoto) async throws -> Data {
         do {
-            return try await client.storage
-                .from(Self.requestPhotoBucketID)
-                .download(path: photo.storagePath)
+            return try await privateImageLoader.loadData(
+                bucketID: Self.requestPhotoBucketID,
+                storagePath: photo.storagePath
+            )
         } catch {
             throw Self.map(error)
         }
