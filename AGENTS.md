@@ -69,7 +69,7 @@ If a required validation fails, report the first real error and stop unless the 
 
 Briefly review the diff when files changed. Record closeout in `docs/06_tasks/TASK_LEDGER.md` and `docs/00_memory/WORKLOG.md` when the task changes durable workflow/product state or app behavior. Update `docs/00_memory/CURRENT_STATE.md` only when a future run needs the changed fact.
 
-After required validation and closeout, create a task-scoped commit and push the current branch under standing Git approval. Skip commit/push if validation fails, unrelated user work is mixed in, secrets are present, the branch is unclear, or the user disables auto Git.
+After required validation and closeout, create a task-scoped commit and push the current branch under standing Git approval. Skip commit/push if validation fails, unrelated user work is mixed in, secrets are present, the branch is unclear, or the user disables auto Git. If push fails or is rejected, stop and report; do not auto pull, rebase, merge, reset, force-push, or reconcile.
 
 After durable memory or task-ledger changes, run context hygiene. If it reports rolling-window overflow, run `node scripts/context-rotate.mjs --apply`, then rerun hygiene.
 

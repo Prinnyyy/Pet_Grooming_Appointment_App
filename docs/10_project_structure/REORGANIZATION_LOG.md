@@ -31,6 +31,7 @@ Validation for the task is recorded in `../06_tasks/TASK_LEDGER.md` and `../00_m
 
 | Date | Task | Summary | Detail |
 |---|---|---|---|
+| 2026-07-08 | T-186 | Removed stale active 85% workflow execution rules and rotated the oldest active decision entry. | `../05_workflow/`, `../09_frozen/decisions/` |
 | 2026-07-09 | T-185 | Removed ignored root external drafts after preserving root v3.1 copies in frozen reports. | `../09_frozen/external_agent_reports/` |
 | 2026-07-09 | T-184 | Aligned context-budget workflow rules and archived the adopted redesign plan. | `../05_workflow/CONTEXT_AND_RECOVERY.md`, `../09_frozen/external_agent_reports/`, `../09_frozen/decisions/` |
 | 2026-07-08 | T-179 | Archived the adopted watch-items plan, lowered active memory windows, and compressed active indexes below the 85% waterline. | `../09_frozen/external_agent_reports/`, `../09_frozen/task_ledgers/`, `../09_frozen/worklogs/`, `README.md` |

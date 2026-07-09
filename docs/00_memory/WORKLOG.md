@@ -5,13 +5,22 @@ This file is the active recent closeout index, newest first. It intentionally ke
 Current branch, next task ID, and current baseline live in `docs/00_memory/CURRENT_STATE.md` and `docs/06_tasks/TASK_LEDGER.md`. Only the newest entry should keep a `Next:` line.
 
 ```text
+Date: 2026-07-08
+Task: T-186 - Stale workflow 85% wording cleanup and push-failure rule.
+Files changed: AGENTS, workflow rules, decision log/archive, current state, task ledger, worklog, and structure log.
+Checks: `git diff --check`; `node scripts/context-rotate.mjs --apply`; `node scripts/context-hygiene-check.mjs`; `node scripts/context-rotate.mjs`; commit and push.
+Result: Removes active 85% warning/waterline closeout and stop rules, keeps 95% active Markdown as structural-review scheduling only, corrects the T-185 meta-review marker to 2026-07-08, and requires agents to stop without auto pull/rebase/merge/reset/force-push when automatic push fails or is rejected.
+Risks: Documentation-only workflow change. No Swift, Supabase, runtime, simulator, PR, tag, merge/rebase/reset, seed, migration, or non-Git remote write changed.
+Next: Use T-187 unless resuming T-157 after Apple Developer credentials. Product candidate remains private image rendering.
+```
+
+```text
 Date: 2026-07-09
 Task: T-185 - Root external draft cleanup and meta-review.
 Files changed: frozen external reports, current state, task ledger, worklog, and structure log.
 Checks: `git diff --check`; `node scripts/context-hygiene-check.mjs`; `node scripts/context-rotate.mjs`; targeted meta-review `rg`; commit and push.
 Result: Preserves the ignored root APP_STATUS_OVERVIEW and V1.0 release-plan v3.1 drafts under `docs/09_frozen/external_agent_reports/`, removes root copies, and records the scheduled meta-review. Targeted review found stale 85% wording in active workflow docs that needs a standalone T-186 rule cleanup.
 Risks: Documentation/archive cleanup only. No Swift, Supabase, runtime, simulator, PR, tag, merge/rebase/reset, seed, migration, or non-Git remote write changed.
-Next: Use T-186 for stale active workflow 85% wording cleanup unless resuming T-157 after Apple Developer credentials.
 ```
 
 ```text

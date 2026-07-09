@@ -24,7 +24,7 @@ Default workflow for this repository. It keeps each run bounded, recoverable, an
 6. Run mode-appropriate validation.
 7. Review the current diff.
 8. Update task closeout and durable memory only when the completion gate requires it.
-9. Run context hygiene if durable memory or task ledgers changed, and clear any active Markdown 85% warning before closeout.
+9. Run context hygiene if durable memory or task ledgers changed; resolve rolling-window overflow with `node scripts/context-rotate.mjs --apply` before closeout.
 10. Launch the simulator only when required.
 11. Create a task-scoped commit and push the current branch when completion and validation have passed.
 12. Write a checkpoint before manual compaction.
@@ -63,7 +63,7 @@ Durable memory updates are limited to changed facts:
 - `docs/00_memory/FEATURE_INDEX.md`: feature ownership or routing changes.
 - `docs/07_decisions/DECISION_LOG.md`: durable architecture/product decisions.
 
-After durable memory or ledger changes, run context hygiene and archive old rows/content in the same task if thresholds or the 85% active Markdown waterline are reached.
+After durable memory or ledger changes, run context hygiene. If it reports rolling-window overflow, run `node scripts/context-rotate.mjs --apply` and rerun hygiene. If it reports a hard active-Markdown limit failure, stop or make a scoped archive/trim that preserves the current task's source-of-truth facts. A 95% active-Markdown warning schedules structural review; it is not a same-task compression target.
 
 ## Automatic Git Closeout
 
@@ -77,6 +77,7 @@ Automatic commit/push requirements:
 - Use the task-prefixed commit format from `GITHUB_RULES.md`.
 - Push only the current work branch.
 - Skip commit/push and report why if validation fails, the branch is unclear, secrets appear in the diff, unrelated user work would be included, or the user explicitly disables auto Git for the task.
+- If push fails or is rejected, stop and report; do not auto pull, rebase, merge, reset, force-push, or retry remote reconciliation.
 
 This standing approval does not authorize PR creation, tags, branch deletion, merge/rebase/reset, Supabase writes, seeds, unrelated cleanup, or other remote operations.
 

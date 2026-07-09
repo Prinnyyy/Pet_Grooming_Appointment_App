@@ -22,6 +22,7 @@ Codex must stop and report when any condition occurs.
 
 - The first required build or test attempt fails; report the first real error and stop unless the user approves a follow-up.
 - A required completion `git diff --check` attempt fails.
+- An automatic task-completion push fails or is rejected; report it without auto pull, rebase, merge, reset, force-push, or remote reconciliation.
 - The app cannot be launched in the iOS Simulator when simulator launch is required for the task.
 - Required scheme/simulator cannot be detected when app build or simulator launch is required.
 - Supabase schema cannot be verified.
@@ -49,7 +50,7 @@ Codex must stop and report when any condition occurs.
 - The next step would require broad full-file reads of archives, Groomly HTML/export, T-129 seed tables, large migrations, or large Swift files.
 - Default search would need to bypass `.rgignore` without a targeted reason.
 - `rg --files -g '*.md'` or another broad inventory would re-include ignored heavy Markdown as routine context.
-- Active Markdown is at or above the 85% waterline and cannot be brought below it by a small same-task archive/trim.
+- Context hygiene reports a hard active-Markdown limit failure or rolling-window overflow that cannot be resolved by scoped same-task rotation/archive work.
 
 ## Required Stop Report
 

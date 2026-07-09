@@ -109,6 +109,7 @@ Automatic commit/push guardrails:
 - Do not include unrelated user work.
 - Do not commit or push if validation failed, secrets appear in the diff, the branch is unclear, or the user disabled auto Git for the task.
 - Push only the current work branch.
+- If push fails or is rejected, stop and report; do not auto pull, rebase, merge, reset, force-push, or retry remote reconciliation.
 
 When committing or pushing, include a concise traceability record in the user-facing closeout: what changed, why it changed, validation run, known risks, branch, commit hash, and push result.
 

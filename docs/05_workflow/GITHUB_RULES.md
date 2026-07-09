@@ -43,6 +43,7 @@ Write summaries in English, imperative or noun-phrase style, and keep them speci
 
 - Push the current work branch automatically after a task-scoped completion commit passes validation.
 - Push only the branch that was just committed.
+- If push fails or is rejected, stop and report; do not auto pull, rebase, merge, reset, force-push, or retry remote reconciliation.
 - PR creation or update requires a user request and must include task ID, validation, known risks, and any skipped checks.
 - Release tags use `vX.Y.Z` and require explicit user approval. Do not infer a release tag from a roadmap or task name.
 
