@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-09
+Task: T-213 - Time and boundary contract tests.
+Files changed: time-boundary migration contract tests, roadmap, current state, task ledger, and worklog.
+Checks: Focused `node --test tests/migrations/time-boundary-contract.test.mjs`; `node --test tests/migrations/*.test.mjs`; `./scripts/supabase-check.sh`; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
+Result: Closes Q-25/R-028 by adding focused backend contract coverage for groomer-local request-day matching, exact offer/booking availability windows, time-off overlap, minimum advance notice, daily capacity, expiry edge conversion, and service size-band limits.
+Risks: Test-only backend contract coverage. No Supabase schema, migration, remote write, repository API signature, UI layout, Auth config, seed, TestOps remote execution, deploy, APNs dispatch, release upload, tag, PR, merge/rebase/reset, or force-push changed.
+Next: Use T-214 for the next user-chosen task; recommended queue start is Q-26 decode/data tolerance tests.
+```
+
+```text
+Date: 2026-07-09
 Task: T-212 - Split groomer profile surfaces.
 Files changed: groomer profile root/account/profile form/services/portfolio/fit/availability/status SwiftUI files, roadmap, current state, task ledger, and worklog.
 Checks: Full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
 Result: Closes Q-24/R-026 by splitting the oversized GroomerProfileManagementView surface into focused account, profile form, services, portfolio, fit signals, availability, and status/preview files while preserving runtime behavior.
 Risks: Structure-only groomer profile refactor. No Supabase schema, migration, remote write, repository API signature, Auth config, seed, TestOps remote execution, deploy, APNs dispatch, release upload, tag, PR, merge/rebase/reset, or force-push changed.
-Next: Use T-213 for the next user-chosen task; recommended queue start is Q-25 time and boundary tests.
 ```
 
 ```text
@@ -66,13 +75,4 @@ Files changed: GroomerOffersFeatureTests, GroomerRequestFeatureTests, GroomerReq
 Checks: GroomerOffersStoreTests/GroomerRequestsStoreTests RED/GREEN; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
 Result: Closes Q-19/R-028 by adding focused coverage for offer empty/cancelled list states, stale request and active-offer conflicts, and rejected accepted-offer withdrawal. Production change clears stale success notice before local withdraw rejection.
 Risks: No Supabase schema, migration, remote write, repository API, UI layout, dependency, Auth config, seed, TestOps remote execution, deploy, APNs, release upload, tag, PR, merge/rebase/reset, or force-push changed.
-```
-
-```text
-Date: 2026-07-09
-Task: T-205 - Foreground state timeliness.
-Files changed: foreground refresh gate/modifier, customer home/requests/bookings/notifications views, groomer requests/offers/bookings/notifications views, focused tests, roadmap, current state, task ledger, and worklog.
-Checks: ForegroundRefreshGateTests RED/GREEN; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
-Result: Closes Q-18 by moving the affected marketplace screens from one-time task loading to a shared foreground refresh path with initial load, scene-active refresh, realtime-fallback polling, throttling, and in-flight dedupe.
-Risks: This is local UI refresh behavior only. No Supabase schema, migration, remote write, realtime channel contract, Auth config, seed, TestOps remote execution, deploy, APNs, release upload, tag, PR, merge/rebase/reset, or force-push changed.
 ```
