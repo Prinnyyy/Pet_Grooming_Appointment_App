@@ -1,0 +1,479 @@
+import Foundation
+
+extension GroomerProfileStore {
+    func startCreateService() {
+        editingServiceID = nil
+        resetServiceForm()
+        errorMessage = nil
+        noticeMessage = nil
+        isShowingServiceForm = true
+    }
+
+    func startEditService(_ service: GroomerService) {
+        editingServiceID = service.id
+        serviceType = service.serviceType
+        serviceTitle = service.title
+        serviceDescription = service.description ?? ""
+        serviceBasePrice = Self.displayPrice(service.basePrice)
+        serviceDurationMinutes = String(service.durationMinutes)
+        serviceUsesCustomSizeRange = !service.acceptedPetSizes.isEmpty
+        selectedServiceSizes = Set(service.acceptedPetSizes)
+        serviceIsActive = service.isActive
+        errorMessage = nil
+        noticeMessage = nil
+        isShowingServiceForm = true
+    }
+
+    func cancelServiceForm() {
+        isShowingServiceForm = false
+        editingServiceID = nil
+        resetServiceForm()
+    }
+
+    func setServiceUsesCustomSizeRange(_ isEnabled: Bool) {
+        errorMessage = nil
+        noticeMessage = nil
+        serviceUsesCustomSizeRange = isEnabled
+
+        if isEnabled, selectedServiceSizes.isEmpty {
+            setServiceAcceptedPetSizeRange(
+                lowerIndex: selectedSizeBandRange.lowerBound,
+                upperIndex: selectedSizeBandRange.upperBound,
+                clearsNotice: false
+            )
+        } else if !isEnabled {
+            selectedServiceSizes = []
+        }
+    }
+
+    func setServiceAcceptedPetSizeRange(lowerIndex: Int, upperIndex: Int) {
+        setServiceAcceptedPetSizeRange(
+            lowerIndex: lowerIndex,
+            upperIndex: upperIndex,
+            clearsNotice: true
+        )
+    }
+
+    func serviceSizePolicySummary(for service: GroomerService) -> String {
+        if service.acceptedPetSizes.isEmpty {
+            return "Follows Fit Signals: \(sizeBandFitClaimRangeTitle)"
+        }
+        return "Custom range: \(Self.serviceSizeRangeTitle(for: service.acceptedPetSizes))"
+    }
+
+    func saveService() async {
+        guard !isSaving else { return }
+
+        errorMessage = nil
+        noticeMessage = nil
+
+        let draft: GroomerServiceDraft
+        do {
+            draft = try makeServiceDraft()
+        } catch let error as GroomerProfileFormError {
+            errorMessage = error.message
+            return
+        } catch {
+            errorMessage = "Check your service details and try again."
+            return
+        }
+
+        isSaving = true
+        defer { isSaving = false }
+
+        do {
+            if let editingServiceID,
+               let currentService = services.first(where: { $0.id == editingServiceID }) {
+                let service = try await repository.updateService(
+                    service: currentService,
+                    draft: draft
+                )
+                replace(service)
+                noticeMessage = "\(service.title) was updated."
+            } else {
+                let service = try await repository.createService(
+                    groomerID: groomerID,
+                    draft: draft
+                )
+                services.insert(service, at: 0)
+                noticeMessage = "\(service.title) was added."
+            }
+
+            isShowingServiceForm = false
+            editingServiceID = nil
+            resetServiceForm()
+        } catch let error as GroomerProfileRepositoryError {
+            errorMessage = message(for: error, action: "save")
+        } catch {
+            errorMessage = message(for: .unavailable, action: "save")
+        }
+    }
+
+    func deleteService(_ service: GroomerService) async {
+        guard !isSaving else { return }
+
+        isSaving = true
+        errorMessage = nil
+        noticeMessage = nil
+        defer { isSaving = false }
+
+        do {
+            try await repository.deleteService(service)
+            services.removeAll { $0.id == service.id }
+            noticeMessage = "\(service.title) was deleted."
+        } catch let error as GroomerProfileRepositoryError {
+            errorMessage = message(for: error, action: "delete")
+        } catch {
+            errorMessage = message(for: .unavailable, action: "delete")
+        }
+    }
+
+    func setAvailability(
+        day: GroomerAvailabilityWeekday,
+        isEnabled: Bool,
+        startMinutes: Int,
+        endMinutes: Int
+    ) {
+        guard let index = availabilityDayStates.firstIndex(where: { $0.weekday == day }) else {
+            return
+        }
+
+        availabilityDayStates[index].isEnabled = isEnabled
+        availabilityDayStates[index].startMinutes = startMinutes
+        availabilityDayStates[index].endMinutes = endMinutes
+    }
+
+    func saveAvailability() async {
+        guard !isSaving else { return }
+
+        errorMessage = nil
+        noticeMessage = nil
+
+        let profileDraft: GroomerProfileDraft
+        let drafts: [GroomerAvailabilityDraft]
+        let preferencesDraft: GroomerBookingPreferencesDraft
+        do {
+            profileDraft = try makeProfileDraft()
+            drafts = try makeAvailabilityDrafts()
+            preferencesDraft = try makeBookingPreferencesDraft()
+        } catch let error as GroomerProfileFormError {
+            errorMessage = error.message
+            return
+        } catch {
+            errorMessage = "Check your availability and try again."
+            return
+        }
+
+        isSaving = true
+        profileMutationRevision += 1
+        defer { isSaving = false }
+
+        do {
+            let currentAvatarPath = profile?.avatarPath
+            var updatedProfile = try await repository.updateProfile(
+                groomerID: groomerID,
+                draft: profileDraft
+            )
+            if updatedProfile.avatarPath == nil {
+                updatedProfile.avatarPath = currentAvatarPath
+            }
+            let updatedWindows = try await repository.replaceAvailability(
+                groomerID: groomerID,
+                drafts: drafts
+            )
+            let updatedPreferences = try await repository.updateBookingPreferences(
+                groomerID: groomerID,
+                draft: preferencesDraft
+            )
+            profile = updatedProfile
+            availabilityWindows = updatedWindows
+            bookingPreferences = updatedPreferences
+            populateProfileForm(with: updatedProfile)
+            populateAvailabilityForm(with: updatedWindows)
+            populateBookingPreferencesForm(with: updatedPreferences)
+            noticeMessage = "Availability saved."
+        } catch let error as GroomerProfileRepositoryError {
+            errorMessage = message(for: error, action: "save availability")
+        } catch {
+            errorMessage = message(for: .unavailable, action: "save availability")
+        }
+    }
+
+    func startCreateTimeOff() {
+        resetTimeOffForm()
+        errorMessage = nil
+        noticeMessage = nil
+        isShowingTimeOffForm = true
+    }
+
+    func cancelTimeOffForm() {
+        resetTimeOffForm()
+        isShowingTimeOffForm = false
+    }
+
+    func createTimeOff() async {
+        guard !isSaving else { return }
+
+        errorMessage = nil
+        noticeMessage = nil
+
+        let draft: GroomerTimeOffDraft
+        do {
+            draft = try makeTimeOffDraft()
+        } catch let error as GroomerProfileFormError {
+            errorMessage = error.message
+            return
+        } catch {
+            errorMessage = "Check your time off dates and try again."
+            return
+        }
+
+        isSaving = true
+        defer { isSaving = false }
+
+        do {
+            let window = try await repository.createTimeOff(
+                groomerID: groomerID,
+                draft: draft
+            )
+            timeOffWindows.append(window)
+            timeOffWindows.sort {
+                if $0.startDate == $1.startDate {
+                    $0.title < $1.title
+                } else {
+                    $0.startDate < $1.startDate
+                }
+            }
+            isShowingTimeOffForm = false
+            resetTimeOffForm()
+            noticeMessage = "Time off added."
+        } catch let error as GroomerProfileRepositoryError {
+            errorMessage = message(for: error, action: "save time off")
+        } catch {
+            errorMessage = message(for: .unavailable, action: "save time off")
+        }
+    }
+
+    func deleteTimeOff(_ window: GroomerTimeOffWindow) async {
+        guard !isSaving else { return }
+
+        isSaving = true
+        errorMessage = nil
+        noticeMessage = nil
+        defer { isSaving = false }
+
+        do {
+            try await repository.deleteTimeOff(window)
+            timeOffWindows.removeAll { $0.id == window.id }
+            noticeMessage = "Time off removed."
+        } catch let error as GroomerProfileRepositoryError {
+            errorMessage = message(for: error, action: "delete time off")
+        } catch {
+            errorMessage = message(for: .unavailable, action: "delete time off")
+        }
+    }
+
+    func resetTimeOffForm() {
+        timeOffTitle = ""
+        let today = Calendar.current.startOfDay(for: Date())
+        timeOffStartDate = today
+        timeOffEndDate = today
+    }
+
+    private func resetServiceForm() {
+        serviceType = .fullGroom
+        serviceTitle = GroomingServiceType.fullGroom.title
+        serviceDescription = ""
+        serviceBasePrice = ""
+        serviceDurationMinutes = ""
+        serviceUsesCustomSizeRange = false
+        selectedServiceSizes = []
+        serviceIsActive = true
+    }
+
+    private func replace(_ service: GroomerService) {
+        guard let index = services.firstIndex(where: { $0.id == service.id }) else {
+            services.insert(service, at: 0)
+            return
+        }
+        services[index] = service
+    }
+
+    private func makeServiceDraft() throws -> GroomerServiceDraft {
+        let serviceTitle = serviceType.title
+        return GroomerServiceDraft(
+            serviceType: serviceType,
+            title: serviceTitle,
+            description: try optional(
+                serviceDescription,
+                field: "Description",
+                maximum: 500
+            ),
+            basePrice: try price(from: serviceBasePrice),
+            durationMinutes: try requiredInteger(
+                serviceDurationMinutes,
+                field: "Duration",
+                range: 15...720
+            ),
+            acceptedPetSizes: serviceUsesCustomSizeRange
+                ? GroomerServicePetSize.allCases.filter { selectedServiceSizes.contains($0) }
+                : [],
+            isActive: serviceIsActive
+        )
+    }
+
+    private func makeAvailabilityDrafts() throws -> [GroomerAvailabilityDraft] {
+        try availabilityDayStates
+            .sorted { $0.weekday.rawValue < $1.weekday.rawValue }
+            .map { state in
+                guard state.startMinutes >= 0,
+                      state.endMinutes <= 23 * 60 + 59 else {
+                    throw GroomerProfileFormError(
+                        message: "\(state.weekday.title) availability must stay within one day."
+                    )
+                }
+
+                if state.isEnabled, state.endMinutes <= state.startMinutes {
+                    throw GroomerProfileFormError(
+                        message: "\(state.weekday.title) availability needs an end time after the start time."
+                    )
+                }
+
+                return GroomerAvailabilityDraft(
+                    weekday: state.weekday,
+                    startMinutes: state.startMinutes,
+                    endMinutes: state.endMinutes,
+                    isEnabled: state.isEnabled,
+                    timezone: availabilityTimezone
+                )
+            }
+    }
+
+    private func makeBookingPreferencesDraft() throws -> GroomerBookingPreferencesDraft {
+        guard (1...12).contains(maxAppointmentsPerDay) else {
+            throw GroomerProfileFormError(
+                message: "Max appointments per day must be 1–12."
+            )
+        }
+
+        guard (0...2).contains(minimumAdvanceNoticeDays) else {
+            throw GroomerProfileFormError(
+                message: "Minimum advance notice must be Same day, 1 day, or 2 days."
+            )
+        }
+
+        return GroomerBookingPreferencesDraft(
+            maxAppointmentsPerDay: maxAppointmentsPerDay,
+            minimumAdvanceNoticeDays: minimumAdvanceNoticeDays,
+            autoAcceptBookings: autoAcceptBookings
+        )
+    }
+
+    private func makeTimeOffDraft() throws -> GroomerTimeOffDraft {
+        let title = try required(
+            timeOffTitle,
+            field: "Time off title",
+            range: 1...80
+        )
+        let startDate = Calendar.current.startOfDay(for: timeOffStartDate)
+        let endDate = Calendar.current.startOfDay(for: timeOffEndDate)
+
+        guard endDate >= startDate else {
+            throw GroomerProfileFormError(
+                message: "Time off end date must be on or after the start date."
+            )
+        }
+
+        return GroomerTimeOffDraft(
+            title: title,
+            startDate: Self.dateString(from: startDate),
+            endDate: Self.dateString(from: endDate)
+        )
+    }
+
+    private func setServiceAcceptedPetSizeRange(
+        lowerIndex: Int,
+        upperIndex: Int,
+        clearsNotice: Bool
+    ) {
+        if clearsNotice {
+            errorMessage = nil
+            noticeMessage = nil
+        }
+
+        let range = Self.normalizedServiceSizeRange(
+            lowerIndex: lowerIndex,
+            upperIndex: upperIndex
+        )
+        serviceUsesCustomSizeRange = true
+        selectedServiceSizes = Set(
+            Self.serviceSizeOptions.enumerated().compactMap { index, size in
+                range.contains(index) ? size : nil
+            }
+        )
+    }
+
+    static func displayPrice(_ price: Double) -> String {
+        if price.rounded() == price {
+            return String(Int(price))
+        }
+        return String(format: "%.2f", price)
+    }
+
+    static var serviceSizeOptions: [GroomerServicePetSize] {
+        GroomerServicePetSize.allCases
+    }
+
+    static var fullServiceSizeRange: ClosedRange<Int> {
+        0...(serviceSizeOptions.count - 1)
+    }
+
+    static func normalizedServiceSizeRange(
+        lowerIndex: Int,
+        upperIndex: Int
+    ) -> ClosedRange<Int> {
+        let maximumIndex = serviceSizeOptions.count - 1
+        let lowerBound = min(max(lowerIndex, 0), maximumIndex)
+        let upperBound = min(max(upperIndex, 0), maximumIndex)
+        return min(lowerBound, upperBound)...max(lowerBound, upperBound)
+    }
+
+    static func serviceSizeRangeTitle(
+        for sizes: [GroomerServicePetSize]
+    ) -> String {
+        let selectedIndices = serviceSizeOptions.enumerated().compactMap { index, size in
+            sizes.contains(size) ? index : nil
+        }
+        guard let lowerBound = selectedIndices.min(),
+              let upperBound = selectedIndices.max() else {
+            return serviceSizeRangeTitle(for: fullServiceSizeRange)
+        }
+        return serviceSizeRangeTitle(for: lowerBound...upperBound)
+    }
+
+    static func serviceSizeRangeTitle(
+        for range: ClosedRange<Int>
+    ) -> String {
+        let normalizedRange = normalizedServiceSizeRange(
+            lowerIndex: range.lowerBound,
+            upperIndex: range.upperBound
+        )
+        let lower = serviceSizeOptions[normalizedRange.lowerBound]
+        let upper = serviceSizeOptions[normalizedRange.upperBound]
+        if lower == upper {
+            return "\(lower.title) (\(lower.singleWeightLabel))"
+        }
+        return "\(lower.title)-\(upper.title) (\(lower.lowerWeightLabel)-\(upper.upperWeightLabel))"
+    }
+
+    static func dateString(from date: Date) -> String {
+        let components = Calendar.current.dateComponents([.year, .month, .day], from: date)
+        return String(
+            format: "%04d-%02d-%02d",
+            components.year ?? 0,
+            components.month ?? 1,
+            components.day ?? 1
+        )
+    }
+
+}

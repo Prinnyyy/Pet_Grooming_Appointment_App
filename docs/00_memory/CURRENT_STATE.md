@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-09
 - Updated by: Codex
-- Latest completed task: T-225 Groomer profile test split.
+- Latest completed task: T-226 Groomer profile store split.
 - Current task: none; T-157 APNs remains externally blocked.
-- Next task ID: use T-226 unless the user resumes T-157 after Apple Developer Program upgrade.
+- Next task ID: use T-227 unless the user resumes T-157 after Apple Developer Program upgrade.
 
 ## Fast Path
 
@@ -32,8 +32,8 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Validation Baseline
 
-- Last validation: T-225 split `GroomerProfileFeatureTests.swift`; total `@Test` count stayed 45, `GroomerProfileStoreTests` stayed 39, resulting files are 8K-20.5K plus 17.8K fakes, full `./scripts/ios-test.sh` passed, and `git diff --check` plus context hygiene passed on 2026-07-09.
-- Recent focused coverage: T-221 dual-role planning; T-222 readiness rehearsal; T-223 Xcode script output filtering; T-224 customer request test split; T-225 groomer profile test split.
+- Last validation: T-226 split `GroomerProfileStore.swift`; `GroomerProfileStore` member declarations stayed 163, resulting files are 4.3K-16.2K, `./scripts/ios-build.sh` and full `./scripts/ios-test.sh` passed, and `git diff --check` plus context hygiene passed on 2026-07-09.
+- Recent focused coverage: T-222 readiness rehearsal; T-223 Xcode script output filtering; T-224 customer request test split; T-225 groomer profile test split; T-226 groomer profile store split.
 - Last Supabase migration apply: T-160 applied `20260707191034_t160_account_deletion.sql` to `lqmasbuqzvcvtawonjlb` on 2026-07-07 and confirmed parity/RLS/grants/RPCs/advisors/deployment.
 - Prepared unapplied Supabase migration: T-203 `20260709073051_t203_groomer_notifications.sql` is local-only until explicit remote migration authorization.
 - Last TestOps unit validation: T-222 `./scripts/testops-unit.sh` passed 24 Node tests.
@@ -94,4 +94,4 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Next Recommended Task
 
-- Use T-226 for Context Optimization Task D if continuing the external plan; otherwise use the next user-chosen task. No unblocked roadmap execution queue item remains. T-203 migration remains local-only until explicit remote apply authorization. Q-90...Q-92 remain blocked on Apple/APNs/release or production SMTP credentials.
+- Use T-227 for the next user-chosen task unless resuming T-157. The context optimization external plan is complete and archived under `docs/09_frozen/external_agent_reports/`. No unblocked roadmap execution queue item remains. T-203 migration remains local-only until explicit remote apply authorization. Q-90...Q-92 remain blocked on Apple/APNs/release or production SMTP credentials.

@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-09
+Task: T-226 - Groomer profile store split.
+Files changed: groomer profile store files, current state, task ledger, worklog, structure log, and frozen external plan archive.
+Checks: pre-change `./scripts/ios-build.sh`; member declarations 163 before and after; file sizes 4.3K-16.2K; `./scripts/ios-build.sh`; full `./scripts/ios-test.sh`; `git diff --check`; context hygiene; commit and push.
+Result: Implements Context Optimization Task D by splitting the 59K app-target `GroomerProfileStore.swift` into base plus Profile, ServicesAvailability, Portfolio, FitSignals, and Support extension files. Stored properties and initializer stayed in the base file; behavior was preserved with minimal visibility widening required for cross-file extensions. The completed external plan was archived under `docs/09_frozen/external_agent_reports/CONTEXT_OPTIMIZATION_TASK_PLAN_2026-07-09.md`.
+Risks: App-target code movement only. No SwiftUI view, repository, model, `project.pbxproj`, workflow rule, Supabase schema, migration, remote write, seed, release upload, tag, PR, merge/rebase/reset, or force-push changed.
+Next: Use T-227 for the next user-chosen task unless resuming T-157.
+```
+
+```text
+Date: 2026-07-09
 Task: T-225 - Groomer profile test split.
 Files changed: groomer profile feature test files, current state, task ledger, worklog, and structure log.
 Checks: pre-change full `./scripts/ios-test.sh` rerun passed after an initial unrelated `ForegroundRefreshGateTests` flake; `@Test` count 45 before and after; `GroomerProfileStoreTests` count 39 before and after; file sizes 8K-20.5K plus 17.8K fakes; full `./scripts/ios-test.sh`; `git diff --check`; context hygiene; commit and push.
 Result: Implements Context Optimization Task C by splitting the 70K `GroomerProfileFeatureTests.swift` into a base test file, three same-suite extension files, and one test fakes file. Test names/bodies were preserved; shared helpers and fakes were widened only where cross-file access required it, with the groomer snapshot cache fake renamed to avoid a same-target customer test fake collision.
 Risks: Test-target code movement only. No app Swift, Xcode project, workflow rule, Supabase schema, migration, remote write, seed, release upload, tag, PR, merge/rebase/reset, or force-push changed. Root `CONTEXT_OPTIMIZATION_TASK_PLAN.md` remains external plan input until the serial tasks are complete.
-Next: Use T-226 for Context Optimization Task D if continuing the external plan; otherwise use the next user-chosen task.
 ```
 
 ```text
@@ -66,13 +75,4 @@ Files changed: shared pagination model, list repository protocols and Supabase i
 Checks: ListPagination RED/GREEN; full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
 Result: Closes Q-30/R-027 by adding a bounded first-page contract, limit+1 Supabase ranges for request/offer/booking/message/notification repositories, debug wrapper forwarding, and next-page state/methods for bookings and chat.
 Risks: Local iOS pagination/query-boundary hardening only. No Supabase schema, migration, remote write, Auth config, seed, TestOps remote execution, deploy, APNs dispatch, release upload, tag, PR, merge/rebase/reset, or force-push changed. Most UI surfaces still consume first page only; the audit doc records deferred visible load-more controls.
-```
-
-```text
-Date: 2026-07-09
-Task: T-218 - Meta-review and context hygiene.
-Files changed: current state, task ledger, worklog, roadmap, and frozen rotated rows.
-Checks: `git status --short`; `git diff --check`; context hygiene; commit and push.
-Result: Runs the required 10-task cadence review after T-207, rotates excess active ledger/worklog rows, confirms active roadmap/queue/current-state pointers align at Q-30/T-219, and records the new meta-review marker.
-Risks: Documentation governance only. No product code, Supabase schema, migration, remote write, Auth config, seed, TestOps remote execution, deploy, APNs dispatch, release upload, tag, PR, merge/rebase/reset, or force-push changed.
 ```

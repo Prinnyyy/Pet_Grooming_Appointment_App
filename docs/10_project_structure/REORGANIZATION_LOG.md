@@ -31,6 +31,7 @@ Validation for the task is recorded in `../06_tasks/TASK_LEDGER.md` and `../00_m
 
 | Date | Task | Summary | Detail |
 |---|---|---|---|
+| 2026-07-09 | T-226 | Split groomer profile store, archived the completed context optimization plan, and rotated oldest active ledger/worklog rows. | `../../ios/PetGroomerMarketplace/PetGroomerMarketplace/Features/Groomer/Profile/`, `../09_frozen/external_agent_reports/`, `../09_frozen/task_ledgers/`, `../09_frozen/worklogs/` |
 | 2026-07-09 | T-225 | Split groomer profile feature tests and rotated oldest active ledger/worklog rows. | `../../ios/PetGroomerMarketplace/PetGroomerMarketplaceTests/`, `../09_frozen/task_ledgers/`, `../09_frozen/worklogs/` |
 | 2026-07-09 | T-224 | Split customer request feature tests and rotated oldest active ledger/worklog rows. | `../../ios/PetGroomerMarketplace/PetGroomerMarketplaceTests/`, `../09_frozen/task_ledgers/`, `../09_frozen/worklogs/` |
 | 2026-07-09 | T-223 | Filtered Xcode script output and rotated oldest active ledger/worklog rows. | `../../scripts/ios-build.sh`, `../../scripts/ios-test.sh`, `../09_frozen/task_ledgers/`, `../09_frozen/worklogs/` |
