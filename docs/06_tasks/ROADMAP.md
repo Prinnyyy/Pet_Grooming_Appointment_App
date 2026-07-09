@@ -74,7 +74,7 @@ The sequence explicitly excludes APNs dispatch, `customer_push_tokens` advisor n
 | M6 Free-mode timeliness | Make local/foreground updates symmetric without APNs. | Q-16 through Q-18 and Q-21 through Q-22 complete. | Groomer/customer notifications, foreground refresh, local reminders, and unread badges are covered. |
 | M7 Structural and edge resilience | Reduce oversized surfaces and close edge-case gaps. | Q-23 through Q-31 complete. | Request/profile surfaces are split, republish/pagination/auth/backend contract edges are tested, and unit coverage increases. |
 | M8 Ideal operation verification | Prove the local V1.0 lifecycle end to end. | Q-32 complete T-221; Q-33 complete T-222. | Dual-role walkthrough evidence and readiness dry run pass. |
-| M9 Backend remediation | Resolve non-Apple backend parity and advisor findings with evidence before writes. | Q-34 complete T-228; Q-35 complete T-231; Q-36 complete T-234; Q-37 planned. | Groomer in-app notifications have remote parity, index changes are justified, and remote TestOps evidence passes with cleanup. |
+| M9 Backend remediation | Resolve non-Apple backend parity and advisor findings with evidence before writes. | Q-34 through Q-37 complete T-228/T-231/T-234/T-235. | Groomer in-app notifications have remote parity, index changes are justified, and remote TestOps evidence passes with cleanup. |
 | M10 UI verification and list scale | Complete no-screenshot lifecycle automation and visible pagination. | Q-38 complete T-230; Q-39 through Q-42 planned. | Supported lists can advance beyond page one and the seeded dual-role UI lifecycle passes end to end. |
 | D Apple external blockers | Track APNs and release work that requires paid Apple capabilities. | Excluded Q-90 and Q-91 remain blocked. | Only starts after credentials and explicit authorization exist. |
 | E Non-Apple service blockers | Track production Auth services that require external credentials or a plan decision. | Blocked Q-92 and Q-93. | SMTP/domain credentials or Supabase Pro capability plus explicit Auth authorization exist. |
@@ -116,7 +116,7 @@ The sequence explicitly excludes APNs dispatch, `customer_push_tokens` advisor n
 | R-031 | M9 | Groomer in-app notification remote parity | Complete Q-35/T-231; T-203 migration applied and verified remotely on 2026-07-09 |
 | R-032 | M9 | Supabase advisor evidence and index tuning | Complete T-228 audit and T-234 two-index migration; no removal authorized |
 | R-033 | E | Production Auth service hardening | Blocked Q-92 SMTP/domain and Q-93 Pro-only leaked-password protection |
-| R-034 | M9 | Remote TestOps lifecycle and matching evidence | Planned Q-37; remote execution and cleanup authorized on 2026-07-09 |
+| R-034 | M9 | Remote TestOps lifecycle and matching evidence | Complete Q-37/T-235: lifecycle 5/5, matching 8/8, redacted artifacts, zero residue |
 | R-035 | M10 | No-screenshot dual-role UI lifecycle automation | Planned Q-41 and authorized dependent Q-42 |
 | R-036 | M10 | Visible list pagination completion | Q-38 complete T-230; Q-39 and Q-40 planned |
 

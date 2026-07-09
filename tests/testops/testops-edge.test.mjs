@@ -15,6 +15,8 @@ import {
   requiredServerCredential,
   runMarketplaceLifecycle,
   safeErrorMessage,
+  serverCredentialStatus,
+  writeArtifacts,
 } from "../../scripts/testops-core.mjs";
 
 const jwtServiceRoleKey = "eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIn0.signature";
@@ -165,6 +167,18 @@ test("server credential env falls back to modern Supabase secret key", () => {
   );
 });
 
+test("doctor credential status recognizes legacy and modern server credentials", () => {
+  assert.equal(
+    serverCredentialStatus({ SUPABASE_SERVICE_ROLE_KEY: jwtServiceRoleKey }),
+    "set",
+  );
+  assert.equal(
+    serverCredentialStatus({ SUPABASE_SECRET_KEY: "sb_secret_server" }),
+    "set",
+  );
+  assert.equal(serverCredentialStatus({}), "not set");
+});
+
 test("safe error messages redact modern keys, JWTs, emails, UUIDs, and signed URLs", () => {
   const message = safeErrorMessage(
     "auth failed for groomly.customer001@example.com with sb_secret_SUPERSECRET " +
@@ -180,6 +194,34 @@ test("safe error messages redact modern keys, JWTs, emails, UUIDs, and signed UR
   assert.doesNotMatch(message, /123e4567-e89b-12d3-a456-426614174000/);
   assert.match(message, /\[email-domain:example\.com\]/);
   assert.match(message, /123e4567/);
+});
+
+test("lifecycle JSON artifacts do not persist full entity UUIDs", () => {
+  const artifactDir = fs.mkdtempSync(path.join(os.tmpdir(), "testops-artifact-"));
+  const fullUUID = "123e4567-e89b-12d3-a456-426614174000";
+  const { jsonPath } = writeArtifacts({
+    runID: "TESTOPS-ARTIFACT-REDACT",
+    scenarioID: DEFAULT_SCENARIO,
+    caseID: "TC-MKT-001",
+    startedAt: "2026-07-09T00:00:00Z",
+    finishedAt: "2026-07-09T00:01:00Z",
+    customer: { seedID: "GTC-001", userRef: "AAAAAAAA", emailDomain: "example.com" },
+    groomer: { seedID: "GTG-001", userRef: "BBBBBBBB", emailDomain: "example.com" },
+    ids: {
+      requestID: fullUUID,
+      offerID: fullUUID,
+      bookingID: fullUUID,
+      reviewID: fullUUID,
+    },
+    matchCount: 1,
+    phases: [],
+    verification: { bookingStatus: "completed" },
+    cleanup: { requestCount: 1 },
+  }, artifactDir);
+  const artifact = fs.readFileSync(jsonPath, "utf8");
+
+  assert.doesNotMatch(artifact, new RegExp(fullUUID, "i"));
+  assert.match(artifact, /"requestID": "123E4567"/);
 });
 
 test("cleanup run with no tagged requests does not issue delete calls", async () => {

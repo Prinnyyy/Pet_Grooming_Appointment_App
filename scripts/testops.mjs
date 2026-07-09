@@ -23,6 +23,7 @@ import {
   parseGroomerProfiles,
   parseOptions,
   redactedMatchingPlan,
+  redactedMatchingResult,
   redactedPlan,
   redactedResult,
   relative,
@@ -35,6 +36,7 @@ import {
   runMarketplaceLifecycle,
   runMatchingEvaluation,
   safeErrorMessage,
+  serverCredentialStatus,
   writeArtifacts,
   writeMatchingArtifacts,
 } from "./testops-core.mjs";
@@ -88,7 +90,7 @@ async function doctor(args) {
   console.log(`Groomer resource: ${relative(GROOMER_RESOURCE)} (${groomers.length} profiles)`);
   console.log(`SUPABASE_URL: ${envStatus("SUPABASE_URL")}`);
   console.log(`SUPABASE_PUBLISHABLE_KEY: ${envStatus("SUPABASE_PUBLISHABLE_KEY")}`);
-  console.log(`Supabase service-role env: ${envStatus(SERVICE_ROLE_KEY_ENV)}`);
+  console.log(`Supabase server credential: ${serverCredentialStatus()}`);
   console.log(`${REMOTE_WRITE_ENV}: ${process.env[REMOTE_WRITE_ENV] === "1" ? "set" : "not set"}`);
 
   if (options.has("dry-run")) {
@@ -219,17 +221,7 @@ async function runMatching(args) {
   console.log(JSON.stringify({
     matrix,
     count: results.length,
-    results: results.map((result) => ({
-      runID: result.runID,
-      scenarioID: result.scenarioID,
-      caseID: result.caseID,
-      customer: result.customer,
-      targetGroomer: result.targetGroomer,
-      matchCount: result.matchCount,
-      target: result.target,
-      assertions: result.assertions,
-      cleanup: result.cleanup,
-    })),
+    results: results.map(redactedMatchingResult),
   }, null, 2));
 }
 

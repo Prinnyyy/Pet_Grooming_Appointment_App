@@ -12,6 +12,7 @@ import {
   parseGroomerProfiles,
   parseOptions,
   redactedPlan,
+  redactedResult,
   renderReport,
   requireRemoteWriteApproval,
   safeErrorMessage,
@@ -178,6 +179,37 @@ test("plan redaction removes credentials and full emails", () => {
   assert.doesNotMatch(serialized, /GroomlyTest!2026/);
   assert.doesNotMatch(serialized, /groomly\.customer001@example\.com/);
   assert.doesNotMatch(serialized, /groomly\.groomer001@example\.com/);
+});
+
+test("lifecycle result redaction replaces full entity UUIDs with support refs", () => {
+  const redacted = redactedResult({
+    runID: "TESTOPS-REDACT-RESULT",
+    scenarioID: DEFAULT_SCENARIO,
+    caseID: "TC-MKT-001",
+    startedAt: "2026-07-09T00:00:00Z",
+    finishedAt: "2026-07-09T00:01:00Z",
+    customer: { seedID: "GTC-001", userRef: "AAAAAAAA", emailDomain: "example.com" },
+    groomer: { seedID: "GTG-001", userRef: "BBBBBBBB", emailDomain: "example.com" },
+    ids: {
+      requestID: "11111111-1111-4111-8111-111111111111",
+      offerID: "22222222-2222-4222-8222-222222222222",
+      bookingID: "33333333-3333-4333-8333-333333333333",
+      reviewID: "44444444-4444-4444-8444-444444444444",
+    },
+    matchCount: 1,
+    phases: [],
+    verification: { bookingStatus: "completed" },
+    cleanup: { requestCount: 1 },
+  });
+  const serialized = JSON.stringify(redacted);
+
+  assert.deepEqual(redacted.ids, {
+    requestID: "11111111",
+    offerID: "22222222",
+    bookingID: "33333333",
+    reviewID: "44444444",
+  });
+  assert.doesNotMatch(serialized, /[0-9a-f]{8}-[0-9a-f-]{27}/i);
 });
 
 test("remote write approval rejects execution without the explicit env gate", () => {

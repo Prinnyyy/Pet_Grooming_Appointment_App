@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-09
+Task: T-235 - Remote TestOps lifecycle and matching evidence.
+Files changed: TestOps doctor/result/artifact redaction, three unit suites, durable remote run record/results index/TestOps memory, roadmap/queue/current state/task ledger/worklog.
+Checks: Doctor/dry-runs; redaction RED/GREEN; `./scripts/testops-unit.sh` 28/28; authorized remote smoke5 5/5; authorized matching baseline 8/8; 10 lifecycle and 16 matching artifact scans with zero unsafe files; linked tagged-residue queries returned zero; `git diff --check`; context hygiene.
+Result: Q-37 proves five full backend marketplace lifecycles and eight matching cases against the linked project with scoped cleanup. Console and artifact entity IDs are now 8-character refs, and doctor correctly recognizes modern server credentials.
+Risks: The first smoke run passed/cleaned up but revealed full UUIDs in console/JSON. Execution stopped, unsafe generated artifacts were deleted, regression coverage was added, and clean R2 runs replaced the evidence. No raw artifact is committed.
+Next: Use T-236 for Q-39 booking and notification pagination.
+```
+
+```text
+Date: 2026-07-09
 Task: T-234 - Evidence-backed foreign-key indexes.
 Files changed: two-index migration, rollback-only forced-plan SQL, migration regression test, index evidence audit, Supabase contract, roadmap/queue/current state/task ledger/worklog.
 Checks: Focused RED/GREEN; 47 migration and 10 Edge tests; `./scripts/preflight.sh`; `./scripts/supabase-check.sh`; linked list/dry-run/apply/parity; catalog definitions; before/after forced plans; performance advisor; `git diff --check`; context hygiene.
 Result: Q-36 adds only `customer_booking_handoff_acknowledgements(booking_id)` and `request_photos(customer_id)`. Both high-cost forced sequential scans changed to index-backed plans, and the two target unindexed-FK findings cleared.
 Risks: Both new indexes immediately appear as unused because linked traffic is minimal; this is expected and does not authorize removal. The remaining 10 FK findings retain the T-228 disposition.
-Next: Use T-235 for authorized Q-37 remote TestOps lifecycle and matching evidence.
 ```
 
 ```text
@@ -66,13 +75,4 @@ Files changed: index audit, Supabase contract, roadmap/queue, current state, tas
 Checks: Current Supabase docs/changelog and CLI help; linked performance advisor; sequential read-only catalog/index/table/pg_stat queries; transaction-local safe EXPLAIN; Supabase/diff checks. Context hygiene requires the scheduled T-229 meta-review.
 Result: Q-34 classifies all 12 FK and 8 unused-index INFO findings. Only handoff `booking_id` and request-photo `customer_id` need indexes; 10 FK findings already have usable indexes. No unused index is safe to remove from current low-cardinality evidence.
 Risks: Read-only remote inspection plus docs only. No schema/config/data write, migration, statistics reset, TestOps execute, seed, deploy, release action, or APNs work occurred. Q-36 still requires explicit migration authorization.
-```
-
-```text
-Date: 2026-07-09
-Task: T-227 - Post-readiness remediation task planning.
-Files changed: roadmap, roadmap execution queue, decision log, current state, task ledger, and worklog.
-Checks: Current Supabase changelog/password security/custom SMTP/advisor guidance; Postgres index evidence guidance; `git diff --check`; context hygiene.
-Result: Converts the unresolved non-Apple findings after T-222 into Q-34 through Q-42 and blocked non-Apple Q-92/Q-93. The queue separates read-only index evidence from migrations, keeps T-203 groomer in-app notification parity distinct from APNs, and splits remote TestOps, UI lifecycle automation, and pagination into reviewable packages.
-Risks: Planning/docs only. No Swift, Supabase schema/config/write, migration apply, TestOps remote execute, seed, deploy, release upload, tag, PR, merge/rebase/reset, or force-push changed. APNs, paid Apple Developer work, TestFlight/App Store submission, and `customer_push_tokens` advisor noise are explicitly outside this sequence.
 ```

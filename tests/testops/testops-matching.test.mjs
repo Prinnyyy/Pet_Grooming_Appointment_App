@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { test } from "node:test";
 
@@ -10,8 +12,10 @@ import {
   parseGroomerProfiles,
   projectMatchingCandidates,
   redactedMatchingPlan,
+  redactedMatchingResult,
   renderMatchingReport,
   runMatchingEvaluation,
+  writeMatchingArtifacts,
 } from "../../scripts/testops-core.mjs";
 
 const projectRoot = path.resolve(import.meta.dirname, "../..");
@@ -209,6 +213,34 @@ test("matching report redacts sensitive actor and identifier data", () => {
   assert.doesNotMatch(report, /groomly\.customer001@example\.com/);
   assert.doesNotMatch(report, /123e4567-e89b-12d3-a456-426614174000/);
   assert.match(report, /123E4567/);
+});
+
+test("matching result and JSON artifact redact the request UUID", () => {
+  const fullUUID = "123e4567-e89b-12d3-a456-426614174000";
+  const result = {
+    runID: "TESTOPS-MATCH-REDACT",
+    scenarioID: MATCHING_SCENARIO,
+    caseID: "TC-MATCH-001",
+    startedAt: "2026-07-09T00:00:00Z",
+    finishedAt: "2026-07-09T00:01:00Z",
+    customer: { seedID: "GTC-001", userRef: "AAAAAAAA", emailDomain: "example.com" },
+    targetGroomer: { seedID: "GTG-001", userRef: "BBBBBBBB", emailDomain: "example.com" },
+    pet: { name: "Mochi", breed: "Toy Poodle", coatType: "curly_wavy", size: "XS" },
+    ids: { requestID: fullUUID },
+    matchCount: 1,
+    target: { matched: true, matchScore: 3, matchReason: "Preferred time fits" },
+    assertions: { targetMatch: "passed" },
+    phases: [],
+    cleanup: { requestCount: 1 },
+  };
+  const redacted = redactedMatchingResult(result);
+  const artifactDir = fs.mkdtempSync(path.join(os.tmpdir(), "testops-matching-artifact-"));
+  const { jsonPath } = writeMatchingArtifacts(result, artifactDir);
+  const artifact = fs.readFileSync(jsonPath, "utf8");
+
+  assert.equal(redacted.ids.requestID, "123E4567");
+  assert.doesNotMatch(JSON.stringify(redacted), new RegExp(fullUUID, "i"));
+  assert.doesNotMatch(artifact, new RegExp(fullUUID, "i"));
 });
 
 function fakeMatchingAPI({ targetGroomerID, targetShouldAppear, matchReason }) {

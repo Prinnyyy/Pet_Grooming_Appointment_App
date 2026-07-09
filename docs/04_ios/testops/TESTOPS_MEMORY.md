@@ -13,6 +13,8 @@ This file records current TestOps capability and limits. It is not task history.
 - Matching matrix: `matching_baseline`.
 - UI launch smoke: `scripts/ios-testops-e2e.sh`.
 - Run artifacts: `artifacts/testops/` (ignored generated output, not source-of-truth docs).
+- Doctor recognizes either legacy service-role or modern secret server credentials without printing values.
+- Lifecycle and matching console results plus JSON/Markdown artifacts retain only 8-character entity support references.
 
 ## Remote Write Gate
 

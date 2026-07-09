@@ -300,6 +300,13 @@ export function envStatus(name, env = process.env) {
   return env[name]?.trim() ? "set" : "not set";
 }
 
+export function serverCredentialStatus(env = process.env) {
+  return envStatus(SERVICE_ROLE_KEY_ENV, env) === "set"
+      || envStatus("SUPABASE_SECRET_KEY", env) === "set"
+    ? "set"
+    : "not set";
+}
+
 export function makeBackendPlans({
   scenarioID = DEFAULT_SCENARIO,
   matrix,
@@ -1006,9 +1013,37 @@ export function redactedMatchingPlan(plan) {
 
 export function redactedResult(result) {
   return {
-    ...result,
+    runID: result.runID,
+    scenarioID: result.scenarioID,
+    caseID: result.caseID,
+    startedAt: result.startedAt,
+    finishedAt: result.finishedAt,
     customer: result.customer,
     groomer: result.groomer,
+    ids: redactedIDs(result.ids),
+    matchCount: result.matchCount,
+    phases: result.phases,
+    verification: result.verification,
+    cleanup: result.cleanup,
+  };
+}
+
+export function redactedMatchingResult(result) {
+  return {
+    runID: result.runID,
+    scenarioID: result.scenarioID,
+    caseID: result.caseID,
+    startedAt: result.startedAt,
+    finishedAt: result.finishedAt,
+    customer: result.customer,
+    targetGroomer: result.targetGroomer,
+    pet: result.pet,
+    ids: redactedIDs(result.ids),
+    matchCount: result.matchCount,
+    target: result.target,
+    assertions: result.assertions,
+    phases: result.phases,
+    cleanup: result.cleanup,
   };
 }
 
@@ -1016,8 +1051,9 @@ export function writeArtifacts(result, artifactDir = ARTIFACT_DIR) {
   fs.mkdirSync(artifactDir, { recursive: true });
   const jsonPath = path.join(artifactDir, `${result.runID}.json`);
   const markdownPath = path.join(artifactDir, `${result.runID}.md`);
-  fs.writeFileSync(jsonPath, `${JSON.stringify(result, null, 2)}\n`);
-  fs.writeFileSync(markdownPath, renderReport(result));
+  const safeResult = redactedResult(result);
+  fs.writeFileSync(jsonPath, `${JSON.stringify(safeResult, null, 2)}\n`);
+  fs.writeFileSync(markdownPath, renderReport(safeResult));
   return { jsonPath, markdownPath };
 }
 
@@ -1025,9 +1061,16 @@ export function writeMatchingArtifacts(result, artifactDir = ARTIFACT_DIR) {
   fs.mkdirSync(artifactDir, { recursive: true });
   const jsonPath = path.join(artifactDir, `${result.runID}.json`);
   const markdownPath = path.join(artifactDir, `${result.runID}.md`);
-  fs.writeFileSync(jsonPath, `${JSON.stringify(result, null, 2)}\n`);
-  fs.writeFileSync(markdownPath, renderMatchingReport(result));
+  const safeResult = redactedMatchingResult(result);
+  fs.writeFileSync(jsonPath, `${JSON.stringify(safeResult, null, 2)}\n`);
+  fs.writeFileSync(markdownPath, renderMatchingReport(safeResult));
   return { jsonPath, markdownPath };
+}
+
+function redactedIDs(ids = {}) {
+  return Object.fromEntries(
+    Object.entries(ids).map(([key, value]) => [key, shortRef(value)]),
+  );
 }
 
 export function renderReport(result) {

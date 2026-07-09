@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-09
 - Updated by: Codex
-- Latest completed task: T-234 evidence-backed foreign-key indexes.
+- Latest completed task: T-235 remote TestOps lifecycle and matching evidence.
 - Current task: none; T-157 APNs remains externally blocked.
-- Next task ID: use T-235 unless the user resumes T-157 after Apple Developer Program upgrade.
+- Next task ID: use T-236 unless the user resumes T-157 after Apple Developer Program upgrade.
 
 ## Fast Path
 
@@ -32,7 +32,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Validation Baseline
 
-- T-234 two-index migration tests, remote parity/catalog, before/after forced plans, and performance-advisor comparison passed; T-233 account-deletion gates also passed.
+- T-235 TestOps units/doctor/dry-runs, remote lifecycle 5/5, matching 8/8, artifact safety scans, and zero-residue checks passed.
 - Recent focused coverage: T-224 customer request test split; T-225 groomer profile test split; T-226 groomer profile store split; T-230 four request/offer pagination retry/dedupe/end cases.
 - Last Supabase migration apply: T-234 `20260709214425_t234_add_evidence_backed_fk_indexes.sql` applied to `lqmasbuqzvcvtawonjlb` on 2026-07-09; parity, catalog, forced plans, and advisor delta were verified.
 - Last Edge Function deploy: `delete-account` version 2 is active with JWT verification and service-role Storage API cleanup across six user-prefixed image buckets.
@@ -40,6 +40,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - Last TestOps dry-run: T-222 doctor, marketplace `smoke5`, and matching baseline passed without remote writes.
 - Last release readiness dry run: T-222 recorded final local/read-only ideal-operation evidence with Auth/APNs and index-tuning advisor findings.
 - Last remote TestOps run: T-155 authorized `matching_baseline` passed 8/8 and cleanup left zero tagged request/match residue.
+- Latest remote TestOps evidence: T-235 `smoke5` passed 5/5 and `matching_baseline` passed 8/8; both R2 run families left zero tagged requests and only redacted local artifacts.
 - Known iOS validation failure: none currently recorded.
 
 ## Active Product State
@@ -61,7 +62,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - Startup reads stay minimal: `AGENTS.md`, then targeted current-state/task-ledger sections only when needed.
 - Periodic documentation-governance reviews use `docs/06_tasks/META_REVIEW_TEMPLATE.md` every 10 completed tasks or weekly.
 - Last meta-review: T-229 on 2026-07-09.
-- V1.0 ideal-operation Q-16...Q-36 and Q-38 are complete. Q-37 and dependent Q-42 have remote authorization; Q-39...Q-41 remain local prerequisites or follow-up work.
+- V1.0 ideal-operation Q-16...Q-38 are complete. Q-39...Q-41 remain local work; dependent Q-42 retains remote authorization.
 - Changes to `AGENTS.md`, `CLAUDE.md`, or `docs/05_workflow/**` must be standalone numbered tasks with a decision-log entry and context hygiene.
 - T-180 records standing user approval for task-completion Git commit and push. This approval is limited to current-task changes after validation passes; T-186 requires stopping without auto pull/rebase/merge/reset/force-push if the push fails or is rejected.
 - T-184 keeps active Markdown under a 36k hard limit, 95% structural-review warning, and deterministic `node scripts/context-rotate.mjs` archive rotation.
@@ -94,4 +95,4 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Next Recommended Task
 
-- Use T-235 for authorized Q-37 remote TestOps lifecycle and matching evidence with cleanup.
+- Use T-236 for Q-39 booking and notification pagination.
