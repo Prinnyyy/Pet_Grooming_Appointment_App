@@ -6,6 +6,8 @@ Task: T-201 / R-015 / Q-15.
 Branch: `codex/pet-fit-structure-cleanup`.
 Scope: local and read-only release readiness evidence. This dry run did not upload a build, change App Store Connect, deploy Edge Functions, apply migrations, seed data, or execute remote TestOps writes.
 
+Latest ideal-operation readiness rehearsal: `T-222_IDEAL_OPERATION_READINESS_REHEARSAL.md`. T-222 supersedes this page for current linked advisor output because the later advisor run reported additional INFO-level index findings after Q-16 through Q-32 were completed.
+
 ## Passed Gates
 
 - `./scripts/preflight.sh`

@@ -67,7 +67,7 @@ External blockers that do not block the local ideal-operation target: APNs dispa
 | M5 Release | Prepare TestFlight/App Store release. | Local/read-only dry run complete in T-201; external release setup remains. | M1-M4 exits are satisfied and user authorizes release/tag work. |
 | M6 Free-mode timeliness | Make local/foreground updates symmetric without APNs. | Q-16 through Q-18 and Q-21 through Q-22 complete. | Groomer/customer notifications, foreground refresh, local reminders, and unread badges are covered. |
 | M7 Structural and edge resilience | Reduce oversized surfaces and close edge-case gaps. | Q-23 through Q-31 complete. | Request/profile surfaces are split, republish/pagination/auth/backend contract edges are tested, and unit coverage increases. |
-| M8 Ideal operation verification | Prove the local V1.0 lifecycle end to end. | Q-32 complete T-221; planned Q-33. | Dual-role walkthrough evidence and readiness dry run pass. |
+| M8 Ideal operation verification | Prove the local V1.0 lifecycle end to end. | Q-32 complete T-221; Q-33 complete T-222. | Dual-role walkthrough evidence and readiness dry run pass. |
 | D External release blockers | Track work that requires paid Apple or production credentials. | Blocked Q-90 through Q-92. | Only starts after credentials and explicit authorization exist. |
 
 ## Candidate Backlog
@@ -102,9 +102,9 @@ External blockers that do not block the local ideal-operation target: APNs dispa
 | R-026 | M7 | Large SwiftUI/Store structural refactors | Complete T-211 and T-212 |
 | R-027 | M7 | Recovery, auth callback, and pagination robustness | Q-27 complete T-215; Q-29 complete T-217; Q-30 complete T-219 |
 | R-028 | M4/M7 | Focused unit and contract test expansion toward 400 tests | Q-19 complete T-206; Q-20 complete T-208; Q-25 complete T-213; Q-26 complete T-214; Q-28 complete T-216; Q-31 complete T-220 |
-| R-029 | M8 | Ideal-operation walkthrough and readiness rehearsal | Q-32 complete T-221; planned Q-33 |
+| R-029 | M8 | Ideal-operation walkthrough and readiness rehearsal | Complete T-221 and T-222 |
 | R-030 | D | Paid/external release operations | Blocked Q-90 through Q-92 |
 
-Completed mapping: T-152/T-154/T-188...T-193/T-217 M1 auth/UI foundations; T-153/T-155/T-156/T-162/T-194 M2; T-157 M2 blocked for dispatch; T-160/T-161/T-195/T-197...T-199 M3; T-200/T-206/T-208/T-213/T-214/T-216/T-220 M4 focused tests and backend contract negatives; T-201 M5 local dry run; T-203...T-205/T-209/T-210 M6 groomer notification, foreground refresh, local reminders, and unread badges; T-211/T-212/T-214...T-217/T-219/T-220 M7 request/profile splits, decode/cache tolerance, republish hardening, state-machine edge tests, auth callback implementation, list pagination hardening, and backend negative contracts; T-221 M8 dual-role evidence; T-163...T-179/T-207/T-218 G0.
+Completed mapping: T-152/T-154/T-188...T-193/T-217 M1 auth/UI foundations; T-153/T-155/T-156/T-162/T-194 M2; T-157 M2 blocked for dispatch; T-160/T-161/T-195/T-197...T-199 M3; T-200/T-206/T-208/T-213/T-214/T-216/T-220 M4 focused tests and backend contract negatives; T-201 M5 local dry run; T-203...T-205/T-209/T-210 M6 groomer notification, foreground refresh, local reminders, and unread badges; T-211/T-212/T-214...T-217/T-219/T-220 M7 request/profile splits, decode/cache tolerance, republish hardening, state-machine edge tests, auth callback implementation, list pagination hardening, and backend negative contracts; T-221/T-222 M8 dual-role evidence and readiness rehearsal; T-163...T-179/T-207/T-218 G0.
 
-Execution sequencing: use `ROADMAP_EXECUTION_QUEUE.md` to select the next adoptable package. The queue is planning input only; each adopted package receives the next `T-###` from `TASK_LEDGER.md`. Active V1.0 ideal-operation sequencing continues at Q-33.
+Execution sequencing: use `ROADMAP_EXECUTION_QUEUE.md` to select the next adoptable package. The queue is planning input only; each adopted package receives the next `T-###` from `TASK_LEDGER.md`. No unblocked V1.0 ideal-operation package remains after T-222/Q-33; Q-90 through Q-92 stay blocked on external credentials and authorization.

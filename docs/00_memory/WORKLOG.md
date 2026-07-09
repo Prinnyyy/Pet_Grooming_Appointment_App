@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-09
+Task: T-222 - Ideal-operation readiness rehearsal.
+Files changed: Release readiness evidence, TestOps results index, roadmap execution queue, roadmap, current state, task ledger, and worklog.
+Checks: Supabase CLI version/help; TestOps unit; TestOps doctor dry-run; backend `marketplace_full_lifecycle` smoke5 dry-run; matching baseline dry-run; `./scripts/supabase-check.sh`; linked Supabase security/performance advisors; `node --test tests/migrations/*.test.mjs`; full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
+Result: Closes Q-33/R-029/M8 by recording the final local/read-only ideal-operation readiness rehearsal after Q-16 through Q-32. Local TestOps planning, matching projections, backend contracts, Supabase contract checks, linked advisors, iOS tests, and iOS build were exercised on the current branch.
+Risks: Advisors now report non-blocking findings: known Auth leaked-password protection WARN, `customer_push_tokens` RLS-without-policy INFO tied to externally blocked APNs work, and INFO-level index tuning findings. No Supabase schema, migration, remote write, seed, remote TestOps execute, Auth config, deploy, APNs dispatch, release upload, tag, PR, merge/rebase/reset, or force-push changed.
+Next: Use T-223 for the next user-chosen task. No unblocked V1.0 ideal-operation queue item remains; Q-90...Q-92 remain blocked on Apple/APNs/release or production SMTP credentials and explicit authorization.
+```
+
+```text
+Date: 2026-07-09
 Task: T-221 - Dual-role E2E walkthrough.
 Files changed: TestOps dual-role run record, TestOps results index, roadmap, current state, task ledger, and worklog.
 Checks: TestOps doctor dry-run; backend `marketplace_full_lifecycle` smoke5 dry-run; matching baseline dry-run; iOS TestOps launch smoke; `./scripts/testops-unit.sh`; `git diff --check`; context hygiene; commit and push.
 Result: Closes Q-32/R-029 by recording local no-write evidence that seeded customer/groomer lifecycle plans, matching projections, and iOS launch wiring are available, plus a gap list for full UI lifecycle automation and remote execute validation.
 Risks: Evidence/docs and local dry-run validation only. No Supabase schema, migration, remote write, seed, remote TestOps execute, cleanup, Auth config, deploy, APNs dispatch, release upload, tag, PR, merge/rebase/reset, or force-push changed.
-Next: Use T-222 for the next user-chosen task; recommended queue start is Q-33 ideal-operation readiness rehearsal.
 ```
 
 ```text
@@ -66,13 +75,4 @@ Files changed: customer requests store, CustomerRequestsStore republish tests, r
 Checks: CustomerRequestsStore RED/GREEN; full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
 Result: Closes Q-27/R-027 by making request-photo metadata failure non-blocking for loaded original requests, keeping cancelled/expired request details available for republish, skipping missing/oversized copied photos, resetting expired preferred windows to a future default range, and refusing cancelled-booking republish when the original request is unavailable.
 Risks: Local iOS store/test hardening only. No Supabase schema, migration, remote write, repository API signature, UI layout redesign, Auth config, seed, TestOps remote execution, deploy, APNs dispatch, release upload, tag, PR, merge/rebase/reset, or force-push changed.
-```
-
-```text
-Date: 2026-07-09
-Task: T-214 - Decode and cache tolerance tests.
-Files changed: marketplace status models, affected status UI surfaces, DecodeToleranceFeatureTests, roadmap, current state, task ledger, and worklog.
-Checks: Focused DecodeTolerance RED/GREEN; full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
-Result: Closes Q-26/R-028 by adding safe unknown-status decode fallbacks, neutral unknown-status UI handling, malformed-date display tolerance, null optional pet snapshot coverage, and oversized corrupt private image cache rejection coverage.
-Risks: Local iOS/model/test hardening only. No Supabase schema, migration, remote write, repository API signature, UI layout redesign, Auth config, seed, TestOps remote execution, deploy, APNs dispatch, release upload, tag, PR, merge/rebase/reset, or force-push changed.
 ```

@@ -8,17 +8,18 @@ Source: T-202 adopted root review input `../../V1.0_RELEASE_TASK_PLAN.md`; that 
 
 ## Selection Rules
 
-- Start with the first unblocked Q-33 unless the user names another package.
+- There are no remaining unblocked V1.0 ideal-operation packages after T-222/Q-33.
+- Do not start a new package from this file unless a new queue row is added or the user names a blocked package and provides the required credentials/authorization.
 - Split any package that combines Supabase writes with visible SwiftUI or grows beyond one reviewable task.
 - Get explicit authorization before migrations, Auth config writes, remote TestOps, seeds, deploys, release uploads, or other non-Git remote writes.
 - Do not start Q-90...Q-92 until credentials and authorization are recorded.
-- Q-01...Q-15 are complete and mapped in `ROADMAP.md`.
+- Q-01...Q-33 are complete and mapped in `ROADMAP.md`.
 
 ## Queue
 
 | Order | Roadmap | Package | Mode | Scope | Validation |
 |---|---|---|---|---|---|
-| Q-33 | R-029 | P-12 Ideal-operation readiness rehearsal | Deep | Full local/read-only readiness gates after Q-16...Q-32. | Full build/test/TestOps/advisor gates |
+| _none_ | _none_ | _none_ | _none_ | No unblocked local/read-only ideal-operation packages remain. | Add a new row before executing another roadmap package. |
 
 ## Blocked External Queue
 

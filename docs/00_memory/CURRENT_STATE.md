@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-09
 - Updated by: Codex
-- Latest completed task: T-221 Dual-role E2E walkthrough.
+- Latest completed task: T-222 Ideal-operation readiness rehearsal.
 - Current task: none; T-157 APNs remains externally blocked.
-- Next task ID: use T-222 unless the user resumes T-157 after Apple Developer Program upgrade.
+- Next task ID: use T-223 unless the user resumes T-157 after Apple Developer Program upgrade.
 
 ## Fast Path
 
@@ -32,13 +32,13 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Validation Baseline
 
-- Last validation: T-221 TestOps doctor dry-run, backend smoke5 dry-run, matching baseline dry-run, iOS TestOps launch smoke, `./scripts/testops-unit.sh`, `git diff --check`, and context hygiene passed on 2026-07-09.
-- Recent focused coverage: T-219 list pagination page-contract and Store paging behavior; T-220 notification RLS and service-role-only RPC negative contracts; T-221 local dual-role TestOps lifecycle planning and matching evidence.
+- Last validation: T-222 Supabase CLI help, TestOps unit/dry-runs, supabase-check, linked advisors, migration tests, iOS test/build, `git diff --check`, and context hygiene passed on 2026-07-09 with non-blocking advisor findings recorded.
+- Recent focused coverage: T-219 list pagination page-contract and Store paging behavior; T-220 notification RLS and service-role-only RPC negative contracts; T-221 local dual-role TestOps lifecycle planning and matching evidence; T-222 ideal-operation readiness rehearsal.
 - Last Supabase migration apply: T-160 applied `20260707191034_t160_account_deletion.sql` to `lqmasbuqzvcvtawonjlb` on 2026-07-07 and confirmed parity/RLS/grants/RPCs/advisors/deployment.
 - Prepared unapplied Supabase migration: T-203 `20260709073051_t203_groomer_notifications.sql` is local-only until explicit remote migration authorization.
-- Last TestOps unit validation: T-201 `./scripts/testops-unit.sh` passed 24 Node tests.
-- Last TestOps dry-run: T-221 doctor, marketplace `smoke5`, matching baseline, and iOS TestOps launch smoke passed without remote writes.
-- Last release readiness dry run: T-201 recorded local/read-only evidence; advisors had only the known Auth leaked-password protection WARN.
+- Last TestOps unit validation: T-222 `./scripts/testops-unit.sh` passed 24 Node tests.
+- Last TestOps dry-run: T-222 doctor, marketplace `smoke5`, and matching baseline passed without remote writes.
+- Last release readiness dry run: T-222 recorded final local/read-only ideal-operation evidence with Auth/APNs and index-tuning advisor findings.
 - Last remote TestOps run: T-155 authorized `matching_baseline` passed 8/8 and cleanup left zero tagged request/match residue.
 - Known iOS validation failure: none currently recorded.
 
@@ -61,7 +61,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - Startup reads stay minimal: `AGENTS.md`, then targeted current-state/task-ledger sections only when needed.
 - Periodic documentation-governance reviews use `docs/06_tasks/META_REVIEW_TEMPLATE.md` every 10 completed tasks or weekly.
 - Last meta-review: T-218 on 2026-07-09.
-- V1.0 ideal-operation packages are adopted in `docs/06_tasks/ROADMAP_EXECUTION_QUEUE.md`; Q-16...Q-32 are complete, and sequencing continues at Q-33.
+- V1.0 ideal-operation packages are adopted in `docs/06_tasks/ROADMAP_EXECUTION_QUEUE.md`; Q-16...Q-33 are complete, and no unblocked ideal-operation package remains.
 - Changes to `AGENTS.md`, `CLAUDE.md`, or `docs/05_workflow/**` must be standalone numbered tasks with a decision-log entry and context hygiene.
 - T-180 records standing user approval for task-completion Git commit and push. This approval is limited to current-task changes after validation passes; T-186 requires stopping without auto pull/rebase/merge/reset/force-push if the push fails or is rejected.
 - T-184 keeps active Markdown under a 36k hard limit, 95% structural-review warning, and deterministic `node scripts/context-rotate.mjs` archive rotation.
@@ -90,8 +90,8 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - Customer in-app notifications are active. T-157 APNs database/iOS foundation is remotely applied; push dispatch waits for Apple Developer credentials and APNs secrets.
 - Large Swift context risks `CustomerRequestsView.swift` and `GroomerProfileManagementView.swift` were split in T-211/T-212.
 - Active cross-task risk: T-157 APNs deployment remains blocked.
-- Current linked advisors: T-201 security shows only Auth leaked-password protection WARN; performance shows no issues. Public authenticated `SECURITY DEFINER` RPC warnings are cleared.
+- Current linked advisors: T-222 security shows Auth leaked-password protection WARN and `customer_push_tokens` RLS-without-policy INFO; performance shows INFO-level FK/index tuning findings. Public authenticated `SECURITY DEFINER` RPC warnings are cleared.
 
 ## Next Recommended Task
 
-- Use T-222 next. Recommended package is Q-33 ideal-operation readiness rehearsal. T-203 migration remains local-only until explicit remote apply authorization. Q-90...Q-92 remain blocked on Apple/APNs/release or production SMTP credentials.
+- Use T-223 next for the next user-chosen task. No unblocked roadmap execution queue item remains. T-203 migration remains local-only until explicit remote apply authorization. Q-90...Q-92 remain blocked on Apple/APNs/release or production SMTP credentials.
