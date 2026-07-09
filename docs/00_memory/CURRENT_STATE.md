@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-09
 - Updated by: Codex
-- Latest completed task: T-228 Supabase advisor index evidence audit.
+- Latest completed task: T-229 periodic meta-review.
 - Current task: none; T-157 APNs remains externally blocked.
-- Next task ID: use T-229 unless the user resumes T-157 after Apple Developer Program upgrade.
+- Next task ID: use T-230 unless the user resumes T-157 after Apple Developer Program upgrade.
 
 ## Fast Path
 
@@ -32,7 +32,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Validation Baseline
 
-- T-228: linked read-only index evidence, Supabase check, and diff passed; cadence hygiene awaits required T-229 meta-review. Last iOS validation remains T-226.
+- T-229 docs governance and T-228 linked index audit gates passed. Last iOS validation remains T-226.
 - Recent focused coverage: T-222 readiness rehearsal; T-223 Xcode script output filtering; T-224 customer request test split; T-225 groomer profile test split; T-226 groomer profile store split.
 - Last Supabase migration apply: T-160 applied `20260707191034_t160_account_deletion.sql` to `lqmasbuqzvcvtawonjlb` on 2026-07-07 and confirmed parity/RLS/grants/RPCs/advisors/deployment.
 - Prepared unapplied Supabase migration: T-203 `20260709073051_t203_groomer_notifications.sql` is local-only until explicit remote migration authorization.
@@ -60,7 +60,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - Default context model is L0-L4 in `CONTEXT_AND_RECOVERY.md`.
 - Startup reads stay minimal: `AGENTS.md`, then targeted current-state/task-ledger sections only when needed.
 - Periodic documentation-governance reviews use `docs/06_tasks/META_REVIEW_TEMPLATE.md` every 10 completed tasks or weekly.
-- Last meta-review: T-218 on 2026-07-09.
+- Last meta-review: T-229 on 2026-07-09.
 - V1.0 ideal-operation Q-16...Q-33 and post-readiness Q-34 are complete; Q-35...Q-37 remain gated and Q-38 is next locally.
 - Changes to `AGENTS.md`, `CLAUDE.md`, or `docs/05_workflow/**` must be standalone numbered tasks with a decision-log entry and context hygiene.
 - T-180 records standing user approval for task-completion Git commit and push. This approval is limited to current-task changes after validation passes; T-186 requires stopping without auto pull/rebase/merge/reset/force-push if the push fails or is rejected.
@@ -94,4 +94,4 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Next Recommended Task
 
-- Use T-229 for local Q-38 request/offer pagination. Q-35...Q-37 remain gated; Q-36 may add only the two T-228-evidenced indexes after explicit authorization.
+- Use T-230 for local Q-38 request/offer pagination. Q-35...Q-37 remain gated; Q-36 may add only the two T-228-evidenced indexes after explicit authorization.

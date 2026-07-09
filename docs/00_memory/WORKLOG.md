@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-09
+Task: T-229 - Periodic meta-review.
+Files changed: current state, feature index, task ledger, worklog, and frozen rotations.
+Checks: Git status/diff; context hygiene; 56-file migration mirror count; root-report tracking/ignore/frozen checks; targeted branch/task/queue fact scan.
+Result: Resolves the 10-task cadence gate. All 69 active Markdown files remain within individual budgets; root external reports are ignored/untracked with frozen copies; migration and roadmap facts align. The 95% total is observed, but no duplicate active source is safe to remove.
+Risks: Governance closeout only. No workflow rule, app/backend behavior, Supabase write, migration, TestOps execute, seed, deploy, release action, or APNs work changed.
+Next: Use T-230 for local Q-38 while Q-35 through Q-37 remain gated.
+```
+
+```text
+Date: 2026-07-09
 Task: T-228 - Supabase advisor index evidence audit.
 Files changed: index audit, Supabase contract, roadmap/queue, current state, task ledger, and worklog.
 Checks: Current Supabase docs/changelog and CLI help; linked performance advisor; sequential read-only catalog/index/table/pg_stat queries; transaction-local safe EXPLAIN; Supabase/diff checks. Context hygiene requires the scheduled T-229 meta-review.
 Result: Q-34 classifies all 12 FK and 8 unused-index INFO findings. Only handoff `booking_id` and request-photo `customer_id` need indexes; 10 FK findings already have usable indexes. No unused index is safe to remove from current low-cardinality evidence.
 Risks: Read-only remote inspection plus docs only. No schema/config/data write, migration, statistics reset, TestOps execute, seed, deploy, release action, or APNs work occurred. Q-36 still requires explicit migration authorization.
-Next: Use T-229 for local Q-38 while Q-35 through Q-37 remain gated.
 ```
 
 ```text
@@ -66,13 +75,4 @@ Files changed: Release readiness evidence, TestOps results index, roadmap execut
 Checks: Supabase CLI version/help; TestOps unit; TestOps doctor dry-run; backend `marketplace_full_lifecycle` smoke5 dry-run; matching baseline dry-run; `./scripts/supabase-check.sh`; linked Supabase security/performance advisors; `node --test tests/migrations/*.test.mjs`; full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
 Result: Closes Q-33/R-029/M8 by recording the final local/read-only ideal-operation readiness rehearsal after Q-16 through Q-32. Local TestOps planning, matching projections, backend contracts, Supabase contract checks, linked advisors, iOS tests, and iOS build were exercised on the current branch.
 Risks: Advisors now report non-blocking findings: known Auth leaked-password protection WARN, `customer_push_tokens` RLS-without-policy INFO tied to externally blocked APNs work, and INFO-level index tuning findings. No Supabase schema, migration, remote write, seed, remote TestOps execute, Auth config, deploy, APNs dispatch, release upload, tag, PR, merge/rebase/reset, or force-push changed.
-```
-
-```text
-Date: 2026-07-09
-Task: T-221 - Dual-role E2E walkthrough.
-Files changed: TestOps dual-role run record, TestOps results index, roadmap, current state, task ledger, and worklog.
-Checks: TestOps doctor dry-run; backend `marketplace_full_lifecycle` smoke5 dry-run; matching baseline dry-run; iOS TestOps launch smoke; `./scripts/testops-unit.sh`; `git diff --check`; context hygiene; commit and push.
-Result: Closes Q-32/R-029 by recording local no-write evidence that seeded customer/groomer lifecycle plans, matching projections, and iOS launch wiring are available, plus a gap list for full UI lifecycle automation and remote execute validation.
-Risks: Evidence/docs and local dry-run validation only. No Supabase schema, migration, remote write, seed, remote TestOps execute, cleanup, Auth config, deploy, APNs dispatch, release upload, tag, PR, merge/rebase/reset, or force-push changed.
 ```
