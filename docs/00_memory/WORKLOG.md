@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-09
+Task: T-225 - Groomer profile test split.
+Files changed: groomer profile feature test files, current state, task ledger, worklog, and structure log.
+Checks: pre-change full `./scripts/ios-test.sh` rerun passed after an initial unrelated `ForegroundRefreshGateTests` flake; `@Test` count 45 before and after; `GroomerProfileStoreTests` count 39 before and after; file sizes 8K-20.5K plus 17.8K fakes; full `./scripts/ios-test.sh`; `git diff --check`; context hygiene; commit and push.
+Result: Implements Context Optimization Task C by splitting the 70K `GroomerProfileFeatureTests.swift` into a base test file, three same-suite extension files, and one test fakes file. Test names/bodies were preserved; shared helpers and fakes were widened only where cross-file access required it, with the groomer snapshot cache fake renamed to avoid a same-target customer test fake collision.
+Risks: Test-target code movement only. No app Swift, Xcode project, workflow rule, Supabase schema, migration, remote write, seed, release upload, tag, PR, merge/rebase/reset, or force-push changed. Root `CONTEXT_OPTIMIZATION_TASK_PLAN.md` remains external plan input until the serial tasks are complete.
+Next: Use T-226 for Context Optimization Task D if continuing the external plan; otherwise use the next user-chosen task.
+```
+
+```text
+Date: 2026-07-09
 Task: T-224 - Customer request test split.
 Files changed: customer request feature test files, current state, task ledger, worklog, and structure log.
 Checks: `@Test` count 60 before and after; file sizes 10K-23K; full `./scripts/ios-test.sh`; `git diff --check`; context hygiene; commit and push.
 Result: Implements Context Optimization Task B by splitting the 94K `CustomerRequestFeatureTests.swift` into a base test file, four same-suite extension files, and one internal fakes file. Test bodies and names were moved without behavior changes; shared helpers and fakes were widened only from file-private to internal for cross-file access.
 Risks: Test-target code movement only. No app Swift, Xcode project, workflow rule, Supabase schema, migration, remote write, seed, release upload, tag, PR, merge/rebase/reset, or force-push changed. Root `CONTEXT_OPTIMIZATION_TASK_PLAN.md` remains external plan input until the serial tasks are complete.
-Next: Use T-225 for Context Optimization Task C if continuing the external plan; otherwise use the next user-chosen task.
 ```
 
 ```text
@@ -66,13 +75,4 @@ Files changed: current state, task ledger, worklog, roadmap, and frozen rotated 
 Checks: `git status --short`; `git diff --check`; context hygiene; commit and push.
 Result: Runs the required 10-task cadence review after T-207, rotates excess active ledger/worklog rows, confirms active roadmap/queue/current-state pointers align at Q-30/T-219, and records the new meta-review marker.
 Risks: Documentation governance only. No product code, Supabase schema, migration, remote write, Auth config, seed, TestOps remote execution, deploy, APNs dispatch, release upload, tag, PR, merge/rebase/reset, or force-push changed.
-```
-
-```text
-Date: 2026-07-09
-Task: T-217 - Free-tier auth deep link.
-Files changed: auth callback configuration/model, auth repositories, AuthenticationStore, app URL handling, Info.plist URL scheme, auth callback tests, backend auth docs, roadmap, current state, task ledger, and worklog.
-Checks: AuthenticationStore RED/GREEN; full `./scripts/ios-test.sh`; `./scripts/supabase-check.sh`; `./scripts/ios-build.sh`; `plutil -lint ios/PetGroomerMarketplace/Config/AppInfo.plist`; simulator openurl smoke; `git diff --check`; context hygiene; commit and push.
-Result: Closes Q-29/R-027 by passing the Supabase sign-up redirect URL, registering `com.prinnyyy.petgroomermarketplace://auth/callback`, handling supported callback links through AuthenticationStore, and showing safe expired/invalid link copy without exposing callback tokens.
-Risks: Local iOS callback implementation and docs only. Supabase Auth redirect allow-list, SMTP, production HTTPS domain, associated domains, migrations, seeds, deploys, release upload, tag, PR, merge/rebase/reset, and force-push were not changed.
 ```

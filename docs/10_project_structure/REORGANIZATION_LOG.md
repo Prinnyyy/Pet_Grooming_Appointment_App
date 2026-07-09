@@ -31,6 +31,7 @@ Validation for the task is recorded in `../06_tasks/TASK_LEDGER.md` and `../00_m
 
 | Date | Task | Summary | Detail |
 |---|---|---|---|
+| 2026-07-09 | T-225 | Split groomer profile feature tests and rotated oldest active ledger/worklog rows. | `../../ios/PetGroomerMarketplace/PetGroomerMarketplaceTests/`, `../09_frozen/task_ledgers/`, `../09_frozen/worklogs/` |
 | 2026-07-09 | T-224 | Split customer request feature tests and rotated oldest active ledger/worklog rows. | `../../ios/PetGroomerMarketplace/PetGroomerMarketplaceTests/`, `../09_frozen/task_ledgers/`, `../09_frozen/worklogs/` |
 | 2026-07-09 | T-223 | Filtered Xcode script output and rotated oldest active ledger/worklog rows. | `../../scripts/ios-build.sh`, `../../scripts/ios-test.sh`, `../09_frozen/task_ledgers/`, `../09_frozen/worklogs/` |
 | 2026-07-08 | T-186 | Removed stale active 85% workflow execution rules and rotated the oldest active decision entry. | `../05_workflow/`, `../09_frozen/decisions/` |
