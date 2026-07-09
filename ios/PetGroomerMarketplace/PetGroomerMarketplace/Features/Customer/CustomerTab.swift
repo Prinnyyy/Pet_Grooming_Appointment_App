@@ -27,6 +27,16 @@ nonisolated enum CustomerTab: CaseIterable, Identifiable, Equatable {
         }
     }
 
+    var accessibilityIdentifier: String {
+        switch self {
+        case .home: "customer.tab.home"
+        case .requests: "customer.tab.requests"
+        case .bookings: "customer.tab.bookings"
+        case .messages: "customer.tab.messages"
+        case .account: "customer.tab.account"
+        }
+    }
+
     func badgeCount(
         unreadNotificationCount: Int,
         unreadMessageCount: Int

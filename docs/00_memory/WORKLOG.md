@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-09
+Task: T-238 - UI TestOps harness and stable selectors.
+Files changed: customer/groomer tab models/views; customer request-wizard dismiss selector; UITest flow driver/suite; TestOps wrapper and indexed docs; roadmap/queue/current state/task ledger/worklog.
+Checks: Selector RED/GREEN; `bash -n scripts/ios-testops-e2e.sh`; environment-forwarding iterations; seeded R7 customer/groomer UI suite 3/3; generated Xcode-log credential scan clean; full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; `git diff --check`; context hygiene.
+Result: Q-41 adds reusable no-screenshot drivers for TestOps clear-session launch, environment-only T-129 customer/groomer sign-in, all role tabs including system More overflow, customer request-sheet open/dismiss, and relaunch session reset. Temporary logs/results are deleted and summaries are redacted.
+Risks: The harness performs Auth sign-in/read navigation only; it does not mutate marketplace rows. Standard iOS tests skip the two seeded navigation cases when credentials are absent, while the explicit TestOps wrapper runs them when supplied.
+Next: Use T-239 for authorized Q-42 full dual-role UI lifecycle automation.
+```
+
+```text
+Date: 2026-07-09
 Task: T-237 - Conversation and message-history visible pagination.
 Files changed: Chat Supabase repository, Store, conversation/thread views, shared Load More primitive, Chat tests, pagination audit, roadmap/queue/current state/task ledger/worklog.
 Checks: Repository order, Store retry/dedupe/end, and scroll-policy RED/GREEN tests; focused Chat/ListPagination suites; full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; XcodeBuildMCP build/run plus customer Messages list/thread/screenshot; `git diff --check`; context hygiene.
 Result: Q-40 completes visible list pagination. Conversations use independent append state and shared Load More. Threads open on the newest bounded message window, prepend unique earlier pages, restore the old first-message anchor, and auto-scroll only when the latest message changes.
 Risks: The live customer account had only two conversations and short histories, so conditional pagination controls and anchor policy are covered by unit tests while Simulator verification covered production list/thread rendering. No schema or remote write.
-Next: Use T-238 for Q-41 UI TestOps harness and stable selectors.
 ```
 
 ```text
@@ -65,13 +74,4 @@ Files changed: notification negative-contract rollback SQL and static test; road
 Checks: Current Supabase docs/changelog; migration/Edge preflight; 8/8 rollback-only negative checks; linked migration parity/dry-run; catalog, grants, RLS, RPC, trigger, and residue queries; linked lint; security/performance advisors; full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; `git diff --check`; context hygiene.
 Result: Q-35 is complete. Groomer in-app notifications now have remote table/RLS/RPC/trigger parity and the existing iOS list/read behavior is backed by the live schema. The rollback validator was corrected to use PL/pgSQL row counts and authenticated temp-result privileges.
 Risks: APNs, groomer push tokens, push dispatch, and paid Apple work remain excluded. Advisor output contains only known APNs/Auth-plan and Q-36 index findings. Runtime lint exposed a separate account-deletion conflict ambiguity, assigned next as T-232.
-```
-
-```text
-Date: 2026-07-09
-Task: T-230 - Request and offer visible pagination.
-Files changed: shared pagination model/action primitive; customer request/offer Stores, views, and tests; groomer request/offer Stores, views, and tests; pagination audit; roadmap/queue/current state/task ledger/worklog.
-Checks: Four Store pagination RED/GREEN cases; focused customer/groomer request and groomer offer suites; full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; XcodeBuildMCP build/run plus customer Requests navigation/screenshot; `git diff --check`; context hygiene.
-Result: Q-38 adds one shared explicit Load More interaction to customer requests, customer request offers, groomer matched requests, and groomer offers. All four preserve loaded rows and next-page state across failure, retry the same page, deduplicate stable IDs, and stop at the terminal page.
-Risks: No schema, migration, Supabase write, TestOps execute, seed, deploy, APNs, release upload, PR, merge/rebase/reset, or force-push. The live customer account had fewer than 50 rows, so conditional button visibility is covered by Store tests while Simulator verification covered the surrounding production screen.
 ```

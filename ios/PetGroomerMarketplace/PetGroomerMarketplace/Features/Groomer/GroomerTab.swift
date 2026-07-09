@@ -39,6 +39,17 @@ nonisolated enum GroomerTab: CaseIterable, Identifiable, Equatable {
         }
     }
 
+    var accessibilityIdentifier: String {
+        switch self {
+        case .requests: "groomer.tab.requests"
+        case .offers: "groomer.tab.offers"
+        case .bookings: "groomer.tab.bookings"
+        case .messages: "groomer.tab.messages"
+        case .notifications: "groomer.tab.notifications"
+        case .account: "groomer.tab.account"
+        }
+    }
+
     func badgeCount(
         unreadNotificationCount: Int,
         unreadMessageCount: Int

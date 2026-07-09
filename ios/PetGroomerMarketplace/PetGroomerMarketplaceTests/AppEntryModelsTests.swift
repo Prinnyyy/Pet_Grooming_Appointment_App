@@ -83,6 +83,13 @@ struct TabModelsTests {
         #expect(CustomerTab.allCases.map(\.title) == ["Home", "Requests", "Bookings", "Messages", "Account"])
         #expect(CustomerTab.allCases.map(\.systemImage) == ["house", "list.bullet.clipboard", "calendar", "message", "person.crop.circle"])
         #expect(CustomerTab.allCases.allSatisfy { $0.id == $0 })
+        #expect(CustomerTab.allCases.map(\.accessibilityIdentifier) == [
+            "customer.tab.home",
+            "customer.tab.requests",
+            "customer.tab.bookings",
+            "customer.tab.messages",
+            "customer.tab.account",
+        ])
     }
 
     @Test
@@ -91,6 +98,14 @@ struct TabModelsTests {
         #expect(GroomerTab.visibleCases.map(\.title) == ["Board", "Offers", "Schedule", "Messages", "Alerts", "Account"])
         #expect(GroomerTab.visibleCases.map(\.systemImage) == ["tray.full", "tag", "calendar", "message", "bell", "person.crop.circle"])
         #expect(GroomerTab.visibleCases.allSatisfy { $0.id == $0 })
+        #expect(GroomerTab.visibleCases.map(\.accessibilityIdentifier) == [
+            "groomer.tab.requests",
+            "groomer.tab.offers",
+            "groomer.tab.bookings",
+            "groomer.tab.messages",
+            "groomer.tab.notifications",
+            "groomer.tab.account",
+        ])
     }
 }
 

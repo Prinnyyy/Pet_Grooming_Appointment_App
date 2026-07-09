@@ -33,8 +33,8 @@ Smoke matrix:
 
 UI path:
 
-- Current implementation: TestOps launch smoke with run/scenario arguments, clear-session, and disabled animations.
-- Next expansion: sign in customer, publish request, sign out/sign in groomer, create offer, sign out/sign in customer, accept offer, sign out/sign in groomer, complete booking, sign out/sign in customer, create review.
+- Current harness: clear-session launch, seeded customer/groomer sign-in, role-tab navigation, customer request-sheet open/dismiss, and relaunch session reset using stable selectors.
+- Next expansion: publish request, change roles, create/accept offer, verify booking/chat, complete booking, create review, assert backend/Debug state, and clean tagged data.
 - UI assertions must use accessibility identifiers plus backend/Debug verification, not screenshots.
 
 ## `request_matching_eval`

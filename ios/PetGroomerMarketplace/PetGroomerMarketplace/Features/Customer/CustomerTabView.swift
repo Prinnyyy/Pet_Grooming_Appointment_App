@@ -61,6 +61,7 @@ struct CustomerTabView: View {
                 }
                 .tabItem {
                     Label(tab.title, systemImage: tab.systemImage)
+                        .accessibilityIdentifier(tab.accessibilityIdentifier)
                 }
                 .badge(
                     tab.badgeCount(

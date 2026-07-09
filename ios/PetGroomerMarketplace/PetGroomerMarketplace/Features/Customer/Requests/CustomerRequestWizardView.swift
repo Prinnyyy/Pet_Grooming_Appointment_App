@@ -859,6 +859,11 @@ private struct CustomerRequestWizardHeader: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Back")
+                .accessibilityIdentifier(
+                    currentStep == .pet
+                        ? "customer.requests.wizard.dismiss"
+                        : "customer.requests.wizard.header-back"
+                )
 
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
                     Text("Grooming Request")

@@ -11,7 +11,7 @@ This file records current TestOps capability and limits. It is not task history.
 - Smoke matrix: `smoke5`.
 - Matching scenario: `request_matching_eval`.
 - Matching matrix: `matching_baseline`.
-- UI launch smoke: `scripts/ios-testops-e2e.sh`.
+- UI harness: `scripts/ios-testops-e2e.sh` plus `TestOpsUIFlowDriver`; clear-session smoke always runs, while seeded customer/groomer navigation runs when role credentials are supplied through environment variables.
 - Run artifacts: `artifacts/testops/` (ignored generated output, not source-of-truth docs).
 - Doctor recognizes either legacy service-role or modern secret server credentials without printing values.
 - Lifecycle and matching console results plus JSON/Markdown artifacts retain only 8-character entity support references.
@@ -36,6 +36,8 @@ Modern `sb_secret_...` values are sent as `apikey` only, never Bearer. Seed scri
 - `matching_baseline` creates request-only matching evaluations; it does not create offers, bookings, chat rows, reviews, image uploads, or Storage objects.
 - Screenshots are failure artifacts only, never pass/fail assertions.
 - TestOps must use the T-129 seeded account pool; it must not create new test accounts.
+- Seed credentials are never committed to the harness or printed. The wrapper uses `TEST_RUNNER_` environment forwarding, redacted summaries, and temporary result cleanup.
+- Stable selectors cover authentication, both role tab sets, the customer request wizard root/dismiss action, and destination roots. Groomer's sixth tab uses the system More overflow while still asserting destination identifiers.
 
 ## Account Pool
 

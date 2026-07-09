@@ -109,14 +109,16 @@ node scripts/testops.mjs cleanup --run-id TESTOPS-... --execute
 
 ## UI Launch Wiring
 
-Run the TestOps XCUITest launch smoke:
+Run the TestOps XCUITest launch smoke. Without seed credentials, role-navigation cases skip and the clear-session launch contract still runs:
 
 ```bash
 TESTOPS_RUN_ID=TESTOPS-LOCAL-0001 \
 ./scripts/ios-testops-e2e.sh marketplace_full_lifecycle
 ```
 
-This currently verifies launch arguments, live-auth clear-session behavior, and the authentication root. Full UI lifecycle automation should build on this wrapper with stable accessibility identifiers and backend verification.
+For seeded customer/groomer sign-in, tab navigation, customer request-sheet open/dismiss, and session reset, export the four `TESTOPS_UI_<ROLE>_EMAIL/PASSWORD` values from the T-129 seed profiles before running the same command. Do not print or persist those values. The script passes them with Xcode's `TEST_RUNNER_` environment convention, redacts summaries, and deletes its temporary log/result bundle.
+
+This harness performs no request/offer/booking writes. Full lifecycle mutation remains a separate authorized TestOps execution.
 
 ## Debug Events
 
