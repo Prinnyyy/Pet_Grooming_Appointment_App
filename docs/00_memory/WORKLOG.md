@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-09
+Task: T-221 - Dual-role E2E walkthrough.
+Files changed: TestOps dual-role run record, TestOps results index, roadmap, current state, task ledger, and worklog.
+Checks: TestOps doctor dry-run; backend `marketplace_full_lifecycle` smoke5 dry-run; matching baseline dry-run; iOS TestOps launch smoke; `./scripts/testops-unit.sh`; `git diff --check`; context hygiene; commit and push.
+Result: Closes Q-32/R-029 by recording local no-write evidence that seeded customer/groomer lifecycle plans, matching projections, and iOS launch wiring are available, plus a gap list for full UI lifecycle automation and remote execute validation.
+Risks: Evidence/docs and local dry-run validation only. No Supabase schema, migration, remote write, seed, remote TestOps execute, cleanup, Auth config, deploy, APNs dispatch, release upload, tag, PR, merge/rebase/reset, or force-push changed.
+Next: Use T-222 for the next user-chosen task; recommended queue start is Q-33 ideal-operation readiness rehearsal.
+```
+
+```text
+Date: 2026-07-09
 Task: T-220 - Backend contract negatives.
 Files changed: notification negative migration tests, rollback validation SQL, RLS/RPC policy index, roadmap, current state, task ledger, and worklog.
 Checks: Notification negative RED/GREEN; `node --test tests/migrations/*.test.mjs`; `./scripts/supabase-check.sh`; `git diff --check`; context hygiene; commit and push.
 Result: Closes Q-31/R-028 by adding negative contract coverage for customer/groomer notification owner isolation, direct notification mutation denial, private helper execute denial, and service-role-only push delivery RPCs, plus rollback-only SQL validation evidence.
 Risks: Backend contract test/docs hardening only. No Supabase schema, migration, remote write, Auth config, seed, TestOps remote execution, deploy, APNs dispatch, release upload, tag, PR, merge/rebase/reset, or force-push changed.
-Next: Use T-221 for the next user-chosen task; recommended queue start is Q-32 dual-role E2E walkthrough.
 ```
 
 ```text
@@ -66,13 +75,4 @@ Files changed: marketplace status models, affected status UI surfaces, DecodeTol
 Checks: Focused DecodeTolerance RED/GREEN; full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
 Result: Closes Q-26/R-028 by adding safe unknown-status decode fallbacks, neutral unknown-status UI handling, malformed-date display tolerance, null optional pet snapshot coverage, and oversized corrupt private image cache rejection coverage.
 Risks: Local iOS/model/test hardening only. No Supabase schema, migration, remote write, repository API signature, UI layout redesign, Auth config, seed, TestOps remote execution, deploy, APNs dispatch, release upload, tag, PR, merge/rebase/reset, or force-push changed.
-```
-
-```text
-Date: 2026-07-09
-Task: T-213 - Time and boundary contract tests.
-Files changed: time-boundary migration contract tests, roadmap, current state, task ledger, and worklog.
-Checks: Focused `node --test tests/migrations/time-boundary-contract.test.mjs`; `node --test tests/migrations/*.test.mjs`; `./scripts/supabase-check.sh`; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
-Result: Closes Q-25/R-028 by adding focused backend contract coverage for groomer-local request-day matching, exact offer/booking availability windows, time-off overlap, minimum advance notice, daily capacity, expiry edge conversion, and service size-band limits.
-Risks: Test-only backend contract coverage. No Supabase schema, migration, remote write, repository API signature, UI layout, Auth config, seed, TestOps remote execution, deploy, APNs dispatch, release upload, tag, PR, merge/rebase/reset, or force-push changed.
 ```
