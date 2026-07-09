@@ -1,8 +1,8 @@
 # Supabase Index Evidence Audit
 
-Last verified: 2026-07-09. Task: T-228 / Q-34. Project: `lqmasbuqzvcvtawonjlb`.
+Last verified: 2026-07-09. Tasks: T-228/Q-34 and T-234/Q-36. Project: `lqmasbuqzvcvtawonjlb`.
 
-This is the current read-only disposition for the linked performance advisor. It authorizes no migration or index removal. Q-36 requires separate remote authorization.
+This is the current linked performance-advisor disposition. T-234 applied the two evidence-backed additions; it authorizes no further index addition or removal.
 
 ## Evidence
 
@@ -29,10 +29,16 @@ This is the current read-only disposition for the linked performance advisor. It
 | `request_photos_customer_id_fkey` | **add** | No `customer_id` index; forced plan remained a high-cost sequential scan. |
 | `request_photos_request_customer_fkey` | keep/no add | Request-prefixed index produced a bitmap index scan. |
 
-Q-36 should propose only:
+T-234/Q-36 applied only:
 
 - `customer_booking_handoff_acknowledgements_booking_id_idx (booking_id)`
 - `request_photos_customer_id_idx (customer_id)`
+
+Post-apply verification:
+
+- The linked advisor's unindexed-FK findings fell from 12 to 10; exactly the two targeted findings cleared.
+- Forced plans changed from high-cost sequential scans to `request_photos_customer_id_idx` index scan and handoff `booking_id` bitmap index scan.
+- Both new indexes appear as unused immediately after creation because the linked tables have little traffic. This is expected and is not removal evidence.
 
 ## Unused-Index Findings
 

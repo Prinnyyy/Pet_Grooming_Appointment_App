@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-09
+Task: T-234 - Evidence-backed foreign-key indexes.
+Files changed: two-index migration, rollback-only forced-plan SQL, migration regression test, index evidence audit, Supabase contract, roadmap/queue/current state/task ledger/worklog.
+Checks: Focused RED/GREEN; 47 migration and 10 Edge tests; `./scripts/preflight.sh`; `./scripts/supabase-check.sh`; linked list/dry-run/apply/parity; catalog definitions; before/after forced plans; performance advisor; `git diff --check`; context hygiene.
+Result: Q-36 adds only `customer_booking_handoff_acknowledgements(booking_id)` and `request_photos(customer_id)`. Both high-cost forced sequential scans changed to index-backed plans, and the two target unindexed-FK findings cleared.
+Risks: Both new indexes immediately appear as unused because linked traffic is minimal; this is expected and does not authorize removal. The remaining 10 FK findings retain the T-228 disposition.
+Next: Use T-235 for authorized Q-37 remote TestOps lifecycle and matching evidence.
+```
+
+```text
+Date: 2026-07-09
 Task: T-233 - Account deletion Storage API correction.
 Files changed: account-deletion Edge Function and tests; append-only SQL migration and static test; rollback-only runtime SQL; Storage/backend/feature docs; current state, roadmap, task ledger, and worklog.
 Checks: Official Storage list/delete docs; Edge and migration RED/GREEN; recursive/paged/1000-object batch cases; exact T-232/T-233 function comparison; 45 migration and 10 Edge tests; `./scripts/preflight.sh`; `./scripts/supabase-check.sh`; linked dry-run/apply/parity; rollback-only runtime and zero-residue query; linked lint; security/performance advisors; Edge version 2 active with JWT verification; full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; `git diff --check`; context hygiene.
 Result: Account deletion no longer mutates `storage.objects` from SQL. After transactional anonymization, the Edge Function recursively lists the user's UUID prefix in six current/legacy buckets, removes objects in batches of at most 1000, and only then soft-deletes Auth. Storage failure is recorded and blocks Auth deletion.
 Risks: The production function deployment is verified by version/status and unit-boundary coverage; no live end-user account was destructively deleted. Advisor output remains limited to known APNs/Auth-plan and Q-36 index findings.
-Next: Use T-234 for authorized Q-36 evidence-backed foreign-key indexes.
 ```
 
 ```text
@@ -66,13 +75,4 @@ Files changed: roadmap, roadmap execution queue, decision log, current state, ta
 Checks: Current Supabase changelog/password security/custom SMTP/advisor guidance; Postgres index evidence guidance; `git diff --check`; context hygiene.
 Result: Converts the unresolved non-Apple findings after T-222 into Q-34 through Q-42 and blocked non-Apple Q-92/Q-93. The queue separates read-only index evidence from migrations, keeps T-203 groomer in-app notification parity distinct from APNs, and splits remote TestOps, UI lifecycle automation, and pagination into reviewable packages.
 Risks: Planning/docs only. No Swift, Supabase schema/config/write, migration apply, TestOps remote execute, seed, deploy, release upload, tag, PR, merge/rebase/reset, or force-push changed. APNs, paid Apple Developer work, TestFlight/App Store submission, and `customer_push_tokens` advisor noise are explicitly outside this sequence.
-```
-
-```text
-Date: 2026-07-09
-Task: T-226 - Groomer profile store split.
-Files changed: groomer profile store files, current state, task ledger, worklog, structure log, and frozen external plan archive.
-Checks: pre-change `./scripts/ios-build.sh`; member declarations 163 before and after; file sizes 4.3K-16.2K; `./scripts/ios-build.sh`; full `./scripts/ios-test.sh`; `git diff --check`; context hygiene; commit and push.
-Result: Implements Context Optimization Task D by splitting the 59K app-target `GroomerProfileStore.swift` into base plus Profile, ServicesAvailability, Portfolio, FitSignals, and Support extension files. Stored properties and initializer stayed in the base file; behavior was preserved with minimal visibility widening required for cross-file extensions. The completed external plan was archived under `docs/09_frozen/external_agent_reports/CONTEXT_OPTIMIZATION_TASK_PLAN_2026-07-09.md`.
-Risks: App-target code movement only. No SwiftUI view, repository, model, `project.pbxproj`, workflow rule, Supabase schema, migration, remote write, seed, release upload, tag, PR, merge/rebase/reset, or force-push changed.
 ```

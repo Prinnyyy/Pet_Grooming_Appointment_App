@@ -1,0 +1,5 @@
+create index customer_booking_handoff_acknowledgements_booking_id_idx
+on public.customer_booking_handoff_acknowledgements (booking_id);
+
+create index request_photos_customer_id_idx
+on public.request_photos (customer_id);
