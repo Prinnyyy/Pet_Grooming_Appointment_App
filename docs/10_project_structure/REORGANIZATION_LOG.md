@@ -31,6 +31,7 @@ Validation for the task is recorded in `../06_tasks/TASK_LEDGER.md` and `../00_m
 
 | Date | Task | Summary | Detail |
 |---|---|---|---|
+| 2026-07-09 | T-184 | Aligned context-budget workflow rules and archived the adopted redesign plan. | `../05_workflow/CONTEXT_AND_RECOVERY.md`, `../09_frozen/external_agent_reports/`, `../09_frozen/decisions/` |
 | 2026-07-08 | T-179 | Archived the adopted watch-items plan, lowered active memory windows, and compressed active indexes below the 85% waterline. | `../09_frozen/external_agent_reports/`, `../09_frozen/task_ledgers/`, `../09_frozen/worklogs/`, `README.md` |
 | 2026-07-08 | T-178 | Added backtick path integrity checks and rolled T-164 ledger row plus T-168 worklog entry to frozen. | `../../scripts/context-hygiene-check.mjs`, `../09_frozen/task_ledgers/`, `../09_frozen/worklogs/` |
 | 2026-07-08 | T-177 | Cleaned dead governance-plan ignore entries, expanded ROADMAP DoD, and rolled T-163 ledger row plus T-167 worklog entry to frozen. | `../../.rgignore`, `../../.gitignore`, `../06_tasks/ROADMAP.md`, `../09_frozen/task_ledgers/`, `../09_frozen/worklogs/` |

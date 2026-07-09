@@ -76,18 +76,30 @@ Run the context hygiene check at the end of any task that updates durable memory
 node scripts/context-hygiene-check.mjs
 ```
 
-Budget limits and fact checks live in `scripts/context-hygiene-check.mjs`. Do not copy the numeric table here; run the script to see current budgets plus last-verified, migration-count, ROADMAP/ledger, and Feature Index path checks.
+Budget limits and fact checks live in `scripts/context-hygiene-check.mjs`. Do not copy the numeric table here; run the script to see current budgets, active Markdown percentage, rolling-window status, last-verified dates, migration count, ROADMAP/ledger evidence, and Feature Index path checks.
 
-The active Markdown 85% waterline is a cleanup trigger. Do not close a durable-memory, ledger, workflow, or coordination-doc task while the hygiene output still reports that warning. Use the smallest safe same-task trim or archive until the warning clears. Raising budgets is not a fix unless a standalone decision says no safe reduction remains.
+Active Markdown is structured as three file classes:
 
-When cleanup is needed, prefer these actions before final reporting:
+- FIXED: rules, contracts, and product docs. These have per-file word budgets and change only when their owner fact changes.
+- WINDOW: `TASK_LEDGER.md`, `WORKLOG.md`, and `DECISION_LOG.md`. These grow by entries and stay bounded by rotation.
+- INDEX: `CURRENT_STATE.md`, ROADMAP, feature and archive indexes. Updates replace stale facts or pointers instead of appending history.
 
-- `CURRENT_STATE.md`: snapshot to `docs/09_frozen/current_state_snapshots/`, then keep only current facts and pointers.
-- `WORKLOG.md`: keep the newest useful closeout entries active; move older verbatim entries to `docs/09_frozen/worklogs/`.
-- `TASK_LEDGER.md`: keep active, blocked, and newest useful rows active; move older completed rows to `docs/09_frozen/task_ledgers/`.
-- Decision/backend/product indexes: archive the pre-trim file under the matching `docs/09_frozen/` family, then keep the active file as an index/current-rule document.
+Closeout writing discipline: ordinary tasks add one task-ledger row and one worklog entry; `CURRENT_STATE.md` uses replacement semantics; `DECISION_LOG.md` changes only for durable decisions; unrelated active Markdown stays untouched.
 
-After creating a new archive family or path, update `docs/README.md`, `docs/10_project_structure/README.md`, `docs/09_frozen/README.md`, and any active pointer that references the family.
+If hygiene reports a rolling-window overflow, run:
+
+```sh
+node scripts/context-rotate.mjs --apply
+node scripts/context-hygiene-check.mjs
+```
+
+If the script is unavailable, do the equivalent manually: move oldest eligible completed ledger rows, oldest worklog entries, or oldest complete decision blocks into the matching `docs/09_frozen/` family verbatim, leave active indexes/pointers, and rerun hygiene.
+
+Do not treat the active Markdown percentage as a compression target. A 95% warning means schedule a structural review for category mismatch, window drift, or index-as-log misuse; only a hard-limit failure blocks closeout.
+
+Compress FIXED files only under these criteria: replace repeated facts with a pointer to the owner file, keep each fact in one source of truth, move narrative history to frozen archives, and move long examples or explanations to frozen references. Do not compress outside those criteria.
+
+After creating a new archive family or path, update the relevant active pointers and archive indexes in the same task.
 
 Do not run iOS build or simulator launch for context hygiene alone.
 

@@ -71,7 +71,7 @@ Briefly review the diff when files changed. Record closeout in `docs/06_tasks/TA
 
 After required validation and closeout, create a task-scoped commit and push the current branch under standing Git approval. Skip commit/push if validation fails, unrelated user work is mixed in, secrets are present, the branch is unclear, or the user disables auto Git.
 
-After durable memory or task-ledger changes, run context hygiene. If active Markdown is at or above the 85% waterline, trim/archive current docs in the same task until the warning clears; do not raise budgets to silence it.
+After durable memory or task-ledger changes, run context hygiene. If it reports rolling-window overflow, run `node scripts/context-rotate.mjs --apply`, then rerun hygiene.
 
 When moving, deleting, or archiving Markdown, update linked indexes, source-of-truth notes, and ignore/search rules in the same change.
 

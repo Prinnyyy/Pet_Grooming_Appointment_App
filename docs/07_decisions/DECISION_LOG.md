@@ -18,6 +18,15 @@ Linked files:
 ## Active Decisions
 
 ```text
+Decision ID: D-016
+Date: 2026-07-09
+Decision: Adopt the structural context-budget workflow in active agent rules.
+Context: T-183 implemented the 36k active Markdown hard limit, default 650-word budgets, 95% structural-review warning, and deterministic rotation. The active workflow still described the older 85% cleanup trigger.
+Consequences: `AGENTS.md` and `CONTEXT_AND_RECOVERY.md` now direct agents to use `node scripts/context-rotate.mjs --apply` for rolling-window overflow, treat active Markdown percentage as a structural signal rather than a compression target, keep WINDOW files bounded, use replacement semantics for INDEX files, and compress FIXED files only by owner-pointer, single-source, frozen-history, or frozen-example criteria. This supersedes D-014's 85% cleanup-trigger rule.
+Linked files: AGENTS.md, docs/05_workflow/CONTEXT_AND_RECOVERY.md, scripts/context-hygiene-check.mjs, scripts/context-rotate.mjs
+```
+
+```text
 Decision ID: D-015
 Date: 2026-07-09
 Decision: Replace the active Markdown 85% cleanup trigger with structural context-budget tooling.
@@ -80,14 +89,6 @@ Consequences: Do not rewrite, amend, rebase, revert, or force-push those commits
 Linked files: docs/05_workflow/GITHUB_RULES.md, docs/06_tasks/TASK_LEDGER.md
 ```
 
-```text
-Decision ID: D-008
-Date: 2026-07-08
-Decision: Treat `main` commit `2fddf7b` as reviewed and superseded by this branch's governance architecture.
-Context: The commit exists only on `main`/`origin/main`, is not an ancestor of `codex/pet-fit-structure-cleanup`, and resets docs to a T-049/T-050-era architecture.
-Consequences: Do not merge `2fddf7b` into this branch. Future `main` reconciliation should carry this branch's governed docs forward or cherry-pick only explicitly reviewed non-stale changes.
-Linked files: docs/05_workflow/GITHUB_RULES.md, docs/00_memory/CURRENT_STATE.md, docs/06_tasks/TASK_LEDGER.md
-```
 
 ## Archived Decision Index
 
@@ -95,6 +96,7 @@ Full text for the entries below is preserved in `../09_frozen/decisions/DECISION
 
 | Date | Decision | Current entry point |
 |---|---|---|
+| 2026-07-08 | Treat `main` commit `2fddf7b` as reviewed and superseded by this branch's governance architecture. | `../09_frozen/decisions/DECISION_LOG_D-008_2026-07-09.md` |
 | 2026-07-08 | Workflow-rule file changes must be standalone governed tasks. | `../09_frozen/decisions/DECISION_LOG_D-001_TO_D-007_2026-07-09.md` |
 | 2026-07-08 | Treat context hygiene as the machine check for active-doc fact drift. | `../09_frozen/decisions/DECISION_LOG_D-001_TO_D-007_2026-07-09.md` |
 | 2026-07-07 | Make preflight the local gate for migration and Edge Function static tests. | `../09_frozen/decisions/DECISION_LOG_D-001_TO_D-007_2026-07-09.md` |

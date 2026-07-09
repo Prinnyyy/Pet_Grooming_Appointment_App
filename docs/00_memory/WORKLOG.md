@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-09
+Task: T-184 - Context budget workflow alignment.
+Files changed: AGENTS.md, context/recovery workflow rules, decision log/archive, frozen external plan, current state, task ledger, and worklog.
+Checks: `node scripts/context-rotate.mjs --apply`; `node scripts/context-hygiene-check.mjs`; `git diff --check`; commit and push.
+Result: Implements Batch B of the context-budget redesign. Active workflow rules now use `context-rotate` for rolling-window overflow, define FIXED/WINDOW/INDEX write discipline, treat 95% active Markdown as structural-review signal, and archive the adopted root redesign plan.
+Risks: Documentation-only workflow change. No Swift, Supabase, runtime, simulator, PR, tag, merge/rebase/reset, seed, migration, or non-Git remote write changed.
+Next: Use T-185 unless resuming T-157 after Apple Developer credentials.
+```
+
+```text
+Date: 2026-07-09
 Task: T-183 - Context budget redesign tooling.
 Files changed: context hygiene policy/check scripts, context rotate script, docs tests, decision log/archive, current state, task ledger, and worklog.
 Checks: `node --test tests/docs/`; `node scripts/context-rotate.mjs`; `node scripts/context-rotate.mjs --apply`; `node scripts/context-hygiene-check.mjs`; `CONTEXT_HYGIENE_FORCE_NO_RG=1 node scripts/context-hygiene-check.mjs`; `git diff --check`; commit and push.
 Result: Implements Batch A of the context-budget redesign: 36k hard total, no 85% warning, 95% structural-review warning, 650-word default active Markdown budget, full budget coverage output, decision-log 8-entry window, shared constants, and deterministic archive rotation.
 Risks: Docs/tooling-only change. Workflow text alignment and root plan archival are intentionally deferred to T-184 Batch B. No Swift, Supabase, runtime, simulator, PR, tag, merge/rebase/reset, seed, migration, or non-Git remote write changed.
-Next: Use T-184 for context-budget workflow text alignment unless resuming T-157 after Apple Developer credentials.
 ```
 
 ```text
