@@ -2,7 +2,7 @@
 
 Track only current, blocked, and recent tasks here so Codex does not continue automatically. Older completed rows through T-176 are archived under `docs/09_frozen/task_ledgers/`; active blocked T-157 remains below. Notes should keep conclusions and pointers only; validation detail belongs in `docs/00_memory/WORKLOG.md` or frozen worklogs. Detailed task records T-001 through T-088 and workflow task records remain archived under `docs/09_frozen/task_records_2026-06-26/`.
 
-Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup`; use `T-187` for the next non-APNs task unless the user explicitly names another branch or task ID.
+Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup`; use `T-188` for the next non-APNs task unless the user explicitly names another branch or task ID.
 
 Active blocked task: T-157 is waiting on paid Apple Developer Program access before APNs secrets (`APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_TOPIC`, `APNS_PRIVATE_KEY`) and Edge Function deploy.
 
@@ -10,6 +10,7 @@ Active blocked task: T-157 is waiting on paid Apple Developer Program access bef
 
 | ID | Task | Status | Mode | Milestone | Files/Docs | Checks | Notes |
 |---|---|---|---|---|---|---|---|
+| T-187 | Roadmap execution queue | completed | Quick | G0/M1-M5 | `ROADMAP.md`, `ROADMAP_EXECUTION_QUEUE.md`, task directory guide, decision log, memory docs | `git diff --check`; context hygiene; commit and push | Adds a bounded execution queue that turns roadmap candidates into adoptable packages without assigning task IDs in ROADMAP. Next product package is Q-01/R-005 private image contract audit unless the user chooses another item. |
 | T-186 | Stale workflow 85% wording cleanup and push-failure rule | completed | Quick | G0 | `AGENTS.md`, workflow rules, decision log, memory docs | `git diff --check`; context hygiene; decision rotation; commit and push | Removes active 85% warning/waterline execution rules, keeps 95% as structural review only, fixes the T-185 meta-review date marker, and requires stopping without auto pull/rebase if automatic push fails or is rejected. |
 | T-185 | Root external draft cleanup and meta-review | completed | Quick | G0 | frozen external reports, current state, task ledger, worklog, structure log | `git diff --check`; context hygiene; targeted meta-review checks; commit and push | Preserves ignored root external drafts under `docs/09_frozen/external_agent_reports/`, removes root copies, records the scheduled meta-review, and queues T-186 for stale workflow 85% wording found in active rules. |
 | T-184 | Context budget workflow alignment | completed | Quick | G0 | `AGENTS.md`, context workflow rules, decision log, frozen external plan, memory docs | `git diff --check`; context hygiene; rotate apply for decision-window overflow; commit and push | Implements Batch B of the context-budget redesign: active rules now point to `context-rotate`, define FIXED/WINDOW/INDEX discipline, remove 85% cleanup semantics from workflow text, and archive the adopted root plan. |

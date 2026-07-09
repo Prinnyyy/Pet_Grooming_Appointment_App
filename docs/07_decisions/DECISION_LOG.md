@@ -18,6 +18,15 @@ Linked files:
 ## Active Decisions
 
 ```text
+Decision ID: D-018
+Date: 2026-07-09
+Decision: Use a bounded roadmap execution queue between ROADMAP candidates and task-ledger work.
+Context: The user asked to plan and create a series of tasks from `docs/06_tasks/ROADMAP.md`. ROADMAP is the governed milestone index and explicitly must not allocate future task IDs.
+Consequences: `ROADMAP_EXECUTION_QUEUE.md` now lists adoptable packages Q-01 through Q-15 derived from R-005 through R-015. Future execution still receives the next `T-###` from `TASK_LEDGER.md`, one primary package per run, with blocked packages staying inactive until blockers clear.
+Linked files: docs/06_tasks/ROADMAP.md, docs/06_tasks/ROADMAP_EXECUTION_QUEUE.md, docs/06_tasks/TASK_LEDGER.md
+```
+
+```text
 Decision ID: D-017
 Date: 2026-07-08
 Decision: Remove stale 85% active-Markdown execution rules and stop on rejected automatic pushes.
@@ -80,15 +89,6 @@ Consequences: `AGENTS.md` now points to `CURRENT_STATE.md` for branch baseline. 
 Linked files: AGENTS.md, CLAUDE.md, docs/00_memory/CURRENT_STATE.md, docs/06_tasks/TASK_LEDGER.md, docs/07_decisions/DECISION_LOG.md
 ```
 
-```text
-Decision ID: D-010
-Date: 2026-07-08
-Decision: Track meta-review cadence by completed-task distance, not wall-clock age.
-Context: The review plan requires a marker for "every 10 completed tasks or weekly" so hygiene can catch missed governance reviews. Calendar-only failures would turn red while the project is idle.
-Consequences: `CURRENT_STATE.md` records `Last meta-review: T-### on YYYY-MM-DD.` Context hygiene fails when the marker is missing or 10+ completed tasks behind the latest completed task. Weekly cadence remains a human reminder in `META_REVIEW_TEMPLATE.md`.
-Linked files: docs/00_memory/CURRENT_STATE.md, docs/06_tasks/META_REVIEW_TEMPLATE.md, scripts/context-hygiene-check.mjs
-```
-
 
 ## Archived Decision Index
 
@@ -96,6 +96,7 @@ Full text for the entries below is preserved in `../09_frozen/decisions/DECISION
 
 | Date | Decision | Current entry point |
 |---|---|---|
+| 2026-07-08 | Track meta-review cadence by completed-task distance, not wall-clock age. | `../09_frozen/decisions/DECISION_LOG_D-010_2026-07-09.md` |
 | 2026-07-08 | Record the T-163 through T-173 batch commits as a one-time historical exception. | `../09_frozen/decisions/DECISION_LOG_D-009_2026-07-09.md` |
 | 2026-07-08 | Treat `main` commit `2fddf7b` as reviewed and superseded by this branch's governance architecture. | `../09_frozen/decisions/DECISION_LOG_D-008_2026-07-09.md` |
 | 2026-07-08 | Workflow-rule file changes must be standalone governed tasks. | `../09_frozen/decisions/DECISION_LOG_D-001_TO_D-007_2026-07-09.md` |

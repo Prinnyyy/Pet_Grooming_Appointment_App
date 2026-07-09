@@ -5,13 +5,22 @@ This file is the active recent closeout index, newest first. It intentionally ke
 Current branch, next task ID, and current baseline live in `docs/00_memory/CURRENT_STATE.md` and `docs/06_tasks/TASK_LEDGER.md`. Only the newest entry should keep a `Next:` line.
 
 ```text
+Date: 2026-07-09
+Task: T-187 - Roadmap execution queue.
+Files changed: ROADMAP, roadmap execution queue, task directory guide, decision log, current state, task ledger, and worklog.
+Checks: `git diff --check`; `node scripts/context-hygiene-check.mjs`; commit and push.
+Result: Adds `docs/06_tasks/ROADMAP_EXECUTION_QUEUE.md` as the bounded planning layer between ROADMAP candidates and task-ledger execution. The queue defines Q-01 through Q-15 from R-005 through R-015 without assigning future T IDs in ROADMAP.
+Risks: Documentation/planning-only change. No Swift, Supabase, runtime, simulator, PR, tag, merge/rebase/reset, seed, migration, or non-Git remote write changed.
+Next: Use T-188 unless resuming T-157 after Apple Developer credentials. Recommended roadmap package is Q-01/R-005 private image contract audit.
+```
+
+```text
 Date: 2026-07-08
 Task: T-186 - Stale workflow 85% wording cleanup and push-failure rule.
 Files changed: AGENTS, workflow rules, decision log/archive, current state, task ledger, worklog, and structure log.
 Checks: `git diff --check`; `node scripts/context-rotate.mjs --apply`; `node scripts/context-hygiene-check.mjs`; `node scripts/context-rotate.mjs`; commit and push.
 Result: Removes active 85% warning/waterline closeout and stop rules, keeps 95% active Markdown as structural-review scheduling only, corrects the T-185 meta-review marker to 2026-07-08, and requires agents to stop without auto pull/rebase/merge/reset/force-push when automatic push fails or is rejected.
 Risks: Documentation-only workflow change. No Swift, Supabase, runtime, simulator, PR, tag, merge/rebase/reset, seed, migration, or non-Git remote write changed.
-Next: Use T-187 unless resuming T-157 after Apple Developer credentials. Product candidate remains private image rendering.
 ```
 
 ```text
@@ -66,14 +75,4 @@ Files changed: AGENTS.md, workflow Git/tooling rules, decision log, task ledger,
 Checks: `git diff --check`; `node scripts/context-hygiene-check.mjs`; staged diff check; commit and push.
 Result: Records the user's standing approval for automatic task-completion commits and pushes. The workflow now commits and pushes the current task's own changes after required validation passes, while keeping PRs, tags, merge/rebase/reset, branch deletion, Supabase writes, seeds, unrelated cleanup, non-Git remote writes, and unrelated user work outside that approval.
 Risks: Documentation-only rule change. Future agents must still skip auto Git when validation fails, secrets appear in the diff, the branch is unclear, or unrelated user work would be included.
-```
-
-```text
-Date: 2026-07-08
-Task: T-179 - Active Markdown budget reduction.
-Files changed: context hygiene script, structure/product indexes, decision log, roadmap, task ledger/archive, worklog/archive, current state, structure log, and frozen external report.
-Checks: `node scripts/context-hygiene-check.mjs`; `CONTEXT_HYGIENE_FORCE_NO_RG=1 node scripts/context-hygiene-check.mjs`; `node --test tests/docs/context-hygiene-check.test.mjs`; `git diff --check`.
-Result: Lowers active rolling windows to 8 worklog entries and 12 ledger rows, tightens decision/structure budgets, trims active index prose, and archives the adopted watch-items plan. Active Markdown is below the 85% waterline.
-Audit: Kept current facts; compressed routing/index prose in project structure, screen inventory, navigation, UX, and current risks; archived older rolling-window rows verbatim. No referenced active file was deleted.
-Risks: Docs/workflow tooling only. No iOS source, Supabase command, migration, runtime behavior, simulator, commit, push, or remote write changed.
 ```

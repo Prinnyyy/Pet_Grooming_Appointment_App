@@ -2,7 +2,7 @@
 
 Last verified: 2026-07-08.
 
-This is the governed planning index. It summarizes approved direction and candidate work without assigning task IDs. Task status stays in `TASK_LEDGER.md`; current branch, validation, and risks stay in `../00_memory/CURRENT_STATE.md`.
+This is the governed planning index. It summarizes approved direction and candidate work without assigning task IDs. Adoptable execution packages live in `ROADMAP_EXECUTION_QUEUE.md`. Task status stays in `TASK_LEDGER.md`; current branch, validation, and risks stay in `../00_memory/CURRENT_STATE.md`.
 
 ## Adoption Rules
 
@@ -13,7 +13,7 @@ This is the governed planning index. It summarizes approved direction and candid
 - Completed items must point to the closing ledger row or evidence.
 - Do not start the next roadmap item automatically. One user request equals one primary task.
 
-Inputs: active facts from `TASK_LEDGER.md`, `../00_memory/CURRENT_STATE.md`, and `../00_memory/FEATURE_INDEX.md`; review input from frozen external reports only.
+Inputs: active facts from `TASK_LEDGER.md`, `ROADMAP_EXECUTION_QUEUE.md`, `../00_memory/CURRENT_STATE.md`, and `../00_memory/FEATURE_INDEX.md`; review input from frozen external reports only.
 
 ## V1.0 DoD
 
@@ -78,3 +78,5 @@ Out of V1.0 unless explicitly changed: payments, subscriptions, public directory
 | R-023 | G0 | Active Markdown budget reduction | Complete T-179 |
 
 Completed mapping: T-152 M1; T-153/T-155/T-156/T-162 M2; T-154 M1/M2; T-157 M2 blocked for dispatch; T-160/T-161 M3; T-163...T-179 G0.
+
+Execution sequencing: use `ROADMAP_EXECUTION_QUEUE.md` to select the next adoptable package. The queue is planning input only; each adopted package receives the next `T-###` from `TASK_LEDGER.md`.

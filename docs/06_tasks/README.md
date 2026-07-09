@@ -6,6 +6,7 @@ Use this directory for the active task ledger, templates, and task-specific arti
 
 - `TASK_LEDGER.md`: the active/recent task-status and task-numbering record.
 - `ROADMAP.md`: governed milestone and candidate-work index. It does not allocate task IDs.
+- `ROADMAP_EXECUTION_QUEUE.md`: adoptable package queue derived from the roadmap. It does not allocate task IDs or record status.
 - `SCREENSHOT_UI_REWORK_TASK_TEMPLATE.md`: template for screenshot-driven Groomly UI work.
 - `META_REVIEW_TEMPLATE.md`: template for weekly or every-10-tasks documentation-governance reviews.
 
@@ -13,7 +14,7 @@ Use this directory for the active task ledger, templates, and task-specific arti
 
 Historical detailed task files for `T-001` through `T-088` and completed `WORKFLOW-*` policy tasks now live under `../09_frozen/task_records_2026-06-26/`.
 
-Use `TASK_LEDGER.md` as the merged active record for task families, status, checks, and notes. Use `ROADMAP.md` only for milestone direction and candidate backlog.
+Use `TASK_LEDGER.md` as the merged active record for task families, status, checks, and notes. Use `ROADMAP.md` for milestone direction and candidate backlog; use `ROADMAP_EXECUTION_QUEUE.md` to choose an adoptable package when the user asks for roadmap work.
 Older completed ledger rows are archived under `../09_frozen/task_ledgers/` when context hygiene thresholds are exceeded.
 Old generic task templates are archived under `../09_frozen/task_templates/`; do not restore them unless a future workflow task proves they are needed.
 
