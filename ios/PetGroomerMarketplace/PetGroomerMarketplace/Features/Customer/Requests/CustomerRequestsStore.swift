@@ -253,7 +253,7 @@ final class CustomerRequestsStore {
             pets = try await petRepository.pets(customerID: customerID)
             await loadPetPhotosForWizard(startedAt: startedAt)
             requests = try await requestRepository.requests(customerID: customerID)
-            try await loadRequestPhotos(for: requests)
+            await loadRequestPhotosForRepublish(startedAt: startedAt)
             do {
                 bookings = try await bookingRepository.bookings(
                     participantID: customerID,
@@ -1231,6 +1231,24 @@ final class CustomerRequestsStore {
         )
         requestPhotosByRequestID = Dictionary(grouping: photos, by: \.requestID)
         requestPhotoDataByID = await requestPhotoDataMap(for: photos)
+    }
+
+    private func loadRequestPhotosForRepublish(startedAt: Date) async {
+        do {
+            try await loadRequestPhotos(for: requests)
+        } catch CustomerRequestRepositoryError.cancelled {
+            recordStoreCancelled("load.requestPhotos", startedAt: startedAt)
+        } catch {
+            requestPhotosByRequestID = [:]
+            requestPhotoDataByID = [:]
+            recordStoreFailure(
+                "load.requestPhotos",
+                error: error,
+                mappedMessage: nil,
+                startedAt: startedAt,
+                level: .warning
+            )
+        }
     }
 
     private func loadPetPhotosForWizard(startedAt: Date) async {

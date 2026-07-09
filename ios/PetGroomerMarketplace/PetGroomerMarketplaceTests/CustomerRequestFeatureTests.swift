@@ -610,6 +610,135 @@ struct CustomerRequestsStoreTests {
     }
 
     @Test @MainActor
+    func startRepublishFromCancelledBookingWithoutOriginalRequestDoesNotOpenWizard() async throws {
+        let customerID = UUID()
+        let pet = Self.pet(customerID: customerID)
+        let cancelledBooking = Self.booking(
+            requestID: UUID(),
+            customerID: customerID,
+            status: .cancelledByCustomer
+        )
+        let store = CustomerRequestsStore(
+            customerID: customerID,
+            petRepository: CustomerRequestPetRepositoryFake(
+                petsResult: .success([pet])
+            ),
+            requestRepository: CustomerRequestRepositoryFake(),
+            bookingRepository: CustomerRequestBookingRepositoryFake(
+                bookingsResult: .success([cancelledBooking])
+            )
+        )
+        await store.load()
+
+        let didStart = store.startRepublish(
+            from: cancelledBooking,
+            originalRequest: nil,
+            now: Date()
+        )
+
+        #expect(didStart == false)
+        #expect(store.isShowingWizard == false)
+        #expect(store.wizardInitialStep == .pet)
+        #expect(store.pendingRequestPhotos.isEmpty)
+        #expect(store.errorMessage == "Original request details are unavailable. Refresh bookings and try again.")
+    }
+
+    @Test @MainActor
+    func startRepublishWithExpiredWindowAndMissingPhotoDataUsesFutureDefaultsAndSkipsMissingPhotos() async throws {
+        let customerID = UUID()
+        let pet = Self.pet(customerID: customerID)
+        let originalRequestID = UUID()
+        let now = try #require(Self.isoDate("2026-07-01T12:00:00Z"))
+        let originalRequest = Self.request(
+            id: originalRequestID,
+            customerID: customerID,
+            petID: pet.id,
+            status: .cancelled,
+            serviceType: .fullGroom,
+            preferredStart: "2026-06-01T16:00:00Z",
+            preferredEnd: "2026-06-01T18:00:00Z"
+        )
+        let availablePhoto = GroomingRequestPhoto(
+            id: UUID(),
+            requestID: originalRequestID,
+            customerID: customerID,
+            storageBucket: "request-photos",
+            storagePath: "customer/original/available.jpg",
+            caption: nil,
+            sortOrder: 0,
+            createdAt: "2026-06-22T16:00:00Z"
+        )
+        let missingPhoto = GroomingRequestPhoto(
+            id: UUID(),
+            requestID: originalRequestID,
+            customerID: customerID,
+            storageBucket: "request-photos",
+            storagePath: "customer/original/missing.jpg",
+            caption: nil,
+            sortOrder: 1,
+            createdAt: "2026-06-22T16:01:00Z"
+        )
+        let availablePhotoData = Data([0x01, 0x02, 0x03])
+        let requestRepository = CustomerRequestRepositoryFake(
+            requestsResult: .success([originalRequest]),
+            requestPhotosResult: .success([availablePhoto, missingPhoto]),
+            requestPhotoDataByID: [
+                availablePhoto.id: availablePhotoData,
+            ]
+        )
+        let store = CustomerRequestsStore(
+            customerID: customerID,
+            petRepository: CustomerRequestPetRepositoryFake(
+                petsResult: .success([pet])
+            ),
+            requestRepository: requestRepository,
+            bookingRepository: CustomerRequestBookingRepositoryFake()
+        )
+        await store.load()
+
+        store.startRepublish(from: originalRequest, now: now)
+
+        #expect(store.wizardInitialStep == .review)
+        #expect(store.preferredStart == now.addingTimeInterval(24 * 60 * 60))
+        #expect(store.preferredEnd == now.addingTimeInterval(26 * 60 * 60))
+        #expect(store.pendingRequestPhotos.map(\.data) == [availablePhotoData])
+        #expect(store.errorMessage == nil)
+    }
+
+    @Test @MainActor
+    func loadKeepsRequestsAvailableWhenRequestPhotoMetadataIsUnavailable() async throws {
+        let customerID = UUID()
+        let pet = Self.pet(customerID: customerID)
+        let cancelledRequest = Self.request(
+            customerID: customerID,
+            petID: pet.id,
+            status: .cancelled
+        )
+        let store = CustomerRequestsStore(
+            customerID: customerID,
+            petRepository: CustomerRequestPetRepositoryFake(
+                petsResult: .success([pet])
+            ),
+            requestRepository: CustomerRequestRepositoryFake(
+                requestsResult: .success([cancelledRequest]),
+                requestPhotosResult: .failure(.unavailable)
+            ),
+            bookingRepository: CustomerRequestBookingRepositoryFake()
+        )
+
+        await store.load()
+
+        #expect(store.requests == [cancelledRequest])
+        #expect(store.requestPhotos(for: cancelledRequest).isEmpty)
+        #expect(store.errorMessage == nil)
+
+        store.startRepublish(from: cancelledRequest)
+
+        #expect(store.isShowingWizard)
+        #expect(store.pendingRequestPhotos.isEmpty)
+    }
+
+    @Test @MainActor
     func oversizedRequestPhotoIsRejectedBeforePublish() async throws {
         let store = CustomerRequestsStore(
             customerID: UUID(),

@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-09
+Task: T-215 - Republish hardening.
+Files changed: customer requests store, CustomerRequestsStore republish tests, roadmap, current state, task ledger, and worklog.
+Checks: CustomerRequestsStore RED/GREEN; full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
+Result: Closes Q-27/R-027 by making request-photo metadata failure non-blocking for loaded original requests, keeping cancelled/expired request details available for republish, skipping missing/oversized copied photos, resetting expired preferred windows to a future default range, and refusing cancelled-booking republish when the original request is unavailable.
+Risks: Local iOS store/test hardening only. No Supabase schema, migration, remote write, repository API signature, UI layout redesign, Auth config, seed, TestOps remote execution, deploy, APNs dispatch, release upload, tag, PR, merge/rebase/reset, or force-push changed.
+Next: Use T-216 for the next user-chosen task; recommended queue start is Q-28 state-machine edge tests.
+```
+
+```text
+Date: 2026-07-09
 Task: T-214 - Decode and cache tolerance tests.
 Files changed: marketplace status models, affected status UI surfaces, DecodeToleranceFeatureTests, roadmap, current state, task ledger, and worklog.
 Checks: Focused DecodeTolerance RED/GREEN; full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
 Result: Closes Q-26/R-028 by adding safe unknown-status decode fallbacks, neutral unknown-status UI handling, malformed-date display tolerance, null optional pet snapshot coverage, and oversized corrupt private image cache rejection coverage.
 Risks: Local iOS/model/test hardening only. No Supabase schema, migration, remote write, repository API signature, UI layout redesign, Auth config, seed, TestOps remote execution, deploy, APNs dispatch, release upload, tag, PR, merge/rebase/reset, or force-push changed.
-Next: Use T-215 for the next user-chosen task; recommended queue start is Q-27 republish hardening.
 ```
 
 ```text
@@ -66,13 +75,4 @@ Files changed: customer/groomer notification models, customer/groomer notificati
 Checks: CustomerNotificationsStoreTests/GroomerNotificationsStoreTests RED/GREEN; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
 Result: Closes Q-20/R-028 by covering duplicate concurrent read/mark-all guards, mark-all failure/cancellation state preservation, repository debug event metadata, and unknown notification kind decode fallback for customer and groomer notifications.
 Risks: No Supabase schema, migration, remote write, repository API, UI layout, Auth config, seed, TestOps remote execution, deploy, APNs, release upload, tag, PR, merge/rebase/reset, or force-push changed.
-```
-
-```text
-Date: 2026-07-09
-Task: T-207 - Meta-review and context hygiene.
-Files changed: current state, task ledger, worklog, frozen rotated ledger/worklog rows.
-Checks: `git status --short`; `git diff --check`; context hygiene; commit and push.
-Result: Runs the required 10-task cadence review after T-206, rotates excess active ledger/worklog rows, confirms active roadmap/queue/current-state pointers align, and keeps Q-20 as the next roadmap package.
-Risks: Governance-only cleanup. No app code, Supabase schema, migration, remote write, Auth config, seed, TestOps remote execution, deploy, APNs, release upload, tag, PR, merge/rebase/reset, or force-push changed.
 ```
