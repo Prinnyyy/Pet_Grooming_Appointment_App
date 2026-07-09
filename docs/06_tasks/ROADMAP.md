@@ -46,7 +46,7 @@ Out of V1.0 unless explicitly changed: payments, subscriptions, public directory
 | M1 Half-finished surfaces | Remove incomplete UI/data behavior. | T-152, T-154, T-188 through T-192 complete; T-193 design complete with implementation dependency. | No placeholder surfaces or misleading inputs. |
 | M2 Marketplace timeliness | Make request/offer/booking/chat state timely. | T-153, T-155, T-156, T-162, and T-194 complete; T-157 dispatch blocked. | Timely notifications/chat and cross-device states. |
 | M3 Compliance and ops | Satisfy App Store and ops basics. | T-160, T-161, T-195, and T-197 through T-199 complete. | Metadata and operational evidence are ready. |
-| M4 Quality expansion | Make tests/checks systematic. | T-165/T-168 started docs/preflight coverage. | Required checks are documented, runnable, and task-typed. |
+| M4 Quality expansion | Make tests/checks systematic. | T-165/T-168 started docs/preflight coverage; T-200 closes focused Store/state coverage. | Required checks are documented, runnable, and task-typed. |
 | M5 Release | Prepare TestFlight/App Store release. | Proposed only. | M1-M4 exits are satisfied and user authorizes release/tag work. |
 
 ## Candidate Backlog
@@ -66,7 +66,7 @@ Out of V1.0 unless explicitly changed: payments, subscriptions, public directory
 | R-011 | M3 | Crash/funnel events | Complete T-197 |
 | R-012 | M3 | Accessibility and copy audit | Complete T-198 |
 | R-013 | M3 | Performance/network resilience | Complete T-199 |
-| R-014 | M4 | Store/model/state/UI test expansion | Candidate |
+| R-014 | M4 | Store/model/state/UI test expansion | Complete T-200 |
 | R-015 | M5 | E2E/security, TestFlight, App Store | Proposed |
 | R-016 | G0 | Rule-change process | Complete T-172 |
 | R-017 | G0 | Main governance divergence reconciliation | Complete T-173 |
@@ -77,6 +77,6 @@ Out of V1.0 unless explicitly changed: payments, subscriptions, public directory
 | R-022 | G0 | Backtick path and Markdown waterline checks | Complete T-178 |
 | R-023 | G0 | Active Markdown budget reduction | Complete T-179 |
 
-Completed mapping: T-152/T-154/T-188...T-193 M1; T-153/T-155/T-156/T-162/T-194 M2; T-157 M2 blocked for dispatch; T-160/T-161/T-195/T-197...T-199 M3; T-163...T-179 G0.
+Completed mapping: T-152/T-154/T-188...T-193 M1; T-153/T-155/T-156/T-162/T-194 M2; T-157 M2 blocked for dispatch; T-160/T-161/T-195/T-197...T-199 M3; T-200 M4; T-163...T-179 G0.
 
 Execution sequencing: use `ROADMAP_EXECUTION_QUEUE.md` to select the next adoptable package. The queue is planning input only; each adopted package receives the next `T-###` from `TASK_LEDGER.md`.

@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-09
 - Updated by: Codex
-- Latest completed task: T-199 Private image network resilience.
+- Latest completed task: T-200 Notification ordering test expansion.
 - Current task: none active; T-157 APNs remains externally blocked.
-- Next task ID: use T-200 unless the user resumes T-157 after Apple Developer Program upgrade.
+- Next task ID: use T-201 unless the user resumes T-157 after Apple Developer Program upgrade.
 
 ## Fast Path
 
@@ -39,17 +39,17 @@ Frozen history lives under `docs/09_frozen/`.
 
 ## Validation Baseline
 
-- Last iOS build: `./scripts/ios-build.sh` passed on 2026-07-09 during T-199 closeout.
-- Last full iOS test attempt: `./scripts/ios-test.sh` on 2026-07-07 failed the known T-153 same-timestamp notification ordering assertion; UI smoke tests passed 3/3, and targeted `AuthenticationStoreTests` passed afterward.
+- Last iOS build: `./scripts/ios-build.sh` passed on 2026-07-09 during T-200 closeout.
+- Last full iOS test attempt: `./scripts/ios-test.sh` passed on 2026-07-09 during T-200 closeout, including UI smoke tests 3/3 and deterministic customer notification ordering coverage.
 - Last Supabase migration apply: authorized `supabase db push --linked` applied `20260707191034_t160_account_deletion.sql` to project `lqmasbuqzvcvtawonjlb` on 2026-07-07.
 - Last Supabase live post-apply validation: T-160 confirmed migration parity for `20260707191034`, account deletion metadata/RLS/grants/RPCs, advisors, and active `delete-account` deployment with JWT verification. Post-apply dry-run/lint still need `SUPABASE_DB_PASSWORD`.
 - Prepared unapplied Supabase migration: none known by `supabase migration list --linked`; post-apply dry-run requires `SUPABASE_DB_PASSWORD`.
 - Last TestOps unit validation: T-145 `./scripts/testops-unit.sh` passed 24 Node tests.
 - Last remote TestOps run: T-155 authorized `matching_baseline` run `TESTOPS-T155-MATCH-20260706-*` passed 8/8 and cleanup left zero tagged request/match residue.
 - Last private image work: T-199 added transient retry and cancellation-safe refresh behavior to the shared private image loader.
-- Last focused feature validation: T-199 PrivateImageLoaderTests passed on 2026-07-09.
+- Last focused feature validation: T-200 CustomerNotificationsStoreTests passed on 2026-07-09 after RED/GREEN same-timestamp ordering coverage.
 - Last docs validation: T-196 context hygiene and `git diff --check` passed on 2026-07-09.
-- Known validation failure: full `./scripts/ios-test.sh` is currently blocked by the existing T-153 customer notification same-timestamp ordering test, not by T-162 cancellation repost work.
+- Known iOS validation failure: none currently recorded; full `./scripts/ios-test.sh` passed during T-200.
 
 ## Active Product State
 
@@ -94,9 +94,9 @@ Frozen history lives under `docs/09_frozen/`.
 - Deferred unless explicitly requested: public directory, direct booking, payments, chat attachments/read receipts, maps/calendar integrations, moderation/disputes, admin tooling.
 - Customer in-app notifications are active. T-157 APNs database/iOS foundation is remotely applied; push dispatch waits for Apple Developer credentials and APNs secrets.
 - Large Swift context risks remain `CustomerRequestsView.swift` and `GroomerProfileManagementView.swift`; split only in a dedicated Standard refactor task.
-- Active cross-task risks: known T-153 notification ordering test failure, T-157 APNs deployment block, and T-162 cancelled-booking repost dependency on loading the original request.
+- Active cross-task risks: T-157 APNs deployment block, and T-162 cancelled-booking repost dependency on loading the original request.
 - Current remote advisors: baseline `customer_push_tokens` RLS/no-policy INFO, Auth leaked-password protection WARN, existing performance INFOs, expected T-160 fresh-index INFO. Public authenticated `SECURITY DEFINER` RPC warnings are cleared.
 
 ## Next Recommended Task
 
-- Use T-200 next. Q-09/APNs dispatch remains blocked until Apple/APNs credentials exist; next unblocked package is Q-14/R-014 Store/model/state/UI test expansion.
+- Use T-201 next. Q-09/APNs dispatch remains blocked until Apple/APNs credentials exist; next package is Q-15/R-015 release readiness dry run, with APNs dispatch recorded as an external blocker unless credentials become available.

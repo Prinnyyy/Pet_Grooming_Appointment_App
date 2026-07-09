@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-09
+Task: T-200 - Notification ordering test expansion.
+Files changed: CustomerNotificationsFeatureTests, roadmap, current state, task ledger, and worklog.
+Checks: CustomerNotificationsStoreTests RED/GREEN; full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
+Result: Closes Q-14/R-014 by making same-timestamp customer notification ordering deterministic in Store tests, replacing the flaky mark-all read assertion with stable display-order expectations, and restoring the full iOS test gate to passing.
+Risks: No production Swift code, Supabase schema, migration, remote write, UI behavior, dependency, PR, tag, merge/rebase/reset, or force-push changed. Q-09/APNs dispatch remains externally blocked by missing Apple/APNs credentials.
+Next: Use T-201 unless resuming T-157 after Apple Developer credentials. Next package is Q-15/R-015 release readiness dry run, with APNs dispatch recorded as an external blocker unless credentials become available.
+```
+
+```text
+Date: 2026-07-09
 Task: T-199 - Private image network resilience.
 Files changed: PrivateImageLoader, PrivateImageLoaderTests, roadmap, current state, task ledger, and worklog.
 Checks: PrivateImageLoaderTests RED/GREEN; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
 Result: Closes Q-13/R-013 by adding one retry for transient private-image downloads, using fresh remote data instead of stale cache after transient refresh failures, and treating cancelled refreshes as cancellation instead of cached success.
 Risks: No Supabase schema, migration, storage policy, remote write, repository API, visible UI layout, dependency, PR, tag, merge/rebase/reset, or force-push changed. Full iOS tests still have the known T-153 notification-ordering blocker.
-Next: Use T-200 unless resuming T-157 after Apple Developer credentials. Q-09/APNs dispatch remains externally blocked; next unblocked package is Q-14/R-014 Store/model/state/UI test expansion.
 ```
 
 ```text
@@ -66,13 +75,4 @@ Files changed: auth email/deep-link design, Supabase contract, decision log, cur
 Checks: Supabase changelog/docs review; local auth/config grep; `git diff --check`; context hygiene; commit and push.
 Result: Closes Q-06/R-007 by defining Resend-backed Supabase custom SMTP, exact HTTPS-first redirect URL policy, dev/test custom scheme fallback, required email templates/secrets, and iOS callback behavior for Q-07.
 Risks: No Supabase dashboard setting, Management API write, DNS, iOS entitlement, URL scheme, migration, or remote write changed. Q-07 implementation waits for a production auth domain and SMTP credentials.
-```
-
-```text
-Date: 2026-07-09
-Task: T-192 - Request wizard persistence decision.
-Files changed: customer request store/view wizard presentation, customer request tests, decision log, current state, task ledger, and worklog.
-Checks: CustomerRequestsStoreTests; XcodeBuildMCP build; `git diff --check`; context hygiene; commit and push.
-Result: Closes Q-05/R-006 by deciding request wizard drafts are ephemeral to the active sheet. Back/cancel and swipe dismiss discard unpublished draft fields/photos and reset default create state; publish failures still preserve input and explicit republish remains the only prefilled flow.
-Risks: No Supabase schema, policy, migration, remote write, new persistence store, or visible copy change. Full iOS tests still have the known T-153 same-timestamp notification ordering blocker.
 ```

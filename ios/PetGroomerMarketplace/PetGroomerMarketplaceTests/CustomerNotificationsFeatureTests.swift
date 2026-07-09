@@ -36,6 +36,34 @@ struct CustomerNotificationsStoreTests {
     }
 
     @Test @MainActor
+    func loadUsesStableIDTieBreakerForSameTimestampNotifications() async throws {
+        let customerID = UUID()
+        let highIDNotification = Self.notification(
+            id: UUID(uuidString: "FFFFFFFF-FFFF-4FFF-BFFF-FFFFFFFFFFFF")!,
+            customerID: customerID,
+            kind: .newOffer
+        )
+        let lowIDNotification = Self.notification(
+            id: UUID(uuidString: "00000000-0000-4000-8000-000000000001")!,
+            customerID: customerID,
+            kind: .bookingConfirmed
+        )
+        let repository = CustomerNotificationRepositoryFake(
+            notificationsResult: .success([highIDNotification, lowIDNotification])
+        )
+        let store = CustomerNotificationsStore(
+            customerID: customerID,
+            repository: repository
+        )
+
+        await store.load()
+
+        #expect(store.notifications == [lowIDNotification, highIDNotification])
+        #expect(store.unreadCount == 2)
+        #expect(store.errorMessage == nil)
+    }
+
+    @Test @MainActor
     func markReadUpdatesOneLocalNotification() async throws {
         let customerID = UUID()
         let unread = Self.notification(
@@ -66,17 +94,29 @@ struct CustomerNotificationsStoreTests {
     }
 
     @Test @MainActor
-    func markAllReadReplacesNotificationsWithRepositoryResult() async throws {
+    func markAllReadAppliesStableDisplayOrderForSameTimestampNotifications() async throws {
         let customerID = UUID()
-        let first = Self.notification(customerID: customerID, kind: .requestPublished)
-        let second = Self.notification(customerID: customerID, kind: .bookingCancelled)
-        let updated = [
-            first.replacingReadState(isRead: true, readAt: "2026-07-06T12:30:00Z"),
-            second.replacingReadState(isRead: true, readAt: "2026-07-06T12:30:00Z"),
-        ]
+        let first = Self.notification(
+            id: UUID(uuidString: "FFFFFFFF-FFFF-4FFF-BFFF-FFFFFFFFFFFF")!,
+            customerID: customerID,
+            kind: .requestPublished
+        )
+        let second = Self.notification(
+            id: UUID(uuidString: "00000000-0000-4000-8000-000000000001")!,
+            customerID: customerID,
+            kind: .bookingCancelled
+        )
+        let updatedFirst = first.replacingReadState(
+            isRead: true,
+            readAt: "2026-07-06T12:30:00Z"
+        )
+        let updatedSecond = second.replacingReadState(
+            isRead: true,
+            readAt: "2026-07-06T12:30:00Z"
+        )
         let repository = CustomerNotificationRepositoryFake(
             notificationsResult: .success([first, second]),
-            markAllReadResult: .success(updated)
+            markAllReadResult: .success([updatedFirst, updatedSecond])
         )
         let store = CustomerNotificationsStore(
             customerID: customerID,
@@ -88,18 +128,19 @@ struct CustomerNotificationsStoreTests {
 
         #expect(repository.markAllReadCallCount == 1)
         #expect(repository.lastMarkAllCustomerID == customerID)
-        #expect(store.notifications == updated)
+        #expect(store.notifications == [updatedSecond, updatedFirst])
         #expect(store.unreadCount == 0)
     }
 
     private static func notification(
+        id: UUID = UUID(),
         customerID: UUID,
         kind: CustomerNotificationKind,
         isRead: Bool = false,
         createdAt: String = "2026-07-06T12:00:00Z"
     ) -> CustomerNotification {
         CustomerNotification(
-            id: UUID(),
+            id: id,
             customerID: customerID,
             kind: kind,
             title: kind.defaultTitle,
