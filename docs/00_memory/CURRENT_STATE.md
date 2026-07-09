@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-09
 - Updated by: Codex
-- Latest completed task: T-184 Context budget workflow alignment.
+- Latest completed task: T-185 Root external draft cleanup.
 - Current task: none active; T-157 APNs deployment remains externally blocked.
-- Next task ID: use T-185 unless the user resumes T-157 after Apple Developer Program upgrade.
+- Next task ID: use T-186 unless the user resumes T-157 after Apple Developer Program upgrade.
 
 ## Fast Path
 
@@ -44,7 +44,7 @@ Frozen history lives under `docs/09_frozen/`.
 - Prepared unapplied Supabase migration: none known by `supabase migration list --linked`; post-apply dry-run requires `SUPABASE_DB_PASSWORD`.
 - Last TestOps unit validation: T-145 `./scripts/testops-unit.sh` passed 24 Node tests.
 - Last remote TestOps run: T-155 authorized `matching_baseline` run `TESTOPS-T155-MATCH-20260706-*` passed 8/8 and cleanup left zero tagged request/match residue.
-- Last docs/workflow validation: T-184 context budget workflow alignment, rotate apply for decision-window overflow, context hygiene, and `git diff --check` passed on 2026-07-09.
+- Last docs/workflow validation: T-185 root external draft cleanup, context hygiene, and `git diff --check` passed on 2026-07-09.
 - Known validation failure: full `./scripts/ios-test.sh` is currently blocked by the existing T-153 customer notification same-timestamp ordering test, not by T-162 cancellation repost work.
 
 ## Active Product State
@@ -60,7 +60,7 @@ Frozen history lives under `docs/09_frozen/`.
 - Default context model is L0-L4 in `CONTEXT_AND_RECOVERY.md`.
 - Startup reads stay minimal: `AGENTS.md`, then targeted current-state/task-ledger sections only when needed.
 - Periodic documentation-governance reviews use `docs/06_tasks/META_REVIEW_TEMPLATE.md` every 10 completed tasks or weekly.
-- Last meta-review: T-175 on 2026-07-08.
+- Last meta-review: T-185 on 2026-07-09.
 - Changes to `AGENTS.md`, `CLAUDE.md`, or `docs/05_workflow/**` must be standalone numbered tasks with a decision-log entry and context hygiene.
 - T-180 records standing user approval for automatic task-completion Git commit and push. This approval is limited to current-task changes after validation passes.
 - T-184 aligns workflow rules with T-183: active Markdown uses a 36k hard limit, 95% structural-review warning, default 650-word budget for unlisted active Markdown, decision-log window checks, and `node scripts/context-rotate.mjs` for deterministic archive rotation. The adopted redesign plan is archived under `docs/09_frozen/external_agent_reports/`.
@@ -83,7 +83,7 @@ Frozen history lives under `docs/09_frozen/`.
 
 - Active memory/task files are intentionally concise. Do not expand them into full history.
 - Backend policy files are now current-rule indexes; use migrations or frozen pre-trim snapshots for detailed historical trace.
-- Historical briefs, Groomly prompts, pre-slim notes, removed pointers/templates, Claude snapshots, and external audits are frozen under `docs/09_frozen/`. Active entrypoints are ROADMAP, PRODUCT_BRIEF, DESIGN_SYSTEM, UI_IMPLEMENTATION_NOTES, DECISION_LOG, CLAUDE, and workflow/task docs. External reports are review input only.
+- Historical briefs, Groomly prompts, pre-slim notes, removed pointers/templates, Claude snapshots, and external audits are frozen under `docs/09_frozen/`. T-185 moved remaining root external drafts into `docs/09_frozen/external_agent_reports/`. Active entrypoints are ROADMAP, PRODUCT_BRIEF, DESIGN_SYSTEM, UI_IMPLEMENTATION_NOTES, DECISION_LOG, CLAUDE, and workflow/task docs. External reports are review input only.
 - T-129 seed profile Markdown files are machine-readable parser inputs and excluded from default search. Do not reformat or archive them without updating scripts/tests.
 - Deferred unless explicitly requested: public directory, direct booking, payments, realtime chat, attachments, maps/calendar integrations, moderation/disputes, admin tooling.
 - Customer in-app notifications are active. T-157 APNs database/iOS foundation is remotely applied; push dispatch waits for Apple Developer credentials and APNs secrets.
@@ -93,4 +93,4 @@ Frozen history lives under `docs/09_frozen/`.
 
 ## Next Recommended Task
 
-- Use T-185 next unless resuming T-157 after Apple Developer credentials. Suggested product candidate after governance work: private image rendering.
+- Use T-186 next for stale active workflow 85% wording cleanup unless resuming T-157 after Apple Developer credentials. Suggested product candidate after governance work: private image rendering.

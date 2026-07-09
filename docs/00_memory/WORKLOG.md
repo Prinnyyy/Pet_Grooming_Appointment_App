@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-09
+Task: T-185 - Root external draft cleanup and meta-review.
+Files changed: frozen external reports, current state, task ledger, worklog, and structure log.
+Checks: `git diff --check`; `node scripts/context-hygiene-check.mjs`; `node scripts/context-rotate.mjs`; targeted meta-review `rg`; commit and push.
+Result: Preserves the ignored root APP_STATUS_OVERVIEW and V1.0 release-plan v3.1 drafts under `docs/09_frozen/external_agent_reports/`, removes root copies, and records the scheduled meta-review. Targeted review found stale 85% wording in active workflow docs that needs a standalone T-186 rule cleanup.
+Risks: Documentation/archive cleanup only. No Swift, Supabase, runtime, simulator, PR, tag, merge/rebase/reset, seed, migration, or non-Git remote write changed.
+Next: Use T-186 for stale active workflow 85% wording cleanup unless resuming T-157 after Apple Developer credentials.
+```
+
+```text
+Date: 2026-07-09
 Task: T-184 - Context budget workflow alignment.
 Files changed: AGENTS.md, context/recovery workflow rules, decision log/archive, frozen external plan, current state, task ledger, and worklog.
 Checks: `node scripts/context-rotate.mjs --apply`; `node scripts/context-hygiene-check.mjs`; `git diff --check`; commit and push.
 Result: Implements Batch B of the context-budget redesign. Active workflow rules now use `context-rotate` for rolling-window overflow, define FIXED/WINDOW/INDEX write discipline, treat 95% active Markdown as structural-review signal, and archive the adopted root redesign plan.
 Risks: Documentation-only workflow change. No Swift, Supabase, runtime, simulator, PR, tag, merge/rebase/reset, seed, migration, or non-Git remote write changed.
-Next: Use T-185 unless resuming T-157 after Apple Developer credentials.
 ```
 
 ```text
