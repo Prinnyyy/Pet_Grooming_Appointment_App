@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-09
+Task: T-199 - Private image network resilience.
+Files changed: PrivateImageLoader, PrivateImageLoaderTests, roadmap, current state, task ledger, and worklog.
+Checks: PrivateImageLoaderTests RED/GREEN; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
+Result: Closes Q-13/R-013 by adding one retry for transient private-image downloads, using fresh remote data instead of stale cache after transient refresh failures, and treating cancelled refreshes as cancellation instead of cached success.
+Risks: No Supabase schema, migration, storage policy, remote write, repository API, visible UI layout, dependency, PR, tag, merge/rebase/reset, or force-push changed. Full iOS tests still have the known T-153 notification-ordering blocker.
+Next: Use T-200 unless resuming T-157 after Apple Developer credentials. Q-09/APNs dispatch remains externally blocked; next unblocked package is Q-14/R-014 Store/model/state/UI test expansion.
+```
+
+```text
+Date: 2026-07-09
 Task: T-198 - Accessibility and copy audit.
 Files changed: DesignTokens, primary action primitives, BookingsStore copy, customer pet model/view accessibility, focused accessibility/copy tests, accessibility checklist, roadmap, current state, task ledger, and worklog.
 Checks: Focused BookingsStore/customer pet/design-token accessibility tests; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
 Result: Closes Q-12/R-012 by adding contrast-checked semantic color constants, improving primary button text contrast, making booking-vs-schedule load failure copy role-specific, and giving customer pet cards a single readable VoiceOver summary and hint.
 Risks: No Supabase schema, migration, remote write, navigation, persistence contract, dependency, PR, tag, merge/rebase/reset, or force-push changed. Runtime VoiceOver pass was limited to code/test/build validation because XcodeBuildMCP UI tools were unavailable in this session.
-Next: Use T-199 unless resuming T-157 after Apple Developer credentials. Q-09/APNs dispatch remains externally blocked; next unblocked package is Q-13/R-013 Performance and network resilience.
 ```
 
 ```text
@@ -66,13 +75,4 @@ Files changed: customer request store/view wizard presentation, customer request
 Checks: CustomerRequestsStoreTests; XcodeBuildMCP build; `git diff --check`; context hygiene; commit and push.
 Result: Closes Q-05/R-006 by deciding request wizard drafts are ephemeral to the active sheet. Back/cancel and swipe dismiss discard unpublished draft fields/photos and reset default create state; publish failures still preserve input and explicit republish remains the only prefilled flow.
 Risks: No Supabase schema, policy, migration, remote write, new persistence store, or visible copy change. Full iOS tests still have the known T-153 same-timestamp notification ordering blocker.
-```
-
-```text
-Date: 2026-07-09
-Task: T-191 - Groomer private images.
-Files changed: groomer profile store/view portfolio presentation, groomer profile tests, private image audit, current state, task ledger, and worklog.
-Checks: GroomerProfileStoreTests; XcodeBuildMCP build; XcodeBuildMCP launch spot check for auth landing; `git diff --check`; context hygiene; commit and push.
-Result: Closes Q-04/R-005 by tracking groomer portfolio image-load attempts, rendering portfolio photos through the shared module image path, and showing distinct loading versus unavailable states when private image data cannot be read.
-Risks: No Supabase schema, policy, migration, or remote write changed. Cross-user avatars in bookings/chat/notifications still need a future data-contract decision.
 ```

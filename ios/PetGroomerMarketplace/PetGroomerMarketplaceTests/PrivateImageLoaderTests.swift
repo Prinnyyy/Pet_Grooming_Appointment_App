@@ -70,6 +70,29 @@ struct PrivateImageLoaderTests {
     }
 
     @Test
+    func loadDataRetriesTransientNetworkFailureBeforeFailingOpen() async throws {
+        let key = Self.key()
+        let remoteData = Data([0x09, 0x0A])
+        let cache = PrivateImageCacheFake()
+        let dataSource = PrivateImageDataSourceFake(
+            results: [
+                .failure(URLError(.networkConnectionLost)),
+                .success(remoteData),
+            ]
+        )
+        let loader = PrivateImageLoader(dataSource: dataSource, cache: cache)
+
+        let data = try await loader.loadData(
+            bucketID: key.bucketID,
+            storagePath: key.storagePath
+        )
+
+        #expect(data == remoteData)
+        #expect(dataSource.requests == [key, key])
+        #expect(cache.data(for: key) == remoteData)
+    }
+
+    @Test
     func refreshDataFallsBackToCachedDataWhenDownloadFails() async throws {
         let key = Self.key()
         let cachedData = Data([0x05, 0x06])
@@ -84,6 +107,52 @@ struct PrivateImageLoaderTests {
 
         #expect(data == cachedData)
         #expect(dataSource.requests == [key])
+    }
+
+    @Test
+    func refreshDataDoesNotUseCachedFallbackWhenDownloadIsCancelled() async throws {
+        let key = Self.key()
+        let cachedData = Data([0x05, 0x06])
+        let cache = PrivateImageCacheFake(dataByKey: [key: cachedData])
+        let dataSource = PrivateImageDataSourceFake(result: .failure(URLError(.cancelled)))
+        let loader = PrivateImageLoader(dataSource: dataSource, cache: cache)
+
+        do {
+            _ = try await loader.refreshData(
+                bucketID: key.bucketID,
+                storagePath: key.storagePath
+            )
+            Issue.record("Expected cancellation to be thrown.")
+        } catch let error as URLError {
+            #expect(error.code == .cancelled)
+        }
+
+        #expect(dataSource.requests == [key])
+        #expect(cache.data(for: key) == cachedData)
+    }
+
+    @Test
+    func refreshDataRetriesTransientNetworkFailureBeforeUsingCachedFallback() async throws {
+        let key = Self.key()
+        let cachedData = Data([0x05, 0x06])
+        let remoteData = Data([0x0B, 0x0C])
+        let cache = PrivateImageCacheFake(dataByKey: [key: cachedData])
+        let dataSource = PrivateImageDataSourceFake(
+            results: [
+                .failure(URLError(.timedOut)),
+                .success(remoteData),
+            ]
+        )
+        let loader = PrivateImageLoader(dataSource: dataSource, cache: cache)
+
+        let data = try await loader.refreshData(
+            bucketID: key.bucketID,
+            storagePath: key.storagePath
+        )
+
+        #expect(data == remoteData)
+        #expect(dataSource.requests == [key, key])
+        #expect(cache.data(for: key) == remoteData)
     }
 
     @Test
@@ -161,10 +230,14 @@ private final class PrivateImageCacheFake: PrivateImageCaching {
 @MainActor
 private final class PrivateImageDataSourceFake: PrivateImageDataFetching {
     private(set) var requests: [PrivateImageCacheKey] = []
-    var result: Result<Data, Error>
+    private var results: [Result<Data, Error>]
 
     init(result: Result<Data, Error> = .failure(PrivateImageDataSourceFakeError.failed)) {
-        self.result = result
+        self.results = [result]
+    }
+
+    init(results: [Result<Data, Error>]) {
+        self.results = results
     }
 
     func imageData(
@@ -178,6 +251,13 @@ private final class PrivateImageDataSourceFake: PrivateImageDataFetching {
             requests.append(key)
         }
 
+        if results.count > 1 {
+            return try results.removeFirst().get()
+        }
+
+        guard let result = results.first else {
+            throw PrivateImageDataSourceFakeError.failed
+        }
         return try result.get()
     }
 }

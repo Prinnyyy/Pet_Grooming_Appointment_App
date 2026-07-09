@@ -81,6 +81,8 @@ protocol PrivateImageLoading: AnyObject {
 
 @MainActor
 final class PrivateImageLoader: PrivateImageLoading {
+    private static let maximumRemoteImageAttempts = 2
+
     private let dataSource: any PrivateImageDataFetching
     private let cache: any PrivateImageCaching
 
@@ -99,10 +101,7 @@ final class PrivateImageLoader: PrivateImageLoading {
             return cachedData
         }
 
-        let data = try await dataSource.imageData(
-            bucketID: key.bucketID,
-            storagePath: key.storagePath
-        )
+        let data = try await remoteImageData(for: key)
         cache.save(data, for: key)
         return data
     }
@@ -111,13 +110,14 @@ final class PrivateImageLoader: PrivateImageLoading {
         let key = try cacheKey(bucketID: bucketID, storagePath: storagePath)
 
         do {
-            let data = try await dataSource.imageData(
-                bucketID: key.bucketID,
-                storagePath: key.storagePath
-            )
+            let data = try await remoteImageData(for: key)
             cache.save(data, for: key)
             return data
         } catch {
+            if Self.isCancellationError(error) {
+                throw error
+            }
+
             if let cachedData = cache.data(for: key) {
                 return cachedData
             }
@@ -160,6 +160,69 @@ final class PrivateImageLoader: PrivateImageLoading {
         }
 
         return key
+    }
+
+    private func remoteImageData(for key: PrivateImageCacheKey) async throws -> Data {
+        var attempt = 1
+
+        while true {
+            do {
+                return try await dataSource.imageData(
+                    bucketID: key.bucketID,
+                    storagePath: key.storagePath
+                )
+            } catch {
+                guard
+                    attempt < Self.maximumRemoteImageAttempts,
+                    Self.shouldRetryRemoteImageError(error)
+                else {
+                    throw error
+                }
+
+                attempt += 1
+            }
+        }
+    }
+
+    private static func shouldRetryRemoteImageError(_ error: Error) -> Bool {
+        guard !isCancellationError(error) else {
+            return false
+        }
+
+        if let urlError = error as? URLError {
+            return isTransientURLCode(urlError.code)
+        }
+
+        let nsError = error as NSError
+        guard nsError.domain == NSURLErrorDomain else {
+            return false
+        }
+
+        return isTransientURLCode(URLError.Code(rawValue: nsError.code))
+    }
+
+    private static func isTransientURLCode(_ code: URLError.Code) -> Bool {
+        switch code {
+        case .timedOut, .networkConnectionLost, .cannotConnectToHost, .cannotLoadFromNetwork:
+            return true
+        default:
+            return false
+        }
+    }
+
+    private static func isCancellationError(_ error: Error) -> Bool {
+        if error is CancellationError {
+            return true
+        }
+
+        if let urlError = error as? URLError,
+           urlError.code == .cancelled {
+            return true
+        }
+
+        let nsError = error as NSError
+        return nsError.domain == NSURLErrorDomain
+            && nsError.code == NSURLErrorCancelled
     }
 }
 
