@@ -6,15 +6,16 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-08
 - Updated by: Codex
-- Latest completed task: T-187 Roadmap execution queue.
+- Latest completed task: T-188 Private image contract audit.
 - Current task: none active; T-157 APNs deployment remains externally blocked.
-- Next task ID: use T-188 unless the user resumes T-157 after Apple Developer Program upgrade.
+- Next task ID: use T-189 unless the user resumes T-157 after Apple Developer Program upgrade.
 
 ## Fast Path
 
 - Task source of truth: `docs/06_tasks/TASK_LEDGER.md`.
 - Managed roadmap: `docs/06_tasks/ROADMAP.md`.
 - Roadmap execution queue: `docs/06_tasks/ROADMAP_EXECUTION_QUEUE.md`.
+- Private image rendering audit: `docs/04_ios/PRIVATE_IMAGE_RENDERING_AUDIT.md`.
 - Recent closeouts: `docs/00_memory/WORKLOG.md`.
 - Canonical decision log: `docs/07_decisions/DECISION_LOG.md`.
 - Feature routing: `docs/00_memory/FEATURE_INDEX.md`.
@@ -45,7 +46,8 @@ Frozen history lives under `docs/09_frozen/`.
 - Prepared unapplied Supabase migration: none known by `supabase migration list --linked`; post-apply dry-run requires `SUPABASE_DB_PASSWORD`.
 - Last TestOps unit validation: T-145 `./scripts/testops-unit.sh` passed 24 Node tests.
 - Last remote TestOps run: T-155 authorized `matching_baseline` run `TESTOPS-T155-MATCH-20260706-*` passed 8/8 and cleanup left zero tagged request/match residue.
-- Last docs/workflow validation: T-187 roadmap execution queue, context hygiene, and `git diff --check` passed on 2026-07-09.
+- Last private image audit: T-188 verified Storage buckets/RLS with read-only linked Supabase queries and local Swift Storage/UI greps on 2026-07-09.
+- Last docs/workflow validation: T-188 private image audit, context hygiene, and `git diff --check` passed on 2026-07-09.
 - Known validation failure: full `./scripts/ios-test.sh` is currently blocked by the existing T-153 customer notification same-timestamp ordering test, not by T-162 cancellation repost work.
 
 ## Active Product State
@@ -94,4 +96,4 @@ Frozen history lives under `docs/09_frozen/`.
 
 ## Next Recommended Task
 
-- Use T-188 next unless resuming T-157 after Apple Developer credentials. Recommended roadmap package: Q-01/R-005 private image contract audit.
+- Use T-189 next unless resuming T-157 after Apple Developer credentials. Recommended roadmap package: Q-02/R-005 shared private image renderer.

@@ -4,6 +4,8 @@ Last verified: 2026-07-09.
 
 Purpose: turn `ROADMAP.md` candidates into adoptable execution packages. This file does not assign `T-###` IDs or task status. When a package is adopted, use the next task ID from `TASK_LEDGER.md`, keep one primary package per run, and close status in the ledger/worklog.
 
+Current R-005 audit artifact: `../04_ios/PRIVATE_IMAGE_RENDERING_AUDIT.md`.
+
 ## Selection Rules
 
 - Start with the first unblocked M1/M2/M3 package unless the user names another item.
@@ -16,7 +18,7 @@ Purpose: turn `ROADMAP.md` candidates into adoptable execution packages. This fi
 | Order | Roadmap | Proposed package | Mode | Scope | Primary validation |
 |---|---|---|---|---|---|
 | Q-01 | R-005 | Private image contract audit | Deep | Verify buckets, RLS, signed/download paths, cache expectations, and current broken/placeholder image surfaces. | Supabase read-only checks, `git diff --check` |
-| Q-02 | R-005 | Shared private image renderer | Standard | Add/reuse a single authorized image loading path with local fallback and safe cache behavior. | Targeted tests, `./scripts/ios-build.sh` |
+| Q-02 | R-005 | Shared private image renderer | Standard | Start from the T-188 audit, then add/reuse a single authorized image loading path with local fallback and safe cache behavior. | Targeted tests, `./scripts/ios-build.sh` |
 | Q-03 | R-005 | Customer private images | Standard | Render customer pet avatars, pet detail photos, request photos, and empty/error states through the shared renderer. | Targeted tests, simulator spot check, iOS build |
 | Q-04 | R-005 | Groomer private images | Standard | Render groomer avatar, portfolio photos, and service/profile image surfaces through the shared renderer. | Targeted tests, simulator spot check, iOS build |
 | Q-05 | R-006 | Request wizard persistence decision | Standard | Decide whether draft request input persists, is removed, or is scoped per session; implement the chosen UX/data behavior. | Store tests, iOS build |

@@ -4,6 +4,8 @@ This is the active Storage access policy index. It records current bucket contra
 
 Archived pre-trim version: `../09_frozen/backend_policies/STORAGE_POLICY_2026-07-02_PRE_INDEX_TRIM.md`.
 
+Private image rendering audit and current client gaps: `../04_ios/PRIVATE_IMAGE_RENDERING_AUDIT.md`.
+
 ## Current Buckets
 
 | Bucket | Purpose | Visibility | Owner Path |

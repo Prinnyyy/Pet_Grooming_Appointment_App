@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-09
+Task: T-188 - Private image contract audit.
+Files changed: private image audit, Storage policy, roadmap execution queue, current state, task ledger, and worklog.
+Checks: Supabase read-only bucket/RLS queries; Storage code/UI grep; `git diff --check`; context hygiene; commit and push.
+Result: Closes Q-01/R-005 by confirming the deployed private bucket/RLS contract, authenticated Storage download usage, current rendered image surfaces, local cache coverage, and gaps for the shared image renderer.
+Risks: Audit/docs-only change. No Swift behavior, schema, migration, simulator, PR, tag, merge/rebase/reset, seed, or non-Git remote write changed.
+Next: Use T-189 unless resuming T-157 after Apple Developer credentials. Recommended roadmap package is Q-02/R-005 shared private image renderer.
+```
+
+```text
+Date: 2026-07-09
 Task: T-187 - Roadmap execution queue.
 Files changed: ROADMAP, roadmap execution queue, task directory guide, decision log, current state, task ledger, and worklog.
 Checks: `git diff --check`; `node scripts/context-hygiene-check.mjs`; commit and push.
 Result: Adds `docs/06_tasks/ROADMAP_EXECUTION_QUEUE.md` as the bounded planning layer between ROADMAP candidates and task-ledger execution. The queue defines Q-01 through Q-15 from R-005 through R-015 without assigning future T IDs in ROADMAP.
 Risks: Documentation/planning-only change. No Swift, Supabase, runtime, simulator, PR, tag, merge/rebase/reset, seed, migration, or non-Git remote write changed.
-Next: Use T-188 unless resuming T-157 after Apple Developer credentials. Recommended roadmap package is Q-01/R-005 private image contract audit.
 ```
 
 ```text
@@ -66,13 +75,4 @@ Files changed: current state, task ledger, worklog, and frozen ledger/worklog ar
 Checks: `git diff --check`; `node scripts/context-hygiene-check.mjs`; staged diff check; commit and push.
 Result: Corrects stale T-180 next-task, validation-baseline, and active-Markdown-waterline text found during follow-up review. The next non-APNs task is now T-182 in both CURRENT_STATE and TASK_LEDGER.
 Risks: Documentation-only correction. No Swift, Supabase, runtime, workflow-rule, PR, tag, merge/rebase/reset, seed, cleanup, or non-Git remote write changed.
-```
-
-```text
-Date: 2026-07-08
-Task: T-180 - Standing Git auto-push authorization.
-Files changed: AGENTS.md, workflow Git/tooling rules, decision log, task ledger, worklog, and current state.
-Checks: `git diff --check`; `node scripts/context-hygiene-check.mjs`; staged diff check; commit and push.
-Result: Records the user's standing approval for automatic task-completion commits and pushes. The workflow now commits and pushes the current task's own changes after required validation passes, while keeping PRs, tags, merge/rebase/reset, branch deletion, Supabase writes, seeds, unrelated cleanup, non-Git remote writes, and unrelated user work outside that approval.
-Risks: Documentation-only rule change. Future agents must still skip auto Git when validation fails, secrets appear in the diff, the branch is unclear, or unrelated user work would be included.
 ```
