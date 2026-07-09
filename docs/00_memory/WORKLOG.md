@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-09
+Task: T-227 - Post-readiness remediation task planning.
+Files changed: roadmap, roadmap execution queue, decision log, current state, task ledger, and worklog.
+Checks: Current Supabase changelog/password security/custom SMTP/advisor guidance; Postgres index evidence guidance; `git diff --check`; context hygiene.
+Result: Converts the unresolved non-Apple findings after T-222 into Q-34 through Q-42 and blocked non-Apple Q-92/Q-93. The queue separates read-only index evidence from migrations, keeps T-203 groomer in-app notification parity distinct from APNs, and splits remote TestOps, UI lifecycle automation, and pagination into reviewable packages.
+Risks: Planning/docs only. No Swift, Supabase schema/config/write, migration apply, TestOps remote execute, seed, deploy, release upload, tag, PR, merge/rebase/reset, or force-push changed. APNs, paid Apple Developer work, TestFlight/App Store submission, and `customer_push_tokens` advisor noise are explicitly outside this sequence.
+Next: Use T-228 for Q-34, the read-only Supabase advisor index evidence audit; gated packages still require fresh authorization.
+```
+
+```text
+Date: 2026-07-09
 Task: T-226 - Groomer profile store split.
 Files changed: groomer profile store files, current state, task ledger, worklog, structure log, and frozen external plan archive.
 Checks: pre-change `./scripts/ios-build.sh`; member declarations 163 before and after; file sizes 4.3K-16.2K; `./scripts/ios-build.sh`; full `./scripts/ios-test.sh`; `git diff --check`; context hygiene; commit and push.
 Result: Implements Context Optimization Task D by splitting the 59K app-target `GroomerProfileStore.swift` into base plus Profile, ServicesAvailability, Portfolio, FitSignals, and Support extension files. Stored properties and initializer stayed in the base file; behavior was preserved with minimal visibility widening required for cross-file extensions. The completed external plan was archived under `docs/09_frozen/external_agent_reports/CONTEXT_OPTIMIZATION_TASK_PLAN_2026-07-09.md`.
 Risks: App-target code movement only. No SwiftUI view, repository, model, `project.pbxproj`, workflow rule, Supabase schema, migration, remote write, seed, release upload, tag, PR, merge/rebase/reset, or force-push changed.
-Next: Use T-227 for the next user-chosen task unless resuming T-157.
 ```
 
 ```text
@@ -66,13 +75,4 @@ Files changed: notification negative migration tests, rollback validation SQL, R
 Checks: Notification negative RED/GREEN; `node --test tests/migrations/*.test.mjs`; `./scripts/supabase-check.sh`; `git diff --check`; context hygiene; commit and push.
 Result: Closes Q-31/R-028 by adding negative contract coverage for customer/groomer notification owner isolation, direct notification mutation denial, private helper execute denial, and service-role-only push delivery RPCs, plus rollback-only SQL validation evidence.
 Risks: Backend contract test/docs hardening only. No Supabase schema, migration, remote write, Auth config, seed, TestOps remote execution, deploy, APNs dispatch, release upload, tag, PR, merge/rebase/reset, or force-push changed.
-```
-
-```text
-Date: 2026-07-09
-Task: T-219 - List pagination/load audit.
-Files changed: shared pagination model, list repository protocols and Supabase implementations, debug repository wrappers, BookingsStore, ChatStore, pagination tests, audit doc, roadmap, current state, task ledger, and worklog.
-Checks: ListPagination RED/GREEN; full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
-Result: Closes Q-30/R-027 by adding a bounded first-page contract, limit+1 Supabase ranges for request/offer/booking/message/notification repositories, debug wrapper forwarding, and next-page state/methods for bookings and chat.
-Risks: Local iOS pagination/query-boundary hardening only. No Supabase schema, migration, remote write, Auth config, seed, TestOps remote execution, deploy, APNs dispatch, release upload, tag, PR, merge/rebase/reset, or force-push changed. Most UI surfaces still consume first page only; the audit doc records deferred visible load-more controls.
 ```

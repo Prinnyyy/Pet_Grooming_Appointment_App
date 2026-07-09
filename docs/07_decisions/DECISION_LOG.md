@@ -18,6 +18,15 @@ Linked files:
 ## Active Decisions
 
 ```text
+Decision ID: D-022
+Date: 2026-07-09
+Decision: Convert post-readiness findings into bounded non-Apple remediation packages and require evidence before index changes.
+Context: The user asked to turn the unresolved T-222 findings into tasks while excluding APNs and paid Apple Developer work. The remaining findings mix local UI/test gaps, gated Supabase writes, low-traffic advisor signals, and external Auth services.
+Consequences: Q-34 through Q-42 cover index evidence/tuning, groomer in-app notification remote parity, remote TestOps, no-screenshot UI lifecycle automation, and visible pagination. Q-92/Q-93 retain non-Apple service blockers. Q-90/Q-91, T-157, and `customer_push_tokens` advisor noise are outside this sequence. No index may be added or removed solely from an advisor label; Q-34 must map findings to actual query, join, cascade, and statistics evidence first.
+Linked files: docs/06_tasks/ROADMAP.md, docs/06_tasks/ROADMAP_EXECUTION_QUEUE.md, docs/04_ios/LIST_PAGINATION_AUDIT.md, docs/04_ios/testops/runs/T-221_DUAL_ROLE_E2E_WALKTHROUGH.md, docs/04_ios/release/T-222_IDEAL_OPERATION_READINESS_REHEARSAL.md
+```
+
+```text
 Decision ID: D-021
 Date: 2026-07-09
 Decision: Adopt the V1.0 ideal-operation review plan as governed roadmap and queue packages.
@@ -80,15 +89,6 @@ Consequences: Context hygiene reports actual active Markdown percentage against 
 Linked files: scripts/context-hygiene-check.mjs, scripts/context-hygiene-policy.mjs, scripts/context-rotate.mjs, tests/docs/
 ```
 
-```text
-Decision ID: D-014
-Date: 2026-07-09
-Decision: Superseded by D-016/D-017: treat the active Markdown 85% waterline as a cleanup trigger.
-Context: T-181 showed context hygiene could pass while active Markdown stayed above the 85% warning line, causing repeated noisy closeouts.
-Consequences: Historical context only while this entry remains active before rotation. Current rules use hard active-Markdown limits, 95% structural-review warnings, and rolling-window rotation instead of an 85% cleanup trigger.
-Linked files: AGENTS.md, docs/05_workflow/CONTEXT_AND_RECOVERY.md, docs/05_workflow/SINGLE_AGENT_WORKFLOW.md, docs/05_workflow/STOP_CONDITIONS.md
-```
-
 
 ## Archived Decision Index
 
@@ -96,6 +96,7 @@ Full text for the entries below is preserved in `../09_frozen/decisions/DECISION
 
 | Date | Decision | Current entry point |
 |---|---|---|
+| 2026-07-09 | Superseded by D-016/D-017: treat the active Markdown 85% waterline as a cleanup trigger. | `../09_frozen/decisions/DECISION_LOG_D-014_2026-07-09.md` |
 | 2026-07-08 | Treat task-completion commit and push as standing user-authorized Git actions. | `../09_frozen/decisions/DECISION_LOG_D-013_2026-07-09.md` |
 | 2026-07-08 | Reduce active Markdown before raising the 32k total budget. | `../09_frozen/decisions/DECISION_LOG_D-012_2026-07-09.md` |
 | 2026-07-08 | Keep branch baseline as a single active fact in CURRENT_STATE. | `../09_frozen/decisions/DECISION_LOG_D-011_2026-07-09.md` |

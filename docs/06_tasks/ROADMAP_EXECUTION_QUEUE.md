@@ -8,23 +8,39 @@ Source: T-202 adopted root review input `../../V1.0_RELEASE_TASK_PLAN.md`; that 
 
 ## Selection Rules
 
-- There are no remaining unblocked V1.0 ideal-operation packages after T-222/Q-33.
-- Do not start a new package from this file unless a new queue row is added or the user names a blocked package and provides the required credentials/authorization.
-- Split any package that combines Supabase writes with visible SwiftUI or grows beyond one reviewable task.
+- Start with the first dependency-satisfied package; skip gated packages until authorization exists.
+- Split packages that mix Supabase writes with SwiftUI or exceed one reviewable task.
 - Get explicit authorization before migrations, Auth config writes, remote TestOps, seeds, deploys, release uploads, or other non-Git remote writes.
-- Do not start Q-90...Q-92 until credentials and authorization are recorded.
+- Q-35, Q-36, Q-37, Q-42, Q-92, and Q-93 require their stated credentials or fresh authorization.
+- Q-90, Q-91, T-157, and the `customer_push_tokens` advisor finding are excluded from this remediation sequence because they depend on APNs or paid Apple Developer capabilities.
 - Q-01...Q-33 are complete and mapped in `ROADMAP.md`.
 
 ## Queue
 
 | Order | Roadmap | Package | Mode | Scope | Validation |
 |---|---|---|---|---|---|
-| _none_ | _none_ | _none_ | _none_ | No unblocked local/read-only ideal-operation packages remain. | Add a new row before executing another roadmap package. |
+| Q-34 | R-032 | Supabase advisor index evidence audit | Deep | Map unindexed-FK/unused-index findings to actual queries, joins, cascades, statistics, and safe plans; classify add/keep/defer. No writes or statistics reset. | Current docs; linked advisor; read-only stats/catalog and safe `EXPLAIN`; Supabase check; evidence. |
+| Q-35 | R-031 | Groomer in-app notification remote parity | Deep | Apply existing T-203 migration; verify history, grants, RLS, RPCs, triggers, list/read state. Excludes APNs, push tokens, and Edge Functions. | Contract tests; authorized migration; linked parity/advisors; focused iOS tests/build. |
+| Q-36 | R-032 | Evidence-backed foreign-key index migration | Deep | Depends on Q-34. Add only justified indexes; never remove one solely from low-traffic `unused_index` output. | Migration/rollback tests; authorized apply; advisor and safe plan comparison; Supabase check. |
+| Q-37 | R-034 | Remote TestOps lifecycle and matching evidence | Deep | Run `smoke5` and `matching_baseline` with unique IDs, safety gates, redacted artifacts, and cleanup. | Unit/doctor checks; authorized run; 5/5 and 8/8 pass; zero residue. |
+| Q-38 | R-036 | Customer and groomer request/offer pagination | Standard | Add ordered, deduplicated next-page state and one consistent interaction across request/offer lists. | Focused tests; full iOS test/build; Simulator check. |
+| Q-39 | R-036 | Booking and notification pagination | Standard | Expose booking pagination and add customer/groomer notification paging with retry/end states. | Focused tests; full iOS test/build; Simulator check. |
+| Q-40 | R-036 | Conversation and message-history pagination | Standard | Page conversations and older messages without duplicates, reordering, or reader-position jumps. | Chat ordering/dedupe/cancellation/scroll tests; full iOS test/build; Simulator check. |
+| Q-41 | R-035 | UI TestOps harness and stable selectors | Standard | Add stable identifiers and no-screenshot drivers for seeded sign-in, session reset, tabs, and workflow sheets. No remote writes. | UI navigation/TestOps launch tests; full iOS test/build. |
+| Q-42 | R-035 | Full dual-role UI lifecycle automation | Deep | Depends on Q-41. Automate publish -> offer -> accept -> booking/chat -> complete -> review with backend/Debug assertions, tags, and cleanup. | Authorized run; transition assertions; zero residue; full iOS test/build. |
 
-## Blocked External Queue
+## Blocked Non-Apple Queue
+
+| Order | Roadmap | Package | Blocker |
+|---|---|---|---|
+| Q-92 | R-033 | Production email domain and SMTP | Verified production domain, SMTP provider credentials, DNS control, and Auth config authorization. |
+| Q-93 | R-033 | Supabase leaked-password protection | Supabase Pro-or-higher plan decision and Auth config authorization; the hosted Free Plan cannot clear this advisor warning. |
+
+## Excluded Apple/APNs Queue
+
+These existing items remain recorded for future recovery but are not part of the current remediation sequence.
 
 | Order | Roadmap | Package | Blocker |
 |---|---|---|---|
 | Q-90 | R-030 | APNs dispatch deployment | Paid Apple Developer, APNs secrets, deploy authorization. |
 | Q-91 | R-030 | TestFlight / App Store submission | Paid Apple Developer and release/upload authorization. |
-| Q-92 | R-030 | Production email domain and SMTP | Production domain, SMTP secrets, Auth config authorization. |
