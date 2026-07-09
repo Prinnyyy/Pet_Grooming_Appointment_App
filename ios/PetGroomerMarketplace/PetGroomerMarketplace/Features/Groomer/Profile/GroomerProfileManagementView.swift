@@ -163,6 +163,9 @@ private struct GroomerAccountHomeView: View {
                     .stroke(DesignTokens.Colors.borderSoft, lineWidth: 1)
             }
 
+            AccountReleaseLinksSection()
+                .padding(.top, DesignTokens.Spacing.lg)
+
             signOutControl
                 .padding(.top, DesignTokens.Spacing.lg)
         }

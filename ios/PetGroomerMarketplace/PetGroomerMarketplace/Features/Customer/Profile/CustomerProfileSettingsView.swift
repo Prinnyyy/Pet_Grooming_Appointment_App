@@ -53,6 +53,8 @@ struct CustomerAccountView: View {
                         }
                     }
 
+                    AccountReleaseLinksSection()
+
                     if let errorMessage = authenticationStore.errorMessage {
                         GroomlyErrorBanner(
                             title: "Account action failed",

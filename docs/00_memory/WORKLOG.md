@@ -6,12 +6,30 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-09
+Task: T-196 - Scheduled documentation meta-review.
+Files changed: roadmap, current state, task ledger, worklog, and context hygiene rotation archives.
+Checks: `git status --short`; `git diff --check`; `node scripts/context-hygiene-check.mjs`; targeted status/URL grep; context rotation; commit and push.
+Result: Runs the required 10-task documentation governance review after T-195, fixes ROADMAP wording that marked completed tasks as waiting due to mixed "blocked" segments, and keeps active memory/ledger windows within policy.
+Risks: Documentation-governance only. No Swift behavior, Supabase schema, migration, seed, app metadata remote write, repository setting, PR, tag, merge/rebase/reset, or force-push changed.
+Next: Use T-197 unless resuming T-157 after Apple Developer credentials. Q-09/APNs dispatch remains externally blocked; next unblocked package is Q-11/R-011 Crash and funnel events.
+```
+
+```text
+Date: 2026-07-09
+Task: T-195 - Privacy and Support URLs.
+Files changed: release privacy/support pages, App Store privacy checklist, AppReleaseLinks, Account legal link UI, privacy tests, roadmap, current state, task ledger, and worklog.
+Checks: App Store privacy Node test RED/GREEN; `./scripts/ios-build.sh`; link checks; `git diff --check`; context hygiene; commit and push.
+Result: Closes Q-10/R-010 by replacing Privacy Policy and Support URL blockers with public HTTPS GitHub release pages and exposing those links from customer, groomer, and generic Account surfaces through a shared app URL configuration.
+Risks: No App Store Connect setting, GitHub repository setting, custom domain, legal entity contact, Supabase schema, migration, seed, or other non-Git remote write changed.
+```
+
+```text
+Date: 2026-07-09
 Task: T-194 - Realtime foreground chat.
 Files changed: chat repository protocol, Supabase chat repository, Debug chat wrapper, ChatStore, ChatView, ChatFeatureTests, current state, task ledger, and worklog.
 Checks: Supabase changelog/docs review; focused ChatStoreTests; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
 Result: Closes Q-08/R-008 by adding foreground message INSERT streaming through the repository boundary, thread subscribe/unsubscribe lifecycle, foreground refresh for the messages list/thread, and debug events for subscription lifecycle/message events.
 Risks: No Supabase migration, RLS, replication setting, remote write, attachment, or read-receipt behavior changed. Live two-role smoke was skipped because sending messages would require unauthorized remote writes/test data.
-Next: Use T-195 unless resuming T-157 after Apple Developer credentials. Q-09/APNs dispatch remains externally blocked; next unblocked package is Q-10/R-010 Privacy and Support URLs.
 ```
 
 ```text
@@ -57,22 +75,4 @@ Files changed: private image loader/cache, Supabase private image data source, c
 Checks: Focused `PrivateImageCacheKeyTests`/`PrivateImageLoaderTests`; iOS build; `git diff --check`; context hygiene; commit and push.
 Result: Closes Q-02/R-005 by adding a shared authenticated private-image loader with hashed file cache, replacing direct repository Storage downloads, preserving legacy groomer avatar fallback, and clearing the shared private image cache during local account cleanup.
 Risks: No Supabase schema, policy, migration, or remote write changed. UI surfaces still need Q-03/Q-04 follow-up work for customer/groomer presentation polish and broader cache adoption.
-```
-
-```text
-Date: 2026-07-09
-Task: T-188 - Private image contract audit.
-Files changed: private image audit, Storage policy, roadmap execution queue, current state, task ledger, and worklog.
-Checks: Supabase read-only bucket/RLS queries; Storage code/UI grep; `git diff --check`; context hygiene; commit and push.
-Result: Closes Q-01/R-005 by confirming the deployed private bucket/RLS contract, authenticated Storage download usage, current rendered image surfaces, local cache coverage, and gaps for the shared image renderer.
-Risks: Audit/docs-only change. No Swift behavior, schema, migration, simulator, PR, tag, merge/rebase/reset, seed, or non-Git remote write changed.
-```
-
-```text
-Date: 2026-07-09
-Task: T-187 - Roadmap execution queue.
-Files changed: ROADMAP, roadmap execution queue, task directory guide, decision log, current state, task ledger, and worklog.
-Checks: `git diff --check`; `node scripts/context-hygiene-check.mjs`; commit and push.
-Result: Adds `docs/06_tasks/ROADMAP_EXECUTION_QUEUE.md` as the bounded planning layer between ROADMAP candidates and task-ledger execution. The queue defines Q-01 through Q-15 from R-005 through R-015 without assigning future T IDs in ROADMAP.
-Risks: Documentation/planning-only change. No Swift, Supabase, runtime, simulator, PR, tag, merge/rebase/reset, seed, migration, or non-Git remote write changed.
 ```

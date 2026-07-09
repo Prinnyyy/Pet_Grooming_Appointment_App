@@ -6,10 +6,10 @@ This is the Groomly 1.0 privacy submission checklist. Keep it aligned with `ios/
 
 | Field | Value | Status |
 |---|---|---|
-| Privacy Policy URL | TBD | Blocking before App Store Connect metadata submission. Requires a production HTTPS page that matches the nutrition label below. |
-| Support URL | TBD | Blocking before App Store Connect metadata submission. Requires a production HTTPS support/contact page. |
+| Privacy Policy URL | `https://github.com/Prinnyyy/Pet_Grooming_Appointment_App/blob/codex/pet-fit-structure-cleanup/docs/04_ios/release/PRIVACY_POLICY.md` | Ready for App Store Connect metadata. Public HTTPS page matches the Groomly 1.0 nutrition label below. |
+| Support URL | `https://github.com/Prinnyyy/Pet_Grooming_Appointment_App/blob/codex/pet-fit-structure-cleanup/docs/04_ios/release/SUPPORT.md` | Ready for App Store Connect version metadata. Public HTTPS support page links to the issue tracker for app issues, general feedback, and feature requests. |
 
-Do not submit App Store metadata until both TBD values are replaced with real, user-owned URLs.
+These GitHub-hosted URLs are the current canonical release URLs for Groomly 1.0. Replace them in this document, `AppReleaseLinks.swift`, and App Store Connect if a custom production domain is adopted later.
 
 ## Tracking
 

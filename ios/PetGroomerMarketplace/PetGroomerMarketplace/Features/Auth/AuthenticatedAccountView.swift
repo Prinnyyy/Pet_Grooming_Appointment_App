@@ -52,6 +52,8 @@ struct AuthenticatedAccountView: View {
                     }
                     .accessibilityElement(children: .combine)
 
+                    AccountReleaseLinksSection()
+
                     if let errorMessage = authenticationStore.errorMessage {
                         GroomlyErrorBanner(
                             title: "Account action failed",
@@ -117,6 +119,64 @@ struct AccountTabTitle: View {
             .foregroundStyle(DesignTokens.Colors.textPrimary)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.top, DesignTokens.Spacing.sm)
+    }
+}
+
+struct AccountReleaseLinksSection: View {
+    var body: some View {
+        GroomlyCard(padding: 0) {
+            VStack(spacing: 0) {
+                releaseLinkRow(
+                    title: "Privacy Policy",
+                    systemImage: "hand.raised",
+                    destination: AppReleaseLinks.privacyPolicy,
+                    accessibilityIdentifier: "account.privacy-policy"
+                )
+
+                Divider()
+                    .overlay(DesignTokens.Colors.divider)
+                    .padding(.leading, 72)
+
+                releaseLinkRow(
+                    title: "Support",
+                    systemImage: "questionmark.circle",
+                    destination: AppReleaseLinks.support,
+                    accessibilityIdentifier: "account.support"
+                )
+            }
+        }
+    }
+
+    private func releaseLinkRow(
+        title: String,
+        systemImage: String,
+        destination: URL,
+        accessibilityIdentifier: String
+    ) -> some View {
+        Link(destination: destination) {
+            HStack(spacing: DesignTokens.Spacing.md) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                    .frame(width: 36)
+                    .accessibilityHidden(true)
+
+                Text(title)
+                    .font(.system(size: 21, weight: .bold))
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                Image(systemName: "arrow.up.right")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(DesignTokens.Colors.textTertiary)
+                    .accessibilityHidden(true)
+            }
+            .padding(.horizontal, DesignTokens.Spacing.lg)
+            .padding(.vertical, 24)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier(accessibilityIdentifier)
     }
 }
 
