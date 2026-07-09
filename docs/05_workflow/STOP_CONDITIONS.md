@@ -16,7 +16,7 @@ Codex must stop and report when any condition occurs.
 - Secrets are required.
 - Remote state is uncertain.
 - User changes would be overwritten.
-- Commit, push, PR, remote write, seed, cleanup, migration apply, or dependency changes are needed without explicit user approval.
+- PR, remote write, seed, unrelated cleanup, migration apply, dependency changes, or Git work outside the standing task-completion commit/push approval is needed without explicit user approval.
 
 ## Technical Stop
 
@@ -49,6 +49,7 @@ Codex must stop and report when any condition occurs.
 - The next step would require broad full-file reads of archives, Groomly HTML/export, T-129 seed tables, large migrations, or large Swift files.
 - Default search would need to bypass `.rgignore` without a targeted reason.
 - `rg --files -g '*.md'` or another broad inventory would re-include ignored heavy Markdown as routine context.
+- Active Markdown is at or above the 85% waterline and cannot be brought below it by a small same-task archive/trim.
 
 ## Required Stop Report
 

@@ -78,11 +78,13 @@ node scripts/context-hygiene-check.mjs
 
 Budget limits and fact checks live in `scripts/context-hygiene-check.mjs`. Do not copy the numeric table here; run the script to see current budgets plus last-verified, migration-count, ROADMAP/ledger, and Feature Index path checks.
 
-If a file exceeds its limit, do the smallest safe rolling archive before final reporting:
+The active Markdown 85% waterline is a cleanup trigger. Do not close a durable-memory, ledger, workflow, or coordination-doc task while the hygiene output still reports that warning. Use the smallest safe same-task trim or archive until the warning clears. Raising budgets is not a fix unless a standalone decision says no safe reduction remains.
+
+When cleanup is needed, prefer these actions before final reporting:
 
 - `CURRENT_STATE.md`: snapshot to `docs/09_frozen/current_state_snapshots/`, then keep only current facts and pointers.
-- `WORKLOG.md`: keep newest 8-10 closeout entries active; move older verbatim entries to `docs/09_frozen/worklogs/`.
-- `TASK_LEDGER.md`: keep active, blocked, and latest 12-15 rows active; move older completed rows to `docs/09_frozen/task_ledgers/`.
+- `WORKLOG.md`: keep the newest useful closeout entries active; move older verbatim entries to `docs/09_frozen/worklogs/`.
+- `TASK_LEDGER.md`: keep active, blocked, and newest useful rows active; move older completed rows to `docs/09_frozen/task_ledgers/`.
 - Decision/backend/product indexes: archive the pre-trim file under the matching `docs/09_frozen/` family, then keep the active file as an index/current-rule document.
 
 After creating a new archive family or path, update `docs/README.md`, `docs/10_project_structure/README.md`, `docs/09_frozen/README.md`, and any active pointer that references the family.

@@ -41,7 +41,7 @@ Root-level or external-agent status/roadmap Markdown is review input only. Activ
 - Keep SwiftUI views thin and route business logic through Store/ViewModel/repository boundaries.
 - Keep backend access behind repository/service boundaries.
 - Do not invent Supabase schema facts or perform destructive database operations.
-- Do not add dependencies, create PRs, make non-Git remote writes, run seeds, or run cleanup without explicit user approval.
+- Do not add dependencies, create PRs, make non-Git remote writes, run seeds, or run unrelated cleanup without explicit user approval.
 - Standing Git approval: after required validation, automatically commit and push each completed task's own changes on the current work branch; never include unrelated user work.
 
 ## Groomly UI Work
@@ -71,7 +71,7 @@ Briefly review the diff when files changed. Record closeout in `docs/06_tasks/TA
 
 After required validation and closeout, create a task-scoped commit and push the current branch under standing Git approval. Skip commit/push if validation fails, unrelated user work is mixed in, secrets are present, the branch is unclear, or the user disables auto Git.
 
-After durable memory or task-ledger changes, run context hygiene. Archive old active memory/task rows immediately if thresholds are exceeded.
+After durable memory or task-ledger changes, run context hygiene. If active Markdown is at or above the 85% waterline, trim/archive current docs in the same task until the warning clears; do not raise budgets to silence it.
 
 When moving, deleting, or archiving Markdown, update linked indexes, source-of-truth notes, and ignore/search rules in the same change.
 

@@ -7,7 +7,7 @@ Default workflow for this repository. It keeps each run bounded, recoverable, an
 - Complete one primary task per run.
 - Preserve user work and inspect `git status --short` before edits.
 - Use targeted context only; access tiers live in `CONTEXT_AND_RECOVERY.md`.
-- Do not start adjacent features, broad refactors, seeds, cleanup, or non-Git remote writes unless explicitly requested.
+- Do not start adjacent features, broad refactors, seeds, unrelated cleanup, or non-Git remote writes unless explicitly requested.
 - Standing Git approval is active: after a task is complete and required validation passes, commit and push that task's own changes automatically.
 - No subagents or archived agent-team orchestration unless the user explicitly re-enables them.
 - Write a short plan before non-trivial edits.
@@ -24,7 +24,7 @@ Default workflow for this repository. It keeps each run bounded, recoverable, an
 6. Run mode-appropriate validation.
 7. Review the current diff.
 8. Update task closeout and durable memory only when the completion gate requires it.
-9. Run context hygiene if durable memory or task ledgers changed.
+9. Run context hygiene if durable memory or task ledgers changed, and clear any active Markdown 85% warning before closeout.
 10. Launch the simulator only when required.
 11. Create a task-scoped commit and push the current branch when completion and validation have passed.
 12. Write a checkpoint before manual compaction.
@@ -63,7 +63,7 @@ Durable memory updates are limited to changed facts:
 - `docs/00_memory/FEATURE_INDEX.md`: feature ownership or routing changes.
 - `docs/07_decisions/DECISION_LOG.md`: durable architecture/product decisions.
 
-After durable memory or ledger changes, run context hygiene and archive old rows/content in the same task if thresholds are exceeded.
+After durable memory or ledger changes, run context hygiene and archive old rows/content in the same task if thresholds or the 85% active Markdown waterline are reached.
 
 ## Automatic Git Closeout
 
@@ -78,7 +78,7 @@ Automatic commit/push requirements:
 - Push only the current work branch.
 - Skip commit/push and report why if validation fails, the branch is unclear, secrets appear in the diff, unrelated user work would be included, or the user explicitly disables auto Git for the task.
 
-This standing approval does not authorize PR creation, tags, branch deletion, merge/rebase/reset, Supabase writes, seeds, cleanup, or other remote operations.
+This standing approval does not authorize PR creation, tags, branch deletion, merge/rebase/reset, Supabase writes, seeds, unrelated cleanup, or other remote operations.
 
 ## Rule Change Tasks
 
