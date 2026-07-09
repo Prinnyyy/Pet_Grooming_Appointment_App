@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-09
 - Updated by: Codex
-- Latest completed task: T-227 Post-readiness remediation task planning.
+- Latest completed task: T-228 Supabase advisor index evidence audit.
 - Current task: none; T-157 APNs remains externally blocked.
-- Next task ID: use T-228 unless the user resumes T-157 after Apple Developer Program upgrade.
+- Next task ID: use T-229 unless the user resumes T-157 after Apple Developer Program upgrade.
 
 ## Fast Path
 
@@ -32,7 +32,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Validation Baseline
 
-- T-227 docs validation: current Supabase guidance reviewed; diff/hygiene passed. Last iOS validation remains T-226: 163 store members stayed intact across 4.3K-16.2K files, and build/test passed.
+- T-228: linked read-only index evidence, Supabase check, and diff passed; cadence hygiene awaits required T-229 meta-review. Last iOS validation remains T-226.
 - Recent focused coverage: T-222 readiness rehearsal; T-223 Xcode script output filtering; T-224 customer request test split; T-225 groomer profile test split; T-226 groomer profile store split.
 - Last Supabase migration apply: T-160 applied `20260707191034_t160_account_deletion.sql` to `lqmasbuqzvcvtawonjlb` on 2026-07-07 and confirmed parity/RLS/grants/RPCs/advisors/deployment.
 - Prepared unapplied Supabase migration: T-203 `20260709073051_t203_groomer_notifications.sql` is local-only until explicit remote migration authorization.
@@ -61,7 +61,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - Startup reads stay minimal: `AGENTS.md`, then targeted current-state/task-ledger sections only when needed.
 - Periodic documentation-governance reviews use `docs/06_tasks/META_REVIEW_TEMPLATE.md` every 10 completed tasks or weekly.
 - Last meta-review: T-218 on 2026-07-09.
-- V1.0 ideal-operation Q-16...Q-33 are complete. T-227 adds post-readiness Q-34...Q-42; Q-34 is the first read-only package, while remote actions keep their explicit authorization gates.
+- V1.0 ideal-operation Q-16...Q-33 and post-readiness Q-34 are complete; Q-35...Q-37 remain gated and Q-38 is next locally.
 - Changes to `AGENTS.md`, `CLAUDE.md`, or `docs/05_workflow/**` must be standalone numbered tasks with a decision-log entry and context hygiene.
 - T-180 records standing user approval for task-completion Git commit and push. This approval is limited to current-task changes after validation passes; T-186 requires stopping without auto pull/rebase/merge/reset/force-push if the push fails or is rejected.
 - T-184 keeps active Markdown under a 36k hard limit, 95% structural-review warning, and deterministic `node scripts/context-rotate.mjs` archive rotation.
@@ -90,8 +90,8 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - Customer in-app notifications are active. T-157 APNs database/iOS foundation is remotely applied; push dispatch waits for Apple Developer credentials and APNs secrets.
 - Large Swift context risks `CustomerRequestsView.swift` and `GroomerProfileManagementView.swift` were split in T-211/T-212.
 - Active cross-task risk: T-157 APNs deployment remains blocked.
-- Current linked advisors: T-222 security shows Pro-only Auth leaked-password protection WARN (Q-93) and APNs-scoped `customer_push_tokens` RLS-without-policy INFO (excluded); performance FK/index findings are scheduled for evidence audit Q-34 before any migration Q-36. Public authenticated `SECURITY DEFINER` RPC warnings are cleared.
+- T-228 performance audit found 2 justified FK indexes for Q-36; 10 FK findings already have usable indexes, and no unused index is safe to remove. Auth/APNs findings remain Q-93/excluded.
 
 ## Next Recommended Task
 
-- Use T-228 for Q-34, the read-only Supabase advisor index evidence audit. T-203 migration remains local-only under Q-35 until explicit remote apply authorization. Q-38...Q-41 remain local implementation options when remote packages are gated. Q-90/Q-91 are excluded Apple/APNs items; Q-92/Q-93 are blocked non-Apple Auth service items.
+- Use T-229 for local Q-38 request/offer pagination. Q-35...Q-37 remain gated; Q-36 may add only the two T-228-evidenced indexes after explicit authorization.

@@ -24,8 +24,9 @@ Use the smallest source that answers the task:
 3. `MIGRATION_RULES.md` for CLI, migration, repair, credential, and remote-write workflow.
 4. `RLS_RPC_POLICY.md` for RLS, grants, controlled RPC, access matrix, and required negative-test policy.
 5. `STORAGE_POLICY.md` for bucket visibility, object path, and client Storage safety.
-6. `../../supabase/migrations/` for exact SQL, constraints, policies, grants, functions, and migration order.
-7. The frozen pre-trim contract only when historical comparison or recovery requires the old long-form narrative.
+6. `INDEX_EVIDENCE_AUDIT.md` for the current performance-advisor index disposition.
+7. `../../supabase/migrations/` for exact SQL, constraints, policies, grants, functions, and migration order.
+8. The frozen pre-trim contract only when historical comparison or recovery requires the old long-form narrative.
 
 Do not read this file as proof that a future object is deployed. A deployed claim must match local migrations and, for remote work, verified linked project metadata.
 

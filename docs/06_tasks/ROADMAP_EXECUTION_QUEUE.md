@@ -13,13 +13,12 @@ Source: T-202 adopted root review input `../../V1.0_RELEASE_TASK_PLAN.md`; that 
 - Get explicit authorization before migrations, Auth config writes, remote TestOps, seeds, deploys, release uploads, or other non-Git remote writes.
 - Q-35, Q-36, Q-37, Q-42, Q-92, and Q-93 require their stated credentials or fresh authorization.
 - Q-90, Q-91, T-157, and the `customer_push_tokens` advisor finding are excluded from this remediation sequence because they depend on APNs or paid Apple Developer capabilities.
-- Q-01...Q-33 are complete and mapped in `ROADMAP.md`.
+- Q-01...Q-34 are complete and mapped in `ROADMAP.md`.
 
 ## Queue
 
 | Order | Roadmap | Package | Mode | Scope | Validation |
 |---|---|---|---|---|---|
-| Q-34 | R-032 | Supabase advisor index evidence audit | Deep | Map unindexed-FK/unused-index findings to actual queries, joins, cascades, statistics, and safe plans; classify add/keep/defer. No writes or statistics reset. | Current docs; linked advisor; read-only stats/catalog and safe `EXPLAIN`; Supabase check; evidence. |
 | Q-35 | R-031 | Groomer in-app notification remote parity | Deep | Apply existing T-203 migration; verify history, grants, RLS, RPCs, triggers, list/read state. Excludes APNs, push tokens, and Edge Functions. | Contract tests; authorized migration; linked parity/advisors; focused iOS tests/build. |
 | Q-36 | R-032 | Evidence-backed foreign-key index migration | Deep | Depends on Q-34. Add only justified indexes; never remove one solely from low-traffic `unused_index` output. | Migration/rollback tests; authorized apply; advisor and safe plan comparison; Supabase check. |
 | Q-37 | R-034 | Remote TestOps lifecycle and matching evidence | Deep | Run `smoke5` and `matching_baseline` with unique IDs, safety gates, redacted artifacts, and cleanup. | Unit/doctor checks; authorized run; 5/5 and 8/8 pass; zero residue. |
