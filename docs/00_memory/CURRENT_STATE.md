@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-09
 - Updated by: Codex
-- Latest completed task: T-210 Unread badge propagation.
+- Latest completed task: T-211 Split customer requests view.
 - Current task: none; T-157 APNs remains externally blocked.
-- Next task ID: use T-211 unless the user resumes T-157 after Apple Developer Program upgrade.
+- Next task ID: use T-212 unless the user resumes T-157 after Apple Developer Program upgrade.
 
 ## Fast Path
 
@@ -36,16 +36,16 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Validation Baseline
 
-- Last iOS build: `./scripts/ios-build.sh` passed on 2026-07-09 during T-210 unread badge propagation.
-- Last full iOS test attempt: `./scripts/ios-test.sh` passed on 2026-07-09 during T-201 release readiness dry run, including UI smoke tests 3/3 and full app/unit coverage.
+- Last iOS build: `./scripts/ios-build.sh` passed on 2026-07-09 during T-211 split customer requests view.
+- Last full iOS test attempt: `./scripts/ios-test.sh` passed on 2026-07-09 during T-211 split customer requests view, including UI smoke tests and full app/unit coverage.
 - Last Supabase migration apply: T-160 applied `20260707191034_t160_account_deletion.sql` to `lqmasbuqzvcvtawonjlb` on 2026-07-07 and confirmed parity/RLS/grants/RPCs/advisors/deployment.
 - Prepared unapplied Supabase migration: T-203 `20260709073051_t203_groomer_notifications.sql` is local-only until explicit remote migration authorization.
 - Last TestOps unit validation: T-201 `./scripts/testops-unit.sh` passed 24 Node tests.
 - Last TestOps dry-run validation: T-201 `doctor --dry-run`, marketplace `smoke5` dry-run, matching baseline dry-run, and TestOps launch smoke passed without remote writes.
 - Last release readiness dry run: T-201 recorded local/read-only evidence in `docs/04_ios/release/RELEASE_READINESS_DRY_RUN.md`; Supabase security advisor had only the known Auth leaked-password protection WARN and performance advisor had no issues.
 - Last remote TestOps run: T-155 authorized `matching_baseline` passed 8/8 and cleanup left zero tagged request/match residue.
-- Recent focused validations: T-206 offer domain, T-208 notification domain, T-209 appointment reminder, and T-210 chat/badge propagation tests passed their focused RED/GREEN checks.
-- Last docs validation: T-210 context hygiene and `git diff --check` passed on 2026-07-09.
+- Recent focused validations: T-206 offer, T-208 notification, T-209 reminder, and T-210 chat/badge tests passed.
+- Last docs validation: T-211 context hygiene and `git diff --check` passed on 2026-07-09.
 - Known iOS validation failure: none currently recorded; full `./scripts/ios-test.sh` passed during T-201.
 
 ## Active Product State
@@ -54,10 +54,11 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - Production uses real Supabase Auth, authoritative profile loading, and role separation. No production path fabricates a session/profile.
 - Auth email/deep-link design is documented; Q-07 waits for production auth domain and SMTP credentials.
 - Implemented iOS areas include auth/role onboarding, customer pets/requests/offers/notifications, groomer requests/offers, bookings/reviews, foreground chat, profile/account surfaces, privacy/support links, private images, Debug Console, ops evidence, accessibility/copy checks, and TestOps.
-- Customer and groomer tab roots load shared notification/chat badge sources. Customer Home, customer/groomer Messages, and groomer Alerts display unread badges; chat unread state is local/session-scoped and clears when a thread is opened.
-- Private Storage images use authenticated `.download(path:)` behind `PrivateImageLoader`; shared cache hashes paths, retries transient downloads once, and clears on local account cleanup.
+- Customer/groomer tab roots load shared notification/chat badge sources. Customer Home, Messages, and groomer Alerts display badges; chat unread state is local/session-scoped and clears on thread open.
+- Customer request UI was behavior-preservingly split into root, dashboard, detail, wizard, and status/preview files in T-211.
+- Private Storage images use authenticated `.download(path:)` through `PrivateImageLoader`; cache hashes paths, retries transient downloads once, and clears on local account cleanup.
 - Customers can create a new request from cancelled requests/bookings via explicit republish. Unpublished request wizard drafts are sheet-ephemeral: cancel/dismiss discards them, while publish failure preserves input for correction.
-- Groomly UI adaptation is complete for implemented MVP screens. Future UI work is screenshot-driven and must map screenshot modules to existing SwiftUI/Store/repository/model paths or stop for new-feature approval.
+- Groomly UI adaptation is complete for implemented MVP screens. Future UI work is screenshot-driven and must map modules to existing SwiftUI/Store/repository/model paths or stop for approval.
 
 ## Active Workflow State
 
@@ -65,7 +66,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - Startup reads stay minimal: `AGENTS.md`, then targeted current-state/task-ledger sections only when needed.
 - Periodic documentation-governance reviews use `docs/06_tasks/META_REVIEW_TEMPLATE.md` every 10 completed tasks or weekly.
 - Last meta-review: T-207 on 2026-07-09.
-- V1.0 ideal-operation packages are adopted in `docs/06_tasks/ROADMAP_EXECUTION_QUEUE.md`; Q-16...Q-21 are complete, and sequencing continues at Q-22.
+- V1.0 ideal-operation packages are adopted in `docs/06_tasks/ROADMAP_EXECUTION_QUEUE.md`; Q-16...Q-23 are complete, and sequencing continues at Q-24.
 - Changes to `AGENTS.md`, `CLAUDE.md`, or `docs/05_workflow/**` must be standalone numbered tasks with a decision-log entry and context hygiene.
 - T-180 records standing user approval for automatic task-completion Git commit and push. This approval is limited to current-task changes after validation passes; T-186 requires stopping without auto pull/rebase/merge/reset/force-push if the push fails or is rejected.
 - T-184 keeps active Markdown under a 36k hard limit, 95% structural-review warning, and deterministic `node scripts/context-rotate.mjs` archive rotation.
@@ -92,10 +93,10 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - T-129 seed profile Markdown files are machine-readable parser inputs and excluded from default search. Do not reformat or archive them without updating scripts/tests.
 - Deferred unless explicitly requested: public directory, direct booking, payments, chat attachments/read receipts, maps/calendar integrations, moderation/disputes, admin tooling.
 - Customer in-app notifications are active. T-157 APNs database/iOS foundation is remotely applied; push dispatch waits for Apple Developer credentials and APNs secrets.
-- Large Swift context risks remain `CustomerRequestsView.swift` and `GroomerProfileManagementView.swift`; split only in a dedicated Standard refactor task.
+- Large Swift context risk remains `GroomerProfileManagementView.swift`; split only in a dedicated Standard refactor task. `CustomerRequestsView.swift` was split in T-211.
 - Active cross-task risks: T-157 APNs deployment block, and T-162 cancelled-booking repost dependency on loading the original request.
 - Current linked advisors: T-201 security shows only Auth leaked-password protection WARN; performance shows no issues. Public authenticated `SECURITY DEFINER` RPC warnings are cleared.
 
 ## Next Recommended Task
 
-- Use T-206 next. Recommended package is Q-19 offer domain tests. T-203 migration remains local-only until explicit remote apply authorization. Q-90...Q-92 remain blocked on Apple/APNs/release or production SMTP credentials.
+- Use T-212 next. Recommended package is Q-24 split groomer profile surfaces. T-203 migration remains local-only until explicit remote apply authorization. Q-90...Q-92 remain blocked on Apple/APNs/release or production SMTP credentials.
