@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-09
+Task: T-202 - V1.0 ideal-operation task series.
+Files changed: roadmap, execution queue, decision log, current state, task ledger, and worklog.
+Checks: `git diff --check`; context hygiene; commit and push.
+Result: Adopts root `V1.0_RELEASE_TASK_PLAN.md` review input into governed ROADMAP/ROADMAP_EXECUTION_QUEUE packages without preassigning future T IDs. Active queue now starts at Q-16 and covers groomer notification symmetry, local timeliness, structural refactors, unit expansion, robustness, and ideal-operation verification.
+Risks: No app code, Supabase schema, migration, Auth config, seed, TestOps remote execution, deploy, release upload, tag, PR, merge/rebase/reset, or force-push changed. Q-16 requires explicit Supabase migration authorization before linked remote apply; Q-90...Q-92 remain externally blocked.
+Next: Use T-203 for the next user-chosen task; recommended queue start is Q-16 unless the user selects another package.
+```
+
+```text
+Date: 2026-07-09
 Task: T-201 - Release readiness dry run.
 Files changed: release readiness evidence, App Store privacy pointer, Supabase check script, roadmap, current state, task ledger, and worklog.
 Checks: Preflight; TestOps unit; App Store privacy test; TestOps doctor/backend smoke5/matching dry-runs; TestOps launch smoke; Supabase check; Supabase security/performance advisors; full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
 Result: Closes Q-15/R-015 for local/read-only release readiness. Release evidence confirms E2E dry-runs, privacy checks, advisors, and iOS build/test gates pass without remote writes.
 Risks: Security advisor still reports the known Auth leaked-password protection WARN. Q-07 production auth domain/SMTP and Q-09 APNs dispatch remain externally blocked. No TestFlight upload, App Store Connect change, remote TestOps execution, migration, seed, deploy, tag, PR, merge/rebase/reset, or force-push changed.
-Next: Use T-202 for the next user-chosen task. No unblocked roadmap queue package remains; Q-07 and Q-09 require external credentials/authorization.
 ```
 
 ```text
@@ -66,13 +75,4 @@ Files changed: release privacy/support pages, App Store privacy checklist, AppRe
 Checks: App Store privacy Node test RED/GREEN; `./scripts/ios-build.sh`; link checks; `git diff --check`; context hygiene; commit and push.
 Result: Closes Q-10/R-010 by replacing Privacy Policy and Support URL blockers with public HTTPS GitHub release pages and exposing those links from customer, groomer, and generic Account surfaces through a shared app URL configuration.
 Risks: No App Store Connect setting, GitHub repository setting, custom domain, legal entity contact, Supabase schema, migration, seed, or other non-Git remote write changed.
-```
-
-```text
-Date: 2026-07-09
-Task: T-194 - Realtime foreground chat.
-Files changed: chat repository protocol, Supabase chat repository, Debug chat wrapper, ChatStore, ChatView, ChatFeatureTests, current state, task ledger, and worklog.
-Checks: Supabase changelog/docs review; focused ChatStoreTests; `./scripts/ios-build.sh`; `git diff --check`; context hygiene; commit and push.
-Result: Closes Q-08/R-008 by adding foreground message INSERT streaming through the repository boundary, thread subscribe/unsubscribe lifecycle, foreground refresh for the messages list/thread, and debug events for subscription lifecycle/message events.
-Risks: No Supabase migration, RLS, replication setting, remote write, attachment, or read-receipt behavior changed. Live two-role smoke was skipped because sending messages would require unauthorized remote writes/test data.
 ```

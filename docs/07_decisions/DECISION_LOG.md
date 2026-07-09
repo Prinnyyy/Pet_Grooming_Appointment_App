@@ -18,6 +18,15 @@ Linked files:
 ## Active Decisions
 
 ```text
+Decision ID: D-021
+Date: 2026-07-09
+Decision: Adopt the V1.0 ideal-operation review plan as governed roadmap and queue packages.
+Context: The user asked to plan and create tasks from root `V1.0_RELEASE_TASK_PLAN.md`. The root plan is a gitignored external review draft and must not become an active task source or pre-assign future task numbers.
+Consequences: `ROADMAP.md` now records the V1.0 ideal-operation target, milestones M6-M8, and external D blockers. `ROADMAP_EXECUTION_QUEUE.md` now starts active adoptable packages at Q-16 and keeps future implementation on next `T-###` assignment from `TASK_LEDGER.md`, one package per task. Supabase migrations, Auth config writes, APNs/TestFlight/App Store work, remote TestOps, seeds, deploys, and other non-Git remote writes still require explicit authorization.
+Linked files: docs/06_tasks/ROADMAP.md, docs/06_tasks/ROADMAP_EXECUTION_QUEUE.md, docs/06_tasks/TASK_LEDGER.md, V1.0_RELEASE_TASK_PLAN.md
+```
+
+```text
 Decision ID: D-020
 Date: 2026-07-09
 Decision: Use Resend-backed Supabase custom SMTP and HTTPS-first Auth redirects for production email links.
@@ -80,15 +89,6 @@ Consequences: Historical context only while this entry remains active before rot
 Linked files: AGENTS.md, docs/05_workflow/CONTEXT_AND_RECOVERY.md, docs/05_workflow/SINGLE_AGENT_WORKFLOW.md, docs/05_workflow/STOP_CONDITIONS.md
 ```
 
-```text
-Decision ID: D-013
-Date: 2026-07-08
-Decision: Treat task-completion commit and push as standing user-authorized Git actions.
-Context: The user explicitly asked that every completed task be automatically authorized for commit and push. Prior workflow text required explicit per-task approval for both operations.
-Consequences: After required validation passes, Codex should commit and push the current task's own changes on the current work branch. This does not authorize PRs, tags, branch deletion, merge/rebase/reset, Supabase writes, seeds, unrelated cleanup, unrelated user work, or any non-Git remote write.
-Linked files: AGENTS.md, docs/05_workflow/SINGLE_AGENT_WORKFLOW.md, docs/05_workflow/TOOLING_POLICY.md, docs/05_workflow/GITHUB_RULES.md
-```
-
 
 ## Archived Decision Index
 
@@ -96,6 +96,7 @@ Full text for the entries below is preserved in `../09_frozen/decisions/DECISION
 
 | Date | Decision | Current entry point |
 |---|---|---|
+| 2026-07-08 | Treat task-completion commit and push as standing user-authorized Git actions. | `../09_frozen/decisions/DECISION_LOG_D-013_2026-07-09.md` |
 | 2026-07-08 | Reduce active Markdown before raising the 32k total budget. | `../09_frozen/decisions/DECISION_LOG_D-012_2026-07-09.md` |
 | 2026-07-08 | Keep branch baseline as a single active fact in CURRENT_STATE. | `../09_frozen/decisions/DECISION_LOG_D-011_2026-07-09.md` |
 | 2026-07-08 | Track meta-review cadence by completed-task distance, not wall-clock age. | `../09_frozen/decisions/DECISION_LOG_D-010_2026-07-09.md` |
