@@ -51,6 +51,10 @@ All listed data is linked to the signed-in account, is not used for tracking, an
 
 Pet temperament, medical, grooming, and service notes are app-specific user content about pets. They are represented as other user content, not human health data.
 
+## Local Operational Evidence
+
+Groomly records a small on-device operational event log for release evidence and local support diagnosis. These rows stay inside the app container, are sanitized before writing, and are not uploaded to Supabase, third-party analytics, crash-reporting services, or App Store Connect. The log records lifecycle and funnel states such as launch, foreground/background, auth restored/signed out, role resolved, and suspected prior-run interruption.
+
 ## Update Triggers
 
 Update this document and `PrivacyInfo.xcprivacy` before release if the app adds payments, public analytics, crash reporting uploads, ads, third-party tracking, attachments beyond photos, precise location, contact import, APNs payload changes that add data categories, or a new third-party SDK with its own privacy manifest.

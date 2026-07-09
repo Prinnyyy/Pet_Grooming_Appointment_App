@@ -11,6 +11,7 @@ struct AuthenticatedEntryView: View {
     private let chatRepository: any ChatRepository
     private let groomerProfileRepository: any GroomerProfileRepository
     private let groomerRequestRepository: any GroomerRequestRepository
+    private let operationalEventRecorder: AppOperationalEventRecorder?
     @State private var store: AuthenticatedEntryStore
 
     init(
@@ -24,7 +25,8 @@ struct AuthenticatedEntryView: View {
         bookingRepository: any BookingRepository,
         chatRepository: any ChatRepository,
         groomerProfileRepository: any GroomerProfileRepository,
-        groomerRequestRepository: any GroomerRequestRepository
+        groomerRequestRepository: any GroomerRequestRepository,
+        operationalEventRecorder: AppOperationalEventRecorder? = nil
     ) {
         self.session = session
         self.authenticationStore = authenticationStore
@@ -36,6 +38,7 @@ struct AuthenticatedEntryView: View {
         self.chatRepository = chatRepository
         self.groomerProfileRepository = groomerProfileRepository
         self.groomerRequestRepository = groomerRequestRepository
+        self.operationalEventRecorder = operationalEventRecorder
         _store = State(
             initialValue: AuthenticatedEntryStore(
                 repository: profileRepository
@@ -96,6 +99,9 @@ struct AuthenticatedEntryView: View {
                 await CustomerPushNotificationRegistrationCoordinator.shared
                     .activate(customerID: nil)
             }
+        }
+        .onChange(of: store.state) { _, newState in
+            recordEntryState(newState)
         }
         .environment(\.appDebugEventRecorder, appDebugRecorder)
     }
@@ -195,6 +201,35 @@ struct AuthenticatedEntryView: View {
     private func signOut() {
         Task {
             await authenticationStore.signOut()
+        }
+    }
+
+    private func recordEntryState(_ state: AuthenticatedEntryState) {
+        switch state {
+        case .loading:
+            break
+        case .onboarding:
+            operationalEventRecorder?.recordFunnelStep(
+                .roleOnboarding,
+                scope: "role.onboarding"
+            )
+        case .customer:
+            operationalEventRecorder?.recordFunnelStep(
+                .roleResolved,
+                scope: "customer.home",
+                actorRole: .customer
+            )
+        case .groomer:
+            operationalEventRecorder?.recordFunnelStep(
+                .roleResolved,
+                scope: "groomer.requests",
+                actorRole: .groomer
+            )
+        case .failure:
+            operationalEventRecorder?.recordFunnelStep(
+                .profileLoadFailed,
+                scope: "profile"
+            )
         }
     }
 }

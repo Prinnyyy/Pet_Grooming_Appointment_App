@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 import Testing
 @testable import PetGroomerMarketplace
 
@@ -136,8 +137,154 @@ struct AppDebugEventTests {
     }
 }
 
+struct AppOperationalEventTests {
+    @Test @MainActor
+    func operationalEventsSanitizeSensitiveMetadata() throws {
+        let event = AppOperationalEvent(
+            level: .info,
+            category: .funnel,
+            source: "CustomerRequestsStore.publish",
+            scope: "customer.requests",
+            message: "owner@example.com published request with token=secret-token",
+            correlationID: "11111111-2222-3333-4444-555555555555",
+            metadata: [
+                "email": "owner@example.com",
+                "userID": "11111111-2222-3333-4444-555555555555",
+                "password": "plain-text-password",
+                "requestCount": "1",
+            ]
+        )
+
+        let line = try AppOperationalEventJSONLCodec.encodeLine(event)
+
+        #expect(event.metadata["email"] == "example.com")
+        #expect(event.metadata["userID"] == "11111111")
+        #expect(event.metadata["password"] == "[redacted]")
+        #expect(event.metadata["requestCount"] == "1")
+        #expect(event.correlationID == "11111111")
+        #expect(line.contains("owner@example.com") == false)
+        #expect(line.contains("plain-text-password") == false)
+        #expect(line.contains("secret-token") == false)
+        #expect(line.contains("11111111-2222-3333-4444-555555555555") == false)
+    }
+
+    @Test @MainActor
+    func operationalRecorderWritesTrimmedLocalJSONL() throws {
+        let directoryURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: directoryURL) }
+
+        let writer = AppOperationalEventFileWriter(
+            directoryURL: directoryURL,
+            maximumLineCount: 2,
+            retentionInterval: 24 * 60 * 60
+        )
+        let recorder = AppOperationalEventRecorder(
+            writer: writer,
+            userDefaults: isolatedOperationalEventDefaults(),
+            now: Date.init,
+            makeRunID: UUID.init
+        )
+
+        recorder.recordFunnelStep(.appLaunch, scope: "app")
+        recorder.recordFunnelStep(.authRestored, scope: "auth")
+        recorder.recordFunnelStep(.roleResolved, scope: "customer.home", actorRole: .customer)
+
+        let lines = try writer.readLines()
+        #expect(lines.count == 2)
+
+        let events = try lines.map(AppOperationalEventJSONLCodec.decodeLine)
+        #expect(events.map(\.metadata["step"]) == ["auth.restored", "role.resolved"])
+        #expect(events.last?.metadata["actorRole"] == "customer")
+        #expect(events.last?.scope == "customer.home")
+    }
+
+    @Test @MainActor
+    func launchDetectsPreviousRunThatStayedActive() throws {
+        let writer = AppOperationalEventWriterSpy()
+        let userDefaults = isolatedOperationalEventDefaults()
+        let firstRunID = UUID(uuidString: "11111111-2222-3333-4444-555555555555")!
+        let secondRunID = UUID(uuidString: "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE")!
+
+        let firstRecorder = AppOperationalEventRecorder(
+            writer: writer,
+            userDefaults: userDefaults,
+            now: { Date(timeIntervalSince1970: 1_000) },
+            makeRunID: { firstRunID }
+        )
+        firstRecorder.beginLaunch()
+        firstRecorder.recordScenePhase(.active)
+
+        let secondRecorder = AppOperationalEventRecorder(
+            writer: writer,
+            userDefaults: userDefaults,
+            now: { Date(timeIntervalSince1970: 1_100) },
+            makeRunID: { secondRunID }
+        )
+        secondRecorder.beginLaunch()
+
+        let crashSuspect = try #require(
+            secondRecorder.events.first { $0.category == .crash }
+        )
+        #expect(crashSuspect.level == .warning)
+        #expect(crashSuspect.message == "Previous run did not close cleanly.")
+        #expect(crashSuspect.metadata["previousRunID"] == "11111111")
+        #expect(crashSuspect.metadata["previousState"] == "active")
+    }
+
+    @Test @MainActor
+    func backgroundedPreviousRunDoesNotRecordCrashSuspect() throws {
+        let writer = AppOperationalEventWriterSpy()
+        let userDefaults = isolatedOperationalEventDefaults()
+
+        let firstRecorder = AppOperationalEventRecorder(
+            writer: writer,
+            userDefaults: userDefaults,
+            now: { Date(timeIntervalSince1970: 2_000) },
+            makeRunID: { UUID(uuidString: "11111111-2222-3333-4444-555555555555")! }
+        )
+        firstRecorder.beginLaunch()
+        firstRecorder.recordScenePhase(.active)
+        firstRecorder.recordScenePhase(.background)
+
+        let secondRecorder = AppOperationalEventRecorder(
+            writer: writer,
+            userDefaults: userDefaults,
+            now: { Date(timeIntervalSince1970: 2_100) },
+            makeRunID: { UUID(uuidString: "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE")! }
+        )
+        secondRecorder.beginLaunch()
+
+        #expect(secondRecorder.events.contains { $0.category == .crash } == false)
+    }
+
+    private func isolatedOperationalEventDefaults() -> UserDefaults {
+        let suiteName = "AppOperationalEventTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defaults.removePersistentDomain(forName: suiteName)
+        return defaults
+    }
+}
+
 @MainActor
 final class AppDebugEventWriterSpy: AppDebugEventWriting {
+    private(set) var lines: [String] = []
+
+    func append(_ line: String) throws {
+        lines.append(line)
+    }
+
+    func replace(with lines: [String]) throws {
+        self.lines = lines
+    }
+
+    func clear() throws {
+        lines = []
+    }
+}
+
+@MainActor
+final class AppOperationalEventWriterSpy: AppOperationalEventWriting {
     private(set) var lines: [String] = []
 
     func append(_ line: String) throws {

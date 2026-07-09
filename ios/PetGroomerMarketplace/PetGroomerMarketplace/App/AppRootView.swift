@@ -13,6 +13,7 @@ struct AppRootView: View {
     let chatRepository: (any ChatRepository)?
     let groomerProfileRepository: (any GroomerProfileRepository)?
     let groomerRequestRepository: (any GroomerRequestRepository)?
+    let operationalEventRecorder: AppOperationalEventRecorder?
     let roleOnboardingContent: AnyView?
 
     init(
@@ -28,6 +29,7 @@ struct AppRootView: View {
         chatRepository: (any ChatRepository)? = nil,
         groomerProfileRepository: (any GroomerProfileRepository)? = nil,
         groomerRequestRepository: (any GroomerRequestRepository)? = nil,
+        operationalEventRecorder: AppOperationalEventRecorder? = nil,
         roleOnboardingContent: AnyView? = nil
     ) {
         self.route = route
@@ -42,6 +44,7 @@ struct AppRootView: View {
         self.chatRepository = chatRepository
         self.groomerProfileRepository = groomerProfileRepository
         self.groomerRequestRepository = groomerRequestRepository
+        self.operationalEventRecorder = operationalEventRecorder
         self.roleOnboardingContent = roleOnboardingContent
     }
 
@@ -68,7 +71,8 @@ struct AppRootView: View {
                     bookingRepository: bookingRepository,
                     chatRepository: chatRepository,
                     groomerProfileRepository: groomerProfileRepository,
-                    groomerRequestRepository: groomerRequestRepository
+                    groomerRequestRepository: groomerRequestRepository,
+                    operationalEventRecorder: operationalEventRecorder
                 )
             } else {
                 AuthenticationBootstrapView(state: authenticationBootstrapState)

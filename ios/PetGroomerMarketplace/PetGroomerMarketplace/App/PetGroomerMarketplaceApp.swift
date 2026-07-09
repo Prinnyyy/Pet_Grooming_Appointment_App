@@ -2,6 +2,7 @@ import SwiftUI
 
 @main
 struct PetGroomerMarketplaceApp: App {
+    @Environment(\.scenePhase) private var scenePhase
     @UIApplicationDelegateAdaptor(CustomerPushNotificationAppDelegate.self)
     private var customerPushNotificationAppDelegate
 
@@ -21,12 +22,19 @@ struct PetGroomerMarketplaceApp: App {
                 bookingRepository: composition.bookingRepository,
                 chatRepository: composition.chatRepository,
                 groomerProfileRepository: composition.groomerProfileRepository,
-                groomerRequestRepository: composition.groomerRequestRepository
+                groomerRequestRepository: composition.groomerRequestRepository,
+                operationalEventRecorder: composition.operationalEventRecorder
             )
             .transaction { transaction in
                 if composition.launchConfiguration.testOps.disablesAnimations {
                     transaction.animation = nil
                 }
+            }
+            .task {
+                composition.operationalEventRecorder.beginLaunch()
+            }
+            .onChange(of: scenePhase) { _, newPhase in
+                composition.operationalEventRecorder.recordScenePhase(newPhase)
             }
         }
     }

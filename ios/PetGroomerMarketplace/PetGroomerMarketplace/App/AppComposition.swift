@@ -16,16 +16,19 @@ struct AppComposition {
     let groomerProfileRepository: (any GroomerProfileRepository)?
     let groomerRequestRepository: (any GroomerRequestRepository)?
     let authenticationStore: AuthenticationStore?
+    let operationalEventRecorder: AppOperationalEventRecorder
 
     init(
         bundle: Bundle = .main,
         launchConfiguration: AppLaunchConfiguration = AppLaunchConfiguration()
     ) {
         self.launchConfiguration = launchConfiguration
+        operationalEventRecorder = AppOperationalEventRecorder.shared
 
         #if DEBUG
         let debugRecorder = AppDebugEventRecorder.shared
         debugRecorder.configureTestOps(launchConfiguration.testOps)
+        operationalEventRecorder.setDebugRecorder(debugRecorder)
         #endif
 
         do {

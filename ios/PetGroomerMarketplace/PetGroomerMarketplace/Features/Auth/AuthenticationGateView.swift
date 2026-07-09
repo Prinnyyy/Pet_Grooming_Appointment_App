@@ -11,6 +11,7 @@ struct AuthenticationGateView: View {
     let chatRepository: any ChatRepository
     let groomerProfileRepository: any GroomerProfileRepository
     let groomerRequestRepository: any GroomerRequestRepository
+    let operationalEventRecorder: AppOperationalEventRecorder?
 
     var body: some View {
         Group {
@@ -43,12 +44,33 @@ struct AuthenticationGateView: View {
                     bookingRepository: bookingRepository,
                     chatRepository: chatRepository,
                     groomerProfileRepository: groomerProfileRepository,
-                    groomerRequestRepository: groomerRequestRepository
+                    groomerRequestRepository: groomerRequestRepository,
+                    operationalEventRecorder: operationalEventRecorder
                 )
             }
         }
         .task {
             await store.start()
+        }
+        .onChange(of: store.rootState) { _, newState in
+            recordAuthState(newState)
+        }
+    }
+
+    private func recordAuthState(_ state: AuthenticationRootState) {
+        switch state {
+        case .loading:
+            break
+        case .signedOut:
+            operationalEventRecorder?.recordFunnelStep(
+                .authSignedOut,
+                scope: "auth"
+            )
+        case .signedIn:
+            operationalEventRecorder?.recordFunnelStep(
+                .authRestored,
+                scope: "auth"
+            )
         }
     }
 }
