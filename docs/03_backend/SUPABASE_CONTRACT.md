@@ -1,6 +1,6 @@
 # Supabase Contract
 
-Last verified: 2026-07-08.
+Last verified: 2026-07-09.
 
 This is the active fast-path backend contract. It records current authoritative facts and points to the right detailed source instead of embedding every historical table, RPC, Storage, and migration note.
 
@@ -20,11 +20,12 @@ Full pre-trim contract text is archived at `../09_frozen/backend_contracts/SUPAB
 Use the smallest source that answers the task:
 
 1. This file for project boundary, deployed-scope summary, and backend guardrails.
-2. `MIGRATION_RULES.md` for CLI, migration, repair, credential, and remote-write workflow.
-3. `RLS_RPC_POLICY.md` for RLS, grants, controlled RPC, access matrix, and required negative-test policy.
-4. `STORAGE_POLICY.md` for bucket visibility, object path, and client Storage safety.
-5. `../../supabase/migrations/` for exact SQL, constraints, policies, grants, functions, and migration order.
-6. The frozen pre-trim contract only when historical comparison or recovery requires the old long-form narrative.
+2. `AUTH_EMAIL_DEEP_LINK_DESIGN.md` for production Auth email, SMTP, redirect URL, and iOS callback design.
+3. `MIGRATION_RULES.md` for CLI, migration, repair, credential, and remote-write workflow.
+4. `RLS_RPC_POLICY.md` for RLS, grants, controlled RPC, access matrix, and required negative-test policy.
+5. `STORAGE_POLICY.md` for bucket visibility, object path, and client Storage safety.
+6. `../../supabase/migrations/` for exact SQL, constraints, policies, grants, functions, and migration order.
+7. The frozen pre-trim contract only when historical comparison or recovery requires the old long-form narrative.
 
 Do not read this file as proof that a future object is deployed. A deployed claim must match local migrations and, for remote work, verified linked project metadata.
 
@@ -57,6 +58,7 @@ Core deployed data areas:
 - Automation: request-expiry cron job, match backfill triggers for groomer activation/availability changes, customer notification triggers, and account-deletion service-role finalization RPCs.
 - Storage buckets: legacy `avatars`, dedicated `groomer-avatars`, dedicated `customer-avatars`, `pet-photos`, `groomer-portfolio`, and `request-photos`. `chat-attachments` remains deferred.
 - Edge Functions: `delete-account` is deployed with JWT verification; `dispatch-customer-push-notifications` source exists but is not deployed until APNs secrets are available.
+- Auth email/deep-link production design is documented in `AUTH_EMAIL_DEEP_LINK_DESIGN.md`; SMTP, redirect URLs, email templates, iOS URL scheme, and associated domains are not yet configured.
 
 Controlled public RPCs currently include:
 

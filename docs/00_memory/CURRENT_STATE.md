@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-09
 - Updated by: Codex
-- Latest completed task: T-192 Request wizard persistence decision.
+- Latest completed task: T-193 Email deep-link and SMTP design.
 - Current task: none active; T-157 APNs deployment remains externally blocked.
-- Next task ID: use T-193 unless the user resumes T-157 after Apple Developer Program upgrade.
+- Next task ID: use T-194 unless the user resumes T-157 after Apple Developer Program upgrade.
 
 ## Fast Path
 
@@ -47,13 +47,14 @@ Frozen history lives under `docs/09_frozen/`.
 - Last TestOps unit validation: T-145 `./scripts/testops-unit.sh` passed 24 Node tests.
 - Last remote TestOps run: T-155 authorized `matching_baseline` run `TESTOPS-T155-MATCH-20260706-*` passed 8/8 and cleanup left zero tagged request/match residue.
 - Last private image work: T-191 completed groomer portfolio loading/unavailable presentation; T-190 completed customer request wizard pet-photo avatars and request-photo unavailable states; T-189 added the shared loader/cache.
-- Last docs/workflow validation: T-192 request wizard persistence, context hygiene, and `git diff --check` passed on 2026-07-09.
+- Last docs/workflow validation: T-193 email deep-link/SMTP design, context hygiene, and `git diff --check` passed on 2026-07-09.
 - Known validation failure: full `./scripts/ios-test.sh` is currently blocked by the existing T-153 customer notification same-timestamp ordering test, not by T-162 cancellation repost work.
 
 ## Active Product State
 
 - MVP marketplace flow is complete at the current contract level: customer request -> groomer offers -> customer accepts -> booking/chat -> groomer completes -> customer reviews.
 - Production uses real Supabase Auth, authoritative profile loading, and customer/groomer role separation. No production path fabricates a session/profile.
+- Auth email/deep-link design is documented; Q-07 waits for production auth domain and SMTP credentials.
 - Implemented iOS areas include Auth, role onboarding, customer pets, customer requests/offers, customer in-app notifications, groomer requests/offers, groomer submitted-offer tracking, bookings, text chat, groomer profile/services/portfolio, Customer Account profile settings, Debug Console, and TestOps support.
 - Private Storage images use authenticated `.download(path:)` behind `PrivateImageLoader`; shared cache hashes paths and clears on local account cleanup.
 - Customers can create a new request from cancelled requests/bookings via explicit republish. Unpublished request wizard drafts are sheet-ephemeral: cancel/dismiss discards them, while publish failure preserves input for correction.
@@ -97,4 +98,4 @@ Frozen history lives under `docs/09_frozen/`.
 
 ## Next Recommended Task
 
-- Use T-193 next unless resuming T-157 after Apple Developer credentials. Recommended roadmap package: Q-06/R-007 email deep-link and SMTP design.
+- Use T-194 next. Q-07 is blocked until auth domain/SMTP inputs exist; next unblocked package is Q-08/R-008 realtime foreground chat.

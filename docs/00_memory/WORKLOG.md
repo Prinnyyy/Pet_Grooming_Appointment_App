@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-09
+Task: T-193 - Email deep-link and SMTP design.
+Files changed: auth email/deep-link design, Supabase contract, decision log, current state, task ledger, and worklog.
+Checks: Supabase changelog/docs review; local auth/config grep; `git diff --check`; context hygiene; commit and push.
+Result: Closes Q-06/R-007 by defining Resend-backed Supabase custom SMTP, exact HTTPS-first redirect URL policy, dev/test custom scheme fallback, required email templates/secrets, and iOS callback behavior for Q-07.
+Risks: No Supabase dashboard setting, Management API write, DNS, iOS entitlement, URL scheme, migration, or remote write changed. Q-07 implementation waits for a production auth domain and SMTP credentials.
+Next: Use T-194 unless resuming T-157 after Apple Developer credentials. Q-07/R-007 implementation is externally blocked; next unblocked package is Q-08/R-008 realtime foreground chat unless the user provides email domain/SMTP inputs.
+```
+
+```text
+Date: 2026-07-09
 Task: T-192 - Request wizard persistence decision.
 Files changed: customer request store/view wizard presentation, customer request tests, decision log, current state, task ledger, and worklog.
 Checks: CustomerRequestsStoreTests; XcodeBuildMCP build; `git diff --check`; context hygiene; commit and push.
 Result: Closes Q-05/R-006 by deciding request wizard drafts are ephemeral to the active sheet. Back/cancel and swipe dismiss discard unpublished draft fields/photos and reset default create state; publish failures still preserve input and explicit republish remains the only prefilled flow.
 Risks: No Supabase schema, policy, migration, remote write, new persistence store, or visible copy change. Full iOS tests still have the known T-153 same-timestamp notification ordering blocker.
-Next: Use T-193 unless resuming T-157 after Apple Developer credentials. Recommended roadmap package is Q-06/R-007 email deep-link and SMTP design.
 ```
 
 ```text
@@ -66,12 +75,4 @@ Files changed: AGENTS, workflow rules, decision log/archive, current state, task
 Checks: `git diff --check`; `node scripts/context-rotate.mjs --apply`; `node scripts/context-hygiene-check.mjs`; `node scripts/context-rotate.mjs`; commit and push.
 Result: Removes active 85% warning/waterline closeout and stop rules, keeps 95% active Markdown as structural-review scheduling only, corrects the T-185 meta-review marker to 2026-07-08, and requires agents to stop without auto pull/rebase/merge/reset/force-push when automatic push fails or is rejected.
 Risks: Documentation-only workflow change. No Swift, Supabase, runtime, simulator, PR, tag, merge/rebase/reset, seed, migration, or non-Git remote write changed.
-```
-```text
-Date: 2026-07-09
-Task: T-185 - Root external draft cleanup and meta-review.
-Files changed: frozen external reports, current state, task ledger, worklog, and structure log.
-Checks: `git diff --check`; `node scripts/context-hygiene-check.mjs`; `node scripts/context-rotate.mjs`; targeted meta-review `rg`; commit and push.
-Result: Preserves the ignored root APP_STATUS_OVERVIEW and V1.0 release-plan v3.1 drafts under `docs/09_frozen/external_agent_reports/`, removes root copies, and records the scheduled meta-review. Targeted review found stale 85% wording in active workflow docs that needs a standalone T-186 rule cleanup.
-Risks: Documentation/archive cleanup only. No Swift, Supabase, runtime, simulator, PR, tag, merge/rebase/reset, seed, migration, or non-Git remote write changed.
 ```

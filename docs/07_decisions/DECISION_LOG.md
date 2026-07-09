@@ -18,6 +18,15 @@ Linked files:
 ## Active Decisions
 
 ```text
+Decision ID: D-020
+Date: 2026-07-09
+Decision: Use Resend-backed Supabase custom SMTP and HTTPS-first Auth redirects for production email links.
+Context: Q-06/R-007 required a production email/deep-link design. Supabase's default hosted mailer is non-production and restricted; current iOS code has no `redirectTo`, URL scheme, associated domain, or callback handler. The project does not yet have a production domain or SMTP credentials.
+Consequences: Q-07 must wait for a verified production auth domain and SMTP credentials before remote Auth configuration. Production uses exact HTTPS universal-link redirects first, `com.prinnyyy.petgroomermarketplace://auth/callback` only as dev/test fallback, and no production wildcard redirect URLs. No SMTP secret or callback token may be embedded in Swift, tracked docs, or debug logs.
+Linked files: docs/03_backend/AUTH_EMAIL_DEEP_LINK_DESIGN.md, docs/03_backend/SUPABASE_CONTRACT.md, ios/PetGroomerMarketplace/Config/AppInfo.plist, ios/PetGroomerMarketplace/PetGroomerMarketplace/Core/Infrastructure/Supabase/SupabaseAuthSessionRepository.swift
+```
+
+```text
 Decision ID: D-019
 Date: 2026-07-09
 Decision: Keep customer request wizard drafts ephemeral to the active sheet.
@@ -80,15 +89,6 @@ Consequences: After required validation passes, Codex should commit and push the
 Linked files: AGENTS.md, docs/05_workflow/SINGLE_AGENT_WORKFLOW.md, docs/05_workflow/TOOLING_POLICY.md, docs/05_workflow/GITHUB_RULES.md
 ```
 
-```text
-Decision ID: D-012
-Date: 2026-07-08
-Decision: Reduce active Markdown before raising the 32k total budget.
-Context: After T-178, active Markdown was about 92% of the 32k limit, and the watch-items review found no single giant file. The risk is slow long-tail growth across many indexes.
-Consequences: T-179 lowers rolling windows to 8 worklog entries and 12 ledger rows, tightens old decision/structure budgets, and trims active indexes first. A one-time increase to 36,000 words is allowed only if two consecutive meta-reviews both find total active Markdown above 90% and no safe reduction item remains.
-Linked files: scripts/context-hygiene-check.mjs, docs/00_memory/WORKLOG.md, docs/06_tasks/TASK_LEDGER.md, docs/10_project_structure/README.md
-```
-
 
 ## Archived Decision Index
 
@@ -96,6 +96,7 @@ Full text for the entries below is preserved in `../09_frozen/decisions/DECISION
 
 | Date | Decision | Current entry point |
 |---|---|---|
+| 2026-07-08 | Reduce active Markdown before raising the 32k total budget. | `../09_frozen/decisions/DECISION_LOG_D-012_2026-07-09.md` |
 | 2026-07-08 | Keep branch baseline as a single active fact in CURRENT_STATE. | `../09_frozen/decisions/DECISION_LOG_D-011_2026-07-09.md` |
 | 2026-07-08 | Track meta-review cadence by completed-task distance, not wall-clock age. | `../09_frozen/decisions/DECISION_LOG_D-010_2026-07-09.md` |
 | 2026-07-08 | Record the T-163 through T-173 batch commits as a one-time historical exception. | `../09_frozen/decisions/DECISION_LOG_D-009_2026-07-09.md` |
