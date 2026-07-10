@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-09
 - Updated by: Codex
-- Latest completed task: T-241 foreground-refresh concurrency test determinism.
+- Latest completed task: T-242 production Auth email and domain configuration.
 - Current task: none; T-157 APNs remains externally blocked.
-- Next task ID: use T-242 unless the user resumes T-157 after Apple Developer Program upgrade.
+- Next task ID: use T-243 unless the user resumes T-157 after Apple Developer Program upgrade.
 
 ## Fast Path
 
@@ -28,7 +28,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - Continue implementation, docs, commit, and push work from this branch unless the user names another branch.
 - Do not treat `main` as the current work baseline. T-173 reviewed main-only commit `2fddf7b`; it is superseded and must not be merged back into this branch.
 - Standing Git approval is active: after required validation passes, commit and push each completed task's own changes on this branch automatically.
-- PRs, tags, branch deletion, merge/rebase/reset, seeds, migrations, Supabase writes, repository settings, and other non-Git remote writes require approval. The 2026-07-09 authorization was consumed by Q-35/Q-36/Q-37/Q-42; it does not supply Q-92/Q-93 prerequisites or authorize unplanned future writes.
+- PRs, tags, branch deletion, merge/rebase/reset, seeds, migrations, Supabase writes, repository settings, and other non-Git remote writes require approval. T-242's remote authorization is consumed.
 
 ## Validation Baseline
 
@@ -36,17 +36,15 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - Last Supabase migration apply: T-234 `20260709214425_t234_add_evidence_backed_fk_indexes.sql` applied to `lqmasbuqzvcvtawonjlb` on 2026-07-09; parity, catalog, forced plans, and advisor delta were verified.
 - Last Edge Function deploy: `delete-account` version 2 is active with JWT verification and service-role Storage API cleanup across six user-prefixed image buckets.
 - Last TestOps unit validation: T-222 `./scripts/testops-unit.sh` passed 24 Node tests.
-- Last TestOps dry-run: T-222 doctor, marketplace `smoke5`, and matching baseline passed without remote writes.
-- Last release readiness dry run: T-222 recorded final local/read-only ideal-operation evidence with Auth/APNs and index-tuning advisor findings.
-- Last remote TestOps run: T-155 authorized `matching_baseline` passed 8/8 and cleanup left zero tagged request/match residue.
 - Latest remote TestOps evidence: T-235 `smoke5` passed 5/5 and `matching_baseline` passed 8/8; both R2 run families left zero tagged requests and only redacted local artifacts.
+- T-242 verified public DMARC, accepted a Resend delivery smoke, and persisted Supabase Custom SMTP plus exact Auth callback URLs.
 - Known iOS validation failure: none currently recorded.
 
 ## Active Product State
 
 - MVP marketplace flow is complete at the current contract level: customer request -> groomer offers -> customer accepts -> booking/chat -> groomer completes -> customer reviews.
 - Production uses real Supabase Auth, authoritative profile loading, and role separation. No production path fabricates a session/profile.
-- Auth email/deep-link design is documented. T-217 implements the local iOS custom-scheme callback path; Supabase Auth redirect allow-list, production auth domain, SMTP credentials, HTTPS universal links, and associated domains still require explicit remote/config authorization.
+- T-217 implements the iOS custom-scheme callback. T-242 configures the same exact Supabase Site/redirect URL plus verified Resend SMTP for `hellobeckon.com`. HTTPS universal links and associated domains remain deferred.
 - Implemented iOS areas include auth/onboarding, marketplace flow, notifications, foreground chat, profile/account surfaces, privacy/support links, private images, Debug Console, ops evidence, accessibility/copy checks, and TestOps.
 - Customer/groomer tab roots load shared notification/chat badge sources. Customer Home, Messages, and groomer Alerts display badges; chat unread state is local/session-scoped and clears on thread open.
 - TestOps has support-ref selectors and a no-screenshot dual-role lifecycle driver. Its wrapper verifies Debug/backend state and run-tag cleanup; UI uses one seed pair while backend `smoke5` is multi-pair.
@@ -62,7 +60,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - Startup reads stay minimal: `AGENTS.md`, then targeted current-state/task-ledger sections only when needed.
 - Periodic documentation-governance reviews use `docs/06_tasks/META_REVIEW_TEMPLATE.md` every 10 completed tasks or weekly.
 - Last meta-review: T-240 on 2026-07-10.
-- V1.0 ideal-operation Q-16...Q-43 are complete. No dependency-satisfied package remains.
+- V1.0 ideal-operation Q-16...Q-43 and Auth package Q-92 are complete. No dependency-satisfied package remains.
 - Changes to `AGENTS.md`, `CLAUDE.md`, or `docs/05_workflow/**` must be standalone numbered tasks with a decision-log entry and context hygiene.
 - T-180 records standing user approval for task-completion Git commit and push. This approval is limited to current-task changes after validation passes; T-186 requires stopping without auto pull/rebase/merge/reset/force-push if the push fails or is rejected.
 - T-184 keeps active Markdown under a 36k hard limit, 95% structural-review warning, and deterministic `node scripts/context-rotate.mjs` archive rotation.
@@ -91,8 +89,8 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - Customer in-app notifications are active. T-157 APNs database/iOS foundation is remotely applied; push dispatch waits for Apple Developer credentials and APNs secrets.
 - Large Swift context risks `CustomerRequestsView.swift` and `GroomerProfileManagementView.swift` were split in T-211/T-212.
 - Active cross-task risk: T-157 APNs deployment remains blocked.
-- T-234 applied the 2 T-228-evidenced FK indexes; the remaining 10 FK advisor findings already have usable indexes, and no unused index is safe to remove. Auth/APNs findings remain Q-93/excluded.
+- T-234 applied the 2 T-228-evidenced FK indexes; the remaining 10 FK findings already have usable indexes. Q-93 remains blocked by Supabase Free, and APNs remains excluded.
 
 ## Next Recommended Task
 
-- Adopt a new dependency-satisfied roadmap package or explicit user task before T-242.
+- Adopt a new dependency-satisfied roadmap package or explicit user task before T-243.

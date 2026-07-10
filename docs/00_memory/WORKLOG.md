@@ -5,13 +5,22 @@ This file is the active recent closeout index, newest first. It intentionally ke
 Current branch, next task ID, and current baseline live in `docs/00_memory/CURRENT_STATE.md` and `docs/06_tasks/TASK_LEDGER.md`. Only the newest entry should keep a `Next:` line.
 
 ```text
+Date: 2026-07-09
+Task: T-242 - Production Auth email and domain configuration.
+Files changed: provider credential ignore rules; Auth email/deep-link design; roadmap/queue/current state/task ledger/worklog.
+Checks: Credential mode/ignore audit; Cloudflare token and DNS audit; Resend domain verification; Supabase plan/Auth audit; public DMARC lookup; accepted direct delivery smoke; persisted SMTP and callback settings; Supabase checks; diff and context hygiene.
+Result: Q-92 is complete. hellobeckon.com keeps iCloud mail while Resend supplies the verified Groomly sender; Cloudflare publishes monitoring DMARC; Supabase uses Resend Custom SMTP and the exact implemented iOS callback for Site URL and redirect allow-list.
+Risks: Supabase-generated Auth email/device callback still needs release smoke. Q-93 leaked-password protection requires Pro. Universal Links require Apple Team ID, AASA, and Associated Domains. The current Cloudflare token cannot enumerate the zone and should be replaced before API automation.
+Next: Use T-243 for a new explicit task; resume Q-93 only after a Supabase Pro-or-higher plan decision.
+```
+
+```text
 Date: 2026-07-10
 Task: T-241 - Foreground refresh concurrency test determinism.
 Files changed: ForegroundRefreshGate test plus roadmap/queue/current state/task ledger/worklog.
 Checks: T-239 standard-suite failure evidence; focused rerun; controlled-continuation implementation; 20 focused iterations; full `./scripts/ios-test.sh`; `git diff --check`; context hygiene.
 Result: The concurrency test now starts the first refresh, waits until the gate is actively held, verifies the second reason is suppressed, then releases the first operation. It no longer depends on `async let` scheduling order.
 Risks: Product foreground refresh behavior is unchanged. The executable roadmap queue is empty; remaining Q-92/Q-93 and Apple/APNs work require external prerequisites.
-Next: Use T-242 only after adopting a new dependency-satisfied roadmap package or explicit user task.
 ```
 
 ```text
@@ -66,13 +75,4 @@ Files changed: TestOps doctor/result/artifact redaction, three unit suites, dura
 Checks: Doctor/dry-runs; redaction RED/GREEN; `./scripts/testops-unit.sh` 28/28; authorized remote smoke5 5/5; authorized matching baseline 8/8; 10 lifecycle and 16 matching artifact scans with zero unsafe files; linked tagged-residue queries returned zero; `git diff --check`; context hygiene.
 Result: Q-37 proves five full backend marketplace lifecycles and eight matching cases against the linked project with scoped cleanup. Console and artifact entity IDs are now 8-character refs, and doctor correctly recognizes modern server credentials.
 Risks: The first smoke run passed/cleaned up but revealed full UUIDs in console/JSON. Execution stopped, unsafe generated artifacts were deleted, regression coverage was added, and clean R2 runs replaced the evidence. No raw artifact is committed.
-```
-
-```text
-Date: 2026-07-09
-Task: T-234 - Evidence-backed foreign-key indexes.
-Files changed: two-index migration, rollback-only forced-plan SQL, migration regression test, index evidence audit, Supabase contract, roadmap/queue/current state/task ledger/worklog.
-Checks: Focused RED/GREEN; 47 migration and 10 Edge tests; `./scripts/preflight.sh`; `./scripts/supabase-check.sh`; linked list/dry-run/apply/parity; catalog definitions; before/after forced plans; performance advisor; `git diff --check`; context hygiene.
-Result: Q-36 adds only `customer_booking_handoff_acknowledgements(booking_id)` and `request_photos(customer_id)`. Both high-cost forced sequential scans changed to index-backed plans, and the two target unindexed-FK findings cleared.
-Risks: Both new indexes immediately appear as unused because linked traffic is minimal; this is expected and does not authorize removal. The remaining 10 FK findings retain the T-228 disposition.
 ```

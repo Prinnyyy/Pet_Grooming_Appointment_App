@@ -49,17 +49,17 @@ Acceptance signals:
 - Customer and groomer can complete registration, role onboarding, profile setup, request publishing, matching, offer, acceptance, booking/chat, completion, and review.
 - Both roles see relevant state changes while the app is open without blindly visiting every page.
 - Appointment reminders use local notifications until APNs is unblocked.
-- Free-tier email verification and custom scheme callback are verified separately from production SMTP/universal-link work.
+- Custom-scheme callback and production SMTP/domain configuration are verified separately from future universal-link work.
 - Swift Testing grows toward the managed target of at least 400 tests through focused unit packages.
 - Final ideal-operation evidence reruns build/test/TestOps/advisor/context gates without remote release actions.
 
-External blockers that do not block the local ideal-operation target: APNs dispatch deployment, TestFlight/App Store submission, and production SMTP/custom domain.
+External blockers that do not block the local ideal-operation target: APNs dispatch deployment, TestFlight/App Store submission, Universal Links, and Supabase Pro-only leaked-password protection.
 
 ## Post-Readiness Remediation
 
 T-227 converts the non-Apple findings left after T-222 into reviewable queue packages. The sequence covers groomer in-app notification remote parity, evidence-backed database index tuning, remote TestOps evidence, full no-screenshot UI lifecycle automation, and visible list pagination.
 
-The sequence explicitly excludes APNs dispatch, `customer_push_tokens` advisor noise, paid Apple Developer work, and TestFlight/App Store submission. Production SMTP and Supabase leaked-password protection remain recorded separately because they need external credentials or a Supabase plan decision rather than Apple capabilities.
+The sequence explicitly excludes APNs dispatch, `customer_push_tokens` advisor noise, paid Apple Developer work, and TestFlight/App Store submission. T-242 completed production SMTP/domain setup; Supabase leaked-password protection remains recorded separately because it needs a plan decision.
 
 ## Milestones
 
@@ -77,7 +77,7 @@ The sequence explicitly excludes APNs dispatch, `customer_push_tokens` advisor n
 | M9 Backend remediation | Resolve non-Apple backend parity and advisor findings with evidence before writes. | Q-34 through Q-37 complete T-228/T-231/T-234/T-235. | Groomer in-app notifications have remote parity, index changes are justified, and remote TestOps evidence passes with cleanup. |
 | M10 UI verification and list scale | Complete no-screenshot lifecycle automation and visible pagination. | Q-38 through Q-42 complete T-230/T-236/T-237/T-238/T-239. | Supported lists advance beyond page one and the seeded dual-role UI lifecycle passes end to end. |
 | D Apple external blockers | Track APNs and release work that requires paid Apple capabilities. | Excluded Q-90 and Q-91 remain blocked. | Only starts after credentials and explicit authorization exist. |
-| E Non-Apple service blockers | Track production Auth services that require external credentials or a plan decision. | Blocked Q-92 and Q-93. | SMTP/domain credentials or Supabase Pro capability plus explicit Auth authorization exist. |
+| E Non-Apple service blockers | Track production Auth services that require external credentials or a plan decision. | Q-92 complete T-242; Q-93 blocked. | Supabase Pro capability plus explicit Auth authorization exists. |
 
 ## Candidate Backlog
 
@@ -89,7 +89,7 @@ The sequence explicitly excludes APNs dispatch, `customer_push_tokens` advisor n
 | R-004 | G0 | Periodic meta-review template | Complete T-171 |
 | R-005 | M1 | Private image rendering | Complete T-188 through T-191 |
 | R-006 | M1 | Request wizard persistence decision | Complete T-192 |
-| R-007 | M1 | Email deep link and production SMTP | Local custom-scheme callback complete T-217; production domain/SMTP continues under R-033/Q-92 |
+| R-007 | M1 | Email deep link and production SMTP | Custom-scheme callback complete T-217; production domain/SMTP complete T-242 |
 | R-008 | M2 | Realtime foreground chat | Complete T-194 |
 | R-009 | M2 | APNs dispatch deploy | Blocked on Apple/APNs secrets |
 | R-010 | M3 | Privacy/Support URLs | Complete T-195 |
@@ -115,7 +115,7 @@ The sequence explicitly excludes APNs dispatch, `customer_push_tokens` advisor n
 | R-030 | D | Paid Apple/APNs release operations | Excluded from current remediation; blocked Q-90 and Q-91 |
 | R-031 | M9 | Groomer in-app notification remote parity | Complete Q-35/T-231; T-203 migration applied and verified remotely on 2026-07-09 |
 | R-032 | M9 | Supabase advisor evidence and index tuning | Complete T-228 audit and T-234 two-index migration; no removal authorized |
-| R-033 | E | Production Auth service hardening | Blocked Q-92 SMTP/domain and Q-93 Pro-only leaked-password protection |
+| R-033 | E | Production Auth service hardening | Q-92 SMTP/domain complete T-242; Q-93 Pro-only leaked-password protection blocked |
 | R-034 | M9 | Remote TestOps lifecycle and matching evidence | Complete Q-37/T-235: lifecycle 5/5, matching 8/8, redacted artifacts, zero residue |
 | R-035 | M10 | No-screenshot dual-role UI lifecycle automation | Complete Q-41/T-238 and Q-42/T-239: stable harness plus authorized UI/Debug/backend/cleanup evidence |
 | R-036 | M10 | Visible list pagination completion | Complete Q-38...Q-40/T-230/T-236/T-237 |
@@ -123,4 +123,4 @@ The sequence explicitly excludes APNs dispatch, `customer_push_tokens` advisor n
 
 Completed mapping: T-152/T-154/T-188...T-193/T-217 M1 auth/UI foundations; T-153/T-155/T-156/T-162/T-194 M2; T-157 M2 blocked for dispatch; T-160/T-161/T-195/T-197...T-199/T-232/T-233 M3; T-200/T-206/T-208/T-213/T-214/T-216/T-220 M4 focused tests and backend contract negatives; T-201 M5 local dry run; T-203...T-205/T-209/T-210/T-231 M6 groomer notification, foreground refresh, local reminders, unread badges, and remote notification parity; T-211/T-212/T-214...T-217/T-219/T-220 M7 request/profile splits, decode/cache tolerance, republish hardening, state-machine edge tests, auth callback implementation, list pagination hardening, and backend negative contracts; T-221/T-222 M8 dual-role evidence and readiness rehearsal; T-230/T-236/T-237/T-238/T-239 M10 visible pagination and UI lifecycle verification; T-163...T-179/T-207/T-218 G0.
 
-Execution sequencing: use `ROADMAP_EXECUTION_QUEUE.md` to select the next dependency-satisfied package. Each adopted package receives the next `T-###`. The executable queue is empty. Q-90/Q-91 remain excluded, while Q-92/Q-93 remain externally blocked.
+Execution sequencing: use `ROADMAP_EXECUTION_QUEUE.md` to select the next dependency-satisfied package. Each adopted package receives the next `T-###`. The executable queue is empty. Q-90/Q-91 remain excluded, Q-92 is complete, and Q-93 remains externally blocked.

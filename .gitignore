@@ -6,6 +6,10 @@ supabase_api_key
 supabase_environment_variables
 supabase/.temp/
 
+# Local provider credentials; never commit.
+CloudFlare API.md
+Resend API.md
+
 # Local iOS Supabase environment; publishable key is injected at build time.
 ios/PetGroomerMarketplace/Config/Supabase.local.xcconfig
 
