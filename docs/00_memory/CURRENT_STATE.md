@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-09
 - Updated by: Codex
-- Latest completed task: T-244 context rotation Worklog EOF normalization.
+- Latest completed task: T-245 buffered entry-count context rotation.
 - Current task: none; T-157 APNs remains externally blocked.
-- Next task ID: use T-245 unless the user resumes T-157 after Apple Developer Program upgrade.
+- Next task ID: use T-246 unless the user resumes T-157 after Apple Developer Program upgrade.
 
 ## Fast Path
 
@@ -40,6 +40,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - T-242 verified public DMARC, accepted a Resend delivery smoke, and persisted Supabase Custom SMTP plus exact Auth callback URLs.
 - T-243 approved Beckon; Q-94 is next and unstarted.
 - T-244 normalizes the rotated Worklog EOF to one newline.
+- T-245 context-script validation passes 32 Node tests; word counts are informational and rolling windows use buffered high/retain entry counts.
 - Known iOS validation failure: none currently recorded.
 
 ## Active Product State
@@ -66,12 +67,12 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - V1.0 ideal-operation Q-16...Q-43 and Auth package Q-92 are complete. R-038/Q-94 is now dependency-satisfied.
 - Changes to `AGENTS.md`, `CLAUDE.md`, or `docs/05_workflow/**` must be standalone numbered tasks with a decision-log entry and context hygiene.
 - T-180 records standing user approval for task-completion Git commit and push. This approval is limited to current-task changes after validation passes; T-186 requires stopping without auto pull/rebase/merge/reset/force-push if the push fails or is rejected.
-- T-184 keeps active Markdown under a 36k hard limit, 95% structural-review warning, and deterministic `node scripts/context-rotate.mjs` archive rotation.
+- T-245 makes word counts informational only; Ledger uses 18/12, Worklog and active decisions use 14/8, and decision archive pointers use 12/6 trigger/retain windows. Manual compaction follows 65%/80% boundaries against the 353,000-token context.
 - Main reconciliation: `2fddf7b` is reviewed/superseded; carry this branch's governed docs forward.
 - Decision log is an active index backed by frozen snapshots. The pre-T-174 full text lives in `docs/09_frozen/decisions/DECISION_LOG_2026-07-08_PRE_T174_TRIM.md`.
 - Default `rg` searches honor `.rgignore`; do not use broad `rg --files -g '*.md'` as the default Markdown inventory.
 - Do not read full `WORKLOG.md`, full `TASK_LEDGER.md`, frozen archives, Groomly HTML/export, or T-129 seed tables by default.
-- After durable memory, ledger, workflow, or coordination-doc changes, run context hygiene; rotate active records if the rolling-window caps fail.
+- After durable memory, ledger, workflow, or coordination-doc changes, run context hygiene; if an entry window exceeds its trigger, rotate once to its retained count.
 
 ## Supabase and TestOps Guardrails
 
@@ -96,4 +97,4 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Next Recommended Task
 
-- Adopt Q-94 as T-245 to perform the local Beckon application and source identity migration.
+- Adopt Q-94 as T-246 to perform the local Beckon application and source identity migration.

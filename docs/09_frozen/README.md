@@ -14,6 +14,7 @@ Archived files may contain old TODOs, old paths, old branch/task references, or 
 - `workflow_archive_2026-06-24/`: superseded subagent workflow docs and old agent reports.
 - `task_records_2026-06-26/`: detailed historical T-001 through T-088 and workflow policy task records. Current task state lives in `docs/06_tasks/TASK_LEDGER.md`.
 - `superpowers_2026-06-26/`: historical Superpowers plans/specs moved out of the active docs tree.
+- `superpowers_2026-07-09/`: completed T-245 design and implementation plan moved out of the active docs tree at closeout.
 - `workflow_docs_2026-06-26/`: superseded context, recovery, tool, MCP, Superpowers, and Codex workflow docs consolidated into active workflow entrypoints.
 - `workspace_initialization_2026-06-24/`: original workspace initialization prompt.
 - `current_state_snapshots/`: pre-trim snapshots of active `CURRENT_STATE.md` before context-footprint cleanup.

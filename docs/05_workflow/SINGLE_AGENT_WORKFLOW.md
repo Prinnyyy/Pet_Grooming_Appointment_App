@@ -24,7 +24,7 @@ Default workflow for this repository. It keeps each run bounded, recoverable, an
 6. Run mode-appropriate validation.
 7. Review the current diff.
 8. Update task closeout and durable memory only when the completion gate requires it.
-9. Run context hygiene if durable memory or task ledgers changed; resolve rolling-window overflow with `node scripts/context-rotate.mjs --apply` before closeout.
+9. Run context hygiene if durable memory or task ledgers changed; resolve entry-count overflow with one `node scripts/context-rotate.mjs --apply` batch before closeout.
 10. Launch the simulator only when required.
 11. Create a task-scoped commit and push the current branch when completion and validation have passed.
 12. Write a checkpoint before manual compaction.
@@ -63,7 +63,7 @@ Durable memory updates are limited to changed facts:
 - `docs/00_memory/FEATURE_INDEX.md`: feature ownership or routing changes.
 - `docs/07_decisions/DECISION_LOG.md`: durable architecture/product decisions.
 
-After durable memory or ledger changes, run context hygiene. If it reports rolling-window overflow, run `node scripts/context-rotate.mjs --apply` and rerun hygiene. If it reports a hard active-Markdown limit failure, stop or make a scoped archive/trim that preserves the current task's source-of-truth facts. A 95% active-Markdown warning schedules structural review; it is not a same-task compression target.
+After durable memory or ledger changes, run context hygiene. Word/reference output is informational only. If an entry-count window exceeds its trigger, run `node scripts/context-rotate.mjs --apply` once and rerun hygiene; the batch must reach the retained count. Freeze completed task-specific plans/specs instead of leaving them in the active search path.
 
 ## Automatic Git Closeout
 
@@ -118,7 +118,7 @@ Stop before:
 
 ## Compaction
 
-Compaction belongs at task boundaries. Before `/compact`, write a checkpoint with task ID/status, files changed, validation, key decisions, risks, and next context.
+Compaction belongs at task boundaries and follows the 353,000-token 65%/80% thresholds in `CONTEXT_AND_RECOVERY.md`; Markdown word telemetry never triggers it. Before `/compact`, write a checkpoint with task ID/status, files changed, validation, key decisions, risks, and next context.
 
 ## Reporting
 

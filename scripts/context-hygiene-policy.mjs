@@ -1,12 +1,16 @@
-export const ACTIVE_MARKDOWN_TOTAL_LIMIT = 36000;
-export const ACTIVE_MARKDOWN_STRUCTURE_REVIEW_RATIO = 0.95;
-export const DEFAULT_WORD_LIMIT = 650;
-export const WORKLOG_ENTRY_LIMIT = 8;
-export const TASK_LEDGER_ROW_LIMIT = 12;
+export const MODEL_CONTEXT_CAPACITY_TOKENS = 353000;
+export const DEFAULT_WORD_REFERENCE = 650;
+export const WORKLOG_ENTRY_TRIGGER = 14;
+export const WORKLOG_ENTRY_RETAIN = 8;
+export const TASK_LEDGER_ROW_TRIGGER = 18;
+export const TASK_LEDGER_ROW_RETAIN = 12;
 export const TASK_LEDGER_ROW_CHAR_LIMIT = 700;
-export const DECISION_LOG_ENTRY_LIMIT = 8;
+export const DECISION_LOG_ENTRY_TRIGGER = 14;
+export const DECISION_LOG_ENTRY_RETAIN = 8;
+export const DECISION_ARCHIVE_POINTER_TRIGGER = 12;
+export const DECISION_ARCHIVE_POINTER_RETAIN = 6;
 
-export const WORD_LIMITS = new Map([
+export const WORD_REFERENCES = new Map([
   ["AGENTS.md", 800],
   ["README.md", 500],
   ["CLAUDE.md", 600],

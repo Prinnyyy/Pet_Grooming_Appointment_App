@@ -2,7 +2,7 @@
 
 Track only current, blocked, and recent tasks here so Codex does not continue automatically. Older completed rows through T-190 are archived under `docs/09_frozen/task_ledgers/`; active blocked T-157 remains below. Notes should keep conclusions and pointers only; validation detail belongs in `docs/00_memory/WORKLOG.md` or frozen worklogs. Detailed task records T-001 through T-088 and workflow task records remain archived under `docs/09_frozen/task_records_2026-06-26/`.
 
-Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup`; use `T-245` for the next task unless the user explicitly names another branch or task ID.
+Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup`; use `T-246` for the next task unless the user explicitly names another branch or task ID.
 
 Active blocked task: T-157 is waiting on paid Apple Developer Program access before APNs secrets (`APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_TOPIC`, `APNS_PRIVATE_KEY`) and Edge Function deploy.
 
@@ -10,6 +10,7 @@ Active blocked task: T-157 is waiting on paid Apple Developer Program access bef
 
 | ID | Task | Status | Mode | Milestone | Files/Docs | Checks | Notes |
 |---|---|---|---|---|---|---|---|
+| T-245 | Buffered entry-count context rotation | completed | Quick | G0 | Context policy/check/rotate scripts and tests; agent/workflow/memory docs | Three RED/GREEN cycles; 32 Node tests; real pointer rotation; diff/hygiene | Makes words informational, adds six-entry high/retain buffers, bounds decision archive pointers, raises manual compaction to 65%/80% of 353k, and freezes completed task plans/specs. Q-94 remains next as T-246. |
 | T-244 | Context rotation Worklog EOF normalization | completed | Quick | G0 | Context rotate script/test; current state/ledger/worklog | Reproducing RED; focused GREEN; full rotation tests; real closeout rotation; diff/hygiene | Normalizes rotated active Worklog output to exactly one trailing newline, preventing recurring `git diff --check` failures. Q-94 remains next. |
 | T-243 | Beckon brand migration design and execution queue | completed | Quick | M11/R-038 | Brand migration contract; roadmap/queue; decision/current state/ledger/worklog | Identifier inventory; dependency/scope review; diff/hygiene | Approves Beckon identity, full technical rename, seed-user in-place rename, immutable-history boundary, and Q-94 through Q-96 sequencing. No app or remote change. |
 | T-242 | Production Auth email and domain configuration | completed | Deep | E/R-033/Q-92 | Provider credential ignore rules; Auth email/deep-link design; roadmap/queue; current state; ledger/worklog | Credential permission/ignore audit; hosted provider/Auth audits; public DNS; direct delivery smoke; Supabase checks; diff/hygiene | Configures monitoring DMARC, verified Resend sender, Supabase Custom SMTP, and exact iOS scheme Site/redirect URLs. Q-93 remains blocked by the organization Free Plan; Universal Links remain Apple-dependent. |

@@ -2,14 +2,18 @@ import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import {
-  ACTIVE_MARKDOWN_STRUCTURE_REVIEW_RATIO,
-  ACTIVE_MARKDOWN_TOTAL_LIMIT,
-  DECISION_LOG_ENTRY_LIMIT,
-  DEFAULT_WORD_LIMIT,
+  DECISION_ARCHIVE_POINTER_RETAIN,
+  DECISION_ARCHIVE_POINTER_TRIGGER,
+  DECISION_LOG_ENTRY_RETAIN,
+  DECISION_LOG_ENTRY_TRIGGER,
+  DEFAULT_WORD_REFERENCE,
+  MODEL_CONTEXT_CAPACITY_TOKENS,
   TASK_LEDGER_ROW_CHAR_LIMIT,
-  TASK_LEDGER_ROW_LIMIT,
-  WORD_LIMITS,
-  WORKLOG_ENTRY_LIMIT,
+  TASK_LEDGER_ROW_RETAIN,
+  TASK_LEDGER_ROW_TRIGGER,
+  WORD_REFERENCES,
+  WORKLOG_ENTRY_RETAIN,
+  WORKLOG_ENTRY_TRIGGER,
 } from "./context-hygiene-policy.mjs";
 
 const PROJECT_ROOT = path.resolve(
@@ -161,23 +165,18 @@ function activeMarkdownFiles() {
   return [...new Set(files)];
 }
 
-function checkWordLimits(files) {
-  console.log("Word budgets:");
-  let capTotal = 0;
+function reportWordReferences(files) {
+  console.log("Word references (information only):");
+  let referenceTotal = 0;
   for (const filePath of [...files].sort()) {
-    const limit = WORD_LIMITS.get(filePath) ?? DEFAULT_WORD_LIMIT;
-    capTotal += limit;
+    const reference = WORD_REFERENCES.get(filePath) ?? DEFAULT_WORD_REFERENCE;
+    referenceTotal += reference;
     const count = words(readOptional(filePath));
-    const status = count <= limit ? "ok" : "over";
-    const source = WORD_LIMITS.has(filePath) ? "explicit" : "default";
-    console.log(`  ${status.padEnd(4)} ${String(count).padStart(5)} / ${String(limit).padStart(5)} ${source.padEnd(8)} ${filePath}`);
-    if (count > limit) {
-      failures.push(`${filePath} has ${count} words, limit ${limit}`);
-    }
+    const status = count <= reference ? "ok" : "over";
+    const source = WORD_REFERENCES.has(filePath) ? "explicit" : "default";
+    console.log(`  ${status.padEnd(4)} ${String(count).padStart(5)} / ${String(reference).padStart(5)} reference ${filePath} (${source})`);
   }
-  // Per-file caps guard local growth. They intentionally do not have to sum to
-  // the total active Markdown limit; the total check measures actual words.
-  console.log(`Budget coverage: ${files.length}/${files.length} files (sum of caps: ${capTotal})`);
+  console.log(`Reference coverage: ${files.length}/${files.length} files (sum of references: ${referenceTotal})`);
 }
 
 function checkMarkdownLinks(files) {
@@ -256,20 +255,13 @@ function checkBacktickPathIntegrity(files) {
   console.log(`Backtick paths checked: ${checked}`);
 }
 
-function checkActiveMarkdownTotal(files) {
+function reportActiveMarkdownWords(files) {
   let total = 0;
   for (const filePath of files) {
     total += words(readOptional(filePath));
   }
-  const status = total <= ACTIVE_MARKDOWN_TOTAL_LIMIT ? "ok" : "over";
-  const ratio = total / ACTIVE_MARKDOWN_TOTAL_LIMIT;
-  console.log(`Active Markdown total: ${status} ${total} / ${ACTIVE_MARKDOWN_TOTAL_LIMIT} (${Math.round(ratio * 100)}%)`);
-  if (ratio >= ACTIVE_MARKDOWN_STRUCTURE_REVIEW_RATIO && total <= ACTIVE_MARKDOWN_TOTAL_LIMIT) {
-    console.log(`warn: active Markdown total at ${Math.round(ratio * 100)}%; schedule a structural context review`);
-  }
-  if (total > ACTIVE_MARKDOWN_TOTAL_LIMIT) {
-    failures.push(`active Markdown has ${total} words, limit ${ACTIVE_MARKDOWN_TOTAL_LIMIT}`);
-  }
+  console.log(`Active Markdown words (information only): ${total}`);
+  console.log(`Model context capacity reference: ${MODEL_CONTEXT_CAPACITY_TOKENS} tokens`);
 }
 
 function checkIgnoredPaths() {
@@ -559,6 +551,21 @@ function checkMetaReviewCadence() {
   }
 }
 
+function decisionArchivePointerRows(text) {
+  const lines = text.split(/\r?\n/);
+  const headingIndex = lines.findIndex((line) => line.trim() === "## Archived Decision Index");
+  if (headingIndex < 0) {
+    return [];
+  }
+  const headerIndex = lines.findIndex((line, index) => index > headingIndex && line.startsWith("| Date | Decision | Current entry point |"));
+  if (headerIndex < 0) {
+    return [];
+  }
+  const nextHeadingIndex = lines.findIndex((line, index) => index > headerIndex && line.startsWith("## "));
+  const endIndex = nextHeadingIndex < 0 ? lines.length : nextHeadingIndex;
+  return lines.slice(headerIndex + 2, endIndex).filter((line) => /^\| .+ \| .+ \| .+ \|$/.test(line));
+}
+
 function checkRollingWindowSizes() {
   const worklog = readOptional("docs/00_memory/WORKLOG.md");
   const taskLedger = readOptional("docs/06_tasks/TASK_LEDGER.md");
@@ -566,19 +573,24 @@ function checkRollingWindowSizes() {
   const worklogEntries = [...worklog.matchAll(/^Task:\s*T-\d{3}/gm)].length;
   const taskRows = ledgerRows(taskLedger).length;
   const decisionEntries = [...decisionLog.matchAll(/```text\s+Decision ID:\s*D-\d{3}[\s\S]*?\n```/g)].length;
+  const decisionPointers = decisionArchivePointerRows(decisionLog).length;
 
-  console.log(`Worklog entries: ${worklogEntries} / ${WORKLOG_ENTRY_LIMIT}`);
-  console.log(`Task ledger rows: ${taskRows} / ${TASK_LEDGER_ROW_LIMIT}`);
-  console.log(`Decision log entries: ${decisionEntries} / ${DECISION_LOG_ENTRY_LIMIT}`);
+  console.log(`Worklog entries: ${worklogEntries} / ${WORKLOG_ENTRY_TRIGGER} trigger; retain ${WORKLOG_ENTRY_RETAIN}; available ${Math.max(0, WORKLOG_ENTRY_TRIGGER - worklogEntries)}`);
+  console.log(`Task ledger rows: ${taskRows} / ${TASK_LEDGER_ROW_TRIGGER} trigger; retain ${TASK_LEDGER_ROW_RETAIN}; available ${Math.max(0, TASK_LEDGER_ROW_TRIGGER - taskRows)}`);
+  console.log(`Decision log entries: ${decisionEntries} / ${DECISION_LOG_ENTRY_TRIGGER} trigger; retain ${DECISION_LOG_ENTRY_RETAIN}; available ${Math.max(0, DECISION_LOG_ENTRY_TRIGGER - decisionEntries)}`);
+  console.log(`Decision archive pointers: ${decisionPointers} / ${DECISION_ARCHIVE_POINTER_TRIGGER} trigger; retain ${DECISION_ARCHIVE_POINTER_RETAIN}; available ${Math.max(0, DECISION_ARCHIVE_POINTER_TRIGGER - decisionPointers)}`);
 
-  if (worklogEntries > WORKLOG_ENTRY_LIMIT) {
-    failures.push(`WORKLOG.md has ${worklogEntries} active entries, limit ${WORKLOG_ENTRY_LIMIT}`);
+  if (worklogEntries > WORKLOG_ENTRY_TRIGGER) {
+    failures.push(`WORKLOG.md has ${worklogEntries} active entries, trigger ${WORKLOG_ENTRY_TRIGGER}`);
   }
-  if (taskRows > TASK_LEDGER_ROW_LIMIT) {
-    failures.push(`TASK_LEDGER.md has ${taskRows} active rows, limit ${TASK_LEDGER_ROW_LIMIT}`);
+  if (taskRows > TASK_LEDGER_ROW_TRIGGER) {
+    failures.push(`TASK_LEDGER.md has ${taskRows} active rows, trigger ${TASK_LEDGER_ROW_TRIGGER}`);
   }
-  if (decisionEntries > DECISION_LOG_ENTRY_LIMIT) {
-    failures.push(`DECISION_LOG.md has ${decisionEntries} active decisions, limit ${DECISION_LOG_ENTRY_LIMIT}`);
+  if (decisionEntries > DECISION_LOG_ENTRY_TRIGGER) {
+    failures.push(`DECISION_LOG.md has ${decisionEntries} active decisions, trigger ${DECISION_LOG_ENTRY_TRIGGER}`);
+  }
+  if (decisionPointers > DECISION_ARCHIVE_POINTER_TRIGGER) {
+    failures.push(`DECISION_LOG.md has ${decisionPointers} archive pointers, trigger ${DECISION_ARCHIVE_POINTER_TRIGGER}`);
   }
 
   for (const [index, line] of taskLedger.split(/\r?\n/).entries()) {
@@ -589,10 +601,10 @@ function checkRollingWindowSizes() {
 }
 
 const activeFiles = activeMarkdownFiles();
-checkWordLimits(activeFiles);
+reportWordReferences(activeFiles);
 checkMarkdownLinks(activeFiles);
 checkBacktickPathIntegrity(activeFiles);
-checkActiveMarkdownTotal(activeFiles);
+reportActiveMarkdownWords(activeFiles);
 checkIgnoredPaths();
 checkCredentialClaims();
 checkLastVerifiedDates();

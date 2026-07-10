@@ -156,6 +156,72 @@ function writeExtraMarkdownFiles(root, count, wordsPerFile) {
   }
 }
 
+function ledgerWindowText(branch, next, count) {
+  const rows = Array.from({ length: count }, (_, index) => {
+    const id = `T-${String(count - index).padStart(3, "0")}`;
+    return `| ${id} | Fixture task | completed | Quick | G0 | docs | check | done |`;
+  });
+  return [
+    "# Task Ledger",
+    "",
+    `Current branch and task-numbering baseline: use \`${branch}\`; use \`${next}\` for the next task unless directed otherwise.`,
+    "",
+    "| ID | Task | Status | Mode | Milestone | Files/Docs | Checks | Notes |",
+    "|---|---|---|---|---|---|---|---|",
+    ...rows,
+    "",
+  ].join("\n");
+}
+
+function worklogWindowText(count) {
+  return [
+    "# Worklog",
+    "",
+    ...Array.from({ length: count }, (_, index) => {
+      const id = `T-${String(count - index).padStart(3, "0")}`;
+      return [
+        "```text",
+        `Task: ${id} - Fixture task.`,
+        "```",
+        "",
+      ].join("\n");
+    }),
+  ].join("\n");
+}
+
+function decisionWindowText(count, pointerCount = 0) {
+  const decisions = Array.from({ length: count }, (_, index) => {
+    const id = `D-${String(count - index).padStart(3, "0")}`;
+    return [
+      "```text",
+      `Decision ID: ${id}`,
+      "Date: 2026-07-08",
+      `Decision: Fixture decision ${id}.`,
+      "Context: Fixture.",
+      "Consequences: Fixture.",
+      "Linked files: docs/00_memory/CURRENT_STATE.md",
+      "```",
+      "",
+    ].join("\n");
+  });
+  return [
+    "# Decision Log",
+    "",
+    "## Active Decisions",
+    "",
+    ...decisions,
+    "## Archived Decision Index",
+    "",
+    "| Date | Decision | Current entry point |",
+    "|---|---|---|",
+    ...Array.from({ length: pointerCount }, (_, index) => {
+      const pointer = pointerCount - index;
+      return `| 2026-07-08 | Archived decision batch ${pointer}. | frozen-${pointer} |`;
+    }),
+    "",
+  ].join("\n");
+}
+
 test("context hygiene passes a consistent fixture", () => {
   const root = createFixture();
   const result = runHygiene(root);
@@ -186,17 +252,18 @@ test("context hygiene fails when current-state and ledger task facts drift", () 
   assert.match(result.stderr, /branch baseline mismatch/i);
 });
 
-test("context hygiene fails when the managed roadmap exceeds its budget", () => {
+test("context hygiene reports managed roadmap word excess without failing", () => {
   const root = createFixture();
   writeFixtureFile(root, "docs/06_tasks/ROADMAP.md", `# Roadmap\n\nLast verified: 2026-07-08.\n\n${"roadmap ".repeat(1801)}\n`);
 
   const result = runHygiene(root);
 
-  assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /docs\/06_tasks\/ROADMAP\.md has \d+ words, limit 1800/i);
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /over\s+\d+ \/\s+1800 reference\s+docs\/06_tasks\/ROADMAP\.md/i);
+  assert.doesNotMatch(result.stderr, /ROADMAP\.md has \d+ words, limit 1800/i);
 });
 
-test("context hygiene applies the default budget to unlisted active Markdown", () => {
+test("context hygiene reports default word reference excess without failing", () => {
   const root = createFixture();
   writeFixtureFile(root, "docs/98_fixture/unlisted.md", [
     "# Unlisted",
@@ -207,11 +274,12 @@ test("context hygiene applies the default budget to unlisted active Markdown", (
 
   const result = runHygiene(root);
 
-  assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /docs\/98_fixture\/unlisted\.md has \d+ words, limit 650/i);
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /over\s+\d+ \/\s+650 reference\s+docs\/98_fixture\/unlisted\.md/i);
+  assert.doesNotMatch(result.stderr, /unlisted\.md has \d+ words, limit 650/i);
 });
 
-test("context hygiene passes an unlisted active Markdown file within the default budget", () => {
+test("context hygiene reports an unlisted active Markdown file within the default reference", () => {
   const root = createFixture();
   writeFixtureFile(root, "docs/98_fixture/unlisted.md", [
     "# Unlisted",
@@ -223,7 +291,7 @@ test("context hygiene passes an unlisted active Markdown file within the default
   const result = runHygiene(root);
 
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /Budget coverage: \d+\/\d+ files \(sum of caps: \d+\)/i);
+  assert.match(result.stdout, /Reference coverage: \d+\/\d+ files \(sum of references: \d+\)/i);
 });
 
 test("context hygiene falls back to git ls-files when rg is unavailable", () => {
@@ -271,24 +339,28 @@ test("context hygiene resolves relative backtick paths and skips placeholders", 
   assert.match(result.stdout, /Backtick paths checked: \d+/i);
 });
 
-test("context hygiene warns at the structural review ratio without failing", () => {
+test("context hygiene reports active Markdown words without a structural warning", () => {
   const root = createFixture();
   writeExtraMarkdownFiles(root, 54, 630);
 
   const result = runHygiene(root);
 
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /warn: active Markdown total at \d+%; schedule a structural context review/i);
+  assert.match(result.stdout, /Active Markdown words \(information only\): \d+/i);
+  assert.match(result.stdout, /Model context capacity reference: 353000 tokens/i);
+  assert.doesNotMatch(result.stdout, /schedule a structural context review/i);
 });
 
-test("context hygiene fails when active Markdown total exceeds the hard limit", () => {
+test("context hygiene does not fail when active Markdown exceeds the former hard limit", () => {
   const root = createFixture();
   writeExtraMarkdownFiles(root, 58, 630);
 
   const result = runHygiene(root);
 
-  assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /active Markdown has \d+ words, limit 36000/i);
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /Active Markdown words \(information only\): \d+/i);
+  assert.match(result.stdout, /Model context capacity reference: 353000 tokens/i);
+  assert.doesNotMatch(result.stderr, /active Markdown has \d+ words, limit 36000/i);
 });
 
 test("context hygiene fails when a last-verified marker is stale", () => {
@@ -551,37 +623,41 @@ test("context hygiene fails when a task ledger row is too long", () => {
   assert.match(result.stderr, /TASK_LEDGER\.md table row \d+ has \d+ characters, limit 700/i);
 });
 
-test("context hygiene fails when the decision log exceeds its full-entry window", () => {
-  const root = createFixture();
-  const decisions = Array.from({ length: 9 }, (_, index) => {
-    const id = `D-${String(9 - index).padStart(3, "0")}`;
-    return [
-      "```text",
-      `Decision ID: ${id}`,
-      "Date: 2026-07-08",
-      `Decision: Fixture decision ${id}.`,
-      "Context: Fixture.",
-      "Consequences: Fixture.",
-      "Linked files: docs/00_memory/CURRENT_STATE.md",
-      "```",
-      "",
-    ].join("\n");
-  });
-  writeFixtureFile(root, "docs/07_decisions/DECISION_LOG.md", [
-    "# Decision Log",
-    "",
-    "## Active Decisions",
-    "",
-    ...decisions,
-    "## Archived Decision Index",
-    "",
-    "| Date | Decision | Current entry point |",
-    "|---|---|---|",
-    "",
-  ].join("\n"));
+test("context hygiene allows rolling windows at their structural triggers", () => {
+  const root = createFixture({ latest: "T-018", next: "T-019" });
+  writeFixtureFile(root, "docs/06_tasks/TASK_LEDGER.md", ledgerWindowText("codex/test-baseline", "T-019", 18));
+  writeFixtureFile(root, "docs/00_memory/WORKLOG.md", worklogWindowText(14));
+  writeFixtureFile(root, "docs/07_decisions/DECISION_LOG.md", decisionWindowText(14));
+
+  const result = runHygiene(root);
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /Worklog entries: 14 \/ 14 trigger; retain 8/i);
+  assert.match(result.stdout, /Task ledger rows: 18 \/ 18 trigger; retain 12/i);
+  assert.match(result.stdout, /Decision log entries: 14 \/ 14 trigger; retain 8/i);
+});
+
+test("context hygiene fails above rolling-window structural triggers", () => {
+  const root = createFixture({ latest: "T-019", next: "T-020" });
+  writeFixtureFile(root, "docs/06_tasks/TASK_LEDGER.md", ledgerWindowText("codex/test-baseline", "T-020", 19));
+  writeFixtureFile(root, "docs/00_memory/WORKLOG.md", worklogWindowText(15));
+  writeFixtureFile(root, "docs/07_decisions/DECISION_LOG.md", decisionWindowText(15));
 
   const result = runHygiene(root);
 
   assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /DECISION_LOG\.md has 9 active decisions, limit 8/i);
+  assert.match(result.stderr, /WORKLOG\.md has 15 active entries, trigger 14/i);
+  assert.match(result.stderr, /TASK_LEDGER\.md has 19 active rows, trigger 18/i);
+  assert.match(result.stderr, /DECISION_LOG\.md has 15 active decisions, trigger 14/i);
+});
+
+test("context hygiene fails above the decision archive pointer trigger", () => {
+  const root = createFixture();
+  writeFixtureFile(root, "docs/07_decisions/DECISION_LOG.md", decisionWindowText(1, 13));
+
+  const result = runHygiene(root);
+
+  assert.notEqual(result.status, 0);
+  assert.match(result.stdout, /Decision archive pointers: 13 \/ 12 trigger; retain 6/i);
+  assert.match(result.stderr, /DECISION_LOG\.md has 13 archive pointers, trigger 12/i);
 });

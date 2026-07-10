@@ -1,9 +1,14 @@
 import fs from "node:fs";
 import path from "node:path";
 import {
-  DECISION_LOG_ENTRY_LIMIT,
-  TASK_LEDGER_ROW_LIMIT,
-  WORKLOG_ENTRY_LIMIT,
+  DECISION_ARCHIVE_POINTER_RETAIN,
+  DECISION_ARCHIVE_POINTER_TRIGGER,
+  DECISION_LOG_ENTRY_RETAIN,
+  DECISION_LOG_ENTRY_TRIGGER,
+  TASK_LEDGER_ROW_RETAIN,
+  TASK_LEDGER_ROW_TRIGGER,
+  WORKLOG_ENTRY_RETAIN,
+  WORKLOG_ENTRY_TRIGGER,
 } from "./context-hygiene-policy.mjs";
 
 const PROJECT_ROOT = path.resolve(
@@ -72,17 +77,17 @@ function rotateTaskLedger() {
   const text = read(filePath);
   const lines = text.split(/\r?\n/);
   const rows = tableRows(text);
-  const removeCount = Math.max(0, rows.length - TASK_LEDGER_ROW_LIMIT);
-  if (removeCount === 0) {
+  if (rows.length <= TASK_LEDGER_ROW_TRIGGER) {
     return [];
   }
+  const removeCount = rows.length - TASK_LEDGER_ROW_RETAIN;
 
   const removable = rows
     .filter((row) => row.status === "completed")
     .sort((a, b) => taskNumber(a.id) - taskNumber(b.id))
     .slice(0, removeCount);
-  if (removable.length === 0) {
-    return [`TASK_LEDGER.md has ${rows.length} rows, but no completed rows can be rotated.`];
+  if (removable.length < removeCount) {
+    return [`TASK_LEDGER.md has ${rows.length} rows, but only ${removable.length} completed rows are eligible; retain target ${TASK_LEDGER_ROW_RETAIN} cannot be reached.`];
   }
 
   const removedIndexes = new Set(removable.map((row) => row.index));
@@ -153,10 +158,10 @@ function rotateWorklog() {
   const filePath = "docs/00_memory/WORKLOG.md";
   const text = read(filePath);
   const entries = worklogEntries(text);
-  const removeCount = Math.max(0, entries.length - WORKLOG_ENTRY_LIMIT);
-  if (removeCount === 0) {
+  if (entries.length <= WORKLOG_ENTRY_TRIGGER) {
     return [];
   }
+  const removeCount = entries.length - WORKLOG_ENTRY_RETAIN;
 
   const removable = entries.slice(-removeCount);
   const ids = removable.map((entry) => entry.id);
@@ -187,18 +192,36 @@ function decisionEntries(text) {
   while ((match = pattern.exec(text)) !== null) {
     const block = match[1];
     const id = block.match(/^Decision ID:\s*(D-\d{3})/m)?.[1];
-    const date = block.match(/^Date:\s*(.+)$/m)?.[1]?.trim() ?? "unknown";
-    const decision = block.match(/^Decision:\s*(.+)$/m)?.[1]?.trim() ?? id;
     entries.push({
       id,
-      date,
-      decision,
       text: match[0],
       start: match.index,
       end: match.index + match[0].length,
     });
   }
   return entries;
+}
+
+function decisionArchivePointerRows(text) {
+  const lines = text.split(/\r?\n/);
+  const headingIndex = lines.findIndex((line) => line.trim() === "## Archived Decision Index");
+  const headerIndex = lines.findIndex((line, index) => index > headingIndex && line.startsWith("| Date | Decision | Current entry point |"));
+  if (headingIndex < 0 || headerIndex < 0) {
+    return { lines, headerIndex: -1, rows: [] };
+  }
+  const nextHeadingIndex = lines.findIndex((line, index) => index > headerIndex && line.startsWith("## "));
+  const endIndex = nextHeadingIndex < 0 ? lines.length : nextHeadingIndex;
+  const rows = lines.map((line, index) => ({ line, index }))
+    .filter(({ line, index }) => index > headerIndex + 1 && index < endIndex && /^\| .+ \| .+ \| .+ \|$/.test(line));
+  return { lines, headerIndex, rows };
+}
+
+function decisionArchiveBatchLabel(ids) {
+  const sorted = [...ids].sort((a, b) => taskNumber(a) - taskNumber(b));
+  if (sorted.length === 1) {
+    return `Archived decision ${sorted[0]}.`;
+  }
+  return `Archived decisions ${sorted[0]} to ${sorted.at(-1)}.`;
 }
 
 function insertDecisionIndexes(text, rows) {
@@ -219,10 +242,10 @@ function rotateDecisionLog() {
   const filePath = "docs/07_decisions/DECISION_LOG.md";
   const text = read(filePath);
   const entries = decisionEntries(text);
-  const removeCount = Math.max(0, entries.length - DECISION_LOG_ENTRY_LIMIT);
-  if (removeCount === 0) {
+  if (entries.length <= DECISION_LOG_ENTRY_TRIGGER) {
     return [];
   }
+  const removeCount = entries.length - DECISION_LOG_ENTRY_RETAIN;
 
   const removable = entries.slice(-removeCount);
   const ids = removable.map((entry) => entry.id);
@@ -237,7 +260,7 @@ function rotateDecisionLog() {
     ...removable.map((entry) => entry.text),
     "",
   ].join("\n");
-  const indexRows = removable.map((entry) => `| ${entry.date} | ${entry.decision} | \`${activePointer}\` |`);
+  const indexRows = [`| ${CHECK_DATE_TEXT} | ${decisionArchiveBatchLabel(ids)} | \`${activePointer}\` |`];
   const withoutEntries = removeRanges(text, removable);
   const nextText = collapseExcessBlankLines(insertDecisionIndexes(withoutEntries, indexRows));
 
@@ -249,10 +272,44 @@ function rotateDecisionLog() {
   return [`${APPLY ? "Rotated" : "Would rotate"} DECISION_LOG.md entries ${ids.join(", ")} -> ${archivePath}`];
 }
 
+function rotateDecisionArchivePointers() {
+  const filePath = "docs/07_decisions/DECISION_LOG.md";
+  const text = read(filePath);
+  const { lines, headerIndex, rows } = decisionArchivePointerRows(text);
+  if (rows.length <= DECISION_ARCHIVE_POINTER_TRIGGER) {
+    return [];
+  }
+
+  const removeCount = rows.length - DECISION_ARCHIVE_POINTER_RETAIN;
+  const removable = rows.slice(-removeCount);
+  const removedIndexes = new Set(removable.map((row) => row.index));
+  const archivePath = uniqueArchivePath(`docs/09_frozen/decisions/DECISION_ARCHIVE_INDEX_${CHECK_DATE_TEXT}.md`);
+  const archiveText = [
+    "# Archived Decision Index Rows",
+    "",
+    `Source: ${filePath}`,
+    `Date archived: ${CHECK_DATE_TEXT}`,
+    "",
+    lines[headerIndex],
+    lines[headerIndex + 1],
+    ...removable.map((row) => row.line),
+    "",
+  ].join("\n");
+  const nextText = `${lines.filter((_, index) => !removedIndexes.has(index)).join("\n").trimEnd()}\n`;
+
+  if (APPLY) {
+    write(archivePath, archiveText);
+    write(filePath, nextText);
+  }
+
+  return [`${APPLY ? "Rotated" : "Would rotate"} DECISION_LOG.md archive pointers ${removeCount} -> ${archivePath}`];
+}
+
 const messages = [
   ...rotateTaskLedger(),
   ...rotateWorklog(),
   ...rotateDecisionLog(),
+  ...rotateDecisionArchivePointers(),
 ];
 
 if (messages.length === 0) {

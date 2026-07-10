@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-09
+Task: T-245 - Buffered entry-count context rotation.
+Files changed: Context policy/check/rotate scripts and focused tests; agent/workflow rules; decision/current-state/task-ledger/worklog records; frozen decision pointer index and completed planning artifacts.
+Checks: Three focused RED/GREEN cycles plus protected-row fault injection; 32 Node tests; real decision-pointer rotation; `git diff --check`; context hygiene; task-scoped diff and secret review.
+Result: Word counts are non-blocking telemetry. Ledger rotates above 18 to 12; Worklog and active decisions above 14 to 8; decision pointers above 12 to 6. Each rotated task window restores six entries, and manual compaction now waits for 65%/80% of the 353k context.
+Risks: Automatic platform compaction remains outside repository control. Structural rotation stops and reports if protected task rows prevent reaching the retained count.
+Next: Adopt Q-94 as T-246 for the local Beckon application/source migration.
+```
+
+```text
+Date: 2026-07-09
 Task: T-244 - Context rotation Worklog EOF normalization.
 Files changed: Context rotation script/test; current state/task ledger/worklog.
 Checks: Reproducing focused RED; focused GREEN; complete context-rotate suite; real closeout rotation; `git diff --check`; context hygiene.
 Result: Worklog rotation now trims trailing whitespace and writes exactly one final newline, preventing the recurring blank-line-at-EOF diff failure. The regression test asserts both required final newline and absence of a double newline.
 Risks: Only active Worklog serialization changes; archive content and rotation selection are unchanged.
-Next: Adopt Q-94 as T-245 for the local Beckon application/source migration.
 ```
 
 ```text

@@ -50,7 +50,7 @@ Codex must stop and report when any condition occurs.
 - The next step would require broad full-file reads of archives, Groomly HTML/export, T-129 seed tables, large migrations, or large Swift files.
 - Default search would need to bypass `.rgignore` without a targeted reason.
 - `rg --files -g '*.md'` or another broad inventory would re-include ignored heavy Markdown as routine context.
-- Context hygiene reports a hard active-Markdown limit failure or rolling-window overflow that cannot be resolved by scoped same-task rotation/archive work.
+- Context hygiene reports an entry-count window above its trigger that one scoped rotation cannot reduce to the retained count because eligible entries are insufficient or the document structure is malformed.
 
 ## Required Stop Report
 

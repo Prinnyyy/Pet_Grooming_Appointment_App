@@ -76,28 +76,29 @@ Run the context hygiene check at the end of any task that updates durable memory
 node scripts/context-hygiene-check.mjs
 ```
 
-Budget limits and fact checks live in `scripts/context-hygiene-check.mjs`. Do not copy the numeric table here; run the script to see current budgets, active Markdown percentage, rolling-window status, last-verified dates, migration count, ROADMAP/ledger evidence, and Feature Index path checks.
+Reference telemetry, structural window checks, and fact checks live in `scripts/context-hygiene-check.mjs`. Run the script to see informational word references, entry counts, retained counts, available slots, last-verified dates, migration count, ROADMAP/ledger evidence, and Feature Index path checks.
 
-Active Markdown is structured as three file classes:
+Active Markdown is structured as four file classes:
 
-- FIXED: rules, contracts, and product docs. These have per-file word budgets and change only when their owner fact changes.
-- WINDOW: `TASK_LEDGER.md`, `WORKLOG.md`, and `DECISION_LOG.md`. These grow by entries and stay bounded by rotation.
+- FIXED: rules, contracts, and product docs. Per-file word references are telemetry only; these files change when their owner fact changes.
+- WINDOW: `TASK_LEDGER.md`, `WORKLOG.md`, and `DECISION_LOG.md`. These grow by entries, trigger only above their structural high watermark, and rotate in one batch to a lower retained count with six free entries.
 - INDEX: `CURRENT_STATE.md`, ROADMAP, feature and archive indexes. Updates replace stale facts or pointers instead of appending history.
+- TASK: explicitly requested task plans/specs stay active only while that task is in progress, then move as complete files to a dated frozen Superpowers archive at closeout.
 
 Closeout writing discipline: ordinary tasks add one task-ledger row and one worklog entry; `CURRENT_STATE.md` uses replacement semantics; `DECISION_LOG.md` changes only for durable decisions; unrelated active Markdown stays untouched.
 
-If hygiene reports a rolling-window overflow, run:
+If hygiene reports an entry-count window above its trigger, run once:
 
 ```sh
 node scripts/context-rotate.mjs --apply
 node scripts/context-hygiene-check.mjs
 ```
 
-If the script is unavailable, do the equivalent manually: move oldest eligible completed ledger rows, oldest worklog entries, or oldest complete decision blocks into the matching `docs/09_frozen/` family verbatim, leave active indexes/pointers, and rerun hygiene.
+If the script is unavailable, do the equivalent manually: move enough oldest eligible completed ledger rows, worklog entries, complete decision blocks, or decision archive pointers into the matching `docs/09_frozen/` family verbatim to reach the retained count, then rerun hygiene.
 
-Do not treat the active Markdown percentage as a compression target. A 95% warning means schedule a structural review for category mismatch, window drift, or index-as-log misuse; only a hard-limit failure blocks closeout.
+Word counts and `over` labels are informational reference telemetry. They never warn, fail validation, stop closeout, trigger compression, or trigger archive rotation.
 
-Compress FIXED files only under these criteria: replace repeated facts with a pointer to the owner file, keep each fact in one source of truth, move narrative history to frozen archives, and move long examples or explanations to frozen references. Do not compress outside those criteria.
+Shorten or archive FIXED content only when its meaning changes: replace repeated facts with a pointer to the owner file, keep each fact in one source of truth, move narrative history to frozen archives, and move long examples or explanations to frozen references. Never rewrite it merely because telemetry exceeds a reference.
 
 After creating a new archive family or path, update the relevant active pointers and archive indexes in the same task.
 
@@ -121,10 +122,13 @@ Do not reconstruct archived subagent state, load old report chains, repeat compl
 
 ## Compaction
 
-Prefer compaction at task boundaries.
+The model context reference is 353,000 tokens. Manual compaction belongs at task boundaries:
 
-- Below 30% context used: usually continue if the next task is small.
-- 30% to 50%: compact before medium, risky, or file-heavy tasks.
-- At or above 50%: write a checkpoint, then compact before starting the next task.
+- Below 65% (about 229,000 tokens): continue normally without manual compaction.
+- From 65% to below 80%: finish the current task; compact only before a new large or risky task.
+- At or above 80% (about 282,000 tokens): write a checkpoint, then compact at the task boundary.
+- Keep the final 20% (about 70,600 tokens) for recovery, validation, and unexpected output.
+
+Repository rules cannot control automatic platform compaction. These thresholds govern only agent-requested compaction.
 
 Minimum checkpoint fields: task ID/status, files changed or inspected, validation attempted/deferred, key decisions or evidence, known risks, next context needed.

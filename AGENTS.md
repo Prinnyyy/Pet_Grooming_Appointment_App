@@ -9,7 +9,7 @@ iOS SwiftUI project. Codex makes small, reversible changes and completes one pri
 Use these files as the active workflow sources:
 
 - `docs/05_workflow/SINGLE_AGENT_WORKFLOW.md`: task flow and completion gate.
-- `docs/05_workflow/CONTEXT_AND_RECOVERY.md`: context tiers, recovery, compaction, and hygiene budgets.
+- `docs/05_workflow/CONTEXT_AND_RECOVERY.md`: context tiers, recovery, compaction, and structural hygiene.
 - `docs/05_workflow/TOOLING_POLICY.md`: tools, validation, Supabase, Git, and remote-write rules.
 - `docs/05_workflow/GITHUB_RULES.md`: commit messages, branches, PRs, tags, and reconciliation rules.
 - `docs/05_workflow/STOP_CONDITIONS.md`: when to stop and report.
@@ -71,11 +71,11 @@ Briefly review the diff when files changed. Record closeout in `docs/06_tasks/TA
 
 After required validation and closeout, create a task-scoped commit and push the current branch under standing Git approval. Skip commit/push if validation fails, unrelated user work is mixed in, secrets are present, the branch is unclear, or the user disables auto Git. If push fails or is rejected, stop and report; do not auto pull, rebase, merge, reset, force-push, or reconcile.
 
-After durable memory or task-ledger changes, run context hygiene. If it reports rolling-window overflow, run `node scripts/context-rotate.mjs --apply`, then rerun hygiene.
+After durable memory or task-ledger changes, run context hygiene. Word/reference output is informational only. If an entry-count window exceeds its structural trigger, run `node scripts/context-rotate.mjs --apply` once to return it to the retained count, then rerun hygiene.
 
 When moving, deleting, or archiving Markdown, update linked indexes, source-of-truth notes, and ignore/search rules in the same change.
 
-Before `/compact`, write a concise checkpoint with task ID/status, files changed, validation, risks, and next context. Stop when the requested task is complete.
+Manual compaction follows the 353,000-token thresholds in `CONTEXT_AND_RECOVERY.md`; Markdown word telemetry never triggers it. Before `/compact`, write a concise checkpoint with task ID/status, files changed, validation, risks, and next context. Stop when the requested task is complete.
 
 ## Recovery
 
