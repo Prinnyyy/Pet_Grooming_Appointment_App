@@ -15,13 +15,12 @@ Source: T-202 adopted root review input `../../V1.0_RELEASE_TASK_PLAN.md`; that 
 - Q-90, Q-91, T-157, and the `customer_push_tokens` advisor finding are excluded from this remediation sequence because they depend on APNs or paid Apple Developer capabilities.
 - Q-01...Q-43 are complete and mapped in `ROADMAP.md`.
 - T-243 approved the Beckon identity contract in `BECKON_BRAND_MIGRATION.md`; Q-94/T-246, Q-95/T-247, and Q-96/T-248 are complete.
-- T-249 approved `../08_design/GROOMER_UI_REDESIGN.md`; T-250 completed Q-97. Q-98 through Q-104 continue R-039 without backend or remote writes.
+- T-249 approved `../08_design/GROOMER_UI_REDESIGN.md`; T-250 completed Q-97 and T-252 completed Q-98. Q-99 through Q-104 continue R-039 without backend or remote writes.
 
 ## Queue
 
 | Order | Roadmap | Package | Scope / Exit |
 |---|---|---|---|
-| Q-98 | R-039 | Requests and Offers workspace | Add Matches/Offers segmentation, grouped request/offer lists, and approved request-detail hierarchy while preserving offer mutations and pagination. |
 | Q-99 | R-039 | Schedule and Groomer booking presentation | Stabilize date controls, remove duplicate empty summaries, and apply the operational row/detail hierarchy without changing booking rules. |
 | Q-100 | R-039 | Messages and Notifications | Apply grouped conversation/notification rows, preserve pagination/unread/deep links, and remove notification dependence on a More tab. |
 | Q-101 | R-039 | Account and Edit Profile | Make Account a direct tab, group business/settings rows, hide the tab bar in Edit Profile, and provide one back action plus stable save bar. |
@@ -29,12 +28,13 @@ Source: T-202 adopted root review input `../../V1.0_RELEASE_TASK_PLAN.md`; that 
 | Q-103 | R-039 | Fit Signals, Evidence, and Portfolio | Apply the approved density/image hierarchy while preserving size range, fit selection, evidence, upload/replace/delete, and cache behavior. |
 | Q-104 | R-039 | Groomer UI integration gate | Verify compact/large viewports, Dynamic Type, state matrix, accessibility, selector TestOps, full iOS tests/build, and no More/duplicate navigation. |
 
-Q-98 is the first dependency-satisfied product package and receives the next available `T-###` only when started.
+Q-99 is the first dependency-satisfied product package and receives the next available `T-###` only when started.
 
 ## Completed Groomer Package
 
 | Order | Roadmap | Package | Result |
 |---|---|---|---|
+| Q-98 | R-039 | Requests and Offers workspace | Complete T-252: live-count segmentation, grouped match/offer rows, correct Home/notification routes, focused IDs, request detail/action hierarchy, and preserved pagination/mutations. |
 | Q-97 | R-039 | Groomer navigation shell and Home | Complete T-250: five direct tabs, live/cache-aware Home summaries, Home notification entry, data-ready Availability deep link, updated TestOps selectors, and no system More. |
 
 ## Completed Beckon Package

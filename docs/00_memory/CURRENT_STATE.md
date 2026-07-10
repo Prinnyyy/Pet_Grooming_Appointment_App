@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-10
 - Updated by: Codex
-- Latest completed task: T-251 periodic meta-review.
+- Latest completed task: T-252 Groomer Requests and Offers workspace.
 - Current task: none; T-157 APNs remains externally blocked.
-- Next task ID: use T-252 for Q-98 unless the user resumes T-157 after Apple Developer Program upgrade.
+- Next task ID: use T-253 for Q-99 unless the user resumes T-157 after Apple Developer Program upgrade.
 
 ## Fast Path
 
@@ -44,6 +44,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - T-249 approved current/target Groomer visual evidence, the five-tab workspace contract, and Q-97 through Q-104. No app or backend implementation changed.
 - T-250 completes Q-97: five direct Groomer tabs, live Home summaries, Home notification entry, cache-first avatar, authenticated next-booking photo, and a data-ready Availability deep link pass focused/full iOS gates and live Simulator inspection.
 - T-251 verifies active docs, links, ignore behavior, the 60-file migration mirror, branch/task facts, and R-039 routing. It also allows an exactly due meta-review to be explicitly reserved as the next task without blocking the preceding commit; overdue cadence still fails.
+- T-252 completes Q-98: Requests owns Matches/Offers segmentation, correct Home/notification routes, grouped lists, focused targets, preserved pagination/mutations, and the approved request-detail hierarchy; focused/full iOS gates and live compact-viewport inspection pass.
 - T-244 normalizes the rotated Worklog EOF to one newline.
 - T-245 context-script validation passes 32 Node tests; word counts are informational and rolling windows use buffered high/retain entry counts.
 - T-246 passes the Beckon identity audit, 31 TestOps tests, 48 migration tests, 10 Edge tests, privacy/preflight/Supabase checks, full iOS tests/build, and Simulator auth branding inspection.
@@ -62,7 +63,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - Private Storage images use authenticated `.download(path:)` through `PrivateImageLoader`; cache hashes paths, retries transient downloads once, and clears on local account cleanup.
 - Customers can create a new request from cancelled requests/bookings via explicit republish. Republish tolerates missing request photos and expired preferred windows. Unpublished wizard drafts are sheet-ephemeral.
 - Beckon UI adaptation is complete for implemented MVP screens. Future UI work is screenshot-driven and must map modules to existing SwiftUI/Store/repository/model paths or stop for approval.
-- R-039 Q-97 is implemented: Groomer uses Home, Requests, Schedule, Messages, Account with no system More; Home owns Notifications and operational summaries. Offers segmentation and remaining screen/editor redesign continue in Q-98 through Q-104.
+- R-039 Q-97 and Q-98 are implemented: Groomer uses five direct tabs, Home owns Notifications and operational summaries, and Requests owns segmented Matches/Offers with grouped lists and focused routes. Remaining screen/editor redesign continues in Q-99 through Q-104.
 - Local binaries and hosted Auth use `Beckon: Pet Grooming`, `com.hellobeckon.beckon`, and `com.hellobeckon.beckon://auth/callback`. Supabase project/runtime naming and all 100 remote seed users now use Beckon.
 
 ## Active Workflow State
@@ -71,7 +72,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - Startup reads stay minimal: `AGENTS.md`, then targeted current-state/task-ledger sections only when needed.
 - Periodic documentation-governance reviews use `docs/06_tasks/META_REVIEW_TEMPLATE.md` every 10 completed tasks or weekly.
 - Last meta-review: T-251 on 2026-07-10.
-- V1.0 ideal-operation Q-16...Q-43, Auth package Q-92, and R-038/Q-94...Q-96 are complete. R-039 design T-249 and Q-97/T-250 are complete; Q-98 through Q-104 are queued.
+- V1.0 ideal-operation Q-16...Q-43, Auth package Q-92, and R-038/Q-94...Q-96 are complete. R-039 design T-249 plus Q-97/T-250 and Q-98/T-252 are complete; Q-99 through Q-104 are queued.
 - Changes to `AGENTS.md`, `CLAUDE.md`, or `docs/05_workflow/**` must be standalone numbered tasks with a decision-log entry and context hygiene.
 - T-180 records standing user approval for task-completion Git commit and push. This approval is limited to current-task changes after validation passes; T-186 requires stopping without auto pull/rebase/merge/reset/force-push if the push fails or is rejected.
 - T-245 makes word counts informational only; Ledger uses 18/12, Worklog and active decisions use 14/8, and decision archive pointers use 12/6 trigger/retain windows. Manual compaction follows 65%/80% boundaries against the 353,000-token context.

@@ -14,6 +14,7 @@ struct GroomerTabView: View {
     @State private var selection: GroomerTab = .home
     @State private var focusedConversationBookingID: UUID?
     @State private var requestedProfileRoute: GroomerProfileRoute?
+    @State private var requestsRoute: GroomerRequestsRoute = .matches
     @State private var notificationStore: GroomerNotificationsStore?
     @State private var chatStore: ChatStore?
     @State private var feedbackCenter = BeckonFeedbackCenter()
@@ -121,8 +122,8 @@ struct GroomerTabView: View {
                 notificationStore: notificationStore,
                 debugRecorder: debugRecorder,
                 notificationRouteAction: openNotificationRoute,
-                requestsAction: { select(.requests) },
-                offersAction: { select(.requests) },
+                requestsAction: { openRequests(.matches) },
+                offersAction: { openRequests(.offers) },
                 bookingAction: { _ in select(.bookings) },
                 messagesAction: { select(.messages) },
                 availabilityAction: openAvailability
@@ -133,6 +134,7 @@ struct GroomerTabView: View {
             GroomerRequestsView(
                 groomerID: groomerID,
                 repository: requestRepository,
+                route: $requestsRoute,
                 debugRecorder: debugRecorder
             )
         } else if tab == .bookings,
@@ -195,6 +197,11 @@ struct GroomerTabView: View {
         select(.account)
     }
 
+    private func openRequests(_ route: GroomerRequestsRoute) {
+        requestsRoute = route
+        select(.requests)
+    }
+
     private var notificationUnreadCount: Int {
         notificationStore?.unreadCount ?? 0
     }
@@ -206,9 +213,10 @@ struct GroomerTabView: View {
     private func openNotificationRoute(_ route: GroomerNotificationRoute) {
         withAnimation(.easeInOut(duration: 0.22)) {
             switch route {
-            case .requests:
-                selection = .requests
-            case .offers:
+            case .requests, .offers:
+                if let requestsRoute = GroomerRequestsRoute(notificationRoute: route) {
+                    self.requestsRoute = requestsRoute
+                }
                 selection = .requests
             case .bookings:
                 selection = .bookings

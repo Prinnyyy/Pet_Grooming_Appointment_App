@@ -2,18 +2,30 @@ import SwiftUI
 import UIKit
 
 struct GroomerRequestsView: View {
-    @State private var store: GroomerRequestsStore
+    @Binding private var route: GroomerRequestsRoute
+    @State private var requestsStore: GroomerRequestsStore
+    @State private var offersStore: GroomerOffersStore
+    @State private var focusedMatchID: UUID?
+    @State private var focusedOfferID: UUID?
 
     init(
         groomerID: UUID,
         repository: any GroomerRequestRepository,
+        route: Binding<GroomerRequestsRoute>,
         debugRecorder: AppDebugEventRecorder? = nil
     ) {
-        _store = State(
+        _route = route
+        _requestsStore = State(
             initialValue: GroomerRequestsStore(
                 groomerID: groomerID,
                 repository: repository,
                 debugRecorder: debugRecorder
+            )
+        )
+        _offersStore = State(
+            initialValue: GroomerOffersStore(
+                groomerID: groomerID,
+                repository: repository
             )
         )
     }
@@ -22,150 +34,329 @@ struct GroomerRequestsView: View {
         ZStack {
             DesignTokens.Colors.background
                 .ignoresSafeArea()
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                    GroomerRequestsWorkspaceHeader(
+                        selectedSegment: selectedSegment,
+                        matchCount: requestsStore.matchedRequests.count,
+                        offerCount: offersStore.offers.count
+                    )
 
-            feedContent
+                    selectedContent
+                }
+                .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+                .padding(.vertical, DesignTokens.Spacing.lg)
+            }
         }
         .navigationTitle("Requests")
+        .navigationBarTitleDisplayMode(.large)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    Task {
-                        await store.load()
-                    }
-                } label: {
+                Button(action: refresh) {
                     Label("Refresh", systemImage: "arrow.clockwise")
                 }
-                .disabled(store.isBusy)
+                .disabled(isRefreshing)
             }
         }
         .background {
-            GroomerRequestsStatusView(store: store)
+            GroomerRequestsStatusView(store: requestsStore)
+            GroomerOffersStatusView(store: offersStore)
         }
         .foregroundRefreshable {
-            await store.load()
+            await refreshAll()
         }
+        .onChange(of: route) { _, _ in
+            applyRouteIfAvailable()
+        }
+        .onChange(of: route.segment) { _, segment in
+            guard segment == .offers else { return }
+            Task {
+                await offersStore.load()
+                applyRouteIfAvailable()
+            }
+        }
+        .navigationDestination(item: $focusedMatchID) { matchID in
+            GroomerRequestDetailView(
+                matchID: matchID,
+                store: requestsStore
+            )
+        }
+        .navigationDestination(item: $focusedOfferID) { offerID in
+            if let item = offersStore.offers.first(where: { $0.id == offerID }) {
+                GroomerOfferDetailView(item: item)
+            }
+        }
+        .accessibilityIdentifier("groomer.requests.list")
     }
 
     @ViewBuilder
-    private var feedContent: some View {
-        if store.isLoading, store.matchedRequests.isEmpty {
-            ScrollView {
-                BeckonLoadingView(
-                    title: "Loading Matched Requests…",
-                    message: "We are checking active customer requests that match your services.",
-                    accent: .groomer
-                )
-                .accessibilityIdentifier("groomer.requests.loading")
-                .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-                .padding(.vertical, DesignTokens.Spacing.lg)
+    private var selectedContent: some View {
+        switch route.segment {
+        case .matches:
+            GroomerMatchesContentView(store: requestsStore)
+        case .offers:
+            GroomerOffersContentView(store: offersStore)
+        }
+    }
+
+    private var selectedSegment: Binding<GroomerRequestsSegment> {
+        Binding(
+            get: { route.segment },
+            set: { segment in
+                route = segment == .matches ? .matches : .offers
             }
-        } else {
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                    BeckonSectionHeader(
-                        "Matched Requests",
-                        subtitle: "Review open requests that fit your profile before making an offer."
+        )
+    }
+
+    private var isRefreshing: Bool {
+        requestsStore.isBusy || offersStore.isLoading || offersStore.isLoadingMore
+    }
+
+    private func refresh() {
+        Task {
+            await refreshAll()
+        }
+    }
+
+    private func refreshAll() async {
+        await requestsStore.load()
+        await offersStore.load()
+        applyRouteIfAvailable()
+    }
+
+    private func applyRouteIfAvailable() {
+        if let requestID = route.requestID,
+           let matchedRequest = requestsStore.matchedRequests.first(
+               where: { $0.request.id == requestID }
+           ) {
+            focusedMatchID = matchedRequest.id
+            route = .matches
+        }
+
+        if let offerID = route.offerID,
+           offersStore.offers.contains(where: { $0.id == offerID }) {
+            focusedOfferID = offerID
+            route = .offers
+        }
+    }
+}
+
+private struct GroomerRequestsWorkspaceHeader: View {
+    @Binding var selectedSegment: GroomerRequestsSegment
+    let matchCount: Int
+    let offerCount: Int
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+            Text("Review new matches and track the offers you have sent.")
+                .font(DesignTokens.Typography.body)
+                .foregroundStyle(DesignTokens.Colors.textSecondary)
+
+            HStack(spacing: DesignTokens.Spacing.xs) {
+                ForEach(GroomerRequestsSegment.allCases) { segment in
+                    Button {
+                        selectedSegment = segment
+                    } label: {
+                        HStack(spacing: DesignTokens.Spacing.sm) {
+                            Text(segment.title)
+                            Text("\(segment.count(matches: matchCount, offers: offerCount))")
+                                .font(DesignTokens.Typography.caption)
+                                .monospacedDigit()
+                                .padding(.horizontal, 7)
+                                .padding(.vertical, 3)
+                                .background(
+                                    selectedSegment == segment
+                                        ? DesignTokens.Colors.groomerAccent.opacity(0.2)
+                                        : DesignTokens.Colors.borderSoft
+                                )
+                                .clipShape(Capsule())
+                        }
+                        .font(DesignTokens.Typography.body.weight(.semibold))
+                        .foregroundStyle(
+                            selectedSegment == segment
+                                ? DesignTokens.Colors.textPrimary
+                                : DesignTokens.Colors.textSecondary
+                        )
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                        .background(
+                            selectedSegment == segment
+                                ? DesignTokens.Colors.surface
+                                : Color.clear
+                        )
+                        .clipShape(
+                            RoundedRectangle(
+                                cornerRadius: DesignTokens.CornerRadius.input,
+                                style: .continuous
+                            )
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier(segment.accessibilityIdentifier)
+                    .accessibilityAddTraits(
+                        selectedSegment == segment ? .isSelected : []
                     )
+                }
+            }
+            .padding(DesignTokens.Spacing.xs)
+            .background(DesignTokens.Colors.borderSoft.opacity(0.8))
+            .clipShape(
+                RoundedRectangle(
+                    cornerRadius: DesignTokens.CornerRadius.button,
+                    style: .continuous
+                )
+            )
+        }
+    }
+}
 
-                    if store.matchedRequests.isEmpty {
-                        if let errorMessage = store.errorMessage {
-                            BeckonErrorBanner(
-                                title: "Requests Unavailable",
-                                message: errorMessage
-                            ) {
-                                Button {
-                                    Task {
-                                        await store.load()
-                                    }
-                                } label: {
-                                    Label("Try Again", systemImage: "arrow.clockwise")
-                                }
-                                .buttonStyle(BeckonSecondaryButtonStyle(accent: .groomer))
-                                .disabled(store.isBusy)
-                            }
-                            .accessibilityIdentifier("groomer.requests.error")
-                        } else {
-                            BeckonEmptyState(
-                                title: "No Matched Requests",
-                                message: "New active customer requests will appear here when they match your profile and services.",
-                                systemImage: "tray",
-                                accent: .groomer
-                            ) {
-                                Button {
-                                    Task {
-                                        await store.load()
-                                    }
-                                } label: {
-                                    Label("Refresh", systemImage: "arrow.clockwise")
-                                }
-                                .buttonStyle(BeckonSecondaryButtonStyle(accent: .groomer))
-                                .disabled(store.isBusy)
-                            }
-                            .accessibilityIdentifier("groomer.requests.empty")
-                        }
+private struct GroomerMatchesContentView: View {
+    let store: GroomerRequestsStore
+
+    @ViewBuilder
+    var body: some View {
+        if store.isLoading, store.matchedRequests.isEmpty {
+            BeckonLoadingView(
+                title: "Loading Matched Requests…",
+                message: "We are checking active customer requests that match your services.",
+                accent: .groomer
+            )
+            .accessibilityIdentifier("groomer.requests.loading")
+        } else {
+            GroomerWorkspaceSection(title: "Matched requests") {
+                if store.matchedRequests.isEmpty {
+                    if let errorMessage = store.errorMessage {
+                        requestError(message: errorMessage)
                     } else {
-                        ForEach(store.matchedRequests) { matchedRequest in
-                            NavigationLink {
-                                GroomerRequestDetailView(
-                                    matchID: matchedRequest.id,
-                                    store: store
-                                )
-                            } label: {
-                                GroomerRequestSummaryRow(
-                                    matchedRequest: matchedRequest
-                                )
-                            }
-                            .buttonStyle(.plain)
-                            .accessibilityIdentifier(
-                                AppTestOpsAccessibility.identifier(
-                                    prefix: "groomer.requests.row",
-                                    serviceNotes: matchedRequest.request.serviceNotes
-                                ) ?? "groomer.requests.row"
-                            )
-                            .accessibilityValue(
-                                AppTestOpsAccessibility.requestReference(
-                                    matchedRequest.request.id
-                                )
-                            )
-                        }
+                        requestEmptyState
+                    }
+                } else {
+                    GroomerGroupedSurface {
+                        VStack(spacing: 0) {
+                            ForEach(Array(store.matchedRequests.enumerated()), id: \.element.id) { index, matchedRequest in
+                                if index > 0 {
+                                    GroomerWorkspaceDivider(leadingInset: 96)
+                                }
 
-                        if store.canLoadMore || store.isLoadingMore {
-                            BeckonLoadMoreButton(
-                                isLoading: store.isLoadingMore,
-                                accent: .groomer,
-                                accessibilityIdentifier: "groomer.requests.load-more"
-                            ) {
-                                await store.loadNextPage()
+                                NavigationLink {
+                                    GroomerRequestDetailView(
+                                        matchID: matchedRequest.id,
+                                        store: store
+                                    )
+                                } label: {
+                                    GroomerRequestSummaryRow(
+                                        matchedRequest: matchedRequest,
+                                        photoData: firstPhotoData(for: matchedRequest)
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityIdentifier(
+                                    AppTestOpsAccessibility.identifier(
+                                        prefix: "groomer.requests.row",
+                                        serviceNotes: matchedRequest.request.serviceNotes
+                                    ) ?? "groomer.requests.row"
+                                )
+                                .accessibilityValue(
+                                    AppTestOpsAccessibility.requestReference(
+                                        matchedRequest.request.id
+                                    )
+                                )
                             }
                         }
                     }
+
+                    if let errorMessage = store.errorMessage {
+                        BeckonErrorBanner(
+                            title: "More Requests Unavailable",
+                            message: errorMessage
+                        )
+                        .accessibilityIdentifier("groomer.requests.load-more-error")
+                    }
+
+                    if store.canLoadMore || store.isLoadingMore {
+                        BeckonLoadMoreButton(
+                            isLoading: store.isLoadingMore,
+                            accent: .groomer,
+                            accessibilityIdentifier: "groomer.requests.load-more"
+                        ) {
+                            await store.loadNextPage()
+                        }
+                    }
                 }
-                .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-                .padding(.vertical, DesignTokens.Spacing.lg)
             }
-            .accessibilityIdentifier("groomer.requests.list")
         }
+    }
+
+    private func firstPhotoData(
+        for matchedRequest: GroomerMatchedRequest
+    ) -> Data? {
+        guard let photo = store.requestPhotos(for: matchedRequest).first else {
+            return nil
+        }
+        return store.requestPhotoData(for: photo)
+    }
+
+    private func requestError(message: String) -> some View {
+        BeckonErrorBanner(
+            title: "Requests Unavailable",
+            message: message
+        ) {
+            Button {
+                Task { await store.load() }
+            } label: {
+                Label("Try Again", systemImage: "arrow.clockwise")
+            }
+            .buttonStyle(BeckonSecondaryButtonStyle(accent: .groomer))
+            .disabled(store.isBusy)
+        }
+        .accessibilityIdentifier("groomer.requests.error")
+    }
+
+    private var requestEmptyState: some View {
+        BeckonEmptyState(
+            title: "No Matched Requests",
+            message: "New active customer requests will appear here when they match your profile and services.",
+            systemImage: "tray",
+            accent: .groomer
+        ) {
+            Button {
+                Task { await store.load() }
+            } label: {
+                Label("Refresh", systemImage: "arrow.clockwise")
+            }
+            .buttonStyle(BeckonSecondaryButtonStyle(accent: .groomer))
+            .disabled(store.isBusy)
+        }
+        .accessibilityIdentifier("groomer.requests.empty")
     }
 }
 
 private struct GroomerRequestSummaryRow: View {
     let matchedRequest: GroomerMatchedRequest
+    let photoData: Data?
 
     var body: some View {
-        BeckonCard {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
-                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                        Text(matchedRequest.title)
-                            .font(DesignTokens.Typography.headline)
-                            .foregroundStyle(DesignTokens.Colors.textPrimary)
-                            .fixedSize(horizontal: false, vertical: true)
+        HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
+            BeckonModuleImage(data: photoData) {
+                ZStack {
+                    DesignTokens.Colors.groomerAccent.opacity(0.12)
+                    Image(systemName: "pawprint.fill")
+                        .font(.title2)
+                        .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
+                }
+            }
+            .frame(width: 64, height: 72)
+            .clipShape(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+            )
 
-                        Text(matchedRequest.request.serviceType.title)
-                            .font(DesignTokens.Typography.caption)
-                            .foregroundStyle(DesignTokens.Colors.textSecondary)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
+            VStack(alignment: .leading, spacing: 5) {
+                HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
+                    Text(matchedRequest.request.petSnapshot.name)
+                        .font(DesignTokens.Typography.headline)
+                        .foregroundStyle(DesignTokens.Colors.textPrimary)
+                        .lineLimit(1)
+
+                    Spacer(minLength: DesignTokens.Spacing.xs)
 
                     BeckonStatusChip(
                         statusSummary,
@@ -174,34 +365,30 @@ private struct GroomerRequestSummaryRow: View {
                     )
                 }
 
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                    Label(matchedRequest.locationSummary, systemImage: "mappin.and.ellipse")
-                    Label(timeSummary, systemImage: "calendar")
-                }
-                .font(DesignTokens.Typography.caption)
-                .foregroundStyle(DesignTokens.Colors.textSecondary)
+                Text("\(matchedRequest.request.petSnapshot.breed ?? "Unknown breed") · \(matchedRequest.request.serviceType.title)")
+                    .font(DesignTokens.Typography.caption)
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                    .lineLimit(1)
 
-                if let fitEvidence = matchedRequest.fitEvidencePresentation {
-                    GroomerFitEvidenceBlock(
-                        presentation: fitEvidence,
-                        isCompact: true
-                    )
-                }
+                Text("\(preferredDate) · \(compactLocation)")
+                    .font(DesignTokens.Typography.caption)
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                    .lineLimit(1)
 
-                HStack(spacing: DesignTokens.Spacing.sm) {
-                    Text(matchedRequest.matchSummary)
-                        .font(DesignTokens.Typography.caption.weight(.semibold))
-                        .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
-
-                    Spacer()
-
-                    Image(systemName: "chevron.right")
-                        .font(DesignTokens.Typography.caption.weight(.semibold))
-                        .foregroundStyle(DesignTokens.Colors.textTertiary)
-                        .accessibilityHidden(true)
-                }
+                Text(fitSummary)
+                    .font(DesignTokens.Typography.caption.weight(.semibold))
+                    .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
+                    .lineLimit(2)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Image(systemName: "chevron.right")
+                .font(DesignTokens.Typography.caption.weight(.semibold))
+                .foregroundStyle(DesignTokens.Colors.textTertiary)
+                .frame(height: 72)
+                .accessibilityHidden(true)
         }
+        .padding(DesignTokens.Spacing.md)
         .contentShape(Rectangle())
     }
 
@@ -229,8 +416,19 @@ private struct GroomerRequestSummaryRow: View {
         return matchedRequest.request.status.isOpenForOffers ? "sparkles" : "checkmark"
     }
 
-    private var timeSummary: String {
-        "\(GroomingRequestDateFormatting.displayString(from: matchedRequest.request.preferredStart)) – \(GroomingRequestDateFormatting.displayString(from: matchedRequest.request.preferredEnd))"
+    private var preferredDate: String {
+        GroomingRequestDateFormatting.displayString(
+            from: matchedRequest.request.preferredStart
+        )
+    }
+
+    private var compactLocation: String {
+        "\(matchedRequest.request.city), \(matchedRequest.request.state)"
+    }
+
+    private var fitSummary: String {
+        matchedRequest.fitEvidencePresentation?.listSummary
+            ?? matchedRequest.matchSummary
     }
 }
 
@@ -271,6 +469,11 @@ private struct GroomerRequestDetailView: View {
             .task(id: matchedRequest.request.id) {
                 initializeOfferFormIfNeeded(for: matchedRequest)
             }
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                if matchedRequest.canCreateOffer {
+                    submitOfferBar(for: matchedRequest)
+                }
+            }
         } else {
             ZStack {
                 DesignTokens.Colors.background
@@ -292,8 +495,24 @@ private struct GroomerRequestDetailView: View {
         for matchedRequest: GroomerMatchedRequest
     ) -> some View {
         BeckonCard {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
+            HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
+                BeckonModuleImage(
+                    data: firstPhotoData(for: matchedRequest)
+                ) {
+                    ZStack {
+                        DesignTokens.Colors.groomerAccent.opacity(0.12)
+                        Image(systemName: "pawprint.fill")
+                            .font(.title)
+                            .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
+                    }
+                }
+                .frame(width: 80, height: 92)
+                .clipShape(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                )
+
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                    HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
                     VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                         Text(matchedRequest.request.petSnapshot.name)
                             .font(DesignTokens.Typography.title)
@@ -312,9 +531,16 @@ private struct GroomerRequestDetailView: View {
                     )
                 }
 
-                Text(matchedRequest.locationSummary)
-                    .font(DesignTokens.Typography.caption)
-                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                    Text("\(matchedRequest.request.petSnapshot.species) · \(matchedRequest.request.petSnapshot.breed ?? "Unknown breed")")
+                        .font(DesignTokens.Typography.caption)
+                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+                        .lineLimit(2)
+
+                    Text("\(matchedRequest.request.city), \(matchedRequest.request.state)")
+                        .font(DesignTokens.Typography.caption)
+                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
     }
@@ -322,7 +548,7 @@ private struct GroomerRequestDetailView: View {
     private func matchCard(
         for matchedRequest: GroomerMatchedRequest
     ) -> some View {
-        DetailShellCard(title: "Match", subtitle: matchedRequest.matchSummary) {
+        DetailShellCard(title: "Fit Evidence", subtitle: matchedRequest.matchSummary) {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                 DetailMetadataRow(
                     title: "Status",
@@ -343,7 +569,7 @@ private struct GroomerRequestDetailView: View {
     private func requestCard(
         for matchedRequest: GroomerMatchedRequest
     ) -> some View {
-        DetailShellCard(title: "Request") {
+        DetailShellCard(title: "Service") {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                 HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
                     DetailMetadataRow(
@@ -412,7 +638,7 @@ private struct GroomerRequestDetailView: View {
     private func scheduleLocationCard(
         for matchedRequest: GroomerMatchedRequest
     ) -> some View {
-        DetailShellCard(title: "Schedule and Location") {
+        DetailShellCard(title: "Preferred Time and Service Location") {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                 DetailMetadataRow(
                     title: "Start",
@@ -650,32 +876,53 @@ private struct GroomerRequestDetailView: View {
                         .accessibilityIdentifier("groomer.offers.message")
                 }
 
-                Button {
-                    Task {
-                        await store.submitOffer(
-                            for: matchedRequest,
-                            proposedStart: proposedStart,
-                            proposedEnd: proposedEnd,
-                            priceEstimateText: priceEstimateText,
-                            message: message
-                        )
-                    }
-                } label: {
-                    if store.isSubmittingOffer {
-                        HStack(spacing: DesignTokens.Spacing.sm) {
-                            ProgressView()
-                                .tint(DesignTokens.Colors.surface)
-                            Text("Submitting Offer…")
-                        }
-                    } else {
-                        Label("Submit Offer", systemImage: "paperplane")
-                    }
-                }
-                .buttonStyle(BeckonPrimaryButtonStyle(accent: .groomer))
-                .disabled(store.isSubmittingOffer)
-                .accessibilityIdentifier("groomer.offers.submit")
             }
         }
+    }
+
+    private func submitOfferBar(
+        for matchedRequest: GroomerMatchedRequest
+    ) -> some View {
+        Button {
+            Task {
+                await store.submitOffer(
+                    for: matchedRequest,
+                    proposedStart: proposedStart,
+                    proposedEnd: proposedEnd,
+                    priceEstimateText: priceEstimateText,
+                    message: message
+                )
+            }
+        } label: {
+            if store.isSubmittingOffer {
+                HStack(spacing: DesignTokens.Spacing.sm) {
+                    ProgressView()
+                        .tint(DesignTokens.Colors.surface)
+                    Text("Submitting Offer…")
+                }
+            } else {
+                Label("Submit Offer", systemImage: "paperplane")
+            }
+        }
+        .buttonStyle(BeckonPrimaryButtonStyle(accent: .groomer))
+        .disabled(store.isSubmittingOffer)
+        .accessibilityIdentifier("groomer.offers.submit")
+        .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+        .padding(.top, DesignTokens.Spacing.sm)
+        .padding(.bottom, DesignTokens.Spacing.sm)
+        .background(.ultraThinMaterial)
+        .overlay(alignment: .top) {
+            GroomerWorkspaceDivider()
+        }
+    }
+
+    private func firstPhotoData(
+        for matchedRequest: GroomerMatchedRequest
+    ) -> Data? {
+        guard let photo = store.requestPhotos(for: matchedRequest).first else {
+            return nil
+        }
+        return store.requestPhotoData(for: photo)
     }
 
     private func offerUnavailableCard() -> some View {
@@ -1103,7 +1350,8 @@ private struct GroomerRequestsStatusView: View {
     NavigationStack {
         GroomerRequestsView(
             groomerID: UUID(),
-            repository: GroomerRequestsPreviewRepository()
+            repository: GroomerRequestsPreviewRepository(),
+            route: .constant(.matches)
         )
     }
 }

@@ -1,95 +1,44 @@
 import SwiftUI
 
-struct GroomerOffersView: View {
-    @State private var store: GroomerOffersStore
-
-    init(
-        groomerID: UUID,
-        repository: any GroomerRequestRepository
-    ) {
-        _store = State(
-            initialValue: GroomerOffersStore(
-                groomerID: groomerID,
-                repository: repository
-            )
-        )
-    }
-
-    var body: some View {
-        ZStack {
-            DesignTokens.Colors.background
-                .ignoresSafeArea()
-
-            content
-        }
-        .navigationTitle("Offers")
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    Task {
-                        await store.load()
-                    }
-                } label: {
-                    Label("Refresh", systemImage: "arrow.clockwise")
-                }
-                .disabled(store.isLoading)
-            }
-        }
-        .foregroundRefreshable {
-            await store.load()
-        }
-        .accessibilityIdentifier("groomer.offers")
-    }
+struct GroomerOffersContentView: View {
+    let store: GroomerOffersStore
 
     @ViewBuilder
-    private var content: some View {
+    var body: some View {
         if store.isLoading, store.offers.isEmpty {
-            ScrollView {
-                BeckonLoadingView(
-                    title: "Loading Offers…",
-                    message: "We are collecting your pending and past customer offers.",
-                    accent: .groomer
-                )
-                .accessibilityIdentifier("groomer.offers.loading")
-                .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-                .padding(.vertical, DesignTokens.Spacing.lg)
-            }
+            BeckonLoadingView(
+                title: "Loading Offers…",
+                message: "We are collecting your pending and past customer offers.",
+                accent: .groomer
+            )
+            .accessibilityIdentifier("groomer.offers.loading")
         } else {
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                    BeckonSectionHeader(
-                        "My Offers",
-                        subtitle: "Track pending, accepted, declined, withdrawn, and expired offers."
-                    )
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                if store.offers.isEmpty {
+                    emptyOrErrorState
+                } else {
+                    ForEach(store.sections) { section in
+                        GroomerOfferSectionView(section: section)
+                    }
 
-                    if store.offers.isEmpty {
-                        emptyOrErrorState
-                    } else {
-                        ForEach(store.sections) { section in
-                            GroomerOfferSectionView(section: section)
-                        }
+                    if let errorMessage = store.errorMessage {
+                        BeckonErrorBanner(
+                            title: "More Offers Unavailable",
+                            message: errorMessage
+                        )
+                        .accessibilityIdentifier("groomer.offers.load-more-error")
+                    }
 
-                        if let errorMessage = store.errorMessage {
-                            BeckonErrorBanner(
-                                title: "More Offers Unavailable",
-                                message: errorMessage
-                            )
-                            .accessibilityIdentifier("groomer.offers.load-more-error")
-                        }
-
-                        if store.canLoadMore || store.isLoadingMore {
-                            BeckonLoadMoreButton(
-                                isLoading: store.isLoadingMore,
-                                accent: .groomer,
-                                accessibilityIdentifier: "groomer.offers.load-more"
-                            ) {
-                                await store.loadNextPage()
-                            }
+                    if store.canLoadMore || store.isLoadingMore {
+                        BeckonLoadMoreButton(
+                            isLoading: store.isLoadingMore,
+                            accent: .groomer,
+                            accessibilityIdentifier: "groomer.offers.load-more"
+                        ) {
+                            await store.loadNextPage()
                         }
                     }
                 }
-                .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-                .padding(.vertical, DesignTokens.Spacing.lg)
             }
             .accessibilityIdentifier("groomer.offers.list")
         }
@@ -153,13 +102,22 @@ private struct GroomerOfferSectionView: View {
                     .monospacedDigit()
             }
 
-            ForEach(section.offers) { item in
-                NavigationLink {
-                    GroomerOfferDetailView(item: item)
-                } label: {
-                    GroomerOfferRow(item: item)
+            GroomerGroupedSurface {
+                VStack(spacing: 0) {
+                    ForEach(Array(section.offers.enumerated()), id: \.element.id) { index, item in
+                        if index > 0 {
+                            GroomerWorkspaceDivider(leadingInset: DesignTokens.Spacing.lg)
+                        }
+
+                        NavigationLink {
+                            GroomerOfferDetailView(item: item)
+                        } label: {
+                            GroomerOfferRow(item: item)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("groomer.offers.row")
+                    }
                 }
-                .buttonStyle(.plain)
             }
         }
     }
@@ -169,21 +127,15 @@ private struct GroomerOfferRow: View {
     let item: GroomerOfferListItem
 
     var body: some View {
-        BeckonCard {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
-                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                        Text(item.title)
-                            .font(DesignTokens.Typography.headline)
-                            .foregroundStyle(DesignTokens.Colors.textPrimary)
-                            .fixedSize(horizontal: false, vertical: true)
+        HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
+            VStack(alignment: .leading, spacing: 5) {
+                HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
+                    Text(item.title)
+                        .font(DesignTokens.Typography.headline)
+                        .foregroundStyle(DesignTokens.Colors.textPrimary)
+                        .lineLimit(1)
 
-                        Text(item.subtitle)
-                            .font(DesignTokens.Typography.caption)
-                            .foregroundStyle(DesignTokens.Colors.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    Spacer(minLength: DesignTokens.Spacing.xs)
 
                     BeckonStatusChip(
                         item.offer.status.title,
@@ -192,33 +144,35 @@ private struct GroomerOfferRow: View {
                     )
                 }
 
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                    Label(item.timeSummary, systemImage: "calendar")
-                    Label(item.offer.priceSummary, systemImage: "dollarsign.circle")
-                }
-                .font(DesignTokens.Typography.caption)
-                .foregroundStyle(DesignTokens.Colors.textSecondary)
+                Text(item.subtitle)
+                    .font(DesignTokens.Typography.caption)
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                    .lineLimit(1)
 
-                HStack(spacing: DesignTokens.Spacing.sm) {
-                    Text(item.offer.status.offerListDescription)
-                        .font(DesignTokens.Typography.caption.weight(.semibold))
-                        .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
-                        .fixedSize(horizontal: false, vertical: true)
+                Text(item.timeSummary)
+                    .font(DesignTokens.Typography.caption)
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                    .lineLimit(1)
 
-                    Spacer()
-
-                    Image(systemName: "chevron.right")
-                        .font(DesignTokens.Typography.caption.weight(.semibold))
-                        .foregroundStyle(DesignTokens.Colors.textTertiary)
-                        .accessibilityHidden(true)
-                }
+                Text("\(item.offer.priceSummary) · \(item.offer.status.offerListDescription)")
+                    .font(DesignTokens.Typography.caption.weight(.semibold))
+                    .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
+                    .lineLimit(2)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Image(systemName: "chevron.right")
+                .font(DesignTokens.Typography.caption.weight(.semibold))
+                .foregroundStyle(DesignTokens.Colors.textTertiary)
+                .frame(minHeight: 72)
+                .accessibilityHidden(true)
         }
+        .padding(DesignTokens.Spacing.md)
         .contentShape(Rectangle())
     }
 }
 
-private struct GroomerOfferDetailView: View {
+struct GroomerOfferDetailView: View {
     let item: GroomerOfferListItem
 
     var body: some View {
@@ -444,6 +398,24 @@ private struct GroomerOfferFactRow: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .accessibilityElement(children: .combine)
+    }
+}
+
+struct GroomerOffersStatusView: View {
+    let store: GroomerOffersStore
+
+    var body: some View {
+        BeckonGlobalFeedbackForwarder(error: errorPrompt)
+    }
+
+    private var errorPrompt: BeckonGlobalFeedbackError? {
+        guard let errorMessage = store.errorMessage else { return nil }
+        return BeckonGlobalFeedbackError(
+            scope: .page("groomer.requests.offers"),
+            sourceKey: "groomer.requests.offers.error",
+            title: "Offers Unavailable",
+            message: errorMessage
+        )
     }
 }
 

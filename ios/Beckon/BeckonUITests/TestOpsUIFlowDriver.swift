@@ -146,6 +146,8 @@ final class TestOpsUIFlowDriver {
     func assertGroomerNavigation() {
         assertTab("groomer.tab.home", destination: "groomer.home")
         assertTab("groomer.tab.requests", destination: "groomer.requests.list")
+        XCTAssertTrue(element("groomer.requests.segment.matches").exists)
+        XCTAssertTrue(element("groomer.requests.segment.offers").exists)
         assertTab("groomer.tab.bookings", destination: "groomer.schedule")
         assertTab("groomer.tab.messages", destination: "chat.conversations.list")
         assertTab("groomer.tab.account", destination: "groomer.account.home")
@@ -219,6 +221,7 @@ final class TestOpsUIFlowDriver {
     ) {
         tap(element("groomer.tab.requests"))
         XCTAssertTrue(element("groomer.requests.list").waitForExistence(timeout: 15))
+        tap(element("groomer.requests.segment.matches"))
         let requestRow = button("groomer.requests.row.\(context.runID)")
         XCTAssertTrue(requestRow.waitForExistence(timeout: 20))
         XCTAssertEqual(supportReference(from: requestRow), expectedRequestReference)

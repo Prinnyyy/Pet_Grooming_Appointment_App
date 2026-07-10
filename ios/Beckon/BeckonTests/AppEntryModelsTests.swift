@@ -140,6 +140,34 @@ struct TabModelsTests {
     }
 
     @Test
+    func groomerRequestsSegmentsExposeStablePresentation() {
+        #expect(GroomerRequestsSegment.allCases == [.matches, .offers])
+        #expect(GroomerRequestsSegment.allCases.map(\.title) == ["Matches", "Offers"])
+        #expect(GroomerRequestsSegment.matches.accessibilityIdentifier == "groomer.requests.segment.matches")
+        #expect(GroomerRequestsSegment.offers.accessibilityIdentifier == "groomer.requests.segment.offers")
+        #expect(GroomerRequestsSegment.matches.count(matches: 4, offers: 2) == 4)
+        #expect(GroomerRequestsSegment.offers.count(matches: 4, offers: 2) == 2)
+    }
+
+    @Test
+    func groomerRequestsRoutingSelectsTheRequestedWorkspaceSegment() {
+        let requestID = UUID()
+        let offerID = UUID()
+        #expect(GroomerRequestsRoute.matches.segment == .matches)
+        #expect(GroomerRequestsRoute.offers.segment == .offers)
+        #expect(
+            GroomerRequestsRoute(notificationRoute: .requests(requestID: requestID))
+                == GroomerRequestsRoute(segment: .matches, requestID: requestID, offerID: nil)
+        )
+        #expect(
+            GroomerRequestsRoute(notificationRoute: .offers(offerID: offerID))
+                == GroomerRequestsRoute(segment: .offers, requestID: nil, offerID: offerID)
+        )
+        #expect(GroomerRequestsRoute(notificationRoute: .bookings(bookingID: nil)) == nil)
+        #expect(GroomerRequestsRoute(notificationRoute: .messages(bookingID: UUID())) == nil)
+    }
+
+    @Test
     func groomerProfileDeepLinkWaitsForLoadedProfile() {
         #expect(
             GroomerProfileRoute.activatedRoute(

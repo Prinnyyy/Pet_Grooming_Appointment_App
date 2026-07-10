@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-10
+Task: T-252 - Groomer Requests and Offers workspace.
+Files changed: Requests/Offers segment and routes; unified workspace shell; grouped match/offer rows; request identity/detail and stable submit bar; global offer feedback forwarding; TestOps selectors; roadmap/current-state/task-ledger/worklog.
+Checks: Segment/route RED-GREEN; focused request/offer tests; full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; live 368x800 Matches empty state and populated Offers inspection; `git diff --check`; preflight/context hygiene.
+Result: Q-98 is complete. Requests now owns Matches and Offers with live counts, correct Home/notification routing, preserved pagination and offer mutations, grouped operational rows, authenticated request imagery, and a clearer request-detail action hierarchy.
+Risks: The inspected groomer had no active matches, so the populated match row and submit detail remain covered by compile/Store/TestOps contracts rather than a remote-write fixture in this task. Q-104 retains the full state-matrix integration gate; no backend or remote state changed.
+Next: Start Q-99 as T-253 on explicit continuation.
+```
+
+```text
+Date: 2026-07-10
 Task: T-251 - Periodic meta-review.
 Files changed: Context cadence check/test; current state/feature index/roadmap/queue; D-027; task ledger/worklog and deterministic rolling-window archives.
 Checks: Cadence RED/GREEN and full context suite; branch/local-remote HEAD; 60-file migration mirror; root Markdown and `.rgignore` audit; preflight; `git diff --check`; context hygiene.
 Result: Active branch/task/migration/index facts align. Stale Q-97 and Groomer Alerts wording is corrected. An exactly due meta-review may be explicitly reserved as the immediate next task so the preceding closeout can pass; unscheduled or overdue cadence still fails.
 Risks: Word-reference overages remain informational by D-024. Product, iOS runtime, Supabase, and remote state are unchanged.
-Next: Start Q-98 with the next task ID only on explicit user request.
 ```
 
 ```text
