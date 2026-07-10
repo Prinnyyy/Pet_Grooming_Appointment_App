@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-09
 - Updated by: Codex
-- Latest completed task: T-239 full dual-role UI lifecycle automation.
+- Latest completed task: T-240 periodic meta-review.
 - Current task: none; T-157 APNs remains externally blocked.
-- Next task ID: use T-240 unless the user resumes T-157 after Apple Developer Program upgrade.
+- Next task ID: use T-241 unless the user resumes T-157 after Apple Developer Program upgrade.
 
 ## Fast Path
 
@@ -61,8 +61,8 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - Default context model is L0-L4 in `CONTEXT_AND_RECOVERY.md`.
 - Startup reads stay minimal: `AGENTS.md`, then targeted current-state/task-ledger sections only when needed.
 - Periodic documentation-governance reviews use `docs/06_tasks/META_REVIEW_TEMPLATE.md` every 10 completed tasks or weekly.
-- Last meta-review: T-229 on 2026-07-09.
-- V1.0 ideal-operation Q-16...Q-42 are complete. No dependency-satisfied execution package remains.
+- Last meta-review: T-240 on 2026-07-10.
+- V1.0 ideal-operation Q-16...Q-42 are complete. Q-43 is the only executable package.
 - Changes to `AGENTS.md`, `CLAUDE.md`, or `docs/05_workflow/**` must be standalone numbered tasks with a decision-log entry and context hygiene.
 - T-180 records standing user approval for task-completion Git commit and push. This approval is limited to current-task changes after validation passes; T-186 requires stopping without auto pull/rebase/merge/reset/force-push if the push fails or is rejected.
 - T-184 keeps active Markdown under a 36k hard limit, 95% structural-review warning, and deterministic `node scripts/context-rotate.mjs` archive rotation.
@@ -95,4 +95,4 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Next Recommended Task
 
-- Adopt a new dependency-satisfied roadmap package or explicit user task before using T-240.
+- Use T-241 for Q-43 deterministic foreground-refresh concurrency test coverage.

@@ -5,13 +5,22 @@ This file is the active recent closeout index, newest first. It intentionally ke
 Current branch, next task ID, and current baseline live in `docs/00_memory/CURRENT_STATE.md` and `docs/06_tasks/TASK_LEDGER.md`. Only the newest entry should keep a `Next:` line.
 
 ```text
+Date: 2026-07-10
+Task: T-240 - Periodic meta-review.
+Files changed: current state, roadmap/queue, task ledger, worklog, and deterministic frozen rotations.
+Checks: Clean branch baseline; branch/head facts; 59 local migrations matching Supabase contract; root report ignore plus 9 frozen copies; active Markdown budgets/links; diff and context hygiene.
+Result: Branch, task, migration, queue, and archive facts align. Active Markdown remains within all budgets at the 97% structural-review warning. Q-43 records the foreground-refresh concurrency test scheduling flake seen once during T-239 validation.
+Risks: Active context has limited growth room; future documentation should consolidate or archive instead of adding parallel guides. Q-92/Q-93 and Apple/APNs blockers are unchanged.
+Next: Use T-241 for Q-43 deterministic foreground-refresh concurrency test coverage.
+```
+
+```text
 Date: 2026-07-09
 Task: T-239 - Full dual-role UI lifecycle automation.
 Files changed: lifecycle selectors and XCUITest driver/suite; Chat recorder late binding; TestOps Debug/backend verifier, cleanup proof, wrapper/tests; TestOps run evidence; roadmap/queue/current state/task ledger/worklog.
 Checks: Selector/recorder/verifier RED-GREEN; 31 TestOps tests; authorized R11 customer/groomer UI lifecycle; Debug JSONL 6/6 success and zero errors; backend final state; tagged cleanup zero residue; full iOS test/build; credential scan; diff and rolling-window rotation. Cadence meta-review is assigned to T-240.
 Result: Q-42 and M10 are complete. One no-screenshot UI run published, offered, accepted, sent/verified chat, completed, and reviewed through five seeded role sessions. The wrapper enforces Debug and backend assertions plus cleanup after success or failure.
 Risks: UI matrix execution remains single-pair (`GTC-001`/`GTG-001`); backend `smoke5` remains the multi-pair lifecycle matrix. APNs/paid Apple and Q-92/Q-93 external service blockers are unchanged.
-Next: Use T-240 only after a new dependency-satisfied roadmap package or explicit user task is adopted.
 ```
 
 ```text
@@ -66,12 +75,4 @@ Files changed: account-deletion Edge Function and tests; append-only SQL migrati
 Checks: Official Storage list/delete docs; Edge and migration RED/GREEN; recursive/paged/1000-object batch cases; exact T-232/T-233 function comparison; 45 migration and 10 Edge tests; `./scripts/preflight.sh`; `./scripts/supabase-check.sh`; linked dry-run/apply/parity; rollback-only runtime and zero-residue query; linked lint; security/performance advisors; Edge version 2 active with JWT verification; full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; `git diff --check`; context hygiene.
 Result: Account deletion no longer mutates `storage.objects` from SQL. After transactional anonymization, the Edge Function recursively lists the user's UUID prefix in six current/legacy buckets, removes objects in batches of at most 1000, and only then soft-deletes Auth. Storage failure is recorded and blocks Auth deletion.
 Risks: The production function deployment is verified by version/status and unit-boundary coverage; no live end-user account was destructively deleted. Advisor output remains limited to known APNs/Auth-plan and Q-36 index findings.
-```
-```text
-Date: 2026-07-09
-Task: T-232 - Account deletion conflict-target correction.
-Files changed: append-only account-deletion function migration, static regression test, current state, task ledger, and worklog.
-Checks: Remote constraint/function evidence; focused RED/GREEN; 45 migration and 10 Edge tests; `./scripts/preflight.sh`; linked list/dry-run/apply/parity; post-apply function source; linked database lint; `git diff --check`; context hygiene.
-Result: The account-deletion upsert now targets `account_deletion_requests_user_key` by constraint name, removing the PL/pgSQL output-column ambiguity. Remote lint reports no schema errors.
-Risks: A rollback-only function execution exposed an independent 42501 failure from direct `storage.objects` deletion. No test residue remained; T-233 owns the Storage API correction and Edge deployment.
 ```
