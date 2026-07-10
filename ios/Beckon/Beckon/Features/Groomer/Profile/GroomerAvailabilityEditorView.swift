@@ -2,129 +2,103 @@ import SwiftUI
 
 struct GroomerAvailabilityEditorView: View {
     @Bindable var store: GroomerProfileStore
-    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        ZStack(alignment: .bottom) {
-            DesignTokens.Colors.background
-                .ignoresSafeArea()
+        let presentation = GroomerAvailabilityWorkspacePresentation(
+            enabledDayCount: store.availabilityDayStates.filter(\.isEnabled).count,
+            maxAppointmentsPerDay: store.maxAppointmentsPerDay,
+            minimumAdvanceNoticeDays: store.minimumAdvanceNoticeDays,
+            isSaving: store.isSaving,
+            isBusy: store.isBusy
+        )
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    HStack(spacing: DesignTokens.Spacing.md) {
-                        Button {
-                            dismiss()
-                        } label: {
-                            Image(systemName: "chevron.left")
-                                .font(.system(size: 18, weight: .bold))
-                                .foregroundStyle(DesignTokens.Colors.textPrimary)
-                                .frame(width: 54, height: 54)
-                                .background(DesignTokens.Colors.surface)
-                                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                                .overlay {
-                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                        .stroke(DesignTokens.Colors.borderSoft, lineWidth: 1)
-                                }
-                        }
-                        .accessibilityLabel("Back")
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
+                GroomerAvailabilityMatchingSection(isActive: $store.isActive)
 
-                        Text("Availability")
-                            .font(.system(size: 34, weight: .bold))
-                            .foregroundStyle(DesignTokens.Colors.textPrimary)
-                    }
-                    .padding(.top, DesignTokens.Spacing.md)
-
-                    GroomerAvailabilityActiveCard(isActive: $store.isActive)
-
-                    GroomerAvailabilityWeeklyHoursSection(dayStates: $store.availabilityDayStates)
-
-                    GroomerBookingPreferencesSection(autoAcceptBookings: $store.autoAcceptBookings)
-
-                    GroomerTimeOffSection(store: store)
-
-                    if let errorMessage = store.errorMessage {
-                        BeckonErrorBanner(
-                            title: "Availability Could Not Be Saved",
-                            message: errorMessage
-                        )
-                        .accessibilityIdentifier("groomer.availability.error")
-                    }
-                }
-                .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-                .padding(.bottom, 132)
-            }
-
-            Button {
-                Task {
-                    await store.saveAvailability()
-                }
-            } label: {
-                if store.isSaving {
-                    HStack(spacing: DesignTokens.Spacing.sm) {
-                        ProgressView()
-                            .tint(DesignTokens.Colors.surface)
-                        Text("Saving...")
-                    }
-                } else {
-                    Text("Save Availability")
-                }
-            }
-            .buttonStyle(BeckonPrimaryButtonStyle(accent: .groomer))
-            .disabled(store.isBusy)
-            .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-            .padding(.bottom, DesignTokens.Spacing.lg)
-            .background(
-                LinearGradient(
-                    colors: [
-                        DesignTokens.Colors.background.opacity(0),
-                        DesignTokens.Colors.background,
-                    ],
-                    startPoint: .top,
-                    endPoint: .center
+                GroomerAvailabilityWeeklyHoursSection(
+                    dayStates: $store.availabilityDayStates,
+                    openDaysSummary: presentation.openDaysSummary
                 )
-                .ignoresSafeArea(edges: .bottom)
+
+                GroomerBookingPreferencesSection(
+                    maxAppointmentsPerDay: $store.maxAppointmentsPerDay,
+                    minimumAdvanceNoticeDays: $store.minimumAdvanceNoticeDays,
+                    autoAcceptBookings: $store.autoAcceptBookings
+                )
+
+                GroomerTimeOffSection(store: store)
+
+                if let errorMessage = store.errorMessage {
+                    BeckonErrorBanner(
+                        title: "Availability Could Not Be Saved",
+                        message: errorMessage
+                    )
+                    .accessibilityIdentifier("groomer.availability.error")
+                }
+            }
+            .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+            .padding(.top, DesignTokens.Spacing.lg)
+            .padding(.bottom, DesignTokens.Spacing.xl)
+        }
+        .accessibilityIdentifier("groomer.availability.edit")
+        .background(DesignTokens.Colors.background.ignoresSafeArea())
+        .navigationTitle("Availability")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.hidden, for: .tabBar)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            GroomerAvailabilitySaveActionBar(
+                presentation: presentation,
+                save: saveAvailability
             )
-            .accessibilityIdentifier("groomer.availability.save")
         }
         .sheet(isPresented: $store.isShowingTimeOffForm) {
             GroomerTimeOffFormView(store: store)
                 .presentationDetents([.medium])
         }
-        .navigationTitle("")
-        .navigationBarBackButtonHidden(true)
-        .accessibilityIdentifier("groomer.availability.edit")
+    }
+
+    private func saveAvailability() {
+        Task {
+            await store.saveAvailability()
+        }
     }
 }
 
-private struct GroomerAvailabilityActiveCard: View {
+private struct GroomerAvailabilityMatchingSection: View {
     @Binding var isActive: Bool
 
     var body: some View {
-        BeckonCard {
-            HStack(spacing: DesignTokens.Spacing.lg) {
-                Image(systemName: "circle.fill")
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundStyle(isActive ? DesignTokens.Colors.success : DesignTokens.Colors.textSecondary)
-                    .frame(width: 54, height: 54)
-                    .background((isActive ? DesignTokens.Colors.success : DesignTokens.Colors.borderSoft).opacity(0.16))
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        GroomerWorkspaceSection(title: "Request matching") {
+            GroomerGroupedSurface {
+                HStack(spacing: DesignTokens.Spacing.md) {
+                    Image(systemName: "checkmark.circle")
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(
+                            isActive
+                                ? DesignTokens.Colors.success
+                                : DesignTokens.Colors.textSecondary
+                        )
+                        .frame(width: 28)
+                        .accessibilityHidden(true)
 
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                    Text("Available for requests")
-                        .font(DesignTokens.Typography.headline)
-                        .foregroundStyle(DesignTokens.Colors.textPrimary)
-                        .fixedSize(horizontal: false, vertical: true)
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                        Text("Available for requests")
+                            .font(DesignTokens.Typography.body.weight(.semibold))
+                            .foregroundStyle(DesignTokens.Colors.textPrimary)
 
-                    Text("Matching requests can be sent to you during available windows.")
-                        .font(DesignTokens.Typography.body)
-                        .foregroundStyle(DesignTokens.Colors.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
+                        Text("Use your enabled hours for request matching.")
+                            .font(DesignTokens.Typography.caption)
+                            .foregroundStyle(DesignTokens.Colors.textSecondary)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                    Toggle("Available for requests", isOn: $isActive)
+                        .labelsHidden()
+                        .tint(DesignTokens.Colors.groomerAccent)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-                Toggle("Available for requests", isOn: $isActive)
-                    .labelsHidden()
-                    .tint(DesignTokens.Colors.success)
+                .padding(.horizontal, DesignTokens.Spacing.lg)
+                .padding(.vertical, DesignTokens.Spacing.md)
             }
         }
     }
@@ -132,40 +106,35 @@ private struct GroomerAvailabilityActiveCard: View {
 
 private struct GroomerAvailabilityWeeklyHoursSection: View {
     @Binding var dayStates: [GroomerAvailabilityDayState]
+    let openDaysSummary: String
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            HStack {
-                Text("Weekly Hours")
-                    .font(DesignTokens.Typography.caption.weight(.bold))
-                    .foregroundStyle(DesignTokens.Colors.textSecondary)
-                    .textCase(.uppercase)
+            HStack(alignment: .firstTextBaseline) {
+                Text("Weekly hours")
+                    .font(.title3.weight(.bold))
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
 
-                Spacer()
+                Spacer(minLength: DesignTokens.Spacing.md)
 
-                Text("\(dayStates.filter(\.isEnabled).count) days open")
-                    .font(DesignTokens.Typography.caption.weight(.bold))
-                    .foregroundStyle(DesignTokens.Colors.groomerAccent)
+                Text(openDaysSummary)
+                    .font(DesignTokens.Typography.caption)
+                    .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
             }
 
-            BeckonCard(padding: DesignTokens.Spacing.md) {
+            GroomerGroupedSurface {
                 VStack(spacing: 0) {
                     ForEach($dayStates) { $dayState in
                         GroomerAvailabilityDayRow(dayState: $dayState)
 
                         if dayState.weekday != dayStates.last?.weekday {
-                            Divider()
-                                .padding(.leading, 78)
+                            GroomerWorkspaceDivider(leadingInset: 58)
                         }
                     }
                 }
             }
-
-            Text("Tap a time to adjust your hours for that day.")
-                .font(DesignTokens.Typography.caption)
-                .foregroundStyle(DesignTokens.Colors.textSecondary.opacity(0.76))
-                .padding(.horizontal, DesignTokens.Spacing.sm)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
@@ -175,25 +144,28 @@ private struct GroomerAvailabilityDayRow: View {
     var body: some View {
         HStack(spacing: DesignTokens.Spacing.sm) {
             Text(dayState.weekday.shortTitle)
-                .font(DesignTokens.Typography.body.weight(.bold))
-                .foregroundStyle(dayState.isEnabled ? DesignTokens.Colors.textPrimary : DesignTokens.Colors.textSecondary)
-                .frame(width: 42, alignment: .leading)
+                .font(DesignTokens.Typography.body.weight(.semibold))
+                .foregroundStyle(
+                    dayState.isEnabled
+                        ? DesignTokens.Colors.textPrimary
+                        : DesignTokens.Colors.textSecondary
+                )
+                .frame(width: 38, alignment: .leading)
 
             if dayState.isEnabled {
                 HStack(spacing: DesignTokens.Spacing.xs) {
                     GroomerAvailabilityTimeMenu(minutes: $dayState.startMinutes)
 
                     Text("-")
-                        .font(DesignTokens.Typography.body.weight(.bold))
+                        .font(DesignTokens.Typography.caption.weight(.semibold))
                         .foregroundStyle(DesignTokens.Colors.textSecondary)
-                        .frame(width: 10)
 
                     GroomerAvailabilityTimeMenu(minutes: $dayState.endMinutes)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 Text("Unavailable")
-                    .font(DesignTokens.Typography.body.weight(.semibold))
+                    .font(DesignTokens.Typography.caption)
                     .foregroundStyle(DesignTokens.Colors.textSecondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -202,8 +174,8 @@ private struct GroomerAvailabilityDayRow: View {
                 .labelsHidden()
                 .tint(DesignTokens.Colors.groomerAccent)
         }
-        .frame(minHeight: 72)
-        .padding(.vertical, DesignTokens.Spacing.xs)
+        .frame(minHeight: 64)
+        .padding(.horizontal, DesignTokens.Spacing.lg)
         .animation(.easeInOut(duration: 0.18), value: dayState.isEnabled)
     }
 }
@@ -220,15 +192,19 @@ private struct GroomerAvailabilityTimeMenu: View {
             }
         } label: {
             Text(GroomerAvailabilityWindow.displayTime(fromMinutes: minutes))
-                .font(DesignTokens.Typography.body.weight(.bold))
+                .font(DesignTokens.Typography.caption.weight(.semibold))
                 .foregroundStyle(DesignTokens.Colors.textPrimary)
-                .multilineTextAlignment(.leading)
-                .lineLimit(2)
-                .minimumScaleFactor(0.78)
-                .frame(width: 78, alignment: .center)
-                .frame(minHeight: 54)
-                .background(DesignTokens.Colors.borderSoft.opacity(0.42))
-                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .lineLimit(1)
+                .minimumScaleFactor(0.76)
+                .frame(width: 70)
+                .frame(minHeight: 36)
+                .background(DesignTokens.Colors.borderSoft.opacity(0.48))
+                .clipShape(
+                    RoundedRectangle(
+                        cornerRadius: DesignTokens.CornerRadius.input,
+                        style: .continuous
+                    )
+                )
         }
     }
 
@@ -241,33 +217,127 @@ private struct GroomerAvailabilityTimeMenu: View {
 }
 
 private struct GroomerBookingPreferencesSection: View {
+    @Binding var maxAppointmentsPerDay: Int
+    @Binding var minimumAdvanceNoticeDays: Int
     @Binding var autoAcceptBookings: Bool
 
+    private var presentation: GroomerAvailabilityWorkspacePresentation {
+        GroomerAvailabilityWorkspacePresentation(
+            enabledDayCount: 0,
+            maxAppointmentsPerDay: maxAppointmentsPerDay,
+            minimumAdvanceNoticeDays: minimumAdvanceNoticeDays,
+            isSaving: false,
+            isBusy: false
+        )
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            Text("Request Preferences")
-                .font(DesignTokens.Typography.caption.weight(.bold))
-                .foregroundStyle(DesignTokens.Colors.textSecondary)
-                .textCase(.uppercase)
+        GroomerWorkspaceSection(title: "Booking preferences") {
+            GroomerGroupedSurface {
+                VStack(spacing: 0) {
+                    HStack(spacing: DesignTokens.Spacing.md) {
+                        preferenceText(
+                            title: "Daily capacity",
+                            subtitle: presentation.capacitySummary
+                        )
 
-            BeckonCard {
-                HStack(spacing: DesignTokens.Spacing.md) {
-                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                        Text("Auto-ready during open hours")
-                            .font(DesignTokens.Typography.body.weight(.bold))
-                            .foregroundStyle(DesignTokens.Colors.textPrimary)
-
-                        Text("Use your open hours when checking request and offer availability.")
-                            .font(DesignTokens.Typography.caption)
-                            .foregroundStyle(DesignTokens.Colors.textSecondary)
+                        Menu {
+                            ForEach(1...12, id: \.self) { capacity in
+                                Button("\(capacity) per day") {
+                                    maxAppointmentsPerDay = capacity
+                                }
+                            }
+                        } label: {
+                            preferenceMenuLabel("\(maxAppointmentsPerDay) / day")
+                        }
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, DesignTokens.Spacing.lg)
+                    .padding(.vertical, DesignTokens.Spacing.md)
 
-                    Toggle("Auto-ready during open hours", isOn: $autoAcceptBookings)
-                        .labelsHidden()
-                        .tint(DesignTokens.Colors.groomerAccent)
+                    GroomerWorkspaceDivider(leadingInset: DesignTokens.Spacing.lg)
+
+                    HStack(spacing: DesignTokens.Spacing.md) {
+                        preferenceText(
+                            title: "Advance notice",
+                            subtitle: presentation.advanceNoticeSummary
+                        )
+
+                        Menu {
+                            ForEach(0...2, id: \.self) { days in
+                                Button(Self.advanceNoticeMenuTitle(for: days)) {
+                                    minimumAdvanceNoticeDays = days
+                                }
+                            }
+                        } label: {
+                            preferenceMenuLabel(Self.advanceNoticeMenuTitle(for: minimumAdvanceNoticeDays))
+                        }
+                    }
+                    .padding(.horizontal, DesignTokens.Spacing.lg)
+                    .padding(.vertical, DesignTokens.Spacing.md)
+
+                    GroomerWorkspaceDivider(leadingInset: DesignTokens.Spacing.lg)
+
+                    HStack(spacing: DesignTokens.Spacing.md) {
+                        preferenceText(
+                            title: "Auto-ready during open hours",
+                            subtitle: "Use enabled hours when checking availability."
+                        )
+
+                        Toggle("Auto-ready during open hours", isOn: $autoAcceptBookings)
+                            .labelsHidden()
+                            .tint(DesignTokens.Colors.groomerAccent)
+                    }
+                    .padding(.horizontal, DesignTokens.Spacing.lg)
+                    .padding(.vertical, DesignTokens.Spacing.md)
                 }
             }
+        }
+    }
+
+    private func preferenceText(title: String, subtitle: String) -> some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+            Text(title)
+                .font(DesignTokens.Typography.body.weight(.semibold))
+                .foregroundStyle(DesignTokens.Colors.textPrimary)
+
+            Text(subtitle)
+                .font(DesignTokens.Typography.caption)
+                .foregroundStyle(DesignTokens.Colors.textSecondary)
+                .lineLimit(2)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func preferenceMenuLabel(_ title: String) -> some View {
+        HStack(spacing: DesignTokens.Spacing.xs) {
+            Text(title)
+                .font(DesignTokens.Typography.caption.weight(.semibold))
+                .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
+                .lineLimit(1)
+
+            Image(systemName: "chevron.up.chevron.down")
+                .font(.caption2.weight(.bold))
+                .foregroundStyle(DesignTokens.Colors.textSecondary)
+        }
+        .padding(.horizontal, DesignTokens.Spacing.sm)
+        .padding(.vertical, DesignTokens.Spacing.xs)
+        .background(DesignTokens.Colors.borderSoft.opacity(0.48))
+        .clipShape(
+            RoundedRectangle(
+                cornerRadius: DesignTokens.CornerRadius.input,
+                style: .continuous
+            )
+        )
+    }
+
+    private static func advanceNoticeMenuTitle(for days: Int) -> String {
+        switch min(max(days, 0), 2) {
+        case 0:
+            "Same day"
+        case 1:
+            "1 day"
+        default:
+            "2 days"
         }
     }
 }
@@ -277,42 +347,69 @@ private struct GroomerTimeOffSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            Text("Time Off")
-                .font(DesignTokens.Typography.caption.weight(.bold))
-                .foregroundStyle(DesignTokens.Colors.textSecondary)
-                .textCase(.uppercase)
+            HStack(alignment: .firstTextBaseline) {
+                Text("Time off")
+                    .font(.title3.weight(.bold))
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
 
-            VStack(spacing: DesignTokens.Spacing.md) {
-                ForEach(store.timeOffWindows) { window in
-                    GroomerTimeOffRow(window: window) {
-                        Task {
-                            await store.deleteTimeOff(window)
-                        }
-                    }
-                }
+                Spacer(minLength: DesignTokens.Spacing.md)
 
-                Button {
-                    store.startCreateTimeOff()
-                } label: {
-                    Label("Add time off", systemImage: "plus")
-                        .font(DesignTokens.Typography.body.weight(.bold))
-                        .foregroundStyle(DesignTokens.Colors.textSecondary)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, DesignTokens.Spacing.lg)
-                        .background(DesignTokens.Colors.background)
-                        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.card, style: .continuous))
+                Button(action: startCreateTimeOff) {
+                    Image(systemName: "plus")
+                        .font(.body.weight(.semibold))
+                        .frame(width: 44, height: 44)
+                        .background(DesignTokens.Colors.surface)
+                        .clipShape(DesignTokens.Shapes.circular)
                         .overlay {
-                            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.card, style: .continuous)
-                                .stroke(
-                                    DesignTokens.Colors.border.opacity(0.55),
-                                    style: StrokeStyle(lineWidth: 1.5, dash: [4, 4])
-                                )
+                            Circle()
+                                .stroke(DesignTokens.Colors.borderSoft, lineWidth: 1)
                         }
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Add time off")
+                .accessibilityIdentifier("groomer.availability.time-off.add")
                 .disabled(store.isBusy)
             }
+
+            GroomerGroupedSurface {
+                if store.timeOffWindows.isEmpty {
+                    HStack(spacing: DesignTokens.Spacing.md) {
+                        Image(systemName: "calendar.badge.minus")
+                            .font(.body.weight(.semibold))
+                            .foregroundStyle(DesignTokens.Colors.textSecondary)
+                            .frame(width: 28)
+                            .accessibilityHidden(true)
+
+                        Text("No time off planned")
+                            .font(DesignTokens.Typography.body)
+                            .foregroundStyle(DesignTokens.Colors.textSecondary)
+                    }
+                    .padding(DesignTokens.Spacing.lg)
+                } else {
+                    VStack(spacing: 0) {
+                        ForEach(Array(store.timeOffWindows.enumerated()), id: \.element.id) { index, window in
+                            GroomerTimeOffRow(
+                                window: window,
+                                onDelete: {
+                                    Task {
+                                        await store.deleteTimeOff(window)
+                                    }
+                                }
+                            )
+
+                            if index < store.timeOffWindows.count - 1 {
+                                GroomerWorkspaceDivider(leadingInset: 56)
+                            }
+                        }
+                    }
+                }
+            }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func startCreateTimeOff() {
+        store.startCreateTimeOff()
     }
 }
 
@@ -321,40 +418,68 @@ private struct GroomerTimeOffRow: View {
     let onDelete: () -> Void
 
     var body: some View {
-        BeckonCard {
-            HStack(spacing: DesignTokens.Spacing.md) {
-                Text(icon)
-                    .font(.system(size: 24))
-                    .frame(width: 54, height: 54)
-                    .background(DesignTokens.Colors.borderSoft.opacity(0.4))
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        HStack(spacing: DesignTokens.Spacing.md) {
+            Image(systemName: "calendar")
+                .font(.body.weight(.semibold))
+                .foregroundStyle(DesignTokens.Colors.textSecondary)
+                .frame(width: 28)
+                .accessibilityHidden(true)
 
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                    Text(window.title)
-                        .font(DesignTokens.Typography.body.weight(.bold))
-                        .foregroundStyle(DesignTokens.Colors.textPrimary)
-                        .lineLimit(1)
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                Text(window.title)
+                    .font(DesignTokens.Typography.body.weight(.semibold))
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+                    .lineLimit(1)
 
-                    Text(window.dateSummary)
-                        .font(DesignTokens.Typography.body)
-                        .foregroundStyle(DesignTokens.Colors.textSecondary)
-                        .lineLimit(1)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-                Button(action: onDelete) {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundStyle(DesignTokens.Colors.textSecondary)
-                        .frame(width: 36, height: 36)
-                }
-                .accessibilityLabel("Remove \(window.title)")
+                Text(window.dateSummary)
+                    .font(DesignTokens.Typography.caption)
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                    .lineLimit(1)
             }
-        }
-    }
+            .frame(maxWidth: .infinity, alignment: .leading)
 
-    private var icon: String {
-        window.title.localizedCaseInsensitiveContains("workshop") ? "📚" : "🏖️"
+            Button(action: onDelete) {
+                Image(systemName: "trash")
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(DesignTokens.Colors.error)
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
+            }
+            .accessibilityLabel("Remove \(window.title)")
+            .accessibilityIdentifier("groomer.availability.time-off.remove")
+        }
+        .padding(.horizontal, DesignTokens.Spacing.lg)
+        .padding(.vertical, DesignTokens.Spacing.md)
+    }
+}
+
+private struct GroomerAvailabilitySaveActionBar: View {
+    let presentation: GroomerAvailabilityWorkspacePresentation
+    let save: () -> Void
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Divider()
+                .overlay(DesignTokens.Colors.divider)
+
+            Button(action: save) {
+                if presentation.saveActionTitle == "Saving..." {
+                    HStack(spacing: DesignTokens.Spacing.sm) {
+                        ProgressView()
+                            .tint(DesignTokens.Colors.surface)
+                        Text(presentation.saveActionTitle)
+                    }
+                } else {
+                    Label(presentation.saveActionTitle, systemImage: "checkmark.circle")
+                }
+            }
+            .buttonStyle(BeckonPrimaryButtonStyle(accent: .groomer))
+            .disabled(presentation.isSaveDisabled)
+            .accessibilityIdentifier("groomer.availability.save")
+            .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+            .padding(.vertical, DesignTokens.Spacing.md)
+        }
+        .background(DesignTokens.Colors.background)
     }
 }
 
@@ -364,50 +489,114 @@ private struct GroomerTimeOffFormView: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section("Time Off") {
-                    TextField("Title", text: $store.timeOffTitle)
-                    DatePicker(
-                        "Start Date",
-                        selection: $store.timeOffStartDate,
-                        displayedComponents: .date
-                    )
-                    DatePicker(
-                        "End Date",
-                        selection: $store.timeOffEndDate,
-                        displayedComponents: .date
-                    )
-                }
+            ScrollView {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
+                    GroomerWorkspaceSection(title: "Time off") {
+                        GroomerGroupedSurface {
+                            VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                                GroomerProfileTextField(
+                                    title: "Title",
+                                    text: $store.timeOffTitle,
+                                    prompt: "Time off title"
+                                )
 
-                if let errorMessage = store.errorMessage {
-                    Section {
-                        Text(errorMessage)
-                            .foregroundStyle(DesignTokens.Colors.error)
+                                GroomerWorkspaceDivider()
+
+                                DatePicker(
+                                    "Start date",
+                                    selection: $store.timeOffStartDate,
+                                    displayedComponents: .date
+                                )
+                                .font(DesignTokens.Typography.body.weight(.semibold))
+
+                                GroomerWorkspaceDivider()
+
+                                DatePicker(
+                                    "End date",
+                                    selection: $store.timeOffEndDate,
+                                    displayedComponents: .date
+                                )
+                                .font(DesignTokens.Typography.body.weight(.semibold))
+                            }
+                            .padding(DesignTokens.Spacing.lg)
+                        }
+                    }
+
+                    if let errorMessage = store.errorMessage {
+                        BeckonErrorBanner(
+                            title: "Time Off Could Not Be Saved",
+                            message: errorMessage
+                        )
+                        .accessibilityIdentifier("groomer.availability.time-off.error")
                     }
                 }
+                .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+                .padding(.top, DesignTokens.Spacing.lg)
+                .padding(.bottom, DesignTokens.Spacing.xl)
             }
+            .background(DesignTokens.Colors.background.ignoresSafeArea())
             .navigationTitle("Add time off")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        store.cancelTimeOffForm()
-                        dismiss()
-                    }
-                }
-
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Add") {
-                        Task {
-                            await store.createTimeOff()
-                            if !store.isShowingTimeOffForm {
-                                dismiss()
-                            }
-                        }
-                    }
-                    .disabled(store.isBusy)
+                    Button("Cancel", action: cancel)
+                        .disabled(store.isSaving)
                 }
             }
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                GroomerTimeOffSaveActionBar(
+                    isSaving: store.isSaving,
+                    isDisabled: store.isBusy,
+                    save: addTimeOff
+                )
+            }
         }
+        .interactiveDismissDisabled(store.isSaving)
+        .accessibilityIdentifier("groomer.availability.time-off.form")
+    }
+
+    private func cancel() {
+        store.cancelTimeOffForm()
+        dismiss()
+    }
+
+    private func addTimeOff() {
+        Task {
+            await store.createTimeOff()
+            if !store.isShowingTimeOffForm {
+                dismiss()
+            }
+        }
+    }
+}
+
+private struct GroomerTimeOffSaveActionBar: View {
+    let isSaving: Bool
+    let isDisabled: Bool
+    let save: () -> Void
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Divider()
+                .overlay(DesignTokens.Colors.divider)
+
+            Button(action: save) {
+                if isSaving {
+                    HStack(spacing: DesignTokens.Spacing.sm) {
+                        ProgressView()
+                            .tint(DesignTokens.Colors.surface)
+                        Text("Saving...")
+                    }
+                } else {
+                    Label("Add Time Off", systemImage: "checkmark.circle")
+                }
+            }
+            .buttonStyle(BeckonPrimaryButtonStyle(accent: .groomer))
+            .disabled(isDisabled)
+            .accessibilityIdentifier("groomer.availability.time-off.save")
+            .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+            .padding(.vertical, DesignTokens.Spacing.md)
+        }
+        .background(DesignTokens.Colors.background)
     }
 }

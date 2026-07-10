@@ -4,64 +4,109 @@ struct GroomerServicesEditorView: View {
     @Bindable var store: GroomerProfileStore
 
     var body: some View {
+        let presentation = GroomerServicesWorkspacePresentation(
+            serviceCount: store.services.count
+        )
+
         ScrollView {
-            GroomerServicesSection(store: store)
-                .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-                .padding(.top, DesignTokens.Spacing.lg)
-                .padding(.bottom, 120)
+            GroomerServicesSection(
+                store: store,
+                presentation: presentation
+            )
+            .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+            .padding(.top, DesignTokens.Spacing.lg)
+            .padding(.bottom, DesignTokens.Spacing.xl)
         }
+        .accessibilityIdentifier("groomer.services.edit")
         .background(DesignTokens.Colors.background.ignoresSafeArea())
         .navigationTitle("Services")
         .navigationBarTitleDisplayMode(.inline)
-        .accessibilityIdentifier("groomer.services.edit")
+        .toolbar(.hidden, for: .tabBar)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button(action: startCreateService) {
+                    Image(systemName: "plus")
+                }
+                .accessibilityLabel("Add Service")
+                .accessibilityIdentifier("groomer.services.add")
+                .disabled(store.isBusy)
+            }
+        }
+    }
+
+    private func startCreateService() {
+        store.startCreateService()
     }
 }
 
 private struct GroomerServicesSection: View {
     @Bindable var store: GroomerProfileStore
+    let presentation: GroomerServicesWorkspacePresentation
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            BeckonSectionHeader(
-                "Services",
-                subtitle: "Services inherit Fit Signals size experience unless a custom service range is enabled."
-            ) {
-                Button {
-                    store.startCreateService()
-                } label: {
+        GroomerWorkspaceSection(title: "Offer menu") {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                Text(presentation.summary)
+                    .font(DesignTokens.Typography.caption)
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+
+                if store.services.isEmpty {
+                    GroomerServicesEmptyState(action: startCreateService)
+                        .accessibilityIdentifier("groomer.services.empty")
+                } else {
+                    GroomerGroupedSurface {
+                        VStack(spacing: 0) {
+                            ForEach(Array(store.services.enumerated()), id: \.element.id) { index, service in
+                                GroomerServiceRow(
+                                    service: service,
+                                    store: store
+                                )
+
+                                if index < store.services.count - 1 {
+                                    GroomerWorkspaceDivider(leadingInset: 64)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func startCreateService() {
+        store.startCreateService()
+    }
+}
+
+private struct GroomerServicesEmptyState: View {
+    let action: () -> Void
+
+    var body: some View {
+        GroomerGroupedSurface {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                Image(systemName: "scissors")
+                    .font(.title2.weight(.semibold))
+                    .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
+                    .frame(width: 44, height: 44)
+                    .background(DesignTokens.Colors.groomerAccent.opacity(0.14))
+                    .clipShape(DesignTokens.Shapes.circular)
+                    .accessibilityHidden(true)
+
+                Text("No services yet")
+                    .font(DesignTokens.Typography.headline)
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+
+                Text("Add an offer-ready service before responding to requests.")
+                    .font(DesignTokens.Typography.caption)
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Button(action: action) {
                     Label("Add Service", systemImage: "plus")
                 }
                 .buttonStyle(BeckonSecondaryButtonStyle(accent: .groomer, isFullWidth: false))
-                .disabled(store.isBusy)
-                .accessibilityIdentifier("groomer.services.add")
             }
-
-            if store.services.isEmpty {
-                BeckonEmptyState(
-                    title: "No Services Yet",
-                    message: "Add services before responding to future requests.",
-                    systemImage: "scissors",
-                    accent: .groomer
-                ) {
-                    Button {
-                        store.startCreateService()
-                    } label: {
-                        Label("Add Service", systemImage: "plus")
-                    }
-                    .buttonStyle(BeckonSecondaryButtonStyle(accent: .groomer))
-                    .disabled(store.isBusy)
-                }
-                .accessibilityIdentifier("groomer.services.empty")
-            } else {
-                VStack(spacing: DesignTokens.Spacing.md) {
-                    ForEach(store.services) { service in
-                        GroomerServiceRow(
-                            service: service,
-                            store: store
-                        )
-                    }
-                }
-            }
+            .padding(DesignTokens.Spacing.lg)
         }
     }
 }
@@ -71,60 +116,70 @@ private struct GroomerServiceRow: View {
     @Bindable var store: GroomerProfileStore
 
     var body: some View {
-        BeckonCard {
-            HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                    HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
-                        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                            Text(service.title)
-                                .font(DesignTokens.Typography.headline)
-                                .foregroundStyle(DesignTokens.Colors.textPrimary)
-                                .fixedSize(horizontal: false, vertical: true)
+        HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
+            Image(systemName: "scissors")
+                .font(.body.weight(.semibold))
+                .foregroundStyle(DesignTokens.Colors.textSecondary)
+                .frame(width: 28, height: 28)
+                .accessibilityHidden(true)
 
-                            Text("$\(service.basePrice, specifier: "%.2f") • \(service.durationMinutes) min")
-                                .font(DesignTokens.Typography.caption)
-                                .foregroundStyle(DesignTokens.Colors.textSecondary)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
+                    Text(service.title)
+                        .font(DesignTokens.Typography.body.weight(.semibold))
+                        .foregroundStyle(DesignTokens.Colors.textPrimary)
+                        .lineLimit(2)
 
-                        BeckonStatusChip(
-                            service.isActive ? "Visible" : "Hidden",
-                            systemImage: service.isActive ? "eye.fill" : "eye.slash",
-                            tone: service.isActive ? .success : .neutral
-                        )
+                    if !service.isActive {
+                        Text("Hidden")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(DesignTokens.Colors.textSecondary)
                     }
+                }
 
-                    Label(store.serviceSizePolicySummary(for: service), systemImage: "ruler")
+                Text("$\(service.basePrice, specifier: "%.2f") · \(service.durationMinutes) min")
+                    .font(DesignTokens.Typography.caption)
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+
+                Text(store.serviceSizePolicySummary(for: service))
+                    .font(DesignTokens.Typography.caption)
+                    .foregroundStyle(DesignTokens.Colors.textTertiary)
+                    .lineLimit(2)
+
+                if let description = service.description,
+                   !description.isEmpty {
+                    Text(description)
                         .font(DesignTokens.Typography.caption)
                         .foregroundStyle(DesignTokens.Colors.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-
-                    if let description = service.description {
-                        Text(description)
-                            .font(DesignTokens.Typography.body)
-                            .foregroundStyle(DesignTokens.Colors.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
+                        .lineLimit(2)
                 }
-
-                Menu {
-                    Button("Edit") {
-                        store.startEditService(service)
-                    }
-
-                    Button("Delete", role: .destructive) {
-                        Task {
-                            await store.deleteService(service)
-                        }
-                    }
-                } label: {
-                    Image(systemName: "ellipsis.circle")
-                        .font(DesignTokens.Typography.title)
-                        .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
-                        .accessibilityLabel("Service actions")
-                }
-                .disabled(store.isBusy)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Menu {
+                Button("Edit", action: startEdit)
+                Button("Delete", role: .destructive, action: deleteService)
+            } label: {
+                Image(systemName: "ellipsis")
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
+            }
+            .accessibilityLabel("Actions for \(service.title)")
+            .disabled(store.isBusy)
+        }
+        .padding(.horizontal, DesignTokens.Spacing.lg)
+        .padding(.vertical, DesignTokens.Spacing.md)
+    }
+
+    private func startEdit() {
+        store.startEditService(service)
+    }
+
+    private func deleteService() {
+        Task {
+            await store.deleteService(service)
         }
     }
 }
@@ -133,53 +188,44 @@ private struct GroomerServiceTypePicker: View {
     @Binding var selection: GroomingServiceType
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            Text("Service Menu")
-                .font(DesignTokens.Typography.caption.weight(.bold))
-                .foregroundStyle(DesignTokens.Colors.textSecondary)
-                .textCase(.uppercase)
+        GroomerGroupedSurface {
+            VStack(spacing: 0) {
+                ForEach(GroomingServiceType.allCases) { type in
+                    Button {
+                        selection = type
+                    } label: {
+                        HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
+                            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                                Text(type.title)
+                                    .font(DesignTokens.Typography.body.weight(.semibold))
+                                    .foregroundStyle(DesignTokens.Colors.textPrimary)
 
-            BeckonCard(padding: DesignTokens.Spacing.sm) {
-                VStack(spacing: 0) {
-                    ForEach(GroomingServiceType.allCases) { type in
-                        Button {
-                            selection = type
-                        } label: {
-                            HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
-                                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                                    Text(type.title)
-                                        .font(DesignTokens.Typography.body.weight(.bold))
-                                        .foregroundStyle(DesignTokens.Colors.textPrimary)
-                                        .fixedSize(horizontal: false, vertical: true)
-
-                                    Text(serviceEditorSubtitle(for: type))
-                                        .font(DesignTokens.Typography.caption)
-                                        .foregroundStyle(DesignTokens.Colors.textSecondary)
-                                        .fixedSize(horizontal: false, vertical: true)
-                                }
-                                .frame(maxWidth: .infinity, alignment: .leading)
-
-                                Image(systemName: selection == type ? "checkmark.circle.fill" : "circle")
-                                    .font(.system(size: 22, weight: .semibold))
-                                    .foregroundStyle(
-                                        selection == type
-                                            ? DesignTokens.Colors.groomerAccent
-                                            : DesignTokens.Colors.textTertiary
-                                    )
-                                    .accessibilityHidden(true)
+                                Text(serviceEditorSubtitle(for: type))
+                                    .font(DesignTokens.Typography.caption)
+                                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                                    .fixedSize(horizontal: false, vertical: true)
                             }
-                            .padding(.horizontal, DesignTokens.Spacing.sm)
-                            .padding(.vertical, DesignTokens.Spacing.md)
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel(type.title)
-                        .accessibilityValue(selection == type ? "Selected" : "Not selected")
+                            .frame(maxWidth: .infinity, alignment: .leading)
 
-                        if type != GroomingServiceType.allCases.last {
-                            Divider()
-                                .overlay(DesignTokens.Colors.divider)
+                            Image(systemName: selection == type ? "checkmark.circle.fill" : "circle")
+                                .font(.body.weight(.semibold))
+                                .foregroundStyle(
+                                    selection == type
+                                        ? DesignTokens.Colors.groomerAccentDark
+                                        : DesignTokens.Colors.textTertiary
+                                )
+                                .accessibilityHidden(true)
                         }
+                        .padding(.horizontal, DesignTokens.Spacing.lg)
+                        .padding(.vertical, DesignTokens.Spacing.md)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(type.title)
+                    .accessibilityValue(selection == type ? "Selected" : "Not selected")
+
+                    if type != GroomingServiceType.allCases.last {
+                        GroomerWorkspaceDivider(leadingInset: DesignTokens.Spacing.lg)
                     }
                 }
             }
@@ -208,91 +254,123 @@ struct GroomerServiceFormView: View {
     @Bindable var store: GroomerProfileStore
 
     var body: some View {
+        let presentation = GroomerServiceFormPresentation(
+            isSaving: store.isSaving,
+            isBusy: store.isBusy
+        )
+
         NavigationStack {
-            ZStack {
-                DesignTokens.Colors.background
-                    .ignoresSafeArea()
-
-                ScrollView {
-                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                        BeckonSectionHeader(
-                            store.serviceFormTitle,
-                            subtitle: "Set one offer-ready service with clear price, duration, visibility, and pet-size policy."
-                        )
-
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
+                    GroomerWorkspaceSection(title: "Service type") {
                         GroomerServiceTypePicker(selection: $store.serviceType)
-
-                        BeckonCard {
-                            VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                                GroomerProfileTextField(
-                                    title: "Description",
-                                    text: $store.serviceDescription,
-                                    prompt: "What is included",
-                                    axis: .vertical
-                                )
-                                .lineLimit(2...4)
-
-                                HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
-                                    GroomerProfileTextField(
-                                        title: "Base Price",
-                                        text: $store.serviceBasePrice,
-                                        prompt: "Price"
-                                    )
-                                    .keyboardType(.decimalPad)
-
-                                    GroomerProfileTextField(
-                                        title: "Minutes",
-                                        text: $store.serviceDurationMinutes,
-                                        prompt: "Duration"
-                                    )
-                                    .keyboardType(.numberPad)
-                                }
-
-                                BeckonToggleRow(
-                                    title: "Visible to Customers",
-                                    subtitle: "Hidden services stay saved but do not appear as active options.",
-                                    systemImage: "eye",
-                                    isOn: $store.serviceIsActive
-                                )
-                            }
-                        }
-
-                        GroomerServiceAcceptedPetSizeSection(store: store)
-
-                        if let errorMessage = store.errorMessage {
-                            BeckonErrorBanner(
-                                title: "Service Could Not Be Saved",
-                                message: errorMessage
-                            )
-                            .accessibilityIdentifier("groomer.services.form-error")
-                        }
                     }
-                    .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-                    .padding(.vertical, DesignTokens.Spacing.lg)
+
+                    GroomerWorkspaceSection(title: "Details") {
+                        GroomerServiceDetailsSection(store: store)
+                    }
+
+                    GroomerWorkspaceSection(title: "Accepted pet size") {
+                        GroomerServiceAcceptedPetSizeSection(store: store)
+                    }
+
+                    if let errorMessage = store.errorMessage {
+                        BeckonErrorBanner(
+                            title: "Service Could Not Be Saved",
+                            message: errorMessage
+                        )
+                        .accessibilityIdentifier("groomer.services.form-error")
+                    }
                 }
+                .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+                .padding(.top, DesignTokens.Spacing.lg)
+                .padding(.bottom, DesignTokens.Spacing.xl)
             }
+            .background(DesignTokens.Colors.background.ignoresSafeArea())
             .navigationTitle(store.serviceFormTitle)
             .navigationBarTitleDisplayMode(.inline)
             .scrollDismissesKeyboard(.interactively)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        store.cancelServiceForm()
-                    }
-                    .disabled(store.isSaving)
+                    Button("Cancel", action: cancel)
+                        .disabled(store.isSaving)
                 }
-
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
-                        Task {
-                            await store.saveService()
-                        }
-                    }
-                    .disabled(store.isSaving)
-                }
+            }
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                GroomerServiceSaveActionBar(
+                    presentation: presentation,
+                    save: saveService
+                )
             }
         }
         .interactiveDismissDisabled(store.isSaving)
+        .accessibilityIdentifier("groomer.services.form")
+    }
+
+    private func cancel() {
+        store.cancelServiceForm()
+    }
+
+    private func saveService() {
+        Task {
+            await store.saveService()
+        }
+    }
+}
+
+private struct GroomerServiceDetailsSection: View {
+    @Bindable var store: GroomerProfileStore
+
+    var body: some View {
+        GroomerGroupedSurface {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                GroomerProfileTextField(
+                    title: "Description",
+                    text: $store.serviceDescription,
+                    prompt: "What is included",
+                    axis: .vertical
+                )
+                .lineLimit(2...4)
+
+                GroomerWorkspaceDivider()
+
+                HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
+                    GroomerProfileTextField(
+                        title: "Base Price",
+                        text: $store.serviceBasePrice,
+                        prompt: "Price"
+                    )
+                    .keyboardType(.decimalPad)
+
+                    GroomerProfileTextField(
+                        title: "Minutes",
+                        text: $store.serviceDurationMinutes,
+                        prompt: "Duration"
+                    )
+                    .keyboardType(.numberPad)
+                }
+
+                GroomerWorkspaceDivider()
+
+                HStack(spacing: DesignTokens.Spacing.md) {
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                        Text("Visible to customers")
+                            .font(DesignTokens.Typography.body.weight(.semibold))
+                            .foregroundStyle(DesignTokens.Colors.textPrimary)
+
+                        Text("Hidden services remain saved for later.")
+                            .font(DesignTokens.Typography.caption)
+                            .foregroundStyle(DesignTokens.Colors.textSecondary)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                    Toggle("Visible to customers", isOn: $store.serviceIsActive)
+                        .labelsHidden()
+                        .tint(DesignTokens.Colors.groomerAccent)
+                }
+            }
+            .padding(DesignTokens.Spacing.lg)
+        }
     }
 }
 
@@ -302,102 +380,91 @@ private struct GroomerServiceAcceptedPetSizeSection: View {
     private let serviceSizes = GroomerServicePetSize.allCases
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            BeckonSectionHeader(
-                "Accepted Pet Size",
-                subtitle: "Default follows your Fit Signals size experience."
-            )
+        GroomerGroupedSurface {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                        Text("Custom service range")
+                            .font(DesignTokens.Typography.body.weight(.semibold))
+                            .foregroundStyle(DesignTokens.Colors.textPrimary)
 
-            BeckonCard {
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                    HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
-                        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                            Text("Custom Service Range")
-                                .font(DesignTokens.Typography.body.weight(.bold))
+                        Text(sizePolicySubtitle)
+                            .font(DesignTokens.Typography.caption)
+                            .foregroundStyle(DesignTokens.Colors.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                    Toggle(
+                        "Custom service range",
+                        isOn: Binding(
+                            get: { store.serviceUsesCustomSizeRange },
+                            set: { store.setServiceUsesCustomSizeRange($0) }
+                        )
+                    )
+                    .labelsHidden()
+                    .tint(DesignTokens.Colors.groomerAccent)
+                }
+
+                if store.serviceUsesCustomSizeRange {
+                    GroomerWorkspaceDivider()
+
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                        HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.md) {
+                            Text("Service range")
+                                .font(DesignTokens.Typography.body.weight(.semibold))
                                 .foregroundStyle(DesignTokens.Colors.textPrimary)
 
-                            Text(sizePolicySubtitle)
-                                .font(DesignTokens.Typography.caption)
-                                .foregroundStyle(DesignTokens.Colors.textSecondary)
-                                .fixedSize(horizontal: false, vertical: true)
+                            Spacer(minLength: DesignTokens.Spacing.md)
+
+                            Text(store.serviceSizeRangeTitle)
+                                .font(DesignTokens.Typography.caption.weight(.semibold))
+                                .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.72)
+                                .accessibilityIdentifier("groomer.services.size-range-title")
                         }
-                        .frame(maxWidth: .infinity, alignment: .leading)
 
-                        Toggle(
-                            "Custom Service Range",
-                            isOn: Binding(
-                                get: { store.serviceUsesCustomSizeRange },
-                                set: { store.setServiceUsesCustomSizeRange($0) }
-                            )
+                        GroomerSizeRangeSlider(
+                            lowerIndex: Binding(
+                                get: { store.selectedServiceSizeRange.lowerBound },
+                                set: { newValue in
+                                    store.setServiceAcceptedPetSizeRange(
+                                        lowerIndex: newValue,
+                                        upperIndex: store.selectedServiceSizeRange.upperBound
+                                    )
+                                }
+                            ),
+                            upperIndex: Binding(
+                                get: { store.selectedServiceSizeRange.upperBound },
+                                set: { newValue in
+                                    store.setServiceAcceptedPetSizeRange(
+                                        lowerIndex: store.selectedServiceSizeRange.lowerBound,
+                                        upperIndex: newValue
+                                    )
+                                }
+                            ),
+                            optionCount: serviceSizes.count,
+                            rangeTitle: store.serviceSizeRangeTitle,
+                            accessibilityIdentifier: "groomer.services.size-range-slider"
                         )
-                        .labelsHidden()
-                        .tint(DesignTokens.Colors.groomerAccent)
-                    }
 
-                    if store.serviceUsesCustomSizeRange {
-                        Divider()
-                            .overlay(DesignTokens.Colors.divider)
-
-                        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                            HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.md) {
-                                Text("Service Range")
-                                    .font(DesignTokens.Typography.body.weight(.bold))
-                                    .foregroundStyle(DesignTokens.Colors.textPrimary)
-
-                                Spacer(minLength: DesignTokens.Spacing.md)
-
-                                Text(store.serviceSizeRangeTitle)
-                                    .font(DesignTokens.Typography.caption.weight(.bold))
-                                    .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
+                        HStack(spacing: 0) {
+                            ForEach(serviceSizes) { size in
+                                Text(size.title)
+                                    .font(.caption2.weight(.semibold))
+                                    .foregroundStyle(DesignTokens.Colors.textTertiary)
                                     .lineLimit(1)
                                     .minimumScaleFactor(0.72)
-                                    .padding(.horizontal, DesignTokens.Spacing.sm)
-                                    .padding(.vertical, DesignTokens.Spacing.xs)
-                                    .background(DesignTokens.Colors.groomerAccent.opacity(0.12))
-                                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                                    .accessibilityIdentifier("groomer.services.size-range-title")
-                            }
-
-                            GroomerSizeRangeSlider(
-                                lowerIndex: Binding(
-                                    get: { store.selectedServiceSizeRange.lowerBound },
-                                    set: { newValue in
-                                        store.setServiceAcceptedPetSizeRange(
-                                            lowerIndex: newValue,
-                                            upperIndex: store.selectedServiceSizeRange.upperBound
-                                        )
-                                    }
-                                ),
-                                upperIndex: Binding(
-                                    get: { store.selectedServiceSizeRange.upperBound },
-                                    set: { newValue in
-                                        store.setServiceAcceptedPetSizeRange(
-                                            lowerIndex: store.selectedServiceSizeRange.lowerBound,
-                                            upperIndex: newValue
-                                        )
-                                    }
-                                ),
-                                optionCount: serviceSizes.count,
-                                rangeTitle: store.serviceSizeRangeTitle,
-                                accessibilityIdentifier: "groomer.services.size-range-slider"
-                            )
-
-                            HStack(spacing: 0) {
-                                ForEach(serviceSizes) { size in
-                                    Text(size.title)
-                                        .font(.caption2.weight(.semibold))
-                                        .foregroundStyle(DesignTokens.Colors.textTertiary)
-                                        .lineLimit(1)
-                                        .minimumScaleFactor(0.72)
-                                        .frame(maxWidth: .infinity)
-                                }
+                                    .frame(maxWidth: .infinity)
                             }
                         }
-                        .transition(.move(edge: .top).combined(with: .opacity))
                     }
+                    .transition(.move(edge: .top).combined(with: .opacity))
                 }
-                .animation(.easeInOut(duration: 0.2), value: store.serviceUsesCustomSizeRange)
             }
+            .padding(DesignTokens.Spacing.lg)
+            .animation(.easeInOut(duration: 0.2), value: store.serviceUsesCustomSizeRange)
         }
     }
 
@@ -406,5 +473,35 @@ private struct GroomerServiceAcceptedPetSizeSection: View {
             return store.serviceSizeRangeTitle
         }
         return "Following \(store.sizeBandFitClaimRangeTitle)"
+    }
+}
+
+private struct GroomerServiceSaveActionBar: View {
+    let presentation: GroomerServiceFormPresentation
+    let save: () -> Void
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Divider()
+                .overlay(DesignTokens.Colors.divider)
+
+            Button(action: save) {
+                if presentation.saveActionTitle == "Saving..." {
+                    HStack(spacing: DesignTokens.Spacing.sm) {
+                        ProgressView()
+                            .tint(DesignTokens.Colors.surface)
+                        Text(presentation.saveActionTitle)
+                    }
+                } else {
+                    Label(presentation.saveActionTitle, systemImage: "checkmark.circle")
+                }
+            }
+            .buttonStyle(BeckonPrimaryButtonStyle(accent: .groomer))
+            .disabled(presentation.isSaveDisabled)
+            .accessibilityIdentifier("groomer.services.save")
+            .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+            .padding(.vertical, DesignTokens.Spacing.md)
+        }
+        .background(DesignTokens.Colors.background)
     }
 }

@@ -186,6 +186,51 @@ struct GroomerAccountPresentationTests {
     }
 }
 
+struct GroomerServicesAvailabilityPresentationTests {
+    @Test
+    func serviceAndAvailabilitySummariesDescribeCurrentConfiguration() {
+        let services = GroomerServicesWorkspacePresentation(serviceCount: 3)
+        let availability = GroomerAvailabilityWorkspacePresentation(
+            enabledDayCount: 5,
+            maxAppointmentsPerDay: 6,
+            minimumAdvanceNoticeDays: 2,
+            isSaving: false,
+            isBusy: false
+        )
+
+        #expect(services.summary == "3 services")
+        #expect(availability.openDaysSummary == "5 days open")
+        #expect(availability.capacitySummary == "6 appointments per day")
+        #expect(availability.advanceNoticeSummary == "2 days notice")
+        #expect(availability.saveActionTitle == "Save Availability")
+        #expect(availability.isSaveDisabled == false)
+    }
+
+    @Test
+    func stableSaveActionsReflectBusyStatesWithoutChangingConfiguration() {
+        let emptyServices = GroomerServicesWorkspacePresentation(serviceCount: 0)
+        let savingAvailability = GroomerAvailabilityWorkspacePresentation(
+            enabledDayCount: 0,
+            maxAppointmentsPerDay: 4,
+            minimumAdvanceNoticeDays: 0,
+            isSaving: true,
+            isBusy: true
+        )
+        let savingService = GroomerServiceFormPresentation(
+            isSaving: true,
+            isBusy: true
+        )
+
+        #expect(emptyServices.summary == "No services")
+        #expect(savingAvailability.openDaysSummary == "No open days")
+        #expect(savingAvailability.advanceNoticeSummary == "Same-day notice")
+        #expect(savingAvailability.saveActionTitle == "Saving...")
+        #expect(savingAvailability.isSaveDisabled)
+        #expect(savingService.saveActionTitle == "Saving...")
+        #expect(savingService.isSaveDisabled)
+    }
+}
+
 struct GroomerProfileStoreTests {
     @Test @MainActor
     func loadPopulatesProfileServicesAndPortfolio() async {

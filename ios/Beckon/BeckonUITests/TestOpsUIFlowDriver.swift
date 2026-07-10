@@ -155,6 +155,14 @@ final class TestOpsUIFlowDriver {
             app.buttons["groomer.account.edit-profile"].waitForExistence(timeout: 5),
             "Expected Groomer Account to expose the Edit Profile entry."
         )
+        XCTAssertTrue(
+            app.buttons["groomer.account.services"].exists,
+            "Expected Groomer Account to expose the Services entry."
+        )
+        XCTAssertTrue(
+            app.buttons["groomer.account.availability"].exists,
+            "Expected Groomer Account to expose the Availability entry."
+        )
         assertTab("groomer.tab.home", destination: "groomer.home")
     }
 

@@ -106,3 +106,73 @@ nonisolated struct GroomerProfileEditorPresentation: Equatable, Sendable {
         isActionDisabled = isBusy
     }
 }
+
+nonisolated struct GroomerServicesWorkspacePresentation: Equatable, Sendable {
+    let summary: String
+
+    init(serviceCount: Int) {
+        let count = max(0, serviceCount)
+        summary = switch count {
+        case 0:
+            "No services"
+        case 1:
+            "1 service"
+        default:
+            "\(count) services"
+        }
+    }
+}
+
+nonisolated struct GroomerAvailabilityWorkspacePresentation: Equatable, Sendable {
+    let openDaysSummary: String
+    let capacitySummary: String
+    let advanceNoticeSummary: String
+    let saveActionTitle: String
+    let isSaveDisabled: Bool
+
+    init(
+        enabledDayCount: Int,
+        maxAppointmentsPerDay: Int,
+        minimumAdvanceNoticeDays: Int,
+        isSaving: Bool,
+        isBusy: Bool
+    ) {
+        let openDays = max(0, enabledDayCount)
+        openDaysSummary = switch openDays {
+        case 0:
+            "No open days"
+        case 1:
+            "1 day open"
+        default:
+            "\(openDays) days open"
+        }
+
+        let capacity = max(1, maxAppointmentsPerDay)
+        capacitySummary = capacity == 1
+            ? "1 appointment per day"
+            : "\(capacity) appointments per day"
+
+        let noticeDays = min(max(minimumAdvanceNoticeDays, 0), 2)
+        advanceNoticeSummary = switch noticeDays {
+        case 0:
+            "Same-day notice"
+        case 1:
+            "1 day notice"
+        default:
+            "\(noticeDays) days notice"
+        }
+
+        saveActionTitle = isSaving ? "Saving..." : "Save Availability"
+        isSaveDisabled = isBusy
+    }
+}
+
+nonisolated struct GroomerServiceFormPresentation: Equatable, Sendable {
+    let saveActionTitle: String
+    let isSaveDisabled: Bool
+
+    init(isSaving: Bool, isBusy: Bool) {
+        saveActionTitle = isSaving ? "Saving..." : "Save Service"
+        isSaveDisabled = isBusy
+    }
+}

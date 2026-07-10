@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-10
+Task: T-256 - Groomer Services and Availability presentation.
+Files changed: Services/Availability presentation models; compact grouped service, availability, booking-preference, and time-off editors; focused presentation/Store/TestOps tests; roadmap/memory closeout.
+Checks: Presentation RED-GREEN; focused Groomer Profile Store tests; full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; live 368x800 Services list/form and Availability/Time Off inspection; `git diff --check`; preflight/context hygiene.
+Result: Q-102 is complete. Services now uses a compact grouped menu and focused stable-save form. Availability uses grouped weekly hours, existing daily capacity/advance-notice/auto-ready preferences, and time off in one native-back, tab-free editor; all existing Store mutations and feedback remain the single behavior path.
+Risks: Q-103 and Q-104 retain fit/evidence/portfolio and cross-screen viewport/state/accessibility regression work. This task adds no schema, repository, Storage, backend, or remote state change.
+Next: Start Q-103 as T-257 on explicit continuation.
+```
+
+```text
+Date: 2026-07-10
 Task: T-255 - Groomer Account and Edit Profile presentation.
 Files changed: Groomer Account/Edit Profile presentation models; grouped Account surfaces and truthful live summaries; focused profile save shell; TestOps Account selector; roadmap/memory closeout.
 Checks: Presentation RED-GREEN; full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; live 368x800 Account and Edit Profile inspection, back/tab-bar/save-selector verification; `git diff --check`; preflight/context hygiene.
 Result: Q-101 is complete. Account now uses Business, Matching & Schedule, and Support grouped rows with live summary text. Edit Profile removes duplicate headers/nested cards, hides the tab bar, retains one native Back action, and fixes Save Profile in one stable bottom action area.
 Risks: Q-102 through Q-104 retain Services/Availability, Fit/Evidence/Portfolio, and cross-screen viewport/state/accessibility regression work. Existing profile save and upload behavior remains Store-owned; no backend or remote state changed.
-Next: Start Q-102 as T-256 on explicit continuation.
 ```
 
 ```text
