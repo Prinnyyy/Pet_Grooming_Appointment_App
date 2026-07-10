@@ -15,23 +15,23 @@ Source: T-202 adopted root review input `../../V1.0_RELEASE_TASK_PLAN.md`; that 
 - Q-90, Q-91, T-157, and the `customer_push_tokens` advisor finding are excluded from this remediation sequence because they depend on APNs or paid Apple Developer capabilities.
 - Q-01...Q-43 are complete and mapped in `ROADMAP.md`.
 - T-243 approved the Beckon identity contract in `BECKON_BRAND_MIGRATION.md`; Q-94/T-246, Q-95/T-247, and Q-96/T-248 are complete.
-- T-249 approved `../08_design/GROOMER_UI_REDESIGN.md`; T-250 completed Q-97, T-252 completed Q-98, T-253 completed Q-99, and T-254 completed Q-100. Q-101 through Q-104 continue R-039 without backend or remote writes.
+- T-249 approved `../08_design/GROOMER_UI_REDESIGN.md`; T-250 completed Q-97, T-252 completed Q-98, T-253 completed Q-99, T-254 completed Q-100, and T-255 completed Q-101. Q-102 through Q-104 continue R-039 without backend or remote writes.
 
 ## Queue
 
 | Order | Roadmap | Package | Scope / Exit |
 |---|---|---|---|
-| Q-101 | R-039 | Account and Edit Profile | Make Account a direct tab, group business/settings rows, hide the tab bar in Edit Profile, and provide one back action plus stable save bar. |
 | Q-102 | R-039 | Services and Availability | Apply the focused editor shell and compact grouped rows while preserving service overrides, weekly hours, booking preferences, and time off. |
 | Q-103 | R-039 | Fit Signals, Evidence, and Portfolio | Apply the approved density/image hierarchy while preserving size range, fit selection, evidence, upload/replace/delete, and cache behavior. |
 | Q-104 | R-039 | Groomer UI integration gate | Verify compact/large viewports, Dynamic Type, state matrix, accessibility, selector TestOps, full iOS tests/build, and no More/duplicate navigation. |
 
-Q-101 is the first dependency-satisfied product package and receives the next available `T-###` only when started.
+Q-102 is the first dependency-satisfied product package and receives the next available `T-###` only when started.
 
 ## Completed Groomer Package
 
 | Order | Roadmap | Package | Result |
 |---|---|---|---|
+| Q-101 | R-039 | Account and Edit Profile | Complete T-255: direct Account tab with Business, Matching & Schedule, and Support groups; truthful live summaries; focused Edit Profile with one Back action, hidden tab bar, stable Save Profile bar, preserved feedback, and stable selectors. |
 | Q-100 | R-039 | Messages and Notifications | Complete T-254: Groomer-only grouped conversations and notifications, preserved unread/pagination/thread/read/Home-route behavior, stable row selectors, and trailing list inset above the tab bar. |
 | Q-99 | R-039 | Schedule and Groomer booking presentation | Complete T-253: fixed date controls, one truthful empty state or populated-day summary, grouped operational rows, and role-correct booking Cancel/Complete actions. |
 | Q-98 | R-039 | Requests and Offers workspace | Complete T-252: live-count segmentation, grouped match/offer rows, correct Home/notification routes, focused IDs, request detail/action hierarchy, and preserved pagination/mutations. |

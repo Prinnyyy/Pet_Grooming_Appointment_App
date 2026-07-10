@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-10
+Task: T-255 - Groomer Account and Edit Profile presentation.
+Files changed: Groomer Account/Edit Profile presentation models; grouped Account surfaces and truthful live summaries; focused profile save shell; TestOps Account selector; roadmap/memory closeout.
+Checks: Presentation RED-GREEN; full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; live 368x800 Account and Edit Profile inspection, back/tab-bar/save-selector verification; `git diff --check`; preflight/context hygiene.
+Result: Q-101 is complete. Account now uses Business, Matching & Schedule, and Support grouped rows with live summary text. Edit Profile removes duplicate headers/nested cards, hides the tab bar, retains one native Back action, and fixes Save Profile in one stable bottom action area.
+Risks: Q-102 through Q-104 retain Services/Availability, Fit/Evidence/Portfolio, and cross-screen viewport/state/accessibility regression work. Existing profile save and upload behavior remains Store-owned; no backend or remote state changed.
+Next: Start Q-102 as T-256 on explicit continuation.
+```
+
+```text
+Date: 2026-07-10
 Task: T-254 - Groomer Messages and Notifications presentation.
 Files changed: Groomer conversation/notification presentation models; Groomer-only grouped Messages and Notifications views; focused Chat/Notification tests; roadmap/memory closeout.
 Checks: Presentation RED-GREEN; focused Chat/Notification tests; full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; live compact Groomer Messages, thread navigation, Home notification entry, notification deep link, accessibility-selector inspection, and long-list scroll inspection; `git diff --check`; preflight/context hygiene.
 Result: Q-100 is complete. Groomer Messages uses a compact grouped conversation surface with booking context and preserved request selectors. Notifications uses the same grouped density, retains mark-read/mark-all/pagination, preserves direct routes from Home, and gives long lists enough trailing scroll space above the tab bar.
 Risks: Existing TestOps UI lifecycle tests retain their configured skips. Q-104 retains the full viewport, Dynamic Type, and state-matrix integration gate. No backend or remote write changed.
-Next: Start Q-101 as T-255 on explicit continuation.
 ```
 
 ```text

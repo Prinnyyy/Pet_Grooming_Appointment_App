@@ -65,7 +65,7 @@ The sequence explicitly excludes APNs dispatch, `customer_push_tokens` advisor n
 
 T-249 adopts R-039 from the user-approved visual direction in `../08_design/GROOMER_UI_REDESIGN.md`. The design keeps the Customer-side Beckon foundation while making Groomer schedule/action oriented. It replaces the current six-tab/system-More structure with Home, Requests, Schedule, Messages, and Account; Offers becomes a Requests segment and Notifications opens from Home.
 
-Q-97/T-250, Q-98/T-252, Q-99/T-253, and Q-100/T-254 are complete; Q-101 through Q-104 remain local iOS packages. They preserve existing repositories, marketplace state transitions, authenticated images, feedback, pagination, accessibility, and TestOps behavior. No Supabase migration, remote write, dependency, or deferred product feature is included.
+Q-97/T-250, Q-98/T-252, Q-99/T-253, Q-100/T-254, and Q-101/T-255 are complete; Q-102 through Q-104 remain local iOS packages. They preserve existing repositories, marketplace state transitions, authenticated images, feedback, pagination, accessibility, and TestOps behavior. No Supabase migration, remote write, dependency, or deferred product feature is included.
 
 ## Milestones
 
@@ -83,7 +83,7 @@ Q-97/T-250, Q-98/T-252, Q-99/T-253, and Q-100/T-254 are complete; Q-101 through 
 | M9 Backend remediation | Resolve non-Apple backend parity and advisor findings with evidence before writes. | Q-34 through Q-37 complete T-228/T-231/T-234/T-235. | Groomer in-app notifications have remote parity, index changes are justified, and remote TestOps evidence passes with cleanup. |
 | M10 UI verification and list scale | Complete no-screenshot lifecycle automation and visible pagination. | Q-38 through Q-42 complete T-230/T-236/T-237/T-238/T-239. | Supported lists advance beyond page one and the seeded dual-role UI lifecycle passes end to end. |
 | M11 Beckon identity | Replace the legacy brand/project identity across active local and remote surfaces. | Complete Q-94/T-246, Q-95/T-247, and Q-96/T-248. | Approved Beckon identity is consistent in app/source/workflow/remote state and full regression evidence passes. |
-| M12 Groomer workspace | Make Groomer operationally clear while preserving the shared Beckon product language. | Design T-249, Q-97/T-250, Q-98/T-252, Q-99/T-253, and Q-100/T-254 complete; Q-101 through Q-104 queued. | Five direct tabs, approved screen hierarchy, focused editors, selector-based regressions, and compact/large viewport QA pass. |
+| M12 Groomer workspace | Make Groomer operationally clear while preserving the shared Beckon product language. | Design T-249, Q-97/T-250, Q-98/T-252, Q-99/T-253, Q-100/T-254, and Q-101/T-255 complete; Q-102 through Q-104 queued. | Five direct tabs, approved screen hierarchy, focused editors, selector-based regressions, and compact/large viewport QA pass. |
 | D Apple external blockers | Track APNs and release work that requires paid Apple capabilities. | Excluded Q-90 and Q-91 remain blocked. | Only starts after credentials and explicit authorization exist. |
 | E Non-Apple service blockers | Track production Auth services that require external credentials or a plan decision. | Q-92 complete T-242; Q-93 blocked. | Supabase Pro capability plus explicit Auth authorization exists. |
 

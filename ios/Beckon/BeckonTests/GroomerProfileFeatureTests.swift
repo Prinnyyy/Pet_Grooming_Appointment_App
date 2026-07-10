@@ -122,6 +122,70 @@ struct BeckonModuleImageLayoutTests {
     }
 }
 
+struct GroomerAccountPresentationTests {
+    @Test
+    func accountSummariesUseLoadedProfileDataWithoutInventingState() {
+        let presentation = GroomerAccountPresentation(
+            city: "Fullerton",
+            state: "CA",
+            fallbackDetail: "New profile",
+            hasProfile: true,
+            isProfileActive: true,
+            serviceCount: 3,
+            activeServiceCount: 2,
+            portfolioPhotoCount: 8,
+            enabledAvailabilityDayCount: 5,
+            selectedFitSignalCount: 6,
+            evidenceSignalCount: 2
+        )
+
+        #expect(presentation.identitySubtitle == "Fullerton, CA")
+        #expect(presentation.profileSummary == "Active")
+        #expect(presentation.servicesSummary == "2 active")
+        #expect(presentation.portfolioSummary == "8 photos")
+        #expect(presentation.availabilitySummary == "5 days open")
+        #expect(presentation.fitSignalsSummary == "6 selected")
+        #expect(presentation.evidenceSummary == "2 signals")
+    }
+
+    @Test
+    func accountAndSavePresentationsKeepIncompleteAndBusyStatesTruthful() {
+        let incomplete = GroomerAccountPresentation(
+            city: "",
+            state: nil,
+            fallbackDetail: "New profile",
+            hasProfile: false,
+            isProfileActive: false,
+            serviceCount: 1,
+            activeServiceCount: 0,
+            portfolioPhotoCount: 0,
+            enabledAvailabilityDayCount: 0,
+            selectedFitSignalCount: 0,
+            evidenceSignalCount: 0
+        )
+        let readySave = GroomerProfileEditorPresentation(
+            isSaving: false,
+            isBusy: false
+        )
+        let saving = GroomerProfileEditorPresentation(
+            isSaving: true,
+            isBusy: true
+        )
+
+        #expect(incomplete.identitySubtitle == "New profile")
+        #expect(incomplete.profileSummary == "Set up")
+        #expect(incomplete.servicesSummary == "No active services")
+        #expect(incomplete.portfolioSummary == "No photos")
+        #expect(incomplete.availabilitySummary == "No availability")
+        #expect(incomplete.fitSignalsSummary == "No signals")
+        #expect(incomplete.evidenceSummary == "No evidence")
+        #expect(readySave.actionTitle == "Save Profile")
+        #expect(readySave.isActionDisabled == false)
+        #expect(saving.actionTitle == "Saving...")
+        #expect(saving.isActionDisabled)
+    }
+}
+
 struct GroomerProfileStoreTests {
     @Test @MainActor
     func loadPopulatesProfileServicesAndPortfolio() async {

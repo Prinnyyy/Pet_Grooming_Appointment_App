@@ -6,28 +6,37 @@ struct GroomerProfileEditorView: View {
     @Bindable var store: GroomerProfileStore
 
     var body: some View {
+        let presentation = GroomerProfileEditorPresentation(
+            isSaving: store.isSaving,
+            isBusy: store.isBusy
+        )
+
         ScrollView {
             LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                BeckonSectionHeader(
-                    "Profile Details",
-                    subtitle: "Update the public details customers see before they book."
-                )
-
                 GroomerAvatarEditorSection(store: store)
                 GroomerProfileFormSection(store: store)
             }
             .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
             .padding(.top, DesignTokens.Spacing.lg)
-            .padding(.bottom, 120)
+            .padding(.bottom, DesignTokens.Spacing.xl)
         }
+        .accessibilityIdentifier("groomer.profile.edit")
         .background(DesignTokens.Colors.background.ignoresSafeArea())
         .navigationTitle("Edit Profile")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.hidden, for: .tabBar)
         .scrollDismissesKeyboard(.interactively)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            GroomerProfileSaveActionBar(
+                presentation: presentation,
+                save: {
+                    await store.saveProfile()
+                }
+            )
+        }
         .background {
             GroomerProfileStatusView(store: store)
         }
-        .accessibilityIdentifier("groomer.profile.edit")
     }
 }
 
@@ -41,50 +50,46 @@ private struct GroomerAvatarEditorSection: View {
         let photoActionTitle = hasSavedPhoto ? "Replace Photo" : "Upload Photo"
         let isBusy = store.isBusy
 
-        BeckonCard {
-            HStack(alignment: .center, spacing: DesignTokens.Spacing.lg) {
-                ZStack(alignment: .bottomTrailing) {
-                    GroomerAvatarImage(
-                        data: store.avatarPhotoData,
-                        size: 94,
-                        cornerRadius: 28,
-                        placeholderSize: 38
-                    )
+        HStack(alignment: .center, spacing: DesignTokens.Spacing.lg) {
+            ZStack(alignment: .bottomTrailing) {
+                GroomerAvatarImage(
+                    data: store.avatarPhotoData,
+                    size: 88,
+                    cornerRadius: 44,
+                    placeholderSize: 34
+                )
 
-                    if hasSavedPhoto {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 22, weight: .bold))
-                            .foregroundStyle(DesignTokens.Colors.success)
-                            .background(Circle().fill(DesignTokens.Colors.surface))
-                            .accessibilityLabel("Profile photo saved")
-                    }
+                if hasSavedPhoto {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.body.weight(.bold))
+                        .foregroundStyle(DesignTokens.Colors.success)
+                        .background(Circle().fill(DesignTokens.Colors.surface))
+                        .accessibilityLabel("Profile photo saved")
                 }
-                .accessibilityHidden(true)
-
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                        Text("Profile Photo")
-                            .font(DesignTokens.Typography.headline)
-                            .foregroundStyle(DesignTokens.Colors.textPrimary)
-
-                        Text(photoStatusText)
-                            .font(DesignTokens.Typography.caption)
-                            .foregroundStyle(DesignTokens.Colors.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-
-                    PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
-                        Label(
-                            photoActionTitle,
-                            systemImage: "camera"
-                        )
-                    }
-                    .buttonStyle(BeckonSecondaryButtonStyle(accent: .groomer))
-                    .disabled(isBusy)
-                    .accessibilityIdentifier("groomer.profile.avatar.upload")
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
             }
+            .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                Text("Profile photo")
+                    .font(DesignTokens.Typography.headline)
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+
+                Text(photoStatusText)
+                    .font(DesignTokens.Typography.caption)
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
+                    Label(
+                        photoActionTitle,
+                        systemImage: "camera"
+                    )
+                }
+                .buttonStyle(BeckonSecondaryButtonStyle(accent: .groomer, isFullWidth: false))
+                .disabled(isBusy)
+                .accessibilityIdentifier("groomer.profile.avatar.upload")
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .onChange(of: selectedPhotoItem) { _, newItem in
             guard let newItem else { return }
@@ -126,22 +131,9 @@ private struct GroomerProfileFormSection: View {
     @Bindable var store: GroomerProfileStore
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                BeckonSectionHeader(
-                    "Marketplace Profile",
-                    subtitle: "Complete these fields before making your profile active."
-                ) {
-                    if let profile = store.profile {
-                        BeckonStatusChip(
-                            profile.isActive ? "Active" : "Hidden",
-                            systemImage: profile.isActive ? "checkmark.circle.fill" : "eye.slash",
-                            tone: profile.isActive ? .success : .neutral
-                        )
-                    }
-                }
-
-                BeckonCard {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
+            GroomerWorkspaceSection(title: "Business details") {
+                GroomerGroupedSurface {
                     VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
                         GroomerProfileTextField(
                             title: "Business Name",
@@ -160,46 +152,31 @@ private struct GroomerProfileFormSection: View {
 
                         GroomerExperiencePicker(selection: $store.yearsExperience)
                     }
+                    .padding(DesignTokens.Spacing.lg)
                 }
             }
 
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                BeckonSectionHeader(
-                    "Address",
-                    subtitle: "Use the address customers visit, or your base address for mobile appointments."
-                )
-
-                BeckonCard {
-                    GroomerProfileAddressFields(
-                        streetAddress: $store.baseStreetAddress,
-                        city: $store.baseCity,
-                        stateCode: $store.baseStateCode,
-                        zipCode: $store.baseZipCode
-                    )
-                }
-            }
-
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                BeckonSectionHeader(
-                    "Service Settings",
-                    subtitle: "Choose where you work and how far you travel."
-                )
-
-                BeckonCard {
+            GroomerWorkspaceSection(title: "Service area") {
+                GroomerGroupedSurface {
                     VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                        GroomerProfileAddressFields(
+                            streetAddress: $store.baseStreetAddress,
+                            city: $store.baseCity,
+                            stateCode: $store.baseStateCode,
+                            zipCode: $store.baseZipCode
+                        )
+
+                        GroomerWorkspaceDivider()
+
                         GroomerProfileRadiusSlider(radius: $store.serviceRadiusMiles)
                         GroomerProfileLocationModePicker(selection: $store.serviceLocationModes)
                     }
+                    .padding(DesignTokens.Spacing.lg)
                 }
             }
 
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                BeckonSectionHeader(
-                    "Profile Visibility",
-                    subtitle: "Turn this on when your profile is ready to receive customers."
-                )
-
-                BeckonCard {
+            GroomerWorkspaceSection(title: "Visibility") {
+                GroomerGroupedSurface {
                     VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
                         BeckonToggleRow(
                             title: "Visible to Authenticated Customers",
@@ -212,27 +189,9 @@ private struct GroomerProfileFormSection: View {
                             ProfileBadges(profile: profile)
                         }
                     }
+                    .padding(DesignTokens.Spacing.lg)
                 }
             }
-
-            Button {
-                Task {
-                    await store.saveProfile()
-                }
-            } label: {
-                if store.isSaving {
-                    HStack(spacing: DesignTokens.Spacing.sm) {
-                        ProgressView()
-                            .tint(DesignTokens.Colors.surface)
-                        Text("Saving…")
-                    }
-                } else {
-                    Label("Save Profile", systemImage: "checkmark.circle")
-                }
-            }
-            .buttonStyle(BeckonPrimaryButtonStyle(accent: .groomer))
-            .disabled(store.isBusy)
-            .accessibilityIdentifier("groomer.profile.save")
 
             if store.profile == nil {
                 Text("Save your profile once these details are ready.")
@@ -241,6 +200,40 @@ private struct GroomerProfileFormSection: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
+    }
+}
+
+private struct GroomerProfileSaveActionBar: View {
+    let presentation: GroomerProfileEditorPresentation
+    let save: () async -> Void
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Divider()
+                .overlay(DesignTokens.Colors.divider)
+
+            Button {
+                Task {
+                    await save()
+                }
+            } label: {
+                if presentation.actionTitle == "Saving..." {
+                    HStack(spacing: DesignTokens.Spacing.sm) {
+                        ProgressView()
+                            .tint(DesignTokens.Colors.surface)
+                        Text(presentation.actionTitle)
+                    }
+                } else {
+                    Label(presentation.actionTitle, systemImage: "checkmark.circle")
+                }
+            }
+            .buttonStyle(BeckonPrimaryButtonStyle(accent: .groomer))
+            .disabled(presentation.isActionDisabled)
+            .accessibilityIdentifier("groomer.profile.save")
+            .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+            .padding(.vertical, DesignTokens.Spacing.md)
+        }
+        .background(DesignTokens.Colors.background)
     }
 }
 
@@ -343,9 +336,6 @@ private struct GroomerProfileRadiusSlider: View {
                 .font(DesignTokens.Typography.caption)
                 .foregroundStyle(DesignTokens.Colors.textSecondary)
         }
-        .padding(DesignTokens.Spacing.md)
-        .background(DesignTokens.Colors.borderSoft.opacity(0.32))
-        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input, style: .continuous))
     }
 }
 

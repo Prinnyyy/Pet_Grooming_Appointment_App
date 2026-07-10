@@ -7,96 +7,107 @@ struct GroomerAccountHomeView: View {
     let onSignOut: (() -> Void)?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+        let presentation = GroomerAccountPresentation(
+            city: store.profile?.baseCity,
+            state: store.profile?.baseState,
+            fallbackDetail: store.profileDetailText,
+            hasProfile: store.profile != nil,
+            isProfileActive: store.profile?.isActive ?? false,
+            serviceCount: store.services.count,
+            activeServiceCount: store.services.filter(\.isActive).count,
+            portfolioPhotoCount: store.portfolioPhotos.count,
+            enabledAvailabilityDayCount: store.availabilityWindows.filter(\.isEnabled).count,
+            selectedFitSignalCount: store.selectedFitClaimIDs.count,
+            evidenceSignalCount: store.petFitEvidenceSummary.count
+        )
+
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
             Text("Account")
-                .font(.system(size: 36, weight: .bold))
+                .font(DesignTokens.Typography.largeTitle)
                 .foregroundStyle(DesignTokens.Colors.textPrimary)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.top, DesignTokens.Spacing.sm)
 
-            GroomerAccountProfileCard(
+            GroomerAccountProfileHeader(
                 displayName: store.profileDisplayName,
-                detailText: store.profileDetailText,
+                detailText: presentation.identitySubtitle,
                 avatarPhotoData: store.avatarPhotoData
             )
 
-            VStack(spacing: 0) {
-                GroomerAccountMenuLink(
-                    title: "Edit Profile",
-                    systemImage: "pencil",
-                    isFirst: true
-                ) {
-                    GroomerProfileEditorView(store: store)
-                }
+            GroomerWorkspaceSection(title: "Business") {
+                GroomerAccountMenuSurface {
+                    GroomerAccountMenuLink(
+                        title: "Edit Profile",
+                        summary: presentation.profileSummary,
+                        systemImage: "pencil",
+                        accessibilityIdentifier: "groomer.account.edit-profile"
+                    ) {
+                        GroomerProfileEditorView(store: store)
+                    }
 
-                Divider()
-                    .overlay(DesignTokens.Colors.divider)
-                    .padding(.leading, 72)
+                    GroomerWorkspaceDivider(leadingInset: 64)
 
-                GroomerAccountMenuLink(
-                    title: "Services",
-                    systemImage: "scissors"
-                ) {
-                    GroomerServicesEditorView(store: store)
-                }
+                    GroomerAccountMenuLink(
+                        title: "Services",
+                        summary: presentation.servicesSummary,
+                        systemImage: "scissors",
+                        accessibilityIdentifier: "groomer.account.services"
+                    ) {
+                        GroomerServicesEditorView(store: store)
+                    }
 
-                Divider()
-                    .overlay(DesignTokens.Colors.divider)
-                    .padding(.leading, 72)
+                    GroomerWorkspaceDivider(leadingInset: 64)
 
-                GroomerAccountMenuLink(
-                    title: "Availability",
-                    systemImage: "calendar"
-                ) {
-                    GroomerAvailabilityEditorView(store: store)
-                }
-
-                Divider()
-                    .overlay(DesignTokens.Colors.divider)
-                    .padding(.leading, 72)
-
-                GroomerAccountMenuLink(
-                    title: "Fit Signals",
-                    systemImage: "sparkles"
-                ) {
-                    GroomerFitSignalsEditorView(store: store)
-                }
-
-                Divider()
-                    .overlay(DesignTokens.Colors.divider)
-                    .padding(.leading, 72)
-
-                GroomerAccountMenuLink(
-                    title: "Portfolio",
-                    systemImage: "photo.on.rectangle"
-                ) {
-                    GroomerPortfolioEditorView(store: store)
-                }
-
-                Divider()
-                    .overlay(DesignTokens.Colors.divider)
-                    .padding(.leading, 72)
-
-                GroomerAccountMenuLink(
-                    title: "Evidence Dashboard",
-                    systemImage: "chart.bar.xaxis",
-                    isLast: true
-                ) {
-                    GroomerEvidenceDashboardView(store: store)
+                    GroomerAccountMenuLink(
+                        title: "Portfolio",
+                        summary: presentation.portfolioSummary,
+                        systemImage: "photo.on.rectangle",
+                        accessibilityIdentifier: "groomer.account.portfolio"
+                    ) {
+                        GroomerPortfolioEditorView(store: store)
+                    }
                 }
             }
-            .background(DesignTokens.Colors.surface)
-            .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: 28, style: .continuous)
-                    .stroke(DesignTokens.Colors.borderSoft, lineWidth: 1)
+
+            GroomerWorkspaceSection(title: "Matching & Schedule") {
+                GroomerAccountMenuSurface {
+                    GroomerAccountMenuLink(
+                        title: "Availability",
+                        summary: presentation.availabilitySummary,
+                        systemImage: "calendar",
+                        accessibilityIdentifier: "groomer.account.availability"
+                    ) {
+                        GroomerAvailabilityEditorView(store: store)
+                    }
+
+                    GroomerWorkspaceDivider(leadingInset: 64)
+
+                    GroomerAccountMenuLink(
+                        title: "Fit Signals",
+                        summary: presentation.fitSignalsSummary,
+                        systemImage: "sparkles",
+                        accessibilityIdentifier: "groomer.account.fit-signals"
+                    ) {
+                        GroomerFitSignalsEditorView(store: store)
+                    }
+
+                    GroomerWorkspaceDivider(leadingInset: 64)
+
+                    GroomerAccountMenuLink(
+                        title: "Evidence",
+                        summary: presentation.evidenceSummary,
+                        systemImage: "chart.bar.xaxis",
+                        accessibilityIdentifier: "groomer.account.evidence"
+                    ) {
+                        GroomerEvidenceDashboardView(store: store)
+                    }
+                }
             }
 
-            AccountReleaseLinksSection()
-                .padding(.top, DesignTokens.Spacing.lg)
+            GroomerWorkspaceSection(title: "Support") {
+                GroomerAccountSupportSurface()
+            }
 
             signOutControl
-                .padding(.top, DesignTokens.Spacing.lg)
         }
     }
 
@@ -129,51 +140,60 @@ struct GroomerAccountHomeView: View {
     }
 }
 
-private struct GroomerAccountProfileCard: View {
+private struct GroomerAccountProfileHeader: View {
     let displayName: String
     let detailText: String
     let avatarPhotoData: Data?
 
     var body: some View {
-        BeckonCard(padding: DesignTokens.Spacing.lg) {
-            HStack(spacing: DesignTokens.Spacing.lg) {
-                GroomerAvatarImage(
-                    data: avatarPhotoData,
-                    size: 84,
-                    cornerRadius: 24,
-                    placeholderSize: 34
+        HStack(spacing: DesignTokens.Spacing.lg) {
+            GroomerAvatarImage(
+                data: avatarPhotoData,
+                size: 76,
+                cornerRadius: 38,
+                placeholderSize: 30
+            )
+
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                Text(displayName)
+                    .font(DesignTokens.Typography.title)
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Text(detailText)
+                    .font(DesignTokens.Typography.body)
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+
+                BeckonStatusChip(
+                    "Groomer",
+                    systemImage: "scissors",
+                    tone: .groomer
                 )
-
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                    Text(displayName)
-                        .font(.system(size: 25, weight: .bold))
-                        .foregroundStyle(DesignTokens.Colors.textPrimary)
-                        .lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
-
-                    Text(detailText)
-                        .font(DesignTokens.Typography.body)
-                        .foregroundStyle(DesignTokens.Colors.textSecondary)
-
-                    BeckonStatusChip(
-                        "Groomer",
-                        systemImage: "scissors",
-                        tone: .groomer
-                    )
-                    .padding(.top, DesignTokens.Spacing.xs)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .accessibilityElement(children: .combine)
     }
 }
 
+private struct GroomerAccountMenuSurface<Content: View>: View {
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        GroomerGroupedSurface {
+            VStack(spacing: 0) {
+                content()
+            }
+        }
+    }
+}
+
 private struct GroomerAccountMenuLink<Destination: View>: View {
     let title: String
+    let summary: String
     let systemImage: String
-    var isFirst = false
-    var isLast = false
+    let accessibilityIdentifier: String
     @ViewBuilder let destination: () -> Destination
 
     var body: some View {
@@ -182,26 +202,91 @@ private struct GroomerAccountMenuLink<Destination: View>: View {
         } label: {
             HStack(spacing: DesignTokens.Spacing.md) {
                 Image(systemName: systemImage)
-                    .font(.system(size: 22, weight: .semibold))
-                    .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
-                    .frame(width: 36)
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                    .frame(width: 28)
                     .accessibilityHidden(true)
 
-                Text(title)
-                    .font(.system(size: 21, weight: .bold))
-                    .foregroundStyle(DesignTokens.Colors.textPrimary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(DesignTokens.Typography.body.weight(.semibold))
+                        .foregroundStyle(DesignTokens.Colors.textPrimary)
+
+                    Text(summary)
+                        .font(DesignTokens.Typography.caption)
+                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
 
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(.caption.weight(.semibold))
                     .foregroundStyle(DesignTokens.Colors.textTertiary)
                     .accessibilityHidden(true)
             }
             .padding(.horizontal, DesignTokens.Spacing.lg)
-            .padding(.vertical, 24)
+            .padding(.vertical, DesignTokens.Spacing.md)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier(accessibilityIdentifier)
+    }
+}
+
+private struct GroomerAccountSupportSurface: View {
+    var body: some View {
+        GroomerGroupedSurface {
+            VStack(spacing: 0) {
+                GroomerAccountExternalLink(
+                    title: "Privacy Policy",
+                    systemImage: "hand.raised",
+                    destination: AppReleaseLinks.privacyPolicy,
+                    accessibilityIdentifier: "account.privacy-policy"
+                )
+
+                GroomerWorkspaceDivider(leadingInset: 64)
+
+                GroomerAccountExternalLink(
+                    title: "Support",
+                    systemImage: "questionmark.circle",
+                    destination: AppReleaseLinks.support,
+                    accessibilityIdentifier: "account.support"
+                )
+            }
+        }
+    }
+}
+
+private struct GroomerAccountExternalLink: View {
+    let title: String
+    let systemImage: String
+    let destination: URL
+    let accessibilityIdentifier: String
+
+    var body: some View {
+        Link(destination: destination) {
+            HStack(spacing: DesignTokens.Spacing.md) {
+                Image(systemName: systemImage)
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                    .frame(width: 28)
+                    .accessibilityHidden(true)
+
+                Text(title)
+                    .font(DesignTokens.Typography.body.weight(.semibold))
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                Image(systemName: "arrow.up.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(DesignTokens.Colors.textTertiary)
+                    .accessibilityHidden(true)
+            }
+            .padding(.horizontal, DesignTokens.Spacing.lg)
+            .padding(.vertical, DesignTokens.Spacing.md)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier(accessibilityIdentifier)
     }
 }
 
