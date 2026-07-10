@@ -176,3 +176,91 @@ nonisolated struct GroomerServiceFormPresentation: Equatable, Sendable {
         isSaveDisabled = isBusy
     }
 }
+
+nonisolated struct GroomerFitSignalsWorkspacePresentation: Equatable, Sendable {
+    let selectionSummary: String
+    let saveActionTitle: String
+    let isSaveDisabled: Bool
+
+    init(
+        selectedCoreFitClaimCount: Int,
+        maximumActiveClaims: Int,
+        isSaving: Bool,
+        isBusy: Bool
+    ) {
+        let maximum = max(1, maximumActiveClaims)
+        let selected = min(max(selectedCoreFitClaimCount, 0), maximum)
+
+        selectionSummary = "\(selected) of \(maximum) core skills"
+        saveActionTitle = isSaving ? "Saving..." : "Save Fit Signals"
+        isSaveDisabled = isBusy
+    }
+}
+
+nonisolated struct GroomerEvidenceWorkspacePresentation: Equatable, Sendable {
+    let signalSummary: String
+    let completedSummary: String
+    let positiveSummary: String
+    let highConfidenceSummary: String
+    let isEmpty: Bool
+
+    init(
+        signalCount: Int,
+        completedBookingCount: Int,
+        positiveOutcomeCount: Int,
+        highConfidenceCount: Int
+    ) {
+        let signals = max(0, signalCount)
+        let completed = max(0, completedBookingCount)
+        let positive = max(0, positiveOutcomeCount)
+        let highConfidence = max(0, highConfidenceCount)
+
+        signalSummary = signals == 1 ? "1 signal" : "\(signals) signals"
+        completedSummary = "\(completed) completed"
+        positiveSummary = "\(positive) positive"
+        highConfidenceSummary = highConfidence == 1
+            ? "1 high confidence"
+            : "\(highConfidence) high confidence"
+        isEmpty = signals == 0
+    }
+}
+
+nonisolated struct GroomerPortfolioWorkspacePresentation: Equatable, Sendable {
+    let photoSummary: String
+    let uploadStatus: String?
+    let isAddDisabled: Bool
+
+    init(photoCount: Int, isUploading: Bool, isBusy: Bool) {
+        let photos = max(0, photoCount)
+        photoSummary = switch photos {
+        case 0:
+            "No work photos"
+        case 1:
+            "1 work photo"
+        default:
+            "\(photos) work photos"
+        }
+        uploadStatus = isUploading ? "Updating gallery..." : nil
+        isAddDisabled = isBusy
+    }
+}
+
+nonisolated struct GroomerPortfolioFitNotesPresentation: Equatable, Sendable {
+    let selectionSummary: String
+    let saveActionTitle: String
+    let isSaveDisabled: Bool
+
+    init(
+        selectedTagCount: Int,
+        maximumTagCount: Int,
+        isSaving: Bool,
+        isBusy: Bool
+    ) {
+        let maximum = max(1, maximumTagCount)
+        let selected = min(max(selectedTagCount, 0), maximum)
+
+        selectionSummary = "\(selected) of \(maximum) fit notes"
+        saveActionTitle = isSaving ? "Saving..." : "Save Fit Notes"
+        isSaveDisabled = isBusy
+    }
+}

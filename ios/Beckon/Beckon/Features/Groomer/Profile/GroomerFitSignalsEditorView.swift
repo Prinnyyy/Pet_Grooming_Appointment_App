@@ -2,25 +2,21 @@ import SwiftUI
 
 struct GroomerFitSignalsEditorView: View {
     @Bindable var store: GroomerProfileStore
-    @State private var successNoticeMessage: String?
 
     var body: some View {
+        let presentation = GroomerFitSignalsWorkspacePresentation(
+            selectedCoreFitClaimCount: store.selectedCoreFitClaimCount,
+            maximumActiveClaims: GroomerFitClaim.maximumActiveClaims,
+            isSaving: store.isSaving,
+            isBusy: store.isBusy
+        )
+
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                BeckonSectionHeader(
-                    "Fit Signals",
-                    subtitle: "Keep your core skills focused while size experience stays separate."
+            LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
+                GroomerFitSignalsSelectionBalanceSection(
+                    store: store,
+                    presentation: presentation
                 )
-
-                GroomerFitSignalOverviewCard(store: store)
-
-                if let errorMessage = store.errorMessage {
-                    BeckonErrorBanner(
-                        title: "Fit Signals Could Not Be Saved",
-                        message: errorMessage
-                    )
-                    .accessibilityIdentifier("groomer.fit-signals.error")
-                }
 
                 ForEach(Self.visibleGroups) { group in
                     GroomerFitSignalGroupSection(
@@ -32,61 +28,27 @@ struct GroomerFitSignalsEditorView: View {
             }
             .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
             .padding(.top, DesignTokens.Spacing.lg)
-            .padding(.bottom, 156)
+            .padding(.bottom, DesignTokens.Spacing.xl)
         }
+        .accessibilityIdentifier("groomer.fit-signals.edit")
         .background(DesignTokens.Colors.background.ignoresSafeArea())
         .navigationTitle("Fit Signals")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.hidden, for: .tabBar)
         .onAppear {
             store.ensureSizeBandFitClaimRange()
         }
-        .safeAreaInset(edge: .bottom) {
-            VStack(spacing: DesignTokens.Spacing.sm) {
-                if let successNoticeMessage {
-                    BeckonBottomPromptStack(
-                        topPadding: 0,
-                        bottomPadding: 0,
-                        animationValue: successNoticeMessage
-                    ) {
-                        BeckonNoticeToast(message: successNoticeMessage)
-                    }
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                        .task(id: successNoticeMessage) {
-                            await dismissSuccessNotice(successNoticeMessage)
-                        }
-                }
-
-                GroomerFitSignalsSaveBar(store: store) { message in
-                    withAnimation(.easeInOut(duration: 0.24)) {
-                        successNoticeMessage = message
-                    }
-                    guard store.noticeMessage == message else { return }
-                    store.noticeMessage = nil
-                }
-            }
-        }
-        .accessibilityIdentifier("groomer.fit-signals.edit")
-    }
-
-    private func dismissSuccessNotice(_ message: String) async {
-        try? await Task.sleep(
-            nanoseconds: BeckonFeedbackCenter.noticeDismissDelayNanoseconds
-        )
-        guard !Task.isCancelled else { return }
-
-        await MainActor.run {
-            guard successNoticeMessage == message else { return }
-            withAnimation(.easeInOut(duration: 0.24)) {
-                successNoticeMessage = nil
-            }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            GroomerFitSignalsSaveBar(
+                store: store,
+                presentation: presentation
+            )
         }
     }
 
     private static var visibleGroups: [PetFitSignal.Group] {
         [.coatType, .careFlag, .serviceFit].filter { group in
-            GroomerFitClaim.availableSignals.contains(where: {
-                $0.group == group
-            })
+            GroomerFitClaim.availableSignals.contains { $0.group == group }
         }
     }
 
@@ -95,67 +57,49 @@ struct GroomerFitSignalsEditorView: View {
     }
 }
 
-private struct GroomerFitSignalOverviewCard: View {
+private struct GroomerFitSignalsSelectionBalanceSection: View {
     @Bindable var store: GroomerProfileStore
+    let presentation: GroomerFitSignalsWorkspacePresentation
 
     var body: some View {
-        BeckonCard {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
-                    Image(systemName: "slider.horizontal.3")
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundStyle(DesignTokens.Colors.surface)
-                        .frame(width: 44, height: 44)
-                        .background(DesignTokens.Colors.groomerAccent)
-                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                        .accessibilityHidden(true)
+        GroomerWorkspaceSection(title: "Selection balance") {
+            GroomerGroupedSurface {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                        HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.md) {
+                            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                                Text("Core skills")
+                                    .font(DesignTokens.Typography.body.weight(.semibold))
+                                    .foregroundStyle(DesignTokens.Colors.textPrimary)
 
-                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                        Text("Selection Balance")
-                            .font(DesignTokens.Typography.headline)
-                            .foregroundStyle(DesignTokens.Colors.textPrimary)
+                                Text("Coat, handling, and service strengths guide matching.")
+                                    .font(DesignTokens.Typography.caption)
+                                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
 
-                        Text("Core skills drive starter matching. Size bands add experience context without using that limit.")
-                            .font(DesignTokens.Typography.caption)
-                            .foregroundStyle(DesignTokens.Colors.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                }
+                            Text(presentation.selectionSummary)
+                                .font(DesignTokens.Typography.caption.weight(.semibold))
+                                .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.78)
+                        }
 
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                    HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.md) {
-                        Text("Core Skills")
-                            .font(DesignTokens.Typography.body.weight(.bold))
-                            .foregroundStyle(DesignTokens.Colors.textPrimary)
-
-                        Spacer(minLength: DesignTokens.Spacing.md)
-
-                        Text("\(store.selectedCoreFitClaimCount)/\(GroomerFitClaim.maximumActiveClaims)")
-                            .font(DesignTokens.Typography.body.weight(.bold))
-                            .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.8)
+                        ProgressView(
+                            value: Double(store.selectedCoreFitClaimCount),
+                            total: Double(GroomerFitClaim.maximumActiveClaims)
+                        )
+                        .tint(DesignTokens.Colors.groomerAccent)
                     }
 
-                    ProgressView(
-                        value: Double(store.selectedCoreFitClaimCount),
-                        total: Double(GroomerFitClaim.maximumActiveClaims)
-                    )
-                    .tint(DesignTokens.Colors.groomerAccent)
+                    GroomerWorkspaceDivider()
 
-                    Text("Coat, handling, and service strengths")
-                        .font(DesignTokens.Typography.caption)
-                        .foregroundStyle(DesignTokens.Colors.textTertiary)
-                        .fixedSize(horizontal: false, vertical: true)
+                    GroomerSizeExperienceRangeControl(store: store)
                 }
-
-                Divider()
-
-                GroomerSizeExperienceRangeControl(store: store)
+                .padding(DesignTokens.Spacing.lg)
             }
         }
-        .accessibilityElement(children: .contain)
     }
 }
 
@@ -168,25 +112,21 @@ private struct GroomerSizeExperienceRangeControl: View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
             HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.md) {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                    Text("Size Experience")
-                        .font(DesignTokens.Typography.body.weight(.bold))
+                    Text("Size experience")
+                        .font(DesignTokens.Typography.body.weight(.semibold))
                         .foregroundStyle(DesignTokens.Colors.textPrimary)
 
-                    Text("Acceptable pet size range")
+                    Text("Set the full range you are comfortable grooming.")
                         .font(DesignTokens.Typography.caption)
-                        .foregroundStyle(DesignTokens.Colors.textTertiary)
+                        .foregroundStyle(DesignTokens.Colors.textSecondary)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
                 Text(store.sizeBandFitClaimRangeTitle)
-                    .font(DesignTokens.Typography.caption.weight(.bold))
+                    .font(DesignTokens.Typography.caption.weight(.semibold))
                     .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
                     .lineLimit(1)
                     .minimumScaleFactor(0.72)
-                    .padding(.horizontal, DesignTokens.Spacing.sm)
-                    .padding(.vertical, DesignTokens.Spacing.xs)
-                    .background(DesignTokens.Colors.groomerAccent.opacity(0.12))
-                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                     .accessibilityIdentifier("groomer.fit-signals.size-range-title")
             }
 
@@ -372,125 +312,121 @@ struct GroomerEvidenceDashboardView: View {
     }
 
     var body: some View {
+        let presentation = GroomerEvidenceWorkspacePresentation(
+            signalCount: summaries.count,
+            completedBookingCount: summaries.reduce(0) { $0 + $1.completedBookingCount },
+            positiveOutcomeCount: summaries.reduce(0) { $0 + $1.positiveReviewOutcomeCount },
+            highConfidenceCount: summaries.filter { $0.confidenceTier == .high }.count
+        )
+
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                BeckonSectionHeader(
-                    "Evidence Dashboard",
-                    subtitle: "Completed bookings and structured reviews by pet-fit signal."
-                ) {
-                    BeckonStatusChip(
-                        "\(summaries.count) signal\(summaries.count == 1 ? "" : "s")",
-                        systemImage: "sparkles",
-                        tone: .groomer
-                    )
-                }
-
-                GroomerEvidenceDashboardSummaryCard(summaries: summaries)
-
-                if summaries.isEmpty {
-                    BeckonEmptyState(
-                        title: "No Evidence Yet",
-                        message: "Completed bookings and structured reviews will appear here as they accumulate.",
-                        systemImage: "chart.bar.xaxis",
-                        accent: .groomer
-                    )
-                    .accessibilityIdentifier("groomer.evidence.empty")
+            LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
+                if presentation.isEmpty {
+                    GroomerEvidenceEmptyState()
+                        .accessibilityIdentifier("groomer.evidence.empty")
                 } else {
-                    ForEach(summaries) { summary in
-                        GroomerEvidenceSummaryRow(summary: summary)
+                    GroomerEvidenceOverviewSection(presentation: presentation)
+
+                    GroomerWorkspaceSection(title: "Evidence by signal") {
+                        GroomerGroupedSurface {
+                            VStack(spacing: 0) {
+                                ForEach(Array(summaries.enumerated()), id: \.element.id) { index, summary in
+                                    GroomerEvidenceSummaryRow(summary: summary)
+
+                                    if index < summaries.count - 1 {
+                                        GroomerWorkspaceDivider(leadingInset: 56)
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
             .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
             .padding(.top, DesignTokens.Spacing.lg)
-            .padding(.bottom, 120)
+            .padding(.bottom, DesignTokens.Spacing.xl)
         }
+        .accessibilityIdentifier("groomer.evidence.dashboard")
         .background(DesignTokens.Colors.background.ignoresSafeArea())
         .navigationTitle("Evidence")
         .navigationBarTitleDisplayMode(.inline)
-        .accessibilityIdentifier("groomer.evidence.dashboard")
+        .toolbar(.hidden, for: .tabBar)
     }
 }
 
-private struct GroomerEvidenceDashboardSummaryCard: View {
-    let summaries: [GroomerPetFitEvidenceSummary]
+private struct GroomerEvidenceOverviewSection: View {
+    let presentation: GroomerEvidenceWorkspacePresentation
 
     var body: some View {
-        BeckonCard {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+        GroomerWorkspaceSection(title: "Evidence overview") {
+            GroomerGroupedSurface {
                 HStack(spacing: DesignTokens.Spacing.md) {
-                    Image(systemName: "checkmark.seal.fill")
-                        .font(.system(size: 20, weight: .bold))
-                        .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
-                        .frame(width: 48, height: 48)
-                        .background(DesignTokens.Colors.groomerAccent.opacity(0.16))
-                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                        .accessibilityHidden(true)
-
-                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                        Text("Evidence Summary")
-                            .font(DesignTokens.Typography.headline)
-                            .foregroundStyle(DesignTokens.Colors.textPrimary)
-
-                        Text("Aggregate counts from completed care history")
-                            .font(DesignTokens.Typography.caption)
-                            .foregroundStyle(DesignTokens.Colors.textSecondary)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                }
-
-                HStack(spacing: DesignTokens.Spacing.md) {
-                    GroomerEvidenceMetricView(
-                        value: totalCompletedBookings,
-                        label: "Completed"
+                    GroomerEvidenceMetric(
+                        summary: presentation.completedSummary,
+                        label: "Bookings"
                     )
-
-                    GroomerEvidenceMetricView(
-                        value: totalPositiveOutcomes,
-                        label: "Positive"
+                    GroomerEvidenceMetric(
+                        summary: presentation.positiveSummary,
+                        label: "Reviews"
                     )
-
-                    GroomerEvidenceMetricView(
-                        value: highConfidenceCount,
-                        label: "High Tier"
+                    GroomerEvidenceMetric(
+                        summary: presentation.highConfidenceSummary,
+                        label: "Signals"
                     )
                 }
+                .padding(DesignTokens.Spacing.lg)
             }
+            .accessibilityElement(children: .combine)
         }
-    }
-
-    private var totalCompletedBookings: Int {
-        summaries.reduce(0) { $0 + $1.completedBookingCount }
-    }
-
-    private var totalPositiveOutcomes: Int {
-        summaries.reduce(0) { $0 + $1.positiveReviewOutcomeCount }
-    }
-
-    private var highConfidenceCount: Int {
-        summaries.filter { $0.confidenceTier == .high }.count
     }
 }
 
-private struct GroomerEvidenceMetricView: View {
-    let value: Int
+private struct GroomerEvidenceMetric: View {
+    let summary: String
     let label: String
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-            Text(value.formatted())
-                .font(.system(size: 26, weight: .bold))
+            Text(summary)
+                .font(DesignTokens.Typography.body.weight(.semibold))
                 .foregroundStyle(DesignTokens.Colors.textPrimary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.76)
+                .lineLimit(2)
+                .minimumScaleFactor(0.78)
 
             Text(label)
                 .font(DesignTokens.Typography.caption)
                 .foregroundStyle(DesignTokens.Colors.textSecondary)
                 .lineLimit(1)
-                .minimumScaleFactor(0.82)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+private struct GroomerEvidenceEmptyState: View {
+    var body: some View {
+        GroomerWorkspaceSection(title: "Evidence overview") {
+            GroomerGroupedSurface {
+                HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
+                    Image(systemName: "chart.bar.xaxis")
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+                        .frame(width: 28, height: 28)
+                        .accessibilityHidden(true)
+
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                        Text("No evidence yet")
+                            .font(DesignTokens.Typography.body.weight(.semibold))
+                            .foregroundStyle(DesignTokens.Colors.textPrimary)
+
+                        Text("Completed bookings and structured reviews will appear here over time.")
+                            .font(DesignTokens.Typography.caption)
+                            .foregroundStyle(DesignTokens.Colors.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .padding(DesignTokens.Spacing.lg)
+            }
+        }
     }
 }
 
@@ -498,62 +434,40 @@ private struct GroomerEvidenceSummaryRow: View {
     let summary: GroomerPetFitEvidenceSummary
 
     var body: some View {
-        BeckonCard {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
-                    Image(systemName: iconName)
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
-                        .frame(width: 46, height: 46)
-                        .background(DesignTokens.Colors.groomerAccent.opacity(0.14))
-                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                        .accessibilityHidden(true)
+        HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
+            Image(systemName: iconName)
+                .font(.body.weight(.semibold))
+                .foregroundStyle(DesignTokens.Colors.textSecondary)
+                .frame(width: 28, height: 28)
+                .accessibilityHidden(true)
 
-                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                        Text(summary.signal.title)
-                            .font(DesignTokens.Typography.headline)
-                            .foregroundStyle(DesignTokens.Colors.textPrimary)
-                            .fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                Text(summary.signal.title)
+                    .font(DesignTokens.Typography.body.weight(.semibold))
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+                    .lineLimit(2)
 
-                        Text(summary.signal.groupTitle)
-                            .font(DesignTokens.Typography.caption)
-                            .foregroundStyle(DesignTokens.Colors.textSecondary)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                Text("\(summary.signal.groupTitle) · \(summary.confidenceTier.title) confidence")
+                    .font(DesignTokens.Typography.caption)
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                    .lineLimit(2)
 
-                    BeckonStatusChip(
-                        "\(summary.confidenceTier.title) confidence",
-                        systemImage: confidenceIconName,
-                        tone: confidenceTone
-                    )
-                }
-
-                VStack(spacing: DesignTokens.Spacing.sm) {
-                    GroomerEvidenceCountLine(
-                        title: "Completed bookings",
-                        value: summary.completedBookingCount
-                    )
-                    GroomerEvidenceCountLine(
-                        title: "Positive review outcomes",
-                        value: summary.positiveReviewOutcomeCount
-                    )
-                    GroomerEvidenceCountLine(
-                        title: "Negative review outcomes",
-                        value: summary.negativeReviewOutcomeCount
-                    )
-                    GroomerEvidenceCountLine(
-                        title: "Structured review outcomes",
-                        value: summary.structuredReviewOutcomeCount
-                    )
-                }
+                Text("\(summary.completedBookingCount) completed · \(summary.positiveReviewOutcomeCount) positive")
+                    .font(DesignTokens.Typography.caption)
+                    .foregroundStyle(DesignTokens.Colors.textTertiary)
+                    .lineLimit(1)
 
                 if let updatedAt = summary.evidenceUpdatedAt {
                     Text("Updated \(GroomingRequestDateFormatting.displayString(from: updatedAt))")
                         .font(DesignTokens.Typography.caption)
                         .foregroundStyle(DesignTokens.Colors.textTertiary)
+                        .lineLimit(1)
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .padding(.horizontal, DesignTokens.Spacing.lg)
+        .padding(.vertical, DesignTokens.Spacing.md)
         .accessibilityElement(children: .combine)
     }
 
@@ -571,48 +485,6 @@ private struct GroomerEvidenceSummaryRow: View {
             "scissors"
         }
     }
-
-    private var confidenceIconName: String {
-        switch summary.confidenceTier {
-        case .high:
-            "checkmark.seal.fill"
-        case .medium:
-            "checkmark.circle.fill"
-        case .low:
-            "circle"
-        }
-    }
-
-    private var confidenceTone: BeckonStatusChip.Tone {
-        switch summary.confidenceTier {
-        case .high:
-            .success
-        case .medium:
-            .groomer
-        case .low:
-            .neutral
-        }
-    }
-}
-
-private struct GroomerEvidenceCountLine: View {
-    let title: String
-    let value: Int
-
-    var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.md) {
-            Text(title)
-                .font(DesignTokens.Typography.body)
-                .foregroundStyle(DesignTokens.Colors.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Spacer(minLength: DesignTokens.Spacing.md)
-
-            Text(value.formatted())
-                .font(DesignTokens.Typography.body.weight(.bold))
-                .foregroundStyle(DesignTokens.Colors.textPrimary)
-        }
-    }
 }
 
 private struct GroomerFitSignalGroupSection: View {
@@ -621,39 +493,29 @@ private struct GroomerFitSignalGroupSection: View {
     @Bindable var store: GroomerProfileStore
 
     var body: some View {
-        BeckonCard(padding: DesignTokens.Spacing.md) {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
-                    Image(systemName: iconName)
-                        .font(.system(size: 17, weight: .bold))
-                        .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
-                        .frame(width: 42, height: 42)
-                        .background(DesignTokens.Colors.groomerAccent.opacity(0.14))
-                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                        .accessibilityHidden(true)
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.md) {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                    Text(title)
+                        .font(.title3.weight(.bold))
+                        .foregroundStyle(DesignTokens.Colors.textPrimary)
 
-                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                        Text(title)
-                            .font(DesignTokens.Typography.headline)
-                            .foregroundStyle(DesignTokens.Colors.textPrimary)
-                            .fixedSize(horizontal: false, vertical: true)
-
-                        Text(subtitle)
-                            .font(DesignTokens.Typography.caption)
-                            .foregroundStyle(DesignTokens.Colors.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                    BeckonStatusChip(
-                        statusText,
-                        systemImage: statusIconName,
-                        tone: group == .sizeBand ? .neutral : .groomer
-                    )
+                    Text(subtitle)
+                        .font(DesignTokens.Typography.caption)
+                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
 
+                Text(statusText)
+                    .font(DesignTokens.Typography.caption.weight(.semibold))
+                    .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
+                    .lineLimit(1)
+            }
+
+            GroomerGroupedSurface {
                 VStack(spacing: 0) {
-                    ForEach(signals) { signal in
+                    ForEach(Array(signals.enumerated()), id: \.element.id) { index, signal in
                         GroomerFitSignalRow(
                             signal: signal,
                             isSelected: store.isFitClaimSelected(signal)
@@ -661,15 +523,14 @@ private struct GroomerFitSignalGroupSection: View {
                             store.toggleFitClaim(signal)
                         }
 
-                        if signal.id != signals.last?.id {
-                            Divider()
-                                .padding(.leading, DesignTokens.Spacing.sm)
+                        if index < signals.count - 1 {
+                            GroomerWorkspaceDivider(leadingInset: DesignTokens.Spacing.lg)
                         }
                     }
                 }
-                .accessibilityElement(children: .contain)
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var selectedCount: Int {
@@ -679,15 +540,15 @@ private struct GroomerFitSignalGroupSection: View {
     private var title: String {
         switch group {
         case .coatType:
-            "Coat Skills"
+            "Coat skills"
         case .breedGroup:
-            "Breed Groups"
+            "Breed groups"
         case .sizeBand:
-            "Size Experience"
+            "Size experience"
         case .careFlag:
-            "Handling Needs"
+            "Handling needs"
         case .serviceFit:
-            "Service Strengths"
+            "Service strengths"
         }
     }
 
@@ -696,9 +557,9 @@ private struct GroomerFitSignalGroupSection: View {
         case .coatType:
             "Coat structures you handle reliably."
         case .breedGroup:
-            "Breed contexts kept for compatibility."
+            "Breed contexts retained for matching compatibility."
         case .sizeBand:
-            "Body-size ranges you are comfortable grooming. These do not use core skill slots."
+            "Body-size experience is set above and does not use core slots."
         case .careFlag:
             "Care situations you accept."
         case .serviceFit:
@@ -707,29 +568,7 @@ private struct GroomerFitSignalGroupSection: View {
     }
 
     private var statusText: String {
-        if group == .sizeBand {
-            return selectedCount == 1 ? "1 extra" : "\(selectedCount) extra"
-        }
-        return selectedCount == 1 ? "1 selected" : "\(selectedCount) selected"
-    }
-
-    private var statusIconName: String {
-        group == .sizeBand ? "plus.circle" : "checkmark.circle"
-    }
-
-    private var iconName: String {
-        switch group {
-        case .coatType:
-            "comb"
-        case .breedGroup:
-            "pawprint.fill"
-        case .sizeBand:
-            "ruler"
-        case .careFlag:
-            "heart.fill"
-        case .serviceFit:
-            "scissors"
-        }
+        selectedCount == 1 ? "1 selected" : "\(selectedCount) selected"
     }
 }
 
@@ -741,16 +580,14 @@ private struct GroomerFitSignalRow: View {
     var body: some View {
         Button(action: onToggle) {
             HStack(spacing: DesignTokens.Spacing.md) {
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                    Text(signal.title)
-                        .font(DesignTokens.Typography.body.weight(.bold))
-                        .foregroundStyle(DesignTokens.Colors.textPrimary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+                Text(signal.title)
+                    .font(DesignTokens.Typography.body.weight(.semibold))
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 22, weight: .semibold))
+                    .font(.body.weight(.semibold))
                     .foregroundStyle(
                         isSelected
                             ? DesignTokens.Colors.groomerAccent
@@ -758,7 +595,8 @@ private struct GroomerFitSignalRow: View {
                     )
                     .accessibilityHidden(true)
             }
-            .padding(.vertical, DesignTokens.Spacing.sm)
+            .frame(minHeight: 48)
+            .padding(.horizontal, DesignTokens.Spacing.lg)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -769,64 +607,53 @@ private struct GroomerFitSignalRow: View {
 
 private struct GroomerFitSignalsSaveBar: View {
     @Bindable var store: GroomerProfileStore
-    let onSaved: (String) -> Void
+    let presentation: GroomerFitSignalsWorkspacePresentation
 
     var body: some View {
-        VStack(spacing: DesignTokens.Spacing.sm) {
+        VStack(spacing: 0) {
+            Divider()
+                .overlay(DesignTokens.Colors.divider)
+
             HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                    Text("\(store.selectedCoreFitClaimCount)/\(GroomerFitClaim.maximumActiveClaims) core skills")
-                        .font(DesignTokens.Typography.caption.weight(.bold))
+                    Text(presentation.selectionSummary)
+                        .font(DesignTokens.Typography.caption.weight(.semibold))
                         .foregroundStyle(DesignTokens.Colors.textPrimary)
                         .lineLimit(1)
                         .minimumScaleFactor(0.82)
 
-                    Text(sizeBandSummaryText)
+                    Text(store.sizeBandFitClaimRangeTitle)
                         .font(DesignTokens.Typography.caption)
                         .foregroundStyle(DesignTokens.Colors.textSecondary)
                         .lineLimit(1)
-                        .minimumScaleFactor(0.82)
+                        .minimumScaleFactor(0.78)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                Button {
-                    Task {
-                        if let noticeMessage = await store.saveFitClaims() {
-                            onSaved(noticeMessage)
-                        }
-                    }
-                } label: {
-                    if store.isSaving {
+                Button(action: save) {
+                    if presentation.saveActionTitle == "Saving..." {
                         HStack(spacing: DesignTokens.Spacing.sm) {
                             ProgressView()
                                 .tint(DesignTokens.Colors.surface)
-                            Text("Saving...")
+                            Text(presentation.saveActionTitle)
                         }
                     } else {
-                        Text("Save")
+                        Label(presentation.saveActionTitle, systemImage: "checkmark.circle")
                     }
                 }
                 .buttonStyle(BeckonPrimaryButtonStyle(accent: .groomer, isFullWidth: false))
-                .disabled(store.isBusy)
+                .disabled(presentation.isSaveDisabled)
                 .accessibilityIdentifier("groomer.fit-signals.save")
             }
+            .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+            .padding(.vertical, DesignTokens.Spacing.md)
         }
-        .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-        .padding(.top, DesignTokens.Spacing.md)
-        .padding(.bottom, DesignTokens.Spacing.md)
-        .background {
-            Rectangle()
-                .fill(DesignTokens.Colors.surfaceRaised)
-                .ignoresSafeArea()
-                .overlay(alignment: .top) {
-                    Rectangle()
-                        .fill(DesignTokens.Colors.borderSoft)
-                        .frame(height: 1)
-                }
-        }
+        .background(DesignTokens.Colors.background)
     }
 
-    private var sizeBandSummaryText: String {
-        store.sizeBandFitClaimRangeTitle
+    private func save() {
+        Task {
+            await store.saveFitClaims()
+        }
     }
 }

@@ -163,6 +163,18 @@ final class TestOpsUIFlowDriver {
             app.buttons["groomer.account.availability"].exists,
             "Expected Groomer Account to expose the Availability entry."
         )
+        XCTAssertTrue(
+            app.buttons["groomer.account.portfolio"].exists,
+            "Expected Groomer Account to expose the Portfolio entry."
+        )
+        XCTAssertTrue(
+            app.buttons["groomer.account.fit-signals"].exists,
+            "Expected Groomer Account to expose the Fit Signals entry."
+        )
+        XCTAssertTrue(
+            app.buttons["groomer.account.evidence"].exists,
+            "Expected Groomer Account to expose the Evidence entry."
+        )
         assertTab("groomer.tab.home", destination: "groomer.home")
     }
 

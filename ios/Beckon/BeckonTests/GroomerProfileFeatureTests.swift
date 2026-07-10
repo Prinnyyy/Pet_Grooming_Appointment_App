@@ -231,6 +231,70 @@ struct GroomerServicesAvailabilityPresentationTests {
     }
 }
 
+struct GroomerFitEvidencePortfolioPresentationTests {
+    @Test
+    func fitSignalWorkspaceKeepsSelectionBalanceAndSaveStateTruthful() {
+        let ready = GroomerFitSignalsWorkspacePresentation(
+            selectedCoreFitClaimCount: 3,
+            maximumActiveClaims: 8,
+            isSaving: false,
+            isBusy: false
+        )
+        let saving = GroomerFitSignalsWorkspacePresentation(
+            selectedCoreFitClaimCount: 12,
+            maximumActiveClaims: 8,
+            isSaving: true,
+            isBusy: true
+        )
+
+        #expect(ready.selectionSummary == "3 of 8 core skills")
+        #expect(ready.saveActionTitle == "Save Fit Signals")
+        #expect(ready.isSaveDisabled == false)
+        #expect(saving.selectionSummary == "8 of 8 core skills")
+        #expect(saving.saveActionTitle == "Saving...")
+        #expect(saving.isSaveDisabled)
+    }
+
+    @Test
+    func evidenceAndPortfolioPresentationsKeepEmptyBusyAndCountStatesCompact() {
+        let evidence = GroomerEvidenceWorkspacePresentation(
+            signalCount: 2,
+            completedBookingCount: 7,
+            positiveOutcomeCount: 4,
+            highConfidenceCount: 1
+        )
+        let emptyEvidence = GroomerEvidenceWorkspacePresentation(
+            signalCount: 0,
+            completedBookingCount: 0,
+            positiveOutcomeCount: 0,
+            highConfidenceCount: 0
+        )
+        let portfolio = GroomerPortfolioWorkspacePresentation(
+            photoCount: 2,
+            isUploading: true,
+            isBusy: true
+        )
+        let fitNotes = GroomerPortfolioFitNotesPresentation(
+            selectedTagCount: 2,
+            maximumTagCount: 6,
+            isSaving: true,
+            isBusy: true
+        )
+
+        #expect(evidence.signalSummary == "2 signals")
+        #expect(evidence.completedSummary == "7 completed")
+        #expect(evidence.positiveSummary == "4 positive")
+        #expect(evidence.highConfidenceSummary == "1 high confidence")
+        #expect(emptyEvidence.isEmpty)
+        #expect(portfolio.photoSummary == "2 work photos")
+        #expect(portfolio.uploadStatus == "Updating gallery...")
+        #expect(portfolio.isAddDisabled)
+        #expect(fitNotes.selectionSummary == "2 of 6 fit notes")
+        #expect(fitNotes.saveActionTitle == "Saving...")
+        #expect(fitNotes.isSaveDisabled)
+    }
+}
+
 struct GroomerProfileStoreTests {
     @Test @MainActor
     func loadPopulatesProfileServicesAndPortfolio() async {

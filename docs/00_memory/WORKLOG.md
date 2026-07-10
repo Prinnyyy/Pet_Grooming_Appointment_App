@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-10
+Task: T-257 - Groomer Fit Signals, Evidence, and Portfolio presentation.
+Files changed: Fit Signals, Evidence, and Portfolio presentation models; grouped fit/evidence workspaces; Portfolio gallery/detail and fit-note editor; focused presentation/Store/TestOps tests; roadmap/memory closeout.
+Checks: Presentation RED-GREEN; focused Groomer Profile Store tests; full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; live iPhone 17 Pro Max Fit Signals, Portfolio gallery/detail, and Evidence inspection; `git diff --check`; preflight/context hygiene.
+Result: Q-103 is complete. Fit Signals now separates selection balance and size experience from compact skill groups, Evidence has a truthful grouped overview/list or empty state, and Portfolio uses an image-first gallery with a focused photo-detail/fit-notes editor. Existing Store mutations, global feedback, authenticated image cache, upload/delete behavior, and selectors remain the single behavior path.
+Risks: Q-104 retains the compact/large viewport, Dynamic Type, complete state-matrix, accessibility, and selector integration gate. This task adds no schema, repository, Storage, backend, or remote state change.
+Next: Start Q-104 as T-258 on explicit continuation.
+```
+
+```text
+Date: 2026-07-10
 Task: T-256 - Groomer Services and Availability presentation.
 Files changed: Services/Availability presentation models; compact grouped service, availability, booking-preference, and time-off editors; focused presentation/Store/TestOps tests; roadmap/memory closeout.
 Checks: Presentation RED-GREEN; focused Groomer Profile Store tests; full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; live 368x800 Services list/form and Availability/Time Off inspection; `git diff --check`; preflight/context hygiene.
 Result: Q-102 is complete. Services now uses a compact grouped menu and focused stable-save form. Availability uses grouped weekly hours, existing daily capacity/advance-notice/auto-ready preferences, and time off in one native-back, tab-free editor; all existing Store mutations and feedback remain the single behavior path.
 Risks: Q-103 and Q-104 retain fit/evidence/portfolio and cross-screen viewport/state/accessibility regression work. This task adds no schema, repository, Storage, backend, or remote state change.
-Next: Start Q-103 as T-257 on explicit continuation.
 ```
 
 ```text
