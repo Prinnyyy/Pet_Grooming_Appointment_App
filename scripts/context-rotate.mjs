@@ -170,7 +170,7 @@ function rotateWorklog() {
     ...removable.map((entry) => entry.text),
     "",
   ].join("\n");
-  const nextText = removeRanges(text, removable);
+  const nextText = `${removeRanges(text, removable).trimEnd()}\n`;
 
   if (APPLY) {
     write(archivePath, archiveText);

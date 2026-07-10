@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-09
 - Updated by: Codex
-- Latest completed task: T-243 Beckon brand migration design and execution queue.
+- Latest completed task: T-244 context rotation Worklog EOF normalization.
 - Current task: none; T-157 APNs remains externally blocked.
-- Next task ID: use T-244 unless the user resumes T-157 after Apple Developer Program upgrade.
+- Next task ID: use T-245 unless the user resumes T-157 after Apple Developer Program upgrade.
 
 ## Fast Path
 
@@ -38,7 +38,8 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - Last TestOps unit validation: T-222 `./scripts/testops-unit.sh` passed 24 Node tests.
 - Latest remote TestOps evidence: T-235 `smoke5` passed 5/5 and `matching_baseline` passed 8/8; both R2 run families left zero tagged requests and only redacted local artifacts.
 - T-242 verified public DMARC, accepted a Resend delivery smoke, and persisted Supabase Custom SMTP plus exact Auth callback URLs.
-- T-243 approved the Beckon identity contract; implementation has not started. Q-94 is the next dependency-satisfied package.
+- T-243 approved Beckon; Q-94 is next and unstarted.
+- T-244 normalizes the rotated Worklog EOF to one newline.
 - Known iOS validation failure: none currently recorded.
 
 ## Active Product State
@@ -95,4 +96,4 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Next Recommended Task
 
-- Adopt Q-94 as T-244 to perform the local Beckon application and source identity migration.
+- Adopt Q-94 as T-245 to perform the local Beckon application and source identity migration.

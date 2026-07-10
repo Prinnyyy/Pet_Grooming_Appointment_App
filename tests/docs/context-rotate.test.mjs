@@ -175,6 +175,8 @@ test("context rotate applies worklog rotation and preserves archived entry text"
   const activeWorklog = readFileSync(path.join(root, "docs/00_memory/WORKLOG.md"), "utf8");
   assert.equal([...activeWorklog.matchAll(/^Task:\s*T-\d{3}/gm)].length, 8);
   assert.doesNotMatch(activeWorklog, /Task: T-001 - Fixture work/);
+  assert.equal(activeWorklog.endsWith("\n"), true);
+  assert.equal(activeWorklog.endsWith("\n\n"), false);
   const archive = readFileSync(archiveFile(root, "docs/09_frozen/worklogs"), "utf8");
   assert.match(archive, /Task: T-001 - Fixture work/);
 });

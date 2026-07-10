@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-09
+Task: T-244 - Context rotation Worklog EOF normalization.
+Files changed: Context rotation script/test; current state/task ledger/worklog.
+Checks: Reproducing focused RED; focused GREEN; complete context-rotate suite; real closeout rotation; `git diff --check`; context hygiene.
+Result: Worklog rotation now trims trailing whitespace and writes exactly one final newline, preventing the recurring blank-line-at-EOF diff failure. The regression test asserts both required final newline and absence of a double newline.
+Risks: Only active Worklog serialization changes; archive content and rotation selection are unchanged.
+Next: Adopt Q-94 as T-245 for the local Beckon application/source migration.
+```
+
+```text
+Date: 2026-07-09
 Task: T-243 - Beckon brand migration design and execution queue.
 Files changed: Beckon identity contract; roadmap/queue; decision log; current state/task ledger/worklog.
 Checks: Active identifier/file inventory; Xcode/Auth/TestOps/seed/backend dependency review; `git diff --check`; context hygiene.
 Result: R-038 adopts Beckon, hellobeckon.com, Beckon: Pet Grooming, the approved tagline, bundle/callback identity, full local technical rename, and in-place seed-user rename. Q-94 through Q-96 separate local app, workflow rules, and authorized remote cutover.
 Risks: Current app and hosted Auth still use the old identity until execution. Applied migrations/frozen history remain immutable; App Store Connect remains Apple-blocked.
-Next: Adopt Q-94 as T-244. Q-96 still requires fresh remote-write authorization.
 ```
 
 ```text
@@ -66,13 +75,4 @@ Files changed: Chat Supabase repository, Store, conversation/thread views, share
 Checks: Repository order, Store retry/dedupe/end, and scroll-policy RED/GREEN tests; focused Chat/ListPagination suites; full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; XcodeBuildMCP build/run plus customer Messages list/thread/screenshot; `git diff --check`; context hygiene.
 Result: Q-40 completes visible list pagination. Conversations use independent append state and shared Load More. Threads open on the newest bounded message window, prepend unique earlier pages, restore the old first-message anchor, and auto-scroll only when the latest message changes.
 Risks: The live customer account had only two conversations and short histories, so conditional pagination controls and anchor policy are covered by unit tests while Simulator verification covered production list/thread rendering. No schema or remote write.
-```
-
-```text
-Date: 2026-07-09
-Task: T-236 - Booking and notification visible pagination.
-Files changed: Booking/customer notification/groomer notification Stores, views, and tests; pagination audit; roadmap/queue/current state/task ledger/worklog.
-Checks: Three pagination RED/GREEN cases; focused suites; full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; XcodeBuildMCP build/run and customer Booking/Notification navigation; `git diff --check`; context hygiene.
-Result: Q-39 exposes the shared Load More interaction on customer bookings, groomer schedule, and both notification lists. Append loads use separate busy state, retain rows/cursor on failure, retry the same page, deduplicate IDs, and hide at the terminal page; mark-all-read preserves the loaded notification window.
-Risks: The live customer account had fewer than 50 bookings/notifications, so conditional Load More visibility is covered by Store tests while Simulator verification covered the production screens. No schema or remote write.
 ```
