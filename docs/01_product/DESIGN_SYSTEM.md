@@ -22,6 +22,8 @@ Do not use design work to change product flow, role routing, repository boundari
 
 Avoid dense dashboards, map-first layouts, oversized calendars, decorative animation, and one-off raw colors or spacing in feature views.
 
+R-039 applies this foundation with role-adaptive density: Customer remains pet/decision oriented, while Groomer becomes schedule/action oriented. Groomer operational lists use grouped surfaces and row separators rather than one raised card per row. The approved contract and targets live in `../08_design/GROOMER_UI_REDESIGN.md`.
+
 ## Current Sources
 
 - Swift tokens: `ios/Beckon/Beckon/DesignSystem/DesignTokens.swift`
@@ -32,6 +34,7 @@ Avoid dense dashboards, map-first layouts, oversized calendars, decorative anima
 - Extracted token source: `../08_design/design_tokens.json`
 - Screen inventory: `SCREEN_INVENTORY.md`
 - Visual audit summary: `../08_design/UI_IMPLEMENTATION_NOTES.md`
+- Approved Groomer redesign: `../08_design/GROOMER_UI_REDESIGN.md`
 
 ## Token Rules
 
@@ -83,4 +86,5 @@ Product correctness and accessibility take priority over visual matching when a 
 - Images need useful accessibility labels unless decorative.
 - Reuse shared primitives before creating feature-local variants.
 - Preserve the Open Request -> Groomer Offer -> Customer Confirmation -> Booking model.
+- Keep primary tab bars to five destinations; feature editors hide the tab bar and expose one navigation back action.
 - Keep dark-mode changes, new brand assets, public groomer directory, direct booking, payments, attachments, maps/calendar, admin tools, and push behavior beyond the approved T-153/T-157 notification scope out of scope unless explicitly requested.

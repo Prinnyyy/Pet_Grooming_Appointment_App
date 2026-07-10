@@ -19,6 +19,7 @@ Future UI work is screenshot-driven. Map every visible module to this table plus
 | CustomerRequestsView / RequestWizardView | Customer | own requests, pets, request RPC / `CustomerRequestsStore` | `Features/Customer/Requests/CustomerRequestsView.swift` | beckon adapted |
 | CustomerRequestDetailView / CustomerOfferReviewSection | Customer | requests, offers, active groomer summaries, accept RPC / `CustomerRequestsStore` | `Features/Customer/Requests/CustomerRequestsView.swift` | beckon adapted |
 | CustomerBookingListView | Customer | `bookings`, `reviews`, cancel/review RPCs / `BookingsStore` | `Features/Bookings/BookingsView.swift` | beckon adapted |
+| GroomerHomeView | Groomer | Existing profile/request/offer/booking/notification/chat repositories / planned `GroomerHomeStore` | Planned `Features/Groomer/Home/` | planned R-039/Q-97 |
 | GroomerProfileEditorView / PortfolioView | Groomer | profile, services, portfolio metadata, Storage / `GroomerProfileStore` | `Features/Groomer/Profile/GroomerProfileManagementView.swift` | beckon adapted |
 | MatchedRequestFeedView | Groomer | `request_matches`, `grooming_requests` / `GroomerRequestsStore` | `Features/Groomer/Requests/GroomerRequestsView.swift` | beckon adapted |
 | GroomerRequestDetailView / MakeOfferSection | Groomer | match/request reads, offer RPCs / `GroomerRequestsStore` | `Features/Groomer/Requests/GroomerRequestsView.swift` | beckon adapted |
@@ -36,6 +37,7 @@ Future UI work is screenshot-driven. Map every visible module to this table plus
 ## Role Tab Summary
 
 - Customer tabs: Home, Requests, Bookings, Messages, Account.
-- Groomer tabs: Board, Offers, Schedule, Messages, Account.
-- Offer creation and withdrawal remain inside groomer Board/request detail.
+- Current Groomer code exposes Board, Offers, Schedule, Messages, Alerts, and Account; iOS places Alerts/Account under a system More tab.
+- Approved R-039 Groomer target: Home, Requests, Schedule, Messages, Account.
+- R-039 moves submitted-offer tracking into the Requests `Matches` / `Offers` workspace and opens Notifications from Groomer Home. Offer creation and withdrawal behavior remains owned by the existing request/offer features.
 - Visual adaptation must preserve Open Request -> Groomer Offer -> Customer Confirmation -> Booking.

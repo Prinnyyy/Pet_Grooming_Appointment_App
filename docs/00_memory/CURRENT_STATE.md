@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-10
 - Updated by: Codex
-- Latest completed task: T-248/Q-96 remote Beckon identity cutover.
+- Latest completed task: T-249/R-039 Groomer workspace redesign contract.
 - Current task: none; T-157 APNs remains externally blocked.
-- Next task ID: use T-249 unless the user resumes T-157 after Apple Developer Program upgrade.
+- Next task ID: use T-250 for Q-97 unless the user resumes T-157 after Apple Developer Program upgrade.
 
 ## Fast Path
 
@@ -41,6 +41,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - T-246 completed Q-94: local Xcode/app/source/TestOps identity is Beckon and the Q-96 cron migration is prepared but unapplied.
 - T-247 completed Q-95: active agent/workflow sources use Beckon and are checked by the identity audit.
 - T-248 completed Q-96: project/Auth/runtime identity and all 100 seed users use Beckon; UUID mapping is unchanged, remote lifecycle passed 5/5, matching passed 8/8, tagged residue is zero, and full local gates pass.
+- T-249 approved current/target Groomer visual evidence, the five-tab workspace contract, and Q-97 through Q-104. No app or backend implementation changed.
 - T-244 normalizes the rotated Worklog EOF to one newline.
 - T-245 context-script validation passes 32 Node tests; word counts are informational and rolling windows use buffered high/retain entry counts.
 - T-246 passes the Beckon identity audit, 31 TestOps tests, 48 migration tests, 10 Edge tests, privacy/preflight/Supabase checks, full iOS tests/build, and Simulator auth branding inspection.
@@ -59,6 +60,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - Private Storage images use authenticated `.download(path:)` through `PrivateImageLoader`; cache hashes paths, retries transient downloads once, and clears on local account cleanup.
 - Customers can create a new request from cancelled requests/bookings via explicit republish. Republish tolerates missing request photos and expired preferred windows. Unpublished wizard drafts are sheet-ephemeral.
 - Beckon UI adaptation is complete for implemented MVP screens. Future UI work is screenshot-driven and must map modules to existing SwiftUI/Store/repository/model paths or stop for approval.
+- R-039 Groomer redesign is approved but not implemented. Its target is Home, Requests, Schedule, Messages, Account; Offers becomes a Requests segment, Notifications opens from Home, and editors hide the tab bar.
 - Local binaries and hosted Auth use `Beckon: Pet Grooming`, `com.hellobeckon.beckon`, and `com.hellobeckon.beckon://auth/callback`. Supabase project/runtime naming and all 100 remote seed users now use Beckon.
 
 ## Active Workflow State
@@ -67,7 +69,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - Startup reads stay minimal: `AGENTS.md`, then targeted current-state/task-ledger sections only when needed.
 - Periodic documentation-governance reviews use `docs/06_tasks/META_REVIEW_TEMPLATE.md` every 10 completed tasks or weekly.
 - Last meta-review: T-240 on 2026-07-10.
-- V1.0 ideal-operation Q-16...Q-43, Auth package Q-92, and R-038/Q-94...Q-96 are complete.
+- V1.0 ideal-operation Q-16...Q-43, Auth package Q-92, and R-038/Q-94...Q-96 are complete. R-039 design T-249 is complete; Q-97 through Q-104 are queued.
 - Changes to `AGENTS.md`, `CLAUDE.md`, or `docs/05_workflow/**` must be standalone numbered tasks with a decision-log entry and context hygiene.
 - T-180 records standing user approval for task-completion Git commit and push. This approval is limited to current-task changes after validation passes; T-186 requires stopping without auto pull/rebase/merge/reset/force-push if the push fails or is rejected.
 - T-245 makes word counts informational only; Ledger uses 18/12, Worklog and active decisions use 14/8, and decision archive pointers use 12/6 trigger/retain windows. Manual compaction follows 65%/80% boundaries against the 353,000-token context.
@@ -97,8 +99,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - Customer in-app notifications are active. T-157 APNs database/iOS foundation is remotely applied; push dispatch waits for Apple Developer credentials and APNs secrets.
 - Large Swift context risks `CustomerRequestsView.swift` and `GroomerProfileManagementView.swift` were split in T-211/T-212.
 - Active cross-task risk: T-157 APNs deployment remains blocked.
+- Approved R-039 mock data and generated photos are illustrative; implementations must use live models and existing authenticated image paths.
 - T-234 applied the 2 T-228-evidenced FK indexes; the remaining 10 FK findings already have usable indexes. Q-93 remains blocked by Supabase Free, and APNs remains excluded.
 
 ## Next Recommended Task
 
-- The non-Apple execution queue has no dependency-satisfied package. Use T-249 only for the next explicit user request.
+- Q-97 Groomer navigation shell and Home is the next dependency-satisfied package and uses T-250 only when explicitly started.

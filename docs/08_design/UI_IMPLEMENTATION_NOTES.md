@@ -8,12 +8,19 @@ For current UI work, read in this order:
 
 1. `../01_product/DESIGN_SYSTEM.md`
 2. this file
-3. `../01_product/SCREEN_INVENTORY.md`
-4. `screenshots/README.md` when screenshot assets are involved
-5. `../06_tasks/SCREENSHOT_UI_REWORK_TASK_TEMPLATE.md` for screenshot-driven tasks
-6. `design_tokens.json` only when token details matter
+3. `GROOMER_UI_REDESIGN.md` for R-039 Groomer work only
+4. `../01_product/SCREEN_INVENTORY.md`
+5. `screenshots/README.md` when screenshot assets are involved
+6. `../06_tasks/SCREENSHOT_UI_REWORK_TASK_TEMPLATE.md` for screenshot-driven tasks
+7. `design_tokens.json` only when token details matter
 
 Do not read Beckon HTML/export files by default. Use them only when a screenshot task explicitly needs design-source comparison. Do not copy HTML, CSS, React, generated JavaScript, or prototype runtime code into SwiftUI.
+
+## Active Groomer Redesign
+
+T-249 approved `GROOMER_UI_REDESIGN.md` as the R-039 contract. Its `groomer_ui_redesign/current/` captures record the pre-change Simulator baseline; `groomer_ui_redesign/approved/` contains the approved Home, Requests, Account, and Edit Profile targets. Read those assets only for R-039 implementation or visual QA.
+
+The targets define hierarchy and layout, not production data. Live models, repositories, validation, accessibility, and the current request/offer/booking lifecycle remain authoritative.
 
 ## Brand And Model
 

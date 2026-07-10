@@ -18,6 +18,15 @@ Linked files:
 ## Active Decisions
 
 ```text
+Decision ID: D-026
+Date: 2026-07-10
+Decision: Use one Beckon visual foundation with a schedule/action-oriented Groomer workspace and exactly five direct Groomer tabs.
+Context: Live Simulator inspection showed the Groomer side using six equal tabs, a system-generated More screen, nested Account navigation, duplicate back buttons in Edit Profile, and card-heavy pages without a stable operational priority. The user approved the first T-249 visual direction and its Requests, Account, and Edit Profile extensions.
+Consequences: R-039 targets Home, Requests, Schedule, Messages, and Account. Offers moves into a Requests Matches/Offers segment; Notifications opens from Home; Account is direct; feature editors hide the tab bar. Grouped surfaces and row separators replace per-row floating cards. Existing marketplace/backend contracts remain unchanged, and implementation is split into Q-97 through Q-104.
+Linked files: docs/08_design/GROOMER_UI_REDESIGN.md, docs/06_tasks/ROADMAP.md, docs/06_tasks/ROADMAP_EXECUTION_QUEUE.md, docs/01_product/DESIGN_SYSTEM.md
+```
+
+```text
 Decision ID: D-025
 Date: 2026-07-09
 Decision: Treat Beckon as the only active product and workflow vocabulary while preserving legacy names solely in immutable history and explicit migration evidence.
