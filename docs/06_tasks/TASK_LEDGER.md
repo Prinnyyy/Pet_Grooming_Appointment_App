@@ -2,7 +2,7 @@
 
 Track only current, blocked, and recent tasks here so Codex does not continue automatically. Older completed rows through T-190 are archived under `docs/09_frozen/task_ledgers/`; active blocked T-157 remains below. Notes should keep conclusions and pointers only; validation detail belongs in `docs/00_memory/WORKLOG.md` or frozen worklogs. Detailed task records T-001 through T-088 and workflow task records remain archived under `docs/09_frozen/task_records_2026-06-26/`.
 
-Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup`; use `T-250` for the next task unless the user explicitly names another branch or task ID.
+Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup`; use `T-251` for the next task unless the user explicitly names another branch or task ID.
 
 Active blocked task: T-157 is waiting on paid Apple Developer Program access before APNs secrets (`APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_TOPIC`, `APNS_PRIVATE_KEY`) and Edge Function deploy.
 
@@ -10,6 +10,7 @@ Active blocked task: T-157 is waiting on paid Apple Developer Program access bef
 
 | ID | Task | Status | Mode | Milestone | Files/Docs | Checks | Notes |
 |---|---|---|---|---|---|---|---|
+| T-250 | Groomer navigation shell and Home | completed | Standard | M12/R-039/Q-97 | Five-tab model/root; Groomer Home Store/views/primitives; notification and availability routing; TestOps selectors; focused tests; roadmap/memory closeout | RED/GREEN Store/tab/route tests; full iOS test/build; live 368x800 Simulator five-tab/Home/notification/Account/availability inspection; diff/context | Replaces six-tab/system More with Home, Requests, Schedule, Messages, Account. Home uses live read-only summaries, cache-first avatar, authenticated booking photo, global feedback, and data-ready availability deep link. No backend or remote write. |
 | T-249 | Groomer workspace redesign contract | completed | Quick | M12/R-039 | Approved/current visual evidence; Groomer design contract; design/product indexes; roadmap/queue; decision/current state/worklog | Live Simulator audit; image uniqueness/dimensions; design self-review; preflight; diff/context hygiene | Approves role-adaptive Groomer UI, five direct tabs, Requests/Offers workspace, Home notification entry, focused editors, and Q-97 through Q-104. No Swift/backend/remote change. |
 | T-248 | Remote Beckon identity cutover | completed | Deep | M11/R-038/Q-96 | Supabase project/Auth/runtime; 100 seed Auth identities; cutover runner/tests; backend/TestOps/roadmap/memory docs | Migration parity/dry-run; Auth config; UUID digest; login; lifecycle 5/5; matching 8/8; zero residue; identity/TestOps/preflight/Supabase; full iOS test/build; diff/secret/context | Project/Auth/runtime and 100 seed users use Beckon in place. UUID mappings are preserved; old emails/metadata are zero. Legacy rollback support is an exact audited tool/test exception. |
 | T-247 | Beckon workflow vocabulary | completed | Quick | M11/R-038/Q-95 | AGENTS/CLAUDE/workflow rules; identity audit/test; decision/roadmap/memory closeout | Audit RED/GREEN; context hygiene; preflight; diff/secret review | Replaces active workflow legacy vocabulary and old iOS credential path, then removes temporary audit exemptions. No product or remote change; Q-96 requires fresh authorization. |

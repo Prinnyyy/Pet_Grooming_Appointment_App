@@ -3,6 +3,7 @@ import SwiftUI
 struct GroomerTabView: View {
     @Environment(\.appDebugEventRecorder) private var debugRecorder
     let groomerID: UUID?
+    let groomerDisplayName: String
     let profileRepository: (any GroomerProfileRepository)?
     let requestRepository: (any GroomerRequestRepository)?
     let notificationRepository: (any GroomerNotificationRepository)?
@@ -10,14 +11,16 @@ struct GroomerTabView: View {
     let chatRepository: (any ChatRepository)?
     let accountContent: AnyView?
     let onSignOut: (() -> Void)?
-    @State private var selection: GroomerTab = .requests
+    @State private var selection: GroomerTab = .home
     @State private var focusedConversationBookingID: UUID?
+    @State private var requestedProfileRoute: GroomerProfileRoute?
     @State private var notificationStore: GroomerNotificationsStore?
     @State private var chatStore: ChatStore?
     @State private var feedbackCenter = BeckonFeedbackCenter()
 
     init(
         groomerID: UUID? = nil,
+        groomerDisplayName: String = "Groomer",
         profileRepository: (any GroomerProfileRepository)? = nil,
         requestRepository: (any GroomerRequestRepository)? = nil,
         notificationRepository: (any GroomerNotificationRepository)? = nil,
@@ -27,6 +30,7 @@ struct GroomerTabView: View {
         onSignOut: (() -> Void)? = nil
     ) {
         self.groomerID = groomerID
+        self.groomerDisplayName = groomerDisplayName
         self.profileRepository = profileRepository
         self.requestRepository = requestRepository
         self.notificationRepository = notificationRepository
@@ -50,7 +54,7 @@ struct GroomerTabView: View {
 
     var body: some View {
         TabView(selection: $selection) {
-            ForEach(GroomerTab.visibleCases) { tab in
+            ForEach(GroomerTab.allCases) { tab in
                 NavigationStack {
                     destination(for: tab)
                         .background(DesignTokens.Colors.background)
@@ -101,20 +105,35 @@ struct GroomerTabView: View {
 
     @ViewBuilder
     private func destination(for tab: GroomerTab) -> some View {
-        if tab == .requests,
+        if tab == .home,
+           let groomerID,
+           let profileRepository,
+           let requestRepository,
+           let bookingRepository {
+            GroomerHomeView(
+                groomerID: groomerID,
+                displayName: groomerDisplayName,
+                profileRepository: profileRepository,
+                requestRepository: requestRepository,
+                bookingRepository: bookingRepository,
+                unreadNotificationCount: notificationUnreadCount,
+                unreadMessageCount: messageUnreadCount,
+                notificationStore: notificationStore,
+                debugRecorder: debugRecorder,
+                notificationRouteAction: openNotificationRoute,
+                requestsAction: { select(.requests) },
+                offersAction: { select(.requests) },
+                bookingAction: { _ in select(.bookings) },
+                messagesAction: { select(.messages) },
+                availabilityAction: openAvailability
+            )
+        } else if tab == .requests,
            let groomerID,
            let requestRepository {
             GroomerRequestsView(
                 groomerID: groomerID,
                 repository: requestRepository,
                 debugRecorder: debugRecorder
-            )
-        } else if tab == .offers,
-                  let groomerID,
-                  let requestRepository {
-            GroomerOffersView(
-                groomerID: groomerID,
-                repository: requestRepository
             )
         } else if tab == .bookings,
                   let groomerID,
@@ -137,12 +156,6 @@ struct GroomerTabView: View {
                 store: chatStore,
                 focusedBookingID: $focusedConversationBookingID
             )
-        } else if tab == .notifications,
-                  let notificationStore {
-            GroomerNotificationsView(
-                store: notificationStore,
-                routeAction: openNotificationRoute
-            )
         } else if tab == .account,
            let groomerID,
            let profileRepository {
@@ -150,6 +163,7 @@ struct GroomerTabView: View {
                 groomerID: groomerID,
                 repository: profileRepository,
                 debugRecorder: debugRecorder,
+                requestedRoute: $requestedProfileRoute,
                 accountContent: accountContent,
                 onSignOut: onSignOut
             )
@@ -167,9 +181,18 @@ struct GroomerTabView: View {
 
     private func openBookingChat(_ booking: Booking) {
         focusedConversationBookingID = booking.id
+        select(.messages)
+    }
+
+    private func select(_ tab: GroomerTab) {
         withAnimation(.easeInOut(duration: 0.22)) {
-            selection = .messages
+            selection = tab
         }
+    }
+
+    private func openAvailability() {
+        requestedProfileRoute = .availability
+        select(.account)
     }
 
     private var notificationUnreadCount: Int {
@@ -186,7 +209,7 @@ struct GroomerTabView: View {
             case .requests:
                 selection = .requests
             case .offers:
-                selection = .offers
+                selection = .requests
             case .bookings:
                 selection = .bookings
             case let .messages(bookingID):
@@ -234,16 +257,14 @@ struct GroomerTabView: View {
 private extension GroomerTab {
     var debugKey: String {
         switch self {
+        case .home:
+            "home"
         case .requests:
             "requests"
-        case .offers:
-            "offers"
         case .bookings:
             "bookings"
         case .messages:
             "messages"
-        case .notifications:
-            "notifications"
         case .account:
             "account"
         }

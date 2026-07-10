@@ -144,20 +144,12 @@ final class TestOpsUIFlowDriver {
     }
 
     func assertGroomerNavigation() {
+        assertTab("groomer.tab.home", destination: "groomer.home")
         assertTab("groomer.tab.requests", destination: "groomer.requests.list")
-        assertTab("groomer.tab.offers", destination: "groomer.offers")
         assertTab("groomer.tab.bookings", destination: "groomer.schedule")
         assertTab("groomer.tab.messages", destination: "chat.conversations.list")
-        assertOverflowTab(
-            "groomer.tab.notifications",
-            fallbackLabel: "Alerts",
-            destination: "groomer.notifications"
-        )
-        assertOverflowTab(
-            "groomer.tab.account",
-            fallbackLabel: "Account",
-            destination: "groomer.account.home"
-        )
+        assertTab("groomer.tab.account", destination: "groomer.account.home")
+        assertTab("groomer.tab.home", destination: "groomer.home")
     }
 
     func openAndDismissCustomerRequestSheet() {
@@ -225,6 +217,8 @@ final class TestOpsUIFlowDriver {
         _ context: TestOpsLifecycleContext,
         expectedRequestReference: String
     ) {
+        tap(element("groomer.tab.requests"))
+        XCTAssertTrue(element("groomer.requests.list").waitForExistence(timeout: 15))
         let requestRow = button("groomer.requests.row.\(context.runID)")
         XCTAssertTrue(requestRow.waitForExistence(timeout: 20))
         XCTAssertEqual(supportReference(from: requestRow), expectedRequestReference)
@@ -342,33 +336,6 @@ final class TestOpsUIFlowDriver {
         let tab = element(identifier)
         XCTAssertTrue(tab.waitForExistence(timeout: 8), "Missing tab selector \(identifier).")
         tab.tap()
-        XCTAssertTrue(
-            element(destination).waitForExistence(timeout: 12),
-            "Expected \(identifier) to show \(destination)."
-        )
-    }
-
-    private func assertOverflowTab(
-        _ identifier: String,
-        fallbackLabel: String,
-        destination: String
-    ) {
-        let moreTab = app.tabBars.buttons["More"]
-        XCTAssertTrue(moreTab.waitForExistence(timeout: 8), "Missing system More tab.")
-        moreTab.tap()
-
-        let identifiedTab = element(identifier)
-        if identifiedTab.waitForExistence(timeout: 3) {
-            identifiedTab.tap()
-        } else {
-            let fallback = app.staticTexts[fallbackLabel]
-            XCTAssertTrue(
-                fallback.waitForExistence(timeout: 5),
-                "Missing overflow tab selector \(identifier)."
-            )
-            fallback.tap()
-        }
-
         XCTAssertTrue(
             element(destination).waitForExistence(timeout: 12),
             "Expected \(identifier) to show \(destination)."

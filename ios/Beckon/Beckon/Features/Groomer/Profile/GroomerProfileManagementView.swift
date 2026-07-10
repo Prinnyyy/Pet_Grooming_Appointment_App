@@ -1,7 +1,23 @@
 import SwiftUI
 
+nonisolated enum GroomerProfileRoute: String, Hashable, Identifiable, Sendable {
+    case availability
+
+    var id: Self { self }
+
+    static func activatedRoute(
+        requested: Self?,
+        isProfileLoaded: Bool
+    ) -> Self? {
+        guard isProfileLoaded else { return nil }
+        return requested
+    }
+}
+
 struct GroomerProfileManagementView: View {
     @State private var store: GroomerProfileStore
+    @Binding private var requestedRoute: GroomerProfileRoute?
+    @State private var activeRoute: GroomerProfileRoute?
     let accountContent: AnyView?
     let onSignOut: (() -> Void)?
 
@@ -9,6 +25,7 @@ struct GroomerProfileManagementView: View {
         groomerID: UUID,
         repository: any GroomerProfileRepository,
         debugRecorder: AppDebugEventRecorder? = nil,
+        requestedRoute: Binding<GroomerProfileRoute?> = .constant(nil),
         accountContent: AnyView? = nil,
         onSignOut: (() -> Void)? = nil
     ) {
@@ -19,6 +36,7 @@ struct GroomerProfileManagementView: View {
                 debugRecorder: debugRecorder
             )
         )
+        _requestedRoute = requestedRoute
         self.accountContent = accountContent
         self.onSignOut = onSignOut
     }
@@ -62,8 +80,31 @@ struct GroomerProfileManagementView: View {
         .sheet(isPresented: $store.isShowingServiceForm) {
             GroomerServiceFormView(store: store)
         }
+        .navigationDestination(item: $activeRoute) { route in
+            switch route {
+            case .availability:
+                GroomerAvailabilityEditorView(store: store)
+                    .toolbar(.hidden, for: .tabBar)
+            }
+        }
         .task {
             await store.load()
+            activateRequestedRouteIfReady()
         }
+        .onChange(of: requestedRoute) { _, _ in
+            activateRequestedRouteIfReady()
+        }
+    }
+
+    private func activateRequestedRouteIfReady() {
+        guard let route = GroomerProfileRoute.activatedRoute(
+            requested: requestedRoute,
+            isProfileLoaded: store.profile != nil
+        ) else {
+            return
+        }
+
+        requestedRoute = nil
+        activeRoute = route
     }
 }

@@ -25,12 +25,12 @@ struct TabBadgeFeatureTests {
     }
 
     @Test
-    func groomerTabsExposeNotificationAndMessageBadges() {
+    func groomerHomeKeepsNotificationsOnBellAndMessagesExposeBadge() {
         #expect(
-            GroomerTab.notifications.badgeCount(
+            GroomerTab.home.badgeCount(
                 unreadNotificationCount: 4,
                 unreadMessageCount: 5
-            ) == 4
+            ) == 0
         )
         #expect(
             GroomerTab.messages.badgeCount(

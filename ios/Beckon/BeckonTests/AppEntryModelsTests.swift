@@ -126,18 +126,33 @@ struct TabModelsTests {
 
     @Test
     func groomerTabsHaveExactOrderTitlesAndSymbols() {
-        #expect(GroomerTab.visibleCases == [.requests, .offers, .bookings, .messages, .notifications, .account])
-        #expect(GroomerTab.visibleCases.map(\.title) == ["Board", "Offers", "Schedule", "Messages", "Alerts", "Account"])
-        #expect(GroomerTab.visibleCases.map(\.systemImage) == ["tray.full", "tag", "calendar", "message", "bell", "person.crop.circle"])
-        #expect(GroomerTab.visibleCases.allSatisfy { $0.id == $0 })
-        #expect(GroomerTab.visibleCases.map(\.accessibilityIdentifier) == [
+        #expect(GroomerTab.allCases == [.home, .requests, .bookings, .messages, .account])
+        #expect(GroomerTab.allCases.map(\.title) == ["Home", "Requests", "Schedule", "Messages", "Account"])
+        #expect(GroomerTab.allCases.map(\.systemImage) == ["house", "person.2", "calendar", "message", "person.crop.circle"])
+        #expect(GroomerTab.allCases.allSatisfy { $0.id == $0 })
+        #expect(GroomerTab.allCases.map(\.accessibilityIdentifier) == [
+            "groomer.tab.home",
             "groomer.tab.requests",
-            "groomer.tab.offers",
             "groomer.tab.bookings",
             "groomer.tab.messages",
-            "groomer.tab.notifications",
             "groomer.tab.account",
         ])
+    }
+
+    @Test
+    func groomerProfileDeepLinkWaitsForLoadedProfile() {
+        #expect(
+            GroomerProfileRoute.activatedRoute(
+                requested: .availability,
+                isProfileLoaded: false
+            ) == nil
+        )
+        #expect(
+            GroomerProfileRoute.activatedRoute(
+                requested: .availability,
+                isProfileLoaded: true
+            ) == .availability
+        )
     }
 }
 

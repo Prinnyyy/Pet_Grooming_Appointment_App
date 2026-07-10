@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-10
+Task: T-250 - Groomer navigation shell and Home.
+Files changed: Five-tab Groomer model/root; live Home Store/views and shared workspace primitives; notification/availability routing; profile route readiness; TestOps selectors; focused tests; roadmap/current-state/task-ledger/worklog.
+Checks: Navigation/Home/route RED-GREEN tests; full `./scripts/ios-test.sh`; final `./scripts/ios-build.sh`; live iPhone 17 Pro Max 368x800 Home, notification, direct Account, and loaded Availability deep-link inspection; `git diff --check`; context hygiene.
+Result: Q-97 is complete. Groomer now opens on Home with five direct tabs and no system More. Home renders cache-first profile identity, live request/offer/message/booking/availability summaries, authenticated booking imagery, global feedback, Notifications, and a data-ready Availability shortcut.
+Risks: Offers currently routes to Requests until Q-98 adds the Matches/Offers segment. Remaining Groomer list, schedule, message, account, and editor visual work stays queued in Q-98 through Q-104; no backend or remote state changed.
+Next: Run the required periodic meta-review as T-251, then start Q-98 as T-252.
+```
+
+```text
+Date: 2026-07-10
 Task: T-249 - Groomer workspace redesign contract.
 Files changed: Current Simulator and approved target images; Groomer UI design contract; design/product indexes; roadmap/queue; decision/current state/task ledger/worklog.
 Checks: Live current-screen capture with page-specific accessibility waits; distinct image hashes and dimensions; design placeholder/contradiction review; preflight; diff and context hygiene.
 Result: R-039 adopts one Beckon foundation with a schedule/action-oriented Groomer workspace. Five direct tabs replace system More; Offers moves into Requests, Notifications opens from Home, and editors use one back action with the tab bar hidden. Q-97 through Q-104 are queued.
 Risks: The approved target images contain illustrative data/photos and are not backend requirements. No SwiftUI, repository, Supabase, or remote state changed.
-Next: Start Q-97 as T-250 only on explicit user request.
 ```
 
 ```text

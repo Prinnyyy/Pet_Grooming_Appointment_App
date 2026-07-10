@@ -78,6 +78,7 @@ struct AuthenticatedEntryView: View {
             case let .groomer(profile):
                 GroomerTabView(
                     groomerID: profile.userID,
+                    groomerDisplayName: profile.displayName,
                     profileRepository: groomerProfileRepository,
                     requestRepository: groomerRequestRepository,
                     notificationRepository: groomerNotificationRepository,
