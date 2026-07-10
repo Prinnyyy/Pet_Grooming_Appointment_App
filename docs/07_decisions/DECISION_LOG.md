@@ -18,6 +18,15 @@ Linked files:
 ## Active Decisions
 
 ```text
+Decision ID: D-025
+Date: 2026-07-09
+Decision: Treat Beckon as the only active product and workflow vocabulary while preserving legacy names solely in immutable history and explicit migration evidence.
+Context: Q-94 renamed the local application and source, but the separately governed agent/workflow rules still used the prior product name and old Xcode credential path. Their temporary identity-audit exclusion also allowed future drift.
+Consequences: AGENTS.md, CLAUDE.md, and docs/05_workflow use Beckon terminology and current ios/Beckon paths. The active identity audit now checks those files; only frozen records, applied migrations, the migration contract, and audit fixtures may retain legacy literals. Product behavior and remote state are unchanged.
+Linked files: AGENTS.md, CLAUDE.md, docs/05_workflow/CONTEXT_AND_RECOVERY.md, docs/05_workflow/STOP_CONDITIONS.md, docs/05_workflow/TOOLING_POLICY.md, scripts/beckon-identity-check.mjs
+```
+
+```text
 Decision ID: D-024
 Date: 2026-07-09
 Decision: Maintain active Markdown with buffered entry-count windows and treat all word counts as informational telemetry.

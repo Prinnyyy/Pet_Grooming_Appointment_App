@@ -14,8 +14,6 @@ const LEGACY_PATTERNS = [
 ];
 
 const EXACT_EXCLUSIONS = new Set([
-  "AGENTS.md",
-  "CLAUDE.md",
   "docs/06_tasks/BECKON_BRAND_MIGRATION.md",
   "scripts/beckon-identity-check.mjs",
   "tests/brand/beckon-identity-check.test.mjs",
@@ -24,7 +22,6 @@ const EXACT_EXCLUSIONS = new Set([
 const PREFIX_EXCLUSIONS = [
   ".git/",
   "artifacts/",
-  "docs/05_workflow/",
   "docs/09_frozen/",
   "supabase/migrations/",
 ];

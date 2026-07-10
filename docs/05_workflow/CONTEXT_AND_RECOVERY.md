@@ -10,7 +10,7 @@ Use this file to decide what to read, when to expand context, how to recover aft
 | L1 Task index | After classifying the task, read one index for that domain | `docs/README.md`; `docs/00_memory/FEATURE_INDEX.md`; `docs/06_tasks/ROADMAP.md` for planning tasks; `docs/03_backend/SUPABASE_CONTRACT.md`; `docs/04_ios/testops/README.md`; `docs/10_project_structure/README.md` |
 | L2 Domain rules | Read only targeted sections needed for implementation or validation | Product docs, architecture docs, backend policy docs, iOS/TestOps runbooks, active workflow policy files |
 | L3 Trace/history | Search first, then read line ranges | `docs/00_memory/WORKLOG.md`; `docs/00_memory/PROJECT_MEMORY.md`; `docs/07_decisions/DECISION_LOG.md`; `docs/10_project_structure/REORGANIZATION_LOG.md` |
-| L4 Frozen/heavy | Default prohibited; use only with a specific recovery, comparison, seed, design-source, or migration-trace reason | `docs/09_frozen/**`; Groomly HTML/export; T-129 seed tables; generated artifacts; broad migration scans |
+| L4 Frozen/heavy | Default prohibited; use only with a specific recovery, comparison, seed, design-source, or migration-trace reason | `docs/09_frozen/**`; Beckon HTML/export; T-129 seed tables; generated artifacts; broad migration scans |
 
 ## Expansion Rules
 
@@ -37,7 +37,7 @@ Default searches must honor `.rgignore`. Do not use broad `rg --files -g '*.md'`
 - All workflow policy files.
 - Task templates when no template work is being done.
 - Frozen archives and current-state/worklog/task-ledger snapshots.
-- Groomly HTML/export; prefer `UI_IMPLEMENTATION_NOTES.md`, `design_tokens.json`, and screenshots.
+- Beckon HTML/export; prefer `UI_IMPLEMENTATION_NOTES.md`, `design_tokens.json`, and screenshots.
 - T-129 seed profile tables; use their README unless parser/test work needs table content.
 - Root original brief and Claude reference files.
 

@@ -24,7 +24,7 @@ Test resources become `beckon.customer001@example.com` through `050` and `beckon
 ## Sequencing
 
 1. Q-94 completed the local application/source rename and prepared append-only backend changes in T-246. Its local iOS, TestOps, migration, privacy, and context gates passed.
-2. Q-95 is a standalone workflow-rule rename because `AGENTS.md`, `CLAUDE.md`, and `docs/05_workflow/**` cannot share an implementation task.
+2. Q-95 completed the standalone workflow-rule rename in T-247; active agent/workflow sources are now included in the Beckon identity audit.
 3. Q-96 performs authorized remote cutover: Supabase project display name, Auth sender/callback settings, append-only migration, and in-place updates of the 100 seeded Auth users while preserving UUIDs and marketplace rows. It closes with lifecycle, matching, Auth callback, and zero-residue verification. The APNs dispatcher remains undeployed and excluded until its Apple prerequisites exist.
 
 ## Historical Boundary

@@ -50,14 +50,11 @@ test("identity audit accepts the canonical Beckon identity", () => {
   );
 });
 
-test("identity audit excludes immutable history and the standalone workflow boundary", () => {
+test("identity audit excludes immutable history but audits active workflow sources", () => {
   const excluded = [
     ".git/logs/HEAD",
     "docs/09_frozen/old.md",
     "supabase/migrations/20260701000000_old.sql",
-    "AGENTS.md",
-    "CLAUDE.md",
-    "docs/05_workflow/TOOLING_POLICY.md",
     "docs/06_tasks/BECKON_BRAND_MIGRATION.md",
     "scripts/beckon-identity-check.mjs",
     "tests/brand/beckon-identity-check.test.mjs",
@@ -65,6 +62,13 @@ test("identity audit excludes immutable history and the standalone workflow boun
 
   for (const file of excluded) {
     assert.equal(isIdentityAuditExcluded(file), true, file);
+  }
+  for (const file of [
+    "AGENTS.md",
+    "CLAUDE.md",
+    "docs/05_workflow/TOOLING_POLICY.md",
+  ]) {
+    assert.equal(isIdentityAuditExcluded(file), false, file);
   }
   assert.equal(isIdentityAuditExcluded("ios/Beckon/BeckonApp.swift"), false);
 });

@@ -28,9 +28,9 @@ Codex must stop and report when any condition occurs.
 - Supabase schema cannot be verified.
 - Tests fail for reasons unrelated to the current task.
 
-## Groomly UI Stop
+## Beckon UI Stop
 
-- The uploaded screenshot or Groomly design source cannot be read.
+- The uploaded screenshot or Beckon design source cannot be read.
 - Design asset source, safety, or licensing is unclear.
 - A screenshot module cannot be mapped to an existing SwiftUI surface, Store/repository/model path, or clearly identified new feature.
 - The screenshot or prototype requires backend schema, RLS, RPC, Storage policy, repository contract, or new persistence changes.
@@ -47,7 +47,7 @@ Codex must stop and report when any condition occurs.
 - Current code differs greatly from documented architecture.
 - Current docs conflict with source code, scripts, migrations, or verified tool behavior.
 - L4 frozen/heavy context is needed but the reason is not specific.
-- The next step would require broad full-file reads of archives, Groomly HTML/export, T-129 seed tables, large migrations, or large Swift files.
+- The next step would require broad full-file reads of archives, Beckon HTML/export, T-129 seed tables, large migrations, or large Swift files.
 - Default search would need to bypass `.rgignore` without a targeted reason.
 - `rg --files -g '*.md'` or another broad inventory would re-include ignored heavy Markdown as routine context.
 - Context hygiene reports an entry-count window above its trigger that one scoped rotation cannot reduce to the retained count because eligible entries are insufficient or the document structure is malformed.
@@ -63,7 +63,7 @@ Safe next options:
 User decision needed:
 ```
 
-For screenshot-driven Groomly UI stops, also include:
+For screenshot-driven Beckon UI stops, also include:
 
 ```text
 Screenshot/module:

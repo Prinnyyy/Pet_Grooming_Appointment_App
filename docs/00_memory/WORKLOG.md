@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-09
+Task: T-247 - Beckon workflow vocabulary.
+Files changed: AGENTS/CLAUDE workflow guidance; context/stop/tooling rules; Beckon identity audit/test; decision, roadmap, queue, current state, task ledger, and worklog.
+Checks: Workflow-audit RED/GREEN; active identity audit; context hygiene; preflight; `git diff --check`; task-scoped diff and secret review.
+Result: Q-95 is complete. Active agent and workflow rules use Beckon terminology and the current ios/Beckon credential path. Their temporary identity-audit exclusions are removed, so future workflow drift fails preflight.
+Risks: Product behavior and remote state are unchanged. Q-96 remains blocked until fresh explicit remote-write authorization is provided.
+Next: Adopt Q-96 as T-248 only after fresh remote-write authorization.
+```
+
+```text
+Date: 2026-07-09
 Task: T-246 - Local Beckon application and source identity.
 Files changed: Xcode/app/source/test paths and symbols; plist/callback/diagnostic/cache identity; brand audit; TestOps/seed resources; design and active product docs; prepared cron migration and push payload; focused test isolation; roadmap/memory closeout; frozen implementation plan.
 Checks: Identity audit RED/GREEN; `xcodebuild -list`; 31 TestOps tests plus smoke5/matching dry-runs; 48 migration and 10 Edge tests; privacy 4/4; preflight/Supabase checks; focused pagination suite; full iOS test/build; Simulator signed-out branding/tagline; diff check. Context hygiene reports only the intentionally deferred Q-95 workflow path reference.
 Result: Q-94 is complete. Local project, targets, module, UI, source symbols/files, scripts, TestOps, 50+50 seed resources, design source, diagnostics, caches, launch arguments, and accessibility identifiers use Beckon. The append-only cron rename is prepared but unapplied; the APNs dispatcher remains undeployed.
 Risks: Hosted Auth/Supabase and remote seed users remain on the legacy identity until authorized Q-96. The new bundle intentionally starts with a fresh app container. Q-95 must update workflow vocabulary and restore context hygiene as a standalone task.
-Next: Adopt Q-95 as T-247 for the standalone Beckon workflow-vocabulary migration.
 ```
 
 ```text

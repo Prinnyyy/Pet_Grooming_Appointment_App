@@ -4,9 +4,9 @@ This file gives Claude Code the minimum active context for this repository.
 
 ## Active Phase
 
-The MVP implementation is complete and the implemented Groomly UI phase is historical. Current task state and numbering live in `docs/06_tasks/TASK_LEDGER.md`.
+The MVP implementation is complete and the implemented Beckon UI phase is historical. Current task state and numbering live in `docs/06_tasks/TASK_LEDGER.md`.
 
-Detailed task records, including T-001 through T-088 and completed Groomly UI records, are archived under:
+Detailed task records, including T-001 through T-088 and completed Beckon UI records, are archived under:
 
 ```text
 docs/09_frozen/task_records_2026-06-26/
@@ -51,7 +51,7 @@ Do not read backend docs, old task files, archived workflow docs, frozen snapsho
 
 - Preserve the Open Request -> Groomer Offer -> Customer Confirmation -> Booking model.
 - SwiftUI views must not call Supabase directly.
-- Do not change backend schema, RLS, RPCs, repositories, role routing, or product behavior during Groomly UI screen slices.
+- Do not change backend schema, RLS, RPCs, repositories, role routing, or product behavior during Beckon UI screen slices.
 - Do not copy HTML/CSS/React code directly into SwiftUI.
 - Treat unsupported prototype features as visual inspiration only.
 - Do not expose tokens, API keys, passwords, raw secrets, or full user identifiers.
@@ -80,5 +80,5 @@ Use the selected task file's validation commands. Standard SwiftUI screen slices
 - Product brief: `docs/01_product/PRODUCT_BRIEF.md`
 - Product rules: `docs/01_product/`
 - Backend contract: `docs/03_backend/`
-- Current Groomly design notes: `docs/08_design/UI_IMPLEMENTATION_NOTES.md`
+- Current Beckon design notes: `docs/08_design/UI_IMPLEMENTATION_NOTES.md`
 - Frozen archives: `docs/09_frozen/README.md`

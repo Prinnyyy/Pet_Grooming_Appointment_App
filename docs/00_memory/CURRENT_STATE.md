@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-09
 - Updated by: Codex
-- Latest completed task: T-246 local Beckon identity migration.
+- Latest completed task: T-247 Beckon workflow vocabulary migration.
 - Current task: none; T-157 APNs remains externally blocked.
-- Next task ID: use T-247 unless the user resumes T-157 after Apple Developer Program upgrade.
+- Next task ID: use T-248 unless the user resumes T-157 after Apple Developer Program upgrade.
 
 ## Fast Path
 
@@ -39,6 +39,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - Latest remote TestOps evidence: T-235 `smoke5` passed 5/5 and `matching_baseline` passed 8/8; both R2 run families left zero tagged requests and only redacted local artifacts.
 - T-242 verified public DMARC, accepted a Resend delivery smoke, and persisted Supabase Custom SMTP plus exact Auth callback URLs.
 - T-246 completed Q-94: local Xcode/app/source/TestOps identity is Beckon and the Q-96 cron migration is prepared but unapplied.
+- T-247 completed Q-95: active agent/workflow sources use Beckon and are checked by the identity audit.
 - T-244 normalizes the rotated Worklog EOF to one newline.
 - T-245 context-script validation passes 32 Node tests; word counts are informational and rolling windows use buffered high/retain entry counts.
 - T-246 passes the Beckon identity audit, 31 TestOps tests, 48 migration tests, 10 Edge tests, privacy/preflight/Supabase checks, full iOS tests/build, and Simulator auth branding inspection.
@@ -65,7 +66,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - Startup reads stay minimal: `AGENTS.md`, then targeted current-state/task-ledger sections only when needed.
 - Periodic documentation-governance reviews use `docs/06_tasks/META_REVIEW_TEMPLATE.md` every 10 completed tasks or weekly.
 - Last meta-review: T-240 on 2026-07-10.
-- V1.0 ideal-operation Q-16...Q-43, Auth package Q-92, and R-038/Q-94 are complete. Q-95 is next and must remain a standalone workflow task.
+- V1.0 ideal-operation Q-16...Q-43, Auth package Q-92, and R-038/Q-94/Q-95 are complete. Q-96 remains fresh-authorization gated.
 - Changes to `AGENTS.md`, `CLAUDE.md`, or `docs/05_workflow/**` must be standalone numbered tasks with a decision-log entry and context hygiene.
 - T-180 records standing user approval for task-completion Git commit and push. This approval is limited to current-task changes after validation passes; T-186 requires stopping without auto pull/rebase/merge/reset/force-push if the push fails or is rejected.
 - T-245 makes word counts informational only; Ledger uses 18/12, Worklog and active decisions use 14/8, and decision archive pointers use 12/6 trigger/retain windows. Manual compaction follows 65%/80% boundaries against the 353,000-token context.
@@ -98,4 +99,4 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Next Recommended Task
 
-- Adopt Q-95 as T-247 to migrate Beckon workflow vocabulary in its required standalone task.
+- Adopt Q-96 as T-248 only after fresh explicit authorization for the remote Beckon identity cutover.

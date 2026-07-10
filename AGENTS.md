@@ -44,13 +44,13 @@ Root-level or external-agent status/roadmap Markdown is review input only. Activ
 - Do not add dependencies, create PRs, make non-Git remote writes, run seeds, or run unrelated cleanup without explicit user approval.
 - Standing Git approval: after required validation, automatically commit and push each completed task's own changes on the current work branch; never include unrelated user work.
 
-## Groomly UI Work
+## Beckon UI Work
 
-Implemented Groomly MVP UI work is historical; detailed T-001 through T-088 records are archived under `docs/09_frozen/task_records_2026-06-26/`.
+Implemented Beckon MVP UI work is historical; detailed T-001 through T-088 records are archived under `docs/09_frozen/task_records_2026-06-26/`.
 
-Future Groomly UI work is screenshot-driven. One uploaded screenshot is one bounded UI rework task unless the user combines or splits scope. Before SwiftUI edits, map visible modules to existing screens, Stores, repositories, models, or stop for new-feature approval.
+Future Beckon UI work is screenshot-driven. One uploaded screenshot is one bounded UI rework task unless the user combines or splits scope. Before SwiftUI edits, map visible modules to existing screens, Stores, repositories, models, or stop for new-feature approval.
 
-Treat the Groomly design source under `docs/08_design/` as visual/interaction reference only. Do not copy HTML/CSS/React into SwiftUI. Ignore any long oval Customer/Groomer toggle above the visible app screen frame as an external prototype control.
+Treat the Beckon design source under `docs/08_design/` as visual/interaction reference only. Do not copy HTML/CSS/React into SwiftUI. Ignore any long oval Customer/Groomer toggle above the visible app screen frame as an external prototype control.
 
 If a screenshot implies new persistence, schema, RLS, RPC, Storage, navigation, role capability, or deferred feature, stop and report the decision needed.
 
