@@ -48,6 +48,9 @@ run_node_test_dir() {
   node --test "${tests[@]}"
 }
 
+echo "-- Beckon identity --"
+./scripts/beckon-identity-check.sh
+run_node_test_dir "Brand identity tests" "tests/brand"
 run_node_test_dir "Migration tests" "tests/migrations"
 run_node_test_dir "Edge Function tests" "tests/functions"
 

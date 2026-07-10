@@ -1,12 +1,12 @@
-# Groomly Privacy Policy
+# Beckon Privacy Policy
 
 Last updated: July 9, 2026
 
-Groomly is a pet grooming marketplace app that helps pet owners request grooming services and helps groomers review requests, make offers, manage bookings, and communicate with customers.
+Beckon is a pet grooming marketplace app that helps pet owners request grooming services and helps groomers review requests, make offers, manage bookings, and communicate with customers.
 
 ## Data We Collect
 
-Groomly collects account and marketplace data needed to run the service:
+Beckon collects account and marketplace data needed to run the service:
 
 - Name, display name, groomer business name, and account role.
 - Email address and optional customer contact email.
@@ -20,7 +20,7 @@ Groomly collects account and marketplace data needed to run the service:
 
 ## How We Use Data
 
-Groomly uses this data for app functionality:
+Beckon uses this data for app functionality:
 
 - Creating and managing customer and groomer accounts.
 - Matching grooming requests with eligible groomers.
@@ -28,13 +28,13 @@ Groomly uses this data for app functionality:
 - Showing private photos and profile information to authorized participants.
 - Supporting account deletion, support troubleshooting, and marketplace safety.
 
-Groomly does not use collected data for tracking, advertising identifiers, third-party advertising, or data broker sharing.
+Beckon does not use collected data for tracking, advertising identifiers, third-party advertising, or data broker sharing.
 
 ## Third-Party Services
 
-Groomly uses Supabase for authentication, database, storage, realtime messaging, and Edge Functions. Supabase stores and processes app data only to provide Groomly service functionality.
+Beckon uses Supabase for authentication, database, storage, realtime messaging, and Edge Functions. Supabase stores and processes app data only to provide Beckon service functionality.
 
-Groomly does not currently include production advertising SDKs, public analytics uploads, or production crash-report uploads.
+Beckon does not currently include production advertising SDKs, public analytics uploads, or production crash-report uploads.
 
 ## Photos and Private Storage
 
@@ -48,6 +48,6 @@ Users can also update profile details, pet details, grooming requests, and photo
 
 ## Support and Privacy Requests
 
-Use the Groomly support page for app issues, general feedback, feature requests, privacy questions, or account deletion questions:
+Use the Beckon support page for app issues, general feedback, feature requests, privacy questions, or account deletion questions:
 
 https://github.com/Prinnyyy/Pet_Grooming_Appointment_App/blob/codex/pet-fit-structure-cleanup/docs/04_ios/release/SUPPORT.md

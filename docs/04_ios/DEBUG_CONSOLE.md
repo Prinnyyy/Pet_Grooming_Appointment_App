@@ -24,7 +24,7 @@ The console shows runtime/Supabase context, current feedback, recent events, err
 DEBUG builds write JSONL events to the app data container:
 
 ```text
-Application Support/GroomlyDebug/debug-events.jsonl
+Application Support/BeckonDebug/debug-events.jsonl
 ```
 
 Use the helper script:
@@ -38,7 +38,7 @@ Use the helper script:
 Release and DEBUG builds also write local-only operational evidence:
 
 ```text
-Application Support/GroomlyOperational/operational-events.jsonl
+Application Support/BeckonOperational/operational-events.jsonl
 ```
 
 `AppOperationalEvent` rows capture sanitized launch, foreground/background, auth, role, profile-load failure, and suspected prior-run interruption evidence. They are not a feedback system and do not upload data. DEBUG builds mirror them into Recent Events.
@@ -78,13 +78,13 @@ Events must stay support-safe:
 The sanitizer lives in:
 
 ```text
-ios/PetGroomerMarketplace/PetGroomerMarketplace/Core/Diagnostics/AppDebugEvent.swift
+ios/Beckon/Beckon/Core/Diagnostics/AppDebugEvent.swift
 ```
 
 Operational event recording lives in:
 
 ```text
-ios/PetGroomerMarketplace/PetGroomerMarketplace/Core/Diagnostics/AppOperationalEvent.swift
+ios/Beckon/Beckon/Core/Diagnostics/AppOperationalEvent.swift
 ```
 
 ## How to Read a Local Repro
@@ -109,7 +109,7 @@ When adding new async Store or repository work:
 - Use `.info` for normal success and cancellation, `.warning` only for recoverable degraded behavior, and `.error` for real failures.
 - Handle `CancellationError`, `URLError.cancelled`, and `NSURLErrorDomain -999` as cancellation. Do not set Store `errorMessage` for cancellation.
 - Keep repository diagnostics behind debug wrappers when possible; live Supabase repositories should remain production behavior owners.
-- Route user-facing prompts through the unified `GroomlyFeedbackCenter`; debug events should explain prompt provenance, not replace prompt routing.
+- Route user-facing prompts through the unified `BeckonFeedbackCenter`; debug events should explain prompt provenance, not replace prompt routing.
 - Use `AppOperationalEventRecorder` only for release-evidence lifecycle/funnel states. It must remain local-only and support-safe; do not turn it into network analytics.
 
 ## Validation

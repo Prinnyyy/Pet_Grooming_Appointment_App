@@ -14,15 +14,20 @@ Source: T-202 adopted root review input `../../V1.0_RELEASE_TASK_PLAN.md`; that 
 - Q-92 is complete in T-242. Q-93 remains blocked because the hosted Free Plan cannot enable leaked-password protection.
 - Q-90, Q-91, T-157, and the `customer_push_tokens` advisor finding are excluded from this remediation sequence because they depend on APNs or paid Apple Developer capabilities.
 - Q-01...Q-43 are complete and mapped in `ROADMAP.md`.
-- T-243 approved the Beckon identity contract in `BECKON_BRAND_MIGRATION.md`; execute Q-94 through Q-96 in order.
+- T-243 approved the Beckon identity contract in `BECKON_BRAND_MIGRATION.md`; Q-94 is complete in T-246 and Q-95/Q-96 remain ordered.
 
 ## Queue
 
 | Order | Roadmap | Package | Dependencies / authorization | Exit signal |
 |---|---|---|---|---|
-| Q-94 | R-038 | Local Beckon application and source identity | Ready | Xcode/project/module, UI, symbols/files, TestOps/seeds, scripts, active product docs, and prepared append-only backend changes use the approved identity; full local gates pass. |
 | Q-95 | R-038 | Beckon workflow vocabulary | Q-94 complete; standalone workflow task | `AGENTS.md`, `CLAUDE.md`, `docs/05_workflow/**`, context tooling, and decision links use Beckon without changing product behavior. |
 | Q-96 | R-038 | Remote Beckon identity cutover | Q-94/Q-95 complete; fresh remote-write authorization | Supabase/Auth/runtime and 100 seed users use Beckon in place, UUIDs remain stable, and remote lifecycle/matching/Auth verification passes with zero residue. |
+
+## Completed Beckon Package
+
+| Order | Roadmap | Package | Result |
+|---|---|---|---|
+| Q-94 | R-038 | Local Beckon application and source identity | Complete T-246: canonical Xcode/app/source/TestOps/seed/design identity, permanent audit, prepared append-only runtime migration, and full local gates. |
 
 ## Completed Non-Apple Package
 

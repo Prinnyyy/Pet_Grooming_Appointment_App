@@ -30,7 +30,7 @@ First stop when a path is unclear. Keep this file as a routing table, not a hist
 | `docs/05_workflow/` | Active workflow, context/recovery, tooling, Git, stop rules. |
 | `docs/06_tasks/` | Active ledger, managed roadmap, screenshot/meta-review templates, SQL review index. |
 | `docs/07_decisions/` | Decision log and ADR template. |
-| `docs/08_design/` | Active Groomly visual notes and screenshot assets. |
+| `docs/08_design/` | Active Beckon visual notes and screenshot assets. |
 | `docs/09_frozen/` | Historical archives; never read by default. |
 | `docs/10_project_structure/` | This map and compact reorganization index. |
 

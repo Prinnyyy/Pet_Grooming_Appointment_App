@@ -1,6 +1,6 @@
 # TestOps
 
-TestOps is the unified automation and test-operations module for Groomly local and remote validation.
+TestOps is the unified automation and test-operations module for Beckon local and remote validation.
 
 Use this file as the index only. Open the smallest next document for the task:
 

@@ -4,7 +4,7 @@ Date: 2026-07-09. Project: `lqmasbuqzvcvtawonjlb`. Branch: `codex/pet-fit-struct
 
 ## Scope
 
-Authorized `GTC-001` / `GTG-001` no-screenshot UI execution covered customer publish, groomer offer, customer accept and chat, groomer chat verification and completion, then customer review. Every created row used `TESTOPS:<run_id>`.
+Authorized `BTC-001` / `BTG-001` no-screenshot UI execution covered customer publish, groomer offer, customer accept and chat, groomer chat verification and completion, then customer review. Every created row used `TESTOPS:<run_id>`.
 
 ## Passing Run
 

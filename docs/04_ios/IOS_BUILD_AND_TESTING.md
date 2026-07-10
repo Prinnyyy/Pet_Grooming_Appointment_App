@@ -2,8 +2,8 @@
 
 ## Defaults
 
-- Project: `ios/PetGroomerMarketplace/PetGroomerMarketplace.xcodeproj`
-- Shared scheme: `PetGroomerMarketplace`
+- Project: `ios/Beckon/Beckon.xcodeproj`
+- Shared scheme: `Beckon`
 - Build destination: `generic/platform=iOS Simulator`
 - Test destination: auto-discovered concrete iPhone simulator from the current Xcode installation
 - Minimum deployment target: iOS 18.0
@@ -79,7 +79,7 @@ The same variables are supported by `./scripts/ios-test.sh`.
 
 ## Supabase Environment
 
-The tracked `ios/PetGroomerMarketplace/Config/Supabase.xcconfig` contains empty defaults and optionally includes `Supabase.local.xcconfig`. The local file is Git-ignored and populated from the authorized Supabase project. The tracked `AppInfo.plist` expands these build settings into the runtime bundle.
+The tracked `ios/Beckon/Config/Supabase.xcconfig` contains empty defaults and optionally includes `Supabase.local.xcconfig`. The local file is Git-ignored and populated from the authorized Supabase project. The tracked `AppInfo.plist` expands these build settings into the runtime bundle.
 
 Required local values:
 

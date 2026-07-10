@@ -4,16 +4,16 @@ import { existsSync, readFileSync } from "node:fs";
 import test from "node:test";
 
 const manifestPath =
-  "ios/PetGroomerMarketplace/PetGroomerMarketplace/PrivacyInfo.xcprivacy";
+  "ios/Beckon/Beckon/PrivacyInfo.xcprivacy";
 const privacyChecklistPath = "docs/04_ios/APP_STORE_PRIVACY.md";
 const releaseLinksPath =
-  "ios/PetGroomerMarketplace/PetGroomerMarketplace/Core/Configuration/AppReleaseLinks.swift";
+  "ios/Beckon/Beckon/Core/Configuration/AppReleaseLinks.swift";
 const customerAccountPath =
-  "ios/PetGroomerMarketplace/PetGroomerMarketplace/Features/Customer/Profile/CustomerProfileSettingsView.swift";
+  "ios/Beckon/Beckon/Features/Customer/Profile/CustomerProfileSettingsView.swift";
 const groomerAccountPath =
-  "ios/PetGroomerMarketplace/PetGroomerMarketplace/Features/Groomer/Profile/GroomerProfileManagementView.swift";
+  "ios/Beckon/Beckon/Features/Groomer/Profile/GroomerProfileAccountView.swift";
 const genericAccountPath =
-  "ios/PetGroomerMarketplace/PetGroomerMarketplace/Features/Auth/AuthenticatedAccountView.swift";
+  "ios/Beckon/Beckon/Features/Auth/AuthenticatedAccountView.swift";
 const privacyPolicyPath = "docs/04_ios/release/PRIVACY_POLICY.md";
 const supportPagePath = "docs/04_ios/release/SUPPORT.md";
 const releaseBaseURL =
@@ -32,7 +32,7 @@ function readPlist(path) {
   return JSON.parse(json);
 }
 
-test("T-161 app privacy manifest declares Groomly 1.0 data and required reason APIs", () => {
+test("T-161 app privacy manifest declares Beckon 1.0 data and required reason APIs", () => {
   assert.equal(existsSync(manifestPath), true, "PrivacyInfo.xcprivacy is missing");
 
   const manifest = readPlist(manifestPath);
@@ -106,7 +106,7 @@ test("T-195 release privacy and support pages are public-link ready", () => {
   assert.equal(existsSync(supportPagePath), true, "Support page is missing");
 
   const privacyPolicy = readFileSync(privacyPolicyPath, "utf8");
-  assert.match(privacyPolicy, /^# Groomly Privacy Policy/m);
+  assert.match(privacyPolicy, /^# Beckon Privacy Policy/m);
   assert.match(privacyPolicy, /Data We Collect/);
   assert.match(privacyPolicy, /How We Use Data/);
   assert.match(privacyPolicy, /Data Retention and Deletion/);
@@ -114,7 +114,7 @@ test("T-195 release privacy and support pages are public-link ready", () => {
   assert.doesNotMatch(privacyPolicy, /TBD|TODO|<[^>]+>/);
 
   const supportPage = readFileSync(supportPagePath, "utf8");
-  assert.match(supportPage, /^# Groomly Support/m);
+  assert.match(supportPage, /^# Beckon Support/m);
   assert.match(supportPage, /support requests/i);
   assert.match(supportPage, /general feedback/i);
   assert.match(supportPage, /feature requests/i);

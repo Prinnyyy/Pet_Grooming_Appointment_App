@@ -7,10 +7,10 @@ TestOps uses the existing DEBUG-only `AppDebugEventRecorder`.
 Supported app launch arguments:
 
 ```text
---groomly-testops-run-id <id>
---groomly-testops-scenario <id>
---groomly-testops-clear-session
---groomly-testops-disable-animations
+--beckon-testops-run-id <id>
+--beckon-testops-scenario <id>
+--beckon-testops-clear-session
+--beckon-testops-disable-animations
 ```
 
 The app records `category=test` events with:

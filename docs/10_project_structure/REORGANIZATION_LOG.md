@@ -31,9 +31,9 @@ Validation for the task is recorded in `../06_tasks/TASK_LEDGER.md` and `../00_m
 
 | Date | Task | Summary | Detail |
 |---|---|---|---|
-| 2026-07-09 | T-226 | Split groomer profile store, archived the completed context optimization plan, and rotated oldest active ledger/worklog rows. | `../../ios/PetGroomerMarketplace/PetGroomerMarketplace/Features/Groomer/Profile/`, `../09_frozen/external_agent_reports/`, `../09_frozen/task_ledgers/`, `../09_frozen/worklogs/` |
-| 2026-07-09 | T-225 | Split groomer profile feature tests and rotated oldest active ledger/worklog rows. | `../../ios/PetGroomerMarketplace/PetGroomerMarketplaceTests/`, `../09_frozen/task_ledgers/`, `../09_frozen/worklogs/` |
-| 2026-07-09 | T-224 | Split customer request feature tests and rotated oldest active ledger/worklog rows. | `../../ios/PetGroomerMarketplace/PetGroomerMarketplaceTests/`, `../09_frozen/task_ledgers/`, `../09_frozen/worklogs/` |
+| 2026-07-09 | T-226 | Split groomer profile store, archived the completed context optimization plan, and rotated oldest active ledger/worklog rows. | `../../ios/Beckon/Beckon/Features/Groomer/Profile/`, `../09_frozen/external_agent_reports/`, `../09_frozen/task_ledgers/`, `../09_frozen/worklogs/` |
+| 2026-07-09 | T-225 | Split groomer profile feature tests and rotated oldest active ledger/worklog rows. | `../../ios/Beckon/BeckonTests/`, `../09_frozen/task_ledgers/`, `../09_frozen/worklogs/` |
+| 2026-07-09 | T-224 | Split customer request feature tests and rotated oldest active ledger/worklog rows. | `../../ios/Beckon/BeckonTests/`, `../09_frozen/task_ledgers/`, `../09_frozen/worklogs/` |
 | 2026-07-09 | T-223 | Filtered Xcode script output and rotated oldest active ledger/worklog rows. | `../../scripts/ios-build.sh`, `../../scripts/ios-test.sh`, `../09_frozen/task_ledgers/`, `../09_frozen/worklogs/` |
 | 2026-07-08 | T-186 | Removed stale active 85% workflow execution rules and rotated the oldest active decision entry. | `../05_workflow/`, `../09_frozen/decisions/` |
 | 2026-07-09 | T-185 | Removed ignored root external drafts after preserving root v3.1 copies in frozen reports. | `../09_frozen/external_agent_reports/` |
@@ -53,7 +53,7 @@ Validation for the task is recorded in `../06_tasks/TASK_LEDGER.md` and `../00_m
 | 2026-07-07 | T-166 | Hardened Git/GitHub rules and archived T-151 through T-152 ledger rows. | `../05_workflow/GITHUB_RULES.md`, `../09_frozen/task_ledgers/` |
 | 2026-07-07 | T-165 | Added context hygiene v2 truth checks and rolled old worklog entries out of active memory. | `../../scripts/context-hygiene-check.mjs`, `../09_frozen/worklogs/` |
 | 2026-07-07 | T-163 | Archived external governance draft, current-state snapshot, and T-146 through T-150 ledger rows. | `../09_frozen/external_agent_reports/`, `../09_frozen/current_state_snapshots/`, `../09_frozen/task_ledgers/` |
-| 2026-07-02 | T-147/T-148-era cleanup | Archived old root product brief, Groomly prompt, duplicate pointers, and generic lightweight templates. | `../09_frozen/product_briefs/`, `../09_frozen/design_prompts/`, `../09_frozen/task_templates/` |
+| 2026-07-02 | T-147/T-148-era cleanup | Archived old root product brief, Beckon prompt, duplicate pointers, and generic lightweight templates. | `../09_frozen/product_briefs/`, `../09_frozen/design_prompts/`, `../09_frozen/task_templates/` |
 | 2026-06-24 to 2026-06-26 | Structure baseline | Moved old workflow docs, detailed task records, agent-team material, Superpowers plans/specs, and initialization prompt into frozen archive families. | `../09_frozen/` |
 
 ## Current Indexes

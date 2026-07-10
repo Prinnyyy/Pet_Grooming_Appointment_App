@@ -4,10 +4,10 @@ Last verified: 2026-07-09. Source tasks: T-193/Q-06 design, T-217/Q-29 local iOS
 
 ## Current State
 
-- iOS sign-up passes `redirectTo: com.prinnyyy.petgroomermarketplace://auth/callback`.
+- iOS sign-up passes `redirectTo: com.hellobeckon.beckon://auth/callback`.
 - `AppInfo.plist` registers that scheme. SwiftUI `.onOpenURL` routes callbacks through `AuthenticationStore`, which handles error fragments before Supabase session exchange.
-- Supabase Site URL and the exact redirect allow-list entry both use `com.prinnyyy.petgroomermarketplace://auth/callback`; the old localhost Site URL is removed.
-- Supabase Custom SMTP is enabled through Resend at `smtp.resend.com:465` with sender `Groomly <no-reply@hellobeckon.com>`.
+- Supabase Site URL and the exact redirect allow-list entry both use `com.hellobeckon.beckon://auth/callback`; the old localhost Site URL is removed.
+- Supabase Custom SMTP is enabled through Resend at `smtp.resend.com:465` with sender `Beckon <no-reply@hellobeckon.com>`.
 - Resend has verified `hellobeckon.com`; Cloudflare hosts its DKIM, return-path/SPF, and monitoring-only DMARC record (`p=none`). Existing iCloud MX and SPF records remain intact.
 - A direct Resend delivery smoke to `fengyuan@hellobeckon.com` was accepted on 2026-07-09. A Supabase-generated Auth email remains a release-device smoke requirement.
 - No Associated Domains entitlement or tracked local Auth configuration exists; hosted Supabase settings are authoritative.
@@ -21,8 +21,8 @@ Resend is the production SMTP provider. Credentials stay only in ignored, mode-`
 
 The implemented hosted callback is:
 
-- Site URL: `com.prinnyyy.petgroomermarketplace://auth/callback`
-- Additional Redirect URLs: `com.prinnyyy.petgroomermarketplace://auth/callback`
+- Site URL: `com.hellobeckon.beckon://auth/callback`
+- Additional Redirect URLs: `com.hellobeckon.beckon://auth/callback`
 
 The scheme works only with the app installed. A later HTTPS Universal Link migration requires a callback host, Apple Team ID, `apple-app-site-association`, Associated Domains entitlement, and device validation. Then use exact production/staging HTTPS callback entries while retaining the scheme for development; never use production wildcards.
 

@@ -1,8 +1,8 @@
-# Groomly Support
+# Beckon Support
 
 Last updated: July 9, 2026
 
-Use this page for Groomly app support requests, general feedback, feature requests, privacy questions, and account deletion questions.
+Use this page for Beckon app support requests, general feedback, feature requests, privacy questions, and account deletion questions.
 
 ## Support Requests
 

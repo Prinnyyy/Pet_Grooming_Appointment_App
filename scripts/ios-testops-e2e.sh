@@ -9,8 +9,8 @@ source "$script_dir/ios-destination.sh"
 
 scenario="${1:-marketplace_full_lifecycle}"
 run_id="${TESTOPS_RUN_ID:-TESTOPS-$(date -u +%Y%m%dT%H%M%SZ)}"
-project="${CODEX_IOS_PROJECT:-ios/PetGroomerMarketplace/PetGroomerMarketplace.xcodeproj}"
-scheme="${CODEX_IOS_SCHEME:-PetGroomerMarketplace}"
+project="${CODEX_IOS_PROJECT:-ios/Beckon/Beckon.xcodeproj}"
+scheme="${CODEX_IOS_SCHEME:-Beckon}"
 
 if [[ -n "${CODEX_IOS_DESTINATION:-}" ]]; then
   destination="$CODEX_IOS_DESTINATION"
@@ -60,7 +60,7 @@ if xcodebuild \
   -destination "$destination" \
   -resultBundlePath "$result_bundle" \
   test \
-  -only-testing:PetGroomerMarketplaceUITests/TestOpsLaunchSmokeTests \
+  -only-testing:BeckonUITests/TestOpsLaunchSmokeTests \
   >"$log_file" 2>&1; then
   echo "TEST SUCCEEDED"
   redacted_summary

@@ -8,7 +8,7 @@ Use this directory for the active task ledger, templates, and task-specific arti
 - `ROADMAP.md`: governed milestone and candidate-work index. It does not allocate task IDs.
 - `ROADMAP_EXECUTION_QUEUE.md`: adoptable package queue derived from the roadmap. It does not allocate task IDs or record status.
 - `BECKON_BRAND_MIGRATION.md`: approved identity contract and gates for R-038/Q-94 through Q-96.
-- `SCREENSHOT_UI_REWORK_TASK_TEMPLATE.md`: template for screenshot-driven Groomly UI work.
+- `SCREENSHOT_UI_REWORK_TASK_TEMPLATE.md`: template for screenshot-driven Beckon UI work.
 - `META_REVIEW_TEMPLATE.md`: template for weekly or every-10-tasks documentation-governance reviews.
 
 ## Task Families

@@ -15,7 +15,7 @@ Keep this concise. It is an index, not a full project dump.
 
 ## Product Summary
 
-- Groomly is a request-first pet grooming marketplace for iOS.
+- Beckon is a request-first pet grooming marketplace for iOS.
 - Customers maintain pet profiles, publish grooming requests, compare groomer offers, accept one offer, manage bookings, chat with the booked groomer, and review completed service.
 - Groomers maintain profile, services, portfolio, availability, fit signals, and evidence dashboard; they receive eligible requests, make/withdraw offers, manage bookings, chat, and complete service.
 - The product model remains Open Request -> Groomer Offer -> Customer Confirmation -> Booking.
@@ -26,7 +26,7 @@ Keep this concise. It is an index, not a full project dump.
 - SwiftUI views remain thin and route business actions through Stores/ViewModels and repository protocols.
 - Supabase Auth, Postgres, RPCs, RLS, and Storage are the production backend boundaries.
 - Critical transitions such as request creation, offer creation, offer acceptance, booking completion, review creation, and request cancellation use controlled RPCs.
-- Groomly UI adaptation is complete for implemented MVP screens; future UI work is screenshot-driven and must reuse existing Store/repository/model paths.
+- Beckon UI adaptation is complete for implemented MVP screens; future UI work is screenshot-driven and must reuse existing Store/repository/model paths.
 - Build and test scripts default to a generic simulator build destination and auto-discovered test simulator, with `CODEX_IOS_DESTINATION` overrides.
 
 ## Backend Summary

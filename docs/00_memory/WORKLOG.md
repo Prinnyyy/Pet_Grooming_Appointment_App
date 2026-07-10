@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-09
+Task: T-246 - Local Beckon application and source identity.
+Files changed: Xcode/app/source/test paths and symbols; plist/callback/diagnostic/cache identity; brand audit; TestOps/seed resources; design and active product docs; prepared cron migration and push payload; focused test isolation; roadmap/memory closeout; frozen implementation plan.
+Checks: Identity audit RED/GREEN; `xcodebuild -list`; 31 TestOps tests plus smoke5/matching dry-runs; 48 migration and 10 Edge tests; privacy 4/4; preflight/Supabase checks; focused pagination suite; full iOS test/build; Simulator signed-out branding/tagline; diff check. Context hygiene reports only the intentionally deferred Q-95 workflow path reference.
+Result: Q-94 is complete. Local project, targets, module, UI, source symbols/files, scripts, TestOps, 50+50 seed resources, design source, diagnostics, caches, launch arguments, and accessibility identifiers use Beckon. The append-only cron rename is prepared but unapplied; the APNs dispatcher remains undeployed.
+Risks: Hosted Auth/Supabase and remote seed users remain on the legacy identity until authorized Q-96. The new bundle intentionally starts with a fresh app container. Q-95 must update workflow vocabulary and restore context hygiene as a standalone task.
+Next: Adopt Q-95 as T-247 for the standalone Beckon workflow-vocabulary migration.
+```
+
+```text
+Date: 2026-07-09
 Task: T-245 - Buffered entry-count context rotation.
 Files changed: Context policy/check/rotate scripts and focused tests; agent/workflow rules; decision/current-state/task-ledger/worklog records; frozen decision pointer index and completed planning artifacts.
 Checks: Three focused RED/GREEN cycles plus protected-row fault injection; 32 Node tests; real decision-pointer rotation; `git diff --check`; context hygiene; task-scoped diff and secret review.
 Result: Word counts are non-blocking telemetry. Ledger rotates above 18 to 12; Worklog and active decisions above 14 to 8; decision pointers above 12 to 6. Each rotated task window restores six entries, and manual compaction now waits for 65%/80% of the 353k context.
 Risks: Automatic platform compaction remains outside repository control. Structural rotation stops and reports if protected task rows prevent reaching the retained count.
-Next: Adopt Q-94 as T-246 for the local Beckon application/source migration.
 ```
 
 ```text
@@ -37,7 +46,7 @@ Date: 2026-07-09
 Task: T-242 - Production Auth email and domain configuration.
 Files changed: provider credential ignore rules; Auth email/deep-link design; roadmap/queue/current state/task ledger/worklog.
 Checks: Credential mode/ignore audit; Cloudflare token and DNS audit; Resend domain verification; Supabase plan/Auth audit; public DMARC lookup; accepted direct delivery smoke; persisted SMTP and callback settings; Supabase checks; diff and context hygiene.
-Result: Q-92 is complete. hellobeckon.com keeps iCloud mail while Resend supplies the verified Groomly sender; Cloudflare publishes monitoring DMARC; Supabase uses Resend Custom SMTP and the exact implemented iOS callback for Site URL and redirect allow-list.
+Result: Q-92 is complete. hellobeckon.com keeps iCloud mail while Resend supplies the verified Beckon sender; Cloudflare publishes monitoring DMARC; Supabase uses Resend Custom SMTP and the exact implemented iOS callback for Site URL and redirect allow-list.
 Risks: Supabase-generated Auth email/device callback still needs release smoke. Q-93 leaked-password protection requires Pro. Universal Links require Apple Team ID, AASA, and Associated Domains. The current Cloudflare token cannot enumerate the zone and should be replaced before API automation.
 ```
 
@@ -65,7 +74,7 @@ Task: T-239 - Full dual-role UI lifecycle automation.
 Files changed: lifecycle selectors and XCUITest driver/suite; Chat recorder late binding; TestOps Debug/backend verifier, cleanup proof, wrapper/tests; TestOps run evidence; roadmap/queue/current state/task ledger/worklog.
 Checks: Selector/recorder/verifier RED-GREEN; 31 TestOps tests; authorized R11 customer/groomer UI lifecycle; Debug JSONL 6/6 success and zero errors; backend final state; tagged cleanup zero residue; full iOS test/build; credential scan; diff and rolling-window rotation. Cadence meta-review is assigned to T-240.
 Result: Q-42 and M10 are complete. One no-screenshot UI run published, offered, accepted, sent/verified chat, completed, and reviewed through five seeded role sessions. The wrapper enforces Debug and backend assertions plus cleanup after success or failure.
-Risks: UI matrix execution remains single-pair (`GTC-001`/`GTG-001`); backend `smoke5` remains the multi-pair lifecycle matrix. APNs/paid Apple and Q-92/Q-93 external service blockers are unchanged.
+Risks: UI matrix execution remains single-pair (`BTC-001`/`BTG-001`); backend `smoke5` remains the multi-pair lifecycle matrix. APNs/paid Apple and Q-92/Q-93 external service blockers are unchanged.
 ```
 
 ```text

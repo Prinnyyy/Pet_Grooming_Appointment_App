@@ -1,6 +1,6 @@
 # Design Screenshots
 
-This folder stores prototype screenshots used by screenshot-driven Groomly UI tasks.
+This folder stores prototype screenshots used by screenshot-driven Beckon UI tasks.
 
 ## Naming
 
@@ -16,5 +16,5 @@ The names preserve the original screenshot date and clock label while removing s
 ## Lookup
 
 - Historical task records reference these files from `docs/09_frozen/task_records_2026-06-26/`; current task status is tracked in `docs/06_tasks/TASK_LEDGER.md`.
-- Groomly prototype source files remain in `docs/08_design/Groomly/`.
+- Beckon prototype source files remain in `docs/08_design/Beckon/`.
 - Design tokens remain in `docs/08_design/design_tokens.json`.

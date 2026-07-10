@@ -29,7 +29,7 @@ Linked files: AGENTS.md, docs/05_workflow/CONTEXT_AND_RECOVERY.md, docs/05_workf
 ```text
 Decision ID: D-023
 Date: 2026-07-09
-Decision: Replace the complete active Groomly/PetGroomerMarketplace identity with Beckon through a dependency-ordered local, workflow, and remote cutover.
+Decision: Replace the complete active legacy brand/project identity with Beckon through a dependency-ordered local, workflow, and remote cutover.
 Context: The user finalized the brand, domain, App Store name, and tagline and explicitly required technical identifiers, files, UI, TestOps seeds, and remote state to follow the same identity.
 Consequences: The canonical identity is Beckon, `com.hellobeckon.beckon`, and `com.hellobeckon.beckon://auth/callback`. R-038 uses Q-94 through Q-96 so product/source work, standalone workflow-rule changes, and authorized remote Supabase/seed-user changes remain separately reviewable. Applied migrations, frozen records, and Git history remain immutable; append-only changes replace live old identifiers.
 Linked files: docs/06_tasks/BECKON_BRAND_MIGRATION.md, docs/06_tasks/ROADMAP.md, docs/06_tasks/ROADMAP_EXECUTION_QUEUE.md
@@ -58,8 +58,8 @@ Decision ID: D-020
 Date: 2026-07-09
 Decision: Use Resend-backed Supabase custom SMTP and HTTPS-first Auth redirects for production email links.
 Context: Q-06/R-007 required a production email/deep-link design. Supabase's default hosted mailer is non-production and restricted; current iOS code has no `redirectTo`, URL scheme, associated domain, or callback handler. The project does not yet have a production domain or SMTP credentials.
-Consequences: Q-07 must wait for a verified production auth domain and SMTP credentials before remote Auth configuration. Production uses exact HTTPS universal-link redirects first, `com.prinnyyy.petgroomermarketplace://auth/callback` only as dev/test fallback, and no production wildcard redirect URLs. No SMTP secret or callback token may be embedded in Swift, tracked docs, or debug logs.
-Linked files: docs/03_backend/AUTH_EMAIL_DEEP_LINK_DESIGN.md, docs/03_backend/SUPABASE_CONTRACT.md, ios/PetGroomerMarketplace/Config/AppInfo.plist, ios/PetGroomerMarketplace/PetGroomerMarketplace/Core/Infrastructure/Supabase/SupabaseAuthSessionRepository.swift
+Consequences: Q-07 must wait for a verified production auth domain and SMTP credentials before remote Auth configuration. Production uses exact HTTPS universal-link redirects first, `com.hellobeckon.beckon://auth/callback` only as dev/test fallback, and no production wildcard redirect URLs. No SMTP secret or callback token may be embedded in Swift, tracked docs, or debug logs.
+Linked files: docs/03_backend/AUTH_EMAIL_DEEP_LINK_DESIGN.md, docs/03_backend/SUPABASE_CONTRACT.md, ios/Beckon/Config/AppInfo.plist, ios/Beckon/Beckon/Core/Infrastructure/Supabase/SupabaseAuthSessionRepository.swift
 ```
 
 ```text
@@ -68,7 +68,7 @@ Date: 2026-07-09
 Decision: Keep customer request wizard drafts ephemeral to the active sheet.
 Context: Q-05/R-006 required a persistence decision for partially entered grooming request input. Cross-session or disk persistence would add stale location/photo risk and cross-account cleanup requirements; silently retaining hidden sheet state after cancel/dismiss also conflicts with the current explicit start-create and republish entry points.
 Consequences: Request wizard input is not saved to disk or restored across app launches. Back/cancel and swipe dismiss discard unpublished draft fields/photos and reset the next create flow to defaults. Publish failures preserve input so customers can correct validation/backend errors, and explicit republish remains the only prefilled request flow.
-Linked files: ios/PetGroomerMarketplace/PetGroomerMarketplace/Features/Customer/Requests/CustomerRequestsStore.swift, ios/PetGroomerMarketplace/PetGroomerMarketplace/Features/Customer/Requests/CustomerRequestsView.swift, ios/PetGroomerMarketplace/PetGroomerMarketplaceTests/CustomerRequestFeatureTests.swift
+Linked files: ios/Beckon/Beckon/Features/Customer/Requests/CustomerRequestsStore.swift, ios/Beckon/Beckon/Features/Customer/Requests/CustomerRequestsView.swift, ios/Beckon/BeckonTests/CustomerRequestFeatureTests.swift
 ```
 
 ```text

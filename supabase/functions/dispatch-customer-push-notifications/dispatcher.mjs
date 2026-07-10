@@ -21,7 +21,7 @@ export function buildApnsPayload(notification) {
       },
       sound: "default",
     },
-    groomly: {
+    beckon: {
       notification_id: notification.id ?? notification.notification_id,
       kind: notification.kind,
       related_request_id: notification.related_request_id ?? null,

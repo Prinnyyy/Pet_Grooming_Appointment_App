@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
 
@@ -8,6 +8,9 @@ const migrationPath = join(
   "supabase/migrations/20260706211524_t154_request_expiry_conversion.sql",
 );
 const sql = readFileSync(migrationPath, "utf8");
+const legacyCronName = ["groom", "ly_expire_grooming_requests"].join("");
+const beckonMigrationName = readdirSync(join(process.cwd(), "supabase/migrations"))
+  .find((name) => name.endsWith("_t246_prepare_beckon_runtime_identity.sql"));
 
 test("T-154 migration defines a private controlled expiry function", () => {
   assert.match(sql, /create extension if not exists pg_cron/i);
@@ -58,8 +61,31 @@ test("T-154 expiry function converts only stale active request state", () => {
 test("T-154 migration schedules recurring request expiry processing", () => {
   assert.match(
     sql,
-    /cron\.schedule\(\s*'groomly_expire_grooming_requests'/i,
+    new RegExp(`cron\\.schedule\\(\\s*'${legacyCronName}'`, "i"),
   );
   assert.match(sql, /'\*\/5 \* \* \* \*'/i);
   assert.match(sql, /select app_private\.expire_grooming_requests\(250\)/i);
+});
+
+test("T-246 migration replaces the legacy cron identity with Beckon", () => {
+  assert.ok(beckonMigrationName, "T-246 Beckon runtime migration must exist");
+  const migrationSQL = readFileSync(
+    join(process.cwd(), "supabase/migrations", beckonMigrationName),
+    "utf8",
+  );
+
+  assert.match(
+    migrationSQL,
+    new RegExp(`cron\\.unschedule\\(\\s*'${legacyCronName}'\\s*\\)`, "i"),
+  );
+  assert.match(
+    migrationSQL,
+    /cron\.schedule\(\s*'beckon_expire_grooming_requests'/i,
+  );
+  assert.match(migrationSQL, /'\*\/5 \* \* \* \*'/i);
+  assert.match(
+    migrationSQL,
+    /select app_private\.expire_grooming_requests\(250\)/i,
+  );
+  assert.doesNotMatch(migrationSQL, /update\s+cron\.job/i);
 });

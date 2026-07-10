@@ -12,7 +12,7 @@ This folder is the durable project memory and coordination layer for Codex. Use 
 - `05_workflow/`: active workflow, context/recovery, tooling, GitHub, and stop rules
 - `06_tasks/`: active task ledger, managed roadmap, screenshot/meta-review templates, and reviewed SQL artifacts
 - `07_decisions/`: canonical durable decision log and ADR template
-- `08_design/`: Groomly implementation notes, screenshots, and tokens; historical prompts and long design audits live in frozen archives
+- `08_design/`: Beckon implementation notes, screenshots, and tokens; historical prompts and long design audits live in frozen archives
 - `09_frozen/`: frozen history and pre-trim snapshots; default searches should not read it
 - `10_project_structure/`: current path map and reorganization history
 
@@ -22,7 +22,7 @@ This folder is the durable project memory and coordination layer for Codex. Use 
 - L1 task indexes: this file, `00_memory/FEATURE_INDEX.md`, `03_backend/SUPABASE_CONTRACT.md`, `04_ios/testops/README.md`, `10_project_structure/README.md`.
 - L2 domain rules: targeted product, architecture, backend, iOS, TestOps, workflow files.
 - L3 trace/history: targeted `WORKLOG.md`, `PROJECT_MEMORY.md`, decision log, and reorganization log.
-- L4 frozen/heavy: `09_frozen/**`, Groomly HTML/export, T-129 seed tables, generated artifacts. Read only with a specific reason.
+- L4 frozen/heavy: `09_frozen/**`, Beckon HTML/export, T-129 seed tables, generated artifacts. Read only with a specific reason.
 
 Default searches honor `../.rgignore`. Do not use broad `rg --files -g '*.md'` as the default Markdown inventory because it can re-include ignored seed Markdown.
 

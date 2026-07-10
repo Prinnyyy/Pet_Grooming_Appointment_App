@@ -1,6 +1,6 @@
-# Groomly UI Implementation Notes
+# Beckon UI Implementation Notes
 
-This is the active Groomly visual-reference index. Keep it short and current. The full pre-slim audit, including inspected design-source file lists, prototype screen catalog, SwiftUI mapping table, deferred prototype ideas, and asset notes, is archived at `../09_frozen/design_notes/UI_IMPLEMENTATION_NOTES_2026-07-02_PRE_SLIM.md`.
+This is the active Beckon visual-reference index. Keep it short and current. The full pre-slim audit, including inspected design-source file lists, prototype screen catalog, SwiftUI mapping table, deferred prototype ideas, and asset notes, is archived at `../09_frozen/design_notes/UI_IMPLEMENTATION_NOTES_2026-07-02_PRE_SLIM.md`.
 
 ## Default Read Path
 
@@ -13,11 +13,11 @@ For current UI work, read in this order:
 5. `../06_tasks/SCREENSHOT_UI_REWORK_TASK_TEMPLATE.md` for screenshot-driven tasks
 6. `design_tokens.json` only when token details matter
 
-Do not read Groomly HTML/export files by default. Use them only when a screenshot task explicitly needs design-source comparison. Do not copy HTML, CSS, React, generated JavaScript, or prototype runtime code into SwiftUI.
+Do not read Beckon HTML/export files by default. Use them only when a screenshot task explicitly needs design-source comparison. Do not copy HTML, CSS, React, generated JavaScript, or prototype runtime code into SwiftUI.
 
 ## Brand And Model
 
-The prototype brand is `Groomly` with the subtitle "Find trusted independent groomers for your pet."
+The prototype brand is `Beckon` with the tagline "Pet groomers at your beck and call."
 
 The visual direction is compatible with the app only when it preserves the current marketplace model:
 

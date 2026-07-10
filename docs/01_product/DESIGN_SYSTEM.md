@@ -1,6 +1,6 @@
 # Design System
 
-This is the active design-system contract for current UI work. Keep it as a short source of current rules, not a history of the completed Groomly implementation phase.
+This is the active design-system contract for current UI work. Keep it as a short source of current rules, not a history of the completed Beckon implementation phase.
 
 Full pre-slim text, including T-023 through T-035 task history and detailed component tables, is archived at `../09_frozen/design_notes/DESIGN_SYSTEM_2026-07-02_PRE_SLIM.md`.
 
@@ -24,10 +24,10 @@ Avoid dense dashboards, map-first layouts, oversized calendars, decorative anima
 
 ## Current Sources
 
-- Swift tokens: `ios/PetGroomerMarketplace/PetGroomerMarketplace/DesignSystem/DesignTokens.swift`
-- Action primitives: `DesignSystem/GroomlyActionPrimitives.swift`
-- Feedback primitives: `DesignSystem/GroomlyFeedbackPrimitives.swift`
-- Form primitive: `DesignSystem/GroomlyFormPrimitives.swift`
+- Swift tokens: `ios/Beckon/Beckon/DesignSystem/DesignTokens.swift`
+- Action primitives: `DesignSystem/BeckonActionPrimitives.swift`
+- Feedback primitives: `DesignSystem/BeckonFeedbackPrimitives.swift`
+- Form primitive: `DesignSystem/BeckonFormPrimitives.swift`
 - Feature fallback: `DesignSystem/FeaturePlaceholderView.swift`
 - Extracted token source: `../08_design/design_tokens.json`
 - Screen inventory: `SCREEN_INVENTORY.md`
@@ -45,27 +45,27 @@ Current token groups include:
 - Shadow: soft card, small card, customer primary action, and groomer action.
 - Typography: large title, title, headline, body, and caption using SwiftUI semantic styles.
 
-New tokens must be introduced through `DesignTokens`, then reused by shared primitives or feature screens. Do not scatter raw Groomly hex colors, radii, shadows, or spacing through feature views.
+New tokens must be introduced through `DesignTokens`, then reused by shared primitives or feature screens. Do not scatter raw Beckon hex colors, radii, shadows, or spacing through feature views.
 
 ## Component Rules
 
 Implemented primitives:
 
-- `GroomlyPrimaryButtonStyle`
-- `GroomlySecondaryButtonStyle`
-- `GroomlyCard`
-- `GroomlyStatusChip`
-- `GroomlyErrorBanner`
-- `GroomlyLoadingView`
-- `GroomlyEmptyState`
-- `GroomlySectionHeader`
-- `.groomlyFormField()`
+- `BeckonPrimaryButtonStyle`
+- `BeckonSecondaryButtonStyle`
+- `BeckonCard`
+- `BeckonStatusChip`
+- `BeckonErrorBanner`
+- `BeckonLoadingView`
+- `BeckonEmptyState`
+- `BeckonSectionHeader`
+- `.beckonFormField()`
 
 These primitives own only presentation. Calling screens still own validation, loading state, duplicate-submit prevention, retry actions, navigation, data fetching, and business mutations through existing Store/repository boundaries.
 
 ## Screenshot Rework Rules
 
-Future Groomly UI work is screenshot-driven. Start from `../06_tasks/SCREENSHOT_UI_REWORK_TASK_TEMPLATE.md`, then map each visible module to `SCREEN_INVENTORY.md`, existing SwiftUI files, and existing Store/repository/model owners.
+Future Beckon UI work is screenshot-driven. Start from `../06_tasks/SCREENSHOT_UI_REWORK_TASK_TEMPLATE.md`, then map each visible module to `SCREEN_INVENTORY.md`, existing SwiftUI files, and existing Store/repository/model owners.
 
 Classify each module before editing:
 

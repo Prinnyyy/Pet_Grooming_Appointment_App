@@ -11,8 +11,8 @@ if ! command -v xcodebuild >/dev/null 2>&1; then
   exit 1
 fi
 
-project="${CODEX_IOS_PROJECT:-ios/PetGroomerMarketplace/PetGroomerMarketplace.xcodeproj}"
-scheme="${CODEX_IOS_SCHEME:-PetGroomerMarketplace}"
+project="${CODEX_IOS_PROJECT:-ios/Beckon/Beckon.xcodeproj}"
+scheme="${CODEX_IOS_SCHEME:-Beckon}"
 
 if [[ ! -d "$project" ]]; then
   echo "Xcode project not found: $project"

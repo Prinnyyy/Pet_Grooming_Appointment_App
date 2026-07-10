@@ -1,0 +1,598 @@
+import PhotosUI
+import SwiftUI
+import UIKit
+
+struct CustomerAccountView: View {
+    let session: AuthSessionSnapshot
+    let profile: MarketplaceProfile
+    @Bindable var authenticationStore: AuthenticationStore
+    @State private var store: CustomerProfileStore
+
+    init(
+        session: AuthSessionSnapshot,
+        profile: MarketplaceProfile,
+        authenticationStore: AuthenticationStore,
+        repository: any CustomerProfileRepository,
+        debugRecorder: AppDebugEventRecorder? = nil
+    ) {
+        self.session = session
+        self.profile = profile
+        self.authenticationStore = authenticationStore
+        _store = State(
+            initialValue: CustomerProfileStore(
+                customerID: profile.userID,
+                initialDisplayName: profile.displayName,
+                sessionEmail: session.email,
+                repository: repository,
+                debugRecorder: debugRecorder
+            )
+        )
+    }
+
+    var body: some View {
+        ZStack {
+            DesignTokens.Colors.background
+                .ignoresSafeArea()
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                    AccountTabTitle("Account")
+
+                    CustomerAccountProfileCard(
+                        displayName: store.profileDisplayName,
+                        detailText: store.profileDetailText,
+                        avatarPhotoData: store.avatarPhotoData
+                    )
+
+                    BeckonCard(padding: 0) {
+                        CustomerAccountMenuLink(
+                            title: "Profile Settings",
+                            systemImage: "person.crop.circle"
+                        ) {
+                            CustomerProfileSettingsView(store: store)
+                        }
+                    }
+
+                    AccountReleaseLinksSection()
+
+                    if let errorMessage = authenticationStore.errorMessage {
+                        BeckonErrorBanner(
+                            title: "Account action failed",
+                            message: errorMessage
+                        )
+                        .accessibilityIdentifier("auth.error")
+                    }
+
+                    #if DEBUG
+                    NavigationLink {
+                        DebugPanelView(
+                            diagnostics: DebugDiagnostics.current(
+                                session: session,
+                                profile: profile
+                            )
+                        )
+                    } label: {
+                        Label("Debug Console", systemImage: "ladybug")
+                            .font(DesignTokens.Typography.headline)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(DesignTokens.Spacing.lg)
+                            .background(DesignTokens.Colors.surfaceRaised)
+                            .clipShape(
+                                RoundedRectangle(
+                                    cornerRadius: DesignTokens.CornerRadius.card,
+                                    style: .continuous
+                                )
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("account.debug-console")
+                    #endif
+
+                    AccountDangerActions(
+                        authenticationStore: authenticationStore
+                    )
+                }
+                .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+                .padding(.top, DesignTokens.Spacing.xl)
+                .padding(.bottom, DesignTokens.Spacing.xl + DesignTokens.Spacing.xl)
+            }
+        }
+        .task {
+            await store.load()
+        }
+        .background {
+            CustomerProfileStatusView(store: store)
+        }
+        .navigationTitle("")
+        .navigationBarTitleDisplayMode(.inline)
+        .accessibilityIdentifier("customer.account")
+    }
+}
+
+private struct CustomerAccountProfileCard: View {
+    let displayName: String
+    let detailText: String
+    let avatarPhotoData: Data?
+
+    var body: some View {
+        BeckonCard(padding: DesignTokens.Spacing.lg) {
+            HStack(spacing: DesignTokens.Spacing.lg) {
+                CustomerAvatarImage(
+                    data: avatarPhotoData,
+                    size: 84,
+                    placeholderSize: 34
+                )
+
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                    Text(displayName)
+                        .font(.system(size: 25, weight: .bold))
+                        .foregroundStyle(DesignTokens.Colors.textPrimary)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Text(detailText)
+                        .font(DesignTokens.Typography.body)
+                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+                        .lineLimit(2)
+
+                    BeckonStatusChip(
+                        "Pet Owner",
+                        systemImage: "pawprint.fill",
+                        tone: .customer
+                    )
+                    .padding(.top, DesignTokens.Spacing.xs)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct CustomerAccountMenuLink<Destination: View>: View {
+    let title: String
+    let systemImage: String
+    @ViewBuilder let destination: () -> Destination
+
+    var body: some View {
+        NavigationLink {
+            destination()
+        } label: {
+            HStack(spacing: DesignTokens.Spacing.md) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
+                    .frame(width: 36)
+                    .accessibilityHidden(true)
+
+                Text(title)
+                    .font(.system(size: 21, weight: .bold))
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(DesignTokens.Colors.textTertiary)
+                    .accessibilityHidden(true)
+            }
+            .padding(.horizontal, DesignTokens.Spacing.lg)
+            .padding(.vertical, 24)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+private struct CustomerProfileSettingsView: View {
+    @Bindable var store: CustomerProfileStore
+
+    var body: some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                BeckonSectionHeader(
+                    "Profile Settings",
+                    subtitle: "Manage the customer details used across your account."
+                )
+
+                CustomerAvatarEditorSection(store: store)
+
+                BeckonCard {
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                        CustomerProfileTextField(
+                            title: "Nickname",
+                            text: $store.nickname,
+                            prompt: "Nickname"
+                        )
+                        .textContentType(.nickname)
+
+                        CustomerProfileTextField(
+                            title: "Email",
+                            text: $store.contactEmail,
+                            prompt: "name@example.com"
+                        )
+                        .textContentType(.emailAddress)
+                        .keyboardType(.emailAddress)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+
+                        CustomerProfileTextField(
+                            title: "Phone",
+                            text: $store.phoneNumber,
+                            prompt: "(555) 555-5555"
+                        )
+                        .textContentType(.telephoneNumber)
+                        .keyboardType(.phonePad)
+                    }
+                }
+
+                BeckonCard {
+                    CustomerProfileAddressFields(
+                        streetAddress: $store.streetAddress,
+                        city: $store.city,
+                        stateCode: $store.stateCode,
+                        zipCode: $store.zipCode
+                    )
+                }
+
+                if store.shouldShowInitialLoading {
+                    BeckonLoadingView(
+                        title: "Loading Profile...",
+                        message: "Fetching your saved customer details."
+                    )
+                }
+            }
+            .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+            .padding(.top, DesignTokens.Spacing.lg)
+            .padding(.bottom, 120)
+        }
+        .background(DesignTokens.Colors.background.ignoresSafeArea())
+        .navigationTitle("Profile Settings")
+        .navigationBarTitleDisplayMode(.inline)
+        .scrollDismissesKeyboard(.interactively)
+        .safeAreaInset(edge: .bottom) {
+            Button {
+                Task {
+                    await store.saveProfile()
+                }
+            } label: {
+                Text(store.isSaving ? "Saving..." : "Save Profile")
+            }
+            .buttonStyle(BeckonPrimaryButtonStyle(accent: .customer))
+            .disabled(store.isSaving || store.isUploading)
+            .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+            .padding(.vertical, DesignTokens.Spacing.md)
+            .background(.ultraThinMaterial)
+        }
+        .background {
+            CustomerProfileStatusView(store: store)
+        }
+        .accessibilityIdentifier("customer.profile.settings")
+    }
+}
+
+private struct CustomerProfileAddressFields: View {
+    @Binding var streetAddress: String
+    @Binding var city: String
+    @Binding var stateCode: USStateCode?
+    @Binding var zipCode: String
+    @StateObject private var addressSearch = CustomerProfileAddressSearch()
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            Text("Address")
+                .font(DesignTokens.Typography.headline)
+                .foregroundStyle(DesignTokens.Colors.textPrimary)
+
+            CustomerProfileTextField(
+                title: "Street Address",
+                text: $streetAddress,
+                prompt: "Street Address"
+            )
+            .textContentType(.streetAddressLine1)
+            .onChange(of: streetAddress) { _, newValue in
+                addressSearch.update(
+                    street: newValue,
+                    city: city,
+                    stateCode: stateCode
+                )
+            }
+
+            if !addressSearch.suggestions.isEmpty {
+                VStack(spacing: DesignTokens.Spacing.xs) {
+                    ForEach(addressSearch.suggestions.prefix(4)) { suggestion in
+                        Button {
+                            applyAddressSuggestion(suggestion)
+                        } label: {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(suggestion.title)
+                                    .font(DesignTokens.Typography.caption.weight(.semibold))
+                                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+                                    .lineLimit(1)
+
+                                Text(suggestion.subtitle)
+                                    .font(DesignTokens.Typography.caption)
+                                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                                    .lineLimit(1)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, DesignTokens.Spacing.md)
+                            .padding(.vertical, DesignTokens.Spacing.sm)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .background(DesignTokens.Colors.surface)
+                .clipShape(
+                    RoundedRectangle(
+                        cornerRadius: DesignTokens.CornerRadius.input,
+                        style: .continuous
+                    )
+                )
+                .overlay {
+                    RoundedRectangle(
+                        cornerRadius: DesignTokens.CornerRadius.input,
+                        style: .continuous
+                    )
+                    .stroke(DesignTokens.Colors.borderSoft, lineWidth: 1)
+                }
+            }
+
+            HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
+                CustomerProfileTextField(
+                    title: "City",
+                    text: $city,
+                    prompt: "City"
+                )
+                .textContentType(.addressCity)
+
+                CustomerProfileStatePicker(
+                    title: "State",
+                    selection: $stateCode
+                )
+                .frame(width: 100)
+            }
+
+            CustomerProfileTextField(
+                title: "ZIP Code",
+                text: $zipCode,
+                prompt: "ZIP Code"
+            )
+            .textContentType(.postalCode)
+            .keyboardType(.numbersAndPunctuation)
+        }
+    }
+
+    private func applyAddressSuggestion(_ suggestion: CustomerProfileAddressSuggestion) {
+        Task {
+            guard let address = await addressSearch.resolve(suggestion) else { return }
+            streetAddress = address.streetAddress
+            city = address.city
+            stateCode = address.stateCode
+            zipCode = address.zipCode
+        }
+    }
+}
+
+private struct CustomerAvatarImage: View {
+    let data: Data?
+    let size: CGFloat
+    let placeholderSize: CGFloat
+
+    var body: some View {
+        BeckonModuleImage(data: data) {
+            BeckonDefaultProfileAvatar(
+                tone: .customer,
+                symbolSize: placeholderSize
+            )
+        }
+        .frame(width: size, height: size)
+        .clipShape(DesignTokens.Shapes.circular)
+        .overlay {
+            Circle()
+                .stroke(DesignTokens.Colors.customerPrimary.opacity(0.26), lineWidth: 2)
+        }
+        .accessibilityHidden(true)
+    }
+}
+
+enum CustomerAvatarImageEncoder {
+    static func displayablePayload(
+        from data: Data,
+        preferredContentType: CustomerAvatarPhotoContentType
+    ) -> (data: Data, contentType: CustomerAvatarPhotoContentType)? {
+        guard let image = UIImage(data: data) else { return nil }
+
+        if preferredContentType == .png,
+           let pngData = image.pngData(),
+           UIImage(data: pngData) != nil {
+            return (pngData, .png)
+        }
+
+        guard let jpegData = image.jpegData(compressionQuality: 0.88),
+              UIImage(data: jpegData) != nil else {
+            return nil
+        }
+
+        return (jpegData, .jpeg)
+    }
+}
+
+private struct CustomerAvatarEditorSection: View {
+    @Bindable var store: CustomerProfileStore
+    @State private var selectedPhotoItem: PhotosPickerItem?
+
+    var body: some View {
+        let hasSavedPhoto = store.profile?.avatarPath != nil || store.avatarPhotoData != nil
+        let photoStatusText = hasSavedPhoto ? "Photo saved to your profile." : "Add a profile photo."
+        let photoActionTitle = hasSavedPhoto ? "Replace Photo" : "Upload Photo"
+
+        BeckonCard {
+            HStack(alignment: .center, spacing: DesignTokens.Spacing.lg) {
+                ZStack(alignment: .bottomTrailing) {
+                    CustomerAvatarImage(
+                        data: store.avatarPhotoData,
+                        size: 96,
+                        placeholderSize: 38
+                    )
+
+                    if hasSavedPhoto {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 22, weight: .bold))
+                            .foregroundStyle(DesignTokens.Colors.success)
+                            .background(Circle().fill(DesignTokens.Colors.surface))
+                            .accessibilityLabel("Profile photo saved")
+                    }
+                }
+                .accessibilityHidden(true)
+
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                        Text("Profile Photo")
+                            .font(DesignTokens.Typography.headline)
+                            .foregroundStyle(DesignTokens.Colors.textPrimary)
+
+                        Text(photoStatusText)
+                            .font(DesignTokens.Typography.caption)
+                            .foregroundStyle(DesignTokens.Colors.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
+                    PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
+                        Label(photoActionTitle, systemImage: "camera")
+                    }
+                    .buttonStyle(BeckonSecondaryButtonStyle(accent: .customer))
+                    .disabled(store.isBusy)
+                    .accessibilityIdentifier("customer.profile.avatar.upload")
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        .onChange(of: selectedPhotoItem) { _, newItem in
+            guard let newItem else { return }
+            Task {
+                await upload(newItem)
+            }
+        }
+    }
+
+    private func upload(_ item: PhotosPickerItem) async {
+        defer { selectedPhotoItem = nil }
+
+        guard let data = try? await item.loadTransferable(type: Data.self) else {
+            store.errorMessage = "We could not read that photo."
+            return
+        }
+
+        let contentType = item.supportedContentTypes
+            .lazy
+            .compactMap(CustomerAvatarPhotoContentType.init(uniformType:))
+            .first ?? .jpeg
+
+        guard let payload = CustomerAvatarImageEncoder.displayablePayload(
+            from: data,
+            preferredContentType: contentType
+        ) else {
+            store.errorMessage = "We could not read that photo."
+            return
+        }
+
+        await store.uploadAvatarPhoto(
+            data: payload.data,
+            contentType: payload.contentType
+        )
+    }
+}
+
+private struct CustomerProfileTextField: View {
+    let title: String
+    @Binding var text: String
+    let prompt: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            Text(title)
+                .font(DesignTokens.Typography.caption)
+                .foregroundStyle(DesignTokens.Colors.textSecondary)
+
+            TextField(prompt, text: $text)
+                .beckonFormField()
+        }
+    }
+}
+
+private struct CustomerProfileStatePicker: View {
+    let title: String
+    @Binding var selection: USStateCode?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            Text(title)
+                .font(DesignTokens.Typography.caption)
+                .foregroundStyle(DesignTokens.Colors.textSecondary)
+
+            Menu {
+                Button("No State") {
+                    selection = nil
+                }
+
+                ForEach(USStateCode.allCases) { state in
+                    Button(state.rawValue) {
+                        selection = state
+                    }
+                }
+            } label: {
+                HStack {
+                    Text(selection?.rawValue ?? "State")
+                        .foregroundStyle(
+                            selection == nil
+                                ? DesignTokens.Colors.textSecondary
+                                : DesignTokens.Colors.textPrimary
+                        )
+
+                    Spacer(minLength: DesignTokens.Spacing.xs)
+
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+                }
+                .beckonFormField()
+            }
+        }
+    }
+}
+
+private struct CustomerProfileStatusView: View {
+    let store: CustomerProfileStore
+
+    var body: some View {
+        BeckonGlobalFeedbackForwarder(
+            noticeMessage: store.noticeMessage,
+            clearNotice: { message in
+                guard store.noticeMessage == message else { return }
+                store.noticeMessage = nil
+            },
+            error: errorPrompt,
+            progress: progressPrompt
+        )
+    }
+
+    private var errorPrompt: BeckonGlobalFeedbackError? {
+        guard let errorMessage = store.errorMessage else { return nil }
+        return BeckonGlobalFeedbackError(
+            scope: .page("customer.profile"),
+            sourceKey: "customer.profile.error",
+            title: "Profile Update Failed",
+            message: errorMessage
+        )
+    }
+
+    private var progressPrompt: BeckonGlobalFeedbackProgress? {
+        guard store.isSaving || store.isUploading else { return nil }
+        return BeckonGlobalFeedbackProgress(
+            scope: .operation("customer.profile.save"),
+            sourceKey: "customer.profile.save-progress",
+            title: store.isUploading ? "Uploading..." : "Saving...",
+            tone: .customer
+        )
+    }
+}

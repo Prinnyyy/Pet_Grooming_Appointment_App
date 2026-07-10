@@ -42,11 +42,11 @@ Status: passed for local dry-run and launch-smoke scope.
 
 `smoke5` plans cover:
 
-- `GTC-001` Toy Poodle with `GTG-001` curly/full groom.
-- `GTC-003` Miniature Schnauzer with `GTG-003` wire/terrier studio groom.
-- `GTC-004` Shih Tzu with `GTG-004` small drop-coat groom.
-- `GTC-016` German Shepherd with `GTG-006` large double-coat groom.
-- `GTC-049` Standard Poodle with `GTG-041` Orange County curly/full groom.
+- `BTC-001` Toy Poodle with `BTG-001` curly/full groom.
+- `BTC-003` Miniature Schnauzer with `BTG-003` wire/terrier studio groom.
+- `BTC-004` Shih Tzu with `BTG-004` small drop-coat groom.
+- `BTC-016` German Shepherd with `BTG-006` large double-coat groom.
+- `BTC-049` Standard Poodle with `BTG-041` Orange County curly/full groom.
 
 Each generated plan includes the customer seed, groomer seed, request payload, preferred window, service notes tagged with `TESTOPS:<run_id>`, and a groomer offer payload.
 

@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-09
 - Updated by: Codex
-- Latest completed task: T-245 buffered entry-count context rotation.
+- Latest completed task: T-246 local Beckon identity migration.
 - Current task: none; T-157 APNs remains externally blocked.
-- Next task ID: use T-246 unless the user resumes T-157 after Apple Developer Program upgrade.
+- Next task ID: use T-247 unless the user resumes T-157 after Apple Developer Program upgrade.
 
 ## Fast Path
 
@@ -38,9 +38,10 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - Last TestOps unit validation: T-222 `./scripts/testops-unit.sh` passed 24 Node tests.
 - Latest remote TestOps evidence: T-235 `smoke5` passed 5/5 and `matching_baseline` passed 8/8; both R2 run families left zero tagged requests and only redacted local artifacts.
 - T-242 verified public DMARC, accepted a Resend delivery smoke, and persisted Supabase Custom SMTP plus exact Auth callback URLs.
-- T-243 approved Beckon; Q-94 is next and unstarted.
+- T-246 completed Q-94: local Xcode/app/source/TestOps identity is Beckon and the Q-96 cron migration is prepared but unapplied.
 - T-244 normalizes the rotated Worklog EOF to one newline.
 - T-245 context-script validation passes 32 Node tests; word counts are informational and rolling windows use buffered high/retain entry counts.
+- T-246 passes the Beckon identity audit, 31 TestOps tests, 48 migration tests, 10 Edge tests, privacy/preflight/Supabase checks, full iOS tests/build, and Simulator auth branding inspection.
 - Known iOS validation failure: none currently recorded.
 
 ## Active Product State
@@ -55,8 +56,8 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - Request, offer, booking, message, and notification repositories use bounded limit+1 page reads. All supported list surfaces expose retry-preserving, deduplicating terminal-page controls; message threads fetch the newest window first and preserve their reader anchor when prepending history.
 - Private Storage images use authenticated `.download(path:)` through `PrivateImageLoader`; cache hashes paths, retries transient downloads once, and clears on local account cleanup.
 - Customers can create a new request from cancelled requests/bookings via explicit republish. Republish tolerates missing request photos and expired preferred windows. Unpublished wizard drafts are sheet-ephemeral.
-- Groomly UI adaptation is complete for implemented MVP screens. Future UI work is screenshot-driven and must map modules to existing SwiftUI/Store/repository/model paths or stop for approval.
-- Beckon is the approved replacement identity: `Beckon: Pet Grooming`, `com.hellobeckon.beckon`, and `com.hellobeckon.beckon://auth/callback`. Until Q-94/Q-96 complete, current binaries and hosted Auth still use the old identity.
+- Beckon UI adaptation is complete for implemented MVP screens. Future UI work is screenshot-driven and must map modules to existing SwiftUI/Store/repository/model paths or stop for approval.
+- Local binaries now use `Beckon: Pet Grooming`, `com.hellobeckon.beckon`, and `com.hellobeckon.beckon://auth/callback`. Hosted Auth settings, Supabase runtime naming, and the 100 remote seed users retain the legacy identity until Q-96.
 
 ## Active Workflow State
 
@@ -64,14 +65,14 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - Startup reads stay minimal: `AGENTS.md`, then targeted current-state/task-ledger sections only when needed.
 - Periodic documentation-governance reviews use `docs/06_tasks/META_REVIEW_TEMPLATE.md` every 10 completed tasks or weekly.
 - Last meta-review: T-240 on 2026-07-10.
-- V1.0 ideal-operation Q-16...Q-43 and Auth package Q-92 are complete. R-038/Q-94 is now dependency-satisfied.
+- V1.0 ideal-operation Q-16...Q-43, Auth package Q-92, and R-038/Q-94 are complete. Q-95 is next and must remain a standalone workflow task.
 - Changes to `AGENTS.md`, `CLAUDE.md`, or `docs/05_workflow/**` must be standalone numbered tasks with a decision-log entry and context hygiene.
 - T-180 records standing user approval for task-completion Git commit and push. This approval is limited to current-task changes after validation passes; T-186 requires stopping without auto pull/rebase/merge/reset/force-push if the push fails or is rejected.
 - T-245 makes word counts informational only; Ledger uses 18/12, Worklog and active decisions use 14/8, and decision archive pointers use 12/6 trigger/retain windows. Manual compaction follows 65%/80% boundaries against the 353,000-token context.
 - Main reconciliation: `2fddf7b` is reviewed/superseded; carry this branch's governed docs forward.
 - Decision log is an active index backed by frozen snapshots. The pre-T-174 full text lives in `docs/09_frozen/decisions/DECISION_LOG_2026-07-08_PRE_T174_TRIM.md`.
 - Default `rg` searches honor `.rgignore`; do not use broad `rg --files -g '*.md'` as the default Markdown inventory.
-- Do not read full `WORKLOG.md`, full `TASK_LEDGER.md`, frozen archives, Groomly HTML/export, or T-129 seed tables by default.
+- Do not read full `WORKLOG.md`, full `TASK_LEDGER.md`, frozen archives, Beckon HTML/export, or T-129 seed tables by default.
 - After durable memory, ledger, workflow, or coordination-doc changes, run context hygiene; if an entry window exceeds its trigger, rotate once to its retained count.
 
 ## Supabase and TestOps Guardrails
@@ -87,7 +88,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Active memory/task files are intentionally concise. Do not expand them into full history.
 - Backend policy files are now current-rule indexes; use migrations or frozen pre-trim snapshots for detailed historical trace.
-- Historical briefs, Groomly prompts, pre-slim notes, removed pointers/templates, Claude snapshots, and external audits are frozen under `docs/09_frozen/`. T-185 moved remaining root external drafts into `docs/09_frozen/external_agent_reports/`. Active entrypoints are ROADMAP, PRODUCT_BRIEF, DESIGN_SYSTEM, UI_IMPLEMENTATION_NOTES, DECISION_LOG, CLAUDE, and workflow/task docs. External reports are review input only.
+- Historical briefs, design prompts, pre-slim notes, removed pointers/templates, Claude snapshots, and external audits are frozen under `docs/09_frozen/`. T-185 moved remaining root external drafts into `docs/09_frozen/external_agent_reports/`. Active entrypoints are ROADMAP, PRODUCT_BRIEF, DESIGN_SYSTEM, UI_IMPLEMENTATION_NOTES, DECISION_LOG, CLAUDE, and workflow/task docs. External reports are review input only.
 - T-129 seed profile Markdown files are machine-readable parser inputs and excluded from default search. Do not reformat or archive them without updating scripts/tests.
 - Deferred unless explicitly requested: public directory, direct booking, payments, chat attachments/read receipts, maps/calendar integrations, moderation/disputes, admin tooling.
 - Customer in-app notifications are active. T-157 APNs database/iOS foundation is remotely applied; push dispatch waits for Apple Developer credentials and APNs secrets.
@@ -97,4 +98,4 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Next Recommended Task
 
-- Adopt Q-94 as T-246 to perform the local Beckon application and source identity migration.
+- Adopt Q-95 as T-247 to migrate Beckon workflow vocabulary in its required standalone task.

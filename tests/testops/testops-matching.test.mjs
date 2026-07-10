@@ -52,9 +52,9 @@ test("matching baseline plans cover positive, same-day, and hard-filter cases", 
   assert.ok(plans.every((plan) => plan.request.serviceNotes.includes(`TESTOPS:${plan.runID}`)));
 
   const serialized = JSON.stringify(plans.map(redactedMatchingPlan));
-  assert.doesNotMatch(serialized, /GroomlyTest!2026/);
-  assert.doesNotMatch(serialized, /groomly\.customer001@example\.com/);
-  assert.doesNotMatch(serialized, /groomly\.groomer001@example\.com/);
+  assert.doesNotMatch(serialized, /BeckonTest!2026/);
+  assert.doesNotMatch(serialized, /beckon\.customer001@example\.com/);
+  assert.doesNotMatch(serialized, /beckon\.groomer001@example\.com/);
   assert.match(serialized, /"emailDomain":"example.com"/);
 });
 
@@ -174,16 +174,16 @@ test("matching report redacts sensitive actor and identifier data", () => {
     startedAt: "2026-07-02T00:00:00.000Z",
     finishedAt: "2026-07-02T00:01:00.000Z",
     customer: {
-      seedID: "GTC-001",
+      seedID: "BTC-001",
       userRef: "123E4567",
-      email: "groomly.customer001@example.com",
-      password: "GroomlyTest!2026",
+      email: "beckon.customer001@example.com",
+      password: "BeckonTest!2026",
     },
     targetGroomer: {
-      seedID: "GTG-001",
+      seedID: "BTG-001",
       userRef: "223E4567",
-      email: "groomly.groomer001@example.com",
-      password: "GroomlyTest!2026",
+      email: "beckon.groomer001@example.com",
+      password: "BeckonTest!2026",
     },
     ids: {
       requestID: "123e4567-e89b-12d3-a456-426614174000",
@@ -204,13 +204,13 @@ test("matching report redacts sensitive actor and identifier data", () => {
         phase: "customer.signIn",
         status: "failed",
         durationMs: 15,
-        error: "password secret token abc groomly.customer001@example.com",
+        error: "password secret token abc beckon.customer001@example.com",
       },
     ],
   });
 
-  assert.doesNotMatch(report, /GroomlyTest!2026/);
-  assert.doesNotMatch(report, /groomly\.customer001@example\.com/);
+  assert.doesNotMatch(report, /BeckonTest!2026/);
+  assert.doesNotMatch(report, /beckon\.customer001@example\.com/);
   assert.doesNotMatch(report, /123e4567-e89b-12d3-a456-426614174000/);
   assert.match(report, /123E4567/);
 });
@@ -223,8 +223,8 @@ test("matching result and JSON artifact redact the request UUID", () => {
     caseID: "TC-MATCH-001",
     startedAt: "2026-07-09T00:00:00Z",
     finishedAt: "2026-07-09T00:01:00Z",
-    customer: { seedID: "GTC-001", userRef: "AAAAAAAA", emailDomain: "example.com" },
-    targetGroomer: { seedID: "GTG-001", userRef: "BBBBBBBB", emailDomain: "example.com" },
+    customer: { seedID: "BTC-001", userRef: "AAAAAAAA", emailDomain: "example.com" },
+    targetGroomer: { seedID: "BTG-001", userRef: "BBBBBBBB", emailDomain: "example.com" },
     pet: { name: "Mochi", breed: "Toy Poodle", coatType: "curly_wavy", size: "XS" },
     ids: { requestID: fullUUID },
     matchCount: 1,

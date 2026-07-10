@@ -31,11 +31,11 @@ TestOps accepts either `SUPABASE_SECRET_KEY=sb_secret_...` or legacy `SUPABASE_S
 
 | Case | Customer | Groomer | Purpose |
 |---|---|---|---|
-| `TC-MKT-001` | `GTC-001` Toy Poodle | `GTG-001` curly/full groom | Default LA curly coat full lifecycle |
-| `TC-MKT-002` | `GTC-003` Miniature Schnauzer | `GTG-003` wire/full groom | Wire/terrier studio full lifecycle |
-| `TC-MKT-003` | `GTC-004` Shih Tzu | `GTG-004` drop/long coat full groom | Small drop-coat full lifecycle |
-| `TC-MKT-004` | `GTC-016` German Shepherd | `GTG-006` double-coat large dog | Larger double-coat full lifecycle |
-| `TC-MKT-005` | `GTC-049` Standard Poodle | `GTG-041` Orange County curly/full groom | Orange County curly full lifecycle |
+| `TC-MKT-001` | `BTC-001` Toy Poodle | `BTG-001` curly/full groom | Default LA curly coat full lifecycle |
+| `TC-MKT-002` | `BTC-003` Miniature Schnauzer | `BTG-003` wire/full groom | Wire/terrier studio full lifecycle |
+| `TC-MKT-003` | `BTC-004` Shih Tzu | `BTG-004` drop/long coat full groom | Small drop-coat full lifecycle |
+| `TC-MKT-004` | `BTC-016` German Shepherd | `BTG-006` double-coat large dog | Larger double-coat full lifecycle |
+| `TC-MKT-005` | `BTC-049` Standard Poodle | `BTG-041` Orange County curly/full groom | Orange County curly full lifecycle |
 
 ## Assertions
 
@@ -87,14 +87,14 @@ node scripts/testops.mjs run matching \
 
 | Case | Customer / Pet | Target Groomer | Expected Target Result | Purpose |
 |---|---|---|---|---|
-| `TC-MATCH-001` | `GTC-001` Toy Poodle | `GTG-001` curly/full groom | include | Exact preferred window fits |
-| `TC-MATCH-002` | `GTC-001` Toy Poodle | `GTG-001` curly/full groom | include | Same-day capacity when preferred time is late |
-| `TC-MATCH-003` | `GTC-003` Miniature Schnauzer | `GTG-003` wire/terrier studio | include | Wire coat and studio full groom |
-| `TC-MATCH-004` | `GTC-016` German Shepherd | `GTG-006` large double-coat groomer | include | Large double-coat full groom |
-| `TC-MATCH-005` | `GTC-049` Standard Poodle | `GTG-041` OC curly/full groom | include | Orange County curly poodle |
-| `TC-MATCH-006` | `GTC-002` Golden Retriever | `GTG-002` mobile deshed groomer | exclude | Target lacks `full_groom` service |
-| `TC-MATCH-007` | `GTC-001` Toy Poodle | `GTG-005` mobile-only groomer | exclude | Target does not support studio request mode |
-| `TC-MATCH-008` | `GTC-001` Toy Poodle | `GTG-001` weekday-only groomer | exclude | Target lacks enabled availability on request day |
+| `TC-MATCH-001` | `BTC-001` Toy Poodle | `BTG-001` curly/full groom | include | Exact preferred window fits |
+| `TC-MATCH-002` | `BTC-001` Toy Poodle | `BTG-001` curly/full groom | include | Same-day capacity when preferred time is late |
+| `TC-MATCH-003` | `BTC-003` Miniature Schnauzer | `BTG-003` wire/terrier studio | include | Wire coat and studio full groom |
+| `TC-MATCH-004` | `BTC-016` German Shepherd | `BTG-006` large double-coat groomer | include | Large double-coat full groom |
+| `TC-MATCH-005` | `BTC-049` Standard Poodle | `BTG-041` OC curly/full groom | include | Orange County curly poodle |
+| `TC-MATCH-006` | `BTC-002` Golden Retriever | `BTG-002` mobile deshed groomer | exclude | Target lacks `full_groom` service |
+| `TC-MATCH-007` | `BTC-001` Toy Poodle | `BTG-005` mobile-only groomer | exclude | Target does not support studio request mode |
+| `TC-MATCH-008` | `BTC-001` Toy Poodle | `BTG-001` weekday-only groomer | exclude | Target lacks enabled availability on request day |
 
 Matching assertions:
 

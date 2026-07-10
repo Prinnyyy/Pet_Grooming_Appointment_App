@@ -23,8 +23,8 @@ function createFixture({ branch = "codex/test-baseline", latest = "T-005", next 
     "docs/09_frozen/**",
     "artifacts/**",
     "docs/02_architecture/test_resources/T-129_*_TEST_PROFILES.md",
-    "docs/08_design/Groomly.html",
-    "docs/08_design/Groomly/**",
+    "docs/08_design/Beckon.html",
+    "docs/08_design/Beckon/**",
     "",
   ].join("\n"));
   writeFixtureFile(root, "AGENTS.md", `# AGENTS\n\n- Current branch baseline is \`${branch}\`.\n`);

@@ -23,9 +23,9 @@ import {
 
 const jwtServiceRoleKey = "eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIn0.signature";
 const customerRow =
-  "| GTC-001 | groomly.customer001@example.com | GroomlyTest!2026 | Amelia / amelia.customer001@example.com / 310-555-1001 | 3965 Cesar E Chavez Ave, Los Angeles, CA 90063 | Mochi; Toy Poodle | Juniper; Domestic Shorthair |";
+  "| BTC-001 | beckon.customer001@example.com | BeckonTest!2026 | Amelia / amelia.customer001@example.com / 310-555-1001 | 3965 Cesar E Chavez Ave, Los Angeles, CA 90063 | Mochi; Toy Poodle | Juniper; Domestic Shorthair |";
 const groomerRow =
-  "| GTG-001 | groomly.groomer001@example.com | GroomlyTest!2026 | Ava Chen / South LA Curl & Calm | Bio | 150 E El Segundo Blvd, Los Angeles, CA 90061 | both / 12 mi | 5 | XS-XL | coat_type:curly_wavy | Mon-Fri | full_groom $105/135m |";
+  "| BTG-001 | beckon.groomer001@example.com | BeckonTest!2026 | Ava Chen / South LA Curl & Calm | Bio | 150 E El Segundo Blvd, Los Angeles, CA 90061 | both / 12 mi | 5 | XS-XL | coat_type:curly_wavy | Mon-Fri | full_groom $105/135m |";
 
 test("seed parsers reject empty resources and duplicate seed ids", () => {
   const emptyCustomerFile = writeTempMarkdown("# Empty customer resource\n");
@@ -37,28 +37,28 @@ test("seed parsers reject empty resources and duplicate seed ids", () => {
   const duplicateCustomerFile = writeTempMarkdown(`${customerRow}\n${customerRow}\n`);
   assert.throws(
     () => parseCustomerProfiles(duplicateCustomerFile),
-    /Duplicate customer seed id GTC-001/
+    /Duplicate customer seed id BTC-001/
   );
 
   const duplicateGroomerFile = writeTempMarkdown(`${groomerRow}\n${groomerRow}\n`);
   assert.throws(
     () => parseGroomerProfiles(duplicateGroomerFile),
-    /Duplicate groomer seed id GTG-001/
+    /Duplicate groomer seed id BTG-001/
   );
 });
 
 test("seed parsers reject unsafe account fields without leaking credentials", () => {
   const badCustomerFile = writeTempMarkdown(
     customerRow
-      .replace("groomly.customer001@example.com", "not-an-email")
-      .replace("GroomlyTest!2026", "")
+      .replace("beckon.customer001@example.com", "not-an-email")
+      .replace("BeckonTest!2026", "")
   );
 
   assert.throws(
     () => parseCustomerProfiles(badCustomerFile),
     (error) => {
-      assert.match(error.message, /Invalid customer seed GTC-001/);
-      assert.doesNotMatch(error.message, /GroomlyTest!2026/);
+      assert.match(error.message, /Invalid customer seed BTC-001/);
+      assert.doesNotMatch(error.message, /BeckonTest!2026/);
       assert.doesNotMatch(error.message, /not-an-email/);
       return true;
     }
@@ -183,13 +183,13 @@ test("doctor credential status recognizes legacy and modern server credentials",
 
 test("safe error messages redact modern keys, JWTs, emails, UUIDs, and signed URLs", () => {
   const message = safeErrorMessage(
-    "auth failed for groomly.customer001@example.com with sb_secret_SUPERSECRET " +
+    "auth failed for beckon.customer001@example.com with sb_secret_SUPERSECRET " +
       "and token eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIn0.sig " +
       "at https://example.supabase.co/storage/v1/object/sign/pet/photo.png?token=abc123 " +
       "id 123e4567-e89b-12d3-a456-426614174000"
   );
 
-  assert.doesNotMatch(message, /groomly\.customer001@example\.com/);
+  assert.doesNotMatch(message, /beckon\.customer001@example\.com/);
   assert.doesNotMatch(message, /sb_secret_SUPERSECRET/);
   assert.doesNotMatch(message, /eyJhbGciOiJIUzI1NiJ9/);
   assert.doesNotMatch(message, /token=abc123/);
@@ -207,8 +207,8 @@ test("lifecycle JSON artifacts do not persist full entity UUIDs", () => {
     caseID: "TC-MKT-001",
     startedAt: "2026-07-09T00:00:00Z",
     finishedAt: "2026-07-09T00:01:00Z",
-    customer: { seedID: "GTC-001", userRef: "AAAAAAAA", emailDomain: "example.com" },
-    groomer: { seedID: "GTG-001", userRef: "BBBBBBBB", emailDomain: "example.com" },
+    customer: { seedID: "BTC-001", userRef: "AAAAAAAA", emailDomain: "example.com" },
+    groomer: { seedID: "BTG-001", userRef: "BBBBBBBB", emailDomain: "example.com" },
     ids: {
       requestID: fullUUID,
       offerID: fullUUID,
@@ -302,8 +302,8 @@ test("lifecycle zero-match failure does not expose full identifiers or credentia
       assert.match(error.message, /zero matches/);
       assert.match(error.message, /123E4567/);
       assert.doesNotMatch(error.message, /123e4567-e89b-12d3-a456-426614174000/);
-      assert.doesNotMatch(error.message, /GroomlyTest!2026/);
-      assert.doesNotMatch(error.message, /groomly\.customer001@example\.com/);
+      assert.doesNotMatch(error.message, /BeckonTest!2026/);
+      assert.doesNotMatch(error.message, /beckon\.customer001@example\.com/);
       return true;
     }
   );
@@ -433,7 +433,7 @@ function uiLifecycleVerificationAPI(ids, overrides = {}) {
 }
 
 function writeTempMarkdown(markdown) {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "groomly-testops-"));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "beckon-testops-"));
   const filePath = path.join(dir, "resource.md");
   fs.writeFileSync(filePath, `${markdown.trimEnd()}\n`);
   return filePath;

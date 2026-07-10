@@ -4,7 +4,7 @@
 
 The current app is a SwiftUI-first iOS marketplace backed by Supabase Auth, Postgres RPC/Data API access, RLS, and Storage. Production launch restores the Supabase session, loads the authoritative profile, routes missing profiles to role onboarding, and routes existing customer/groomer profiles into role-specific tabs.
 
-The implemented product flow is Open Request -> Groomer Offer -> Customer Confirmation -> Booking, with participant chat, booking completion, and completed-booking reviews. Groomly UI adaptation is complete for implemented MVP screens, and pet-fit/availability evidence work through T-087 is layered behind repository and RPC boundaries. Future work should extend the existing feature folders and repositories rather than introducing direct Supabase calls from SwiftUI.
+The implemented product flow is Open Request -> Groomer Offer -> Customer Confirmation -> Booking, with participant chat, booking completion, and completed-booking reviews. Beckon UI adaptation is complete for implemented MVP screens, and pet-fit/availability evidence work through T-087 is layered behind repository and RPC boundaries. Future work should extend the existing feature folders and repositories rather than introducing direct Supabase calls from SwiftUI.
 
 ## Target Architecture
 

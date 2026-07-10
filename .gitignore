@@ -11,7 +11,7 @@ CloudFlare API.md
 Resend API.md
 
 # Local iOS Supabase environment; publishable key is injected at build time.
-ios/PetGroomerMarketplace/Config/Supabase.local.xcconfig
+ios/Beckon/Config/Supabase.local.xcconfig
 
 # Local TestOps run artifacts.
 artifacts/testops/

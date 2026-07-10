@@ -29,7 +29,7 @@
 
 ## Copy
 
-Preferred terms: Groomly, Find a groomer, Start a grooming request, Publish request, Open requests, Make offer, Review offers, Accept offer, Booking confirmed, Not a fit, Waiting for offers, No offers yet.
+Preferred terms: Beckon, Find a groomer, Start a grooming request, Publish request, Open requests, Make offer, Review offers, Accept offer, Booking confirmed, Not a fit, Waiting for offers, No offers yet.
 
 Avoid: Task card, Send task, Reject customer, Reject task, Recipient, Submission, Card exchange.
 

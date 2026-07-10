@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BUNDLE_ID="${BUNDLE_ID:-com.prinnyyy.PetGroomerMarketplace}"
+BUNDLE_ID="${BUNDLE_ID:-com.hellobeckon.beckon}"
 DEVICE="${DEVICE:-booted}"
 COMMAND="${1:-tail}"
 LINES="${2:-300}"
@@ -12,7 +12,7 @@ if [[ -z "$APP_CONTAINER" ]]; then
   exit 1
 fi
 
-LOG_FILE="$APP_CONTAINER/Library/Application Support/GroomlyDebug/debug-events.jsonl"
+LOG_FILE="$APP_CONTAINER/Library/Application Support/BeckonDebug/debug-events.jsonl"
 
 case "$COMMAND" in
   path)

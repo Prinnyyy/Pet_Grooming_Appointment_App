@@ -9,7 +9,7 @@ const DEFAULT_SOURCE = path.join(
   "docs/02_architecture/test_resources/T-129_CUSTOMER_TEST_PROFILES.md"
 );
 const SEED_NAME = "T-129";
-const EMAIL_PREFIX = "groomly.customer";
+const EMAIL_PREFIX = "beckon.customer";
 const EMAIL_DOMAIN = "@example.com";
 const VALID_BREEDS = new Set([
   "Unspecified",
@@ -177,7 +177,7 @@ function parseProfiles(filePath) {
   const markdown = fs.readFileSync(filePath, "utf8");
   return markdown
     .split(/\r?\n/)
-    .filter((line) => line.startsWith("| GTC-"))
+    .filter((line) => line.startsWith("| BTC-"))
     .map(parseProfileLine);
 }
 
@@ -288,7 +288,7 @@ function validateProfiles(profiles) {
   const emails = new Set();
   const seedIDs = new Set();
   for (const profile of profiles) {
-    if (!profile.seedID.match(/^GTC-\d{3}$/)) {
+    if (!profile.seedID.match(/^BTC-\d{3}$/)) {
       throw new Error(`Invalid seed ID: ${profile.seedID}`);
     }
     if (!profile.email.startsWith(EMAIL_PREFIX) || !profile.email.endsWith(EMAIL_DOMAIN)) {
@@ -365,15 +365,15 @@ function authUserPayload(profile, existingUser) {
     app_metadata: {
       ...(existingUser?.app_metadata ?? {}),
       role: "customer",
-      groomly_seed: SEED_NAME,
-      groomly_seed_id: profile.seedID,
+      beckon_seed: SEED_NAME,
+      beckon_seed_id: profile.seedID,
     },
     user_metadata: {
       ...(existingUser?.user_metadata ?? {}),
       display_name: profile.nickname,
       contact_email: profile.contactEmail,
-      groomly_seed: SEED_NAME,
-      groomly_seed_id: profile.seedID,
+      beckon_seed: SEED_NAME,
+      beckon_seed_id: profile.seedID,
     },
   };
 }

@@ -70,7 +70,7 @@ const RG_AVAILABLE = detectRgAvailable();
 const DEFAULT_CONTEXT_EXCLUDE_PREFIXES = [
   "docs/09_frozen/",
   "docs/02_architecture/test_resources/T-129_",
-  "docs/08_design/Groomly",
+  "docs/08_design/Beckon",
 ];
 
 function run(command, args) {
@@ -283,12 +283,12 @@ function checkIgnoredPaths() {
   }
 
   const design = runRequired("rg", ["--files", "docs/08_design"]);
-  const visibleGroomlyHTML = (design?.stdout ?? "")
+  const visibleBeckonHTML = (design?.stdout ?? "")
     .trim()
     .split(/\r?\n/)
-    .filter((filePath) => /Groomly.*\.html$/i.test(filePath));
-  if (visibleGroomlyHTML.length > 0) {
-    failures.push(`Groomly HTML visible to default rg --files: ${visibleGroomlyHTML.join(", ")}`);
+    .filter((filePath) => /Beckon.*\.html$/i.test(filePath));
+  if (visibleBeckonHTML.length > 0) {
+    failures.push(`Beckon HTML visible to default rg --files: ${visibleBeckonHTML.join(", ")}`);
   }
 }
 

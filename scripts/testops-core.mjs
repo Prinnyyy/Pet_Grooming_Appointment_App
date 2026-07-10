@@ -35,36 +35,36 @@ const WEEKDAYS = new Map([
 export const SMOKE5_CASES = [
   {
     caseID: "TC-MKT-001",
-    customerSeedID: "GTC-001",
-    groomerSeedID: "GTG-001",
+    customerSeedID: "BTC-001",
+    groomerSeedID: "BTG-001",
     purpose: "default LA curly coat full lifecycle",
     preferredWeekdays: [1, 2, 3, 4, 5],
   },
   {
     caseID: "TC-MKT-002",
-    customerSeedID: "GTC-003",
-    groomerSeedID: "GTG-003",
+    customerSeedID: "BTC-003",
+    groomerSeedID: "BTG-003",
     purpose: "wire terrier studio full lifecycle",
     preferredWeekdays: [3, 4, 5, 6, 0],
   },
   {
     caseID: "TC-MKT-003",
-    customerSeedID: "GTC-004",
-    groomerSeedID: "GTG-004",
+    customerSeedID: "BTC-004",
+    groomerSeedID: "BTG-004",
     purpose: "small drop-coat full lifecycle",
     preferredWeekdays: [1, 2, 3, 4, 6],
   },
   {
     caseID: "TC-MKT-004",
-    customerSeedID: "GTC-016",
-    groomerSeedID: "GTG-006",
+    customerSeedID: "BTC-016",
+    groomerSeedID: "BTG-006",
     purpose: "larger double-coat full lifecycle",
     preferredWeekdays: [1, 2, 3, 4, 5],
   },
   {
     caseID: "TC-MKT-005",
-    customerSeedID: "GTC-049",
-    groomerSeedID: "GTG-041",
+    customerSeedID: "BTC-049",
+    groomerSeedID: "BTG-041",
     purpose: "Orange County curly full lifecycle",
     preferredWeekdays: [2, 3, 4, 5, 6],
   },
@@ -73,8 +73,8 @@ export const SMOKE5_CASES = [
 export const MATCHING_BASELINE_CASES = [
   {
     caseID: "TC-MATCH-001",
-    customerSeedID: "GTC-001",
-    targetGroomerSeedID: "GTG-001",
+    customerSeedID: "BTC-001",
+    targetGroomerSeedID: "BTG-001",
     purpose: "curly Toy Poodle exact preferred window should reach a curly/full-groom groomer",
     serviceType: "full_groom",
     locationMode: "customer_comes_to_groomer",
@@ -85,8 +85,8 @@ export const MATCHING_BASELINE_CASES = [
   },
   {
     caseID: "TC-MATCH-002",
-    customerSeedID: "GTC-001",
-    targetGroomerSeedID: "GTG-001",
+    customerSeedID: "BTC-001",
+    targetGroomerSeedID: "BTG-001",
     purpose: "curly Toy Poodle late preferred window should still reach same-day-capacity groomer",
     serviceType: "full_groom",
     locationMode: "customer_comes_to_groomer",
@@ -97,8 +97,8 @@ export const MATCHING_BASELINE_CASES = [
   },
   {
     caseID: "TC-MATCH-003",
-    customerSeedID: "GTC-003",
-    targetGroomerSeedID: "GTG-003",
+    customerSeedID: "BTC-003",
+    targetGroomerSeedID: "BTG-003",
     purpose: "wire Miniature Schnauzer should reach a wire/terrier studio groomer",
     serviceType: "full_groom",
     locationMode: "customer_comes_to_groomer",
@@ -109,8 +109,8 @@ export const MATCHING_BASELINE_CASES = [
   },
   {
     caseID: "TC-MATCH-004",
-    customerSeedID: "GTC-016",
-    targetGroomerSeedID: "GTG-006",
+    customerSeedID: "BTC-016",
+    targetGroomerSeedID: "BTG-006",
     purpose: "large double-coat German Shepherd should reach a large-dog coat-care groomer",
     serviceType: "full_groom",
     locationMode: "customer_comes_to_groomer",
@@ -121,8 +121,8 @@ export const MATCHING_BASELINE_CASES = [
   },
   {
     caseID: "TC-MATCH-005",
-    customerSeedID: "GTC-049",
-    targetGroomerSeedID: "GTG-041",
+    customerSeedID: "BTC-049",
+    targetGroomerSeedID: "BTG-041",
     purpose: "Orange County Standard Poodle should reach an OC curly/full-groom groomer",
     serviceType: "full_groom",
     locationMode: "customer_comes_to_groomer",
@@ -133,8 +133,8 @@ export const MATCHING_BASELINE_CASES = [
   },
   {
     caseID: "TC-MATCH-006",
-    customerSeedID: "GTC-002",
-    targetGroomerSeedID: "GTG-002",
+    customerSeedID: "BTC-002",
+    targetGroomerSeedID: "BTG-002",
     purpose: "service hard filter should exclude a groomer without full_groom service",
     serviceType: "full_groom",
     locationMode: "groomer_comes_to_customer",
@@ -145,8 +145,8 @@ export const MATCHING_BASELINE_CASES = [
   },
   {
     caseID: "TC-MATCH-007",
-    customerSeedID: "GTC-001",
-    targetGroomerSeedID: "GTG-005",
+    customerSeedID: "BTC-001",
+    targetGroomerSeedID: "BTG-005",
     purpose: "location-mode hard filter should exclude mobile-only groomer for studio request",
     serviceType: "full_groom",
     locationMode: "customer_comes_to_groomer",
@@ -157,8 +157,8 @@ export const MATCHING_BASELINE_CASES = [
   },
   {
     caseID: "TC-MATCH-008",
-    customerSeedID: "GTC-001",
-    targetGroomerSeedID: "GTG-001",
+    customerSeedID: "BTC-001",
+    targetGroomerSeedID: "BTG-001",
     purpose: "request-day hard filter should exclude a groomer without enabled availability that day",
     serviceType: "full_groom",
     locationMode: "customer_comes_to_groomer",
@@ -173,7 +173,7 @@ export function parseCustomerProfiles(filePath = CUSTOMER_RESOURCE) {
   const markdown = fs.readFileSync(filePath, "utf8");
   const profiles = markdown
     .split(/\r?\n/)
-    .filter((line) => line.startsWith("| GTC-"))
+    .filter((line) => line.startsWith("| BTC-"))
     .map((line) => {
       const cells = cellsFromRow(line, 7);
       const [seedID, email, password, nicknameContact, addressValue, dogValue, catValue] = cells;
@@ -195,7 +195,7 @@ export function parseGroomerProfiles(filePath = GROOMER_RESOURCE) {
   const markdown = fs.readFileSync(filePath, "utf8");
   const profiles = markdown
     .split(/\r?\n/)
-    .filter((line) => line.startsWith("| GTG-"))
+    .filter((line) => line.startsWith("| BTG-"))
     .map((line) => {
       const cells = cellsFromRow(line, 12);
       const [
@@ -311,8 +311,8 @@ export function makeBackendPlans({
   scenarioID = DEFAULT_SCENARIO,
   matrix,
   runID,
-  customerSeedID = "GTC-001",
-  groomerSeedID = "GTG-001",
+  customerSeedID = "BTC-001",
+  groomerSeedID = "BTG-001",
   customerProfiles = parseCustomerProfiles(),
   groomerProfiles = parseGroomerProfiles(),
 } = {}) {

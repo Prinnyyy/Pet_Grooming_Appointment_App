@@ -9,8 +9,8 @@ source "$script_dir/ios-destination.sh"
 
 scenario="marketplace_full_lifecycle"
 run_id="${TESTOPS_RUN_ID:-TESTOPS-UI-$(date -u +%Y%m%dT%H%M%SZ)}"
-project="${CODEX_IOS_PROJECT:-ios/PetGroomerMarketplace/PetGroomerMarketplace.xcodeproj}"
-scheme="${CODEX_IOS_SCHEME:-PetGroomerMarketplace}"
+project="${CODEX_IOS_PROJECT:-ios/Beckon/Beckon.xcodeproj}"
+scheme="${CODEX_IOS_SCHEME:-Beckon}"
 
 required_environment=(
   SUPABASE_URL
@@ -107,7 +107,7 @@ xcodebuild \
   -destination "$destination" \
   -resultBundlePath "$result_bundle" \
   test \
-  -only-testing:PetGroomerMarketplaceUITests/TestOpsLifecycleTests/testSeededDualRoleMarketplaceLifecycle \
+  -only-testing:BeckonUITests/TestOpsLifecycleTests/testSeededDualRoleMarketplaceLifecycle \
   >"$log_file" 2>&1
 ui_status=$?
 set -e

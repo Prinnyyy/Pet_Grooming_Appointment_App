@@ -28,10 +28,10 @@ test("builds APNs alert payload from system notification copy only", () => {
     title: "New message",
     body: "Your groomer sent you a message.",
   });
-  assert.equal(payload.groomly.kind, "new_message");
-  assert.equal(payload.groomly.notification_id, "notification-1");
-  assert.equal(payload.groomly.related_request_id, "request-1");
-  assert.equal(payload.groomly.related_booking_id, "booking-1");
+  assert.equal(payload.beckon.kind, "new_message");
+  assert.equal(payload.beckon.notification_id, "notification-1");
+  assert.equal(payload.beckon.related_request_id, "request-1");
+  assert.equal(payload.beckon.related_booking_id, "booking-1");
   assert.ok(!JSON.stringify(payload).includes("street_address"));
 });
 
@@ -97,7 +97,7 @@ test("dispatches to active customer tokens and records delivery outcome", async 
   assert.equal(result.sent, 1);
   assert.equal(result.noActiveTokens, 1);
   assert.equal(deliveries[0].token, "abc123");
-  assert.equal(deliveries[0].payload.groomly.kind, "new_offer");
+  assert.equal(deliveries[0].payload.beckon.kind, "new_offer");
   assert.deepEqual(deliveries.slice(1), [
     {
       notificationID: "notification-1",

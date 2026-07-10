@@ -6,8 +6,8 @@ artifacts/**
 docs/02_architecture/test_resources/T-129_*_TEST_PROFILES.md
 
 # Large design exports. Prefer docs/08_design/UI_IMPLEMENTATION_NOTES.md and screenshots first.
-docs/08_design/Groomly.html
-docs/08_design/Groomly/**
+docs/08_design/Beckon.html
+docs/08_design/Beckon/**
 
 # External agent draft reports should not be active search context.
 APP_STATUS_OVERVIEW.md

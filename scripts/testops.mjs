@@ -73,7 +73,7 @@ async function main() {
 function usage() {
   console.log(`Usage:
   node scripts/testops.mjs doctor [--dry-run]
-  node scripts/testops.mjs run backend --scenario ${DEFAULT_SCENARIO} [--customer GTC-001] [--groomer GTG-001] [--matrix smoke5] [--run-id RUN] [--execute] [--cleanup]
+  node scripts/testops.mjs run backend --scenario ${DEFAULT_SCENARIO} [--customer BTC-001] [--groomer BTG-001] [--matrix smoke5] [--run-id RUN] [--execute] [--cleanup]
   node scripts/testops.mjs run matching --scenario ${MATCHING_SCENARIO} [--matrix ${MATCHING_BASELINE_MATRIX}] [--run-id RUN] [--execute] [--cleanup]
   node scripts/testops.mjs cleanup --run-id RUN [--execute]
   node scripts/testops.mjs verify ui-lifecycle --run-id RUN
@@ -163,8 +163,8 @@ async function runBackend(args) {
     scenarioID,
     matrix,
     runID: optionValue(options, "run-id"),
-    customerSeedID: optionValue(options, "customer") ?? "GTC-001",
-    groomerSeedID: optionValue(options, "groomer") ?? "GTG-001",
+    customerSeedID: optionValue(options, "customer") ?? "BTC-001",
+    groomerSeedID: optionValue(options, "groomer") ?? "BTG-001",
     customerProfiles: parseCustomerProfiles(CUSTOMER_RESOURCE),
     groomerProfiles: parseGroomerProfiles(GROOMER_RESOURCE),
   });

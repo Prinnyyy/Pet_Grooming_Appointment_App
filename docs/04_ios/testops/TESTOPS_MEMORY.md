@@ -33,7 +33,7 @@ Modern `sb_secret_...` values are sent as `apikey` only, never Bearer. Seed scri
 ## Limits
 
 - `smoke5` is backend lifecycle automation only.
-- Full UI lifecycle currently uses the fixed `GTC-001` / `GTG-001` pair; matrix UI execution is not implemented.
+- Full UI lifecycle currently uses the fixed `BTC-001` / `BTG-001` pair; matrix UI execution is not implemented.
 - `matching_baseline` creates request-only matching evaluations; it does not create offers, bookings, chat rows, reviews, image uploads, or Storage objects.
 - Screenshots are failure artifacts only, never pass/fail assertions.
 - TestOps must use the T-129 seeded account pool; it must not create new test accounts.

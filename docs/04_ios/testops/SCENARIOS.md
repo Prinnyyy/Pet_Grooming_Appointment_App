@@ -20,8 +20,8 @@ Backend path:
 
 Initial default pair:
 
-- Customer: `GTC-001`
-- Groomer: `GTG-001`
+- Customer: `BTC-001`
+- Groomer: `BTG-001`
 - Service: `full_groom`
 - Location mode: `customer_comes_to_groomer`
 

@@ -1,21 +1,21 @@
 {
   "metadata": {
-    "brand": "Groomly",
+    "brand": "Beckon",
     "source": [
       "docs/08_design/UI_IMPLEMENTATION_NOTES.md",
-      "docs/08_design/Groomly.html",
-      "docs/08_design/Groomly/",
-      "docs/08_design/Groomly/Groomly.dc.html"
+      "docs/08_design/Beckon.html",
+      "docs/08_design/Beckon/",
+      "docs/08_design/Beckon/Beckon.dc.html"
     ],
     "extractionStatus": "mixed-extracted-and-inferred",
-    "notes": "Values are selected from the Groomly prototype and T-023A audit. Near-neighbor prototype colors remain audit evidence; this JSON collapses them into conservative semantic tokens for later SwiftUI work. For T-023C, numeric px values from the mobile prototype should map 1:1 to SwiftUI pt; do not apply a second scale conversion."
+    "notes": "Values are selected from the Beckon prototype and T-023A audit. Near-neighbor prototype colors remain audit evidence; this JSON collapses them into conservative semantic tokens for later SwiftUI work. For T-023C, numeric px values from the mobile prototype should map 1:1 to SwiftUI pt; do not apply a second scale conversion."
   },
   "colors": {
-    "notes": "Color values are extracted from Groomly.html or Groomly/Groomly.dc.html. Semantic token names are inferred from repeated usage and the T-023A audit.",
+    "notes": "Color values are extracted from Beckon.html or Beckon/Beckon.dc.html. Semantic token names are inferred from repeated usage and the T-023A audit.",
     "appBackground": {
       "value": "#FAF7F2",
       "status": "extracted",
-      "source": "Groomly phone surface background",
+      "source": "Beckon phone surface background",
       "note": "Use for the primary in-app background, not the outer device-frame backdrop."
     },
     "surface": {

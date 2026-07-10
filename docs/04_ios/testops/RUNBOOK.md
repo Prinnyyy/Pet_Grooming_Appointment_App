@@ -23,8 +23,8 @@ Print the planned `marketplace_full_lifecycle` payload:
 ```bash
 node scripts/testops.mjs run backend \
   --scenario marketplace_full_lifecycle \
-  --customer GTC-001 \
-  --groomer GTG-001
+  --customer BTC-001 \
+  --groomer BTG-001
 ```
 
 Print the first five remote smoke plans without writing data:
@@ -63,8 +63,8 @@ export TESTOPS_REMOTE_WRITE_APPROVED=1
 
 node scripts/testops.mjs run backend \
   --scenario marketplace_full_lifecycle \
-  --customer GTC-001 \
-  --groomer GTG-001 \
+  --customer BTC-001 \
+  --groomer BTG-001 \
   --execute \
   --cleanup
 ```

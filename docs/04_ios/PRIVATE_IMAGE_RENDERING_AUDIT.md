@@ -23,14 +23,14 @@ All verified buckets allow only jpeg/png/heic/heif. Related metadata tables have
 
 ## Current iOS State
 
-- Shared display primitive exists: `GroomlyModuleImage` center-crops local `Data` into module frames.
+- Shared display primitive exists: `BeckonModuleImage` center-crops local `Data` into module frames.
 - Customer and groomer profile avatars upload to dedicated avatar buckets, download with authenticated Storage reads, and persist a local `ProfileSnapshot` fallback.
 - Customer pet card avatars upload to `pet-photos`, replace older pet avatar photos, render from local cache before network download, and use `CustomerPetPhotoSnapshot`.
 - Request photos are uploaded/read from `request-photos` and rendered in customer and groomer request details.
 - Groomer portfolio photos are uploaded/read from `groomer-portfolio` and rendered in portfolio cards.
 - T-189 added `PrivateImageLoader`, `FilePrivateImageCache`, and `SupabasePrivateImageDataSource`. Supabase repositories now route avatar, pet, request, and portfolio image downloads through the shared authenticated loader. Cache file names are hashed and the shared cache is cleared during local account cleanup.
-- T-190 loads customer pet photo data into request flows, renders request wizard pet avatars with `GroomlyModuleImage`, and marks request photos with missing image data as unavailable.
-- T-191 tracks groomer portfolio image-load attempts, renders loaded portfolio photos through `GroomlyModuleImage`, and distinguishes loading from unavailable private image states.
+- T-190 loads customer pet photo data into request flows, renders request wizard pet avatars with `BeckonModuleImage`, and marks request photos with missing image data as unavailable.
+- T-191 tracks groomer portfolio image-load attempts, renders loaded portfolio photos through `BeckonModuleImage`, and distinguishes loading from unavailable private image states.
 
 ## Remaining Gaps
 

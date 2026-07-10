@@ -34,18 +34,18 @@ test("parses the seeded customer and groomer resources", () => {
 
   assert.equal(customers.length, 50);
   assert.equal(groomers.length, 50);
-  assert.equal(customers[0].seedID, "GTC-001");
-  assert.equal(customers[0].email, "groomly.customer001@example.com");
-  assert.equal(customers[0].password, "GroomlyTest!2026");
+  assert.equal(customers[0].seedID, "BTC-001");
+  assert.equal(customers[0].email, "beckon.customer001@example.com");
+  assert.equal(customers[0].password, "BeckonTest!2026");
   assert.deepEqual(customers[0].address, {
     street: "3965 Cesar E Chavez Ave",
     city: "Los Angeles",
     state: "CA",
     zip: "90063",
   });
-  assert.equal(groomers[0].seedID, "GTG-001");
-  assert.equal(groomers[0].email, "groomly.groomer001@example.com");
-  assert.equal(groomers[0].password, "GroomlyTest!2026");
+  assert.equal(groomers[0].seedID, "BTG-001");
+  assert.equal(groomers[0].email, "beckon.groomer001@example.com");
+  assert.equal(groomers[0].password, "BeckonTest!2026");
   assert.equal(groomers[0].businessName, "South LA Curl & Calm");
 });
 
@@ -62,7 +62,7 @@ test("parses CLI options without treating flags as values", () => {
     "--cleanup",
     "--customer",
     "--groomer",
-    "GTG-001",
+    "BTG-001",
   ]);
 
   assert.equal(options.get("scenario"), "marketplace_full_lifecycle");
@@ -71,7 +71,7 @@ test("parses CLI options without treating flags as values", () => {
   assert.equal(options.get("execute"), true);
   assert.equal(options.get("cleanup"), true);
   assert.equal(options.get("customer"), true);
-  assert.equal(options.get("groomer"), "GTG-001");
+  assert.equal(options.get("groomer"), "BTG-001");
 });
 
 test("default backend plan remains the first customer and first groomer", () => {
@@ -86,8 +86,8 @@ test("default backend plan remains the first customer and first groomer", () => 
 
   assert.equal(plan.runID, "TESTOPS-DEFAULT");
   assert.equal(plan.caseID, "TC-MKT-001");
-  assert.equal(plan.customer.seedID, "GTC-001");
-  assert.equal(plan.groomer.seedID, "GTG-001");
+  assert.equal(plan.customer.seedID, "BTC-001");
+  assert.equal(plan.groomer.seedID, "BTG-001");
   assert.equal(plan.request.serviceType, "full_groom");
   assert.equal(plan.request.locationMode, "customer_comes_to_groomer");
   assert.equal(plan.request.travelRadiusMiles, 15);
@@ -114,11 +114,11 @@ test("smoke5 matrix produces fixed unique case run tags", () => {
   assert.deepEqual(
     plans.map((plan) => `${plan.customer.seedID}+${plan.groomer.seedID}`),
     [
-      "GTC-001+GTG-001",
-      "GTC-003+GTG-003",
-      "GTC-004+GTG-004",
-      "GTC-016+GTG-006",
-      "GTC-049+GTG-041",
+      "BTC-001+BTG-001",
+      "BTC-003+BTG-003",
+      "BTC-004+BTG-004",
+      "BTC-016+BTG-006",
+      "BTC-049+BTG-041",
     ]
   );
   assert.equal(new Set(plans.map((plan) => plan.runID)).size, 5);
@@ -144,21 +144,21 @@ test("plan generation rejects unsupported scenarios and unknown seeds", () => {
     () =>
       makeBackendPlans({
         scenarioID: DEFAULT_SCENARIO,
-        customerSeedID: "GTC-999",
+        customerSeedID: "BTC-999",
         customerProfiles: customers,
         groomerProfiles: groomers,
       }),
-    /Could not find seed GTC-999/
+    /Could not find seed BTC-999/
   );
   assert.throws(
     () =>
       makeBackendPlans({
         scenarioID: DEFAULT_SCENARIO,
-        groomerSeedID: "GTG-999",
+        groomerSeedID: "BTG-999",
         customerProfiles: customers,
         groomerProfiles: groomers,
       }),
-    /Could not find seed GTG-999/
+    /Could not find seed BTG-999/
   );
 });
 
@@ -176,9 +176,9 @@ test("plan redaction removes credentials and full emails", () => {
   const serialized = JSON.stringify(redactedPlan(plan));
 
   assert.match(serialized, /"emailDomain":"example.com"/);
-  assert.doesNotMatch(serialized, /GroomlyTest!2026/);
-  assert.doesNotMatch(serialized, /groomly\.customer001@example\.com/);
-  assert.doesNotMatch(serialized, /groomly\.groomer001@example\.com/);
+  assert.doesNotMatch(serialized, /BeckonTest!2026/);
+  assert.doesNotMatch(serialized, /beckon\.customer001@example\.com/);
+  assert.doesNotMatch(serialized, /beckon\.groomer001@example\.com/);
 });
 
 test("lifecycle result redaction replaces full entity UUIDs with support refs", () => {
@@ -188,8 +188,8 @@ test("lifecycle result redaction replaces full entity UUIDs with support refs", 
     caseID: "TC-MKT-001",
     startedAt: "2026-07-09T00:00:00Z",
     finishedAt: "2026-07-09T00:01:00Z",
-    customer: { seedID: "GTC-001", userRef: "AAAAAAAA", emailDomain: "example.com" },
-    groomer: { seedID: "GTG-001", userRef: "BBBBBBBB", emailDomain: "example.com" },
+    customer: { seedID: "BTC-001", userRef: "AAAAAAAA", emailDomain: "example.com" },
+    groomer: { seedID: "BTG-001", userRef: "BBBBBBBB", emailDomain: "example.com" },
     ids: {
       requestID: "11111111-1111-4111-8111-111111111111",
       offerID: "22222222-2222-4222-8222-222222222222",
@@ -242,11 +242,11 @@ test("cleanup plan is run-id scoped and dry-run friendly", () => {
 
 test("report and error text are sanitized", () => {
   const unsafeError = new Error(
-    "token abc password secret user groomly.customer001@example.com id 123e4567-e89b-12d3-a456-426614174000"
+    "token abc password secret user beckon.customer001@example.com id 123e4567-e89b-12d3-a456-426614174000"
   );
   const message = safeErrorMessage(unsafeError);
 
-  assert.doesNotMatch(message, /groomly\.customer001@example\.com/);
+  assert.doesNotMatch(message, /beckon\.customer001@example\.com/);
   assert.doesNotMatch(message, /secret/);
   assert.doesNotMatch(message, /123e4567-e89b-12d3-a456-426614174000/);
   assert.match(message, /\[email-domain:example\.com\]/);
@@ -257,16 +257,16 @@ test("report and error text are sanitized", () => {
     startedAt: "2026-07-01T00:00:00.000Z",
     finishedAt: "2026-07-01T00:01:00.000Z",
     customer: {
-      seedID: "GTC-001",
+      seedID: "BTC-001",
       userRef: "123E4567",
-      email: "groomly.customer001@example.com",
-      password: "GroomlyTest!2026",
+      email: "beckon.customer001@example.com",
+      password: "BeckonTest!2026",
     },
     groomer: {
-      seedID: "GTG-001",
+      seedID: "BTG-001",
       userRef: "223E4567",
-      email: "groomly.groomer001@example.com",
-      password: "GroomlyTest!2026",
+      email: "beckon.groomer001@example.com",
+      password: "BeckonTest!2026",
     },
     ids: {
       requestID: "123e4567-e89b-12d3-a456-426614174000",
@@ -286,13 +286,13 @@ test("report and error text are sanitized", () => {
         phase: "customer.signIn",
         status: "failed",
         durationMs: 15,
-        error: "password secret token abc groomly.customer001@example.com",
+        error: "password secret token abc beckon.customer001@example.com",
       },
     ],
   });
 
-  assert.doesNotMatch(report, /GroomlyTest!2026/);
-  assert.doesNotMatch(report, /groomly\.customer001@example\.com/);
+  assert.doesNotMatch(report, /BeckonTest!2026/);
+  assert.doesNotMatch(report, /beckon\.customer001@example\.com/);
   assert.doesNotMatch(report, /123e4567-e89b-12d3-a456-426614174000/);
   assert.match(report, /123E4567/);
 });

@@ -8,7 +8,7 @@ The original rebuild brief is archived at `../09_frozen/product_briefs/FRESH_PET
 
 ## Product Definition
 
-Pet Groomer Marketplace is an iOS marketplace where a pet owner publishes one open grooming request, matched independent groomers submit offers, and the owner confirms one offer to create a booking.
+Beckon is an iOS marketplace where a pet owner publishes one open grooming request, matched independent groomers submit offers, and the owner confirms one offer to create a booking.
 
 ## Core Product Model
 
@@ -22,7 +22,7 @@ Customers do not repeatedly target individual groomers. A groomer chooses whethe
 
 Pet-fit v1 keeps the request-first model and makes matching more pet-specific. Inputs include pet traits, service need, location mode, photos, preferred time, groomer service coverage, availability, portfolio, low-weight claimed specialties, completed bookings, and structured reviews. Match reasons must be explainable enough for user-facing fit copy.
 
-Groomly is not shifting to a public groomer directory, direct slot booking, or AI/ML recommender in v1. Customer choice stays anchored in received offers.
+Beckon is not shifting to a public groomer directory, direct slot booking, or AI/ML recommender in v1. Customer choice stays anchored in received offers.
 
 ## Target Users
 
@@ -60,4 +60,4 @@ Groomly is not shifting to a public groomer directory, direct slot booking, or A
 
 ## Current State
 
-The MVP marketplace flow is implemented at the current contract level, and Groomly UI adaptation is complete for implemented screens. Post-MVP work added fixed pet/request contracts, availability-aware matching/offer/acceptance paths, explainable fit evidence, structured review outcomes, groomer fit-signal/portfolio tags, an owner evidence dashboard, customer in-app notifications, and a blocked APNs foundation. The app remains request-first; APNs dispatch waits for T-157 paid Apple Developer credentials.
+The MVP marketplace flow is implemented at the current contract level, and Beckon UI adaptation is complete for implemented screens. Post-MVP work added fixed pet/request contracts, availability-aware matching/offer/acceptance paths, explainable fit evidence, structured review outcomes, groomer fit-signal/portfolio tags, an owner evidence dashboard, customer in-app notifications, and a blocked APNs foundation. The app remains request-first; APNs dispatch waits for T-157 paid Apple Developer credentials.
