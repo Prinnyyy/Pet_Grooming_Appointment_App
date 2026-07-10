@@ -17,9 +17,7 @@ Source: T-202 adopted root review input `../../V1.0_RELEASE_TASK_PLAN.md`; that 
 
 ## Queue
 
-| Order | Roadmap | Package | Mode | Scope | Validation |
-|---|---|---|---|---|---|
-| Q-43 | R-037 | Foreground refresh concurrency test determinism | Quick | Stabilize the existing deduplication test so it does not assume `async let` start order; no product behavior change. | Focused repeated test; full iOS test; diff/hygiene. |
+No dependency-satisfied package remains. Use `ROADMAP.md` plus a new review input before creating another queue item.
 
 ## Blocked Non-Apple Queue
 

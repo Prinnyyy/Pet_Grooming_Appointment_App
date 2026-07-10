@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-10
+Task: T-241 - Foreground refresh concurrency test determinism.
+Files changed: ForegroundRefreshGate test plus roadmap/queue/current state/task ledger/worklog.
+Checks: T-239 standard-suite failure evidence; focused rerun; controlled-continuation implementation; 20 focused iterations; full `./scripts/ios-test.sh`; `git diff --check`; context hygiene.
+Result: The concurrency test now starts the first refresh, waits until the gate is actively held, verifies the second reason is suppressed, then releases the first operation. It no longer depends on `async let` scheduling order.
+Risks: Product foreground refresh behavior is unchanged. The executable roadmap queue is empty; remaining Q-92/Q-93 and Apple/APNs work require external prerequisites.
+Next: Use T-242 only after adopting a new dependency-satisfied roadmap package or explicit user task.
+```
+
+```text
+Date: 2026-07-10
 Task: T-240 - Periodic meta-review.
 Files changed: current state, roadmap/queue, task ledger, worklog, and deterministic frozen rotations.
 Checks: Clean branch baseline; branch/head facts; 59 local migrations matching Supabase contract; root report ignore plus 9 frozen copies; active Markdown budgets/links; diff and context hygiene.
 Result: Branch, task, migration, queue, and archive facts align. Active Markdown remains within all budgets at the 97% structural-review warning. Q-43 records the foreground-refresh concurrency test scheduling flake seen once during T-239 validation.
 Risks: Active context has limited growth room; future documentation should consolidate or archive instead of adding parallel guides. Q-92/Q-93 and Apple/APNs blockers are unchanged.
-Next: Use T-241 for Q-43 deterministic foreground-refresh concurrency test coverage.
 ```
 
 ```text
@@ -66,13 +75,4 @@ Files changed: two-index migration, rollback-only forced-plan SQL, migration reg
 Checks: Focused RED/GREEN; 47 migration and 10 Edge tests; `./scripts/preflight.sh`; `./scripts/supabase-check.sh`; linked list/dry-run/apply/parity; catalog definitions; before/after forced plans; performance advisor; `git diff --check`; context hygiene.
 Result: Q-36 adds only `customer_booking_handoff_acknowledgements(booking_id)` and `request_photos(customer_id)`. Both high-cost forced sequential scans changed to index-backed plans, and the two target unindexed-FK findings cleared.
 Risks: Both new indexes immediately appear as unused because linked traffic is minimal; this is expected and does not authorize removal. The remaining 10 FK findings retain the T-228 disposition.
-```
-
-```text
-Date: 2026-07-09
-Task: T-233 - Account deletion Storage API correction.
-Files changed: account-deletion Edge Function and tests; append-only SQL migration and static test; rollback-only runtime SQL; Storage/backend/feature docs; current state, roadmap, task ledger, and worklog.
-Checks: Official Storage list/delete docs; Edge and migration RED/GREEN; recursive/paged/1000-object batch cases; exact T-232/T-233 function comparison; 45 migration and 10 Edge tests; `./scripts/preflight.sh`; `./scripts/supabase-check.sh`; linked dry-run/apply/parity; rollback-only runtime and zero-residue query; linked lint; security/performance advisors; Edge version 2 active with JWT verification; full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; `git diff --check`; context hygiene.
-Result: Account deletion no longer mutates `storage.objects` from SQL. After transactional anonymization, the Edge Function recursively lists the user's UUID prefix in six current/legacy buckets, removes objects in batches of at most 1000, and only then soft-deletes Auth. Storage failure is recorded and blocks Auth deletion.
-Risks: The production function deployment is verified by version/status and unit-boundary coverage; no live end-user account was destructively deleted. Advisor output remains limited to known APNs/Auth-plan and Q-36 index findings.
 ```

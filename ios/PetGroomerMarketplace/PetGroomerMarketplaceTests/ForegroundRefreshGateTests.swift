@@ -88,20 +88,26 @@ struct ForegroundRefreshGateTests {
         )
         let probe = ForegroundRefreshProbe()
 
-        async let first: Void = gate.refresh(
-            reason: .sceneBecameActive,
-            now: Date(timeIntervalSince1970: 100)
-        ) {
-            probe.increment()
-            try? await Task.sleep(for: .milliseconds(20))
+        let first = Task { @MainActor in
+            await gate.refresh(
+                reason: .sceneBecameActive,
+                now: Date(timeIntervalSince1970: 100)
+            ) {
+                probe.increment()
+                await probe.holdUntilReleased()
+            }
         }
-        async let second: Void = gate.refresh(
+
+        await probe.waitUntilHolding()
+
+        await gate.refresh(
             reason: .realtimeFallback,
             now: Date(timeIntervalSince1970: 101)
         ) {
             probe.increment()
         }
-        _ = await (first, second)
+        probe.release()
+        await first.value
 
         #expect(probe.refreshCount == 1)
         #expect(gate.lastSuppressedReason == .realtimeFallback)
@@ -111,8 +117,33 @@ struct ForegroundRefreshGateTests {
 @MainActor
 private final class ForegroundRefreshProbe {
     private(set) var refreshCount = 0
+    private(set) var isHolding = false
+    private var holdingContinuation: CheckedContinuation<Void, Never>?
+    private var releaseContinuation: CheckedContinuation<Void, Never>?
 
     func increment() {
         refreshCount += 1
+    }
+
+    func waitUntilHolding() async {
+        guard !isHolding else { return }
+        await withCheckedContinuation { continuation in
+            holdingContinuation = continuation
+        }
+    }
+
+    func holdUntilReleased() async {
+        isHolding = true
+        holdingContinuation?.resume()
+        holdingContinuation = nil
+        await withCheckedContinuation { continuation in
+            releaseContinuation = continuation
+        }
+        isHolding = false
+    }
+
+    func release() {
+        releaseContinuation?.resume()
+        releaseContinuation = nil
     }
 }
