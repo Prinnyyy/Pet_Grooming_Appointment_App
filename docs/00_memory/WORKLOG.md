@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-09
+Task: T-243 - Beckon brand migration design and execution queue.
+Files changed: Beckon identity contract; roadmap/queue; decision log; current state/task ledger/worklog.
+Checks: Active identifier/file inventory; Xcode/Auth/TestOps/seed/backend dependency review; `git diff --check`; context hygiene.
+Result: R-038 adopts Beckon, hellobeckon.com, Beckon: Pet Grooming, the approved tagline, bundle/callback identity, full local technical rename, and in-place seed-user rename. Q-94 through Q-96 separate local app, workflow rules, and authorized remote cutover.
+Risks: Current app and hosted Auth still use the old identity until execution. Applied migrations/frozen history remain immutable; App Store Connect remains Apple-blocked.
+Next: Adopt Q-94 as T-244. Q-96 still requires fresh remote-write authorization.
+```
+
+```text
+Date: 2026-07-09
 Task: T-242 - Production Auth email and domain configuration.
 Files changed: provider credential ignore rules; Auth email/deep-link design; roadmap/queue/current state/task ledger/worklog.
 Checks: Credential mode/ignore audit; Cloudflare token and DNS audit; Resend domain verification; Supabase plan/Auth audit; public DMARC lookup; accepted direct delivery smoke; persisted SMTP and callback settings; Supabase checks; diff and context hygiene.
 Result: Q-92 is complete. hellobeckon.com keeps iCloud mail while Resend supplies the verified Groomly sender; Cloudflare publishes monitoring DMARC; Supabase uses Resend Custom SMTP and the exact implemented iOS callback for Site URL and redirect allow-list.
 Risks: Supabase-generated Auth email/device callback still needs release smoke. Q-93 leaked-password protection requires Pro. Universal Links require Apple Team ID, AASA, and Associated Domains. The current Cloudflare token cannot enumerate the zone and should be replaced before API automation.
-Next: Use T-243 for a new explicit task; resume Q-93 only after a Supabase Pro-or-higher plan decision.
 ```
 
 ```text
@@ -66,13 +75,4 @@ Files changed: Booking/customer notification/groomer notification Stores, views,
 Checks: Three pagination RED/GREEN cases; focused suites; full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; XcodeBuildMCP build/run and customer Booking/Notification navigation; `git diff --check`; context hygiene.
 Result: Q-39 exposes the shared Load More interaction on customer bookings, groomer schedule, and both notification lists. Append loads use separate busy state, retain rows/cursor on failure, retry the same page, deduplicate IDs, and hide at the terminal page; mark-all-read preserves the loaded notification window.
 Risks: The live customer account had fewer than 50 bookings/notifications, so conditional Load More visibility is covered by Store tests while Simulator verification covered the production screens. No schema or remote write.
-```
-
-```text
-Date: 2026-07-09
-Task: T-235 - Remote TestOps lifecycle and matching evidence.
-Files changed: TestOps doctor/result/artifact redaction, three unit suites, durable remote run record/results index/TestOps memory, roadmap/queue/current state/task ledger/worklog.
-Checks: Doctor/dry-runs; redaction RED/GREEN; `./scripts/testops-unit.sh` 28/28; authorized remote smoke5 5/5; authorized matching baseline 8/8; 10 lifecycle and 16 matching artifact scans with zero unsafe files; linked tagged-residue queries returned zero; `git diff --check`; context hygiene.
-Result: Q-37 proves five full backend marketplace lifecycles and eight matching cases against the linked project with scoped cleanup. Console and artifact entity IDs are now 8-character refs, and doctor correctly recognizes modern server credentials.
-Risks: The first smoke run passed/cleaned up but revealed full UUIDs in console/JSON. Execution stopped, unsafe generated artifacts were deleted, regression coverage was added, and clean R2 runs replaced the evidence. No raw artifact is committed.
 ```

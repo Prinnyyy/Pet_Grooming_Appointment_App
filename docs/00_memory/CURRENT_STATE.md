@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-09
 - Updated by: Codex
-- Latest completed task: T-242 production Auth email and domain configuration.
+- Latest completed task: T-243 Beckon brand migration design and execution queue.
 - Current task: none; T-157 APNs remains externally blocked.
-- Next task ID: use T-243 unless the user resumes T-157 after Apple Developer Program upgrade.
+- Next task ID: use T-244 unless the user resumes T-157 after Apple Developer Program upgrade.
 
 ## Fast Path
 
@@ -38,6 +38,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - Last TestOps unit validation: T-222 `./scripts/testops-unit.sh` passed 24 Node tests.
 - Latest remote TestOps evidence: T-235 `smoke5` passed 5/5 and `matching_baseline` passed 8/8; both R2 run families left zero tagged requests and only redacted local artifacts.
 - T-242 verified public DMARC, accepted a Resend delivery smoke, and persisted Supabase Custom SMTP plus exact Auth callback URLs.
+- T-243 approved the Beckon identity contract; implementation has not started. Q-94 is the next dependency-satisfied package.
 - Known iOS validation failure: none currently recorded.
 
 ## Active Product State
@@ -53,6 +54,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - Private Storage images use authenticated `.download(path:)` through `PrivateImageLoader`; cache hashes paths, retries transient downloads once, and clears on local account cleanup.
 - Customers can create a new request from cancelled requests/bookings via explicit republish. Republish tolerates missing request photos and expired preferred windows. Unpublished wizard drafts are sheet-ephemeral.
 - Groomly UI adaptation is complete for implemented MVP screens. Future UI work is screenshot-driven and must map modules to existing SwiftUI/Store/repository/model paths or stop for approval.
+- Beckon is the approved replacement identity: `Beckon: Pet Grooming`, `com.hellobeckon.beckon`, and `com.hellobeckon.beckon://auth/callback`. Until Q-94/Q-96 complete, current binaries and hosted Auth still use the old identity.
 
 ## Active Workflow State
 
@@ -60,7 +62,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - Startup reads stay minimal: `AGENTS.md`, then targeted current-state/task-ledger sections only when needed.
 - Periodic documentation-governance reviews use `docs/06_tasks/META_REVIEW_TEMPLATE.md` every 10 completed tasks or weekly.
 - Last meta-review: T-240 on 2026-07-10.
-- V1.0 ideal-operation Q-16...Q-43 and Auth package Q-92 are complete. No dependency-satisfied package remains.
+- V1.0 ideal-operation Q-16...Q-43 and Auth package Q-92 are complete. R-038/Q-94 is now dependency-satisfied.
 - Changes to `AGENTS.md`, `CLAUDE.md`, or `docs/05_workflow/**` must be standalone numbered tasks with a decision-log entry and context hygiene.
 - T-180 records standing user approval for task-completion Git commit and push. This approval is limited to current-task changes after validation passes; T-186 requires stopping without auto pull/rebase/merge/reset/force-push if the push fails or is rejected.
 - T-184 keeps active Markdown under a 36k hard limit, 95% structural-review warning, and deterministic `node scripts/context-rotate.mjs` archive rotation.
@@ -93,4 +95,4 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Next Recommended Task
 
-- Adopt a new dependency-satisfied roadmap package or explicit user task before T-243.
+- Adopt Q-94 as T-244 to perform the local Beckon application and source identity migration.

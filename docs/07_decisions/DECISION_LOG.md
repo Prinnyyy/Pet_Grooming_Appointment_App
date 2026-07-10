@@ -18,6 +18,15 @@ Linked files:
 ## Active Decisions
 
 ```text
+Decision ID: D-023
+Date: 2026-07-09
+Decision: Replace the complete active Groomly/PetGroomerMarketplace identity with Beckon through a dependency-ordered local, workflow, and remote cutover.
+Context: The user finalized the brand, domain, App Store name, and tagline and explicitly required technical identifiers, files, UI, TestOps seeds, and remote state to follow the same identity.
+Consequences: The canonical identity is Beckon, `com.hellobeckon.beckon`, and `com.hellobeckon.beckon://auth/callback`. R-038 uses Q-94 through Q-96 so product/source work, standalone workflow-rule changes, and authorized remote Supabase/seed-user changes remain separately reviewable. Applied migrations, frozen records, and Git history remain immutable; append-only changes replace live old identifiers.
+Linked files: docs/06_tasks/BECKON_BRAND_MIGRATION.md, docs/06_tasks/ROADMAP.md, docs/06_tasks/ROADMAP_EXECUTION_QUEUE.md
+```
+
+```text
 Decision ID: D-022
 Date: 2026-07-09
 Decision: Convert post-readiness findings into bounded non-Apple remediation packages and require evidence before index changes.
@@ -80,15 +89,6 @@ Consequences: `AGENTS.md` and `CONTEXT_AND_RECOVERY.md` now direct agents to use
 Linked files: AGENTS.md, docs/05_workflow/CONTEXT_AND_RECOVERY.md, scripts/context-hygiene-check.mjs, scripts/context-rotate.mjs
 ```
 
-```text
-Decision ID: D-015
-Date: 2026-07-09
-Decision: Replace the active Markdown 85% cleanup trigger with structural context-budget tooling.
-Context: D-012 allowed a one-time total-limit increase only after repeated high-water reviews found no safe reduction path. T-181/T-182 showed the 85% warning had become a recurring closeout target instead of a useful signal, and the adopted redesign pairs the 36k limit with default per-file budgets, mechanical rotation, and a 95% structural-review warning.
-Consequences: Context hygiene reports actual active Markdown percentage against 36k, fails only above the hard limit, applies a 650-word default to unlisted active Markdown, and checks fixed ledger/worklog/decision windows. `scripts/context-rotate.mjs` handles deterministic archive rotation; Batch B must align workflow text in a separate rule-change task.
-Linked files: scripts/context-hygiene-check.mjs, scripts/context-hygiene-policy.mjs, scripts/context-rotate.mjs, tests/docs/
-```
-
 
 ## Archived Decision Index
 
@@ -96,6 +96,7 @@ Full text for the entries below is preserved in `../09_frozen/decisions/DECISION
 
 | Date | Decision | Current entry point |
 |---|---|---|
+| 2026-07-09 | Replace the active Markdown 85% cleanup trigger with structural context-budget tooling. | `../09_frozen/decisions/DECISION_LOG_D-015_2026-07-10.md` |
 | 2026-07-09 | Superseded by D-016/D-017: treat the active Markdown 85% waterline as a cleanup trigger. | `../09_frozen/decisions/DECISION_LOG_D-014_2026-07-09.md` |
 | 2026-07-08 | Treat task-completion commit and push as standing user-authorized Git actions. | `../09_frozen/decisions/DECISION_LOG_D-013_2026-07-09.md` |
 | 2026-07-08 | Reduce active Markdown before raising the 32k total budget. | `../09_frozen/decisions/DECISION_LOG_D-012_2026-07-09.md` |
