@@ -77,6 +77,49 @@ struct AppTestOpsConfiguration: Equatable, Sendable {
     }
 }
 
+nonisolated enum AppTestOpsAccessibility {
+    private static let marker = "TESTOPS:"
+
+    static func runID(fromServiceNotes serviceNotes: String?) -> String? {
+        guard let serviceNotes,
+              let markerRange = serviceNotes.range(of: marker) else {
+            return nil
+        }
+
+        let suffix = serviceNotes[markerRange.upperBound...]
+        let candidate = suffix.prefix { !$0.isWhitespace }
+        guard candidate.count >= 9,
+              candidate.count <= 104,
+              candidate.hasPrefix("TESTOPS-") else {
+            return nil
+        }
+
+        let allowed = CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-")
+        guard candidate.unicodeScalars.allSatisfy(allowed.contains) else {
+            return nil
+        }
+        return String(candidate)
+    }
+
+    static func identifier(
+        prefix: String,
+        serviceNotes: String?
+    ) -> String? {
+        guard let runID = runID(fromServiceNotes: serviceNotes) else {
+            return nil
+        }
+        return "\(prefix).\(runID)"
+    }
+
+    static func requestReference(_ requestID: UUID) -> String {
+        String(requestID.uuidString.prefix(8)).uppercased()
+    }
+
+    static func requestIdentifier(prefix: String, requestID: UUID) -> String {
+        "\(prefix).\(requestReference(requestID))"
+    }
+}
+
 struct AppLaunchConfiguration: Equatable, Sendable {
     static let signedOutAuthSessionArgument =
         "--groomly-ui-test-signed-out-auth"

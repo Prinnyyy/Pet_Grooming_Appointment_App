@@ -74,6 +74,38 @@ struct AppEntryModelsTests {
         #expect(configuration.testOps.scenarioID == nil)
         #expect(configuration.testOps.isEnabled == false)
     }
+
+    @Test
+    func testOpsAccessibilityIdentifiersUseSafeRunTagsAndSupportReferences() throws {
+        let requestID = try #require(
+            UUID(uuidString: "123e4567-e89b-12d3-a456-426614174000")
+        )
+
+        #expect(
+            AppTestOpsAccessibility.runID(
+                fromServiceNotes: "TESTOPS:TESTOPS-UI-20260709 full lifecycle"
+            ) == "TESTOPS-UI-20260709"
+        )
+        #expect(
+            AppTestOpsAccessibility.identifier(
+                prefix: "groomer.requests.row",
+                serviceNotes: "TESTOPS:TESTOPS-UI-20260709 full lifecycle"
+            ) == "groomer.requests.row.TESTOPS-UI-20260709"
+        )
+        #expect(AppTestOpsAccessibility.requestReference(requestID) == "123E4567")
+        #expect(
+            AppTestOpsAccessibility.requestIdentifier(
+                prefix: "bookings.row.request",
+                requestID: requestID
+            ) == "bookings.row.request.123E4567"
+        )
+        #expect(AppTestOpsAccessibility.runID(fromServiceNotes: "ordinary notes") == nil)
+        #expect(
+            AppTestOpsAccessibility.runID(
+                fromServiceNotes: "TESTOPS:unsafe/value request"
+            ) == nil
+        )
+    }
 }
 
 struct TabModelsTests {

@@ -78,6 +78,7 @@ struct GroomerTabView: View {
         }
         .onAppear {
             feedbackCenter.setDebugRecorder(debugRecorder)
+            chatStore?.setDebugRecorder(debugRecorder)
         }
         .task {
             await refreshBadgeSources()

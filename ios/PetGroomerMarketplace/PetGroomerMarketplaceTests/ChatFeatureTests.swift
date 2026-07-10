@@ -219,6 +219,34 @@ struct ChatStoreTests {
     }
 
     @Test @MainActor
+    func sharedChatStoreCanAttachDebugRecorderAfterTabInitialization() async throws {
+        let conversation = Self.conversation()
+        let sent = Self.message(
+            conversationID: conversation.id,
+            senderID: conversation.customerID,
+            body: "Hello"
+        )
+        let recorder = AppDebugEventRecorder(
+            writer: AppDebugEventWriterSpy(),
+            emitsToOSLog: false
+        )
+        let store = ChatStore(
+            participantID: conversation.customerID,
+            role: .customer,
+            repository: ChatRepositoryFake(sendResult: .success(sent))
+        )
+
+        store.setDebugRecorder(recorder)
+        await store.sendMessage(in: conversation, body: "Hello")
+
+        #expect(
+            recorder.events.contains {
+                $0.source == "ChatStore.sendMessage" && $0.message == "success"
+            }
+        )
+    }
+
+    @Test @MainActor
     func conversationPreviewUsesKnownLatestMessageBody() async throws {
         let conversation = Self.conversation(latestMessageBody: " See you Friday. ")
         let store = ChatStore(

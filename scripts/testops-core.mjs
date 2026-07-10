@@ -736,7 +736,12 @@ export async function cleanupRun(api, runID) {
     serviceToken
   );
   const requestIDs = requests.map((row) => row.id).filter(Boolean);
-  const summary = { runID, requestCount: requestIDs.length, deleted: {} };
+  const summary = {
+    runID,
+    requestCount: requestIDs.length,
+    deleted: {},
+    remainingTaggedRequests: 0,
+  };
   if (requestIDs.length === 0) {
     return summary;
   }
@@ -808,6 +813,13 @@ export async function cleanupRun(api, runID) {
     serviceToken
   );
 
+  const remainingRequests = await api.restSelect(
+    "grooming_requests",
+    `select=id&service_notes=ilike.*${encodeURIComponent(cleanupPlan.tag)}*`,
+    serviceToken
+  );
+  summary.remainingTaggedRequests = remainingRequests.length;
+
   return summary;
 }
 
@@ -846,6 +858,150 @@ export async function verifyLifecycle(api, ids) {
     offerStatus: offers[0]?.status ?? null,
     bookingStatus: bookings[0]?.status ?? null,
     reviewCount: reviews.length,
+  };
+}
+
+export async function verifyUILifecycleRun(api, runID) {
+  validateRunID(runID);
+  const serviceToken = api.requireServiceRole();
+  const tag = `TESTOPS:${runID}`;
+  const requests = await api.restSelect(
+    "grooming_requests",
+    `select=id,status&service_notes=ilike.*${encodeURIComponent(tag)}*`,
+    serviceToken
+  );
+  if (requests.length !== 1) {
+    throw new Error(
+      `Expected one tagged UI lifecycle request, found ${requests.length}.`
+    );
+  }
+
+  const request = requests[0];
+  if (request.status !== "booked") {
+    throw new Error(`Expected booked request ${shortRef(request.id)}.`);
+  }
+
+  const matches = await api.restSelect(
+    "request_matches",
+    `select=id&request_id=eq.${request.id}`,
+    serviceToken
+  );
+  if (matches.length < 1) {
+    throw new Error(`Expected at least one match for request ${shortRef(request.id)}.`);
+  }
+
+  const offers = await api.restSelect(
+    "groomer_offers",
+    `select=id,status&request_id=eq.${request.id}&status=eq.accepted_by_customer`,
+    serviceToken
+  );
+  if (offers.length !== 1 || offers[0].status !== "accepted_by_customer") {
+    throw new Error(`Expected one accepted offer for request ${shortRef(request.id)}.`);
+  }
+
+  const bookings = await api.restSelect(
+    "bookings",
+    `select=id,status&request_id=eq.${request.id}`,
+    serviceToken
+  );
+  if (bookings.length !== 1 || bookings[0].status !== "completed") {
+    throw new Error(`Expected completed booking for request ${shortRef(request.id)}.`);
+  }
+
+  const booking = bookings[0];
+  const conversations = await api.restSelect(
+    "conversations",
+    `select=id&request_id=eq.${request.id}&booking_id=eq.${booking.id}`,
+    serviceToken
+  );
+  if (conversations.length !== 1) {
+    throw new Error(`Expected one booking conversation for request ${shortRef(request.id)}.`);
+  }
+
+  const conversation = conversations[0];
+  const messages = await api.restSelect(
+    "messages",
+    `select=id,body&conversation_id=eq.${conversation.id}&body=ilike.*${encodeURIComponent(tag)}*`,
+    serviceToken
+  );
+  if (messages.length < 1) {
+    throw new Error(`Expected tagged chat message for request ${shortRef(request.id)}.`);
+  }
+
+  const reviews = await api.restSelect(
+    "reviews",
+    `select=id,rating,content&booking_id=eq.${booking.id}&content=ilike.*${encodeURIComponent(tag)}*`,
+    serviceToken
+  );
+  if (reviews.length !== 1 || reviews[0].rating !== 5) {
+    throw new Error(`Expected one five-star review for request ${shortRef(request.id)}.`);
+  }
+
+  return {
+    runID,
+    requestRef: shortRef(request.id),
+    offerRef: shortRef(offers[0].id),
+    bookingRef: shortRef(booking.id),
+    conversationRef: shortRef(conversation.id),
+    requestStatus: request.status,
+    offerStatus: offers[0].status,
+    bookingStatus: booking.status,
+    matchCount: matches.length,
+    messageCount: messages.length,
+    reviewCount: reviews.length,
+  };
+}
+
+export function verifyUIDebugEvents(events, { runID, startedAt }) {
+  validateRunID(runID);
+  const startTime = Date.parse(startedAt);
+  if (!Number.isFinite(startTime)) {
+    throw new Error("Invalid UI debug verification start timestamp.");
+  }
+
+  const runRef = String(runID).slice(0, 12);
+  const windowEvents = events.filter((event) => {
+    const timestamp = Date.parse(event?.timestamp);
+    return Number.isFinite(timestamp) && timestamp >= startTime;
+  });
+  const hasLaunchContext = windowEvents.some(
+    (event) =>
+      event.source === "AppDebugEventRecorder.configureTestOps"
+      && event.message === "TestOps launch context configured"
+      && event.metadata?.automationRunID === runRef
+  );
+  if (!hasLaunchContext) {
+    throw new Error(`Missing TestOps debug launch context for ${runRef}.`);
+  }
+
+  const expectedSources = [
+    "CustomerRequestsStore.publish",
+    "GroomerRequestsStore.submitOffer",
+    "CustomerRequestsStore.accept",
+    "ChatStore.sendMessage",
+    "BookingsStore.complete",
+    "BookingsStore.createReview",
+  ];
+  const successSources = expectedSources.filter((source) =>
+    windowEvents.some((event) => event.source === source && event.message === "success")
+  );
+  const missingSources = expectedSources.filter(
+    (source) => !successSources.includes(source)
+  );
+  if (missingSources.length > 0) {
+    throw new Error(`Missing UI debug success events: ${missingSources.join(", ")}.`);
+  }
+
+  const errors = windowEvents.filter((event) => event.level === "error");
+  if (errors.length > 0) {
+    const sources = [...new Set(errors.map((event) => event.source).filter(Boolean))];
+    throw new Error(`UI debug log recorded ${errors.length} errors from ${sources.join(", ")}.`);
+  }
+
+  return {
+    runRef,
+    successSources,
+    errorCount: errors.length,
   };
 }
 

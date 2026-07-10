@@ -218,9 +218,15 @@ private struct CustomerRequestProgressCard: View {
             }
         }
         .accessibilityIdentifier(
-            isBookingHandoff
+            AppTestOpsAccessibility.identifier(
+                prefix: "customer.requests.row",
+                serviceNotes: request.serviceNotes
+            ) ?? (isBookingHandoff
                 ? "customer.requests.booking-handoff"
-                : "customer.requests.progress-card"
+                : "customer.requests.progress-card")
+        )
+        .accessibilityValue(
+            AppTestOpsAccessibility.requestReference(request.id)
         )
     }
 
@@ -774,7 +780,15 @@ private struct CustomerRequestActionRow: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Request Detail")
-        .accessibilityIdentifier("customer.requests.detail")
+        .accessibilityIdentifier(
+            AppTestOpsAccessibility.identifier(
+                prefix: "customer.requests.detail",
+                serviceNotes: request.serviceNotes
+            ) ?? "customer.requests.detail"
+        )
+        .accessibilityValue(
+            AppTestOpsAccessibility.requestReference(request.id)
+        )
     }
 
     private var cancelButton: some View {

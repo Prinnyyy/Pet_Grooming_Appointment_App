@@ -33,8 +33,9 @@ Smoke matrix:
 
 UI path:
 
-- Current harness: clear-session launch, seeded customer/groomer sign-in, role-tab navigation, customer request-sheet open/dismiss, and relaunch session reset using stable selectors.
-- Next expansion: publish request, change roles, create/accept offer, verify booking/chat, complete booking, create review, assert backend/Debug state, and clean tagged data.
+- Launch harness: clear-session launch, seeded role sign-in/navigation, customer request-sheet open/dismiss, and relaunch reset.
+- Full harness: customer publishes a tagged dog/full-groom request, groomer offers, customer accepts and sends chat, groomer verifies chat and completes, then customer reviews.
+- `verify debug-log` requires publish/offer/accept/send/complete/review Store success events with zero error-level events in the run window. `verify ui-lifecycle` checks final backend state before tagged cleanup.
 - UI assertions must use accessibility identifiers plus backend/Debug verification, not screenshots.
 
 ## `request_matching_eval`

@@ -139,6 +139,12 @@ struct BookingsView: View {
                                 )
                             }
                             .buttonStyle(.plain)
+                            .accessibilityIdentifier(
+                                AppTestOpsAccessibility.requestIdentifier(
+                                    prefix: "bookings.row.request",
+                                    requestID: booking.requestID
+                                )
+                            )
                         }
                     }
                 }
@@ -566,6 +572,7 @@ private struct BookingScopeControl: View {
                         }
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier("bookings.scope.\(scope.rawValue)")
             }
         }
         .padding(DesignTokens.Spacing.xs)
@@ -835,6 +842,12 @@ private struct GroomerScheduleAppointmentCard: View {
                     cardHeader
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier(
+                    AppTestOpsAccessibility.requestIdentifier(
+                        prefix: "groomer.booking.row.request",
+                        requestID: booking.requestID
+                    )
+                )
 
                 HStack(spacing: DesignTokens.Spacing.sm) {
                     Button {
@@ -843,6 +856,12 @@ private struct GroomerScheduleAppointmentCard: View {
                         Text("Message")
                     }
                     .buttonStyle(GroomlySecondaryButtonStyle(accent: .groomer))
+                    .accessibilityIdentifier(
+                        AppTestOpsAccessibility.requestIdentifier(
+                            prefix: "groomer.booking.message.request",
+                            requestID: booking.requestID
+                        )
+                    )
 
                     if booking.canComplete(for: .groomer) {
                         Button {
@@ -854,6 +873,12 @@ private struct GroomerScheduleAppointmentCard: View {
                         }
                         .buttonStyle(GroomlyPrimaryButtonStyle(accent: .groomer))
                         .disabled(store.isCompleting)
+                        .accessibilityIdentifier(
+                            AppTestOpsAccessibility.requestIdentifier(
+                                prefix: "groomer.booking.complete.request",
+                                requestID: booking.requestID
+                            )
+                        )
                     } else {
                         Text(booking.status.title)
                             .font(DesignTokens.Typography.body.weight(.bold))

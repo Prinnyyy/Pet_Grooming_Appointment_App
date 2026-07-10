@@ -463,6 +463,7 @@ struct CustomerRequestWizardView: View {
                 TextField("Share coat goals, sensitivities, or handling notes.", text: $store.serviceNotes, axis: .vertical)
                     .lineLimit(5...8)
                     .groomlyFormField(isInvalid: invalidFields.contains(.notes))
+                    .accessibilityIdentifier("customer.requests.wizard.notes")
                     .onTapGesture {
                         clearInvalidField(.notes)
                     }
@@ -1113,7 +1114,9 @@ private struct CustomerRequestPetChoiceCard: View {
             .groomlyShadow(DesignTokens.Shadows.smallCard)
         }
         .buttonStyle(.plain)
-        .accessibilityIdentifier("customer.requests.wizard.pet-card")
+        .accessibilityIdentifier(
+            "customer.requests.wizard.pet.\(pet.species.lowercased())"
+        )
     }
 
     private var borderColor: Color {
@@ -1231,7 +1234,9 @@ private struct CustomerRequestServiceOptionCard: View {
             .groomlyShadow(DesignTokens.Shadows.smallCard)
         }
         .buttonStyle(.plain)
-        .accessibilityIdentifier("customer.requests.wizard.service-card")
+        .accessibilityIdentifier(
+            "customer.requests.wizard.service.\(option.rawValue)"
+        )
     }
 }
 
@@ -1550,6 +1555,7 @@ private struct CustomerRequestAddressFields: View {
             TextField("Street Address", text: $streetAddress)
                 .textContentType(.streetAddressLine1)
                 .groomlyFormField(isInvalid: invalidFields.contains(.streetAddress))
+                .accessibilityIdentifier("customer.requests.address.street")
                 .onTapGesture {
                     clearInvalidField(.streetAddress)
                 }

@@ -504,6 +504,12 @@ private struct CustomerOfferReviewSection: View {
                         )
                     }
                     .buttonStyle(.plain)
+                    .accessibilityIdentifier(
+                        AppTestOpsAccessibility.identifier(
+                            prefix: "customer.offers.row",
+                            serviceNotes: request.serviceNotes
+                        ) ?? "customer.offers.row"
+                    )
                 }
             }
         }

@@ -118,7 +118,17 @@ TESTOPS_RUN_ID=TESTOPS-LOCAL-0001 \
 
 For seeded customer/groomer sign-in, tab navigation, customer request-sheet open/dismiss, and session reset, export the four `TESTOPS_UI_<ROLE>_EMAIL/PASSWORD` values from the T-129 seed profiles before running the same command. Do not print or persist those values. The script passes them with Xcode's `TEST_RUNNER_` environment convention, redacts summaries, and deletes its temporary log/result bundle.
 
-This harness performs no request/offer/booking writes. Full lifecycle mutation remains a separate authorized TestOps execution.
+This launch harness performs no request/offer/booking writes.
+
+## Authorized UI Lifecycle
+
+Export the four seeded role credential variables, Supabase URL/publishable/server credential, and `TESTOPS_REMOTE_WRITE_APPROVED=1`, then run:
+
+```bash
+TESTOPS_RUN_ID=TESTOPS-UI-... ./scripts/ios-testops-lifecycle.sh
+```
+
+The wrapper runs only `TestOpsLifecycleTests`, verifies the six lifecycle Store success events from Debug JSONL, verifies final Supabase request/offer/booking/chat/review state, and deletes only `TESTOPS:<run_id>` rows. A run passes only when cleanup reports `remainingTaggedRequests: 0`. Never print or persist the credential values.
 
 ## Debug Events
 

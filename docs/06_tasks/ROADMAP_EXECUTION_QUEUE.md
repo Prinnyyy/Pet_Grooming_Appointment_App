@@ -10,16 +10,14 @@ Source: T-202 adopted root review input `../../V1.0_RELEASE_TASK_PLAN.md`; that 
 
 - Start with the first dependency-satisfied package; skip gated packages until authorization exists.
 - Split packages that mix Supabase writes with SwiftUI or exceed one reviewable task.
-- Get explicit authorization before migrations, Auth config writes, remote TestOps, seeds, deploys, release uploads, or other non-Git remote writes. Q-35 through Q-37 used the 2026-07-09 authorization; dependent Q-42 remains authorized but still requires its prerequisite and safety checks.
+- Get explicit authorization before migrations, Auth config writes, remote TestOps, seeds, deploys, release uploads, or other non-Git remote writes. Q-35 through Q-37 and Q-42 used the 2026-07-09 authorization.
 - Q-92 and Q-93 remain blocked by their stated external prerequisites; the remote authorization does not supply missing domain/SMTP credentials or a Supabase plan upgrade.
 - Q-90, Q-91, T-157, and the `customer_push_tokens` advisor finding are excluded from this remediation sequence because they depend on APNs or paid Apple Developer capabilities.
-- Q-01...Q-41 are complete and mapped in `ROADMAP.md`.
+- Q-01...Q-42 are complete and mapped in `ROADMAP.md`.
 
 ## Queue
 
-| Order | Roadmap | Package | Mode | Scope | Validation |
-|---|---|---|---|---|---|
-| Q-42 | R-035 | Full dual-role UI lifecycle automation | Deep | Depends on Q-41. Automate publish -> offer -> accept -> booking/chat -> complete -> review with backend/Debug assertions, tags, and cleanup. | Authorized run; transition assertions; zero residue; full iOS test/build. |
+No dependency-satisfied package remains. Use `ROADMAP.md` plus a new review input before creating another queue item.
 
 ## Blocked Non-Apple Queue
 

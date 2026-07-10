@@ -16,6 +16,8 @@ import {
   runMarketplaceLifecycle,
   safeErrorMessage,
   serverCredentialStatus,
+  verifyUILifecycleRun,
+  verifyUIDebugEvents,
   writeArtifacts,
 } from "../../scripts/testops-core.mjs";
 
@@ -245,6 +247,7 @@ test("cleanup run with no tagged requests does not issue delete calls", async ()
     runID: "TESTOPS-EDGE-NONE",
     requestCount: 0,
     deleted: {},
+    remainingTaggedRequests: 0,
   });
   assert.deepEqual(calls, [
     {
@@ -305,6 +308,129 @@ test("lifecycle zero-match failure does not expose full identifiers or credentia
     }
   );
 });
+
+test("UI lifecycle verifier asserts tagged final state and returns support refs", async () => {
+  const ids = {
+    request: "123e4567-e89b-12d3-a456-426614174000",
+    offer: "223e4567-e89b-12d3-a456-426614174000",
+    booking: "323e4567-e89b-12d3-a456-426614174000",
+    conversation: "423e4567-e89b-12d3-a456-426614174000",
+    review: "523e4567-e89b-12d3-a456-426614174000",
+  };
+  const api = uiLifecycleVerificationAPI(ids);
+
+  const result = await verifyUILifecycleRun(api, "TESTOPS-UI-VERIFY");
+  const serialized = JSON.stringify(result);
+
+  assert.deepEqual(result, {
+    runID: "TESTOPS-UI-VERIFY",
+    requestRef: "123E4567",
+    offerRef: "223E4567",
+    bookingRef: "323E4567",
+    conversationRef: "423E4567",
+    requestStatus: "booked",
+    offerStatus: "accepted_by_customer",
+    bookingStatus: "completed",
+    matchCount: 1,
+    messageCount: 1,
+    reviewCount: 1,
+  });
+  for (const id of Object.values(ids)) {
+    assert.doesNotMatch(serialized, new RegExp(id, "i"));
+  }
+});
+
+test("UI lifecycle verifier rejects incomplete tagged state", async () => {
+  const api = uiLifecycleVerificationAPI(
+    {
+      request: "123e4567-e89b-12d3-a456-426614174000",
+      offer: "223e4567-e89b-12d3-a456-426614174000",
+      booking: "323e4567-e89b-12d3-a456-426614174000",
+      conversation: "423e4567-e89b-12d3-a456-426614174000",
+      review: "523e4567-e89b-12d3-a456-426614174000",
+    },
+    { bookingStatus: "confirmed" }
+  );
+
+  await assert.rejects(
+    () => verifyUILifecycleRun(api, "TESTOPS-UI-INCOMPLETE"),
+    /Expected completed booking/
+  );
+});
+
+test("UI debug verifier requires lifecycle store successes after the run start", () => {
+  const startedAt = "2026-07-09T23:00:00Z";
+  const sources = [
+    "CustomerRequestsStore.publish",
+    "GroomerRequestsStore.submitOffer",
+    "CustomerRequestsStore.accept",
+    "ChatStore.sendMessage",
+    "BookingsStore.complete",
+    "BookingsStore.createReview",
+  ];
+  const events = [
+    {
+      timestamp: "2026-07-09T23:00:01Z",
+      source: "AppDebugEventRecorder.configureTestOps",
+      message: "TestOps launch context configured",
+      metadata: { automationRunID: "TESTOPS-UI-T" },
+    },
+    ...sources.map((source, index) => ({
+      timestamp: `2026-07-09T23:00:${String(index + 2).padStart(2, "0")}Z`,
+      source,
+      message: "success",
+      level: "info",
+    })),
+  ];
+
+  assert.deepEqual(
+    verifyUIDebugEvents(events, {
+      runID: "TESTOPS-UI-T239-VERIFY",
+      startedAt,
+    }),
+    {
+      runRef: "TESTOPS-UI-T",
+      successSources: sources,
+      errorCount: 0,
+    }
+  );
+
+  assert.throws(
+    () => verifyUIDebugEvents(events.filter((event) => event.source !== "ChatStore.sendMessage"), {
+      runID: "TESTOPS-UI-T239-VERIFY",
+      startedAt,
+    }),
+    /Missing UI debug success events: ChatStore.sendMessage/
+  );
+});
+
+function uiLifecycleVerificationAPI(ids, overrides = {}) {
+  return {
+    requireServiceRole() {
+      return jwtServiceRoleKey;
+    },
+    async restSelect(table) {
+      switch (table) {
+        case "grooming_requests":
+          return [{ id: ids.request, status: "booked" }];
+        case "request_matches":
+          return [{ id: "match-1" }];
+        case "groomer_offers":
+          return [{ id: ids.offer, status: "accepted_by_customer" }];
+        case "bookings":
+          return [{ id: ids.booking, status: overrides.bookingStatus ?? "completed" }];
+        case "conversations":
+          return [{ id: ids.conversation }];
+        case "messages":
+          return [{ id: "message-1", body: "TESTOPS:TESTOPS-UI-VERIFY hello" }];
+        case "reviews":
+          return [{ id: ids.review, rating: 5, content: "TESTOPS lifecycle review" }];
+        default:
+          throw new Error(`unexpected restSelect ${table}`);
+      }
+    },
+  };
+}
 
 function writeTempMarkdown(markdown) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "groomly-testops-"));

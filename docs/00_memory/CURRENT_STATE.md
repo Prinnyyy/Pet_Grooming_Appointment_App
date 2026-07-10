@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-09
 - Updated by: Codex
-- Latest completed task: T-238 UI TestOps harness and stable selectors.
+- Latest completed task: T-239 full dual-role UI lifecycle automation.
 - Current task: none; T-157 APNs remains externally blocked.
-- Next task ID: use T-239 unless the user resumes T-157 after Apple Developer Program upgrade.
+- Next task ID: use T-240 unless the user resumes T-157 after Apple Developer Program upgrade.
 
 ## Fast Path
 
@@ -28,11 +28,11 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - Continue implementation, docs, commit, and push work from this branch unless the user names another branch.
 - Do not treat `main` as the current work baseline. T-173 reviewed main-only commit `2fddf7b`; it is superseded and must not be merged back into this branch.
 - Standing Git approval is active: after required validation passes, commit and push each completed task's own changes on this branch automatically.
-- PRs, tags, branch deletion, merge/rebase/reset, seeds, migrations, Supabase writes, repository settings, and other non-Git remote writes require approval. Authorization covers queued Q-35, Q-36, Q-37, and Q-42; it excludes future work and Q-92/Q-93 prerequisites.
+- PRs, tags, branch deletion, merge/rebase/reset, seeds, migrations, Supabase writes, repository settings, and other non-Git remote writes require approval. The 2026-07-09 authorization was consumed by Q-35/Q-36/Q-37/Q-42; it does not supply Q-92/Q-93 prerequisites or authorize unplanned future writes.
 
 ## Validation Baseline
 
-- T-238 selectors, seeded UI R7 3/3, log scan, full iOS test/build passed; recent paging coverage is T-230/T-236/T-237.
+- T-239 authorized UI R11 passed publish/offer/accept/chat/complete/review, Debug 6/6 with zero errors, backend final state, and zero residue; full iOS test/build passed.
 - Last Supabase migration apply: T-234 `20260709214425_t234_add_evidence_backed_fk_indexes.sql` applied to `lqmasbuqzvcvtawonjlb` on 2026-07-09; parity, catalog, forced plans, and advisor delta were verified.
 - Last Edge Function deploy: `delete-account` version 2 is active with JWT verification and service-role Storage API cleanup across six user-prefixed image buckets.
 - Last TestOps unit validation: T-222 `./scripts/testops-unit.sh` passed 24 Node tests.
@@ -49,7 +49,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - Auth email/deep-link design is documented. T-217 implements the local iOS custom-scheme callback path; Supabase Auth redirect allow-list, production auth domain, SMTP credentials, HTTPS universal links, and associated domains still require explicit remote/config authorization.
 - Implemented iOS areas include auth/onboarding, marketplace flow, notifications, foreground chat, profile/account surfaces, privacy/support links, private images, Debug Console, ops evidence, accessibility/copy checks, and TestOps.
 - Customer/groomer tab roots load shared notification/chat badge sources. Customer Home, Messages, and groomer Alerts display badges; chat unread state is local/session-scoped and clears on thread open.
-- TestOps has stable customer/groomer tab identifiers and a reusable XCUITest flow driver for environment-only seeded sign-in, system More overflow, request-sheet open/dismiss, and clear-session relaunch. It does not use screenshot assertions.
+- TestOps has support-ref selectors and a no-screenshot dual-role lifecycle driver. Its wrapper verifies Debug/backend state and run-tag cleanup; UI uses one seed pair while backend `smoke5` is multi-pair.
 - Customer request UI and groomer profile UI were split into focused SwiftUI files in T-211/T-212.
 - Request, offer, booking, message, and notification repositories use bounded limit+1 page reads. All supported list surfaces expose retry-preserving, deduplicating terminal-page controls; message threads fetch the newest window first and preserve their reader anchor when prepending history.
 - Private Storage images use authenticated `.download(path:)` through `PrivateImageLoader`; cache hashes paths, retries transient downloads once, and clears on local account cleanup.
@@ -62,7 +62,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - Startup reads stay minimal: `AGENTS.md`, then targeted current-state/task-ledger sections only when needed.
 - Periodic documentation-governance reviews use `docs/06_tasks/META_REVIEW_TEMPLATE.md` every 10 completed tasks or weekly.
 - Last meta-review: T-229 on 2026-07-09.
-- V1.0 ideal-operation Q-16...Q-41 are complete. Q-42 retains remote authorization and is the next executable package.
+- V1.0 ideal-operation Q-16...Q-42 are complete. No dependency-satisfied execution package remains.
 - Changes to `AGENTS.md`, `CLAUDE.md`, or `docs/05_workflow/**` must be standalone numbered tasks with a decision-log entry and context hygiene.
 - T-180 records standing user approval for task-completion Git commit and push. This approval is limited to current-task changes after validation passes; T-186 requires stopping without auto pull/rebase/merge/reset/force-push if the push fails or is rejected.
 - T-184 keeps active Markdown under a 36k hard limit, 95% structural-review warning, and deterministic `node scripts/context-rotate.mjs` archive rotation.
@@ -95,4 +95,4 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Next Recommended Task
 
-- Use T-239 for authorized Q-42 full dual-role UI lifecycle automation.
+- Adopt a new dependency-satisfied roadmap package or explicit user task before using T-240.

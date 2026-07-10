@@ -33,6 +33,43 @@ struct TestOpsSeedAccount {
     }
 }
 
+struct TestOpsLifecycleContext {
+    let runID: String
+
+    static func fromEnvironment() throws -> Self {
+        let environment = ProcessInfo.processInfo.environment
+        guard environment.testOpsValue(for: "TESTOPS_UI_LIFECYCLE_APPROVED") == "1" else {
+            throw XCTSkip(
+                "Set TESTOPS_UI_LIFECYCLE_APPROVED=1 through the authorized lifecycle wrapper."
+            )
+        }
+        guard let runID = environment.testOpsValue(for: "TESTOPS_RUN_ID"),
+              runID.range(
+                of: "^TESTOPS-[A-Z0-9-]{1,96}$",
+                options: .regularExpression
+              ) != nil else {
+            throw XCTSkip("Set a safe TESTOPS_RUN_ID for the UI lifecycle run.")
+        }
+        return Self(runID: runID)
+    }
+
+    var requestNotes: String {
+        "TESTOPS:\(runID) UI lifecycle request."
+    }
+
+    var offerMessage: String {
+        "TESTOPS:\(runID) UI lifecycle offer."
+    }
+
+    var chatMessage: String {
+        "TESTOPS:\(runID) UI lifecycle chat."
+    }
+
+    var reviewContent: String {
+        "TESTOPS:\(runID) UI lifecycle review."
+    }
+}
+
 private extension Dictionary where Key == String, Value == String {
     func testOpsValue(for key: String) -> String? {
         let value = self[key] ?? self["TEST_RUNNER_\(key)"]
@@ -142,6 +179,165 @@ final class TestOpsUIFlowDriver {
         assertAuthenticationRoot()
     }
 
+    func publishTaggedRequest(_ context: TestOpsLifecycleContext) -> String {
+        let startRequest = app.buttons["customer.home.start-request"]
+        XCTAssertTrue(startRequest.waitForExistence(timeout: 12))
+        startRequest.tap()
+
+        XCTAssertTrue(element("customer.requests.wizard").waitForExistence(timeout: 8))
+        tap(element("customer.requests.wizard.pet.dog"))
+        tap(element("customer.requests.wizard.continue"))
+
+        tap(element("customer.requests.wizard.service.full_groom"))
+        tap(element("customer.requests.wizard.continue"))
+
+        let useProfileAddress = element("customer.requests.use-profile-address")
+        XCTAssertTrue(useProfileAddress.waitForExistence(timeout: 8))
+        useProfileAddress.tap()
+        let streetField = element("customer.requests.address.street")
+        XCTAssertTrue(streetField.waitForExistence(timeout: 5))
+        XCTAssertTrue(waitForPopulatedValue(streetField, timeout: 15))
+        tap(element("customer.requests.wizard.continue"))
+
+        let notesField = element("customer.requests.wizard.notes")
+        XCTAssertTrue(notesField.waitForExistence(timeout: 8))
+        notesField.tap()
+        notesField.typeText(context.requestNotes)
+        dismissKeyboard()
+        tap(element("customer.requests.wizard.continue"))
+
+        let publishButton = element("customer.requests.publish")
+        XCTAssertTrue(publishButton.waitForExistence(timeout: 8))
+        tap(publishButton)
+        XCTAssertTrue(element("customer.requests.wizard").waitForNonExistence(timeout: 30))
+
+        tap(element("customer.tab.requests"))
+        XCTAssertTrue(element("customer.requests.list").waitForExistence(timeout: 15))
+        let requestDetail = element("customer.requests.row.\(context.runID)")
+        XCTAssertTrue(
+            requestDetail.waitForExistence(timeout: 20),
+            "Available request selectors: \(identifiers(withPrefix: "customer.requests"))"
+        )
+        return supportReference(from: requestDetail)
+    }
+
+    func submitTaggedOffer(
+        _ context: TestOpsLifecycleContext,
+        expectedRequestReference: String
+    ) {
+        let requestRow = button("groomer.requests.row.\(context.runID)")
+        XCTAssertTrue(requestRow.waitForExistence(timeout: 20))
+        XCTAssertEqual(supportReference(from: requestRow), expectedRequestReference)
+        tap(requestRow)
+        XCTAssertTrue(element("groomer.requests.detail").waitForExistence(timeout: 10))
+
+        let priceField = element("groomer.offers.price")
+        scrollToHittable(priceField)
+        priceField.tap()
+        priceField.typeText("105")
+
+        let messageField = element("groomer.offers.message")
+        scrollToHittable(messageField)
+        messageField.tap()
+        messageField.typeText(context.offerMessage)
+        dismissKeyboard()
+
+        let submit = button("groomer.offers.submit")
+        scrollToHittable(submit)
+        submit.tap()
+        XCTAssertTrue(element("groomer.offers.withdraw").waitForExistence(timeout: 30))
+    }
+
+    func acceptOfferAndSendChat(
+        _ context: TestOpsLifecycleContext,
+        requestReference: String
+    ) {
+        tap(element("customer.tab.requests"))
+        XCTAssertTrue(element("customer.requests.list").waitForExistence(timeout: 15))
+
+        let detail = app.buttons
+            .matching(identifier: "customer.requests.row.\(context.runID)")
+            .matching(NSPredicate(format: "label == 'Request Detail'"))
+            .firstMatch
+        XCTAssertTrue(detail.waitForExistence(timeout: 20))
+        tap(detail)
+        XCTAssertTrue(element("customer.requests.detail").waitForExistence(timeout: 10))
+
+        let offerRow = button("customer.offers.row.\(context.runID)")
+        scrollToHittable(offerRow, maximumSwipes: 10)
+        offerRow.tap()
+        XCTAssertTrue(element("customer.offers.detail").waitForExistence(timeout: 10))
+
+        let accept = button("customer.offers.accept")
+        scrollToHittable(accept)
+        accept.tap()
+        XCTAssertTrue(accept.waitForNonExistence(timeout: 30))
+
+        tap(element("customer.tab.bookings"))
+        XCTAssertTrue(element("bookings.list").waitForExistence(timeout: 15))
+        let bookingRow = button("bookings.row.request.\(requestReference)")
+        XCTAssertTrue(bookingRow.waitForExistence(timeout: 20))
+        tap(bookingRow)
+        XCTAssertTrue(element("bookings.detail").waitForExistence(timeout: 10))
+
+        let openChat = button("bookings.detail.open-chat")
+        scrollToHittable(openChat)
+        openChat.tap()
+        XCTAssertTrue(element("chat.thread").waitForExistence(timeout: 15))
+        sendChatMessage(context.chatMessage)
+    }
+
+    func verifyChatAndCompleteBooking(
+        _ context: TestOpsLifecycleContext,
+        requestReference: String
+    ) {
+        tap(element("groomer.tab.messages"))
+        XCTAssertTrue(element("chat.conversations.list").waitForExistence(timeout: 15))
+        let conversation = button("chat.conversation.request.\(requestReference)")
+        XCTAssertTrue(conversation.waitForExistence(timeout: 20))
+        tap(conversation)
+        XCTAssertTrue(element("chat.thread").waitForExistence(timeout: 12))
+        XCTAssertTrue(app.staticTexts[context.chatMessage].waitForExistence(timeout: 20))
+
+        let back = app.buttons["Back"].firstMatch
+        XCTAssertTrue(back.waitForExistence(timeout: 5))
+        back.tap()
+
+        tap(element("groomer.tab.bookings"))
+        XCTAssertTrue(element("groomer.schedule").waitForExistence(timeout: 15))
+        let complete = button(
+            "groomer.booking.complete.request.\(requestReference)"
+        )
+        scrollToHittable(complete, maximumSwipes: 10)
+        complete.tap()
+        XCTAssertTrue(complete.waitForNonExistence(timeout: 30))
+    }
+
+    func submitTaggedReview(
+        _ context: TestOpsLifecycleContext,
+        requestReference: String
+    ) {
+        tap(element("customer.tab.bookings"))
+        XCTAssertTrue(element("bookings.list").waitForExistence(timeout: 15))
+        tap(button("bookings.scope.past"))
+
+        let bookingRow = button("bookings.row.request.\(requestReference)")
+        XCTAssertTrue(bookingRow.waitForExistence(timeout: 20))
+        tap(bookingRow)
+        XCTAssertTrue(element("bookings.detail").waitForExistence(timeout: 10))
+
+        let content = element("bookings.review.content")
+        scrollToHittable(content, maximumSwipes: 10)
+        content.tap()
+        content.typeText(context.reviewContent)
+        dismissKeyboard()
+
+        let submit = button("bookings.review.submit")
+        scrollToHittable(submit)
+        submit.tap()
+        XCTAssertTrue(element("bookings.review.display").waitForExistence(timeout: 30))
+    }
+
     private func assertTab(_ identifier: String, destination: String) {
         let tab = element(identifier)
         XCTAssertTrue(tab.waitForExistence(timeout: 8), "Missing tab selector \(identifier).")
@@ -180,7 +376,86 @@ final class TestOpsUIFlowDriver {
     }
 
     private func element(_ identifier: String) -> XCUIElement {
-        app.descendants(matching: .any)[identifier]
+        app.descendants(matching: .any)[identifier].firstMatch
+    }
+
+    private func button(_ identifier: String) -> XCUIElement {
+        app.buttons[identifier].firstMatch
+    }
+
+    private func tap(_ target: XCUIElement) {
+        XCTAssertTrue(target.waitForExistence(timeout: 10))
+        if !target.isHittable {
+            scrollToHittable(target)
+        }
+        XCTAssertTrue(target.isHittable)
+        target.tap()
+    }
+
+    private func scrollToHittable(
+        _ target: XCUIElement,
+        maximumSwipes: Int = 10
+    ) {
+        var swipes = 0
+        while (!target.exists || !target.isHittable), swipes < maximumSwipes {
+            app.swipeUp()
+            swipes += 1
+        }
+        XCTAssertTrue(target.exists, "Expected element to exist after scrolling.")
+        XCTAssertTrue(target.isHittable, "Element was not hittable after scrolling.")
+    }
+
+    private func dismissKeyboard() {
+        guard app.keyboards.firstMatch.exists else { return }
+        app.swipeDown()
+        if app.keyboards.firstMatch.exists {
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.85, dy: 0.2)).tap()
+        }
+    }
+
+    private func waitForPopulatedValue(
+        _ field: XCUIElement,
+        timeout: TimeInterval
+    ) -> Bool {
+        let predicate = NSPredicate { object, _ in
+            guard let element = object as? XCUIElement,
+                  let value = element.value as? String else {
+                return false
+            }
+            return !value.isEmpty && value != "Street Address"
+        }
+        let expectation = XCTNSPredicateExpectation(predicate: predicate, object: field)
+        return XCTWaiter.wait(for: [expectation], timeout: timeout) == .completed
+    }
+
+    private func supportReference(from element: XCUIElement) -> String {
+        guard let value = element.value as? String,
+              value.range(of: "^[A-F0-9]{8}$", options: .regularExpression) != nil else {
+            XCTFail("Expected an 8-character request support reference.")
+            return ""
+        }
+        return value
+    }
+
+    private func sendChatMessage(_ message: String) {
+        let body = element("chat.message.body")
+        XCTAssertTrue(body.waitForExistence(timeout: 12))
+        body.tap()
+        body.typeText(message)
+        let send = element("chat.message.send")
+        XCTAssertTrue(send.waitForExistence(timeout: 5))
+        send.tap()
+        XCTAssertTrue(app.staticTexts[message].waitForExistence(timeout: 20))
+    }
+
+    private func identifiers(withPrefix prefix: String) -> [String] {
+        Array(
+            Set(
+                app.descendants(matching: .any).allElementsBoundByIndex
+                    .map(\.identifier)
+                    .filter { $0.hasPrefix(prefix) }
+            )
+        ).sorted()
     }
 }
 

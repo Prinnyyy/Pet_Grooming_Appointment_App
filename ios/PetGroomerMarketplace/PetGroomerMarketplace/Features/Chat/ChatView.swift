@@ -133,6 +133,12 @@ struct ChatConversationsView: View {
                                     )
                                 }
                                 .buttonStyle(.plain)
+                                .accessibilityIdentifier(
+                                    AppTestOpsAccessibility.requestIdentifier(
+                                        prefix: "chat.conversation.request",
+                                        requestID: conversation.requestID
+                                    )
+                                )
                             }
                         }
                     }
@@ -333,7 +339,6 @@ private struct ChatThreadView: View {
             ChatStatusView(store: store, role: role)
         }
         .scrollDismissesKeyboard(.interactively)
-        .accessibilityIdentifier("chat.thread")
     }
 
     @ViewBuilder
@@ -479,6 +484,7 @@ private struct ChatThreadHeader: View {
         .padding(.top, DesignTokens.Spacing.lg)
         .padding(.bottom, DesignTokens.Spacing.md)
         .background(DesignTokens.Colors.surface.opacity(0.92))
+        .accessibilityIdentifier("chat.thread")
     }
 }
 

@@ -37,6 +37,8 @@ import {
   runMatchingEvaluation,
   safeErrorMessage,
   serverCredentialStatus,
+  verifyUILifecycleRun,
+  verifyUIDebugEvents,
   writeArtifacts,
   writeMatchingArtifacts,
 } from "./testops-core.mjs";
@@ -56,6 +58,8 @@ async function main() {
       return run(rawArgs);
     case "cleanup":
       return cleanupCommand(rawArgs);
+    case "verify":
+      return verifyCommand(rawArgs);
     case "report":
       return reportCommand(rawArgs);
     case "help":
@@ -72,11 +76,41 @@ function usage() {
   node scripts/testops.mjs run backend --scenario ${DEFAULT_SCENARIO} [--customer GTC-001] [--groomer GTG-001] [--matrix smoke5] [--run-id RUN] [--execute] [--cleanup]
   node scripts/testops.mjs run matching --scenario ${MATCHING_SCENARIO} [--matrix ${MATCHING_BASELINE_MATRIX}] [--run-id RUN] [--execute] [--cleanup]
   node scripts/testops.mjs cleanup --run-id RUN [--execute]
+  node scripts/testops.mjs verify ui-lifecycle --run-id RUN
+  node scripts/testops.mjs verify debug-log --run-id RUN --log-path PATH --started-at ISO8601
   node scripts/testops.mjs report --run-id RUN
 
 Remote-write safety:
   Backend run and cleanup require both --execute and ${REMOTE_WRITE_ENV}=1.
   Without --execute, commands only parse resources and print the planned work.`);
+}
+
+async function verifyCommand(args) {
+  const [kind, ...rest] = args;
+  const options = parseOptions(rest);
+  const runID = requiredOption(options, "run-id");
+  if (kind === "debug-log") {
+    const logPath = requiredOption(options, "log-path");
+    const startedAt = requiredOption(options, "started-at");
+    const lines = fs.readFileSync(logPath, "utf8")
+      .split("\n")
+      .filter(Boolean);
+    const events = lines.map((line) => JSON.parse(line));
+    const result = verifyUIDebugEvents(events, { runID, startedAt });
+    console.log(JSON.stringify(result, null, 2));
+    return;
+  }
+  if (kind !== "ui-lifecycle") {
+    throw new Error("Use `verify ui-lifecycle` or `verify debug-log`.");
+  }
+
+  const api = new SupabaseREST(
+    requiredEnv("SUPABASE_URL"),
+    requiredEnv("SUPABASE_PUBLISHABLE_KEY"),
+    requiredServerCredential()
+  );
+  const result = await verifyUILifecycleRun(api, runID);
+  console.log(JSON.stringify(result, null, 2));
 }
 
 async function doctor(args) {

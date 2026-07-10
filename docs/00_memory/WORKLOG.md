@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-09
+Task: T-239 - Full dual-role UI lifecycle automation.
+Files changed: lifecycle selectors and XCUITest driver/suite; Chat recorder late binding; TestOps Debug/backend verifier, cleanup proof, wrapper/tests; TestOps run evidence; roadmap/queue/current state/task ledger/worklog.
+Checks: Selector/recorder/verifier RED-GREEN; 31 TestOps tests; authorized R11 customer/groomer UI lifecycle; Debug JSONL 6/6 success and zero errors; backend final state; tagged cleanup zero residue; full iOS test/build; credential scan; diff and rolling-window rotation. Cadence meta-review is assigned to T-240.
+Result: Q-42 and M10 are complete. One no-screenshot UI run published, offered, accepted, sent/verified chat, completed, and reviewed through five seeded role sessions. The wrapper enforces Debug and backend assertions plus cleanup after success or failure.
+Risks: UI matrix execution remains single-pair (`GTC-001`/`GTG-001`); backend `smoke5` remains the multi-pair lifecycle matrix. APNs/paid Apple and Q-92/Q-93 external service blockers are unchanged.
+Next: Use T-240 only after a new dependency-satisfied roadmap package or explicit user task is adopted.
+```
+
+```text
+Date: 2026-07-09
 Task: T-238 - UI TestOps harness and stable selectors.
 Files changed: customer/groomer tab models/views; customer request-wizard dismiss selector; UITest flow driver/suite; TestOps wrapper and indexed docs; roadmap/queue/current state/task ledger/worklog.
 Checks: Selector RED/GREEN; `bash -n scripts/ios-testops-e2e.sh`; environment-forwarding iterations; seeded R7 customer/groomer UI suite 3/3; generated Xcode-log credential scan clean; full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; `git diff --check`; context hygiene.
 Result: Q-41 adds reusable no-screenshot drivers for TestOps clear-session launch, environment-only T-129 customer/groomer sign-in, all role tabs including system More overflow, customer request-sheet open/dismiss, and relaunch session reset. Temporary logs/results are deleted and summaries are redacted.
 Risks: The harness performs Auth sign-in/read navigation only; it does not mutate marketplace rows. Standard iOS tests skip the two seeded navigation cases when credentials are absent, while the explicit TestOps wrapper runs them when supplied.
-Next: Use T-239 for authorized Q-42 full dual-role UI lifecycle automation.
 ```
 
 ```text
@@ -65,13 +74,4 @@ Files changed: append-only account-deletion function migration, static regressio
 Checks: Remote constraint/function evidence; focused RED/GREEN; 45 migration and 10 Edge tests; `./scripts/preflight.sh`; linked list/dry-run/apply/parity; post-apply function source; linked database lint; `git diff --check`; context hygiene.
 Result: The account-deletion upsert now targets `account_deletion_requests_user_key` by constraint name, removing the PL/pgSQL output-column ambiguity. Remote lint reports no schema errors.
 Risks: A rollback-only function execution exposed an independent 42501 failure from direct `storage.objects` deletion. No test residue remained; T-233 owns the Storage API correction and Edge deployment.
-```
-
-```text
-Date: 2026-07-09
-Task: T-231 - Groomer in-app notification remote parity.
-Files changed: notification negative-contract rollback SQL and static test; roadmap, queue, current state, task ledger, and worklog. Existing T-203 migration was applied remotely.
-Checks: Current Supabase docs/changelog; migration/Edge preflight; 8/8 rollback-only negative checks; linked migration parity/dry-run; catalog, grants, RLS, RPC, trigger, and residue queries; linked lint; security/performance advisors; full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; `git diff --check`; context hygiene.
-Result: Q-35 is complete. Groomer in-app notifications now have remote table/RLS/RPC/trigger parity and the existing iOS list/read behavior is backed by the live schema. The rollback validator was corrected to use PL/pgSQL row counts and authenticated temp-result privileges.
-Risks: APNs, groomer push tokens, push dispatch, and paid Apple work remain excluded. Advisor output contains only known APNs/Auth-plan and Q-36 index findings. Runtime lint exposed a separate account-deletion conflict ambiguity, assigned next as T-232.
 ```

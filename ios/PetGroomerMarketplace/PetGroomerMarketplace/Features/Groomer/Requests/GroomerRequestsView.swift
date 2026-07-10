@@ -116,6 +116,17 @@ struct GroomerRequestsView: View {
                                 )
                             }
                             .buttonStyle(.plain)
+                            .accessibilityIdentifier(
+                                AppTestOpsAccessibility.identifier(
+                                    prefix: "groomer.requests.row",
+                                    serviceNotes: matchedRequest.request.serviceNotes
+                                ) ?? "groomer.requests.row"
+                            )
+                            .accessibilityValue(
+                                AppTestOpsAccessibility.requestReference(
+                                    matchedRequest.request.id
+                                )
+                            )
                         }
 
                         if store.canLoadMore || store.isLoadingMore {

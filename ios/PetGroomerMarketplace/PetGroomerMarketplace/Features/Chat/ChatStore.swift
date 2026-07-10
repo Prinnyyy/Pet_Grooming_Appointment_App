@@ -8,7 +8,7 @@ final class ChatStore {
     private let role: UserRole
     private let repository: any ChatRepository
     private let now: () -> Date
-    private let debugRecorder: AppDebugEventRecorder?
+    private var debugRecorder: AppDebugEventRecorder?
 
     private(set) var conversations: [ChatConversation] = []
     private(set) var messagesByConversationID: [UUID: [ChatMessage]] = [:]
@@ -55,6 +55,10 @@ final class ChatStore {
         self.repository = repository
         self.now = now
         self.debugRecorder = debugRecorder
+    }
+
+    func setDebugRecorder(_ recorder: AppDebugEventRecorder?) {
+        debugRecorder = recorder
     }
 
     func messages(for conversationID: UUID) -> [ChatMessage] {
