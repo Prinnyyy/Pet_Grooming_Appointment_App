@@ -5,13 +5,22 @@ This file is the active recent closeout index, newest first. It intentionally ke
 Current branch, next task ID, and current baseline live in `docs/00_memory/CURRENT_STATE.md` and `docs/06_tasks/TASK_LEDGER.md`. Only the newest entry should keep a `Next:` line.
 
 ```text
+Date: 2026-07-10
+Task: T-248 - Remote Beckon identity cutover.
+Files changed: Applied T-246 runtime migration; hosted Supabase project/Auth settings; 100 in-place seed identities; seed cutover runner/tests; active backend/TestOps/roadmap/memory docs.
+Checks: Migration parity/linked dry-run; project/Auth/SMTP inspection; 100-user mapping/unchanged UUID digest; current/legacy login; remote lifecycle 5/5; matching 8/8; zero residue; advisors; identity RED/GREEN; TestOps 36; preflight migration 48/Edge 10; Supabase check; full iOS test/build; diff/secret/context gates.
+Result: Q-96 and R-038 are complete. Supabase, Auth callback/sender, cron runtime, and 50 customer plus 50 groomer seed identities use Beckon; old seed emails/metadata are zero and exact UUID mappings are preserved.
+Risks: Existing Free Plan leaked-password warning and Apple/APNs exclusions are unchanged. The explicit legacy rollback path remains only in the narrowly excluded cutover core/test.
+Next: Use T-249 only for the next explicit user request.
+```
+
+```text
 Date: 2026-07-09
 Task: T-247 - Beckon workflow vocabulary.
 Files changed: AGENTS/CLAUDE workflow guidance; context/stop/tooling rules; Beckon identity audit/test; decision, roadmap, queue, current state, task ledger, and worklog.
 Checks: Workflow-audit RED/GREEN; active identity audit; context hygiene; preflight; `git diff --check`; task-scoped diff and secret review.
 Result: Q-95 is complete. Active agent and workflow rules use Beckon terminology and the current ios/Beckon credential path. Their temporary identity-audit exclusions are removed, so future workflow drift fails preflight.
-Risks: Product behavior and remote state are unchanged. Q-96 remains blocked until fresh explicit remote-write authorization is provided.
-Next: Adopt Q-96 as T-248 only after fresh remote-write authorization.
+Risks: Product behavior and remote state were unchanged at this historical T-247 closeout.
 ```
 
 ```text

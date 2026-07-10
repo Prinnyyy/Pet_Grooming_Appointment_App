@@ -4,11 +4,11 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Last Updated
 
-- Date: 2026-07-09
+- Date: 2026-07-10
 - Updated by: Codex
-- Latest completed task: T-247 Beckon workflow vocabulary migration.
+- Latest completed task: T-248/Q-96 remote Beckon identity cutover.
 - Current task: none; T-157 APNs remains externally blocked.
-- Next task ID: use T-248 unless the user resumes T-157 after Apple Developer Program upgrade.
+- Next task ID: use T-249 unless the user resumes T-157 after Apple Developer Program upgrade.
 
 ## Fast Path
 
@@ -33,13 +33,14 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 ## Validation Baseline
 
 - T-239 authorized UI R11 passed publish/offer/accept/chat/complete/review, Debug 6/6 with zero errors, backend final state, and zero residue; full iOS test/build passed.
-- Last Supabase migration apply: T-234 `20260709214425_t234_add_evidence_backed_fk_indexes.sql` applied to `lqmasbuqzvcvtawonjlb` on 2026-07-09; parity, catalog, forced plans, and advisor delta were verified.
+- Last Supabase migration apply: T-246 `20260710052620_t246_prepare_beckon_runtime_identity.sql` applied to `lqmasbuqzvcvtawonjlb` on 2026-07-09; parity, cron rename, and linked dry-run were verified.
 - Last Edge Function deploy: `delete-account` version 2 is active with JWT verification and service-role Storage API cleanup across six user-prefixed image buckets.
-- Last TestOps unit validation: T-222 `./scripts/testops-unit.sh` passed 24 Node tests.
-- Latest remote TestOps evidence: T-235 `smoke5` passed 5/5 and `matching_baseline` passed 8/8; both R2 run families left zero tagged requests and only redacted local artifacts.
+- Last TestOps unit validation: T-248 `./scripts/testops-unit.sh` passed 36 Node tests.
+- Latest remote TestOps evidence: T-248 `smoke5` passed 5/5 and `matching_baseline` passed 8/8; both run families left zero tagged requests and only redacted local artifacts.
 - T-242 verified public DMARC, accepted a Resend delivery smoke, and persisted Supabase Custom SMTP plus exact Auth callback URLs.
 - T-246 completed Q-94: local Xcode/app/source/TestOps identity is Beckon and the Q-96 cron migration is prepared but unapplied.
 - T-247 completed Q-95: active agent/workflow sources use Beckon and are checked by the identity audit.
+- T-248 completed Q-96: project/Auth/runtime identity and all 100 seed users use Beckon; UUID mapping is unchanged, remote lifecycle passed 5/5, matching passed 8/8, tagged residue is zero, and full local gates pass.
 - T-244 normalizes the rotated Worklog EOF to one newline.
 - T-245 context-script validation passes 32 Node tests; word counts are informational and rolling windows use buffered high/retain entry counts.
 - T-246 passes the Beckon identity audit, 31 TestOps tests, 48 migration tests, 10 Edge tests, privacy/preflight/Supabase checks, full iOS tests/build, and Simulator auth branding inspection.
@@ -58,7 +59,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - Private Storage images use authenticated `.download(path:)` through `PrivateImageLoader`; cache hashes paths, retries transient downloads once, and clears on local account cleanup.
 - Customers can create a new request from cancelled requests/bookings via explicit republish. Republish tolerates missing request photos and expired preferred windows. Unpublished wizard drafts are sheet-ephemeral.
 - Beckon UI adaptation is complete for implemented MVP screens. Future UI work is screenshot-driven and must map modules to existing SwiftUI/Store/repository/model paths or stop for approval.
-- Local binaries now use `Beckon: Pet Grooming`, `com.hellobeckon.beckon`, and `com.hellobeckon.beckon://auth/callback`. Hosted Auth settings, Supabase runtime naming, and the 100 remote seed users retain the legacy identity until Q-96.
+- Local binaries and hosted Auth use `Beckon: Pet Grooming`, `com.hellobeckon.beckon`, and `com.hellobeckon.beckon://auth/callback`. Supabase project/runtime naming and all 100 remote seed users now use Beckon.
 
 ## Active Workflow State
 
@@ -66,7 +67,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - Startup reads stay minimal: `AGENTS.md`, then targeted current-state/task-ledger sections only when needed.
 - Periodic documentation-governance reviews use `docs/06_tasks/META_REVIEW_TEMPLATE.md` every 10 completed tasks or weekly.
 - Last meta-review: T-240 on 2026-07-10.
-- V1.0 ideal-operation Q-16...Q-43, Auth package Q-92, and R-038/Q-94/Q-95 are complete. Q-96 remains fresh-authorization gated.
+- V1.0 ideal-operation Q-16...Q-43, Auth package Q-92, and R-038/Q-94...Q-96 are complete.
 - Changes to `AGENTS.md`, `CLAUDE.md`, or `docs/05_workflow/**` must be standalone numbered tasks with a decision-log entry and context hygiene.
 - T-180 records standing user approval for task-completion Git commit and push. This approval is limited to current-task changes after validation passes; T-186 requires stopping without auto pull/rebase/merge/reset/force-push if the push fails or is rejected.
 - T-245 makes word counts informational only; Ledger uses 18/12, Worklog and active decisions use 14/8, and decision archive pointers use 12/6 trigger/retain windows. Manual compaction follows 65%/80% boundaries against the 353,000-token context.
@@ -78,12 +79,13 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Supabase and TestOps Guardrails
 
-- Authorized Supabase project: `Pet Groomer Marketplace`, ref `lqmasbuqzvcvtawonjlb`.
+- Authorized Supabase project: `Beckon`, ref `lqmasbuqzvcvtawonjlb`.
 - Legacy ref `swdiiyypysyxbnfrxxsv` is out of scope; do not inspect or mutate it.
 - Linked Supabase CLI commands must run sequentially.
+- Supabase CLI telemetry is disabled locally. Use `SUPABASE_TELEMETRY_DISABLED=1` for scripted linked commands so concurrent external processes cannot race on `~/.supabase/telemetry.json`.
 - `SUPABASE_DB_PASSWORD` is not currently needed for normal local linked CLI use while saved credentials remain valid.
 - `SUPABASE_SECRET_KEY=sb_secret_...` is not a CLI PAT, DB password, JWT, or Bearer token.
-- TestOps accepts either legacy `SUPABASE_SERVICE_ROLE_KEY=eyJ...` or modern `SUPABASE_SECRET_KEY=sb_secret_...`; modern secrets are sent as `apikey` only. Seed scripts still expect JWT-shaped legacy service-role keys.
+- TestOps and the T-248 identity cutover runner accept either legacy `SUPABASE_SERVICE_ROLE_KEY=eyJ...` or modern `SUPABASE_SECRET_KEY=sb_secret_...`; modern secrets are sent as `apikey` only. The older T-129 account-creation scripts still expect JWT-shaped legacy service-role keys.
 
 ## Current Known Risks
 
@@ -99,4 +101,4 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Next Recommended Task
 
-- Adopt Q-96 as T-248 only after fresh explicit authorization for the remote Beckon identity cutover.
+- The non-Apple execution queue has no dependency-satisfied package. Use T-249 only for the next explicit user request.

@@ -1,6 +1,6 @@
 # Auth Email and Deep Link Design
 
-Last verified: 2026-07-09. Source tasks: T-193/Q-06 design, T-217/Q-29 local iOS callback implementation, T-242/Q-92 production sender and hosted Auth configuration.
+Last verified: 2026-07-09. Source tasks: T-193/Q-06 design, T-217/Q-29 local iOS callback implementation, T-242/Q-92 production sender, and T-248/Q-96 final hosted identity cutover.
 
 ## Current State
 

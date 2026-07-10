@@ -1,6 +1,6 @@
 # Supabase Contract
 
-Last verified: 2026-07-09.
+Last verified: 2026-07-09 (T-248 remote cutover).
 
 This is the active fast-path backend contract. It records current authoritative facts and points to the right detailed source instead of embedding every historical table, RPC, Storage, and migration note.
 
@@ -8,9 +8,9 @@ Full pre-trim contract text is archived at `../09_frozen/backend_contracts/SUPAB
 
 ## Current Status
 
-- Authorized fresh project: `Pet Groomer Marketplace`, ref `lqmasbuqzvcvtawonjlb`, organization `Prinnyyy`, region `us-west-1`.
+- Authorized fresh project: `Beckon`, ref `lqmasbuqzvcvtawonjlb`, organization `Prinnyyy`, region `us-west-1`.
 - Forbidden legacy project: `Prinnyyy's Project`, ref `swdiiyypysyxbnfrxxsv`. Do not inspect, branch, migrate, reset, or mutate it for this rebuild.
-- Remote verification baseline: T-128 repaired historical drift; latest recorded remote migration list aligns through `20260709214425_t234_add_evidence_backed_fk_indexes.sql`.
+- Remote verification baseline: T-128 repaired historical drift; latest recorded remote migration list aligns through `20260710052620_t246_prepare_beckon_runtime_identity.sql`.
 - Local CLI readiness baseline: T-139 confirmed sequential `supabase projects list`, `supabase migration list --linked`, and `supabase db push --linked --dry-run` work from this checkout without `SUPABASE_DB_PASSWORD`.
 - Local migration mirror: `../../supabase/migrations/` is the append-only source for applied and prepared migrations. Local migration mirror count: 60 files. Do not rename or hand-invent migration filenames.
 - Full historical contract detail before this fast-path trim is frozen for comparison only. Current implementation truth comes from migrations plus focused active backend policy files.
@@ -59,7 +59,7 @@ Core deployed data areas:
 - Automation: request-expiry cron job, match backfill triggers for groomer activation/availability changes, customer/groomer notification triggers, and account-deletion service-role finalization RPCs.
 - Storage buckets: legacy `avatars`, dedicated `groomer-avatars`, dedicated `customer-avatars`, `pet-photos`, `groomer-portfolio`, and `request-photos`. `chat-attachments` remains deferred.
 - Edge Functions: `delete-account` version 2 is deployed with JWT verification and service-role Storage API cleanup before Auth soft deletion; `dispatch-customer-push-notifications` source exists but is not deployed until APNs secrets are available.
-- Auth email/deep-link design is documented in `AUTH_EMAIL_DEEP_LINK_DESIGN.md`; iOS custom-scheme callback handling is local, while Supabase Auth redirect allow list, SMTP, email templates, HTTPS production domain, and associated domains still require explicit remote/configuration work.
+- Auth email/deep-link design is documented in `AUTH_EMAIL_DEEP_LINK_DESIGN.md`; hosted Site URL/redirect allow list and custom SMTP sender use Beckon. Supabase-generated email/device smoke, HTTPS Universal Links, and associated domains remain release work.
 
 Controlled public RPCs currently include:
 
@@ -101,8 +101,9 @@ Exact signatures, grants, error behavior, table constraints, and policy predicat
 - RLS and explicit Data API grants must both be reviewed for every exposed table or function.
 - Multi-row writes, status transitions, ownership checks, limits, conflict protection, and server-owned match/review calculations use controlled RPCs.
 - Linked Supabase CLI commands must run sequentially. Do not parallelize linked migration, push, query, or advisor commands.
+- Keep CLI telemetry disabled (`supabase telemetry disable`) and set `SUPABASE_TELEMETRY_DISABLED=1` in scripted invocations; this prevents shared telemetry-file races when an unrelated CLI process is already active.
 - Remote DDL, migration repair, seed execution, cleanup, destructive operations, and remote writes require explicit user authorization.
-- `supabase_api_key` / `SUPABASE_SECRET_KEY=sb_secret_...` is not a CLI PAT, not the remote DB password, and not a JWT-shaped service-role key. TestOps has an explicit `apikey`-only server credential path for `sb_secret_...`; scripts that send service credentials as Bearer auth still need a compatible legacy JWT-shaped service-role key unless they are explicitly updated.
+- `supabase_api_key` / `SUPABASE_SECRET_KEY=sb_secret_...` is not a CLI PAT, not the remote DB password, and not a JWT-shaped service-role key. TestOps and the T-248 identity cutover runner have an explicit `apikey`-only server credential path for `sb_secret_...`; scripts that send service credentials as Bearer auth still need a compatible legacy JWT-shaped service-role key unless explicitly updated.
 - The legacy project ref is never a schema, data, migration, or verification source for this rebuild.
 
 ## Update Rules

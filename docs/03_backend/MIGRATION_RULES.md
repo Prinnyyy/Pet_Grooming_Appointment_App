@@ -1,6 +1,6 @@
 # Migration Rules
 
-Last verified: 2026-07-08.
+Last verified: 2026-07-09.
 
 Use this file for Supabase migration workflow. It is an operating protocol, not migration history.
 
@@ -8,7 +8,7 @@ Archived pre-trim version: `../09_frozen/backend_policies/MIGRATION_RULES_2026-0
 
 ## Current Boundary
 
-- Authorized project: `Pet Groomer Marketplace`, ref `lqmasbuqzvcvtawonjlb`.
+- Authorized project: `Beckon`, ref `lqmasbuqzvcvtawonjlb`.
 - Legacy project ref `swdiiyypysyxbnfrxxsv` is out of scope and must not be inspected or mutated.
 - Local migration mirror: `../../supabase/migrations/`.
 - Normal remote DDL path: installed `supabase` CLI with the linked project.
@@ -21,6 +21,7 @@ Archived pre-trim version: `../09_frozen/backend_policies/MIGRATION_RULES_2026-0
 - Never copy legacy project migrations or infer deployed schema from documentation.
 - Review tables, constraints, indexes, grants, RLS policies, RPC security, Storage policies, cron jobs, Edge Functions, and negative tests before remote apply.
 - Linked Supabase CLI commands are single-flight operations. Do not run linked `migration list`, `db push`, `db query`, or advisors in parallel.
+- Keep CLI telemetry disabled with `supabase telemetry disable`. Prefix scripted linked commands with `SUPABASE_TELEMETRY_DISABLED=1`; otherwise overlapping CLI processes can race while renaming `~/.supabase/telemetry.json.tmp.*` and fail with `ENOENT` even when the database operation itself is healthy.
 - Remote DDL, migration repair, seed execution, cleanup, destructive operations, and remote writes require explicit user approval.
 
 ## Standard Flow
@@ -56,13 +57,14 @@ Archived pre-trim version: `../09_frozen/backend_policies/MIGRATION_RULES_2026-0
 - `SUPABASE_SECRET_KEY=sb_secret_...`: server-side project secret key; not a CLI PAT, DB password, JWT, or Bearer token.
 - `SUPABASE_SERVICE_ROLE_KEY=eyJ...`: legacy JWT-shaped service-role key for scripts that still send Bearer auth.
 
-TestOps supports modern `sb_secret_...` credentials as `apikey`-only server credentials. Seed scripts still expect a JWT-shaped legacy service-role key.
+TestOps and the T-248 identity cutover runner support modern `sb_secret_...` credentials as `apikey`-only server credentials. The older T-129 account-creation scripts still expect a JWT-shaped legacy service-role key.
 
 Ignored local credential files may be inspected only after explicit user authorization for the current operation. Read secrets into process-local environment variables only; do not print, commit, log, or write them into tracked files.
 
 ## Recovery Rules
 
 - If a linked CLI command reports `cli_login_postgres` or SASL/auth errors, stop concurrent Supabase work and run one sequential `supabase migration list --linked`.
+- If a command reports `FileSystem.rename` or `telemetry.json.tmp... ENOENT`, stop parallel CLI commands, run `supabase telemetry disable`, and retry once sequentially with `SUPABASE_TELEMETRY_DISABLED=1`. Do not repair migrations for this telemetry-only failure.
 - If sequential migration list succeeds and Local/Remote align, treat the earlier failure as transient CLI login-role contention.
 - Use `supabase migration repair --linked` only after migration list proves real drift, each mismatched version is mapped to a known local canonical migration, and the user explicitly authorizes repair.
 - MCP SQL is allowed only for read-only verification or explicitly tagged cleanup when CLI auth/env setup is the blocker. It is not a migration path.

@@ -31,7 +31,7 @@ Keep this concise. It is an index, not a full project dump.
 
 ## Backend Summary
 
-- Authorized Supabase project: `Pet Groomer Marketplace`, ref `lqmasbuqzvcvtawonjlb`.
+- Authorized Supabase project: `Beckon`, ref `lqmasbuqzvcvtawonjlb`.
 - Legacy Supabase project `swdiiyypysyxbnfrxxsv` is out of scope and must not be mutated.
 - Deployed tables cover profiles, pets/photos, groomer profiles/services/portfolio, availability, requests/matches/photos, offers, bookings, conversations/messages, reviews, structured pet-fit outcomes, groomer fit claims, and portfolio fit tags.
 - Deployed RPCs include profile creation, request creation/cancellation, match dismissal, offer create/withdraw/accept, booking cancel/complete, review creation, and owner evidence summary.

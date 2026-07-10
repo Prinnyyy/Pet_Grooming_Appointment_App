@@ -16,6 +16,22 @@ Run all TestOps Node unit tests, including parser, safety-gate, plan, redaction,
 ./scripts/testops-unit.sh
 ```
 
+## Seed Identity Verification
+
+Inspect the planned Beckon seed identity target without a remote connection:
+
+```bash
+node scripts/seed-identity-cutover.mjs
+```
+
+After loading ignored Supabase environment variables, verify all 100 remote seed identities without writing:
+
+```bash
+node scripts/seed-identity-cutover.mjs --verify
+```
+
+Remote execute or explicit legacy rollback requires fresh operator authorization plus `BECKON_REMOTE_IDENTITY_APPROVED=1`. The runner updates Auth users in place, preserves UUIDs, validates a stable mapping digest, and automatically restores each user's exact pre-run identity if a batch fails. Never print seed credentials or service keys.
+
 ## Backend Lifecycle Dry Run
 
 Print the planned `marketplace_full_lifecycle` payload:

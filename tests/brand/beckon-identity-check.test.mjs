@@ -57,7 +57,9 @@ test("identity audit excludes immutable history but audits active workflow sourc
     "supabase/migrations/20260701000000_old.sql",
     "docs/06_tasks/BECKON_BRAND_MIGRATION.md",
     "scripts/beckon-identity-check.mjs",
+    "scripts/seed-identity-cutover-core.mjs",
     "tests/brand/beckon-identity-check.test.mjs",
+    "tests/testops/seed-identity-cutover.test.mjs",
   ];
 
   for (const file of excluded) {
