@@ -54,8 +54,8 @@ struct BookingsView: View {
 
             bookingsContent
         }
-        .navigationTitle("")
-        .navigationBarTitleDisplayMode(.inline)
+        .navigationTitle(role == .groomer ? "Schedule" : "")
+        .navigationBarTitleDisplayMode(role == .groomer ? .large : .inline)
         .background {
             BookingsStatusView(
                 store: store,
@@ -170,21 +170,12 @@ struct BookingsView: View {
     private var groomerScheduleContent: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                CustomerTabTitle("Schedule")
-
                 appointmentReminderNotice
 
                 GroomerScheduleDayStrip(
-                    days: scheduleDays,
-                    selectedDayKey: effectiveScheduleDayKey,
+                    days: schedulePresentation.days,
+                    selectedDayKey: schedulePresentation.selectedDayKey,
                     onSelect: { selectedScheduleDayKey = $0.id }
-                )
-
-                GroomerScheduleSnapshotCard(
-                    dayTitle: GroomerScheduleDateFormatting.longDayTitle(
-                        from: effectiveScheduleDate
-                    ),
-                    bookings: selectedScheduleBookings
                 )
 
                 if store.isLoading, store.bookings.isEmpty {
@@ -196,17 +187,24 @@ struct BookingsView: View {
                     .accessibilityIdentifier("groomer.schedule.loading")
                 } else if let persistentLoadError = feedbackPresentation.persistentLoadError {
                     persistentLoadErrorView(persistentLoadError)
-                } else if selectedScheduleBookings.isEmpty {
-                    BeckonEmptyState(
-                        title: "No Appointments",
-                        message: "Confirmed bookings for the selected day will appear here.",
-                        systemImage: "calendar.badge.clock",
-                        accent: .groomer
+                } else if schedulePresentation.selectedBookings.isEmpty {
+                    GroomerScheduleEmptyDayView(
+                        dayTitle: GroomerScheduleDateFormatting.longDayTitle(
+                            from: schedulePresentation.selectedDate
+                        )
                     )
-                    .accessibilityIdentifier("groomer.schedule.empty")
                 } else {
+                    if let summary = schedulePresentation.summary {
+                        GroomerScheduleSummaryBand(
+                            dayTitle: GroomerScheduleDateFormatting.longDayTitle(
+                                from: schedulePresentation.selectedDate
+                            ),
+                            summary: summary
+                        )
+                    }
+
                     GroomerScheduleTimeline(
-                        bookings: selectedScheduleBookings,
+                        bookings: schedulePresentation.selectedBookings,
                         store: store,
                         onOpenChat: onOpenChat
                     )
@@ -319,39 +317,12 @@ struct BookingsView: View {
             .sortedByScheduledStart(ascending: selectedScope == .upcoming)
     }
 
-    private var scheduleDays: [GroomerScheduleDay] {
-        GroomerScheduleDay.days(around: Date(), bookings: store.bookings)
-    }
-
-    private var effectiveScheduleDayKey: String {
-        if let selectedScheduleDayKey,
-           scheduleDays.contains(where: { $0.id == selectedScheduleDayKey }) {
-            return selectedScheduleDayKey
-        }
-
-        if let dayWithBookings = scheduleDays.first(where: { day in
-            store.bookings.contains { booking in
-                !booking.status.isCancellation &&
-                    GroomerScheduleDateFormatting.dayKey(from: booking.scheduledStart) == day.id
-            }
-        }) {
-            return dayWithBookings.id
-        }
-
-        return GroomerScheduleDateFormatting.dayKey(from: Date())
-    }
-
-    private var effectiveScheduleDate: Date {
-        scheduleDays.first { $0.id == effectiveScheduleDayKey }?.date ?? Date()
-    }
-
-    private var selectedScheduleBookings: [Booking] {
-        store.bookings
-            .filter { booking in
-                !booking.status.isCancellation &&
-                    GroomerScheduleDateFormatting.dayKey(from: booking.scheduledStart) == effectiveScheduleDayKey
-            }
-            .sortedByScheduledStart(ascending: true)
+    private var schedulePresentation: GroomerSchedulePresentation {
+        GroomerSchedulePresentation(
+            referenceDate: Date(),
+            bookings: store.bookings,
+            selectedDayKey: selectedScheduleDayKey
+        )
     }
 }
 
@@ -466,9 +437,13 @@ struct BookingSummaryRow: View {
 
 private struct BookingAvatar: View {
     let role: UserRole
+    var systemImage: String? = nil
 
     var body: some View {
-        Image(systemName: role == .customer ? "person.fill" : "person.crop.square.fill")
+        Image(
+            systemName: systemImage
+                ?? (role == .customer ? "person.fill" : "person.crop.square.fill")
+        )
             .font(.title2.weight(.bold))
             .foregroundStyle(role.primaryColor)
             .frame(width: 64, height: 64)
@@ -479,7 +454,7 @@ private struct BookingAvatar: View {
 }
 
 extension Array where Element == Booking {
-    func sortedByScheduledStart(ascending: Bool) -> [Booking] {
+    nonisolated func sortedByScheduledStart(ascending: Bool) -> [Booking] {
         sorted { lhs, rhs in
             let lhsDate = GroomingRequestDateFormatting.parsedDate(
                 from: lhs.scheduledStart
@@ -584,44 +559,6 @@ private struct BookingScopeControl: View {
     }
 }
 
-private struct GroomerScheduleDay: Identifiable, Equatable {
-    let id: String
-    let date: Date
-    let isToday: Bool
-
-    static func days(around date: Date, bookings: [Booking]) -> [GroomerScheduleDay] {
-        let calendar = Calendar.current
-        let today = calendar.startOfDay(for: date)
-        var dates = (0..<7).compactMap {
-            calendar.date(byAdding: .day, value: $0, to: today)
-        }
-        var seenKeys = Set(dates.map(GroomerScheduleDateFormatting.dayKey(from:)))
-
-        let bookingDates = bookings
-            .filter { !$0.status.isCancellation }
-            .compactMap { GroomingRequestDateFormatting.parsedDate(from: $0.scheduledStart) }
-            .map { calendar.startOfDay(for: $0) }
-            .filter { $0 >= today }
-
-        for bookingDate in bookingDates {
-            let key = GroomerScheduleDateFormatting.dayKey(from: bookingDate)
-            if seenKeys.insert(key).inserted {
-                dates.append(bookingDate)
-            }
-        }
-
-        return dates
-            .sorted()
-            .map { day in
-                GroomerScheduleDay(
-                    id: GroomerScheduleDateFormatting.dayKey(from: day),
-                    date: day,
-                    isToday: calendar.isDate(day, inSameDayAs: today)
-                )
-            }
-    }
-}
-
 private struct GroomerScheduleDayStrip: View {
     let days: [GroomerScheduleDay]
     let selectedDayKey: String
@@ -629,7 +566,7 @@ private struct GroomerScheduleDayStrip: View {
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: DesignTokens.Spacing.md) {
+            HStack(spacing: DesignTokens.Spacing.sm) {
                 ForEach(days) { day in
                     Button {
                         withAnimation(.easeInOut(duration: 0.18)) {
@@ -656,112 +593,88 @@ private struct GroomerScheduleDayChip: View {
     let isSelected: Bool
 
     var body: some View {
-        VStack(spacing: DesignTokens.Spacing.xs) {
+        VStack(spacing: 3) {
             Text(GroomerScheduleDateFormatting.weekday(from: day.date))
                 .font(.caption.weight(.bold))
                 .foregroundStyle(isSelected ? Color.white.opacity(0.86) : DesignTokens.Colors.textTertiary)
 
             Text(GroomerScheduleDateFormatting.dayNumber(from: day.date))
-                .font(.system(size: 28, weight: .bold))
+                .font(.system(size: 24, weight: .bold))
                 .foregroundStyle(isSelected ? Color.white : DesignTokens.Colors.textPrimary)
 
             Text(day.isToday ? "Today" : GroomerScheduleDateFormatting.month(from: day.date))
                 .font(.caption2.weight(.bold))
                 .foregroundStyle(isSelected ? Color.white.opacity(0.8) : DesignTokens.Colors.textTertiary)
         }
-        .frame(width: 76, height: 92)
+        .frame(width: 64, height: 78)
         .background {
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .fill(isSelected ? DesignTokens.Colors.groomerAccent : DesignTokens.Colors.surface)
         }
         .overlay {
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .stroke(
                     isSelected ? DesignTokens.Colors.groomerAccentDark.opacity(0.2) : DesignTokens.Colors.border,
                     lineWidth: 1.5
                 )
         }
-        .beckonShadow(isSelected ? DesignTokens.Shadows.groomerAction : DesignTokens.Shadows.smallCard)
         .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
 
-private struct GroomerScheduleSnapshotCard: View {
+private struct GroomerScheduleSummaryBand: View {
     let dayTitle: String
-    let bookings: [Booking]
+    let summary: GroomerScheduleSummary
 
     var body: some View {
-        BeckonCard {
-            HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
-                Image(systemName: "calendar.badge.clock")
-                    .font(.title3.weight(.bold))
-                    .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
-                    .frame(width: 52, height: 52)
-                    .background(DesignTokens.Colors.groomerAccent.opacity(0.16))
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                    .accessibilityHidden(true)
-
+        GroomerGroupedSurface {
+            HStack(alignment: .center, spacing: DesignTokens.Spacing.lg) {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     Text(dayTitle)
                         .font(DesignTokens.Typography.headline)
                         .foregroundStyle(DesignTokens.Colors.textPrimary)
 
-                    Text(snapshotSummary)
-                        .font(DesignTokens.Typography.body)
+                    Text("Next at \(summary.nextStartSummary) · \(summary.totalDurationSummary) booked")
+                        .font(DesignTokens.Typography.caption)
                         .foregroundStyle(DesignTokens.Colors.textSecondary)
-                        .lineLimit(2)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                VStack(alignment: .trailing, spacing: DesignTokens.Spacing.xs) {
-                    Text("\(bookings.count)")
-                        .font(.system(size: 30, weight: .bold))
-                        .foregroundStyle(DesignTokens.Colors.textPrimary)
-
-                    Text(bookings.count == 1 ? "Booking" : "Bookings")
-                        .font(DesignTokens.Typography.caption)
-                        .foregroundStyle(DesignTokens.Colors.textSecondary)
-                }
+                Text("\(summary.bookingCount) \(summary.bookingCount == 1 ? "appointment" : "appointments")")
+                    .font(DesignTokens.Typography.caption.weight(.bold))
+                    .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
+                    .padding(.horizontal, DesignTokens.Spacing.sm)
+                    .padding(.vertical, DesignTokens.Spacing.xs)
+                    .background(DesignTokens.Colors.groomerAccent.opacity(0.14))
+                    .clipShape(Capsule())
             }
+            .padding(DesignTokens.Spacing.md)
         }
+        .accessibilityIdentifier("groomer.schedule.summary")
+        .accessibilityElement(children: .combine)
     }
+}
 
-    private var snapshotSummary: String {
-        guard let nextBooking = bookings.first else {
-            return "You have no confirmed appointments on this day."
+private struct GroomerScheduleEmptyDayView: View {
+    let dayTitle: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            Text(dayTitle)
+                .font(.title3.weight(.bold))
+                .foregroundStyle(DesignTokens.Colors.textPrimary)
+
+            BeckonEmptyState(
+                title: "No Appointments",
+                message: "Confirmed bookings for this day will appear here.",
+                systemImage: "calendar.badge.clock",
+                accent: .groomer
+            )
         }
-
-        return "Next appointment starts at \(BookingListDateFormatting.time(from: nextBooking.scheduledStart)). \(totalDurationSummary) booked."
-    }
-
-    private var totalDurationSummary: String {
-        let minutes = bookings.reduce(0) { total, booking in
-            guard
-                let start = GroomingRequestDateFormatting.parsedDate(from: booking.scheduledStart),
-                let end = GroomingRequestDateFormatting.parsedDate(from: booking.scheduledEnd)
-            else {
-                return total
-            }
-
-            return total + max(0, Int(end.timeIntervalSince(start) / 60))
-        }
-
-        guard minutes > 0 else {
-            return "Time"
-        }
-
-        let hours = minutes / 60
-        let remainingMinutes = minutes % 60
-
-        if hours == 0 {
-            return "\(remainingMinutes)m"
-        }
-
-        if remainingMinutes == 0 {
-            return "\(hours)h"
-        }
-
-        return "\(hours)h \(remainingMinutes)m"
+        .accessibilityIdentifier("groomer.schedule.empty")
     }
 }
 
@@ -771,194 +684,143 @@ private struct GroomerScheduleTimeline: View {
     let onOpenChat: (Booking) -> Void
 
     var body: some View {
-        LazyVStack(spacing: DesignTokens.Spacing.md) {
-            ForEach(bookings) { booking in
-                GroomerScheduleTimelineRow(
-                    booking: booking,
-                    store: store,
-                    onOpenChat: onOpenChat
-                )
+        GroomerWorkspaceSection(title: "Appointments") {
+            GroomerGroupedSurface {
+                VStack(spacing: 0) {
+                    ForEach(Array(bookings.enumerated()), id: \.element.id) { index, booking in
+                        if index > 0 {
+                            GroomerWorkspaceDivider(leadingInset: 72)
+                        }
+
+                        GroomerScheduleAppointmentRow(
+                            booking: booking,
+                            store: store,
+                            onOpenChat: onOpenChat
+                        )
+                    }
+                }
             }
         }
         .accessibilityIdentifier("groomer.schedule.timeline")
     }
 }
 
-private struct GroomerScheduleTimelineRow: View {
+private struct GroomerScheduleAppointmentRow: View {
     let booking: Booking
     let store: BookingsStore
     let onOpenChat: (Booking) -> Void
 
-    var body: some View {
-        HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
-            VStack(spacing: DesignTokens.Spacing.xs) {
-                Text(BookingListDateFormatting.time(from: booking.scheduledStart))
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
-                    .multilineTextAlignment(.trailing)
-                    .frame(maxWidth: .infinity, alignment: .trailing)
-
-                Circle()
-                    .fill(DesignTokens.Colors.groomerAccent)
-                    .frame(width: 12, height: 12)
-                    .overlay {
-                        Circle()
-                            .stroke(DesignTokens.Colors.groomerAccent.opacity(0.28), lineWidth: 6)
-                    }
-
-                Rectangle()
-                    .fill(DesignTokens.Colors.borderSoft)
-                    .frame(width: 2)
-                    .frame(minHeight: 112)
-            }
-            .frame(width: 62)
-            .padding(.top, DesignTokens.Spacing.md)
-
-            GroomerScheduleAppointmentCard(
-                booking: booking,
-                store: store,
-                onOpenChat: onOpenChat
-            )
-        }
+    private var presentation: GroomerScheduleAppointmentPresentation {
+        GroomerScheduleAppointmentPresentation(booking: booking)
     }
-}
-
-private struct GroomerScheduleAppointmentCard: View {
-    let booking: Booking
-    let store: BookingsStore
-    let onOpenChat: (Booking) -> Void
 
     var body: some View {
-        BeckonCard(padding: 0) {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                NavigationLink {
-                    BookingDetailView(
-                        bookingID: booking.id,
-                        role: .groomer,
-                        store: store,
-                        onOpenChat: onOpenChat
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            NavigationLink {
+                BookingDetailView(
+                    bookingID: booking.id,
+                    role: .groomer,
+                    store: store,
+                    onOpenChat: onOpenChat
+                )
+            } label: {
+                HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(BookingListDateFormatting.time(from: booking.scheduledStart))
+                            .font(DesignTokens.Typography.caption.weight(.bold))
+                            .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
+
+                        Text(BookingListDateFormatting.time(from: booking.scheduledEnd))
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(DesignTokens.Colors.textTertiary)
+                    }
+                    .frame(width: 56, alignment: .leading)
+
+                    ZStack {
+                        DesignTokens.Colors.groomerAccent.opacity(0.15)
+                        Image(systemName: "pawprint.fill")
+                            .font(.body.weight(.bold))
+                            .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
+                    }
+                    .frame(width: 44, height: 44)
+                    .clipShape(
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
                     )
-                } label: {
-                    cardHeader
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(presentation.petName)
+                            .font(DesignTokens.Typography.headline)
+                            .foregroundStyle(DesignTokens.Colors.textPrimary)
+                            .lineLimit(1)
+
+                        Text(presentation.petDetail)
+                            .font(DesignTokens.Typography.caption)
+                            .foregroundStyle(DesignTokens.Colors.textSecondary)
+                            .lineLimit(1)
+
+                        Text("\(presentation.customerReference) · \(presentation.location)")
+                            .font(DesignTokens.Typography.caption)
+                            .foregroundStyle(DesignTokens.Colors.textTertiary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                    VStack(alignment: .trailing, spacing: DesignTokens.Spacing.sm) {
+                        BeckonStatusChip(
+                            presentation.status.title,
+                            systemImage: presentation.status.chipIcon,
+                            tone: presentation.status.chipTone(for: .groomer)
+                        )
+
+                        Image(systemName: "chevron.right")
+                            .font(DesignTokens.Typography.caption.weight(.bold))
+                            .foregroundStyle(DesignTokens.Colors.textTertiary)
+                            .accessibilityHidden(true)
+                    }
                 }
-                .buttonStyle(.plain)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier(
+                AppTestOpsAccessibility.requestIdentifier(
+                    prefix: "groomer.booking.row.request",
+                    requestID: booking.requestID
+                )
+            )
+
+            HStack(spacing: DesignTokens.Spacing.sm) {
+                Button {
+                    onOpenChat(booking)
+                } label: {
+                    Label("Message", systemImage: "message")
+                }
+                .buttonStyle(BeckonSecondaryButtonStyle(accent: .groomer))
                 .accessibilityIdentifier(
                     AppTestOpsAccessibility.requestIdentifier(
-                        prefix: "groomer.booking.row.request",
+                        prefix: "groomer.booking.message.request",
                         requestID: booking.requestID
                     )
                 )
 
-                HStack(spacing: DesignTokens.Spacing.sm) {
+                if booking.canComplete(for: .groomer) {
                     Button {
-                        onOpenChat(booking)
+                        Task { await store.complete(booking) }
                     } label: {
-                        Text("Message")
+                        Label("Complete", systemImage: "checkmark.circle")
                     }
-                    .buttonStyle(BeckonSecondaryButtonStyle(accent: .groomer))
+                    .buttonStyle(BeckonPrimaryButtonStyle(accent: .groomer))
+                    .disabled(store.isCompleting || store.isCancelling)
                     .accessibilityIdentifier(
                         AppTestOpsAccessibility.requestIdentifier(
-                            prefix: "groomer.booking.message.request",
+                            prefix: "groomer.booking.complete.request",
                             requestID: booking.requestID
                         )
                     )
-
-                    if booking.canComplete(for: .groomer) {
-                        Button {
-                            Task {
-                                await store.complete(booking)
-                            }
-                        } label: {
-                            Text("Complete")
-                        }
-                        .buttonStyle(BeckonPrimaryButtonStyle(accent: .groomer))
-                        .disabled(store.isCompleting)
-                        .accessibilityIdentifier(
-                            AppTestOpsAccessibility.requestIdentifier(
-                                prefix: "groomer.booking.complete.request",
-                                requestID: booking.requestID
-                            )
-                        )
-                    } else {
-                        Text(booking.status.title)
-                            .font(DesignTokens.Typography.body.weight(.bold))
-                            .foregroundStyle(DesignTokens.Colors.success)
-                            .frame(maxWidth: .infinity, minHeight: 44)
-                            .padding(.horizontal, DesignTokens.Spacing.lg)
-                            .padding(.vertical, DesignTokens.Spacing.md)
-                            .background(DesignTokens.Colors.success.opacity(0.13))
-                            .clipShape(
-                                RoundedRectangle(
-                                    cornerRadius: DesignTokens.CornerRadius.button,
-                                    style: .continuous
-                                )
-                            )
-                    }
                 }
             }
-            .padding(DesignTokens.Spacing.lg)
         }
-        .overlay(alignment: .leading) {
-            RoundedRectangle(cornerRadius: 6, style: .continuous)
-                .fill(DesignTokens.Colors.groomerAccent)
-                .frame(width: 5)
-                .padding(.vertical, DesignTokens.Spacing.md)
-        }
-    }
-
-    private var cardHeader: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            HStack(alignment: .firstTextBaseline) {
-                Text(booking.timeWindowSummary)
-                    .font(.title3.weight(.bold))
-                    .foregroundStyle(DesignTokens.Colors.textPrimary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.78)
-
-                Spacer(minLength: DesignTokens.Spacing.sm)
-
-                BeckonStatusChip(
-                    booking.status.title,
-                    systemImage: booking.status.chipIcon,
-                    tone: booking.status.chipTone(for: .groomer)
-                )
-            }
-
-            HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
-                Image(systemName: "pawprint.fill")
-                    .font(.title3.weight(.bold))
-                    .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
-                    .frame(width: 52, height: 52)
-                    .background(DesignTokens.Colors.groomerAccent.opacity(0.18))
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                    .accessibilityHidden(true)
-
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                    Text(booking.appointmentServiceTitle)
-                        .font(DesignTokens.Typography.headline)
-                        .foregroundStyle(DesignTokens.Colors.textPrimary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.82)
-
-                    Text("\(booking.partnerDisplayTitle(for: .groomer)) · \(booking.scheduleLocationShortTitle)")
-                        .font(DesignTokens.Typography.body)
-                        .foregroundStyle(DesignTokens.Colors.textSecondary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.82)
-
-                    Text("Order #\(booking.referenceCode)")
-                        .font(DesignTokens.Typography.caption)
-                        .foregroundStyle(DesignTokens.Colors.textTertiary)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-                Image(systemName: "chevron.right")
-                    .font(DesignTokens.Typography.headline)
-                    .foregroundStyle(DesignTokens.Colors.textTertiary)
-                    .accessibilityHidden(true)
-            }
-        }
-        .contentShape(Rectangle())
+        .padding(DesignTokens.Spacing.md)
     }
 }
 
@@ -992,43 +854,6 @@ private enum BookingListDateFormatting {
             return value
         }
 
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.dateFormat = pattern
-        return formatter.string(from: date)
-    }
-}
-
-private enum GroomerScheduleDateFormatting {
-    static func dayKey(from value: String) -> String? {
-        guard let date = GroomingRequestDateFormatting.parsedDate(from: value) else {
-            return nil
-        }
-
-        return dayKey(from: date)
-    }
-
-    static func dayKey(from date: Date) -> String {
-        format(date, pattern: "yyyy-MM-dd")
-    }
-
-    static func weekday(from date: Date) -> String {
-        format(date, pattern: "EEE").uppercased()
-    }
-
-    static func dayNumber(from date: Date) -> String {
-        format(date, pattern: "d")
-    }
-
-    static func month(from date: Date) -> String {
-        format(date, pattern: "MMM")
-    }
-
-    static func longDayTitle(from date: Date) -> String {
-        format(date, pattern: "EEEE, MMM d")
-    }
-
-    private static func format(_ date: Date, pattern: String) -> String {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.dateFormat = pattern
@@ -1116,7 +941,8 @@ struct BookingDetailView: View {
 
                         BookingDetailInfoCard(
                             title: "Appointment",
-                            systemImage: "calendar.badge.clock"
+                            systemImage: "calendar.badge.clock",
+                            role: role
                         ) {
                             BookingDetailFactRow("Service", value: booking.appointmentServiceTitle)
                             BookingDetailFactRow("Date", value: BookingListDateFormatting.day(from: booking.scheduledStart))
@@ -1175,6 +1001,13 @@ struct BookingDetailView: View {
             .navigationTitle("Booking")
             .navigationBarTitleDisplayMode(.inline)
             .accessibilityIdentifier("bookings.detail")
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                BookingDetailActionBar(
+                    booking: booking,
+                    role: role,
+                    store: store
+                )
+            }
         } else {
             ZStack {
                 DesignTokens.Colors.background
@@ -1189,6 +1022,63 @@ struct BookingDetailView: View {
                 .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
             }
             .navigationTitle("Booking")
+        }
+    }
+}
+
+private struct BookingDetailActionBar: View {
+    let booking: Booking
+    let role: UserRole
+    let store: BookingsStore
+
+    private var presentation: BookingDetailActionPresentation {
+        BookingDetailActionPresentation(booking: booking, role: role)
+    }
+
+    @ViewBuilder
+    var body: some View {
+        if presentation.canCancel || presentation.canComplete {
+            HStack(spacing: DesignTokens.Spacing.sm) {
+                if presentation.canCancel {
+                    Button(role: .destructive) {
+                        Task { await store.cancel(booking) }
+                    } label: {
+                        Label("Cancel", systemImage: "xmark.circle")
+                    }
+                    .buttonStyle(BeckonSecondaryButtonStyle(accent: .neutral))
+                    .disabled(store.isCancelling || store.isCompleting)
+                    .accessibilityIdentifier(
+                        AppTestOpsAccessibility.requestIdentifier(
+                            prefix: role == .groomer
+                                ? "groomer.booking.cancel.request"
+                                : "customer.booking.cancel.request",
+                            requestID: booking.requestID
+                        )
+                    )
+                }
+
+                if presentation.canComplete {
+                    Button {
+                        Task { await store.complete(booking) }
+                    } label: {
+                        Label("Complete", systemImage: "checkmark.circle")
+                    }
+                    .buttonStyle(BeckonPrimaryButtonStyle(accent: .groomer))
+                    .disabled(store.isCancelling || store.isCompleting)
+                    .accessibilityIdentifier(
+                        AppTestOpsAccessibility.requestIdentifier(
+                            prefix: "groomer.booking.detail.complete.request",
+                            requestID: booking.requestID
+                        )
+                    )
+                }
+            }
+            .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+            .padding(.vertical, DesignTokens.Spacing.sm)
+            .background(.ultraThinMaterial)
+            .overlay(alignment: .top) {
+                GroomerWorkspaceDivider()
+            }
         }
     }
 }
@@ -1215,15 +1105,18 @@ private struct BookingDetailHeroCard: View {
                 }
 
                 HStack(alignment: .center, spacing: DesignTokens.Spacing.lg) {
-                    BookingAvatar(role: role)
+                    BookingAvatar(
+                        role: role,
+                        systemImage: role == .groomer ? "pawprint.fill" : nil
+                    )
 
                     VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                        Text(booking.detailTitle)
+                        Text(heroTitle)
                             .font(.title2.weight(.bold))
                             .foregroundStyle(DesignTokens.Colors.textPrimary)
                             .fixedSize(horizontal: false, vertical: true)
 
-                        Text(booking.detailSubtitle(for: role))
+                        Text(heroSubtitle)
                             .font(DesignTokens.Typography.body)
                             .foregroundStyle(DesignTokens.Colors.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
@@ -1233,20 +1126,37 @@ private struct BookingDetailHeroCard: View {
             }
         }
     }
+
+    private var heroTitle: String {
+        if role == .groomer {
+            return booking.requestPetSnapshot?.name ?? booking.detailTitle
+        }
+        return booking.detailTitle
+    }
+
+    private var heroSubtitle: String {
+        if role == .groomer {
+            return "\(booking.appointmentServiceTitle) · \(booking.participantSummary(for: .groomer))"
+        }
+        return booking.detailSubtitle(for: role)
+    }
 }
 
 private struct BookingDetailInfoCard<Content: View>: View {
     let title: String
     let systemImage: String
+    let role: UserRole
     let content: Content
 
     init(
         title: String,
         systemImage: String,
+        role: UserRole = .customer,
         @ViewBuilder content: () -> Content
     ) {
         self.title = title
         self.systemImage = systemImage
+        self.role = role
         self.content = content()
     }
 
@@ -1256,9 +1166,9 @@ private struct BookingDetailInfoCard<Content: View>: View {
                 HStack(spacing: DesignTokens.Spacing.md) {
                     Image(systemName: systemImage)
                         .font(DesignTokens.Typography.body.weight(.bold))
-                        .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
+                        .foregroundStyle(role.primaryColor)
                         .frame(width: 38, height: 38)
-                        .background(DesignTokens.Colors.customerPrimary.opacity(0.15))
+                        .background(role.primaryColor.opacity(0.15))
                         .clipShape(DesignTokens.Shapes.circular)
                         .accessibilityHidden(true)
 
@@ -1281,14 +1191,19 @@ private struct BookingPartnerOverviewCard: View {
     var body: some View {
         BookingDetailInfoCard(
             title: role == .customer ? "Groomer" : "Customer",
-            systemImage: "person.fill"
+            systemImage: "person.fill",
+            role: role
         ) {
             HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
                 BookingAvatar(role: role)
                     .frame(width: 56, height: 56)
 
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                    Text(booking.partnerDisplayTitle(for: role))
+                    Text(
+                        role == .groomer
+                            ? booking.participantSummary(for: .groomer)
+                            : booking.partnerDisplayTitle(for: role)
+                    )
                         .font(.title3.weight(.bold))
                         .foregroundStyle(DesignTokens.Colors.textPrimary)
                         .fixedSize(horizontal: false, vertical: true)

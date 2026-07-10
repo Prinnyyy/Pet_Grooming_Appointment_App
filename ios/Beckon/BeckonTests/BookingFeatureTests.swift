@@ -4,6 +4,122 @@ import Testing
 
 struct BookingsStoreTests {
     @Test @MainActor
+    func groomerScheduleDefaultsToFirstActiveDayAndBuildsOneSummary() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try #require(
+            TimeZone(identifier: "America/Los_Angeles")
+        )
+        let referenceDate = try #require(
+            GroomingRequestDateFormatting.parsedDate(
+                from: "2026-08-20T16:00:00Z"
+            )
+        )
+        let first = Self.booking(
+            scheduledStart: "2026-08-22T16:00:00Z",
+            scheduledEnd: "2026-08-22T18:00:00Z"
+        )
+        let second = Self.booking(
+            scheduledStart: "2026-08-22T19:00:00Z",
+            scheduledEnd: "2026-08-22T20:30:00Z"
+        )
+        let cancelled = Self.booking(
+            status: .cancelledByCustomer,
+            scheduledStart: "2026-08-21T15:00:00Z",
+            scheduledEnd: "2026-08-21T16:00:00Z"
+        )
+        let past = Self.booking(
+            scheduledStart: "2026-08-19T16:00:00Z",
+            scheduledEnd: "2026-08-19T17:00:00Z"
+        )
+
+        let presentation = GroomerSchedulePresentation(
+            referenceDate: referenceDate,
+            bookings: [past, second, cancelled, first],
+            selectedDayKey: nil,
+            calendar: calendar
+        )
+
+        #expect(presentation.selectedDayKey == "2026-08-22")
+        #expect(presentation.selectedBookings.map(\.id) == [first.id, second.id])
+        #expect(presentation.summary?.bookingCount == 2)
+        #expect(presentation.summary?.totalDurationSummary == "3h 30m")
+        #expect(presentation.summary?.nextStartSummary == "9:00 AM")
+    }
+
+    @Test @MainActor
+    func groomerScheduleEmptySelectionDoesNotCreateDuplicateSummary() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try #require(
+            TimeZone(identifier: "America/Los_Angeles")
+        )
+        let referenceDate = try #require(
+            GroomingRequestDateFormatting.parsedDate(
+                from: "2026-08-20T16:00:00Z"
+            )
+        )
+        let booking = Self.booking(
+            scheduledStart: "2026-08-22T16:00:00Z",
+            scheduledEnd: "2026-08-22T18:00:00Z"
+        )
+
+        let presentation = GroomerSchedulePresentation(
+            referenceDate: referenceDate,
+            bookings: [booking],
+            selectedDayKey: "2026-08-20",
+            calendar: calendar
+        )
+
+        #expect(presentation.selectedBookings.isEmpty)
+        #expect(presentation.summary == nil)
+    }
+
+    @Test @MainActor
+    func groomerScheduleAppointmentPrioritizesPetAndOperationalContext() throws {
+        let booking = Self.booking(
+            customerID: UUID(uuidString: "123E4567-E89B-42D3-A456-426614174000")!,
+            serviceType: .fullGroom,
+            locationMode: .groomerComesToCustomer,
+            requestPetSnapshot: try Self.petSnapshot(breed: "Poodle")
+        )
+
+        let presentation = GroomerScheduleAppointmentPresentation(
+            booking: booking
+        )
+
+        #expect(presentation.petName == "Mochi")
+        #expect(presentation.petDetail == "Poodle · Full Groom")
+        #expect(presentation.customerReference == "Customer ref 123E4567")
+        #expect(presentation.location == "Mobile")
+        #expect(presentation.status == .confirmed)
+    }
+
+    @Test @MainActor
+    func bookingDetailActionsStayRoleCorrectAcrossStatuses() {
+        let confirmed = Self.booking(status: .confirmed)
+        let completed = Self.booking(status: .completed)
+
+        let groomerActions = BookingDetailActionPresentation(
+            booking: confirmed,
+            role: .groomer
+        )
+        let customerActions = BookingDetailActionPresentation(
+            booking: confirmed,
+            role: .customer
+        )
+        let completedActions = BookingDetailActionPresentation(
+            booking: completed,
+            role: .groomer
+        )
+
+        #expect(groomerActions.canComplete)
+        #expect(groomerActions.canCancel)
+        #expect(!customerActions.canComplete)
+        #expect(customerActions.canCancel)
+        #expect(!completedActions.canComplete)
+        #expect(!completedActions.canCancel)
+    }
+
+    @Test @MainActor
     func paginationRetriesThenAppendsUniqueBookingsAndStopsAtLastPage() async {
         let participantID = UUID()
         let first = Self.booking(

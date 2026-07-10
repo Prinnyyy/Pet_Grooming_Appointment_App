@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-10
+Task: T-253 - Groomer Schedule and booking presentation.
+Files changed: Groomer schedule presentation model; booking Schedule/date/summary/row/detail-action views; booking regression and TestOps UI tests; roadmap/memory closeout.
+Checks: Schedule/action RED-GREEN; focused Bookings Store tests; full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; live compact empty-Schedule inspection; `git diff --check`; preflight/context hygiene.
+Result: Q-99 is complete. Schedule now uses fixed date chips, one truthful empty state or one populated-day summary, grouped operational appointment rows, and pet/customer/service/time/status hierarchy. Booking detail exposes role-correct Cancel and Groomer Complete actions while either mutation is in flight.
+Risks: The final live compact inspection covered an empty day; the populated schedule visual state remains covered by presentation, Store, and TestOps contracts. Q-104 retains the full compact/large/state-matrix integration gate. No backend or remote state changed.
+Next: Start Q-100 as T-254 on explicit continuation.
+```
+
+```text
+Date: 2026-07-10
 Task: T-252 - Groomer Requests and Offers workspace.
 Files changed: Requests/Offers segment and routes; unified workspace shell; grouped match/offer rows; request identity/detail and stable submit bar; global offer feedback forwarding; TestOps selectors; roadmap/current-state/task-ledger/worklog.
 Checks: Segment/route RED-GREEN; focused request/offer tests; full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; live 368x800 Matches empty state and populated Offers inspection; `git diff --check`; preflight/context hygiene.
 Result: Q-98 is complete. Requests now owns Matches and Offers with live counts, correct Home/notification routing, preserved pagination and offer mutations, grouped operational rows, authenticated request imagery, and a clearer request-detail action hierarchy.
 Risks: The inspected groomer had no active matches, so the populated match row and submit detail remain covered by compile/Store/TestOps contracts rather than a remote-write fixture in this task. Q-104 retains the full state-matrix integration gate; no backend or remote state changed.
-Next: Start Q-99 as T-253 on explicit continuation.
 ```
 
 ```text

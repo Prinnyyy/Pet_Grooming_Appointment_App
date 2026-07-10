@@ -276,6 +276,10 @@ final class TestOpsUIFlowDriver {
         XCTAssertTrue(bookingRow.waitForExistence(timeout: 20))
         tap(bookingRow)
         XCTAssertTrue(element("bookings.detail").waitForExistence(timeout: 10))
+        XCTAssertTrue(
+            button("customer.booking.cancel.request.\(requestReference)")
+                .waitForExistence(timeout: 5)
+        )
 
         let openChat = button("bookings.detail.open-chat")
         scrollToHittable(openChat)
