@@ -36,8 +36,8 @@ struct ChatConversationsView: View {
 
             conversationsContent
         }
-        .navigationTitle("")
-        .navigationBarTitleDisplayMode(.inline)
+        .navigationTitle(role == .groomer ? "Messages" : "")
+        .navigationBarTitleDisplayMode(role == .groomer ? .large : .inline)
         .background {
             ChatStatusView(store: store, role: role)
         }
@@ -105,43 +105,7 @@ struct ChatConversationsView: View {
         } else {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                    CustomerMessagesTitle("Messages")
-
-                    if store.conversations.isEmpty {
-                        BeckonEmptyState(
-                            title: "No Conversations Yet",
-                            message: "Accepted bookings create participant conversations.",
-                            systemImage: "message",
-                            accent: role.beckonEmptyAccent
-                        )
-                        .accessibilityIdentifier("chat.conversations.empty")
-                    } else {
-                        LazyVStack(spacing: DesignTokens.Spacing.md) {
-                            ForEach(store.conversations) { conversation in
-                                NavigationLink {
-                                    ChatThreadView(
-                                        participantID: participantID,
-                                        role: role,
-                                        conversation: conversation,
-                                        store: store
-                                    )
-                                } label: {
-                                    ChatConversationRow(
-                                        conversation: conversation,
-                                        role: role,
-                                        store: store
-                                    )
-                                }
-                                .buttonStyle(.plain)
-                                .accessibilityIdentifier(
-                                    AppTestOpsAccessibility.requestIdentifier(
-                                        prefix: "chat.conversation.request",
-                                        requestID: conversation.requestID
-                                    )
-                                )
-                            }
-                        }
-                    }
+                    conversationWorkspace
 
                     if store.canLoadMoreConversations || store.isLoadingMoreConversations {
                         BeckonLoadMoreButton(
@@ -160,6 +124,84 @@ struct ChatConversationsView: View {
             .accessibilityIdentifier("chat.conversations.list")
         }
     }
+
+    @ViewBuilder
+    private var conversationWorkspace: some View {
+        if role == .groomer {
+            let presentation = GroomerConversationListPresentation(
+                conversationCount: store.conversations.count,
+                unreadConversationCount: store.unreadConversationCount
+            )
+
+            GroomerWorkspaceSection(title: presentation.title) {
+                Text(presentation.subtitle)
+                    .font(DesignTokens.Typography.body)
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+
+                if presentation.showsGroupedSurface {
+                    GroomerGroupedSurface {
+                        VStack(spacing: 0) {
+                            ForEach(Array(store.conversations.enumerated()), id: \.element.id) { index, conversation in
+                                if index > 0 {
+                                    GroomerWorkspaceDivider(leadingInset: 72)
+                                }
+
+                                conversationLink(conversation)
+                            }
+                        }
+                    }
+                } else {
+                    emptyConversationsState
+                }
+            }
+        } else {
+            CustomerMessagesTitle("Messages")
+
+            if store.conversations.isEmpty {
+                emptyConversationsState
+            } else {
+                LazyVStack(spacing: DesignTokens.Spacing.md) {
+                    ForEach(store.conversations) { conversation in
+                        conversationLink(conversation)
+                    }
+                }
+            }
+        }
+    }
+
+    private var emptyConversationsState: some View {
+        BeckonEmptyState(
+            title: "No Conversations Yet",
+            message: "Accepted bookings create participant conversations.",
+            systemImage: "message",
+            accent: role.beckonEmptyAccent
+        )
+        .accessibilityIdentifier("chat.conversations.empty")
+    }
+
+    private func conversationLink(_ conversation: ChatConversation) -> some View {
+        NavigationLink {
+            ChatThreadView(
+                participantID: participantID,
+                role: role,
+                conversation: conversation,
+                store: store
+            )
+        } label: {
+            ChatConversationRow(
+                conversation: conversation,
+                role: role,
+                store: store
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier(
+            AppTestOpsAccessibility.requestIdentifier(
+                prefix: "chat.conversation.request",
+                requestID: conversation.requestID
+            )
+        )
+    }
 }
 
 private struct ChatConversationRow: View {
@@ -168,52 +210,91 @@ private struct ChatConversationRow: View {
     let store: ChatStore
 
     var body: some View {
-        BeckonCard {
-            HStack(alignment: .center, spacing: DesignTokens.Spacing.lg) {
-                ChatConversationAvatar(
-                    title: conversation.listTitle(for: role),
-                    role: role
-                )
+        if role == .groomer {
+            rowContent
+                .padding(DesignTokens.Spacing.lg)
+        } else {
+            BeckonCard {
+                rowContent
+            }
+        }
+    }
 
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                    Text(conversation.listTitle(for: role))
-                        .font(.title3.weight(.bold))
-                        .foregroundStyle(DesignTokens.Colors.textPrimary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.82)
+    private var rowContent: some View {
+        HStack(
+            alignment: .center,
+            spacing: role == .groomer
+                ? DesignTokens.Spacing.md
+                : DesignTokens.Spacing.lg
+        ) {
+            ChatConversationAvatar(
+                title: conversation.listTitle(for: role),
+                role: role,
+                isCompact: role == .groomer
+            )
 
-                    Text(store.previewText(for: conversation))
-                        .font(DesignTokens.Typography.body)
-                        .foregroundStyle(DesignTokens.Colors.textSecondary)
-                        .lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
+            VStack(
+                alignment: .leading,
+                spacing: role == .groomer
+                    ? DesignTokens.Spacing.xs
+                    : DesignTokens.Spacing.sm
+            ) {
+                Text(conversation.listTitle(for: role))
+                    .font(role == .groomer ? .headline.weight(.bold) : .title3.weight(.bold))
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.82)
 
-                VStack(alignment: .trailing, spacing: DesignTokens.Spacing.sm) {
-                    if store.hasUnreadMessages(in: conversation) {
-                        Circle()
-                            .fill(role.chatAccentColor)
-                            .frame(width: 10, height: 10)
-                            .accessibilityHidden(true)
-                    }
-
-                    Text(ChatDateFormatting.relativeSummary(from: conversation.updatedAt))
-                        .font(DesignTokens.Typography.caption)
+                if role == .groomer {
+                    Text("Booking \(conversation.bookingReferenceCode)")
+                        .font(DesignTokens.Typography.caption.weight(.medium))
                         .foregroundStyle(DesignTokens.Colors.textTertiary)
-
-                    if conversation.isReadOnly() {
-                        Text("Read-only")
-                            .font(DesignTokens.Typography.caption.weight(.bold))
-                            .foregroundStyle(DesignTokens.Colors.textSecondary)
-                            .padding(.horizontal, DesignTokens.Spacing.sm)
-                            .padding(.vertical, DesignTokens.Spacing.xs)
-                            .background {
-                                Capsule()
-                                    .fill(DesignTokens.Colors.borderSoft.opacity(0.85))
-                            }
-                    }
+                        .lineLimit(1)
                 }
+
+                Text(store.previewText(for: conversation))
+                    .font(DesignTokens.Typography.body)
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                    .lineLimit(role == .groomer ? 1 : 2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            VStack(
+                alignment: .trailing,
+                spacing: role == .groomer
+                    ? DesignTokens.Spacing.xs
+                    : DesignTokens.Spacing.sm
+            ) {
+                if store.hasUnreadMessages(in: conversation) {
+                    Circle()
+                        .fill(role.chatAccentColor)
+                        .frame(width: 10, height: 10)
+                        .accessibilityHidden(true)
+                }
+
+                Text(ChatDateFormatting.relativeSummary(from: conversation.updatedAt))
+                    .font(DesignTokens.Typography.caption)
+                    .foregroundStyle(DesignTokens.Colors.textTertiary)
+
+                if conversation.isReadOnly() {
+                    Text("Read-only")
+                        .font(DesignTokens.Typography.caption.weight(.bold))
+                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+                        .padding(.horizontal, DesignTokens.Spacing.sm)
+                        .padding(.vertical, DesignTokens.Spacing.xs)
+                        .background {
+                            Capsule()
+                                .fill(DesignTokens.Colors.borderSoft.opacity(0.85))
+                        }
+                }
+            }
+
+            if role == .groomer {
+                Image(systemName: "chevron.right")
+                    .font(DesignTokens.Typography.caption.weight(.bold))
+                    .foregroundStyle(DesignTokens.Colors.textTertiary)
+                    .accessibilityHidden(true)
             }
         }
     }
@@ -222,14 +303,29 @@ private struct ChatConversationRow: View {
 private struct ChatConversationAvatar: View {
     let title: String
     let role: UserRole
+    let isCompact: Bool
+
+    init(title: String, role: UserRole, isCompact: Bool = false) {
+        self.title = title
+        self.role = role
+        self.isCompact = isCompact
+    }
 
     var body: some View {
         Text(initial)
             .font(.title3.weight(.bold))
             .foregroundStyle(role.chatAccentColor)
-            .frame(width: 64, height: 64)
+            .frame(
+                width: isCompact ? 48 : 64,
+                height: isCompact ? 48 : 64
+            )
             .background(role.chatAccentColor.opacity(0.28))
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .clipShape(
+                RoundedRectangle(
+                    cornerRadius: isCompact ? 14 : 18,
+                    style: .continuous
+                )
+            )
             .accessibilityHidden(true)
     }
 

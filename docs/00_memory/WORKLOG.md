@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-10
+Task: T-254 - Groomer Messages and Notifications presentation.
+Files changed: Groomer conversation/notification presentation models; Groomer-only grouped Messages and Notifications views; focused Chat/Notification tests; roadmap/memory closeout.
+Checks: Presentation RED-GREEN; focused Chat/Notification tests; full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; live compact Groomer Messages, thread navigation, Home notification entry, notification deep link, accessibility-selector inspection, and long-list scroll inspection; `git diff --check`; preflight/context hygiene.
+Result: Q-100 is complete. Groomer Messages uses a compact grouped conversation surface with booking context and preserved request selectors. Notifications uses the same grouped density, retains mark-read/mark-all/pagination, preserves direct routes from Home, and gives long lists enough trailing scroll space above the tab bar.
+Risks: Existing TestOps UI lifecycle tests retain their configured skips. Q-104 retains the full viewport, Dynamic Type, and state-matrix integration gate. No backend or remote write changed.
+Next: Start Q-101 as T-255 on explicit continuation.
+```
+
+```text
+Date: 2026-07-10
 Task: T-253 - Groomer Schedule and booking presentation.
 Files changed: Groomer schedule presentation model; booking Schedule/date/summary/row/detail-action views; booking regression and TestOps UI tests; roadmap/memory closeout.
 Checks: Schedule/action RED-GREEN; focused Bookings Store tests; full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; live compact empty-Schedule inspection; `git diff --check`; preflight/context hygiene.
 Result: Q-99 is complete. Schedule now uses fixed date chips, one truthful empty state or one populated-day summary, grouped operational appointment rows, and pet/customer/service/time/status hierarchy. Booking detail exposes role-correct Cancel and Groomer Complete actions while either mutation is in flight.
 Risks: The final live compact inspection covered an empty day; the populated schedule visual state remains covered by presentation, Store, and TestOps contracts. Q-104 retains the full compact/large/state-matrix integration gate. No backend or remote state changed.
-Next: Start Q-100 as T-254 on explicit continuation.
 ```
 
 ```text

@@ -20,9 +20,10 @@ struct GroomerNotificationsView: View {
             content
         }
         .navigationTitle("Notifications")
+        .navigationBarTitleDisplayMode(.large)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                if store.unreadCount > 0 {
+                if presentation.canMarkAllRead {
                     Button {
                         Task {
                             await store.markAllRead()
@@ -56,10 +57,7 @@ struct GroomerNotificationsView: View {
         } else {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                    BeckonSectionHeader(
-                        "System Updates",
-                        subtitle: unreadSummary
-                    )
+                    GroomerNotificationsWorkspaceHeader(presentation: presentation)
 
                     if let errorMessage = store.errorMessage {
                         BeckonErrorBanner(
@@ -79,7 +77,30 @@ struct GroomerNotificationsView: View {
                         .accessibilityIdentifier("groomer.notifications.error")
                     }
 
-                    if store.notifications.isEmpty, store.errorMessage == nil {
+                    if !store.notifications.isEmpty {
+                        GroomerGroupedSurface {
+                            VStack(spacing: 0) {
+                                ForEach(Array(store.notifications.enumerated()), id: \.element.id) { index, notification in
+                                    if index > 0 {
+                                        GroomerWorkspaceDivider(leadingInset: 64)
+                                    }
+
+                                    GroomerNotificationRow(
+                                        notification: notification,
+                                        isMarkingRead: store.isMarkingRead(notification),
+                                        openAction: {
+                                            routeAction(notification.route)
+                                        },
+                                        markReadAction: {
+                                            Task {
+                                                await store.markRead(notification)
+                                            }
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    } else if store.errorMessage == nil {
                         BeckonEmptyState(
                             title: "No Notifications",
                             message: "System updates about matches, bookings, and messages will appear here.",
@@ -87,21 +108,6 @@ struct GroomerNotificationsView: View {
                             accent: .groomer
                         )
                         .accessibilityIdentifier("groomer.notifications.empty")
-                    } else {
-                        ForEach(store.notifications) { notification in
-                            GroomerNotificationRow(
-                                notification: notification,
-                                isMarkingRead: store.isMarkingRead(notification),
-                                openAction: {
-                                    routeAction(notification.route)
-                                },
-                                markReadAction: {
-                                    Task {
-                                        await store.markRead(notification)
-                                    }
-                                }
-                            )
-                        }
                     }
 
                     if store.canLoadMore || store.isLoadingMore {
@@ -115,20 +121,31 @@ struct GroomerNotificationsView: View {
                     }
                 }
                 .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-                .padding(.vertical, DesignTokens.Spacing.lg)
+                .padding(.top, DesignTokens.Spacing.lg)
+                .padding(.bottom, DesignTokens.Spacing.xl * 4)
             }
         }
     }
 
-    private var unreadSummary: String {
-        switch store.unreadCount {
-        case 0:
-            "All notifications are read."
-        case 1:
-            "1 unread notification."
-        default:
-            "\(store.unreadCount) unread notifications."
+    private var presentation: GroomerNotificationsListPresentation {
+        GroomerNotificationsListPresentation(unreadCount: store.unreadCount)
+    }
+}
+
+private struct GroomerNotificationsWorkspaceHeader: View {
+    let presentation: GroomerNotificationsListPresentation
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+            Text(presentation.title)
+                .font(.title3.weight(.bold))
+                .foregroundStyle(DesignTokens.Colors.textPrimary)
+
+            Text(presentation.subtitle)
+                .font(DesignTokens.Typography.body)
+                .foregroundStyle(DesignTokens.Colors.textSecondary)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
@@ -139,72 +156,67 @@ private struct GroomerNotificationRow: View {
     let markReadAction: () -> Void
 
     var body: some View {
-        BeckonCard {
-            HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
-                ZStack(alignment: .topTrailing) {
-                    Image(systemName: notification.kind.systemImage)
-                        .font(DesignTokens.Typography.headline)
-                        .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
-                        .frame(
-                            width: DesignTokens.Spacing.xl * 1.4,
-                            height: DesignTokens.Spacing.xl * 1.4
-                        )
-                        .background(DesignTokens.Colors.groomerAccent.opacity(0.14))
-                        .clipShape(DesignTokens.Shapes.circular)
+        HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
+            ZStack(alignment: .topTrailing) {
+                Image(systemName: notification.kind.systemImage)
+                    .font(DesignTokens.Typography.headline)
+                    .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
+                    .frame(width: 48, height: 48)
+                    .background(DesignTokens.Colors.groomerAccent.opacity(0.14))
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
 
-                    if !notification.isRead {
-                        Circle()
-                            .fill(DesignTokens.Colors.customerPrimary)
-                            .frame(width: 9, height: 9)
-                            .offset(x: -2, y: 2)
-                    }
+                if !notification.isRead {
+                    Circle()
+                        .fill(DesignTokens.Colors.customerPrimary)
+                        .frame(width: 9, height: 9)
+                        .offset(x: -2, y: 2)
                 }
-                .accessibilityHidden(true)
+            }
+            .accessibilityHidden(true)
 
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                    Button(action: openAction) {
-                        HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
-                            Text(notification.title)
-                                .font(DesignTokens.Typography.headline)
-                                .foregroundStyle(DesignTokens.Colors.textPrimary)
-                                .fixedSize(horizontal: false, vertical: true)
-
-                            if !notification.isRead {
-                                Text("Unread")
-                                    .font(DesignTokens.Typography.caption.weight(.semibold))
-                                    .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
-                            }
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityIdentifier("groomer.notifications.open")
-
-                    Text(notification.body)
-                        .font(DesignTokens.Typography.body)
-                        .foregroundStyle(DesignTokens.Colors.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-
-                    HStack(spacing: DesignTokens.Spacing.sm) {
-                        Label(notification.createdAtSummary, systemImage: "clock")
-                            .font(DesignTokens.Typography.caption)
-                            .foregroundStyle(DesignTokens.Colors.textTertiary)
-
-                        Spacer()
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                Button(action: openAction) {
+                    HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
+                        Text(notification.title)
+                            .font(DesignTokens.Typography.headline)
+                            .foregroundStyle(DesignTokens.Colors.textPrimary)
+                            .fixedSize(horizontal: false, vertical: true)
 
                         if !notification.isRead {
-                            Button(action: markReadAction) {
-                                Label("Mark Read", systemImage: "checkmark.circle")
-                            }
-                            .buttonStyle(BeckonSecondaryButtonStyle(accent: .groomer))
-                            .disabled(isMarkingRead)
-                            .accessibilityIdentifier("groomer.notifications.mark-read")
+                            Text("Unread")
+                                .font(DesignTokens.Typography.caption.weight(.semibold))
+                                .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
                         }
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("groomer.notifications.open")
+
+                Text(notification.body)
+                    .font(DesignTokens.Typography.body)
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                HStack(spacing: DesignTokens.Spacing.sm) {
+                    Label(notification.createdAtSummary, systemImage: "clock")
+                        .font(DesignTokens.Typography.caption)
+                        .foregroundStyle(DesignTokens.Colors.textTertiary)
+
+                    Spacer()
+
+                    if !notification.isRead {
+                        Button(action: markReadAction) {
+                            Label("Mark Read", systemImage: "checkmark.circle")
+                        }
+                        .buttonStyle(BeckonSecondaryButtonStyle(accent: .groomer))
+                        .disabled(isMarkingRead)
+                        .accessibilityIdentifier("groomer.notifications.mark-read")
+                    }
+                }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .accessibilityElement(children: .combine)
+        .padding(DesignTokens.Spacing.lg)
     }
 }

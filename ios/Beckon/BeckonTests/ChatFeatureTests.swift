@@ -3,6 +3,24 @@ import Testing
 @testable import Beckon
 
 struct ChatStoreTests {
+    @Test
+    func groomerConversationPresentationUsesOperationalUnreadSummary() {
+        let empty = GroomerConversationListPresentation(
+            conversationCount: 0,
+            unreadConversationCount: 0
+        )
+        let active = GroomerConversationListPresentation(
+            conversationCount: 3,
+            unreadConversationCount: 2
+        )
+
+        #expect(empty.title == "Conversations")
+        #expect(empty.subtitle == "All conversations are read.")
+        #expect(empty.showsGroupedSurface == false)
+        #expect(active.subtitle == "2 unread conversations.")
+        #expect(active.showsGroupedSurface)
+    }
+
     @Test @MainActor
     func conversationPaginationRetriesThenAppendsUniqueRowsAndStopsAtLastPage() async {
         let participantID = UUID()
