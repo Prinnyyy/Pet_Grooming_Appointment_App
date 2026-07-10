@@ -6,6 +6,8 @@ Use this template for a periodic documentation-governance review.
 
 Run one meta-review task every 10 completed tasks or once per week, whichever comes first. Assign a normal `T-###` from `TASK_LEDGER.md`; do not treat the review as background maintenance.
 
+When the tenth task closes, `context-hygiene-check.mjs` permits that closeout only if `CURRENT_STATE.md` explicitly reserves the immediate next task for the required periodic meta-review. The reserved task must run next. An unscheduled tenth-task gap or any gap greater than ten still fails.
+
 ## Scope
 
 - Active Markdown structure, links, budgets, and `.rgignore` behavior.

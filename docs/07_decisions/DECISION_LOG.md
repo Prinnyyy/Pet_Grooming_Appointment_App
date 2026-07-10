@@ -18,6 +18,15 @@ Linked files:
 ## Active Decisions
 
 ```text
+Decision ID: D-027
+Date: 2026-07-10
+Decision: Permit an exactly due documentation meta-review to be explicitly reserved as the immediate next task without blocking the preceding task's closeout.
+Context: T-250 became the tenth completed task after T-240. The cadence check correctly required T-251, but it also prevented T-250 from passing its own Git completion gate even though CURRENT_STATE explicitly reserved T-251, creating a two-task commit deadlock.
+Consequences: At a delta of exactly ten, context hygiene passes only when CURRENT_STATE names the numerically immediate next task and explicitly calls it the required periodic meta-review. Missing reservations and deltas above ten still fail. The reserved meta-review must execute next and update the marker.
+Linked files: scripts/context-hygiene-check.mjs, tests/docs/context-hygiene-check.test.mjs, docs/06_tasks/META_REVIEW_TEMPLATE.md, docs/00_memory/CURRENT_STATE.md
+```
+
+```text
 Decision ID: D-026
 Date: 2026-07-10
 Decision: Use one Beckon visual foundation with a schedule/action-oriented Groomer workspace and exactly five direct Groomer tabs.

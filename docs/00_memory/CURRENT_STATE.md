@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-10
 - Updated by: Codex
-- Latest completed task: T-250/R-039/Q-97 Groomer navigation shell and Home.
+- Latest completed task: T-251 periodic meta-review.
 - Current task: none; T-157 APNs remains externally blocked.
-- Next task ID: use T-251 for the required periodic meta-review; Q-98 follows as T-252 unless the user resumes T-157 after Apple Developer Program upgrade.
+- Next task ID: use T-252 for Q-98 unless the user resumes T-157 after Apple Developer Program upgrade.
 
 ## Fast Path
 
@@ -43,6 +43,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - T-248 completed Q-96: project/Auth/runtime identity and all 100 seed users use Beckon; UUID mapping is unchanged, remote lifecycle passed 5/5, matching passed 8/8, tagged residue is zero, and full local gates pass.
 - T-249 approved current/target Groomer visual evidence, the five-tab workspace contract, and Q-97 through Q-104. No app or backend implementation changed.
 - T-250 completes Q-97: five direct Groomer tabs, live Home summaries, Home notification entry, cache-first avatar, authenticated next-booking photo, and a data-ready Availability deep link pass focused/full iOS gates and live Simulator inspection.
+- T-251 verifies active docs, links, ignore behavior, the 60-file migration mirror, branch/task facts, and R-039 routing. It also allows an exactly due meta-review to be explicitly reserved as the next task without blocking the preceding commit; overdue cadence still fails.
 - T-244 normalizes the rotated Worklog EOF to one newline.
 - T-245 context-script validation passes 32 Node tests; word counts are informational and rolling windows use buffered high/retain entry counts.
 - T-246 passes the Beckon identity audit, 31 TestOps tests, 48 migration tests, 10 Edge tests, privacy/preflight/Supabase checks, full iOS tests/build, and Simulator auth branding inspection.
@@ -54,7 +55,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - Production uses real Supabase Auth, authoritative profile loading, and role separation. No production path fabricates a session/profile.
 - T-217 implements the iOS custom-scheme callback. T-242 configures the same exact Supabase Site/redirect URL plus verified Resend SMTP for `hellobeckon.com`. HTTPS universal links and associated domains remain deferred.
 - Implemented iOS areas include auth/onboarding, marketplace flow, notifications, foreground chat, profile/account surfaces, privacy/support links, private images, Debug Console, ops evidence, accessibility/copy checks, and TestOps.
-- Customer/groomer tab roots load shared notification/chat badge sources. Customer Home, Messages, and groomer Alerts display badges; chat unread state is local/session-scoped and clears on thread open.
+- Customer/groomer tab roots load shared notification/chat badge sources. Customer Home, Groomer Home's notification bell, and both Messages tabs expose unread state; chat unread state is local/session-scoped and clears on thread open.
 - TestOps has support-ref selectors and a no-screenshot dual-role lifecycle driver. Its wrapper verifies Debug/backend state and run-tag cleanup; UI uses one seed pair while backend `smoke5` is multi-pair.
 - Customer request UI and groomer profile UI were split into focused SwiftUI files in T-211/T-212.
 - Request, offer, booking, message, and notification repositories use bounded limit+1 page reads. All supported list surfaces expose retry-preserving, deduplicating terminal-page controls; message threads fetch the newest window first and preserve their reader anchor when prepending history.
@@ -69,7 +70,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - Default context model is L0-L4 in `CONTEXT_AND_RECOVERY.md`.
 - Startup reads stay minimal: `AGENTS.md`, then targeted current-state/task-ledger sections only when needed.
 - Periodic documentation-governance reviews use `docs/06_tasks/META_REVIEW_TEMPLATE.md` every 10 completed tasks or weekly.
-- Last meta-review: T-240 on 2026-07-10.
+- Last meta-review: T-251 on 2026-07-10.
 - V1.0 ideal-operation Q-16...Q-43, Auth package Q-92, and R-038/Q-94...Q-96 are complete. R-039 design T-249 and Q-97/T-250 are complete; Q-98 through Q-104 are queued.
 - Changes to `AGENTS.md`, `CLAUDE.md`, or `docs/05_workflow/**` must be standalone numbered tasks with a decision-log entry and context hygiene.
 - T-180 records standing user approval for task-completion Git commit and push. This approval is limited to current-task changes after validation passes; T-186 requires stopping without auto pull/rebase/merge/reset/force-push if the push fails or is rejected.
@@ -105,4 +106,4 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Next Recommended Task
 
-- T-251 periodic meta-review is required by the 10-task cadence before product work continues. Q-98 Requests and Offers follows as T-252.
+- Q-98 Requests and Offers workspace is the next dependency-satisfied package and uses T-252 only when explicitly started.

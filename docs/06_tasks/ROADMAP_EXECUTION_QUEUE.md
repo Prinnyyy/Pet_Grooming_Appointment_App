@@ -29,7 +29,7 @@ Source: T-202 adopted root review input `../../V1.0_RELEASE_TASK_PLAN.md`; that 
 | Q-103 | R-039 | Fit Signals, Evidence, and Portfolio | Apply the approved density/image hierarchy while preserving size range, fit selection, evidence, upload/replace/delete, and cache behavior. |
 | Q-104 | R-039 | Groomer UI integration gate | Verify compact/large viewports, Dynamic Type, state matrix, accessibility, selector TestOps, full iOS tests/build, and no More/duplicate navigation. |
 
-Q-98 is the first dependency-satisfied product package. The required T-251 periodic meta-review runs first; Q-98 then receives T-252 when started.
+Q-98 is the first dependency-satisfied product package and receives the next available `T-###` only when started.
 
 ## Completed Groomer Package
 

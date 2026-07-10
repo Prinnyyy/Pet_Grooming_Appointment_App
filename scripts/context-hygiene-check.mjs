@@ -546,7 +546,19 @@ function checkMetaReviewCadence() {
   }
 
   const completedDelta = taskNumber(latestCompleted) - taskNumber(metaReviewTask);
-  if (completedDelta >= 10) {
+  const expectedNextTask = `T-${String(taskNumber(latestCompleted) + 1).padStart(3, "0")}`;
+  const nextTask = extractTaskId(
+    currentState,
+    /Next task ID:\s*(?:use\s*)?(T-\d{3})/i,
+  );
+  const nextTaskReservesMetaReview = new RegExp(
+    `Next task ID:[^\\n]*${expectedNextTask}[^\\n]*required periodic meta-review`,
+    "i",
+  ).test(currentState);
+
+  if (completedDelta === 10 && nextTask === expectedNextTask && nextTaskReservesMetaReview) {
+    console.log(`Meta-review due: ${expectedNextTask} is explicitly reserved`);
+  } else if (completedDelta >= 10) {
     failures.push(`Last meta-review ${metaReviewTask} is ${completedDelta} completed tasks behind ${latestCompleted}; run a meta-review task`);
   }
 }

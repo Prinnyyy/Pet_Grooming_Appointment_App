@@ -604,6 +604,40 @@ test("context hygiene allows meta-review at nine completed tasks old", () => {
   assert.equal(result.status, 0, result.stderr);
 });
 
+test("context hygiene allows an exactly due meta-review when the next task is explicitly reserved", () => {
+  const root = createFixture({ latest: "T-015", next: "T-016" });
+  writeFixtureFile(root, "docs/00_memory/CURRENT_STATE.md", [
+    "# Current State",
+    "",
+    "- Latest completed task: T-015 fixture task.",
+    "- Next task ID: use T-016 for the required periodic meta-review.",
+    "",
+    "## Branch and Baseline",
+    "",
+    "- Current branch baseline: `codex/test-baseline`.",
+    "",
+    "## Active Workflow State",
+    "",
+    "- Last meta-review: T-005 on 2026-07-08.",
+    "",
+  ].join("\n"));
+  writeFixtureFile(root, "docs/06_tasks/TASK_LEDGER.md", [
+    "# Task Ledger",
+    "",
+    "Current branch and task-numbering baseline: use `codex/test-baseline`; use `T-016` for the next task unless directed otherwise.",
+    "",
+    "| ID | Task | Status | Mode | Milestone | Files/Docs | Checks | Notes |",
+    "|---|---|---|---|---|---|---|---|",
+    "| T-015 | Fixture task | completed | Quick | G0 | docs | check | done |",
+    "",
+  ].join("\n"));
+
+  const result = runHygiene(root);
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /Meta-review due: T-016 is explicitly reserved/i);
+});
+
 test("context hygiene fails when a task ledger row is too long", () => {
   const root = createFixture();
   writeFixtureFile(root, "docs/06_tasks/TASK_LEDGER.md", [
