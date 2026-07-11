@@ -3,8 +3,8 @@
   "fileName": "Pet Grooming App — UI Redesign",
   "fileUrl": "https://www.figma.com/design/XhOqumKm670mJTHUc72qga",
   "createdAt": "2026-07-10",
-  "currentPhase": "Phase 2 — blocked during screenshot validation",
-  "status": "blocked",
+  "currentPhase": "Phase 3 — visual calibration",
+  "status": "phase-3-visual-calibration-pending-approval",
   "constraints": {
     "figmaPlan": "Starter",
     "variableModeLimit": 1,
@@ -36,11 +36,11 @@
     { "name": "Motion", "id": "VariableCollectionId:2:7", "mode": "Light", "variableCount": 4 }
   ],
   "variables": {
-    "total": 60,
+    "total": 61,
     "primitiveColors": 18,
     "semanticColors": 17,
     "spacing": 9,
-    "radius": 4,
+    "radius": 5,
     "sizing": 8,
     "motion": 4
   },
@@ -48,7 +48,12 @@
     "typography": ["Large Title", "Title 1", "Title 2", "Title 3", "Headline", "Body", "Callout", "Subheadline", "Footnote", "Caption 1", "Caption 2", "Body Emphasized", "Callout Emphasized"],
     "effects": ["Card Shadow", "Elevated Surface", "Floating Control"]
   },
-  "components": [],
+  "components": [
+    { "name": "Icon Button", "nodeId": "13:7", "decision": "Revise", "validation": "metadata+screenshot passed" },
+    { "name": "Primary Button", "nodeId": "14:8", "decision": "Revise", "validation": "metadata+screenshot passed" },
+    { "name": "Secondary Button", "nodeId": "15:8", "decision": "Revise", "validation": "metadata+screenshot passed" },
+    { "name": "Destructive Button", "nodeId": "15:15", "decision": "Revise", "validation": "metadata+screenshot passed" }
+  ],
   "keyNodeIds": {
     "designSystemPage": "0:1",
     "appArchitecturePage": "3:2",
@@ -59,6 +64,11 @@
     "informationArchitecture": "3:78",
     "navigationMap": "3:83",
     "appointmentsSection": "3:102"
+    ,"visualCalibration": "18:2"
+    ,"existingVisualDNA": "18:7"
+    ,"normalizedCustomerSurface": "18:35"
+    ,"normalizedGroomerOperationsSurface": "18:63"
+    ,"cardRadiusVariable": "VariableID:17:2"
   },
   "completedValidations": [
     "Confirmed failed multi-mode attempt left no residue",
@@ -69,19 +79,23 @@
     "Confirmed revised file has exactly three correctly named pages",
     "Confirmed all planned numbered sections exist with unique names",
     "Confirmed all three page metadata responses succeeded",
-    "Confirmed Foundations Color screenshot succeeded"
+    "Confirmed all six Phase 2 local screenshots after canonical text-node repair",
+    "Captured real Simulator screenshots for Auth, Customer Home, Request Wizard, Customer Bookings, Groomer Home, and Groomer Schedule",
+    "Validated Visual Calibration metadata and screenshot",
+    "Validated revised Icon, Primary, Secondary, and Destructive Button metadata and screenshots"
   ],
   "pendingItems": [
-    "Complete the remaining five required local screenshots after the Starter MCP tool-call quota resets or is upgraded",
-    "Visually inspect typography, layout, architecture, navigation, and appointments overview",
-    "Create Phase 3 pilot foundation components",
-    "Create docs/ui-redesign/09-figma-design-system-handoff.md after component completion",
+    "Await human approval of Beckon Warm Utility System visual calibration",
+    "After approval, create the remaining 12 Phase 3 components using the calibrated surface profiles",
+    "Create docs/ui-redesign/09-figma-design-system-handoff.md only after component completion",
     "Add Dark mode to existing collections after multi-mode support becomes available"
   ],
-  "blocker": {
-    "step": "Phase 2 screenshot validation",
-    "operation": "Capture the six required local section screenshots",
-    "error": "You've reached the Figma MCP tool call limit on the Starter plan",
-    "impact": "Three-page structure and all planned sections were created and metadata-validated, but only the Color screenshot completed. Phase 3 was not started because Phase 2 visual validation is incomplete."
+  "blocker": null,
+  "visualCalibration": {
+    "direction": "Beckon Warm Utility System",
+    "sectionId": "18:2",
+    "canonicalScreens": ["Auth Landing", "Customer Home", "Customer Request Wizard", "Customer Bookings", "Groomer Home", "Groomer Schedule"],
+    "remainingComponentsPaused": 12,
+    "approvalRequired": true
   }
 }
