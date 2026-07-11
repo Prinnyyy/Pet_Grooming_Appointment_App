@@ -494,7 +494,7 @@ private struct CustomerHomePetTile: View {
                 }
             }
             .padding(DesignTokens.Spacing.md)
-            .frame(width: 172, height: 272, alignment: .topLeading)
+            .frame(width: 172, height: 252, alignment: .topLeading)
             .background(DesignTokens.Colors.surface)
             .clipShape(
                 RoundedRectangle(
@@ -985,7 +985,7 @@ private struct CustomerPetFormAvatarPreview: View {
         .clipShape(DesignTokens.Shapes.circular)
         .overlay {
             Circle()
-                .stroke(DesignTokens.Colors.customerPrimary.opacity(0.34), lineWidth: 2)
+                .stroke(DesignTokens.Colors.customerPrimary.opacity(0.26), lineWidth: 2)
         }
         .accessibilityHidden(true)
     }
@@ -1159,13 +1159,15 @@ private struct CustomerPetBirthdayControl: View {
 
             if isKnown {
                 DatePicker(
-                    "Birthday",
+                    "",
                     selection: $date,
                     in: ...Date(),
                     displayedComponents: .date
                 )
                 .datePickerStyle(.compact)
+                .labelsHidden()
                 .font(CustomerPetFormTypography.fieldValue)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
     }
@@ -1219,7 +1221,7 @@ private struct CustomerPetFormPhotoPicker: View {
             )
                 .lineLimit(1)
         }
-        .buttonStyle(BeckonSecondaryButtonStyle(isFullWidth: false))
+        .buttonStyle(BeckonSecondaryButtonStyle(accent: .customer))
         .disabled(store.isSaving)
         .onChange(of: selectedPhotoItem) { _, newItem in
             guard let newItem else { return }

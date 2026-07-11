@@ -2,12 +2,21 @@
 
 ```text
 Date: 2026-07-11
+Task: T-276 - Customer Pet Card sizing, birthday control, and photo-editor parity correction.
+Files changed: Customer Home Pet Card height; Edit Pet birthday control; Pet Photo shared-component button/border parameters; memory closeout.
+Checks: `./scripts/ios-build.sh`; `git diff --check`; preflight/context hygiene.
+Result: Age remains visible without increasing the original 252pt Pet Card height. Birthday Known reveals a label-free date control aligned at the original Birthday-label leading edge. Pet Photo now uses the exact Profile Photo full-width secondary button, 96pt avatar geometry, and border strength while its PhotosPicker still writes through CustomerPetsStore.
+Risks: Visual acceptance remains with the user; no screenshot self-review was performed. No upload, cache, persistence, backend, or remote state changed.
+Next: Use T-277 for the next user-selected task; Q-104 remains deferred.
+```
+
+```text
+Date: 2026-07-11
 Task: T-275 - Customer Pets age, shared photo editor, and horizontal-card shadow consistency.
 Files changed: Shared photo-editor card; Customer Profile/Edit Pet adoption; CustomerPet age presentation; Home Pet Card copy/layout; Pet/Request horizontal shadow behavior; focused tests; memory closeout.
 Checks: Customer Pets focused tests; `./scripts/ios-build.sh`; `git diff --check`; preflight/context hygiene.
 Result: Home says Pets and Pet Cards show age derived from the stored birthday. Account Profile Photo and Edit Pet Photo now render through one reusable card while keeping customer-avatar and pet-avatar upload paths separate; only Account shows its saved badge. Pet and Request horizontal cards share one lighter shadow and allow it to render beyond the scroll viewport without rectangular clipping.
 Risks: Age is device-date derived and displays Age not set when birthday is unknown. Visual acceptance remains with the user; no screenshot self-review was performed. No backend, Storage, upload contract, or remote state changed.
-Next: Use T-276 for the next user-selected task; Q-104 remains deferred.
 ```
 
 ```text
