@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-11
 - Updated by: Codex
-- Latest completed task: T-264 shared pet avatars on customer request cards.
+- Latest completed task: T-265 customer request card and detail hierarchy refinement.
 - Current task: none; T-157 APNs remains externally blocked and Q-104 Dynamic Type/Accessibility remains user-deferred.
-- Next task ID: use T-265. Q-104 remains deferred until the user restores its Dynamic Type/Accessibility scope.
+- Next task ID: use T-266. Q-104 remains deferred until the user restores its Dynamic Type/Accessibility scope.
 
 ## Fast Path
 
@@ -53,6 +53,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - T-258 completes the non-Accessibility portion of the Groomer integration gate: seeded TestOps verifies five direct tabs, six focused Account workspaces, one Back action, hidden editor tabs, and no `More`; default-text compact and large Simulator inspection plus full iOS tests/build/preflight pass. Q-104 remains open only for user-deferred Dynamic Type and Accessibility validation/changes.
 - T-263 uses one shared profile-avatar component and participant loader for Groomer imagery across customer Home, offers, bookings/details, and messages; elapsed confirmed bookings group under Past, and Recent Closed Requests is limited to the newest five. Customer access to related Groomer avatar objects is remotely applied through merged RLS/Storage policies.
 - T-264 routes the latest cached customer pet photo into request action cards on both Customer Home and Requests, and unifies pet image rendering across Home pet cards, request cards, and the request wizard through `BeckonPetAvatar`.
+- T-265 centers request-card pet avatars against the title/service text group, fixes the Requests root subtitle, and gives Request Details one navigation title plus reusable right-aligned module annotations outside each content card; the redundant page header and Cancellation module are removed.
 - T-259 makes one `T-###` per fresh session the default, reserves full iOS tests and batched visual evidence for integration/high-risk gates, and requires clean task or checkpoint commits at session boundaries.
 - T-260 adopts UI-R1 through UI-R8 and A11Y-R1 through A11Y-R10 as the active design contract, including approved light-palette contrast pairs and a per-slice accessibility Definition of Done. Token and primitive implementation remains a separate follow-up code task; Q-104 is unchanged.
 - T-244 normalizes the rotated Worklog EOF to one newline.

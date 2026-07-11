@@ -4,6 +4,12 @@ import Testing
 
 extension CustomerRequestsStoreTests {
     @Test @MainActor
+    func requestsRootSubtitleDoesNotChangeWithCardCount() {
+        #expect(CustomerRequestsRootHeader.subtitle ==
+            "Track active requests and newly confirmed booking handoffs in one place.")
+    }
+
+    @Test @MainActor
     func homeRequestHeroStaysEnabledWhileRequestsReloadWhenPetsExist() {
         let loadingWithPet = CustomerHomeRequestHeroPresentation(
             hasPets: true,

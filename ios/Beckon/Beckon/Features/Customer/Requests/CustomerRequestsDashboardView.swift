@@ -14,7 +14,7 @@ struct CustomerRequestsRootHeader: View {
                     .minimumScaleFactor(0.82)
                     .fixedSize(horizontal: false, vertical: true)
 
-                Text(subtitle)
+                Text(Self.subtitle)
                     .font(DesignTokens.Typography.body)
                     .foregroundStyle(DesignTokens.Colors.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -32,17 +32,7 @@ struct CustomerRequestsRootHeader: View {
         }
     }
 
-    private var subtitle: String {
-        if cardCount > 1 {
-            return "Swipe between active quests and booking handoffs. Each card keeps the next action clear."
-        }
-
-        if cardCount == 1 {
-            return "Track the next action for this grooming flow."
-        }
-
-        return "Open quests and newly confirmed booking handoffs will appear here."
-    }
+    static let subtitle = "Track active requests and newly confirmed booking handoffs in one place."
 }
 
 struct CustomerRequestProgressCarousel: View {
@@ -420,30 +410,33 @@ private struct CustomerRequestBriefHeader: View {
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
             HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
-                BeckonPetAvatar(
-                    data: petAvatarPhotoData,
-                    fallbackText: request.petSnapshot.displayEmoji,
-                    background: AnyShapeStyle(request.avatarBackground),
-                    width: 56,
-                    height: 56,
-                    cornerRadius: 28
-                )
+                HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
+                    BeckonPetAvatar(
+                        data: petAvatarPhotoData,
+                        fallbackText: request.petSnapshot.displayEmoji,
+                        background: AnyShapeStyle(request.avatarBackground),
+                        width: 52,
+                        height: 52,
+                        cornerRadius: 26
+                    )
 
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                    Text(presentation.headline)
-                        .font(.system(size: 28, weight: .heavy, design: .rounded))
-                        .foregroundStyle(DesignTokens.Colors.textPrimary)
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.86)
-                        .lineSpacing(1)
-                        .fixedSize(horizontal: false, vertical: true)
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                        Text(presentation.headline)
+                            .font(.system(size: 28, weight: .heavy, design: .rounded))
+                            .foregroundStyle(DesignTokens.Colors.textPrimary)
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.86)
+                            .lineSpacing(1)
+                            .fixedSize(horizontal: false, vertical: true)
 
-                    Text(presentation.subtitle)
-                        .font(DesignTokens.Typography.body)
-                        .foregroundStyle(DesignTokens.Colors.textSecondary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.72)
-                        .layoutPriority(1)
+                        Text(presentation.subtitle)
+                            .font(DesignTokens.Typography.body)
+                            .foregroundStyle(DesignTokens.Colors.textSecondary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.72)
+                            .layoutPriority(1)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 

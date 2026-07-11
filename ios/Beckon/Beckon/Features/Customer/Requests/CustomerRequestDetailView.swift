@@ -24,11 +24,6 @@ struct CustomerRequestDetailView: View {
 
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                        BeckonSectionHeader(
-                            "Request Details",
-                            subtitle: "Review the request and compare groomer offers before booking."
-                        )
-
                         requestCard(request)
                         petSnapshotCard(request)
                         requestPhotosCard(request)
@@ -50,9 +45,6 @@ struct CustomerRequestDetailView: View {
                             store: store
                         )
 
-                        if request.status.isOpenForOffers {
-                            cancellationNotice
-                        }
                     }
                     .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
                     .padding(.top, DesignTokens.Spacing.lg)
@@ -60,7 +52,7 @@ struct CustomerRequestDetailView: View {
                 }
                 .scrollContentBackground(.hidden)
             }
-            .navigationTitle(request.petSnapshot.name)
+            .navigationTitle("Request Details")
             .navigationBarTitleDisplayMode(.inline)
             .accessibilityIdentifier("customer.requests.detail")
             .task(id: request.id) {
@@ -79,73 +71,77 @@ struct CustomerRequestDetailView: View {
                 )
                 .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
             }
-            .navigationTitle("Request")
+            .navigationTitle("Request Details")
         }
     }
 
     private func requestCard(_ request: CustomerGroomingRequest) -> some View {
-        BeckonCard {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                DetailCardHeader(
-                    title: request.serviceType.title,
-                    subtitle: request.locationSummary,
-                    systemImage: "doc.text.fill"
-                ) {
-                    BeckonStatusChip(
-                        request.status.title,
-                        systemImage: request.status.detailSystemImage,
-                        tone: request.status.detailTone
-                    )
-                }
+        BeckonAnnotatedModule(
+            "Service Request",
+            subtitle: "Requested service, current status, and customer notes."
+        ) {
+            BeckonCard {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                    HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
+                        Text(request.serviceType.title)
+                            .font(DesignTokens.Typography.headline)
+                            .foregroundStyle(DesignTokens.Colors.textPrimary)
 
-                if let serviceNotes = request.serviceNotes {
-                    Text(serviceNotes)
-                        .font(DesignTokens.Typography.body)
-                        .foregroundStyle(DesignTokens.Colors.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
+                        Spacer(minLength: DesignTokens.Spacing.md)
+
+                        BeckonStatusChip(
+                            request.status.title,
+                            systemImage: request.status.detailSystemImage,
+                            tone: request.status.detailTone
+                        )
+                    }
+
+                    if let serviceNotes = request.serviceNotes {
+                        Text(serviceNotes)
+                            .font(DesignTokens.Typography.body)
+                            .foregroundStyle(DesignTokens.Colors.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
             }
         }
     }
 
     private func petSnapshotCard(_ request: CustomerGroomingRequest) -> some View {
-        BeckonCard {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                DetailCardHeader(
-                    title: "Pet Snapshot",
-                    subtitle: "Frozen request context from the selected pet.",
-                    systemImage: "pawprint.fill"
-                )
+        BeckonAnnotatedModule(
+            "Pet Snapshot",
+            subtitle: "Pet details captured when this request was published."
+        ) {
+            BeckonCard {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                    DetailMetadataRow(title: "Pet", value: request.petSnapshot.name, systemImage: "heart.fill")
+                    DetailMetadataRow(title: "Species", value: request.petSnapshot.species, systemImage: "tag.fill")
 
-                DetailMetadataRow(title: "Pet", value: request.petSnapshot.name, systemImage: "heart.fill")
-                DetailMetadataRow(title: "Species", value: request.petSnapshot.species, systemImage: "tag.fill")
+                    if let breed = request.petSnapshot.breed {
+                        DetailMetadataRow(title: "Breed", value: breed, systemImage: "list.bullet")
+                    }
 
-                if let breed = request.petSnapshot.breed {
-                    DetailMetadataRow(title: "Breed", value: breed, systemImage: "list.bullet")
+                    if let size = request.petSnapshot.size {
+                        DetailMetadataRow(title: "Size", value: size, systemImage: "ruler")
+                    }
+
+                    DetailMetadataRow(
+                        title: "Photos",
+                        value: "\(request.photoSnapshot.count)",
+                        systemImage: "photo.on.rectangle"
+                    )
                 }
-
-                if let size = request.petSnapshot.size {
-                    DetailMetadataRow(title: "Size", value: size, systemImage: "ruler")
-                }
-
-                DetailMetadataRow(
-                    title: "Photos",
-                    value: "\(request.photoSnapshot.count)",
-                    systemImage: "photo.on.rectangle"
-                )
             }
         }
     }
 
     private func scheduleLocationCard(_ request: CustomerGroomingRequest) -> some View {
-        BeckonCard {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                DetailCardHeader(
-                    title: "Preferred Time and Location",
-                    subtitle: "The window and area groomers used for this offer.",
-                    systemImage: "calendar"
-                )
-
+        BeckonAnnotatedModule(
+            "Preferred Time and Location",
+            subtitle: "The scheduling window and service area shared with groomers."
+        ) {
+            BeckonCard {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                 DetailMetadataRow(
                     title: "Start",
                     value: GroomingRequestDateFormatting.displayString(
@@ -181,6 +177,7 @@ struct CustomerRequestDetailView: View {
                         systemImage: "point.topleft.down.curvedto.point.bottomright.up"
                     )
                 }
+                }
             }
         }
     }
@@ -189,38 +186,19 @@ struct CustomerRequestDetailView: View {
     private func requestPhotosCard(_ request: CustomerGroomingRequest) -> some View {
         let photos = store.requestPhotos(for: request)
         if !photos.isEmpty {
-            BeckonCard {
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                    DetailCardHeader(
-                        title: "Request Photos",
-                        subtitle: "\(photos.count) photo\(photos.count == 1 ? "" : "s") attached to this request.",
-                        systemImage: "photo.stack.fill"
-                    )
-
-                    ForEach(photos) { photo in
-                        CustomerRequestPhotoRow(
-                            photo: photo,
-                            data: store.requestPhotoData(for: photo)
-                        )
+            BeckonAnnotatedModule(
+                "Request Photos",
+                subtitle: "\(photos.count) photo\(photos.count == 1 ? "" : "s") attached to this request."
+            ) {
+                BeckonCard {
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                        ForEach(photos) { photo in
+                            CustomerRequestPhotoRow(
+                                photo: photo,
+                                data: store.requestPhotoData(for: photo)
+                            )
+                        }
                     }
-                }
-            }
-        }
-    }
-
-    private var cancellationNotice: some View {
-        BeckonCard {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                DetailCardHeader(
-                    title: "Cancellation",
-                    subtitle: "Unconfirmed requests can be cancelled from their Requests card before booking.",
-                    systemImage: "xmark.circle.fill"
-                ) {
-                    BeckonStatusChip(
-                        "Available",
-                        systemImage: "checkmark.circle.fill",
-                        tone: .customer
-                    )
                 }
             }
         }
@@ -248,19 +226,15 @@ struct CustomerRequestRepublishCard: View {
     }
 
     var body: some View {
-        BeckonCard {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                DetailCardHeader(
-                    title: title,
-                    subtitle: subtitle,
-                    systemImage: "arrow.clockwise.circle.fill"
-                )
-
-                Button(action: action) {
-                    Label(actionTitle, systemImage: "plus.circle.fill")
+        BeckonAnnotatedModule(title, subtitle: subtitle) {
+            BeckonCard {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                    Button(action: action) {
+                        Label(actionTitle, systemImage: "plus.circle.fill")
+                    }
+                    .buttonStyle(BeckonPrimaryButtonStyle(accent: .customer))
+                    .accessibilityIdentifier(accessibilityIdentifier)
                 }
-                .buttonStyle(BeckonPrimaryButtonStyle(accent: .customer))
-                .accessibilityIdentifier(accessibilityIdentifier)
             }
         }
     }
@@ -378,12 +352,11 @@ private struct CustomerOfferReviewSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            BeckonSectionHeader(
+            BeckonAnnotatedModule(
                 "Offers",
                 subtitle: "Compare pending offers and review previous offer activity."
-            )
-
-            Group {
+            ) {
+                Group {
                 if store.isLoadingOffers(for: request), offers.isEmpty {
                     BeckonLoadingView(
                         title: "Loading Offers…",
@@ -462,6 +435,7 @@ private struct CustomerOfferReviewSection: View {
                             }
                         }
                     }
+                }
                 }
             }
 

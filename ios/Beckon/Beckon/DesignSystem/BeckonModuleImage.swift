@@ -123,6 +123,42 @@ struct BeckonPetAvatar: View {
     }
 }
 
+struct BeckonAnnotatedModule<Content: View>: View {
+    let title: String
+    let subtitle: String
+    private let content: Content
+
+    init(
+        _ title: String,
+        subtitle: String,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.title = title
+        self.subtitle = subtitle
+        self.content = content()
+    }
+
+    var body: some View {
+        VStack(alignment: .trailing, spacing: DesignTokens.Spacing.sm) {
+            VStack(alignment: .trailing, spacing: DesignTokens.Spacing.xs) {
+                Text(title)
+                    .font(DesignTokens.Typography.headline)
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+
+                Text(subtitle)
+                    .font(DesignTokens.Typography.caption)
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .multilineTextAlignment(.trailing)
+            .frame(maxWidth: .infinity, alignment: .trailing)
+
+            content
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+}
+
 enum BeckonDefaultProfileAvatarTone {
     case customer
     case groomer
