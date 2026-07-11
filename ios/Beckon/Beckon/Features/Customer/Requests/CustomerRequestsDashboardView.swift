@@ -410,14 +410,14 @@ private struct CustomerRequestBriefHeader: View {
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
             HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
-                HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
+                HStack(alignment: .center, spacing: DesignTokens.Spacing.lg) {
                     BeckonPetAvatar(
                         data: petAvatarPhotoData,
                         fallbackText: request.petSnapshot.displayEmoji,
                         background: AnyShapeStyle(request.avatarBackground),
-                        width: 52,
-                        height: 52,
-                        cornerRadius: 26
+                        width: 84,
+                        height: 84,
+                        cornerRadius: 42
                     )
 
                     VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {

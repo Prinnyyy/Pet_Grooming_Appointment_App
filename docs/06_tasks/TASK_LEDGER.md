@@ -2,7 +2,7 @@
 
 Track only current, blocked, and recent tasks here so Codex does not continue automatically. Older completed rows through T-190 are archived under `docs/09_frozen/task_ledgers/`; active blocked T-157 remains below. Notes should keep conclusions and pointers only; validation detail belongs in `docs/00_memory/WORKLOG.md` or frozen worklogs. Detailed task records T-001 through T-088 and workflow task records remain archived under `docs/09_frozen/task_records_2026-06-26/`.
 
-Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup`; use `T-266` for the next task unless the user explicitly names another branch or task ID.
+Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup`; use `T-267` for the next task unless the user explicitly names another branch or task ID.
 
 Active blocked task: T-157 is waiting on paid Apple Developer Program access before APNs secrets (`APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_TOPIC`, `APNS_PRIVATE_KEY`) and Edge Function deploy.
 
@@ -10,6 +10,7 @@ Active blocked task: T-157 is waiting on paid Apple Developer Program access bef
 
 | ID | Task | Status | Mode | Milestone | Files/Docs | Checks | Notes |
 |---|---|---|---|---|---|---|---|
+| T-266 | Customer request-card avatar proportion and alignment | completed | Standard | M2 | Request-card header avatar size/spacing; memory closeout | iOS build; diff/preflight/context | Enlarges the pet avatar to match the adjacent title/service text group and uses equal card-scale spacing while retaining centerline alignment and the top-right status. |
 | T-265 | Customer request card and detail hierarchy refinement | completed | Standard | M2 | Request-card avatar alignment/root copy; reusable annotated module; detail hierarchy and cancellation removal; focused test | Customer Requests Store tests; iOS build; diff/preflight/context | Stabilizes root copy, centers the pet avatar with its text group, keeps one Request Details navigation title, and moves card annotations outside each detail module through one reusable no-icon component. |
 | T-264 | Shared customer pet avatars on request cards | completed | Standard | M2 | Shared pet-avatar primitive; request card model/Store/views; Home pet card and wizard reuse; focused test | Customer Requests Store tests; iOS build; diff/preflight/context | Request cards on Customer Home and Requests carry the latest cached pet photo and fall back consistently through the same `BeckonPetAvatar` used by pet cards and the request wizard. |
 | T-263 | Customer Home, Bookings, Requests, and participant-avatar consistency | completed | Deep | M2 | Shared profile avatar/loader; customer Home, offers, booking detail, messages; booking grouping; recent closed requests; RLS/Storage migrations | Focused/full iOS tests; build; 51 migration tests; Supabase check/dry-run/advisors; diff/preflight/context | Uses one reusable avatar component and loader for all relevant Groomer surfaces, moves elapsed confirmed bookings to Past, limits Recent Closed Requests to five, and remotely grants relationship-scoped Groomer-avatar reads through merged policies. |

@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-07-11
+Task: T-266 - Customer request-card avatar proportion and alignment.
+Files changed: Customer request-card header avatar dimensions/spacing and memory closeout.
+Checks: `./scripts/ios-build.sh`; `git diff --check`; preflight/context hygiene.
+Result: The request-card pet avatar is 84pt, visually approaches the full title/service text height, stays centerline-aligned with that text group, and uses the same large spacing scale between the avatar and adjacent content.
+Risks: Visual acceptance remains with the user; no screenshot self-review was performed. No request behavior, data, backend, or remote state changed.
+Next: Use T-267 for the next user-selected task; Q-104 remains deferred.
+```
+
+```text
+Date: 2026-07-11
 Task: T-265 - Customer request card and detail hierarchy refinement.
 Files changed: Request-card header alignment and stable root copy; reusable annotated-module design-system component; Request Details hierarchy, module labels, cancellation removal; focused test and memory closeout.
 Checks: Customer Requests Store focused tests; `./scripts/ios-build.sh`; `git diff --check`; preflight/context hygiene.
