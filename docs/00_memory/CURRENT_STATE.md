@@ -4,11 +4,11 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Last Updated
 
-- Date: 2026-07-10
+- Date: 2026-07-11
 - Updated by: Codex
-- Latest completed task: T-260 UI design rules and accessibility groundwork adoption.
+- Latest completed task: T-261 authentication landing action placement and focused Accessibility audit.
 - Current task: none; T-157 APNs remains externally blocked and Q-104 Dynamic Type/Accessibility remains user-deferred.
-- Next task ID: use T-261 for the next approved task. Q-104 remains deferred until the user restores its Dynamic Type/Accessibility scope.
+- Next task ID: use T-262 for the required periodic meta-review. Q-104 remains deferred until the user restores its Dynamic Type/Accessibility scope.
 
 ## Fast Path
 

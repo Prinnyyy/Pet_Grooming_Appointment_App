@@ -1,5 +1,14 @@
 # Worklog
 
+```text
+Date: 2026-07-11
+Task: T-261 - Authentication landing action placement and Accessibility audit.
+Files changed: Authentication landing layout, secondary action tap target, and task closeout.
+Checks: `git diff --check`; `./scripts/ios-build.sh`.
+Result: The Get Started and existing-account actions are anchored above the bottom safe area with flexible middle spacing, preserving internal styling while giving the secondary action a 44pt target. Focused Accessibility review confirmed meaningful labels, scroll fallback, Reduce Motion handling, hidden decorative imagery, scalable semantic body/button text, and approved semantic contrast-token usage.
+Risks: Visual acceptance remains with the user, so Simulator screenshot review was intentionally omitted. The fixed-size brand wordmark remains intentionally scale-limited; broader deferred Q-104 Accessibility work is unchanged. No backend or remote state changed.
+```
+
 This file is the active recent closeout index, newest first. It intentionally keeps only the newest entries needed for recovery. Older verbatim history is archived under `docs/09_frozen/worklogs/`.
 
 Current branch, next task ID, and current baseline live in `docs/00_memory/CURRENT_STATE.md` and `docs/06_tasks/TASK_LEDGER.md`. Only the newest entry should keep a `Next:` line.

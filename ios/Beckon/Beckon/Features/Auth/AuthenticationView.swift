@@ -61,30 +61,27 @@ struct AuthenticationView: View {
         GeometryReader { proxy in
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 0) {
-                    Spacer(
-                        minLength: max(
-                            proxy.size.height * 0.16,
-                            DesignTokens.Spacing.xl * 2
+                    Color.clear
+                        .frame(
+                            height: max(
+                                proxy.size.height * 0.16,
+                                DesignTokens.Spacing.xl * 2
+                            )
                         )
-                    )
+                        .accessibilityHidden(true)
 
                     landingHero
 
-                    Spacer(
-                        minLength: max(
-                            proxy.size.height * 0.11,
-                            DesignTokens.Spacing.xl + DesignTokens.Spacing.lg
-                        )
-                    )
+                    Spacer(minLength: DesignTokens.Spacing.xl)
 
                     landingActions
-
-                    Spacer(
-                        minLength: max(
-                            proxy.safeAreaInsets.bottom + DesignTokens.Spacing.lg,
-                            DesignTokens.Spacing.xl
+                        .padding(
+                            .bottom,
+                            max(
+                                proxy.safeAreaInsets.bottom + DesignTokens.Spacing.lg,
+                                DesignTokens.Spacing.xl
+                            )
                         )
-                    )
                 }
                 .frame(maxWidth: .infinity)
                 .frame(minHeight: proxy.size.height)
@@ -171,7 +168,7 @@ struct AuthenticationView: View {
                 Text("I already have an account")
                     .font(DesignTokens.Typography.body.weight(.semibold))
                     .foregroundStyle(DesignTokens.Colors.secondaryText)
-                    .frame(maxWidth: .infinity, minHeight: 30)
+                    .frame(maxWidth: .infinity, minHeight: 44)
             }
             .buttonStyle(.plain)
             .disabled(store.isSubmitting)
