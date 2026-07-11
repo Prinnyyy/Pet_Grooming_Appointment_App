@@ -123,11 +123,26 @@
 - Scroll content 与 Tab Bar / Bottom Action Area / Groomer Navigation 分离；XL Action Area 纵排。
 - 本轮校准样本只验证 Light；任何正式页面批准前必须按 Full Capability Rules 补 Dark Mode。
 
-## 12. 待人工确认
+## 12. 已完成的人工确认
 
-1. 是否批准三组 Normalized Default / Accessibility XL 作为剩余 12 个组件的构图基线。
-2. Groomer 日程的 Cancel 是否应只在详情页展示；本轮仅验证现有可取消能力与 Destructive Button。
-3. 是否接受 Customer Home 在 Accessibility XL 下把通知按钮移至标题下方。
-4. 在 Figma 编辑器中人工确认 nested Label override 的视觉同步。
+1. 三组 Normalized Default / Accessibility XL 已批准为组件构图基线。
+2. Groomer Cancel 只在详情/More 展示，并要求 confirmation dialog。
+3. Customer Home XL 通知入口保持 top-trailing，不移动到标题下方左侧。
+4. Nested Label override 已通过正式 property reference 和多 Label 测试实例验证。
 
-当前状态：`phase-3-real-screen-calibration-pending-approval`。未创建剩余 12 个组件，未创建完整业务页面，未修改生产 SwiftUI。
+当前状态：`phase-3-real-screen-calibration-approved`。未创建完整业务页面，未修改生产 SwiftUI。
+
+## 13. 人工批准与定向修正
+
+Phase 3 Visual Calibration V2 已获批准，不再进行第三轮视觉探索。批准范围包括 Beckon Warm Utility System、三类 Surface Profiles、三组 Normalized 构图基线和四个原 Component IDs。
+
+- Customer Home `23:31` / `23:59`：通知改为明确 bell 语义，44pt，accessibility label `Notifications`；XL 保持 top-trailing，SwiftUI 映射为 `ToolbarItem(placement: .topBarTrailing)`。ScrollView 添加 96pt bottom content inset 规格。
+- Pet Selection `25:40` / `25:70`：明确 `ScrollView` 与 `safeAreaInset`；bottom inset 分别为 134pt / 198pt；Selected 文字继续保留。
+- Groomer Schedule `26:74` / `26:136`：移除 Not Now / Continue / Delete 占位操作。卡片整体 `NavigationLink` 进入详情，仅显示 `View Details` 导航提示。Cancel 只在详情/More，使用 Cancel Appointment 并要求 confirmation dialog。
+- 四个 Button：保留 `13:7` / `14:8` / `15:8` / `15:15`；正式绑定 Text、Instance Swap、Boolean properties；测试实例证明不同 Label 与画布同步。
+
+Patch metadata 和局部 screenshots 均通过。状态更新为 `phase-3-real-screen-calibration-approved`。
+
+## 14. Phase 3 最终组件结果
+
+剩余 12 个组件和 5 个 Layout Patterns 已完成，清单与属性见 `09-figma-design-system-handoff.md`。Accessibility QA Section 为 `35:177`。本阶段停止于组件与组合规范，不创建完整业务页面，不修改 SwiftUI。
