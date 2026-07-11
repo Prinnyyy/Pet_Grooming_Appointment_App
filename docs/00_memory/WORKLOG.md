@@ -2,12 +2,21 @@
 
 ```text
 Date: 2026-07-11
+Task: T-277 - App-wide SwiftUI scroll-indicator suppression.
+Files changed: Beckon app root scroll-indicator environment; memory closeout.
+Checks: `./scripts/ios-build.sh`; `git diff --check`; preflight/context hygiene.
+Result: SwiftUI-native scroll indicators are hidden from the AppRootView hierarchy, complementing the existing UIScrollView appearance fallback. Customer tabs, nested detail/edit pages, and future descendants inherit the same behavior without per-screen modifiers.
+Risks: This intentionally hides indicators for both roles and authentication flows, matching the app-wide requirement. Scrolling behavior itself is unchanged. No backend or remote state changed.
+Next: Use T-278 for the next user-selected task; Q-104 remains deferred.
+```
+
+```text
+Date: 2026-07-11
 Task: T-276 - Customer Pet Card sizing, birthday control, and photo-editor parity correction.
 Files changed: Customer Home Pet Card height; Edit Pet birthday control; Pet Photo shared-component button/border parameters; memory closeout.
 Checks: `./scripts/ios-build.sh`; `git diff --check`; preflight/context hygiene.
 Result: Age remains visible without increasing the original 252pt Pet Card height. Birthday Known reveals a label-free date control aligned at the original Birthday-label leading edge. Pet Photo now uses the exact Profile Photo full-width secondary button, 96pt avatar geometry, and border strength while its PhotosPicker still writes through CustomerPetsStore.
 Risks: Visual acceptance remains with the user; no screenshot self-review was performed. No upload, cache, persistence, backend, or remote state changed.
-Next: Use T-277 for the next user-selected task; Q-104 remains deferred.
 ```
 
 ```text

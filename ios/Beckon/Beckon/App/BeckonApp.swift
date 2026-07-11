@@ -31,6 +31,7 @@ struct BeckonApp: App {
                 groomerNotificationRepository: composition.groomerNotificationRepository,
                 operationalEventRecorder: composition.operationalEventRecorder
             )
+            .scrollIndicators(.hidden)
             .transaction { transaction in
                 if composition.launchConfiguration.testOps.disablesAnimations {
                     transaction.animation = nil

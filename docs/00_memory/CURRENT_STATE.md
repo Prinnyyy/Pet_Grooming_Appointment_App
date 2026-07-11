@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-11
 - Updated by: Codex
-- Latest completed task: T-276 Customer Pet Card sizing, birthday control, and photo-editor parity correction.
+- Latest completed task: T-277 app-wide SwiftUI scroll-indicator suppression.
 - Current task: none; T-157 APNs remains externally blocked and Q-104 Dynamic Type/Accessibility remains user-deferred.
-- Next task ID: use T-277. Q-104 remains deferred until the user restores its Dynamic Type/Accessibility scope.
+- Next task ID: use T-278. Q-104 remains deferred until the user restores its Dynamic Type/Accessibility scope.
 
 ## Fast Path
 
@@ -64,6 +64,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - T-274 brings Edit Pet photo layout/actions into parity with Profile Settings, aligns Details text roles, applies the Request Wizard gradient action bar, limits pet names to 20 characters with red rejection feedback, and contains horizontal request-card shadows inside their scrollers.
 - T-275 renames the Home section to Pets, adds birthday-derived age to Pet Cards, shares one photo-editor card between Account and Edit Pet while preserving separate upload Stores, and gives Pet/Request horizontal cards one unclipped shadow contract.
 - T-276 restores the original Pet Card height after adding age, left-aligns the label-free birthday date control, and removes Pet-specific photo button/border overrides so the shared photo editor renders identically to Profile Settings.
+- T-277 applies SwiftUI-native scroll-indicator suppression at the app root, complementing the UIKit appearance fallback so vertical indicators stay hidden across all current and future page hierarchies.
 - T-259 makes one `T-###` per fresh session the default, reserves full iOS tests and batched visual evidence for integration/high-risk gates, and requires clean task or checkpoint commits at session boundaries.
 - T-260 adopts UI-R1 through UI-R8 and A11Y-R1 through A11Y-R10 as the active design contract, including approved light-palette contrast pairs and a per-slice accessibility Definition of Done. Token and primitive implementation remains a separate follow-up code task; Q-104 is unchanged.
 - T-244 normalizes the rotated Worklog EOF to one newline.
