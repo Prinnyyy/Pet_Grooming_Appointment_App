@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-07-11
+Task: T-284 - Periodic meta-review.
+Files changed: Current-state migration/meta-review markers; Feature Index Pet Name contract; task-ledger closeout; worklog closeout.
+Checks: Branch/status/recent history; 63-file migration mirror; active roadmap/index/task/current-state consistency; root Markdown ignore state; conflict-marker scan; `node scripts/context-hygiene-check.mjs`; `git diff --check`.
+Result: Active branch, task sequence, migration mirror, links, rolling windows, root ignore behavior, and conflict state align. Corrected CURRENT_STATE's last remote migration from T-263 to T-283 and Feature Index's superseded 80-character Pet Name statement to the active 20-character pre-display limit. No workflow, app, or backend behavior changed.
+Risks: APP_STATUS_OVERVIEW.md and V1.0_RELEASE_TASK_PLAN.md remain ignored review input rather than active truth. Q-104 and APNs remain unchanged. The user's address-input requirement is preserved as T-285 rather than mixed into this governance task.
+Next: Use T-285 for Customer Request address input validation rules, an overlay autocomplete panel that does not reflow content, and outside-tap dismissal.
+```
+
+```text
+Date: 2026-07-11
 Task: T-283 - Groomer Availability save and Request match recovery.
 Files changed: T-283 avatar relationship RLS migration; migration contract tests; memory closeout.
 Checks: Remote log/SQL diagnosis; migration RED/GREEN plus all 53 migration tests; Matching TestOps unit tests; `./scripts/supabase-check.sh`; linked migration list/dry-run/push/alignment; rollback-only authenticated profile-update and availability-backfill verification; Supabase security/performance advisors; `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; diff/preflight/context hygiene.
