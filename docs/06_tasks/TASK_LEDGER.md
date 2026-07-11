@@ -2,7 +2,7 @@
 
 Track only current, blocked, and recent tasks here so Codex does not continue automatically. Older completed rows through T-190 are archived under `docs/09_frozen/task_ledgers/`; active blocked T-157 remains below. Notes should keep conclusions and pointers only; validation detail belongs in `docs/00_memory/WORKLOG.md` or frozen worklogs. Detailed task records T-001 through T-088 and workflow task records remain archived under `docs/09_frozen/task_records_2026-06-26/`.
 
-Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup`; use `T-283` for the next task unless the user explicitly names another branch or task ID.
+Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup`; use `T-284` for the next required periodic meta-review before any later task.
 
 Active blocked task: T-157 is waiting on paid Apple Developer Program access before APNs secrets (`APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_TOPIC`, `APNS_PRIVATE_KEY`) and Edge Function deploy.
 
@@ -10,6 +10,8 @@ Active blocked task: T-157 is waiting on paid Apple Developer Program access bef
 
 | ID | Task | Status | Mode | Milestone | Files/Docs | Checks | Notes |
 |---|---|---|---|---|---|---|---|
+| T-284 | Periodic meta-review | planned | Quick | G0 | Active branch/task/memory/backend/index audit | Meta-review template gate | Required immediately after T-283 by the ten-task cadence; do not start a different T-284 scope. |
+| T-283 | Groomer Availability save and Request match recovery | completed | Deep | M2 | Avatar relationship RLS helper/policies; migration tests; memory closeout | Remote diagnosis; migration/Matching tests; Supabase checks/push/rollback verification/advisors; full iOS tests/build; diff/preflight/context | Fixes the T-263 profiles/bookings/groomer_profiles RLS recursion while preserving customer avatar access. Availability saves can update the Groomer profile again, and the existing T-155 availability trigger was remotely proven to backfill a newly eligible open Request. |
 | T-282 | Reusable pre-edit text-length interception | completed | Standard | M2 | UIKit delegate-backed limited field; Pet Name adoption; Request street/city/ZIP adoption; limit tests; memory closeout | Customer Pets/Requests focused tests; iOS build; diff/preflight/context | Intercepts each proposed edit before UIKit applies it, supports partial paste up to the remaining capacity, and flashes the shared field/cursor red on rejected overflow. Limits: pet name 20, street 160, city 100, ZIP 5. |
 | T-281 | Customer Account redesign and Request Wizard presentation ownership | completed | Standard | M2 | Customer Account grouped layout; active-tab Wizard ownership; focused presentation tests; stale Requests copy-test repair; memory closeout | Customer Requests focused tests; iOS build; diff/preflight/context | Uses Groomer Account's hierarchy/density with Customer teal icons, summaries, support/development/access grouping. Home/Requests share one Store but only the selected tab owns its sheet, preventing first-open presentation/dismissal races. |
 | T-280 | Customer notification marker and tab-heading consistency | completed | Standard | M2 | Notification external unread marker; shared Customer tab title; Home empty-copy simplification; memory closeout | iOS build; diff/preflight/context | Centers unread dots in the left screen/card gutter, makes Requests use the exact Bookings title component, and removes secondary empty-state headings under Active Request and Next Booking while retaining their descriptions. |

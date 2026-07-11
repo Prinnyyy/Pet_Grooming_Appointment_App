@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-07-11
+Task: T-283 - Groomer Availability save and Request match recovery.
+Files changed: T-283 avatar relationship RLS migration; migration contract tests; memory closeout.
+Checks: Remote log/SQL diagnosis; migration RED/GREEN plus all 53 migration tests; Matching TestOps unit tests; `./scripts/supabase-check.sh`; linked migration list/dry-run/push/alignment; rollback-only authenticated profile-update and availability-backfill verification; Supabase security/performance advisors; `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; diff/preflight/context hygiene.
+Result: T-263's profiles avatar policy had created the recursive path groomer_profiles -> profiles -> bookings -> groomer_profiles, so Availability stopped at updateProfile and never persisted weekly hours. T-283 moves offer/booking relationship checks into a private SECURITY DEFINER helper with explicit current-customer validation, preserving the avatar access boundary without recursive RLS. A rollback-only remote test proved the affected Groomer can update the owned profile and that temporarily enabling Sunday immediately backfills the affected open Request through the existing T-155 trigger.
+Risks: The rollback verification intentionally did not retain the user's attempted Sunday setting or create a permanent match. The Groomer must retry Save Availability with the intended days; the currently open Sunday Request will then backfill automatically. Security advisor retains the existing leaked-password-protection warning; performance advisor is clear.
+Next: T-284 is reserved for the required periodic meta-review; Q-104 remains deferred.
+```
+
+```text
+Date: 2026-07-11
 Task: T-282 - Reusable pre-edit text-length interception.
 Files changed: Shared form primitives; Edit Pet Name field; Request address fields; focused limit tests; memory closeout.
 Checks: Customer Pets and Requests focused tests; `./scripts/ios-build.sh`; `git diff --check`; preflight/context hygiene.

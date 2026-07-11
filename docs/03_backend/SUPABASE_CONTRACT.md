@@ -10,9 +10,9 @@ Full pre-trim contract text is archived at `../09_frozen/backend_contracts/SUPAB
 
 - Authorized fresh project: `Beckon`, ref `lqmasbuqzvcvtawonjlb`, organization `Prinnyyy`, region `us-west-1`.
 - Forbidden legacy project: `Prinnyyy's Project`, ref `swdiiyypysyxbnfrxxsv`. Do not inspect, branch, migrate, reset, or mutate it for this rebuild.
-- Remote verification baseline: T-128 repaired historical drift; latest recorded remote migration list aligns through `20260711080751_t263_merge_avatar_select_policies.sql`.
+- Remote verification baseline: T-128 repaired historical drift; latest recorded remote migration list aligns through `20260711222831_t283_fix_avatar_rls_recursion.sql`.
 - Local CLI readiness baseline: T-139 confirmed sequential `supabase projects list`, `supabase migration list --linked`, and `supabase db push --linked --dry-run` work from this checkout without `SUPABASE_DB_PASSWORD`.
-- Local migration mirror: `../../supabase/migrations/` is the append-only source for applied and prepared migrations. Local migration mirror count: 62 files. Do not rename or hand-invent migration filenames.
+- Local migration mirror: `../../supabase/migrations/` is the append-only source for applied and prepared migrations. Local migration mirror count: 63 files. Do not rename or hand-invent migration filenames.
 - Full historical contract detail before this fast-path trim is frozen for comparison only. Current implementation truth comes from migrations plus focused active backend policy files.
 
 ## Read Order
