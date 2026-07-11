@@ -79,13 +79,6 @@ struct CustomerRequestProgressCarousel: View {
                 }
             }
 
-            if cardCount > 1 {
-                Label("Swipe to Review Another Request", systemImage: "arrow.left.and.right")
-                    .font(DesignTokens.Typography.caption)
-                    .foregroundStyle(DesignTokens.Colors.textTertiary)
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .accessibilityIdentifier("customer.requests.carousel-hint")
-            }
         }
     }
 
@@ -135,13 +128,6 @@ struct CustomerRequestActionCardSummaryCarousel: View {
             .scrollClipDisabled()
             .scrollTargetBehavior(.viewAligned)
 
-            if cards.count > 1 {
-                Label("Swipe to Review Another Request", systemImage: "arrow.left.and.right")
-                    .font(DesignTokens.Typography.caption)
-                    .foregroundStyle(DesignTokens.Colors.textTertiary)
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .accessibilityIdentifier("customer.requests.summary-carousel-hint")
-            }
         }
     }
 }

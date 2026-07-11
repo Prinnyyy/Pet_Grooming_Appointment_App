@@ -16,10 +16,15 @@ struct CustomerNotificationsView: View {
         }
         .navigationTitle("Notifications")
         .task {
-            await refreshAndMarkRead()
+            await store.load()
+        }
+        .onDisappear {
+            Task {
+                await store.markAllRead()
+            }
         }
         .foregroundRefreshable {
-            await refreshAndMarkRead()
+            await store.load()
         }
         .accessibilityIdentifier("customer.notifications")
     }
@@ -94,10 +99,6 @@ struct CustomerNotificationsView: View {
         }
     }
 
-    private func refreshAndMarkRead() async {
-        await store.load()
-        await store.markAllRead()
-    }
 }
 
 private struct CustomerNotificationRow: View {

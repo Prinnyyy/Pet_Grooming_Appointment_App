@@ -722,15 +722,19 @@ private struct CustomerPetFormView: View {
                             subtitle: "Keep the details groomers need before you start a request."
                         )
 
-                        CustomerPetFormCard(title: "Pet Card Avatar", systemImage: "camera.fill") {
-                            CustomerPetFormPhotoModule(store: store)
-                        }
+                        BeckonAnnotatedModule(
+                            "Profile",
+                            subtitle: "Pet identity, avatar, breed, and coat details."
+                        ) {
+                            BeckonCard {
+                                VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                                    CustomerPetFormPhotoModule(store: store)
 
-                        CustomerPetFormCard(title: "Profile", systemImage: "pawprint.fill") {
-                            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                                TextField("Pet name", text: $store.formName)
-                                    .textContentType(.name)
-                                    .beckonFormField()
+                                    CustomerPetFormLabeledTextField(
+                                        title: "Name",
+                                        placeholder: "Pet name",
+                                        text: $store.formName
+                                    )
 
                                 CustomerPetFormChoiceRow(
                                     title: "Species",
@@ -773,11 +777,16 @@ private struct CustomerPetFormView: View {
                                         }
                                     }
                                 }
+                                }
                             }
                         }
 
-                        CustomerPetFormCard(title: "Details", systemImage: "heart.text.square.fill") {
-                            VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                        BeckonAnnotatedModule(
+                            "Details",
+                            subtitle: "Size, birthday, temperament, and care notes."
+                        ) {
+                            BeckonCard {
+                                VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
                                 CustomerPetWeightControl(
                                     weight: $store.formWeightLbs,
                                     weightText: weightText,
@@ -821,6 +830,7 @@ private struct CustomerPetFormView: View {
                                         placeholder: "Anxiety, coat needs, handling preferences",
                                         text: $store.formGroomingNotes
                                     )
+                                }
                                 }
                             }
                         }
@@ -889,50 +899,12 @@ private struct CustomerPetFormPhotoModule: View {
     @Bindable var store: CustomerPetsStore
 
     var body: some View {
-        VStack(spacing: DesignTokens.Spacing.md) {
+        HStack(spacing: DesignTokens.Spacing.lg) {
             CustomerPetFormAvatarPreview(data: store.formAvatarPhotoData)
-
-            VStack(spacing: DesignTokens.Spacing.xs) {
-                Text(statusTitle)
-                    .font(DesignTokens.Typography.headline)
-                    .foregroundStyle(DesignTokens.Colors.textPrimary)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                Text(statusMessage)
-                    .font(DesignTokens.Typography.body)
-                    .foregroundStyle(DesignTokens.Colors.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
+            Spacer(minLength: DesignTokens.Spacing.md)
             CustomerPetFormPhotoPicker(store: store)
         }
         .frame(maxWidth: .infinity)
-    }
-
-    private var statusTitle: String {
-        if !store.pendingFormPhotos.isEmpty {
-            return "New avatar selected"
-        }
-
-        if store.formAvatarPhotoData != nil {
-            return "Current pet card avatar"
-        }
-
-        return "No avatar photo"
-    }
-
-    private var statusMessage: String {
-        if !store.pendingFormPhotos.isEmpty {
-            return "Save Pet to replace the pet card avatar."
-        }
-
-        if store.formAvatarPhotoData != nil {
-            return "Shown on Home and pet cards."
-        }
-
-        return "Choose one photo for this pet's card."
     }
 }
 
@@ -947,7 +919,7 @@ private struct CustomerPetFormAvatarPreview: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(DesignTokens.Colors.customerPrimary.opacity(0.16))
         }
-        .frame(width: 112, height: 112)
+        .frame(width: 76, height: 76)
         .background(DesignTokens.Colors.customerPrimary.opacity(0.12))
         .clipShape(DesignTokens.Shapes.circular)
         .overlay {
@@ -974,44 +946,6 @@ private struct CustomerPetFormHero: View {
                 .font(DesignTokens.Typography.body)
                 .foregroundStyle(DesignTokens.Colors.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
-        }
-    }
-}
-
-private struct CustomerPetFormCard<Content: View>: View {
-    let title: String
-    let systemImage: String
-    let content: Content
-
-    init(
-        title: String,
-        systemImage: String,
-        @ViewBuilder content: () -> Content
-    ) {
-        self.title = title
-        self.systemImage = systemImage
-        self.content = content()
-    }
-
-    var body: some View {
-        BeckonCard {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                HStack(spacing: DesignTokens.Spacing.md) {
-                    Image(systemName: systemImage)
-                        .font(DesignTokens.Typography.body.weight(.bold))
-                        .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
-                        .frame(width: 38, height: 38)
-                        .background(DesignTokens.Colors.customerPrimary.opacity(0.16))
-                        .clipShape(DesignTokens.Shapes.circular)
-                        .accessibilityHidden(true)
-
-                    Text(title)
-                        .font(DesignTokens.Typography.headline)
-                        .foregroundStyle(DesignTokens.Colors.textPrimary)
-                }
-
-                content
-            }
         }
     }
 }
@@ -1046,12 +980,26 @@ private struct CustomerPetFormChoiceRow<Content: View>: View {
                     .lineLimit(1)
             }
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: DesignTokens.Spacing.sm) {
-                    content
+            ScrollViewReader { proxy in
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: DesignTokens.Spacing.sm) {
+                        content
+                    }
+                    .padding(.vertical, DesignTokens.Spacing.xs)
                 }
-                .padding(.vertical, DesignTokens.Spacing.xs)
+                .onAppear {
+                    scrollToSelection(using: proxy)
+                }
+                .onChange(of: subtitle) { _, _ in
+                    scrollToSelection(using: proxy)
+                }
             }
+        }
+    }
+
+    private func scrollToSelection(using proxy: ScrollViewProxy) {
+        DispatchQueue.main.async {
+            proxy.scrollTo(subtitle, anchor: .leading)
         }
     }
 }
@@ -1092,6 +1040,7 @@ private struct CustomerPetFormChip: View {
                 }
         }
         .buttonStyle(.plain)
+        .id(title)
     }
 }
 

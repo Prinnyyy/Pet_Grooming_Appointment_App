@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-07-11
+Task: T-270 - Customer card depth, notification lifecycle, scrolling, and Edit Pet refinement.
+Files changed: Shared card shadow tokens; app-wide vertical scroll-indicator configuration; notification exit-read lifecycle; request swipe-hint removal; Edit Pet annotation/profile/avatar/name/choice layout; memory closeout.
+Checks: Customer Pets, Notifications, and Requests focused tests; `./scripts/ios-build.sh`; `git diff --check`; preflight/context hygiene.
+Result: Similar card shadows are constrained to 8pt and vertical scroll bars are hidden app-wide. Notifications remain visibly unread while open and mark all read on exit. Request swipe instructions are removed. Edit Pet uses external no-icon annotations, a compact avatar picker inside Profile, a labeled Name field, and leading restoration for selected horizontal options.
+Risks: UIAppearance controls the vertical indicator globally by design. Visual acceptance remains with the user; no screenshot self-review was performed. No backend, upload contract, or remote state changed.
+Next: Use T-271 for the next user-selected task; Q-104 remains deferred.
+```
+
+```text
+Date: 2026-07-11
 Task: T-269 - Customer Home, notification, closed-detail, and carousel polish.
 Files changed: Home greeting/bell; notification unread color token; cancelled Request Detail presentation/order; reusable carousel shadow token/application; focused test and memory closeout.
 Checks: Customer Requests and tab-badge focused tests; `./scripts/ios-build.sh`; `git diff --check`; preflight/context hygiene.

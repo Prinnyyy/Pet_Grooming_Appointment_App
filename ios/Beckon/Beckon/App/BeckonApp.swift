@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 @main
 struct BeckonApp: App {
@@ -7,6 +8,10 @@ struct BeckonApp: App {
     private var customerPushNotificationAppDelegate
 
     private let composition = AppComposition()
+
+    init() {
+        UIScrollView.appearance().showsVerticalScrollIndicator = false
+    }
 
     var body: some Scene {
         WindowGroup {

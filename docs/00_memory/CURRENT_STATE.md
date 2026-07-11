@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-11
 - Updated by: Codex
-- Latest completed task: T-269 customer Home, notification, closed-detail, and carousel polish.
+- Latest completed task: T-270 customer card depth, notification lifecycle, scrolling, and Edit Pet refinement.
 - Current task: none; T-157 APNs remains externally blocked and Q-104 Dynamic Type/Accessibility remains user-deferred.
-- Next task ID: use T-270. Q-104 remains deferred until the user restores its Dynamic Type/Accessibility scope.
+- Next task ID: use T-271. Q-104 remains deferred until the user restores its Dynamic Type/Accessibility scope.
 
 ## Fast Path
 
@@ -58,6 +58,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - T-267 corrects Request Details annotations to the module's upper-left and sizes the request-card pet avatar to the two-line headline only, with equal top/left/text spacing and top alignment.
 - T-268 shares one Customer Requests Store across Home/Requests for immediate cancellation updates, limits Recent Closed Requests to three with pet avatars, persists chat read timestamps across launches, and makes opening Customer Notifications automatically mark all loaded notifications read with Messages-style rows.
 - T-269 removes the decorative Home smile avatar, aligns greeting copy to page content, uses system-badge red for the notification bell, preserves the Home badge as the total unread notification count, hides Offers on cancelled request details before republish, and strengthens reusable carousel-card bottom shadows.
+- T-270 limits shared card shadows to 8pt, hides vertical scroll indicators app-wide, removes request swipe hints, marks Customer Notifications read on page exit, and reorganizes Edit Pet into annotated Profile/Details cards with a compact integrated avatar, labeled name, and selected horizontal options restored to leading visibility.
 - T-259 makes one `T-###` per fresh session the default, reserves full iOS tests and batched visual evidence for integration/high-risk gates, and requires clean task or checkpoint commits at session boundaries.
 - T-260 adopts UI-R1 through UI-R8 and A11Y-R1 through A11Y-R10 as the active design contract, including approved light-palette contrast pairs and a per-slice accessibility Definition of Done. Token and primitive implementation remains a separate follow-up code task; Q-104 is unchanged.
 - T-244 normalizes the rotated Worklog EOF to one newline.

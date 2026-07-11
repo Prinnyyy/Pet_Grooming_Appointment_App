@@ -83,23 +83,23 @@ enum DesignTokens {
     enum Shadows {
         static let softCard = ShadowStyle(
             color: Color(hex: 0x232323, opacity: 0.05),
-            radius: 22,
+            radius: 8,
             x: 0,
-            y: 8,
+            y: 4,
             spread: 0
         )
         static let smallCard = ShadowStyle(
             color: Color(hex: 0x232323, opacity: 0.05),
-            radius: 16,
+            radius: 8,
             x: 0,
-            y: 6,
+            y: 4,
             spread: 0
         )
         static let carouselCard = ShadowStyle(
             color: Color(hex: 0x232323, opacity: 0.12),
-            radius: 18,
+            radius: 8,
             x: 0,
-            y: 10,
+            y: 5,
             spread: 0
         )
         static let primaryAction = ShadowStyle(
