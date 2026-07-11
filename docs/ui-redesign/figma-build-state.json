@@ -3,18 +3,30 @@
   "fileName": "Pet Grooming App — UI Redesign",
   "fileUrl": "https://www.figma.com/design/XhOqumKm670mJTHUc72qga",
   "createdAt": "2026-07-10",
-  "currentPhase": "Phase 2 — blocked at page structure",
+  "currentPhase": "Phase 2 — blocked during screenshot validation",
   "status": "blocked",
   "constraints": {
     "figmaPlan": "Starter",
     "variableModeLimit": 1,
     "pageLimit": 3,
+    "mcpToolCallLimit": "reached during Phase 2 screenshot validation",
     "implementedTheme": "Light",
     "darkModeStatus": "deferred-until-multi-mode-plan"
   },
+  "fileArchitecture": {
+    "strategy": "three-pages-with-numbered-sections",
+    "pages": ["00 Design System", "10 App Architecture", "20 Product Screens"]
+  },
   "createdPages": [
-    { "name": "Page 1", "nodeId": "0:1", "origin": "Figma default" }
+    { "name": "00 Design System", "nodeId": "0:1" },
+    { "name": "10 App Architecture", "nodeId": "3:2" },
+    { "name": "20 Product Screens", "nodeId": "3:3" }
   ],
+  "sections": {
+    "00 Design System": ["00 Cover", "10 Foundations — Color", "20 Foundations — Typography", "30 Foundations — Layout", "40 Foundations — Effects & Motion", "50 Components — Actions", "60 Components — Data Display", "70 Components — Forms", "80 Components — Feedback"],
+    "10 App Architecture": ["10 Information Architecture", "20 Navigation Map", "30 Core User Flows", "40 Screen Inventory", "50 Figma ↔ SwiftUI Mapping"],
+    "20 Product Screens": ["10 Appointments", "20 Customers", "30 Pets", "40 Services", "50 Calendar", "60 Settings", "70 Authentication", "90 Archive"]
+  },
   "variableCollections": [
     { "name": "Primitives", "id": "VariableCollectionId:2:2", "mode": "Light", "variableCount": 18 },
     { "name": "Semantic Colors", "id": "VariableCollectionId:2:3", "mode": "Light", "variableCount": 17 },
@@ -37,27 +49,39 @@
     "effects": ["Card Shadow", "Elevated Surface", "Floating Control"]
   },
   "components": [],
-  "keyNodeIds": { "defaultPage": "0:1" },
+  "keyNodeIds": {
+    "designSystemPage": "0:1",
+    "appArchitecturePage": "3:2",
+    "productScreensPage": "3:3",
+    "foundationColor": "3:11",
+    "foundationTypography": "3:34",
+    "foundationLayout": "3:51",
+    "informationArchitecture": "3:78",
+    "navigationMap": "3:83",
+    "appointmentsSection": "3:102"
+  },
   "completedValidations": [
     "Confirmed failed multi-mode attempt left no residue",
     "Confirmed six single-mode collections are named Light",
     "Confirmed 60 variables exist and semantic colors alias primitives",
     "Confirmed semantic color scopes and iOS code syntax were assigned",
     "Confirmed 13 SF Pro text styles and 3 effect styles exist",
-    "Confirmed failed page creation was atomic and left only Page 1"
+    "Confirmed revised file has exactly three correctly named pages",
+    "Confirmed all planned numbered sections exist with unique names",
+    "Confirmed all three page metadata responses succeeded",
+    "Confirmed Foundations Color screenshot succeeded"
   ],
   "pendingItems": [
-    "Choose an approved three-page Starter information architecture or upgrade the Figma plan",
-    "Create Foundations documentation and validate metadata/screenshot",
+    "Complete the remaining five required local screenshots after the Starter MCP tool-call quota resets or is upgraded",
+    "Visually inspect typography, layout, architecture, navigation, and appointments overview",
     "Create Phase 3 pilot foundation components",
     "Create docs/ui-redesign/09-figma-design-system-handoff.md after component completion",
     "Add Dark mode to existing collections after multi-mode support becomes available"
   ],
   "blocker": {
-    "step": "Phase 2 page structure",
-    "operation": "Create 11 requested numbered pages",
-    "error": "The Starter plan only comes with 3 pages",
-    "debugUuid": "bf42c925-abdf-4532-a26f-62b9c50b26ce",
-    "impact": "The approved 11-page information architecture cannot be created. No unapproved three-page compression was applied."
+    "step": "Phase 2 screenshot validation",
+    "operation": "Capture the six required local section screenshots",
+    "error": "You've reached the Figma MCP tool call limit on the Starter plan",
+    "impact": "Three-page structure and all planned sections were created and metadata-validated, but only the Color screenshot completed. Phase 3 was not started because Phase 2 visual validation is incomplete."
   }
 }
