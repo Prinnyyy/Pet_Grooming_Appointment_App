@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-07-11
+Task: T-264 - Shared customer pet avatars on request cards.
+Files changed: Shared pet-avatar design-system component; Customer Home pet card and request wizard reuse; request action-card model, Store binding, views, test, and memory closeout.
+Checks: Customer Requests Store focused tests; `./scripts/ios-build.sh`; `git diff --check`; preflight/context hygiene.
+Result: Customer request cards on both Home and Requests now display the latest loaded/cached pet profile photo. Missing or unavailable data uses the same pet-specific fallback as other customer pet surfaces, without introducing a separate request-avatar component.
+Risks: No backend, Storage policy, upload, or remote state changed; cards continue to use the current Store refresh lifecycle for updated photo data.
+Next: Use T-265 for the next user-selected task; Q-104 remains deferred.
+```
+
+```text
+Date: 2026-07-11
 Task: T-263 - Customer Home, Bookings, Requests, and participant-avatar consistency.
 Files changed: Shared profile-avatar presentation and participant loader; booking/request/chat models, repositories, views, and tests; two RLS/Storage migrations; backend contract and memory closeout.
 Checks: Focused booking/request/chat tests; full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; 51 migration tests; `./scripts/supabase-check.sh`; linked dry-run and remote migration/policy/advisor verification; `git diff --check`; preflight/context hygiene.

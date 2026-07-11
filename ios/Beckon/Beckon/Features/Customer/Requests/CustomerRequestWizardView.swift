@@ -1788,21 +1788,14 @@ private struct CustomerRequestWizardPetAvatar: View {
     let size: CGFloat
 
     var body: some View {
-        BeckonModuleImage(data: data) {
-            Text(avatar)
-                .font(.system(size: size * 0.5))
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(avatarBackground)
-        }
-        .frame(width: size, height: size)
-        .background(avatarBackground)
-        .clipShape(
-            RoundedRectangle(
-                cornerRadius: DesignTokens.CornerRadius.input,
-                style: .continuous
-            )
+        BeckonPetAvatar(
+            data: data,
+            fallbackText: avatar,
+            background: AnyShapeStyle(avatarBackground),
+            width: size,
+            height: size,
+            cornerRadius: DesignTokens.CornerRadius.input
         )
-        .accessibilityHidden(true)
     }
 
     private var avatar: String {

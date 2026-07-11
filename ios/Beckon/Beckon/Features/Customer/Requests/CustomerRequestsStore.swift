@@ -217,9 +217,17 @@ final class CustomerRequestsStore {
 
     var visibleActionCards: [CustomerRequestActionCardItem] {
         activeRequests.map {
-            CustomerRequestActionCardItem(request: $0, handoff: nil)
+            CustomerRequestActionCardItem(
+                request: $0,
+                handoff: nil,
+                petAvatarPhotoData: primaryPetPhotoData(petID: $0.petID)
+            )
         } + bookingHandoffs.map {
-            CustomerRequestActionCardItem(request: $0.request, handoff: $0)
+            CustomerRequestActionCardItem(
+                request: $0.request,
+                handoff: $0,
+                petAvatarPhotoData: primaryPetPhotoData(petID: $0.request.petID)
+            )
         }
     }
 
@@ -518,6 +526,14 @@ final class CustomerRequestsStore {
         }
 
         return nil
+    }
+
+    func primaryPetPhotoData(petID: UUID?) -> Data? {
+        guard let petID, let pet = pets.first(where: { $0.id == petID }) else {
+            return nil
+        }
+
+        return primaryPetPhotoData(for: pet)
     }
 
     func request(withID id: UUID) -> CustomerGroomingRequest? {
@@ -1775,6 +1791,17 @@ struct CustomerRequestBookingHandoff: Equatable, Hashable, Identifiable, Sendabl
 struct CustomerRequestActionCardItem: Equatable, Hashable, Identifiable, Sendable {
     let request: CustomerGroomingRequest
     let handoff: CustomerRequestBookingHandoff?
+    let petAvatarPhotoData: Data?
+
+    init(
+        request: CustomerGroomingRequest,
+        handoff: CustomerRequestBookingHandoff?,
+        petAvatarPhotoData: Data? = nil
+    ) {
+        self.request = request
+        self.handoff = handoff
+        self.petAvatarPhotoData = petAvatarPhotoData
+    }
 
     var id: UUID {
         request.id

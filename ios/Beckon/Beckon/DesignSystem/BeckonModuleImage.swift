@@ -96,6 +96,33 @@ struct BeckonProfileAvatar: View {
     }
 }
 
+struct BeckonPetAvatar: View {
+    let data: Data?
+    let fallbackText: String
+    let background: AnyShapeStyle
+    let width: CGFloat
+    let height: CGFloat
+    let cornerRadius: CGFloat
+
+    var body: some View {
+        BeckonModuleImage(data: data) {
+            Text(fallbackText)
+                .font(.system(size: min(width, height) * 0.5))
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(background)
+        }
+        .frame(width: width, height: height)
+        .background(background)
+        .clipShape(
+            RoundedRectangle(
+                cornerRadius: cornerRadius,
+                style: .continuous
+            )
+        )
+        .accessibilityHidden(true)
+    }
+}
+
 enum BeckonDefaultProfileAvatarTone {
     case customer
     case groomer

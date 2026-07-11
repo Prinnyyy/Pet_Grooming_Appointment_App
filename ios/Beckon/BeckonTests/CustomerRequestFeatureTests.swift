@@ -44,9 +44,10 @@ struct CustomerRequestsStoreTests {
     }
 
     @Test @MainActor
-    func loadPopulatesPrimaryPetPhotoDataForRequestWizard() async throws {
+    func loadSharesPrimaryPetPhotoDataWithWizardAndRequestCards() async throws {
         let customerID = UUID()
         let pet = Self.pet(customerID: customerID)
+        let request = Self.request(customerID: customerID, petID: pet.id)
         let photo = Self.petPhoto(customerID: customerID, petID: pet.id)
         let photoData = Data([0x41, 0x42, 0x43])
         let petRepository = CustomerRequestPetRepositoryFake(
@@ -59,7 +60,9 @@ struct CustomerRequestsStoreTests {
         let store = CustomerRequestsStore(
             customerID: customerID,
             petRepository: petRepository,
-            requestRepository: CustomerRequestRepositoryFake(),
+            requestRepository: CustomerRequestRepositoryFake(
+                requestsResult: .success([request])
+            ),
             bookingRepository: CustomerRequestBookingRepositoryFake()
         )
 
@@ -68,6 +71,7 @@ struct CustomerRequestsStoreTests {
         #expect(petRepository.photosCallCount == 1)
         #expect(petRepository.photoDataCallCount == 1)
         #expect(store.primaryPetPhotoData(for: pet) == photoData)
+        #expect(store.visibleActionCards.first?.petAvatarPhotoData == photoData)
     }
 
     @Test @MainActor

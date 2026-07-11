@@ -59,8 +59,7 @@ struct CustomerRequestProgressCarousel: View {
                     LazyHStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
                         ForEach(cards) { card in
                             CustomerRequestProgressCard(
-                                request: card.request,
-                                handoff: card.handoff,
+                                card: card,
                                 store: store,
                                 onViewBooking: onViewBooking,
                                 onCancelRequest: onCancelRequest
@@ -167,6 +166,7 @@ struct CustomerRequestActionCardSummary: View {
         ) {
             CustomerRequestBriefHeader(
                 request: card.request,
+                petAvatarPhotoData: card.petAvatarPhotoData,
                 presentation: CustomerRequestProgressCardPresentation(
                     request: card.request,
                     handoff: card.handoff
@@ -178,8 +178,7 @@ struct CustomerRequestActionCardSummary: View {
 }
 
 private struct CustomerRequestProgressCard: View {
-    let request: CustomerGroomingRequest
-    let handoff: CustomerRequestBookingHandoff?
+    let card: CustomerRequestActionCardItem
     let store: CustomerRequestsStore
     let onViewBooking: (CustomerRequestBookingHandoff) -> Void
     let onCancelRequest: (CustomerGroomingRequest) -> Void
@@ -192,6 +191,7 @@ private struct CustomerRequestProgressCard: View {
             VStack(alignment: .leading, spacing: CustomerRequestProgressCardLayout.contentSpacing) {
                 CustomerRequestBriefHeader(
                     request: request,
+                    petAvatarPhotoData: card.petAvatarPhotoData,
                     presentation: presentation
                 )
 
@@ -233,6 +233,9 @@ private struct CustomerRequestProgressCard: View {
     private var isBookingHandoff: Bool {
         handoff != nil
     }
+
+    private var request: CustomerGroomingRequest { card.request }
+    private var handoff: CustomerRequestBookingHandoff? { card.handoff }
 
     private var presentation: CustomerRequestProgressCardPresentation {
         CustomerRequestProgressCardPresentation(
@@ -411,17 +414,20 @@ private struct CustomerRequestTimelineList: View {
 
 private struct CustomerRequestBriefHeader: View {
     let request: CustomerGroomingRequest
+    let petAvatarPhotoData: Data?
     let presentation: CustomerRequestProgressCardPresentation
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
             HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
-                Text(request.petSnapshot.displayEmoji)
-                    .font(.system(size: 30))
-                    .frame(width: 56, height: 56)
-                    .background(request.avatarBackground)
-                    .clipShape(DesignTokens.Shapes.circular)
-                    .accessibilityHidden(true)
+                BeckonPetAvatar(
+                    data: petAvatarPhotoData,
+                    fallbackText: request.petSnapshot.displayEmoji,
+                    background: AnyShapeStyle(request.avatarBackground),
+                    width: 56,
+                    height: 56,
+                    cornerRadius: 28
+                )
 
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     Text(presentation.headline)

@@ -462,20 +462,15 @@ private struct CustomerHomePetTile: View {
             store.startEdit(pet)
         } label: {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                CustomerHomePetAvatarImage(
+                BeckonPetAvatar(
                     data: store.primaryPhotoData(for: pet),
                     fallbackText: avatar,
-                    background: avatarBackground
+                    background: AnyShapeStyle(avatarBackground),
+                    width: 140,
+                    height: 116,
+                    cornerRadius: DesignTokens.CornerRadius.input
                 )
                 .frame(maxWidth: .infinity)
-                .frame(height: 116)
-                .clipShape(
-                    RoundedRectangle(
-                        cornerRadius: DesignTokens.CornerRadius.input,
-                        style: .continuous
-                    )
-                )
-                .accessibilityHidden(true)
 
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     Text(pet.name)
@@ -571,22 +566,6 @@ private struct CustomerHomePetTile: View {
             DesignTokens.Colors.warning.opacity(0.18),
         ]
         return palette[abs(pet.name.hashValue) % palette.count]
-    }
-}
-
-private struct CustomerHomePetAvatarImage: View {
-    let data: Data?
-    let fallbackText: String
-    let background: Color
-
-    var body: some View {
-        BeckonModuleImage(data: data) {
-            Text(fallbackText)
-                .font(.system(size: 58))
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(background)
-        }
-        .background(background)
     }
 }
 

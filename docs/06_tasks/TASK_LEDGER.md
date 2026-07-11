@@ -2,7 +2,7 @@
 
 Track only current, blocked, and recent tasks here so Codex does not continue automatically. Older completed rows through T-190 are archived under `docs/09_frozen/task_ledgers/`; active blocked T-157 remains below. Notes should keep conclusions and pointers only; validation detail belongs in `docs/00_memory/WORKLOG.md` or frozen worklogs. Detailed task records T-001 through T-088 and workflow task records remain archived under `docs/09_frozen/task_records_2026-06-26/`.
 
-Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup`; use `T-264` for the next task unless the user explicitly names another branch or task ID.
+Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup`; use `T-265` for the next task unless the user explicitly names another branch or task ID.
 
 Active blocked task: T-157 is waiting on paid Apple Developer Program access before APNs secrets (`APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_TOPIC`, `APNS_PRIVATE_KEY`) and Edge Function deploy.
 
@@ -10,6 +10,7 @@ Active blocked task: T-157 is waiting on paid Apple Developer Program access bef
 
 | ID | Task | Status | Mode | Milestone | Files/Docs | Checks | Notes |
 |---|---|---|---|---|---|---|---|
+| T-264 | Shared customer pet avatars on request cards | completed | Standard | M2 | Shared pet-avatar primitive; request card model/Store/views; Home pet card and wizard reuse; focused test | Customer Requests Store tests; iOS build; diff/preflight/context | Request cards on Customer Home and Requests carry the latest cached pet photo and fall back consistently through the same `BeckonPetAvatar` used by pet cards and the request wizard. |
 | T-263 | Customer Home, Bookings, Requests, and participant-avatar consistency | completed | Deep | M2 | Shared profile avatar/loader; customer Home, offers, booking detail, messages; booking grouping; recent closed requests; RLS/Storage migrations | Focused/full iOS tests; build; 51 migration tests; Supabase check/dry-run/advisors; diff/preflight/context | Uses one reusable avatar component and loader for all relevant Groomer surfaces, moves elapsed confirmed bookings to Past, limits Recent Closed Requests to five, and remotely grants relationship-scoped Groomer-avatar reads through merged policies. |
 | T-262 | Periodic meta-review | completed | Quick | G0 | Active indexes; branch/task/migration/root/ignore audit; memory closeout | 25 context tests; branch/head; 60 migrations; diff/context hygiene | Active sources align; T-157 remains blocked and Q-104 remains user-deferred. External UI-design commit labels do not override ledger numbering. T-263 is the next approved product task. |
 | T-261 | Authentication landing action placement and Accessibility audit | completed | Standard | G0 | Authentication landing layout; focused Accessibility review; task closeout | `git diff --check`; iOS build | Anchors the Get Started action group above the bottom safe area with flexible middle spacing and raises the secondary action target to 44pt. Labels, scrolling, Reduce Motion, decorative-image semantics, typography, and contrast-token usage were reviewed. No Simulator screenshot review by Codex per user direction. |
