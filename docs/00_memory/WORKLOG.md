@@ -2,12 +2,21 @@
 
 ```text
 Date: 2026-07-11
+Task: T-289 - Truthful English address autocomplete candidates.
+Files changed: Shared MapKit address candidate/resolution pipeline; Customer Request address tests; memory closeout.
+Checks: Live `MKLocalSearchCompleter` and en_US `MKGeocodingRequest` probes for `760 S Harbor Blvd`; forced-clean RED test; Customer Requests focused tests including async candidate publication; `./scripts/ios-build.sh`; `git diff --check`; preflight/context hygiene.
+Result: Device evidence showed the completer returned English street titles but Chinese-localized city/country subtitles. The prior fallback collapsed five real locations into the typed text plus United States, which was not autocomplete. That fallback is removed. After 260ms input stabilization, iOS 26 uses `MKGeocodingRequest.preferredLocale = en_US`; older systems use `CLGeocoder` with the same preferred locale. Published rows contain actual street/city/state/ZIP data, Han-localized completer rows are excluded, already-English completer rows may supplement the list, semantic duplicates are removed, and selection directly fills the resolved candidate with any UNIT/APT suffix restored.
+Risks: MapKit geocoding is network-dependent and may return one prioritized candidate for an ambiguous street unless city/state context is present. The UI never fabricates an alternative candidate. No backend, persistence, or remote state changed.
+Next: Use T-290 for the next user-selected task; Q-104 remains deferred.
+```
+
+```text
+Date: 2026-07-11
 Task: T-288 - Customer Request address suggestion presentation regression fix.
 Files changed: Customer Request Wizard suggestion positioning; memory closeout.
 Checks: Direct `MKLocalSearchCompleter` query for `760 S Harbor Blvd`; Customer Request Wizard focused tests; `./scripts/ios-build.sh`; `git diff --check`; preflight/context hygiene.
 Result: The device MapKit API returned five completions, proving search input/network were not the failure. T-287 had replaced T-286's working Anchor preference rendering with a separately propagated CGRect overlay. The dropdown now uses the proven anchor-preference geometry again while retaining the simultaneous outside-tap recognizer, scroll passthrough, unit parsing, English fallback, sheet dismissal guard, compact bottom spacing, and hidden indicator.
 Risks: The first focused-test attempt collided with a concurrently running build and locked DerivedData; the standard build passed and the focused test then passed when rerun serially. No backend, persistence, or remote state changed.
-Next: Use T-289 for the next user-selected task; Q-104 remains deferred.
 ```
 
 ```text

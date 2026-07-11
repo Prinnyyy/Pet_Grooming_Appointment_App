@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-11
 - Updated by: Codex
-- Latest completed task: T-288 Customer Request address suggestion presentation regression fix.
+- Latest completed task: T-289 truthful English address autocomplete candidates.
 - Current task: none; T-157 APNs remains externally blocked and Q-104 Dynamic Type/Accessibility remains user-deferred.
-- Next task ID: use T-289 for the next user-selected task. Q-104 remains deferred until the user restores its Dynamic Type/Accessibility scope.
+- Next task ID: use T-290 for the next user-selected task. Q-104 remains deferred until the user restores its Dynamic Type/Accessibility scope.
 
 ## Fast Path
 
@@ -74,6 +74,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - T-286 applies character-level street/city/ZIP rules before Request address text is displayed and moves MapKit address suggestions into a page-level anchored overlay that does not reflow the form and dismisses on an outside tap.
 - T-287 keeps Request content scrolling active while address suggestions remain open, disables sheet drag-dismiss only during that state, searches unit-bearing addresses by their deliverable street base, resolves selected addresses in English, reduces bottom whitespace, and hides the Wizard scroll indicator.
 - T-288 restores the T-286 anchor-preference rendering path for Request address suggestions after direct MapKit verification proved T-287 still received results but its independent frame overlay did not present them reliably; T-287 tap/drag behavior remains intact.
+- T-289 removes the fake typed-text fallback from shared address search. A debounced en_US geocoder now publishes truthful street/city/state/ZIP candidates, localized Han-script completer rows are excluded, and candidate selection uses the already-resolved address while preserving unit suffixes.
 - T-259 makes one `T-###` per fresh session the default, reserves full iOS tests and batched visual evidence for integration/high-risk gates, and requires clean task or checkpoint commits at session boundaries.
 - T-260 adopts UI-R1 through UI-R8 and A11Y-R1 through A11Y-R10 as the active design contract, including approved light-palette contrast pairs and a per-slice accessibility Definition of Done. Token and primitive implementation remains a separate follow-up code task; Q-104 is unchanged.
 - T-244 normalizes the rotated Worklog EOF to one newline.

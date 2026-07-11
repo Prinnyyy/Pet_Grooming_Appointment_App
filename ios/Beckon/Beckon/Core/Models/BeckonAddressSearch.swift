@@ -15,11 +15,6 @@ struct BeckonAddressCompletion<Completion> {
     let completion: Completion
 }
 
-nonisolated struct BeckonAddressSuggestionFallback: Equatable, Sendable {
-    let title: String
-    let subtitle: String
-}
-
 nonisolated struct BeckonAddressQuery: Equatable, Sendable {
     let searchStreet: String
     let secondaryUnit: String?
@@ -52,11 +47,21 @@ nonisolated struct BeckonAddressQuery: Equatable, Sendable {
     }
 }
 
+nonisolated struct BeckonAddressCandidate: Equatable, Sendable {
+    let streetAddress: String
+    let city: String
+    let state: String
+    let zipCode: String
+
+    var id: String {
+        "\(streetAddress)|\(city)|\(state)|\(zipCode)"
+    }
+}
+
 enum BeckonAddressSuggestionBuilder {
     static func build<Completion>(
         from completions: [BeckonAddressCompletion<Completion>],
-        limit: Int = 5,
-        englishFallback: BeckonAddressSuggestionFallback? = nil
+        limit: Int = 5
     ) -> (
         suggestions: [BeckonAddressSuggestion],
         completionsByID: [String: Completion]
@@ -68,10 +73,10 @@ enum BeckonAddressSuggestionBuilder {
         for completion in completions where suggestions.count < limit {
             let localizedTitle = completion.title.trimmingCharacters(in: .whitespacesAndNewlines)
             let localizedSubtitle = completion.subtitle.trimmingCharacters(in: .whitespacesAndNewlines)
-            let shouldUseFallback = Self.containsHanScript(localizedTitle)
-                || Self.containsHanScript(localizedSubtitle)
-            let title = shouldUseFallback ? englishFallback?.title ?? "" : localizedTitle
-            let subtitle = shouldUseFallback ? englishFallback?.subtitle ?? "" : localizedSubtitle
+            guard !Self.containsHanScript(localizedTitle),
+                  !Self.containsHanScript(localizedSubtitle) else { continue }
+            let title = localizedTitle
+            let subtitle = localizedSubtitle
             guard !title.isEmpty else { continue }
 
             let key = "\(title)|\(subtitle)"
@@ -87,6 +92,23 @@ enum BeckonAddressSuggestionBuilder {
         }
 
         return (suggestions, completionsByID)
+    }
+
+    static func build(
+        from candidates: [BeckonAddressCandidate],
+        limit: Int = 5
+    ) -> [BeckonAddressSuggestion] {
+        var seenIDs: Set<String> = []
+        return candidates.compactMap { candidate in
+            guard seenIDs.insert(candidate.id).inserted else { return nil }
+            return BeckonAddressSuggestion(
+                id: candidate.id,
+                title: candidate.streetAddress,
+                subtitle: "\(candidate.city), \(candidate.state) \(candidate.zipCode)"
+            )
+        }
+        .prefix(limit)
+        .map { $0 }
     }
 
     private static func containsHanScript(_ value: String) -> Bool {
@@ -115,6 +137,11 @@ private struct BeckonAddressComponents: Sendable {
     let zipCode: String
 }
 
+private enum BeckonAddressResolution {
+    case completion(MKLocalSearchCompletion)
+    case candidate(BeckonAddressCandidate)
+}
+
 final class BeckonAddressSearch:
     NSObject,
     ObservableObject,
@@ -123,13 +150,36 @@ final class BeckonAddressSearch:
     @Published private(set) var suggestions: [BeckonAddressSuggestion] = []
 
     private let completer = MKLocalSearchCompleter()
-    private var completionsByID: [String: MKLocalSearchCompletion] = [:]
+    private var resolutionsByID: [String: BeckonAddressResolution] = [:]
+    private var rawSuggestions: [BeckonAddressSuggestion] = []
+    private var rawResolutionsByID: [String: BeckonAddressResolution] = [:]
+    private var englishSuggestions: [BeckonAddressSuggestion] = []
+    private var englishResolutionsByID: [String: BeckonAddressResolution] = [:]
     private var lastQueryFragment = ""
     private var currentQuery = BeckonAddressQuery(street: "")
-    private var currentFallback: BeckonAddressSuggestionFallback?
+    private var lookupGeneration = 0
+    private var englishLookupTask: Task<Void, Never>?
+    private let lookupDelay: Duration
+    private let englishCandidateLookup: ((String) async -> [BeckonAddressCandidate])?
 
     override init() {
+        lookupDelay = .milliseconds(260)
+        englishCandidateLookup = nil
         super.init()
+        configureCompleter()
+    }
+
+    init(
+        lookupDelay: Duration,
+        englishCandidateLookup: @escaping (String) async -> [BeckonAddressCandidate]
+    ) {
+        self.lookupDelay = lookupDelay
+        self.englishCandidateLookup = englishCandidateLookup
+        super.init()
+        configureCompleter()
+    }
+
+    private func configureCompleter() {
         completer.delegate = self
         completer.resultTypes = .address
     }
@@ -141,29 +191,12 @@ final class BeckonAddressSearch:
     ) {
         let addressQuery = BeckonAddressQuery(street: street)
         guard addressQuery.searchStreet.count >= 3 else {
-            suggestions = []
-            completionsByID = [:]
+            resetSuggestions()
             updateQueryFragmentIfNeeded("")
             return
         }
 
         currentQuery = addressQuery
-        currentFallback = BeckonAddressSuggestionFallback(
-            title: addressQuery.searchStreet,
-            subtitle: [
-                city.trimmingCharacters(in: .whitespacesAndNewlines),
-                stateCode?.rawValue ?? "",
-            ]
-            .filter { !$0.isEmpty }
-            .joined(separator: ", ")
-        )
-        if currentFallback?.subtitle.isEmpty == true {
-            currentFallback = BeckonAddressSuggestionFallback(
-                title: addressQuery.searchStreet,
-                subtitle: "United States"
-            )
-        }
-
         let query = [
             addressQuery.searchStreet,
             city.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -172,6 +205,7 @@ final class BeckonAddressSearch:
         .filter { !$0.isEmpty }
         .joined(separator: ", ")
 
+        beginEnglishLookup(for: query)
         updateQueryFragmentIfNeeded(query)
     }
 
@@ -189,13 +223,40 @@ final class BeckonAddressSearch:
                     subtitle: completion.subtitle,
                     completion: completion
                 )
-            },
-            englishFallback: currentFallback
+            }
         )
 
-        DispatchQueue.main.async {
-            self.suggestions = result.suggestions
-            self.completionsByID = result.completionsByID
+        rawSuggestions = result.suggestions
+        rawResolutionsByID = result.completionsByID.mapValues(BeckonAddressResolution.completion)
+        publishMergedSuggestions()
+    }
+
+    private func beginEnglishLookup(for query: String) {
+        lookupGeneration += 1
+        let generation = lookupGeneration
+        englishLookupTask?.cancel()
+        rawSuggestions = []
+        rawResolutionsByID = [:]
+        englishSuggestions = []
+        englishResolutionsByID = [:]
+        publishMergedSuggestions()
+
+        englishLookupTask = Task { [weak self] in
+            guard let self else { return }
+            try? await Task.sleep(for: self.lookupDelay)
+            guard !Task.isCancelled else { return }
+            let candidates: [BeckonAddressCandidate]
+            if let englishCandidateLookup = self.englishCandidateLookup {
+                candidates = await englishCandidateLookup(query)
+            } else {
+                candidates = await self.englishCandidates(for: query)
+            }
+            guard !Task.isCancelled, generation == self.lookupGeneration else { return }
+            self.englishSuggestions = BeckonAddressSuggestionBuilder.build(from: candidates)
+            self.englishResolutionsByID = Dictionary(
+                uniqueKeysWithValues: candidates.map { ($0.id, .candidate($0)) }
+            )
+            self.publishMergedSuggestions()
         }
     }
 
@@ -203,17 +264,30 @@ final class BeckonAddressSearch:
         _ completer: MKLocalSearchCompleter,
         didFailWithError error: any Error
     ) {
-        DispatchQueue.main.async {
-            self.suggestions = []
-            self.completionsByID = [:]
-        }
+        rawSuggestions = []
+        rawResolutionsByID = [:]
+        publishMergedSuggestions()
     }
 
     func resolve(
         _ suggestion: BeckonAddressSuggestion
     ) async -> BeckonResolvedAddress? {
-        guard let completion = completionsByID[suggestion.id] else { return nil }
+        guard let resolution = resolutionsByID[suggestion.id] else { return nil }
         let addressQuery = currentQuery
+
+        if case let .candidate(candidate) = resolution {
+            guard let stateCode = USStateCode(rawValue: candidate.state.uppercased()) else {
+                return nil
+            }
+            return BeckonResolvedAddress(
+                streetAddress: addressQuery.appendingSecondary(to: candidate.streetAddress),
+                city: candidate.city,
+                stateCode: stateCode,
+                zipCode: candidate.zipCode
+            )
+        }
+
+        guard case let .completion(completion) = resolution else { return nil }
 
         let request = MKLocalSearch.Request(completion: completion)
         guard let localizedMapItem = try? await MKLocalSearch(request: request).start().mapItems.first else {
@@ -234,6 +308,58 @@ final class BeckonAddressSearch:
             stateCode: stateCode,
             zipCode: components.zipCode
         )
+    }
+
+    private func publishMergedSuggestions() {
+        var seenLocations: Set<String> = []
+        suggestions = (englishSuggestions + rawSuggestions)
+            .filter { suggestion in
+                let city = suggestion.subtitle.split(separator: ",").first
+                    .map(String.init) ?? suggestion.subtitle
+                let locationKey = "\(suggestion.title)|\(city)".lowercased()
+                return seenLocations.insert(locationKey).inserted
+            }
+            .prefix(5)
+            .map { $0 }
+        resolutionsByID = rawResolutionsByID.merging(englishResolutionsByID) { _, english in english }
+    }
+
+    private func resetSuggestions() {
+        lookupGeneration += 1
+        englishLookupTask?.cancel()
+        rawSuggestions = []
+        rawResolutionsByID = [:]
+        englishSuggestions = []
+        englishResolutionsByID = [:]
+        suggestions = []
+        resolutionsByID = [:]
+    }
+
+    private func englishCandidates(for query: String) async -> [BeckonAddressCandidate] {
+        if #available(iOS 26.0, *),
+           let request = MKGeocodingRequest(addressString: query) {
+            request.preferredLocale = Locale(identifier: "en_US")
+            return await withCheckedContinuation { continuation in
+                request.getMapItems { items, _ in
+                    continuation.resume(
+                        returning: (items ?? []).compactMap(self.addressCandidate)
+                    )
+                }
+            }
+        }
+
+        let geocoder = CLGeocoder()
+        return await withCheckedContinuation { continuation in
+            geocoder.geocodeAddressString(
+                query,
+                in: nil,
+                preferredLocale: Locale(identifier: "en_US")
+            ) { placemarks, _ in
+                continuation.resume(
+                    returning: (placemarks ?? []).compactMap(Self.addressCandidate)
+                )
+            }
+        }
     }
 
     private func englishAddressComponents(for mapItem: MKMapItem) async -> BeckonAddressComponents? {
@@ -295,6 +421,37 @@ final class BeckonAddressSearch:
             return nil
         }
         return BeckonAddressComponents(
+            streetAddress: streetAddress,
+            city: city,
+            state: state,
+            zipCode: zipCode
+        )
+    }
+
+    private func addressCandidate(from mapItem: MKMapItem) -> BeckonAddressCandidate? {
+        guard let components = addressComponents(from: mapItem) else { return nil }
+        return BeckonAddressCandidate(
+            streetAddress: components.streetAddress,
+            city: components.city,
+            state: components.state,
+            zipCode: components.zipCode
+        )
+    }
+
+    nonisolated private static func addressCandidate(
+        from placemark: CLPlacemark
+    ) -> BeckonAddressCandidate? {
+        let streetAddress = [placemark.subThoroughfare, placemark.thoroughfare]
+            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+        let city = placemark.locality?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let state = placemark.administrativeArea?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let zipCode = placemark.postalCode?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !streetAddress.isEmpty, !city.isEmpty, !state.isEmpty, !zipCode.isEmpty else {
+            return nil
+        }
+        return BeckonAddressCandidate(
             streetAddress: streetAddress,
             city: city,
             state: state,

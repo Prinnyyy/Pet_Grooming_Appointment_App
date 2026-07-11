@@ -476,7 +476,7 @@ extension CustomerRequestsStoreTests {
     }
 
     @Test @MainActor
-    func localizedMapCompletionFallsBackToTheTypedEnglishAddress() {
+    func localizedMapCompletionIsReplacedByResolvedEnglishCandidate() {
         let result = BeckonAddressSuggestionBuilder.build(
             from: [
                 BeckonAddressCompletion(
@@ -484,16 +484,52 @@ extension CustomerRequestsStoreTests {
                     subtitle: "加利福尼亚州富勒顿",
                     completion: "localized"
                 ),
-            ],
-            englishFallback: BeckonAddressSuggestionFallback(
-                title: "760 S Harbor Blvd",
-                subtitle: "Fullerton, CA"
-            )
+            ]
+        )
+        let englishSuggestions = BeckonAddressSuggestionBuilder.build(
+            from: [
+                BeckonAddressCandidate(
+                    streetAddress: "760 S Harbor Blvd",
+                    city: "Fullerton",
+                    state: "CA",
+                    zipCode: "92832"
+                ),
+            ]
         )
 
-        #expect(result.suggestions.first?.title == "760 S Harbor Blvd")
-        #expect(result.suggestions.first?.subtitle == "Fullerton, CA")
-        #expect(result.completionsByID[result.suggestions[0].id] == "localized")
+        #expect(result.suggestions.isEmpty)
+        #expect(result.completionsByID.isEmpty)
+        #expect(englishSuggestions == [
+            BeckonAddressSuggestion(
+                id: "760 S Harbor Blvd|Fullerton|CA|92832",
+                title: "760 S Harbor Blvd",
+                subtitle: "Fullerton, CA 92832"
+            ),
+        ])
+    }
+
+    @Test @MainActor
+    func addressSearchPublishesResolvedEnglishCandidates() async throws {
+        let search = BeckonAddressSearch(
+            lookupDelay: .zero,
+            englishCandidateLookup: { query in
+                #expect(query == "760 S Harbor Blvd")
+                return [
+                    BeckonAddressCandidate(
+                        streetAddress: "760 S Harbor Blvd",
+                        city: "Fullerton",
+                        state: "CA",
+                        zipCode: "92832"
+                    ),
+                ]
+            }
+        )
+
+        search.update(street: "760 S Harbor Blvd UNIT 2410", city: "", stateCode: nil)
+        try await Task.sleep(for: .milliseconds(50))
+
+        #expect(search.suggestions.first?.title == "760 S Harbor Blvd")
+        #expect(search.suggestions.first?.subtitle == "Fullerton, CA 92832")
     }
 
     @Test
