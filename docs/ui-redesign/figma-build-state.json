@@ -3,39 +3,61 @@
   "fileName": "Pet Grooming App — UI Redesign",
   "fileUrl": "https://www.figma.com/design/XhOqumKm670mJTHUc72qga",
   "createdAt": "2026-07-10",
-  "currentPhase": "Phase 1 — blocked at P1.b",
+  "currentPhase": "Phase 2 — blocked at page structure",
   "status": "blocked",
-  "createdPages": [
-    {
-      "name": "Page 1",
-      "nodeId": "0:1",
-      "origin": "Figma default"
-    }
-  ],
-  "variableCollections": [],
-  "variables": [],
-  "styles": [],
-  "components": [],
-  "keyNodeIds": {
-    "defaultPage": "0:1"
+  "constraints": {
+    "figmaPlan": "Starter",
+    "variableModeLimit": 1,
+    "pageLimit": 3,
+    "implementedTheme": "Light",
+    "darkModeStatus": "deferred-until-multi-mode-plan"
   },
+  "createdPages": [
+    { "name": "Page 1", "nodeId": "0:1", "origin": "Figma default" }
+  ],
+  "variableCollections": [
+    { "name": "Primitives", "id": "VariableCollectionId:2:2", "mode": "Light", "variableCount": 18 },
+    { "name": "Semantic Colors", "id": "VariableCollectionId:2:3", "mode": "Light", "variableCount": 17 },
+    { "name": "Spacing", "id": "VariableCollectionId:2:4", "mode": "Light", "variableCount": 9 },
+    { "name": "Radius", "id": "VariableCollectionId:2:5", "mode": "Light", "variableCount": 4 },
+    { "name": "Sizing", "id": "VariableCollectionId:2:6", "mode": "Light", "variableCount": 8 },
+    { "name": "Motion", "id": "VariableCollectionId:2:7", "mode": "Light", "variableCount": 4 }
+  ],
+  "variables": {
+    "total": 60,
+    "primitiveColors": 18,
+    "semanticColors": 17,
+    "spacing": 9,
+    "radius": 4,
+    "sizing": 8,
+    "motion": 4
+  },
+  "styles": {
+    "typography": ["Large Title", "Title 1", "Title 2", "Title 3", "Headline", "Body", "Callout", "Subheadline", "Footnote", "Caption 1", "Caption 2", "Body Emphasized", "Callout Emphasized"],
+    "effects": ["Card Shadow", "Elevated Surface", "Floating Control"]
+  },
+  "components": [],
+  "keyNodeIds": { "defaultPage": "0:1" },
   "completedValidations": [
-    "Confirmed editorType is figma (Figma Design)",
-    "Confirmed blank file has 1 default page, 0 collections, 0 variables, and 0 local styles",
-    "Confirmed failed collection script was atomic and created no Figma entities"
+    "Confirmed failed multi-mode attempt left no residue",
+    "Confirmed six single-mode collections are named Light",
+    "Confirmed 60 variables exist and semantic colors alias primitives",
+    "Confirmed semantic color scopes and iOS code syntax were assigned",
+    "Confirmed 13 SF Pro text styles and 3 effect styles exist",
+    "Confirmed failed page creation was atomic and left only Page 1"
   ],
   "pendingItems": [
-    "Resolve Figma plan limitation that permits only one mode per variable collection",
-    "Create six Variable Collections including Light and Dark modes for Semantic Colors",
-    "Complete Phase 1 Foundations",
-    "Complete Phase 2 file structure",
-    "Create and validate Phase 3 pilot foundation components"
+    "Choose an approved three-page Starter information architecture or upgrade the Figma plan",
+    "Create Foundations documentation and validate metadata/screenshot",
+    "Create Phase 3 pilot foundation components",
+    "Create docs/ui-redesign/09-figma-design-system-handoff.md after component completion",
+    "Add Dark mode to existing collections after multi-mode support becomes available"
   ],
   "blocker": {
-    "step": "P1.b",
-    "operation": "Add Dark mode to Semantic Colors collection",
-    "error": "Error: in addMode: Limited to 1 modes only",
-    "debugUuid": "e5c1fe4c-7283-4d3b-b5f2-d13de680851b",
-    "impact": "The required Light/Dark variable mode architecture cannot be created on the current Figma plan. No single-mode approximation was created."
+    "step": "Phase 2 page structure",
+    "operation": "Create 11 requested numbered pages",
+    "error": "The Starter plan only comes with 3 pages",
+    "debugUuid": "bf42c925-abdf-4532-a26f-62b9c50b26ce",
+    "impact": "The approved 11-page information architecture cannot be created. No unapproved three-page compression was applied."
   }
 }
