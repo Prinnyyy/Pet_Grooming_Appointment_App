@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-10
 - Updated by: Codex
-- Latest completed task: T-259 session-per-task context and quota governance.
+- Latest completed task: T-260 UI design rules and accessibility groundwork adoption.
 - Current task: none; T-157 APNs remains externally blocked and Q-104 Dynamic Type/Accessibility remains user-deferred.
-- Next task ID: use T-260 for Q-104 when the user restores its deferred Dynamic Type/Accessibility scope, unless the user resumes T-157 after Apple Developer Program upgrade.
+- Next task ID: use T-261 for the next approved task. Q-104 remains deferred until the user restores its Dynamic Type/Accessibility scope.
 
 ## Fast Path
 
@@ -52,6 +52,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - T-257 completes Q-103: Fit Signals separates core selection/size experience from compact skill groups, Evidence has a truthful grouped overview or empty state, and Portfolio uses an image-first gallery plus focused fit-note detail. Existing Store mutations, global feedback, authenticated cache, selectors, and image behavior are preserved; no backend or remote state changed.
 - T-258 completes the non-Accessibility portion of the Groomer integration gate: seeded TestOps verifies five direct tabs, six focused Account workspaces, one Back action, hidden editor tabs, and no `More`; default-text compact and large Simulator inspection plus full iOS tests/build/preflight pass. Q-104 remains open only for user-deferred Dynamic Type and Accessibility validation/changes.
 - T-259 makes one `T-###` per fresh session the default, reserves full iOS tests and batched visual evidence for integration/high-risk gates, and requires clean task or checkpoint commits at session boundaries.
+- T-260 adopts UI-R1 through UI-R8 and A11Y-R1 through A11Y-R10 as the active design contract, including approved light-palette contrast pairs and a per-slice accessibility Definition of Done. Token and primitive implementation remains a separate follow-up code task; Q-104 is unchanged.
 - T-244 normalizes the rotated Worklog EOF to one newline.
 - T-245 context-script validation passes 32 Node tests; word counts are informational and rolling windows use buffered high/retain entry counts.
 - T-246 passes the Beckon identity audit, 31 TestOps tests, 48 migration tests, 10 Edge tests, privacy/preflight/Supabase checks, full iOS tests/build, and Simulator auth branding inspection.

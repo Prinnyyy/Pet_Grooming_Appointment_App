@@ -66,6 +66,52 @@ Implemented primitives:
 
 These primitives own only presentation. Calling screens still own validation, loading state, duplicate-submit prevention, retry actions, navigation, data fetching, and business mutations through existing Store/repository boundaries.
 
+## UI Design Rules (UI-R1..R8)
+
+- **UI-R1 Component organisms:** A UI pattern used on two or more screens becomes a named `DesignSystem/` primitive with required and optional elements plus applicable default, loading, disabled, error, empty, and selected states. Feature views compose primitives instead of rebuilding recurring modifier stacks.
+- **UI-R2 Semantic typography:** Use `DesignTokens.Typography` semantic styles for all feature text. Express hierarchy through semantic style and weight, not ad hoc sizes; do not add `Font.system(size:)` in feature code. Existing fixed-size sites are migration work, not precedent.
+- **UI-R3 Reserved accents:** A screen has at most one visually primary action pattern in its role accent: mint for Customer and coral for Groomer. Accent means action, not decoration or status. Repeated equivalent card actions count as one pattern.
+- **UI-R4 Semantic color and contrast:** Feature code references semantic color roles only. New foreground/background pairs require measured contrast of at least 4.5:1 for normal text or 3:1 for large text and meaningful UI graphics. Use only the approved pairs below.
+- **UI-R5 Token spacing and shape:** Keep the 4pt grid, existing spacing/radius tokens, and 20/24pt screen padding. Introduce new values through `DesignTokens` before reuse.
+- **UI-R6 Content-first depth:** Let pet, portfolio, and groomer photography lead relevant cards. Use one soft elevation tier with quiet borders and shadows. Groomer operational screens retain R-039 grouped-list density rather than raised card stacks.
+- **UI-R7 Complete async states:** Every async surface provides loading, empty, error, and success presentation through shared primitives. Empty states identify the next available action; spinners and dead-end empty states are insufficient.
+- **UI-R8 Screen archetypes:** Classify each screen as `List/Feed`, `Detail`, `Wizard`, `Thread`, `Editor`, or `Workspace (segmented)`. Follow a consistent title, primary-action, grouping, and accessibility contract for that archetype.
+
+Approved light-palette color pairs:
+
+| Foreground | Background | Rule |
+|---|---|---|
+| `textPrimary #232323` | surface or app background | Approved for primary text. |
+| `textPrimary #232323` | mint, mintDark, coral, or coralDark | Approved for accent actions; dark foreground is required. |
+| `textPrimary #232323` | success, warning, or error fill | Approved for status chips; pair color with text or an icon. |
+| `textTertiary #69717A` | surface or app background | Approved. |
+| `textSecondary #6F767E` | surface | Approved; do not use on app background for normal-size text. |
+| `successText #37744E` | surface | Approved AA replacement for success body text; token implementation is follow-up work. |
+| `warningText #8F6800` | surface | Approved AA replacement for warning body text; token implementation is follow-up work. |
+| `errorText #B4474C` | surface | Approved AA replacement for error body text; token implementation is follow-up work. |
+
+Banned pairs:
+
+- White text on mint, mintDark, coral, or coralDark.
+- Success `#6CBF84`, warning `#F2B84B`, or error `#E56B6F` as normal body text on a surface; use the corresponding `*Text` role after its token is implemented.
+- `textSecondary #6F767E` as normal-size text directly on app background `#FAF7F2`; restrict it to surfaces or use a future AA-adjusted semantic value.
+- Any unmeasured raw foreground/background combination in feature code.
+
+Dark mode remains out of scope. These rules govern the current light palette and preserve semantic role names so a future palette can change values without rewriting feature layouts.
+
+## Accessibility Groundwork (A11Y-R1..R10)
+
+- **A11Y-R1 Dynamic Type:** Use semantic text styles and content-sized containers. Do not fix text heights or truncate informational text to one line unless its full value is available elsewhere. Prefer reflow with stacking, `ViewThatFits`, or `isAccessibilitySize`. `minimumScaleFactor` is not an overflow strategy; allow values of 0.85 or greater only for genuinely fixed chrome with a justification comment. Each UI slice must pass AX3 (`.accessibility3`).
+- **A11Y-R2 Touch targets:** Interactive elements are at least 44x44pt. Button and chip primitives provide the minimum floor; list rows use full-row hit areas such as `contentShape` rather than a glyph's natural size.
+- **A11Y-R3 Contrast:** Enforce UI-R4's approved pair table. Status fills/icons use dark foregrounds, while body text uses the AA `successText`, `warningText`, and `errorText` roles after the follow-up token task implements them. Never communicate status through color alone.
+- **A11Y-R4 Labels and identifiers:** Every interactive element and informative image has a human, model-derived accessibility label. `accessibilityIdentifier` remains TestOps-only and never substitutes for a VoiceOver label.
+- **A11Y-R5 Grouped reading:** Composite cards and rows read as one coherent element using combined children where appropriate; expose secondary controls as accessibility actions instead of forcing users through fragmented swipes.
+- **A11Y-R6 Headings:** Shared section headers expose the header trait, and page titles use native navigation titles so VoiceOver rotor heading navigation works consistently. Primitive implementation remains follow-up code work.
+- **A11Y-R7 Async announcements:** Shared feedback primitives announce meaningful success, failure, confirmation, and refresh outcomes. Centralized announcement posting remains follow-up code work; new screens must not introduce silent async outcomes.
+- **A11Y-R8 Images:** Hide decorative images from accessibility. Informative pet, portfolio, and avatar images use model-derived labels, and image meaning is also available in text where needed.
+- **A11Y-R9 Reduced motion:** Custom motion routes through a shared helper that reduces to opacity or no animation when Reduce Motion is enabled. Motion never carries meaning by itself; helper implementation remains follow-up code work.
+- **A11Y-R10 Per-slice Definition of Done:** Every UI slice completes the checklist in `../06_tasks/SCREENSHOT_UI_REWORK_TASK_TEMPLATE.md`; accessibility is verified incrementally instead of deferred to a broad retrofit.
+
 ## Screenshot Rework Rules
 
 Future Beckon UI work is screenshot-driven. Start from `../06_tasks/SCREENSHOT_UI_REWORK_TASK_TEMPLATE.md`, then map each visible module to `SCREEN_INVENTORY.md`, existing SwiftUI files, and existing Store/repository/model owners.

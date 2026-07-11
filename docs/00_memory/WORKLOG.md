@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-10
+Task: T-260 - UI design rules and accessibility groundwork adoption.
+Files changed: Design-system rules; screenshot UI task template; current state, task ledger, and worklog; archived external UI review.
+Checks: `git diff --check`; context hygiene.
+Result: UI-R1 through UI-R8 and A11Y-R1 through A11Y-R10 are active design rules. The light-palette contrast contract includes approved and banned pairs plus the future AA status-text values, and every UI slice now carries a VoiceOver/AX3/contrast/target/announcement/TestOps checklist.
+Risks: The status-text tokens, reduced-motion helper, heading traits, touch-target floors, and async announcement primitives are documented requirements but are not implemented in this docs-only task. Dark mode, Swift, backend, R-039, and Q-104 are unchanged.
+Next: Use T-261 for the separately approved token/primitive code task or another user-selected task; Q-104 remains deferred.
+```
+
+```text
+Date: 2026-07-10
 Task: T-259 - Session-per-task context and quota governance.
 Files changed: AGENTS; workflow, context, Git, validation, ignore, decision, ledger, worklog, and current-state rules; archived external execution plan.
 Checks: `git diff --check`; context hygiene.
 Result: Each T-### now starts in a fresh session and ends after closeout. Standard slices use focused tests plus one build; full suites and batched visual evidence are reserved for integration/high-risk gates. Session boundaries require clean task or WORKLOG-linked checkpoint commits, and oversized tasks prefer checkpoint-and-resume over in-place compaction.
 Risks: Repository rules cannot force users or external agents to close a session, and platform compaction remains outside repository control. No app, backend, Supabase, or remote state changed.
-Next: Start Q-104 as T-260 only when the user restores its deferred Dynamic Type/Accessibility scope.
 ```
 
 ```text

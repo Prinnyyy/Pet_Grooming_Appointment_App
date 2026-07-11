@@ -123,6 +123,15 @@ Run one validation attempt by mode. If required validation or required simulator
 - Completed T-024 through T-035 files remain archived historical records, not active task files.
 - Required validation passes or the first real error is reported under stop rules.
 
+## Per-Slice Accessibility Definition of Done
+
+- [ ] Complete a VoiceOver walkthrough covering labels, grouping, headings, and accessibility actions.
+- [ ] Pass AX3 (`.accessibility3`) Dynamic Type with no clipped, overlapping, or scaled-away informational text.
+- [ ] Use only approved foreground/background token pairs from `../01_product/DESIGN_SYSTEM.md`.
+- [ ] Keep every interactive target at least 44x44pt, including icon-only controls and row actions.
+- [ ] Announce meaningful async success, failure, confirmation, and refresh outcomes.
+- [ ] Preserve existing TestOps `accessibilityIdentifier` values while adding human accessibility labels.
+
 ## Closeout
 
 Status: `pending / completed / blocked`

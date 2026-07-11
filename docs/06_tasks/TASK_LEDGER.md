@@ -2,7 +2,7 @@
 
 Track only current, blocked, and recent tasks here so Codex does not continue automatically. Older completed rows through T-190 are archived under `docs/09_frozen/task_ledgers/`; active blocked T-157 remains below. Notes should keep conclusions and pointers only; validation detail belongs in `docs/00_memory/WORKLOG.md` or frozen worklogs. Detailed task records T-001 through T-088 and workflow task records remain archived under `docs/09_frozen/task_records_2026-06-26/`.
 
-Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup`; use `T-260` for the next task unless the user explicitly names another branch or task ID.
+Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup`; use `T-261` for the next task unless the user explicitly names another branch or task ID.
 
 Active blocked task: T-157 is waiting on paid Apple Developer Program access before APNs secrets (`APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_TOPIC`, `APNS_PRIVATE_KEY`) and Edge Function deploy.
 
@@ -10,6 +10,7 @@ Active blocked task: T-157 is waiting on paid Apple Developer Program access bef
 
 | ID | Task | Status | Mode | Milestone | Files/Docs | Checks | Notes |
 |---|---|---|---|---|---|---|---|
+| T-260 | UI design rules and accessibility groundwork adoption | completed | Quick | G0 | Design-system contract; screenshot task template; archived external review; memory closeout | `git diff --check`; context hygiene | Adopts UI-R1..R8, A11Y-R1..R10, approved light-palette contrast pairs, and per-slice accessibility DoD. Token/primitive code is deferred to a separate task; R-039/Q-104 and backend are unchanged. |
 | T-259 | Session-per-task context and quota governance | completed | Quick | G0 | Agent/workflow/Git/context/ignore rules; D-028; memory closeout; archived external plan | `git diff --check`; context hygiene | Makes one task per session and clean task/checkpoint commits the default boundary. Standard slices use focused tests plus one build; full suites and visual evidence move to package/high-risk gates. No app/backend/remote change. |
 | T-258 | Groomer non-Accessibility integration verification | completed | Standard | M12/R-039 | Groomer TestOps smoke coverage; roadmap/memory closeout | Seeded Groomer selector flow; default-text compact/large Simulator inspection; full iOS test/build; preflight; diff | Adds deterministic verification for five direct tabs, six focused Account workspaces, one Back action, hidden focused-editor tabs, and no `More`. Q-104 remains open for user-deferred Dynamic Type and Accessibility work; no app UI, backend, or remote state changed. |
 | T-257 | Groomer Fit Signals, Evidence, and Portfolio presentation | completed | Standard | M12/R-039/Q-103 | Fit/Evidence/Portfolio views; presentation models; focused profile/TestOps tests; roadmap/memory closeout | Presentation RED/GREEN; focused Groomer Profile Store tests; full iOS test/build; live compact Fit Signals, Portfolio gallery/detail, and Evidence inspection; diff/preflight/context | Preserves size range, fit selection, evidence, authenticated cache-backed image rendering, upload/delete, fit-note save, global feedback, and existing Store/repository behavior. Editors use native Back and hidden tabs. No backend or remote write. |
