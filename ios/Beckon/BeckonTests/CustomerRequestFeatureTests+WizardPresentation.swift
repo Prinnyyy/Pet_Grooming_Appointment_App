@@ -4,9 +4,8 @@ import Testing
 
 extension CustomerRequestsStoreTests {
     @Test @MainActor
-    func requestsRootSubtitleDoesNotChangeWithCardCount() {
-        #expect(CustomerRequestsRootHeader.subtitle ==
-            "Track active requests and newly confirmed booking handoffs in one place.")
+    func requestsRootUsesStableTitleWithoutSubtitle() {
+        #expect(CustomerRequestsRootHeader.title == "Requests")
     }
 
     @Test @MainActor

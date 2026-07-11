@@ -129,6 +129,7 @@ struct CustomerTabView: View {
             CustomerPetsView(
                 customerID: customerID,
                 displayName: customerDisplayName,
+                isActiveTab: selection == .home,
                 repository: petRepository,
                 customerProfileRepository: customerProfileRepository,
                 requestRepository: requestRepository,
@@ -156,6 +157,7 @@ struct CustomerTabView: View {
                 requestRepository: requestRepository,
                 bookingRepository: bookingRepository,
                 customerProfileRepository: customerProfileRepository,
+                isActiveTab: selection == .requests,
                 debugRecorder: debugRecorder,
                 focusedRequestID: $focusedRequestID,
                 onBookingChatSelected: openBookingChat,

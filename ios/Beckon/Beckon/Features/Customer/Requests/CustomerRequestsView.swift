@@ -14,12 +14,19 @@ enum CustomerRequestMatchingCopy {
         "Start from the customer's preferred window, then choose a time that is actually available on your schedule."
 }
 
+nonisolated enum CustomerRequestWizardPresentationOwnership {
+    static func shouldPresent(storeRequested: Bool, isActiveTab: Bool) -> Bool {
+        storeRequested && isActiveTab
+    }
+}
+
 struct CustomerRequestsView: View {
     @State private var store: CustomerRequestsStore
     @State private var pendingCancelRequest: CustomerGroomingRequest?
     @State private var selectedBookingHandoff: CustomerRequestBookingHandoff?
     @Binding private var focusedRequestID: UUID?
     private let customerProfileRepository: (any CustomerProfileRepository)?
+    private let isActiveTab: Bool
     private let onBookingChatSelected: (Booking) -> Void
 
     init(
@@ -28,6 +35,7 @@ struct CustomerRequestsView: View {
         requestRepository: any CustomerRequestRepository,
         bookingRepository: any BookingRepository,
         customerProfileRepository: (any CustomerProfileRepository)? = nil,
+        isActiveTab: Bool = true,
         debugRecorder: AppDebugEventRecorder? = nil,
         focusedRequestID: Binding<UUID?> = .constant(nil),
         onBookingChatSelected: @escaping (Booking) -> Void = { _ in },
@@ -35,6 +43,7 @@ struct CustomerRequestsView: View {
     ) {
         _focusedRequestID = focusedRequestID
         self.customerProfileRepository = customerProfileRepository
+        self.isActiveTab = isActiveTab
         self.onBookingChatSelected = onBookingChatSelected
         _store = State(
             initialValue: store ?? CustomerRequestsStore(
@@ -123,9 +132,13 @@ struct CustomerRequestsView: View {
     private var wizardPresentationBinding: Binding<Bool> {
         Binding(
             get: {
-                store.isShowingWizard
+                CustomerRequestWizardPresentationOwnership.shouldPresent(
+                    storeRequested: store.isShowingWizard,
+                    isActiveTab: isActiveTab
+                )
             },
             set: { isPresented in
+                guard isActiveTab else { return }
                 store.setWizardPresentation(isPresented)
             }
         )

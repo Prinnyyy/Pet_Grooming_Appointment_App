@@ -44,16 +44,21 @@ struct CustomerAccountView: View {
                         avatarPhotoData: store.avatarPhotoData
                     )
 
-                    BeckonCard(padding: 0) {
-                        CustomerAccountMenuLink(
-                            title: "Profile Settings",
-                            systemImage: "person.crop.circle"
-                        ) {
-                            CustomerProfileSettingsView(store: store)
+                    CustomerAccountSection(title: "Profile") {
+                        BeckonCard(padding: 0) {
+                            CustomerAccountMenuLink(
+                                title: "Profile Settings",
+                                summary: "Photo, nickname, contact, and address",
+                                systemImage: "person.crop.circle"
+                            ) {
+                                CustomerProfileSettingsView(store: store)
+                            }
                         }
                     }
 
-                    AccountReleaseLinksSection()
+                    CustomerAccountSection(title: "Support") {
+                        CustomerAccountSupportSurface()
+                    }
 
                     if let errorMessage = authenticationStore.errorMessage {
                         BeckonErrorBanner(
@@ -64,33 +69,30 @@ struct CustomerAccountView: View {
                     }
 
                     #if DEBUG
-                    NavigationLink {
-                        DebugPanelView(
-                            diagnostics: DebugDiagnostics.current(
-                                session: session,
-                                profile: profile
-                            )
-                        )
-                    } label: {
-                        Label("Debug Console", systemImage: "ladybug")
-                            .font(DesignTokens.Typography.headline)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(DesignTokens.Spacing.lg)
-                            .background(DesignTokens.Colors.surfaceRaised)
-                            .clipShape(
-                                RoundedRectangle(
-                                    cornerRadius: DesignTokens.CornerRadius.card,
-                                    style: .continuous
+                    CustomerAccountSection(title: "Development") {
+                        BeckonCard(padding: 0) {
+                            CustomerAccountMenuLink(
+                                title: "Debug Console",
+                                summary: "Runtime events and diagnostics",
+                                systemImage: "ladybug"
+                            ) {
+                                DebugPanelView(
+                                    diagnostics: DebugDiagnostics.current(
+                                        session: session,
+                                        profile: profile
+                                    )
                                 )
-                            )
+                            }
+                            .accessibilityIdentifier("account.debug-console")
+                        }
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityIdentifier("account.debug-console")
                     #endif
 
-                    AccountDangerActions(
-                        authenticationStore: authenticationStore
-                    )
+                    CustomerAccountSection(title: "Account Access") {
+                        AccountDangerActions(
+                            authenticationStore: authenticationStore
+                        )
+                    }
                 }
                 .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
                 .padding(.top, DesignTokens.Spacing.xl)
@@ -115,42 +117,56 @@ private struct CustomerAccountProfileCard: View {
     let avatarPhotoData: Data?
 
     var body: some View {
-        BeckonCard(padding: DesignTokens.Spacing.lg) {
-            HStack(spacing: DesignTokens.Spacing.lg) {
-                CustomerAvatarImage(
-                    data: avatarPhotoData,
-                    size: 84,
-                    placeholderSize: 34
+        HStack(spacing: DesignTokens.Spacing.lg) {
+            CustomerAvatarImage(
+                data: avatarPhotoData,
+                size: 76,
+                placeholderSize: 30
+            )
+
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                Text(displayName)
+                    .font(DesignTokens.Typography.title)
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Text(detailText)
+                    .font(DesignTokens.Typography.body)
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                    .lineLimit(2)
+
+                BeckonStatusChip(
+                    "Pet Owner",
+                    systemImage: "pawprint.fill",
+                    tone: .customer
                 )
-
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                    Text(displayName)
-                        .font(.system(size: 25, weight: .bold))
-                        .foregroundStyle(DesignTokens.Colors.textPrimary)
-                        .lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
-
-                    Text(detailText)
-                        .font(DesignTokens.Typography.body)
-                        .foregroundStyle(DesignTokens.Colors.textSecondary)
-                        .lineLimit(2)
-
-                    BeckonStatusChip(
-                        "Pet Owner",
-                        systemImage: "pawprint.fill",
-                        tone: .customer
-                    )
-                    .padding(.top, DesignTokens.Spacing.xs)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .accessibilityElement(children: .combine)
     }
 }
 
+private struct CustomerAccountSection<Content: View>: View {
+    let title: String
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            Text(title)
+                .font(DesignTokens.Typography.caption.weight(.bold))
+                .foregroundStyle(DesignTokens.Colors.textSecondary)
+                .textCase(.uppercase)
+
+            content()
+        }
+    }
+}
+
 private struct CustomerAccountMenuLink<Destination: View>: View {
     let title: String
+    let summary: String
     let systemImage: String
     @ViewBuilder let destination: () -> Destination
 
@@ -165,21 +181,85 @@ private struct CustomerAccountMenuLink<Destination: View>: View {
                     .frame(width: 36)
                     .accessibilityHidden(true)
 
-                Text(title)
-                    .font(.system(size: 21, weight: .bold))
-                    .foregroundStyle(DesignTokens.Colors.textPrimary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(DesignTokens.Typography.body.weight(.semibold))
+                        .foregroundStyle(DesignTokens.Colors.textPrimary)
+
+                    Text(summary)
+                        .font(DesignTokens.Typography.caption)
+                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
 
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(.caption.weight(.semibold))
                     .foregroundStyle(DesignTokens.Colors.textTertiary)
                     .accessibilityHidden(true)
             }
             .padding(.horizontal, DesignTokens.Spacing.lg)
-            .padding(.vertical, 24)
+            .padding(.vertical, DesignTokens.Spacing.md)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+    }
+}
+
+private struct CustomerAccountSupportSurface: View {
+    var body: some View {
+        BeckonCard(padding: 0) {
+            VStack(spacing: 0) {
+                supportLink(
+                    title: "Privacy Policy",
+                    systemImage: "hand.raised",
+                    destination: AppReleaseLinks.privacyPolicy,
+                    accessibilityIdentifier: "account.privacy-policy"
+                )
+
+                Divider()
+                    .overlay(DesignTokens.Colors.divider)
+                    .padding(.leading, 64)
+
+                supportLink(
+                    title: "Support",
+                    systemImage: "questionmark.circle",
+                    destination: AppReleaseLinks.support,
+                    accessibilityIdentifier: "account.support"
+                )
+            }
+        }
+    }
+
+    private func supportLink(
+        title: String,
+        systemImage: String,
+        destination: URL,
+        accessibilityIdentifier: String
+    ) -> some View {
+        Link(destination: destination) {
+            HStack(spacing: DesignTokens.Spacing.md) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
+                    .frame(width: 36)
+                    .accessibilityHidden(true)
+
+                Text(title)
+                    .font(DesignTokens.Typography.body.weight(.semibold))
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                Image(systemName: "arrow.up.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(DesignTokens.Colors.textTertiary)
+                    .accessibilityHidden(true)
+            }
+            .padding(.horizontal, DesignTokens.Spacing.lg)
+            .padding(.vertical, DesignTokens.Spacing.md)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier(accessibilityIdentifier)
     }
 }
 

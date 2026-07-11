@@ -2,12 +2,21 @@
 
 ```text
 Date: 2026-07-11
+Task: T-281 - Customer Account redesign and Request Wizard presentation ownership.
+Files changed: Customer Account hierarchy/profile/menu/support/debug grouping; Customer Home/Requests active-tab sheet ownership; CustomerTab wiring; Request presentation/copy tests; memory closeout.
+Checks: Customer Requests focused tests; `./scripts/ios-build.sh`; `git diff --check`; preflight/context hygiene.
+Result: Customer Account now follows Groomer Account's unframed identity header, labeled grouped surfaces, compact summary rows, and support/access grouping while retaining the original 22pt teal icon treatment. The shared Request Store no longer drives two competing sheets: only the selected Home or Requests tab can present or dismiss the wizard, eliminating the first-open collapse race.
+Risks: Visual acceptance remains with the user; no screenshot self-review was performed. Account destinations/actions and Request wizard data/persistence are unchanged. No backend or remote state changed.
+Next: Use T-282 for the next user-selected task; Q-104 remains deferred.
+```
+
+```text
+Date: 2026-07-11
 Task: T-280 - Customer notification marker and tab-heading consistency.
 Files changed: Customer Notification unread marker; shared Customer tab title visibility/Requests adoption; Home Active Request/Next Booking empty descriptions; memory closeout.
 Checks: `./scripts/ios-build.sh`; `git diff --check`; preflight/context hygiene.
 Result: Unread dots sit outside notification cards in the left screen gutter and align to each card's vertical center. Requests uses the exact 36pt bold CustomerTabTitle used by Bookings, preserving the count chip as a trailing overlay. Home empty request/booking sections retain only their descriptive sentence beneath the section heading.
 Risks: Visual acceptance remains with the user; no screenshot self-review was performed. Notification read state and all data behavior are unchanged. No backend or remote state changed.
-Next: Use T-281 for the next user-selected task; Q-104 remains deferred.
 ```
 
 ```text

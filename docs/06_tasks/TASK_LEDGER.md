@@ -2,7 +2,7 @@
 
 Track only current, blocked, and recent tasks here so Codex does not continue automatically. Older completed rows through T-190 are archived under `docs/09_frozen/task_ledgers/`; active blocked T-157 remains below. Notes should keep conclusions and pointers only; validation detail belongs in `docs/00_memory/WORKLOG.md` or frozen worklogs. Detailed task records T-001 through T-088 and workflow task records remain archived under `docs/09_frozen/task_records_2026-06-26/`.
 
-Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup`; use `T-281` for the next task unless the user explicitly names another branch or task ID.
+Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup`; use `T-282` for the next task unless the user explicitly names another branch or task ID.
 
 Active blocked task: T-157 is waiting on paid Apple Developer Program access before APNs secrets (`APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_TOPIC`, `APNS_PRIVATE_KEY`) and Edge Function deploy.
 
@@ -10,6 +10,7 @@ Active blocked task: T-157 is waiting on paid Apple Developer Program access bef
 
 | ID | Task | Status | Mode | Milestone | Files/Docs | Checks | Notes |
 |---|---|---|---|---|---|---|---|
+| T-281 | Customer Account redesign and Request Wizard presentation ownership | completed | Standard | M2 | Customer Account grouped layout; active-tab Wizard ownership; focused presentation tests; stale Requests copy-test repair; memory closeout | Customer Requests focused tests; iOS build; diff/preflight/context | Uses Groomer Account's hierarchy/density with Customer teal icons, summaries, support/development/access grouping. Home/Requests share one Store but only the selected tab owns its sheet, preventing first-open presentation/dismissal races. |
 | T-280 | Customer notification marker and tab-heading consistency | completed | Standard | M2 | Notification external unread marker; shared Customer tab title; Home empty-copy simplification; memory closeout | iOS build; diff/preflight/context | Centers unread dots in the left screen/card gutter, makes Requests use the exact Bookings title component, and removes secondary empty-state headings under Active Request and Next Booking while retaining their descriptions. |
 | T-279 | Customer notification-card and page-copy refinement | completed | Standard | M2 | Notification row hierarchy/unread dot; Requests root copy; Home welcome type; Edit Pet care-note label; memory closeout | iOS build; diff/preflight/context | Gives notification bodies full card width beneath one metadata row, places a saturated unread dot beside the title, reduces Requests to one heading, enlarges Welcome Back, and removes the redundant Care Notes group label. |
 | T-278 | Immediate Customer notification refresh after Request mutations | completed | Standard | M2 | Shared Request-to-notification refresh hook; coalesced notification reload; focused test; memory closeout | Requests/Notifications focused tests; iOS build; diff/preflight/context | Request publish/cancel success immediately reloads the shared notification source. Refreshes arriving during an active load are queued once instead of discarded, so unread badges and rows no longer wait for navigation/re-entry. |

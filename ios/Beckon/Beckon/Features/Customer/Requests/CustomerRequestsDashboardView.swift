@@ -2,11 +2,12 @@ import Foundation
 import SwiftUI
 
 struct CustomerRequestsRootHeader: View {
+    static let title = "Requests"
     let cardCount: Int
 
     var body: some View {
         ZStack(alignment: .trailing) {
-            CustomerTabTitle("Requests")
+            CustomerTabTitle(Self.title)
 
             if cardCount > 0 {
                 BeckonStatusChip(

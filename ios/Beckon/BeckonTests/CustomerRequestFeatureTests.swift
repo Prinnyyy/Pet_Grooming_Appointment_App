@@ -3,6 +3,28 @@ import Testing
 @testable import Beckon
 
 struct CustomerRequestsStoreTests {
+    @Test
+    func onlyActiveCustomerTabCanPresentSharedRequestWizard() {
+        #expect(
+            CustomerRequestWizardPresentationOwnership.shouldPresent(
+                storeRequested: true,
+                isActiveTab: true
+            )
+        )
+        #expect(
+            !CustomerRequestWizardPresentationOwnership.shouldPresent(
+                storeRequested: true,
+                isActiveTab: false
+            )
+        )
+        #expect(
+            !CustomerRequestWizardPresentationOwnership.shouldPresent(
+                storeRequested: false,
+                isActiveTab: true
+            )
+        )
+    }
+
     @Test @MainActor
     func fixedGroomingServiceTypesUseStableBackendValuesAndTitles() {
         #expect(GroomingServiceType.allCases.map(\.rawValue) == [

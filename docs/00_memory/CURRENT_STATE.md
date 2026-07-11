@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-11
 - Updated by: Codex
-- Latest completed task: T-280 Customer notification marker and tab-heading consistency.
+- Latest completed task: T-281 Customer Account redesign and Request Wizard presentation ownership.
 - Current task: none; T-157 APNs remains externally blocked and Q-104 Dynamic Type/Accessibility remains user-deferred.
-- Next task ID: use T-281. Q-104 remains deferred until the user restores its Dynamic Type/Accessibility scope.
+- Next task ID: use T-282. Q-104 remains deferred until the user restores its Dynamic Type/Accessibility scope.
 
 ## Fast Path
 
@@ -68,6 +68,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - T-278 refreshes the shared Customer Notifications Store immediately after successful Request publish/cancel operations and coalesces refreshes that overlap an in-flight notification load, removing delayed unread badges/messages.
 - T-279 gives Customer Notifications a coordinated full-width body layout with a red title-adjacent unread dot, simplifies the Requests root title, enlarges Home's Welcome Back copy, and removes the redundant Edit Pet Care Notes label.
 - T-280 centers unread notification dots outside the card in the left screen gutter, reuses the exact Bookings tab-title component for Requests, and reduces Home Active Request/Next Booking empty states to description-only copy.
+- T-281 aligns Customer Account with Groomer Account's unframed identity header, labeled grouped surfaces, compact summary rows, and support grouping while preserving Customer icon styling; only the active Customer tab may present/dismiss the shared Request Wizard, removing first-open sheet races.
 - T-259 makes one `T-###` per fresh session the default, reserves full iOS tests and batched visual evidence for integration/high-risk gates, and requires clean task or checkpoint commits at session boundaries.
 - T-260 adopts UI-R1 through UI-R8 and A11Y-R1 through A11Y-R10 as the active design contract, including approved light-palette contrast pairs and a per-slice accessibility Definition of Done. Token and primitive implementation remains a separate follow-up code task; Q-104 is unchanged.
 - T-244 normalizes the rotated Worklog EOF to one newline.

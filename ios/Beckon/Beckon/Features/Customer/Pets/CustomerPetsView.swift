@@ -12,6 +12,7 @@ nonisolated enum CustomerPetNameInput {
 
 struct CustomerPetsView: View {
     private let displayName: String
+    private let isActiveTab: Bool
     private let customerProfileRepository: (any CustomerProfileRepository)?
     private let onActiveRequestSelected: (UUID) -> Void
     private let onBookingChatSelected: (Booking) -> Void
@@ -24,6 +25,7 @@ struct CustomerPetsView: View {
     init(
         customerID: UUID,
         displayName: String? = nil,
+        isActiveTab: Bool = true,
         repository: any CustomerPetRepository,
         customerProfileRepository: (any CustomerProfileRepository)? = nil,
         requestRepository: any CustomerRequestRepository,
@@ -39,6 +41,7 @@ struct CustomerPetsView: View {
             in: .whitespacesAndNewlines
         ) ?? ""
         self.displayName = trimmedName.isEmpty ? "there" : trimmedName
+        self.isActiveTab = isActiveTab
         self.customerProfileRepository = customerProfileRepository
         self.onActiveRequestSelected = onActiveRequestSelected
         self.onBookingChatSelected = onBookingChatSelected
@@ -95,7 +98,7 @@ struct CustomerPetsView: View {
         .sheet(isPresented: $petStore.isShowingPetForm) {
             CustomerPetFormView(store: petStore)
         }
-        .sheet(isPresented: $requestStore.isShowingWizard) {
+        .sheet(isPresented: requestWizardPresentationBinding) {
             CustomerRequestWizardView(
                 store: requestStore,
                 customerProfileRepository: customerProfileRepository
@@ -196,6 +199,21 @@ struct CustomerPetsView: View {
 
     private func startGroomingRequest() {
         requestStore.startCreate()
+    }
+
+    private var requestWizardPresentationBinding: Binding<Bool> {
+        Binding(
+            get: {
+                CustomerRequestWizardPresentationOwnership.shouldPresent(
+                    storeRequested: requestStore.isShowingWizard,
+                    isActiveTab: isActiveTab
+                )
+            },
+            set: { isPresented in
+                guard isActiveTab else { return }
+                requestStore.setWizardPresentation(isPresented)
+            }
+        )
     }
 }
 
