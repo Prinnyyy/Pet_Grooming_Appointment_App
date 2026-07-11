@@ -5,21 +5,11 @@ struct CustomerRequestsRootHeader: View {
     let cardCount: Int
 
     var body: some View {
-        HStack(alignment: .top, spacing: DesignTokens.Spacing.lg) {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                Text("Your Requests")
-                    .font(DesignTokens.Typography.largeTitle)
-                    .foregroundStyle(DesignTokens.Colors.textPrimary)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.82)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                Text(Self.subtitle)
-                    .font(DesignTokens.Typography.body)
-                    .foregroundStyle(DesignTokens.Colors.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
+        HStack(alignment: .center, spacing: DesignTokens.Spacing.lg) {
+            Text("Requests")
+                .font(DesignTokens.Typography.largeTitle)
+                .foregroundStyle(DesignTokens.Colors.textPrimary)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
             if cardCount > 0 {
                 BeckonStatusChip(
@@ -27,12 +17,9 @@ struct CustomerRequestsRootHeader: View {
                     systemImage: cardCount == 1 ? "doc.text.fill" : "rectangle.stack.fill",
                     tone: .customer
                 )
-                .padding(.top, DesignTokens.Spacing.sm)
             }
         }
     }
-
-    static let subtitle = "Track active requests and newly confirmed booking handoffs in one place."
 }
 
 struct CustomerRequestProgressCarousel: View {

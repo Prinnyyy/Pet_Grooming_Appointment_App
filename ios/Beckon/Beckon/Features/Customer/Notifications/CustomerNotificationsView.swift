@@ -106,33 +106,38 @@ private struct CustomerNotificationRow: View {
 
     var body: some View {
         BeckonCard {
-            HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
+                    if !notification.isRead {
+                        Circle()
+                            .fill(DesignTokens.Colors.notificationUnread)
+                            .frame(width: 9, height: 9)
+                            .alignmentGuide(.firstTextBaseline) { dimensions in
+                                dimensions[VerticalAlignment.center]
+                            }
+                            .accessibilityHidden(true)
+                    }
+
                     Text(notification.title)
                         .font(DesignTokens.Typography.headline)
                         .foregroundStyle(DesignTokens.Colors.textPrimary)
-                        .fixedSize(horizontal: false, vertical: true)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.88)
 
-                    Text(notification.body)
-                        .font(DesignTokens.Typography.body)
-                        .foregroundStyle(DesignTokens.Colors.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-                VStack(alignment: .trailing, spacing: DesignTokens.Spacing.sm) {
-                    if !notification.isRead {
-                        Circle()
-                            .fill(DesignTokens.Colors.customerPrimaryDark)
-                            .frame(width: 10, height: 10)
-                            .accessibilityHidden(true)
-                    }
+                    Spacer(minLength: DesignTokens.Spacing.md)
 
                     Text(notification.createdAtSummary)
                         .font(DesignTokens.Typography.caption)
                         .foregroundStyle(DesignTokens.Colors.textTertiary)
+                        .lineLimit(1)
+                        .fixedSize(horizontal: true, vertical: false)
                 }
+
+                Text(notification.body)
+                    .font(DesignTokens.Typography.body)
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .accessibilityElement(children: .combine)

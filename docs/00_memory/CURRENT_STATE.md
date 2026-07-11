@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-11
 - Updated by: Codex
-- Latest completed task: T-278 immediate Customer notification refresh after Request mutations.
+- Latest completed task: T-279 Customer notification-card and page-copy refinement.
 - Current task: none; T-157 APNs remains externally blocked and Q-104 Dynamic Type/Accessibility remains user-deferred.
-- Next task ID: use T-279. Q-104 remains deferred until the user restores its Dynamic Type/Accessibility scope.
+- Next task ID: use T-280. Q-104 remains deferred until the user restores its Dynamic Type/Accessibility scope.
 
 ## Fast Path
 
@@ -66,6 +66,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - T-276 restores the original Pet Card height after adding age, left-aligns the label-free birthday date control, and removes Pet-specific photo button/border overrides so the shared photo editor renders identically to Profile Settings.
 - T-277 applies SwiftUI-native scroll-indicator suppression at the app root, complementing the UIKit appearance fallback so vertical indicators stay hidden across all current and future page hierarchies.
 - T-278 refreshes the shared Customer Notifications Store immediately after successful Request publish/cancel operations and coalesces refreshes that overlap an in-flight notification load, removing delayed unread badges/messages.
+- T-279 gives Customer Notifications a coordinated full-width body layout with a red title-adjacent unread dot, simplifies the Requests root title, enlarges Home's Welcome Back copy, and removes the redundant Edit Pet Care Notes label.
 - T-259 makes one `T-###` per fresh session the default, reserves full iOS tests and batched visual evidence for integration/high-risk gates, and requires clean task or checkpoint commits at session boundaries.
 - T-260 adopts UI-R1 through UI-R8 and A11Y-R1 through A11Y-R10 as the active design contract, including approved light-palette contrast pairs and a per-slice accessibility Definition of Done. Token and primitive implementation remains a separate follow-up code task; Q-104 is unchanged.
 - T-244 normalizes the rotated Worklog EOF to one newline.

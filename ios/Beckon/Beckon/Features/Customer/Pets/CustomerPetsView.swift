@@ -280,7 +280,7 @@ private struct CustomerHomeHeader: View {
                     .minimumScaleFactor(0.75)
 
                 Text("Welcome Back")
-                    .font(DesignTokens.Typography.body.weight(.semibold))
+                    .font(.title3.weight(.semibold))
                     .foregroundStyle(DesignTokens.Colors.secondaryText)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -829,10 +829,6 @@ private struct CustomerPetFormView: View {
                                 }
 
                                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                                    Text("Care Notes")
-                                        .font(CustomerPetFormTypography.fieldLabel)
-                                        .foregroundStyle(DesignTokens.Colors.textSecondary)
-
                                     CustomerPetFormLabeledTextField(
                                         title: "Medical Notes",
                                         placeholder: "Allergies, medication, injuries",
