@@ -264,22 +264,6 @@ private struct CustomerHomeHeader: View {
 
     var body: some View {
         HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
-            Text("🙂")
-                .font(.system(size: 32))
-                .frame(width: 64, height: 64)
-                .background(
-                    LinearGradient(
-                        colors: [
-                            DesignTokens.Colors.groomerAccent.opacity(0.44),
-                            DesignTokens.Colors.customerPrimary.opacity(0.34),
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .clipShape(DesignTokens.Shapes.circular)
-                .accessibilityLabel("Customer avatar")
-
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                 Text("Hi, \(displayName)")
                     .font(.largeTitle.weight(.bold))
@@ -309,7 +293,7 @@ private struct CustomerHomeHeader: View {
 
                     if unreadNotificationCount > 0 {
                         Circle()
-                            .fill(DesignTokens.Colors.groomerAccent)
+                            .fill(DesignTokens.Colors.notificationUnread)
                             .frame(width: 10, height: 10)
                             .offset(x: -10, y: 9)
                     }

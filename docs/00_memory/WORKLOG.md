@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-07-11
+Task: T-269 - Customer Home, notification, closed-detail, and carousel polish.
+Files changed: Home greeting/bell; notification unread color token; cancelled Request Detail presentation/order; reusable carousel shadow token/application; focused test and memory closeout.
+Checks: Customer Requests and tab-badge focused tests; `./scripts/ios-build.sh`; `git diff --check`; preflight/context hygiene.
+Result: Home greeting copy aligns with page content without the smile tile, the bell uses system-badge red, and Home retains the full notification unread count. Cancelled request details omit Offers and place Create New Request after that logical section. Horizontal request cards have stronger bottom depth through one shared shadow token.
+Risks: Visual acceptance remains with the user; no screenshot self-review was performed. No backend, mutation, notification-count source, or remote state changed.
+Next: Use T-270 for the next user-selected task; Q-104 remains deferred.
+```
+
+```text
+Date: 2026-07-11
 Task: T-268 - Customer cross-tab state, unread persistence, and notification consistency.
 Files changed: Shared Customer Requests Store injection; closed-request limit/avatar rows; chat read-state cache and Store persistence; Customer Notifications automatic read flow and compact rows; focused tests and memory closeout.
 Checks: Customer Requests, Chat, and Customer Notifications focused tests; `./scripts/ios-build.sh`; `git diff --check`; preflight/context hygiene.

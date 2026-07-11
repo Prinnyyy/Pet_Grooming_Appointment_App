@@ -1,6 +1,16 @@
 import Foundation
 import SwiftUI
 
+struct CustomerRequestDetailPresentation: Equatable {
+    let showsOffers: Bool
+    let showsRepublish: Bool
+
+    init(status: GroomingRequestStatus) {
+        showsOffers = status != .cancelled
+        showsRepublish = status == .cancelled
+    }
+}
+
 struct CustomerRequestDetailView: View {
     let requestID: UUID
     let store: CustomerRequestsStore
@@ -18,6 +28,7 @@ struct CustomerRequestDetailView: View {
 
     var body: some View {
         if let request = store.request(withID: requestID) {
+            let presentation = CustomerRequestDetailPresentation(status: request.status)
             ZStack {
                 DesignTokens.Colors.background
                     .ignoresSafeArea()
@@ -29,7 +40,14 @@ struct CustomerRequestDetailView: View {
                         requestPhotosCard(request)
                         scheduleLocationCard(request)
 
-                        if request.status == .cancelled {
+                        if presentation.showsOffers {
+                            CustomerOfferReviewSection(
+                                request: request,
+                                store: store
+                            )
+                        }
+
+                        if presentation.showsRepublish {
                             CustomerRequestRepublishCard(
                                 title: "Create New Request",
                                 subtitle: "Start a new request from these saved details.",
@@ -39,11 +57,6 @@ struct CustomerRequestDetailView: View {
                                 }
                             )
                         }
-
-                        CustomerOfferReviewSection(
-                            request: request,
-                            store: store
-                        )
 
                     }
                     .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)

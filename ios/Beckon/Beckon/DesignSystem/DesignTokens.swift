@@ -47,6 +47,7 @@ enum DesignTokens {
         static let success = Color(hex: ColorHex.success)
         static let warning = Color(hex: ColorHex.warning)
         static let error = Color(hex: ColorHex.error)
+        static let notificationUnread = Color(red: 1, green: 0.23, blue: 0.19)
         static let primaryButtonForeground = Color(hex: ColorHex.primaryButtonForeground)
 
         static let background = appBackground
@@ -92,6 +93,13 @@ enum DesignTokens {
             radius: 16,
             x: 0,
             y: 6,
+            spread: 0
+        )
+        static let carouselCard = ShadowStyle(
+            color: Color(hex: 0x232323, opacity: 0.12),
+            radius: 18,
+            x: 0,
+            y: 10,
             spread: 0
         )
         static let primaryAction = ShadowStyle(

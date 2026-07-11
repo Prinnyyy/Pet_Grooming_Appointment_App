@@ -163,6 +163,7 @@ struct CustomerRequestActionCardSummary: View {
                 )
             )
         }
+        .beckonShadow(DesignTokens.Shadows.carouselCard)
         .accessibilityIdentifier("customer.requests.progress-card.summary")
     }
 }
@@ -207,6 +208,7 @@ private struct CustomerRequestProgressCard: View {
                 }
             }
         }
+        .beckonShadow(DesignTokens.Shadows.carouselCard)
         .accessibilityIdentifier(
             AppTestOpsAccessibility.identifier(
                 prefix: "customer.requests.row",

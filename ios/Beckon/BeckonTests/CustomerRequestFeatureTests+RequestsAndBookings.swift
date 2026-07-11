@@ -4,6 +4,17 @@ import Testing
 
 extension CustomerRequestsStoreTests {
     @Test @MainActor
+    func cancelledRequestDetailHidesOffersAndShowsRepublishAfterContent() {
+        let cancelled = CustomerRequestDetailPresentation(status: .cancelled)
+        let open = CustomerRequestDetailPresentation(status: .open)
+
+        #expect(cancelled.showsOffers == false)
+        #expect(cancelled.showsRepublish)
+        #expect(open.showsOffers)
+        #expect(open.showsRepublish == false)
+    }
+
+    @Test @MainActor
     func recentClosedRequestsCanKeepOnlyTheThreeNewestCancelledRecords() {
         let customerID = UUID()
         let petID = UUID()
