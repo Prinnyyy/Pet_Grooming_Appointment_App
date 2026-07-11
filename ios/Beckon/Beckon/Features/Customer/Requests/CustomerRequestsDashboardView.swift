@@ -66,6 +66,7 @@ struct CustomerRequestProgressCarousel: View {
                 .contentMargins(.horizontal, DesignTokens.Spacing.screenHorizontal, for: .scrollContent)
                 .padding(.horizontal, -DesignTokens.Spacing.screenHorizontal)
                 .scrollIndicators(.hidden)
+                .scrollClipDisabled()
                 .scrollTargetBehavior(.viewAligned)
                 .onAppear {
                     scrollToFocusedRequest(using: proxy)
@@ -124,6 +125,7 @@ struct CustomerRequestActionCardSummaryCarousel: View {
             .contentMargins(.horizontal, DesignTokens.Spacing.screenHorizontal, for: .scrollContent)
             .padding(.horizontal, -DesignTokens.Spacing.screenHorizontal)
             .scrollIndicators(.hidden)
+            .scrollClipDisabled()
             .scrollTargetBehavior(.viewAligned)
 
         }

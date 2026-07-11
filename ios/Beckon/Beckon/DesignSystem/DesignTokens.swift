@@ -96,10 +96,10 @@ enum DesignTokens {
             spread: 0
         )
         static let carouselCard = ShadowStyle(
-            color: Color(hex: 0x232323, opacity: 0.12),
+            color: Color(hex: 0x232323, opacity: 0.05),
             radius: 8,
             x: 0,
-            y: 5,
+            y: 4,
             spread: 0
         )
         static let primaryAction = ShadowStyle(

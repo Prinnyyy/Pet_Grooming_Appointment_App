@@ -159,6 +159,65 @@ struct BeckonAnnotatedModule<Content: View>: View {
     }
 }
 
+struct BeckonPhotoEditorCard<Preview: View, Action: View>: View {
+    let title: String
+    let statusText: String
+    let showsSavedIndicator: Bool
+    let savedAccessibilityLabel: String
+    private let preview: Preview
+    private let action: Action
+
+    init(
+        title: String,
+        statusText: String,
+        showsSavedIndicator: Bool,
+        savedAccessibilityLabel: String,
+        @ViewBuilder preview: () -> Preview,
+        @ViewBuilder action: () -> Action
+    ) {
+        self.title = title
+        self.statusText = statusText
+        self.showsSavedIndicator = showsSavedIndicator
+        self.savedAccessibilityLabel = savedAccessibilityLabel
+        self.preview = preview()
+        self.action = action()
+    }
+
+    var body: some View {
+        BeckonCard {
+            HStack(alignment: .center, spacing: DesignTokens.Spacing.lg) {
+                ZStack(alignment: .bottomTrailing) {
+                    preview
+
+                    if showsSavedIndicator {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 22, weight: .bold))
+                            .foregroundStyle(DesignTokens.Colors.success)
+                            .background(Circle().fill(DesignTokens.Colors.surface))
+                            .accessibilityLabel(savedAccessibilityLabel)
+                    }
+                }
+
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                        Text(title)
+                            .font(DesignTokens.Typography.headline)
+                            .foregroundStyle(DesignTokens.Colors.textPrimary)
+
+                        Text(statusText)
+                            .font(DesignTokens.Typography.caption)
+                            .foregroundStyle(DesignTokens.Colors.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
+                    action
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+    }
+}
+
 enum BeckonDefaultProfileAvatarTone {
     case customer
     case groomer

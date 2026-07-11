@@ -417,46 +417,25 @@ private struct CustomerAvatarEditorSection: View {
         let photoStatusText = hasSavedPhoto ? "Photo saved to your profile." : "Add a profile photo."
         let photoActionTitle = hasSavedPhoto ? "Replace Photo" : "Upload Photo"
 
-        BeckonCard {
-            HStack(alignment: .center, spacing: DesignTokens.Spacing.lg) {
-                ZStack(alignment: .bottomTrailing) {
-                    CustomerAvatarImage(
-                        data: store.avatarPhotoData,
-                        size: 96,
-                        placeholderSize: 38
-                    )
-
-                    if hasSavedPhoto {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 22, weight: .bold))
-                            .foregroundStyle(DesignTokens.Colors.success)
-                            .background(Circle().fill(DesignTokens.Colors.surface))
-                            .accessibilityLabel("Profile photo saved")
-                    }
-                }
+        BeckonPhotoEditorCard(
+            title: "Profile Photo",
+            statusText: photoStatusText,
+            showsSavedIndicator: hasSavedPhoto,
+            savedAccessibilityLabel: "Profile photo saved"
+        ) {
+            CustomerAvatarImage(
+                data: store.avatarPhotoData,
+                size: 96,
+                placeholderSize: 38
+            )
                 .accessibilityHidden(true)
-
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                        Text("Profile Photo")
-                            .font(DesignTokens.Typography.headline)
-                            .foregroundStyle(DesignTokens.Colors.textPrimary)
-
-                        Text(photoStatusText)
-                            .font(DesignTokens.Typography.caption)
-                            .foregroundStyle(DesignTokens.Colors.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-
-                    PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
-                        Label(photoActionTitle, systemImage: "camera")
-                    }
-                    .buttonStyle(BeckonSecondaryButtonStyle(accent: .customer))
-                    .disabled(store.isBusy)
-                    .accessibilityIdentifier("customer.profile.avatar.upload")
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
+        } action: {
+            PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
+                Label(photoActionTitle, systemImage: "camera")
             }
+            .buttonStyle(BeckonSecondaryButtonStyle(accent: .customer))
+            .disabled(store.isBusy)
+            .accessibilityIdentifier("customer.profile.avatar.upload")
         }
         .onChange(of: selectedPhotoItem) { _, newItem in
             guard let newItem else { return }

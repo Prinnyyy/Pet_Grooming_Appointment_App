@@ -51,6 +51,25 @@ struct CustomerPet: Equatable, Identifiable, Sendable {
         return "\(weightTitle) • \(sizeTitle)"
     }
 
+    nonisolated var displayAge: String? {
+        guard let birthday, let birthdayDate = Self.birthdayDate(from: birthday) else {
+            return nil
+        }
+
+        let components = Calendar(identifier: .gregorian).dateComponents(
+            [.year, .month],
+            from: birthdayDate,
+            to: Date()
+        )
+        let years = max(0, components.year ?? 0)
+        if years > 0 {
+            return years == 1 ? "1 year old" : "\(years) years old"
+        }
+
+        let months = max(0, components.month ?? 0)
+        return months == 1 ? "1 month old" : "\(months) months old"
+    }
+
     nonisolated var accessibilitySummary: String {
         var parts: [String] = []
 
@@ -74,7 +93,20 @@ struct CustomerPet: Equatable, Identifiable, Sendable {
             parts.append("size \(sizeTitle)")
         }
 
+        if let displayAge {
+            parts.append(displayAge)
+        }
+
         return parts.joined(separator: ", ")
+    }
+
+    private nonisolated static func birthdayDate(from value: String) -> Date? {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.date(from: value)
     }
 }
 

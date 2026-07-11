@@ -2,7 +2,7 @@
 
 Track only current, blocked, and recent tasks here so Codex does not continue automatically. Older completed rows through T-190 are archived under `docs/09_frozen/task_ledgers/`; active blocked T-157 remains below. Notes should keep conclusions and pointers only; validation detail belongs in `docs/00_memory/WORKLOG.md` or frozen worklogs. Detailed task records T-001 through T-088 and workflow task records remain archived under `docs/09_frozen/task_records_2026-06-26/`.
 
-Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup`; use `T-275` for the next task unless the user explicitly names another branch or task ID.
+Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup`; use `T-276` for the next task unless the user explicitly names another branch or task ID.
 
 Active blocked task: T-157 is waiting on paid Apple Developer Program access before APNs secrets (`APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_TOPIC`, `APNS_PRIVATE_KEY`) and Edge Function deploy.
 
@@ -10,6 +10,7 @@ Active blocked task: T-157 is waiting on paid Apple Developer Program access bef
 
 | ID | Task | Status | Mode | Milestone | Files/Docs | Checks | Notes |
 |---|---|---|---|---|---|---|---|
+| T-275 | Customer Pets age, shared photo editor, and horizontal-card shadow consistency | completed | Standard | M2 | Shared photo-editor card; Customer Profile/Edit Pet adoption; pet age/card copy; unified unclipped horizontal shadows; focused tests | Customer Pets focused tests; iOS build; diff/preflight/context | Home uses Pets and shows stored-birthday age. Profile/Pet photo editors share one layout while retaining role-specific indicators and Store actions. Pet/Request cards share one lighter shadow and allow natural overflow. |
 | T-274 | Customer Edit Pet photo/action/typography and carousel-shadow refinement | completed | Standard | M2 | Pet photo parity; Details typography; gradient save bar; 20-character name feedback; request carousel shadow containment; focused test | Customer Pets focused tests; iOS build; diff/preflight/context | Matches Profile Photo proportions/actions, normalizes Details roles, reuses the request-wizard bottom gradient, rejects over-limit names with a red field/cursor flash, and prevents horizontal card shadows from escaping their scrollers. |
 | T-273 | Periodic meta-review | completed | Quick | G0 | Active task/memory/index/backend/root documentation audit; memory closeout | Branch/status/diff; 62-migration mirror; root Markdown/conflict checks; context hygiene | Active branch, task numbering, migration count, links, ignore behavior, and rolling windows align. No workflow, product, backend, or remote change was needed; T-274 preserves the requested Edit Pet follow-up. |
 | T-272 | Customer Edit Pet visual hierarchy and Profile Settings action placement | completed | Standard | M2 | Pet photo card; form typography roles; inset chip borders; Profile Settings save order; memory closeout | iOS build; diff/preflight/context | Separates photo and data cards under Pet Profile, normalizes text roles, prevents selected outlines from clipping at horizontal edges, and keeps Save Profile after all settings modules. |

@@ -411,7 +411,7 @@ private struct CustomerHomePetsSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            Text("Your Pets")
+            Text("Pets")
                 .font(.title2.weight(.bold))
                 .foregroundStyle(DesignTokens.Colors.textPrimary)
 
@@ -439,6 +439,7 @@ private struct CustomerHomePetsSection: View {
                     .padding(.vertical, DesignTokens.Spacing.xs)
                     .scrollTargetLayout()
                 }
+                .scrollClipDisabled()
                 .scrollTargetBehavior(.viewAligned)
                 .accessibilityIdentifier("customer.pets.list")
             }
@@ -478,6 +479,11 @@ private struct CustomerHomePetTile: View {
                         .lineLimit(1)
                         .minimumScaleFactor(0.82)
 
+                    Text(pet.displayAge ?? "Age not set")
+                        .font(DesignTokens.Typography.caption.weight(.semibold))
+                        .foregroundStyle(DesignTokens.Colors.textTertiary)
+                        .lineLimit(1)
+
                     if let weightAndSize = pet.displayWeightAndSize {
                         Text(weightAndSize)
                             .font(DesignTokens.Typography.caption.weight(.semibold))
@@ -488,7 +494,7 @@ private struct CustomerHomePetTile: View {
                 }
             }
             .padding(DesignTokens.Spacing.md)
-            .frame(width: 172, height: 252, alignment: .topLeading)
+            .frame(width: 172, height: 272, alignment: .topLeading)
             .background(DesignTokens.Colors.surface)
             .clipShape(
                 RoundedRectangle(
@@ -503,7 +509,7 @@ private struct CustomerHomePetTile: View {
                 )
                 .stroke(DesignTokens.Colors.borderSoft, lineWidth: 1)
             )
-            .beckonShadow(DesignTokens.Shadows.smallCard)
+            .beckonShadow(DesignTokens.Shadows.carouselCard)
         }
         .buttonStyle(.plain)
         .accessibilityElement(children: .ignore)
@@ -940,37 +946,18 @@ private struct CustomerPetFormPhotoModule: View {
     @Bindable var store: CustomerPetsStore
 
     var body: some View {
-        BeckonCard {
-            HStack(alignment: .center, spacing: DesignTokens.Spacing.lg) {
-                ZStack(alignment: .bottomTrailing) {
-                    CustomerPetFormAvatarPreview(data: store.formAvatarPhotoData)
-
-                    if store.formAvatarPhotoData != nil {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 22, weight: .bold))
-                            .foregroundStyle(DesignTokens.Colors.success)
-                            .background(Circle().fill(DesignTokens.Colors.surface))
-                            .accessibilityLabel("Pet photo saved")
-                    }
-                }
+        BeckonPhotoEditorCard(
+            title: "Pet Photo",
+            statusText: store.formAvatarPhotoData == nil
+                ? "Add a photo for this pet."
+                : "Photo saved to this pet profile.",
+            showsSavedIndicator: false,
+            savedAccessibilityLabel: "Pet photo saved"
+        ) {
+            CustomerPetFormAvatarPreview(data: store.formAvatarPhotoData)
                 .accessibilityHidden(true)
-
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                        Text("Pet Photo")
-                            .font(CustomerPetFormTypography.sectionTitle)
-                            .foregroundStyle(DesignTokens.Colors.textPrimary)
-
-                        Text(store.formAvatarPhotoData == nil ? "Add a photo for this pet." : "Photo saved to this pet profile.")
-                            .font(CustomerPetFormTypography.supporting)
-                            .foregroundStyle(DesignTokens.Colors.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-
-                    CustomerPetFormPhotoPicker(store: store)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
+        } action: {
+            CustomerPetFormPhotoPicker(store: store)
         }
     }
 }
@@ -1000,7 +987,6 @@ private struct CustomerPetFormAvatarPreview: View {
             Circle()
                 .stroke(DesignTokens.Colors.customerPrimary.opacity(0.34), lineWidth: 2)
         }
-        .beckonShadow(DesignTokens.Shadows.smallCard)
         .accessibilityHidden(true)
     }
 }

@@ -25,6 +25,28 @@ struct CustomerPetPhotoPathTests {
 
 struct CustomerPetsStoreTests {
     @Test
+    func petAgeUsesStoredBirthdayForCardCopy() {
+        let pet = CustomerPet(
+            id: UUID(),
+            customerID: UUID(),
+            name: "Milo",
+            species: "Dog",
+            breed: "Toy Poodle",
+            coatType: nil,
+            size: nil,
+            weightLbs: nil,
+            birthday: "2020-01-01",
+            temperament: nil,
+            medicalNotes: nil,
+            groomingNotes: nil,
+            isActive: true
+        )
+
+        #expect(pet.displayAge?.hasSuffix("years old") == true)
+        #expect(pet.accessibilitySummary.contains("years old"))
+    }
+
+    @Test
     func petNameInputRejectsCharactersBeyondItsHiddenLimit() {
         let accepted = String(repeating: "a", count: 20)
         let rejected = accepted + "b"
