@@ -2,12 +2,21 @@
 
 ```text
 Date: 2026-07-11
+Task: T-288 - Customer Request address suggestion presentation regression fix.
+Files changed: Customer Request Wizard suggestion positioning; memory closeout.
+Checks: Direct `MKLocalSearchCompleter` query for `760 S Harbor Blvd`; Customer Request Wizard focused tests; `./scripts/ios-build.sh`; `git diff --check`; preflight/context hygiene.
+Result: The device MapKit API returned five completions, proving search input/network were not the failure. T-287 had replaced T-286's working Anchor preference rendering with a separately propagated CGRect overlay. The dropdown now uses the proven anchor-preference geometry again while retaining the simultaneous outside-tap recognizer, scroll passthrough, unit parsing, English fallback, sheet dismissal guard, compact bottom spacing, and hidden indicator.
+Risks: The first focused-test attempt collided with a concurrently running build and locked DerivedData; the standard build passed and the focused test then passed when rerun serially. No backend, persistence, or remote state changed.
+Next: Use T-289 for the next user-selected task; Q-104 remains deferred.
+```
+
+```text
+Date: 2026-07-11
 Task: T-287 - Customer Request address overlay interaction and detailed-address search correction.
 Files changed: Shared MapKit address query/resolution; Request Wizard overlay gesture/sheet/scroll behavior; focused tests; memory closeout.
 Checks: Customer Request Wizard focused tests; `./scripts/ios-build.sh`; `git diff --check`; preflight/context hygiene.
 Result: The address dropdown no longer installs a full-screen hit layer. A simultaneous single-tap recognizer dismisses it outside the street field, while vertical drags continue scrolling Wizard content and temporarily cannot dismiss the sheet. UNIT/APT/APARTMENT/SUITE/STE/# suffixes are removed only from the MapKit query and restored after selection. Han-script localized completion copy falls back to the typed English address, and selected locations use en_US MapKit reverse geocoding on iOS 26 with an English legacy fallback. Wizard bottom padding now follows the standard XL token and its scroll indicator is hidden.
 Risks: A localized completion that contains Han script intentionally collapses to the typed English base/fallback context; this prioritizes safe English autofill over displaying multiple indistinguishable localized rows. MapKit remains network-dependent. No Store schema, repository, backend, persistence, or remote state changed.
-Next: Use T-288 for the next user-selected task; Q-104 remains deferred.
 ```
 
 ```text

@@ -291,13 +291,15 @@ struct CustomerRequestWizardView: View {
                     dismissAddressSuggestions()
                 }
             )
-            .overlay {
-                if isAddressSuggestionsPresented {
-                    CustomerRequestAddressSuggestionOverlay(
-                        suggestions: Array(addressSearch.suggestions.prefix(4)),
-                        fieldFrame: addressStreetFrame,
-                        select: applyAddressSuggestion
-                    )
+            .overlayPreferenceValue(CustomerRequestStreetFieldAnchorKey.self) { anchor in
+                GeometryReader { proxy in
+                    if let anchor, isAddressSuggestionsPresented {
+                        CustomerRequestAddressSuggestionOverlay(
+                            suggestions: Array(addressSearch.suggestions.prefix(4)),
+                            fieldFrame: proxy[anchor],
+                            select: applyAddressSuggestion
+                        )
+                    }
                 }
             }
             .safeAreaInset(edge: .bottom) {
@@ -1644,6 +1646,11 @@ private struct CustomerRequestAddressFields: View {
                         )
                     }
                 }
+                .anchorPreference(
+                    key: CustomerRequestStreetFieldAnchorKey.self,
+                    value: .bounds,
+                    transform: { $0 }
+                )
                 .accessibilityIdentifier("customer.requests.address.street")
 
             HStack(spacing: DesignTokens.Spacing.md) {
@@ -1779,6 +1786,14 @@ private struct CustomerRequestStreetFieldFrameKey: PreferenceKey {
 
     static func reduce(value: inout CGRect, nextValue: () -> CGRect) {
         value = nextValue()
+    }
+}
+
+private struct CustomerRequestStreetFieldAnchorKey: PreferenceKey {
+    static var defaultValue: Anchor<CGRect>?
+
+    static func reduce(value: inout Anchor<CGRect>?, nextValue: () -> Anchor<CGRect>?) {
+        value = nextValue() ?? value
     }
 }
 
