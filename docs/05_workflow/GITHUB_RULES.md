@@ -32,11 +32,13 @@ update docs
 
 Write summaries in English, imperative or noun-phrase style, and keep them specific enough to map back to `TASK_LEDGER.md`.
 
+- Checkpoint commits capture incomplete, unvalidated work at a session boundary. Format: `checkpoint(<T-### or package id>): <one-line scope>`. A checkpoint commit must be listed in a WORKLOG checkpoint entry, and the owning task must review it at its next session start before further edits.
+
 ## Commit Scope
 
 - Keep code, tests, migrations, and durable memory that describe the same task in the same commit.
 - Do not mix unrelated feature, cleanup, and governance work.
-- For Standard or Deep tasks, avoid leaving large cross-layer work uncommitted after validation when the user has authorized committing. A checkpoint commit may be used if the task is not done, but its message must still use the `T-xxx` format.
+- For Standard or Deep tasks, avoid leaving large cross-layer work uncommitted after validation when the user has authorized committing. Use the checkpoint format above when an incomplete task must cross a session boundary.
 - If a task is docs/workflow-only, say so in the commit body or closeout when useful.
 
 ## Pushes, PRs, and Tags

@@ -18,6 +18,15 @@ Linked files:
 ## Active Decisions
 
 ```text
+Decision ID: D-028
+Date: 2026-07-10
+Decision: Use one T-### task per session, with session end as the default context reset and manual compaction as fallback for one oversized task.
+Context: Per-turn cost scales with conversation size. The T-249 through T-257 mega-session and its unattributed modified files drove context and quota growth, while build scripts were already summary-mode and active Markdown was already minimal.
+Consequences: Standard slices use focused tests plus one build; full ios-test.sh is reserved for package/integration gates, Deep tasks, shared-layer changes, and pre-release. Visual evidence stays under artifacts/evidence/<task-id>/ and is referenced by path rather than re-ingested. Full logs are read only in filtered slices. Session boundaries require a task commit or a WORKLOG-linked checkpoint(<id>) commit; stash is not a boundary mechanism. The 65%/80% thresholds govern only a single oversized in-flight task.
+Linked files: AGENTS.md, docs/05_workflow/SINGLE_AGENT_WORKFLOW.md, docs/05_workflow/CONTEXT_AND_RECOVERY.md, docs/05_workflow/GITHUB_RULES.md, docs/05_workflow/TOOLING_POLICY.md, .gitignore, .rgignore
+```
+
+```text
 Decision ID: D-027
 Date: 2026-07-10
 Decision: Permit an exactly due documentation meta-review to be explicitly reserved as the immediate next task without blocking the preceding task's closeout.

@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-10
 - Updated by: Codex
-- Latest completed task: T-258 Groomer non-Accessibility integration verification.
+- Latest completed task: T-259 session-per-task context and quota governance.
 - Current task: none; T-157 APNs remains externally blocked and Q-104 Dynamic Type/Accessibility remains user-deferred.
-- Next task ID: use T-259 for Q-104 when the user restores its deferred Dynamic Type/Accessibility scope, unless the user resumes T-157 after Apple Developer Program upgrade.
+- Next task ID: use T-260 for Q-104 when the user restores its deferred Dynamic Type/Accessibility scope, unless the user resumes T-157 after Apple Developer Program upgrade.
 
 ## Fast Path
 
@@ -51,6 +51,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - T-256 completes Q-102: Services and Availability use compact grouped configuration surfaces with native Back navigation, hidden tabs, and stable saves. Existing service size overrides, weekly hours, daily capacity, advance notice, auto-ready, and time-off Store/repository behavior are preserved; no backend or remote state changed.
 - T-257 completes Q-103: Fit Signals separates core selection/size experience from compact skill groups, Evidence has a truthful grouped overview or empty state, and Portfolio uses an image-first gallery plus focused fit-note detail. Existing Store mutations, global feedback, authenticated cache, selectors, and image behavior are preserved; no backend or remote state changed.
 - T-258 completes the non-Accessibility portion of the Groomer integration gate: seeded TestOps verifies five direct tabs, six focused Account workspaces, one Back action, hidden editor tabs, and no `More`; default-text compact and large Simulator inspection plus full iOS tests/build/preflight pass. Q-104 remains open only for user-deferred Dynamic Type and Accessibility validation/changes.
+- T-259 makes one `T-###` per fresh session the default, reserves full iOS tests and batched visual evidence for integration/high-risk gates, and requires clean task or checkpoint commits at session boundaries.
 - T-244 normalizes the rotated Worklog EOF to one newline.
 - T-245 context-script validation passes 32 Node tests; word counts are informational and rolling windows use buffered high/retain entry counts.
 - T-246 passes the Beckon identity audit, 31 TestOps tests, 48 migration tests, 10 Edge tests, privacy/preflight/Supabase checks, full iOS tests/build, and Simulator auth branding inspection.
@@ -82,6 +83,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - Changes to `AGENTS.md`, `CLAUDE.md`, or `docs/05_workflow/**` must be standalone numbered tasks with a decision-log entry and context hygiene.
 - T-180 records standing user approval for task-completion Git commit and push. This approval is limited to current-task changes after validation passes; T-186 requires stopping without auto pull/rebase/merge/reset/force-push if the push fails or is rejected.
 - T-245 makes word counts informational only; Ledger uses 18/12, Worklog and active decisions use 14/8, and decision archive pointers use 12/6 trigger/retain windows. Manual compaction follows 65%/80% boundaries against the 353,000-token context.
+- T-259 makes session end the default task-boundary context reset; the 65%/80% thresholds now govern only an oversized in-flight task, with checkpoint-and-resume preferred over in-place compaction.
 - Main reconciliation: `2fddf7b` is reviewed/superseded; carry this branch's governed docs forward.
 - Decision log is an active index backed by frozen snapshots. The pre-T-174 full text lives in `docs/09_frozen/decisions/DECISION_LOG_2026-07-08_PRE_T174_TRIM.md`.
 - Default `rg` searches honor `.rgignore`; do not use broad `rg --files -g '*.md'` as the default Markdown inventory.

@@ -6,12 +6,21 @@ Current branch, next task ID, and current baseline live in `docs/00_memory/CURRE
 
 ```text
 Date: 2026-07-10
+Task: T-259 - Session-per-task context and quota governance.
+Files changed: AGENTS; workflow, context, Git, validation, ignore, decision, ledger, worklog, and current-state rules; archived external execution plan.
+Checks: `git diff --check`; context hygiene.
+Result: Each T-### now starts in a fresh session and ends after closeout. Standard slices use focused tests plus one build; full suites and batched visual evidence are reserved for integration/high-risk gates. Session boundaries require clean task or WORKLOG-linked checkpoint commits, and oversized tasks prefer checkpoint-and-resume over in-place compaction.
+Risks: Repository rules cannot force users or external agents to close a session, and platform compaction remains outside repository control. No app, backend, Supabase, or remote state changed.
+Next: Start Q-104 as T-260 only when the user restores its deferred Dynamic Type/Accessibility scope.
+```
+
+```text
+Date: 2026-07-10
 Task: T-258 - Groomer non-Accessibility integration verification.
 Files changed: Groomer TestOps launch smoke/driver coverage; roadmap/current-state/task-ledger/worklog/feature-index closeout.
 Checks: Seeded Groomer TestOps navigation for five tabs and six Account workspaces; default-text compact and large Simulator inspection; full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; `./scripts/preflight.sh`; `git diff --check`.
 Result: Default-text integration coverage is complete. TestOps proves the five-tab shell has no system More tab and every focused Account workspace exposes one Back action with tabs hidden. Q-104 remains open only for user-deferred Dynamic Type and Accessibility work. Git conflict audit found no unmerged files or conflict markers; the separate untracked `UI_DESIGN_RULES_PROPOSAL.md` was not touched.
 Risks: Dynamic Type and Accessibility audit/changes are intentionally deferred by user direction. No SwiftUI production layout, backend, schema, Storage, or remote state changed.
-Next: Start Q-104 with the next available task ID only when the user restores its Dynamic Type/Accessibility scope.
 ```
 
 ```text

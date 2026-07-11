@@ -15,7 +15,10 @@ ios/Beckon/Config/Supabase.local.xcconfig
 
 # Local TestOps run artifacts.
 artifacts/testops/
+artifacts/evidence/
 
 # External agent draft reports; archive under docs/09_frozen/external_agent_reports/ when needed.
 APP_STATUS_OVERVIEW.md
 V1.0_RELEASE_TASK_PLAN.md
+UI_DESIGN_RULES_PROPOSAL.md
+CONTEXT_QUOTA_GOVERNANCE_PLAN.md

@@ -4,7 +4,7 @@ Default workflow for this repository. It keeps each run bounded, recoverable, an
 
 ## Core Rules
 
-- Complete one primary task per run.
+- Complete one primary task per run, and one `T-###` task per session: start each task in a fresh session, and end the session after its closeout. Do not start another task, package, or follow-up fix in the same session.
 - Preserve user work and inspect `git status --short` before edits.
 - Use targeted context only; access tiers live in `CONTEXT_AND_RECOVERY.md`.
 - Do not start adjacent features, broad refactors, seeds, unrelated cleanup, or non-Git remote writes unless explicitly requested.
@@ -28,7 +28,7 @@ Default workflow for this repository. It keeps each run bounded, recoverable, an
 10. Launch the simulator only when required.
 11. Create a task-scoped commit and push the current branch when completion and validation have passed.
 12. Write a checkpoint before manual compaction.
-13. Stop.
+13. Stop and end the session; the next task starts in a fresh session.
 
 ## Modes
 
@@ -36,8 +36,10 @@ Default workflow for this repository. It keeps each run bounded, recoverable, an
 |---|---|---|
 | Micro | Read-only answers, status checks, command output, tiny docs wording | None by default |
 | Quick | Docs, workflow changes, small scripts, one-file fixes | `git diff --check` when files changed |
-| Standard | Normal iOS feature, bug, visible UI, user-facing app behavior | `git diff --check` plus one `./scripts/ios-build.sh`; simulator launch for visible UI/app behavior |
+| Standard | Normal iOS feature, bug, visible UI, user-facing app behavior | `git diff --check`, focused tests for the touched feature domain when they exist, plus one `./scripts/ios-build.sh`; simulator launch for visible UI/app behavior |
 | Deep | Supabase, auth, RLS, migrations, storage, major navigation, destructive-risk work | State validation plan before edits; make one planned attempt |
+
+Full `./scripts/ios-test.sh` is reserved for package/integration gate tasks (for example Q-104-style cross-screen gates), Deep-mode tasks, changes to shared Store/repository/DesignSystem code used by multiple features, and pre-release validation. Ordinary single-surface UI slices do not run the full suite by default.
 
 ## Completion Gate
 
@@ -81,6 +83,23 @@ Automatic commit/push requirements:
 
 This standing approval does not authorize PR creation, tags, branch deletion, merge/rebase/reset, Supabase writes, seeds, unrelated cleanup, or other remote operations.
 
+## Session Budget Rules
+
+Per-turn cost scales with the current conversation size, so session length is a budget rule, not only a context-window concern.
+
+- One `T-###` per session. After closeout, commit/push, and hygiene, end the session.
+- A session may continue the same interrupted task, never a second task.
+- If an in-flight task approaches the 65% boundary, prefer: write a checkpoint, make a checkpoint commit, end the session, and resume the same task in a fresh session via the Recovery steps in `CONTEXT_AND_RECOVERY.md`. In-place `/compact` is the fallback, not the default.
+- Session end requires a clean tree: the task commit exists, or remaining changes are committed as a checkpoint commit (`GITHUB_RULES.md` format). Never leave unattributed modified files across a session boundary; never use `git stash` as a session-boundary mechanism.
+- At session start, `git status --short` must be explainable from `CURRENT_STATE.md`/`WORKLOG.md` facts. Unattributed modifications are a stop condition: report and ask before editing.
+
+## Evidence and Logs
+
+- Screenshots, recordings, and simulator captures are evidence for humans: save them under `artifacts/evidence/<task-id>/`, reference the paths in the worklog entry, and do not re-read image files into the conversation.
+- In-context verification uses text: build/test script summaries, TestOps selector output, Debug Console output, and targeted diff reads.
+- Build/test scripts already write full logs to a temp file and print summaries. Open the full log only when the summary is insufficient, and only filtered (`grep`, or `sed` a line range) - never whole.
+- Batch visual QA at package gates instead of capturing screenshots on every slice.
+
 ## Rule Change Tasks
 
 Changes to `AGENTS.md`, `CLAUDE.md`, or any file under `docs/05_workflow/` are workflow-rule changes.
@@ -118,7 +137,7 @@ Stop before:
 
 ## Compaction
 
-Compaction belongs at task boundaries and follows the 353,000-token 65%/80% thresholds in `CONTEXT_AND_RECOVERY.md`; Markdown word telemetry never triggers it. Before `/compact`, write a checkpoint with task ID/status, files changed, validation, key decisions, risks, and next context.
+Session end at the task boundary is the default context reset; manual `/compact` is the fallback for a single oversized in-flight task and follows the 353,000-token 65%/80% thresholds in `CONTEXT_AND_RECOVERY.md`. Markdown word telemetry never triggers it. Before compaction or a checkpoint-based session end, write a checkpoint with task ID/status, files changed, validation, key decisions, risks, and next context.
 
 ## Reporting
 

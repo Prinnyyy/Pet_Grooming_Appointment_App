@@ -36,6 +36,7 @@ Root-level or external-agent status/roadmap Markdown is review input only. Activ
 - Use the next available task ID from `docs/06_tasks/TASK_LEDGER.md` for new bugfix or iteration work.
 - If branch, task ID, or status evidence conflicts, verify `CURRENT_STATE.md` plus `TASK_LEDGER.md`; never infer from stale task files, archives, or external reports.
 - One primary task only. Do not start adjacent features, broad refactors, or unrelated cleanup.
+- One `T-###` task per session; end the session after closeout (see `docs/05_workflow/SINGLE_AGENT_WORKFLOW.md`, Session Budget Rules).
 - Make a short plan before non-trivial edits.
 - Changes to `AGENTS.md`, `CLAUDE.md`, or `docs/05_workflow/**` must be a standalone task with a decision-log entry and context hygiene.
 - Keep SwiftUI views thin and route business logic through Store/ViewModel/repository boundaries.

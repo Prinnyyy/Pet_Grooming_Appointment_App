@@ -16,7 +16,7 @@ Use tools only when they reduce uncertainty, implement the requested scope, or v
 
 - Micro Mode: no validation by default.
 - Quick Mode: docs/workflow edits usually run `git diff --check`.
-- Standard Mode: Swift, Xcode, app behavior, or visible UI changes run `git diff --check` and one `./scripts/ios-build.sh` attempt.
+- Standard Mode: Swift, Xcode, app behavior, or visible UI changes run `git diff --check`, focused tests for the touched feature domain when they exist, and one `./scripts/ios-build.sh` attempt. Full `./scripts/ios-test.sh` is reserved for package/integration gates, Deep tasks, shared-layer changes, and pre-release validation.
 - Deep Mode: state a validation plan before implementation and make one planned validation attempt unless the user approves more.
 - UI tests are not default.
 - Unit tests are not default for initialization tasks.

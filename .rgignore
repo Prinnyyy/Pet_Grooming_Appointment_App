@@ -12,3 +12,5 @@ docs/08_design/Beckon/**
 # External agent draft reports should not be active search context.
 APP_STATUS_OVERVIEW.md
 V1.0_RELEASE_TASK_PLAN.md
+UI_DESIGN_RULES_PROPOSAL.md
+CONTEXT_QUOTA_GOVERNANCE_PLAN.md

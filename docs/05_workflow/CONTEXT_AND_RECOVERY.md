@@ -122,11 +122,11 @@ Do not reconstruct archived subagent state, load old report chains, repeat compl
 
 ## Compaction
 
-The model context reference is 353,000 tokens. Manual compaction belongs at task boundaries:
+The model context reference is 353,000 tokens. The default context reset is ending the session at the task boundary (see `SINGLE_AGENT_WORKFLOW.md`, Session Budget Rules). The thresholds below govern a single task that grows too large:
 
-- Below 65% (about 229,000 tokens): continue normally without manual compaction.
-- From 65% to below 80%: finish the current task; compact only before a new large or risky task.
-- At or above 80% (about 282,000 tokens): write a checkpoint, then compact at the task boundary.
+- Below 65% (about 229,000 tokens): continue the current task normally.
+- From 65% to below 80%: finish the current task only if it is close to done; otherwise write a checkpoint, make a checkpoint commit, end the session, and resume the same task in a fresh session.
+- At or above 80% (about 282,000 tokens): write a checkpoint immediately, then end the session; compact in place only when ending mid-operation is unsafe.
 - Keep the final 20% (about 70,600 tokens) for recovery, validation, and unexpected output.
 
 Repository rules cannot control automatic platform compaction. These thresholds govern only agent-requested compaction.
