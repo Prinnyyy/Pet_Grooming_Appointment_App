@@ -14,9 +14,17 @@ final class SupabaseChatRepository: ChatRepository {
         "id,conversation_id,sender_id,body,created_at"
 
     private let client: SupabaseClient
+    private let participantAvatarLoader: SupabaseParticipantAvatarLoader
 
-    init(client: SupabaseClient) {
+    init(
+        client: SupabaseClient,
+        privateImageLoader: (any PrivateImageLoading)? = nil
+    ) {
         self.client = client
+        participantAvatarLoader = SupabaseParticipantAvatarLoader(
+            client: client,
+            privateImageLoader: privateImageLoader
+        )
     }
 
     func conversations(
@@ -64,11 +72,20 @@ final class SupabaseChatRepository: ChatRepository {
             case .groomer:
                 [UUID: String]()
             }
+            let groomerAvatars = switch role {
+            case .customer:
+                await participantAvatarLoader.groomerAvatars(
+                    for: rows.map(\.groomerID)
+                )
+            case .groomer:
+                [UUID: Data]()
+            }
 
             let conversations = rows.map { row in
                 row.conversation(
                     bookingSummary: bookingSummaries[row.bookingID],
                     groomerBusinessName: groomerBusinessNames[row.groomerID],
+                    groomerAvatarPhotoData: groomerAvatars[row.groomerID],
                     latestMessage: latestMessages[row.id]
                 )
             }
@@ -326,6 +343,7 @@ private struct ChatConversationRow: Decodable {
     func conversation(
         bookingSummary: ChatBookingSummary?,
         groomerBusinessName: String?,
+        groomerAvatarPhotoData: Data?,
         latestMessage: ChatLatestMessageRow?
     ) -> ChatConversation {
         ChatConversation(
@@ -340,6 +358,7 @@ private struct ChatConversationRow: Decodable {
             bookingStatus: bookingSummary?.status,
             completedAt: bookingSummary?.completedAt,
             groomerBusinessName: groomerBusinessName,
+            groomerAvatarPhotoData: groomerAvatarPhotoData,
             latestMessageSenderID: latestMessage?.senderID,
             latestMessageCreatedAt: latestMessage?.createdAt,
             latestMessageBody: latestMessage?.body,

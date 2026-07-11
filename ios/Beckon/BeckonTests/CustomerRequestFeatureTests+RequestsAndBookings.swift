@@ -4,6 +4,34 @@ import Testing
 
 extension CustomerRequestsStoreTests {
     @Test @MainActor
+    func recentClosedRequestsKeepOnlyTheFiveNewestCancelledRecords() {
+        let customerID = UUID()
+        let petID = UUID()
+        let requests = (1...7).map { day in
+            Self.request(
+                customerID: customerID,
+                petID: petID,
+                status: .cancelled,
+                updatedAt: String(
+                    format: "2026-06-%02dT12:00:00Z",
+                    day
+                )
+            )
+        }
+
+        let recent = requests.recentClosedRequests(limit: 5)
+
+        #expect(recent.count == 5)
+        #expect(recent.map(\.updatedAt) == [
+            "2026-06-07T12:00:00Z",
+            "2026-06-06T12:00:00Z",
+            "2026-06-05T12:00:00Z",
+            "2026-06-04T12:00:00Z",
+            "2026-06-03T12:00:00Z",
+        ])
+    }
+
+    @Test @MainActor
     func requestPaginationRetriesThenAppendsUniqueRowsAndStopsAtLastPage() async {
         let customerID = UUID()
         let pet = Self.pet(customerID: customerID)

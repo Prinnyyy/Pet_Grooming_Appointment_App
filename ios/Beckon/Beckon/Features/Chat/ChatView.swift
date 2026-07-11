@@ -227,10 +227,14 @@ private struct ChatConversationRow: View {
                 ? DesignTokens.Spacing.md
                 : DesignTokens.Spacing.lg
         ) {
-            ChatConversationAvatar(
-                title: conversation.listTitle(for: role),
-                role: role,
-                isCompact: role == .groomer
+            BeckonProfileAvatar(
+                data: role == .customer
+                    ? conversation.groomerAvatarPhotoData
+                    : nil,
+                tone: role == .customer ? .groomer : .customer,
+                size: role == .groomer ? 48 : 64,
+                cornerRadius: role == .groomer ? 14 : 18,
+                placeholderSize: role == .groomer ? 18 : 24
             )
 
             VStack(
@@ -300,42 +304,6 @@ private struct ChatConversationRow: View {
     }
 }
 
-private struct ChatConversationAvatar: View {
-    let title: String
-    let role: UserRole
-    let isCompact: Bool
-
-    init(title: String, role: UserRole, isCompact: Bool = false) {
-        self.title = title
-        self.role = role
-        self.isCompact = isCompact
-    }
-
-    var body: some View {
-        Text(initial)
-            .font(.title3.weight(.bold))
-            .foregroundStyle(role.chatAccentColor)
-            .frame(
-                width: isCompact ? 48 : 64,
-                height: isCompact ? 48 : 64
-            )
-            .background(role.chatAccentColor.opacity(0.28))
-            .clipShape(
-                RoundedRectangle(
-                    cornerRadius: isCompact ? 14 : 18,
-                    style: .continuous
-                )
-            )
-            .accessibilityHidden(true)
-    }
-
-    private var initial: String {
-        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let first = trimmed.first else { return "•" }
-        return String(first).uppercased()
-    }
-}
-
 private struct CustomerMessagesTitle: View {
     let title: String
 
@@ -381,6 +349,9 @@ private struct ChatThreadView: View {
                     title: conversation.listTitle(for: role),
                     subtitle: store.canSendMessages(in: conversation) ? "Active Chat" : "Read Only",
                     role: role,
+                    avatarPhotoData: role == .customer
+                        ? conversation.groomerAvatarPhotoData
+                        : nil,
                     dismiss: dismiss
                 )
 
@@ -537,6 +508,7 @@ private struct ChatThreadHeader: View {
     let title: String
     let subtitle: String
     let role: UserRole
+    let avatarPhotoData: Data?
     let dismiss: DismissAction
 
     var body: some View {
@@ -553,8 +525,12 @@ private struct ChatThreadHeader: View {
             .buttonStyle(.plain)
             .accessibilityLabel("Back")
 
-            ChatConversationAvatar(title: title, role: role)
-                .frame(width: 64, height: 64)
+            BeckonProfileAvatar(
+                data: avatarPhotoData,
+                tone: role == .customer ? .groomer : .customer,
+                size: 64,
+                cornerRadius: 18
+            )
 
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                 Text(title)

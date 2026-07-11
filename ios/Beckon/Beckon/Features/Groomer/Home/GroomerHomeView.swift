@@ -143,8 +143,9 @@ private struct GroomerHomeHeader: View {
 
     var body: some View {
         HStack(spacing: DesignTokens.Spacing.md) {
-            GroomerAvatarImage(
+            BeckonProfileAvatar(
                 data: avatarPhotoData,
+                tone: .groomer,
                 size: 68,
                 cornerRadius: 34,
                 placeholderSize: 26

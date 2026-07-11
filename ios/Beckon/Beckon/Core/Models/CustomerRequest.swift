@@ -201,17 +201,20 @@ struct CancelGroomingRequestResult: Equatable, Sendable {
 struct CustomerOfferReview: Equatable, Identifiable, Sendable {
     let offer: GroomerOffer
     let groomerProfile: GroomerProfile?
+    let groomerAvatarPhotoData: Data?
     let matchScore: Double?
     let matchReason: String?
 
     nonisolated init(
         offer: GroomerOffer,
         groomerProfile: GroomerProfile?,
+        groomerAvatarPhotoData: Data? = nil,
         matchScore: Double? = nil,
         matchReason: String? = nil
     ) {
         self.offer = offer
         self.groomerProfile = groomerProfile
+        self.groomerAvatarPhotoData = groomerAvatarPhotoData
         self.matchScore = matchScore
         self.matchReason = matchReason
     }

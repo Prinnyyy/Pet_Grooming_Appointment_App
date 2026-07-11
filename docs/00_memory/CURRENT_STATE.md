@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-11
 - Updated by: Codex
-- Latest completed task: T-262 periodic meta-review.
+- Latest completed task: T-263 Customer Home, Bookings, Requests, and participant-avatar consistency fixes.
 - Current task: none; T-157 APNs remains externally blocked and Q-104 Dynamic Type/Accessibility remains user-deferred.
-- Next task ID: use T-263 for the reported Customer Home, Bookings, and Requests consistency fixes. Q-104 remains deferred until the user restores its Dynamic Type/Accessibility scope.
+- Next task ID: use T-264. Q-104 remains deferred until the user restores its Dynamic Type/Accessibility scope.
 
 ## Fast Path
 
@@ -33,7 +33,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 ## Validation Baseline
 
 - T-239 authorized UI R11 passed publish/offer/accept/chat/complete/review, Debug 6/6 with zero errors, backend final state, and zero residue; full iOS test/build passed.
-- Last Supabase migration apply: T-246 `20260710052620_t246_prepare_beckon_runtime_identity.sql` applied to `lqmasbuqzvcvtawonjlb` on 2026-07-09; parity, cron rename, and linked dry-run were verified.
+- Last Supabase migration apply: T-263 `20260711080751_t263_merge_avatar_select_policies.sql` applied to `lqmasbuqzvcvtawonjlb` on 2026-07-11; both T-263 migrations, merged participant-avatar policies, and advisor cleanup were verified.
 - Last Edge Function deploy: `delete-account` version 2 is active with JWT verification and service-role Storage API cleanup across six user-prefixed image buckets.
 - Last TestOps unit validation: T-248 `./scripts/testops-unit.sh` passed 36 Node tests.
 - Latest remote TestOps evidence: T-248 `smoke5` passed 5/5 and `matching_baseline` passed 8/8; both run families left zero tagged requests and only redacted local artifacts.
@@ -51,6 +51,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - T-256 completes Q-102: Services and Availability use compact grouped configuration surfaces with native Back navigation, hidden tabs, and stable saves. Existing service size overrides, weekly hours, daily capacity, advance notice, auto-ready, and time-off Store/repository behavior are preserved; no backend or remote state changed.
 - T-257 completes Q-103: Fit Signals separates core selection/size experience from compact skill groups, Evidence has a truthful grouped overview or empty state, and Portfolio uses an image-first gallery plus focused fit-note detail. Existing Store mutations, global feedback, authenticated cache, selectors, and image behavior are preserved; no backend or remote state changed.
 - T-258 completes the non-Accessibility portion of the Groomer integration gate: seeded TestOps verifies five direct tabs, six focused Account workspaces, one Back action, hidden editor tabs, and no `More`; default-text compact and large Simulator inspection plus full iOS tests/build/preflight pass. Q-104 remains open only for user-deferred Dynamic Type and Accessibility validation/changes.
+- T-263 uses one shared profile-avatar component and participant loader for Groomer imagery across customer Home, offers, bookings/details, and messages; elapsed confirmed bookings group under Past, and Recent Closed Requests is limited to the newest five. Customer access to related Groomer avatar objects is remotely applied through merged RLS/Storage policies.
 - T-259 makes one `T-###` per fresh session the default, reserves full iOS tests and batched visual evidence for integration/high-risk gates, and requires clean task or checkpoint commits at session boundaries.
 - T-260 adopts UI-R1 through UI-R8 and A11Y-R1 through A11Y-R10 as the active design contract, including approved light-palette contrast pairs and a per-slice accessibility Definition of Done. Token and primitive implementation remains a separate follow-up code task; Q-104 is unchanged.
 - T-244 normalizes the rotated Worklog EOF to one newline.

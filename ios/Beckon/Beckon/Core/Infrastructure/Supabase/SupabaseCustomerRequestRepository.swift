@@ -22,14 +22,20 @@ final class SupabaseCustomerRequestRepository: CustomerRequestRepository {
 
     private let client: SupabaseClient
     private let privateImageLoader: any PrivateImageLoading
+    private let participantAvatarLoader: SupabaseParticipantAvatarLoader
 
     init(
         client: SupabaseClient,
         privateImageLoader: (any PrivateImageLoading)? = nil
     ) {
         self.client = client
-        self.privateImageLoader = privateImageLoader ?? PrivateImageLoader(
+        let imageLoader = privateImageLoader ?? PrivateImageLoader(
             dataSource: SupabasePrivateImageDataSource(client: client)
+        )
+        self.privateImageLoader = imageLoader
+        participantAvatarLoader = SupabaseParticipantAvatarLoader(
+            client: client,
+            privateImageLoader: imageLoader
         )
     }
 
@@ -109,6 +115,10 @@ final class SupabaseCustomerRequestRepository: CustomerRequestRepository {
                 .execute()
                 .value
 
+            let groomerAvatars = await participantAvatarLoader.groomerAvatars(
+                for: offerRows.map(\.groomerID)
+            )
+
             let profilesByID = Dictionary(
                 uniqueKeysWithValues: profileRows.map { ($0.userID, $0.profile) }
             )
@@ -121,6 +131,7 @@ final class SupabaseCustomerRequestRepository: CustomerRequestRepository {
                 return CustomerOfferReview(
                     offer: row.offer,
                     groomerProfile: profilesByID[row.groomerID],
+                    groomerAvatarPhotoData: groomerAvatars[row.groomerID],
                     matchScore: matchEvidence?.matchScore,
                     matchReason: matchEvidence?.matchReason
                 )

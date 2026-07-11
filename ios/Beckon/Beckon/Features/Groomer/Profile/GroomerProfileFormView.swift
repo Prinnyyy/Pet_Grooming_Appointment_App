@@ -52,8 +52,9 @@ private struct GroomerAvatarEditorSection: View {
 
         HStack(alignment: .center, spacing: DesignTokens.Spacing.lg) {
             ZStack(alignment: .bottomTrailing) {
-                GroomerAvatarImage(
+                BeckonProfileAvatar(
                     data: store.avatarPhotoData,
+                    tone: .groomer,
                     size: 88,
                     cornerRadius: 44,
                     placeholderSize: 34

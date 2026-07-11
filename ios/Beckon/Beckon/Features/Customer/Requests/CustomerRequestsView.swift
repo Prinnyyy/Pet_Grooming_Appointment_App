@@ -204,8 +204,15 @@ struct CustomerRequestsView: View {
     }
 
     private var cancelledRequests: [CustomerGroomingRequest] {
-        store.requests
-            .filter { $0.status == .cancelled }
+        store.requests.recentClosedRequests(limit: 5)
+    }
+}
+
+extension Array where Element == CustomerGroomingRequest {
+    func recentClosedRequests(limit: Int = 5) -> [CustomerGroomingRequest] {
+        guard limit > 0 else { return [] }
+
+        return filter { $0.status == .cancelled }
             .sorted { lhs, rhs in
                 if lhs.updatedAt != rhs.updatedAt {
                     return lhs.updatedAt > rhs.updatedAt
@@ -213,5 +220,7 @@ struct CustomerRequestsView: View {
 
                 return lhs.id.uuidString < rhs.id.uuidString
             }
+            .prefix(limit)
+            .map { $0 }
     }
 }

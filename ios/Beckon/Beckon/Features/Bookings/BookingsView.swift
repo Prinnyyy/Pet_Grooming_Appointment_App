@@ -312,8 +312,11 @@ struct BookingsView: View {
     }
 
     private var visibleBookings: [Booking] {
-        store.bookings
-            .filter(selectedScope.contains)
+        let referenceDate = Date()
+        return store.bookings
+            .filter {
+                selectedScope.contains($0, referenceDate: referenceDate)
+            }
             .sortedByScheduledStart(ascending: selectedScope == .upcoming)
     }
 
@@ -408,7 +411,14 @@ struct BookingSummaryRow: View {
                 }
 
                 HStack(alignment: .center, spacing: DesignTokens.Spacing.lg) {
-                    BookingAvatar(role: role)
+                    BeckonProfileAvatar(
+                        data: role == .customer
+                            ? booking.groomerAvatarPhotoData
+                            : nil,
+                        tone: role == .customer ? .groomer : .customer,
+                        size: 64,
+                        cornerRadius: 18
+                    )
 
                     VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
                         Text(booking.partnerDisplayTitle(for: role))
@@ -435,24 +445,6 @@ struct BookingSummaryRow: View {
     }
 }
 
-private struct BookingAvatar: View {
-    let role: UserRole
-    var systemImage: String? = nil
-
-    var body: some View {
-        Image(
-            systemName: systemImage
-                ?? (role == .customer ? "person.fill" : "person.crop.square.fill")
-        )
-            .font(.title2.weight(.bold))
-            .foregroundStyle(role.primaryColor)
-            .frame(width: 64, height: 64)
-            .background(role.primaryColor.opacity(0.24))
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-            .accessibilityHidden(true)
-    }
-}
-
 extension Array where Element == Booking {
     nonisolated func sortedByScheduledStart(ascending: Bool) -> [Booking] {
         sorted { lhs, rhs in
@@ -472,14 +464,14 @@ extension Array where Element == Booking {
     }
 }
 
-private enum BookingListScope: String, CaseIterable, Identifiable {
+enum BookingListScope: String, CaseIterable, Identifiable {
     case upcoming
     case past
 
     var id: Self { self }
 
     var title: String {
-        switch self {
+        return switch self {
         case .upcoming:
             "Upcoming"
         case .past:
@@ -488,7 +480,7 @@ private enum BookingListScope: String, CaseIterable, Identifiable {
     }
 
     var emptyTitle: String {
-        switch self {
+        return switch self {
         case .upcoming:
             "No Upcoming Bookings"
         case .past:
@@ -505,12 +497,21 @@ private enum BookingListScope: String, CaseIterable, Identifiable {
         }
     }
 
-    func contains(_ booking: Booking) -> Bool {
-        switch self {
+    func contains(
+        _ booking: Booking,
+        referenceDate: Date = Date()
+    ) -> Bool {
+        let scheduledEnd = GroomingRequestDateFormatting.parsedDate(
+            from: booking.scheduledEnd
+        )
+        let isUpcoming = booking.status == .confirmed
+            && (scheduledEnd.map { $0 > referenceDate } ?? true)
+
+        return switch self {
         case .upcoming:
-            booking.status == .confirmed
+            isUpcoming
         case .past:
-            booking.status != .confirmed
+            !isUpcoming
         }
     }
 }
@@ -1105,10 +1106,27 @@ private struct BookingDetailHeroCard: View {
                 }
 
                 HStack(alignment: .center, spacing: DesignTokens.Spacing.lg) {
-                    BookingAvatar(
-                        role: role,
-                        systemImage: role == .groomer ? "pawprint.fill" : nil
-                    )
+                    if role == .customer {
+                        BeckonProfileAvatar(
+                            data: booking.groomerAvatarPhotoData,
+                            tone: .groomer,
+                            size: 64,
+                            cornerRadius: 18
+                        )
+                    } else {
+                        Image(systemName: "pawprint.fill")
+                            .font(.title2.weight(.bold))
+                            .foregroundStyle(role.primaryColor)
+                            .frame(width: 64, height: 64)
+                            .background(role.primaryColor.opacity(0.24))
+                            .clipShape(
+                                RoundedRectangle(
+                                    cornerRadius: 18,
+                                    style: .continuous
+                                )
+                            )
+                            .accessibilityHidden(true)
+                    }
 
                     VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
                         Text(heroTitle)
@@ -1195,8 +1213,15 @@ private struct BookingPartnerOverviewCard: View {
             role: role
         ) {
             HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
-                BookingAvatar(role: role)
-                    .frame(width: 56, height: 56)
+                BeckonProfileAvatar(
+                    data: role == .customer
+                        ? booking.groomerAvatarPhotoData
+                        : nil,
+                    tone: role == .customer ? .groomer : .customer,
+                    size: 56,
+                    cornerRadius: 16,
+                    placeholderSize: 22
+                )
 
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     Text(

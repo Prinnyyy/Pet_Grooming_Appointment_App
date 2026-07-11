@@ -622,6 +622,16 @@ struct ChatStoreTests {
         #expect(conversation.bookingReferenceAndPriceSummary.contains("Booking ref 11111111"))
     }
 
+    @Test @MainActor
+    func customerConversationCarriesTheLoadedGroomerAvatar() {
+        let avatarData = Data([0x07, 0x08, 0x09])
+        let conversation = Self.conversation(
+            groomerAvatarPhotoData: avatarData
+        )
+
+        #expect(conversation.groomerAvatarPhotoData == avatarData)
+    }
+
     private static func conversation(
         id: UUID = UUID(),
         bookingID: UUID = UUID(),
@@ -634,6 +644,7 @@ struct ChatStoreTests {
         status: BookingStatus? = nil,
         completedAt: String? = nil,
         groomerBusinessName: String? = nil,
+        groomerAvatarPhotoData: Data? = nil,
         latestMessageSenderID: UUID? = nil,
         latestMessageCreatedAt: String? = nil,
         latestMessageBody: String? = nil
@@ -650,6 +661,7 @@ struct ChatStoreTests {
             bookingStatus: status,
             completedAt: completedAt,
             groomerBusinessName: groomerBusinessName,
+            groomerAvatarPhotoData: groomerAvatarPhotoData,
             latestMessageSenderID: latestMessageSenderID,
             latestMessageCreatedAt: latestMessageCreatedAt,
             latestMessageBody: latestMessageBody,

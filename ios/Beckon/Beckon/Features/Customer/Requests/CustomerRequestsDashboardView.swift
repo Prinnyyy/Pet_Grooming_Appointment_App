@@ -881,8 +881,8 @@ struct CustomerCancelledRequestsSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
             BeckonSectionHeader(
-                "Closed Requests",
-                subtitle: "Cancelled requests can be reviewed and used to start a new request."
+                "Recent Closed Requests",
+                subtitle: "Your five most recent cancelled requests can be reviewed or used to start a new request."
             )
 
             LazyVStack(spacing: DesignTokens.Spacing.md) {

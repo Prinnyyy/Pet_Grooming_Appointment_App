@@ -4,6 +4,18 @@ import Testing
 
 extension CustomerRequestsStoreTests {
     @Test @MainActor
+    func offerReviewCarriesTheLoadedGroomerAvatar() {
+        let avatarData = Data([0x04, 0x05, 0x06])
+        let review = Self.offerReview(
+            customerID: UUID(),
+            requestID: UUID(),
+            groomerAvatarPhotoData: avatarData
+        )
+
+        #expect(review.groomerAvatarPhotoData == avatarData)
+    }
+
+    @Test @MainActor
     func offerPaginationRetriesThenAppendsUniqueRowsAndStopsAtLastPage() async {
         let customerID = UUID()
         let request = Self.request(customerID: customerID, petID: UUID())

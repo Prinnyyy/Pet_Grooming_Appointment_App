@@ -21,9 +21,17 @@ final class SupabaseBookingRepository: BookingRepository {
         "id,service_type,pet_snapshot,location_mode,street_address,city,state,zip_code"
 
     private let client: SupabaseClient
+    private let participantAvatarLoader: SupabaseParticipantAvatarLoader
 
-    init(client: SupabaseClient) {
+    init(
+        client: SupabaseClient,
+        privateImageLoader: (any PrivateImageLoading)? = nil
+    ) {
         self.client = client
+        participantAvatarLoader = SupabaseParticipantAvatarLoader(
+            client: client,
+            privateImageLoader: privateImageLoader
+        )
     }
 
     func bookings(
@@ -65,6 +73,9 @@ final class SupabaseBookingRepository: BookingRepository {
             let groomerSummaries = await groomerSummaries(
                 for: rows.map(\.groomerID)
             )
+            let groomerAvatars = await participantAvatarLoader.groomerAvatars(
+                for: rows.map(\.groomerID)
+            )
             let requestLocations = await requestLocations(
                 for: rows.map(\.requestID)
             )
@@ -73,6 +84,7 @@ final class SupabaseBookingRepository: BookingRepository {
                 row.booking(
                     review: reviewMap[row.id],
                     groomerSummary: groomerSummaries[row.groomerID],
+                    groomerAvatarPhotoData: groomerAvatars[row.groomerID],
                     requestLocation: requestLocations[row.requestID]
                 )
             }
@@ -388,6 +400,7 @@ private struct BookingRow: Decodable {
     func booking(
         review: BookingReview?,
         groomerSummary: BookingGroomerSummary?,
+        groomerAvatarPhotoData: Data?,
         requestLocation: BookingRequestLocation?
     ) -> Booking {
         Booking(
@@ -410,6 +423,7 @@ private struct BookingRow: Decodable {
             serviceType: requestLocation?.serviceType,
             requestPetSnapshot: requestLocation?.petSnapshot,
             groomerBusinessName: groomerSummary?.businessName,
+            groomerAvatarPhotoData: groomerAvatarPhotoData,
             groomerBaseStreetAddress: groomerSummary?.baseStreetAddress,
             groomerBaseCity: groomerSummary?.baseCity,
             groomerBaseState: groomerSummary?.baseState,

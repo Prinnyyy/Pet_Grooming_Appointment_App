@@ -478,7 +478,8 @@ struct CustomerRequestsStoreTests {
         city: String = "Seattle",
         state: String = "WA",
         zipCode: String = "98101",
-        travelRadiusMiles: Int? = nil
+        travelRadiusMiles: Int? = nil,
+        updatedAt: String = "2026-06-20T12:00:00Z"
     ) -> CustomerGroomingRequest {
         CustomerGroomingRequest(
             id: id,
@@ -512,7 +513,7 @@ struct CustomerRequestsStoreTests {
             status: status,
             expiresAt: "2026-06-22T12:00:00Z",
             createdAt: "2026-06-20T12:00:00Z",
-            updatedAt: "2026-06-20T12:00:00Z"
+            updatedAt: updatedAt
         )
     }
 
@@ -550,7 +551,8 @@ struct CustomerRequestsStoreTests {
         status: GroomerOfferStatus = .pending,
         createdAt: String = "2026-06-20T13:00:00Z",
         matchScore: Double? = nil,
-        matchReason: String? = nil
+        matchReason: String? = nil,
+        groomerAvatarPhotoData: Data? = nil
     ) -> CustomerOfferReview {
         let groomerID = UUID()
         return CustomerOfferReview(
@@ -584,6 +586,7 @@ struct CustomerRequestsStoreTests {
                 isActive: true,
                 isVerified: true
             ),
+            groomerAvatarPhotoData: groomerAvatarPhotoData,
             matchScore: matchScore,
             matchReason: matchReason
         )

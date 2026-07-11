@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-07-11
+Task: T-263 - Customer Home, Bookings, Requests, and participant-avatar consistency.
+Files changed: Shared profile-avatar presentation and participant loader; booking/request/chat models, repositories, views, and tests; two RLS/Storage migrations; backend contract and memory closeout.
+Checks: Focused booking/request/chat tests; full `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; 51 migration tests; `./scripts/supabase-check.sh`; linked dry-run and remote migration/policy/advisor verification; `git diff --check`; preflight/context hygiene.
+Result: Customer Home, offers, booking rows/details, and messages now use one cache-backed Groomer-avatar path with local fallback. Elapsed confirmed bookings move to Past, and Recent Closed Requests contains only the newest five. Relationship-scoped Groomer avatar access is active remotely with one merged SELECT policy per affected table.
+Risks: Existing Supabase INFO advisors for unindexed foreign keys/unused indexes and previously recorded Auth/APNs advisories remain outside this task. No Customer-avatar sharing or unrelated matching/booking rule changed.
+Next: Use T-264 for the next user-selected task; Q-104 remains deferred.
+```
+
+```text
+Date: 2026-07-11
 Task: T-262 - Periodic meta-review.
 Files changed: Current state, feature index, roadmap/queue verification markers, task ledger, and Worklog.
 Checks: Branch/local-remote HEAD; 60-file migration mirror; root Markdown and `.rgignore` audit; 25 context tests; `git diff --check`; context hygiene.

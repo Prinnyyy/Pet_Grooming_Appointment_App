@@ -4,6 +4,59 @@ import Testing
 
 struct BookingsStoreTests {
     @Test @MainActor
+    func customerBookingScopesUseScheduledEndAsTheTimeBoundary() throws {
+        let now = try #require(
+            GroomingRequestDateFormatting.parsedDate(
+                from: "2026-08-22T18:00:00Z"
+            )
+        )
+        let elapsedConfirmed = Self.booking(
+            status: .confirmed,
+            scheduledStart: "2026-08-22T15:00:00Z",
+            scheduledEnd: "2026-08-22T17:00:00Z"
+        )
+        let inProgressConfirmed = Self.booking(
+            status: .confirmed,
+            scheduledStart: "2026-08-22T17:30:00Z",
+            scheduledEnd: "2026-08-22T18:30:00Z"
+        )
+
+        #expect(
+            BookingListScope.upcoming.contains(
+                elapsedConfirmed,
+                referenceDate: now
+            ) == false
+        )
+        #expect(
+            BookingListScope.past.contains(
+                elapsedConfirmed,
+                referenceDate: now
+            )
+        )
+        #expect(
+            BookingListScope.upcoming.contains(
+                inProgressConfirmed,
+                referenceDate: now
+            )
+        )
+    }
+
+    @Test @MainActor
+    func bookingCarriesTheLoadedGroomerAvatarForCustomerRows() {
+        let avatarData = Data([0x01, 0x02, 0x03])
+        let booking = Self.booking(groomerAvatarPhotoData: avatarData)
+
+        #expect(booking.groomerAvatarPhotoData == avatarData)
+        #expect(
+            booking.replacing(
+                status: .completed,
+                cancelledBy: nil,
+                cancelledAt: nil
+            ).groomerAvatarPhotoData == avatarData
+        )
+    }
+
+    @Test @MainActor
     func groomerScheduleDefaultsToFirstActiveDayAndBuildsOneSummary() throws {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = try #require(
@@ -918,6 +971,7 @@ struct BookingsStoreTests {
         review: BookingReview? = nil,
         serviceType: GroomingServiceType? = nil,
         groomerBusinessName: String? = nil,
+        groomerAvatarPhotoData: Data? = nil,
         groomerBaseStreetAddress: String? = nil,
         groomerBaseCity: String? = nil,
         groomerBaseState: String? = nil,
@@ -951,6 +1005,7 @@ struct BookingsStoreTests {
             serviceType: serviceType,
             requestPetSnapshot: requestPetSnapshot,
             groomerBusinessName: groomerBusinessName,
+            groomerAvatarPhotoData: groomerAvatarPhotoData,
             groomerBaseStreetAddress: groomerBaseStreetAddress,
             groomerBaseCity: groomerBaseCity,
             groomerBaseState: groomerBaseState,

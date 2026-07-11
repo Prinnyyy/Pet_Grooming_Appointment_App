@@ -157,8 +157,14 @@ struct CustomerPetsView: View {
     }
 
     private var nextBooking: Booking? {
-        bookingStore.bookings
-            .filter { $0.status == .confirmed }
+        let referenceDate = Date()
+        return bookingStore.bookings
+            .filter {
+                BookingListScope.upcoming.contains(
+                    $0,
+                    referenceDate: referenceDate
+                )
+            }
             .sortedByScheduledStart(ascending: true)
             .first
     }

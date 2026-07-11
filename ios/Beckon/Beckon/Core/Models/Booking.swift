@@ -20,6 +20,7 @@ struct Booking: Equatable, Hashable, Identifiable, Sendable {
     let serviceType: GroomingServiceType?
     let requestPetSnapshot: GroomingRequestPetSnapshot?
     let groomerBusinessName: String?
+    let groomerAvatarPhotoData: Data?
     let groomerBaseStreetAddress: String?
     let groomerBaseCity: String?
     let groomerBaseState: String?
@@ -50,6 +51,7 @@ struct Booking: Equatable, Hashable, Identifiable, Sendable {
         serviceType: GroomingServiceType? = nil,
         requestPetSnapshot: GroomingRequestPetSnapshot? = nil,
         groomerBusinessName: String? = nil,
+        groomerAvatarPhotoData: Data? = nil,
         groomerBaseStreetAddress: String? = nil,
         groomerBaseCity: String? = nil,
         groomerBaseState: String? = nil,
@@ -79,6 +81,7 @@ struct Booking: Equatable, Hashable, Identifiable, Sendable {
         self.serviceType = serviceType
         self.requestPetSnapshot = requestPetSnapshot
         self.groomerBusinessName = groomerBusinessName
+        self.groomerAvatarPhotoData = groomerAvatarPhotoData
         self.groomerBaseStreetAddress = groomerBaseStreetAddress
         self.groomerBaseCity = groomerBaseCity
         self.groomerBaseState = groomerBaseState
@@ -229,6 +232,7 @@ struct Booking: Equatable, Hashable, Identifiable, Sendable {
             serviceType: serviceType,
             requestPetSnapshot: requestPetSnapshot,
             groomerBusinessName: groomerBusinessName,
+            groomerAvatarPhotoData: groomerAvatarPhotoData,
             groomerBaseStreetAddress: groomerBaseStreetAddress,
             groomerBaseCity: groomerBaseCity,
             groomerBaseState: groomerBaseState,

@@ -524,6 +524,14 @@ private struct CustomerOfferSummaryRow: View {
         BeckonCard {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                 HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
+                    BeckonProfileAvatar(
+                        data: offerReview.groomerAvatarPhotoData,
+                        tone: .groomer,
+                        size: 52,
+                        cornerRadius: 16,
+                        placeholderSize: 20
+                    )
+
                     VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                         Text(offerReview.groomerTitle)
                             .font(DesignTokens.Typography.headline)
@@ -683,7 +691,9 @@ private struct CustomerOfferDetailView: View {
                 DetailCardHeader(
                     title: offerReview.groomerTitle,
                     subtitle: offerReview.groomerLocationSummary,
-                    systemImage: "person.crop.circle.fill"
+                    systemImage: "person.crop.circle.fill",
+                    profileAvatarData: offerReview.groomerAvatarPhotoData,
+                    profileAvatarTone: .groomer
                 ) {
                     if offerReview.groomerProfile?.isVerified == true {
                         BeckonStatusChip(
@@ -880,32 +890,48 @@ private struct DetailCardHeader<Trailing: View>: View {
     let title: String
     let subtitle: String
     let systemImage: String
+    let profileAvatarData: Data?
+    let profileAvatarTone: BeckonDefaultProfileAvatarTone?
     private let trailing: Trailing
 
     init(
         title: String,
         subtitle: String,
         systemImage: String,
+        profileAvatarData: Data? = nil,
+        profileAvatarTone: BeckonDefaultProfileAvatarTone? = nil,
         @ViewBuilder trailing: () -> Trailing
     ) {
         self.title = title
         self.subtitle = subtitle
         self.systemImage = systemImage
+        self.profileAvatarData = profileAvatarData
+        self.profileAvatarTone = profileAvatarTone
         self.trailing = trailing()
     }
 
     var body: some View {
         HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
-            Image(systemName: systemImage)
-                .font(DesignTokens.Typography.headline)
-                .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
-                .frame(
-                    width: DesignTokens.Spacing.xl + DesignTokens.Spacing.md,
-                    height: DesignTokens.Spacing.xl + DesignTokens.Spacing.md
+            if let profileAvatarTone {
+                BeckonProfileAvatar(
+                    data: profileAvatarData,
+                    tone: profileAvatarTone,
+                    size: DesignTokens.Spacing.xl + DesignTokens.Spacing.md,
+                    cornerRadius: (DesignTokens.Spacing.xl + DesignTokens.Spacing.md) / 2,
+                    placeholderSize: 18
                 )
-                .background(DesignTokens.Colors.customerPrimary.opacity(0.14))
-                .clipShape(DesignTokens.Shapes.circular)
-                .accessibilityHidden(true)
+            } else {
+                Image(systemName: systemImage)
+                    .font(DesignTokens.Typography.headline)
+                    .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
+                    .frame(
+                        width: DesignTokens.Spacing.xl + DesignTokens.Spacing.md,
+                        height: DesignTokens.Spacing.xl + DesignTokens.Spacing.md
+                    )
+                    .background(DesignTokens.Colors.customerPrimary.opacity(0.14))
+                    .clipShape(DesignTokens.Shapes.circular)
+                    .accessibilityHidden(true)
+            }
 
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                 Text(title)
@@ -935,6 +961,8 @@ extension DetailCardHeader where Trailing == EmptyView {
         self.title = title
         self.subtitle = subtitle
         self.systemImage = systemImage
+        profileAvatarData = nil
+        profileAvatarTone = nil
         trailing = EmptyView()
     }
 }

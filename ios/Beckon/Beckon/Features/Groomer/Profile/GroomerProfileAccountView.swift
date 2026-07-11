@@ -147,8 +147,9 @@ private struct GroomerAccountProfileHeader: View {
 
     var body: some View {
         HStack(spacing: DesignTokens.Spacing.lg) {
-            GroomerAvatarImage(
+            BeckonProfileAvatar(
                 data: avatarPhotoData,
+                tone: .groomer,
                 size: 76,
                 cornerRadius: 38,
                 placeholderSize: 30
@@ -287,25 +288,6 @@ private struct GroomerAccountExternalLink: View {
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier(accessibilityIdentifier)
-    }
-}
-
-struct GroomerAvatarImage: View {
-    let data: Data?
-    let size: CGFloat
-    let cornerRadius: CGFloat
-    let placeholderSize: CGFloat
-
-    var body: some View {
-        BeckonModuleImage(data: data) {
-            BeckonDefaultProfileAvatar(
-                tone: .groomer,
-                symbolSize: placeholderSize
-            )
-        }
-        .frame(width: size, height: size)
-        .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-        .accessibilityHidden(true)
     }
 }
 

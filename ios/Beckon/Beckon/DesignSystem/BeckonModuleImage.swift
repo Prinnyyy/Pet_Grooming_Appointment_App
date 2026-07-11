@@ -71,6 +71,31 @@ struct BeckonModuleImage<Placeholder: View>: View {
     }
 }
 
+struct BeckonProfileAvatar: View {
+    let data: Data?
+    let tone: BeckonDefaultProfileAvatarTone
+    let size: CGFloat
+    let cornerRadius: CGFloat
+    var placeholderSize: CGFloat = 24
+
+    var body: some View {
+        BeckonModuleImage(data: data) {
+            BeckonDefaultProfileAvatar(
+                tone: tone,
+                symbolSize: placeholderSize
+            )
+        }
+        .frame(width: size, height: size)
+        .clipShape(
+            RoundedRectangle(
+                cornerRadius: cornerRadius,
+                style: .continuous
+            )
+        )
+        .accessibilityHidden(true)
+    }
+}
+
 enum BeckonDefaultProfileAvatarTone {
     case customer
     case groomer

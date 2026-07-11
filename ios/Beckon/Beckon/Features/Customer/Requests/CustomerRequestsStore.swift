@@ -1251,6 +1251,7 @@ final class CustomerRequestsStore {
                         withdrawnAt: review.offer.withdrawnAt
                     ),
                     groomerProfile: review.groomerProfile,
+                    groomerAvatarPhotoData: review.groomerAvatarPhotoData,
                     matchScore: review.matchScore,
                     matchReason: review.matchReason
                 )
@@ -1319,6 +1320,7 @@ final class CustomerRequestsStore {
                         withdrawnAt: review.offer.withdrawnAt
                     ),
                     groomerProfile: review.groomerProfile,
+                    groomerAvatarPhotoData: review.groomerAvatarPhotoData,
                     matchScore: review.matchScore,
                     matchReason: review.matchReason
                 )
