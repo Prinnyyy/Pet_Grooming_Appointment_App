@@ -726,61 +726,63 @@ private struct CustomerPetFormView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
                         BeckonAnnotatedModule(
-                            "Profile",
+                            "Pet Profile",
                             subtitle: "Pet identity, avatar, breed, and coat details."
                         ) {
-                            BeckonCard {
-                                VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                                    CustomerPetFormPhotoModule(store: store)
+                            VStack(spacing: DesignTokens.Spacing.md) {
+                                CustomerPetFormPhotoModule(store: store)
 
-                                    CustomerPetFormLabeledTextField(
-                                        title: "Name",
-                                        placeholder: "Pet name",
-                                        text: limitedNameBinding,
-                                        allowsMultiline: false
-                                    )
+                                BeckonCard {
+                                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                                        CustomerPetFormLabeledTextField(
+                                            title: "Name",
+                                            placeholder: "Pet name",
+                                            text: limitedNameBinding,
+                                            allowsMultiline: false
+                                        )
 
-                                CustomerPetFormChoiceRow(
-                                    title: "Species",
-                                    subtitle: store.formSpecies.title
-                                ) {
-                                    ForEach(CustomerPetSpecies.allCases) { species in
-                                        CustomerPetFormChip(
-                                            title: species.title,
-                                            isSelected: store.formSpecies == species
+                                        CustomerPetFormChoiceRow(
+                                            title: "Species",
+                                            subtitle: store.formSpecies.title
                                         ) {
-                                            store.updateFormSpecies(species)
+                                            ForEach(CustomerPetSpecies.allCases) { species in
+                                                CustomerPetFormChip(
+                                                    title: species.title,
+                                                    isSelected: store.formSpecies == species
+                                                ) {
+                                                    store.updateFormSpecies(species)
+                                                }
+                                            }
+                                        }
+
+                                        CustomerPetFormChoiceRow(
+                                            title: "Breed",
+                                            subtitle: store.formBreed.title
+                                        ) {
+                                            ForEach(CustomerPetBreed.options(for: store.formSpecies)) { breed in
+                                                CustomerPetFormChip(
+                                                    title: breed.title,
+                                                    isSelected: store.formBreed == breed
+                                                ) {
+                                                    store.updateFormBreed(breed)
+                                                }
+                                            }
+                                        }
+
+                                        CustomerPetFormChoiceRow(
+                                            title: "Coat Type",
+                                            subtitle: store.formCoatType.title
+                                        ) {
+                                            ForEach(CustomerPetCoatType.displayOptions) { coatType in
+                                                CustomerPetFormChip(
+                                                    title: coatType.title,
+                                                    isSelected: store.formCoatType == coatType
+                                                ) {
+                                                    store.formCoatType = coatType
+                                                }
+                                            }
                                         }
                                     }
-                                }
-
-                                CustomerPetFormChoiceRow(
-                                    title: "Breed",
-                                    subtitle: store.formBreed.title
-                                ) {
-                                    ForEach(CustomerPetBreed.options(for: store.formSpecies)) { breed in
-                                        CustomerPetFormChip(
-                                            title: breed.title,
-                                            isSelected: store.formBreed == breed
-                                        ) {
-                                            store.updateFormBreed(breed)
-                                        }
-                                    }
-                                }
-
-                                CustomerPetFormChoiceRow(
-                                    title: "Coat Type",
-                                    subtitle: store.formCoatType.title
-                                ) {
-                                    ForEach(CustomerPetCoatType.displayOptions) { coatType in
-                                        CustomerPetFormChip(
-                                            title: coatType.title,
-                                            isSelected: store.formCoatType == coatType
-                                        ) {
-                                            store.formCoatType = coatType
-                                        }
-                                    }
-                                }
                                 }
                             }
                         }
@@ -791,13 +793,13 @@ private struct CustomerPetFormView: View {
                         ) {
                             BeckonCard {
                                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                                CustomerPetWeightControl(
-                                    weight: $store.formWeightLbs,
-                                    weightText: weightText,
-                                    sizeTitle: CustomerPetSizeCode
-                                        .code(forWeightLbs: store.formWeightLbs)
-                                        .title
-                                )
+                                    CustomerPetWeightControl(
+                                        weight: $store.formWeightLbs,
+                                        weightText: weightText,
+                                        sizeTitle: CustomerPetSizeCode
+                                            .code(forWeightLbs: store.formWeightLbs)
+                                            .title
+                                    )
 
                                 CustomerPetBirthdayControl(
                                     isKnown: birthdayKnownBinding,
@@ -820,7 +822,7 @@ private struct CustomerPetFormView: View {
 
                                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
                                     Text("Care Notes")
-                                        .font(DesignTokens.Typography.caption)
+                                        .font(CustomerPetFormTypography.fieldLabel)
                                         .foregroundStyle(DesignTokens.Colors.textSecondary)
 
                                     CustomerPetFormLabeledTextField(
@@ -920,18 +922,35 @@ private struct CustomerPetFormPhotoModule: View {
     @Bindable var store: CustomerPetsStore
 
     var body: some View {
-        HStack(spacing: DesignTokens.Spacing.lg) {
-            CustomerPetFormAvatarPreview(data: store.formAvatarPhotoData)
-            Spacer(minLength: DesignTokens.Spacing.md)
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                Text("Pet Photo")
-                    .font(DesignTokens.Typography.caption)
-                    .foregroundStyle(DesignTokens.Colors.textSecondary)
-                CustomerPetFormPhotoPicker(store: store)
+        BeckonCard {
+            HStack(alignment: .center, spacing: DesignTokens.Spacing.lg) {
+                CustomerPetFormAvatarPreview(data: store.formAvatarPhotoData)
+
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                        Text("Pet Photo")
+                            .font(CustomerPetFormTypography.sectionTitle)
+                            .foregroundStyle(DesignTokens.Colors.textPrimary)
+
+                        Text(store.formAvatarPhotoData == nil ? "Add a photo for this pet." : "Photo saved to this pet profile.")
+                            .font(CustomerPetFormTypography.supporting)
+                            .foregroundStyle(DesignTokens.Colors.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
+                    CustomerPetFormPhotoPicker(store: store)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
-        .frame(maxWidth: .infinity)
     }
+}
+
+private enum CustomerPetFormTypography {
+    static let sectionTitle = DesignTokens.Typography.headline
+    static let fieldLabel = DesignTokens.Typography.caption.weight(.bold)
+    static let fieldValue = DesignTokens.Typography.body.weight(.semibold)
+    static let supporting = DesignTokens.Typography.caption
 }
 
 private struct CustomerPetFormAvatarPreview: View {
@@ -976,13 +995,13 @@ private struct CustomerPetFormChoiceRow<Content: View>: View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
             HStack(alignment: .firstTextBaseline) {
                 Text(title)
-                    .font(DesignTokens.Typography.caption)
+                    .font(CustomerPetFormTypography.fieldLabel)
                     .foregroundStyle(DesignTokens.Colors.textSecondary)
 
                 Spacer(minLength: DesignTokens.Spacing.md)
 
                 Text(subtitle)
-                    .font(DesignTokens.Typography.caption)
+                    .font(CustomerPetFormTypography.supporting)
                     .foregroundStyle(DesignTokens.Colors.textSecondary)
                     .lineLimit(1)
             }
@@ -1019,7 +1038,7 @@ private struct CustomerPetFormChip: View {
     var body: some View {
         Button(action: action) {
             Text(title)
-                .font(DesignTokens.Typography.body.weight(.bold))
+                .font(CustomerPetFormTypography.fieldValue)
                 .foregroundStyle(
                     isSelected
                         ? DesignTokens.Colors.customerPrimaryDark
@@ -1038,7 +1057,7 @@ private struct CustomerPetFormChip: View {
                 }
                 .overlay {
                     Capsule()
-                        .stroke(
+                        .strokeBorder(
                             isSelected
                                 ? DesignTokens.Colors.customerPrimary
                                 : DesignTokens.Colors.border,
@@ -1060,7 +1079,7 @@ private struct CustomerPetFormLabeledTextField: View {
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
             Text(title)
-                .font(DesignTokens.Typography.caption.weight(.bold))
+                .font(CustomerPetFormTypography.fieldLabel)
                 .foregroundStyle(DesignTokens.Colors.textSecondary)
 
             TextField(
@@ -1084,11 +1103,11 @@ private struct CustomerPetWeightControl: View {
             HStack(alignment: .firstTextBaseline) {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     Text("Weight")
-                        .font(DesignTokens.Typography.body.weight(.bold))
+                        .font(CustomerPetFormTypography.fieldLabel)
                         .foregroundStyle(DesignTokens.Colors.textPrimary)
 
                     Text("Size is calculated automatically")
-                        .font(DesignTokens.Typography.caption)
+                        .font(CustomerPetFormTypography.supporting)
                         .foregroundStyle(DesignTokens.Colors.textSecondary)
                 }
 
@@ -1100,7 +1119,7 @@ private struct CustomerPetWeightControl: View {
                         .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
 
                     Text(sizeTitle)
-                        .font(DesignTokens.Typography.caption.weight(.bold))
+                        .font(CustomerPetFormTypography.fieldLabel)
                         .foregroundStyle(DesignTokens.Colors.textSecondary)
                 }
             }
@@ -1118,7 +1137,7 @@ private struct CustomerPetBirthdayControl: View {
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
             Toggle("Birthday Known", isOn: $isKnown)
-                .font(DesignTokens.Typography.body.weight(.bold))
+                .font(CustomerPetFormTypography.fieldLabel)
                 .foregroundStyle(DesignTokens.Colors.textPrimary)
                 .tint(DesignTokens.Colors.customerPrimary)
 

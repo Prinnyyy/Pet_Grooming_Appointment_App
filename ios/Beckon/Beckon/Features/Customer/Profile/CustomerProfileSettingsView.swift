@@ -220,6 +220,15 @@ private struct CustomerProfileSettingsView: View {
                     }
                 }
 
+                BeckonCard {
+                    CustomerProfileAddressFields(
+                        streetAddress: $store.streetAddress,
+                        city: $store.city,
+                        stateCode: $store.stateCode,
+                        zipCode: $store.zipCode
+                    )
+                }
+
                 Button {
                     Task {
                         await store.saveProfile()
@@ -229,15 +238,6 @@ private struct CustomerProfileSettingsView: View {
                 }
                 .buttonStyle(BeckonPrimaryButtonStyle(accent: .customer))
                 .disabled(store.isSaving || store.isUploading)
-
-                BeckonCard {
-                    CustomerProfileAddressFields(
-                        streetAddress: $store.streetAddress,
-                        city: $store.city,
-                        stateCode: $store.stateCode,
-                        zipCode: $store.zipCode
-                    )
-                }
 
                 if store.shouldShowInitialLoading {
                     BeckonLoadingView(
