@@ -825,7 +825,7 @@ private struct GroomerScheduleAppointmentRow: View {
     }
 }
 
-private struct CustomerTabTitle: View {
+struct CustomerTabTitle: View {
     let title: String
 
     init(_ title: String) {

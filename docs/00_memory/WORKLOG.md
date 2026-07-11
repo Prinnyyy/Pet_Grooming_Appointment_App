@@ -2,12 +2,21 @@
 
 ```text
 Date: 2026-07-11
+Task: T-280 - Customer notification marker and tab-heading consistency.
+Files changed: Customer Notification unread marker; shared Customer tab title visibility/Requests adoption; Home Active Request/Next Booking empty descriptions; memory closeout.
+Checks: `./scripts/ios-build.sh`; `git diff --check`; preflight/context hygiene.
+Result: Unread dots sit outside notification cards in the left screen gutter and align to each card's vertical center. Requests uses the exact 36pt bold CustomerTabTitle used by Bookings, preserving the count chip as a trailing overlay. Home empty request/booking sections retain only their descriptive sentence beneath the section heading.
+Risks: Visual acceptance remains with the user; no screenshot self-review was performed. Notification read state and all data behavior are unchanged. No backend or remote state changed.
+Next: Use T-281 for the next user-selected task; Q-104 remains deferred.
+```
+
+```text
+Date: 2026-07-11
 Task: T-279 - Customer notification-card and page-copy refinement.
 Files changed: Customer Notification row layout; Requests root header; Home welcome typography; Edit Pet notes grouping; memory closeout.
 Checks: `./scripts/ios-build.sh`; `git diff --check`; preflight/context hygiene.
 Result: Notification title, saturated unread dot, and timestamp share one compact metadata row while the description uses the full card width below, avoiding the prior forced wrapping from a persistent right column. Requests uses one Requests heading with no subtitle, Welcome Back is title3, and the redundant Care Notes label is removed.
 Risks: Visual acceptance remains with the user; no screenshot self-review was performed. Notification read behavior/data and Request behavior are unchanged. No backend or remote state changed.
-Next: Use T-280 for the next user-selected task; Q-104 remains deferred.
 ```
 
 ```text

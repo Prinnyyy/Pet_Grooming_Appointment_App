@@ -108,16 +108,6 @@ private struct CustomerNotificationRow: View {
         BeckonCard {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
                 HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
-                    if !notification.isRead {
-                        Circle()
-                            .fill(DesignTokens.Colors.notificationUnread)
-                            .frame(width: 9, height: 9)
-                            .alignmentGuide(.firstTextBaseline) { dimensions in
-                                dimensions[VerticalAlignment.center]
-                            }
-                            .accessibilityHidden(true)
-                    }
-
                     Text(notification.title)
                         .font(DesignTokens.Typography.headline)
                         .foregroundStyle(DesignTokens.Colors.textPrimary)
@@ -138,6 +128,15 @@ private struct CustomerNotificationRow: View {
                     .foregroundStyle(DesignTokens.Colors.textSecondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .overlay(alignment: .leading) {
+            if !notification.isRead {
+                Circle()
+                    .fill(DesignTokens.Colors.notificationUnread)
+                    .frame(width: 9, height: 9)
+                    .offset(x: -14)
+                    .accessibilityHidden(true)
             }
         }
         .accessibilityElement(children: .combine)

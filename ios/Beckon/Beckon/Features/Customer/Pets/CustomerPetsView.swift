@@ -628,10 +628,7 @@ private struct CustomerHomeActiveRequestSection: View {
                 )
                     .accessibilityIdentifier("customer.home.active-request.carousel")
             } else {
-                CustomerHomeInlineEmptyText(
-                    title: CustomerRequestEmptyCopy.title,
-                    message: CustomerRequestEmptyCopy.message
-                )
+                CustomerHomeInlineDescription(CustomerRequestEmptyCopy.message)
                 .padding(.vertical, DesignTokens.Spacing.sm)
                 .accessibilityIdentifier("customer.home.active-request.empty")
             }
@@ -674,9 +671,8 @@ private struct CustomerHomeNextBookingSection: View {
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("customer.home.next-booking.view")
             } else {
-                CustomerHomeInlineEmptyText(
-                    title: "No Upcoming Booking",
-                    message: "Accepted offers will appear here as upcoming appointments."
+                CustomerHomeInlineDescription(
+                    "Accepted offers will appear here as upcoming appointments."
                 )
                 .padding(.vertical, DesignTokens.Spacing.sm)
                 .accessibilityIdentifier("customer.home.next-booking.empty")
@@ -702,21 +698,18 @@ private struct CustomerHomeStatusView: View {
     }
 }
 
-private struct CustomerHomeInlineEmptyText: View {
-    let title: String
+private struct CustomerHomeInlineDescription: View {
     let message: String
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-            Text(title)
-                .font(DesignTokens.Typography.headline.weight(.bold))
-                .foregroundStyle(DesignTokens.Colors.textPrimary)
+    init(_ message: String) {
+        self.message = message
+    }
 
-            Text(message)
-                .font(DesignTokens.Typography.body)
-                .foregroundStyle(DesignTokens.Colors.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
+    var body: some View {
+        Text(message)
+            .font(DesignTokens.Typography.body)
+            .foregroundStyle(DesignTokens.Colors.textSecondary)
+            .fixedSize(horizontal: false, vertical: true)
     }
 }
 

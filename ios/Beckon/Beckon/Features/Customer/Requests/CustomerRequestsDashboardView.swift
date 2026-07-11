@@ -5,11 +5,8 @@ struct CustomerRequestsRootHeader: View {
     let cardCount: Int
 
     var body: some View {
-        HStack(alignment: .center, spacing: DesignTokens.Spacing.lg) {
-            Text("Requests")
-                .font(DesignTokens.Typography.largeTitle)
-                .foregroundStyle(DesignTokens.Colors.textPrimary)
-                .frame(maxWidth: .infinity, alignment: .leading)
+        ZStack(alignment: .trailing) {
+            CustomerTabTitle("Requests")
 
             if cardCount > 0 {
                 BeckonStatusChip(
