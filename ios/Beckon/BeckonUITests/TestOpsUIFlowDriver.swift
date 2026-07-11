@@ -175,7 +175,53 @@ final class TestOpsUIFlowDriver {
             app.buttons["groomer.account.evidence"].exists,
             "Expected Groomer Account to expose the Evidence entry."
         )
+        XCTAssertFalse(
+            app.tabBars.buttons["More"].exists,
+            "Groomer navigation must not expose a system More tab."
+        )
         assertTab("groomer.tab.home", destination: "groomer.home")
+    }
+
+    func assertGroomerFocusedAccountWorkspaces() {
+        assertTab("groomer.tab.account", destination: "groomer.account.home")
+
+        let workspaces = [
+            GroomerFocusedWorkspace(
+                entryIdentifier: "groomer.account.edit-profile",
+                destinationIdentifier: "groomer.profile.edit"
+            ),
+            GroomerFocusedWorkspace(
+                entryIdentifier: "groomer.account.services",
+                destinationIdentifier: "groomer.services.edit"
+            ),
+            GroomerFocusedWorkspace(
+                entryIdentifier: "groomer.account.portfolio",
+                destinationIdentifier: "groomer.portfolio.edit"
+            ),
+            GroomerFocusedWorkspace(
+                entryIdentifier: "groomer.account.availability",
+                destinationIdentifier: "groomer.availability.edit"
+            ),
+            GroomerFocusedWorkspace(
+                entryIdentifier: "groomer.account.fit-signals",
+                destinationIdentifier: "groomer.fit-signals.edit"
+            ),
+            GroomerFocusedWorkspace(
+                entryIdentifier: "groomer.account.evidence",
+                destinationIdentifier: "groomer.evidence.dashboard"
+            ),
+        ]
+
+        for workspace in workspaces {
+            tap(button(workspace.entryIdentifier))
+            XCTAssertTrue(
+                element(workspace.destinationIdentifier).waitForExistence(timeout: 12),
+                "Expected \(workspace.entryIdentifier) to open \(workspace.destinationIdentifier)."
+            )
+            assertFocusedGroomerWorkspaceShell()
+            tap(backButton)
+            XCTAssertTrue(element("groomer.account.home").waitForExistence(timeout: 8))
+        }
     }
 
     func openAndDismissCustomerRequestSheet() {
@@ -373,12 +419,32 @@ final class TestOpsUIFlowDriver {
         )
     }
 
+    private func assertFocusedGroomerWorkspaceShell() {
+        XCTAssertTrue(backButton.waitForExistence(timeout: 5))
+        XCTAssertEqual(
+            app.buttons.matching(identifier: "BackButton").count,
+            1,
+            "Focused Groomer workspaces must expose exactly one native Back action."
+        )
+
+        for label in ["Home", "Requests", "Schedule", "Messages", "Account", "More"] {
+            XCTAssertFalse(
+                app.tabBars.buttons[label].exists,
+                "Focused Groomer workspaces must hide the \(label) tab."
+            )
+        }
+    }
+
     private func element(_ identifier: String) -> XCUIElement {
         app.descendants(matching: .any)[identifier].firstMatch
     }
 
     private func button(_ identifier: String) -> XCUIElement {
         app.buttons[identifier].firstMatch
+    }
+
+    private var backButton: XCUIElement {
+        app.buttons["BackButton"].firstMatch
     }
 
     private func tap(_ target: XCUIElement) {
@@ -455,6 +521,11 @@ final class TestOpsUIFlowDriver {
             )
         ).sorted()
     }
+}
+
+private struct GroomerFocusedWorkspace {
+    let entryIdentifier: String
+    let destinationIdentifier: String
 }
 
 private extension XCUIElement {

@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-10
 - Updated by: Codex
-- Latest completed task: T-257 Groomer Fit Signals, Evidence, and Portfolio presentation.
-- Current task: none; T-157 APNs remains externally blocked.
-- Next task ID: use T-258 for Q-104 unless the user resumes T-157 after Apple Developer Program upgrade.
+- Latest completed task: T-258 Groomer non-Accessibility integration verification.
+- Current task: none; T-157 APNs remains externally blocked and Q-104 Dynamic Type/Accessibility remains user-deferred.
+- Next task ID: use T-259 for Q-104 when the user restores its deferred Dynamic Type/Accessibility scope, unless the user resumes T-157 after Apple Developer Program upgrade.
 
 ## Fast Path
 
@@ -50,6 +50,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - T-255 completes Q-101: Groomer Account now groups direct business, matching/schedule, and support destinations with truthful live summaries. Edit Profile has one native Back action, a hidden tab bar, and a fixed Save bar while retaining existing Store-owned profile/avatar feedback and mutation behavior.
 - T-256 completes Q-102: Services and Availability use compact grouped configuration surfaces with native Back navigation, hidden tabs, and stable saves. Existing service size overrides, weekly hours, daily capacity, advance notice, auto-ready, and time-off Store/repository behavior are preserved; no backend or remote state changed.
 - T-257 completes Q-103: Fit Signals separates core selection/size experience from compact skill groups, Evidence has a truthful grouped overview or empty state, and Portfolio uses an image-first gallery plus focused fit-note detail. Existing Store mutations, global feedback, authenticated cache, selectors, and image behavior are preserved; no backend or remote state changed.
+- T-258 completes the non-Accessibility portion of the Groomer integration gate: seeded TestOps verifies five direct tabs, six focused Account workspaces, one Back action, hidden editor tabs, and no `More`; default-text compact and large Simulator inspection plus full iOS tests/build/preflight pass. Q-104 remains open only for user-deferred Dynamic Type and Accessibility validation/changes.
 - T-244 normalizes the rotated Worklog EOF to one newline.
 - T-245 context-script validation passes 32 Node tests; word counts are informational and rolling windows use buffered high/retain entry counts.
 - T-246 passes the Beckon identity audit, 31 TestOps tests, 48 migration tests, 10 Edge tests, privacy/preflight/Supabase checks, full iOS tests/build, and Simulator auth branding inspection.
@@ -68,7 +69,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - Private Storage images use authenticated `.download(path:)` through `PrivateImageLoader`; cache hashes paths, retries transient downloads once, and clears on local account cleanup.
 - Customers can create a new request from cancelled requests/bookings via explicit republish. Republish tolerates missing request photos and expired preferred windows. Unpublished wizard drafts are sheet-ephemeral.
 - Beckon UI adaptation is complete for implemented MVP screens. Future UI work is screenshot-driven and must map modules to existing SwiftUI/Store/repository/model paths or stop for approval.
-- R-039 Q-97 through Q-103 are implemented: Groomer uses five direct tabs, Home owns Notifications and operational summaries, Requests owns segmented Matches/Offers with grouped lists and focused routes, Schedule has stable day/booking presentation, Messages/Notifications use compact grouped presentation, Account/Edit Profile use focused truthful configuration surfaces, Services/Availability/Time Off use focused grouped configuration editors, and Fit Signals/Evidence/Portfolio use focused density and image hierarchy. Q-104 remains the cross-screen integration gate.
+- R-039 Q-97 through Q-103 are implemented: Groomer uses five direct tabs, Home owns Notifications and operational summaries, Requests owns segmented Matches/Offers with grouped lists and focused routes, Schedule has stable day/booking presentation, Messages/Notifications use compact grouped presentation, Account/Edit Profile use focused truthful configuration surfaces, Services/Availability/Time Off use focused grouped configuration editors, and Fit Signals/Evidence/Portfolio use focused density and image hierarchy. T-258 completes default-text viewport and selector coverage; Q-104 remains the user-deferred Dynamic Type and Accessibility gate.
 - Local binaries and hosted Auth use `Beckon: Pet Grooming`, `com.hellobeckon.beckon`, and `com.hellobeckon.beckon://auth/callback`. Supabase project/runtime naming and all 100 remote seed users now use Beckon.
 
 ## Active Workflow State
@@ -77,7 +78,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - Startup reads stay minimal: `AGENTS.md`, then targeted current-state/task-ledger sections only when needed.
 - Periodic documentation-governance reviews use `docs/06_tasks/META_REVIEW_TEMPLATE.md` every 10 completed tasks or weekly.
 - Last meta-review: T-251 on 2026-07-10.
-- V1.0 ideal-operation Q-16...Q-43, Auth package Q-92, and R-038/Q-94...Q-96 are complete. R-039 design T-249 plus Q-97/T-250, Q-98/T-252, Q-99/T-253, Q-100/T-254, Q-101/T-255, Q-102/T-256, and Q-103/T-257 are complete; Q-104 is queued.
+- V1.0 ideal-operation Q-16...Q-43, Auth package Q-92, and R-038/Q-94...Q-96 are complete. R-039 design T-249 plus Q-97/T-250, Q-98/T-252, Q-99/T-253, Q-100/T-254, Q-101/T-255, Q-102/T-256, Q-103/T-257, and non-Accessibility integration verification T-258 are complete; Q-104 Dynamic Type/Accessibility is user-deferred.
 - Changes to `AGENTS.md`, `CLAUDE.md`, or `docs/05_workflow/**` must be standalone numbered tasks with a decision-log entry and context hygiene.
 - T-180 records standing user approval for task-completion Git commit and push. This approval is limited to current-task changes after validation passes; T-186 requires stopping without auto pull/rebase/merge/reset/force-push if the push fails or is rejected.
 - T-245 makes word counts informational only; Ledger uses 18/12, Worklog and active decisions use 14/8, and decision archive pointers use 12/6 trigger/retain windows. Manual compaction follows 65%/80% boundaries against the 353,000-token context.
@@ -112,4 +113,4 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Next Recommended Task
 
-- Q-104 Groomer UI integration is the next dependency-satisfied package and uses T-258 only when explicitly started.
+- Q-104 Groomer UI Dynamic Type/Accessibility integration is the next dependency-satisfied package and uses the next available task ID only when the user restores that scope.

@@ -34,4 +34,14 @@ final class TestOpsLaunchSmokeTests: XCTestCase {
         driver.signIn(account)
         driver.assertGroomerNavigation()
     }
+
+    @MainActor
+    func testSeededGroomerCanOpenFocusedAccountWorkspaces() throws {
+        let account = try TestOpsSeedAccount.fromEnvironment(role: .groomer)
+        let driver = TestOpsUIFlowDriver()
+
+        driver.launchSignedOut()
+        driver.signIn(account)
+        driver.assertGroomerFocusedAccountWorkspaces()
+    }
 }

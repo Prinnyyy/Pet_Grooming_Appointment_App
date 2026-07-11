@@ -15,20 +15,21 @@ Source: T-202 adopted root review input `../../V1.0_RELEASE_TASK_PLAN.md`; that 
 - Q-90, Q-91, T-157, and the `customer_push_tokens` advisor finding are excluded from this remediation sequence because they depend on APNs or paid Apple Developer capabilities.
 - Q-01...Q-43 are complete and mapped in `ROADMAP.md`.
 - T-243 approved the Beckon identity contract in `BECKON_BRAND_MIGRATION.md`; Q-94/T-246, Q-95/T-247, and Q-96/T-248 are complete.
-- T-249 approved `../08_design/GROOMER_UI_REDESIGN.md`; T-250 completed Q-97, T-252 completed Q-98, T-253 completed Q-99, T-254 completed Q-100, T-255 completed Q-101, T-256 completed Q-102, and T-257 completed Q-103. Q-104 completes R-039 without backend or remote writes.
+- T-249 approved `../08_design/GROOMER_UI_REDESIGN.md`; T-250 completed Q-97, T-252 completed Q-98, T-253 completed Q-99, T-254 completed Q-100, T-255 completed Q-101, T-256 completed Q-102, T-257 completed Q-103, and T-258 completed default-text/selector integration verification. Q-104 retains only user-deferred Dynamic Type and Accessibility work; it has no backend or remote writes.
 
 ## Queue
 
 | Order | Roadmap | Package | Scope / Exit |
 |---|---|---|---|
-| Q-104 | R-039 | Groomer UI integration gate | Verify compact/large viewports, Dynamic Type, state matrix, accessibility, selector TestOps, full iOS tests/build, and no More/duplicate navigation. |
+| Q-104 | R-039 | Groomer Dynamic Type and Accessibility integration gate | Complete the remaining Dynamic Type and Accessibility state/interaction audit after the user restores this deferred scope; rerun affected selector and full iOS regression gates. |
 
-Q-104 is the first dependency-satisfied product package and receives the next available `T-###` only when started.
+Q-104 is the first dependency-satisfied product package and receives the next available task ID only when the user restores its deferred scope.
 
 ## Completed Groomer Package
 
 | Order | Roadmap | Package | Result |
 |---|---|---|---|
+| T-258 | R-039 | Non-Accessibility integration verification | Complete: default-text compact/large Simulator checks plus seeded Groomer TestOps prove five direct tabs, six focused Account workspaces, one Back action, hidden editor tabs, and no `More`; full iOS tests/build and preflight pass. |
 | Q-103 | R-039 | Fit Signals, Evidence, and Portfolio | Complete T-257: compact Fit Signals selection/size balance, truthful Evidence overview/empty state, and image-first Portfolio gallery/detail with fit-note save/delete controls; existing Store mutations, global feedback, authenticated cache, and selectors preserved. |
 | Q-102 | R-039 | Services and Availability | Complete T-256: compact grouped services and availability surfaces; focused service/time-off forms with stable saves; existing weekly hours, booking preferences, size overrides, and mutations preserved through the Store path. |
 | Q-101 | R-039 | Account and Edit Profile | Complete T-255: direct Account tab with Business, Matching & Schedule, and Support groups; truthful live summaries; focused Edit Profile with one Back action, hidden tab bar, stable Save Profile bar, preserved feedback, and stable selectors. |
