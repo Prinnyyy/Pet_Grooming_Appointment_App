@@ -2,7 +2,7 @@
 
 Track only current, blocked, and recent tasks here so Codex does not continue automatically. Older completed rows through T-190 are archived under `docs/09_frozen/task_ledgers/`; active blocked T-157 remains below. Notes should keep conclusions and pointers only; validation detail belongs in `docs/00_memory/WORKLOG.md` or frozen worklogs. Detailed task records T-001 through T-088 and workflow task records remain archived under `docs/09_frozen/task_records_2026-06-26/`.
 
-Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup`; use `T-287` for the next user-selected task.
+Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup`; use `T-288` for the next user-selected task.
 
 Active blocked task: T-157 is waiting on paid Apple Developer Program access before APNs secrets (`APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_TOPIC`, `APNS_PRIVATE_KEY`) and Edge Function deploy.
 
@@ -10,6 +10,7 @@ Active blocked task: T-157 is waiting on paid Apple Developer Program access bef
 
 | ID | Task | Status | Mode | Milestone | Files/Docs | Checks | Notes |
 |---|---|---|---|---|---|---|---|
+| T-287 | Customer Request address overlay interaction and detailed-address search correction | completed | Standard | M2 | Shared address query/unit parsing and English resolution; Request Wizard tap/scroll/sheet interaction; spacing/indicator correction; focused tests; memory closeout | Request Wizard focused tests; iOS build; diff/preflight/context | Removes the drag-blocking overlay, keeps suggestions open during content scrolling, dismisses only on outside single taps, searches base streets while preserving unit suffixes, and prevents localized Han-script text from filling the English address form. No backend or remote state changed. |
 | T-286 | Customer Request address input rules and overlay autocomplete | completed | Standard | M2 | Shared pre-display address character rules; Request Wizard anchored MapKit suggestion overlay; focused tests; memory closeout | Request Wizard focused tests; iOS build; diff/preflight/context | Street/city/ZIP reject unsupported characters before display while preserving Apple semantic content types. Suggestions render above the form without changing layout and outside taps dismiss the panel. No backend or remote state changed. |
 | T-285 | Automatic meta-review chaining and compaction boundary | completed | Quick | G0 | Agent/workflow/context/meta-review rules; D-029; memory closeout | Rule diff; context hygiene; diff/preflight | Due meta-reviews now run automatically after the triggering task as a separate commit. Review closeout invokes host compaction when callable; otherwise it emits `/compact` and stops without falsely claiming completion. Address-input work moves intact to T-286. |
 | T-284 | Periodic meta-review | completed | Quick | G0 | Active branch/task/memory/backend/index audit; current-fact corrections; memory closeout | Branch/status/history; 63-migration mirror; root/ignore/conflict checks; context hygiene; diff | Branch/task/migration facts align. Corrected the stale last-migration marker and Pet Name limit; ignored external root reports remain outside active truth. T-285 preserves the requested Customer Request address-input work. |

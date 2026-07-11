@@ -206,6 +206,7 @@ struct CustomerRequestWizardView: View {
     @State private var invalidFields: Set<CustomerRequestWizardValidationField> = []
     @State private var isApplyingProfileAddress = false
     @State private var isAddressStreetActive = false
+    @State private var addressStreetFrame = CGRect.zero
     @StateObject private var addressSearch = CustomerRequestAddressSearch()
 
     init(
@@ -267,26 +268,36 @@ struct CustomerRequestWizardView: View {
                     }
                     .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
                     .padding(.top, DesignTokens.Spacing.lg)
-                    .padding(.bottom, 128)
+                    .padding(.bottom, DesignTokens.Spacing.xl)
                 }
                 .scrollContentBackground(.hidden)
                 .scrollDismissesKeyboard(.interactively)
+                .scrollIndicators(.hidden)
             }
-            .overlayPreferenceValue(CustomerRequestStreetFieldAnchorKey.self) { anchor in
-                GeometryReader { proxy in
-                    if let anchor,
-                       CustomerRequestAddressOverlay.shouldPresent(
-                           isStreetActive: isAddressStreetActive,
-                           suggestionCount: addressSearch.suggestions.count
-                       ) {
-                        let frame = proxy[anchor]
-                        CustomerRequestAddressSuggestionOverlay(
-                            suggestions: Array(addressSearch.suggestions.prefix(4)),
-                            fieldFrame: frame,
-                            dismiss: dismissAddressSuggestions,
-                            select: applyAddressSuggestion
-                        )
-                    }
+            .coordinateSpace(name: CustomerRequestAddressOverlay.coordinateSpaceName)
+            .onPreferenceChange(CustomerRequestStreetFieldFrameKey.self) { frame in
+                addressStreetFrame = frame
+            }
+            .simultaneousGesture(
+                SpatialTapGesture(
+                    coordinateSpace: .named(CustomerRequestAddressOverlay.coordinateSpaceName)
+                )
+                .onEnded { value in
+                    guard isAddressSuggestionsPresented,
+                          CustomerRequestAddressOverlay.shouldDismissTap(
+                              at: value.location,
+                              streetFrame: addressStreetFrame
+                          ) else { return }
+                    dismissAddressSuggestions()
+                }
+            )
+            .overlay {
+                if isAddressSuggestionsPresented {
+                    CustomerRequestAddressSuggestionOverlay(
+                        suggestions: Array(addressSearch.suggestions.prefix(4)),
+                        fieldFrame: addressStreetFrame,
+                        select: applyAddressSuggestion
+                    )
                 }
             }
             .safeAreaInset(edge: .bottom) {
@@ -301,8 +312,9 @@ struct CustomerRequestWizardView: View {
             .tint(DesignTokens.Colors.customerPrimaryDark)
             .toolbar(.hidden, for: .navigationBar)
         }
-        .interactiveDismissDisabled(store.isSubmitting)
+        .interactiveDismissDisabled(store.isSubmitting || isAddressSuggestionsPresented)
         .presentationDetents([.large])
+        .presentationContentInteraction(.scrolls)
         .presentationDragIndicator(.hidden)
         .onAppear {
             applyInitialDefaults()
@@ -476,6 +488,13 @@ struct CustomerRequestWizardView: View {
 
     private func dismissAddressSuggestions() {
         isAddressStreetActive = false
+    }
+
+    private var isAddressSuggestionsPresented: Bool {
+        CustomerRequestAddressOverlay.shouldPresent(
+            isStreetActive: isAddressStreetActive,
+            suggestionCount: addressSearch.suggestions.count
+        )
     }
 
     private func applyAddressSuggestion(_ suggestion: CustomerRequestAddressSuggestion) {
@@ -1615,11 +1634,16 @@ private struct CustomerRequestAddressFields: View {
                     )
                 }
             )
-                .anchorPreference(
-                    key: CustomerRequestStreetFieldAnchorKey.self,
-                    value: .bounds,
-                    transform: { $0 }
-                )
+                .background {
+                    GeometryReader { proxy in
+                        Color.clear.preference(
+                            key: CustomerRequestStreetFieldFrameKey.self,
+                            value: proxy.frame(
+                                in: .named(CustomerRequestAddressOverlay.coordinateSpaceName)
+                            )
+                        )
+                    }
+                }
                 .accessibilityIdentifier("customer.requests.address.street")
 
             HStack(spacing: DesignTokens.Spacing.md) {
@@ -1739,32 +1763,32 @@ private struct CustomerRequestAddressFields: View {
 }
 
 nonisolated enum CustomerRequestAddressOverlay {
+    static let coordinateSpaceName = "customer-request-wizard"
+
     static func shouldPresent(isStreetActive: Bool, suggestionCount: Int) -> Bool {
         isStreetActive && suggestionCount > 0
     }
+
+    static func shouldDismissTap(at location: CGPoint, streetFrame: CGRect) -> Bool {
+        !streetFrame.contains(location)
+    }
 }
 
-private struct CustomerRequestStreetFieldAnchorKey: PreferenceKey {
-    static var defaultValue: Anchor<CGRect>?
+private struct CustomerRequestStreetFieldFrameKey: PreferenceKey {
+    static var defaultValue = CGRect.zero
 
-    static func reduce(value: inout Anchor<CGRect>?, nextValue: () -> Anchor<CGRect>?) {
-        value = nextValue() ?? value
+    static func reduce(value: inout CGRect, nextValue: () -> CGRect) {
+        value = nextValue()
     }
 }
 
 private struct CustomerRequestAddressSuggestionOverlay: View {
     let suggestions: [CustomerRequestAddressSuggestion]
     let fieldFrame: CGRect
-    let dismiss: () -> Void
     let select: (CustomerRequestAddressSuggestion) -> Void
 
     var body: some View {
-        ZStack(alignment: .topLeading) {
-            Color.clear
-                .contentShape(Rectangle())
-                .ignoresSafeArea()
-                .onTapGesture(perform: dismiss)
-
+        GeometryReader { _ in
             VStack(spacing: 0) {
                 ForEach(suggestions) { suggestion in
                     Button {

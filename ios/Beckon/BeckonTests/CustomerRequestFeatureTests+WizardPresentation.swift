@@ -1,3 +1,4 @@
+import CoreGraphics
 import Foundation
 import Testing
 @testable import Beckon
@@ -457,6 +458,50 @@ extension CustomerRequestsStoreTests {
         #expect(CustomerRequestAddressOverlay.shouldPresent(isStreetActive: true, suggestionCount: 2))
         #expect(!CustomerRequestAddressOverlay.shouldPresent(isStreetActive: false, suggestionCount: 2))
         #expect(!CustomerRequestAddressOverlay.shouldPresent(isStreetActive: true, suggestionCount: 0))
+    }
+
+    @Test
+    func requestAddressQuerySearchesTheDeliverableAddressAndPreservesUnit() {
+        let unit = BeckonAddressQuery(street: "760 S Harbor Blvd UNIT 2410")
+        let apartment = BeckonAddressQuery(street: "123 Pine Street, Apt. 5B")
+        let plain = BeckonAddressQuery(street: "456 Cedar Avenue")
+
+        #expect(unit.searchStreet == "760 S Harbor Blvd")
+        #expect(unit.secondaryUnit == "UNIT 2410")
+        #expect(unit.appendingSecondary(to: "760 South Harbor Boulevard") == "760 South Harbor Boulevard UNIT 2410")
+        #expect(apartment.searchStreet == "123 Pine Street")
+        #expect(apartment.secondaryUnit == "Apt. 5B")
+        #expect(plain.searchStreet == "456 Cedar Avenue")
+        #expect(plain.secondaryUnit == nil)
+    }
+
+    @Test @MainActor
+    func localizedMapCompletionFallsBackToTheTypedEnglishAddress() {
+        let result = BeckonAddressSuggestionBuilder.build(
+            from: [
+                BeckonAddressCompletion(
+                    title: "南港大道760号",
+                    subtitle: "加利福尼亚州富勒顿",
+                    completion: "localized"
+                ),
+            ],
+            englishFallback: BeckonAddressSuggestionFallback(
+                title: "760 S Harbor Blvd",
+                subtitle: "Fullerton, CA"
+            )
+        )
+
+        #expect(result.suggestions.first?.title == "760 S Harbor Blvd")
+        #expect(result.suggestions.first?.subtitle == "Fullerton, CA")
+        #expect(result.completionsByID[result.suggestions[0].id] == "localized")
+    }
+
+    @Test
+    func requestAddressOverlayDismissesOnlySingleTapsOutsideStreetField() {
+        let streetFrame = CGRect(x: 20, y: 300, width: 350, height: 52)
+
+        #expect(!CustomerRequestAddressOverlay.shouldDismissTap(at: CGPoint(x: 40, y: 320), streetFrame: streetFrame))
+        #expect(CustomerRequestAddressOverlay.shouldDismissTap(at: CGPoint(x: 40, y: 420), streetFrame: streetFrame))
     }
 
     @Test @MainActor

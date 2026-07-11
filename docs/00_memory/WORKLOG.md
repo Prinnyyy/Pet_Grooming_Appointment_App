@@ -2,12 +2,21 @@
 
 ```text
 Date: 2026-07-11
+Task: T-287 - Customer Request address overlay interaction and detailed-address search correction.
+Files changed: Shared MapKit address query/resolution; Request Wizard overlay gesture/sheet/scroll behavior; focused tests; memory closeout.
+Checks: Customer Request Wizard focused tests; `./scripts/ios-build.sh`; `git diff --check`; preflight/context hygiene.
+Result: The address dropdown no longer installs a full-screen hit layer. A simultaneous single-tap recognizer dismisses it outside the street field, while vertical drags continue scrolling Wizard content and temporarily cannot dismiss the sheet. UNIT/APT/APARTMENT/SUITE/STE/# suffixes are removed only from the MapKit query and restored after selection. Han-script localized completion copy falls back to the typed English address, and selected locations use en_US MapKit reverse geocoding on iOS 26 with an English legacy fallback. Wizard bottom padding now follows the standard XL token and its scroll indicator is hidden.
+Risks: A localized completion that contains Han script intentionally collapses to the typed English base/fallback context; this prioritizes safe English autofill over displaying multiple indistinguishable localized rows. MapKit remains network-dependent. No Store schema, repository, backend, persistence, or remote state changed.
+Next: Use T-288 for the next user-selected task; Q-104 remains deferred.
+```
+
+```text
+Date: 2026-07-11
 Task: T-286 - Customer Request address input rules and overlay autocomplete.
 Files changed: Shared limited form input rules; Customer Request Wizard address/search overlay; focused tests; memory closeout.
 Checks: Customer Request Wizard focused tests; `./scripts/ios-build.sh`; `git diff --check`; preflight/context hygiene.
 Result: Request street, city, and ZIP edits now reject unsupported characters through the existing UIKit pre-display interception path while retaining 160/100/5 length limits and Apple's address-specific text content types. Existing MapKit address-only suggestions are rendered in a page-level overlay anchored below the street field, so results no longer push later fields downward; tapping outside dismisses the panel.
 Risks: The outside-dismiss layer intentionally consumes that dismissal tap, matching dropdown behavior; the next control can be activated on the following tap. No Store, repository, backend, persistence, or remote state changed. XcodeBuildMCP Simulator interaction was unavailable, so validation used focused tests and the standard build without screenshot self-review.
-Next: Use T-287 for the next user-selected task; Q-104 remains deferred.
 ```
 
 ```text
