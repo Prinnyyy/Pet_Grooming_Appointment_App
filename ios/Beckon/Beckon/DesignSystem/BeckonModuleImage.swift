@@ -139,8 +139,8 @@ struct BeckonAnnotatedModule<Content: View>: View {
     }
 
     var body: some View {
-        VStack(alignment: .trailing, spacing: DesignTokens.Spacing.sm) {
-            VStack(alignment: .trailing, spacing: DesignTokens.Spacing.xs) {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                 Text(title)
                     .font(DesignTokens.Typography.headline)
                     .foregroundStyle(DesignTokens.Colors.textPrimary)
@@ -150,8 +150,8 @@ struct BeckonAnnotatedModule<Content: View>: View {
                     .foregroundStyle(DesignTokens.Colors.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            .multilineTextAlignment(.trailing)
-            .frame(maxWidth: .infinity, alignment: .trailing)
+            .multilineTextAlignment(.leading)
+            .frame(maxWidth: .infinity, alignment: .leading)
 
             content
                 .frame(maxWidth: .infinity, alignment: .leading)

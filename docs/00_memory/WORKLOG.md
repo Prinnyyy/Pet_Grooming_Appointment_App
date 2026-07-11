@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-07-11
+Task: T-267 - Customer request annotation and avatar alignment correction.
+Files changed: Shared annotated-module alignment; customer request-card avatar dimensions/alignment; memory closeout.
+Checks: `./scripts/ios-build.sh`; `git diff --check`; preflight/context hygiene.
+Result: Request Details title/subtitle annotations now sit above each module at the upper-left. The request-card pet avatar is 68pt to match the two-line headline only, aligns to the headline top, and uses equal large spacing from the card top/left and adjacent title.
+Risks: Visual acceptance remains with the user; no screenshot self-review was performed. No request behavior, data, backend, or remote state changed.
+Next: Use T-268 for the next user-selected task; Q-104 remains deferred.
+```
+
+```text
+Date: 2026-07-11
 Task: T-266 - Customer request-card avatar proportion and alignment.
 Files changed: Customer request-card header avatar dimensions/spacing and memory closeout.
 Checks: `./scripts/ios-build.sh`; `git diff --check`; preflight/context hygiene.

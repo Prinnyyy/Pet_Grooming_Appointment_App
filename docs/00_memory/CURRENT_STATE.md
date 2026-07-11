@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-11
 - Updated by: Codex
-- Latest completed task: T-266 customer request-card avatar proportion and alignment.
+- Latest completed task: T-267 customer request annotation and avatar alignment correction.
 - Current task: none; T-157 APNs remains externally blocked and Q-104 Dynamic Type/Accessibility remains user-deferred.
-- Next task ID: use T-267. Q-104 remains deferred until the user restores its Dynamic Type/Accessibility scope.
+- Next task ID: use T-268. Q-104 remains deferred until the user restores its Dynamic Type/Accessibility scope.
 
 ## Fast Path
 
@@ -55,6 +55,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - T-264 routes the latest cached customer pet photo into request action cards on both Customer Home and Requests, and unifies pet image rendering across Home pet cards, request cards, and the request wizard through `BeckonPetAvatar`.
 - T-265 centers request-card pet avatars against the title/service text group, fixes the Requests root subtitle, and gives Request Details one navigation title plus reusable right-aligned module annotations outside each content card; the redundant page header and Cancellation module are removed.
 - T-266 enlarges the customer request-card pet avatar to 84pt and uses the card's large spacing token between avatar and text, preserving centerline alignment with the full title/service text group.
+- T-267 corrects Request Details annotations to the module's upper-left and sizes the request-card pet avatar to the two-line headline only, with equal top/left/text spacing and top alignment.
 - T-259 makes one `T-###` per fresh session the default, reserves full iOS tests and batched visual evidence for integration/high-risk gates, and requires clean task or checkpoint commits at session boundaries.
 - T-260 adopts UI-R1 through UI-R8 and A11Y-R1 through A11Y-R10 as the active design contract, including approved light-palette contrast pairs and a per-slice accessibility Definition of Done. Token and primitive implementation remains a separate follow-up code task; Q-104 is unchanged.
 - T-244 normalizes the rotated Worklog EOF to one newline.
