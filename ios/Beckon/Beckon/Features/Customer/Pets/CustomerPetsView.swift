@@ -733,7 +733,6 @@ private struct CustomerHomeInlineDescription: View {
 
 private struct CustomerPetFormView: View {
     @Bindable var store: CustomerPetsStore
-    @State private var isNameLimitFlashing = false
 
     var body: some View {
         NavigationStack {
@@ -755,9 +754,9 @@ private struct CustomerPetFormView: View {
                                         CustomerPetFormLabeledTextField(
                                             title: "Name",
                                             placeholder: "Pet name",
-                                            text: limitedNameBinding,
+                                            text: $store.formName,
                                             allowsMultiline: false,
-                                            isInvalid: isNameLimitFlashing
+                                            maximumLength: CustomerPetNameInput.maximumLength
                                         )
 
                                         CustomerPetFormChoiceRow(
@@ -920,33 +919,6 @@ private struct CustomerPetFormView: View {
         return "\(Int(store.formWeightLbs.rounded())) lbs"
     }
 
-    private var limitedNameBinding: Binding<String> {
-        Binding(
-            get: { store.formName },
-            set: { newValue in
-                guard newValue.count <= CustomerPetNameInput.maximumLength else {
-                    flashNameLimit()
-                    return
-                }
-                store.formName = CustomerPetNameInput.acceptedValue(
-                    current: store.formName,
-                    proposed: newValue
-                )
-            }
-        )
-    }
-
-    private func flashNameLimit() {
-        withAnimation(.easeOut(duration: 0.12)) {
-            isNameLimitFlashing = true
-        }
-        Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(320))
-            withAnimation(.easeIn(duration: 0.18)) {
-                isNameLimitFlashing = false
-            }
-        }
-    }
 }
 
 private struct CustomerPetFormPhotoModule: View {
@@ -1098,6 +1070,7 @@ private struct CustomerPetFormLabeledTextField: View {
     @Binding var text: String
     var allowsMultiline = true
     var isInvalid = false
+    var maximumLength: Int?
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
@@ -1105,13 +1078,22 @@ private struct CustomerPetFormLabeledTextField: View {
                 .font(CustomerPetFormTypography.fieldLabel)
                 .foregroundStyle(DesignTokens.Colors.textSecondary)
 
-            TextField(
-                placeholder,
-                text: $text,
-                axis: allowsMultiline ? .vertical : .horizontal
-            )
+            if let maximumLength, !allowsMultiline {
+                BeckonLimitedTextField(
+                    placeholder: placeholder,
+                    text: $text,
+                    maximumLength: maximumLength,
+                    isInvalid: isInvalid
+                )
+            } else {
+                TextField(
+                    placeholder,
+                    text: $text,
+                    axis: allowsMultiline ? .vertical : .horizontal
+                )
                 .lineLimit(allowsMultiline ? 2...5 : 1...1)
                 .beckonFormField(isInvalid: isInvalid)
+            }
         }
     }
 }

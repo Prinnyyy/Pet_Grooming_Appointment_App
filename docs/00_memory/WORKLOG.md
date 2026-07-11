@@ -2,12 +2,21 @@
 
 ```text
 Date: 2026-07-11
+Task: T-282 - Reusable pre-edit text-length interception.
+Files changed: Shared form primitives; Edit Pet Name field; Request address fields; focused limit tests; memory closeout.
+Checks: Customer Pets and Requests focused tests; `./scripts/ios-build.sh`; `git diff --check`; preflight/context hygiene.
+Result: BeckonLimitedTextField uses UITextFieldDelegate to calculate and apply the allowed edit before UIKit displays it. Rapid typing cannot pass the limit, and oversized paste accepts only remaining capacity. The component owns reusable red border/cursor feedback and now enforces Pet Name 20, Request street 160, city 100, and ZIP 5 while preserving address suggestions and validation clearing.
+Risks: The reusable control is intentionally single-line; existing multiline care/service-note fields remain SwiftUI TextFields. A legacy pure Pet Name helper remains for incremental test-binary compatibility but is not used by production input. No backend or remote state changed.
+Next: Use T-283 for the next user-selected task; Q-104 remains deferred.
+```
+
+```text
+Date: 2026-07-11
 Task: T-281 - Customer Account redesign and Request Wizard presentation ownership.
 Files changed: Customer Account hierarchy/profile/menu/support/debug grouping; Customer Home/Requests active-tab sheet ownership; CustomerTab wiring; Request presentation/copy tests; memory closeout.
 Checks: Customer Requests focused tests; `./scripts/ios-build.sh`; `git diff --check`; preflight/context hygiene.
 Result: Customer Account now follows Groomer Account's unframed identity header, labeled grouped surfaces, compact summary rows, and support/access grouping while retaining the original 22pt teal icon treatment. The shared Request Store no longer drives two competing sheets: only the selected Home or Requests tab can present or dismiss the wizard, eliminating the first-open collapse race.
 Risks: Visual acceptance remains with the user; no screenshot self-review was performed. Account destinations/actions and Request wizard data/persistence are unchanged. No backend or remote state changed.
-Next: Use T-282 for the next user-selected task; Q-104 remains deferred.
 ```
 
 ```text

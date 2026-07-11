@@ -49,10 +49,25 @@ struct CustomerPetsStoreTests {
     @Test
     func petNameInputRejectsCharactersBeyondItsHiddenLimit() {
         let accepted = String(repeating: "a", count: 20)
-        let rejected = accepted + "b"
+        let rejectedChange = BeckonTextInputLimit.applyingChange(
+            currentText: accepted,
+            range: NSRange(location: accepted.utf16.count, length: 0),
+            replacement: "b",
+            maximumLength: CustomerPetNameInput.maximumLength
+        )
+        let pastedChange = BeckonTextInputLimit.applyingChange(
+            currentText: "Milo",
+            range: NSRange(location: 4, length: 0),
+            replacement: String(repeating: "x", count: 30),
+            maximumLength: CustomerPetNameInput.maximumLength
+        )
 
-        #expect(CustomerPetNameInput.acceptedValue(current: "Milo", proposed: accepted) == accepted)
-        #expect(CustomerPetNameInput.acceptedValue(current: accepted, proposed: rejected) == accepted)
+        #expect(rejectedChange.text == accepted)
+        #expect(rejectedChange.acceptedReplacement.isEmpty)
+        #expect(rejectedChange.didReachLimit)
+        #expect(pastedChange.text.count == CustomerPetNameInput.maximumLength)
+        #expect(pastedChange.acceptedReplacement.count == 16)
+        #expect(pastedChange.didReachLimit)
     }
 
     @Test @MainActor

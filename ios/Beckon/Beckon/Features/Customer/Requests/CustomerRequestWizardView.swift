@@ -1552,14 +1552,17 @@ private struct CustomerRequestAddressFields: View {
             .disabled(isApplyingProfileAddress)
             .accessibilityIdentifier("customer.requests.use-profile-address")
 
-            TextField("Street Address", text: $streetAddress)
-                .textContentType(.streetAddressLine1)
-                .beckonFormField(isInvalid: invalidFields.contains(.streetAddress))
-                .accessibilityIdentifier("customer.requests.address.street")
-                .onTapGesture {
+            BeckonLimitedTextField(
+                placeholder: "Street Address",
+                text: $streetAddress,
+                maximumLength: 160,
+                isInvalid: invalidFields.contains(.streetAddress),
+                textContentType: .streetAddressLine1,
+                autocapitalizationType: .words,
+                onEditingBegan: {
                     clearInvalidField(.streetAddress)
-                }
-                .onChange(of: streetAddress) { _, newValue in
+                },
+                onTextChange: { newValue in
                     clearInvalidField(.streetAddress)
                     addressSearch.update(
                         street: newValue,
@@ -1567,6 +1570,8 @@ private struct CustomerRequestAddressFields: View {
                         stateCode: stateCode
                     )
                 }
+            )
+                .accessibilityIdentifier("customer.requests.address.street")
 
             if !addressSearch.suggestions.isEmpty {
                 VStack(spacing: DesignTokens.Spacing.xs) {
@@ -1609,15 +1614,20 @@ private struct CustomerRequestAddressFields: View {
             }
 
             HStack(spacing: DesignTokens.Spacing.md) {
-                TextField("City", text: $city)
-                    .textContentType(.addressCity)
-                    .beckonFormField(isInvalid: invalidFields.contains(.city))
-                    .onTapGesture {
+                BeckonLimitedTextField(
+                    placeholder: "City",
+                    text: $city,
+                    maximumLength: 100,
+                    isInvalid: invalidFields.contains(.city),
+                    textContentType: .addressCity,
+                    autocapitalizationType: .words,
+                    onEditingBegan: {
+                        clearInvalidField(.city)
+                    },
+                    onTextChange: { _ in
                         clearInvalidField(.city)
                     }
-                    .onChange(of: city) { _, _ in
-                        clearInvalidField(.city)
-                    }
+                )
 
                 Menu {
                     ForEach(USStateCode.allCases) { state in
@@ -1649,16 +1659,21 @@ private struct CustomerRequestAddressFields: View {
                     .frame(width: 92)
             }
 
-            TextField("ZIP Code", text: $zipCode)
-                .textContentType(.postalCode)
-                .keyboardType(.numbersAndPunctuation)
-                .beckonFormField(isInvalid: invalidFields.contains(.zipCode))
-                .onTapGesture {
+            BeckonLimitedTextField(
+                placeholder: "ZIP Code",
+                text: $zipCode,
+                maximumLength: 5,
+                isInvalid: invalidFields.contains(.zipCode),
+                textContentType: .postalCode,
+                keyboardType: .numberPad,
+                autocapitalizationType: .none,
+                onEditingBegan: {
+                    clearInvalidField(.zipCode)
+                },
+                onTextChange: { _ in
                     clearInvalidField(.zipCode)
                 }
-                .onChange(of: zipCode) { _, _ in
-                    clearInvalidField(.zipCode)
-                }
+            )
 
             if locationMode == .customerComesToGroomer {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {

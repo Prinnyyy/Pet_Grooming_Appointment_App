@@ -1,4 +1,198 @@
 import SwiftUI
+import UIKit
+
+nonisolated enum BeckonTextInputLimit {
+    struct Change: Equatable, Sendable {
+        let text: String
+        let acceptedReplacement: String
+        let didReachLimit: Bool
+    }
+
+    static func applyingChange(
+        currentText: String,
+        range: NSRange,
+        replacement: String,
+        maximumLength: Int
+    ) -> Change {
+        guard maximumLength >= 0,
+              let stringRange = Range(range, in: currentText) else {
+            return Change(
+                text: String(currentText.prefix(max(0, maximumLength))),
+                acceptedReplacement: "",
+                didReachLimit: true
+            )
+        }
+
+        let removedCount = currentText[stringRange].count
+        let retainedCount = currentText.count - removedCount
+        let availableCount = max(0, maximumLength - retainedCount)
+        let acceptedReplacement = String(replacement.prefix(availableCount))
+        let updatedText = currentText.replacingCharacters(
+            in: stringRange,
+            with: acceptedReplacement
+        )
+
+        return Change(
+            text: updatedText,
+            acceptedReplacement: acceptedReplacement,
+            didReachLimit: acceptedReplacement.count < replacement.count
+        )
+    }
+}
+
+struct BeckonLimitedTextField: View {
+    let placeholder: String
+    @Binding var text: String
+    let maximumLength: Int
+    var isInvalid = false
+    var textContentType: UITextContentType?
+    var keyboardType: UIKeyboardType = .default
+    var autocapitalizationType: UITextAutocapitalizationType = .sentences
+    var onEditingBegan: () -> Void = {}
+    var onTextChange: (String) -> Void = { _ in }
+
+    @State private var isLimitFlashing = false
+    @State private var limitFeedbackToken = 0
+
+    var body: some View {
+        BeckonLimitedUITextField(
+            placeholder: placeholder,
+            text: $text,
+            maximumLength: maximumLength,
+            textContentType: textContentType,
+            keyboardType: keyboardType,
+            autocapitalizationType: autocapitalizationType,
+            isInvalid: isInvalid || isLimitFlashing,
+            onEditingBegan: onEditingBegan,
+            onTextChange: onTextChange,
+            onLimitReached: showLimitFeedback
+        )
+        .beckonFormField(isInvalid: isInvalid || isLimitFlashing)
+    }
+
+    private func showLimitFeedback() {
+        limitFeedbackToken += 1
+        let token = limitFeedbackToken
+        withAnimation(.easeOut(duration: 0.1)) {
+            isLimitFlashing = true
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.32) {
+            guard token == limitFeedbackToken else { return }
+            withAnimation(.easeIn(duration: 0.16)) {
+                isLimitFlashing = false
+            }
+        }
+    }
+}
+
+private struct BeckonLimitedUITextField: UIViewRepresentable {
+    let placeholder: String
+    @Binding var text: String
+    let maximumLength: Int
+    let textContentType: UITextContentType?
+    let keyboardType: UIKeyboardType
+    let autocapitalizationType: UITextAutocapitalizationType
+    let isInvalid: Bool
+    let onEditingBegan: () -> Void
+    let onTextChange: (String) -> Void
+    let onLimitReached: () -> Void
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(parent: self)
+    }
+
+    func makeUIView(context: Context) -> UITextField {
+        let textField = UITextField()
+        textField.delegate = context.coordinator
+        textField.borderStyle = .none
+        textField.adjustsFontForContentSizeCategory = true
+        textField.font = UIFont.preferredFont(forTextStyle: .body)
+        textField.textColor = UIColor(DesignTokens.Colors.textPrimary)
+        textField.addTarget(
+            context.coordinator,
+            action: #selector(Coordinator.editingChanged(_:)),
+            for: .editingChanged
+        )
+        configure(textField)
+        return textField
+    }
+
+    func updateUIView(_ textField: UITextField, context: Context) {
+        context.coordinator.parent = self
+        configure(textField)
+        let constrainedText = String(text.prefix(maximumLength))
+        if textField.text != constrainedText {
+            textField.text = constrainedText
+        }
+    }
+
+    private func configure(_ textField: UITextField) {
+        textField.placeholder = placeholder
+        textField.textContentType = textContentType
+        textField.keyboardType = keyboardType
+        textField.autocapitalizationType = autocapitalizationType
+        textField.autocorrectionType = .default
+        textField.tintColor = UIColor(
+            isInvalid ? DesignTokens.Colors.error : DesignTokens.Colors.customerPrimaryDark
+        )
+    }
+
+    final class Coordinator: NSObject, UITextFieldDelegate {
+        var parent: BeckonLimitedUITextField
+
+        init(parent: BeckonLimitedUITextField) {
+            self.parent = parent
+        }
+
+        func textFieldDidBeginEditing(_ textField: UITextField) {
+            parent.onEditingBegan()
+        }
+
+        func textField(
+            _ textField: UITextField,
+            shouldChangeCharactersIn range: NSRange,
+            replacementString string: String
+        ) -> Bool {
+            let currentText = textField.text ?? ""
+            let change = BeckonTextInputLimit.applyingChange(
+                currentText: currentText,
+                range: range,
+                replacement: string,
+                maximumLength: parent.maximumLength
+            )
+
+            guard change.didReachLimit else { return true }
+
+            textField.text = change.text
+            parent.text = change.text
+            parent.onTextChange(change.text)
+            moveCursor(
+                in: textField,
+                utf16Offset: range.location + change.acceptedReplacement.utf16.count
+            )
+            parent.onLimitReached()
+            return false
+        }
+
+        @objc func editingChanged(_ textField: UITextField) {
+            let constrainedText = String((textField.text ?? "").prefix(parent.maximumLength))
+            if textField.text != constrainedText {
+                textField.text = constrainedText
+                parent.onLimitReached()
+            }
+            parent.text = constrainedText
+            parent.onTextChange(constrainedText)
+        }
+
+        private func moveCursor(in textField: UITextField, utf16Offset: Int) {
+            guard let position = textField.position(
+                from: textField.beginningOfDocument,
+                offset: utf16Offset
+            ) else { return }
+            textField.selectedTextRange = textField.textRange(from: position, to: position)
+        }
+    }
+}
 
 extension View {
     func beckonFormField(isInvalid: Bool = false) -> some View {
