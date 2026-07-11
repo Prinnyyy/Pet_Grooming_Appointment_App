@@ -16,6 +16,7 @@ struct CustomerTabView: View {
     @State private var focusedConversationBookingID: UUID?
     @State private var notificationStore: CustomerNotificationsStore?
     @State private var chatStore: ChatStore?
+    @State private var requestStore: CustomerRequestsStore?
     @State private var feedbackCenter = BeckonFeedbackCenter()
 
     init(
@@ -48,6 +49,14 @@ struct CustomerTabView: View {
             initialValue: Self.makeChatStore(
                 customerID: customerID,
                 repository: chatRepository
+            )
+        )
+        _requestStore = State(
+            initialValue: Self.makeRequestStore(
+                customerID: customerID,
+                petRepository: petRepository,
+                requestRepository: requestRepository,
+                bookingRepository: bookingRepository
             )
         )
     }
@@ -83,6 +92,7 @@ struct CustomerTabView: View {
         .onAppear {
             feedbackCenter.setDebugRecorder(debugRecorder)
             chatStore?.setDebugRecorder(debugRecorder)
+            requestStore?.setDebugRecorder(debugRecorder)
         }
         .task {
             await refreshBadgeSources()
@@ -121,6 +131,7 @@ struct CustomerTabView: View {
                 bookingRepository: bookingRepository,
                 debugRecorder: debugRecorder,
                 notificationStore: notificationStore,
+                requestStore: requestStore,
                 onActiveRequestSelected: { requestID in
                     focusedRequestID = requestID
                     withAnimation(.easeInOut(duration: 0.22)) {
@@ -142,7 +153,8 @@ struct CustomerTabView: View {
                 customerProfileRepository: customerProfileRepository,
                 debugRecorder: debugRecorder,
                 focusedRequestID: $focusedRequestID,
-                onBookingChatSelected: openBookingChat
+                onBookingChatSelected: openBookingChat,
+                store: requestStore
             )
         } else if tab == .bookings,
                   let customerID,
@@ -217,6 +229,22 @@ struct CustomerTabView: View {
             participantID: customerID,
             role: .customer,
             repository: repository
+        )
+    }
+
+    private static func makeRequestStore(
+        customerID: UUID?,
+        petRepository: (any CustomerPetRepository)?,
+        requestRepository: (any CustomerRequestRepository)?,
+        bookingRepository: (any BookingRepository)?
+    ) -> CustomerRequestsStore? {
+        guard let customerID, let petRepository, let requestRepository,
+              let bookingRepository else { return nil }
+        return CustomerRequestsStore(
+            customerID: customerID,
+            petRepository: petRepository,
+            requestRepository: requestRepository,
+            bookingRepository: bookingRepository
         )
     }
 

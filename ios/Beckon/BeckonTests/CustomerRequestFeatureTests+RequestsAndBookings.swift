@@ -4,7 +4,7 @@ import Testing
 
 extension CustomerRequestsStoreTests {
     @Test @MainActor
-    func recentClosedRequestsKeepOnlyTheFiveNewestCancelledRecords() {
+    func recentClosedRequestsCanKeepOnlyTheThreeNewestCancelledRecords() {
         let customerID = UUID()
         let petID = UUID()
         let requests = (1...7).map { day in
@@ -19,15 +19,13 @@ extension CustomerRequestsStoreTests {
             )
         }
 
-        let recent = requests.recentClosedRequests(limit: 5)
+        let recent = requests.recentClosedRequests(limit: 3)
 
-        #expect(recent.count == 5)
+        #expect(recent.count == 3)
         #expect(recent.map(\.updatedAt) == [
             "2026-06-07T12:00:00Z",
             "2026-06-06T12:00:00Z",
             "2026-06-05T12:00:00Z",
-            "2026-06-04T12:00:00Z",
-            "2026-06-03T12:00:00Z",
         ])
     }
 

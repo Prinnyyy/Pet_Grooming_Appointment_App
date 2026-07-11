@@ -23,6 +23,7 @@ struct CustomerPetsView: View {
         bookingRepository: any BookingRepository,
         debugRecorder: AppDebugEventRecorder? = nil,
         notificationStore: CustomerNotificationsStore? = nil,
+        requestStore: CustomerRequestsStore? = nil,
         onActiveRequestSelected: @escaping (UUID) -> Void = { _ in },
         onBookingChatSelected: @escaping (Booking) -> Void = { _ in }
     ) {
@@ -41,7 +42,7 @@ struct CustomerPetsView: View {
             )
         )
         _requestStore = State(
-            initialValue: CustomerRequestsStore(
+            initialValue: requestStore ?? CustomerRequestsStore(
                 customerID: customerID,
                 petRepository: repository,
                 requestRepository: requestRepository,

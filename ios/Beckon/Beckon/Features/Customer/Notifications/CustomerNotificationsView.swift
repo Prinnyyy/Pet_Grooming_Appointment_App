@@ -15,23 +15,11 @@ struct CustomerNotificationsView: View {
             content
         }
         .navigationTitle("Notifications")
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                if store.unreadCount > 0 {
-                    Button {
-                        Task {
-                            await store.markAllRead()
-                        }
-                    } label: {
-                        Label("Mark All Read", systemImage: "checkmark.circle")
-                    }
-                    .disabled(store.isMarkingAllRead)
-                    .accessibilityIdentifier("customer.notifications.mark-all-read")
-                }
-            }
+        .task {
+            await refreshAndMarkRead()
         }
         .foregroundRefreshable {
-            await store.load()
+            await refreshAndMarkRead()
         }
         .accessibilityIdentifier("customer.notifications")
     }
@@ -53,7 +41,7 @@ struct CustomerNotificationsView: View {
                 LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
                     BeckonSectionHeader(
                         "System Updates",
-                        subtitle: unreadSummary
+                        subtitle: "Request, offer, booking, and message activity appears here."
                     )
 
                     if let errorMessage = store.errorMessage {
@@ -85,13 +73,8 @@ struct CustomerNotificationsView: View {
                     } else {
                         ForEach(store.notifications) { notification in
                             CustomerNotificationRow(
-                                notification: notification,
-                                isMarkingRead: store.isMarkingRead(notification)
-                            ) {
-                                Task {
-                                    await store.markRead(notification)
-                                }
-                            }
+                                notification: notification
+                            )
                         }
                     }
 
@@ -111,83 +94,44 @@ struct CustomerNotificationsView: View {
         }
     }
 
-    private var unreadSummary: String {
-        switch store.unreadCount {
-        case 0:
-            "All notifications are read."
-        case 1:
-            "1 unread notification."
-        default:
-            "\(store.unreadCount) unread notifications."
-        }
+    private func refreshAndMarkRead() async {
+        await store.load()
+        await store.markAllRead()
     }
 }
 
 private struct CustomerNotificationRow: View {
     let notification: CustomerNotification
-    let isMarkingRead: Bool
-    let markReadAction: () -> Void
 
     var body: some View {
         BeckonCard {
             HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
-                ZStack(alignment: .topTrailing) {
-                    Image(systemName: notification.kind.systemImage)
-                        .font(DesignTokens.Typography.headline)
-                        .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
-                        .frame(
-                            width: DesignTokens.Spacing.xl * 1.4,
-                            height: DesignTokens.Spacing.xl * 1.4
-                        )
-                        .background(DesignTokens.Colors.customerPrimary.opacity(0.14))
-                        .clipShape(DesignTokens.Shapes.circular)
-
-                    if !notification.isRead {
-                        Circle()
-                            .fill(DesignTokens.Colors.groomerAccent)
-                            .frame(width: 9, height: 9)
-                            .offset(x: -2, y: 2)
-                    }
-                }
-                .accessibilityHidden(true)
-
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                    HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
-                        Text(notification.title)
-                            .font(DesignTokens.Typography.headline)
-                            .foregroundStyle(DesignTokens.Colors.textPrimary)
-                            .fixedSize(horizontal: false, vertical: true)
-
-                        if !notification.isRead {
-                            Text("Unread")
-                                .font(DesignTokens.Typography.caption.weight(.semibold))
-                                .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
-                        }
-                    }
+                    Text(notification.title)
+                        .font(DesignTokens.Typography.headline)
+                        .foregroundStyle(DesignTokens.Colors.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
 
                     Text(notification.body)
                         .font(DesignTokens.Typography.body)
                         .foregroundStyle(DesignTokens.Colors.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
 
-                    HStack(spacing: DesignTokens.Spacing.sm) {
-                        Label(notification.createdAtSummary, systemImage: "clock")
-                            .font(DesignTokens.Typography.caption)
-                            .foregroundStyle(DesignTokens.Colors.textTertiary)
-
-                        Spacer()
-
-                        if !notification.isRead {
-                            Button(action: markReadAction) {
-                                Label("Mark Read", systemImage: "checkmark.circle")
-                            }
-                            .buttonStyle(BeckonSecondaryButtonStyle(accent: .customer))
-                            .disabled(isMarkingRead)
-                            .accessibilityIdentifier("customer.notifications.mark-read")
-                        }
-                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
+
+                VStack(alignment: .trailing, spacing: DesignTokens.Spacing.sm) {
+                    if !notification.isRead {
+                        Circle()
+                            .fill(DesignTokens.Colors.customerPrimaryDark)
+                            .frame(width: 10, height: 10)
+                            .accessibilityHidden(true)
+                    }
+
+                    Text(notification.createdAtSummary)
+                        .font(DesignTokens.Typography.caption)
+                        .foregroundStyle(DesignTokens.Colors.textTertiary)
+                }
             }
         }
         .accessibilityElement(children: .combine)

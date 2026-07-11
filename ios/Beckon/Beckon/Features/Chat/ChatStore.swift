@@ -8,6 +8,7 @@ final class ChatStore {
     private let role: UserRole
     private let repository: any ChatRepository
     private let now: () -> Date
+    private let readStateCache: any ChatReadStateCaching
     private var debugRecorder: AppDebugEventRecorder?
 
     private(set) var conversations: [ChatConversation] = []
@@ -48,13 +49,19 @@ final class ChatStore {
         role: UserRole,
         repository: any ChatRepository,
         now: @escaping () -> Date = Date.init,
+        readStateCache: any ChatReadStateCaching = UserDefaultsChatReadStateCache.shared,
         debugRecorder: AppDebugEventRecorder? = nil
     ) {
         self.participantID = participantID
         self.role = role
         self.repository = repository
         self.now = now
+        self.readStateCache = readStateCache
         self.debugRecorder = debugRecorder
+        readConversationTimestamps = readStateCache.timestamps(
+            participantID: participantID,
+            role: role
+        )
     }
 
     func setDebugRecorder(_ recorder: AppDebugEventRecorder?) {
@@ -577,6 +584,11 @@ final class ChatStore {
         }
 
         readConversationTimestamps[conversationID] = readAt
+        readStateCache.save(
+            readConversationTimestamps,
+            participantID: participantID,
+            role: role
+        )
     }
 
     private func message(

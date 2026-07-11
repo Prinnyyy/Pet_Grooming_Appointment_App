@@ -108,7 +108,7 @@ final class CustomerRequestsStore {
     private let appointmentReminderScheduler: any AppointmentReminderScheduling
     private let handoffAcknowledgementDefaults: UserDefaults
     private let handoffAcknowledgementStorageKey: String
-    private let debugRecorder: AppDebugEventRecorder?
+    private var debugRecorder: AppDebugEventRecorder?
 
     private(set) var pets: [CustomerPet] = []
     private(set) var petPhotosByPetID: [UUID: [CustomerPetPhoto]] = [:]
@@ -260,6 +260,10 @@ final class CustomerRequestsStore {
             defaults: handoffAcknowledgementDefaults,
             key: handoffAcknowledgementStorageKey
         )
+    }
+
+    func setDebugRecorder(_ recorder: AppDebugEventRecorder?) {
+        debugRecorder = recorder
     }
 
     func load() async {

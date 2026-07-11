@@ -212,6 +212,46 @@ struct ChatStoreTests {
     }
 
     @Test @MainActor
+    func readConversationStateSurvivesStoreRecreation() async throws {
+        let participantID = UUID()
+        let conversation = Self.conversation(
+            customerID: participantID,
+            latestMessageSenderID: UUID(),
+            latestMessageCreatedAt: "2026-06-21T05:04:00Z"
+        )
+        let message = Self.message(
+            conversationID: conversation.id,
+            createdAt: "2026-06-21T05:04:00Z"
+        )
+        let cache = ChatReadStateCacheFake()
+        let repository = ChatRepositoryFake(
+            conversationsResult: .success([conversation]),
+            messagesResult: .success([message])
+        )
+        let firstStore = ChatStore(
+            participantID: participantID,
+            role: .customer,
+            repository: repository,
+            readStateCache: cache
+        )
+
+        await firstStore.loadConversations()
+        #expect(firstStore.hasUnreadMessages(in: conversation))
+        await firstStore.loadMessages(for: conversation)
+        #expect(!firstStore.hasUnreadMessages(in: conversation))
+
+        let relaunchedStore = ChatStore(
+            participantID: participantID,
+            role: .customer,
+            repository: repository,
+            readStateCache: cache
+        )
+        await relaunchedStore.loadConversations()
+
+        #expect(!relaunchedStore.hasUnreadMessages(in: conversation))
+    }
+
+    @Test @MainActor
     func sendMessageTrimsAndAppendsReturnedMessage() async throws {
         let conversation = Self.conversation()
         let sent = Self.message(
@@ -699,6 +739,22 @@ struct ChatStoreTests {
             try await Task.sleep(nanoseconds: 10_000_000)
         }
         #expect(store.messages(for: conversationID) == expectedMessages)
+    }
+}
+
+private final class ChatReadStateCacheFake: ChatReadStateCaching {
+    private var values: [String: [UUID: String]] = [:]
+
+    func timestamps(participantID: UUID, role: UserRole) -> [UUID: String] {
+        values[key(participantID, role), default: [:]]
+    }
+
+    func save(_ timestamps: [UUID: String], participantID: UUID, role: UserRole) {
+        values[key(participantID, role)] = timestamps
+    }
+
+    private func key(_ participantID: UUID, _ role: UserRole) -> String {
+        "\(role.rawValue):\(participantID.uuidString)"
     }
 }
 

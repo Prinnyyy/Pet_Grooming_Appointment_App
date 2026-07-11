@@ -881,7 +881,7 @@ struct CustomerCancelledRequestsSection: View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
             BeckonSectionHeader(
                 "Recent Closed Requests",
-                subtitle: "Your five most recent cancelled requests can be reviewed or used to start a new request."
+                subtitle: "Your three most recent cancelled requests can be reviewed or used to start a new request."
             )
 
             LazyVStack(spacing: DesignTokens.Spacing.md) {
@@ -893,7 +893,10 @@ struct CustomerCancelledRequestsSection: View {
                             onRepublishRequest: onRepublishRequest
                         )
                     } label: {
-                        CustomerCancelledRequestRow(request: request)
+                        CustomerCancelledRequestRow(
+                            request: request,
+                            petAvatarPhotoData: store.primaryPetPhotoData(petID: request.petID)
+                        )
                     }
                     .buttonStyle(.plain)
                 }
@@ -904,16 +907,19 @@ struct CustomerCancelledRequestsSection: View {
 
 private struct CustomerCancelledRequestRow: View {
     let request: CustomerGroomingRequest
+    let petAvatarPhotoData: Data?
 
     var body: some View {
         BeckonCard {
             HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
-                Text(request.petSnapshot.displayEmoji)
-                    .font(.system(size: 26))
-                    .frame(width: 48, height: 48)
-                    .background(request.avatarBackground)
-                    .clipShape(DesignTokens.Shapes.circular)
-                    .accessibilityHidden(true)
+                BeckonPetAvatar(
+                    data: petAvatarPhotoData,
+                    fallbackText: request.petSnapshot.displayEmoji,
+                    background: AnyShapeStyle(request.avatarBackground),
+                    width: 48,
+                    height: 48,
+                    cornerRadius: 24
+                )
 
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     Text(request.title)

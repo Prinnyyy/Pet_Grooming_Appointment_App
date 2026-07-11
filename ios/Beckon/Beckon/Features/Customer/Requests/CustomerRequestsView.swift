@@ -30,13 +30,14 @@ struct CustomerRequestsView: View {
         customerProfileRepository: (any CustomerProfileRepository)? = nil,
         debugRecorder: AppDebugEventRecorder? = nil,
         focusedRequestID: Binding<UUID?> = .constant(nil),
-        onBookingChatSelected: @escaping (Booking) -> Void = { _ in }
+        onBookingChatSelected: @escaping (Booking) -> Void = { _ in },
+        store: CustomerRequestsStore? = nil
     ) {
         _focusedRequestID = focusedRequestID
         self.customerProfileRepository = customerProfileRepository
         self.onBookingChatSelected = onBookingChatSelected
         _store = State(
-            initialValue: CustomerRequestsStore(
+            initialValue: store ?? CustomerRequestsStore(
                 customerID: customerID,
                 petRepository: petRepository,
                 requestRepository: requestRepository,
@@ -204,7 +205,7 @@ struct CustomerRequestsView: View {
     }
 
     private var cancelledRequests: [CustomerGroomingRequest] {
-        store.requests.recentClosedRequests(limit: 5)
+        store.requests.recentClosedRequests(limit: 3)
     }
 }
 

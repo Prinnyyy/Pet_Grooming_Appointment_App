@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-07-11
+Task: T-268 - Customer cross-tab state, unread persistence, and notification consistency.
+Files changed: Shared Customer Requests Store injection; closed-request limit/avatar rows; chat read-state cache and Store persistence; Customer Notifications automatic read flow and compact rows; focused tests and memory closeout.
+Checks: Customer Requests, Chat, and Customer Notifications focused tests; `./scripts/ios-build.sh`; `git diff --check`; preflight/context hygiene.
+Result: Cancelling a request updates Home and Requests through one observable Store. Recent Closed Requests shows three rows with the original pet avatar. Conversation read timestamps survive app relaunch. Opening Notifications loads and marks all rows read through the existing repository, with no manual mark-all/read controls or decorative row icons.
+Risks: Chat read state remains device-local rather than server-synchronized; reinstalling the app or using another device starts without that local history. No backend, migration, or remote state changed.
+Next: Use T-269 for the next user-selected task; Q-104 remains deferred.
+```
+
+```text
+Date: 2026-07-11
 Task: T-267 - Customer request annotation and avatar alignment correction.
 Files changed: Shared annotated-module alignment; customer request-card avatar dimensions/alignment; memory closeout.
 Checks: `./scripts/ios-build.sh`; `git diff --check`; preflight/context hygiene.
