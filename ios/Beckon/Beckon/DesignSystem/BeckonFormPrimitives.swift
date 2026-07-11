@@ -40,6 +40,31 @@ nonisolated enum BeckonTextInputLimit {
     }
 }
 
+nonisolated enum BeckonAddressInputRule: Sendable {
+    case street
+    case city
+    case zipCode
+
+    func sanitize(_ value: String) -> String {
+        String(value.unicodeScalars.filter(isAllowed))
+    }
+
+    private func isAllowed(_ scalar: Unicode.Scalar) -> Bool {
+        switch self {
+        case .street:
+            CharacterSet.alphanumerics.contains(scalar)
+                || CharacterSet.whitespaces.contains(scalar)
+                || "#.,-/'&".unicodeScalars.contains(scalar)
+        case .city:
+            CharacterSet.alphanumerics.contains(scalar)
+                || CharacterSet.whitespaces.contains(scalar)
+                || ".-'".unicodeScalars.contains(scalar)
+        case .zipCode:
+            CharacterSet.decimalDigits.contains(scalar)
+        }
+    }
+}
+
 struct BeckonLimitedTextField: View {
     let placeholder: String
     @Binding var text: String
@@ -48,6 +73,7 @@ struct BeckonLimitedTextField: View {
     var textContentType: UITextContentType?
     var keyboardType: UIKeyboardType = .default
     var autocapitalizationType: UITextAutocapitalizationType = .sentences
+    var addressInputRule: BeckonAddressInputRule?
     var onEditingBegan: () -> Void = {}
     var onTextChange: (String) -> Void = { _ in }
 
@@ -62,6 +88,7 @@ struct BeckonLimitedTextField: View {
             textContentType: textContentType,
             keyboardType: keyboardType,
             autocapitalizationType: autocapitalizationType,
+            addressInputRule: addressInputRule,
             isInvalid: isInvalid || isLimitFlashing,
             onEditingBegan: onEditingBegan,
             onTextChange: onTextChange,
@@ -92,6 +119,7 @@ private struct BeckonLimitedUITextField: UIViewRepresentable {
     let textContentType: UITextContentType?
     let keyboardType: UIKeyboardType
     let autocapitalizationType: UITextAutocapitalizationType
+    let addressInputRule: BeckonAddressInputRule?
     let isInvalid: Bool
     let onEditingBegan: () -> Void
     let onTextChange: (String) -> Void
@@ -154,14 +182,16 @@ private struct BeckonLimitedUITextField: UIViewRepresentable {
             replacementString string: String
         ) -> Bool {
             let currentText = textField.text ?? ""
+            let sanitizedReplacement = parent.addressInputRule?.sanitize(string) ?? string
             let change = BeckonTextInputLimit.applyingChange(
                 currentText: currentText,
                 range: range,
-                replacement: string,
+                replacement: sanitizedReplacement,
                 maximumLength: parent.maximumLength
             )
 
-            guard change.didReachLimit else { return true }
+            let rejectedCharacters = sanitizedReplacement != string
+            guard change.didReachLimit || rejectedCharacters else { return true }
 
             textField.text = change.text
             parent.text = change.text

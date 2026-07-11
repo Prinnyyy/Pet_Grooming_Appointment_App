@@ -205,6 +205,8 @@ struct CustomerRequestWizardView: View {
     @State private var selectedRequestPhotoItem: PhotosPickerItem?
     @State private var invalidFields: Set<CustomerRequestWizardValidationField> = []
     @State private var isApplyingProfileAddress = false
+    @State private var isAddressStreetActive = false
+    @StateObject private var addressSearch = CustomerRequestAddressSearch()
 
     init(
         store: CustomerRequestsStore,
@@ -269,6 +271,23 @@ struct CustomerRequestWizardView: View {
                 }
                 .scrollContentBackground(.hidden)
                 .scrollDismissesKeyboard(.interactively)
+            }
+            .overlayPreferenceValue(CustomerRequestStreetFieldAnchorKey.self) { anchor in
+                GeometryReader { proxy in
+                    if let anchor,
+                       CustomerRequestAddressOverlay.shouldPresent(
+                           isStreetActive: isAddressStreetActive,
+                           suggestionCount: addressSearch.suggestions.count
+                       ) {
+                        let frame = proxy[anchor]
+                        CustomerRequestAddressSuggestionOverlay(
+                            suggestions: Array(addressSearch.suggestions.prefix(4)),
+                            fieldFrame: frame,
+                            dismiss: dismissAddressSuggestions,
+                            select: applyAddressSuggestion
+                        )
+                    }
+                }
             }
             .safeAreaInset(edge: .bottom) {
                 CustomerRequestWizardBottomBar(
@@ -448,8 +467,29 @@ struct CustomerRequestWizardView: View {
                 invalidFields: invalidFields,
                 isApplyingProfileAddress: isApplyingProfileAddress,
                 useProfileAddress: applyProfileAddress,
-                clearInvalidField: clearInvalidField
+                clearInvalidField: clearInvalidField,
+                addressSearch: addressSearch,
+                isStreetActive: $isAddressStreetActive
             )
+        }
+    }
+
+    private func dismissAddressSuggestions() {
+        isAddressStreetActive = false
+    }
+
+    private func applyAddressSuggestion(_ suggestion: CustomerRequestAddressSuggestion) {
+        Task {
+            guard let address = await addressSearch.resolve(suggestion) else { return }
+            store.streetAddress = address.streetAddress
+            store.city = address.city
+            store.stateCode = address.stateCode
+            store.zipCode = address.zipCode
+            clearInvalidField(.streetAddress)
+            clearInvalidField(.city)
+            clearInvalidField(.state)
+            clearInvalidField(.zipCode)
+            dismissAddressSuggestions()
         }
     }
 
@@ -1508,7 +1548,8 @@ private struct CustomerRequestAddressFields: View {
     let isApplyingProfileAddress: Bool
     let useProfileAddress: () -> Void
     let clearInvalidField: (CustomerRequestWizardValidationField) -> Void
-    @StateObject private var addressSearch = CustomerRequestAddressSearch()
+    @ObservedObject var addressSearch: CustomerRequestAddressSearch
+    @Binding var isStreetActive: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
@@ -1559,10 +1600,13 @@ private struct CustomerRequestAddressFields: View {
                 isInvalid: invalidFields.contains(.streetAddress),
                 textContentType: .streetAddressLine1,
                 autocapitalizationType: .words,
+                addressInputRule: .street,
                 onEditingBegan: {
+                    isStreetActive = true
                     clearInvalidField(.streetAddress)
                 },
                 onTextChange: { newValue in
+                    isStreetActive = true
                     clearInvalidField(.streetAddress)
                     addressSearch.update(
                         street: newValue,
@@ -1571,47 +1615,12 @@ private struct CustomerRequestAddressFields: View {
                     )
                 }
             )
-                .accessibilityIdentifier("customer.requests.address.street")
-
-            if !addressSearch.suggestions.isEmpty {
-                VStack(spacing: DesignTokens.Spacing.xs) {
-                    ForEach(addressSearch.suggestions.prefix(4)) { suggestion in
-                        Button {
-                            applyAddressSuggestion(suggestion)
-                        } label: {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(suggestion.title)
-                                    .font(DesignTokens.Typography.caption.weight(.semibold))
-                                    .foregroundStyle(DesignTokens.Colors.textPrimary)
-                                    .lineLimit(1)
-
-                                Text(suggestion.subtitle)
-                                    .font(DesignTokens.Typography.caption)
-                                    .foregroundStyle(DesignTokens.Colors.textSecondary)
-                                    .lineLimit(1)
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.horizontal, DesignTokens.Spacing.md)
-                            .padding(.vertical, DesignTokens.Spacing.sm)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .background(DesignTokens.Colors.surface)
-                .clipShape(
-                    RoundedRectangle(
-                        cornerRadius: DesignTokens.CornerRadius.input,
-                        style: .continuous
-                    )
+                .anchorPreference(
+                    key: CustomerRequestStreetFieldAnchorKey.self,
+                    value: .bounds,
+                    transform: { $0 }
                 )
-                .overlay {
-                    RoundedRectangle(
-                        cornerRadius: DesignTokens.CornerRadius.input,
-                        style: .continuous
-                    )
-                    .stroke(DesignTokens.Colors.borderSoft, lineWidth: 1)
-                }
-            }
+                .accessibilityIdentifier("customer.requests.address.street")
 
             HStack(spacing: DesignTokens.Spacing.md) {
                 BeckonLimitedTextField(
@@ -1621,7 +1630,9 @@ private struct CustomerRequestAddressFields: View {
                     isInvalid: invalidFields.contains(.city),
                     textContentType: .addressCity,
                     autocapitalizationType: .words,
+                    addressInputRule: .city,
                     onEditingBegan: {
+                        isStreetActive = false
                         clearInvalidField(.city)
                     },
                     onTextChange: { _ in
@@ -1667,7 +1678,9 @@ private struct CustomerRequestAddressFields: View {
                 textContentType: .postalCode,
                 keyboardType: .numberPad,
                 autocapitalizationType: .none,
+                addressInputRule: .zipCode,
                 onEditingBegan: {
+                    isStreetActive = false
                     clearInvalidField(.zipCode)
                 },
                 onTextChange: { _ in
@@ -1723,18 +1736,82 @@ private struct CustomerRequestAddressFields: View {
         .transition(.opacity.combined(with: .move(edge: .top)))
     }
 
-    private func applyAddressSuggestion(_ suggestion: CustomerRequestAddressSuggestion) {
-        Task {
-            guard let address = await addressSearch.resolve(suggestion) else { return }
-            streetAddress = address.streetAddress
-            city = address.city
-            stateCode = address.stateCode
-            zipCode = address.zipCode
-            clearInvalidField(.streetAddress)
-            clearInvalidField(.city)
-            clearInvalidField(.state)
-            clearInvalidField(.zipCode)
+}
+
+nonisolated enum CustomerRequestAddressOverlay {
+    static func shouldPresent(isStreetActive: Bool, suggestionCount: Int) -> Bool {
+        isStreetActive && suggestionCount > 0
+    }
+}
+
+private struct CustomerRequestStreetFieldAnchorKey: PreferenceKey {
+    static var defaultValue: Anchor<CGRect>?
+
+    static func reduce(value: inout Anchor<CGRect>?, nextValue: () -> Anchor<CGRect>?) {
+        value = nextValue() ?? value
+    }
+}
+
+private struct CustomerRequestAddressSuggestionOverlay: View {
+    let suggestions: [CustomerRequestAddressSuggestion]
+    let fieldFrame: CGRect
+    let dismiss: () -> Void
+    let select: (CustomerRequestAddressSuggestion) -> Void
+
+    var body: some View {
+        ZStack(alignment: .topLeading) {
+            Color.clear
+                .contentShape(Rectangle())
+                .ignoresSafeArea()
+                .onTapGesture(perform: dismiss)
+
+            VStack(spacing: 0) {
+                ForEach(suggestions) { suggestion in
+                    Button {
+                        select(suggestion)
+                    } label: {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(suggestion.title)
+                                .font(DesignTokens.Typography.caption.weight(.semibold))
+                                .foregroundStyle(DesignTokens.Colors.textPrimary)
+                                .lineLimit(1)
+
+                            Text(suggestion.subtitle)
+                                .font(DesignTokens.Typography.caption)
+                                .foregroundStyle(DesignTokens.Colors.textSecondary)
+                                .lineLimit(1)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, DesignTokens.Spacing.md)
+                        .padding(.vertical, DesignTokens.Spacing.sm)
+                    }
+                    .buttonStyle(.plain)
+
+                    if suggestion.id != suggestions.last?.id {
+                        Divider()
+                            .padding(.horizontal, DesignTokens.Spacing.md)
+                    }
+                }
+            }
+            .frame(width: fieldFrame.width)
+            .background(DesignTokens.Colors.surface)
+            .clipShape(
+                RoundedRectangle(
+                    cornerRadius: DesignTokens.CornerRadius.input,
+                    style: .continuous
+                )
+            )
+            .overlay {
+                RoundedRectangle(
+                    cornerRadius: DesignTokens.CornerRadius.input,
+                    style: .continuous
+                )
+                .stroke(DesignTokens.Colors.borderSoft, lineWidth: 1)
+            }
+            .shadow(color: .black.opacity(0.12), radius: 8, x: 0, y: 4)
+            .offset(x: fieldFrame.minX, y: fieldFrame.maxY + DesignTokens.Spacing.xs)
         }
+        .zIndex(20)
     }
 }
 

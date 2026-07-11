@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-11
 - Updated by: Codex
-- Latest completed task: T-285 automatic meta-review chaining and compaction boundary.
+- Latest completed task: T-286 Customer Request address input rules and overlay autocomplete.
 - Current task: none; T-157 APNs remains externally blocked and Q-104 Dynamic Type/Accessibility remains user-deferred.
-- Next task ID: use T-286 for Customer Request address input rules and overlay autocomplete behavior. Q-104 remains deferred until the user restores its Dynamic Type/Accessibility scope.
+- Next task ID: use T-287 for the next user-selected task. Q-104 remains deferred until the user restores its Dynamic Type/Accessibility scope.
 
 ## Fast Path
 
@@ -71,6 +71,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - T-281 aligns Customer Account with Groomer Account's unframed identity header, labeled grouped surfaces, compact summary rows, and support grouping while preserving Customer icon styling; only the active Customer tab may present/dismiss the shared Request Wizard, removing first-open sheet races.
 - T-282 introduces a reusable UIKit-delegate-backed limited text field that rejects overflow before it enters the control, including rapid input and paste, with reusable red field/cursor feedback; Pet Name and Request street/city/ZIP fields now use it at their contract limits.
 - T-283 removes the T-263 avatar-policy RLS cycle through a private, current-customer-checked relationship helper. Groomer Availability can persist profile/weekly-hour changes again, and rollback-only remote verification proves an eligibility change backfills open Request matches through T-155.
+- T-286 applies character-level street/city/ZIP rules before Request address text is displayed and moves MapKit address suggestions into a page-level anchored overlay that does not reflow the form and dismisses on an outside tap.
 - T-259 makes one `T-###` per fresh session the default, reserves full iOS tests and batched visual evidence for integration/high-risk gates, and requires clean task or checkpoint commits at session boundaries.
 - T-260 adopts UI-R1 through UI-R8 and A11Y-R1 through A11Y-R10 as the active design contract, including approved light-palette contrast pairs and a per-slice accessibility Definition of Done. Token and primitive implementation remains a separate follow-up code task; Q-104 is unchanged.
 - T-244 normalizes the rotated Worklog EOF to one newline.

@@ -437,6 +437,28 @@ extension CustomerRequestsStoreTests {
         #expect(result.completionsByID[result.suggestions[1].id] == "second")
     }
 
+    @Test
+    func requestAddressInputRulesRejectUnsupportedCharactersBeforeDisplay() {
+        #expect(
+            BeckonAddressInputRule.street.sanitize("760 S Harbor Blvd #12-B / Rear")
+                == "760 S Harbor Blvd #12-B / Rear"
+        )
+        #expect(
+            BeckonAddressInputRule.street.sanitize("760 S Harbor Blvd\n<script>")
+                == "760 S Harbor Blvdscript"
+        )
+        #expect(BeckonAddressInputRule.city.sanitize("Rancho Santa Margarita") == "Rancho Santa Margarita")
+        #expect(BeckonAddressInputRule.city.sanitize("O'Fallon-2!") == "O'Fallon-2")
+        #expect(BeckonAddressInputRule.zipCode.sanitize("92A80-1") == "92801")
+    }
+
+    @Test
+    func requestAddressSuggestionsOnlyPresentWhileStreetInputIsActive() {
+        #expect(CustomerRequestAddressOverlay.shouldPresent(isStreetActive: true, suggestionCount: 2))
+        #expect(!CustomerRequestAddressOverlay.shouldPresent(isStreetActive: false, suggestionCount: 2))
+        #expect(!CustomerRequestAddressOverlay.shouldPresent(isStreetActive: true, suggestionCount: 0))
+    }
+
     @Test @MainActor
     func bookedHandoffCardPresentationKeepsQuestSummaryAndAddsAddress() async throws {
         let customerID = UUID()
