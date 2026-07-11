@@ -24,6 +24,15 @@ struct CustomerPetPhotoPathTests {
 }
 
 struct CustomerPetsStoreTests {
+    @Test
+    func petNameInputRejectsCharactersBeyondItsHiddenLimit() {
+        let accepted = String(repeating: "a", count: 80)
+        let rejected = accepted + "b"
+
+        #expect(CustomerPetNameInput.acceptedValue(current: "Milo", proposed: accepted) == accepted)
+        #expect(CustomerPetNameInput.acceptedValue(current: accepted, proposed: rejected) == accepted)
+    }
+
     @Test @MainActor
     func createsPetWithFixedOptionsAndDerivedSize() async {
         let customerID = UUID()

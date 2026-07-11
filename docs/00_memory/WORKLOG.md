@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-07-11
+Task: T-271 - Customer profile actions, republish button, and Edit Pet form refinement.
+Files changed: Customer Profile header/save placement; shared request/booking republish button; Edit Pet navigation title, compact profile layout, field typography, single-line name limiter; focused test and memory closeout.
+Checks: Customer Profile, Pets, Requests, and Bookings focused tests; `./scripts/ios-build.sh`; `git diff --check`; preflight/context hygiene.
+Result: Profile Settings no longer repeats its page header and Save Profile follows the final module. Republish is a normal shared button with template/booking-specific copy. Edit Pet uses a centered toolbar title, compact Customer-Profile-style fields, and a hidden 80-character Name limit that rejects overflow while preserving native focus and cursor blinking.
+Risks: Visual acceptance remains with the user; no screenshot self-review was performed. No persistence schema, upload behavior, backend, or remote state changed.
+Next: Use T-272 for the next user-selected task; Q-104 remains deferred.
+```
+
+```text
+Date: 2026-07-11
 Task: T-270 - Customer card depth, notification lifecycle, scrolling, and Edit Pet refinement.
 Files changed: Shared card shadow tokens; app-wide vertical scroll-indicator configuration; notification exit-read lifecycle; request swipe-hint removal; Edit Pet annotation/profile/avatar/name/choice layout; memory closeout.
 Checks: Customer Pets, Notifications, and Requests focused tests; `./scripts/ios-build.sh`; `git diff --check`; preflight/context hygiene.

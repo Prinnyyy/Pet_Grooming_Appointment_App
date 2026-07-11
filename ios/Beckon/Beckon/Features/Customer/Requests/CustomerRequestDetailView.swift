@@ -48,10 +48,8 @@ struct CustomerRequestDetailView: View {
                         }
 
                         if presentation.showsRepublish {
-                            CustomerRequestRepublishCard(
-                                title: "Create New Request",
-                                subtitle: "Start a new request from these saved details.",
-                                actionTitle: "Create New Request",
+                            CustomerRequestRepublishButton(
+                                actionTitle: "Create a New Request from This Template",
                                 action: {
                                     onRepublishRequest(request)
                                 }
@@ -217,39 +215,28 @@ struct CustomerRequestDetailView: View {
         }
     }
 }
-struct CustomerRequestRepublishCard: View {
-    let title: String
-    let subtitle: String
+struct CustomerRequestRepublishButton: View {
     let actionTitle: String
     let accessibilityIdentifier: String
     let action: () -> Void
 
     init(
-        title: String,
-        subtitle: String,
         actionTitle: String,
         accessibilityIdentifier: String = "customer.requests.republish",
         action: @escaping () -> Void
     ) {
-        self.title = title
-        self.subtitle = subtitle
         self.actionTitle = actionTitle
         self.accessibilityIdentifier = accessibilityIdentifier
         self.action = action
     }
 
     var body: some View {
-        BeckonAnnotatedModule(title, subtitle: subtitle) {
-            BeckonCard {
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                    Button(action: action) {
-                        Label(actionTitle, systemImage: "plus.circle.fill")
-                    }
-                    .buttonStyle(BeckonPrimaryButtonStyle(accent: .customer))
-                    .accessibilityIdentifier(accessibilityIdentifier)
-                }
+        Button(action: action) {
+            Text(actionTitle)
+                .frame(maxWidth: .infinity)
             }
-        }
+        .buttonStyle(BeckonSecondaryButtonStyle(accent: .customer))
+        .accessibilityIdentifier(accessibilityIdentifier)
     }
 }
 

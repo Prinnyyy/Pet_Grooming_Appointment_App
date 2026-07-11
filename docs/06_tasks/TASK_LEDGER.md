@@ -2,7 +2,7 @@
 
 Track only current, blocked, and recent tasks here so Codex does not continue automatically. Older completed rows through T-190 are archived under `docs/09_frozen/task_ledgers/`; active blocked T-157 remains below. Notes should keep conclusions and pointers only; validation detail belongs in `docs/00_memory/WORKLOG.md` or frozen worklogs. Detailed task records T-001 through T-088 and workflow task records remain archived under `docs/09_frozen/task_records_2026-06-26/`.
 
-Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup`; use `T-271` for the next task unless the user explicitly names another branch or task ID.
+Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup`; use `T-272` for the next task unless the user explicitly names another branch or task ID.
 
 Active blocked task: T-157 is waiting on paid Apple Developer Program access before APNs secrets (`APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_TOPIC`, `APNS_PRIVATE_KEY`) and Edge Function deploy.
 
@@ -10,6 +10,7 @@ Active blocked task: T-157 is waiting on paid Apple Developer Program access bef
 
 | ID | Task | Status | Mode | Milestone | Files/Docs | Checks | Notes |
 |---|---|---|---|---|---|---|---|
+| T-271 | Customer profile actions, republish button, and Edit Pet form refinement | completed | Standard | M2 | Profile save placement/header; shared republish button; Edit Pet toolbar/profile typography/name limit; focused test | Profile/Pets/Requests/Bookings focused tests; iOS build; diff/preflight/context | Moves profile save into content, simplifies republish, centers Edit Pet in navigation, aligns compact profile fields, and rejects pet-name input beyond 80 characters while retaining native focus/cursor behavior. |
 | T-270 | Customer card depth, notification lifecycle, scrolling, and Edit Pet refinement | completed | Standard | M2 | 8pt card shadows; app scroll indicators; notification exit-read; request hint removal; annotated compact Edit Pet; choice restoration | Pets/Notifications/Requests focused tests; iOS build; diff/preflight/context | Constrains card shadows, hides vertical bars, defers notification read until exit, removes swipe copy, and makes Edit Pet compact, labeled, annotation-led, and selection-aware. |
 | T-269 | Customer Home, notification, closed-detail, and carousel polish | completed | Standard | M2 | Home header/bell; Home badge contract; cancelled detail visibility/order; carousel shadow token; focused tests | Requests and tab-badge focused tests; iOS build; diff/preflight/context | Removes the Home smile tile, aligns greeting copy, strengthens unread red, keeps notification totals on Home, hides Offers for closed details before republish, and strengthens horizontal-card bottom depth. |
 | T-268 | Customer cross-tab state, unread persistence, and notification consistency | completed | Standard | M2 | Shared Requests Store; three closed rows with pet avatars; chat read cache; notification auto-read/row redesign; focused tests | Requests/Chat/Notification focused tests; iOS build; diff/preflight/context | Cancellation updates Home immediately, recent closed requests use three avatar-backed rows, chat read markers survive relaunch, and opening Notifications marks loaded rows read without manual buttons or decorative row icons. |

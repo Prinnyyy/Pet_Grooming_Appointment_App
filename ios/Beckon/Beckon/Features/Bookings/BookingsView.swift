@@ -956,10 +956,8 @@ struct BookingDetailView: View {
                         if role == .customer,
                            booking.status.isCancellation,
                            let onCreateNewRequestFromCancelledBooking {
-                            CustomerRequestRepublishCard(
-                                title: "Create New Request",
-                                subtitle: "Start a new request from the original appointment details.",
-                                actionTitle: "Create New Request",
+                            CustomerRequestRepublishButton(
+                                actionTitle: "Create a New Request from This Booking",
                                 accessibilityIdentifier: "customer.bookings.republish",
                                 action: {
                                     onCreateNewRequestFromCancelledBooking(booking)

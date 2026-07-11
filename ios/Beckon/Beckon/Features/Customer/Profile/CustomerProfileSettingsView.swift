@@ -189,11 +189,6 @@ private struct CustomerProfileSettingsView: View {
     var body: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                BeckonSectionHeader(
-                    "Profile Settings",
-                    subtitle: "Manage the customer details used across your account."
-                )
-
                 CustomerAvatarEditorSection(store: store)
 
                 BeckonCard {
@@ -225,6 +220,16 @@ private struct CustomerProfileSettingsView: View {
                     }
                 }
 
+                Button {
+                    Task {
+                        await store.saveProfile()
+                    }
+                } label: {
+                    Text(store.isSaving ? "Saving..." : "Save Profile")
+                }
+                .buttonStyle(BeckonPrimaryButtonStyle(accent: .customer))
+                .disabled(store.isSaving || store.isUploading)
+
                 BeckonCard {
                     CustomerProfileAddressFields(
                         streetAddress: $store.streetAddress,
@@ -243,26 +248,12 @@ private struct CustomerProfileSettingsView: View {
             }
             .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
             .padding(.top, DesignTokens.Spacing.lg)
-            .padding(.bottom, 120)
+            .padding(.bottom, DesignTokens.Spacing.xl)
         }
         .background(DesignTokens.Colors.background.ignoresSafeArea())
         .navigationTitle("Profile Settings")
         .navigationBarTitleDisplayMode(.inline)
         .scrollDismissesKeyboard(.interactively)
-        .safeAreaInset(edge: .bottom) {
-            Button {
-                Task {
-                    await store.saveProfile()
-                }
-            } label: {
-                Text(store.isSaving ? "Saving..." : "Save Profile")
-            }
-            .buttonStyle(BeckonPrimaryButtonStyle(accent: .customer))
-            .disabled(store.isSaving || store.isUploading)
-            .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-            .padding(.vertical, DesignTokens.Spacing.md)
-            .background(.ultraThinMaterial)
-        }
         .background {
             CustomerProfileStatusView(store: store)
         }

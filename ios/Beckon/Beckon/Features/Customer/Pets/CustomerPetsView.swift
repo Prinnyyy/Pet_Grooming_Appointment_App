@@ -2,6 +2,14 @@ import PhotosUI
 import SwiftUI
 import UIKit
 
+nonisolated enum CustomerPetNameInput {
+    static let maximumLength = 80
+
+    static func acceptedValue(current: String, proposed: String) -> String {
+        proposed.count <= maximumLength ? proposed : current
+    }
+}
+
 struct CustomerPetsView: View {
     private let displayName: String
     private let customerProfileRepository: (any CustomerProfileRepository)?
@@ -717,11 +725,6 @@ private struct CustomerPetFormView: View {
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                        CustomerPetFormHero(
-                            title: store.formTitle,
-                            subtitle: "Keep the details groomers need before you start a request."
-                        )
-
                         BeckonAnnotatedModule(
                             "Profile",
                             subtitle: "Pet identity, avatar, breed, and coat details."
@@ -733,7 +736,8 @@ private struct CustomerPetFormView: View {
                                     CustomerPetFormLabeledTextField(
                                         title: "Name",
                                         placeholder: "Pet name",
-                                        text: $store.formName
+                                        text: limitedNameBinding,
+                                        allowsMultiline: false
                                     )
 
                                 CustomerPetFormChoiceRow(
@@ -816,8 +820,8 @@ private struct CustomerPetFormView: View {
 
                                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
                                     Text("Care Notes")
-                                        .font(DesignTokens.Typography.body.weight(.bold))
-                                        .foregroundStyle(DesignTokens.Colors.textPrimary)
+                                        .font(DesignTokens.Typography.caption)
+                                        .foregroundStyle(DesignTokens.Colors.textSecondary)
 
                                     CustomerPetFormLabeledTextField(
                                         title: "Medical Notes",
@@ -861,6 +865,11 @@ private struct CustomerPetFormView: View {
                     }
                     .disabled(store.isSaving)
                 }
+                ToolbarItem(placement: .principal) {
+                    Text(store.formTitle)
+                        .font(DesignTokens.Typography.headline)
+                        .foregroundStyle(DesignTokens.Colors.textPrimary)
+                }
             }
         }
         .interactiveDismissDisabled(store.isSaving)
@@ -893,6 +902,18 @@ private struct CustomerPetFormView: View {
         }
         return "\(Int(store.formWeightLbs.rounded())) lbs"
     }
+
+    private var limitedNameBinding: Binding<String> {
+        Binding(
+            get: { store.formName },
+            set: { newValue in
+                store.formName = CustomerPetNameInput.acceptedValue(
+                    current: store.formName,
+                    proposed: newValue
+                )
+            }
+        )
+    }
 }
 
 private struct CustomerPetFormPhotoModule: View {
@@ -902,7 +923,12 @@ private struct CustomerPetFormPhotoModule: View {
         HStack(spacing: DesignTokens.Spacing.lg) {
             CustomerPetFormAvatarPreview(data: store.formAvatarPhotoData)
             Spacer(minLength: DesignTokens.Spacing.md)
-            CustomerPetFormPhotoPicker(store: store)
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                Text("Pet Photo")
+                    .font(DesignTokens.Typography.caption)
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                CustomerPetFormPhotoPicker(store: store)
+            }
         }
         .frame(maxWidth: .infinity)
     }
@@ -931,25 +957,6 @@ private struct CustomerPetFormAvatarPreview: View {
     }
 }
 
-private struct CustomerPetFormHero: View {
-    let title: String
-    let subtitle: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            Text(title)
-                .font(.system(size: 34, weight: .bold))
-                .foregroundStyle(DesignTokens.Colors.textPrimary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Text(subtitle)
-                .font(DesignTokens.Typography.body)
-                .foregroundStyle(DesignTokens.Colors.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-    }
-}
-
 private struct CustomerPetFormChoiceRow<Content: View>: View {
     let title: String
     let subtitle: String
@@ -969,8 +976,8 @@ private struct CustomerPetFormChoiceRow<Content: View>: View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
             HStack(alignment: .firstTextBaseline) {
                 Text(title)
-                    .font(DesignTokens.Typography.body.weight(.bold))
-                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+                    .font(DesignTokens.Typography.caption)
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
 
                 Spacer(minLength: DesignTokens.Spacing.md)
 
@@ -1048,6 +1055,7 @@ private struct CustomerPetFormLabeledTextField: View {
     let title: String
     let placeholder: String
     @Binding var text: String
+    var allowsMultiline = true
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
@@ -1055,8 +1063,12 @@ private struct CustomerPetFormLabeledTextField: View {
                 .font(DesignTokens.Typography.caption.weight(.bold))
                 .foregroundStyle(DesignTokens.Colors.textSecondary)
 
-            TextField(placeholder, text: $text, axis: .vertical)
-                .lineLimit(2...5)
+            TextField(
+                placeholder,
+                text: $text,
+                axis: allowsMultiline ? .vertical : .horizontal
+            )
+                .lineLimit(allowsMultiline ? 2...5 : 1...1)
                 .beckonFormField()
         }
     }
