@@ -26,7 +26,7 @@ struct CustomerPetPhotoPathTests {
 struct CustomerPetsStoreTests {
     @Test
     func petNameInputRejectsCharactersBeyondItsHiddenLimit() {
-        let accepted = String(repeating: "a", count: 80)
+        let accepted = String(repeating: "a", count: 20)
         let rejected = accepted + "b"
 
         #expect(CustomerPetNameInput.acceptedValue(current: "Milo", proposed: accepted) == accepted)

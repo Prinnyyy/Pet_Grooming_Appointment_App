@@ -3,7 +3,7 @@ import SwiftUI
 import UIKit
 
 nonisolated enum CustomerPetNameInput {
-    static let maximumLength = 80
+    static let maximumLength = 20
 
     static func acceptedValue(current: String, proposed: String) -> String {
         proposed.count <= maximumLength ? proposed : current
@@ -716,6 +716,7 @@ private struct CustomerHomeInlineEmptyText: View {
 
 private struct CustomerPetFormView: View {
     @Bindable var store: CustomerPetsStore
+    @State private var isNameLimitFlashing = false
 
     var body: some View {
         NavigationStack {
@@ -738,7 +739,8 @@ private struct CustomerPetFormView: View {
                                             title: "Name",
                                             placeholder: "Pet name",
                                             text: limitedNameBinding,
-                                            allowsMultiline: false
+                                            allowsMultiline: false,
+                                            isInvalid: isNameLimitFlashing
                                         )
 
                                         CustomerPetFormChoiceRow(
@@ -909,12 +911,28 @@ private struct CustomerPetFormView: View {
         Binding(
             get: { store.formName },
             set: { newValue in
+                guard newValue.count <= CustomerPetNameInput.maximumLength else {
+                    flashNameLimit()
+                    return
+                }
                 store.formName = CustomerPetNameInput.acceptedValue(
                     current: store.formName,
                     proposed: newValue
                 )
             }
         )
+    }
+
+    private func flashNameLimit() {
+        withAnimation(.easeOut(duration: 0.12)) {
+            isNameLimitFlashing = true
+        }
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(320))
+            withAnimation(.easeIn(duration: 0.18)) {
+                isNameLimitFlashing = false
+            }
+        }
     }
 }
 
@@ -924,7 +942,18 @@ private struct CustomerPetFormPhotoModule: View {
     var body: some View {
         BeckonCard {
             HStack(alignment: .center, spacing: DesignTokens.Spacing.lg) {
-                CustomerPetFormAvatarPreview(data: store.formAvatarPhotoData)
+                ZStack(alignment: .bottomTrailing) {
+                    CustomerPetFormAvatarPreview(data: store.formAvatarPhotoData)
+
+                    if store.formAvatarPhotoData != nil {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 22, weight: .bold))
+                            .foregroundStyle(DesignTokens.Colors.success)
+                            .background(Circle().fill(DesignTokens.Colors.surface))
+                            .accessibilityLabel("Pet photo saved")
+                    }
+                }
+                .accessibilityHidden(true)
 
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                     VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
@@ -964,7 +993,7 @@ private struct CustomerPetFormAvatarPreview: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(DesignTokens.Colors.customerPrimary.opacity(0.16))
         }
-        .frame(width: 76, height: 76)
+        .frame(width: 96, height: 96)
         .background(DesignTokens.Colors.customerPrimary.opacity(0.12))
         .clipShape(DesignTokens.Shapes.circular)
         .overlay {
@@ -1075,6 +1104,7 @@ private struct CustomerPetFormLabeledTextField: View {
     let placeholder: String
     @Binding var text: String
     var allowsMultiline = true
+    var isInvalid = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
@@ -1088,7 +1118,7 @@ private struct CustomerPetFormLabeledTextField: View {
                 axis: allowsMultiline ? .vertical : .horizontal
             )
                 .lineLimit(allowsMultiline ? 2...5 : 1...1)
-                .beckonFormField()
+                .beckonFormField(isInvalid: isInvalid)
         }
     }
 }
@@ -1104,7 +1134,7 @@ private struct CustomerPetWeightControl: View {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     Text("Weight")
                         .font(CustomerPetFormTypography.fieldLabel)
-                        .foregroundStyle(DesignTokens.Colors.textPrimary)
+                        .foregroundStyle(DesignTokens.Colors.textSecondary)
 
                     Text("Size is calculated automatically")
                         .font(CustomerPetFormTypography.supporting)
@@ -1115,7 +1145,7 @@ private struct CustomerPetWeightControl: View {
 
                 VStack(alignment: .trailing, spacing: DesignTokens.Spacing.xs) {
                     Text(weightText)
-                        .font(DesignTokens.Typography.headline)
+                        .font(CustomerPetFormTypography.fieldValue)
                         .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
 
                     Text(sizeTitle)
@@ -1138,7 +1168,7 @@ private struct CustomerPetBirthdayControl: View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
             Toggle("Birthday Known", isOn: $isKnown)
                 .font(CustomerPetFormTypography.fieldLabel)
-                .foregroundStyle(DesignTokens.Colors.textPrimary)
+                .foregroundStyle(DesignTokens.Colors.textSecondary)
                 .tint(DesignTokens.Colors.customerPrimary)
 
             if isKnown {
@@ -1149,6 +1179,7 @@ private struct CustomerPetBirthdayControl: View {
                     displayedComponents: .date
                 )
                 .datePickerStyle(.compact)
+                .font(CustomerPetFormTypography.fieldValue)
             }
         }
     }
@@ -1170,7 +1201,17 @@ private struct CustomerPetFormBottomBar: View {
             .disabled(store.isSaving)
             .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
             .padding(.vertical, DesignTokens.Spacing.md)
-            .background(.ultraThinMaterial)
+            .background(
+                LinearGradient(
+                    colors: [
+                        DesignTokens.Colors.background.opacity(0.2),
+                        DesignTokens.Colors.background,
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .ignoresSafeArea()
+            )
         }
     }
 }
@@ -1180,7 +1221,7 @@ private struct CustomerPetFormPhotoPicker: View {
     @State private var selectedPhotoItem: PhotosPickerItem?
 
     var body: some View {
-        let avatarActionTitle = store.formAvatarPhotoData == nil ? "Choose Avatar" : "Change Avatar"
+        let avatarActionTitle = store.formAvatarPhotoData == nil ? "Upload Photo" : "Replace Photo"
 
         PhotosPicker(
             selection: $selectedPhotoItem,
@@ -1188,7 +1229,7 @@ private struct CustomerPetFormPhotoPicker: View {
         ) {
             Label(
                 avatarActionTitle,
-                systemImage: "camera.fill"
+                systemImage: "camera"
             )
                 .lineLimit(1)
         }

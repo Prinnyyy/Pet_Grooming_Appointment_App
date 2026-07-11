@@ -15,7 +15,7 @@ private struct BeckonFormFieldModifier: ViewModifier {
         content
             .font(DesignTokens.Typography.body)
             .foregroundStyle(DesignTokens.Colors.textPrimary)
-            .tint(DesignTokens.Colors.customerPrimaryDark)
+            .tint(isInvalid ? DesignTokens.Colors.error : DesignTokens.Colors.customerPrimaryDark)
             .padding(.horizontal, DesignTokens.Spacing.lg)
             .padding(.vertical, DesignTokens.Spacing.md)
             .frame(minHeight: 52)

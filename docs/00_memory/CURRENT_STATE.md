@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-11
 - Updated by: Codex
-- Latest completed task: T-273 periodic documentation-governance meta-review.
+- Latest completed task: T-274 Customer Edit Pet photo/action/typography and carousel-shadow refinement.
 - Current task: none; T-157 APNs remains externally blocked and Q-104 Dynamic Type/Accessibility remains user-deferred.
-- Next task ID: use T-274 for the requested Customer Edit Pet follow-up. Q-104 remains deferred until the user restores its Dynamic Type/Accessibility scope.
+- Next task ID: use T-275. Q-104 remains deferred until the user restores its Dynamic Type/Accessibility scope.
 
 ## Fast Path
 
@@ -61,6 +61,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - T-270 limits shared card shadows to 8pt, hides vertical scroll indicators app-wide, removes request swipe hints, marks Customer Notifications read on page exit, and reorganizes Edit Pet into annotated Profile/Details cards with a compact integrated avatar, labeled name, and selected horizontal options restored to leading visibility.
 - T-271 removes duplicate Customer Profile/Edit Pet page headers, moves Save Profile into scroll content, simplifies republish into a shared template/booking button, centers Edit Pet in the toolbar, aligns pet profile field typography with Customer Profile, and enforces a hidden 80-character single-line pet-name limit without dropping focus.
 - T-272 separates the Edit Pet photo into its own card within Pet Profile, standardizes form text roles, keeps selected chip borders inside their bounds, and places Save Profile after every Profile Settings content module.
+- T-274 brings Edit Pet photo layout/actions into parity with Profile Settings, aligns Details text roles, applies the Request Wizard gradient action bar, limits pet names to 20 characters with red rejection feedback, and contains horizontal request-card shadows inside their scrollers.
 - T-259 makes one `T-###` per fresh session the default, reserves full iOS tests and batched visual evidence for integration/high-risk gates, and requires clean task or checkpoint commits at session boundaries.
 - T-260 adopts UI-R1 through UI-R8 and A11Y-R1 through A11Y-R10 as the active design contract, including approved light-palette contrast pairs and a per-slice accessibility Definition of Done. Token and primitive implementation remains a separate follow-up code task; Q-104 is unchanged.
 - T-244 normalizes the rotated Worklog EOF to one newline.
@@ -126,4 +127,4 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Next Recommended Task
 
-- Use T-274 for the requested Customer Edit Pet follow-up covering photo parity, Details typography, bottom action gradient, 20-character name feedback, and carousel-shadow containment. Q-104 remains user-deferred.
+- Q-104 Groomer UI Dynamic Type/Accessibility remains the next dependency-satisfied package only when the user restores that scope.

@@ -2,12 +2,21 @@
 
 ```text
 Date: 2026-07-11
+Task: T-274 - Customer Edit Pet photo/action/typography and carousel-shadow refinement.
+Files changed: Shared form-field cursor tint; Edit Pet photo card, Details text roles, name limiter, save bar; Customer Request carousel containment; focused test; memory closeout.
+Checks: Customer Pets focused tests; `./scripts/ios-build.sh`; `git diff --check`; preflight/context hygiene.
+Result: Pet Photo now matches Profile Settings with a 96pt avatar, saved check, matching text hierarchy, and Upload/Replace Photo action. Details follows the same field-label/value/supporting roles. Save Pet uses the Request Wizard gradient footer. Names stop at 20 characters and flash the field/cursor red on rejected input. Request carousel shadows stay inside internal scroll padding.
+Risks: Visual acceptance remains with the user; no screenshot self-review was performed. Upload, cache, persistence, backend, and remote state are unchanged.
+Next: Use T-275 for the next user-selected task; Q-104 remains deferred.
+```
+
+```text
+Date: 2026-07-11
 Task: T-273 - Periodic meta-review.
 Files changed: Current-state, task-ledger, and worklog closeout only.
 Checks: Branch/status/diff; 62-file migration mirror and contract; root Markdown/conflict-marker audit; `node scripts/context-hygiene-check.mjs`; `git diff --check`.
 Result: Active branch/task facts, migration count, links, ignore behavior, and rolling context windows align. No documentation structure or workflow correction was needed. The user's Edit Pet follow-up is preserved as T-274.
 Risks: Root external reports remain review input under existing rules. No app, backend, Supabase, or remote state changed.
-Next: Use T-274 for the requested Customer Edit Pet follow-up; Q-104 remains deferred.
 ```
 
 ```text

@@ -60,13 +60,12 @@ struct CustomerRequestProgressCarousel: View {
                             .id(card.request.id)
                         }
                     }
+                    .padding(.vertical, DesignTokens.Spacing.sm)
                     .scrollTargetLayout()
                 }
                 .contentMargins(.horizontal, DesignTokens.Spacing.screenHorizontal, for: .scrollContent)
                 .padding(.horizontal, -DesignTokens.Spacing.screenHorizontal)
-                .padding(.vertical, DesignTokens.Spacing.sm)
                 .scrollIndicators(.hidden)
-                .scrollClipDisabled()
                 .scrollTargetBehavior(.viewAligned)
                 .onAppear {
                     scrollToFocusedRequest(using: proxy)
@@ -119,13 +118,12 @@ struct CustomerRequestActionCardSummaryCarousel: View {
                             }
                     }
                 }
+                .padding(.vertical, DesignTokens.Spacing.sm)
                 .scrollTargetLayout()
             }
             .contentMargins(.horizontal, DesignTokens.Spacing.screenHorizontal, for: .scrollContent)
             .padding(.horizontal, -DesignTokens.Spacing.screenHorizontal)
-            .padding(.vertical, DesignTokens.Spacing.sm)
             .scrollIndicators(.hidden)
-            .scrollClipDisabled()
             .scrollTargetBehavior(.viewAligned)
 
         }
