@@ -1,6 +1,6 @@
 # Feature Index
 
-Last verified: 2026-07-10.
+Last verified: 2026-07-11.
 
 Use this as a routing index for one active task. It is not task history. For detailed trace, search `WORKLOG.md`, `TASK_LEDGER.md`, or frozen task records.
 

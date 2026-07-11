@@ -2,7 +2,7 @@
 
 Track only current, blocked, and recent tasks here so Codex does not continue automatically. Older completed rows through T-190 are archived under `docs/09_frozen/task_ledgers/`; active blocked T-157 remains below. Notes should keep conclusions and pointers only; validation detail belongs in `docs/00_memory/WORKLOG.md` or frozen worklogs. Detailed task records T-001 through T-088 and workflow task records remain archived under `docs/09_frozen/task_records_2026-06-26/`.
 
-Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup`; use `T-262` for the next task unless the user explicitly names another branch or task ID.
+Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup`; use `T-263` for the next task unless the user explicitly names another branch or task ID.
 
 Active blocked task: T-157 is waiting on paid Apple Developer Program access before APNs secrets (`APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_TOPIC`, `APNS_PRIVATE_KEY`) and Edge Function deploy.
 
@@ -10,6 +10,8 @@ Active blocked task: T-157 is waiting on paid Apple Developer Program access bef
 
 | ID | Task | Status | Mode | Milestone | Files/Docs | Checks | Notes |
 |---|---|---|---|---|---|---|---|
+| T-263 | Customer Home, Bookings, and Requests consistency fixes | planned | Standard | M2 | Customer next-booking image; booking time grouping; recent closed requests | Pending | Restore Groomer avatar rendering in Customer Home next booking, classify elapsed upcoming bookings as past, and show only the five newest closed requests under a Recent Closed Requests heading. |
+| T-262 | Periodic meta-review | completed | Quick | G0 | Active indexes; branch/task/migration/root/ignore audit; memory closeout | 25 context tests; branch/head; 60 migrations; diff/context hygiene | Active sources align; T-157 remains blocked and Q-104 remains user-deferred. External UI-design commit labels do not override ledger numbering. T-263 is the next approved product task. |
 | T-261 | Authentication landing action placement and Accessibility audit | completed | Standard | G0 | Authentication landing layout; focused Accessibility review; task closeout | `git diff --check`; iOS build | Anchors the Get Started action group above the bottom safe area with flexible middle spacing and raises the secondary action target to 44pt. Labels, scrolling, Reduce Motion, decorative-image semantics, typography, and contrast-token usage were reviewed. No Simulator screenshot review by Codex per user direction. |
 | T-260 | UI design rules and accessibility groundwork adoption | completed | Quick | G0 | Design-system contract; screenshot task template; archived external review; memory closeout | `git diff --check`; context hygiene | Adopts UI-R1..R8, A11Y-R1..R10, approved light-palette contrast pairs, and per-slice accessibility DoD. Token/primitive code is deferred to a separate task; R-039/Q-104 and backend are unchanged. |
 | T-259 | Session-per-task context and quota governance | completed | Quick | G0 | Agent/workflow/Git/context/ignore rules; D-028; memory closeout; archived external plan | `git diff --check`; context hygiene | Makes one task per session and clean task/checkpoint commits the default boundary. Standard slices use focused tests plus one build; full suites and visual evidence move to package/high-risk gates. No app/backend/remote change. |

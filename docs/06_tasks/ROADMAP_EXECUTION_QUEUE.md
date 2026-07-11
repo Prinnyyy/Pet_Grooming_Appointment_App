@@ -1,6 +1,6 @@
 # Roadmap Execution Queue
 
-Last verified: 2026-07-10.
+Last verified: 2026-07-11.
 
 Purpose: convert `ROADMAP.md` candidates into adoptable packages. This file does not assign `T-###` IDs. Each adopted package uses the next ID from `TASK_LEDGER.md`, one primary package per run.
 

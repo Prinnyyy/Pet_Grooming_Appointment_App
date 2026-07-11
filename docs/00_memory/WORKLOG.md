@@ -2,6 +2,15 @@
 
 ```text
 Date: 2026-07-11
+Task: T-262 - Periodic meta-review.
+Files changed: Current state, feature index, roadmap/queue verification markers, task ledger, and Worklog.
+Checks: Branch/local-remote HEAD; 60-file migration mirror; root Markdown and `.rgignore` audit; 25 context tests; `git diff --check`; context hygiene.
+Result: Active branch, task, roadmap, feature, migration, and workflow facts align. T-157 remains externally blocked, Q-104 remains user-deferred, and T-263 is reserved for the reported Customer Home/Bookings/Requests fixes.
+Risks: Historical external UI-design commit labels resemble governed task IDs but do not override the active ledger. No app, backend, migration, or remote state changed.
+```
+
+```text
+Date: 2026-07-11
 Task: T-261 - Authentication landing action placement and Accessibility audit.
 Files changed: Authentication landing layout, secondary action tap target, and task closeout.
 Checks: `git diff --check`; `./scripts/ios-build.sh`.

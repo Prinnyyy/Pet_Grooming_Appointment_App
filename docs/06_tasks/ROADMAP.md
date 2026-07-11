@@ -1,6 +1,6 @@
 # Managed Roadmap
 
-Last verified: 2026-07-10.
+Last verified: 2026-07-11.
 
 This is the governed planning index. It summarizes approved direction and candidate work without assigning task IDs. Adoptable execution packages live in `ROADMAP_EXECUTION_QUEUE.md`. Task status stays in `TASK_LEDGER.md`; current branch, validation, and risks stay in `../00_memory/CURRENT_STATE.md`.
 
