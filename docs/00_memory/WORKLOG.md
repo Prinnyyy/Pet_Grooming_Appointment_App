@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-07-11
+Task: T-285 - Automatic meta-review chaining and compaction boundary.
+Files changed: AGENTS and active workflow/context/meta-review rules; D-029; task/current-state/worklog closeout.
+Checks: Rule diff review; `git diff --check`; `node scripts/context-hygiene-check.mjs`; preflight.
+Result: When a completed task makes the immediate next task a required periodic meta-review, Codex now finishes the first task's own commit/push and automatically executes the reserved review without waiting for another user message. The review remains a separate task and commit. Every completed meta-review creates a mandatory compaction boundary.
+Risks: The current Codex desktop toolset exposes no callable context-compaction API. In that environment the agent must emit an explicit `/compact` handoff and stop; it cannot truthfully claim that an assistant-authored text command compacted the host conversation. Address-input implementation is preserved as T-286.
+Next: Use T-286 for Customer Request address input validation rules, overlay autocomplete that does not reflow content, and outside-tap dismissal.
+```
+
+```text
+Date: 2026-07-11
 Task: T-284 - Periodic meta-review.
 Files changed: Current-state migration/meta-review markers; Feature Index Pet Name contract; task-ledger closeout; worklog closeout.
 Checks: Branch/status/recent history; 63-file migration mirror; active roadmap/index/task/current-state consistency; root Markdown ignore state; conflict-marker scan; `node scripts/context-hygiene-check.mjs`; `git diff --check`.

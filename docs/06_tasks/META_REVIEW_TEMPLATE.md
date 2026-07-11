@@ -8,6 +8,8 @@ Run one meta-review task every 10 completed tasks or once per week, whichever co
 
 When the tenth task closes, `context-hygiene-check.mjs` permits that closeout only if `CURRENT_STATE.md` explicitly reserves the immediate next task for the required periodic meta-review. The reserved task must run next. An unscheduled tenth-task gap or any gap greater than ten still fails.
 
+The triggering task finishes its own validation, closeout, commit, and push first. Codex then starts the reserved meta-review automatically in the same run without waiting for another user message. This is the only exception to the one-task-per-session default; the two tasks must remain separate commits.
+
 ## Scope
 
 - Active Markdown structure, links, budgets, and `.rgignore` behavior.
@@ -35,3 +37,5 @@ Update `docs/00_memory/CURRENT_STATE.md` with:
 ```text
 - Last meta-review: T-### on YYYY-MM-DD.
 ```
+
+After the meta-review passes hygiene and its commit/push completes, write a compact recovery checkpoint and invoke host compaction. If no callable compaction control exists, emit an explicit `/compact` handoff and stop without starting the next implementation task. Never claim the conversation was compacted when the host did not expose that operation.

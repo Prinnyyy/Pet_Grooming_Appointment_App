@@ -2,7 +2,7 @@
 
 ## Mission
 
-iOS SwiftUI project. Codex makes small, reversible changes and completes one primary task per run.
+iOS SwiftUI project. Codex makes small, reversible changes and completes one primary task per run, except for the required automatic periodic meta-review handoff.
 
 ## Active Workflow
 
@@ -35,8 +35,8 @@ Root-level or external-agent status/roadmap Markdown is review input only. Activ
 - Work branch baseline comes from `docs/00_memory/CURRENT_STATE.md`; do not continue work from another branch unless the user names it.
 - Use the next available task ID from `docs/06_tasks/TASK_LEDGER.md` for new bugfix or iteration work.
 - If branch, task ID, or status evidence conflicts, verify `CURRENT_STATE.md` plus `TASK_LEDGER.md`; never infer from stale task files, archives, or external reports.
-- One primary task only. Do not start adjacent features, broad refactors, or unrelated cleanup.
-- One `T-###` task per session; end the session after closeout (see `docs/05_workflow/SINGLE_AGENT_WORKFLOW.md`, Session Budget Rules).
+- One primary task only. Do not start adjacent features, broad refactors, or unrelated cleanup. The only automatic second task allowed is an immediately due periodic meta-review.
+- One `T-###` task per session by default. If closing a task makes the next task the required periodic meta-review, commit and push the first task, then execute that reserved meta-review immediately with its own task ID and commit before ending the session (see `docs/05_workflow/SINGLE_AGENT_WORKFLOW.md`).
 - Make a short plan before non-trivial edits.
 - Changes to `AGENTS.md`, `CLAUDE.md`, or `docs/05_workflow/**` must be a standalone task with a decision-log entry and context hygiene.
 - Keep SwiftUI views thin and route business logic through Store/ViewModel/repository boundaries.
@@ -76,7 +76,7 @@ After durable memory or task-ledger changes, run context hygiene. Word/reference
 
 When moving, deleting, or archiving Markdown, update linked indexes, source-of-truth notes, and ignore/search rules in the same change.
 
-Manual compaction follows the 353,000-token thresholds in `CONTEXT_AND_RECOVERY.md`; Markdown word telemetry never triggers it. Before `/compact`, write a concise checkpoint with task ID/status, files changed, validation, risks, and next context. Stop when the requested task is complete.
+Manual compaction follows the 353,000-token thresholds in `CONTEXT_AND_RECOVERY.md`; Markdown word telemetry never triggers it. A completed periodic meta-review is an additional mandatory compaction boundary. Before `/compact`, write a concise checkpoint with task ID/status, files changed, validation, risks, and next context. Invoke host compaction when callable; otherwise emit an explicit `/compact` handoff and stop without starting another task.
 
 ## Recovery
 

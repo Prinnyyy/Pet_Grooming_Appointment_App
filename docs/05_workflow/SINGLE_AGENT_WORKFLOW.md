@@ -4,7 +4,7 @@ Default workflow for this repository. It keeps each run bounded, recoverable, an
 
 ## Core Rules
 
-- Complete one primary task per run, and one `T-###` task per session: start each task in a fresh session, and end the session after its closeout. Do not start another task, package, or follow-up fix in the same session.
+- Complete one primary task per run, and one `T-###` task per session by default. The sole exception is an immediately due periodic meta-review, which runs automatically after the triggering task closes and uses its own task ID, closeout, commit, and push.
 - Preserve user work and inspect `git status --short` before edits.
 - Use targeted context only; access tiers live in `CONTEXT_AND_RECOVERY.md`.
 - Do not start adjacent features, broad refactors, seeds, unrelated cleanup, or non-Git remote writes unless explicitly requested.
@@ -27,8 +27,9 @@ Default workflow for this repository. It keeps each run bounded, recoverable, an
 9. Run context hygiene if durable memory or task ledgers changed; resolve entry-count overflow with one `node scripts/context-rotate.mjs --apply` batch before closeout.
 10. Launch the simulator only when required.
 11. Create a task-scoped commit and push the current branch when completion and validation have passed.
-12. Write a checkpoint before manual compaction.
-13. Stop and end the session; the next task starts in a fresh session.
+12. If this closeout makes the numerically next task the required periodic meta-review, reserve it, finish the current task's commit/push, and execute the meta-review immediately without waiting for another user message.
+13. After a periodic meta-review closes, write a compaction checkpoint and invoke host compaction. If the host exposes no callable compaction control, emit an explicit `/compact` handoff and stop; do not begin the next implementation task.
+14. Otherwise, write a checkpoint before any threshold-driven manual compaction, then stop and end the session; the next task starts in a fresh session.
 
 ## Modes
 
@@ -87,7 +88,7 @@ This standing approval does not authorize PR creation, tags, branch deletion, me
 
 Per-turn cost scales with the current conversation size, so session length is a budget rule, not only a context-window concern.
 
-- One `T-###` per session. After closeout, commit/push, and hygiene, end the session.
+- One `T-###` per session, except for the automatic immediately due periodic meta-review. The triggering task and meta-review remain separate commits and neither may absorb feature work from the other.
 - A session may continue the same interrupted task, never a second task.
 - If an in-flight task approaches the 65% boundary, prefer: write a checkpoint, make a checkpoint commit, end the session, and resume the same task in a fresh session via the Recovery steps in `CONTEXT_AND_RECOVERY.md`. In-place `/compact` is the fallback, not the default.
 - Session end requires a clean tree: the task commit exists, or remaining changes are committed as a checkpoint commit (`GITHUB_RULES.md` format). Never leave unattributed modified files across a session boundary; never use `git stash` as a session-boundary mechanism.
@@ -137,7 +138,7 @@ Stop before:
 
 ## Compaction
 
-Session end at the task boundary is the default context reset; manual `/compact` is the fallback for a single oversized in-flight task and follows the 353,000-token 65%/80% thresholds in `CONTEXT_AND_RECOVERY.md`. Markdown word telemetry never triggers it. Before compaction or a checkpoint-based session end, write a checkpoint with task ID/status, files changed, validation, key decisions, risks, and next context.
+Session end at the task boundary is the default context reset; manual `/compact` is the fallback for a single oversized in-flight task and follows the 353,000-token 65%/80% thresholds in `CONTEXT_AND_RECOVERY.md`. Completing a periodic meta-review always creates a compaction boundary regardless of token percentage. Before compaction or a checkpoint-based session end, write a checkpoint with task ID/status, files changed, validation, key decisions, risks, and next context. Invoke host compaction when callable; otherwise hand off `/compact` explicitly and stop.
 
 ## Reporting
 

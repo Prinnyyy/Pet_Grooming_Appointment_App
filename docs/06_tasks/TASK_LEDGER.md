@@ -2,7 +2,7 @@
 
 Track only current, blocked, and recent tasks here so Codex does not continue automatically. Older completed rows through T-190 are archived under `docs/09_frozen/task_ledgers/`; active blocked T-157 remains below. Notes should keep conclusions and pointers only; validation detail belongs in `docs/00_memory/WORKLOG.md` or frozen worklogs. Detailed task records T-001 through T-088 and workflow task records remain archived under `docs/09_frozen/task_records_2026-06-26/`.
 
-Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup`; use `T-285` for the next Customer Request address input rules and overlay autocomplete task.
+Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup`; use `T-286` for the next Customer Request address input rules and overlay autocomplete task.
 
 Active blocked task: T-157 is waiting on paid Apple Developer Program access before APNs secrets (`APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_TOPIC`, `APNS_PRIVATE_KEY`) and Edge Function deploy.
 
@@ -10,6 +10,7 @@ Active blocked task: T-157 is waiting on paid Apple Developer Program access bef
 
 | ID | Task | Status | Mode | Milestone | Files/Docs | Checks | Notes |
 |---|---|---|---|---|---|---|---|
+| T-285 | Automatic meta-review chaining and compaction boundary | completed | Quick | G0 | Agent/workflow/context/meta-review rules; D-029; memory closeout | Rule diff; context hygiene; diff/preflight | Due meta-reviews now run automatically after the triggering task as a separate commit. Review closeout invokes host compaction when callable; otherwise it emits `/compact` and stops without falsely claiming completion. Address-input work moves intact to T-286. |
 | T-284 | Periodic meta-review | completed | Quick | G0 | Active branch/task/memory/backend/index audit; current-fact corrections; memory closeout | Branch/status/history; 63-migration mirror; root/ignore/conflict checks; context hygiene; diff | Branch/task/migration facts align. Corrected the stale last-migration marker and Pet Name limit; ignored external root reports remain outside active truth. T-285 preserves the requested Customer Request address-input work. |
 | T-283 | Groomer Availability save and Request match recovery | completed | Deep | M2 | Avatar relationship RLS helper/policies; migration tests; memory closeout | Remote diagnosis; migration/Matching tests; Supabase checks/push/rollback verification/advisors; full iOS tests/build; diff/preflight/context | Fixes the T-263 profiles/bookings/groomer_profiles RLS recursion while preserving customer avatar access. Availability saves can update the Groomer profile again, and the existing T-155 availability trigger was remotely proven to backfill a newly eligible open Request. |
 | T-282 | Reusable pre-edit text-length interception | completed | Standard | M2 | UIKit delegate-backed limited field; Pet Name adoption; Request street/city/ZIP adoption; limit tests; memory closeout | Customer Pets/Requests focused tests; iOS build; diff/preflight/context | Intercepts each proposed edit before UIKit applies it, supports partial paste up to the remaining capacity, and flashes the shared field/cursor red on rejected overflow. Limits: pet name 20, street 160, city 100, ZIP 5. |

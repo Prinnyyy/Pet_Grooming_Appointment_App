@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-11
 - Updated by: Codex
-- Latest completed task: T-284 periodic meta-review.
+- Latest completed task: T-285 automatic meta-review chaining and compaction boundary.
 - Current task: none; T-157 APNs remains externally blocked and Q-104 Dynamic Type/Accessibility remains user-deferred.
-- Next task ID: use T-285 for Customer Request address input rules and overlay autocomplete behavior. Q-104 remains deferred until the user restores its Dynamic Type/Accessibility scope.
+- Next task ID: use T-286 for Customer Request address input rules and overlay autocomplete behavior. Q-104 remains deferred until the user restores its Dynamic Type/Accessibility scope.
 
 ## Fast Path
 
@@ -105,6 +105,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - T-180 records standing user approval for task-completion Git commit and push. This approval is limited to current-task changes after validation passes; T-186 requires stopping without auto pull/rebase/merge/reset/force-push if the push fails or is rejected.
 - T-245 makes word counts informational only; Ledger uses 18/12, Worklog and active decisions use 14/8, and decision archive pointers use 12/6 trigger/retain windows. Manual compaction follows 65%/80% boundaries against the 353,000-token context.
 - T-259 makes session end the default task-boundary context reset; the 65%/80% thresholds now govern only an oversized in-flight task, with checkpoint-and-resume preferred over in-place compaction.
+- T-285 makes an immediately due periodic meta-review the sole automatic second task after a normal closeout. Each task keeps a separate commit; completed meta-reviews invoke callable host compaction or stop with an explicit `/compact` handoff when the host exposes no compaction API.
 - Main reconciliation: `2fddf7b` is reviewed/superseded; carry this branch's governed docs forward.
 - Decision log is an active index backed by frozen snapshots. The pre-T-174 full text lives in `docs/09_frozen/decisions/DECISION_LOG_2026-07-08_PRE_T174_TRIM.md`.
 - Default `rg` searches honor `.rgignore`; do not use broad `rg --files -g '*.md'` as the default Markdown inventory.

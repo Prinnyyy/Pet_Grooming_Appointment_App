@@ -18,6 +18,15 @@ Linked files:
 ## Active Decisions
 
 ```text
+Decision ID: D-029
+Date: 2026-07-11
+Decision: Automatically chain an immediately due periodic meta-review after the triggering task, then require a conversation-compaction boundary.
+Context: The previous reservation rule prevented a two-task commit deadlock but still required another user turn before the reserved review ran. The user now requires due reviews to execute automatically and every completed meta-review to be followed by context compaction.
+Consequences: The triggering task and meta-review retain separate task IDs, validation, closeouts, commits, and pushes; this is the only automatic exception to one task per session. After meta-review closeout, Codex invokes host compaction when callable. If the host provides no compaction API, Codex emits an explicit /compact handoff, states that compaction is pending, and stops before any implementation task.
+Linked files: AGENTS.md, docs/05_workflow/SINGLE_AGENT_WORKFLOW.md, docs/05_workflow/CONTEXT_AND_RECOVERY.md, docs/06_tasks/META_REVIEW_TEMPLATE.md
+```
+
+```text
 Decision ID: D-028
 Date: 2026-07-10
 Decision: Use one T-### task per session, with session end as the default context reset and manual compaction as fallback for one oversized task.

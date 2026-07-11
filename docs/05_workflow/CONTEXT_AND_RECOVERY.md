@@ -131,4 +131,6 @@ The model context reference is 353,000 tokens. The default context reset is endi
 
 Repository rules cannot control automatic platform compaction. These thresholds govern only agent-requested compaction.
 
+Periodic meta-review closeout is a mandatory agent-requested compaction boundary independent of these thresholds. After the review has passed hygiene and its commit/push is complete, write the minimum checkpoint and invoke a callable host compaction control. If the current host exposes no such control, emit an explicit `/compact` handoff and end the session; do not claim compaction occurred and do not start the next task before the host/user performs it.
+
 Minimum checkpoint fields: task ID/status, files changed or inspected, validation attempted/deferred, key decisions or evidence, known risks, next context needed.
