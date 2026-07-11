@@ -36,6 +36,7 @@
 | `BeckonDefaultProfileAvatar` | View | 同上 | Auth/Customer/Groomer约3个文件 | customer/groomer tone、symbol size | 两角色placeholder | 是 | 高 |
 | `BeckonModuleImageLayout` | enum | 同上 | `BeckonModuleImage`调用点 | fill/fit等layout | layout variants | 是 | 中 |
 | `FeaturePlaceholderView` | View | `DesignSystem/FeaturePlaceholderView.swift` | role tab依赖缺失fallback（2个tab文件） | title/message/symbol/accent | customer/groomer placeholder | 是但正常production依赖完整时不出现 | 低：fallback，不是业务组件 |
+| `foregroundRefreshable` / `ForegroundRefreshModifier` | View extension + private ViewModifier | `Core/Infrastructure/ForegroundRefreshGate.swift` | Home、Requests、Bookings、Chat等前台刷新页面 | async action | initial load、active refresh、deduplicated in-flight | 是（7个调用点） | 高：生命周期行为组件 |
 
 ### Feature 内具有复用价值的组件
 
@@ -76,8 +77,9 @@
 | `CustomerProfileTextField` | View | Customer Profile file | Profile Settings | title、binding、prompt | normal/disabled inherited | 是 | 中 |
 | `GroomerProfileTextField` | View | Groomer Profile Form file | Profile/Service/Time Off forms | title、binding、prompt | normal/disabled inherited | 是 | 高 |
 | `CustomerPetFormLabeledTextField` | View | Customer Pets file | Pet Form | title、binding、placeholder | normal | 是 | 中 |
+| `CustomerRequestWizardPrimaryButtonStyle` | ButtonStyle | Request Wizard file | Request Wizard固定底栏 | visually enabled | enabled/disabled/pressed | 是 | 中：wizard专属主行动 |
 | `DetailMetadataRow` / `BookingDetailFactRow` / `GroomerOfferFactRow` | View family | Request/Booking/Offer files | multiple details | label/value/icon variants | optional values | 是 | 高语义、低代码统一度 |
-| `CustomerRequestsStatusView` / `BookingsStatusView` / `ChatStatusView` / `GroomerProfileStatusView` | feedback bridge Views | respective Feature files | feature roots/details | Store | error/notice/progress | 是 | 高业务桥接；视觉由DesignSystem |
+| `CustomerHomeStatusView` / `CustomerPetsStatusView` / `CustomerProfileStatusView` / `CustomerRequestsStatusView` / `BookingsStatusView` / `ChatStatusView` / `GroomerRequestsStatusView` / `GroomerOffersStatusView` / `GroomerProfileStatusView` | feedback bridge Views | respective Feature files | feature roots/details | Store | error/notice/progress | 是 | 高业务桥接；视觉由DesignSystem |
 
 ## 重复实现
 

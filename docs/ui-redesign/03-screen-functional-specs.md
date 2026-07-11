@@ -662,7 +662,7 @@ Loading/Loaded/Empty/Error；Disabled=read-only/sending/empty draft；Saving=sen
 
 ### 页面生命周期行为
 
-`.task(id: conversation.id)` load thread并 mark read；`onAppear`/scroll logic维护 anchor；离开不保存 draft，未发现 realtime listener。
+`.task(id: conversation.id)` load thread、mark read并调用 `startMessageSubscription(for:)`；scene进入active时重载并确保订阅，background/onDisappear调用 `stopMessageSubscription(for:)`。`onAppear`/scroll logic维护anchor；离开不保存draft。未实现typing/read-receipt UI。
 
 ---
 
@@ -1048,7 +1048,7 @@ Loading/Loaded/Empty/Error/Disabled/Saving/Saved/Validation Failed；Searching/F
 
 ### 页面生命周期行为
 
-conversation task load/mark read；无 realtime listener，离开不保存 draft。
+conversation task load/mark read并启动`ChatRepository.messageEvents`订阅；active时恢复，background/onDisappear停止。未实现typing/read-receipt UI；离开不保存draft。
 
 ---
 
