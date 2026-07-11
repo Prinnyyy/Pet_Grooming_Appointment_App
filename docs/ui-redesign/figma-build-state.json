@@ -3,15 +3,16 @@
   "fileName": "Pet Grooming App — UI Redesign",
   "fileUrl": "https://www.figma.com/design/XhOqumKm670mJTHUc72qga",
   "createdAt": "2026-07-10",
-  "currentPhase": "Phase 3 — visual calibration",
-  "status": "phase-3-visual-calibration-pending-approval",
+  "currentPhase": "Phase 3 — real screen calibration V2",
+  "status": "phase-3-real-screen-calibration-pending-approval",
   "constraints": {
-    "figmaPlan": "Starter",
-    "variableModeLimit": 1,
-    "pageLimit": 3,
-    "mcpToolCallLimit": "reached during Phase 2 screenshot validation",
+    "figmaPlan": "Professional",
+    "seat": "Full",
+    "variableModeLimit": null,
+    "pageLimit": null,
+    "mcpToolCallLimit": null,
     "implementedTheme": "Light",
-    "darkModeStatus": "deferred-until-multi-mode-plan"
+    "darkModeStatus": "required-before-formal-page-approval"
   },
   "fileArchitecture": {
     "strategy": "three-pages-with-numbered-sections",
@@ -49,10 +50,10 @@
     "effects": ["Card Shadow", "Elevated Surface", "Floating Control"]
   },
   "components": [
-    { "name": "Icon Button", "nodeId": "13:7", "decision": "Revise", "validation": "metadata+screenshot passed" },
-    { "name": "Primary Button", "nodeId": "14:8", "decision": "Revise", "validation": "metadata+screenshot passed" },
-    { "name": "Secondary Button", "nodeId": "15:8", "decision": "Revise", "validation": "metadata+screenshot passed" },
-    { "name": "Destructive Button", "nodeId": "15:15", "decision": "Revise", "validation": "metadata+screenshot passed" }
+    { "name": "Icon Button", "nodeId": "13:7", "decision": "Approved", "validation": "metadata+screenshot+real-screen instance passed" },
+    { "name": "Primary Button", "nodeId": "14:8", "decision": "Approved", "validation": "metadata+screenshot+real-screen instance passed" },
+    { "name": "Secondary Button", "nodeId": "15:8", "decision": "Approved", "validation": "metadata+screenshot+real-screen instance passed" },
+    { "name": "Destructive Button", "nodeId": "15:15", "decision": "Approved", "validation": "metadata+screenshot+real-screen instance passed" }
   ],
   "keyNodeIds": {
     "designSystemPage": "0:1",
@@ -69,6 +70,16 @@
     ,"normalizedCustomerSurface": "18:35"
     ,"normalizedGroomerOperationsSurface": "18:63"
     ,"cardRadiusVariable": "VariableID:17:2"
+    ,"realScreenCalibration": "21:2"
+    ,"customerHomeExisting": "23:5"
+    ,"customerHomeNormalized": "23:31"
+    ,"customerHomeAccessibilityXL": "23:59"
+    ,"petSelectionExisting": "25:10"
+    ,"petSelectionNormalized": "25:40"
+    ,"petSelectionAccessibilityXL": "25:70"
+    ,"groomerScheduleExisting": "26:19"
+    ,"groomerScheduleNormalized": "26:74"
+    ,"groomerScheduleAccessibilityXL": "26:136"
   },
   "completedValidations": [
     "Confirmed failed multi-mode attempt left no residue",
@@ -82,13 +93,15 @@
     "Confirmed all six Phase 2 local screenshots after canonical text-node repair",
     "Captured real Simulator screenshots for Auth, Customer Home, Request Wizard, Customer Bookings, Groomer Home, and Groomer Schedule",
     "Validated Visual Calibration metadata and screenshot",
-    "Validated revised Icon, Primary, Secondary, and Destructive Button metadata and screenshots"
+    "Validated revised Icon, Primary, Secondary, and Destructive Button metadata and screenshots",
+    "Validated nine 393x852 Real Screen Calibration frames with metadata, variables, text styles, Auto Layout, long text, accessibility composition, safe areas, and local screenshots",
+    "Validated all four existing component sets as nested instances in real-screen calibration fragments"
   ],
   "pendingItems": [
-    "Await human approval of Beckon Warm Utility System visual calibration",
-    "After approval, create the remaining 12 Phase 3 components using the calibrated surface profiles",
+    "Await human approval of Phase 3 Real Screen Calibration V2",
+    "After approval, create the remaining 12 Phase 3 components using the real-screen composition constraints",
     "Create docs/ui-redesign/09-figma-design-system-handoff.md only after component completion",
-    "Add Dark mode to existing collections after multi-mode support becomes available"
+    "Add Dark mode to existing collections before any formal page approval"
   ],
   "blocker": null,
   "visualCalibration": {
@@ -96,6 +109,19 @@
     "sectionId": "18:2",
     "canonicalScreens": ["Auth Landing", "Customer Home", "Customer Request Wizard", "Customer Bookings", "Groomer Home", "Groomer Schedule"],
     "remainingComponentsPaused": 12,
-    "approvalRequired": true
+    "approvalRequired": true,
+    "realScreenCalibrationSectionId": "21:2",
+    "realScreenFrames": {
+      "customerHome": ["23:5", "23:31", "23:59"],
+      "groomingRequestPetSelection": ["25:10", "25:40", "25:70"],
+      "groomerScheduleAgenda": ["26:19", "26:74", "26:136"]
+    },
+    "componentConclusions": {
+      "Icon Button": "Approved",
+      "Primary Button": "Approved",
+      "Secondary Button": "Approved",
+      "Destructive Button": "Approved"
+    },
+    "fullCapabilityRulesDocumented": true
   }
 }

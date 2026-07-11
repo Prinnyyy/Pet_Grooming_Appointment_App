@@ -99,3 +99,7 @@
 ## 停止点
 
 状态为 `phase-3-visual-calibration-pending-approval`。不继续组件、不创建完整业务页面、不进入 Figma→SwiftUI。
+
+## Figma Full Capability Rules
+
+后续正式设计必须遵守 `12-real-screen-calibration-handoff.md` 第 10 节：正式组件使用 Variables、Auto Layout、Component Properties 与 Nested Instances；正式页面同时验证 Light/Dark、Surface density、长文本和 Accessibility Dynamic Type；Customer/Groomer 共用系统；关键流程建立 Prototype；Tokens 稳定后导出 DTCG JSON 并生成 SwiftUI 映射；每个 Frame 维护 SwiftUI/ViewModel/原生容器/业务/Accessibility 追溯。Professional 计划当前不使用 Code Connect，不以 Sites、Web 或 Make 代码直接生成 SwiftUI 生产实现。
