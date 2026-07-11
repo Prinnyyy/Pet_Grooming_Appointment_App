@@ -105,6 +105,10 @@ extension CustomerRequestsStoreTests {
             requestRepository: requestRepository,
             bookingRepository: CustomerRequestBookingRepositoryFake()
         )
+        var notificationRefreshCount = 0
+        store.setNotificationRefresh {
+            notificationRefreshCount += 1
+        }
         await store.load()
 
         await store.cancel(request)
@@ -113,6 +117,7 @@ extension CustomerRequestsStoreTests {
         #expect(requestRepository.lastCancelRequestID == request.id)
         #expect(store.requests.first?.status == .cancelled)
         #expect(store.noticeMessage == "Request cancelled.")
+        #expect(notificationRefreshCount == 1)
     }
 
     @Test @MainActor

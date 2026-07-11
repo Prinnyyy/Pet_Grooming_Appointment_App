@@ -13,6 +13,7 @@ final class CustomerNotificationsStore {
     private(set) var isMarkingAllRead = false
     private(set) var markingNotificationIDs: Set<UUID> = []
     private(set) var nextPageRequest: ListPageRequest?
+    private var needsReloadAfterCurrentLoad = false
 
     var errorMessage: String?
 
@@ -33,11 +34,17 @@ final class CustomerNotificationsStore {
     }
 
     func load() async {
-        guard !isLoading, !isLoadingMore else { return }
+        guard !isLoading, !isLoadingMore else {
+            needsReloadAfterCurrentLoad = true
+            return
+        }
 
         isLoading = true
         errorMessage = nil
-        defer { isLoading = false }
+        defer {
+            isLoading = false
+            schedulePendingReloadIfNeeded()
+        }
 
         do {
             let page = try await repository.notifications(
@@ -64,7 +71,10 @@ final class CustomerNotificationsStore {
 
         isLoadingMore = true
         errorMessage = nil
-        defer { isLoadingMore = false }
+        defer {
+            isLoadingMore = false
+            schedulePendingReloadIfNeeded()
+        }
 
         do {
             let page = try await repository.notifications(
@@ -133,6 +143,12 @@ final class CustomerNotificationsStore {
 
     func isMarkingRead(_ notification: CustomerNotification) -> Bool {
         markingNotificationIDs.contains(notification.id)
+    }
+
+    private func schedulePendingReloadIfNeeded() {
+        guard needsReloadAfterCurrentLoad, !isLoading, !isLoadingMore else { return }
+        needsReloadAfterCurrentLoad = false
+        Task { await load() }
     }
 
     private func replace(_ notification: CustomerNotification?) {

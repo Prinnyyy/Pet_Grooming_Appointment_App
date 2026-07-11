@@ -93,6 +93,11 @@ struct CustomerTabView: View {
             feedbackCenter.setDebugRecorder(debugRecorder)
             chatStore?.setDebugRecorder(debugRecorder)
             requestStore?.setDebugRecorder(debugRecorder)
+            if let notificationStore {
+                requestStore?.setNotificationRefresh { [weak notificationStore] in
+                    await notificationStore?.load()
+                }
+            }
         }
         .task {
             await refreshBadgeSources()

@@ -109,6 +109,7 @@ final class CustomerRequestsStore {
     private let handoffAcknowledgementDefaults: UserDefaults
     private let handoffAcknowledgementStorageKey: String
     private var debugRecorder: AppDebugEventRecorder?
+    private var refreshNotifications: (@MainActor () async -> Void)?
 
     private(set) var pets: [CustomerPet] = []
     private(set) var petPhotosByPetID: [UUID: [CustomerPetPhoto]] = [:]
@@ -264,6 +265,10 @@ final class CustomerRequestsStore {
 
     func setDebugRecorder(_ recorder: AppDebugEventRecorder?) {
         debugRecorder = recorder
+    }
+
+    func setNotificationRefresh(_ refresh: @escaping @MainActor () async -> Void) {
+        refreshNotifications = refresh
     }
 
     func load() async {
@@ -849,6 +854,7 @@ final class CustomerRequestsStore {
                     "pendingPhotoCount": "\(pendingRequestPhotos.count)",
                 ]
             )
+            await refreshNotifications?()
         } catch CustomerRequestRepositoryError.cancelled {
             recordStoreCancelled("publish", startedAt: startedAt)
         } catch let error as CustomerRequestRepositoryError {
@@ -972,6 +978,7 @@ final class CustomerRequestsStore {
                 ? "Request cancelled."
                 : "Request cancelled. Refresh requests to see the latest state."
             recordStoreSuccess("cancel", startedAt: startedAt)
+            await refreshNotifications?()
         } catch CustomerRequestRepositoryError.cancelled {
             recordStoreCancelled("cancel", startedAt: startedAt)
         } catch let error as CustomerRequestRepositoryError {

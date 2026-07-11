@@ -2,12 +2,21 @@
 
 ```text
 Date: 2026-07-11
+Task: T-278 - Immediate Customer notification refresh after Request mutations.
+Files changed: Customer Requests mutation refresh hook; CustomerTab shared-store wiring; Notifications Store load coalescing; focused cancellation test; memory closeout.
+Checks: Customer Requests and Notifications focused tests; `./scripts/ios-build.sh`; `git diff --check`; preflight/context hygiene.
+Result: Supabase request notification triggers are synchronous, but iOS previously reloaded notifications only at tab startup or notification-page entry. Successful publish/cancel now immediately reloads the shared Store, and a refresh overlapping an active load is queued once rather than dropped. Home/tab unread counts and notification rows update from the same source.
+Risks: Refresh uses one additional first-page notification read after each successful request mutation. No schema, trigger, RLS, backend, or remote state changed.
+Next: Use T-279 for the next user-selected task; Q-104 remains deferred.
+```
+
+```text
+Date: 2026-07-11
 Task: T-277 - App-wide SwiftUI scroll-indicator suppression.
 Files changed: Beckon app root scroll-indicator environment; memory closeout.
 Checks: `./scripts/ios-build.sh`; `git diff --check`; preflight/context hygiene.
 Result: SwiftUI-native scroll indicators are hidden from the AppRootView hierarchy, complementing the existing UIScrollView appearance fallback. Customer tabs, nested detail/edit pages, and future descendants inherit the same behavior without per-screen modifiers.
 Risks: This intentionally hides indicators for both roles and authentication flows, matching the app-wide requirement. Scrolling behavior itself is unchanged. No backend or remote state changed.
-Next: Use T-278 for the next user-selected task; Q-104 remains deferred.
 ```
 
 ```text
