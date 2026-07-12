@@ -2,12 +2,21 @@
 
 ```text
 Date: 2026-07-11
+Task: T-297 - Customer and Groomer Profile confirmed-address integration.
+Files changed: Shared profile address RPC DTOs; Customer/Groomer profile models, repositories, debug wrappers, Stores, and views; Address Editor verification action/state restore; focused tests; architecture/feature/queue/memory closeout.
+Checks: Forced RED for missing Q-109 contracts; focused Profile Address/Address Editor and legacy profile tests; complete `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; Simulator launch/no-crash; `./scripts/supabase-check.sh`; `git diff --check`; context hygiene; preflight.
+Result: Completed Q-109. Both Profile screens now reuse `BeckonAddressEditor`; owner-scoped RPC metadata restores confirmed state, address or Line 2 changes invalidate confirmation, and confirmed display fields plus private coordinates save through the v2 RPC. No-Place-ID results are valid. Customer autofill carries Line 1, Line 2, structured fields, and confirmed metadata. Unchanged legacy addresses, profile snapshots/avatar caches, silent cancellation, and mutation-revision protection remain intact.
+Risks: Existing profiles remain coordinate-null until users confirm edits or Q-111 backfills them. Request Wizard still uses its legacy address fields/RPC until Q-110 and must not infer confirmation from profile text alone.
+Next: Use T-298 for Q-110 Customer Request address integration; Q-104 remains deferred.
+```
+
+```text
+Date: 2026-07-11
 Task: T-296 - Authorized remote PostGIS address schema application.
 Files changed: Remote Beckon schema state plus backend contract, access matrix, roadmap queue, feature/task/current-state, and Worklog closeout.
 Checks: Linked Beckon identity and only-pending dry-run; remote migration push; rollback-only private privilege, owner RPC, cross-role denial, exact/outside radius, both service directions, multilingual-city, and legacy fallback tests; zero fixture residue and zero backfill; aligned migration history and clean repeat dry-run; security/performance advisors; Supabase contract and focused migration tests; diff/context/preflight.
 Result: Completed Q-108. PostGIS and private address locations are deployed with opaque public references, owner-checked profile RPCs, Request v2, and direction-correct distance matching. Authenticated clients cannot select/insert private locations. The rollback transaction created two generated geography rows then removed all fixtures; remote address/location references remain zero until later integration/backfill tasks.
 Risks: Advisor INFO for the no-policy private table is expected because clients have no schema/table grants; new indexes are unused because Q-108 intentionally created no location rows. Existing leaked-password and unrelated index findings are unchanged. Legacy state/city fallback must remain until Q-112 proves a zero active-coordinate gap.
-Next: Use T-297 for Q-109 Customer and Groomer Profile address integration; Q-104 remains deferred.
 ```
 
 ```text

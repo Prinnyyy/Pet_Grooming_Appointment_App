@@ -24,6 +24,12 @@ protocol GroomerProfileRepository: AnyObject {
         draft: GroomerProfileDraft
     ) async throws -> GroomerProfile
 
+    func updateProfile(
+        groomerID: UUID,
+        draft: GroomerProfileDraft,
+        confirmedAddress: BeckonConfirmedAddress?
+    ) async throws -> GroomerProfile
+
     func createService(
         groomerID: UUID,
         draft: GroomerServiceDraft
@@ -87,6 +93,14 @@ protocol GroomerProfileRepository: AnyObject {
 }
 
 extension GroomerProfileRepository {
+    func updateProfile(
+        groomerID: UUID,
+        draft: GroomerProfileDraft,
+        confirmedAddress: BeckonConfirmedAddress?
+    ) async throws -> GroomerProfile {
+        try await updateProfile(groomerID: groomerID, draft: draft)
+    }
+
     func portfolioPhotoData(_ photo: GroomerPortfolioPhoto) async throws -> Data {
         throw GroomerProfileRepositoryError.unavailable
     }

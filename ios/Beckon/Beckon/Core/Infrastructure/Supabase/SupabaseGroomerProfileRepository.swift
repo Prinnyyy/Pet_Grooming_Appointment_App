@@ -4,7 +4,7 @@ import Supabase
 @MainActor
 final class SupabaseGroomerProfileRepository: GroomerProfileRepository {
     private static let profileColumns =
-        "user_id,business_name,bio,years_experience,base_street_address,base_city,base_state,base_zip_code,service_radius_miles,service_location_mode,service_location_modes,rating_avg,rating_count,is_active,is_verified"
+        "user_id,business_name,bio,years_experience,base_street_address,base_address_line_2,base_city,base_state,base_zip_code,service_radius_miles,service_location_mode,service_location_modes,rating_avg,rating_count,is_active,is_verified"
     private static let accountProfileColumns = "id,avatar_path"
     private static let serviceColumns =
         "id,groomer_id,service_type,title,description,base_price,duration_minutes,accepted_pet_sizes,is_active"
@@ -53,6 +53,7 @@ final class SupabaseGroomerProfileRepository: GroomerProfileRepository {
             }
 
             profile.avatarPath = try await avatarPath(groomerID: groomerID)
+            profile.confirmedAddress = try await loadConfirmedAddress()
 
             return profile
         } catch let error as GroomerProfileRepositoryError {
@@ -198,17 +199,52 @@ final class SupabaseGroomerProfileRepository: GroomerProfileRepository {
         groomerID: UUID,
         draft: GroomerProfileDraft
     ) async throws -> GroomerProfile {
+        try await updateProfile(
+            groomerID: groomerID,
+            draft: draft,
+            confirmedAddress: nil
+        )
+    }
+
+    func updateProfile(
+        groomerID: UUID,
+        draft: GroomerProfileDraft,
+        confirmedAddress: BeckonConfirmedAddress?
+    ) async throws -> GroomerProfile {
         do {
             let rows: [GroomerProfileRow] = try await client
                 .from("groomer_profiles")
-                .update(GroomerProfileUpdateRow(draft: draft))
+                .update(
+                    GroomerProfileUpdateRow(
+                        draft: draft,
+                        includesAddress: confirmedAddress == nil
+                    )
+                )
                 .eq("user_id", value: groomerID.uuidString.lowercased())
                 .select(Self.profileColumns)
                 .execute()
                 .value
 
-            guard rows.count == 1, let profile = rows.first?.profile else {
+            guard rows.count == 1, var profile = rows.first?.profile else {
                 throw GroomerProfileRepositoryError.unavailable
+            }
+
+            if let confirmedAddress {
+                let _: UUID = try await client
+                    .rpc(
+                        "save_groomer_profile_address_v2",
+                        params: SaveProfileAddressRPCParameters(
+                            confirmedAddress: confirmedAddress
+                        )
+                    )
+                    .execute()
+                    .value
+                profile.baseStreetAddress = confirmedAddress.accepted.line1
+                profile.baseAddressLine2 = confirmedAddress.accepted.line2
+                profile.baseCity = confirmedAddress.accepted.city
+                profile.baseState = confirmedAddress.accepted.stateCode?.rawValue
+                profile.baseZipCode = confirmedAddress.accepted.postalCode
+                profile.confirmedAddress = confirmedAddress
             }
 
             return profile
@@ -217,6 +253,17 @@ final class SupabaseGroomerProfileRepository: GroomerProfileRepository {
         } catch {
             throw Self.map(error)
         }
+    }
+
+    private func loadConfirmedAddress() async throws -> BeckonConfirmedAddress? {
+        let rows: [ProfileAddressRPCRow] = try await client
+            .rpc("get_my_groomer_profile_address_v2")
+            .execute()
+            .value
+        guard rows.count <= 1 else {
+            throw GroomerProfileRepositoryError.unavailable
+        }
+        return rows.first?.confirmedAddress
     }
 
     func createService(
@@ -821,6 +868,7 @@ private struct GroomerProfileRow: Decodable {
     let bio: String?
     let yearsExperience: Int?
     let baseStreetAddress: String?
+    let baseAddressLine2: String?
     let baseCity: String?
     let baseState: String?
     let baseZipCode: String?
@@ -839,6 +887,7 @@ private struct GroomerProfileRow: Decodable {
             bio: bio,
             yearsExperience: yearsExperience,
             baseStreetAddress: baseStreetAddress,
+            baseAddressLine2: baseAddressLine2,
             baseCity: baseCity,
             baseState: baseState,
             baseZipCode: baseZipCode,
@@ -861,6 +910,7 @@ private struct GroomerProfileRow: Decodable {
         case bio
         case yearsExperience = "years_experience"
         case baseStreetAddress = "base_street_address"
+        case baseAddressLine2 = "base_address_line_2"
         case baseCity = "base_city"
         case baseState = "base_state"
         case baseZipCode = "base_zip_code"
@@ -1163,6 +1213,7 @@ private struct GroomerPetFitEvidenceSummaryRow: Decodable {
 
 private struct GroomerProfileUpdateRow: Encodable {
     let draft: GroomerProfileDraft
+    let includesAddress: Bool
 
     func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -1173,14 +1224,17 @@ private struct GroomerProfileUpdateRow: Encodable {
             forKey: .yearsExperience,
             in: &container
         )
-        try encodeNullable(
-            draft.baseStreetAddress,
-            forKey: .baseStreetAddress,
-            in: &container
-        )
-        try encodeNullable(draft.baseCity, forKey: .baseCity, in: &container)
-        try encodeNullable(draft.baseStateCode?.rawValue, forKey: .baseState, in: &container)
-        try encodeNullable(draft.baseZipCode, forKey: .baseZipCode, in: &container)
+        if includesAddress {
+            try encodeNullable(
+                draft.baseStreetAddress,
+                forKey: .baseStreetAddress,
+                in: &container
+            )
+            try encodeNullable(draft.baseAddressLine2, forKey: .baseAddressLine2, in: &container)
+            try encodeNullable(draft.baseCity, forKey: .baseCity, in: &container)
+            try encodeNullable(draft.baseStateCode?.rawValue, forKey: .baseState, in: &container)
+            try encodeNullable(draft.baseZipCode, forKey: .baseZipCode, in: &container)
+        }
         try encodeNullable(
             draft.serviceRadiusMiles,
             forKey: .serviceRadiusMiles,
@@ -1217,6 +1271,7 @@ private struct GroomerProfileUpdateRow: Encodable {
         case bio
         case yearsExperience = "years_experience"
         case baseStreetAddress = "base_street_address"
+        case baseAddressLine2 = "base_address_line_2"
         case baseCity = "base_city"
         case baseState = "base_state"
         case baseZipCode = "base_zip_code"

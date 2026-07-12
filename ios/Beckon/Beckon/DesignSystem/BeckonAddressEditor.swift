@@ -32,6 +32,7 @@ nonisolated enum BeckonAddressEditorSelectors {
     static let suggestions = "beckon.address.suggestions"
     static let confirmation = "beckon.address.confirmation"
     static let manualChoices = "beckon.address.manual-choices"
+    static let verify = "beckon.address.verify"
 }
 
 nonisolated struct BeckonAddressConfirmationPresentation: Equatable, Identifiable, Sendable {
@@ -286,6 +287,25 @@ final class BeckonAddressEditorState {
         status = address == nil ? .editing : .confirmed
     }
 
+    func replaceInput(
+        _ input: BeckonAddressInput,
+        confirmedAddress: BeckonConfirmedAddress?
+    ) {
+        suggestionGeneration += 1
+        provider.clear()
+        self.input = input
+        candidates = []
+        confirmation = nil
+        manualChoices = []
+        secondaryConflict = nil
+        noticeMessage = nil
+        inlineError = nil
+        self.confirmedAddress = confirmedAddress
+        status = confirmedAddress == nil
+            ? (input.line1.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? .empty : .editing)
+            : .confirmed
+    }
+
     private func invalidateResolution(
         afterChangingFrom previous: BeckonAddressInput,
         retainCandidates: Bool = false
@@ -516,19 +536,40 @@ struct BeckonAddressEditor: View {
 
     private var statusRow: some View {
         HStack(spacing: DesignTokens.Spacing.sm) {
-            if state.status == .locating {
-                ProgressView().controlSize(.small)
-            } else {
-                Image(systemName: statusSymbol)
-                    .foregroundStyle(statusColor)
-                    .accessibilityHidden(true)
+            HStack(spacing: DesignTokens.Spacing.sm) {
+                if state.status == .locating {
+                    ProgressView().controlSize(.small)
+                } else {
+                    Image(systemName: statusSymbol)
+                        .foregroundStyle(statusColor)
+                        .accessibilityHidden(true)
+                }
+                Text(state.status.title)
+                    .font(DesignTokens.Typography.caption.weight(.semibold))
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
             }
-            Text(state.status.title)
+            .accessibilityElement(children: .combine)
+            .accessibilityIdentifier(BeckonAddressEditorSelectors.status)
+
+            Spacer(minLength: DesignTokens.Spacing.sm)
+
+            if state.status != .confirmed, isCompleteAddress {
+                Button("Verify Address") {
+                    Task { await state.prepareConfirmation() }
+                }
                 .font(DesignTokens.Typography.caption.weight(.semibold))
-                .foregroundStyle(DesignTokens.Colors.textSecondary)
+                .foregroundStyle(DesignTokens.Colors.customerPrimary)
+                .buttonStyle(.plain)
+                .accessibilityIdentifier(BeckonAddressEditorSelectors.verify)
+            }
         }
-        .accessibilityElement(children: .combine)
-        .accessibilityIdentifier(BeckonAddressEditorSelectors.status)
+    }
+
+    private var isCompleteAddress: Bool {
+        !state.input.line1.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && !state.input.city.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && state.input.stateCode != nil
+            && !state.input.postalCode.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     private var statusSymbol: String {

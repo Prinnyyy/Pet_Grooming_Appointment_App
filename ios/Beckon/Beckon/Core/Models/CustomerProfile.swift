@@ -5,16 +5,19 @@ struct CustomerProfileDetails: Equatable, Sendable {
     var nickname: String
     var avatarPath: String?
     var streetAddress: String?
+    var addressLine2: String? = nil
     var city: String?
     var stateCode: USStateCode?
     var zipCode: String?
     var contactEmail: String?
     var phoneNumber: String?
+    var confirmedAddress: BeckonConfirmedAddress? = nil
 }
 
 struct CustomerProfileDraft: Equatable, Sendable {
     let nickname: String
     let streetAddress: String?
+    var addressLine2: String? = nil
     let city: String?
     let stateCode: USStateCode?
     let zipCode: String?

@@ -8,8 +8,9 @@ struct GroomerProfile: Equatable, Sendable {
     let bio: String?
     let yearsExperience: Int?
     var baseStreetAddress: String? = nil
-    let baseCity: String?
-    let baseState: String?
+    var baseAddressLine2: String? = nil
+    var baseCity: String?
+    var baseState: String?
     var baseZipCode: String? = nil
     let serviceRadiusMiles: Int?
     let serviceLocationMode: GroomingLocationMode?
@@ -18,6 +19,7 @@ struct GroomerProfile: Equatable, Sendable {
     let ratingCount: Int
     let isActive: Bool
     let isVerified: Bool
+    var confirmedAddress: BeckonConfirmedAddress? = nil
 
     var effectiveServiceLocationModes: Set<GroomingLocationMode> {
         if !serviceLocationModes.isEmpty {
@@ -35,6 +37,7 @@ struct GroomerProfileDraft: Equatable, Sendable {
     let bio: String?
     let yearsExperience: Int?
     var baseStreetAddress: String? = nil
+    var baseAddressLine2: String? = nil
     let baseCity: String?
     let baseStateCode: USStateCode?
     var baseZipCode: String? = nil

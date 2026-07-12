@@ -8,8 +8,10 @@ extension GroomerProfileStore {
         noticeMessage = nil
 
         let draft: GroomerProfileDraft
+        let confirmedAddress: BeckonConfirmedAddress?
         do {
             draft = try makeProfileDraft()
+            confirmedAddress = try confirmedAddressForSave()
         } catch let error as GroomerProfileFormError {
             errorMessage = error.message
             return
@@ -26,15 +28,18 @@ extension GroomerProfileStore {
             let currentAvatarPath = profile?.avatarPath
             var updatedProfile = try await repository.updateProfile(
                 groomerID: groomerID,
-                draft: draft
+                draft: draft,
+                confirmedAddress: confirmedAddress
             )
             if updatedProfile.avatarPath == nil {
                 updatedProfile.avatarPath = currentAvatarPath
             }
+            updatedProfile.confirmedAddress = confirmedAddress ?? updatedProfile.confirmedAddress
             profile = updatedProfile
             populateProfileForm(with: updatedProfile)
             saveProfileSnapshot(profile: updatedProfile, avatarData: avatarPhotoData)
             noticeMessage = "Groomer profile saved."
+        } catch GroomerProfileRepositoryError.cancelled {
         } catch let error as GroomerProfileRepositoryError {
             errorMessage = message(for: error, action: "save")
         } catch {
@@ -93,6 +98,11 @@ extension GroomerProfileStore {
                 field: "Street address",
                 maximum: 160
             ),
+            baseAddressLine2: try optional(
+                baseAddressLine2,
+                field: "Address Line 2",
+                maximum: 60
+            ),
             baseCity: try optional(baseCity, field: "City", maximum: 100),
             baseStateCode: baseStateCode,
             baseZipCode: try optionalZipCode(baseZipCode),
@@ -121,6 +131,21 @@ extension GroomerProfileStore {
         }
 
         return draft
+    }
+
+    private func confirmedAddressForSave() throws -> BeckonConfirmedAddress? {
+        let current = normalizedAddressInput(addressEditorState.input)
+        let loaded = normalizedAddressInput(loadedAddressInput)
+        if current == loaded, addressEditorState.confirmedAddress == nil {
+            return nil
+        }
+        guard let confirmedAddress = addressEditorState.confirmedAddress,
+              normalizedAddressInput(confirmedAddress.accepted) == current else {
+            throw GroomerProfileFormError(
+                message: "Confirm the changed address with Apple Maps before saving."
+            )
+        }
+        return confirmedAddress
     }
 
 }

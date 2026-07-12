@@ -165,6 +165,7 @@ struct BeckonAddressEditorTests {
         #expect(BeckonAddressEditorSelectors.status == "beckon.address.status")
         #expect(BeckonAddressEditorSelectors.suggestions == "beckon.address.suggestions")
         #expect(BeckonAddressEditorSelectors.confirmation == "beckon.address.confirmation")
+        #expect(BeckonAddressEditorSelectors.verify == "beckon.address.verify")
     }
 
     private static func input(line1: String) -> BeckonAddressInput {

@@ -613,6 +613,28 @@ final class DebugCustomerProfileRepository: CustomerProfileRepository {
         }
     }
 
+    func updateProfile(
+        customerID: UUID,
+        draft: CustomerProfileDraft,
+        confirmedAddress: BeckonConfirmedAddress?
+    ) async throws -> CustomerProfileDetails {
+        try await profileCall(
+            "updateProfileWithAddress",
+            customerID: customerID,
+            table: "customer_profiles",
+            metadata: [
+                "rpc": "save_customer_profile_address_v2",
+                "hasConfirmedAddress": "\(confirmedAddress != nil)",
+            ]
+        ) {
+            try await base.updateProfile(
+                customerID: customerID,
+                draft: draft,
+                confirmedAddress: confirmedAddress
+            )
+        }
+    }
+
     func uploadAvatarPhoto(
         customerID: UUID,
         data: Data,
@@ -1009,6 +1031,28 @@ final class DebugGroomerProfileRepository: GroomerProfileRepository {
     ) async throws -> GroomerProfile {
         try await groomerCall("updateProfile", groomerID: groomerID, table: "profiles") {
             try await base.updateProfile(groomerID: groomerID, draft: draft)
+        }
+    }
+
+    func updateProfile(
+        groomerID: UUID,
+        draft: GroomerProfileDraft,
+        confirmedAddress: BeckonConfirmedAddress?
+    ) async throws -> GroomerProfile {
+        try await groomerCall(
+            "updateProfileWithAddress",
+            groomerID: groomerID,
+            table: "groomer_profiles",
+            metadata: [
+                "rpc": "save_groomer_profile_address_v2",
+                "hasConfirmedAddress": "\(confirmedAddress != nil)",
+            ]
+        ) {
+            try await base.updateProfile(
+                groomerID: groomerID,
+                draft: draft,
+                confirmedAddress: confirmedAddress
+            )
         }
     }
 

@@ -11,6 +11,8 @@ final class GroomerProfileStore {
     let repository: any GroomerProfileRepository
     let profileSnapshotCache: any ProfileSnapshotCaching
     let debugRecorder: AppDebugEventRecorder?
+    let addressEditorState: BeckonAddressEditorState
+    var loadedAddressInput: BeckonAddressInput
     var profileMutationRevision = 0
 
     var profile: GroomerProfile?
@@ -38,11 +40,30 @@ final class GroomerProfileStore {
     var businessName = ""
     var bio = ""
     var yearsExperience = 0
-    var baseStreetAddress = ""
-    var baseCity = ""
+    var baseStreetAddress: String {
+        get { addressEditorState.input.line1 }
+        set { addressEditorState.updateLine1(newValue) }
+    }
+    var baseAddressLine2: String {
+        get { addressEditorState.input.line2 }
+        set { addressEditorState.updateLine2(newValue) }
+    }
+    var baseCity: String {
+        get { addressEditorState.input.city }
+        set { addressEditorState.updateCity(newValue) }
+    }
     var baseState = ""
-    var baseStateCode: USStateCode?
-    var baseZipCode = ""
+    var baseStateCode: USStateCode? {
+        get { addressEditorState.input.stateCode }
+        set {
+            addressEditorState.updateState(newValue)
+            baseState = newValue?.rawValue ?? ""
+        }
+    }
+    var baseZipCode: String {
+        get { addressEditorState.input.postalCode }
+        set { addressEditorState.updatePostalCode(newValue) }
+    }
     var serviceRadiusMiles = 12
     var serviceLocationModes: Set<GroomingLocationMode> = []
     var isActive = false
@@ -140,12 +161,26 @@ final class GroomerProfileStore {
         groomerID: UUID,
         repository: any GroomerProfileRepository,
         profileSnapshotCache: any ProfileSnapshotCaching = FileProfileSnapshotCache.shared,
-        debugRecorder: AppDebugEventRecorder? = nil
+        debugRecorder: AppDebugEventRecorder? = nil,
+        addressProvider: (any BeckonAddressProviding)? = nil
     ) {
+        let emptyAddress = BeckonAddressInput(
+            line1: "",
+            line2: "",
+            city: "",
+            stateCode: nil,
+            postalCode: "",
+            countryCode: "US"
+        )
         self.groomerID = groomerID
         self.repository = repository
         self.profileSnapshotCache = profileSnapshotCache
         self.debugRecorder = debugRecorder
+        self.addressEditorState = BeckonAddressEditorState(
+            input: emptyAddress,
+            provider: addressProvider ?? MapKitAddressProvider()
+        )
+        self.loadedAddressInput = emptyAddress
     }
 
     func load() async {
@@ -265,14 +300,34 @@ final class GroomerProfileStore {
         businessName = profile.businessName ?? ""
         bio = profile.bio ?? ""
         yearsExperience = min(max(profile.yearsExperience ?? 0, 0), 5)
-        baseStreetAddress = profile.baseStreetAddress ?? ""
-        baseCity = profile.baseCity ?? ""
+        let addressInput = BeckonAddressInput(
+            line1: profile.baseStreetAddress ?? "",
+            line2: profile.baseAddressLine2 ?? "",
+            city: profile.baseCity ?? "",
+            stateCode: profile.baseState.flatMap(USStateCode.init(rawValue:)),
+            postalCode: profile.baseZipCode ?? "",
+            countryCode: profile.confirmedAddress?.accepted.countryCode ?? "US"
+        )
+        addressEditorState.replaceInput(
+            addressInput,
+            confirmedAddress: profile.confirmedAddress
+        )
+        loadedAddressInput = normalizedAddressInput(addressInput)
         baseState = profile.baseState ?? ""
-        baseStateCode = profile.baseState.flatMap(USStateCode.init(rawValue:))
-        baseZipCode = profile.baseZipCode ?? ""
         serviceRadiusMiles = min(max(profile.serviceRadiusMiles ?? 12, 5), 50)
         serviceLocationModes = profile.effectiveServiceLocationModes
         isActive = profile.isActive
+    }
+
+    func normalizedAddressInput(_ input: BeckonAddressInput) -> BeckonAddressInput {
+        BeckonAddressInput(
+            line1: input.line1.trimmingCharacters(in: .whitespacesAndNewlines),
+            line2: input.line2.trimmingCharacters(in: .whitespacesAndNewlines),
+            city: input.city.trimmingCharacters(in: .whitespacesAndNewlines),
+            stateCode: input.stateCode,
+            postalCode: input.postalCode.trimmingCharacters(in: .whitespacesAndNewlines),
+            countryCode: input.countryCode.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        )
     }
 
     private func populateCachedProfileSnapshot() {

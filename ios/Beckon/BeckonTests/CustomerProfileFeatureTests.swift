@@ -161,6 +161,18 @@ struct CustomerProfileStoreTests {
         store.zipCode = "98101"
         store.contactEmail = "  owner@example.com  "
         store.phoneNumber = "  +1 555 222 3333  "
+        let confirmedAddress = ProfileAddressIntegrationTests.confirmedAddress(
+            line1: "123 Pine Street",
+            line2: "",
+            city: "Seattle",
+            stateCode: .washington,
+            postalCode: "98101",
+            placeID: nil
+        )
+        store.addressEditorState.replaceInput(
+            confirmedAddress.accepted,
+            confirmedAddress: confirmedAddress
+        )
 
         await store.saveProfile()
 
@@ -242,12 +254,14 @@ struct CustomerProfileStoreTests {
 }
 
 @MainActor
-private final class CustomerProfileRepositoryFake: CustomerProfileRepository {
+final class CustomerProfileRepositoryFake: CustomerProfileRepository {
     var profileResult: Result<CustomerProfileDetails, CustomerProfileRepositoryError>
+    var updateProfileResult: Result<CustomerProfileDetails, CustomerProfileRepositoryError>?
     var updateCallCount = 0
     var uploadAvatarCallCount = 0
     var lastCustomerID: UUID?
     var lastDraft: CustomerProfileDraft?
+    var lastConfirmedAddress: BeckonConfirmedAddress?
     var uploadedAvatarPath = ""
 
     init(
@@ -264,9 +278,11 @@ private final class CustomerProfileRepositoryFake: CustomerProfileRepository {
                     contactEmail: nil,
                     phoneNumber: nil
                 )
-            )
+            ),
+        updateProfileResult: Result<CustomerProfileDetails, CustomerProfileRepositoryError>? = nil
     ) {
         self.profileResult = profileResult
+        self.updateProfileResult = updateProfileResult
     }
 
     func profile(customerID: UUID) async throws -> CustomerProfileDetails {
@@ -281,17 +297,33 @@ private final class CustomerProfileRepositoryFake: CustomerProfileRepository {
         lastCustomerID = customerID
         lastDraft = draft
 
+        if let updateProfileResult {
+            return try updateProfileResult.get()
+        }
+
         return CustomerProfileDetails(
             userID: customerID,
             nickname: draft.nickname,
             avatarPath: nil,
             streetAddress: draft.streetAddress,
+            addressLine2: draft.addressLine2,
             city: draft.city,
             stateCode: draft.stateCode,
             zipCode: draft.zipCode,
             contactEmail: draft.contactEmail,
             phoneNumber: draft.phoneNumber
         )
+    }
+
+    func updateProfile(
+        customerID: UUID,
+        draft: CustomerProfileDraft,
+        confirmedAddress: BeckonConfirmedAddress?
+    ) async throws -> CustomerProfileDetails {
+        lastConfirmedAddress = confirmedAddress
+        var profile = try await updateProfile(customerID: customerID, draft: draft)
+        profile.confirmedAddress = confirmedAddress
+        return profile
     }
 
     func uploadAvatarPhoto(

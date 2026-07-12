@@ -45,6 +45,7 @@ final class GroomerProfileRepositoryFake: GroomerProfileRepository {
     private(set) var replacePortfolioFitTagsCallCount = 0
     private(set) var portfolioPhotoDataCallCount = 0
     private(set) var lastProfileDraft: GroomerProfileDraft?
+    private(set) var lastConfirmedAddress: BeckonConfirmedAddress?
     private(set) var lastBookingPreferencesDraft: GroomerBookingPreferencesDraft?
     private(set) var lastServiceDraft: GroomerServiceDraft?
     private(set) var lastAvailabilityDrafts: [GroomerAvailabilityDraft] = []
@@ -195,6 +196,7 @@ final class GroomerProfileRepositoryFake: GroomerProfileRepository {
             bio: draft.bio,
             yearsExperience: draft.yearsExperience,
             baseStreetAddress: draft.baseStreetAddress,
+            baseAddressLine2: draft.baseAddressLine2,
             baseCity: draft.baseCity,
             baseState: draft.baseStateCode?.rawValue,
             baseZipCode: draft.baseZipCode,
@@ -206,6 +208,17 @@ final class GroomerProfileRepositoryFake: GroomerProfileRepository {
             isActive: draft.isActive,
             isVerified: false
         )
+    }
+
+    func updateProfile(
+        groomerID: UUID,
+        draft: GroomerProfileDraft,
+        confirmedAddress: BeckonConfirmedAddress?
+    ) async throws -> GroomerProfile {
+        lastConfirmedAddress = confirmedAddress
+        var profile = try await updateProfile(groomerID: groomerID, draft: draft)
+        profile.confirmedAddress = confirmedAddress
+        return profile
     }
 
     func createService(

@@ -11,6 +11,8 @@ final class CustomerProfileStore {
     private let profileSnapshotCache: any ProfileSnapshotCaching
     private let sessionEmail: String?
     private let debugRecorder: AppDebugEventRecorder?
+    let addressEditorState: BeckonAddressEditorState
+    private var loadedAddressInput: BeckonAddressInput
 
     private(set) var profile: CustomerProfileDetails?
     private(set) var cachedProfileSnapshot: ProfileSnapshot?
@@ -23,10 +25,26 @@ final class CustomerProfileStore {
     var noticeMessage: String?
 
     var nickname = ""
-    var streetAddress = ""
-    var city = ""
-    var stateCode: USStateCode?
-    var zipCode = ""
+    var streetAddress: String {
+        get { addressEditorState.input.line1 }
+        set { addressEditorState.updateLine1(newValue) }
+    }
+    var addressLine2: String {
+        get { addressEditorState.input.line2 }
+        set { addressEditorState.updateLine2(newValue) }
+    }
+    var city: String {
+        get { addressEditorState.input.city }
+        set { addressEditorState.updateCity(newValue) }
+    }
+    var stateCode: USStateCode? {
+        get { addressEditorState.input.stateCode }
+        set { addressEditorState.updateState(newValue) }
+    }
+    var zipCode: String {
+        get { addressEditorState.input.postalCode }
+        set { addressEditorState.updatePostalCode(newValue) }
+    }
     var contactEmail = ""
     var phoneNumber = ""
 
@@ -61,8 +79,17 @@ final class CustomerProfileStore {
         sessionEmail: String?,
         repository: any CustomerProfileRepository,
         profileSnapshotCache: any ProfileSnapshotCaching = FileProfileSnapshotCache.shared,
-        debugRecorder: AppDebugEventRecorder? = nil
+        debugRecorder: AppDebugEventRecorder? = nil,
+        addressProvider: (any BeckonAddressProviding)? = nil
     ) {
+        let emptyAddress = BeckonAddressInput(
+            line1: "",
+            line2: "",
+            city: "",
+            stateCode: nil,
+            postalCode: "",
+            countryCode: "US"
+        )
         self.customerID = customerID
         self.nickname = initialDisplayName
         self.contactEmail = sessionEmail ?? ""
@@ -70,6 +97,11 @@ final class CustomerProfileStore {
         self.repository = repository
         self.profileSnapshotCache = profileSnapshotCache
         self.debugRecorder = debugRecorder
+        self.addressEditorState = BeckonAddressEditorState(
+            input: emptyAddress,
+            provider: addressProvider ?? MapKitAddressProvider()
+        )
+        self.loadedAddressInput = emptyAddress
     }
 
     func load() async {
@@ -123,8 +155,10 @@ final class CustomerProfileStore {
         guard !isSaving else { return }
 
         let draft: CustomerProfileDraft
+        let confirmedAddress: BeckonConfirmedAddress?
         do {
             draft = try makeDraft()
+            confirmedAddress = try confirmedAddressForSave()
         } catch let error as CustomerProfileFormError {
             errorMessage = error.message
             return
@@ -143,11 +177,13 @@ final class CustomerProfileStore {
         do {
             var updatedProfile = try await repository.updateProfile(
                 customerID: customerID,
-                draft: draft
+                draft: draft,
+                confirmedAddress: confirmedAddress
             )
             if updatedProfile.avatarPath == nil {
                 updatedProfile.avatarPath = profile?.avatarPath
             }
+            updatedProfile.confirmedAddress = confirmedAddress ?? updatedProfile.confirmedAddress
             profile = updatedProfile
             populateForm(with: updatedProfile)
             saveProfileSnapshot(profile: updatedProfile, avatarData: avatarPhotoData)
@@ -224,10 +260,19 @@ final class CustomerProfileStore {
 
     private func populateForm(with profile: CustomerProfileDetails) {
         nickname = profile.nickname
-        streetAddress = profile.streetAddress ?? ""
-        city = profile.city ?? ""
-        stateCode = profile.stateCode
-        zipCode = profile.zipCode ?? ""
+        let addressInput = BeckonAddressInput(
+            line1: profile.streetAddress ?? "",
+            line2: profile.addressLine2 ?? "",
+            city: profile.city ?? "",
+            stateCode: profile.stateCode,
+            postalCode: profile.zipCode ?? "",
+            countryCode: profile.confirmedAddress?.accepted.countryCode ?? "US"
+        )
+        addressEditorState.replaceInput(
+            addressInput,
+            confirmedAddress: profile.confirmedAddress
+        )
+        loadedAddressInput = normalizedAddressInput(addressInput)
         contactEmail = profile.contactEmail ?? sessionEmail ?? ""
         phoneNumber = profile.phoneNumber ?? ""
     }
@@ -360,11 +405,38 @@ final class CustomerProfileStore {
         return CustomerProfileDraft(
             nickname: normalizedNickname,
             streetAddress: normalizedStreet,
+            addressLine2: Self.normalized(addressLine2),
             city: normalizedCity,
             stateCode: stateCode,
             zipCode: normalizedZip,
             contactEmail: normalizedEmail,
             phoneNumber: normalizedPhone
+        )
+    }
+
+    private func confirmedAddressForSave() throws -> BeckonConfirmedAddress? {
+        let current = normalizedAddressInput(addressEditorState.input)
+        let loaded = normalizedAddressInput(loadedAddressInput)
+        if current == loaded, addressEditorState.confirmedAddress == nil {
+            return nil
+        }
+        guard let confirmedAddress = addressEditorState.confirmedAddress,
+              normalizedAddressInput(confirmedAddress.accepted) == current else {
+            throw CustomerProfileFormError(
+                "Confirm the changed address with Apple Maps before saving."
+            )
+        }
+        return confirmedAddress
+    }
+
+    private func normalizedAddressInput(_ input: BeckonAddressInput) -> BeckonAddressInput {
+        BeckonAddressInput(
+            line1: input.line1.trimmingCharacters(in: .whitespacesAndNewlines),
+            line2: input.line2.trimmingCharacters(in: .whitespacesAndNewlines),
+            city: input.city.trimmingCharacters(in: .whitespacesAndNewlines),
+            stateCode: input.stateCode,
+            postalCode: input.postalCode.trimmingCharacters(in: .whitespacesAndNewlines),
+            countryCode: input.countryCode.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
         )
     }
 

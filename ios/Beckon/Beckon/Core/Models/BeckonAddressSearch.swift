@@ -505,9 +505,11 @@ typealias BeckonAddressSearch = MapKitAddressProvider
 
 struct CustomerProfileAddressAutofill: Equatable, Sendable {
     let streetAddress: String
+    var addressLine2: String = ""
     let city: String
     let stateCode: USStateCode
     let zipCode: String
+    var confirmedAddress: BeckonConfirmedAddress? = nil
 
     static func make(from profile: CustomerProfileDetails) -> CustomerProfileAddressAutofill? {
         guard
@@ -521,9 +523,11 @@ struct CustomerProfileAddressAutofill: Equatable, Sendable {
 
         return CustomerProfileAddressAutofill(
             streetAddress: streetAddress,
+            addressLine2: normalized(profile.addressLine2) ?? "",
             city: city,
             stateCode: stateCode,
-            zipCode: zipCode
+            zipCode: zipCode,
+            confirmedAddress: profile.confirmedAddress
         )
     }
 

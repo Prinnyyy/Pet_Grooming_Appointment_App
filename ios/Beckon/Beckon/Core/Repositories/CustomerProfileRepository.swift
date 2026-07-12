@@ -16,6 +16,12 @@ protocol CustomerProfileRepository: AnyObject {
         draft: CustomerProfileDraft
     ) async throws -> CustomerProfileDetails
 
+    func updateProfile(
+        customerID: UUID,
+        draft: CustomerProfileDraft,
+        confirmedAddress: BeckonConfirmedAddress?
+    ) async throws -> CustomerProfileDetails
+
     func uploadAvatarPhoto(
         customerID: UUID,
         data: Data,
@@ -28,6 +34,14 @@ protocol CustomerProfileRepository: AnyObject {
 }
 
 extension CustomerProfileRepository {
+    func updateProfile(
+        customerID: UUID,
+        draft: CustomerProfileDraft,
+        confirmedAddress: BeckonConfirmedAddress?
+    ) async throws -> CustomerProfileDetails {
+        try await updateProfile(customerID: customerID, draft: draft)
+    }
+
     func latestAvatarPhotoPath(customerID: UUID) async throws -> String? {
         nil
     }

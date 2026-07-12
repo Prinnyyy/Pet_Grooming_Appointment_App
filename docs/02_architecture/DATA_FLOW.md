@@ -84,7 +84,7 @@ Allowed local state:
 
 Server-owned profiles, pets after synchronization, requests, offers, bookings, messages, and reviews must be refreshed from the backend rather than maintained as parallel local fact stores.
 
-## Planned Address Confirmation Flow
+## Address Confirmation Flow
 
 R-040's authoritative contract lives in `../06_tasks/APPLE_MAPS_ADDRESS_SYSTEM_PLAN.md`.
 
@@ -99,3 +99,5 @@ Address Line 1 / Address Line 2 input
 ```
 
 Localized address text is display data. After strict cutover, coordinates and the controlling radius are the only location-matching authority. Apple Maps confirmation must not be represented as postal deliverability validation.
+
+Customer and Groomer Profile now use this shared editor and owner-scoped v2 persistence. Unchanged legacy profile addresses can still save unrelated fields until controlled backfill; any material address or Unit/Apt edit invalidates confirmation. Customer Request adopts the same confirmed metadata in Q-110.

@@ -5,7 +5,7 @@ import Supabase
 final class SupabaseCustomerProfileRepository: CustomerProfileRepository {
     private static let profileColumns = "id,display_name,avatar_path"
     private static let customerProfileColumns =
-        "user_id,street_address,city,state,zip_code,contact_email,phone_number"
+        "user_id,street_address,address_line_2,city,state,zip_code,contact_email,phone_number"
     private static let avatarBucketID = PhotoStorageBucketID.customerAvatar.rawValue
 
     private let client: SupabaseClient
@@ -47,16 +47,19 @@ final class SupabaseCustomerProfileRepository: CustomerProfileRepository {
                 throw CustomerProfileRepositoryError.unavailable
             }
 
+            let confirmedAddress = try await loadConfirmedAddress()
             return CustomerProfileDetails(
                 userID: accountRow.id,
                 nickname: accountRow.displayName,
                 avatarPath: accountRow.avatarPath,
                 streetAddress: detailRows.first?.streetAddress,
+                addressLine2: detailRows.first?.addressLine2,
                 city: detailRows.first?.city,
                 stateCode: detailRows.first?.state.flatMap(USStateCode.init(rawValue:)),
                 zipCode: detailRows.first?.zipCode,
                 contactEmail: detailRows.first?.contactEmail,
-                phoneNumber: detailRows.first?.phoneNumber
+                phoneNumber: detailRows.first?.phoneNumber,
+                confirmedAddress: confirmedAddress
             )
         } catch let error as CustomerProfileRepositoryError {
             throw error
@@ -68,6 +71,18 @@ final class SupabaseCustomerProfileRepository: CustomerProfileRepository {
     func updateProfile(
         customerID: UUID,
         draft: CustomerProfileDraft
+    ) async throws -> CustomerProfileDetails {
+        try await updateProfile(
+            customerID: customerID,
+            draft: draft,
+            confirmedAddress: nil
+        )
+    }
+
+    func updateProfile(
+        customerID: UUID,
+        draft: CustomerProfileDraft,
+        confirmedAddress: BeckonConfirmedAddress?
     ) async throws -> CustomerProfileDetails {
         do {
             let currentAvatarPath = try? await avatarPath(customerID: customerID)
@@ -84,48 +99,99 @@ final class SupabaseCustomerProfileRepository: CustomerProfileRepository {
                 throw CustomerProfileRepositoryError.unavailable
             }
 
-            var detailRows: [CustomerProfileDetailsRow] = try await client
-                .from("customer_profiles")
-                .update(CustomerProfileDetailsUpdateRow(draft: draft))
-                .eq("user_id", value: customerID.uuidString.lowercased())
-                .select(Self.customerProfileColumns)
-                .execute()
-                .value
-
-            if detailRows.isEmpty {
+            var detailRows: [CustomerProfileDetailsRow]
+            if confirmedAddress != nil {
                 detailRows = try await client
                     .from("customer_profiles")
-                    .insert(
-                        CustomerProfileDetailsInsertRow(
-                            customerID: customerID,
-                            draft: draft
-                        )
-                    )
+                    .update(CustomerProfileContactUpdateRow(draft: draft))
+                    .eq("user_id", value: customerID.uuidString.lowercased())
                     .select(Self.customerProfileColumns)
                     .execute()
                     .value
+            } else {
+                detailRows = try await client
+                    .from("customer_profiles")
+                    .update(CustomerProfileDetailsUpdateRow(draft: draft))
+                    .eq("user_id", value: customerID.uuidString.lowercased())
+                    .select(Self.customerProfileColumns)
+                    .execute()
+                    .value
+            }
+
+            if detailRows.isEmpty {
+                if confirmedAddress != nil {
+                    detailRows = try await client
+                        .from("customer_profiles")
+                        .insert(
+                            CustomerProfileContactInsertRow(
+                                customerID: customerID,
+                                draft: draft
+                            )
+                        )
+                        .select(Self.customerProfileColumns)
+                        .execute()
+                        .value
+                } else {
+                    detailRows = try await client
+                        .from("customer_profiles")
+                        .insert(
+                            CustomerProfileDetailsInsertRow(
+                                customerID: customerID,
+                                draft: draft
+                            )
+                        )
+                        .select(Self.customerProfileColumns)
+                        .execute()
+                        .value
+                }
             }
 
             guard detailRows.count == 1, let detailRow = detailRows.first else {
                 throw CustomerProfileRepositoryError.unavailable
             }
 
+            if let confirmedAddress {
+                let _: UUID = try await client
+                    .rpc(
+                        "save_customer_profile_address_v2",
+                        params: SaveProfileAddressRPCParameters(
+                            confirmedAddress: confirmedAddress
+                        )
+                    )
+                    .execute()
+                    .value
+            }
+
             return CustomerProfileDetails(
                 userID: accountRow.id,
                 nickname: accountRow.displayName,
                 avatarPath: accountRow.avatarPath,
-                streetAddress: detailRow.streetAddress,
-                city: detailRow.city,
-                stateCode: detailRow.state.flatMap(USStateCode.init(rawValue:)),
-                zipCode: detailRow.zipCode,
+                streetAddress: confirmedAddress?.accepted.line1 ?? detailRow.streetAddress,
+                addressLine2: confirmedAddress?.accepted.line2 ?? detailRow.addressLine2,
+                city: confirmedAddress?.accepted.city ?? detailRow.city,
+                stateCode: confirmedAddress?.accepted.stateCode
+                    ?? detailRow.state.flatMap(USStateCode.init(rawValue:)),
+                zipCode: confirmedAddress?.accepted.postalCode ?? detailRow.zipCode,
                 contactEmail: detailRow.contactEmail,
-                phoneNumber: detailRow.phoneNumber
+                phoneNumber: detailRow.phoneNumber,
+                confirmedAddress: confirmedAddress
             )
         } catch let error as CustomerProfileRepositoryError {
             throw error
         } catch {
             throw Self.map(error)
         }
+    }
+
+    private func loadConfirmedAddress() async throws -> BeckonConfirmedAddress? {
+        let rows: [ProfileAddressRPCRow] = try await client
+            .rpc("get_my_customer_profile_address_v2")
+            .execute()
+            .value
+        guard rows.count <= 1 else {
+            throw CustomerProfileRepositoryError.unavailable
+        }
+        return rows.first?.confirmedAddress
     }
 
     func uploadAvatarPhoto(
@@ -325,6 +391,7 @@ private struct CustomerProfileAccountRow: Decodable {
 private struct CustomerProfileDetailsRow: Decodable {
     let userID: UUID
     let streetAddress: String?
+    let addressLine2: String?
     let city: String?
     let state: String?
     let zipCode: String?
@@ -334,6 +401,7 @@ private struct CustomerProfileDetailsRow: Decodable {
     private enum CodingKeys: String, CodingKey {
         case userID = "user_id"
         case streetAddress = "street_address"
+        case addressLine2 = "address_line_2"
         case city
         case state
         case zipCode = "zip_code"
@@ -372,6 +440,7 @@ struct CustomerProfileDetailsUpdateRow: Encodable {
     func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(draft.streetAddress, forKey: .streetAddress)
+        try container.encodeIfPresent(draft.addressLine2, forKey: .addressLine2)
         try container.encode(draft.city, forKey: .city)
         try container.encode(draft.stateCode?.rawValue, forKey: .state)
         try container.encode(draft.zipCode, forKey: .zipCode)
@@ -381,6 +450,7 @@ struct CustomerProfileDetailsUpdateRow: Encodable {
 
     private enum CodingKeys: String, CodingKey {
         case streetAddress = "street_address"
+        case addressLine2 = "address_line_2"
         case city
         case state
         case zipCode = "zip_code"
@@ -397,6 +467,7 @@ private struct CustomerProfileDetailsInsertRow: Encodable {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(customerID.uuidString.lowercased(), forKey: .userID)
         try container.encode(draft.streetAddress, forKey: .streetAddress)
+        try container.encode(draft.addressLine2, forKey: .addressLine2)
         try container.encode(draft.city, forKey: .city)
         try container.encode(draft.stateCode?.rawValue, forKey: .state)
         try container.encode(draft.zipCode, forKey: .zipCode)
@@ -407,9 +478,43 @@ private struct CustomerProfileDetailsInsertRow: Encodable {
     private enum CodingKeys: String, CodingKey {
         case userID = "user_id"
         case streetAddress = "street_address"
+        case addressLine2 = "address_line_2"
         case city
         case state
         case zipCode = "zip_code"
+        case contactEmail = "contact_email"
+        case phoneNumber = "phone_number"
+    }
+}
+
+private struct CustomerProfileContactUpdateRow: Encodable {
+    let draft: CustomerProfileDraft
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(draft.contactEmail, forKey: .contactEmail)
+        try container.encode(draft.phoneNumber, forKey: .phoneNumber)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case contactEmail = "contact_email"
+        case phoneNumber = "phone_number"
+    }
+}
+
+private struct CustomerProfileContactInsertRow: Encodable {
+    let customerID: UUID
+    let draft: CustomerProfileDraft
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(customerID.uuidString.lowercased(), forKey: .userID)
+        try container.encode(draft.contactEmail, forKey: .contactEmail)
+        try container.encode(draft.phoneNumber, forKey: .phoneNumber)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case userID = "user_id"
         case contactEmail = "contact_email"
         case phoneNumber = "phone_number"
     }

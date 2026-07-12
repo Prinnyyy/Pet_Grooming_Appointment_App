@@ -171,6 +171,18 @@ extension GroomerProfileStoreTests {
         store.serviceRadiusMiles = 50
         store.serviceLocationModes = [.customerComesToGroomer, .groomerComesToCustomer]
         store.isActive = true
+        let confirmedAddress = ProfileAddressIntegrationTests.confirmedAddress(
+            line1: "123 Pine Street",
+            line2: "",
+            city: "Seattle",
+            stateCode: .washington,
+            postalCode: "98101",
+            placeID: nil
+        )
+        store.addressEditorState.replaceInput(
+            confirmedAddress.accepted,
+            confirmedAddress: confirmedAddress
+        )
 
         await store.saveProfile()
 

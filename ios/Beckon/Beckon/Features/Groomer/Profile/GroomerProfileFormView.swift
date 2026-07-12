@@ -160,12 +160,7 @@ private struct GroomerProfileFormSection: View {
             GroomerWorkspaceSection(title: "Service area") {
                 GroomerGroupedSurface {
                     VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                        GroomerProfileAddressFields(
-                            streetAddress: $store.baseStreetAddress,
-                            city: $store.baseCity,
-                            stateCode: $store.baseStateCode,
-                            zipCode: $store.baseZipCode
-                        )
+                        BeckonAddressEditor(state: store.addressEditorState)
 
                         GroomerWorkspaceDivider()
 
@@ -373,97 +368,6 @@ private struct GroomerProfileStatePicker: View {
                 }
                 .beckonFormField()
             }
-        }
-    }
-}
-
-private struct GroomerProfileAddressFields: View {
-    @Binding var streetAddress: String
-    @Binding var city: String
-    @Binding var stateCode: USStateCode?
-    @Binding var zipCode: String
-    @StateObject private var addressSearch = GroomerProfileAddressSearch()
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            GroomerProfileTextField(
-                title: "Street Address",
-                text: $streetAddress,
-                prompt: "Street Address"
-            )
-            .textContentType(.streetAddressLine1)
-            .onChange(of: streetAddress) { _, newValue in
-                addressSearch.update(
-                    street: newValue,
-                    city: city,
-                    stateCode: stateCode
-                )
-            }
-
-            if !addressSearch.suggestions.isEmpty {
-                VStack(spacing: DesignTokens.Spacing.xs) {
-                    ForEach(addressSearch.suggestions.prefix(4)) { suggestion in
-                        Button {
-                            applyAddressSuggestion(suggestion)
-                        } label: {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(suggestion.title)
-                                    .font(DesignTokens.Typography.caption.weight(.semibold))
-                                    .foregroundStyle(DesignTokens.Colors.textPrimary)
-                                    .lineLimit(1)
-
-                                Text(suggestion.subtitle)
-                                    .font(DesignTokens.Typography.caption)
-                                    .foregroundStyle(DesignTokens.Colors.textSecondary)
-                                    .lineLimit(1)
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.horizontal, DesignTokens.Spacing.md)
-                            .padding(.vertical, DesignTokens.Spacing.sm)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .background(DesignTokens.Colors.surface)
-                .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input, style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input, style: .continuous)
-                        .stroke(DesignTokens.Colors.borderSoft, lineWidth: 1)
-                }
-            }
-
-            HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
-                GroomerProfileTextField(
-                    title: "City",
-                    text: $city,
-                    prompt: "City"
-                )
-                .textContentType(.addressCity)
-
-                GroomerProfileStatePicker(
-                    title: "State",
-                    selection: $stateCode
-                )
-                .frame(width: 100)
-            }
-
-            GroomerProfileTextField(
-                title: "ZIP Code",
-                text: $zipCode,
-                prompt: "ZIP Code"
-            )
-            .textContentType(.postalCode)
-            .keyboardType(.numbersAndPunctuation)
-        }
-    }
-
-    private func applyAddressSuggestion(_ suggestion: GroomerProfileAddressSuggestion) {
-        Task {
-            guard let address = await addressSearch.resolve(suggestion) else { return }
-            streetAddress = address.streetAddress
-            city = address.city
-            stateCode = address.stateCode
-            zipCode = address.zipCode
         }
     }
 }

@@ -568,7 +568,7 @@ struct GroomerProfileStoreTests {
     func inFlightLoadDoesNotOverwriteSavedProfileForm() async {
         let groomerID = UUID()
         let staleProfile = Self.profile(groomerID: groomerID)
-        let savedProfile = GroomerProfile(
+        var savedProfile = GroomerProfile(
             userID: groomerID,
             businessName: "Updated Coat",
             bio: "Updated grooming",
@@ -610,6 +610,20 @@ struct GroomerProfileStoreTests {
         store.serviceRadiusMiles = 24
         store.serviceLocationModes = [.customerComesToGroomer]
         store.isActive = true
+        let confirmedAddress = ProfileAddressIntegrationTests.confirmedAddress(
+            line1: "987 Cedar Avenue",
+            line2: "",
+            city: "Portland",
+            stateCode: .oregon,
+            postalCode: "97201",
+            placeID: nil
+        )
+        savedProfile.confirmedAddress = confirmedAddress
+        repository.updateProfileResult = .success(savedProfile)
+        store.addressEditorState.replaceInput(
+            confirmedAddress.accepted,
+            confirmedAddress: confirmedAddress
+        )
         await store.saveProfile()
 
         repository.resumeSuspendedAvailability()
