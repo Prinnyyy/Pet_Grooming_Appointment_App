@@ -60,6 +60,12 @@ Baseline matrix:
 - Remote execution still requires `--execute` and `TESTOPS_REMOTE_WRITE_APPROVED=1`.
 - This scenario creates grooming requests only. It does not create offers, bookings, chat rows, completion, reviews, image uploads, or Storage objects.
 
+Coordinate radius matrix:
+
+- `matching_radius` runs six near, just-inside-edge, and outside cases across both service directions.
+- Runtime coordinates are derived only after the target Groomer owner signs in and are not printed in plans or artifacts.
+- Radius Requests use `create_grooming_request_v2`; tagged cleanup deletes their private Request location first.
+
 ## Future Scenario Candidates
 
 - `request_no_match_diagnostics`: create a request expected to produce zero matches and verify Debug Console event provenance.

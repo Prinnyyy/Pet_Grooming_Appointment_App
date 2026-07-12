@@ -107,6 +107,17 @@ node scripts/testops.mjs run matching \
   --cleanup
 ```
 
+The coordinate radius matrix uses the same gate and service-only tagged location cleanup:
+
+```bash
+node scripts/testops.mjs run matching \
+  --scenario request_matching_eval \
+  --matrix matching_radius \
+  --run-id TESTOPS-RADIUS \
+  --execute \
+  --cleanup
+```
+
 Do not run matching execute without `--cleanup` unless preserving tagged rows for manual investigation is intentional. Cleanup is scoped to `TESTOPS:<run_id>`.
 
 Artifacts are written under `artifacts/testops/` and are not intended as committed source docs.

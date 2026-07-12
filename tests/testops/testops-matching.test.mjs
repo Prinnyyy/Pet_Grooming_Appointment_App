@@ -7,6 +7,9 @@ import { test } from "node:test";
 import {
   MATCHING_BASELINE_CASES,
   MATCHING_SCENARIO,
+  MATCHING_RADIUS_CASES,
+  MATCHING_RADIUS_MATRIX,
+  destinationCoordinateWGS84,
   makeMatchingPlans,
   parseCustomerProfiles,
   parseGroomerProfiles,
@@ -56,6 +59,34 @@ test("matching baseline plans cover positive, same-day, and hard-filter cases", 
   assert.doesNotMatch(serialized, /beckon\.customer001@example\.com/);
   assert.doesNotMatch(serialized, /beckon\.groomer001@example\.com/);
   assert.match(serialized, /"emailDomain":"example.com"/);
+});
+
+test("radius matrix covers near, edge, and outside for both service directions", () => {
+  const plans = makeMatchingPlans({
+    scenarioID: MATCHING_SCENARIO,
+    matrix: MATCHING_RADIUS_MATRIX,
+    runID: "TESTOPS-RADIUS",
+    customerProfiles: parseCustomerProfiles(customerResource),
+    groomerProfiles: parseGroomerProfiles(groomerResource),
+  });
+  assert.equal(plans.length, MATCHING_RADIUS_CASES.length);
+  assert.deepEqual(new Set(plans.map((plan) => plan.radius.boundary)), new Set(["near", "edge", "outside"]));
+  assert.deepEqual(
+    new Set(plans.map((plan) => plan.request.locationMode)),
+    new Set(["customer_comes_to_groomer", "groomer_comes_to_customer"]),
+  );
+  assert.ok(plans.filter((plan) => plan.radius.boundary === "outside").every(
+    (plan) => plan.expectation.targetShouldMatch === false,
+  ));
+});
+
+test("WGS84 projection produces finite coordinates at the requested distance", () => {
+  const origin = { latitude: 33.8703, longitude: -117.9242 };
+  const projected = destinationCoordinateWGS84(origin, 12, 0);
+  assert.ok(Number.isFinite(projected.latitude));
+  assert.ok(Number.isFinite(projected.longitude));
+  assert.ok(projected.latitude > origin.latitude);
+  assert.ok(Math.abs(projected.longitude - origin.longitude) < 0.001);
 });
 
 test("matching seed parsing exposes pet and groomer fit metadata", () => {
@@ -164,6 +195,56 @@ test("matching evaluation passes positive and negative target assertions", async
 
   assert.equal(negativeResult.assertions.targetMatch, "passed");
   assert.equal(negativeResult.target.matched, false);
+});
+
+test("radius evaluation reads the owner coordinate and publishes through request v2", async () => {
+  const [plan] = makeMatchingPlans({
+    scenarioID: MATCHING_SCENARIO,
+    matrix: MATCHING_RADIUS_MATRIX,
+    runID: "TESTOPS-RADIUS-EVAL",
+    customerProfiles: parseCustomerProfiles(customerResource),
+    groomerProfiles: parseGroomerProfiles(groomerResource),
+  });
+  const calls = [];
+  const api = {
+    requireServiceRole: () => "service-token",
+    async signIn(email) {
+      return email.includes("customer")
+        ? { user: { id: "customer-user" }, accessToken: "customer-token" }
+        : { user: { id: "groomer-user" }, accessToken: "groomer-token" };
+    },
+    async restSelect(table) {
+      if (table === "pets") return [{ id: "pet-1", species: "Dog", name: "Mochi" }];
+      if (table === "request_matches") {
+        return [{
+          groomer_id: "groomer-user",
+          match_score: 70,
+          match_reason: "5.0 miles away, within the customer's 10-mile travel range. Preferred time fits",
+          status: "visible",
+        }];
+      }
+      throw new Error(`unexpected table ${table}`);
+    },
+    async rpc(name, params) {
+      calls.push({ name, params });
+      if (name === "get_my_groomer_profile_address_v2") {
+        return [{ latitude: 33.87, longitude: -117.92 }];
+      }
+      if (name === "create_grooming_request_v2") {
+        return [{ request_id: "123e4567-e89b-12d3-a456-426614174000", match_count: 1 }];
+      }
+      throw new Error(`unexpected rpc ${name}`);
+    },
+  };
+
+  const result = await runMatchingEvaluation(api, plan);
+  const create = calls.find((call) => call.name === "create_grooming_request_v2");
+  assert.ok(create);
+  assert.equal(create.params.p_resolution_source, "manual_geocode");
+  assert.equal(create.params.p_travel_radius_miles, 10);
+  assert.ok(Number.isFinite(create.params.p_latitude));
+  assert.ok(Number.isFinite(create.params.p_longitude));
+  assert.equal(result.assertions.targetMatch, "passed");
 });
 
 test("matching report redacts sensitive actor and identifier data", () => {

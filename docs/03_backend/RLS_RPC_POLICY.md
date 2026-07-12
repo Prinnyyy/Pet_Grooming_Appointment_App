@@ -31,7 +31,7 @@ Archived pre-trim version: `../09_frozen/backend_policies/RLS_RPC_POLICY_2026-07
 | `customer_push_tokens` | Register/unregister own device tokens through RPC | No access | Push claim/delivery updates are service-role only |
 | `reviews`, `review_pet_fit_outcomes` | Create one review through RPC for own completed booking; read own | Read own booking review/outcomes | Direct outcome DML denied |
 | `account_deletion_requests` | Read own deletion request; request deletion through RPC | Read own deletion request; request deletion through RPC | Auth soft-delete/failure recording is service-role only |
-| `app_private.address_locations` | No direct table access; current-owner profile address through controlled RPC | No direct table access; current-owner profile address through controlled RPC | Exact coordinates/Place IDs remain private; profile and Request writes are atomic controlled operations |
+| `app_private.address_locations` | No direct table access; current-owner profile address through controlled RPC | No direct table access; current-owner profile address through controlled RPC | Exact coordinates/Place IDs remain private; profile/Request writes are atomic; backfill and tagged TestOps cleanup are service-role only |
 | Evidence summary and fit claims/tags | No owner dashboard contract | Manage own claims/tags; read own aggregate evidence through owner RPC | Claims/tags are low-confidence signals only and do not create eligibility |
 
 ## Controlled Operations
@@ -64,7 +64,7 @@ Public controlled RPCs currently include:
 - `unregister_customer_push_token`
 - `request_account_deletion`
 
-These operations must reject unauthenticated callers, resolve role and ownership from trusted database state, validate current status and inputs, lock or constrain rows where concurrency matters, commit atomically, return stable typed results/errors, and expose execute privileges only to intended roles. Service-role-only operations include push claim/delivery recording and account-deletion Auth finalization/failure recording.
+These operations must reject unauthenticated callers, resolve role and ownership from trusted database state, validate current status and inputs, lock or constrain rows where concurrency matters, commit atomically, return stable typed results/errors, and expose execute privileges only to intended roles. Service-role-only operations include address backfill list/write/summary, exact-tag TestOps request-location cleanup, push claim/delivery recording, and account-deletion Auth finalization/failure recording.
 
 ## Required Negative Tests
 
@@ -80,6 +80,7 @@ Every backend access change must cover the relevant negative cases:
 - Customers cannot read another customer's notifications, push tokens, handoff acknowledgements, or account deletion request.
 - Groomers cannot read another groomer's notifications or create notification rows directly.
 - Authenticated users cannot execute service-role push delivery or account deletion finalization RPCs.
+- Authenticated users cannot execute address backfill or tagged TestOps private-location cleanup RPCs.
 - Storage metadata and table predicates must agree with bucket object policies when files are involved.
 
 Current notification negative-test evidence: `../06_tasks/sql_reviews/T-220_NOTIFICATION_RLS_NEGATIVE_CONTRACT.sql` plus `../../tests/migrations/notification-rls-negative-contract.test.mjs`.

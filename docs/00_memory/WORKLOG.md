@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-07-11
+Task: T-299 - Controlled legacy Apple Maps address backfill.
+Files changed: Two service-role-only backfill/TestOps-cleanup migrations; macOS Apple Maps helper, Node dry-run/approval/report CLI, unit runner and ignored artifacts; TestOps coordinate radius matrix/WGS84 projection/cleanup; backend, TestOps, runbook, queue, and memory docs.
+Checks: Forced RED then Address Backfill 13/13; TestOps 39/39; all migration contracts 64/64; linked migration history and repeat up-to-date dry-run; publishable/authenticated denial; remote 102-row backfill counts and zero orphans; `matching_radius` 6/6 with zero tagged/manual-location residue; security/performance advisors; complete `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; Supabase check; diff/context/preflight.
+Result: Completed Q-111. Apple Maps review approved and linked 51 Groomers, 50 Customers, and 1 active Request through snapshot-checked atomic batches. Customer support ref 6D8776F2 remains a documented ZIP-conflict exception with no coordinate. Groomer and active Request gaps, incomplete active rows, legacy/manual orphans, and TestOps residue are zero. Near/edge/outside matching passes for Customer 10-mile travel and Groomer 12-mile service ranges.
+Risks: The one Customer Profile exception must be corrected by the user before that Profile can retain confirmed autofill metadata, but Q-110 prevents it from publishing a coordinate-null Request. Q-112 must recheck current active gaps before removing legacy fallback. The Swift helper retains a macOS 26 deprecation warning for the cross-version placemark compatibility path.
+Next: Use T-300 for Q-112 strict coordinate cutover and integration gate; Q-104 remains deferred.
+```
+
+```text
+Date: 2026-07-11
 Task: T-298 - Customer Request confirmed-address integration.
 Files changed: Shared Request address state/UI; Customer Request model, v2 repository DTO, and debug RPC metadata; republish/Profile autofill confirmation rules; focused tests; architecture/feature/queue/memory closeout.
 Checks: Forced RED for missing Q-110 contracts; focused Customer Request address/Store/republish tests; complete `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; Simulator install/launch; `./scripts/supabase-check.sh`; `git diff --check`; context hygiene; preflight.

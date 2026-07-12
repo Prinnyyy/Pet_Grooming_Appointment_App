@@ -9,6 +9,7 @@ import {
   DEFAULT_SCENARIO,
   GROOMER_RESOURCE,
   MATCHING_BASELINE_MATRIX,
+  MATCHING_RADIUS_MATRIX,
   MATCHING_SCENARIO,
   PROJECT_ROOT,
   REMOTE_WRITE_ENV,
@@ -74,7 +75,7 @@ function usage() {
   console.log(`Usage:
   node scripts/testops.mjs doctor [--dry-run]
   node scripts/testops.mjs run backend --scenario ${DEFAULT_SCENARIO} [--customer BTC-001] [--groomer BTG-001] [--matrix smoke5] [--run-id RUN] [--execute] [--cleanup]
-  node scripts/testops.mjs run matching --scenario ${MATCHING_SCENARIO} [--matrix ${MATCHING_BASELINE_MATRIX}] [--run-id RUN] [--execute] [--cleanup]
+  node scripts/testops.mjs run matching --scenario ${MATCHING_SCENARIO} [--matrix ${MATCHING_BASELINE_MATRIX}|${MATCHING_RADIUS_MATRIX}] [--run-id RUN] [--execute] [--cleanup]
   node scripts/testops.mjs cleanup --run-id RUN [--execute]
   node scripts/testops.mjs verify ui-lifecycle --run-id RUN
   node scripts/testops.mjs verify debug-log --run-id RUN --log-path PATH --started-at ISO8601

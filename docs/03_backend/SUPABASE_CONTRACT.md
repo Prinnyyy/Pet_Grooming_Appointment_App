@@ -1,6 +1,6 @@
 # Supabase Contract
 
-Last verified: 2026-07-11 (T-296 remote PostGIS address contract application).
+Last verified: 2026-07-11 (T-299 controlled address backfill and radius TestOps).
 
 This is the active fast-path backend contract. It records current authoritative facts and points to the right detailed source instead of embedding every historical table, RPC, Storage, and migration note.
 
@@ -10,9 +10,9 @@ Full pre-trim contract text is archived at `../09_frozen/backend_contracts/SUPAB
 
 - Authorized fresh project: `Beckon`, ref `lqmasbuqzvcvtawonjlb`, organization `Prinnyyy`, region `us-west-1`.
 - Forbidden legacy project: `Prinnyyy's Project`, ref `swdiiyypysyxbnfrxxsv`. Do not inspect, branch, migrate, reset, or mutate it for this rebuild.
-- Remote verification baseline: linked history aligns through `20260712014418_t294_postgis_private_address_locations.sql` after T-296 runtime and advisor verification.
+- Remote verification baseline: linked history aligns through `20260712042846_t299_testops_address_cleanup.sql` after T-299 backfill, privacy, radius, cleanup, and advisor verification.
 - Local CLI readiness baseline: T-139 confirmed sequential `supabase projects list`, `supabase migration list --linked`, and `supabase db push --linked --dry-run` work from this checkout without `SUPABASE_DB_PASSWORD`.
-- Local migration mirror: `../../supabase/migrations/` is the append-only source for applied and prepared migrations. Local migration mirror count: 64 files. Do not rename or hand-invent migration filenames.
+- Local migration mirror: `../../supabase/migrations/` is the append-only source for applied and prepared migrations. Local migration mirror count: 66 files. Do not rename or hand-invent migration filenames.
 - Full historical contract detail before this fast-path trim is frozen for comparison only. Current implementation truth comes from migrations plus focused active backend policy files.
 
 ## Read Order
@@ -32,11 +32,13 @@ Do not read this file as proof that a future object is deployed. A deployed clai
 
 ## Address Location Contract
 
-T-296/Q-108 deployed `20260712014418_t294_postgis_private_address_locations.sql`; linked history is aligned and a repeat dry-run reports the remote database up to date. No address backfill occurred.
+T-296/Q-108 deployed the private PostGIS contract. T-299/Q-111 deployed service-role-only list/snapshot-checked atomic backfill/summary RPCs plus exact-tag TestOps location cleanup. Linked history is aligned and a repeat dry-run reports the remote database up to date.
 
 The deployed contract enables PostGIS in `extensions`, stores exact Apple Maps coordinates and optional Place IDs only in `app_private.address_locations`, adds opaque location references plus Address Line 2 snapshots, and exposes owner-checked profile read/write wrappers and `create_grooming_request_v2`. Coordinate-backed matching uses Customer travel radius for `customer_comes_to_groomer` and Groomer service radius for `groomer_comes_to_customer`; state/city fallback remains only for rows missing either coordinate until Q-112 strict cutover.
 
 Authenticated clients receive no direct table privileges on private address locations. Exact coordinates and full Place IDs are returned only through current-owner profile RPCs. The rollback-only verification is `../06_tasks/sql_reviews/T-294_POSTGIS_ADDRESS_ROLLBACK_VALIDATION.sql`; static contract coverage is `../../tests/migrations/postgis-address-locations.test.mjs`.
+
+The controlled backfill linked 51 Groomers, 50 Customers, and 1 active Request. One Customer support ref remains a reviewed ZIP-conflict exception; Groomer and active Request gaps, incomplete active targets, orphan legacy/TestOps locations, and tagged TestOps Requests are zero. The six-case `matching_radius` matrix verifies near/edge/outside behavior in both service directions. Operational usage is `../04_ios/ADDRESS_BACKFILL.md`; durable evidence is `../04_ios/testops/runs/T-299_ADDRESS_BACKFILL_RADIUS.md`.
 
 ## Product Contract
 

@@ -14,6 +14,7 @@ export const ARTIFACT_DIR = path.join(PROJECT_ROOT, "artifacts/testops");
 export const DEFAULT_SCENARIO = "marketplace_full_lifecycle";
 export const MATCHING_SCENARIO = "request_matching_eval";
 export const MATCHING_BASELINE_MATRIX = "matching_baseline";
+export const MATCHING_RADIUS_MATRIX = "matching_radius";
 export const REMOTE_WRITE_ENV = "TESTOPS_REMOTE_WRITE_APPROVED";
 export const SERVICE_ROLE_KEY_ENV = ["SUPABASE", "SERVICE", "ROLE", "KEY"].join("_");
 const SIZE_ORDER = ["XS", "S", "M", "L", "XL", "XXL", "Giant"];
@@ -168,6 +169,35 @@ export const MATCHING_BASELINE_CASES = [
     excludedBy: "request_day_unavailable",
   },
 ];
+
+export const MATCHING_RADIUS_CASES = [
+  radiusCase("TC-RADIUS-001", "customer_comes_to_groomer", "near", 5, 10, true),
+  radiusCase("TC-RADIUS-002", "customer_comes_to_groomer", "edge", 9.999, 10, true),
+  radiusCase("TC-RADIUS-003", "customer_comes_to_groomer", "outside", 10.25, 10, false),
+  radiusCase("TC-RADIUS-004", "groomer_comes_to_customer", "near", 5, null, true),
+  radiusCase("TC-RADIUS-005", "groomer_comes_to_customer", "edge", 11.999, null, true),
+  radiusCase("TC-RADIUS-006", "groomer_comes_to_customer", "outside", 12.25, null, false),
+];
+
+function radiusCase(caseID, locationMode, boundary, distanceMiles, travelRadiusMiles, targetShouldMatch) {
+  const controllingRadius = locationMode === "customer_comes_to_groomer" ? 10 : 12;
+  const reasonLabel = locationMode === "customer_comes_to_groomer"
+    ? "customer's 10-mile travel range"
+    : "groomer's 12-mile service range";
+  return {
+    caseID,
+    customerSeedID: "BTC-001",
+    targetGroomerSeedID: "BTG-001",
+    purpose: `${boundary} ${locationMode} PostGIS radius boundary`,
+    serviceType: "full_groom",
+    locationMode,
+    timing: "exact_daytime",
+    preferredWeekdays: [1, 2, 3, 4, 5],
+    targetShouldMatch,
+    reasonIncludes: targetShouldMatch ? ["miles away", reasonLabel] : [],
+    radius: { boundary, distanceMiles, controllingRadius, travelRadiusMiles },
+  };
+}
 
 export function parseCustomerProfiles(filePath = CUSTOMER_RESOURCE) {
   const markdown = fs.readFileSync(filePath, "utf8");
@@ -409,12 +439,15 @@ export function makeMatchingPlans({
   groomerProfiles = parseGroomerProfiles(),
 } = {}) {
   assertSupportedMatchingScenario(scenarioID);
-  if (matrix !== MATCHING_BASELINE_MATRIX) {
+  if (![MATCHING_BASELINE_MATRIX, MATCHING_RADIUS_MATRIX].includes(matrix)) {
     throw new Error(`Unsupported matching matrix: ${matrix}`);
   }
 
   const baseRunID = validateRunID(runID ?? makeRunID());
-  return MATCHING_BASELINE_CASES.map((entry) =>
+  const cases = matrix === MATCHING_RADIUS_MATRIX
+    ? MATCHING_RADIUS_CASES
+    : MATCHING_BASELINE_CASES;
+  return cases.map((entry) =>
     makeMatchingPlan({
       runID: `${baseRunID}-${entry.caseID}`,
       scenarioID,
@@ -436,8 +469,8 @@ export function makeMatchingPlan({
   validateRunID(runID);
   const pet = selectDogPet(customer, entry.petName);
   const slot = matchingSlot(entry.preferredWeekdays, entry.timing);
-  const travelRadiusMiles =
-    entry.locationMode === "customer_comes_to_groomer" ? 15 : null;
+  const travelRadiusMiles = entry.radius?.travelRadiusMiles
+    ?? (entry.locationMode === "customer_comes_to_groomer" ? 15 : null);
 
   return {
     runID,
@@ -465,6 +498,7 @@ export function makeMatchingPlan({
       localStartTime: slot.localStartTime,
       localEndTime: slot.localEndTime,
     },
+    radius: entry.radius ?? null,
     expectation: {
       targetGroomerSeedID: entry.targetGroomerSeedID,
       targetShouldMatch: entry.targetShouldMatch,
@@ -508,6 +542,11 @@ export async function runMatchingEvaluation(api, plan) {
   );
   const customerID = customerSession.user.id;
 
+  const groomerSession = await timed(phases, "targetGroomer.signIn", () =>
+    api.signIn(plan.targetGroomer.email, plan.targetGroomer.password)
+  );
+  const targetGroomerID = groomerSession.user.id;
+
   const pets = await timed(phases, "customer.loadPets", () =>
     api.restSelect(
       "pets",
@@ -523,35 +562,59 @@ export async function runMatchingEvaluation(api, plan) {
     throw new Error(`No active pet found for ${plan.customer.seedID}.`);
   }
 
+  let requestRPC = "create_grooming_request";
+  let requestParameters = {
+    p_pet_id: dog.id,
+    p_service_type: plan.request.serviceType,
+    p_service_notes: plan.request.serviceNotes,
+    p_preferred_start: plan.request.preferredStart,
+    p_preferred_end: plan.request.preferredEnd,
+    p_location_mode: plan.request.locationMode,
+    p_street_address: plan.request.streetAddress,
+    p_city: plan.request.city,
+    p_state: plan.request.state,
+    p_zip_code: plan.request.zipCode,
+    p_travel_radius_miles: plan.request.travelRadiusMiles,
+  };
+  if (plan.radius) {
+    const rows = await timed(phases, "targetGroomer.loadAddress", () =>
+      api.rpc("get_my_groomer_profile_address_v2", {}, groomerSession.accessToken)
+    );
+    const address = rows[0];
+    if (!Number.isFinite(address?.latitude) || !Number.isFinite(address?.longitude)) {
+      throw new Error(`${plan.targetGroomer.seedID} has no coordinate-backed profile.`);
+    }
+    const coordinate = destinationCoordinateWGS84(
+      { latitude: address.latitude, longitude: address.longitude },
+      plan.radius.distanceMiles,
+      0,
+    );
+    requestRPC = "create_grooming_request_v2";
+    requestParameters = {
+      ...requestParameters,
+      p_address_line_2: null,
+      p_provider: "apple_maps",
+      p_place_id: null,
+      p_country_code: "US",
+      p_latitude: coordinate.latitude,
+      p_longitude: coordinate.longitude,
+      p_resolution_source: "manual_geocode",
+      p_user_confirmed_at: new Date().toISOString(),
+    };
+  }
+
   const requestRows = await timed(phases, "customer.createRequest", () =>
     api.rpc(
-      "create_grooming_request",
-      {
-        p_pet_id: dog.id,
-        p_service_type: plan.request.serviceType,
-        p_service_notes: plan.request.serviceNotes,
-        p_preferred_start: plan.request.preferredStart,
-        p_preferred_end: plan.request.preferredEnd,
-        p_location_mode: plan.request.locationMode,
-        p_street_address: plan.request.streetAddress,
-        p_city: plan.request.city,
-        p_state: plan.request.state,
-        p_zip_code: plan.request.zipCode,
-        p_travel_radius_miles: plan.request.travelRadiusMiles,
-      },
+      requestRPC,
+      requestParameters,
       customerSession.accessToken
     )
   );
   const requestID = firstValue(requestRows, "request_id");
   const matchCount = Number(firstValue(requestRows, "match_count") ?? 0);
   if (!requestID) {
-    throw new Error("create_grooming_request did not return request_id.");
+    throw new Error(`${requestRPC} did not return request_id.`);
   }
-
-  const groomerSession = await timed(phases, "targetGroomer.signIn", () =>
-    api.signIn(plan.targetGroomer.email, plan.targetGroomer.password)
-  );
-  const targetGroomerID = groomerSession.user.id;
 
   const matches = await timed(phases, "service.loadRequestMatches", () =>
     api.restSelect(
@@ -746,6 +809,16 @@ export async function cleanupRun(api, runID) {
     return summary;
   }
 
+  summary.deleted.request_address_locations = 0;
+  for (const requestID of requestIDs) {
+    const deleted = await api.rpc(
+      "cleanup_testops_request_address_location",
+      { p_request_id: requestID, p_run_id: runID },
+      serviceToken,
+    );
+    if (deleted === true) summary.deleted.request_address_locations += 1;
+  }
+
   const requestFilter = `in.(${requestIDs.join(",")})`;
   const bookings = await api.restSelect(
     "bookings",
@@ -829,6 +902,7 @@ export function buildCleanupPlan(runID) {
     runID,
     tag: `TESTOPS:${runID}`,
     deleteOrder: [
+      "request_address_locations",
       "messages",
       "conversations",
       "review_pet_fit_outcomes",
@@ -1159,11 +1233,72 @@ export function redactedMatchingPlan(plan) {
     },
     request: plan.request,
     timing: plan.timing,
+    radius: plan.radius,
     expectation: plan.expectation,
     localProjection: {
       candidateCount: projection.candidateCount,
       target: projection.target,
     },
+  };
+}
+
+export function destinationCoordinateWGS84(origin, distanceMiles, bearingDegrees = 0) {
+  const a = 6_378_137;
+  const flattening = 1 / 298.257223563;
+  const b = (1 - flattening) * a;
+  const distance = distanceMiles * 1_609.344;
+  const alpha1 = bearingDegrees * Math.PI / 180;
+  const phi1 = origin.latitude * Math.PI / 180;
+  const lambda1 = origin.longitude * Math.PI / 180;
+  const tanU1 = (1 - flattening) * Math.tan(phi1);
+  const cosU1 = 1 / Math.sqrt(1 + tanU1 * tanU1);
+  const sinU1 = tanU1 * cosU1;
+  const sigma1 = Math.atan2(tanU1, Math.cos(alpha1));
+  const sinAlpha = cosU1 * Math.sin(alpha1);
+  const cosSqAlpha = 1 - sinAlpha * sinAlpha;
+  const uSq = cosSqAlpha * (a * a - b * b) / (b * b);
+  const A = 1 + uSq / 16_384 * (4_096 + uSq * (-768 + uSq * (320 - 175 * uSq)));
+  const B = uSq / 1_024 * (256 + uSq * (-128 + uSq * (74 - 47 * uSq)));
+  let sigma = distance / (b * A);
+  let previous;
+  do {
+    const twoSigmaM = 2 * sigma1 + sigma;
+    const sinSigma = Math.sin(sigma);
+    const cosSigma = Math.cos(sigma);
+    const cosTwoSigmaM = Math.cos(twoSigmaM);
+    const deltaSigma = B * sinSigma * (
+      cosTwoSigmaM + B / 4 * (
+        cosSigma * (-1 + 2 * cosTwoSigmaM ** 2)
+          - B / 6 * cosTwoSigmaM * (-3 + 4 * sinSigma ** 2) * (-3 + 4 * cosTwoSigmaM ** 2)
+      )
+    );
+    previous = sigma;
+    sigma = distance / (b * A) + deltaSigma;
+  } while (Math.abs(sigma - previous) > 1e-12);
+
+  const sinSigma = Math.sin(sigma);
+  const cosSigma = Math.cos(sigma);
+  const twoSigmaM = 2 * sigma1 + sigma;
+  const phi2 = Math.atan2(
+    sinU1 * cosSigma + cosU1 * sinSigma * Math.cos(alpha1),
+    (1 - flattening) * Math.sqrt(
+      sinAlpha ** 2
+        + (sinU1 * sinSigma - cosU1 * cosSigma * Math.cos(alpha1)) ** 2
+    )
+  );
+  const lambda = Math.atan2(
+    sinSigma * Math.sin(alpha1),
+    cosU1 * cosSigma - sinU1 * sinSigma * Math.cos(alpha1)
+  );
+  const C = flattening / 16 * cosSqAlpha * (4 + flattening * (4 - 3 * cosSqAlpha));
+  const L = lambda - (1 - C) * flattening * sinAlpha * (
+    sigma + C * sinSigma * (
+      Math.cos(twoSigmaM) + C * cosSigma * (-1 + 2 * Math.cos(twoSigmaM) ** 2)
+    )
+  );
+  return {
+    latitude: phi2 * 180 / Math.PI,
+    longitude: (lambda1 + L) * 180 / Math.PI,
   };
 }
 

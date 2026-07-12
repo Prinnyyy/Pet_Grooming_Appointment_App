@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-11
 - Updated by: Codex
-- Latest completed task: T-298 Customer Request confirmed-address integration.
+- Latest completed task: T-299 controlled legacy Apple Maps address backfill.
 - Current task: none; T-157 APNs remains externally blocked and Q-104 Dynamic Type/Accessibility remains user-deferred.
-- Next task ID: use T-299 for Q-111 controlled legacy address backfill. Q-104 remains deferred.
+- Next task ID: use T-300 for Q-112 strict coordinate cutover and integration gate. Q-104 remains deferred.
 
 ## Fast Path
 
@@ -83,6 +83,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - T-296 completes Q-108: PostGIS and the private address contract are deployed, authenticated roles have no direct private-location table access, rollback-only runtime verification passes, and all existing address-location references remain null until Q-109 through Q-111 perform confirmed writes/backfill.
 - T-297 completes Q-109: Customer Profile and Groomer Edit Profile share `BeckonAddressEditor`, restore owner-scoped confirmed metadata, require reconfirmation after address or Unit changes, save address text/private coordinates through v2 RPCs, preserve legacy unchanged saves and profile snapshots, and export full confirmed Customer Profile address data for Request drafts.
 - T-298 completes Q-110: Customer Request reuses `BeckonAddressEditor`, requires current confirmation before Time & Location can advance or publish, carries only current Profile confirmation, publishes Line 2 and private coordinate metadata through `create_grooming_request_v2`, and sends republished templates back through address review. Groomer pre-booking request models still omit Line 2.
+- T-299 completes Q-111: service-only snapshot-checked Apple Maps backfill linked 51 Groomers, 50 Customers, and 1 active Request. Customer ref `6D8776F2` remains a reviewed ZIP-conflict exception; it is not matching authority and Q-110 prevents new coordinate-null Requests. Groomer/active Request gaps, incomplete active rows, legacy/manual orphans, and tagged TestOps residue are zero. `matching_radius` passed near/edge/outside in both service directions.
 - T-259 makes one `T-###` per fresh session the default, reserves full iOS tests and batched visual evidence for integration/high-risk gates, and requires clean task or checkpoint commits at session boundaries.
 - T-260 adopts UI-R1 through UI-R8 and A11Y-R1 through A11Y-R10 as the active design contract, including approved light-palette contrast pairs and a per-slice accessibility Definition of Done. Token and primitive implementation remains a separate follow-up code task; Q-104 is unchanged.
 - T-244 normalizes the rotated Worklog EOF to one newline.

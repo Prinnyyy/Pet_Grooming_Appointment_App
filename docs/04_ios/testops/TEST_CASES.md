@@ -106,3 +106,18 @@ Matching assertions:
 - Positive reason assertions check targeted fragments only, not the entire reason string.
 - Local dry-run projection explains target hard-filter state before remote execution.
 - Cleanup leaves zero tagged request rows for each `TESTOPS:<run_id>`.
+
+## Coordinate Radius Matrix: `matching_radius`
+
+This matrix uses `BTC-001` and `BTG-001`, reads the Groomer's owner-scoped private coordinate, and publishes a WGS84-projected Request through `create_grooming_request_v2`.
+
+| Case | Direction | Distance / Radius | Expected Target |
+|---|---|---|---|
+| `TC-RADIUS-001` | Customer travels | 5.0 / 10 miles | include |
+| `TC-RADIUS-002` | Customer travels | 9.999 / 10 miles | include |
+| `TC-RADIUS-003` | Customer travels | 10.25 / 10 miles | exclude |
+| `TC-RADIUS-004` | Groomer travels | 5.0 / 12 miles | include |
+| `TC-RADIUS-005` | Groomer travels | 11.999 / 12 miles | include |
+| `TC-RADIUS-006` | Groomer travels | 12.25 / 12 miles | exclude |
+
+Positive reasons must identify the controlling Customer travel range or Groomer service range. Cleanup deletes the private Request location before the tagged Request and must leave zero tagged rows and zero orphan TestOps locations.

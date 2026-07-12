@@ -16,22 +16,22 @@ Source: T-202 adopted root review input `../../V1.0_RELEASE_TASK_PLAN.md`; that 
 - Q-01...Q-43 are complete and mapped in `ROADMAP.md`.
 - T-243 approved the Beckon identity contract in `BECKON_BRAND_MIGRATION.md`; Q-94/T-246, Q-95/T-247, and Q-96/T-248 are complete.
 - T-249 approved `../08_design/GROOMER_UI_REDESIGN.md`; T-250 completed Q-97, T-252 completed Q-98, T-253 completed Q-99, T-254 completed Q-100, T-255 completed Q-101, T-256 completed Q-102, T-257 completed Q-103, and T-258 completed default-text/selector integration verification. Q-104 retains only user-deferred Dynamic Type and Accessibility work; it has no backend or remote writes.
-- T-291 approved `APPLE_MAPS_ADDRESS_SYSTEM_PLAN.md`; T-292 completed Q-105, T-293 completed Q-106, T-294 completed Q-107, T-296 remotely completed Q-108, T-297 completed Q-109, and T-298 completed Q-110. Q-111 and Q-112 continue controlled backfill and strict coordinate cutover.
+- T-291 approved `APPLE_MAPS_ADDRESS_SYSTEM_PLAN.md`; T-292 completed Q-105, T-293 completed Q-106, T-294 completed Q-107, T-296 remotely completed Q-108, T-297 completed Q-109, T-298 completed Q-110, and T-299 completed Q-111. Q-112 owns strict coordinate cutover.
 
 ## Queue
 
 | Order | Roadmap | Package | Scope / Exit |
 |---|---|---|---|
-| Q-111 | R-040 | Controlled legacy address backfill | Dry-run-default MapKit tool, explicit write gate, ambiguous-address review, authorized profile/request backfill, zero-gap verification, and radius Matching TestOps. |
 | Q-112 | R-040 | Strict coordinate cutover and integration gate | Remove city/state fallback only after zero active gaps; run full iOS/Supabase/TestOps/privacy gates and prove one shared address implementation. |
 | Q-104 | R-039 | Groomer Dynamic Type and Accessibility integration gate | Complete the remaining Dynamic Type and Accessibility state/interaction audit after the user restores this deferred scope; rerun affected selector and full iOS regression gates. |
 
-Q-111 is the first dependency-satisfied product package and receives the next available task ID. The user's 2026-07-11 authorization still covers the planned Q-111 backfill, but execution stops if project identity, migration history, private privileges, or zero-gap evidence conflicts.
+Q-112 is the first dependency-satisfied product package and receives the next available task ID. The user's 2026-07-11 authorization covers its planned remote migration/TestOps, but execution must stop if active Groomer/Request coordinate gaps, migration history, private privileges, or cleanup evidence conflicts.
 
 ## Completed Address Package
 
 | Order | Roadmap | Package | Result |
 |---|---|---|---|
+| Q-111 | R-040 | Controlled legacy address backfill | Complete T-299: dry-run-first Apple Maps tooling and service-only atomic RPCs linked 51 Groomers, 50 Customers, and 1 active Request; one Customer ZIP conflict remains a reviewed non-matching-authority exception. Groomer/active Request gaps and orphan rows are zero, and six near/edge/outside radius cases passed in both service directions with complete cleanup. |
 | Q-110 | R-040 | Customer Request integration | Complete T-298: Request uses the shared address editor, requires current Apple Maps confirmation before leaving Time & Location or publishing, retains only current Profile confirmation, snapshots Line 2 and private coordinates through Request v2, and forces republished templates through address review. |
 | Q-109 | R-040 | Customer and Groomer Profile integration | Complete T-297: both Profile forms use one shared editor, owner RPC metadata reloads, changed/Unit-only addresses require confirmation, confirmed display/private location values save together, full Customer autofill exports, and legacy/cache/cancellation behavior remains stable. |
 | Q-108 | R-040 | Authorized remote address schema application | Complete T-296: applied only the reviewed T-294 migration to Beckon, verified private grants, owner RPCs, both radius directions, multilingual-city invariance, explicit fallback, linked history, rollback cleanup, advisors, and zero backfill. |
