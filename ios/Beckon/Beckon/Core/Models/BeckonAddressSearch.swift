@@ -87,6 +87,7 @@ nonisolated struct BeckonSecondaryAddressConflict: Equatable, Sendable {
 nonisolated struct BeckonSecondaryAddressParseResult: Equatable, Sendable {
     let line1: String
     let line2: String
+    let extractedSecondary: String?
     let movedSecondary: String?
     let conflict: BeckonSecondaryAddressConflict?
 }
@@ -101,6 +102,7 @@ nonisolated enum BeckonSecondaryAddressParser {
             return BeckonSecondaryAddressParseResult(
                 line1: trimmedLine1,
                 line2: trimmedLine2,
+                extractedSecondary: nil,
                 movedSecondary: nil,
                 conflict: nil
             )
@@ -111,6 +113,7 @@ nonisolated enum BeckonSecondaryAddressParser {
                 return BeckonSecondaryAddressParseResult(
                     line1: parts.base,
                     line2: trimmedLine2,
+                    extractedSecondary: parts.secondary,
                     movedSecondary: nil,
                     conflict: nil
                 )
@@ -118,6 +121,7 @@ nonisolated enum BeckonSecondaryAddressParser {
             return BeckonSecondaryAddressParseResult(
                 line1: trimmedLine1,
                 line2: trimmedLine2,
+                extractedSecondary: parts.secondary,
                 movedSecondary: nil,
                 conflict: BeckonSecondaryAddressConflict(
                     line1Secondary: parts.secondary,
@@ -129,6 +133,7 @@ nonisolated enum BeckonSecondaryAddressParser {
         return BeckonSecondaryAddressParseResult(
             line1: parts.base,
             line2: parts.secondary,
+            extractedSecondary: parts.secondary,
             movedSecondary: parts.secondary,
             conflict: nil
         )
@@ -197,7 +202,7 @@ nonisolated struct BeckonAddressQuery: Equatable, Sendable {
 
     init(street: String) {
         let parsed = BeckonSecondaryAddressParser.parse(line1: street, line2: "")
-        searchStreet = parsed.line1
+        searchStreet = parsed.line1.trimmingCharacters(in: .whitespacesAndNewlines)
         secondaryUnit = parsed.movedSecondary
     }
 

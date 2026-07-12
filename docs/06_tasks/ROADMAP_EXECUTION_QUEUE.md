@@ -16,13 +16,12 @@ Source: T-202 adopted root review input `../../V1.0_RELEASE_TASK_PLAN.md`; that 
 - Q-01...Q-43 are complete and mapped in `ROADMAP.md`.
 - T-243 approved the Beckon identity contract in `BECKON_BRAND_MIGRATION.md`; Q-94/T-246, Q-95/T-247, and Q-96/T-248 are complete.
 - T-249 approved `../08_design/GROOMER_UI_REDESIGN.md`; T-250 completed Q-97, T-252 completed Q-98, T-253 completed Q-99, T-254 completed Q-100, T-255 completed Q-101, T-256 completed Q-102, T-257 completed Q-103, and T-258 completed default-text/selector integration verification. Q-104 retains only user-deferred Dynamic Type and Accessibility work; it has no backend or remote writes.
-- T-291 approved `APPLE_MAPS_ADDRESS_SYSTEM_PLAN.md`; T-292 completed Q-105. Q-106 through Q-112 continue the shared editor, private PostGIS location contract, feature integrations, controlled backfill, and strict coordinate cutover.
+- T-291 approved `APPLE_MAPS_ADDRESS_SYSTEM_PLAN.md`; T-292 completed Q-105 and T-293 completed Q-106. Q-107 through Q-112 continue the private PostGIS location contract, feature integrations, controlled backfill, and strict coordinate cutover.
 
 ## Queue
 
 | Order | Roadmap | Package | Scope / Exit |
 |---|---|---|---|
-| Q-106 | R-040 | Shared editor and confirmation UI | One reusable Address Line 1/Line 2 editor, MapKit dropdown, auto-move notice, conflict state, status row, entered-vs-suggested confirmation, and stable selectors. |
 | Q-107 | R-040 | PostGIS/private location migration preparation | Append-only PostGIS/private-location/versioned-RPC/radius-matching migration and rollback-only SQL tests; stop before remote application. |
 | Q-108 | R-040 | Authorized remote address schema application | Apply only Q-107 after fresh authorization; verify privileges, both radius directions, multilingual-city invariance, migration history, and advisors; no backfill. |
 | Q-109 | R-040 | Customer and Groomer Profile integration | Reuse the shared editor, atomically save confirmed display/private location data, preserve cache behavior, and expose confirmed profile address autofill. |
@@ -31,12 +30,13 @@ Source: T-202 adopted root review input `../../V1.0_RELEASE_TASK_PLAN.md`; that 
 | Q-112 | R-040 | Strict coordinate cutover and integration gate | Remove city/state fallback only after zero active gaps; run full iOS/Supabase/TestOps/privacy gates and prove one shared address implementation. |
 | Q-104 | R-039 | Groomer Dynamic Type and Accessibility integration gate | Complete the remaining Dynamic Type and Accessibility state/interaction audit after the user restores this deferred scope; rerun affected selector and full iOS regression gates. |
 
-Q-106 is the first dependency-satisfied product package and receives the next available task ID. Q-107 prepares remote work locally; the user's 2026-07-11 authorization covers the planned Q-108 migration and Q-111 backfill, but execution still stops if project identity, migration history, private privileges, or zero-gap evidence conflicts.
+Q-107 is the first dependency-satisfied product package and receives the next available task ID. Q-107 prepares remote work locally; the user's 2026-07-11 authorization covers the planned Q-108 migration and Q-111 backfill, but execution still stops if project identity, migration history, private privileges, or zero-gap evidence conflicts.
 
 ## Completed Address Package
 
 | Order | Roadmap | Package | Result |
 |---|---|---|---|
+| Q-106 | R-040 | Shared editor and confirmation UI | Complete T-293: one provider-injected Line 1/Line 2 editor, non-reflowing candidate list, global auto-move notice, inline conflict/error state, compact status, multi-result choice, entered-vs-suggested confirmation, and stable selectors; no feature persistence or backend write. |
 | Q-105 | R-040 | Shared address domain and parser | Complete T-292: provider-neutral address values/provider, complete secondary suffix and conflict rules, direct localized MapKit candidates, selected/manual resolution, compatible-query retention, and focused/full iOS regression evidence; no backend write. |
 
 ## Completed Groomer Package
