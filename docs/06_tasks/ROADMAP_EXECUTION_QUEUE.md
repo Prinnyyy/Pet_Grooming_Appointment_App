@@ -17,21 +17,21 @@ Source: T-202 adopted root review input `../../V1.0_RELEASE_TASK_PLAN.md`; that 
 - T-243 approved the Beckon identity contract in `BECKON_BRAND_MIGRATION.md`; Q-94/T-246, Q-95/T-247, and Q-96/T-248 are complete.
 - T-249 approved `../08_design/GROOMER_UI_REDESIGN.md`; T-250 completed Q-97, T-252 completed Q-98, T-253 completed Q-99, T-254 completed Q-100, T-255 completed Q-101, T-256 completed Q-102, T-257 completed Q-103, and T-258 completed default-text/selector integration verification. Q-104 retains only user-deferred Dynamic Type and Accessibility work; it has no backend or remote writes.
 - T-291 approved `APPLE_MAPS_ADDRESS_SYSTEM_PLAN.md`; T-292/T-293/T-294/T-296/T-297/T-298/T-299/T-300 completed Q-105 through Q-112, including the remotely verified strict coordinate cutover.
-- T-301 approved R-041, T-303 converted it into Q-113 through Q-120, and T-304/T-305/T-307/T-308/T-309/T-310/T-311 completed Q-113 through Q-119. Execute the remaining integration gate; Q-104 remains separate and deferred.
+- T-301 approved R-041, T-303 converted it into Q-113 through Q-120, and T-304/T-305/T-307/T-308/T-309/T-310/T-311/T-312 completed the sequence. Q-104 remains separate and deferred.
 
 ## Queue
 
 | Order | Roadmap | Package | Scope / Exit |
 |---|---|---|---|
-| Q-120 | R-041 | First-slice integration gate | Prove strict audit for all four Customer surfaces, full tests/build/preflight, default/Accessibility 3 rendering, and publish the remaining-debt inventory. |
 | Q-104 | R-039 | Groomer Dynamic Type and Accessibility integration gate | Complete the remaining Dynamic Type and Accessibility state/interaction audit after the user restores this deferred scope; rerun affected selector and full iOS regression gates. |
 
-Q-120 is the next dependency-satisfied package; Q-104 stays user-deferred.
+No package is dependency-satisfied while Q-104 stays user-deferred. Select new work explicitly with the next task ID.
 
 ## Completed UI Consistency Package
 
 | Order | Roadmap | Package | Result |
 |---|---|---|---|
+| Q-120 | R-041 | First-slice integration gate | Complete T-312: zero strict errors across four Customer references, full regression/preflight, compact/large default/Accessibility 3 evidence, and explicit remaining-debt inventory. |
 | Q-119 | R-041 | Customer Account migration | Complete T-311: Account/Profile ownership split, shared page/section/grouped/settings-row and release-link presentation, strict audit, and default/Accessibility 3 Simulator proof. |
 | Q-118 | R-041 | Customer Request Wizard migration | Complete T-310: semantic selection/field/action contracts, explicit default/AX3 Header and choice layouts, adaptive Review/actions, strict audit, and default/Accessibility 3 Simulator proof. |
 | Q-117 | R-041 | Customer Requests migration | Complete T-309: shared semantic page title, page/section/type/action migration, canonical card elevation, adaptive active/cancelled card layouts, strict audit, and default/Accessibility 3 Simulator proof. |

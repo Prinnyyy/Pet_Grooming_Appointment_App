@@ -1,6 +1,6 @@
 # Screen Inventory
 
-Last verified: 2026-07-08.
+Last verified: 2026-07-12.
 
 Status values: `beckon adapted`, `planned`, `deferred`. Planned paths are placement contracts, not proof that a file exists.
 
@@ -13,10 +13,10 @@ Future UI work is screenshot-driven. Map every visible module to this table plus
 | AuthenticationView | Shared | Supabase Auth / `AuthenticationStore` | `Features/Auth/AuthenticationView.swift` | beckon adapted |
 | AuthenticatedEntryView | Shared | `profiles` / `AuthenticatedEntryStore` | `Features/Auth/AuthenticatedEntryView.swift` | beckon adapted |
 | RoleOnboardingView | Shared | `create_my_profile` / `AuthenticatedEntryStore` | `Features/Auth/RoleOnboardingView.swift` | beckon adapted |
-| CustomerHomeView | Customer | pets, pet photos, unread notifications / `CustomerPetsStore`, `CustomerNotificationsStore` | `Features/Customer/Pets/CustomerPetsView.swift` | beckon adapted |
+| CustomerHomeView | Customer | pets, pet photos, unread notifications / `CustomerPetsStore`, `CustomerNotificationsStore` | `Features/Customer/Pets/CustomerPetsView.swift` | beckon adapted; semantic/AX3 reference |
 | CustomerNotificationsView | Customer | `customer_notifications`, mark-read RPCs / `CustomerNotificationsStore` | `Features/Customer/Notifications/CustomerNotificationsView.swift` | beckon adapted |
 | PetListView / PetEditorView | Customer | `pets`, `pet_photos`, Storage / `CustomerPetsStore` | `Features/Customer/Pets/CustomerPetsView.swift` | beckon adapted |
-| CustomerRequestsView / RequestWizardView | Customer | own requests, pets, request RPC / `CustomerRequestsStore` | `Features/Customer/Requests/CustomerRequestsView.swift` | beckon adapted |
+| CustomerRequestsView / RequestWizardView | Customer | own requests, pets, request RPC / `CustomerRequestsStore` | `Features/Customer/Requests/CustomerRequestsView.swift`, `Features/Customer/Requests/CustomerRequestWizardView.swift` | beckon adapted; semantic/AX3 reference |
 | CustomerRequestDetailView / CustomerOfferReviewSection | Customer | requests, offers, active groomer summaries, accept RPC / `CustomerRequestsStore` | `Features/Customer/Requests/CustomerRequestsView.swift` | beckon adapted |
 | CustomerBookingListView | Customer | `bookings`, `reviews`, cancel/review RPCs / `BookingsStore` | `Features/Bookings/BookingsView.swift` | beckon adapted |
 | GroomerHomeView | Groomer | Existing profile/request/offer/booking/notification/chat repositories / planned `GroomerHomeStore` | Planned `Features/Groomer/Home/` | planned R-039/Q-97 |
@@ -28,6 +28,7 @@ Future UI work is screenshot-driven. Map every visible module to this table plus
 | BookingDetailView / BookingReviewSection | Shared | booking, review, cancel/complete/review RPCs / `BookingsStore` | `Features/Bookings/BookingsView.swift` | beckon adapted |
 | ConversationListView / ChatView | Shared | `conversations`, `messages`, participant booking context / `ChatStore` | `Features/Chat/ChatView.swift` | beckon adapted |
 | AuthenticatedAccountView | Shared | Auth session and loaded profile / `AuthenticationStore` | `Features/Auth/AuthenticatedAccountView.swift` | beckon adapted |
+| CustomerAccountView | Customer | Customer profile plus Auth session / `CustomerProfileStore`, `AuthenticationStore` | `Features/Customer/Profile/CustomerAccountView.swift` | beckon adapted; semantic/AX3 reference |
 | CustomerTabView | Customer | injected customer repositories / View | `Features/Customer/CustomerTabView.swift` | beckon adapted |
 | GroomerTabView | Groomer | injected groomer repositories / View | `Features/Groomer/GroomerTabView.swift` | beckon adapted |
 | FeaturePlaceholderView | Shared | disconnected fallback / View | `DesignSystem/FeaturePlaceholderView.swift` | beckon adapted |

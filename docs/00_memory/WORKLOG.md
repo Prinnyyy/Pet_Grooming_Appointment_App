@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-07-12
+Task: T-312 - Q-120 UI consistency first-slice integration gate.
+Files changed: Published the remaining UI debt inventory; marked Customer Home/Requests/Wizard/Account as the semantic reference slice; closed R-041 in design, screen, roadmap, queue, feature, baseline, task, and memory sources.
+Checks: Repository and strict JSON audits; audit/preflight script tests 13/13; full iOS tests; iOS build; preflight; compact/large default and Accessibility 3 screenshots plus semantic snapshots; Reduce Motion launch/navigation check; diff/context hygiene.
+Result: Four Customer reference surfaces have zero strict errors. The repository ratchet reports 218 baselined findings plus four reviewed warnings, no new errors, and no stale entries. The remaining 222 candidates are explicit and prioritized without treating baseline entries as approval.
+Risks: Audit warnings still require human interpretation, and default/AX3 rendering is final anomaly evidence rather than a substitute for code rules. Q-104 Groomer Dynamic Type/Accessibility remains user-deferred; no backend, dependency, navigation, or business behavior changed.
+Next: Use T-313 for explicitly selected work; no package is automatically dependency-satisfied while Q-104 remains deferred.
+```
+
+```text
+Date: 2026-07-12
 Task: T-311 - Q-119 Customer Account migration.
 Files changed: Extracted Customer Account ownership; shared semantic Account/Auth sections, settings rows, and release links; UI audit baseline; roadmap/task/memory closeout.
 Checks: strict RED then GREEN for Customer Account and authenticated Account; baseline prune 16; full iOS tests; iOS build/build-run; default and AX3 Account screenshots/scroll; Profile full-row navigation and semantic selectors; content size reset; audit/diff/context/preflight.

@@ -69,3 +69,7 @@ Wildcards, missing reasons, alternate wording, detached directives, and exceptio
 ## Review Boundary
 
 Feature views own data, business order, actions, and state. `DesignSystem` owns recurring typography, spacing, alignment, color, shape, elevation, control dimensions, and presentation feedback. The audit catches known source patterns; reviewers must still check component reuse, Dynamic Type, VoiceOver, contrast, localization, safe areas, focus, and native control behavior.
+
+## Migration Status
+
+T-312/Q-120 completes the first reference slice: Customer Home, Requests, Request Wizard, and Account have zero strict errors and passed default/Accessibility 3 compact/large integration checks. Remaining repository debt, reviewed geometry, concentrations, and migration ordering live in `UI_CONSISTENCY_DEBT.md`.
