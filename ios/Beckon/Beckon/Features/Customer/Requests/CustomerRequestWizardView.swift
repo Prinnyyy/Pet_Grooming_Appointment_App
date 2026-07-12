@@ -305,6 +305,11 @@ struct CustomerRequestWizardView: View {
             guard currentStep == .time, let next = currentStep.next else { return }
             currentStep = next
         }
+        .onChange(of: store.addressEditorState.isReviewPresented) { _, isPresented in
+            guard !isPresented,
+                  store.addressEditorState.confirmedAddress == nil else { return }
+            isContinuingAfterAddressConfirmation = false
+        }
         .overlay(alignment: .bottom) {
             if let feedbackCenter {
                 BeckonGlobalFeedbackOverlay(
@@ -554,7 +559,11 @@ struct CustomerRequestWizardView: View {
     }
 
     private var canContinue: Bool {
-        !store.isSubmitting && store.validateWizardStep(currentStep).isValid
+        let validation = store.validateWizardStep(currentStep)
+        return !store.isSubmitting
+            && !isContinuingAfterAddressConfirmation
+            && (validation.isValid
+                || (currentStep == .time && validation.requiresOnlyAddressConfirmation))
     }
 
     private var reviewPresentation: CustomerRequestWizardReviewPresentation {
@@ -636,13 +645,20 @@ struct CustomerRequestWizardView: View {
         let validation = store.validateWizardStep(currentStep)
         guard validation.isValid else {
             if currentStep == .time,
-               validation.fields == [.addressConfirmation] {
+               validation.requiresOnlyAddressConfirmation {
                 invalidFields = []
                 store.errorMessage = nil
                 globallyPresentedErrorMessage = nil
                 isContinuingAfterAddressConfirmation = true
                 Task {
-                    await store.addressEditorState.prepareConfirmation()
+                    let result = await store.addressEditorState.prepareConfirmation()
+                    guard isContinuingAfterAddressConfirmation else { return }
+                    guard result != .needsReview else { return }
+                    isContinuingAfterAddressConfirmation = false
+                    guard result == .confirmed,
+                          currentStep == .time,
+                          let next = currentStep.next else { return }
+                    currentStep = next
                 }
                 return
             }
@@ -707,6 +723,7 @@ struct CustomerRequestWizardView: View {
 
     private func applyProfileAddress() {
         guard !isApplyingProfileAddress else { return }
+        isContinuingAfterAddressConfirmation = false
         guard let customerProfileRepository else {
             showNoProfileAddressPrompt()
             return

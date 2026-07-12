@@ -51,6 +51,12 @@ nonisolated struct BeckonAddressConfirmationPresentation: Equatable, Identifiabl
     }
 }
 
+nonisolated enum BeckonAddressPreparationResult: Equatable, Sendable {
+    case confirmed
+    case needsReview
+    case unavailable
+}
+
 @MainActor
 @Observable
 final class BeckonAddressEditorState {
@@ -188,23 +194,27 @@ final class BeckonAddressEditorState {
         }
     }
 
-    func prepareConfirmation() async {
+    func prepareConfirmation() async -> BeckonAddressPreparationResult {
         guard secondaryConflict == nil else {
             status = .needsReview
-            return
+            return .unavailable
         }
         if confirmedAddress?.isBuildingResolutionValid(for: input) == true {
             status = .confirmed
-            return
+            return .confirmed
         }
         if let confirmation {
             self.confirmation = BeckonAddressConfirmationPresentation(
                 entered: input,
                 resolved: confirmation.resolved
             )
+            if addressesAreEquivalent(input, confirmation.resolved.suggested) {
+                useSuggestedAddress()
+                return .confirmed
+            }
             isReviewPresented = true
             status = .needsReview
-            return
+            return .needsReview
         }
 
         status = .locating
@@ -214,22 +224,31 @@ final class BeckonAddressEditorState {
             switch results.count {
             case 0:
                 recoverFromLookupFailure()
+                return .unavailable
             case 1:
                 confirmation = BeckonAddressConfirmationPresentation(
                     entered: input,
                     resolved: results[0]
                 )
+                if addressesAreEquivalent(input, results[0].suggested) {
+                    useSuggestedAddress()
+                    return .confirmed
+                }
                 isReviewPresented = true
                 status = .needsReview
+                return .needsReview
             default:
                 manualChoices = results
                 isReviewPresented = true
                 status = .needsReview
+                return .needsReview
             }
         } catch is CancellationError {
             status = .editing
+            return .unavailable
         } catch {
             recoverFromLookupFailure()
+            return .unavailable
         }
     }
 
@@ -367,6 +386,32 @@ final class BeckonAddressEditorState {
         isReviewPresented = false
         status = .needsReview
         inlineError = "We could not locate this service address. Check the street, city, state, and ZIP."
+    }
+
+    private func addressesAreEquivalent(
+        _ entered: BeckonAddressInput,
+        _ suggested: BeckonAddressInput
+    ) -> Bool {
+        let enteredFields = [
+            entered.line1,
+            entered.line2,
+            entered.city,
+            entered.stateCode?.rawValue ?? "",
+            entered.postalCode,
+            entered.countryCode,
+        ]
+        let suggestedFields = [
+            suggested.line1,
+            suggested.line2,
+            suggested.city,
+            suggested.stateCode?.rawValue ?? "",
+            suggested.postalCode,
+            suggested.countryCode,
+        ]
+        return zip(enteredFields, suggestedFields).allSatisfy {
+            $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+                == $1.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        }
     }
 }
 
@@ -614,7 +659,7 @@ struct BeckonAddressEditor: View {
                state.status != .confirmed,
                isCompleteAddress {
                 Button("Verify Address") {
-                    Task { await state.prepareConfirmation() }
+                    Task { _ = await state.prepareConfirmation() }
                 }
                 .font(DesignTokens.Typography.caption.weight(.semibold))
                 .foregroundStyle(DesignTokens.Colors.customerPrimary)
@@ -697,6 +742,15 @@ private enum BeckonAddressReviewSheetModel: Identifiable {
             "choices-" + choices.map { String($0.coordinate.latitude) + String($0.coordinate.longitude) }.joined()
         }
     }
+
+    var presentationDetents: Set<PresentationDetent> {
+        switch self {
+        case .confirmation:
+            [.height(330), .large]
+        case .manualChoices:
+            [.medium, .large]
+        }
+    }
 }
 
 private struct BeckonAddressReviewSheet: View {
@@ -738,7 +792,7 @@ private struct BeckonAddressReviewSheet: View {
                 }
             }
         }
-        .presentationDetents([.medium, .large])
+        .presentationDetents(sheet.presentationDetents)
         .accessibilityIdentifier(BeckonAddressEditorSelectors.confirmation)
     }
 

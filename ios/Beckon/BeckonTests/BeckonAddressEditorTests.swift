@@ -51,7 +51,7 @@ struct BeckonAddressEditorTests {
     }
 
     @Test @MainActor
-    func selectingCandidatePrefillsAddressButWaitsForExplicitConfirmation() async {
+    func selectingCandidatePrefillsAddressAndContinueConfirmsWithoutReview() async {
         let candidate = BeckonAddressCandidate(
             id: "candidate-1",
             primaryText: "770 S Harbor Blvd",
@@ -75,17 +75,44 @@ struct BeckonAddressEditorTests {
         #expect(state.isReviewPresented == false)
         #expect(provider.resolvedCandidateIDs == [candidate.id])
 
-        await state.prepareConfirmation()
+        let result = await state.prepareConfirmation()
 
-        #expect(state.isReviewPresented)
-        #expect(state.confirmation?.entered == resolved.suggested)
-
-        state.useSuggestedAddress(now: Date(timeIntervalSince1970: 10))
-
+        #expect(result == .confirmed)
+        #expect(!state.isReviewPresented)
         #expect(state.status == .confirmed)
         #expect(state.confirmedAddress?.accepted == resolved.suggested)
-        #expect(state.confirmedAddress?.confirmedAt == Date(timeIntervalSince1970: 10))
         #expect(state.input == resolved.suggested)
+    }
+
+    @Test @MainActor
+    func uniqueEquivalentGeocodeConfirmsWithoutPresentingReview() async {
+        let input = Self.input(line1: "770 S Harbor Blvd")
+        let resolved = Self.resolved(line1: input.line1)
+        let state = BeckonAddressEditorState(
+            input: input,
+            provider: AddressProviderFake(geocodeResults: [resolved])
+        )
+
+        let result = await state.prepareConfirmation()
+
+        #expect(result == .confirmed)
+        #expect(state.confirmedAddress?.accepted == resolved.suggested)
+        #expect(!state.isReviewPresented)
+    }
+
+    @Test @MainActor
+    func uniqueCorrectedGeocodePresentsReviewBeforeConfirmation() async {
+        let state = BeckonAddressEditorState(
+            input: Self.input(line1: "770 South Harbor Boulevard"),
+            provider: AddressProviderFake(geocodeResults: [Self.resolved()])
+        )
+
+        let result = await state.prepareConfirmation()
+
+        #expect(result == .needsReview)
+        #expect(state.confirmation?.entered.line1 == "770 South Harbor Boulevard")
+        #expect(state.isReviewPresented)
+        #expect(state.confirmedAddress == nil)
     }
 
     @Test @MainActor

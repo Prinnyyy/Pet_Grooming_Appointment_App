@@ -2,7 +2,7 @@
 
 Track only current, blocked, and recent tasks here so Codex does not continue automatically. Older completed rows through T-190 are archived under `docs/09_frozen/task_ledgers/`; active blocked T-157 remains below. Notes should keep conclusions and pointers only; validation detail belongs in `docs/00_memory/WORKLOG.md` or frozen worklogs. Detailed task records T-001 through T-088 and workflow task records remain archived under `docs/09_frozen/task_records_2026-06-26/`.
 
-Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup`; use `T-315` for the next explicitly selected new task.
+Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup`; use `T-316` for the next explicitly selected new task.
 
 Active blocked task: T-157 is waiting on paid Apple Developer Program access before APNs secrets (`APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_TOPIC`, `APNS_PRIVATE_KEY`) and Edge Function deploy.
 
@@ -10,6 +10,7 @@ Active blocked task: T-157 is waiting on paid Apple Developer Program access bef
 
 | ID | Task | Status | Mode | Milestone | Files/Docs | Checks | Notes |
 |---|---|---|---|---|---|---|---|
+| T-315 | Customer Request address verification interaction fixes | completed | Standard | M14 | Address preparation outcomes/equivalence/review sizing; Wizard continuation coordination; validation/tests/memory | TDD RED/GREEN; full iOS tests; build/run; three live paths; build/audit/diff/context/preflight | Complete fields enable Continue; equivalent Apple results auto-confirm, corrections retain review, Profile autofill cannot consume stale continuation intent, and confirmation review uses a compact initial detent. |
 | T-314 | Customer Request confirmation entered-address snapshot fix | completed | Standard | M14 | Shared address confirmation preparation; regression test; memory closeout | TDD RED/GREEN; full iOS tests; build/run; live candidate/Continue confirmation; build/diff/context/preflight | Continue refreshes Entered Address from the candidate-prefilled form instead of retaining the pre-selection search fragment; resolved Apple metadata and all backend behavior remain unchanged. |
 | T-313 | Customer Request address and publish flow fixes | completed | Standard | M14 | Shared address state/overlay; Wizard confirm/feedback flow; nullable v2 RPC payload; tests/memory | TDD RED/GREEN; full iOS tests; build/run; live autocomplete/confirm; audit/diff/context/preflight | Fixes five connected Request address/publish defects without changing the existing RPC, backend schema, navigation model, or remote state. |
 | T-312 | Q-120 UI consistency first-slice integration gate | completed | Standard | M14 | Strict audit matrix; debt inventory; design/screen/roadmap/index/baseline/memory closeout | audit/strict; audit/preflight tests; full iOS tests/build/preflight; compact/large default/AX3; Reduce Motion; diff/context | Completes R-041 with zero strict errors in four Customer references, no new/stale debt, and an explicit 222-finding inventory. No app/backend/dependency/business behavior changed. |

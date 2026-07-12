@@ -91,6 +91,10 @@ struct CustomerRequestWizardStepValidation: Equatable {
         fields.isEmpty
     }
 
+    var requiresOnlyAddressConfirmation: Bool {
+        fields == [.addressConfirmation]
+    }
+
     static var valid: Self {
         Self(fields: [], message: nil)
     }

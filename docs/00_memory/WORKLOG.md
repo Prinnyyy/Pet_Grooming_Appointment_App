@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-07-12
+Task: T-315 - Customer Request address verification interaction fixes.
+Files changed: Shared address preparation outcomes/equivalence/review sizing; Request Wizard continuation coordination; validation semantics; focused tests and memory closeout.
+Checks: Focused TDD RED then GREEN; full iOS tests; Simulator build/run; live Profile autofill, equivalent candidate direct advance, and corrected-address compact review; iOS build; UI audit/diff/context/preflight.
+Result: Complete required Time/Location fields make Continue visually actionable. Continue automatically accepts a unique equivalent Apple Maps result and advances without review; corrected or ambiguous results retain review. Profile autofill and dismissed/failed review clear stale continuation intent, including the post-await race, and confirmation review starts at 330pt with large available for accessibility.
+Risks: A zero-result Apple Maps lookup still remains on the form with the existing recoverable inline error because there is no truthful suggested address to present. No provider algorithm, repository, backend, persistence, publication, or remote state changed.
+Next: Use T-316 for explicitly selected work; Q-104 remains deferred.
+```
+
+```text
+Date: 2026-07-12
 Task: T-314 - Customer Request confirmation entered-address snapshot fix.
 Files changed: Shared address editor confirmation preparation; focused regression test; task/memory closeout.
 Checks: Focused TDD RED then GREEN; full iOS tests; Simulator build/run and live `770` autocomplete selection/Continue confirmation; iOS build; diff/context/preflight.

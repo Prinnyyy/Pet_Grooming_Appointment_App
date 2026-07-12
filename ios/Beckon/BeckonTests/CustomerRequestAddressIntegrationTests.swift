@@ -16,6 +16,7 @@ struct CustomerRequestAddressIntegrationTests {
 
         #expect(!validation.isValid)
         #expect(validation.fields == [.addressConfirmation])
+        #expect(validation.requiresOnlyAddressConfirmation)
         #expect(validation.message == "Confirm the service address with Apple Maps before continuing.")
     }
 
