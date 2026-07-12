@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-07-12
+Task: T-317 - Periodic meta-review.
+Files changed: Current State, Task Ledger, and Worklog closeout only.
+Checks: Clean/synced branch after T-316; task/roadmap/index facts; intentional root Markdown ignore behavior; zero active conflict markers; tracked/local migrations 67/67; governance tests 13/13; context hygiene; preflight; diff.
+Result: Active structure is consistent. T-307 through T-316 satisfy the ten-task cadence; Q-104 remains deferred, T-157 remains blocked, and no package is automatically selectable. Worklog/Ledger retain four/three task slots, so no rotation is due.
+Risks: One reviewed UI102 warning from T-316 is the explicit UIKit keyboard-frame boundary; strict Customer Request Wizard audit has zero errors. No product, app, backend, dependency, remote state, or workflow rule changed.
+Next: T-318 is selected to record the reusable keyboard-aware form positioning rule; compact at this mandatory meta-review boundary before starting it.
+```
+
+```text
+Date: 2026-07-12
 Task: T-316 - Customer Request keyboard-aware form positioning.
 Files changed: Shared address field focus targets; Wizard keyboard overlap/scroll/action layout; focused layout test; memory closeout.
 Checks: Focused TDD RED then GREEN; full iOS tests; Simulator build/run and ZIP/Notes keyboard inspection; iOS build; strict/repository UI audit; diff/context/preflight.

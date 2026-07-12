@@ -2,7 +2,7 @@
 
 Track only current, blocked, and recent tasks here so Codex does not continue automatically. Older completed rows through T-190 are archived under `docs/09_frozen/task_ledgers/`; active blocked T-157 remains below. Notes should keep conclusions and pointers only; validation detail belongs in `docs/00_memory/WORKLOG.md` or frozen worklogs. Detailed task records T-001 through T-088 and workflow task records remain archived under `docs/09_frozen/task_records_2026-06-26/`.
 
-Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup`; use `T-317` for the next immediately due periodic meta-review.
+Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup`; use `T-318` for the next selected reusable keyboard-aware form rule documentation task.
 
 Active blocked task: T-157 is waiting on paid Apple Developer Program access before APNs secrets (`APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_TOPIC`, `APNS_PRIVATE_KEY`) and Edge Function deploy.
 
@@ -10,7 +10,8 @@ Active blocked task: T-157 is waiting on paid Apple Developer Program access bef
 
 | ID | Task | Status | Mode | Milestone | Files/Docs | Checks | Notes |
 |---|---|---|---|---|---|---|---|
-| T-317 | Periodic meta-review | reserved | Quick | G0 | Active workflow/product/backend/task consistency review | Run immediately after T-316 commit/push | Required tenth-task review; no feature work may consume this ID. |
+| T-318 | Reusable keyboard-aware form positioning rule | selected | Quick | M14 | iOS UI governance/design guidance and linked indexes as required | Start after the T-317 compaction boundary | Record title-plus-control visibility, lower ideal anchor with natural clamping, keyboard-only scroll clearance, fixed page action position, and shared UIKit/SwiftUI focus callbacks. |
+| T-317 | Periodic meta-review | completed | Quick | G0 | Active branch/task/roadmap/index/backend/root-ignore audit; memory closeout | Branch/upstream; 67/67 migration mirror; conflict/ignore checks; governance 13/13; context/preflight/diff | Active structure is consistent, T-307 through T-316 satisfy cadence, and no product/backend/workflow rule changed. |
 | T-316 | Customer Request keyboard-aware form positioning | completed | Standard | M14 | Shared focus targets; Wizard keyboard scroll/action positioning; layout test/memory | TDD RED/GREEN; full iOS tests; build/run; ZIP/Notes live inspection; build/audit/diff/context/preflight | Focused title/control pairs move toward a lower reachable anchor while Back/Continue stay at their original bottom location behind the keyboard; no business/backend behavior changed. |
 | T-315 | Customer Request address verification interaction fixes | completed | Standard | M14 | Address preparation outcomes/equivalence/review sizing; Wizard continuation coordination; validation/tests/memory | TDD RED/GREEN; full iOS tests; build/run; three live paths; build/audit/diff/context/preflight | Complete fields enable Continue; equivalent Apple results auto-confirm, corrections retain review, Profile autofill cannot consume stale continuation intent, and confirmation review uses a compact initial detent. |
 | T-314 | Customer Request confirmation entered-address snapshot fix | completed | Standard | M14 | Shared address confirmation preparation; regression test; memory closeout | TDD RED/GREEN; full iOS tests; build/run; live candidate/Continue confirmation; build/diff/context/preflight | Continue refreshes Entered Address from the candidate-prefilled form instead of retaining the pre-selection search fragment; resolved Apple metadata and all backend behavior remain unchanged. |

@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-12
 - Updated by: Codex
-- Latest completed task: T-316 Customer Request keyboard-aware form positioning.
-- Current task: none; T-317 is reserved for the immediately due periodic meta-review. T-157 APNs remains externally blocked and Q-104 Dynamic Type/Accessibility remains user-deferred.
-- Next task ID: use T-317 for the required periodic meta-review; do not select feature work first.
+- Latest completed task: T-317 periodic meta-review.
+- Current task: none; T-157 APNs remains externally blocked and Q-104 Dynamic Type/Accessibility remains user-deferred.
+- Next task ID: use T-318 for the selected reusable keyboard-aware form rule documentation task. Groomer Q-104 remains deferred.
 
 ## Fast Path
 
@@ -32,6 +32,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Validation Baseline
 
+- T-317 periodic meta-review confirms branch/upstream, task/roadmap/index facts, intentional root Markdown ignores, zero active conflict markers, the 67-file migration mirror, 13/13 governance tests, context hygiene, and preflight. Active Worklog/Ledger retain four/three task slots; no product, app, backend, dependency, or workflow rule changed.
 - T-316 keeps Request Wizard fields keyboard-readable without moving the bottom action area: address and Notes focus scroll their title-plus-control toward a lower visible anchor with natural content-bound clamping; keyboard overlap adds scroll clearance while Back/Continue retain their original screen position behind the keyboard. Focused RED/GREEN, full iOS tests, build/run, ZIP/Notes live inspection, strict/repository UI audits, and build pass; no business, Store, repository, or backend behavior changed.
 - T-315 separates complete-field continuation from Apple Maps confirmation: Continue is active once required Time/Location fields are complete, equivalent unique/candidate results auto-confirm and advance, only corrected/ambiguous results open review, Profile autofill cancels stale continuation intent, and confirmation review starts at a compact 330pt detent. Focused RED/GREEN, full iOS tests, build/run, three live paths, UI audit, and build pass; no provider, repository, backend, or remote state changed.
 - T-314 refreshes the address confirmation presentation from the current candidate-prefilled form when Continue is tapped, so Entered Address no longer retains the pre-selection search fragment. Focused RED/GREEN, full iOS tests, build/run, live `770` candidate/Continue confirmation inspection, and iOS build pass; no provider, backend, persistence, or publication behavior changed.
@@ -129,7 +130,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - Default context model is L0-L4 in `CONTEXT_AND_RECOVERY.md`.
 - Startup reads stay minimal: `AGENTS.md`, then targeted current-state/task-ledger sections only when needed.
 - Periodic documentation-governance reviews use `docs/06_tasks/META_REVIEW_TEMPLATE.md` every 10 completed tasks or weekly.
-- Last meta-review: T-306 on 2026-07-12.
+- Last meta-review: T-317 on 2026-07-12.
 - V1.0 ideal-operation Q-16...Q-43, Auth package Q-92, and R-038/Q-94...Q-96 are complete. R-039 design T-249 plus Q-97/T-250, Q-98/T-252, Q-99/T-253, Q-100/T-254, Q-101/T-255, Q-102/T-256, Q-103/T-257, and non-Accessibility integration verification T-258 are complete; Q-104 Dynamic Type/Accessibility is user-deferred.
 - Changes to `AGENTS.md`, `CLAUDE.md`, or `docs/05_workflow/**` must be standalone numbered tasks with a decision-log entry and context hygiene.
 - T-180 records standing user approval for task-completion Git commit and push. This approval is limited to current-task changes after validation passes; T-186 requires stopping without auto pull/rebase/merge/reset/force-push if the push fails or is rejected.
