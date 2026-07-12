@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-12
 - Updated by: Codex
-- Latest completed task: T-315 Customer Request address verification interaction fixes.
-- Current task: none; T-157 APNs remains externally blocked and Q-104 Dynamic Type/Accessibility remains user-deferred.
-- Next task ID: use T-316 for explicitly selected new work. Groomer Q-104 remains deferred.
+- Latest completed task: T-316 Customer Request keyboard-aware form positioning.
+- Current task: none; T-317 is reserved for the immediately due periodic meta-review. T-157 APNs remains externally blocked and Q-104 Dynamic Type/Accessibility remains user-deferred.
+- Next task ID: use T-317 for the required periodic meta-review; do not select feature work first.
 
 ## Fast Path
 
@@ -32,6 +32,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Validation Baseline
 
+- T-316 keeps Request Wizard fields keyboard-readable without moving the bottom action area: address and Notes focus scroll their title-plus-control toward a lower visible anchor with natural content-bound clamping; keyboard overlap adds scroll clearance while Back/Continue retain their original screen position behind the keyboard. Focused RED/GREEN, full iOS tests, build/run, ZIP/Notes live inspection, strict/repository UI audits, and build pass; no business, Store, repository, or backend behavior changed.
 - T-315 separates complete-field continuation from Apple Maps confirmation: Continue is active once required Time/Location fields are complete, equivalent unique/candidate results auto-confirm and advance, only corrected/ambiguous results open review, Profile autofill cancels stale continuation intent, and confirmation review starts at a compact 330pt detent. Focused RED/GREEN, full iOS tests, build/run, three live paths, UI audit, and build pass; no provider, repository, backend, or remote state changed.
 - T-314 refreshes the address confirmation presentation from the current candidate-prefilled form when Continue is tapped, so Entered Address no longer retains the pre-selection search fragment. Focused RED/GREEN, full iOS tests, build/run, live `770` candidate/Continue confirmation inspection, and iOS build pass; no provider, backend, persistence, or publication behavior changed.
 - T-313 fixes the Customer Request address/publish path: empty State is neutral until validation, autocomplete renders as one top-layer anchored overlay, candidate selection prefills without opening review, Continue presents address correction and advances after acceptance, publish failures use the Wizard's global bottom feedback, and nullable Apple place IDs encode as explicit RPC null parameters. Full iOS tests, build/run, live autocomplete/confirmation inspection, UI audit, and preflight pass; no backend or remote write changed.

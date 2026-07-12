@@ -1,6 +1,7 @@
 import Foundation
 import PhotosUI
 import SwiftUI
+import UIKit
 
 typealias CustomerRequestServiceOption = GroomingServiceType
 
@@ -139,6 +140,28 @@ struct CustomerRequestWizardReviewPresentation: Equatable {
     }
 }
 
+nonisolated struct CustomerRequestWizardKeyboardLayout: Equatable {
+    static let focusedFieldAnchorY: CGFloat = 0.55
+
+    let keyboardOverlap: CGFloat
+
+    init(containerMaxY: CGFloat, keyboardMinY: CGFloat) {
+        keyboardOverlap = max(0, containerMaxY - keyboardMinY)
+    }
+
+    func scrollBottomClearance(base: CGFloat) -> CGFloat {
+        base + keyboardOverlap
+    }
+}
+
+private struct CustomerRequestWizardBottomBarHeightKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
 struct CustomerRequestWizardFitInputPresentation: Equatable {
     struct Chip: Equatable, Identifiable {
         let id: String
@@ -207,6 +230,12 @@ struct CustomerRequestWizardView: View {
     @State private var isApplyingProfileAddress = false
     @State private var isContinuingAfterAddressConfirmation = false
     @State private var globallyPresentedErrorMessage: String?
+    @State private var keyboardOverlap: CGFloat = 0
+    @State private var bottomBarHeight: CGFloat = 0
+    @State private var focusedInputTarget: String?
+    @FocusState private var isNotesFocused: Bool
+
+    private static let notesFocusTarget = "customer.requests.wizard.notes.container"
 
     init(
         store: CustomerRequestsStore,
@@ -227,61 +256,97 @@ struct CustomerRequestWizardView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            ZStack {
-                DesignTokens.Colors.background
-                    .ignoresSafeArea()
+        GeometryReader { geometry in
+            NavigationStack {
+                ZStack(alignment: .bottom) {
+                    ScrollViewReader { scrollProxy in
+                        ZStack {
+                            DesignTokens.Colors.background
+                                .ignoresSafeArea()
 
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
-                        CustomerRequestWizardHeader(
-                            currentStep: currentStep,
-                            backAction: back
-                        )
+                            ScrollView {
+                                LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
+                                CustomerRequestWizardHeader(
+                                    currentStep: currentStep,
+                                    backAction: back
+                                )
 
-                        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                            Text(currentStep.headline)
-                                .font(DesignTokens.Typography.pageTitle)
-                                .foregroundStyle(DesignTokens.Colors.textPrimary)
-                                .fixedSize(horizontal: false, vertical: true)
+                                VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                                    Text(currentStep.headline)
+                                        .font(DesignTokens.Typography.pageTitle)
+                                        .foregroundStyle(DesignTokens.Colors.textPrimary)
+                                        .fixedSize(horizontal: false, vertical: true)
 
-                            if let subtitle = currentStep.subtitle {
-                                Text(subtitle)
-                                    .font(DesignTokens.Typography.body)
-                                    .foregroundStyle(DesignTokens.Colors.textSecondary)
-                                    .fixedSize(horizontal: false, vertical: true)
+                                    if let subtitle = currentStep.subtitle {
+                                        Text(subtitle)
+                                            .font(DesignTokens.Typography.body)
+                                            .foregroundStyle(DesignTokens.Colors.textSecondary)
+                                            .fixedSize(horizontal: false, vertical: true)
+                                    }
+                                }
+
+                                stepContent
+
+                                if let errorMessage = store.errorMessage,
+                                   errorMessage != globallyPresentedErrorMessage {
+                                    BeckonErrorBanner(
+                                        title: "Check Request Details",
+                                        message: errorMessage
+                                    )
+                                    .accessibilityIdentifier("customer.requests.form-error")
+                                }
+                                }
+                                .beckonPageInsets(bottom: DesignTokens.Layout.sectionSpacing)
+                                .padding(.bottom, bottomBarHeight + keyboardOverlap)
                             }
+                            .scrollContentBackground(.hidden)
+                            .scrollDismissesKeyboard(.interactively)
+                            .scrollIndicators(.hidden)
                         }
-
-                        stepContent
-
-                        if let errorMessage = store.errorMessage,
-                           errorMessage != globallyPresentedErrorMessage {
-                            BeckonErrorBanner(
-                                title: "Check Request Details",
-                                message: errorMessage
-                            )
-                            .accessibilityIdentifier("customer.requests.form-error")
+                        .onChange(of: focusedInputTarget) { _, target in
+                            scrollFocusedInput(target, using: scrollProxy)
+                        }
+                        .onChange(of: keyboardOverlap) { _, overlap in
+                            guard overlap > 0 else { return }
+                            scrollFocusedInput(focusedInputTarget, using: scrollProxy)
                         }
                     }
-                    .beckonPageInsets(bottom: DesignTokens.Layout.sectionSpacing)
+
+                    CustomerRequestWizardBottomBar(
+                        currentStep: currentStep,
+                        isSubmitting: store.isSubmitting,
+                        canContinue: canContinue,
+                        backAction: back,
+                        continueAction: continueForward
+                    )
+                    .offset(y: keyboardOverlap)
+                    .background {
+                        GeometryReader { barGeometry in
+                            Color.clear.preference(
+                                key: CustomerRequestWizardBottomBarHeightKey.self,
+                                value: barGeometry.size.height
+                            )
+                        }
+                    }
                 }
-                .scrollContentBackground(.hidden)
-                .scrollDismissesKeyboard(.interactively)
-                .scrollIndicators(.hidden)
+                .onPreferenceChange(CustomerRequestWizardBottomBarHeightKey.self) {
+                    bottomBarHeight = $0
+                }
+                .tint(DesignTokens.Colors.customerPrimaryDark)
+                .toolbar(.hidden, for: .navigationBar)
             }
-            .safeAreaInset(edge: .bottom) {
-                CustomerRequestWizardBottomBar(
-                    currentStep: currentStep,
-                    isSubmitting: store.isSubmitting,
-                    canContinue: canContinue,
-                    backAction: back,
-                    continueAction: continueForward
-                )
+            .onReceive(NotificationCenter.default.publisher(
+                for: UIResponder.keyboardWillChangeFrameNotification
+            )) { notification in
+                updateKeyboardOverlap(notification, containerMaxY: geometry.frame(in: .global).maxY)
             }
-            .tint(DesignTokens.Colors.customerPrimaryDark)
-            .toolbar(.hidden, for: .navigationBar)
+            .onReceive(NotificationCenter.default.publisher(
+                for: UIResponder.keyboardWillHideNotification
+            )) { _ in
+                keyboardOverlap = 0
+            }
         }
+        .ignoresSafeArea(.keyboard, edges: .bottom)
         .interactiveDismissDisabled(
             store.isSubmitting || !store.addressEditorState.candidates.isEmpty
         )
@@ -456,7 +521,8 @@ struct CustomerRequestWizardView: View {
                     travelRangeMiles: $store.travelRadiusMiles,
                     isApplyingProfileAddress: isApplyingProfileAddress,
                     useProfileAddress: applyProfileAddress,
-                    clearInvalidField: clearInvalidField
+                    clearInvalidField: clearInvalidField,
+                    onFieldFocused: { focusedInputTarget = $0 }
                 )
             }
         }
@@ -470,6 +536,7 @@ struct CustomerRequestWizardView: View {
             ) {
                 TextField("Share coat goals, sensitivities, or handling notes.", text: $store.serviceNotes, axis: .vertical)
                     .lineLimit(5...8)
+                    .focused($isNotesFocused)
                     .beckonFormField(isInvalid: invalidFields.contains(.notes))
                     .accessibilityIdentifier("customer.requests.wizard.notes")
                     .onTapGesture {
@@ -478,7 +545,13 @@ struct CustomerRequestWizardView: View {
                     .onChange(of: store.serviceNotes) { _, _ in
                         clearInvalidField(.notes)
                     }
+                    .onChange(of: isNotesFocused) { _, isFocused in
+                        if isFocused {
+                            focusedInputTarget = Self.notesFocusTarget
+                        }
+                    }
             }
+            .id(Self.notesFocusTarget)
 
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                 Text("Photos")
@@ -751,6 +824,34 @@ struct CustomerRequestWizardView: View {
                 return
             } catch {
                 showProfileAddressUnavailablePrompt()
+            }
+        }
+    }
+
+    private func updateKeyboardOverlap(
+        _ notification: Notification,
+        containerMaxY: CGFloat
+    ) {
+        guard let keyboardFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey]
+            as? CGRect else { return }
+        keyboardOverlap = CustomerRequestWizardKeyboardLayout(
+            containerMaxY: containerMaxY,
+            keyboardMinY: keyboardFrame.minY
+        ).keyboardOverlap
+    }
+
+    private func scrollFocusedInput(
+        _ target: String?,
+        using proxy: ScrollViewProxy
+    ) {
+        guard let target else { return }
+        Task { @MainActor in
+            await Task.yield()
+            withAnimation(.easeOut(duration: 0.22)) {
+                proxy.scrollTo(
+                    target,
+                    anchor: UnitPoint(x: 0.5, y: CustomerRequestWizardKeyboardLayout.focusedFieldAnchorY)
+                )
             }
         }
     }
@@ -1434,6 +1535,7 @@ private struct CustomerRequestAddressFields: View {
     let isApplyingProfileAddress: Bool
     let useProfileAddress: () -> Void
     let clearInvalidField: (CustomerRequestWizardValidationField) -> Void
+    let onFieldFocused: (String) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
@@ -1479,7 +1581,8 @@ private struct CustomerRequestAddressFields: View {
             BeckonAddressEditor(
                 state: addressEditorState,
                 isStateInvalid: isStateInvalid,
-                showsVerificationAction: false
+                showsVerificationAction: false,
+                onFieldFocused: onFieldFocused
             )
                 .onChange(of: addressEditorState.status) { _, status in
                     guard status == .confirmed else { return }

@@ -155,6 +155,23 @@ extension CustomerRequestsStoreTests {
         #expect(layout.usesSingleColumnChoices == true)
     }
 
+    @Test
+    func requestWizardKeyboardOverlapBecomesScrollClearance() {
+        let layout = CustomerRequestWizardKeyboardLayout(
+            containerMaxY: 800,
+            keyboardMinY: 500
+        )
+
+        #expect(layout.keyboardOverlap == 300)
+        #expect(layout.scrollBottomClearance(base: 24) == 324)
+        #expect(
+            CustomerRequestWizardKeyboardLayout(
+                containerMaxY: 800,
+                keyboardMinY: 800
+            ).keyboardOverlap == 0
+        )
+    }
+
     @Test @MainActor
     func requestWizardServiceOptionsMapToExistingServiceTypeField() {
         #expect(CustomerRequestServiceOption.allCases.count == 6)

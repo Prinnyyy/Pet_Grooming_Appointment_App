@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-07-12
+Task: T-316 - Customer Request keyboard-aware form positioning.
+Files changed: Shared address field focus targets; Wizard keyboard overlap/scroll/action layout; focused layout test; memory closeout.
+Checks: Focused TDD RED then GREEN; full iOS tests; Simulator build/run and ZIP/Notes keyboard inspection; iOS build; strict/repository UI audit; diff/context/preflight.
+Result: Focusing an address or Notes input keeps its title and full control visible near the keyboard, using a lower ideal anchor that naturally clamps at content bounds. Keyboard overlap becomes scroll clearance only; Back/Continue retain their original bottom position behind the keyboard instead of floating above it.
+Risks: UIKit is imported only for keyboard frame notifications and creates one reviewed UI102 warning; no UIKit business control was added. Existing unrelated reminder/AppIntents build warnings remain. No business, Store, repository, backend, persistence, or remote state changed.
+Next: T-317 is reserved for the immediately due periodic meta-review.
+```
+
+```text
+Date: 2026-07-12
 Task: T-315 - Customer Request address verification interaction fixes.
 Files changed: Shared address preparation outcomes/equivalence/review sizing; Request Wizard continuation coordination; validation semantics; focused tests and memory closeout.
 Checks: Focused TDD RED then GREEN; full iOS tests; Simulator build/run; live Profile autofill, equivalent candidate direct advance, and corrected-address compact review; iOS build; UI audit/diff/context/preflight.

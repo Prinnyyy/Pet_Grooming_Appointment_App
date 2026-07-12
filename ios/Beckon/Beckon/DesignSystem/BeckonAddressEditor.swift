@@ -24,10 +24,14 @@ nonisolated enum BeckonAddressEditorStatus: Equatable, Sendable {
 
 nonisolated enum BeckonAddressEditorSelectors {
     static let line1 = "beckon.address.line1"
+    static let line1Container = "beckon.address.line1.container"
     static let line2 = "beckon.address.line2"
+    static let line2Container = "beckon.address.line2.container"
     static let city = "beckon.address.city"
+    static let cityContainer = "beckon.address.city.container"
     static let state = "beckon.address.state"
     static let postalCode = "beckon.address.postal-code"
+    static let postalCodeContainer = "beckon.address.postal-code.container"
     static let status = "beckon.address.status"
     static let suggestions = "beckon.address.suggestions"
     static let confirmation = "beckon.address.confirmation"
@@ -431,15 +435,18 @@ struct BeckonAddressEditor: View {
     @Environment(\.beckonFeedbackCenter) private var feedbackCenter
     let isStateInvalid: Bool
     let showsVerificationAction: Bool
+    let onFieldFocused: (String) -> Void
 
     init(
         state: BeckonAddressEditorState,
         isStateInvalid: Bool = false,
-        showsVerificationAction: Bool = true
+        showsVerificationAction: Bool = true,
+        onFieldFocused: @escaping (String) -> Void = { _ in }
     ) {
         self.state = state
         self.isStateInvalid = isStateInvalid
         self.showsVerificationAction = showsVerificationAction
+        self.onFieldFocused = onFieldFocused
     }
 
     var body: some View {
@@ -456,7 +463,9 @@ struct BeckonAddressEditor: View {
                     textContentType: .streetAddressLine1,
                     autocapitalizationType: .words,
                     addressInputRule: .street,
-                    onEditingBegan: {},
+                    onEditingBegan: {
+                        onFieldFocused(BeckonAddressEditorSelectors.line1Container)
+                    },
                     onTextChange: { _ in
                         Task { await state.refreshSuggestions() }
                     }
@@ -470,6 +479,7 @@ struct BeckonAddressEditor: View {
                     $0
                 }
             }
+            .id(BeckonAddressEditorSelectors.line1Container)
 
             labeledField("Address Line 2", detail: "Optional") {
                 BeckonLimitedTextField(
@@ -482,12 +492,16 @@ struct BeckonAddressEditor: View {
                     textContentType: .streetAddressLine2,
                     autocapitalizationType: .words,
                     addressInputRule: .street,
-                    onEditingBegan: state.dismissSuggestions,
+                    onEditingBegan: {
+                        state.dismissSuggestions()
+                        onFieldFocused(BeckonAddressEditorSelectors.line2Container)
+                    },
                     onTextChange: { _ in }
                 )
                 .accessibilityLabel("Address Line 2, optional")
                 .accessibilityIdentifier(BeckonAddressEditorSelectors.line2)
             }
+            .id(BeckonAddressEditorSelectors.line2Container)
 
             if let error = state.inlineError {
                 Text(error)
@@ -508,11 +522,15 @@ struct BeckonAddressEditor: View {
                         textContentType: .addressCity,
                         autocapitalizationType: .words,
                         addressInputRule: .city,
-                        onEditingBegan: state.dismissSuggestions,
+                        onEditingBegan: {
+                            state.dismissSuggestions()
+                            onFieldFocused(BeckonAddressEditorSelectors.cityContainer)
+                        },
                         onTextChange: { _ in }
                     )
                     .accessibilityIdentifier(BeckonAddressEditorSelectors.city)
                 }
+                .id(BeckonAddressEditorSelectors.cityContainer)
 
                 labeledField("State") {
                     Menu {
@@ -555,11 +573,15 @@ struct BeckonAddressEditor: View {
                     keyboardType: .numberPad,
                     autocapitalizationType: .none,
                     addressInputRule: .zipCode,
-                    onEditingBegan: state.dismissSuggestions,
+                    onEditingBegan: {
+                        state.dismissSuggestions()
+                        onFieldFocused(BeckonAddressEditorSelectors.postalCodeContainer)
+                    },
                     onTextChange: { _ in }
                 )
                 .accessibilityIdentifier(BeckonAddressEditorSelectors.postalCode)
             }
+            .id(BeckonAddressEditorSelectors.postalCodeContainer)
 
             statusRow
         }
