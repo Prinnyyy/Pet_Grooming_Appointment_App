@@ -3,10 +3,186 @@ import CoreLocation
 import Foundation
 import MapKit
 
-struct BeckonAddressSuggestion: Identifiable, Hashable {
+nonisolated struct BeckonAddressInput: Equatable, Sendable {
+    var line1: String
+    var line2: String
+    var city: String
+    var stateCode: USStateCode?
+    var postalCode: String
+    var countryCode: String
+}
+
+nonisolated struct BeckonAddressCoordinate: Equatable, Sendable {
+    let latitude: Double
+    let longitude: Double
+}
+
+nonisolated struct BeckonAddressCandidate: Equatable, Hashable, Identifiable, Sendable {
     let id: String
-    let title: String
-    let subtitle: String
+    let primaryText: String
+    let secondaryText: String
+
+    var title: String { primaryText }
+    var subtitle: String { secondaryText }
+
+    init(id: String, primaryText: String, secondaryText: String) {
+        self.id = id
+        self.primaryText = primaryText
+        self.secondaryText = secondaryText
+    }
+
+    init(id: String, title: String, subtitle: String) {
+        self.init(id: id, primaryText: title, secondaryText: subtitle)
+    }
+}
+
+typealias BeckonAddressSuggestion = BeckonAddressCandidate
+
+nonisolated struct BeckonResolvedAddress: Equatable, Sendable {
+    let provider: String
+    let placeID: String?
+    let coordinate: BeckonAddressCoordinate
+    let suggested: BeckonAddressInput
+    let resolutionSource: String
+
+    var streetAddress: String {
+        guard !suggested.line2.isEmpty else { return suggested.line1 }
+        return "\(suggested.line1) \(suggested.line2)"
+    }
+    var city: String { suggested.city }
+    var stateCode: USStateCode { suggested.stateCode! }
+    var zipCode: String { suggested.postalCode }
+}
+
+nonisolated struct BeckonConfirmedAddress: Equatable, Sendable {
+    let entered: BeckonAddressInput
+    let accepted: BeckonAddressInput
+    let provider: String
+    let placeID: String?
+    let coordinate: BeckonAddressCoordinate
+    let resolutionSource: String
+    let confirmedAt: Date
+
+    func isBuildingResolutionValid(for input: BeckonAddressInput) -> Bool {
+        Self.materialFields(of: accepted) == Self.materialFields(of: input)
+    }
+
+    private static func materialFields(of input: BeckonAddressInput) -> [String] {
+        [
+            input.line1,
+            input.city,
+            input.stateCode?.rawValue ?? "",
+            input.postalCode,
+            input.countryCode,
+        ]
+        .map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
+    }
+}
+
+nonisolated struct BeckonSecondaryAddressConflict: Equatable, Sendable {
+    let line1Secondary: String
+    let existingLine2: String
+}
+
+nonisolated struct BeckonSecondaryAddressParseResult: Equatable, Sendable {
+    let line1: String
+    let line2: String
+    let movedSecondary: String?
+    let conflict: BeckonSecondaryAddressConflict?
+}
+
+nonisolated enum BeckonSecondaryAddressParser {
+    private static let pattern = #"(?i)^(.*?)\s*,?\s+((?:(?:apt\.?|apartment|unit|suite|ste\.?|floor|fl\.?|building|bldg\.?|room|rm\.?)\s+|#\s*)[a-z0-9][a-z0-9 .#/-]*)\s*$"#
+
+    static func parse(line1: String, line2: String) -> BeckonSecondaryAddressParseResult {
+        let trimmedLine1 = line1.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedLine2 = line2.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let parts = suffixParts(in: trimmedLine1) else {
+            return BeckonSecondaryAddressParseResult(
+                line1: trimmedLine1,
+                line2: trimmedLine2,
+                movedSecondary: nil,
+                conflict: nil
+            )
+        }
+
+        guard trimmedLine2.isEmpty else {
+            if normalized(parts.secondary) == normalized(trimmedLine2) {
+                return BeckonSecondaryAddressParseResult(
+                    line1: parts.base,
+                    line2: trimmedLine2,
+                    movedSecondary: nil,
+                    conflict: nil
+                )
+            }
+            return BeckonSecondaryAddressParseResult(
+                line1: trimmedLine1,
+                line2: trimmedLine2,
+                movedSecondary: nil,
+                conflict: BeckonSecondaryAddressConflict(
+                    line1Secondary: parts.secondary,
+                    existingLine2: trimmedLine2
+                )
+            )
+        }
+
+        return BeckonSecondaryAddressParseResult(
+            line1: parts.base,
+            line2: parts.secondary,
+            movedSecondary: parts.secondary,
+            conflict: nil
+        )
+    }
+
+    private static func suffixParts(in value: String) -> (base: String, secondary: String)? {
+        guard
+            let expression = try? NSRegularExpression(pattern: pattern),
+            let match = expression.firstMatch(in: value, range: NSRange(value.startIndex..., in: value)),
+            let baseRange = Range(match.range(at: 1), in: value),
+            let secondaryRange = Range(match.range(at: 2), in: value)
+        else { return nil }
+
+        let base = String(value[baseRange]).trimmingCharacters(
+            in: CharacterSet.whitespacesAndNewlines.union(CharacterSet(charactersIn: ","))
+        )
+        let secondary = String(value[secondaryRange]).trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !base.isEmpty, !secondary.isEmpty else { return nil }
+        return (base, secondary)
+    }
+
+    private static func normalized(_ value: String) -> String {
+        value.lowercased().filter { $0.isLetter || $0.isNumber }
+    }
+}
+
+nonisolated enum BeckonAddressSuggestionRetention {
+    static func shouldRetain(previousQuery: String, nextQuery: String) -> Bool {
+        let previous = normalized(previousQuery)
+        let next = normalized(nextQuery)
+        guard !previous.isEmpty, !next.isEmpty else { return false }
+        return previous.hasPrefix(next) || next.hasPrefix(previous)
+    }
+
+    private static func normalized(_ value: String) -> String {
+        value
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+            .split(whereSeparator: \Character.isWhitespace)
+            .joined(separator: " ")
+    }
+}
+
+nonisolated enum BeckonAddressProviderError: Error, Equatable, Sendable {
+    case unknownCandidate
+    case noCompleteAddress
+}
+
+@MainActor
+protocol BeckonAddressProviding: AnyObject {
+    func updateSuggestions(for line1Query: String) async -> [BeckonAddressCandidate]
+    func resolve(candidateID: String, preservingLine2: String) async throws -> BeckonResolvedAddress
+    func geocode(_ input: BeckonAddressInput) async throws -> [BeckonResolvedAddress]
+    func clear()
 }
 
 struct BeckonAddressCompletion<Completion> {
@@ -20,25 +196,9 @@ nonisolated struct BeckonAddressQuery: Equatable, Sendable {
     let secondaryUnit: String?
 
     init(street: String) {
-        let trimmed = street.trimmingCharacters(in: .whitespacesAndNewlines)
-        let pattern = #"(?i)^(.*?)\s*,?\s+((?:unit|apt\.?|apartment|suite|ste\.?|#)\s*[-a-z0-9]+(?:\s+[-a-z0-9]+)*)\s*$"#
-        guard
-            let expression = try? NSRegularExpression(pattern: pattern),
-            let match = expression.firstMatch(
-                in: trimmed,
-                range: NSRange(trimmed.startIndex..., in: trimmed)
-            ),
-            let streetRange = Range(match.range(at: 1), in: trimmed),
-            let unitRange = Range(match.range(at: 2), in: trimmed)
-        else {
-            searchStreet = trimmed
-            secondaryUnit = nil
-            return
-        }
-
-        searchStreet = String(trimmed[streetRange])
-            .trimmingCharacters(in: CharacterSet.whitespacesAndNewlines.union(CharacterSet(charactersIn: ",")))
-        secondaryUnit = String(trimmed[unitRange]).trimmingCharacters(in: .whitespacesAndNewlines)
+        let parsed = BeckonSecondaryAddressParser.parse(line1: street, line2: "")
+        searchStreet = parsed.line1
+        secondaryUnit = parsed.movedSecondary
     }
 
     func appendingSecondary(to resolvedStreet: String) -> String {
@@ -47,50 +207,8 @@ nonisolated struct BeckonAddressQuery: Equatable, Sendable {
     }
 }
 
-nonisolated struct BeckonAddressCandidate: Equatable, Sendable {
-    let streetAddress: String
-    let city: String
-    let state: String
-    let zipCode: String
-
-    var id: String {
-        "\(streetAddress)|\(city)|\(state)|\(zipCode)"
-    }
-}
-
-nonisolated enum BeckonAddressCandidateBatch {
-    static func resolve<Input: Sendable>(
-        _ inputs: [Input],
-        limit: Int,
-        using resolver: @escaping @Sendable (Input) async -> BeckonAddressCandidate?
-    ) async -> [BeckonAddressCandidate] {
-        await withTaskGroup(
-            of: (Int, BeckonAddressCandidate?).self,
-            returning: [BeckonAddressCandidate].self
-        ) { group in
-            for (index, input) in inputs.prefix(limit).enumerated() {
-                group.addTask {
-                    (index, await resolver(input))
-                }
-            }
-
-            var indexedCandidates: [(Int, BeckonAddressCandidate)] = []
-            for await (index, candidate) in group {
-                if let candidate {
-                    indexedCandidates.append((index, candidate))
-                }
-            }
-
-            return indexedCandidates
-                .sorted { $0.0 < $1.0 }
-                .map(\.1)
-        }
-    }
-}
-
 private nonisolated enum BeckonAddressAutocompletePolicy {
     static let displayLimit = 5
-    static let resolutionLimit = 8
 }
 
 enum BeckonAddressSuggestionBuilder {
@@ -106,12 +224,8 @@ enum BeckonAddressSuggestionBuilder {
         var completionsByID: [String: Completion] = [:]
 
         for completion in completions where suggestions.count < limit {
-            let localizedTitle = completion.title.trimmingCharacters(in: .whitespacesAndNewlines)
-            let localizedSubtitle = completion.subtitle.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !Self.containsHanScript(localizedTitle),
-                  !Self.containsHanScript(localizedSubtitle) else { continue }
-            let title = localizedTitle
-            let subtitle = localizedSubtitle
+            let title = completion.title.trimmingCharacters(in: .whitespacesAndNewlines)
+            let subtitle = completion.subtitle.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !title.isEmpty else { continue }
 
             let key = "\(title)|\(subtitle)"
@@ -119,8 +233,8 @@ enum BeckonAddressSuggestionBuilder {
 
             let suggestion = BeckonAddressSuggestion(
                 id: key,
-                title: title,
-                subtitle: subtitle
+                primaryText: title,
+                secondaryText: subtitle
             )
             suggestions.append(suggestion)
             completionsByID[suggestion.id] = completion.completion
@@ -129,44 +243,6 @@ enum BeckonAddressSuggestionBuilder {
         return (suggestions, completionsByID)
     }
 
-    static func build(
-        from candidates: [BeckonAddressCandidate],
-        limit: Int = 5
-    ) -> [BeckonAddressSuggestion] {
-        var seenIDs: Set<String> = []
-        return candidates.compactMap { candidate in
-            guard !Self.containsHanScript(candidate.streetAddress),
-                  !Self.containsHanScript(candidate.city),
-                  !Self.containsHanScript(candidate.state),
-                  !Self.containsHanScript(candidate.zipCode) else { return nil }
-            guard seenIDs.insert(candidate.id).inserted else { return nil }
-            return BeckonAddressSuggestion(
-                id: candidate.id,
-                title: candidate.streetAddress,
-                subtitle: "\(candidate.city), \(candidate.state) \(candidate.zipCode)"
-            )
-        }
-        .prefix(limit)
-        .map { $0 }
-    }
-
-    private static func containsHanScript(_ value: String) -> Bool {
-        value.unicodeScalars.contains { scalar in
-            switch scalar.value {
-            case 0x3400...0x4DBF, 0x4E00...0x9FFF, 0xF900...0xFAFF:
-                true
-            default:
-                false
-            }
-        }
-    }
-}
-
-struct BeckonResolvedAddress {
-    let streetAddress: String
-    let city: String
-    let stateCode: USStateCode
-    let zipCode: String
 }
 
 private struct BeckonAddressComponents: Sendable {
@@ -176,32 +252,19 @@ private struct BeckonAddressComponents: Sendable {
     let zipCode: String
 }
 
-private enum BeckonAddressResolution {
-    case completion(MKLocalSearchCompletion)
-    case candidate(BeckonAddressCandidate)
-}
-
-private nonisolated struct BeckonSendableMapCompletion: @unchecked Sendable {
-    let completion: MKLocalSearchCompletion
-}
-
-final class BeckonAddressSearch:
+final class MapKitAddressProvider:
     NSObject,
     ObservableObject,
-    MKLocalSearchCompleterDelegate
+    MKLocalSearchCompleterDelegate,
+    BeckonAddressProviding
 {
     @Published private(set) var suggestions: [BeckonAddressSuggestion] = []
 
     private let completer = MKLocalSearchCompleter()
-    private var resolutionsByID: [String: BeckonAddressResolution] = [:]
-    private var rawSuggestions: [BeckonAddressSuggestion] = []
-    private var rawResolutionsByID: [String: BeckonAddressResolution] = [:]
-    private var englishSuggestions: [BeckonAddressSuggestion] = []
-    private var englishResolutionsByID: [String: BeckonAddressResolution] = [:]
+    private var completionsByID: [String: MKLocalSearchCompletion] = [:]
     private var lastQueryFragment = ""
     private var currentQuery = BeckonAddressQuery(street: "")
-    private var lookupGeneration = 0
-    private var completionResolutionTask: Task<Void, Never>?
+    private var suggestionContinuation: CheckedContinuation<[BeckonAddressCandidate], Never>?
 
     override init() {
         super.init()
@@ -237,9 +300,33 @@ final class BeckonAddressSearch:
         updateQueryFragmentIfNeeded(query)
     }
 
+    func updateSuggestions(for line1Query: String) async -> [BeckonAddressCandidate] {
+        let query = BeckonAddressQuery(street: line1Query).searchStreet
+        guard query.count >= 3 else {
+            clear()
+            return []
+        }
+        if query == lastQueryFragment {
+            return suggestions
+        }
+
+        suggestionContinuation?.resume(returning: suggestions)
+        suggestionContinuation = nil
+        return await withCheckedContinuation { continuation in
+            suggestionContinuation = continuation
+            update(street: line1Query, city: "", stateCode: nil)
+        }
+    }
+
     private func updateQueryFragmentIfNeeded(_ query: String) {
         guard query != lastQueryFragment else { return }
-        prepareForNewQuery()
+        if !BeckonAddressSuggestionRetention.shouldRetain(
+            previousQuery: lastQueryFragment,
+            nextQuery: query
+        ) {
+            suggestions = []
+            completionsByID = [:]
+        }
         lastQueryFragment = query
         completer.queryFragment = query
     }
@@ -255,194 +342,133 @@ final class BeckonAddressSearch:
             }
         )
 
-        rawSuggestions = result.suggestions
-        rawResolutionsByID = result.completionsByID.mapValues(BeckonAddressResolution.completion)
-        publishMergedSuggestions()
-        beginCompletionResolution(for: completer.results)
-    }
-
-    private func beginCompletionResolution(
-        for completions: [MKLocalSearchCompletion]
-    ) {
-        let generation = lookupGeneration
-        completionResolutionTask?.cancel()
-        englishSuggestions = []
-        englishResolutionsByID = [:]
-        publishMergedSuggestions()
-
-        let sendableCompletions = completions.map(BeckonSendableMapCompletion.init)
-        completionResolutionTask = Task { [weak self] in
-            guard let self else { return }
-            let candidates = await BeckonAddressCandidateBatch.resolve(
-                sendableCompletions,
-                limit: BeckonAddressAutocompletePolicy.resolutionLimit
-            ) { [weak self] wrappedCompletion in
-                guard let self else { return nil }
-                return await self.englishCandidate(for: wrappedCompletion.completion)
-            }
-            guard !Task.isCancelled, generation == self.lookupGeneration else { return }
-            let uniqueCandidates = self.uniqueCandidates(candidates)
-            self.englishSuggestions = BeckonAddressSuggestionBuilder.build(
-                from: uniqueCandidates,
-                limit: BeckonAddressAutocompletePolicy.displayLimit
-            )
-            self.englishResolutionsByID = uniqueCandidates.reduce(into: [:]) { result, candidate in
-                result[candidate.id] = .candidate(candidate)
-            }
-            self.publishMergedSuggestions()
-        }
+        suggestions = result.suggestions
+        completionsByID = result.completionsByID
+        suggestionContinuation?.resume(returning: suggestions)
+        suggestionContinuation = nil
     }
 
     func completer(
         _ completer: MKLocalSearchCompleter,
         didFailWithError error: any Error
     ) {
-        rawSuggestions = []
-        rawResolutionsByID = [:]
-        publishMergedSuggestions()
+        if (error as? URLError)?.code != .cancelled {
+            suggestions = []
+            completionsByID = [:]
+        }
+        suggestionContinuation?.resume(returning: suggestions)
+        suggestionContinuation = nil
     }
 
     func resolve(
         _ suggestion: BeckonAddressSuggestion
     ) async -> BeckonResolvedAddress? {
-        guard let resolution = resolutionsByID[suggestion.id] else { return nil }
-        let addressQuery = currentQuery
-
-        if case let .candidate(candidate) = resolution {
-            guard let stateCode = USStateCode(rawValue: candidate.state.uppercased()) else {
-                return nil
-            }
-            return BeckonResolvedAddress(
-                streetAddress: addressQuery.appendingSecondary(to: candidate.streetAddress),
-                city: candidate.city,
-                stateCode: stateCode,
-                zipCode: candidate.zipCode
-            )
-        }
-
-        guard case let .completion(completion) = resolution else { return nil }
-
-        let request = MKLocalSearch.Request(completion: completion)
-        guard let localizedMapItem = try? await MKLocalSearch(request: request).start().mapItems.first else {
-            return nil
-        }
-        let components = await englishAddressComponents(for: localizedMapItem)
-            ?? addressComponents(from: localizedMapItem)
-        guard
-            let components,
-            let stateCode = USStateCode(rawValue: components.state.uppercased())
-        else {
-            return nil
-        }
-
-        return BeckonResolvedAddress(
-            streetAddress: addressQuery.appendingSecondary(to: components.streetAddress),
-            city: components.city,
-            stateCode: stateCode,
-            zipCode: components.zipCode
+        try? await resolve(
+            candidateID: suggestion.id,
+            preservingLine2: currentQuery.secondaryUnit ?? ""
         )
     }
 
-    private func publishMergedSuggestions() {
-        var seenLocations: Set<String> = []
-        suggestions = (englishSuggestions + rawSuggestions)
-            .filter { suggestion in
-                let city = suggestion.subtitle.split(separator: ",").first
-                    .map(String.init) ?? suggestion.subtitle
-                let locationKey = "\(suggestion.title)|\(city)".lowercased()
-                return seenLocations.insert(locationKey).inserted
-            }
-            .prefix(BeckonAddressAutocompletePolicy.displayLimit)
-            .map { $0 }
-        resolutionsByID = rawResolutionsByID.merging(englishResolutionsByID) { _, english in english }
+    func resolve(
+        candidateID: String,
+        preservingLine2: String
+    ) async throws -> BeckonResolvedAddress {
+        guard let completion = completionsByID[candidateID] else {
+            throw BeckonAddressProviderError.unknownCandidate
+        }
+
+        let request = MKLocalSearch.Request(completion: completion)
+        guard let mapItem = try await MKLocalSearch(request: request).start().mapItems.first else {
+            throw BeckonAddressProviderError.noCompleteAddress
+        }
+        return try resolvedAddress(
+            from: mapItem,
+            preservingLine2: preservingLine2,
+            source: "autocomplete_selection"
+        )
     }
 
-    private func prepareForNewQuery() {
-        lookupGeneration += 1
-        completionResolutionTask?.cancel()
-        rawSuggestions = []
-        rawResolutionsByID = [:]
-        englishSuggestions = []
-        englishResolutionsByID = [:]
-        suggestions = []
-        resolutionsByID = [:]
+    func geocode(_ input: BeckonAddressInput) async throws -> [BeckonResolvedAddress] {
+        let query = [
+            input.line1,
+            input.city,
+            input.stateCode?.rawValue ?? "",
+            input.postalCode,
+            input.countryCode,
+        ]
+        .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+        .filter { !$0.isEmpty }
+        .joined(separator: ", ")
+
+        let mapItems: [MKMapItem]
+        if #available(iOS 26.0, *) {
+            guard let request = MKGeocodingRequest(addressString: query) else {
+                throw BeckonAddressProviderError.noCompleteAddress
+            }
+            mapItems = try await request.mapItems
+        } else {
+            let placemarks = try await CLGeocoder().geocodeAddressString(query)
+            mapItems = placemarks.map { MKMapItem(placemark: MKPlacemark(placemark: $0)) }
+        }
+
+        return mapItems.compactMap { mapItem in
+            try? resolvedAddress(
+                from: mapItem,
+                preservingLine2: input.line2,
+                source: "manual_geocode"
+            )
+        }
+    }
+
+    func clear() {
+        completer.queryFragment = ""
+        lastQueryFragment = ""
+        currentQuery = BeckonAddressQuery(street: "")
+        suggestionContinuation?.resume(returning: [])
+        suggestionContinuation = nil
+        resetSuggestions()
     }
 
     private func resetSuggestions() {
-        prepareForNewQuery()
+        suggestions = []
+        completionsByID = [:]
     }
 
-    private func englishCandidate(
-        for completion: MKLocalSearchCompletion
-    ) async -> BeckonAddressCandidate? {
-        let request = MKLocalSearch.Request(completion: completion)
-        guard let response = try? await MKLocalSearch(request: request).start() else {
-            return nil
+    private func resolvedAddress(
+        from mapItem: MKMapItem,
+        preservingLine2: String,
+        source: String
+    ) throws -> BeckonResolvedAddress {
+        let components = addressComponents(from: mapItem)
+        let coordinate = mapItem.placemark.coordinate
+        guard
+            let components,
+            let stateCode = USStateCode(rawValue: components.state.uppercased()),
+            mapItem.placemark.isoCountryCode?.uppercased() == "US",
+            CLLocationCoordinate2DIsValid(coordinate),
+            coordinate.latitude.isFinite,
+            coordinate.longitude.isFinite
+        else {
+            throw BeckonAddressProviderError.noCompleteAddress
         }
 
-        for mapItem in response.mapItems {
-            let components = await englishAddressComponents(for: mapItem)
-                ?? addressComponents(from: mapItem)
-            if let components {
-                return BeckonAddressCandidate(
-                    streetAddress: components.streetAddress,
-                    city: components.city,
-                    state: components.state,
-                    zipCode: components.zipCode
-                )
-            }
-        }
-        return nil
-    }
-
-    private func uniqueCandidates(
-        _ candidates: [BeckonAddressCandidate]
-    ) -> [BeckonAddressCandidate] {
-        var seenIDs: Set<String> = []
-        return candidates.filter { seenIDs.insert($0.id.lowercased()).inserted }
-    }
-
-    private func englishAddressComponents(for mapItem: MKMapItem) async -> BeckonAddressComponents? {
-        if #available(iOS 26.0, *),
-           let request = MKReverseGeocodingRequest(location: mapItem.location) {
-            request.preferredLocale = Locale(identifier: "en_US")
-            return await withCheckedContinuation { continuation in
-                request.getMapItems { items, _ in
-                    continuation.resume(returning: items?.first.flatMap(self.addressComponents))
-                }
-            }
-        }
-
-        guard let location = mapItem.placemark.location else { return nil }
-        let geocoder = CLGeocoder()
-        return await withCheckedContinuation { continuation in
-            geocoder.reverseGeocodeLocation(
-                location,
-                preferredLocale: Locale(identifier: "en_US")
-            ) { placemarks, _ in
-                guard let placemark = placemarks?.first else {
-                    continuation.resume(returning: nil)
-                    return
-                }
-                let streetAddress = [placemark.subThoroughfare, placemark.thoroughfare]
-                    .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
-                    .filter { !$0.isEmpty }
-                    .joined(separator: " ")
-                let city = placemark.locality?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-                let state = placemark.administrativeArea?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-                let zipCode = placemark.postalCode?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-                guard !streetAddress.isEmpty, !city.isEmpty, !state.isEmpty, !zipCode.isEmpty else {
-                    continuation.resume(returning: nil)
-                    return
-                }
-                continuation.resume(returning: BeckonAddressComponents(
-                    streetAddress: streetAddress,
-                    city: city,
-                    state: state,
-                    zipCode: zipCode
-                ))
-            }
-        }
+        return BeckonResolvedAddress(
+            provider: "apple_maps",
+            placeID: mapItem.identifier?.rawValue,
+            coordinate: BeckonAddressCoordinate(
+                latitude: coordinate.latitude,
+                longitude: coordinate.longitude
+            ),
+            suggested: BeckonAddressInput(
+                line1: components.streetAddress,
+                line2: preservingLine2.trimmingCharacters(in: .whitespacesAndNewlines),
+                city: components.city,
+                stateCode: stateCode,
+                postalCode: components.zipCode,
+                countryCode: "US"
+            ),
+            resolutionSource: source
+        )
     }
 
     private func addressComponents(from mapItem: MKMapItem) -> BeckonAddressComponents? {
@@ -469,6 +495,8 @@ final class BeckonAddressSearch:
     }
 
 }
+
+typealias BeckonAddressSearch = MapKitAddressProvider
 
 struct CustomerProfileAddressAutofill: Equatable, Sendable {
     let streetAddress: String

@@ -475,8 +475,119 @@ extension CustomerRequestsStoreTests {
         #expect(plain.secondaryUnit == nil)
     }
 
+    @Test
+    func secondaryAddressParserMovesOnlyCompleteSupportedSuffixes() {
+        let cases = [
+            ("770 S Harbor Blvd Apt 5B", "Apt 5B"),
+            ("770 S Harbor Blvd, Apartment 5B", "Apartment 5B"),
+            ("770 S Harbor Blvd Unit 2410", "Unit 2410"),
+            ("770 S Harbor Blvd Suite 300", "Suite 300"),
+            ("770 S Harbor Blvd Ste 300", "Ste 300"),
+            ("770 S Harbor Blvd Floor 2", "Floor 2"),
+            ("770 S Harbor Blvd Fl 2", "Fl 2"),
+            ("770 S Harbor Blvd Building A", "Building A"),
+            ("770 S Harbor Blvd Bldg A", "Bldg A"),
+            ("770 S Harbor Blvd Room 12", "Room 12"),
+            ("770 S Harbor Blvd Rm 12", "Rm 12"),
+            ("770 S Harbor Blvd #2410", "#2410"),
+        ]
+
+        for (line1, expectedLine2) in cases {
+            let result = BeckonSecondaryAddressParser.parse(line1: line1, line2: "")
+            #expect(result.line1 == "770 S Harbor Blvd")
+            #expect(result.line2 == expectedLine2)
+            #expect(result.movedSecondary == expectedLine2)
+            #expect(result.conflict == nil)
+        }
+    }
+
+    @Test
+    func secondaryAddressParserLeavesPartialSuffixesInLineOne() {
+        for line1 in [
+            "770 S Harbor Blvd U",
+            "770 S Harbor Blvd Un",
+            "770 S Harbor Blvd Unit",
+            "770 S Harbor Blvd A",
+            "770 S Harbor Blvd Apt",
+        ] {
+            let result = BeckonSecondaryAddressParser.parse(line1: line1, line2: "")
+            #expect(result.line1 == line1)
+            #expect(result.line2.isEmpty)
+            #expect(result.movedSecondary == nil)
+            #expect(result.conflict == nil)
+        }
+    }
+
+    @Test
+    func secondaryAddressParserNeverOverwritesOccupiedLineTwo() {
+        let result = BeckonSecondaryAddressParser.parse(
+            line1: "770 S Harbor Blvd Unit 2410",
+            line2: "Suite 300"
+        )
+
+        #expect(result.line1 == "770 S Harbor Blvd Unit 2410")
+        #expect(result.line2 == "Suite 300")
+        #expect(result.movedSecondary == nil)
+        #expect(result.conflict == BeckonSecondaryAddressConflict(
+            line1Secondary: "Unit 2410",
+            existingLine2: "Suite 300"
+        ))
+    }
+
+    @Test
+    func materialAddressEditsInvalidateAConfirmedResolution() {
+        let accepted = BeckonAddressInput(
+            line1: "770 S Harbor Blvd",
+            line2: "Unit 2410",
+            city: "Fullerton",
+            stateCode: .california,
+            postalCode: "92832",
+            countryCode: "US"
+        )
+        let confirmed = BeckonConfirmedAddress(
+            entered: accepted,
+            accepted: accepted,
+            provider: "apple_maps",
+            placeID: nil,
+            coordinate: BeckonAddressCoordinate(latitude: 33.8703, longitude: -117.9242),
+            resolutionSource: "autocomplete_selection",
+            confirmedAt: Date(timeIntervalSince1970: 1)
+        )
+
+        var line2Only = accepted
+        line2Only.line2 = "Unit 2500"
+        var changedStreet = accepted
+        changedStreet.line1 = "780 S Harbor Blvd"
+        var changedCity = accepted
+        changedCity.city = "Anaheim"
+
+        #expect(confirmed.isBuildingResolutionValid(for: line2Only))
+        #expect(!confirmed.isBuildingResolutionValid(for: changedStreet))
+        #expect(!confirmed.isBuildingResolutionValid(for: changedCity))
+    }
+
+    @Test
+    func compatibleAddressQueriesRetainVisibleSuggestionsWhileLoading() {
+        #expect(BeckonAddressSuggestionRetention.shouldRetain(
+            previousQuery: "770 S",
+            nextQuery: "770 S H"
+        ))
+        #expect(BeckonAddressSuggestionRetention.shouldRetain(
+            previousQuery: "770 S Harbor",
+            nextQuery: "770 S H"
+        ))
+        #expect(!BeckonAddressSuggestionRetention.shouldRetain(
+            previousQuery: "770 S Harbor",
+            nextQuery: "123 Pine"
+        ))
+
+        let base = BeckonAddressQuery(street: "770 S Harbor Blvd")
+        let withUnit = BeckonAddressQuery(street: "770 S Harbor Blvd Unit 2410")
+        #expect(base.searchStreet == withUnit.searchStreet)
+    }
+
     @Test @MainActor
-    func localizedMapCompletionIsReplacedByResolvedEnglishCandidate() {
+    func localizedMapCompletionIsPresentedDirectlyWithoutBatchResolution() {
         let result = BeckonAddressSuggestionBuilder.build(
             from: [
                 BeckonAddressCompletion(
@@ -486,75 +597,14 @@ extension CustomerRequestsStoreTests {
                 ),
             ]
         )
-        let englishSuggestions = BeckonAddressSuggestionBuilder.build(
-            from: [
-                BeckonAddressCandidate(
-                    streetAddress: "760 S Harbor Blvd",
-                    city: "Fullerton",
-                    state: "CA",
-                    zipCode: "92832"
-                ),
-                BeckonAddressCandidate(
-                    streetAddress: "760 S Harbor Blvd",
-                    city: "富勒顿",
-                    state: "CA",
-                    zipCode: "92832"
-                ),
-            ]
-        )
-
-        #expect(result.suggestions.isEmpty)
-        #expect(result.completionsByID.isEmpty)
-        #expect(englishSuggestions == [
+        #expect(result.suggestions == [
             BeckonAddressSuggestion(
-                id: "760 S Harbor Blvd|Fullerton|CA|92832",
-                title: "760 S Harbor Blvd",
-                subtitle: "Fullerton, CA 92832"
+                id: "南港大道760号|加利福尼亚州富勒顿",
+                title: "南港大道760号",
+                subtitle: "加利福尼亚州富勒顿"
             ),
         ])
-    }
-
-    @Test
-    func addressCompletionBatchPreservesMapKitRankingAcrossConcurrentResolution() async {
-        let candidates = await BeckonAddressCandidateBatch.resolve(
-            ["first", "unresolved", "third", "fourth"],
-            limit: 4
-        ) { completion in
-            switch completion {
-            case "first":
-                try? await Task.sleep(for: .milliseconds(30))
-                return BeckonAddressCandidate(
-                    streetAddress: "760 S Harbor Blvd",
-                    city: "Fullerton",
-                    state: "CA",
-                    zipCode: "92832"
-                )
-            case "third":
-                return BeckonAddressCandidate(
-                    streetAddress: "760 N Harbor Blvd",
-                    city: "Fullerton",
-                    state: "CA",
-                    zipCode: "92832"
-                )
-            case "fourth":
-                try? await Task.sleep(for: .milliseconds(10))
-                return BeckonAddressCandidate(
-                    streetAddress: "760 S Harbor Blvd",
-                    city: "Anaheim",
-                    state: "CA",
-                    zipCode: "92805"
-                )
-            default:
-                return nil
-            }
-        }
-
-        #expect(candidates.map(\.streetAddress) == [
-            "760 S Harbor Blvd",
-            "760 N Harbor Blvd",
-            "760 S Harbor Blvd",
-        ])
-        #expect(candidates.map(\.city) == ["Fullerton", "Fullerton", "Anaheim"])
+        #expect(result.completionsByID[result.suggestions[0].id] == "localized")
     }
 
     @Test

@@ -2,12 +2,21 @@
 
 ```text
 Date: 2026-07-11
+Task: T-292 - Shared Apple Maps address domain and parser.
+Files changed: Provider-neutral address input/candidate/resolved/confirmed values; Apple Maps provider contract; complete secondary-address parser; compatible-query retention; selected/manual resolution; focused tests; queue and memory closeout.
+Checks: Forced RED for missing Q-105 contracts; Customer Requests focused suite; `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; `git diff --check`; context hygiene.
+Result: Completed Q-105. Address Line 1 now extracts only complete Apt/Apartment/Unit/Suite/Ste/Floor/Fl/Building/Bldg/Room/Rm/# suffixes, preserves partial tokens, and never overwrites a conflicting Line 2. Provider-neutral confirmation models distinguish material building edits from Line 2-only changes. MapKit autocomplete now publishes up to five direct localized candidates, retains compatible results while the next query loads, performs one search only after selection, and supports Apple manual geocoding without forced translation.
+Risks: Current Request/Profile forms still use their existing presentation and persistence contracts; the reusable editor/confirmation surface belongs to Q-106 and coordinate persistence begins only after Q-107/Q-108. No migration or remote write occurred in T-292.
+Next: Use T-293 to adopt Q-106 Shared editor and confirmation UI; Q-104 remains deferred.
+```
+
+```text
+Date: 2026-07-11
 Task: T-291 - Apple Maps address system design and execution plan.
 Files changed: Authoritative R-040 Apple Maps/PostGIS plan; roadmap and Q-105...Q-112 queue; task/data-flow/feature/decision indexes; memory closeout.
 Checks: Current iOS/Supabase location-flow inspection; read-only remote PostGIS/profile-count evidence; Apple Maps and Supabase PostGIS primary documentation; plan placeholder/contradiction self-review; local Markdown links; `git diff --check`; context hygiene; preflight.
 Result: Adopted one reusable Address Line 1/Line 2 editor for Customer Profile, Groomer Profile, and Customer Request. Complete misplaced Unit/Apt suffixes auto-move unless an occupied Line 2 requires user choice. MapKit candidates display directly, only selected/manual addresses resolve, Place ID is optional, and complete coordinates plus explicit user confirmation are mandatory. Private PostGIS points make Customer travel radius or Groomer service radius authoritative; localized text becomes display-only after controlled backfill and strict cutover. Q-105 through Q-112 provide the dependency-ordered execution path.
 Risks: Apple confirmation is not postal-deliverability validation. PostGIS is available but not remotely enabled; migrations, backfill, remote TestOps, and fallback removal require their own explicit authorization/evidence. Current app/schema behavior is unchanged.
-Next: Use T-292 to adopt Q-105 Shared address domain and parser; Q-104 remains deferred.
 ```
 
 ```text

@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-11
 - Updated by: Codex
-- Latest completed task: T-291 Apple Maps address system design and execution plan.
+- Latest completed task: T-292 Shared Apple Maps address domain and parser.
 - Current task: none; T-157 APNs remains externally blocked and Q-104 Dynamic Type/Accessibility remains user-deferred.
-- Next task ID: use T-292 for the next user-selected task. Q-105 is the first approved R-040 package; Q-104 remains deferred until the user restores its Dynamic Type/Accessibility scope.
+- Next task ID: use T-293 for the next user-selected task. Q-106 is the first dependency-satisfied R-040 package; Q-104 remains deferred until the user restores its Dynamic Type/Accessibility scope.
 
 ## Fast Path
 
@@ -77,6 +77,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - T-289 removes the fake typed-text fallback from shared address search. A debounced en_US geocoder now publishes truthful street/city/state/ZIP candidates, localized Han-script completer rows are excluded, and candidate selection uses the already-resolved address while preserving unit suffixes.
 - T-290 replaces T-289's single whole-query geocode with Apple's completion-driven autocomplete flow: MapKit supplies globally ranked address completions without a custom region bias, the leading completions resolve concurrently and retain MapKit order, and en_US reverse geocoding produces up to five truthful English street/city/state/ZIP rows. Unit suffixes remain selection-only.
 - T-291 approves R-040 in `docs/06_tasks/APPLE_MAPS_ADDRESS_SYSTEM_PLAN.md`: one shared Apple Maps Address Line 1/Line 2 editor and confirmation flow, optional Place ID with mandatory coordinates, private PostGIS location metadata, direction-correct Customer/Groomer radii, controlled legacy backfill, and strict coordinate cutover through Q-105...Q-112. No implementation or remote state changed.
+- T-292 completes Q-105 with provider-neutral address values, complete secondary-address extraction/conflict rules, material-edit confirmation invalidation, direct localized MapKit candidates, compatible-query retention, and selected/manual Apple resolution. Profile/Request UI and persistence remain unchanged until later R-040 packages.
 - T-259 makes one `T-###` per fresh session the default, reserves full iOS tests and batched visual evidence for integration/high-risk gates, and requires clean task or checkpoint commits at session boundaries.
 - T-260 adopts UI-R1 through UI-R8 and A11Y-R1 through A11Y-R10 as the active design contract, including approved light-palette contrast pairs and a per-slice accessibility Definition of Done. Token and primitive implementation remains a separate follow-up code task; Q-104 is unchanged.
 - T-244 normalizes the rotated Worklog EOF to one newline.
