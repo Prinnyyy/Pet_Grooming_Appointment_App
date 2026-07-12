@@ -16,14 +16,23 @@ Source: T-202 adopted root review input `../../V1.0_RELEASE_TASK_PLAN.md`; that 
 - Q-01...Q-43 are complete and mapped in `ROADMAP.md`.
 - T-243 approved the Beckon identity contract in `BECKON_BRAND_MIGRATION.md`; Q-94/T-246, Q-95/T-247, and Q-96/T-248 are complete.
 - T-249 approved `../08_design/GROOMER_UI_REDESIGN.md`; T-250 completed Q-97, T-252 completed Q-98, T-253 completed Q-99, T-254 completed Q-100, T-255 completed Q-101, T-256 completed Q-102, T-257 completed Q-103, and T-258 completed default-text/selector integration verification. Q-104 retains only user-deferred Dynamic Type and Accessibility work; it has no backend or remote writes.
+- T-291 approved `APPLE_MAPS_ADDRESS_SYSTEM_PLAN.md`; Q-105 through Q-112 implement the shared Apple Maps editor, private PostGIS location contract, feature integrations, controlled backfill, and strict coordinate cutover.
 
 ## Queue
 
 | Order | Roadmap | Package | Scope / Exit |
 |---|---|---|---|
+| Q-105 | R-040 | Shared address domain and parser | Provider-neutral address state, complete secondary-unit extraction/conflict rules, direct MapKit candidates, selected-only resolution, stable async suggestion retention, and focused tests; no backend write. |
+| Q-106 | R-040 | Shared editor and confirmation UI | One reusable Address Line 1/Line 2 editor, MapKit dropdown, auto-move notice, conflict state, status row, entered-vs-suggested confirmation, and stable selectors. |
+| Q-107 | R-040 | PostGIS/private location migration preparation | Append-only PostGIS/private-location/versioned-RPC/radius-matching migration and rollback-only SQL tests; stop before remote application. |
+| Q-108 | R-040 | Authorized remote address schema application | Apply only Q-107 after fresh authorization; verify privileges, both radius directions, multilingual-city invariance, migration history, and advisors; no backfill. |
+| Q-109 | R-040 | Customer and Groomer Profile integration | Reuse the shared editor, atomically save confirmed display/private location data, preserve cache behavior, and expose confirmed profile address autofill. |
+| Q-110 | R-040 | Customer Request integration | Require confirmation before Time & Location advances, publish through versioned RPC, snapshot Line 2, retain safe republish behavior, and verify radius matching. |
+| Q-111 | R-040 | Controlled legacy address backfill | Dry-run-default MapKit tool, explicit write gate, ambiguous-address review, authorized profile/request backfill, zero-gap verification, and radius Matching TestOps. |
+| Q-112 | R-040 | Strict coordinate cutover and integration gate | Remove city/state fallback only after zero active gaps; run full iOS/Supabase/TestOps/privacy gates and prove one shared address implementation. |
 | Q-104 | R-039 | Groomer Dynamic Type and Accessibility integration gate | Complete the remaining Dynamic Type and Accessibility state/interaction audit after the user restores this deferred scope; rerun affected selector and full iOS regression gates. |
 
-Q-104 is the first dependency-satisfied product package and receives the next available task ID only when the user restores its deferred scope.
+Q-105 is the first dependency-satisfied product package and receives the next available task ID. Q-107 prepares remote work locally; Q-108, Q-111 execution, remote TestOps, and Q-112 fallback removal require their stated fresh authorizations/evidence.
 
 ## Completed Groomer Package
 

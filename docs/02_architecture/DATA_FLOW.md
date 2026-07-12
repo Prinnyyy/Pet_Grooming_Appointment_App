@@ -83,3 +83,19 @@ Allowed local state:
 - Preview/test fixtures outside production execution.
 
 Server-owned profiles, pets after synchronization, requests, offers, bookings, messages, and reviews must be refreshed from the backend rather than maintained as parallel local fact stores.
+
+## Planned Address Confirmation Flow
+
+R-040's authoritative contract lives in `../06_tasks/APPLE_MAPS_ADDRESS_SYSTEM_PLAN.md`.
+
+```text
+Address Line 1 / Address Line 2 input
+-> shared field-semantics parser
+-> Apple Maps autocomplete or one manual geocode
+-> entered-versus-suggested user confirmation
+-> owner-checked persistence of display fields plus private coordinate metadata
+-> PostGIS distance calculation
+-> Customer travel radius or Groomer service radius eligibility
+```
+
+Localized address text is display data. After strict cutover, coordinates and the controlling radius are the only location-matching authority. Apple Maps confirmation must not be represented as postal deliverability validation.

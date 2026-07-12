@@ -2,12 +2,21 @@
 
 ```text
 Date: 2026-07-11
+Task: T-291 - Apple Maps address system design and execution plan.
+Files changed: Authoritative R-040 Apple Maps/PostGIS plan; roadmap and Q-105...Q-112 queue; task/data-flow/feature/decision indexes; memory closeout.
+Checks: Current iOS/Supabase location-flow inspection; read-only remote PostGIS/profile-count evidence; Apple Maps and Supabase PostGIS primary documentation; plan placeholder/contradiction self-review; local Markdown links; `git diff --check`; context hygiene; preflight.
+Result: Adopted one reusable Address Line 1/Line 2 editor for Customer Profile, Groomer Profile, and Customer Request. Complete misplaced Unit/Apt suffixes auto-move unless an occupied Line 2 requires user choice. MapKit candidates display directly, only selected/manual addresses resolve, Place ID is optional, and complete coordinates plus explicit user confirmation are mandatory. Private PostGIS points make Customer travel radius or Groomer service radius authoritative; localized text becomes display-only after controlled backfill and strict cutover. Q-105 through Q-112 provide the dependency-ordered execution path.
+Risks: Apple confirmation is not postal-deliverability validation. PostGIS is available but not remotely enabled; migrations, backfill, remote TestOps, and fallback removal require their own explicit authorization/evidence. Current app/schema behavior is unchanged.
+Next: Use T-292 to adopt Q-105 Shared address domain and parser; Q-104 remains deferred.
+```
+
+```text
+Date: 2026-07-11
 Task: T-290 - Completion-driven English address autocomplete.
 Files changed: Shared MapKit completion-resolution pipeline; Customer Request five-row suggestion presentation and focused tests; memory closeout.
 Checks: Forced RED/green Customer Requests suite for stable concurrent completion ordering and localized-candidate exclusion; live unbounded MapKit probe resolving five `760 S Harbor Blvd` completions to en_US street/city/state/ZIP; `./scripts/ios-build.sh`; `git diff --check`; context hygiene.
 Result: Removed T-289's whole-query forward geocode, which naturally returned one best address rather than autocomplete. The shared search now follows Apple's documented `MKLocalSearchCompleter` -> `MKLocalSearch.Request(completion:)` flow, resolves the leading completions concurrently, preserves MapKit relevance order, deduplicates real addresses, and displays up to five en_US reverse-geocoded candidates. No city/county/market region bias is configured. Request, Customer Profile, and Groomer Profile retain the same shared search service; UNIT/APT suffixes are excluded from search and restored only after selection.
 Risks: MapKit search/reverse geocoding remains network-dependent. Failed or non-English-resolved candidates are omitted rather than fabricated; no third-party address provider or API key was added. No backend, persistence, or remote state changed.
-Next: Use T-291 for the next user-selected task; Q-104 remains deferred.
 ```
 
 ```text

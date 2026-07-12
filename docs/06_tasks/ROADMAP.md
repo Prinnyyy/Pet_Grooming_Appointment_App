@@ -67,6 +67,12 @@ T-249 adopts R-039 from the user-approved visual direction in `../08_design/GROO
 
 Q-97/T-250, Q-98/T-252, Q-99/T-253, Q-100/T-254, Q-101/T-255, Q-102/T-256, Q-103/T-257, and default-text/selector verification T-258 are complete. Q-104 remains only for user-deferred Dynamic Type and Accessibility integration. These packages preserve existing repositories, marketplace state transitions, authenticated images, feedback, pagination, accessibility, and TestOps behavior. No Supabase migration, remote write, dependency, or deferred product feature is included.
 
+## Apple Maps Address And Distance Matching
+
+T-291 adopts R-040 through `APPLE_MAPS_ADDRESS_SYSTEM_PLAN.md`. The direction uses one shared Apple Maps editor/confirmation flow for Customer Profile, Groomer Profile, and Customer Request; separates Unit/Apt into Address Line 2; treats coordinates rather than localized city text as matching authority; and uses private PostGIS points plus the controlling Customer/Groomer radius. Apple results are confirmed service locations, not postal-deliverability claims.
+
+Q-105 through Q-112 split shared iOS state/UI, migration preparation/application, profile/request integration, controlled backfill, and strict coordinate cutover. PostGIS enablement, migrations, backfill, remote TestOps, and fallback removal retain separate explicit authorization gates.
+
 ## Milestones
 
 | Milestone | Goal | Status | Exit Signal |
@@ -84,6 +90,7 @@ Q-97/T-250, Q-98/T-252, Q-99/T-253, Q-100/T-254, Q-101/T-255, Q-102/T-256, Q-103
 | M10 UI verification and list scale | Complete no-screenshot lifecycle automation and visible pagination. | Q-38 through Q-42 complete T-230/T-236/T-237/T-238/T-239. | Supported lists advance beyond page one and the seeded dual-role UI lifecycle passes end to end. |
 | M11 Beckon identity | Replace the legacy brand/project identity across active local and remote surfaces. | Complete Q-94/T-246, Q-95/T-247, and Q-96/T-248. | Approved Beckon identity is consistent in app/source/workflow/remote state and full regression evidence passes. |
 | M12 Groomer workspace | Make Groomer operationally clear while preserving the shared Beckon product language. | Design T-249, Q-97/T-250, Q-98/T-252, Q-99/T-253, Q-100/T-254, Q-101/T-255, Q-102/T-256, Q-103/T-257, and default-text/selector verification T-258 complete; Q-104 Dynamic Type/Accessibility is user-deferred. | Five direct tabs, approved screen hierarchy, focused editors, selector-based regressions, and compact/large default-text viewport QA pass; Dynamic Type/Accessibility remains deferred. |
+| M13 Address integrity and geospatial matching | Confirm Apple Maps service addresses and make PostGIS distance/radii the location authority. | Design T-291 complete; Q-105 through Q-112 planned. | One shared editor, coordinate-backed active profiles/requests, private geo data, both radius directions verified, and no city-text fallback remain. |
 | D Apple external blockers | Track APNs and release work that requires paid Apple capabilities. | Excluded Q-90 and Q-91 remain blocked. | Only starts after credentials and explicit authorization exist. |
 | E Non-Apple service blockers | Track production Auth services that require external credentials or a plan decision. | Q-92 complete T-242; Q-93 blocked. | Supabase Pro capability plus explicit Auth authorization exists. |
 
@@ -130,7 +137,8 @@ Q-97/T-250, Q-98/T-252, Q-99/T-253, Q-100/T-254, Q-101/T-255, Q-102/T-256, Q-103
 | R-037 | M4 | Foreground refresh concurrency test determinism | Complete Q-43/T-241: controlled first refresh, 20 repeated passes, full suite pass |
 | R-038 | M11 | Complete Beckon brand and technical identity migration | Complete: design T-243, local Q-94/T-246, workflow Q-95/T-247, and remote Q-96/T-248 |
 | R-039 | M12 | Role-adaptive Groomer workspace redesign | Design T-249 plus Q-97/T-250 through Q-103/T-257 and default-text/selector verification T-258 complete; Q-104 Dynamic Type/Accessibility deferred |
+| R-040 | M13 | Apple Maps address confirmation and PostGIS distance matching | Design T-291 complete; execution packages Q-105 through Q-112 planned in `APPLE_MAPS_ADDRESS_SYSTEM_PLAN.md` |
 
 Completed mapping: T-152/T-154/T-188...T-193/T-217 M1 auth/UI foundations; T-153/T-155/T-156/T-162/T-194 M2; T-157 M2 blocked for dispatch; T-160/T-161/T-195/T-197...T-199/T-232/T-233 M3; T-200/T-206/T-208/T-213/T-214/T-216/T-220 M4 focused tests and backend contract negatives; T-201 M5 local dry run; T-203...T-205/T-209/T-210/T-231 M6 groomer notification, foreground refresh, local reminders, unread badges, and remote notification parity; T-211/T-212/T-214...T-217/T-219/T-220 M7 request/profile splits, decode/cache tolerance, republish hardening, state-machine edge tests, auth callback implementation, list pagination hardening, and backend negative contracts; T-221/T-222 M8 dual-role evidence and readiness rehearsal; T-230/T-236/T-237/T-238/T-239 M10 visible pagination and UI lifecycle verification; T-249/T-250/T-252...T-258 M12 design, navigation/Home, Requests/Offers, Schedule, Messages/Notifications, Account/Edit Profile, Services/Availability, Fit/Evidence/Portfolio, and default-text/selector integration verification; T-163...T-179/T-207/T-218 G0.
 
-Execution sequencing: use `ROADMAP_EXECUTION_QUEUE.md` to start Q-104 with the next available task ID only when the user restores its Dynamic Type/Accessibility scope. Q-90/Q-91 remain excluded, Q-92 is complete, and Q-93 remains externally blocked.
+Execution sequencing: use `ROADMAP_EXECUTION_QUEUE.md` to start Q-105 with the next available task ID. Q-104 remains deferred until the user restores its Dynamic Type/Accessibility scope; Q-90/Q-91 remain excluded, Q-92 is complete, and Q-93 remains externally blocked.
