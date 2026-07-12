@@ -62,7 +62,7 @@ struct BeckonAddressEditorTests {
             suggestions: [candidate],
             resolvedByID: [candidate.id: resolved]
         )
-        var input = Self.input(line1: "770 S Harbor Blvd")
+        var input = Self.input(line1: "770")
         input.line2 = "Unit 2410"
         let state = BeckonAddressEditorState(input: input, provider: provider)
 
@@ -78,6 +78,7 @@ struct BeckonAddressEditorTests {
         await state.prepareConfirmation()
 
         #expect(state.isReviewPresented)
+        #expect(state.confirmation?.entered == resolved.suggested)
 
         state.useSuggestedAddress(now: Date(timeIntervalSince1970: 10))
 

@@ -197,7 +197,11 @@ final class BeckonAddressEditorState {
             status = .confirmed
             return
         }
-        if confirmation != nil {
+        if let confirmation {
+            self.confirmation = BeckonAddressConfirmationPresentation(
+                entered: input,
+                resolved: confirmation.resolved
+            )
             isReviewPresented = true
             status = .needsReview
             return

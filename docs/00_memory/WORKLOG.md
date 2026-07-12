@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-07-12
+Task: T-314 - Customer Request confirmation entered-address snapshot fix.
+Files changed: Shared address editor confirmation preparation; focused regression test; task/memory closeout.
+Checks: Focused TDD RED then GREEN; full iOS tests; Simulator build/run and live `770` autocomplete selection/Continue confirmation; iOS build; diff/context/preflight.
+Result: Selecting an Apple Maps candidate still prefills without presenting review. Continue now rebuilds the confirmation presentation from the current full form input while preserving the resolved candidate metadata, so Entered Address shows the complete selected address instead of the original search fragment.
+Risks: Live evidence used the first Apple Maps result and did not accept/publish it, avoiding remote state. No provider, repository, backend, persistence, or publication behavior changed.
+Next: Use T-315 for explicitly selected work; Q-104 remains deferred.
+```
+
+```text
+Date: 2026-07-12
 Task: T-313 - Customer Request address and publish flow fixes.
 Files changed: Shared address editor state/overlay; Request Wizard validation, confirmation, and feedback routing; v2 Request RPC payload encoding; focused tests and memory closeout.
 Checks: TDD compile RED then GREEN; full iOS tests; Simulator build/run; live empty-State, autocomplete overlay, candidate prefill, Continue-confirm, and post-confirm advance inspection; repository/strict UI audit; diff/context/preflight.
@@ -66,68 +76,12 @@ Result: DesignSystem now owns focused page, section, grouped, selection, setting
 Risks: Components are presentation-only and gain production usage in Q-116...Q-119. The catalog is DEBUG-only with static content and no repository/navigation route.
 ```
 
-```text
-Date: 2026-07-12
-Task: T-306 - Periodic meta-review.
-Files changed: Current State, Task Ledger, and Worklog closeout only.
-Checks: Clean branch/origin after T-305; active task/queue/index facts; intentional root Markdown ignore behavior; active conflict scan; 67-file migration mirror and Supabase contract; governance tests 10/10; diff/context/preflight.
-Result: Active sources are consistent. Q-113/Q-114 are complete and Q-115 is next; root legacy plans remain intentionally ignored; backend and migration facts remain current. No workflow rule, product, app, backend, or dependency changed.
-Risks: Q-104 remains user-deferred and T-157 remains Apple-credential blocked. The 294-entry UI baseline remains migration debt, not approval.
-```
 
-```text
-Date: 2026-07-12
-Task: T-305 - Q-114 semantic tokens and contrast.
-Files changed: DesignTokens semantic typography/layout/metrics/colors/elevation aliases; status-chip foregrounds; token/contrast tests; design, roadmap, task, and memory closeout.
-Checks: Forced compile RED for missing semantic members; corrected test-only Swift 6 isolation/import boundary; full iOS tests; iOS build; UI consistency audit; diff/context/preflight.
-Result: Q-115 through Q-119 now have stable page/section/surface/row/field/action roles and control metrics. Status body colors meet 4.5:1 on surface, notification red has one hex source, and duplicate card elevations are compatibility aliases of one canonical style.
-Risks: Existing Feature usage still relies on compatibility typography/elevation names and remains baselined until the migration packages. Q-115 owns shared components; no feature screen migration occurred here.
-```
 
-```text
-Date: 2026-07-12
-Task: T-304 - Q-113 UI source audit and debt ratchet.
-Files changed: Dependency-free Swift lexical audit core/CLI, 294-finding baseline, focused and hermetic preflight tests, preflight gate, UI governance/design docs, and roadmap/task/memory closeout.
-Checks: TDD RED for missing core and duplicate-stack rule; audit tests 9/9; combined audit/preflight tests 10/10; baseline scope/count review; repository audit check; full preflight; diff/context checks.
-Result: All tracked Feature Swift code now blocks new deterministic visual debt and stale baseline entries. Migrated files use a zero-error strict gate; guarded initialize/prune/relocate commands and one exact UI101 media-frame exception prevent silent debt expansion.
-Risks: The scanner is deliberately narrower than the Swift compiler and reports warnings/review candidates for human interpretation. The 294-entry baseline is legacy debt, not approval of those patterns; Q-114 through Q-120 reduce the first Customer slice.
-```
 
-```text
-Date: 2026-07-12
-Task: T-303 - R-041 UI consistency implementation plan.
-Files changed: Exact R-041 Q-113...Q-120 implementation plan plus spec, Roadmap, execution queue, Feature Index, Task Ledger, Current State, and Worklog routing/closeout.
-Checks: Re-read approved spec and targeted Swift/DesignSystem/tests/scripts; mapped exact files and interfaces; self-reviewed spec coverage, placeholders, type names, paths, package dependencies, baseline relocation, and validation commands; docs links; diff/context/preflight.
-Result: Q-113 through Q-120 now sequence the source-audit ratchet, semantic tokens, shared components, Customer Home/Requests/Wizard/Account migrations, and first-slice integration gate. Each package is one fresh task and preserves business/backend/navigation behavior.
-Risks: The plan intentionally keeps non-slice legacy debt baselined. Its guarded relocate command must reject any mechanically moved finding whose expression hash changes. Groomer Q-104 remains deferred.
-```
 
-```text
-Date: 2026-07-12
-Task: T-302 - Preflight test fixture completeness.
-Files changed: The preflight Node test fixture plus Task Ledger, Current State, and Worklog closeout.
-Checks: Reproduced the focused failure; traced T-246's added identity step against the older T-173 fixture; focused RED/GREEN test; docs tests; full repository preflight; diff/context checks.
-Result: The temporary fixture now initializes Git, copies the real preflight and Beckon identity scripts, and asserts identity, migration, and function steps all execute. Production preflight behavior is unchanged.
-Risks: None identified. The fixture intentionally models only dependencies required by the current preflight entrypoint.
-```
 
-```text
-Date: 2026-07-12
-Task: T-301 - UI consistency governance design.
-Files changed: Repository-adapted R-041 design specification plus Roadmap, Feature Index, Decision Log, Task Ledger, Current State, and Worklog routing/closeout.
-Checks: Full targeted audit of existing DesignTokens/primitives, their Feature usage, four Customer reference surfaces, representative Groomer/Bookings patterns, source-level visual debt, tests, scripts, and preflight integration points; spec self-review; docs links; diff/context/preflight.
-Result: Approved one in-place DesignSystem evolution, reuse-backed semantic components, a tested dependency-free all-app source audit with a legacy-debt ratchet and explicit exceptions, and a first migration slice covering Customer Home, Requests, Request creation, and Account. No Swift, backend, dependency, navigation, or product-flow change occurred.
-Risks: The exact scanner grammar, baseline format, component APIs, and file-level package boundaries still require implementation planning. Customer accessibility work does not reopen the separately deferred Groomer Q-104 gate.
-```
 
-```text
-Date: 2026-07-11
-Task: T-300 - Strict coordinate cutover and integration gate.
-Files changed: Append-only strict-coordinate migration and rollback validation; TestOps lifecycle/baseline v2 coordinate publication and cleanup contracts; unused feature MapKit imports; backend, TestOps, product-flow, roadmap, queue, task, and memory closeout.
-Checks: Forced RED then strict migration 4/4 and focused TestOps RED/GREEN; TestOps unit 39/39; all migration contracts 68/68; linked zero-gap/orphan precheck and only-pending dry-run; remote push, strict rollback validation, aligned history/up-to-date dry-run, security/performance advisors; lifecycle 5/5, baseline 8/8, radius 6/6 with exact private-location cleanup; shared-editor/MapKit/copy/privacy audit; complete iOS tests/build; Supabase/diff/context/preflight.
-Result: Completed Q-112 and R-040. Missing Request or Groomer coordinates are always ineligible regardless of matching city/state text. The pre-coordinate Request RPC has no client execute grant. Customer/Groomer Profile and Customer Request share one editor and one MapKit provider; exact coordinates remain private. Final active Groomer gaps, active Request gaps, private-location orphans, and tagged TestOps Requests are zero.
-Risks: The existing Customer Profile ZIP-conflict exception remains a non-matching-authority profile until the user corrects it; coordinate confirmation is service-location confirmation, not postal deliverability validation. Supabase Free still reports the existing leaked-password-protection warning.
-```
 
 
 
