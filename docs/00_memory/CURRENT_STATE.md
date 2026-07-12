@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-12
 - Updated by: Codex
-- Latest completed task: T-305 Q-114 semantic tokens and contrast.
+- Latest completed task: T-306 periodic meta-review.
 - Current task: none; T-157 APNs remains externally blocked and Q-104 Dynamic Type/Accessibility remains user-deferred.
-- Next task ID: use T-306 for the required periodic meta-review; after it closes, use T-307 for R-041 Q-115 shared semantic components and catalog. Groomer Q-104 remains deferred.
+- Next task ID: use T-307 for R-041 Q-115 shared semantic components and catalog. Groomer Q-104 remains deferred.
 
 ## Fast Path
 
@@ -32,6 +32,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Validation Baseline
 
+- T-306 periodic meta-review confirms branch/task/queue/index consistency, intentional root Markdown ignore behavior, zero active conflict markers, the 67-file migration mirror, current backend facts, and UI/preflight governance tests. No product, app, backend, dependency, or workflow rule changed.
 - T-305 completes Q-114: DesignTokens now owns business-semantic typography, layout, metrics, AA status text/unread colors, and one canonical soft-card elevation with compatibility aliases. Contract and contrast tests pass; status chips use semantic AA foregrounds. No backend, navigation, or business behavior changed.
 - T-304 completes Q-113: `scripts/ui-consistency-audit.mjs` lexes tracked Feature Swift code, enforces deterministic/high-risk/review rules, and ratchets 294 legacy findings without accepting new errors or stale entries. Migrated paths use `strict`; initialize/prune/relocate are guarded; preflight and its hermetic fixture run the gate. No Swift app, backend, dependency, navigation, or product behavior changed.
 - T-303 maps R-041 to Q-113 through Q-120 in `docs/superpowers/plans/2026-07-12-ui-consistency-governance-implementation.md`; it changed no Swift, scripts, backend, dependency, navigation, or product flow.
@@ -118,7 +119,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - Default context model is L0-L4 in `CONTEXT_AND_RECOVERY.md`.
 - Startup reads stay minimal: `AGENTS.md`, then targeted current-state/task-ledger sections only when needed.
 - Periodic documentation-governance reviews use `docs/06_tasks/META_REVIEW_TEMPLATE.md` every 10 completed tasks or weekly.
-- Last meta-review: T-295 on 2026-07-11.
+- Last meta-review: T-306 on 2026-07-12.
 - V1.0 ideal-operation Q-16...Q-43, Auth package Q-92, and R-038/Q-94...Q-96 are complete. R-039 design T-249 plus Q-97/T-250, Q-98/T-252, Q-99/T-253, Q-100/T-254, Q-101/T-255, Q-102/T-256, Q-103/T-257, and non-Accessibility integration verification T-258 are complete; Q-104 Dynamic Type/Accessibility is user-deferred.
 - Changes to `AGENTS.md`, `CLAUDE.md`, or `docs/05_workflow/**` must be standalone numbered tasks with a decision-log entry and context hygiene.
 - T-180 records standing user approval for task-completion Git commit and push. This approval is limited to current-task changes after validation passes; T-186 requires stopping without auto pull/rebase/merge/reset/force-push if the push fails or is rejected.

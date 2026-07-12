@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-07-12
+Task: T-306 - Periodic meta-review.
+Files changed: Current State, Task Ledger, and Worklog closeout only.
+Checks: Clean branch/origin after T-305; active task/queue/index facts; intentional root Markdown ignore behavior; active conflict scan; 67-file migration mirror and Supabase contract; governance tests 10/10; diff/context/preflight.
+Result: Active sources are consistent. Q-113/Q-114 are complete and Q-115 is next; root legacy plans remain intentionally ignored; backend and migration facts remain current. No workflow rule, product, app, backend, or dependency changed.
+Risks: Q-104 remains user-deferred and T-157 remains Apple-credential blocked. The 294-entry UI baseline remains migration debt, not approval.
+Next: Use T-307 for Q-115 shared semantic components and catalog.
+```
+
+```text
+Date: 2026-07-12
 Task: T-305 - Q-114 semantic tokens and contrast.
 Files changed: DesignTokens semantic typography/layout/metrics/colors/elevation aliases; status-chip foregrounds; token/contrast tests; design, roadmap, task, and memory closeout.
 Checks: Forced compile RED for missing semantic members; corrected test-only Swift 6 isolation/import boundary; full iOS tests; iOS build; UI consistency audit; diff/context/preflight.
