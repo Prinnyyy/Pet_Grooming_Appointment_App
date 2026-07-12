@@ -55,12 +55,25 @@ function createPreflightFixture() {
     "preflight.sh",
     "beckon-identity-check.sh",
     "beckon-identity-check.mjs",
+    "ui-consistency-audit-core.mjs",
+    "ui-consistency-audit.mjs",
   ]) {
     copyFileSync(
       path.join(projectRoot, "scripts", scriptName),
       path.join(root, "scripts", scriptName)
     );
   }
+  writeFile(root, "scripts/ui-consistency-baseline.json", `${JSON.stringify({
+    version: 1,
+    scope: "ios/Beckon/Beckon/Features",
+    lastChange: { reason: "fixture" },
+    findings: [],
+  }, null, 2)}\n`);
+  writeFile(root, "ios/Beckon/Beckon/Features/FixtureView.swift", [
+    "import SwiftUI",
+    "struct FixtureView: View { var body: some View { Text(\"Fixture\") } }",
+    "",
+  ].join("\n"));
 
   const preflightPath = path.join(root, "scripts/preflight.sh");
   chmodSync(preflightPath, 0o755);
@@ -85,6 +98,7 @@ test("preflight runs migration and function Node tests when present", () => {
 
   assert.equal(result.status, 0, result.stderr);
   assert.match(output, /Beckon identity check passed/);
+  assert.match(output, /UI consistency audit passed/);
   assert.match(output, /fixture migration test ran/);
   assert.match(output, /fixture function test ran/);
 });

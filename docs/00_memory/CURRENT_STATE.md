@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-12
 - Updated by: Codex
-- Latest completed task: T-303 R-041 UI consistency implementation plan.
+- Latest completed task: T-304 Q-113 UI source audit and debt ratchet.
 - Current task: none; T-157 APNs remains externally blocked and Q-104 Dynamic Type/Accessibility remains user-deferred.
-- Next task ID: use T-304 for R-041 Q-113 UI source audit and debt ratchet; Groomer Q-104 remains deferred.
+- Next task ID: use T-305 for R-041 Q-114 semantic tokens and contrast; Groomer Q-104 remains deferred.
 
 ## Fast Path
 
@@ -32,7 +32,8 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Validation Baseline
 
-- T-303 maps R-041 to Q-113 through Q-120 in `docs/superpowers/plans/2026-07-12-ui-consistency-governance-implementation.md`. Q-113 is next; no Swift, scripts, backend, dependency, navigation, or product-flow change occurred.
+- T-304 completes Q-113: `scripts/ui-consistency-audit.mjs` lexes tracked Feature Swift code, enforces deterministic/high-risk/review rules, and ratchets 294 legacy findings without accepting new errors or stale entries. Migrated paths use `strict`; initialize/prune/relocate are guarded; preflight and its hermetic fixture run the gate. No Swift app, backend, dependency, navigation, or product behavior changed.
+- T-303 maps R-041 to Q-113 through Q-120 in `docs/superpowers/plans/2026-07-12-ui-consistency-governance-implementation.md`; it changed no Swift, scripts, backend, dependency, navigation, or product flow.
 - T-302 restores the hermetic preflight test: its temporary Git fixture copies and executes the real preflight and Beckon identity scripts before proving migration/function discovery. Production preflight is unchanged.
 - T-301 approves R-041 in `docs/superpowers/specs/2026-07-12-ui-consistency-governance-design.md`: evolve the existing DesignSystem in place, baseline all-app visual debt, block new violations, and first migrate Customer Home, Requests, Request creation, and Account. No Swift, backend, dependency, navigation, or product-flow change occurred.
 

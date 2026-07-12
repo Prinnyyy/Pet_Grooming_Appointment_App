@@ -8,6 +8,8 @@ Full pre-slim text, including T-023 through T-035 task history and detailed comp
 
 Use this file when changing visual style, shared SwiftUI primitives, tokens, or screenshot-driven UI. For detailed prototype audit notes, read `../08_design/UI_IMPLEMENTATION_NOTES.md` first and open frozen archives only with a specific comparison or recovery reason.
 
+Executable Feature-code rules, audit commands, baseline lifecycle, severities, and the narrow exception contract live in `../04_ios/UI_CODE_GOVERNANCE.md`.
+
 Do not use design work to change product flow, role routing, repository boundaries, Supabase contracts, RLS/RPC behavior, Storage policy, or deferred feature scope.
 
 ## Visual Direction

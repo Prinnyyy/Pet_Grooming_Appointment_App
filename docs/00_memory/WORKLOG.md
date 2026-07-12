@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-07-12
+Task: T-304 - Q-113 UI source audit and debt ratchet.
+Files changed: Dependency-free Swift lexical audit core/CLI, 294-finding baseline, focused and hermetic preflight tests, preflight gate, UI governance/design docs, and roadmap/task/memory closeout.
+Checks: TDD RED for missing core and duplicate-stack rule; audit tests 9/9; combined audit/preflight tests 10/10; baseline scope/count review; repository audit check; full preflight; diff/context checks.
+Result: All tracked Feature Swift code now blocks new deterministic visual debt and stale baseline entries. Migrated files use a zero-error strict gate; guarded initialize/prune/relocate commands and one exact UI101 media-frame exception prevent silent debt expansion.
+Risks: The scanner is deliberately narrower than the Swift compiler and reports warnings/review candidates for human interpretation. The 294-entry baseline is legacy debt, not approval of those patterns; Q-114 through Q-120 reduce the first Customer slice.
+Next: Use T-305 for Q-114 semantic tokens and contrast.
+```
+
+```text
+Date: 2026-07-12
 Task: T-303 - R-041 UI consistency implementation plan.
 Files changed: Exact R-041 Q-113...Q-120 implementation plan plus spec, Roadmap, execution queue, Feature Index, Task Ledger, Current State, and Worklog routing/closeout.
 Checks: Re-read approved spec and targeted Swift/DesignSystem/tests/scripts; mapped exact files and interfaces; self-reviewed spec coverage, placeholders, type names, paths, package dependencies, baseline relocation, and validation commands; docs links; diff/context/preflight.
