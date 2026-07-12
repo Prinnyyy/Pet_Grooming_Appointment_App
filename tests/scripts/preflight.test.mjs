@@ -1,12 +1,17 @@
 import assert from "node:assert/strict";
-import { chmodSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  copyFileSync,
+  mkdirSync,
+  mkdtempSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import test from "node:test";
 
 const projectRoot = process.cwd();
-const preflightPath = path.join(projectRoot, "scripts/preflight.sh");
 
 function writeFile(root, filePath, text = "# Placeholder\n") {
   const fullPath = path.join(root, filePath);
@@ -16,6 +21,12 @@ function writeFile(root, filePath, text = "# Placeholder\n") {
 
 function createPreflightFixture() {
   const root = mkdtempSync(path.join(tmpdir(), "preflight-fixture-"));
+  const gitInit = spawnSync("git", ["init", "--quiet"], {
+    cwd: root,
+    encoding: "utf8",
+  });
+  assert.equal(gitInit.status, 0, gitInit.stderr);
+
   for (const filePath of [
     "AGENTS.md",
     "docs/00_memory/PROJECT_MEMORY.md",
@@ -38,12 +49,27 @@ function createPreflightFixture() {
     "console.log('fixture function test ran');",
     "",
   ].join("\n"));
+
+  mkdirSync(path.join(root, "scripts"), { recursive: true });
+  for (const scriptName of [
+    "preflight.sh",
+    "beckon-identity-check.sh",
+    "beckon-identity-check.mjs",
+  ]) {
+    copyFileSync(
+      path.join(projectRoot, "scripts", scriptName),
+      path.join(root, "scripts", scriptName)
+    );
+  }
+
+  const preflightPath = path.join(root, "scripts/preflight.sh");
   chmodSync(preflightPath, 0o755);
-  return root;
+  chmodSync(path.join(root, "scripts/beckon-identity-check.sh"), 0o755);
+  return { preflightPath, root };
 }
 
 test("preflight runs migration and function Node tests when present", () => {
-  const root = createPreflightFixture();
+  const { preflightPath, root } = createPreflightFixture();
   const env = { ...process.env };
   for (const key of Object.keys(env)) {
     if (key.startsWith("NODE_TEST")) {
@@ -58,6 +84,7 @@ test("preflight runs migration and function Node tests when present", () => {
   const output = `${result.stdout}\n${result.stderr}`;
 
   assert.equal(result.status, 0, result.stderr);
+  assert.match(output, /Beckon identity check passed/);
   assert.match(output, /fixture migration test ran/);
   assert.match(output, /fixture function test ran/);
 });

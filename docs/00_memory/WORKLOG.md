@@ -2,12 +2,21 @@
 
 ```text
 Date: 2026-07-12
+Task: T-302 - Preflight test fixture completeness.
+Files changed: The preflight Node test fixture plus Task Ledger, Current State, and Worklog closeout.
+Checks: Reproduced the focused failure; traced T-246's added identity step against the older T-173 fixture; focused RED/GREEN test; docs tests; full repository preflight; diff/context checks.
+Result: The temporary fixture now initializes Git, copies the real preflight and Beckon identity scripts, and asserts identity, migration, and function steps all execute. Production preflight behavior is unchanged.
+Risks: None identified. The fixture intentionally models only dependencies required by the current preflight entrypoint.
+Next: Use T-303 for the approved R-041 UI consistency implementation plan.
+```
+
+```text
+Date: 2026-07-12
 Task: T-301 - UI consistency governance design.
 Files changed: Repository-adapted R-041 design specification plus Roadmap, Feature Index, Decision Log, Task Ledger, Current State, and Worklog routing/closeout.
 Checks: Full targeted audit of existing DesignTokens/primitives, their Feature usage, four Customer reference surfaces, representative Groomer/Bookings patterns, source-level visual debt, tests, scripts, and preflight integration points; spec self-review; docs links; diff/context/preflight.
 Result: Approved one in-place DesignSystem evolution, reuse-backed semantic components, a tested dependency-free all-app source audit with a legacy-debt ratchet and explicit exceptions, and a first migration slice covering Customer Home, Requests, Request creation, and Account. No Swift, backend, dependency, navigation, or product-flow change occurred.
 Risks: The exact scanner grammar, baseline format, component APIs, and file-level package boundaries still require implementation planning. Customer accessibility work does not reopen the separately deferred Groomer Q-104 gate.
-Next: Use T-302 for the R-041 implementation plan after reviewing the committed design specification.
 ```
 
 ```text

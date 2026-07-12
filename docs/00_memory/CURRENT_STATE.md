@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-12
 - Updated by: Codex
-- Latest completed task: T-301 UI consistency governance design.
+- Latest completed task: T-302 preflight test fixture completeness.
 - Current task: none; T-157 APNs remains externally blocked and Q-104 Dynamic Type/Accessibility remains user-deferred.
-- Next task ID: use T-302 for the next new task. R-041 implementation planning is the approved next UI-consistency step; Groomer Q-104 remains deferred.
+- Next task ID: use T-303 for the R-041 UI consistency implementation plan; Groomer Q-104 remains deferred.
 
 ## Fast Path
 
@@ -32,6 +32,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Validation Baseline
 
+- T-302 restores the hermetic preflight test: its temporary Git fixture copies and executes the real preflight and Beckon identity scripts before proving migration/function discovery. Production preflight is unchanged.
 - T-301 approves R-041 in `docs/superpowers/specs/2026-07-12-ui-consistency-governance-design.md`: evolve the existing DesignSystem in place, baseline all-app visual debt, block new violations, and first migrate Customer Home, Requests, Request creation, and Account. No Swift, backend, dependency, navigation, or product-flow change occurred.
 
 - T-239 authorized UI R11 passed publish/offer/accept/chat/complete/review, Debug 6/6 with zero errors, backend final state, and zero residue; full iOS test/build passed.

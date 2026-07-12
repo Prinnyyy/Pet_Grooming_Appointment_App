@@ -2,7 +2,7 @@
 
 Track only current, blocked, and recent tasks here so Codex does not continue automatically. Older completed rows through T-190 are archived under `docs/09_frozen/task_ledgers/`; active blocked T-157 remains below. Notes should keep conclusions and pointers only; validation detail belongs in `docs/00_memory/WORKLOG.md` or frozen worklogs. Detailed task records T-001 through T-088 and workflow task records remain archived under `docs/09_frozen/task_records_2026-06-26/`.
 
-Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup`; use `T-302` for the next new task.
+Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup`; use `T-303` for the next new task.
 
 Active blocked task: T-157 is waiting on paid Apple Developer Program access before APNs secrets (`APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_TOPIC`, `APNS_PRIVATE_KEY`) and Edge Function deploy.
 
@@ -10,6 +10,7 @@ Active blocked task: T-157 is waiting on paid Apple Developer Program access bef
 
 | ID | Task | Status | Mode | Milestone | Files/Docs | Checks | Notes |
 |---|---|---|---|---|---|---|---|
+| T-302 | Preflight test fixture completeness | completed | Quick | M4 | Hermetic preflight fixture; task/memory closeout | Reproduced RED; focused GREEN; docs tests; full preflight; diff/context | Copies real preflight/identity scripts into a minimal Git fixture and proves identity, migration, and function steps execute. Production preflight is unchanged; R-041 planning moves to T-303. |
 | T-301 | UI consistency governance design | completed | Quick | M14 | Repository UI audit; R-041 design spec; roadmap/feature/decision/memory closeout | Targeted source/design/test/tooling review; spec self-review; docs links; diff/context/preflight | Adopts the existing DesignSystem as the single source, an all-app no-new-debt audit ratchet, and a first migration slice of Customer Home, Requests, Request creation, and Account. No Swift, backend, dependency, or product-flow change. |
 | T-300 | Strict coordinate cutover and integration gate | completed | Deep | M13 | Strict matching migration/rollback validation; coordinate-only TestOps lifecycle/baseline/radius; backend/TestOps/roadmap/memory closeout | RED/GREEN strict/TestOps; migrations 68/68; remote preconditions/push/history/rollback/privacy/advisors; lifecycle 5/5; baseline 8/8; radius 6/6; full iOS tests/build; Supabase/diff/context/preflight | Completes Q-112 and R-040. Missing coordinates are ineligible regardless of address text, the old publication RPC is retired from clients, all address surfaces share one editor/search implementation, and final active gaps/orphans/tagged rows are zero. |
 | T-299 | Controlled legacy Apple Maps address backfill | completed | Deep | M13 | Service-only backfill/summary/TestOps cleanup migrations; macOS MapKit tool and unit tests; radius Matching TestOps; backend/TestOps/runbook/queue/memory closeout | Address 13/13; TestOps 39/39; migrations 64/64; remote backfill/privacy/radius 6/6/cleanup/advisors/history; full iOS tests/build; Supabase/diff/context/preflight | Completes Q-111. Linked 102 reviewed locations, leaves one documented Customer ZIP exception, proves zero Groomer/active Request gaps and zero orphans/tagged residue, and validates both controlling-radius directions. |
