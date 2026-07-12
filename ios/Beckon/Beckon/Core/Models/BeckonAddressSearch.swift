@@ -67,6 +67,10 @@ nonisolated struct BeckonConfirmedAddress: Equatable, Sendable {
         Self.materialFields(of: accepted) == Self.materialFields(of: input)
     }
 
+    func isCurrent(for input: BeckonAddressInput) -> Bool {
+        Self.allFields(of: accepted) == Self.allFields(of: input)
+    }
+
     private static func materialFields(of input: BeckonAddressInput) -> [String] {
         [
             input.line1,
@@ -76,6 +80,12 @@ nonisolated struct BeckonConfirmedAddress: Equatable, Sendable {
             input.countryCode,
         ]
         .map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
+    }
+
+    private static func allFields(of input: BeckonAddressInput) -> [String] {
+        materialFields(of: input) + [
+            input.line2.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(),
+        ]
     }
 }
 
@@ -521,13 +531,24 @@ struct CustomerProfileAddressAutofill: Equatable, Sendable {
             return nil
         }
 
+        let input = BeckonAddressInput(
+            line1: streetAddress,
+            line2: normalized(profile.addressLine2) ?? "",
+            city: city,
+            stateCode: stateCode,
+            postalCode: zipCode,
+            countryCode: profile.confirmedAddress?.accepted.countryCode ?? "US"
+        )
+        let confirmedAddress = profile.confirmedAddress.flatMap {
+            $0.isCurrent(for: input) ? $0 : nil
+        }
         return CustomerProfileAddressAutofill(
             streetAddress: streetAddress,
-            addressLine2: normalized(profile.addressLine2) ?? "",
+            addressLine2: input.line2,
             city: city,
             stateCode: stateCode,
             zipCode: zipCode,
-            confirmedAddress: profile.confirmedAddress
+            confirmedAddress: confirmedAddress
         )
     }
 

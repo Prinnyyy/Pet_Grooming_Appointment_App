@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-11
 - Updated by: Codex
-- Latest completed task: T-297 Customer and Groomer Profile address integration.
+- Latest completed task: T-298 Customer Request confirmed-address integration.
 - Current task: none; T-157 APNs remains externally blocked and Q-104 Dynamic Type/Accessibility remains user-deferred.
-- Next task ID: use T-298 for Q-110 Customer Request address integration. Q-104 remains deferred.
+- Next task ID: use T-299 for Q-111 controlled legacy address backfill. Q-104 remains deferred.
 
 ## Fast Path
 
@@ -82,6 +82,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - T-294 completes local Q-107 preparation: T-294 is the sole linked pending migration and defines private PostGIS locations, opaque public references, owner profile RPCs, coordinate Request v2, direction-correct radius scoring, explicit legacy fallback, and rollback validation. PostGIS remains remotely uninstalled until authorized Q-108 application.
 - T-296 completes Q-108: PostGIS and the private address contract are deployed, authenticated roles have no direct private-location table access, rollback-only runtime verification passes, and all existing address-location references remain null until Q-109 through Q-111 perform confirmed writes/backfill.
 - T-297 completes Q-109: Customer Profile and Groomer Edit Profile share `BeckonAddressEditor`, restore owner-scoped confirmed metadata, require reconfirmation after address or Unit changes, save address text/private coordinates through v2 RPCs, preserve legacy unchanged saves and profile snapshots, and export full confirmed Customer Profile address data for Request drafts.
+- T-298 completes Q-110: Customer Request reuses `BeckonAddressEditor`, requires current confirmation before Time & Location can advance or publish, carries only current Profile confirmation, publishes Line 2 and private coordinate metadata through `create_grooming_request_v2`, and sends republished templates back through address review. Groomer pre-booking request models still omit Line 2.
 - T-259 makes one `T-###` per fresh session the default, reserves full iOS tests and batched visual evidence for integration/high-risk gates, and requires clean task or checkpoint commits at session boundaries.
 - T-260 adopts UI-R1 through UI-R8 and A11Y-R1 through A11Y-R10 as the active design contract, including approved light-palette contrast pairs and a per-slice accessibility Definition of Done. Token and primitive implementation remains a separate follow-up code task; Q-104 is unchanged.
 - T-244 normalizes the rotated Worklog EOF to one newline.

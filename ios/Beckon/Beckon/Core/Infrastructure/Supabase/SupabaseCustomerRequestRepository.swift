@@ -5,7 +5,7 @@ import Supabase
 final class SupabaseCustomerRequestRepository: CustomerRequestRepository {
     private static let requestColumns = """
         id,customer_id,pet_id,pet_snapshot,photo_snapshot,service_type,service_notes,\
-        preferred_start,preferred_end,location_mode,street_address,city,state,zip_code,\
+        preferred_start,preferred_end,location_mode,street_address,address_line_2,city,state,zip_code,\
         travel_radius_miles,status,expires_at,created_at,updated_at
         """
     private static let offerColumns = """
@@ -181,11 +181,14 @@ final class SupabaseCustomerRequestRepository: CustomerRequestRepository {
         customerID: UUID,
         draft: GroomingRequestDraft
     ) async throws -> GroomingRequestPublishResult {
+        guard draft.confirmedAddress != nil else {
+            throw CustomerRequestRepositoryError.invalidInput
+        }
         do {
             let rows: [CreateGroomingRequestRow] = try await client
                 .rpc(
-                    "create_grooming_request",
-                    params: CreateGroomingRequestParameters(draft: draft)
+                    "create_grooming_request_v2",
+                    params: CreateGroomingRequestV2Parameters(draft: draft)
                 )
                 .execute()
                 .value
@@ -398,6 +401,7 @@ private struct GroomingRequestRow: Decodable {
     let preferredEnd: String
     let locationMode: GroomingLocationMode
     let streetAddress: String
+    let addressLine2: String?
     let city: String
     let state: String
     let zipCode: String
@@ -420,6 +424,7 @@ private struct GroomingRequestRow: Decodable {
             preferredEnd: preferredEnd,
             locationMode: locationMode,
             streetAddress: streetAddress,
+            addressLine2: addressLine2,
             city: city,
             state: state,
             zipCode: zipCode,
@@ -443,6 +448,7 @@ private struct GroomingRequestRow: Decodable {
         case preferredEnd = "preferred_end"
         case locationMode = "location_mode"
         case streetAddress = "street_address"
+        case addressLine2 = "address_line_2"
         case city
         case state
         case zipCode = "zip_code"
@@ -603,7 +609,7 @@ private struct CustomerOfferMatchEvidenceRow: Decodable {
     }
 }
 
-private struct CreateGroomingRequestParameters: Encodable {
+struct CreateGroomingRequestV2Parameters: Encodable {
     let draft: GroomingRequestDraft
 
     func encode(to encoder: any Encoder) throws {
@@ -625,6 +631,7 @@ private struct CreateGroomingRequestParameters: Encodable {
         )
         try container.encode(draft.locationMode.rawValue, forKey: .locationMode)
         try container.encode(draft.streetAddress, forKey: .streetAddress)
+        try container.encode(draft.addressLine2, forKey: .addressLine2)
         try container.encode(draft.city, forKey: .city)
         try container.encode(draft.stateCode.rawValue, forKey: .state)
         try container.encode(draft.zipCode, forKey: .zipCode)
@@ -633,6 +640,31 @@ private struct CreateGroomingRequestParameters: Encodable {
         } else {
             try container.encodeNil(forKey: .travelRadiusMiles)
         }
+        guard let confirmedAddress = draft.confirmedAddress else {
+            throw CustomerRequestRepositoryError.invalidInput
+        }
+        try container.encode(confirmedAddress.provider, forKey: .provider)
+        try container.encodeIfPresent(confirmedAddress.placeID, forKey: .placeID)
+        try container.encode(
+            confirmedAddress.accepted.countryCode,
+            forKey: .countryCode
+        )
+        try container.encode(
+            confirmedAddress.coordinate.latitude,
+            forKey: .latitude
+        )
+        try container.encode(
+            confirmedAddress.coordinate.longitude,
+            forKey: .longitude
+        )
+        try container.encode(
+            confirmedAddress.resolutionSource,
+            forKey: .resolutionSource
+        )
+        try container.encode(
+            confirmedAddress.confirmedAt.ISO8601Format(),
+            forKey: .userConfirmedAt
+        )
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -643,10 +675,18 @@ private struct CreateGroomingRequestParameters: Encodable {
         case preferredEnd = "p_preferred_end"
         case locationMode = "p_location_mode"
         case streetAddress = "p_street_address"
+        case addressLine2 = "p_address_line_2"
         case city = "p_city"
         case state = "p_state"
         case zipCode = "p_zip_code"
         case travelRadiusMiles = "p_travel_radius_miles"
+        case provider = "p_provider"
+        case placeID = "p_place_id"
+        case countryCode = "p_country_code"
+        case latitude = "p_latitude"
+        case longitude = "p_longitude"
+        case resolutionSource = "p_resolution_source"
+        case userConfirmedAt = "p_user_confirmed_at"
     }
 }
 

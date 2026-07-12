@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-07-11
+Task: T-298 - Customer Request confirmed-address integration.
+Files changed: Shared Request address state/UI; Customer Request model, v2 repository DTO, and debug RPC metadata; republish/Profile autofill confirmation rules; focused tests; architecture/feature/queue/memory closeout.
+Checks: Forced RED for missing Q-110 contracts; focused Customer Request address/Store/republish tests; complete `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; Simulator install/launch; `./scripts/supabase-check.sh`; `git diff --check`; context hygiene; preflight.
+Result: Completed Q-110. New Requests reuse `BeckonAddressEditor`, cannot leave Time & Location or publish without current Apple Maps confirmation, and send Line 1, Line 2, structured display fields, optional Place ID, coordinates, resolution source, and confirmation time through `create_grooming_request_v2`. Profile autofill retains confirmed metadata only while every address field matches. Republished Requests preserve display data but restart at address review without inferred confirmation. Customer-owned details show Line 2; Groomer pre-booking models do not receive it.
+Risks: Legacy profiles and Requests remain coordinate-null until Q-111 performs its authorized, reviewable backfill. The deployed text fallback remains required until Q-112 proves zero active coordinate gaps and completes strict cutover.
+Next: Use T-299 for Q-111 controlled legacy address backfill; Q-104 remains deferred.
+```
+
+```text
+Date: 2026-07-11
 Task: T-297 - Customer and Groomer Profile confirmed-address integration.
 Files changed: Shared profile address RPC DTOs; Customer/Groomer profile models, repositories, debug wrappers, Stores, and views; Address Editor verification action/state restore; focused tests; architecture/feature/queue/memory closeout.
 Checks: Forced RED for missing Q-109 contracts; focused Profile Address/Address Editor and legacy profile tests; complete `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; Simulator launch/no-crash; `./scripts/supabase-check.sh`; `git diff --check`; context hygiene; preflight.

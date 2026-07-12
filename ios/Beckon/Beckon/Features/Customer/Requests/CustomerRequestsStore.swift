@@ -77,6 +77,7 @@ enum CustomerRequestWizardValidationField: Hashable {
     case city
     case state
     case zipCode
+    case addressConfirmation
 }
 
 struct CustomerRequestWizardStepValidation: Equatable {
@@ -108,6 +109,7 @@ final class CustomerRequestsStore {
     private let appointmentReminderScheduler: any AppointmentReminderScheduling
     private let handoffAcknowledgementDefaults: UserDefaults
     private let handoffAcknowledgementStorageKey: String
+    let addressEditorState: BeckonAddressEditorState
     private var debugRecorder: AppDebugEventRecorder?
     private var refreshNotifications: (@MainActor () async -> Void)?
 
@@ -143,10 +145,26 @@ final class CustomerRequestsStore {
     var preferredStart: Date
     var preferredEnd: Date
     var locationMode: GroomingLocationMode = .groomerComesToCustomer
-    var streetAddress = ""
-    var city = ""
-    var stateCode: USStateCode?
-    var zipCode = ""
+    var streetAddress: String {
+        get { addressEditorState.input.line1 }
+        set { addressEditorState.updateLine1(newValue) }
+    }
+    var addressLine2: String {
+        get { addressEditorState.input.line2 }
+        set { addressEditorState.updateLine2(newValue) }
+    }
+    var city: String {
+        get { addressEditorState.input.city }
+        set { addressEditorState.updateCity(newValue) }
+    }
+    var stateCode: USStateCode? {
+        get { addressEditorState.input.stateCode }
+        set { addressEditorState.updateState(newValue) }
+    }
+    var zipCode: String {
+        get { addressEditorState.input.postalCode }
+        set { addressEditorState.updatePostalCode(newValue) }
+    }
     var travelRadiusMiles = 15
     private(set) var pendingRequestPhotos: [PendingGroomingRequestPhoto] = []
 
@@ -241,8 +259,17 @@ final class CustomerRequestsStore {
             AppointmentReminderScheduler.shared,
         handoffAcknowledgementDefaults: UserDefaults = .standard,
         now: Date = Date(),
-        debugRecorder: AppDebugEventRecorder? = nil
+        debugRecorder: AppDebugEventRecorder? = nil,
+        addressProvider: (any BeckonAddressProviding)? = nil
     ) {
+        let emptyAddress = BeckonAddressInput(
+            line1: "",
+            line2: "",
+            city: "",
+            stateCode: nil,
+            postalCode: "",
+            countryCode: "US"
+        )
         self.customerID = customerID
         self.petRepository = petRepository
         self.requestRepository = requestRepository
@@ -250,6 +277,10 @@ final class CustomerRequestsStore {
         self.appointmentReminderScheduler = appointmentReminderScheduler
         self.handoffAcknowledgementDefaults = handoffAcknowledgementDefaults
         self.debugRecorder = debugRecorder
+        self.addressEditorState = BeckonAddressEditorState(
+            input: emptyAddress,
+            provider: addressProvider ?? MapKitAddressProvider()
+        )
         handoffAcknowledgementStorageKey = Self.handoffAcknowledgementStorageKey(
             customerID: customerID
         )
@@ -433,10 +464,17 @@ final class CustomerRequestsStore {
         serviceType = request.serviceType
         serviceNotes = request.serviceNotes ?? ""
         locationMode = request.locationMode
-        streetAddress = request.streetAddress
-        city = request.city
-        stateCode = USStateCode(rawValue: request.state.uppercased())
-        zipCode = request.zipCode
+        addressEditorState.replaceInput(
+            BeckonAddressInput(
+                line1: request.streetAddress,
+                line2: request.addressLine2 ?? "",
+                city: request.city,
+                stateCode: USStateCode(rawValue: request.state.uppercased()),
+                postalCode: request.zipCode,
+                countryCode: "US"
+            ),
+            confirmedAddress: nil
+        )
         travelRadiusMiles = request.travelRadiusMiles ?? 15
 
         let range = republishPreferredRange(from: request, now: now)
@@ -444,7 +482,7 @@ final class CustomerRequestsStore {
         preferredEnd = range.end
         pendingRequestPhotos = republishPendingPhotos(from: request)
 
-        wizardInitialStep = .review
+        wizardInitialStep = .time
         errorMessage = nil
         noticeMessage = nil
         publishResult = nil
@@ -481,6 +519,24 @@ final class CustomerRequestsStore {
         } else {
             cancelWizard(now: now)
         }
+    }
+
+    func applyProfileAddressAutofill(_ autofill: CustomerProfileAddressAutofill) {
+        let input = BeckonAddressInput(
+            line1: autofill.streetAddress,
+            line2: autofill.addressLine2,
+            city: autofill.city,
+            stateCode: autofill.stateCode,
+            postalCode: autofill.zipCode,
+            countryCode: autofill.confirmedAddress?.accepted.countryCode ?? "US"
+        )
+        let confirmedAddress = autofill.confirmedAddress.flatMap {
+            $0.isCurrent(for: input) ? $0 : nil
+        }
+        addressEditorState.replaceInput(
+            input,
+            confirmedAddress: confirmedAddress
+        )
     }
 
     func cancelWizard(now: Date = Date()) {
@@ -1064,6 +1120,11 @@ final class CustomerRequestsStore {
         }
 
         let streetAddress = try streetAddressValue(self.streetAddress)
+        let addressLine2 = try optional(
+            self.addressLine2,
+            field: "Address Line 2",
+            maximum: 60
+        ) ?? ""
         let city = try required(city, field: "City", range: 1...100)
         guard let stateCode else {
             throw CustomerRequestFormError(message: "Choose a state.")
@@ -1073,6 +1134,13 @@ final class CustomerRequestsStore {
             ? CustomerRequestTravelRange.clampedMiles(Double(travelRadiusMiles))
             : nil
 
+        guard let confirmedAddress = addressEditorState.confirmedAddress,
+              confirmedAddress.isCurrent(for: normalizedAddressInput()) else {
+            throw CustomerRequestFormError(
+                message: "Confirm the service address with Apple Maps before publishing."
+            )
+        }
+
         return GroomingRequestDraft(
             petID: selectedPetID,
             serviceType: serviceType,
@@ -1081,10 +1149,12 @@ final class CustomerRequestsStore {
             preferredEnd: preferredEnd,
             locationMode: locationMode,
             streetAddress: streetAddress,
+            addressLine2: addressLine2,
             city: city,
             stateCode: stateCode,
             zipCode: zipCode,
-            travelRadiusMiles: travelRadius
+            travelRadiusMiles: travelRadius,
+            confirmedAddress: confirmedAddress
         )
     }
 
@@ -1136,7 +1206,16 @@ final class CustomerRequestsStore {
             fields.insert(.zipCode)
         }
 
-        guard !fields.isEmpty else { return .valid }
+        if fields.isEmpty {
+            guard let confirmedAddress = addressEditorState.confirmedAddress,
+                  confirmedAddress.isCurrent(for: normalizedAddressInput()) else {
+                return CustomerRequestWizardStepValidation(
+                    fields: [.addressConfirmation],
+                    message: "Confirm the service address with Apple Maps before continuing."
+                )
+            }
+            return .valid
+        }
 
         return CustomerRequestWizardStepValidation(
             fields: fields,
@@ -1160,16 +1239,36 @@ final class CustomerRequestsStore {
         serviceType = .fullGroom
         serviceNotes = ""
         locationMode = .groomerComesToCustomer
-        streetAddress = ""
-        city = ""
-        stateCode = nil
-        zipCode = ""
+        addressEditorState.replaceInput(
+            BeckonAddressInput(
+                line1: "",
+                line2: "",
+                city: "",
+                stateCode: nil,
+                postalCode: "",
+                countryCode: "US"
+            ),
+            confirmedAddress: nil
+        )
         travelRadiusMiles = 15
         pendingRequestPhotos = []
 
         let defaults = Self.defaultPreferredRange(now: now)
         preferredStart = defaults.start
         preferredEnd = defaults.end
+    }
+
+    private func normalizedAddressInput() -> BeckonAddressInput {
+        BeckonAddressInput(
+            line1: streetAddress.trimmingCharacters(in: .whitespacesAndNewlines),
+            line2: addressLine2.trimmingCharacters(in: .whitespacesAndNewlines),
+            city: city.trimmingCharacters(in: .whitespacesAndNewlines),
+            stateCode: stateCode,
+            postalCode: zipCode.trimmingCharacters(in: .whitespacesAndNewlines),
+            countryCode: addressEditorState.input.countryCode
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .uppercased()
+        )
     }
 
     private func republishPetID(for request: CustomerGroomingRequest) -> UUID? {

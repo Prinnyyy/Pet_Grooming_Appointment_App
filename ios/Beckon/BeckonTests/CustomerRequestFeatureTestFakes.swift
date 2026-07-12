@@ -1,6 +1,35 @@
 import Foundation
 @testable import Beckon
 
+extension CustomerRequestsStore {
+    func confirmCurrentTestAddress(
+        placeID: String? = nil,
+        coordinate: BeckonAddressCoordinate = BeckonAddressCoordinate(
+            latitude: 47.6062,
+            longitude: -122.3321
+        )
+    ) {
+        let input = BeckonAddressInput(
+            line1: streetAddress.trimmingCharacters(in: .whitespacesAndNewlines),
+            line2: addressLine2.trimmingCharacters(in: .whitespacesAndNewlines),
+            city: city.trimmingCharacters(in: .whitespacesAndNewlines),
+            stateCode: stateCode,
+            postalCode: zipCode.trimmingCharacters(in: .whitespacesAndNewlines),
+            countryCode: "US"
+        )
+        let confirmed = BeckonConfirmedAddress(
+            entered: input,
+            accepted: input,
+            provider: "apple_maps",
+            placeID: placeID,
+            coordinate: coordinate,
+            resolutionSource: "autocomplete_selection",
+            confirmedAt: Date(timeIntervalSince1970: 1_750_000_000)
+        )
+        addressEditorState.replaceInput(input, confirmedAddress: confirmed)
+    }
+}
+
 @MainActor
 final class CustomerRequestPetRepositoryFake: CustomerPetRepository {
     var petsResult: Result<[CustomerPet], CustomerPetRepositoryError>

@@ -12,6 +12,7 @@ struct CustomerGroomingRequest: Equatable, Hashable, Identifiable, Sendable {
     let preferredEnd: String
     let locationMode: GroomingLocationMode
     let streetAddress: String
+    var addressLine2: String? = nil
     let city: String
     let state: String
     let zipCode: String
@@ -26,7 +27,13 @@ struct CustomerGroomingRequest: Equatable, Hashable, Identifiable, Sendable {
     }
 
     var locationSummary: String {
-        "\(streetAddress), \(city), \(state) \(zipCode)"
+        let street = [streetAddress, addressLine2]
+            .compactMap { value -> String? in
+                let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                return trimmed.isEmpty ? nil : trimmed
+            }
+            .joined(separator: ", ")
+        return "\(street), \(city), \(state) \(zipCode)"
     }
 
     var compactLocationSummary: String {
@@ -49,6 +56,7 @@ struct CustomerGroomingRequest: Equatable, Hashable, Identifiable, Sendable {
             preferredEnd: preferredEnd,
             locationMode: locationMode,
             streetAddress: streetAddress,
+            addressLine2: addressLine2,
             city: city,
             state: state,
             zipCode: zipCode,
@@ -181,10 +189,12 @@ struct GroomingRequestDraft: Equatable, Sendable {
     let preferredEnd: Date
     let locationMode: GroomingLocationMode
     let streetAddress: String
+    var addressLine2: String = ""
     let city: String
     let stateCode: USStateCode
     let zipCode: String
     let travelRadiusMiles: Int?
+    var confirmedAddress: BeckonConfirmedAddress? = nil
 }
 
 struct GroomingRequestPublishResult: Equatable, Sendable {

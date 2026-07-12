@@ -454,13 +454,6 @@ extension CustomerRequestsStoreTests {
     }
 
     @Test
-    func requestAddressSuggestionsOnlyPresentWhileStreetInputIsActive() {
-        #expect(CustomerRequestAddressOverlay.shouldPresent(isStreetActive: true, suggestionCount: 2))
-        #expect(!CustomerRequestAddressOverlay.shouldPresent(isStreetActive: false, suggestionCount: 2))
-        #expect(!CustomerRequestAddressOverlay.shouldPresent(isStreetActive: true, suggestionCount: 0))
-    }
-
-    @Test
     func requestAddressQuerySearchesTheDeliverableAddressAndPreservesUnit() {
         let unit = BeckonAddressQuery(street: "760 S Harbor Blvd UNIT 2410")
         let apartment = BeckonAddressQuery(street: "123 Pine Street, Apt. 5B")
@@ -605,14 +598,6 @@ extension CustomerRequestsStoreTests {
             ),
         ])
         #expect(result.completionsByID[result.suggestions[0].id] == "localized")
-    }
-
-    @Test
-    func requestAddressOverlayDismissesOnlySingleTapsOutsideStreetField() {
-        let streetFrame = CGRect(x: 20, y: 300, width: 350, height: 52)
-
-        #expect(!CustomerRequestAddressOverlay.shouldDismissTap(at: CGPoint(x: 40, y: 320), streetFrame: streetFrame))
-        #expect(CustomerRequestAddressOverlay.shouldDismissTap(at: CGPoint(x: 40, y: 420), streetFrame: streetFrame))
     }
 
     @Test @MainActor

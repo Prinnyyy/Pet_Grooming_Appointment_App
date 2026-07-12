@@ -185,6 +185,7 @@ struct CustomerRequestsStoreTests {
         store.city = " Seattle "
         store.stateCode = .washington
         store.zipCode = " 98101 "
+        store.confirmCurrentTestAddress()
 
         await store.publish()
 
@@ -237,6 +238,7 @@ struct CustomerRequestsStoreTests {
         store.stateCode = .washington
         store.zipCode = " 98101 "
         store.travelRadiusMiles = 42
+        store.confirmCurrentTestAddress()
 
         await store.publish()
 
@@ -276,6 +278,7 @@ struct CustomerRequestsStoreTests {
         store.stateCode = .washington
         store.zipCode = "98101"
         store.travelRadiusMiles = 88
+        store.confirmCurrentTestAddress()
 
         await store.publish()
 
@@ -357,6 +360,7 @@ struct CustomerRequestsStoreTests {
         store.stateCode = .washington
         store.zipCode = "98101"
         store.addPendingPhoto(data: Data([0x01, 0x02]), contentType: .jpeg)
+        store.confirmCurrentTestAddress()
 
         await store.publish()
 
@@ -501,6 +505,7 @@ struct CustomerRequestsStoreTests {
         preferredEnd: String = "2026-06-22T18:00:00Z",
         locationMode: GroomingLocationMode = .groomerComesToCustomer,
         streetAddress: String = "123 Pine Street",
+        addressLine2: String? = nil,
         city: String = "Seattle",
         state: String = "WA",
         zipCode: String = "98101",
@@ -532,6 +537,7 @@ struct CustomerRequestsStoreTests {
             preferredEnd: preferredEnd,
             locationMode: locationMode,
             streetAddress: streetAddress,
+            addressLine2: addressLine2,
             city: city,
             state: state,
             zipCode: zipCode,

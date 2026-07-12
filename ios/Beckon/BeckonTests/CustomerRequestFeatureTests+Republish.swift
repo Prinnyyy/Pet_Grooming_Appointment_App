@@ -86,7 +86,7 @@ extension CustomerRequestsStoreTests {
         store.startRepublish(from: originalRequest, now: Date())
 
         #expect(store.isShowingWizard)
-        #expect(store.wizardInitialStep == .review)
+        #expect(store.wizardInitialStep == .time)
         #expect(store.selectedPetID == pet.id)
         #expect(store.serviceType == .bathAndBrush)
         #expect(store.serviceNotes == "Use hypoallergenic shampoo.")
@@ -100,6 +100,13 @@ extension CustomerRequestsStoreTests {
         #expect(store.travelRadiusMiles == 24)
         #expect(store.pendingRequestPhotos.map(\.data) == [copiedPhotoData])
         #expect(store.pendingRequestPhotos.map(\.contentType) == [.png])
+
+        await store.publish()
+
+        #expect(requestRepository.createCallCount == 0)
+        #expect(store.errorMessage == "Confirm the service address with Apple Maps before publishing.")
+
+        store.confirmCurrentTestAddress()
 
         await store.publish()
 
@@ -160,7 +167,7 @@ extension CustomerRequestsStoreTests {
 
         #expect(didStart)
         #expect(store.isShowingWizard)
-        #expect(store.wizardInitialStep == .review)
+        #expect(store.wizardInitialStep == .time)
         #expect(store.selectedPetID == pet.id)
         #expect(store.serviceType == .nailTrim)
         #expect(store.serviceNotes == "Keep nails short.")
@@ -255,7 +262,7 @@ extension CustomerRequestsStoreTests {
 
         store.startRepublish(from: originalRequest, now: now)
 
-        #expect(store.wizardInitialStep == .review)
+        #expect(store.wizardInitialStep == .time)
         #expect(store.preferredStart == now.addingTimeInterval(24 * 60 * 60))
         #expect(store.preferredEnd == now.addingTimeInterval(26 * 60 * 60))
         #expect(store.pendingRequestPhotos.map(\.data) == [availablePhotoData])
@@ -352,6 +359,7 @@ extension CustomerRequestsStoreTests {
         store.city = "Seattle"
         store.stateCode = .washington
         store.zipCode = "98101"
+        store.confirmCurrentTestAddress()
 
         await store.publish()
 
@@ -388,6 +396,7 @@ extension CustomerRequestsStoreTests {
         store.city = "Seattle"
         store.stateCode = .washington
         store.zipCode = "98101"
+        store.confirmCurrentTestAddress()
 
         await store.publish()
 
