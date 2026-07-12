@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-11
 - Updated by: Codex
-- Latest completed task: T-294 PostGIS private address contract preparation.
+- Latest completed task: T-295 periodic documentation-governance meta-review.
 - Current task: none; T-157 APNs remains externally blocked and Q-104 Dynamic Type/Accessibility remains user-deferred.
-- Next task ID: use T-295 for the required periodic meta-review; use T-296 afterward for Q-108, whose remote migration is authorized. Q-104 remains deferred until the user restores its Dynamic Type/Accessibility scope.
+- Next task ID: use T-296 for Q-108. Linked migration history still shows `20260712014418` as local-only, so Q-108 must verify identity and apply that migration once before its rollback/advisor gates. Q-104 remains deferred.
 
 ## Fast Path
 
@@ -108,7 +108,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - Default context model is L0-L4 in `CONTEXT_AND_RECOVERY.md`.
 - Startup reads stay minimal: `AGENTS.md`, then targeted current-state/task-ledger sections only when needed.
 - Periodic documentation-governance reviews use `docs/06_tasks/META_REVIEW_TEMPLATE.md` every 10 completed tasks or weekly.
-- Last meta-review: T-284 on 2026-07-11.
+- Last meta-review: T-295 on 2026-07-11.
 - V1.0 ideal-operation Q-16...Q-43, Auth package Q-92, and R-038/Q-94...Q-96 are complete. R-039 design T-249 plus Q-97/T-250, Q-98/T-252, Q-99/T-253, Q-100/T-254, Q-101/T-255, Q-102/T-256, Q-103/T-257, and non-Accessibility integration verification T-258 are complete; Q-104 Dynamic Type/Accessibility is user-deferred.
 - Changes to `AGENTS.md`, `CLAUDE.md`, or `docs/05_workflow/**` must be standalone numbered tasks with a decision-log entry and context hygiene.
 - T-180 records standing user approval for task-completion Git commit and push. This approval is limited to current-task changes after validation passes; T-186 requires stopping without auto pull/rebase/merge/reset/force-push if the push fails or is rejected.

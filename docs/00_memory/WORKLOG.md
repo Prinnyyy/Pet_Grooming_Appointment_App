@@ -2,12 +2,21 @@
 
 ```text
 Date: 2026-07-11
+Task: T-295 - Periodic meta-review.
+Files changed: Current-state, task-ledger, feature-index, and Worklog governance closeout.
+Checks: Clean branch and origin alignment; active root/ignore/seed visibility; conflict scan; 64-file migration mirror; linked migration history; docs tests; context hygiene; diff/preflight.
+Result: Active Markdown structure and routing remain sound. Q-105 through Q-107 are represented consistently as local implementation, and T-295 is the latest meta-review. Linked history confirms `20260712014418` is pending, matching the clarified instruction to continue the migration task next.
+Risks: T-296 must recheck linked project identity/history immediately before applying the migration and must not backfill addresses.
+Next: Use T-296 for Q-108 remote address schema application and verification; Q-104 remains deferred.
+```
+
+```text
+Date: 2026-07-11
 Task: T-294 - PostGIS private address contract preparation.
 Files changed: Append-only T-294 PostGIS/private address migration; Address Line 2 and opaque location references; owner-checked profile read/write wrappers; coordinate-backed Request v2 RPC; private direction-correct location-fit helper; upgraded reusable match insertion; rollback-only runtime validation; migration contract tests; backend/queue/memory docs.
 Checks: Supabase current docs/changelog review; linked Beckon/Postgres 17.6 identity, migration history, and extension availability via MCP; forced RED then six focused T-294 contracts; all 59 migration tests; `./scripts/supabase-check.sh`; `supabase db push --linked --dry-run` showing only T-294; `git diff --check`; context hygiene; preflight.
 Result: Completed Q-107 locally. The prepared migration enables PostGIS in `extensions`, keeps coordinates and optional Apple Place IDs in an RLS-enabled private table with no authenticated table grants, adds GiST/owner/FK indexes, and exposes only owner-checked profile wrappers plus `create_grooming_request_v2`. Coordinate matches use Customer travel radius or Groomer service radius according to service direction and a 60...80 distance score; legacy state/city fallback is explicit only when either point is missing. Existing service, pet-fit, availability, time-off, advance-notice, capacity, and notification paths remain intact.
 Risks: PostGIS is available but still remotely uninstalled, and T-294 is not deployed. The rollback SQL has static contract coverage but cannot execute locally because Docker/Postgres are unavailable; Q-108 must apply only this migration, then run the rollback transaction, privilege checks, both radius directions, multilingual-city case, migration history, and advisors before any profile/request integration.
-Next: Run the due T-295 periodic meta-review, then use T-296 for Q-108 Authorized remote address schema application; Q-104 remains deferred.
 ```
 
 ```text
