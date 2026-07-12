@@ -41,6 +41,17 @@ test("lexer masks multiline strings and escaped quotes", () => {
   assert.match(masked, /padding\(13/);
 });
 
+test("lexer preserves UTF-16 positions after emoji strings", () => {
+  const source = [
+    "let icon = \"🐾\"",
+    "Text(title).font(.system(size: 28, weight: .bold))",
+  ].join("\n");
+  const masked = maskSwiftNonCode(source);
+  assert.equal(masked.length, source.length);
+  const findings = auditSwiftSource({ filePath: "Emoji.swift", source });
+  assert.equal(findings[0].expression, ".font(.system(size: 28, weight: .bold))");
+});
+
 test("audit classifies deterministic and review findings", () => {
   const findings = auditSwiftSource({
     filePath: "ios/Beckon/Beckon/Features/ExampleView.swift",
@@ -158,4 +169,47 @@ test("CLI initialize refuses to overwrite an existing baseline", () => {
   assert.equal(result.status, 2);
   assert.match(result.stderr, /already exists/);
   assert.equal(JSON.parse(readFileSync(baselinePath, "utf8")).scope, "Features");
+});
+
+test("CLI relocate moves an unchanged subset and retains source findings", () => {
+  const root = mkdtempSync(path.join(tmpdir(), "ui-audit-relocate-"));
+  const sourcePath = "ios/Beckon/Beckon/Features/Source.swift";
+  const destinationPath = "ios/Beckon/Beckon/Features/Destination.swift";
+  const originalSource = [
+    "Text(home).font(.system(size: 28))",
+    "Text(form).padding(13)",
+  ].join("\n");
+  const baselineFindings = auditSwiftSource({ filePath: sourcePath, source: originalSource });
+
+  mkdirSync(path.join(root, "scripts"), { recursive: true });
+  mkdirSync(path.join(root, "ios/Beckon/Beckon/Features"), { recursive: true });
+  writeFileSync(path.join(root, sourcePath), "Text(home).font(.system(size: 28))\n");
+  writeFileSync(path.join(root, destinationPath), "Text(form).padding(13)\n");
+  writeFileSync(path.join(root, "scripts/ui-consistency-baseline.json"), JSON.stringify({
+    version: 1,
+    scope: "ios/Beckon/Beckon/Features",
+    lastChange: { reason: "fixture" },
+    findings: baselineFindings.map(({ ruleID, path: findingPath, fingerprint, expressionHash, occurrence }) => ({
+      ruleID,
+      path: findingPath,
+      fingerprint,
+      expressionHash,
+      occurrence,
+    })),
+  }));
+
+  const result = spawnSync("node", [
+    cliPath,
+    "baseline", "relocate",
+    "--from", sourcePath,
+    "--to", destinationPath,
+    "--reason", "Q-116",
+  ], { cwd: root, encoding: "utf8" });
+
+  assert.equal(result.status, 0, result.stderr);
+  const updated = JSON.parse(readFileSync(path.join(root, "scripts/ui-consistency-baseline.json"), "utf8"));
+  assert.deepEqual(updated.findings.map(({ ruleID, path: findingPath }) => [ruleID, findingPath]), [
+    ["UI001", sourcePath],
+    ["UI004", destinationPath],
+  ]);
 });

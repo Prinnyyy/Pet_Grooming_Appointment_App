@@ -22,7 +22,7 @@ function hash(value) {
 }
 
 export function maskSwiftNonCode(source) {
-  const output = [...source];
+  const output = source.split("");
   let index = 0;
   let state = "code";
   let blockDepth = 0;

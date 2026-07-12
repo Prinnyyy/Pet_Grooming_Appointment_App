@@ -23,19 +23,19 @@ Source: T-202 adopted root review input `../../V1.0_RELEASE_TASK_PLAN.md`; that 
 
 | Order | Roadmap | Package | Scope / Exit |
 |---|---|---|---|
-| Q-116 | R-041 | Customer Home migration | Separate Pet Form ownership, migrate Home to semantic hierarchy/components, remove text-compression debt, and pass strict audit plus Accessibility 3 rendering. |
 | Q-117 | R-041 | Customer Requests migration | Migrate page title, progress cards, information hierarchy, timeline/action presentation, and carousel exceptions while preserving request behavior. |
 | Q-118 | R-041 | Customer Request Wizard migration | Remove the local ButtonStyle, migrate choices/fields/action bar, replace low text scaling with adaptive layouts, and preserve all five-step validation/publication behavior. |
 | Q-119 | R-041 | Customer Account migration | Separate Account from Profile editor ownership and reuse semantic sections, grouped surfaces, settings rows, links, and action metrics. |
 | Q-120 | R-041 | First-slice integration gate | Prove strict audit for all four Customer surfaces, full tests/build/preflight, default/Accessibility 3 rendering, and publish the remaining-debt inventory. |
 | Q-104 | R-039 | Groomer Dynamic Type and Accessibility integration gate | Complete the remaining Dynamic Type and Accessibility state/interaction audit after the user restores this deferred scope; rerun affected selector and full iOS regression gates. |
 
-Q-116 is the next dependency-satisfied package. Q-117 through Q-120 execute in order; Q-104 stays user-deferred.
+Q-117 is the next dependency-satisfied package. Q-118 through Q-120 execute in order; Q-104 stays user-deferred.
 
 ## Completed UI Consistency Package
 
 | Order | Roadmap | Package | Result |
 |---|---|---|---|
+| Q-116 | R-041 | Customer Home migration | Complete T-308: Pet Form ownership extracted with guarded baseline relocation; Home uses semantic sections/insets/type/action contrast, flexible Pet Cards, strict audit, and default/Accessibility 3 Simulator proof. |
 | Q-115 | R-041 | Shared semantic components and catalog | Complete T-307: role accents, page insets, semantic section/grouped/selection/settings/field primitives, primary visual availability, compatibility header routing, and default/Accessibility 3 DEBUG catalog proof. |
 | Q-114 | R-041 | Semantic tokens and contrast | Complete T-305: semantic typography/layout/metric roles, AA status text and unread colors, canonical soft-card elevation aliases, contract/contrast tests, and documented compatibility boundaries. |
 | Q-113 | R-041 | UI source audit and debt ratchet | Complete T-304: dependency-free lexical audit, 294-finding Feature baseline, strict migrated-file gate, guarded baseline lifecycle, exact UI101 exception, hermetic tests, governance documentation, and preflight enforcement. |

@@ -103,7 +103,7 @@ function runCheck(args) {
       process.stdout.write(`${finding.path}:1:1: error ${finding.ruleID} Stale baseline entry; prune resolved debt explicitly.\n`);
     }
   } else {
-    process.stdout.write(`UI consistency audit passed (${findings.length} baselined findings: ${JSON.stringify(summary(findings))}).\n`);
+    process.stdout.write(`UI consistency audit passed (${findings.length} current findings; ${baseline.findings.length} baselined: ${JSON.stringify(summary(findings))}).\n`);
   }
   process.exit(result.newErrors.length || result.staleEntries.length ? 1 : 0);
 }
@@ -158,21 +158,47 @@ function relocate(args) {
   const baseline = readBaseline();
   const sourceEntries = baseline.findings.filter((finding) => finding.path === from);
   if (!sourceEntries.length) failConfig(`no baseline findings exist at ${from}`);
+  const currentSourceFindings = scan([from]);
   const destinationFindings = scan([to]);
   const key = (finding) => `${finding.ruleID}\0${finding.expressionHash}\0${finding.occurrence}`;
+  const sourceByKey = new Map(currentSourceFindings.map((finding) => [key(finding), finding]));
   const destinationByKey = new Map(destinationFindings.map((finding) => [key(finding), finding]));
-  if (sourceEntries.length !== destinationFindings.length || sourceEntries.some((finding) => !destinationByKey.has(key(finding)))) {
-    failConfig("relocate requires identical rule IDs, expression hashes, and occurrence counts");
+  const baselineSourceByKey = new Map(sourceEntries.map((finding) => [key(finding), finding]));
+  const baselineDestinationByKey = new Map(
+    baseline.findings
+      .filter((finding) => finding.path === to)
+      .map((finding) => [key(finding), finding])
+  );
+  const movedKeys = new Set();
+
+  for (const finding of sourceEntries) {
+    const findingKey = key(finding);
+    const remainsAtSource = sourceByKey.has(findingKey);
+    const appearsAtDestination = destinationByKey.has(findingKey);
+    if (remainsAtSource === appearsAtDestination) {
+      failConfig("relocate requires each source finding to remain or move exactly once without ambiguity");
+    }
+    if (appearsAtDestination) movedKeys.add(findingKey);
+  }
+  if (!movedKeys.size) failConfig("relocate found no unchanged findings at the destination");
+  if (currentSourceFindings.some((finding) => !baselineSourceByKey.has(key(finding)))) {
+    failConfig("relocate cannot accept new findings at the source");
+  }
+  if (destinationFindings.some((finding) => {
+    const findingKey = key(finding);
+    return !movedKeys.has(findingKey) && !baselineDestinationByKey.has(findingKey);
+  })) {
+    failConfig("relocate cannot accept new or changed findings at the destination");
   }
   baseline.findings = baseline.findings.map((finding) => {
-    if (finding.path !== from) return finding;
+    if (finding.path !== from || !movedKeys.has(key(finding))) return finding;
     const moved = { ...finding, path: to };
     moved.fingerprint = fingerprintFinding(moved);
     return moved;
   });
   baseline.lastChange = { reason };
   writeBaseline(baseline);
-  process.stdout.write(`Relocated ${sourceEntries.length} UI consistency baseline entries.\n`);
+  process.stdout.write(`Relocated ${movedKeys.size} UI consistency baseline entries.\n`);
 }
 
 const [command, subcommand, ...rest] = process.argv.slice(2);

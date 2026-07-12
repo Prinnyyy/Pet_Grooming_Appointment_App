@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-12
 - Updated by: Codex
-- Latest completed task: T-307 Q-115 shared semantic components and catalog.
+- Latest completed task: T-308 Q-116 Customer Home migration.
 - Current task: none; T-157 APNs remains externally blocked and Q-104 Dynamic Type/Accessibility remains user-deferred.
-- Next task ID: use T-308 for R-041 Q-116 Customer Home migration. Groomer Q-104 remains deferred.
+- Next task ID: use T-309 for R-041 Q-117 Customer Requests migration. Groomer Q-104 remains deferred.
 
 ## Fast Path
 
@@ -32,6 +32,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Validation Baseline
 
+- T-308 completes Q-116: Customer Home is strict-clean and uses semantic page/section/type/action contracts; Header/Hero/Pet Cards reflow through Accessibility 3, while Active Request's pre-existing internal truncation remains Q-117 scope. Pet Form moved unchanged to its own file with four relocated legacy findings. The scanner now preserves UTF-16 positions after emoji and safely relocates partial splits; the deterministic baseline is 268 entries plus two reviewed Home fixed-width warnings. No Store/repository/navigation/backend behavior changed.
 - T-307 completes Q-115: DesignSystem now owns role accents, page insets, semantic sections/grouped surfaces/selection cards/settings rows/field groups, standard action metrics, and separate primary visual-vs-tap availability. Existing Header/Button/Form/Feedback APIs remain compatible; a DEBUG catalog renders default and Accessibility 3 states without clipping. No Feature business/data/navigation/backend behavior changed.
 - T-306 periodic meta-review confirms branch/task/queue/index consistency, intentional root Markdown ignore behavior, zero active conflict markers, the 67-file migration mirror, current backend facts, and UI/preflight governance tests. No product, app, backend, dependency, or workflow rule changed.
 - T-305 completes Q-114: DesignTokens now owns business-semantic typography, layout, metrics, AA status text/unread colors, and one canonical soft-card elevation with compatibility aliases. Contract and contrast tests pass; status chips use semantic AA foregrounds. No backend, navigation, or business behavior changed.

@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-07-12
+Task: T-308 - Q-116 Customer Home migration.
+Files changed: Customer Home semantic migration; mechanically extracted Pet Form; UTF-16 scanner and guarded partial-relocate fix/tests; baseline, audit governance, roadmap/task/memory closeout.
+Checks: strict RED with 22 errors then strict GREEN; mechanical relocate 4 and prune 26; audit tests 12/12; iOS build/tests; default and Accessibility 3 Simulator snapshots/scroll; content size reset; UI audit; diff/context/preflight.
+Result: Home uses semantic insets/sections/type/action contrast, bounded decorative overlays, and width-constrained but height-flexible Pet Cards. Header/Hero/Pets/empty Next Booking reflow without overlap at AX3; Stores, repositories, routes, selectors, image behavior, and copy remain intact.
+Risks: Active Request card content still truncates internally at AX3; Q-117 explicitly owns that shared Requests card migration. Two reviewed UI101 warnings remain for the intentional 172pt horizontal card column width.
+Next: Use T-309 for Q-117 Customer Requests migration.
+```
+
+```text
+Date: 2026-07-12
 Task: T-307 - Q-115 shared semantic components and catalog.
 Files changed: New layout, selection, and DEBUG catalog primitives; action/form/feedback compatibility updates; contract/audit tests; design, roadmap, task, and memory closeout.
 Checks: Forced compile RED for missing action availability; audit fixture 10/10; full iOS tests; iOS build; Xcode Canvas default and Accessibility 3 rendering at 100%; UI consistency audit; diff/context/preflight.

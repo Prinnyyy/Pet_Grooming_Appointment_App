@@ -36,7 +36,7 @@ node scripts/ui-consistency-audit.mjs strict ios/Beckon/Beckon/Features/Customer
 
 `error` is deterministic and blocks new or migrated code. `warning` marks a high-risk layout site for review. `review` is evidence of possible duplication, not proof that abstraction is correct.
 
-The scanner lexes Swift comments and strings before matching and expands balanced modifier calls. It is intentionally narrower than a compiler: a clean audit proves compliance with these rules, not complete SwiftUI correctness or accessibility.
+The scanner lexes Swift comments and strings before matching, preserves UTF-16 source positions including content after emoji, and expands balanced modifier calls. It is intentionally narrower than a compiler: a clean audit proves compliance with these rules, not complete SwiftUI correctness or accessibility.
 
 ## Debt Ratchet
 
@@ -53,7 +53,7 @@ node scripts/ui-consistency-audit.mjs baseline relocate \
   --reason Q-116
 ```
 
-`initialize` refuses overwrite. `prune` can only remove stale entries and refuses new errors. `relocate` accepts a mechanical move only when every rule ID, expression hash, and occurrence matches at the destination; mismatches exit with configuration status `2` without writing.
+`initialize` refuses overwrite. `prune` can only remove stale entries and refuses new errors. `relocate` supports whole-file moves and partial declaration splits: each prior source finding must either remain or appear exactly once at the destination with the same rule ID, expression hash, and occurrence. New, deleted, changed, or ambiguously duplicated findings exit with configuration status `2` without writing.
 
 ## Exceptions
 
