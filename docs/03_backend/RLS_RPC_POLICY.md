@@ -31,6 +31,7 @@ Archived pre-trim version: `../09_frozen/backend_policies/RLS_RPC_POLICY_2026-07
 | `customer_push_tokens` | Register/unregister own device tokens through RPC | No access | Push claim/delivery updates are service-role only |
 | `reviews`, `review_pet_fit_outcomes` | Create one review through RPC for own completed booking; read own | Read own booking review/outcomes | Direct outcome DML denied |
 | `account_deletion_requests` | Read own deletion request; request deletion through RPC | Read own deletion request; request deletion through RPC | Auth soft-delete/failure recording is service-role only |
+| `app_private.address_locations` | No direct table access; current-owner profile address through controlled RPC | No direct table access; current-owner profile address through controlled RPC | Exact coordinates/Place IDs remain private; profile and Request writes are atomic controlled operations |
 | Evidence summary and fit claims/tags | No owner dashboard contract | Manage own claims/tags; read own aggregate evidence through owner RPC | Claims/tags are low-confidence signals only and do not create eligibility |
 
 ## Controlled Operations
@@ -39,6 +40,11 @@ Public controlled RPCs currently include:
 
 - `create_my_profile`
 - `create_grooming_request`
+- `create_grooming_request_v2`
+- `get_my_customer_profile_address_v2`
+- `save_customer_profile_address_v2`
+- `get_my_groomer_profile_address_v2`
+- `save_groomer_profile_address_v2`
 - `cancel_grooming_request`
 - `dismiss_request_match`
 - `create_groomer_offer`

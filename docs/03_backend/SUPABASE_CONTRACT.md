@@ -1,6 +1,6 @@
 # Supabase Contract
 
-Last verified: 2026-07-11 (T-294 local PostGIS address contract preparation).
+Last verified: 2026-07-11 (T-296 remote PostGIS address contract application).
 
 This is the active fast-path backend contract. It records current authoritative facts and points to the right detailed source instead of embedding every historical table, RPC, Storage, and migration note.
 
@@ -10,7 +10,7 @@ Full pre-trim contract text is archived at `../09_frozen/backend_contracts/SUPAB
 
 - Authorized fresh project: `Beckon`, ref `lqmasbuqzvcvtawonjlb`, organization `Prinnyyy`, region `us-west-1`.
 - Forbidden legacy project: `Prinnyyy's Project`, ref `swdiiyypysyxbnfrxxsv`. Do not inspect, branch, migrate, reset, or mutate it for this rebuild.
-- Remote verification baseline: T-128 repaired historical drift; latest recorded remote migration list aligns through `20260711222831_t283_fix_avatar_rls_recursion.sql`.
+- Remote verification baseline: linked history aligns through `20260712014418_t294_postgis_private_address_locations.sql` after T-296 runtime and advisor verification.
 - Local CLI readiness baseline: T-139 confirmed sequential `supabase projects list`, `supabase migration list --linked`, and `supabase db push --linked --dry-run` work from this checkout without `SUPABASE_DB_PASSWORD`.
 - Local migration mirror: `../../supabase/migrations/` is the append-only source for applied and prepared migrations. Local migration mirror count: 64 files. Do not rename or hand-invent migration filenames.
 - Full historical contract detail before this fast-path trim is frozen for comparison only. Current implementation truth comes from migrations plus focused active backend policy files.
@@ -30,11 +30,11 @@ Use the smallest source that answers the task:
 
 Do not read this file as proof that a future object is deployed. A deployed claim must match local migrations and, for remote work, verified linked project metadata.
 
-## Prepared, Not Deployed
+## Address Location Contract
 
-T-294/Q-107 prepares `20260712014418_t294_postgis_private_address_locations.sql`; linked dry-run reports it as the only pending migration. It is not part of the deployed scope until Q-108 applies and verifies it.
+T-296/Q-108 deployed `20260712014418_t294_postgis_private_address_locations.sql`; linked history is aligned and a repeat dry-run reports the remote database up to date. No address backfill occurred.
 
-The prepared contract enables PostGIS in `extensions`, stores exact Apple Maps coordinates and optional Place IDs only in `app_private.address_locations`, adds opaque location references plus Address Line 2 snapshots, and exposes owner-checked profile read/write wrappers and `create_grooming_request_v2`. Coordinate-backed matching uses Customer travel radius for `customer_comes_to_groomer` and Groomer service radius for `groomer_comes_to_customer`; state/city fallback remains only for rows missing either coordinate until Q-112 strict cutover.
+The deployed contract enables PostGIS in `extensions`, stores exact Apple Maps coordinates and optional Place IDs only in `app_private.address_locations`, adds opaque location references plus Address Line 2 snapshots, and exposes owner-checked profile read/write wrappers and `create_grooming_request_v2`. Coordinate-backed matching uses Customer travel radius for `customer_comes_to_groomer` and Groomer service radius for `groomer_comes_to_customer`; state/city fallback remains only for rows missing either coordinate until Q-112 strict cutover.
 
 Authenticated clients receive no direct table privileges on private address locations. Exact coordinates and full Place IDs are returned only through current-owner profile RPCs. The rollback-only verification is `../06_tasks/sql_reviews/T-294_POSTGIS_ADDRESS_ROLLBACK_VALIDATION.sql`; static contract coverage is `../../tests/migrations/postgis-address-locations.test.mjs`.
 
@@ -63,6 +63,7 @@ Core deployed data areas:
 - Groomer marketplace data: services, portfolio photos, availability windows, booking preferences, time off windows, fit claims, and portfolio fit tags.
 - Request lifecycle: grooming requests, request photos, request matches, groomer offers, bookings, conversations, text messages, reviews, and structured pet-fit outcomes.
 - Pet-fit matching: private SQL helper functions, evidence summary view, match scoring/reason text, claim/tag low-confidence signals, negative-evidence suppression, availability-aware matching, and request day-capacity matching.
+- Address matching: PostGIS, private exact location rows, opaque profile/request references, owner profile address RPCs, coordinate Request v2, direction-correct radius scoring, and temporary missing-coordinate legacy fallback.
 - Customer/groomer operational state: `customer_notifications`, `groomer_notifications`, `customer_booking_handoff_acknowledgements`, `customer_push_tokens`, and `account_deletion_requests`.
 - Automation: request-expiry cron job, match backfill triggers for groomer activation/availability changes, customer/groomer notification triggers, and account-deletion service-role finalization RPCs.
 - Storage buckets: legacy `avatars`, dedicated `groomer-avatars`, dedicated `customer-avatars`, `pet-photos`, `groomer-portfolio`, and `request-photos`. `chat-attachments` remains deferred.
@@ -73,6 +74,11 @@ Controlled public RPCs currently include:
 
 - `create_my_profile`
 - `create_grooming_request`
+- `create_grooming_request_v2`
+- `get_my_customer_profile_address_v2`
+- `save_customer_profile_address_v2`
+- `get_my_groomer_profile_address_v2`
+- `save_groomer_profile_address_v2`
 - `cancel_grooming_request`
 - `dismiss_request_match`
 - `create_groomer_offer`

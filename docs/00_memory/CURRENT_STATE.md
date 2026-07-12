@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-11
 - Updated by: Codex
-- Latest completed task: T-295 periodic documentation-governance meta-review.
+- Latest completed task: T-296 authorized remote PostGIS address schema application.
 - Current task: none; T-157 APNs remains externally blocked and Q-104 Dynamic Type/Accessibility remains user-deferred.
-- Next task ID: use T-296 for Q-108. Linked migration history still shows `20260712014418` as local-only, so Q-108 must verify identity and apply that migration once before its rollback/advisor gates. Q-104 remains deferred.
+- Next task ID: use T-297 for Q-109 Customer and Groomer Profile address integration. Q-104 remains deferred.
 
 ## Fast Path
 
@@ -33,7 +33,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 ## Validation Baseline
 
 - T-239 authorized UI R11 passed publish/offer/accept/chat/complete/review, Debug 6/6 with zero errors, backend final state, and zero residue; full iOS test/build passed.
-- Last Supabase migration apply: T-283 `20260711222831_t283_fix_avatar_rls_recursion.sql` applied to `lqmasbuqzvcvtawonjlb` on 2026-07-11; linked history, rollback-only profile/match behavior, and advisors were verified.
+- Last Supabase migration apply: T-296 applied `20260712014418_t294_postgis_private_address_locations.sql` to `lqmasbuqzvcvtawonjlb` on 2026-07-11; linked history, private privileges, owner RPCs, both radius directions, multilingual-city invariance, legacy fallback, zero backfill, rollback cleanup, and advisors were verified.
 - Last Edge Function deploy: `delete-account` version 2 is active with JWT verification and service-role Storage API cleanup across six user-prefixed image buckets.
 - Last TestOps unit validation: T-248 `./scripts/testops-unit.sh` passed 36 Node tests.
 - Latest remote TestOps evidence: T-248 `smoke5` passed 5/5 and `matching_baseline` passed 8/8; both run families left zero tagged requests and only redacted local artifacts.
@@ -80,6 +80,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - T-292 completes Q-105 with provider-neutral address values, complete secondary-address extraction/conflict rules, material-edit confirmation invalidation, direct localized MapKit candidates, compatible-query retention, and selected/manual Apple resolution. Profile/Request UI and persistence remain unchanged until later R-040 packages.
 - T-293 completes Q-106 with one provider-injected SwiftUI Address Editor, non-reflowing candidates, global secondary auto-move notice, inline conflict/error state, compact status, manual-result choice, entered-vs-suggested confirmation, and stable selectors. Feature persistence remains deferred to Q-109/Q-110.
 - T-294 completes local Q-107 preparation: T-294 is the sole linked pending migration and defines private PostGIS locations, opaque public references, owner profile RPCs, coordinate Request v2, direction-correct radius scoring, explicit legacy fallback, and rollback validation. PostGIS remains remotely uninstalled until authorized Q-108 application.
+- T-296 completes Q-108: PostGIS and the private address contract are deployed, authenticated roles have no direct private-location table access, rollback-only runtime verification passes, and all existing address-location references remain null until Q-109 through Q-111 perform confirmed writes/backfill.
 - T-259 makes one `T-###` per fresh session the default, reserves full iOS tests and batched visual evidence for integration/high-risk gates, and requires clean task or checkpoint commits at session boundaries.
 - T-260 adopts UI-R1 through UI-R8 and A11Y-R1 through A11Y-R10 as the active design contract, including approved light-palette contrast pairs and a per-slice accessibility Definition of Done. Token and primitive implementation remains a separate follow-up code task; Q-104 is unchanged.
 - T-244 normalizes the rotated Worklog EOF to one newline.

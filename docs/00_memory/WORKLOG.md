@@ -2,12 +2,21 @@
 
 ```text
 Date: 2026-07-11
+Task: T-296 - Authorized remote PostGIS address schema application.
+Files changed: Remote Beckon schema state plus backend contract, access matrix, roadmap queue, feature/task/current-state, and Worklog closeout.
+Checks: Linked Beckon identity and only-pending dry-run; remote migration push; rollback-only private privilege, owner RPC, cross-role denial, exact/outside radius, both service directions, multilingual-city, and legacy fallback tests; zero fixture residue and zero backfill; aligned migration history and clean repeat dry-run; security/performance advisors; Supabase contract and focused migration tests; diff/context/preflight.
+Result: Completed Q-108. PostGIS and private address locations are deployed with opaque public references, owner-checked profile RPCs, Request v2, and direction-correct distance matching. Authenticated clients cannot select/insert private locations. The rollback transaction created two generated geography rows then removed all fixtures; remote address/location references remain zero until later integration/backfill tasks.
+Risks: Advisor INFO for the no-policy private table is expected because clients have no schema/table grants; new indexes are unused because Q-108 intentionally created no location rows. Existing leaked-password and unrelated index findings are unchanged. Legacy state/city fallback must remain until Q-112 proves a zero active-coordinate gap.
+Next: Use T-297 for Q-109 Customer and Groomer Profile address integration; Q-104 remains deferred.
+```
+
+```text
+Date: 2026-07-11
 Task: T-295 - Periodic meta-review.
 Files changed: Current-state, task-ledger, feature-index, and Worklog governance closeout.
 Checks: Clean branch and origin alignment; active root/ignore/seed visibility; conflict scan; 64-file migration mirror; linked migration history; docs tests; context hygiene; diff/preflight.
 Result: Active Markdown structure and routing remain sound. Q-105 through Q-107 are represented consistently as local implementation, and T-295 is the latest meta-review. Linked history confirms `20260712014418` is pending, matching the clarified instruction to continue the migration task next.
 Risks: T-296 must recheck linked project identity/history immediately before applying the migration and must not backfill addresses.
-Next: Use T-296 for Q-108 remote address schema application and verification; Q-104 remains deferred.
 ```
 
 ```text
