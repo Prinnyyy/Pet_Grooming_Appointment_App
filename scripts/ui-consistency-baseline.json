@@ -2,7 +2,7 @@
   "version": 1,
   "scope": "ios/Beckon/Beckon/Features",
   "lastChange": {
-    "reason": "Q-116"
+    "reason": "Q-117"
   },
   "findings": [
     {
@@ -305,13 +305,6 @@
       "fingerprint": "cdf37347c4382523f788d8d91861b6e7935e2a85e541b812f4fcc83590fa10cf",
       "expressionHash": "04df45d9331b1eb9cdf87061ccedc605d02e1d8b3609248a2f03317f578418f8",
       "occurrence": 3
-    },
-    {
-      "ruleID": "UI001",
-      "path": "ios/Beckon/Beckon/Features/Bookings/BookingsView.swift",
-      "fingerprint": "dc135a15bc9e78d2a5fef510f0bd97122d617fa0363ffaa148372916fae5caf6",
-      "expressionHash": "51a417c03a08c3310f9dc308cf6695499dcdf17275f275a05267941242f121f9",
-      "occurrence": 1
     },
     {
       "ruleID": "UI002",
@@ -930,52 +923,10 @@
       "occurrence": 6
     },
     {
-      "ruleID": "UI001",
-      "path": "ios/Beckon/Beckon/Features/Customer/Requests/CustomerRequestsDashboardView.swift",
-      "fingerprint": "e69be64e04aa58dbac46943dd2dc811f594609a78551dfbd2e46f08b2defa100",
-      "expressionHash": "55717080d83ff742011fe9d40920570dfa41c1782dc94c73f59bb50d8c47190f",
-      "occurrence": 1
-    },
-    {
-      "ruleID": "UI008",
-      "path": "ios/Beckon/Beckon/Features/Customer/Requests/CustomerRequestsDashboardView.swift",
-      "fingerprint": "e4034fbf8d0ed15581d3e57fa736664fe5bde902fafdb13deae744997ed869b1",
-      "expressionHash": "e6fef71476f2a12533377a851ddbbad67b038132887007defa2622b94be5f7d6",
-      "occurrence": 1
-    },
-    {
       "ruleID": "UI101",
       "path": "ios/Beckon/Beckon/Features/Customer/Requests/CustomerRequestsDashboardView.swift",
       "fingerprint": "0871fcb47c70f93c0639a1b6d62979ae4d61b9ebf9a2bf2b295be3ade7343d6d",
       "expressionHash": "12ef832f143fe7750e7fc82981b819bdcd1b98211bf79d4b2c67e854322359ec",
-      "occurrence": 1
-    },
-    {
-      "ruleID": "UI002",
-      "path": "ios/Beckon/Beckon/Features/Customer/Requests/CustomerRequestsDashboardView.swift",
-      "fingerprint": "9895cff0664c900dc61edf001b7e3b3b5c6c55d00ed6ed88d127924cc1ce9791",
-      "expressionHash": "4b9e4e76c4cecc6d796ddbe140fde31841c8f76ec3e85794172135843b7a493c",
-      "occurrence": 1
-    },
-    {
-      "ruleID": "UI008",
-      "path": "ios/Beckon/Beckon/Features/Customer/Requests/CustomerRequestsDashboardView.swift",
-      "fingerprint": "66c6ae150f617bb3409a4fb24abcd310c14ec4efab68775f5e6d13fc778d5c3a",
-      "expressionHash": "df86d38a17d04751b5073d2eb1fbdfd12a2212f6380004872fadc168eb6a8dc3",
-      "occurrence": 1
-    },
-    {
-      "ruleID": "UI008",
-      "path": "ios/Beckon/Beckon/Features/Customer/Requests/CustomerRequestsDashboardView.swift",
-      "fingerprint": "1b56663ce960198c05c27b46ab50db72f52d13ebf13fd48b66ebbb4baec01527",
-      "expressionHash": "df86d38a17d04751b5073d2eb1fbdfd12a2212f6380004872fadc168eb6a8dc3",
-      "occurrence": 2
-    },
-    {
-      "ruleID": "UI004",
-      "path": "ios/Beckon/Beckon/Features/Customer/Requests/CustomerRequestsView.swift",
-      "fingerprint": "79685416201672432669da05af7a66921feb97f0a8fe2e046f7d58b6d9209d7b",
-      "expressionHash": "0f45d3baea4274ac0eab385b51e4789be107e142e4d8ea3ee2e41a35065b697b",
       "occurrence": 1
     },
     {

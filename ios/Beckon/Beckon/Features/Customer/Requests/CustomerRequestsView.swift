@@ -200,9 +200,7 @@ struct CustomerRequestsView: View {
                         }
                     }
                 }
-                .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-                .padding(.top, DesignTokens.Spacing.xl)
-                .padding(.bottom, DesignTokens.Spacing.xl * 4)
+                .beckonPageInsets()
             }
             .scrollContentBackground(.hidden)
             .refreshable {

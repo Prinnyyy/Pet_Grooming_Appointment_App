@@ -38,6 +38,22 @@ extension View {
     }
 }
 
+struct BeckonPageTitle: View {
+    private let title: String
+
+    init(_ title: String) {
+        self.title = title
+    }
+
+    var body: some View {
+        Text(title)
+            .font(DesignTokens.Typography.pageTitle)
+            .foregroundStyle(DesignTokens.Colors.textPrimary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityAddTraits(.isHeader)
+    }
+}
+
 struct BeckonSection<Content: View, Trailing: View>: View {
     private let title: String
     private let subtitle: String?

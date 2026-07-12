@@ -2,12 +2,21 @@
 
 ```text
 Date: 2026-07-12
+Task: T-309 - Q-117 Customer Requests migration.
+Files changed: Shared semantic page title; Requests page/card/section/action adaptive migration; Bookings title caller; UI audit baseline; roadmap/task/memory closeout.
+Checks: strict RED then GREEN for both Requests files; baseline prune 7; repository UI audit; full iOS tests; iOS build and build-run; default and Accessibility 3 active/cancelled Simulator snapshots and selector checks; content size reset; diff/context/preflight.
+Result: Requests now uses semantic page insets, title/type/section/action contracts and one canonical card elevation. Header/chip, card copy, actions, and closed rows reflow at Accessibility 3 without low scaling or truncation while Store calls, cancellation, detail, paging, handoff, republish, and selectors remain unchanged.
+Risks: Seed data exposed active and cancelled states only; empty and booking-handoff branches retain their existing tested behavior but were not visually manufactured through backend writes. Two reviewed Home UI101 fixed-width warnings remain outside this strict-clean Requests surface.
+Next: Use T-310 for Q-118 Customer Request Wizard migration.
+```
+
+```text
+Date: 2026-07-12
 Task: T-308 - Q-116 Customer Home migration.
 Files changed: Customer Home semantic migration; mechanically extracted Pet Form; UTF-16 scanner and guarded partial-relocate fix/tests; baseline, audit governance, roadmap/task/memory closeout.
 Checks: strict RED with 22 errors then strict GREEN; mechanical relocate 4 and prune 26; audit tests 12/12; iOS build/tests; default and Accessibility 3 Simulator snapshots/scroll; content size reset; UI audit; diff/context/preflight.
 Result: Home uses semantic insets/sections/type/action contrast, bounded decorative overlays, and width-constrained but height-flexible Pet Cards. Header/Hero/Pets/empty Next Booking reflow without overlap at AX3; Stores, repositories, routes, selectors, image behavior, and copy remain intact.
-Risks: Active Request card content still truncates internally at AX3; Q-117 explicitly owns that shared Requests card migration. Two reviewed UI101 warnings remain for the intentional 172pt horizontal card column width.
-Next: Use T-309 for Q-117 Customer Requests migration.
+Risks: Q-117 subsequently resolved the Active Request Accessibility 3 truncation. Two reviewed UI101 warnings remain for the intentional 172pt horizontal card column width.
 ```
 
 ```text
@@ -17,7 +26,6 @@ Files changed: New layout, selection, and DEBUG catalog primitives; action/form/
 Checks: Forced compile RED for missing action availability; audit fixture 10/10; full iOS tests; iOS build; Xcode Canvas default and Accessibility 3 rendering at 100%; UI consistency audit; diff/context/preflight.
 Result: DesignSystem now owns focused page, section, grouped, selection, settings, field, and action presentation contracts. Primary actions can render unavailable while preserving feature-owned tap handling; old APIs remain source-compatible.
 Risks: Components are presentation-only and gain production usage in Q-116...Q-119. The catalog is DEBUG-only with static content and no repository/navigation route.
-Next: Use T-308 for Q-116 Customer Home migration.
 ```
 
 ```text
@@ -27,7 +35,6 @@ Files changed: Current State, Task Ledger, and Worklog closeout only.
 Checks: Clean branch/origin after T-305; active task/queue/index facts; intentional root Markdown ignore behavior; active conflict scan; 67-file migration mirror and Supabase contract; governance tests 10/10; diff/context/preflight.
 Result: Active sources are consistent. Q-113/Q-114 are complete and Q-115 is next; root legacy plans remain intentionally ignored; backend and migration facts remain current. No workflow rule, product, app, backend, or dependency changed.
 Risks: Q-104 remains user-deferred and T-157 remains Apple-credential blocked. The 294-entry UI baseline remains migration debt, not approval.
-Next: Use T-307 for Q-115 shared semantic components and catalog.
 ```
 
 ```text
@@ -37,7 +44,6 @@ Files changed: DesignTokens semantic typography/layout/metrics/colors/elevation 
 Checks: Forced compile RED for missing semantic members; corrected test-only Swift 6 isolation/import boundary; full iOS tests; iOS build; UI consistency audit; diff/context/preflight.
 Result: Q-115 through Q-119 now have stable page/section/surface/row/field/action roles and control metrics. Status body colors meet 4.5:1 on surface, notification red has one hex source, and duplicate card elevations are compatibility aliases of one canonical style.
 Risks: Existing Feature usage still relies on compatibility typography/elevation names and remains baselined until the migration packages. Q-115 owns shared components; no feature screen migration occurred here.
-Next: Use T-306 for the required periodic meta-review, then T-307 for Q-115 shared semantic components and catalog.
 ```
 
 ```text
@@ -47,7 +53,6 @@ Files changed: Dependency-free Swift lexical audit core/CLI, 294-finding baselin
 Checks: TDD RED for missing core and duplicate-stack rule; audit tests 9/9; combined audit/preflight tests 10/10; baseline scope/count review; repository audit check; full preflight; diff/context checks.
 Result: All tracked Feature Swift code now blocks new deterministic visual debt and stale baseline entries. Migrated files use a zero-error strict gate; guarded initialize/prune/relocate commands and one exact UI101 media-frame exception prevent silent debt expansion.
 Risks: The scanner is deliberately narrower than the Swift compiler and reports warnings/review candidates for human interpretation. The 294-entry baseline is legacy debt, not approval of those patterns; Q-114 through Q-120 reduce the first Customer slice.
-Next: Use T-305 for Q-114 semantic tokens and contrast.
 ```
 
 ```text
@@ -57,7 +62,6 @@ Files changed: Exact R-041 Q-113...Q-120 implementation plan plus spec, Roadmap,
 Checks: Re-read approved spec and targeted Swift/DesignSystem/tests/scripts; mapped exact files and interfaces; self-reviewed spec coverage, placeholders, type names, paths, package dependencies, baseline relocation, and validation commands; docs links; diff/context/preflight.
 Result: Q-113 through Q-120 now sequence the source-audit ratchet, semantic tokens, shared components, Customer Home/Requests/Wizard/Account migrations, and first-slice integration gate. Each package is one fresh task and preserves business/backend/navigation behavior.
 Risks: The plan intentionally keeps non-slice legacy debt baselined. Its guarded relocate command must reject any mechanically moved finding whose expression hash changes. Groomer Q-104 remains deferred.
-Next: Use T-304 for Q-113 UI source audit and debt ratchet.
 ```
 
 ```text
@@ -85,7 +89,6 @@ Files changed: Append-only strict-coordinate migration and rollback validation; 
 Checks: Forced RED then strict migration 4/4 and focused TestOps RED/GREEN; TestOps unit 39/39; all migration contracts 68/68; linked zero-gap/orphan precheck and only-pending dry-run; remote push, strict rollback validation, aligned history/up-to-date dry-run, security/performance advisors; lifecycle 5/5, baseline 8/8, radius 6/6 with exact private-location cleanup; shared-editor/MapKit/copy/privacy audit; complete iOS tests/build; Supabase/diff/context/preflight.
 Result: Completed Q-112 and R-040. Missing Request or Groomer coordinates are always ineligible regardless of matching city/state text. The pre-coordinate Request RPC has no client execute grant. Customer/Groomer Profile and Customer Request share one editor and one MapKit provider; exact coordinates remain private. Final active Groomer gaps, active Request gaps, private-location orphans, and tagged TestOps Requests are zero.
 Risks: The existing Customer Profile ZIP-conflict exception remains a non-matching-authority profile until the user corrects it; coordinate confirmation is service-location confirmation, not postal deliverability validation. Supabase Free still reports the existing leaked-password-protection warning.
-Next: R-040 is complete. Use T-301 for a new user-selected task; Q-104 remains deferred and T-157 remains Apple-credential blocked.
 ```
 
 

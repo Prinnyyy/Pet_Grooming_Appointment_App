@@ -6,16 +6,27 @@ struct CustomerRequestsRootHeader: View {
     let cardCount: Int
 
     var body: some View {
-        ZStack(alignment: .trailing) {
-            CustomerTabTitle(Self.title)
-
-            if cardCount > 0 {
-                BeckonStatusChip(
-                    "\(cardCount)",
-                    systemImage: cardCount == 1 ? "doc.text.fill" : "rectangle.stack.fill",
-                    tone: .customer
-                )
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.md) {
+                BeckonPageTitle(Self.title)
+                requestCountChip
             }
+
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                BeckonPageTitle(Self.title)
+                requestCountChip
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var requestCountChip: some View {
+        if cardCount > 0 {
+            BeckonStatusChip(
+                "\(cardCount)",
+                systemImage: cardCount == 1 ? "doc.text.fill" : "rectangle.stack.fill",
+                tone: .customer
+            )
         }
     }
 }
@@ -49,6 +60,7 @@ struct CustomerRequestProgressCarousel: View {
                     .scrollTargetLayout()
                 }
                 .contentMargins(.horizontal, DesignTokens.Spacing.screenHorizontal, for: .scrollContent)
+                // Horizontal paging intentionally cancels page inset so each card aligns to the viewport.
                 .padding(.horizontal, -DesignTokens.Spacing.screenHorizontal)
                 .scrollIndicators(.hidden)
                 .scrollClipDisabled()
@@ -108,6 +120,7 @@ struct CustomerRequestActionCardSummaryCarousel: View {
                 .scrollTargetLayout()
             }
             .contentMargins(.horizontal, DesignTokens.Spacing.screenHorizontal, for: .scrollContent)
+            // Horizontal paging intentionally cancels page inset so each card aligns to the viewport.
             .padding(.horizontal, -DesignTokens.Spacing.screenHorizontal)
             .scrollIndicators(.hidden)
             .scrollClipDisabled()
@@ -134,7 +147,6 @@ struct CustomerRequestActionCardSummary: View {
                 )
             )
         }
-        .beckonShadow(DesignTokens.Shadows.carouselCard)
         .accessibilityIdentifier("customer.requests.progress-card.summary")
     }
 }
@@ -179,7 +191,6 @@ private struct CustomerRequestProgressCard: View {
                 }
             }
         }
-        .beckonShadow(DesignTokens.Shadows.carouselCard)
         .accessibilityIdentifier(
             AppTestOpsAccessibility.identifier(
                 prefix: "customer.requests.row",
@@ -382,42 +393,9 @@ private struct CustomerRequestBriefHeader: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
-                HStack(alignment: .top, spacing: DesignTokens.Spacing.lg) {
-                    BeckonPetAvatar(
-                        data: petAvatarPhotoData,
-                        fallbackText: request.petSnapshot.displayEmoji,
-                        background: AnyShapeStyle(request.avatarBackground),
-                        width: 68,
-                        height: 68,
-                        cornerRadius: 34
-                    )
-
-                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                        Text(presentation.headline)
-                            .font(.system(size: 28, weight: .heavy, design: .rounded))
-                            .foregroundStyle(DesignTokens.Colors.textPrimary)
-                            .lineLimit(2)
-                            .minimumScaleFactor(0.86)
-                            .lineSpacing(1)
-                            .fixedSize(horizontal: false, vertical: true)
-
-                        Text(presentation.subtitle)
-                            .font(DesignTokens.Typography.body)
-                            .foregroundStyle(DesignTokens.Colors.textSecondary)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.72)
-                            .layoutPriority(1)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-                BeckonStatusChip(
-                    presentation.chipTitle,
-                    systemImage: presentation.chipSystemImage,
-                    tone: presentation.chipTone
-                )
+            ViewThatFits(in: .horizontal) {
+                horizontalHeader
+                verticalHeader
             }
 
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
@@ -430,6 +408,55 @@ private struct CustomerRequestBriefHeader: View {
             }
         }
         .accessibilityElement(children: .combine)
+    }
+
+    private var horizontalHeader: some View {
+        HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
+            requestIdentity
+            statusChip
+        }
+    }
+
+    private var verticalHeader: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            requestIdentity
+            statusChip
+        }
+    }
+
+    private var requestIdentity: some View {
+        HStack(alignment: .top, spacing: DesignTokens.Spacing.lg) {
+            BeckonPetAvatar(
+                data: petAvatarPhotoData,
+                fallbackText: request.petSnapshot.displayEmoji,
+                background: AnyShapeStyle(request.avatarBackground),
+                width: 68,
+                height: 68,
+                cornerRadius: 34
+            )
+
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                Text(presentation.headline)
+                    .font(DesignTokens.Typography.cardTitle)
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Text(presentation.subtitle)
+                    .font(DesignTokens.Typography.body)
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var statusChip: some View {
+        BeckonStatusChip(
+            presentation.chipTitle,
+            systemImage: presentation.chipSystemImage,
+            tone: presentation.chipTone
+        )
     }
 }
 
@@ -446,16 +473,10 @@ private struct CustomerRequestBriefInfoLine: View {
                 .accessibilityHidden(true)
 
             Text(text)
-                .font(.footnote.weight(.semibold))
+                .font(DesignTokens.Typography.supporting.weight(.semibold))
                 .foregroundStyle(DesignTokens.Colors.textSecondary)
-                .lineLimit(lineLimit)
-                .minimumScaleFactor(systemImage == "calendar" ? 0.74 : 0.92)
                 .fixedSize(horizontal: false, vertical: true)
         }
-    }
-
-    private var lineLimit: Int {
-        systemImage == "calendar" ? 1 : 2
     }
 }
 
@@ -464,6 +485,7 @@ private enum CustomerRequestTimelineDensity: Equatable {
     case compact
 
     var markerSize: CGFloat {
+        // Timeline markers are non-text geometry and preserve progress rhythm.
         switch self {
         case .regular:
             38
@@ -473,6 +495,7 @@ private enum CustomerRequestTimelineDensity: Equatable {
     }
 
     var connectorHeight: CGFloat {
+        // Connector length is feature-local timeline geometry, not text containment.
         switch self {
         case .regular:
             30
@@ -482,6 +505,7 @@ private enum CustomerRequestTimelineDensity: Equatable {
     }
 
     var connectorWidth: CGFloat {
+        // Connector width is feature-local timeline geometry, not text containment.
         switch self {
         case .regular:
             3
@@ -731,9 +755,16 @@ private struct CustomerRequestActionRow: View {
     let onCancelRequest: (CustomerGroomingRequest) -> Void
 
     var body: some View {
-        HStack(spacing: DesignTokens.Spacing.md) {
-            detailLink
-            cancelButton
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: DesignTokens.Spacing.md) {
+                detailLink
+                cancelButton
+            }
+
+            VStack(spacing: DesignTokens.Spacing.sm) {
+                detailLink
+                cancelButton
+            }
         }
     }
 
@@ -826,11 +857,11 @@ private struct CustomerRequestActionLabel: View {
 
     var body: some View {
         Label(title, systemImage: systemImage)
-            .font(DesignTokens.Typography.body.weight(.bold))
+            .font(DesignTokens.Typography.action)
             .foregroundStyle(isEnabled ? tone.foreground : DesignTokens.Colors.textTertiary)
-            .lineLimit(1)
-            .minimumScaleFactor(0.82)
-            .frame(maxWidth: .infinity, minHeight: 56)
+            .multilineTextAlignment(.center)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, minHeight: DesignTokens.Metrics.actionHeight)
             .padding(.horizontal, DesignTokens.Spacing.md)
             .background {
                 RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous)
@@ -851,12 +882,10 @@ struct CustomerCancelledRequestsSection: View {
     let onRepublishRequest: (CustomerGroomingRequest) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            BeckonSectionHeader(
-                "Recent Closed Requests",
-                subtitle: "Your three most recent cancelled requests can be reviewed or used to start a new request."
-            )
-
+        BeckonSection(
+            "Recent Closed Requests",
+            subtitle: "Your three most recent cancelled requests can be reviewed or used to start a new request."
+        ) {
             LazyVStack(spacing: DesignTokens.Spacing.md) {
                 ForEach(requests) { request in
                     NavigationLink {
@@ -884,38 +913,54 @@ private struct CustomerCancelledRequestRow: View {
 
     var body: some View {
         BeckonCard {
-            HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
-                BeckonPetAvatar(
-                    data: petAvatarPhotoData,
-                    fallbackText: request.petSnapshot.displayEmoji,
-                    background: AnyShapeStyle(request.avatarBackground),
-                    width: 48,
-                    height: 48,
-                    cornerRadius: 24
-                )
-
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                    Text(request.title)
-                        .font(DesignTokens.Typography.headline)
-                        .foregroundStyle(DesignTokens.Colors.textPrimary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.82)
-
-                    Text(timeSummary)
-                        .font(DesignTokens.Typography.caption)
-                        .foregroundStyle(DesignTokens.Colors.textSecondary)
-                        .lineLimit(1)
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
+                    requestSummary
+                    cancelledChip
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
 
-                BeckonStatusChip(
-                    "Cancelled",
-                    systemImage: "xmark.circle.fill",
-                    tone: .neutral
-                )
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                    requestSummary
+                    cancelledChip
+                }
             }
         }
         .accessibilityElement(children: .combine)
+    }
+
+    private var requestSummary: some View {
+        HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
+            BeckonPetAvatar(
+                data: petAvatarPhotoData,
+                fallbackText: request.petSnapshot.displayEmoji,
+                background: AnyShapeStyle(request.avatarBackground),
+                width: 48,
+                height: 48,
+                cornerRadius: 24
+            )
+
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                Text(request.title)
+                    .font(DesignTokens.Typography.cardTitle)
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Text(timeSummary)
+                    .font(DesignTokens.Typography.supporting)
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var cancelledChip: some View {
+        BeckonStatusChip(
+            "Cancelled",
+            systemImage: "xmark.circle.fill",
+            tone: .neutral
+        )
     }
 
     private var timeSummary: String {

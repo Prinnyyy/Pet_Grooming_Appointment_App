@@ -95,7 +95,7 @@ struct BookingsView: View {
     private var customerBookingsContent: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                CustomerTabTitle("Bookings")
+                BeckonPageTitle("Bookings")
 
                 BookingScopeControl(selection: $selectedScope)
 
@@ -822,22 +822,6 @@ private struct GroomerScheduleAppointmentRow: View {
             }
         }
         .padding(DesignTokens.Spacing.md)
-    }
-}
-
-struct CustomerTabTitle: View {
-    let title: String
-
-    init(_ title: String) {
-        self.title = title
-    }
-
-    var body: some View {
-        Text(title)
-            .font(.system(size: 36, weight: .bold))
-            .foregroundStyle(DesignTokens.Colors.textPrimary)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.top, DesignTokens.Spacing.sm)
     }
 }
 

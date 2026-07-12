@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-12
 - Updated by: Codex
-- Latest completed task: T-308 Q-116 Customer Home migration.
+- Latest completed task: T-309 Q-117 Customer Requests migration.
 - Current task: none; T-157 APNs remains externally blocked and Q-104 Dynamic Type/Accessibility remains user-deferred.
-- Next task ID: use T-309 for R-041 Q-117 Customer Requests migration. Groomer Q-104 remains deferred.
+- Next task ID: use T-310 for R-041 Q-118 Customer Request Wizard migration. Groomer Q-104 remains deferred.
 
 ## Fast Path
 
@@ -32,6 +32,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Validation Baseline
 
+- T-309 completes Q-117: Customer Requests and Bookings share `BeckonPageTitle`; Requests uses semantic page/section/type/action contracts, one canonical card elevation, and adaptive header/chip/action/closed-row layouts. Active and cancelled seeded states render without truncation at default and Accessibility 3; strict audit, full iOS tests, and build pass. The baseline is 261 entries plus two reviewed Home fixed-width warnings. No Store/repository/navigation/backend behavior changed.
 - T-308 completes Q-116: Customer Home is strict-clean and uses semantic page/section/type/action contracts; Header/Hero/Pet Cards reflow through Accessibility 3, while Active Request's pre-existing internal truncation remains Q-117 scope. Pet Form moved unchanged to its own file with four relocated legacy findings. The scanner now preserves UTF-16 positions after emoji and safely relocates partial splits; the deterministic baseline is 268 entries plus two reviewed Home fixed-width warnings. No Store/repository/navigation/backend behavior changed.
 - T-307 completes Q-115: DesignSystem now owns role accents, page insets, semantic sections/grouped surfaces/selection cards/settings rows/field groups, standard action metrics, and separate primary visual-vs-tap availability. Existing Header/Button/Form/Feedback APIs remain compatible; a DEBUG catalog renders default and Accessibility 3 states without clipping. No Feature business/data/navigation/backend behavior changed.
 - T-306 periodic meta-review confirms branch/task/queue/index consistency, intentional root Markdown ignore behavior, zero active conflict markers, the 67-file migration mirror, current backend facts, and UI/preflight governance tests. No product, app, backend, dependency, or workflow rule changed.
