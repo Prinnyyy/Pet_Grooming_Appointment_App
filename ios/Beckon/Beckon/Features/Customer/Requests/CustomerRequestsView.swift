@@ -1,7 +1,6 @@
 import SwiftUI
 
 import Combine
-import MapKit
 import PhotosUI
 import SwiftUI
 import UIKit

@@ -28,7 +28,7 @@ Sign in -> Customer role -> create pet/photo -> request wizard
 -> booking + conversation -> groomer completes -> one review
 ```
 
-Publishing uses `create_grooming_request`; accepting uses `accept_groomer_offer`; reviews use `create_review`. Failed mutations keep recoverable input and refresh authoritative state.
+Publishing uses coordinate-backed `create_grooming_request_v2`; accepting uses `accept_groomer_offer`; reviews use `create_review`. Failed mutations keep recoverable input and refresh authoritative state.
 
 ## Pet-Fit Marketplace V1
 

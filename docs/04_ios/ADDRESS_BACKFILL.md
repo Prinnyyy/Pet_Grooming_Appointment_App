@@ -46,4 +46,4 @@ node scripts/testops.mjs run matching \
   --matrix matching_radius
 ```
 
-Strict coordinate cutover remains blocked unless Groomer and active Request gaps are zero, every remaining profile gap is reviewed, private-location orphan counts are zero, and the radius matrix passes with cleanup.
+T-300 completed strict coordinate cutover after these gates passed. Future backfill verification must preserve zero active Groomer/Request gaps and zero private-location orphans; matching no longer has a text fallback.

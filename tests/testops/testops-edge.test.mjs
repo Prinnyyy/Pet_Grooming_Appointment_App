@@ -288,8 +288,17 @@ test("lifecycle zero-match failure does not expose full identifiers or credentia
       }
       throw new Error(`unexpected restSelect ${table}`);
     },
-    async rpc(name) {
-      if (name === "create_grooming_request") {
+    async rpc(name, parameters) {
+      if (name === "get_my_groomer_profile_address_v2") {
+        return [{
+          latitude: 33.8703,
+          longitude: -117.9242,
+        }];
+      }
+      if (name === "create_grooming_request_v2") {
+        assert.equal(parameters.p_resolution_source, "manual_geocode");
+        assert.equal(parameters.p_latitude, 33.8703);
+        assert.equal(parameters.p_longitude, -117.9242);
         return [{ request_id: requestID, match_count: 0 }];
       }
       throw new Error(`unexpected rpc ${name}`);

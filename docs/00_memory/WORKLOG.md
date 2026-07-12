@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-07-11
+Task: T-300 - Strict coordinate cutover and integration gate.
+Files changed: Append-only strict-coordinate migration and rollback validation; TestOps lifecycle/baseline v2 coordinate publication and cleanup contracts; unused feature MapKit imports; backend, TestOps, product-flow, roadmap, queue, task, and memory closeout.
+Checks: Forced RED then strict migration 4/4 and focused TestOps RED/GREEN; TestOps unit 39/39; all migration contracts 68/68; linked zero-gap/orphan precheck and only-pending dry-run; remote push, strict rollback validation, aligned history/up-to-date dry-run, security/performance advisors; lifecycle 5/5, baseline 8/8, radius 6/6 with exact private-location cleanup; shared-editor/MapKit/copy/privacy audit; complete iOS tests/build; Supabase/diff/context/preflight.
+Result: Completed Q-112 and R-040. Missing Request or Groomer coordinates are always ineligible regardless of matching city/state text. The pre-coordinate Request RPC has no client execute grant. Customer/Groomer Profile and Customer Request share one editor and one MapKit provider; exact coordinates remain private. Final active Groomer gaps, active Request gaps, private-location orphans, and tagged TestOps Requests are zero.
+Risks: The existing Customer Profile ZIP-conflict exception remains a non-matching-authority profile until the user corrects it; coordinate confirmation is service-location confirmation, not postal deliverability validation. Supabase Free still reports the existing leaked-password-protection warning.
+Next: R-040 is complete. Use T-301 for a new user-selected task; Q-104 remains deferred and T-157 remains Apple-credential blocked.
+```
+
+```text
+Date: 2026-07-11
 Task: T-299 - Controlled legacy Apple Maps address backfill.
 Files changed: Two service-role-only backfill/TestOps-cleanup migrations; macOS Apple Maps helper, Node dry-run/approval/report CLI, unit runner and ignored artifacts; TestOps coordinate radius matrix/WGS84 projection/cleanup; backend, TestOps, runbook, queue, and memory docs.
 Checks: Forced RED then Address Backfill 13/13; TestOps 39/39; all migration contracts 64/64; linked migration history and repeat up-to-date dry-run; publishable/authenticated denial; remote 102-row backfill counts and zero orphans; `matching_radius` 6/6 with zero tagged/manual-location residue; security/performance advisors; complete `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; Supabase check; diff/context/preflight.
@@ -66,68 +76,12 @@ Result: Completed Q-106. One reusable Editor owns Address Line 1, optional Line 
 Risks: The component is intentionally not wired into Customer/Groomer Profile or Request persistence yet; Q-109/Q-110 own those integrations after the private location contract exists. No migration or remote write occurred in T-293, and visual approval remains with the user when feature pages adopt the component.
 ```
 
-```text
-Date: 2026-07-11
-Task: T-292 - Shared Apple Maps address domain and parser.
-Files changed: Provider-neutral address input/candidate/resolved/confirmed values; Apple Maps provider contract; complete secondary-address parser; compatible-query retention; selected/manual resolution; focused tests; queue and memory closeout.
-Checks: Forced RED for missing Q-105 contracts; Customer Requests focused suite; `./scripts/ios-test.sh`; `./scripts/ios-build.sh`; `git diff --check`; context hygiene.
-Result: Completed Q-105. Address Line 1 now extracts only complete Apt/Apartment/Unit/Suite/Ste/Floor/Fl/Building/Bldg/Room/Rm/# suffixes, preserves partial tokens, and never overwrites a conflicting Line 2. Provider-neutral confirmation models distinguish material building edits from Line 2-only changes. MapKit autocomplete now publishes up to five direct localized candidates, retains compatible results while the next query loads, performs one search only after selection, and supports Apple manual geocoding without forced translation.
-Risks: Current Request/Profile forms still use their existing presentation and persistence contracts; the reusable editor/confirmation surface belongs to Q-106 and coordinate persistence begins only after Q-107/Q-108. No migration or remote write occurred in T-292.
-```
 
-```text
-Date: 2026-07-11
-Task: T-291 - Apple Maps address system design and execution plan.
-Files changed: Authoritative R-040 Apple Maps/PostGIS plan; roadmap and Q-105...Q-112 queue; task/data-flow/feature/decision indexes; memory closeout.
-Checks: Current iOS/Supabase location-flow inspection; read-only remote PostGIS/profile-count evidence; Apple Maps and Supabase PostGIS primary documentation; plan placeholder/contradiction self-review; local Markdown links; `git diff --check`; context hygiene; preflight.
-Result: Adopted one reusable Address Line 1/Line 2 editor for Customer Profile, Groomer Profile, and Customer Request. Complete misplaced Unit/Apt suffixes auto-move unless an occupied Line 2 requires user choice. MapKit candidates display directly, only selected/manual addresses resolve, Place ID is optional, and complete coordinates plus explicit user confirmation are mandatory. Private PostGIS points make Customer travel radius or Groomer service radius authoritative; localized text becomes display-only after controlled backfill and strict cutover. Q-105 through Q-112 provide the dependency-ordered execution path.
-Risks: Apple confirmation is not postal-deliverability validation. PostGIS is available but not remotely enabled; migrations, backfill, remote TestOps, and fallback removal require their own explicit authorization/evidence. Current app/schema behavior is unchanged.
-```
 
-```text
-Date: 2026-07-11
-Task: T-290 - Completion-driven English address autocomplete.
-Files changed: Shared MapKit completion-resolution pipeline; Customer Request five-row suggestion presentation and focused tests; memory closeout.
-Checks: Forced RED/green Customer Requests suite for stable concurrent completion ordering and localized-candidate exclusion; live unbounded MapKit probe resolving five `760 S Harbor Blvd` completions to en_US street/city/state/ZIP; `./scripts/ios-build.sh`; `git diff --check`; context hygiene.
-Result: Removed T-289's whole-query forward geocode, which naturally returned one best address rather than autocomplete. The shared search now follows Apple's documented `MKLocalSearchCompleter` -> `MKLocalSearch.Request(completion:)` flow, resolves the leading completions concurrently, preserves MapKit relevance order, deduplicates real addresses, and displays up to five en_US reverse-geocoded candidates. No city/county/market region bias is configured. Request, Customer Profile, and Groomer Profile retain the same shared search service; UNIT/APT suffixes are excluded from search and restored only after selection.
-Risks: MapKit search/reverse geocoding remains network-dependent. Failed or non-English-resolved candidates are omitted rather than fabricated; no third-party address provider or API key was added. No backend, persistence, or remote state changed.
-```
 
-```text
-Date: 2026-07-11
-Task: T-289 - Truthful English address autocomplete candidates.
-Files changed: Shared MapKit address candidate/resolution pipeline; Customer Request address tests; memory closeout.
-Checks: Live `MKLocalSearchCompleter` and en_US `MKGeocodingRequest` probes for `760 S Harbor Blvd`; forced-clean RED test; Customer Requests focused tests including async candidate publication; `./scripts/ios-build.sh`; `git diff --check`; preflight/context hygiene.
-Result: Device evidence showed the completer returned English street titles but Chinese-localized city/country subtitles. The prior fallback collapsed five real locations into the typed text plus United States, which was not autocomplete. That fallback is removed. After 260ms input stabilization, iOS 26 uses `MKGeocodingRequest.preferredLocale = en_US`; older systems use `CLGeocoder` with the same preferred locale. Published rows contain actual street/city/state/ZIP data, Han-localized completer rows are excluded, already-English completer rows may supplement the list, semantic duplicates are removed, and selection directly fills the resolved candidate with any UNIT/APT suffix restored.
-Risks: MapKit geocoding is network-dependent and may return one prioritized candidate for an ambiguous street unless city/state context is present. The UI never fabricates an alternative candidate. No backend, persistence, or remote state changed.
-```
 
-```text
-Date: 2026-07-11
-Task: T-288 - Customer Request address suggestion presentation regression fix.
-Files changed: Customer Request Wizard suggestion positioning; memory closeout.
-Checks: Direct `MKLocalSearchCompleter` query for `760 S Harbor Blvd`; Customer Request Wizard focused tests; `./scripts/ios-build.sh`; `git diff --check`; preflight/context hygiene.
-Result: The device MapKit API returned five completions, proving search input/network were not the failure. T-287 had replaced T-286's working Anchor preference rendering with a separately propagated CGRect overlay. The dropdown now uses the proven anchor-preference geometry again while retaining the simultaneous outside-tap recognizer, scroll passthrough, unit parsing, English fallback, sheet dismissal guard, compact bottom spacing, and hidden indicator.
-Risks: The first focused-test attempt collided with a concurrently running build and locked DerivedData; the standard build passed and the focused test then passed when rerun serially. No backend, persistence, or remote state changed.
-```
 
-```text
-Date: 2026-07-11
-Task: T-287 - Customer Request address overlay interaction and detailed-address search correction.
-Files changed: Shared MapKit address query/resolution; Request Wizard overlay gesture/sheet/scroll behavior; focused tests; memory closeout.
-Checks: Customer Request Wizard focused tests; `./scripts/ios-build.sh`; `git diff --check`; preflight/context hygiene.
-Result: The address dropdown no longer installs a full-screen hit layer. A simultaneous single-tap recognizer dismisses it outside the street field, while vertical drags continue scrolling Wizard content and temporarily cannot dismiss the sheet. UNIT/APT/APARTMENT/SUITE/STE/# suffixes are removed only from the MapKit query and restored after selection. Han-script localized completion copy falls back to the typed English address, and selected locations use en_US MapKit reverse geocoding on iOS 26 with an English legacy fallback. Wizard bottom padding now follows the standard XL token and its scroll indicator is hidden.
-Risks: A localized completion that contains Han script intentionally collapses to the typed English base/fallback context; this prioritizes safe English autofill over displaying multiple indistinguishable localized rows. MapKit remains network-dependent. No Store schema, repository, backend, persistence, or remote state changed.
-```
 
-```text
-Date: 2026-07-11
-Task: T-286 - Customer Request address input rules and overlay autocomplete.
-Files changed: Shared limited form input rules; Customer Request Wizard address/search overlay; focused tests; memory closeout.
-Checks: Customer Request Wizard focused tests; `./scripts/ios-build.sh`; `git diff --check`; preflight/context hygiene.
-Result: Request street, city, and ZIP edits now reject unsupported characters through the existing UIKit pre-display interception path while retaining 160/100/5 length limits and Apple's address-specific text content types. Existing MapKit address-only suggestions are rendered in a page-level overlay anchored below the street field, so results no longer push later fields downward; tapping outside dismisses the panel.
-Risks: The outside-dismiss layer intentionally consumes that dismissal tap, matching dropdown behavior; the next control can be activated on the following tap. No Store, repository, backend, persistence, or remote state changed. XcodeBuildMCP Simulator interaction was unavailable, so validation used focused tests and the standard build without screenshot self-review.
-```
 
 
 

@@ -1,6 +1,6 @@
 # Apple Maps Address System Plan
 
-Approved direction: T-291, 2026-07-11. This is the authoritative execution plan for R-040. Adopt one package at a time from `ROADMAP_EXECUTION_QUEUE.md`; each package receives the then-current next `T-###` from `TASK_LEDGER.md`.
+Approved direction: T-291, 2026-07-11. Completed by T-300 on 2026-07-11; Q-105 through Q-112 are closed. This remains the authoritative design and verification contract for R-040.
 
 ## Goal
 

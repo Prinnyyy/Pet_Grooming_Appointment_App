@@ -39,7 +39,6 @@ Archived pre-trim version: `../09_frozen/backend_policies/RLS_RPC_POLICY_2026-07
 Public controlled RPCs currently include:
 
 - `create_my_profile`
-- `create_grooming_request`
 - `create_grooming_request_v2`
 - `get_my_customer_profile_address_v2`
 - `save_customer_profile_address_v2`
@@ -64,7 +63,7 @@ Public controlled RPCs currently include:
 - `unregister_customer_push_token`
 - `request_account_deletion`
 
-These operations must reject unauthenticated callers, resolve role and ownership from trusted database state, validate current status and inputs, lock or constrain rows where concurrency matters, commit atomically, return stable typed results/errors, and expose execute privileges only to intended roles. Service-role-only operations include address backfill list/write/summary, exact-tag TestOps request-location cleanup, push claim/delivery recording, and account-deletion Auth finalization/failure recording.
+These operations must reject unauthenticated callers, resolve role and ownership from trusted database state, validate current status and inputs, lock or constrain rows where concurrency matters, commit atomically, return stable typed results/errors, and expose execute privileges only to intended roles. The retired pre-coordinate `create_grooming_request` wrapper has no client execute grant. Service-role-only operations include address backfill list/write/summary, exact-tag TestOps request-location cleanup, push claim/delivery recording, and account-deletion Auth finalization/failure recording.
 
 ## Required Negative Tests
 
@@ -81,6 +80,7 @@ Every backend access change must cover the relevant negative cases:
 - Groomers cannot read another groomer's notifications or create notification rows directly.
 - Authenticated users cannot execute service-role push delivery or account deletion finalization RPCs.
 - Authenticated users cannot execute address backfill or tagged TestOps private-location cleanup RPCs.
+- Authenticated users cannot execute the retired pre-coordinate Request publication RPC.
 - Storage metadata and table predicates must agree with bucket object policies when files are involved.
 
 Current notification negative-test evidence: `../06_tasks/sql_reviews/T-220_NOTIFICATION_RLS_NEGATIVE_CONTRACT.sql` plus `../../tests/migrations/notification-rls-negative-contract.test.mjs`.

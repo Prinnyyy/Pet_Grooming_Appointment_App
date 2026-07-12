@@ -363,7 +363,10 @@ function fakeMatchingAPI({ targetGroomerID, targetShouldAppear, matchReason }) {
       throw new Error(`unexpected table ${table}`);
     },
     async rpc(name) {
-      if (name === "create_grooming_request") {
+      if (name === "get_my_groomer_profile_address_v2") {
+        return [{ latitude: 33.8703, longitude: -117.9242 }];
+      }
+      if (name === "create_grooming_request_v2") {
         return [{ request_id: "123e4567-e89b-12d3-a456-426614174000", match_count: 3 }];
       }
       throw new Error(`unexpected rpc ${name}`);

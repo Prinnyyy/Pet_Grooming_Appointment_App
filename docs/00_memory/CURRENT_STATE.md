@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-11
 - Updated by: Codex
-- Latest completed task: T-299 controlled legacy Apple Maps address backfill.
+- Latest completed task: T-300 strict coordinate cutover and integration gate.
 - Current task: none; T-157 APNs remains externally blocked and Q-104 Dynamic Type/Accessibility remains user-deferred.
-- Next task ID: use T-300 for Q-112 strict coordinate cutover and integration gate. Q-104 remains deferred.
+- Next task ID: use T-301 for the next new task. Q-104 remains deferred.
 
 ## Fast Path
 
@@ -33,10 +33,10 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 ## Validation Baseline
 
 - T-239 authorized UI R11 passed publish/offer/accept/chat/complete/review, Debug 6/6 with zero errors, backend final state, and zero residue; full iOS test/build passed.
-- Last Supabase migration apply: T-296 applied `20260712014418_t294_postgis_private_address_locations.sql` to `lqmasbuqzvcvtawonjlb` on 2026-07-11; linked history, private privileges, owner RPCs, both radius directions, multilingual-city invariance, legacy fallback, zero backfill, rollback cleanup, and advisors were verified.
+- Last Supabase migration apply: T-300 applied `20260712044858_t300_strict_coordinate_matching.sql` to `lqmasbuqzvcvtawonjlb` on 2026-07-11; linked history, zero-gap preconditions, strict missing-coordinate rejection, retired legacy RPC grants, private privileges, both radius directions, rollback cleanup, and advisors were verified.
 - Last Edge Function deploy: `delete-account` version 2 is active with JWT verification and service-role Storage API cleanup across six user-prefixed image buckets.
 - Last TestOps unit validation: T-248 `./scripts/testops-unit.sh` passed 36 Node tests.
-- Latest remote TestOps evidence: T-248 `smoke5` passed 5/5 and `matching_baseline` passed 8/8; both run families left zero tagged requests and only redacted local artifacts.
+- Latest remote TestOps evidence: T-300 coordinate-backed `smoke5` passed 5/5, `matching_baseline` passed 8/8, and `matching_radius` passed 6/6; all run families deleted private Request locations and left zero tagged Requests/orphans.
 - T-242 verified public DMARC, accepted a Resend delivery smoke, and persisted Supabase Custom SMTP plus exact Auth callback URLs.
 - T-246 completed Q-94: local Xcode/app/source/TestOps identity is Beckon and the Q-96 cron migration is prepared but unapplied.
 - T-247 completed Q-95: active agent/workflow sources use Beckon and are checked by the identity audit.

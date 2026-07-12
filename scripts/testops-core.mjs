@@ -562,8 +562,21 @@ export async function runMatchingEvaluation(api, plan) {
     throw new Error(`No active pet found for ${plan.customer.seedID}.`);
   }
 
-  let requestRPC = "create_grooming_request";
-  let requestParameters = {
+  const addressRows = await timed(phases, "targetGroomer.loadAddress", () =>
+    api.rpc("get_my_groomer_profile_address_v2", {}, groomerSession.accessToken)
+  );
+  const targetAddress = requireCoordinateAddress(
+    addressRows[0],
+    `${plan.targetGroomer.seedID} has no coordinate-backed profile.`,
+  );
+  const coordinate = plan.radius
+    ? destinationCoordinateWGS84(
+        targetAddress,
+        plan.radius.distanceMiles,
+        0,
+      )
+    : targetAddress;
+  const requestParameters = {
     p_pet_id: dog.id,
     p_service_type: plan.request.serviceType,
     p_service_notes: plan.request.serviceNotes,
@@ -575,37 +588,19 @@ export async function runMatchingEvaluation(api, plan) {
     p_state: plan.request.state,
     p_zip_code: plan.request.zipCode,
     p_travel_radius_miles: plan.request.travelRadiusMiles,
+    p_address_line_2: null,
+    p_provider: "apple_maps",
+    p_place_id: null,
+    p_country_code: "US",
+    p_latitude: coordinate.latitude,
+    p_longitude: coordinate.longitude,
+    p_resolution_source: "manual_geocode",
+    p_user_confirmed_at: new Date().toISOString(),
   };
-  if (plan.radius) {
-    const rows = await timed(phases, "targetGroomer.loadAddress", () =>
-      api.rpc("get_my_groomer_profile_address_v2", {}, groomerSession.accessToken)
-    );
-    const address = rows[0];
-    if (!Number.isFinite(address?.latitude) || !Number.isFinite(address?.longitude)) {
-      throw new Error(`${plan.targetGroomer.seedID} has no coordinate-backed profile.`);
-    }
-    const coordinate = destinationCoordinateWGS84(
-      { latitude: address.latitude, longitude: address.longitude },
-      plan.radius.distanceMiles,
-      0,
-    );
-    requestRPC = "create_grooming_request_v2";
-    requestParameters = {
-      ...requestParameters,
-      p_address_line_2: null,
-      p_provider: "apple_maps",
-      p_place_id: null,
-      p_country_code: "US",
-      p_latitude: coordinate.latitude,
-      p_longitude: coordinate.longitude,
-      p_resolution_source: "manual_geocode",
-      p_user_confirmed_at: new Date().toISOString(),
-    };
-  }
 
   const requestRows = await timed(phases, "customer.createRequest", () =>
     api.rpc(
-      requestRPC,
+      "create_grooming_request_v2",
       requestParameters,
       customerSession.accessToken
     )
@@ -613,7 +608,7 @@ export async function runMatchingEvaluation(api, plan) {
   const requestID = firstValue(requestRows, "request_id");
   const matchCount = Number(firstValue(requestRows, "match_count") ?? 0);
   if (!requestID) {
-    throw new Error(`${requestRPC} did not return request_id.`);
+    throw new Error("create_grooming_request_v2 did not return request_id.");
   }
 
   const matches = await timed(phases, "service.loadRequestMatches", () =>
@@ -668,6 +663,10 @@ export async function runMarketplaceLifecycle(api, plan) {
     api.signIn(plan.customer.email, plan.customer.password)
   );
   const customerID = customerSession.user.id;
+  const groomerSession = await timed(phases, "groomer.signIn", () =>
+    api.signIn(plan.groomer.email, plan.groomer.password)
+  );
+  const groomerID = groomerSession.user.id;
 
   const pets = await timed(phases, "customer.loadPets", () =>
     api.restSelect(
@@ -681,9 +680,17 @@ export async function runMarketplaceLifecycle(api, plan) {
     throw new Error(`No active pet found for ${plan.customer.seedID}.`);
   }
 
+  const addressRows = await timed(phases, "groomer.loadAddress", () =>
+    api.rpc("get_my_groomer_profile_address_v2", {}, groomerSession.accessToken)
+  );
+  const targetAddress = requireCoordinateAddress(
+    addressRows[0],
+    `${plan.groomer.seedID} has no coordinate-backed profile.`,
+  );
+
   const requestRows = await timed(phases, "customer.createRequest", () =>
     api.rpc(
-      "create_grooming_request",
+      "create_grooming_request_v2",
       {
         p_pet_id: dog.id,
         p_service_type: plan.request.serviceType,
@@ -696,6 +703,14 @@ export async function runMarketplaceLifecycle(api, plan) {
         p_state: plan.request.state,
         p_zip_code: plan.request.zipCode,
         p_travel_radius_miles: plan.request.travelRadiusMiles,
+        p_address_line_2: null,
+        p_provider: "apple_maps",
+        p_place_id: null,
+        p_country_code: "US",
+        p_latitude: targetAddress.latitude,
+        p_longitude: targetAddress.longitude,
+        p_resolution_source: "manual_geocode",
+        p_user_confirmed_at: new Date().toISOString(),
       },
       customerSession.accessToken
     )
@@ -703,16 +718,11 @@ export async function runMarketplaceLifecycle(api, plan) {
   requestID = firstValue(requestRows, "request_id");
   const matchCount = Number(firstValue(requestRows, "match_count") ?? 0);
   if (!requestID) {
-    throw new Error("create_grooming_request did not return request_id.");
+    throw new Error("create_grooming_request_v2 did not return request_id.");
   }
   if (matchCount < 1) {
     throw new Error(`Request ${shortRef(requestID)} produced zero matches.`);
   }
-
-  const groomerSession = await timed(phases, "groomer.signIn", () =>
-    api.signIn(plan.groomer.email, plan.groomer.password)
-  );
-  const groomerID = groomerSession.user.id;
 
   const matches = await timed(phases, "groomer.verifyMatch", () =>
     api.restSelect(
@@ -788,6 +798,13 @@ export async function runMarketplaceLifecycle(api, plan) {
     phases,
     verification,
   };
+}
+
+function requireCoordinateAddress(address, message) {
+  if (!Number.isFinite(address?.latitude) || !Number.isFinite(address?.longitude)) {
+    throw new Error(message);
+  }
+  return address;
 }
 
 export async function cleanupRun(api, runID) {
