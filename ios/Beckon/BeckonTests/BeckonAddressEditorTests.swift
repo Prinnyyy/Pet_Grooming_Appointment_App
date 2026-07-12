@@ -51,7 +51,7 @@ struct BeckonAddressEditorTests {
     }
 
     @Test @MainActor
-    func selectingCandidateCreatesConfirmationAndAcceptingItConfirmsAddress() async {
+    func selectingCandidatePrefillsAddressButWaitsForExplicitConfirmation() async {
         let candidate = BeckonAddressCandidate(
             id: "candidate-1",
             primaryText: "770 S Harbor Blvd",
@@ -70,8 +70,14 @@ struct BeckonAddressEditorTests {
         await state.select(candidate)
 
         #expect(state.confirmation?.resolved == resolved)
+        #expect(state.input == resolved.suggested)
         #expect(state.status == .needsReview)
+        #expect(state.isReviewPresented == false)
         #expect(provider.resolvedCandidateIDs == [candidate.id])
+
+        await state.prepareConfirmation()
+
+        #expect(state.isReviewPresented)
 
         state.useSuggestedAddress(now: Date(timeIntervalSince1970: 10))
 
@@ -135,6 +141,7 @@ struct BeckonAddressEditorTests {
         #expect(state.manualChoices == [first, second])
         #expect(state.confirmation == nil)
         #expect(state.status == .needsReview)
+        #expect(state.isReviewPresented)
 
         state.chooseManualResult(second)
         #expect(state.confirmation?.resolved == second)

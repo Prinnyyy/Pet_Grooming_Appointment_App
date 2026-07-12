@@ -171,7 +171,7 @@ struct CustomerRequestAddressIntegrationTests {
 
         #expect(object["p_address_line_2"] as? String == "Unit 2410")
         #expect(object["p_provider"] as? String == "apple_maps")
-        #expect(object["p_place_id"] == nil)
+        #expect(object["p_place_id"] is NSNull)
         #expect(object["p_latitude"] as? Double == 33.8703)
         #expect(object["p_longitude"] as? Double == -117.9242)
     }

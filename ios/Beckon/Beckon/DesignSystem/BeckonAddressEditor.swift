@@ -60,6 +60,7 @@ final class BeckonAddressEditorState {
     private(set) var confirmation: BeckonAddressConfirmationPresentation?
     private(set) var confirmedAddress: BeckonConfirmedAddress?
     private(set) var manualChoices: [BeckonResolvedAddress] = []
+    private(set) var isReviewPresented = false
     private(set) var secondaryConflict: BeckonSecondaryAddressConflict?
     private(set) var noticeMessage: String?
     private(set) var inlineError: String?
@@ -166,16 +167,19 @@ final class BeckonAddressEditorState {
         status = .locating
         inlineError = nil
         do {
+            let entered = input
             let resolved = try await provider.resolve(
                 candidateID: candidate.id,
                 preservingLine2: input.line2
             )
             candidates = []
+            input = resolved.suggested
             confirmation = BeckonAddressConfirmationPresentation(
-                entered: input,
+                entered: entered,
                 resolved: resolved
             )
             manualChoices = []
+            isReviewPresented = false
             status = .needsReview
         } catch is CancellationError {
             status = .editing
@@ -194,6 +198,7 @@ final class BeckonAddressEditorState {
             return
         }
         if confirmation != nil {
+            isReviewPresented = true
             status = .needsReview
             return
         }
@@ -210,9 +215,11 @@ final class BeckonAddressEditorState {
                     entered: input,
                     resolved: results[0]
                 )
+                isReviewPresented = true
                 status = .needsReview
             default:
                 manualChoices = results
+                isReviewPresented = true
                 status = .needsReview
             }
         } catch is CancellationError {
@@ -228,6 +235,7 @@ final class BeckonAddressEditorState {
             entered: input,
             resolved: resolved
         )
+        isReviewPresented = true
         status = .needsReview
     }
 
@@ -245,6 +253,7 @@ final class BeckonAddressEditorState {
         )
         self.confirmation = nil
         manualChoices = []
+        isReviewPresented = false
         secondaryConflict = nil
         inlineError = nil
         status = .confirmed
@@ -253,6 +262,7 @@ final class BeckonAddressEditorState {
     func editAddress() {
         confirmation = nil
         manualChoices = []
+        isReviewPresented = false
         confirmedAddress = nil
         status = .editing
         focusLine1Request += 1
@@ -266,6 +276,7 @@ final class BeckonAddressEditorState {
     func dismissPresentedReview() {
         confirmation = nil
         manualChoices = []
+        isReviewPresented = false
         status = confirmedAddress == nil ? .editing : .confirmed
     }
 
@@ -279,11 +290,13 @@ final class BeckonAddressEditorState {
         candidates = []
         confirmation = nil
         manualChoices = []
+        isReviewPresented = false
     }
 
     func setConfirmedAddress(_ address: BeckonConfirmedAddress?) {
         confirmedAddress = address
         confirmation = nil
+        isReviewPresented = false
         status = address == nil ? .editing : .confirmed
     }
 
@@ -297,6 +310,7 @@ final class BeckonAddressEditorState {
         candidates = []
         confirmation = nil
         manualChoices = []
+        isReviewPresented = false
         secondaryConflict = nil
         noticeMessage = nil
         inlineError = nil
@@ -346,14 +360,38 @@ final class BeckonAddressEditorState {
     private func recoverFromLookupFailure() {
         confirmation = nil
         manualChoices = []
+        isReviewPresented = false
         status = .needsReview
         inlineError = "We could not locate this service address. Check the street, city, state, and ZIP."
+    }
+}
+
+private struct BeckonAddressLineOneBoundsKey: PreferenceKey {
+    static var defaultValue: Anchor<CGRect>?
+
+    static func reduce(
+        value: inout Anchor<CGRect>?,
+        nextValue: () -> Anchor<CGRect>?
+    ) {
+        value = nextValue() ?? value
     }
 }
 
 struct BeckonAddressEditor: View {
     @Bindable var state: BeckonAddressEditorState
     @Environment(\.beckonFeedbackCenter) private var feedbackCenter
+    let isStateInvalid: Bool
+    let showsVerificationAction: Bool
+
+    init(
+        state: BeckonAddressEditorState,
+        isStateInvalid: Bool = false,
+        showsVerificationAction: Bool = true
+    ) {
+        self.state = state
+        self.isStateInvalid = isStateInvalid
+        self.showsVerificationAction = showsVerificationAction
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
@@ -376,11 +414,12 @@ struct BeckonAddressEditor: View {
                 )
                 .accessibilityLabel("Address Line 1")
                 .accessibilityIdentifier(BeckonAddressEditorSelectors.line1)
-                .overlay(alignment: .topLeading) {
-                    suggestionOverlay
-                        .offset(y: 62)
+                .anchorPreference(
+                    key: BeckonAddressLineOneBoundsKey.self,
+                    value: .bounds
+                ) {
+                    $0
                 }
-                .zIndex(20)
             }
 
             labeledField("Address Line 2", detail: "Optional") {
@@ -446,7 +485,7 @@ struct BeckonAddressEditor: View {
                                 .font(.caption.weight(.bold))
                                 .foregroundStyle(DesignTokens.Colors.textSecondary)
                         }
-                        .beckonFormField(isInvalid: state.input.stateCode == nil)
+                        .beckonFormField(isInvalid: isStateInvalid)
                     }
                     .accessibilityLabel("State")
                     .accessibilityValue(state.input.stateCode?.rawValue ?? "Not selected")
@@ -476,6 +515,20 @@ struct BeckonAddressEditor: View {
             statusRow
         }
         .contentShape(Rectangle())
+        .overlayPreferenceValue(BeckonAddressLineOneBoundsKey.self) { anchor in
+            GeometryReader { proxy in
+                if let anchor {
+                    let bounds = proxy[anchor]
+                    suggestionOverlay
+                        .frame(width: bounds.width)
+                        .offset(
+                            x: bounds.minX,
+                            y: bounds.maxY + DesignTokens.Spacing.xs
+                        )
+                }
+            }
+        }
+        .zIndex(state.candidates.isEmpty ? 0 : 100)
         .onTapGesture(perform: state.dismissSuggestions)
         .onChange(of: state.noticeMessage) { _, message in
             guard let message else { return }
@@ -553,7 +606,9 @@ struct BeckonAddressEditor: View {
 
             Spacer(minLength: DesignTokens.Spacing.sm)
 
-            if state.status != .confirmed, isCompleteAddress {
+            if showsVerificationAction,
+               state.status != .confirmed,
+               isCompleteAddress {
                 Button("Verify Address") {
                     Task { await state.prepareConfirmation() }
                 }
@@ -591,6 +646,7 @@ struct BeckonAddressEditor: View {
     private var reviewSheetBinding: Binding<BeckonAddressReviewSheetModel?> {
         Binding(
             get: {
+                guard state.isReviewPresented else { return nil }
                 if let confirmation = state.confirmation {
                     return .confirmation(confirmation)
                 }

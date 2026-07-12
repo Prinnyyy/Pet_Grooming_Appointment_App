@@ -644,7 +644,11 @@ struct CreateGroomingRequestV2Parameters: Encodable {
             throw CustomerRequestRepositoryError.invalidInput
         }
         try container.encode(confirmedAddress.provider, forKey: .provider)
-        try container.encodeIfPresent(confirmedAddress.placeID, forKey: .placeID)
+        if let placeID = confirmedAddress.placeID {
+            try container.encode(placeID, forKey: .placeID)
+        } else {
+            try container.encodeNil(forKey: .placeID)
+        }
         try container.encode(
             confirmedAddress.accepted.countryCode,
             forKey: .countryCode

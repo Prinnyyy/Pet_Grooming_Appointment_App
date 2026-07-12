@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-07-12
+Task: T-313 - Customer Request address and publish flow fixes.
+Files changed: Shared address editor state/overlay; Request Wizard validation, confirmation, and feedback routing; v2 Request RPC payload encoding; focused tests and memory closeout.
+Checks: TDD compile RED then GREEN; full iOS tests; Simulator build/run; live empty-State, autocomplete overlay, candidate prefill, Continue-confirm, and post-confirm advance inspection; repository/strict UI audit; diff/context/preflight.
+Result: State remains neutral until validation; suggestions form one top overlay; candidate selection no longer opens review; Continue owns format confirmation; accepted addresses advance automatically; publish failure stays in the active Wizard's global bottom feedback. Missing Apple place IDs are sent as explicit RPC null values so PostgREST can match the existing v2 function.
+Risks: Final publish was not exercised manually because it would create remote data without authorization; the exact payload shape and successful repository path are covered by focused/full tests. No schema, RPC signature, Supabase policy, dependency, or remote state changed.
+Next: Use T-314 for explicitly selected work; Q-104 remains deferred.
+```
+
+```text
+Date: 2026-07-12
 Task: T-312 - Q-120 UI consistency first-slice integration gate.
 Files changed: Published the remaining UI debt inventory; marked Customer Home/Requests/Wizard/Account as the semantic reference slice; closed R-041 in design, screen, roadmap, queue, feature, baseline, task, and memory sources.
 Checks: Repository and strict JSON audits; audit/preflight script tests 13/13; full iOS tests; iOS build; preflight; compact/large default and Accessibility 3 screenshots plus semantic snapshots; Reduce Motion launch/navigation check; diff/context hygiene.

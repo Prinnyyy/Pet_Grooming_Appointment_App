@@ -205,6 +205,8 @@ struct CustomerRequestWizardView: View {
     @State private var selectedRequestPhotoItem: PhotosPickerItem?
     @State private var invalidFields: Set<CustomerRequestWizardValidationField> = []
     @State private var isApplyingProfileAddress = false
+    @State private var isContinuingAfterAddressConfirmation = false
+    @State private var globallyPresentedErrorMessage: String?
 
     init(
         store: CustomerRequestsStore,
@@ -253,7 +255,8 @@ struct CustomerRequestWizardView: View {
 
                         stepContent
 
-                        if let errorMessage = store.errorMessage {
+                        if let errorMessage = store.errorMessage,
+                           errorMessage != globallyPresentedErrorMessage {
                             BeckonErrorBanner(
                                 title: "Check Request Details",
                                 message: errorMessage
@@ -293,6 +296,14 @@ struct CustomerRequestWizardView: View {
             Task {
                 await addPendingRequestPhoto(newItem)
             }
+        }
+        .onChange(of: store.addressEditorState.confirmedAddress) { _, confirmedAddress in
+            guard isContinuingAfterAddressConfirmation,
+                  confirmedAddress != nil else { return }
+            isContinuingAfterAddressConfirmation = false
+            store.errorMessage = nil
+            guard currentStep == .time, let next = currentStep.next else { return }
+            currentStep = next
         }
         .overlay(alignment: .bottom) {
             if let feedbackCenter {
@@ -435,6 +446,7 @@ struct CustomerRequestWizardView: View {
 
                 CustomerRequestAddressFields(
                     addressEditorState: store.addressEditorState,
+                    isStateInvalid: invalidFields.contains(.state),
                     locationMode: store.locationMode,
                     travelRangeMiles: $store.travelRadiusMiles,
                     isApplyingProfileAddress: isApplyingProfileAddress,
@@ -623,6 +635,19 @@ struct CustomerRequestWizardView: View {
     private func continueForward() {
         let validation = store.validateWizardStep(currentStep)
         guard validation.isValid else {
+            if currentStep == .time,
+               validation.fields == [.addressConfirmation] {
+                invalidFields = []
+                store.errorMessage = nil
+                globallyPresentedErrorMessage = nil
+                isContinuingAfterAddressConfirmation = true
+                Task {
+                    await store.addressEditorState.prepareConfirmation()
+                }
+                return
+            }
+
+            globallyPresentedErrorMessage = nil
             invalidFields = validation.fields
             store.errorMessage = validation.message
             return
@@ -639,8 +664,20 @@ struct CustomerRequestWizardView: View {
     }
 
     private func publish() {
+        globallyPresentedErrorMessage = nil
         Task {
             await store.publish()
+            guard store.isShowingWizard,
+                  let errorMessage = store.errorMessage else { return }
+            globallyPresentedErrorMessage = errorMessage
+            feedbackCenter?.showError(
+                BeckonGlobalFeedbackError(
+                    scope: .operation("customer.requests.publish"),
+                    sourceKey: "customer.requests.publish.failure",
+                    title: "We Could Not Publish Request",
+                    message: errorMessage
+                )
+            )
         }
     }
 
@@ -1374,6 +1411,7 @@ private struct CustomerRequestLocationModeCard: View {
 
 private struct CustomerRequestAddressFields: View {
     @Bindable var addressEditorState: BeckonAddressEditorState
+    let isStateInvalid: Bool
     let locationMode: CustomerRequestLocationMode
     @Binding var travelRangeMiles: Int
     let isApplyingProfileAddress: Bool
@@ -1421,7 +1459,11 @@ private struct CustomerRequestAddressFields: View {
             .disabled(isApplyingProfileAddress)
             .accessibilityIdentifier("customer.requests.use-profile-address")
 
-            BeckonAddressEditor(state: addressEditorState)
+            BeckonAddressEditor(
+                state: addressEditorState,
+                isStateInvalid: isStateInvalid,
+                showsVerificationAction: false
+            )
                 .onChange(of: addressEditorState.status) { _, status in
                     guard status == .confirmed else { return }
                     clearInvalidField(.streetAddress)

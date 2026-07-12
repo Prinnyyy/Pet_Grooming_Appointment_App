@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-12
 - Updated by: Codex
-- Latest completed task: T-312 Q-120 UI consistency first-slice integration gate.
+- Latest completed task: T-313 Customer Request address and publish flow fixes.
 - Current task: none; T-157 APNs remains externally blocked and Q-104 Dynamic Type/Accessibility remains user-deferred.
-- Next task ID: use T-313 for explicitly selected new work. Groomer Q-104 remains deferred.
+- Next task ID: use T-314 for explicitly selected new work. Groomer Q-104 remains deferred.
 
 ## Fast Path
 
@@ -32,6 +32,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Validation Baseline
 
+- T-313 fixes the Customer Request address/publish path: empty State is neutral until validation, autocomplete renders as one top-layer anchored overlay, candidate selection prefills without opening review, Continue presents address correction and advances after acceptance, publish failures use the Wizard's global bottom feedback, and nullable Apple place IDs encode as explicit RPC null parameters. Full iOS tests, build/run, live autocomplete/confirmation inspection, UI audit, and preflight pass; no backend or remote write changed.
 - T-312 completes Q-120 and R-041: all four Customer reference surfaces have zero strict errors; the repository ratchet has 218 baseline entries plus four reviewed warnings with no new errors or stale entries. Full iOS tests/build/preflight and compact/large default/Accessibility 3 integration evidence pass. Remaining debt and migration ordering are published in `docs/04_ios/UI_CONSISTENCY_DEBT.md`; Q-104 remains deferred.
 - T-311 completes Q-119: Customer Account ownership is separated from Profile editing and uses shared page/section/grouped/settings-row contracts; authenticated release links use the same row primitive. Default and AX3 identity, Profile navigation, Privacy/Support, DEBUG, and destructive actions render and expose full-row semantic targets. Strict audits, full tests, and build pass; the baseline is 218 entries plus four reviewed warnings. No profile Store/repository/auth/backend behavior changed.
 - T-310 completes Q-118: Customer Request Wizard is strict-clean, uses semantic page/field/action/selection contracts, and has explicit default/Accessibility 3 Header, Time Window, and bottom-action layouts. Default and AX3 Pet/Service/Time surfaces render without horizontal clipping or low text scaling; full tests/build pass. The UI baseline is 234 entries plus four reviewed warnings. Store validation/publication, address confirmation, photos, republish, feedback, selectors, and backend contracts are unchanged.
@@ -163,4 +164,4 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Next Recommended Task
 
-- No package is currently dependency-satisfied. Q-104 Groomer UI Dynamic Type/Accessibility becomes available only when the user restores that scope; otherwise use T-313 for explicitly selected new work.
+- No package is currently dependency-satisfied. Q-104 Groomer UI Dynamic Type/Accessibility becomes available only when the user restores that scope; otherwise use T-314 for explicitly selected new work.
