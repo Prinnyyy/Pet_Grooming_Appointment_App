@@ -2,12 +2,21 @@
 
 ```text
 Date: 2026-07-12
+Task: T-310 - Q-118 Customer Request Wizard migration.
+Files changed: Wizard semantic/adaptive presentation, Accessibility 3 layout contract tests, UI audit baseline, and roadmap/task/memory closeout.
+Checks: strict RED with 24 errors then GREEN; test-interface RED then GREEN; baseline prune 27; full iOS tests; iOS build/build-run; default and AX3 Pet/Service/Time screenshots, navigation/selectors, date/time/location controls; content size reset; audit/diff/context/preflight.
+Result: Wizard uses semantic page/field/action/selection contracts and shared ButtonStyles, with no local ButtonStyle, low scale factor, direct platform font, local shadow, or negative page compensation. Header, service cards, Time Window, Review rows, and bottom actions reflow without horizontal clipping at AX3; behavior and data paths remain intact.
+Risks: The seeded Customer Profile address was not currently confirmed, so live traversal correctly stopped at Time & Location rather than bypassing validation or writing remote data. Details/Review remain covered by existing full tests plus strict-clean adaptive code, but were not reached in this Simulator run.
+Next: Use T-311 for Q-119 Customer Account migration.
+```
+
+```text
+Date: 2026-07-12
 Task: T-309 - Q-117 Customer Requests migration.
 Files changed: Shared semantic page title; Requests page/card/section/action adaptive migration; Bookings title caller; UI audit baseline; roadmap/task/memory closeout.
 Checks: strict RED then GREEN for both Requests files; baseline prune 7; repository UI audit; full iOS tests; iOS build and build-run; default and Accessibility 3 active/cancelled Simulator snapshots and selector checks; content size reset; diff/context/preflight.
 Result: Requests now uses semantic page insets, title/type/section/action contracts and one canonical card elevation. Header/chip, card copy, actions, and closed rows reflow at Accessibility 3 without low scaling or truncation while Store calls, cancellation, detail, paging, handoff, republish, and selectors remain unchanged.
 Risks: Seed data exposed active and cancelled states only; empty and booking-handoff branches retain their existing tested behavior but were not visually manufactured through backend writes. Two reviewed Home UI101 fixed-width warnings remain outside this strict-clean Requests surface.
-Next: Use T-310 for Q-118 Customer Request Wizard migration.
 ```
 
 ```text

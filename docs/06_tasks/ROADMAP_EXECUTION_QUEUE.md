@@ -17,23 +17,23 @@ Source: T-202 adopted root review input `../../V1.0_RELEASE_TASK_PLAN.md`; that 
 - T-243 approved the Beckon identity contract in `BECKON_BRAND_MIGRATION.md`; Q-94/T-246, Q-95/T-247, and Q-96/T-248 are complete.
 - T-249 approved `../08_design/GROOMER_UI_REDESIGN.md`; T-250 completed Q-97, T-252 completed Q-98, T-253 completed Q-99, T-254 completed Q-100, T-255 completed Q-101, T-256 completed Q-102, T-257 completed Q-103, and T-258 completed default-text/selector integration verification. Q-104 retains only user-deferred Dynamic Type and Accessibility work; it has no backend or remote writes.
 - T-291 approved `APPLE_MAPS_ADDRESS_SYSTEM_PLAN.md`; T-292/T-293/T-294/T-296/T-297/T-298/T-299/T-300 completed Q-105 through Q-112, including the remotely verified strict coordinate cutover.
-- T-301 approved R-041, T-303 converted it into Q-113 through Q-120, and T-304/T-305/T-307/T-308/T-309 completed Q-113 through Q-117. Execute the remaining packages one per fresh session; Q-104 remains separate and deferred.
+- T-301 approved R-041, T-303 converted it into Q-113 through Q-120, and T-304/T-305/T-307/T-308/T-309/T-310 completed Q-113 through Q-118. Execute the remaining packages one per fresh session; Q-104 remains separate and deferred.
 
 ## Queue
 
 | Order | Roadmap | Package | Scope / Exit |
 |---|---|---|---|
-| Q-118 | R-041 | Customer Request Wizard migration | Remove the local ButtonStyle, migrate choices/fields/action bar, replace low text scaling with adaptive layouts, and preserve all five-step validation/publication behavior. |
 | Q-119 | R-041 | Customer Account migration | Separate Account from Profile editor ownership and reuse semantic sections, grouped surfaces, settings rows, links, and action metrics. |
 | Q-120 | R-041 | First-slice integration gate | Prove strict audit for all four Customer surfaces, full tests/build/preflight, default/Accessibility 3 rendering, and publish the remaining-debt inventory. |
 | Q-104 | R-039 | Groomer Dynamic Type and Accessibility integration gate | Complete the remaining Dynamic Type and Accessibility state/interaction audit after the user restores this deferred scope; rerun affected selector and full iOS regression gates. |
 
-Q-118 is the next dependency-satisfied package. Q-119 and Q-120 execute in order; Q-104 stays user-deferred.
+Q-119 is the next dependency-satisfied package. Q-120 follows; Q-104 stays user-deferred.
 
 ## Completed UI Consistency Package
 
 | Order | Roadmap | Package | Result |
 |---|---|---|---|
+| Q-118 | R-041 | Customer Request Wizard migration | Complete T-310: semantic selection/field/action contracts, explicit default/AX3 Header and choice layouts, adaptive Review/actions, strict audit, and default/Accessibility 3 Simulator proof. |
 | Q-117 | R-041 | Customer Requests migration | Complete T-309: shared semantic page title, page/section/type/action migration, canonical card elevation, adaptive active/cancelled card layouts, strict audit, and default/Accessibility 3 Simulator proof. |
 | Q-116 | R-041 | Customer Home migration | Complete T-308: Pet Form ownership extracted with guarded baseline relocation; Home uses semantic sections/insets/type/action contrast, flexible Pet Cards, strict audit, and default/Accessibility 3 Simulator proof. |
 | Q-115 | R-041 | Shared semantic components and catalog | Complete T-307: role accents, page insets, semantic section/grouped/selection/settings/field primitives, primary visual availability, compatibility header routing, and default/Accessibility 3 DEBUG catalog proof. |

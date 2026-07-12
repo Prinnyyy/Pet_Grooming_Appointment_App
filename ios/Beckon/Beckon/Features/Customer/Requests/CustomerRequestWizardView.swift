@@ -239,10 +239,8 @@ struct CustomerRequestWizardView: View {
 
                         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                             Text(currentStep.headline)
-                                .font(DesignTokens.Typography.largeTitle)
+                                .font(DesignTokens.Typography.pageTitle)
                                 .foregroundStyle(DesignTokens.Colors.textPrimary)
-                                .lineLimit(2)
-                                .minimumScaleFactor(0.72)
                                 .fixedSize(horizontal: false, vertical: true)
 
                             if let subtitle = currentStep.subtitle {
@@ -263,9 +261,7 @@ struct CustomerRequestWizardView: View {
                             .accessibilityIdentifier("customer.requests.form-error")
                         }
                     }
-                    .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-                    .padding(.top, DesignTokens.Spacing.lg)
-                    .padding(.bottom, DesignTokens.Spacing.xl)
+                    .beckonPageInsets(bottom: DesignTokens.Layout.sectionSpacing)
                 }
                 .scrollContentBackground(.hidden)
                 .scrollDismissesKeyboard(.interactively)
@@ -380,47 +376,45 @@ struct CustomerRequestWizardView: View {
                 applySelectedTimeWindow()
             }
 
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                Text("Time Window")
-                    .font(DesignTokens.Typography.headline)
-                    .foregroundStyle(DesignTokens.Colors.textPrimary)
-
-                CustomerRequestTimeWindowGrid(
-                    selectedTimeWindow: selectedTimeWindow,
-                    isFlexibleWithTime: isFlexibleWithTime,
-                    isInvalid: invalidFields.contains(.timeWindow)
-                ) { option in
-                    selectedTimeWindow = option
-                    isFlexibleWithTime = false
-                    clearInvalidField(.timeWindow)
-                    applySelectedTimeWindow()
-                }
-
-                if selectedTimeWindow == .detailed && !isFlexibleWithTime {
-                    CustomerRequestDetailedTimeFields(
-                        preferredStart: $store.preferredStart,
-                        preferredEnd: $store.preferredEnd,
+            BeckonFieldGroup("Time Window") {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                    CustomerRequestTimeWindowGrid(
+                        selectedTimeWindow: selectedTimeWindow,
+                        isFlexibleWithTime: isFlexibleWithTime,
                         isInvalid: invalidFields.contains(.timeWindow)
-                    )
-                    .onChange(of: store.preferredStart) { _, _ in
+                    ) { option in
+                        selectedTimeWindow = option
+                        isFlexibleWithTime = false
                         clearInvalidField(.timeWindow)
+                        applySelectedTimeWindow()
                     }
-                    .onChange(of: store.preferredEnd) { _, _ in
-                        clearInvalidField(.timeWindow)
-                    }
-                    .transition(.opacity.combined(with: .move(edge: .top)))
-                }
 
-                CustomerRequestFlexibleTimeToggle(
-                    isOn: Binding(
-                        get: { isFlexibleWithTime },
-                        set: { newValue in
-                            isFlexibleWithTime = newValue
+                    if selectedTimeWindow == .detailed && !isFlexibleWithTime {
+                        CustomerRequestDetailedTimeFields(
+                            preferredStart: $store.preferredStart,
+                            preferredEnd: $store.preferredEnd,
+                            isInvalid: invalidFields.contains(.timeWindow)
+                        )
+                        .onChange(of: store.preferredStart) { _, _ in
                             clearInvalidField(.timeWindow)
-                            applySelectedTimeWindow()
                         }
+                        .onChange(of: store.preferredEnd) { _, _ in
+                            clearInvalidField(.timeWindow)
+                        }
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                    }
+
+                    CustomerRequestFlexibleTimeToggle(
+                        isOn: Binding(
+                            get: { isFlexibleWithTime },
+                            set: { newValue in
+                                isFlexibleWithTime = newValue
+                                clearInvalidField(.timeWindow)
+                                applySelectedTimeWindow()
+                            }
+                        )
                     )
-                )
+                }
             }
 
             locationSection
@@ -428,38 +422,35 @@ struct CustomerRequestWizardView: View {
     }
 
     private var locationSection: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            Text("Location")
-                .font(DesignTokens.Typography.headline)
-                .foregroundStyle(DesignTokens.Colors.textPrimary)
-
-            ForEach(CustomerRequestLocationMode.allCases) { mode in
-                CustomerRequestLocationModeCard(
-                    mode: mode,
-                    isSelected: store.locationMode == mode
-                ) {
-                    store.locationMode = mode
+        BeckonFieldGroup("Location") {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                ForEach(CustomerRequestLocationMode.allCases) { mode in
+                    CustomerRequestLocationModeCard(
+                        mode: mode,
+                        isSelected: store.locationMode == mode
+                    ) {
+                        store.locationMode = mode
+                    }
                 }
-            }
 
-            CustomerRequestAddressFields(
-                addressEditorState: store.addressEditorState,
-                locationMode: store.locationMode,
-                travelRangeMiles: $store.travelRadiusMiles,
-                isApplyingProfileAddress: isApplyingProfileAddress,
-                useProfileAddress: applyProfileAddress,
-                clearInvalidField: clearInvalidField
-            )
+                CustomerRequestAddressFields(
+                    addressEditorState: store.addressEditorState,
+                    locationMode: store.locationMode,
+                    travelRangeMiles: $store.travelRadiusMiles,
+                    isApplyingProfileAddress: isApplyingProfileAddress,
+                    useProfileAddress: applyProfileAddress,
+                    clearInvalidField: clearInvalidField
+                )
+            }
         }
     }
 
     private var detailsStep: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                Text("Notes To Groomers")
-                    .font(DesignTokens.Typography.headline)
-                    .foregroundStyle(DesignTokens.Colors.textSecondary)
-
+            BeckonFieldGroup(
+                "Notes To Groomers",
+                errorText: invalidFields.contains(.notes) ? "Add grooming notes before continuing." : nil
+            ) {
                 TextField("Share coat goals, sensitivities, or handling notes.", text: $store.serviceNotes, axis: .vertical)
                     .lineLimit(5...8)
                     .beckonFormField(isInvalid: invalidFields.contains(.notes))
@@ -823,114 +814,113 @@ private enum CustomerRequestWizardDateFormatting {
 }
 
 private struct CustomerRequestWizardHeader: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     let currentStep: CustomerRequestWizardStep
     let backAction: () -> Void
-    private let progressLayout = CustomerRequestWizardProgressLayout(
-        backButtonWidth: 54,
-        horizontalSpacing: DesignTokens.Spacing.md
-    )
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            HStack(spacing: progressLayout.horizontalSpacing) {
-                Button(action: backAction) {
-                    Image(systemName: "chevron.left")
-                        .font(.title3.weight(.bold))
-                        .foregroundStyle(DesignTokens.Colors.textPrimary)
-                        .frame(
-                            width: progressLayout.backButtonWidth,
-                            height: progressLayout.backButtonWidth
-                        )
-                        .background(DesignTokens.Colors.surface)
-                        .clipShape(
-                            RoundedRectangle(
-                                cornerRadius: DesignTokens.CornerRadius.input,
-                                style: .continuous
-                            )
-                        )
-                        .overlay {
-                            RoundedRectangle(
-                                cornerRadius: DesignTokens.CornerRadius.input,
-                                style: .continuous
-                            )
-                            .stroke(DesignTokens.Colors.borderSoft, lineWidth: 1)
-                        }
+        Group {
+            if progressLayout.usesStackedHeader {
+                VStack(alignment: .leading, spacing: progressLayout.horizontalSpacing) {
+                    backButton
+                    progressContent
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Back")
-                .accessibilityIdentifier(
-                    currentStep == .pet
-                        ? "customer.requests.wizard.dismiss"
-                        : "customer.requests.wizard.header-back"
-                )
-
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                    Text("Grooming Request")
-                        .font(DesignTokens.Typography.body.weight(.bold))
-                        .foregroundStyle(DesignTokens.Colors.textTertiary)
-
-                    GeometryReader { proxy in
-                        ZStack(alignment: .leading) {
-                            Capsule()
-                                .fill(DesignTokens.Colors.border.opacity(0.8))
-
-                            Capsule()
-                                .fill(
-                                    LinearGradient(
-                                        colors: [
-                                            DesignTokens.Colors.customerPrimary,
-                                            DesignTokens.Colors.customerPrimary.opacity(0.6),
-                                        ],
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
-                                )
-                                .frame(width: proxy.size.width * currentStep.progress)
-                        }
-                    }
-                    .frame(height: 8)
-
-                    HStack {
-                        ForEach(CustomerRequestWizardStep.allCases) { step in
-                            Text(step.title)
-                                .font(DesignTokens.Typography.caption.weight(.bold))
-                                .foregroundStyle(labelColor(for: step))
-                                .frame(maxWidth: .infinity)
-                        }
-                    }
-                    .padding(.top, DesignTokens.Spacing.xs)
+            } else {
+                HStack(spacing: progressLayout.horizontalSpacing) {
+                    backButton
+                    progressContent
                 }
             }
         }
     }
 
-    private func labelColor(for step: CustomerRequestWizardStep) -> Color {
-        if step == currentStep {
-            return DesignTokens.Colors.customerPrimaryDark
-        }
-
-        if step.rawValue < currentStep.rawValue {
-            return DesignTokens.Colors.textPrimary
-        }
-
-        return DesignTokens.Colors.textSecondary
+    private var progressLayout: CustomerRequestWizardProgressLayout {
+        CustomerRequestWizardProgressLayout(
+            backButtonWidth: DesignTokens.Metrics.actionHeight,
+            horizontalSpacing: DesignTokens.Layout.sectionContentSpacing,
+            dynamicTypeSize: dynamicTypeSize
+        )
     }
+
+    private var backButton: some View {
+        Button(action: backAction) {
+            Image(systemName: "chevron.left")
+                .accessibilityHidden(true)
+        }
+        .buttonStyle(BeckonSecondaryButtonStyle(accent: .neutral, isFullWidth: false))
+        .accessibilityLabel("Back")
+        .accessibilityIdentifier(
+            currentStep == .pet
+                ? "customer.requests.wizard.dismiss"
+                : "customer.requests.wizard.header-back"
+        )
+    }
+
+    private var progressContent: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            Text("Grooming Request")
+                .font(DesignTokens.Typography.fieldLabel)
+                .foregroundStyle(DesignTokens.Colors.textTertiary)
+
+            GeometryReader { proxy in
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(DesignTokens.Colors.border.opacity(0.8))
+
+                    Capsule()
+                        .fill(DesignTokens.Colors.customerPrimary)
+                        .frame(width: proxy.size.width * currentStep.progress)
+                }
+            }
+            // Progress is non-text geometry and remains a stable thin track.
+            .frame(height: DesignTokens.Spacing.sm)
+
+            currentStepLabel
+                .padding(.top, DesignTokens.Spacing.xs)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .layoutPriority(1)
+    }
+
+    private var currentStepLabel: some View {
+        Text("Step \(currentStep.rawValue + 1) of \(CustomerRequestWizardStep.allCases.count): \(currentStep.title)")
+            .font(DesignTokens.Typography.supporting)
+            .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+
 }
 
 struct CustomerRequestWizardProgressLayout: Equatable {
     let backButtonWidth: CGFloat
     let horizontalSpacing: CGFloat
+    let usesStackedHeader: Bool
+    let usesSingleColumnChoices: Bool
+
+    init(
+        backButtonWidth: CGFloat,
+        horizontalSpacing: CGFloat,
+        dynamicTypeSize: DynamicTypeSize
+    ) {
+        self.backButtonWidth = backButtonWidth
+        self.horizontalSpacing = horizontalSpacing
+        usesStackedHeader = dynamicTypeSize.isAccessibilitySize
+        usesSingleColumnChoices = dynamicTypeSize.isAccessibilitySize
+    }
 
     var progressTrackLeadingOffset: CGFloat {
         backButtonWidth + horizontalSpacing
     }
 
-    var shouldLabelRowShareProgressTrackWidth: Bool {
+    var doesStepLabelShareProgressTrackWidth: Bool {
         true
     }
 }
 
 private struct CustomerRequestWizardBottomBar: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     let currentStep: CustomerRequestWizardStep
     let isSubmitting: Bool
     let canContinue: Bool
@@ -938,30 +928,19 @@ private struct CustomerRequestWizardBottomBar: View {
     let continueAction: () -> Void
 
     var body: some View {
-        HStack(spacing: DesignTokens.Spacing.md) {
-            Button("Back", action: backAction)
-                .buttonStyle(BeckonSecondaryButtonStyle(accent: .neutral))
-                .frame(width: 132)
-                .disabled(isSubmitting)
-
-            Button(action: continueAction) {
-                Text(primaryTitle)
+        Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(spacing: DesignTokens.Spacing.sm) {
+                    actions
+                }
+            } else {
+                HStack(spacing: DesignTokens.Spacing.md) {
+                    actions
+                }
             }
-            .buttonStyle(
-                CustomerRequestWizardPrimaryButtonStyle(
-                    isVisuallyEnabled: canContinue && !isSubmitting
-                )
-            )
-            .disabled(isSubmitting)
-            .accessibilityIdentifier(
-                currentStep == .review
-                    ? "customer.requests.publish"
-                    : "customer.requests.wizard.continue"
-            )
         }
-        .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-        .padding(.top, DesignTokens.Spacing.md)
-        .padding(.bottom, DesignTokens.Spacing.md)
+        .padding(.horizontal, DesignTokens.Layout.pageHorizontalInset)
+        .padding(.vertical, DesignTokens.Layout.actionAreaInset)
         .background(
             LinearGradient(
                 colors: [
@@ -975,71 +954,34 @@ private struct CustomerRequestWizardBottomBar: View {
         )
     }
 
+    @ViewBuilder
+    private var actions: some View {
+        Button("Back", action: backAction)
+            .buttonStyle(BeckonSecondaryButtonStyle(accent: .neutral))
+            .disabled(isSubmitting)
+
+        Button(action: continueAction) {
+            Text(primaryTitle)
+        }
+        .buttonStyle(
+            BeckonPrimaryButtonStyle(
+                isVisuallyEnabled: canContinue && !isSubmitting
+            )
+        )
+        .disabled(isSubmitting)
+        .accessibilityIdentifier(
+            currentStep == .review
+                ? "customer.requests.publish"
+                : "customer.requests.wizard.continue"
+        )
+    }
+
     private var primaryTitle: String {
         if isSubmitting {
             return "Publishing..."
         }
 
         return currentStep == .review ? "Publish Request" : "Continue"
-    }
-}
-
-private struct CustomerRequestWizardPrimaryButtonStyle: ButtonStyle {
-    let isVisuallyEnabled: Bool
-
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(DesignTokens.Typography.body.weight(.semibold))
-            .foregroundStyle(
-                isVisuallyEnabled
-                    ? DesignTokens.Colors.surface
-                    : DesignTokens.Colors.textTertiary
-            )
-            .frame(maxWidth: .infinity, minHeight: 44)
-            .padding(.horizontal, DesignTokens.Spacing.lg)
-            .padding(.vertical, DesignTokens.Spacing.md)
-            .background {
-                RoundedRectangle(
-                    cornerRadius: DesignTokens.CornerRadius.button,
-                    style: .continuous
-                )
-                .fill(backgroundGradient(isPressed: configuration.isPressed))
-            }
-            .beckonShadow(
-                DesignTokens.Shadows.primaryAction,
-                isVisible: isVisuallyEnabled
-            )
-            .scaleEffect(configuration.isPressed && isVisuallyEnabled ? 0.98 : 1)
-            .opacity(isVisuallyEnabled ? 1 : 0.72)
-            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
-            .animation(.easeOut(duration: 0.12), value: isVisuallyEnabled)
-    }
-
-    private func backgroundGradient(isPressed: Bool) -> LinearGradient {
-        let colors: [Color]
-
-        if isVisuallyEnabled {
-            colors = isPressed
-                ? [
-                    DesignTokens.Colors.customerPrimaryDark,
-                    DesignTokens.Colors.customerPrimary,
-                ]
-                : [
-                    DesignTokens.Colors.customerPrimary,
-                    DesignTokens.Colors.customerPrimaryDark,
-                ]
-        } else {
-            colors = [
-                DesignTokens.Colors.borderSoft,
-                DesignTokens.Colors.borderSoft,
-            ]
-        }
-
-        return LinearGradient(
-            colors: colors,
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
     }
 }
 
@@ -1051,7 +993,12 @@ private struct CustomerRequestPetChoiceCard: View {
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
+        BeckonSelectionCard(
+            isSelected: isSelected,
+            isInvalid: isInvalid,
+            accent: .customer,
+            action: action
+        ) {
             HStack(spacing: DesignTokens.Spacing.lg) {
                 CustomerRequestWizardPetAvatar(
                     pet: pet,
@@ -1061,70 +1008,32 @@ private struct CustomerRequestPetChoiceCard: View {
 
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     Text(pet.name)
-                        .font(.title3.weight(.bold))
+                        .font(DesignTokens.Typography.cardTitle)
                         .foregroundStyle(DesignTokens.Colors.textPrimary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.82)
+                        .fixedSize(horizontal: false, vertical: true)
 
                     Text(subtitle)
                         .font(DesignTokens.Typography.body)
                         .foregroundStyle(DesignTokens.Colors.textSecondary)
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.82)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
 
                 Spacer(minLength: DesignTokens.Spacing.sm)
 
                 if isSelected {
                     Image(systemName: "checkmark")
-                        .font(.headline.weight(.bold))
-                        .foregroundStyle(DesignTokens.Colors.surface)
+                        .font(DesignTokens.Typography.action)
+                        .foregroundStyle(DesignTokens.Colors.textPrimary)
                         .frame(width: 42, height: 42)
-                        .background(DesignTokens.Colors.customerPrimary)
+                        .background(DesignTokens.Colors.customerPrimary.opacity(0.42))
                         .clipShape(Circle())
                 }
             }
-            .padding(DesignTokens.Spacing.lg)
-            .frame(maxWidth: .infinity, minHeight: 128, alignment: .leading)
-            .background(DesignTokens.Colors.surface)
-            .clipShape(
-                RoundedRectangle(
-                    cornerRadius: DesignTokens.CornerRadius.card,
-                    style: .continuous
-                )
-            )
-            .overlay {
-                RoundedRectangle(
-                    cornerRadius: DesignTokens.CornerRadius.card,
-                    style: .continuous
-                )
-                .stroke(
-                    borderColor,
-                    lineWidth: isSelected || isInvalid ? 2 : 1
-                )
-            }
-            .shadow(
-                color: isInvalid ? DesignTokens.Colors.error.opacity(0.26) : .clear,
-                radius: isInvalid ? 11 : 0,
-                x: 0,
-                y: 0
-            )
-            .beckonShadow(DesignTokens.Shadows.smallCard)
+            .frame(maxWidth: .infinity, minHeight: 96, alignment: .leading)
         }
-        .buttonStyle(.plain)
         .accessibilityIdentifier(
             "customer.requests.wizard.pet.\(pet.species.lowercased())"
         )
-    }
-
-    private var borderColor: Color {
-        if isInvalid {
-            return DesignTokens.Colors.error
-        }
-
-        return isSelected
-            ? DesignTokens.Colors.customerPrimary
-            : DesignTokens.Colors.border
     }
 
     private var subtitle: String {
@@ -1145,7 +1054,7 @@ private struct CustomerRequestAddPetButton: View {
         Button(action: action) {
             HStack(spacing: DesignTokens.Spacing.md) {
                 Image(systemName: "plus")
-                    .font(.title3.weight(.semibold))
+                    .font(DesignTokens.Typography.cardTitle)
 
                 Text("Add A New Pet")
                     .font(DesignTokens.Typography.body.weight(.bold))
@@ -1181,10 +1090,14 @@ private struct CustomerRequestServiceOptionCard: View {
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
-            HStack(spacing: DesignTokens.Spacing.lg) {
+        BeckonSelectionCard(
+            isSelected: isSelected,
+            accent: .customer,
+            action: action
+        ) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                 Image(systemName: "scissors")
-                    .font(.title3.weight(.bold))
+                    .font(DesignTokens.Typography.cardTitle)
                     .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
                     .frame(width: 64, height: 64)
                     .background(DesignTokens.Colors.customerPrimary.opacity(0.12))
@@ -1197,41 +1110,20 @@ private struct CustomerRequestServiceOptionCard: View {
 
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     Text(option.title)
-                        .font(.title3.weight(.bold))
+                        .font(DesignTokens.Typography.cardTitle)
                         .foregroundStyle(DesignTokens.Colors.textPrimary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.78)
+                        .fixedSize(horizontal: false, vertical: true)
 
                     Text(option.subtitle)
                         .font(DesignTokens.Typography.body)
                         .foregroundStyle(DesignTokens.Colors.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
 
-                Spacer(minLength: DesignTokens.Spacing.xs)
             }
-            .padding(DesignTokens.Spacing.lg)
-            .frame(maxWidth: .infinity, minHeight: 104, alignment: .leading)
-            .background(DesignTokens.Colors.surface)
-            .clipShape(
-                RoundedRectangle(
-                    cornerRadius: DesignTokens.CornerRadius.card,
-                    style: .continuous
-                )
-            )
-            .overlay {
-                RoundedRectangle(
-                    cornerRadius: DesignTokens.CornerRadius.card,
-                    style: .continuous
-                )
-                .stroke(
-                    isSelected ? DesignTokens.Colors.customerPrimary : DesignTokens.Colors.border,
-                    lineWidth: isSelected ? 2 : 1
-                )
-            }
-            .beckonShadow(DesignTokens.Shadows.smallCard)
+            .frame(maxWidth: .infinity, minHeight: 132, alignment: .leading)
         }
-        .buttonStyle(.plain)
         .accessibilityIdentifier(
             "customer.requests.wizard.service.\(option.rawValue)"
         )
@@ -1254,7 +1146,7 @@ private struct CustomerRequestDateStrip: View {
                                 .font(DesignTokens.Typography.caption.weight(.bold))
 
                             Text(dayNumber(date))
-                                .font(.title2.weight(.bold))
+                                .font(DesignTokens.Typography.sectionTitle)
                         }
                         .foregroundStyle(isSelected(date) ? DesignTokens.Colors.surface : DesignTokens.Colors.textPrimary)
                         .frame(width: 76, height: 92)
@@ -1282,8 +1174,6 @@ private struct CustomerRequestDateStrip: View {
             .padding(.vertical, DesignTokens.Spacing.xs)
         }
         .scrollIndicators(.hidden)
-        .padding(.horizontal, -DesignTokens.Spacing.screenHorizontal)
-        .contentMargins(.horizontal, DesignTokens.Spacing.screenHorizontal, for: .scrollContent)
     }
 
     private var dateOptions: [Date] {
@@ -1314,6 +1204,8 @@ private struct CustomerRequestDateStrip: View {
 }
 
 private struct CustomerRequestTimeWindowGrid: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     let selectedTimeWindow: CustomerRequestTimeWindowOption
     let isFlexibleWithTime: Bool
     let isInvalid: Bool
@@ -1321,10 +1213,7 @@ private struct CustomerRequestTimeWindowGrid: View {
 
     var body: some View {
         LazyVGrid(
-            columns: [
-                GridItem(.flexible(), spacing: DesignTokens.Spacing.md),
-                GridItem(.flexible(), spacing: DesignTokens.Spacing.md),
-            ],
+            columns: columns,
             alignment: .leading,
             spacing: DesignTokens.Spacing.md
         ) {
@@ -1339,8 +1228,8 @@ private struct CustomerRequestTimeWindowGrid: View {
                                 ? DesignTokens.Colors.surface
                                 : DesignTokens.Colors.textSecondary
                         )
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.78)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
                         .frame(maxWidth: .infinity, minHeight: 52)
                         .padding(.horizontal, DesignTokens.Spacing.sm)
                         .background(
@@ -1358,19 +1247,24 @@ private struct CustomerRequestTimeWindowGrid: View {
                                     lineWidth: isInvalid ? 1.6 : 1
                                 )
                         }
-                        .shadow(
-                            color: isInvalid && selectedTimeWindow == option
-                                ? DesignTokens.Colors.error.opacity(0.22)
-                                : .clear,
-                            radius: isInvalid && selectedTimeWindow == option ? 8 : 0,
-                            x: 0,
-                            y: 0
-                        )
                 }
                 .buttonStyle(.plain)
             }
         }
         .opacity(isFlexibleWithTime ? 0.56 : 1)
+    }
+
+    private var columns: [GridItem] {
+        let layout = CustomerRequestWizardProgressLayout(
+            backButtonWidth: DesignTokens.Metrics.actionHeight,
+            horizontalSpacing: DesignTokens.Layout.sectionContentSpacing,
+            dynamicTypeSize: dynamicTypeSize
+        )
+        let count = layout.usesSingleColumnChoices ? 1 : 2
+        return Array(
+            repeating: GridItem(.flexible(), spacing: DesignTokens.Spacing.md),
+            count: count
+        )
     }
 
     private func borderColor(for option: CustomerRequestTimeWindowOption) -> Color {
@@ -1448,50 +1342,33 @@ private struct CustomerRequestLocationModeCard: View {
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
+        BeckonSelectionCard(
+            isSelected: isSelected,
+            accent: .customer,
+            action: action
+        ) {
             HStack(spacing: DesignTokens.Spacing.md) {
                 Text(mode.icon)
-                    .font(.title2)
+                    .font(DesignTokens.Typography.sectionTitle)
                     .frame(width: 44)
 
                 Text(mode.customerTitle)
                     .font(DesignTokens.Typography.body.weight(.bold))
                     .foregroundStyle(DesignTokens.Colors.textPrimary)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.82)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 Spacer()
 
                 if isSelected {
                     Image(systemName: "checkmark")
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(DesignTokens.Colors.surface)
+                        .font(DesignTokens.Typography.status)
+                        .foregroundStyle(DesignTokens.Colors.textPrimary)
                         .frame(width: 34, height: 34)
-                        .background(DesignTokens.Colors.customerPrimary)
+                        .background(DesignTokens.Colors.customerPrimary.opacity(0.42))
                         .clipShape(Circle())
                 }
             }
-            .padding(DesignTokens.Spacing.lg)
-            .frame(maxWidth: .infinity, minHeight: 76)
-            .background(DesignTokens.Colors.surface)
-            .clipShape(
-                RoundedRectangle(
-                    cornerRadius: DesignTokens.CornerRadius.card,
-                    style: .continuous
-                )
-            )
-            .overlay {
-                RoundedRectangle(
-                    cornerRadius: DesignTokens.CornerRadius.card,
-                    style: .continuous
-                )
-                .stroke(
-                    isSelected ? DesignTokens.Colors.customerPrimary : DesignTokens.Colors.border,
-                    lineWidth: isSelected ? 2 : 1
-                )
-            }
         }
-        .buttonStyle(.plain)
     }
 }
 
@@ -1512,13 +1389,12 @@ private struct CustomerRequestAddressFields: View {
                             .tint(DesignTokens.Colors.customerPrimaryDark)
                     } else {
                         Image(systemName: "person.crop.circle.badge.checkmark")
-                            .font(.headline.weight(.semibold))
+                            .font(DesignTokens.Typography.action)
                     }
 
                     Text(isApplyingProfileAddress ? "Loading Profile Address..." : "Use Profile Address")
-                        .font(DesignTokens.Typography.body.weight(.bold))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.82)
+                        .font(DesignTokens.Typography.action)
+                        .fixedSize(horizontal: false, vertical: true)
 
                     Spacer(minLength: 0)
                 }
@@ -1628,21 +1504,14 @@ private struct CustomerRequestAddPhotoTile: View {
     let photoCount: Int
 
     var body: some View {
-        VStack(spacing: DesignTokens.Spacing.sm) {
-            Image(systemName: photoCount > 0 ? "checkmark.circle.fill" : "camera")
-                .font(.title2.weight(.semibold))
-                .foregroundStyle(
-                    photoCount > 0
-                        ? DesignTokens.Colors.customerPrimaryDark
-                        : DesignTokens.Colors.textTertiary
-                )
-
-            Text(photoCount > 0 ? "\(photoCount) Added" : "Add")
-                .font(DesignTokens.Typography.caption.weight(.bold))
-                .foregroundStyle(DesignTokens.Colors.textTertiary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
-        }
+        Image(systemName: photoCount > 0 ? "checkmark.circle.fill" : "camera")
+            .font(DesignTokens.Typography.sectionTitle)
+            .foregroundStyle(
+                photoCount > 0
+                    ? DesignTokens.Colors.customerPrimaryDark
+                    : DesignTokens.Colors.textTertiary
+            )
+        // Photo picker geometry matches the adjacent fixed media preview and contains no text.
         .frame(width: 112, height: 112)
         .background(DesignTokens.Colors.surface.opacity(0.4))
         .clipShape(
@@ -1661,6 +1530,7 @@ private struct CustomerRequestAddPhotoTile: View {
                 style: StrokeStyle(lineWidth: 1.5, dash: [6, 4])
             )
         }
+        .accessibilityLabel(photoCount > 0 ? "\(photoCount) photos added" : "Add photo")
     }
 }
 
@@ -1711,20 +1581,36 @@ private struct CustomerRequestWizardReviewRow: View {
     let row: CustomerRequestWizardReviewPresentation.Row
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.lg) {
-            Text(row.title)
-                .font(DesignTokens.Typography.body)
-                .foregroundStyle(DesignTokens.Colors.textSecondary)
-                .frame(maxWidth: 132, alignment: .leading)
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.lg) {
+                title
+                    .frame(maxWidth: 132, alignment: .leading)
+                value
+            }
 
-            Text(row.value)
-                .font(DesignTokens.Typography.body.weight(.bold))
-                .foregroundStyle(DesignTokens.Colors.textPrimary)
-                .multilineTextAlignment(.trailing)
-                .frame(maxWidth: .infinity, alignment: .trailing)
-                .fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                title
+                value
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
         }
         .padding(.vertical, DesignTokens.Spacing.md)
+    }
+
+    private var title: some View {
+        Text(row.title)
+            .font(DesignTokens.Typography.supporting)
+            .foregroundStyle(DesignTokens.Colors.textSecondary)
+    }
+
+    private var value: some View {
+        Text(row.value)
+            .font(DesignTokens.Typography.action)
+            .foregroundStyle(DesignTokens.Colors.textPrimary)
+            .multilineTextAlignment(.trailing)
+            .frame(maxWidth: .infinity, alignment: .trailing)
+            .fixedSize(horizontal: false, vertical: true)
     }
 }
 
@@ -1781,22 +1667,19 @@ private struct CustomerRequestWizardFitInputChip: View {
     var body: some View {
         HStack(alignment: .center, spacing: DesignTokens.Spacing.sm) {
             Image(systemName: chip.systemImage)
-                .font(.caption.weight(.semibold))
+                .font(DesignTokens.Typography.status)
                 .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
                 .frame(width: 18)
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                 Text(chip.label)
                     .font(DesignTokens.Typography.caption.weight(.semibold))
                     .foregroundStyle(DesignTokens.Colors.textSecondary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.82)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 Text(chip.title)
                     .font(DesignTokens.Typography.body.weight(.semibold))
                     .foregroundStyle(DesignTokens.Colors.textPrimary)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.82)
                     .fixedSize(horizontal: false, vertical: true)
             }
 

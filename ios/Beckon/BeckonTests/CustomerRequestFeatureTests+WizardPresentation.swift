@@ -1,5 +1,6 @@
 import CoreGraphics
 import Foundation
+import SwiftUI
 import Testing
 @testable import Beckon
 
@@ -129,14 +130,29 @@ extension CustomerRequestsStoreTests {
     }
 
     @Test @MainActor
-    func requestWizardProgressLabelsUseProgressTrackWidth() {
+    func requestWizardStepLabelUsesProgressTrackWidth() {
         let layout = CustomerRequestWizardProgressLayout(
             backButtonWidth: 54,
-            horizontalSpacing: 16
+            horizontalSpacing: 16,
+            dynamicTypeSize: .large
         )
 
         #expect(layout.progressTrackLeadingOffset == 70)
-        #expect(layout.shouldLabelRowShareProgressTrackWidth == true)
+        #expect(layout.doesStepLabelShareProgressTrackWidth == true)
+        #expect(layout.usesStackedHeader == false)
+        #expect(layout.usesSingleColumnChoices == false)
+    }
+
+    @Test @MainActor
+    func requestWizardAccessibilityThreeUsesStackedSingleColumnLayout() {
+        let layout = CustomerRequestWizardProgressLayout(
+            backButtonWidth: 54,
+            horizontalSpacing: 16,
+            dynamicTypeSize: .accessibility3
+        )
+
+        #expect(layout.usesStackedHeader == true)
+        #expect(layout.usesSingleColumnChoices == true)
     }
 
     @Test @MainActor
