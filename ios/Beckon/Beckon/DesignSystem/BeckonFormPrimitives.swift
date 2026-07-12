@@ -230,6 +230,45 @@ extension View {
     }
 }
 
+struct BeckonFieldGroup<Content: View>: View {
+    let label: String
+    let supportingText: String?
+    let errorText: String?
+    let content: Content
+
+    init(
+        _ label: String,
+        supportingText: String? = nil,
+        errorText: String? = nil,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.label = label
+        self.supportingText = supportingText
+        self.errorText = errorText
+        self.content = content()
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            Text(label)
+                .font(DesignTokens.Typography.fieldLabel)
+                .foregroundStyle(DesignTokens.Colors.textPrimary)
+
+            content
+
+            if let errorText {
+                Text(errorText)
+                    .font(DesignTokens.Typography.status)
+                    .foregroundStyle(DesignTokens.Colors.errorText)
+            } else if let supportingText {
+                Text(supportingText)
+                    .font(DesignTokens.Typography.supporting)
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+            }
+        }
+    }
+}
+
 private struct BeckonFormFieldModifier: ViewModifier {
     @Environment(\.isEnabled) private var isEnabled
 

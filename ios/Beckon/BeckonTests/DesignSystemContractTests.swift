@@ -31,4 +31,21 @@ struct DesignSystemContractTests {
         #expect(DesignTokens.Shadows.carouselCard.x == DesignTokens.Shadows.softCard.x)
         #expect(DesignTokens.Shadows.carouselCard.y == DesignTokens.Shadows.softCard.y)
     }
+
+    @Test
+    func primaryActionVisualAvailabilityCombinesWithEnvironmentAvailability() {
+        let visuallyUnavailable = BeckonPrimaryActionAvailability(
+            isEnvironmentEnabled: true,
+            isVisuallyEnabled: false
+        )
+        #expect(visuallyUnavailable.rendersEnabled == false)
+        #expect(visuallyUnavailable.acceptsTap == true)
+
+        let environmentUnavailable = BeckonPrimaryActionAvailability(
+            isEnvironmentEnabled: false,
+            isVisuallyEnabled: true
+        )
+        #expect(environmentUnavailable.rendersEnabled == false)
+        #expect(environmentUnavailable.acceptsTap == false)
+    }
 }

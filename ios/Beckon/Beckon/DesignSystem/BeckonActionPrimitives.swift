@@ -1,5 +1,18 @@
 import SwiftUI
 
+struct BeckonPrimaryActionAvailability: Equatable {
+    let isEnvironmentEnabled: Bool
+    let isVisuallyEnabled: Bool
+
+    var rendersEnabled: Bool {
+        isEnvironmentEnabled && isVisuallyEnabled
+    }
+
+    var acceptsTap: Bool {
+        isEnvironmentEnabled
+    }
+}
+
 struct BeckonPrimaryButtonStyle: ButtonStyle {
     enum Accent {
         case customer
@@ -34,34 +47,50 @@ struct BeckonPrimaryButtonStyle: ButtonStyle {
 
     private let accent: Accent
     private let isFullWidth: Bool
+    private let isVisuallyEnabled: Bool
 
-    init(accent: Accent = .customer, isFullWidth: Bool = true) {
+    init(
+        accent: Accent = .customer,
+        isFullWidth: Bool = true,
+        isVisuallyEnabled: Bool = true
+    ) {
         self.accent = accent
         self.isFullWidth = isFullWidth
+        self.isVisuallyEnabled = isVisuallyEnabled
     }
 
     func makeBody(configuration: Configuration) -> some View {
+        let availability = BeckonPrimaryActionAvailability(
+            isEnvironmentEnabled: isEnabled,
+            isVisuallyEnabled: isVisuallyEnabled
+        )
+
         configuration.label
-            .font(DesignTokens.Typography.body.weight(.semibold))
-            .foregroundStyle(isEnabled ? DesignTokens.Colors.primaryButtonForeground : DesignTokens.Colors.textTertiary)
-            .frame(maxWidth: isFullWidth ? .infinity : nil, minHeight: 44)
+            .font(DesignTokens.Typography.action)
+            .foregroundStyle(availability.rendersEnabled ? DesignTokens.Colors.primaryButtonForeground : DesignTokens.Colors.textTertiary)
+            .frame(maxWidth: isFullWidth ? .infinity : nil, minHeight: DesignTokens.Metrics.actionHeight)
             .padding(.horizontal, DesignTokens.Spacing.lg)
-            .padding(.vertical, DesignTokens.Spacing.md)
             .background {
                 RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous)
-                    .fill(backgroundGradient(isPressed: configuration.isPressed))
+                    .fill(backgroundGradient(
+                        isPressed: configuration.isPressed,
+                        rendersEnabled: availability.rendersEnabled
+                    ))
             }
-            .beckonShadow(accent.shadow, isVisible: isEnabled)
-            .scaleEffect(configuration.isPressed && isEnabled ? 0.98 : 1)
-            .opacity(isEnabled ? 1 : 0.64)
+            .beckonShadow(accent.shadow, isVisible: availability.rendersEnabled)
+            .scaleEffect(configuration.isPressed && availability.rendersEnabled ? 0.98 : 1)
+            .opacity(availability.rendersEnabled ? 1 : 0.64)
             .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
-            .animation(.easeOut(duration: 0.12), value: isEnabled)
+            .animation(.easeOut(duration: 0.12), value: availability.rendersEnabled)
     }
 
-    private func backgroundGradient(isPressed: Bool) -> LinearGradient {
+    private func backgroundGradient(
+        isPressed: Bool,
+        rendersEnabled: Bool
+    ) -> LinearGradient {
         let colors: [Color]
 
-        if isEnabled {
+        if rendersEnabled {
             colors = isPressed ? Array(accent.gradientColors.reversed()) : accent.gradientColors
         } else {
             colors = [
@@ -119,11 +148,10 @@ struct BeckonSecondaryButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(DesignTokens.Typography.body.weight(.semibold))
+            .font(DesignTokens.Typography.action)
             .foregroundStyle(isEnabled ? accent.foreground : DesignTokens.Colors.textTertiary)
-            .frame(maxWidth: isFullWidth ? .infinity : nil, minHeight: 44)
+            .frame(maxWidth: isFullWidth ? .infinity : nil, minHeight: DesignTokens.Metrics.actionHeight)
             .padding(.horizontal, DesignTokens.Spacing.lg)
-            .padding(.vertical, DesignTokens.Spacing.md)
             .background {
                 RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous)
                     .fill(backgroundColor(isPressed: configuration.isPressed))

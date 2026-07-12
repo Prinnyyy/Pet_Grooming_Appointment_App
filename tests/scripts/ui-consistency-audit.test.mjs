@@ -82,6 +82,17 @@ test("audit marks only repeated three-modifier visual stacks for review", () => 
   assert.equal(findings[0].line, 2);
 });
 
+test("semantic components are clean audit replacements", () => {
+  const source = [
+    "BeckonSection(\"Pets\") { BeckonGroupedSurface { content } }",
+    "BeckonSelectionCard(isSelected: true, accent: .customer, action: {}) { content }",
+    "BeckonFieldGroup(\"Name\") { field }",
+    "BeckonSettingsRowLabel(title: \"Profile\", summary: nil, systemImage: \"person\", accent: .customer)",
+    "content.beckonPageInsets()",
+  ].join("\n");
+  assert.deepEqual(auditSwiftSource({ filePath: "SemanticFeature.swift", source }), []);
+});
+
 test("single-site fixed geometry exception requires the exact directive and reason", () => {
   const allowed = [
     "// beckon-ui-audit: allow UI101 -- Fixed square media crop; text is outside this frame.",

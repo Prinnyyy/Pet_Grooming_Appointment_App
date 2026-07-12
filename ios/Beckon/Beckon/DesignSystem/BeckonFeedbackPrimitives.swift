@@ -1377,7 +1377,6 @@ extension BeckonEmptyState where Action == EmptyView {
 struct BeckonSectionHeader<Trailing: View>: View {
     private let title: String
     private let subtitle: String?
-    private let showsTrailing: Bool
     private let trailing: Trailing
 
     init(
@@ -1387,32 +1386,14 @@ struct BeckonSectionHeader<Trailing: View>: View {
     ) {
         self.title = title
         self.subtitle = subtitle
-        showsTrailing = true
         self.trailing = trailing()
     }
 
     var body: some View {
-        HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                Text(title)
-                    .font(DesignTokens.Typography.headline)
-                    .foregroundStyle(DesignTokens.Colors.textPrimary)
-
-                if let subtitle {
-                    Text(subtitle)
-                        .font(DesignTokens.Typography.caption)
-                        .foregroundStyle(DesignTokens.Colors.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-
-            if showsTrailing {
-                trailing
-            }
+        BeckonSectionHeading(title: title, subtitle: subtitle) {
+            trailing
         }
         .padding(.horizontal, DesignTokens.Spacing.xs)
-        .accessibilityElement(children: .contain)
     }
 }
 
@@ -1423,7 +1404,6 @@ extension BeckonSectionHeader where Trailing == EmptyView {
     ) {
         self.title = title
         self.subtitle = subtitle
-        showsTrailing = false
         trailing = EmptyView()
     }
 }

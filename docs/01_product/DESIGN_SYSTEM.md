@@ -60,6 +60,11 @@ Implemented primitives:
 
 - `BeckonPrimaryButtonStyle`
 - `BeckonSecondaryButtonStyle`
+- `BeckonSection` and compatibility `BeckonSectionHeader`
+- `BeckonGroupedSurface`
+- `BeckonSelectionCard`
+- `BeckonSettingsRowLabel`
+- `BeckonFieldGroup`
 - `BeckonCard`
 - `BeckonStatusChip`
 - `BeckonErrorBanner`
@@ -67,6 +72,8 @@ Implemented primitives:
 - `BeckonEmptyState`
 - `BeckonSectionHeader`
 - `.beckonFormField()`
+
+Use `.beckonPageInsets(bottom:)` for standard page geometry. `BeckonRoleAccent` maps Customer, Groomer, and neutral presentation without owning feature navigation or business semantics. `BeckonComponentCatalog` is DEBUG-only and previews default, disabled, selected, invalid, loading, empty, and error states at default and Accessibility 3 sizes.
 
 These primitives own only presentation. Calling screens still own validation, loading state, duplicate-submit prevention, retry actions, navigation, data fetching, and business mutations through existing Store/repository boundaries.
 

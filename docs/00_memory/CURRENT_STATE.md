@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-12
 - Updated by: Codex
-- Latest completed task: T-306 periodic meta-review.
+- Latest completed task: T-307 Q-115 shared semantic components and catalog.
 - Current task: none; T-157 APNs remains externally blocked and Q-104 Dynamic Type/Accessibility remains user-deferred.
-- Next task ID: use T-307 for R-041 Q-115 shared semantic components and catalog. Groomer Q-104 remains deferred.
+- Next task ID: use T-308 for R-041 Q-116 Customer Home migration. Groomer Q-104 remains deferred.
 
 ## Fast Path
 
@@ -32,6 +32,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Validation Baseline
 
+- T-307 completes Q-115: DesignSystem now owns role accents, page insets, semantic sections/grouped surfaces/selection cards/settings rows/field groups, standard action metrics, and separate primary visual-vs-tap availability. Existing Header/Button/Form/Feedback APIs remain compatible; a DEBUG catalog renders default and Accessibility 3 states without clipping. No Feature business/data/navigation/backend behavior changed.
 - T-306 periodic meta-review confirms branch/task/queue/index consistency, intentional root Markdown ignore behavior, zero active conflict markers, the 67-file migration mirror, current backend facts, and UI/preflight governance tests. No product, app, backend, dependency, or workflow rule changed.
 - T-305 completes Q-114: DesignTokens now owns business-semantic typography, layout, metrics, AA status text/unread colors, and one canonical soft-card elevation with compatibility aliases. Contract and contrast tests pass; status chips use semantic AA foregrounds. No backend, navigation, or business behavior changed.
 - T-304 completes Q-113: `scripts/ui-consistency-audit.mjs` lexes tracked Feature Swift code, enforces deterministic/high-risk/review rules, and ratchets 294 legacy findings without accepting new errors or stale entries. Migrated paths use `strict`; initialize/prune/relocate are guarded; preflight and its hermetic fixture run the gate. No Swift app, backend, dependency, navigation, or product behavior changed.
