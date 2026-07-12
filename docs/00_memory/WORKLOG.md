@@ -2,12 +2,21 @@
 
 ```text
 Date: 2026-07-11
+Task: T-290 - Completion-driven English address autocomplete.
+Files changed: Shared MapKit completion-resolution pipeline; Customer Request five-row suggestion presentation and focused tests; memory closeout.
+Checks: Forced RED/green Customer Requests suite for stable concurrent completion ordering and localized-candidate exclusion; live unbounded MapKit probe resolving five `760 S Harbor Blvd` completions to en_US street/city/state/ZIP; `./scripts/ios-build.sh`; `git diff --check`; context hygiene.
+Result: Removed T-289's whole-query forward geocode, which naturally returned one best address rather than autocomplete. The shared search now follows Apple's documented `MKLocalSearchCompleter` -> `MKLocalSearch.Request(completion:)` flow, resolves the leading completions concurrently, preserves MapKit relevance order, deduplicates real addresses, and displays up to five en_US reverse-geocoded candidates. No city/county/market region bias is configured. Request, Customer Profile, and Groomer Profile retain the same shared search service; UNIT/APT suffixes are excluded from search and restored only after selection.
+Risks: MapKit search/reverse geocoding remains network-dependent. Failed or non-English-resolved candidates are omitted rather than fabricated; no third-party address provider or API key was added. No backend, persistence, or remote state changed.
+Next: Use T-291 for the next user-selected task; Q-104 remains deferred.
+```
+
+```text
+Date: 2026-07-11
 Task: T-289 - Truthful English address autocomplete candidates.
 Files changed: Shared MapKit address candidate/resolution pipeline; Customer Request address tests; memory closeout.
 Checks: Live `MKLocalSearchCompleter` and en_US `MKGeocodingRequest` probes for `760 S Harbor Blvd`; forced-clean RED test; Customer Requests focused tests including async candidate publication; `./scripts/ios-build.sh`; `git diff --check`; preflight/context hygiene.
 Result: Device evidence showed the completer returned English street titles but Chinese-localized city/country subtitles. The prior fallback collapsed five real locations into the typed text plus United States, which was not autocomplete. That fallback is removed. After 260ms input stabilization, iOS 26 uses `MKGeocodingRequest.preferredLocale = en_US`; older systems use `CLGeocoder` with the same preferred locale. Published rows contain actual street/city/state/ZIP data, Han-localized completer rows are excluded, already-English completer rows may supplement the list, semantic duplicates are removed, and selection directly fills the resolved candidate with any UNIT/APT suffix restored.
 Risks: MapKit geocoding is network-dependent and may return one prioritized candidate for an ambiguous street unless city/state context is present. The UI never fabricates an alternative candidate. No backend, persistence, or remote state changed.
-Next: Use T-290 for the next user-selected task; Q-104 remains deferred.
 ```
 
 ```text

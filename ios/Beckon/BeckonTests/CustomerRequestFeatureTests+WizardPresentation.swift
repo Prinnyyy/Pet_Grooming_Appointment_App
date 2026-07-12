@@ -494,6 +494,12 @@ extension CustomerRequestsStoreTests {
                     state: "CA",
                     zipCode: "92832"
                 ),
+                BeckonAddressCandidate(
+                    streetAddress: "760 S Harbor Blvd",
+                    city: "富勒顿",
+                    state: "CA",
+                    zipCode: "92832"
+                ),
             ]
         )
 
@@ -508,28 +514,47 @@ extension CustomerRequestsStoreTests {
         ])
     }
 
-    @Test @MainActor
-    func addressSearchPublishesResolvedEnglishCandidates() async throws {
-        let search = BeckonAddressSearch(
-            lookupDelay: .zero,
-            englishCandidateLookup: { query in
-                #expect(query == "760 S Harbor Blvd")
-                return [
-                    BeckonAddressCandidate(
-                        streetAddress: "760 S Harbor Blvd",
-                        city: "Fullerton",
-                        state: "CA",
-                        zipCode: "92832"
-                    ),
-                ]
+    @Test
+    func addressCompletionBatchPreservesMapKitRankingAcrossConcurrentResolution() async {
+        let candidates = await BeckonAddressCandidateBatch.resolve(
+            ["first", "unresolved", "third", "fourth"],
+            limit: 4
+        ) { completion in
+            switch completion {
+            case "first":
+                try? await Task.sleep(for: .milliseconds(30))
+                return BeckonAddressCandidate(
+                    streetAddress: "760 S Harbor Blvd",
+                    city: "Fullerton",
+                    state: "CA",
+                    zipCode: "92832"
+                )
+            case "third":
+                return BeckonAddressCandidate(
+                    streetAddress: "760 N Harbor Blvd",
+                    city: "Fullerton",
+                    state: "CA",
+                    zipCode: "92832"
+                )
+            case "fourth":
+                try? await Task.sleep(for: .milliseconds(10))
+                return BeckonAddressCandidate(
+                    streetAddress: "760 S Harbor Blvd",
+                    city: "Anaheim",
+                    state: "CA",
+                    zipCode: "92805"
+                )
+            default:
+                return nil
             }
-        )
+        }
 
-        search.update(street: "760 S Harbor Blvd UNIT 2410", city: "", stateCode: nil)
-        try await Task.sleep(for: .milliseconds(50))
-
-        #expect(search.suggestions.first?.title == "760 S Harbor Blvd")
-        #expect(search.suggestions.first?.subtitle == "Fullerton, CA 92832")
+        #expect(candidates.map(\.streetAddress) == [
+            "760 S Harbor Blvd",
+            "760 N Harbor Blvd",
+            "760 S Harbor Blvd",
+        ])
+        #expect(candidates.map(\.city) == ["Fullerton", "Fullerton", "Anaheim"])
     }
 
     @Test

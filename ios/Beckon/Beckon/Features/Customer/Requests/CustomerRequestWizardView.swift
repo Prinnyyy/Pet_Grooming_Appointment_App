@@ -295,7 +295,7 @@ struct CustomerRequestWizardView: View {
                 GeometryReader { proxy in
                     if let anchor, isAddressSuggestionsPresented {
                         CustomerRequestAddressSuggestionOverlay(
-                            suggestions: Array(addressSearch.suggestions.prefix(4)),
+                            suggestions: Array(addressSearch.suggestions.prefix(5)),
                             fieldFrame: proxy[anchor],
                             select: applyAddressSuggestion
                         )
