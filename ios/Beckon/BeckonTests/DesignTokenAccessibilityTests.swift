@@ -34,6 +34,17 @@ struct DesignTokenAccessibilityTests {
         }
     }
 
+    @Test
+    func statusTextColorsMeetAAOnSurface() {
+        for color in [
+            DesignTokens.ColorHex.successText,
+            DesignTokens.ColorHex.warningText,
+            DesignTokens.ColorHex.errorText,
+        ] {
+            #expect(Self.contrastRatio(color, DesignTokens.ColorHex.surface) >= 4.5)
+        }
+    }
+
     private static func contrastRatio(_ firstHex: UInt, _ secondHex: UInt) -> Double {
         let first = relativeLuminance(firstHex)
         let second = relativeLuminance(secondHex)

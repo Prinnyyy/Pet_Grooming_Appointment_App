@@ -44,11 +44,13 @@ Use semantic tokens from `DesignTokens` before adding a new value.
 
 Current token groups include:
 
-- Colors: background, raised surface, border, divider, primary/secondary/tertiary text, customer primary states, groomer accent states, success, warning, and error.
-- Spacing: compact through large gaps plus screen horizontal padding.
+- Colors: background, raised surface, border, divider, primary/secondary/tertiary text, customer/groomer action states, status fills, AA status text, and notification unread.
+- Layout: semantic page, section, surface, row, field, and action-area insets on the approved grid.
+- Metrics: minimum touch target, field/action height, and settings icon slot.
+- Spacing: compatibility aliases for existing compact through large gaps; new feature work uses semantic Layout roles.
 - Shape: card, button, input, bottom sheet, chip, and circular shapes.
-- Shadow: soft card, small card, customer primary action, and groomer action.
-- Typography: large title, title, headline, body, and caption using SwiftUI semantic styles.
+- Shadow: one canonical soft-card elevation plus customer/groomer action elevations; small-card and carousel-card names are temporary compatibility aliases.
+- Typography: page title, section title, card title, body, supporting, field label, status, and action roles using SwiftUI semantic styles. Legacy large-title/title/headline/caption names remain only until audited usage reaches zero.
 
 New tokens must be introduced through `DesignTokens`, then reused by shared primitives or feature screens. Do not scatter raw Beckon hex colors, radii, shadows, or spacing through feature views.
 
@@ -88,9 +90,9 @@ Approved light-palette color pairs:
 | `textPrimary #232323` | success, warning, or error fill | Approved for status chips; pair color with text or an icon. |
 | `textTertiary #69717A` | surface or app background | Approved. |
 | `textSecondary #6F767E` | surface | Approved; do not use on app background for normal-size text. |
-| `successText #37744E` | surface | Approved AA replacement for success body text; token implementation is follow-up work. |
-| `warningText #8F6800` | surface | Approved AA replacement for warning body text; token implementation is follow-up work. |
-| `errorText #B4474C` | surface | Approved AA replacement for error body text; token implementation is follow-up work. |
+| `successText #37744E` | surface | Approved and implemented AA success body text. |
+| `warningText #8F6800` | surface | Approved and implemented AA warning body text. |
+| `errorText #B4474C` | surface | Approved and implemented AA error body text. |
 
 Banned pairs:
 
@@ -105,7 +107,7 @@ Dark mode remains out of scope. These rules govern the current light palette and
 
 - **A11Y-R1 Dynamic Type:** Use semantic text styles and content-sized containers. Do not fix text heights or truncate informational text to one line unless its full value is available elsewhere. Prefer reflow with stacking, `ViewThatFits`, or `isAccessibilitySize`. `minimumScaleFactor` is not an overflow strategy; allow values of 0.85 or greater only for genuinely fixed chrome with a justification comment. Each UI slice must pass AX3 (`.accessibility3`).
 - **A11Y-R2 Touch targets:** Interactive elements are at least 44x44pt. Button and chip primitives provide the minimum floor; list rows use full-row hit areas such as `contentShape` rather than a glyph's natural size.
-- **A11Y-R3 Contrast:** Enforce UI-R4's approved pair table. Status fills/icons use dark foregrounds, while body text uses the AA `successText`, `warningText`, and `errorText` roles after the follow-up token task implements them. Never communicate status through color alone.
+- **A11Y-R3 Contrast:** Enforce UI-R4's approved pair table. Status fills/icons use dark foregrounds, while body text uses the AA `successText`, `warningText`, and `errorText` roles. Never communicate status through color alone.
 - **A11Y-R4 Labels and identifiers:** Every interactive element and informative image has a human, model-derived accessibility label. `accessibilityIdentifier` remains TestOps-only and never substitutes for a VoiceOver label.
 - **A11Y-R5 Grouped reading:** Composite cards and rows read as one coherent element using combined children where appropriate; expose secondary controls as accessibility actions instead of forcing users through fragmented swipes.
 - **A11Y-R6 Headings:** Shared section headers expose the header trait, and page titles use native navigation titles so VoiceOver rotor heading navigation works consistently. Primitive implementation remains follow-up code work.

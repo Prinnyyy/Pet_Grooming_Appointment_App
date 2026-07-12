@@ -255,11 +255,11 @@ struct BeckonStatusChip: View {
             case .groomer:
                 DesignTokens.Colors.groomerAccentDark
             case .success:
-                DesignTokens.Colors.success
+                DesignTokens.Colors.successText
             case .warning:
-                DesignTokens.Colors.textPrimary
+                DesignTokens.Colors.warningText
             case .error:
-                DesignTokens.Colors.error
+                DesignTokens.Colors.errorText
             }
         }
 

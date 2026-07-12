@@ -2,7 +2,7 @@
 
 Track only current, blocked, and recent tasks here so Codex does not continue automatically. Older completed rows through T-190 are archived under `docs/09_frozen/task_ledgers/`; active blocked T-157 remains below. Notes should keep conclusions and pointers only; validation detail belongs in `docs/00_memory/WORKLOG.md` or frozen worklogs. Detailed task records T-001 through T-088 and workflow task records remain archived under `docs/09_frozen/task_records_2026-06-26/`.
 
-Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup`; use `T-305` for the next new task.
+Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup`; use `T-306` for the next required periodic meta-review, then `T-307` for Q-115.
 
 Active blocked task: T-157 is waiting on paid Apple Developer Program access before APNs secrets (`APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_TOPIC`, `APNS_PRIVATE_KEY`) and Edge Function deploy.
 
@@ -10,6 +10,7 @@ Active blocked task: T-157 is waiting on paid Apple Developer Program access bef
 
 | ID | Task | Status | Mode | Milestone | Files/Docs | Checks | Notes |
 |---|---|---|---|---|---|---|---|
+| T-305 | Q-114 semantic tokens and contrast | completed | Standard | M14 | Semantic typography/layout/metrics; AA status/unread colors; elevation aliases; contract/contrast tests; design/roadmap/memory closeout | TDD compile RED/GREEN; full iOS tests/build; UI audit; diff/context/preflight | Adds the stable token surface consumed by Q-115...Q-119 while retaining audited typography/elevation compatibility names. Status chips use AA text roles. No backend, navigation, or business behavior changed. |
 | T-304 | Q-113 UI source audit and debt ratchet | completed | Quick | M14 | Dependency-free audit core/CLI; 294-finding baseline; preflight fixture/gate; governance/design/roadmap/memory closeout | TDD 9 audit tests; hermetic preflight 10/10 combined; baseline scope/count review; audit/preflight/diff/context | Blocks new Feature error debt, fails stale debt, supports zero-error strict paths and guarded initialize/prune/relocate. No Swift app, backend, dependency, navigation, or product behavior changed. |
 | T-303 | R-041 UI consistency implementation plan | completed | Quick | M14 | Exact Q-113...Q-120 implementation plan; queue/roadmap/index/memory closeout | File/interface mapping; spec coverage; placeholder/type/path self-review; docs links; diff/context/preflight | Locks audit, token, component, four Customer migration, and integration packages without changing Swift, scripts, backend, dependencies, or product flow. |
 | T-302 | Preflight test fixture completeness | completed | Quick | M4 | Hermetic preflight fixture; task/memory closeout | Reproduced RED; focused GREEN; docs tests; full preflight; diff/context | Copies real preflight/identity scripts into a minimal Git fixture and proves identity, migration, and function steps execute. Production preflight is unchanged; R-041 planning moves to T-303. |

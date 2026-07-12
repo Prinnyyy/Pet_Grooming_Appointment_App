@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-07-12
+Task: T-305 - Q-114 semantic tokens and contrast.
+Files changed: DesignTokens semantic typography/layout/metrics/colors/elevation aliases; status-chip foregrounds; token/contrast tests; design, roadmap, task, and memory closeout.
+Checks: Forced compile RED for missing semantic members; corrected test-only Swift 6 isolation/import boundary; full iOS tests; iOS build; UI consistency audit; diff/context/preflight.
+Result: Q-115 through Q-119 now have stable page/section/surface/row/field/action roles and control metrics. Status body colors meet 4.5:1 on surface, notification red has one hex source, and duplicate card elevations are compatibility aliases of one canonical style.
+Risks: Existing Feature usage still relies on compatibility typography/elevation names and remains baselined until the migration packages. Q-115 owns shared components; no feature screen migration occurred here.
+Next: Use T-306 for the required periodic meta-review, then T-307 for Q-115 shared semantic components and catalog.
+```
+
+```text
+Date: 2026-07-12
 Task: T-304 - Q-113 UI source audit and debt ratchet.
 Files changed: Dependency-free Swift lexical audit core/CLI, 294-finding baseline, focused and hermetic preflight tests, preflight gate, UI governance/design docs, and roadmap/task/memory closeout.
 Checks: TDD RED for missing core and duplicate-stack rule; audit tests 9/9; combined audit/preflight tests 10/10; baseline scope/count review; repository audit check; full preflight; diff/context checks.

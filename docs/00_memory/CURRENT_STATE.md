@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-12
 - Updated by: Codex
-- Latest completed task: T-304 Q-113 UI source audit and debt ratchet.
+- Latest completed task: T-305 Q-114 semantic tokens and contrast.
 - Current task: none; T-157 APNs remains externally blocked and Q-104 Dynamic Type/Accessibility remains user-deferred.
-- Next task ID: use T-305 for R-041 Q-114 semantic tokens and contrast; Groomer Q-104 remains deferred.
+- Next task ID: use T-306 for the required periodic meta-review; after it closes, use T-307 for R-041 Q-115 shared semantic components and catalog. Groomer Q-104 remains deferred.
 
 ## Fast Path
 
@@ -32,6 +32,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Validation Baseline
 
+- T-305 completes Q-114: DesignTokens now owns business-semantic typography, layout, metrics, AA status text/unread colors, and one canonical soft-card elevation with compatibility aliases. Contract and contrast tests pass; status chips use semantic AA foregrounds. No backend, navigation, or business behavior changed.
 - T-304 completes Q-113: `scripts/ui-consistency-audit.mjs` lexes tracked Feature Swift code, enforces deterministic/high-risk/review rules, and ratchets 294 legacy findings without accepting new errors or stale entries. Migrated paths use `strict`; initialize/prune/relocate are guarded; preflight and its hermetic fixture run the gate. No Swift app, backend, dependency, navigation, or product behavior changed.
 - T-303 maps R-041 to Q-113 through Q-120 in `docs/superpowers/plans/2026-07-12-ui-consistency-governance-implementation.md`; it changed no Swift, scripts, backend, dependency, navigation, or product flow.
 - T-302 restores the hermetic preflight test: its temporary Git fixture copies and executes the real preflight and Beckon identity scripts before proving migration/function discovery. Production preflight is unchanged.
@@ -90,7 +91,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - T-298 completes Q-110: Customer Request reuses `BeckonAddressEditor`, requires current confirmation before Time & Location can advance or publish, carries only current Profile confirmation, publishes Line 2 and private coordinate metadata through `create_grooming_request_v2`, and sends republished templates back through address review. Groomer pre-booking request models still omit Line 2.
 - T-299 completes Q-111: service-only snapshot-checked Apple Maps backfill linked 51 Groomers, 50 Customers, and 1 active Request. Customer ref `6D8776F2` remains a reviewed ZIP-conflict exception; it is not matching authority and Q-110 prevents new coordinate-null Requests. Groomer/active Request gaps, incomplete active rows, legacy/manual orphans, and tagged TestOps residue are zero. `matching_radius` passed near/edge/outside in both service directions.
 - T-259 makes one `T-###` per fresh session the default, reserves full iOS tests and batched visual evidence for integration/high-risk gates, and requires clean task or checkpoint commits at session boundaries.
-- T-260 adopts UI-R1 through UI-R8 and A11Y-R1 through A11Y-R10 as the active design contract, including approved light-palette contrast pairs and a per-slice accessibility Definition of Done. Token and primitive implementation remains a separate follow-up code task; Q-104 is unchanged.
+- T-260 adopts UI-R1 through UI-R8 and A11Y-R1 through A11Y-R10 as the active design contract, including approved light-palette contrast pairs and a per-slice accessibility Definition of Done. T-305 implements the semantic token/contrast portion; shared primitive work continues in Q-115. Q-104 is unchanged.
 - T-244 normalizes the rotated Worklog EOF to one newline.
 - T-245 context-script validation passes 32 Node tests; word counts are informational and rolling windows use buffered high/retain entry counts.
 - T-246 passes the Beckon identity audit, 31 TestOps tests, 48 migration tests, 10 Edge tests, privacy/preflight/Supabase checks, full iOS tests/build, and Simulator auth branding inspection.

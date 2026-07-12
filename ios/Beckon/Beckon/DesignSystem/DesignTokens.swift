@@ -25,6 +25,10 @@ enum DesignTokens {
         static let success: UInt = 0x6CBF84
         static let warning: UInt = 0xF2B84B
         static let error: UInt = 0xE56B6F
+        static let successText: UInt = 0x37744E
+        static let warningText: UInt = 0x8F6800
+        static let errorText: UInt = 0xB4474C
+        static let notificationUnread: UInt = 0xFF3B30
         static let primaryButtonForeground = textPrimary
     }
 
@@ -47,7 +51,10 @@ enum DesignTokens {
         static let success = Color(hex: ColorHex.success)
         static let warning = Color(hex: ColorHex.warning)
         static let error = Color(hex: ColorHex.error)
-        static let notificationUnread = Color(red: 1, green: 0.23, blue: 0.19)
+        static let successText = Color(hex: ColorHex.successText)
+        static let warningText = Color(hex: ColorHex.warningText)
+        static let errorText = Color(hex: ColorHex.errorText)
+        static let notificationUnread = Color(hex: ColorHex.notificationUnread)
         static let primaryButtonForeground = Color(hex: ColorHex.primaryButtonForeground)
 
         static let background = appBackground
@@ -66,6 +73,26 @@ enum DesignTokens {
 
         static let standard = lg
         static let large = xl
+    }
+
+    enum Layout {
+        static let pageHorizontalInset: CGFloat = 20
+        static let pageTopInset: CGFloat = 24
+        static let pageBottomInset: CGFloat = 48
+        static let sectionSpacing: CGFloat = 24
+        static let sectionContentSpacing: CGFloat = 12
+        static let surfaceInset: CGFloat = 16
+        static let rowHorizontalInset: CGFloat = 16
+        static let rowVerticalInset: CGFloat = 12
+        static let fieldSpacing: CGFloat = 12
+        static let actionAreaInset: CGFloat = 12
+    }
+
+    enum Metrics {
+        static let minimumTouchTarget: CGFloat = 44
+        static let fieldHeight: CGFloat = 52
+        static let actionHeight: CGFloat = 52
+        static let settingsIconSlot: CGFloat = 36
     }
 
     enum CornerRadius {
@@ -88,20 +115,8 @@ enum DesignTokens {
             y: 4,
             spread: 0
         )
-        static let smallCard = ShadowStyle(
-            color: Color(hex: 0x232323, opacity: 0.05),
-            radius: 8,
-            x: 0,
-            y: 4,
-            spread: 0
-        )
-        static let carouselCard = ShadowStyle(
-            color: Color(hex: 0x232323, opacity: 0.05),
-            radius: 8,
-            x: 0,
-            y: 4,
-            spread: 0
-        )
+        static let smallCard = softCard
+        static let carouselCard = softCard
         static let primaryAction = ShadowStyle(
             color: Color(hex: 0x7ECFC0, opacity: 0.55),
             radius: 28,
@@ -119,10 +134,19 @@ enum DesignTokens {
     }
 
     enum Typography {
+        static let pageTitle = Font.largeTitle.weight(.bold)
+        static let sectionTitle = Font.title2.weight(.bold)
+        static let cardTitle = Font.title3.weight(.bold)
+        static let body = Font.body
+        static let supporting = Font.subheadline
+        static let fieldLabel = Font.subheadline.weight(.semibold)
+        static let status = Font.caption.weight(.semibold)
+        static let action = Font.headline.weight(.semibold)
+
+        // Compatibility names remain until the source audit reports zero usage.
         static let largeTitle = Font.largeTitle.weight(.bold)
         static let title = Font.title.weight(.bold)
         static let headline = Font.headline.weight(.bold)
-        static let body = Font.body
         static let caption = Font.caption.weight(.medium)
     }
 }
