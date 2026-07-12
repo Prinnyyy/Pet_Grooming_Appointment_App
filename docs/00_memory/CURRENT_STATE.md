@@ -4,11 +4,11 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Last Updated
 
-- Date: 2026-07-11
+- Date: 2026-07-12
 - Updated by: Codex
-- Latest completed task: T-300 strict coordinate cutover and integration gate.
+- Latest completed task: T-301 UI consistency governance design.
 - Current task: none; T-157 APNs remains externally blocked and Q-104 Dynamic Type/Accessibility remains user-deferred.
-- Next task ID: use T-301 for the next new task. Q-104 remains deferred.
+- Next task ID: use T-302 for the next new task. R-041 implementation planning is the approved next UI-consistency step; Groomer Q-104 remains deferred.
 
 ## Fast Path
 
@@ -31,6 +31,8 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - PRs, tags, branch deletion, merge/rebase/reset, seeds, migrations, Supabase writes, repository settings, and other non-Git remote writes require approval. T-242's remote authorization is consumed.
 
 ## Validation Baseline
+
+- T-301 approves R-041 in `docs/superpowers/specs/2026-07-12-ui-consistency-governance-design.md`: evolve the existing DesignSystem in place, baseline all-app visual debt, block new violations, and first migrate Customer Home, Requests, Request creation, and Account. No Swift, backend, dependency, navigation, or product-flow change occurred.
 
 - T-239 authorized UI R11 passed publish/offer/accept/chat/complete/review, Debug 6/6 with zero errors, backend final state, and zero residue; full iOS test/build passed.
 - Last Supabase migration apply: T-300 applied `20260712044858_t300_strict_coordinate_matching.sql` to `lqmasbuqzvcvtawonjlb` on 2026-07-11; linked history, zero-gap preconditions, strict missing-coordinate rejection, retired legacy RPC grants, private privileges, both radius directions, rollback cleanup, and advisors were verified.

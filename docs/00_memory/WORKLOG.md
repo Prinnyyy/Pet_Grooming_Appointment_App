@@ -1,6 +1,16 @@
 # Worklog
 
 ```text
+Date: 2026-07-12
+Task: T-301 - UI consistency governance design.
+Files changed: Repository-adapted R-041 design specification plus Roadmap, Feature Index, Decision Log, Task Ledger, Current State, and Worklog routing/closeout.
+Checks: Full targeted audit of existing DesignTokens/primitives, their Feature usage, four Customer reference surfaces, representative Groomer/Bookings patterns, source-level visual debt, tests, scripts, and preflight integration points; spec self-review; docs links; diff/context/preflight.
+Result: Approved one in-place DesignSystem evolution, reuse-backed semantic components, a tested dependency-free all-app source audit with a legacy-debt ratchet and explicit exceptions, and a first migration slice covering Customer Home, Requests, Request creation, and Account. No Swift, backend, dependency, navigation, or product-flow change occurred.
+Risks: The exact scanner grammar, baseline format, component APIs, and file-level package boundaries still require implementation planning. Customer accessibility work does not reopen the separately deferred Groomer Q-104 gate.
+Next: Use T-302 for the R-041 implementation plan after reviewing the committed design specification.
+```
+
+```text
 Date: 2026-07-11
 Task: T-300 - Strict coordinate cutover and integration gate.
 Files changed: Append-only strict-coordinate migration and rollback validation; TestOps lifecycle/baseline v2 coordinate publication and cleanup contracts; unused feature MapKit imports; backend, TestOps, product-flow, roadmap, queue, task, and memory closeout.
