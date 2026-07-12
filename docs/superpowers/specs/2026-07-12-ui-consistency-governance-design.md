@@ -2,6 +2,8 @@
 
 Approved direction: T-301, 2026-07-12. This is the design contract for R-041. It defines the architecture and migration boundary; the next planning task will assign execution packages and exact file-level steps.
 
+Implementation plan: T-303, `../plans/2026-07-12-ui-consistency-governance-implementation.md`; Q-113 through Q-120 are the governed package sequence.
+
 ## Goal
 
 Make UI consistency primarily enforceable from code. Beckon should have one semantic visual language, reusable presentation components, an auditable exception path, and an automated ratchet that prevents new visual debt without requiring an immediate whole-app rewrite.
