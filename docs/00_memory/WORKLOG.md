@@ -2,12 +2,21 @@
 
 ```text
 Date: 2026-07-12
+Task: T-311 - Q-119 Customer Account migration.
+Files changed: Extracted Customer Account ownership; shared semantic Account/Auth sections, settings rows, and release links; UI audit baseline; roadmap/task/memory closeout.
+Checks: strict RED then GREEN for Customer Account and authenticated Account; baseline prune 16; full iOS tests; iOS build/build-run; default and AX3 Account screenshots/scroll; Profile full-row navigation and semantic selectors; content size reset; audit/diff/context/preflight.
+Result: Customer Account is separate from Profile editing and composes shared page, section, grouped-surface, settings-row, and danger-action contracts. Identity, Profile, Privacy/Support, DEBUG, and Account Access retain behavior and expose complete row labels/taps without AX3 clipping.
+Risks: AuthenticatedAccountView remains a role-fallback surface as before; its release rows now share presentation with Customer Account, while Customer-specific Profile Store ownership remains only in CustomerAccountView. No backend/auth mutation was exercised during visual QA.
+Next: Use T-312 for Q-120 first-slice integration gate.
+```
+
+```text
+Date: 2026-07-12
 Task: T-310 - Q-118 Customer Request Wizard migration.
 Files changed: Wizard semantic/adaptive presentation, Accessibility 3 layout contract tests, UI audit baseline, and roadmap/task/memory closeout.
 Checks: strict RED with 24 errors then GREEN; test-interface RED then GREEN; baseline prune 27; full iOS tests; iOS build/build-run; default and AX3 Pet/Service/Time screenshots, navigation/selectors, date/time/location controls; content size reset; audit/diff/context/preflight.
 Result: Wizard uses semantic page/field/action/selection contracts and shared ButtonStyles, with no local ButtonStyle, low scale factor, direct platform font, local shadow, or negative page compensation. Header, service cards, Time Window, Review rows, and bottom actions reflow without horizontal clipping at AX3; behavior and data paths remain intact.
 Risks: The seeded Customer Profile address was not currently confirmed, so live traversal correctly stopped at Time & Location rather than bypassing validation or writing remote data. Details/Review remain covered by existing full tests plus strict-clean adaptive code, but were not reached in this Simulator run.
-Next: Use T-311 for Q-119 Customer Account migration.
 ```
 
 ```text

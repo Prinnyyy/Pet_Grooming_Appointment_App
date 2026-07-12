@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-12
 - Updated by: Codex
-- Latest completed task: T-310 Q-118 Customer Request Wizard migration.
+- Latest completed task: T-311 Q-119 Customer Account migration.
 - Current task: none; T-157 APNs remains externally blocked and Q-104 Dynamic Type/Accessibility remains user-deferred.
-- Next task ID: use T-311 for R-041 Q-119 Customer Account migration. Groomer Q-104 remains deferred.
+- Next task ID: use T-312 for R-041 Q-120 first-slice integration gate. Groomer Q-104 remains deferred.
 
 ## Fast Path
 
@@ -32,6 +32,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Validation Baseline
 
+- T-311 completes Q-119: Customer Account ownership is separated from Profile editing and uses shared page/section/grouped/settings-row contracts; authenticated release links use the same row primitive. Default and AX3 identity, Profile navigation, Privacy/Support, DEBUG, and destructive actions render and expose full-row semantic targets. Strict audits, full tests, and build pass; the baseline is 218 entries plus four reviewed warnings. No profile Store/repository/auth/backend behavior changed.
 - T-310 completes Q-118: Customer Request Wizard is strict-clean, uses semantic page/field/action/selection contracts, and has explicit default/Accessibility 3 Header, Time Window, and bottom-action layouts. Default and AX3 Pet/Service/Time surfaces render without horizontal clipping or low text scaling; full tests/build pass. The UI baseline is 234 entries plus four reviewed warnings. Store validation/publication, address confirmation, photos, republish, feedback, selectors, and backend contracts are unchanged.
 - T-309 completes Q-117: Customer Requests and Bookings share `BeckonPageTitle`; Requests uses semantic page/section/type/action contracts, one canonical card elevation, and adaptive header/chip/action/closed-row layouts. Active and cancelled seeded states render without truncation at default and Accessibility 3; strict audit, full iOS tests, and build pass. The baseline is 261 entries plus two reviewed Home fixed-width warnings. No Store/repository/navigation/backend behavior changed.
 - T-308 completes Q-116: Customer Home is strict-clean and uses semantic page/section/type/action contracts; Header/Hero/Pet Cards reflow through Accessibility 3, while Active Request's pre-existing internal truncation remains Q-117 scope. Pet Form moved unchanged to its own file with four relocated legacy findings. The scanner now preserves UTF-16 positions after emoji and safely relocates partial splits; the deterministic baseline is 268 entries plus two reviewed Home fixed-width warnings. No Store/repository/navigation/backend behavior changed.

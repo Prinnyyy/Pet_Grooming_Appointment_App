@@ -11,8 +11,8 @@ struct AuthenticatedAccountView: View {
                 .ignoresSafeArea()
 
             ScrollView {
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                    AccountTabTitle("Account")
+                LazyVStack(alignment: .leading, spacing: DesignTokens.Layout.sectionSpacing) {
+                    BeckonPageTitle("Account")
 
                     BeckonCard {
                         HStack(alignment: .center, spacing: DesignTokens.Spacing.lg) {
@@ -24,12 +24,17 @@ struct AuthenticatedAccountView: View {
                                     width: 72,
                                     height: 72
                                 )
-                                .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                                .clipShape(
+                                    RoundedRectangle(
+                                        cornerRadius: DesignTokens.CornerRadius.card,
+                                        style: .continuous
+                                    )
+                                )
                                 .accessibilityHidden(true)
 
                             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                                 Text(profile.displayName)
-                                    .font(DesignTokens.Typography.title)
+                                    .font(DesignTokens.Typography.sectionTitle)
                                     .foregroundStyle(DesignTokens.Colors.textPrimary)
                                     .lineLimit(1)
                                     .fixedSize(horizontal: false, vertical: true)
@@ -52,7 +57,9 @@ struct AuthenticatedAccountView: View {
                     }
                     .accessibilityElement(children: .combine)
 
-                    AccountReleaseLinksSection()
+                    BeckonSection("Support") {
+                        AccountReleaseLinksSection()
+                    }
 
                     if let errorMessage = authenticationStore.errorMessage {
                         BeckonErrorBanner(
@@ -63,37 +70,36 @@ struct AuthenticatedAccountView: View {
                     }
 
                     #if DEBUG
-                    NavigationLink {
-                        DebugPanelView(
-                            diagnostics: DebugDiagnostics.current(
-                                session: session,
-                                profile: profile
-                            )
-                        )
-                    } label: {
-                        Label("Debug Console", systemImage: "ladybug")
-                            .font(DesignTokens.Typography.headline)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(DesignTokens.Spacing.lg)
-                            .background(DesignTokens.Colors.surfaceRaised)
-                            .clipShape(
-                                RoundedRectangle(
-                                    cornerRadius: DesignTokens.CornerRadius.card,
-                                    style: .continuous
+                    BeckonSection("Development") {
+                        BeckonGroupedSurface {
+                            NavigationLink {
+                                DebugPanelView(
+                                    diagnostics: DebugDiagnostics.current(
+                                        session: session,
+                                        profile: profile
+                                    )
                                 )
-                            )
+                            } label: {
+                                BeckonSettingsRowLabel(
+                                    title: "Debug Console",
+                                    summary: "Runtime events and diagnostics",
+                                    systemImage: "ladybug",
+                                    accent: profile.role.settingsAccent
+                                )
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityIdentifier("account.debug-console")
+                        }
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityIdentifier("account.debug-console")
                     #endif
 
-                    AccountDangerActions(
-                        authenticationStore: authenticationStore
-                    )
+                    BeckonSection("Account Access") {
+                        AccountDangerActions(
+                            authenticationStore: authenticationStore
+                        )
+                    }
                 }
-                .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-                .padding(.top, DesignTokens.Spacing.xl)
-                .padding(.bottom, DesignTokens.Spacing.xl + DesignTokens.Spacing.xl)
+                .beckonPageInsets()
             }
         }
         .navigationTitle("")
@@ -106,25 +112,14 @@ struct AuthenticatedAccountView: View {
     }
 }
 
-struct AccountTabTitle: View {
-    let title: String
-
-    init(_ title: String) {
-        self.title = title
-    }
-
-    var body: some View {
-        Text(title)
-            .font(.system(size: 36, weight: .bold))
-            .foregroundStyle(DesignTokens.Colors.textPrimary)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.top, DesignTokens.Spacing.sm)
-    }
-}
-
 struct AccountReleaseLinksSection: View {
+    private let dividerLeadingInset =
+        DesignTokens.Layout.rowHorizontalInset
+        + DesignTokens.Metrics.settingsIconSlot
+        + DesignTokens.Spacing.md
+
     var body: some View {
-        BeckonCard(padding: 0) {
+        BeckonGroupedSurface {
             VStack(spacing: 0) {
                 releaseLinkRow(
                     title: "Privacy Policy",
@@ -135,7 +130,7 @@ struct AccountReleaseLinksSection: View {
 
                 Divider()
                     .overlay(DesignTokens.Colors.divider)
-                    .padding(.leading, 72)
+                    .padding(.leading, dividerLeadingInset)
 
                 releaseLinkRow(
                     title: "Support",
@@ -154,26 +149,12 @@ struct AccountReleaseLinksSection: View {
         accessibilityIdentifier: String
     ) -> some View {
         Link(destination: destination) {
-            HStack(spacing: DesignTokens.Spacing.md) {
-                Image(systemName: systemImage)
-                    .font(.system(size: 22, weight: .semibold))
-                    .foregroundStyle(DesignTokens.Colors.textSecondary)
-                    .frame(width: 36)
-                    .accessibilityHidden(true)
-
-                Text(title)
-                    .font(.system(size: 21, weight: .bold))
-                    .foregroundStyle(DesignTokens.Colors.textPrimary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                Image(systemName: "arrow.up.right")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(DesignTokens.Colors.textTertiary)
-                    .accessibilityHidden(true)
-            }
-            .padding(.horizontal, DesignTokens.Spacing.lg)
-            .padding(.vertical, 24)
-            .contentShape(Rectangle())
+            BeckonSettingsRowLabel(
+                title: title,
+                systemImage: systemImage,
+                accent: .neutral,
+                trailingSystemImage: "arrow.up.right"
+            )
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier(accessibilityIdentifier)
@@ -271,7 +252,7 @@ struct AccountDangerActions: View {
                         .tint(DesignTokens.Colors.error)
                 } else {
                     Image(systemName: systemImage)
-                        .font(.system(size: 18, weight: .semibold))
+                        .font(DesignTokens.Typography.action)
                         .foregroundStyle(DesignTokens.Colors.error)
                         .accessibilityHidden(true)
                 }
@@ -313,6 +294,15 @@ private enum AccountDangerAction {
 }
 
 private extension UserRole {
+    var settingsAccent: BeckonRoleAccent {
+        switch self {
+        case .customer:
+            .customer
+        case .groomer:
+            .groomer
+        }
+    }
+
     var accountRoleLabel: String {
         switch self {
         case .customer:

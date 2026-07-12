@@ -2,7 +2,7 @@
 
 Track only current, blocked, and recent tasks here so Codex does not continue automatically. Older completed rows through T-190 are archived under `docs/09_frozen/task_ledgers/`; active blocked T-157 remains below. Notes should keep conclusions and pointers only; validation detail belongs in `docs/00_memory/WORKLOG.md` or frozen worklogs. Detailed task records T-001 through T-088 and workflow task records remain archived under `docs/09_frozen/task_records_2026-06-26/`.
 
-Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup`; use `T-311` for the next new task, Q-119.
+Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup`; use `T-312` for the next new task, Q-120.
 
 Active blocked task: T-157 is waiting on paid Apple Developer Program access before APNs secrets (`APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_TOPIC`, `APNS_PRIVATE_KEY`) and Edge Function deploy.
 
@@ -10,6 +10,7 @@ Active blocked task: T-157 is waiting on paid Apple Developer Program access bef
 
 | ID | Task | Status | Mode | Milestone | Files/Docs | Checks | Notes |
 |---|---|---|---|---|---|---|---|
+| T-311 | Q-119 Customer Account migration | completed | Standard | M14 | Account/Profile ownership split; shared Account/Auth sections/settings rows/release links; baseline/docs/memory closeout | strict RED/GREEN; prune 16; iOS tests/build/build-run; default/AX3 Simulator; diff/context/preflight | Account is strict-clean and AX3-reflowing with full-row semantics while Profile/Auth Stores, navigation, links, and destructive behavior remain intact. |
 | T-310 | Q-118 Customer Request Wizard migration | completed | Standard | M14 | Semantic/adaptive Wizard; AX3 layout contracts/tests; baseline/docs/memory closeout | strict/test RED-GREEN; prune 27; iOS tests/build/build-run; default/AX3 Simulator; diff/context/preflight | Wizard is strict-clean with adaptive Header/options/actions while validation, address, publish, republish, photos, feedback, and selectors remain intact. |
 | T-309 | Q-117 Customer Requests migration | completed | Standard | M14 | Shared page title; semantic/adaptive Requests cards, sections, actions; Bookings caller; baseline/docs/memory closeout | strict RED/GREEN; prune 7; audit; iOS tests/build/build-run; default/AX3 Simulator; diff/context/preflight | Requests is strict-clean and reflows active/cancelled content at AX3 while request behavior, routes, paging, mutations, and selectors remain intact. |
 | T-308 | Q-116 Customer Home migration | completed | Standard | M14 | Pet Form extraction; semantic Home hierarchy/type/action/pet cards; UTF-16 audit/partial relocate fix; baseline/docs/memory closeout | strict RED/GREEN; relocate/prune; audit tests; iOS tests/build; default/AX3 Simulator; diff/context/preflight | Home is strict-clean and accessibility-reflowing while Store/repository/routes/selectors remain intact. Pet Form's four legacy findings remain baselined; no backend or dependency change. |
