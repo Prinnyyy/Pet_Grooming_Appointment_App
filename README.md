@@ -32,6 +32,7 @@ This README does not define active work. Start new work only from an explicit us
 - Agent rules: `AGENTS.md`
 - Claude guide: `CLAUDE.md`
 - Current state: `docs/00_memory/CURRENT_STATE.md`
+- Canonical brand identity: `docs/01_product/BRAND_IDENTITY.md`
 - Project structure index: `docs/10_project_structure/README.md`
 - Task ledger: `docs/06_tasks/TASK_LEDGER.md`
 - Managed roadmap: `docs/06_tasks/ROADMAP.md`

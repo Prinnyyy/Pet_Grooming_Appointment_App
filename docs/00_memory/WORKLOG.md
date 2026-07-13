@@ -2,12 +2,21 @@
 
 ```text
 Date: 2026-07-13
+Task: T-346 - Roadmap and completed-artifact rotation.
+Files changed: Managed Roadmap/Queue; active indexes/contracts; completed Superpowers, address, and brand plans; identity checker/tests; frozen indexes; task memory.
+Checks: Brand identity audit/test, 33 docs governance tests, git diff check, active/frozen path checks, word telemetry, and context hygiene passed.
+Result: Roadmap and Queue now contain unresolved direction only. Eleven completed Superpowers files and completed address/brand migration plans are frozen; active identity/address rules now live in domain contracts. All active backlinks were updated before the old paths were removed.
+Risks: Heavy UI redesign inputs and workflow-rule/tool conflicts remain separate follow-up tasks. Q-104, T-157, Q-91, and Q-93 remain deferred or blocked.
+Next: No automatic follow-up. Use T-347 for the next new task; T-340 remains separately planned.
+```
+
+```text
+Date: 2026-07-13
 Task: T-345 - Active-state reset and context reduction.
 Files changed: Current State, Worklog, Task Ledger, memory/frozen indexes, and verbatim frozen snapshots/rotated entries.
 Checks: Docs governance tests, git diff check, active archive/search checks, word/line telemetry, and context hygiene passed.
 Result: Current State now contains only current task, validation, product, operational, and recovery facts. Worklog retains six compact closeouts and Task Ledger retains planned/blocked plus recent rows. Original pre-reset files and removed entries remain frozen and searchable only by explicit historical access.
 Risks: Roadmap history, completed Superpowers plans, heavy UI redesign inputs, and workflow-rule conflicts remain separate follow-up tasks.
-Next: No automatic follow-up. Use T-346 for the next new task; T-340 remains separately planned.
 ```
 
 ```text
@@ -46,15 +55,6 @@ Result: Customer surfaces use #333333 plus approved Display P3 accent, soft, sub
 Risks: Q-104 remains deferred; no Store, repository, backend, dependency, or remote state changed.
 ```
 
-```text
-Date: 2026-07-13
-Task: T-339 - Periodic documentation-governance meta-review.
-Files changed: Current/task/worklog/feature routing only.
-Checks: Branch/task/index/ignore/conflict/migration audits, 26 governance tests, diff/context/preflight.
-Result: Active governance and the 67/67 migration mirror were consistent after one stale Feature Index ownership note was corrected to T-332.
-Risks: T-340 owns two app compiler warnings; T-157 and Q-104 remain blocked/deferred.
-```
-
-This is the active recent closeout index, newest first. Full pre-reset source and the removed T-335 through T-338 closeouts are frozen under `docs/09_frozen/active_state_snapshots/` and `docs/09_frozen/worklogs/`.
+This is the active recent closeout index, newest first. Full pre-reset source and removed closeouts are frozen under `docs/09_frozen/active_state_snapshots/` and `docs/09_frozen/worklogs/`.
 
 Current branch, next task ID, and active work live in `docs/00_memory/CURRENT_STATE.md` and `docs/06_tasks/TASK_LEDGER.md`. Only the newest entry keeps a `Next:` line.

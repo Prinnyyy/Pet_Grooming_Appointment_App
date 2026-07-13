@@ -55,7 +55,6 @@ test("identity audit excludes immutable history but audits active workflow sourc
     ".git/logs/HEAD",
     "docs/09_frozen/old.md",
     "supabase/migrations/20260701000000_old.sql",
-    "docs/06_tasks/BECKON_BRAND_MIGRATION.md",
     "scripts/beckon-identity-check.mjs",
     "scripts/seed-identity-cutover-core.mjs",
     "tests/brand/beckon-identity-check.test.mjs",
@@ -68,6 +67,7 @@ test("identity audit excludes immutable history but audits active workflow sourc
   for (const file of [
     "AGENTS.md",
     "CLAUDE.md",
+    "docs/01_product/BRAND_IDENTITY.md",
     "docs/05_workflow/TOOLING_POLICY.md",
   ]) {
     assert.equal(isIdentityAuditExcluded(file), false, file);

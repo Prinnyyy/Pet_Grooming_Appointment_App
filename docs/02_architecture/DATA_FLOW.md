@@ -86,7 +86,7 @@ Server-owned profiles, pets after synchronization, requests, offers, bookings, m
 
 ## Address Confirmation Flow
 
-R-040's authoritative contract lives in `../06_tasks/APPLE_MAPS_ADDRESS_SYSTEM_PLAN.md`.
+This section, `../03_backend/RLS_RPC_POLICY.md`, and `../04_ios/ADDRESS_BACKFILL.md` are the current address and matching contract. Completed migration sequencing is historical evidence, not an active implementation source.
 
 ```text
 Address Line 1 / Address Line 2 input

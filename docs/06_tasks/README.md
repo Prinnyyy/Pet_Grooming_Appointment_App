@@ -5,16 +5,16 @@ Use this directory for the active task ledger, templates, and task-specific arti
 ## Primary Files
 
 - `TASK_LEDGER.md`: the active/recent task-status and task-numbering record.
-- `ROADMAP.md`: governed milestone and candidate-work index. It does not allocate task IDs.
-- `ROADMAP_EXECUTION_QUEUE.md`: adoptable package queue derived from the roadmap. It does not allocate task IDs or record status.
-- `BECKON_BRAND_MIGRATION.md`: approved identity contract and gates for R-038/Q-94 through Q-96.
-- `APPLE_MAPS_ADDRESS_SYSTEM_PLAN.md`: approved R-040 address confirmation, private coordinate, PostGIS radius-matching, backfill, and cutover execution plan.
+- `ROADMAP.md`: governed unresolved-direction index. It does not allocate task IDs or retain completed milestone history.
+- `ROADMAP_EXECUTION_QUEUE.md`: deferred/blocked package queue derived from the roadmap. It does not allocate task IDs.
 - `SCREENSHOT_UI_REWORK_TASK_TEMPLATE.md`: template for screenshot-driven Beckon UI work.
 - `META_REVIEW_TEMPLATE.md`: template for weekly or every-10-tasks documentation-governance reviews.
 
 ## Task Families
 
 Historical detailed task files for `T-001` through `T-088` and completed `WORKFLOW-*` policy tasks now live under `../09_frozen/task_records_2026-06-26/`.
+
+Completed standalone plans, brand/address migration contracts, and pre-rotation roadmap snapshots live under `../09_frozen/completed_task_plans/`, `../09_frozen/superpowers_2026-07-13/`, and `../09_frozen/roadmaps/`. Current identity and address contracts live in `../01_product/BRAND_IDENTITY.md`, `../02_architecture/DATA_FLOW.md`, and their linked domain policies.
 
 Use `TASK_LEDGER.md` as the merged active record for task families, status, checks, and notes. Use `ROADMAP.md` for milestone direction and candidate backlog; use `ROADMAP_EXECUTION_QUEUE.md` to choose an adoptable package when the user asks for roadmap work.
 Older completed ledger rows are archived under `../09_frozen/task_ledgers/` when context hygiene thresholds are exceeded.

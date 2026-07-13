@@ -5,9 +5,9 @@ Current facts for task startup and recovery. Historical task narrative belongs i
 ## Task Baseline
 
 - Date: 2026-07-13
-- Latest completed task: T-345 active-state reset and context reduction.
+- Latest completed task: T-346 Roadmap and completed-artifact rotation.
 - Current task: none.
-- Next task ID: T-346 for the next new task.
+- Next task ID: T-347 for the next new task.
 - Current branch baseline: `codex/pet-fit-structure-cleanup`.
 - GitHub repository: `Prinnyyy/Pet_Grooming_Appointment_App`.
 
@@ -26,7 +26,7 @@ No roadmap package is automatically active. New work starts from an explicit use
 
 - Latest app validation: T-344 passed focused Customer Request tests and `./scripts/ios-build.sh`.
 - Latest full iOS regression: T-343 passed the complete iOS suite and build.
-- Latest documentation validation: T-345 passed docs governance tests, `git diff --check`, and context hygiene.
+- Latest documentation validation: T-346 passed brand identity checks, docs governance tests, `git diff --check`, and context hygiene.
 - Known iOS validation failure: none currently recorded.
 - T-340 owns the known redundant-`await` and unused reminder-result compiler warnings. The AppIntents metadata-skipped message remains classified as toolchain information while Beckon has no App Intents dependency.
 

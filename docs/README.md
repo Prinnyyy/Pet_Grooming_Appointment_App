@@ -33,6 +33,7 @@ Default searches honor `../.rgignore`. Do not use broad `rg --files -g '*.md'` a
 - Task numbering/status source: `06_tasks/TASK_LEDGER.md`
 - Managed roadmap: `06_tasks/ROADMAP.md`
 - Feature routing index: `00_memory/FEATURE_INDEX.md`
+- Canonical brand identity: `01_product/BRAND_IDENTITY.md`
 - Workflow rules: `05_workflow/SINGLE_AGENT_WORKFLOW.md`
 - Context/recovery and budgets: `05_workflow/CONTEXT_AND_RECOVERY.md`
 - Tooling and validation policy: `05_workflow/TOOLING_POLICY.md`

@@ -32,7 +32,7 @@ Date: 2026-07-12
 Decision: Govern Beckon UI consistency through the existing DesignSystem, semantic components, and an all-app source-audit debt ratchet, with the first migration slice limited to Customer Home, Requests, Request creation, and Account.
 Context: Existing tokens and shared primitives are real but incomplete; feature code still mixes platform fonts, fixed sizes, local styles, repeated modifier stacks, and layout repairs. Screenshot review catches rendering failures but cannot reliably enforce fine-grained consistency. Customer reference pages establish useful hierarchy and tone but also contain debt, while Groomer intentionally uses denser workspace patterns.
 Consequences: R-041 evolves DesignTokens in place, adds only reuse-backed semantic components, establishes a tested dependency-free source audit with explicit exceptions, baselines non-slice debt, and blocks new violations. The four Customer surfaces migrate first. Business logic, repositories, navigation, Supabase, dependencies, and deferred Groomer Q-104 scope are unchanged unless separately approved.
-Linked files: docs/superpowers/specs/2026-07-12-ui-consistency-governance-design.md, docs/01_product/DESIGN_SYSTEM.md, docs/06_tasks/ROADMAP.md, docs/00_memory/FEATURE_INDEX.md
+Linked files: docs/01_product/DESIGN_SYSTEM.md, docs/04_ios/UI_CODE_GOVERNANCE.md, docs/04_ios/UI_CONSISTENCY_DEBT.md, docs/06_tasks/ROADMAP.md, docs/00_memory/FEATURE_INDEX.md
 ```
 
 ```text
@@ -41,7 +41,7 @@ Date: 2026-07-11
 Decision: Adopt one shared Apple Maps service-address confirmation system and make private PostGIS coordinates plus the controlling radius the long-term location-matching authority.
 Context: Device-localized city strings can differ across Customer and Groomer records, current city/state matching ignores ZIP and configured radii, and the Request address dropdown performed expensive per-candidate language normalization. The product needs shopping-style field semantics and address confirmation, but grooming service locations do not require a USPS-deliverability claim or a Google dependency.
 Consequences: Address Line 1 excludes Unit/Apt data and Address Line 2 owns it; complete misplaced suffixes auto-move unless a conflict requires user choice. MapKit suggestions display directly, only selections/manual continuation resolve, Place ID is optional, and complete coordinates are mandatory. Exact geo metadata is private; PostGIS applies Customer travel radius for shop visits and Groomer service radius for mobile service. Legacy city/state fallback exists only through controlled backfill and is removed after a zero-gap gate. Remote migration/backfill/TestOps remain separately authorized.
-Linked files: docs/06_tasks/APPLE_MAPS_ADDRESS_SYSTEM_PLAN.md, docs/06_tasks/ROADMAP.md, docs/06_tasks/ROADMAP_EXECUTION_QUEUE.md, docs/02_architecture/DATA_FLOW.md
+Linked files: docs/02_architecture/DATA_FLOW.md, docs/03_backend/RLS_RPC_POLICY.md, docs/04_ios/ADDRESS_BACKFILL.md, docs/06_tasks/ROADMAP.md
 ```
 
 ```text
@@ -104,7 +104,7 @@ Date: 2026-07-09
 Decision: Replace the complete active legacy brand/project identity with Beckon through a dependency-ordered local, workflow, and remote cutover.
 Context: The user finalized the brand, domain, App Store name, and tagline and explicitly required technical identifiers, files, UI, TestOps seeds, and remote state to follow the same identity.
 Consequences: The canonical identity is Beckon, `com.hellobeckon.beckon`, and `com.hellobeckon.beckon://auth/callback`. R-038 uses Q-94 through Q-96 so product/source work, standalone workflow-rule changes, and authorized remote Supabase/seed-user changes remain separately reviewable. Applied migrations, frozen records, and Git history remain immutable; append-only changes replace live old identifiers.
-Linked files: docs/06_tasks/BECKON_BRAND_MIGRATION.md, docs/06_tasks/ROADMAP.md, docs/06_tasks/ROADMAP_EXECUTION_QUEUE.md
+Linked files: docs/01_product/BRAND_IDENTITY.md, docs/06_tasks/ROADMAP.md, docs/06_tasks/ROADMAP_EXECUTION_QUEUE.md
 ```
 
 
