@@ -217,12 +217,12 @@ function ledgerWindowText(branch, next, count) {
   ].join("\n");
 }
 
-function worklogWindowText(count) {
+function worklogWindowText(count, latestTaskNumber = count) {
   return [
     "# Worklog",
     "",
     ...Array.from({ length: count }, (_, index) => {
-      const id = `T-${String(count - index).padStart(3, "0")}`;
+      const id = `T-${String(latestTaskNumber - index).padStart(3, "0")}`;
       return [
         "```text",
         `Task: ${id} - Fixture task.`,
@@ -272,6 +272,25 @@ test("context hygiene passes a consistent fixture", () => {
 
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /Context hygiene check passed/);
+});
+
+test("context hygiene allows the latest completion to use an older task ID", () => {
+  const root = createFixture({ latest: "T-004", next: "T-006" });
+  writeFixtureFile(root, "docs/06_tasks/TASK_LEDGER.md", [
+    "# Task Ledger",
+    "",
+    "Current branch and task-numbering baseline: use `codex/test-baseline`; use `T-006` for the next task unless directed otherwise.",
+    "",
+    "| ID | Task | Status | Mode | Milestone | Files/Docs | Checks | Notes |",
+    "|---|---|---|---|---|---|---|---|",
+    "| T-005 | Earlier completion | completed | Quick | G0 | docs | check | done |",
+    "| T-004 | Latest completion | completed | Quick | G0 | docs | check | done |",
+    "",
+  ].join("\n"));
+
+  const result = runHygiene(root);
+
+  assert.equal(result.status, 0, result.stderr);
 });
 
 test("context hygiene fails when current-state and ledger task facts drift", () => {
@@ -850,7 +869,7 @@ test("context hygiene fails when a task ledger row is too long", () => {
 test("context hygiene allows rolling windows at their structural triggers", () => {
   const root = createFixture({ latest: "T-018", next: "T-019" });
   writeFixtureFile(root, "docs/06_tasks/TASK_LEDGER.md", ledgerWindowText("codex/test-baseline", "T-019", 18));
-  writeFixtureFile(root, "docs/00_memory/WORKLOG.md", worklogWindowText(14));
+  writeFixtureFile(root, "docs/00_memory/WORKLOG.md", worklogWindowText(14, 18));
   writeFixtureFile(root, "docs/07_decisions/DECISION_LOG.md", decisionWindowText(14));
 
   const result = runHygiene(root);
@@ -864,7 +883,7 @@ test("context hygiene allows rolling windows at their structural triggers", () =
 test("context hygiene fails above rolling-window structural triggers", () => {
   const root = createFixture({ latest: "T-019", next: "T-020" });
   writeFixtureFile(root, "docs/06_tasks/TASK_LEDGER.md", ledgerWindowText("codex/test-baseline", "T-020", 19));
-  writeFixtureFile(root, "docs/00_memory/WORKLOG.md", worklogWindowText(15));
+  writeFixtureFile(root, "docs/00_memory/WORKLOG.md", worklogWindowText(15, 19));
   writeFixtureFile(root, "docs/07_decisions/DECISION_LOG.md", decisionWindowText(15));
 
   const result = runHygiene(root);

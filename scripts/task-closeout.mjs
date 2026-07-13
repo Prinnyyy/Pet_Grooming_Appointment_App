@@ -49,8 +49,10 @@ function readRequired(filePath) {
   return fs.readFileSync(target, "utf8");
 }
 
-function nextTaskId(taskId) {
-  const taskNumber = Number.parseInt(taskId.slice(2), 10) + 1;
+function nextTaskId(taskIds) {
+  const taskNumber = Math.max(
+    ...taskIds.map((taskId) => Number.parseInt(taskId.slice(2), 10)),
+  ) + 1;
   return `T-${String(taskNumber).padStart(3, "0")}`;
 }
 
@@ -69,8 +71,9 @@ function checkTaskFacts() {
   const currentState = readRequired("docs/00_memory/CURRENT_STATE.md");
   const worklog = readRequired("docs/00_memory/WORKLOG.md");
   const errors = [];
-  const row = taskRows(ledger).find(({ id }) => id === TASK_ID);
-  const expectedNext = nextTaskId(TASK_ID);
+  const rows = taskRows(ledger);
+  const row = rows.find(({ id }) => id === TASK_ID);
+  const expectedNext = nextTaskId(rows.map(({ id }) => id));
   const currentLatest = currentState.match(/Latest completed task:\s*(T-\d{3})/i)?.[1];
   const currentNext = currentState.match(/Next task ID:\s*(?:use\s*)?(T-\d{3})/i)?.[1];
   const ledgerNext = ledger.match(/use\s+`?(T-\d{3})`?\s+for the next/i)?.[1];

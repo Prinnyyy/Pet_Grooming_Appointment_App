@@ -5,7 +5,7 @@ Current facts for task startup and recovery. Historical task narrative belongs i
 ## Task Baseline
 
 - Date: 2026-07-13
-- Latest completed task: T-350 Periodic governance meta-review.
+- Latest completed task: T-340 iOS compiler warning audit and cleanup.
 - Current task: none.
 - Next task ID: T-351 for the next new task.
 - Current branch baseline: `codex/pet-fit-structure-cleanup`.
@@ -15,7 +15,6 @@ Current facts for task startup and recovery. Historical task narrative belongs i
 
 | Item | State | Next Condition |
 |---|---|---|
-| T-340 iOS compiler warning cleanup | planned | Execute only when the user selects it. |
 | T-157 APNs dispatch | blocked | Paid Apple Developer access and APNs credentials are required. |
 | Q-104 Groomer Dynamic Type/Accessibility | deferred | Resume only when the user restores this scope. |
 | Q-93 leaked-password protection | blocked | Supabase Pro-or-higher plan decision and authorization are required. |
@@ -24,11 +23,11 @@ No roadmap package is automatically active. New work starts from an explicit use
 
 ## Validation Baseline
 
-- Latest app validation: T-344 passed focused Customer Request tests and `./scripts/ios-build.sh`.
+- Latest app validation: T-340 passed focused Customer Request/Auth tests and `./scripts/ios-build.sh`.
 - Latest full iOS regression: T-343 passed the complete iOS suite and build.
-- Latest documentation validation: T-350 passed 46 docs governance/closeout tests, active/default-path audits, `git diff --check`, unified closeout, and context hygiene.
+- Latest documentation validation: T-340 passed 49 governance/rotation/closeout tests, `git diff --check`, unified closeout, and context hygiene.
 - Known iOS validation failure: none currently recorded.
-- T-340 owns the known redundant-`await` and unused reminder-result compiler warnings. The AppIntents metadata-skipped message remains classified as toolchain information while Beckon has no App Intents dependency.
+- No app-owned compiler warning remains in the latest app build. The AppIntents metadata-skipped message remains classified as toolchain information while Beckon has no App Intents dependency.
 
 ## Product Baseline
 

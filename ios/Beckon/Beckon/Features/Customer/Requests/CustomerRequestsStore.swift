@@ -976,7 +976,7 @@ final class CustomerRequestsStore {
                 requestID: request.id
             )
             await refreshAfterAcceptance(requestID: request.id)
-            await appointmentReminderScheduler.syncReminders(
+            _ = await appointmentReminderScheduler.syncReminders(
                 for: bookings,
                 role: .customer
             )

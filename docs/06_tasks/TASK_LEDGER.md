@@ -2,7 +2,7 @@
 
 Task ID, status, and next-number source of truth. Keep only planned, active, blocked, and the latest completed rows. Detailed evidence belongs in `docs/00_memory/WORKLOG.md`; older rows live under `docs/09_frozen/task_ledgers/`.
 
-Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup`; use `T-351` for the next new task. T-350 is completed, and T-340 remains separately planned.
+Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup`; use `T-351` for the next new task. T-340 is completed.
 
 Active blocked task: T-157 waits for paid Apple Developer Program access and APNs credentials before dispatcher deployment. Q-104 remains user-deferred and is tracked in `docs/06_tasks/ROADMAP_EXECUTION_QUEUE.md` rather than as an allocated task.
 
@@ -12,6 +12,7 @@ Pre-reset source snapshot: `docs/09_frozen/active_state_snapshots/T-345_2026-07-
 
 | ID | Task | Status | Mode | Milestone | Files/Docs | Checks | Notes |
 |---|---|---|---|---|---|---|---|
+| T-340 | iOS compiler warning audit and cleanup | completed | Standard | M14 | Supabase Auth; Customer Request reminders; closeout/hygiene compatibility; task memory | Warning RED/GREEN; focused app tests; iOS build; 49 governance tests; diff/context/closeout | Removes the two app-owned warnings without behavior changes. Closeout and hygiene now support completing a planned lower task ID while preserving the ledger's real next available ID and Worklog chronology. |
 | T-350 | Periodic governance meta-review and semantic regression gates | completed | Quick | G0 | Context hygiene/check tests; closeout precheck coordination; task memory | 46 docs tests; default-path/root audit; closeout/diff/context checks | Confirms active context remains compact and hidden paths stay isolated; blocks completed active artifacts, Current State task history, stale Worklog Next lines, and duplicate agent-preflight restoration. |
 | T-349 | Closeout Automation V2 | completed | Quick | G0 | Unified closeout script/tests; task-artifact staging; workflow/context/index/decision sync; task memory | 40 docs tests; closeout dry/apply; diff/context checks | Requires aligned durable facts, completed artifact metadata, and clear backlinks before verbatim archival; runs safe rotation and concise hygiene, and removes the broken agent-preflight entrypoint. |
 | T-348 | Workflow source-of-truth consolidation | completed | Quick | G0 | AGENTS/Claude adapters; five workflow owners; Meta Review/index/decision sync; hygiene policy/check/tests; frozen/task memory | 36 docs tests; ownership/conflict/link/diff/context checks | Enforces one owner per workflow concern, host-aware context, fresh-session meta-reviews, scoped validation failure handling, Simulator deferral, host skills, and explicit checkpoint authorization. |
@@ -22,5 +23,4 @@ Pre-reset source snapshot: `docs/09_frozen/active_state_snapshots/T-345_2026-07-
 | T-343 | Shared Customer/Groomer Account architecture | completed | Standard | M14 | Shared Account/settings/photo primitives; Customer and Groomer Account/Profile surfaces | Focused test; full iOS tests/build; UI debt/source audits | Both roles share Account presentation architecture without Store, repository, or backend changes. |
 | T-342 | Groomer Profile RPC null-parameter correction | completed | Standard | M14 | Shared Profile address RPC encoder; focused tests | Runtime trace; focused/full tests; iOS build | Nil Apple Place IDs encode as explicit JSON null; no backend or remote state changed. |
 | T-341 | Customer Hero and global palette alignment | completed | Standard | M14 | Customer Hero; semantic color roles; shared primitives | Focused/full tests; iOS build; user visual approval | Customer surfaces use the approved #333333 and Display P3 palette while Groomer/status roles remain independent. |
-| T-340 | iOS compiler warning audit and cleanup | planned | Standard | M14 | Supabase Auth repository; Customer Request reminder synchronization | Pending focused/full iOS validation | Remove the app-owned redundant-await and unused-result warnings without behavior changes; retain AppIntents metadata output as toolchain information unless App Intents is adopted. |
 | T-157 | Customer APNs push notification foundation | blocked | Deep | M2 | APNs dispatcher and iOS registration foundation | Historical validation in frozen records | Database foundation is applied; deployment waits for Apple Developer access and APNs credentials. |

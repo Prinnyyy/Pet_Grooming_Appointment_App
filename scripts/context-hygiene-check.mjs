@@ -577,6 +577,7 @@ function checkFeatureIndexCoverage() {
 function checkCurrentFacts() {
   const currentState = readOptional("docs/00_memory/CURRENT_STATE.md");
   const taskLedger = readOptional("docs/06_tasks/TASK_LEDGER.md");
+  const worklog = readOptional("docs/00_memory/WORKLOG.md");
 
   const currentLatest = extractTaskId(currentState, /Latest completed task:\s*(T-\d{3})/i);
   const currentNext = extractTaskId(currentState, /Next task ID:\s*(?:use\s*)?(T-\d{3})/i);
@@ -585,9 +586,8 @@ function checkCurrentFacts() {
   const ledgerNext = extractTaskId(taskLedger, /use\s+`?(T-\d{3})`?\s+for the next/i);
   const ledgerBranch = extractBranchBaseline(taskLedger, /Current branch and task-numbering baseline:\s*use\s+`([^`]+)`/i);
   const completedRows = ledgerRows(taskLedger).filter((row) => row.status === "completed");
-  const latestLedgerCompleted = completedRows
-    .map((row) => row.id)
-    .sort((a, b) => taskNumber(b) - taskNumber(a))[0] ?? null;
+  const latestWorklogCompleted = worklogTaskEntries(worklog)[0]?.task ?? null;
+  const currentLedgerCompleted = completedRows.find((row) => row.id === currentLatest)?.id ?? null;
 
   const requiredFacts = [
     ["CURRENT_STATE.md", "latest completed task", currentLatest],
@@ -595,7 +595,8 @@ function checkCurrentFacts() {
     ["CURRENT_STATE.md", "current branch baseline", currentBranch],
     ["TASK_LEDGER.md", "next task ID", ledgerNext],
     ["TASK_LEDGER.md", "branch baseline", ledgerBranch],
-    ["TASK_LEDGER.md", "latest completed row", latestLedgerCompleted],
+    ["TASK_LEDGER.md", "Current State completed row", currentLedgerCompleted],
+    ["WORKLOG.md", "latest completed task", latestWorklogCompleted],
   ];
   for (const [fileName, factName, value] of requiredFacts) {
     if (!value) {
@@ -603,8 +604,8 @@ function checkCurrentFacts() {
     }
   }
 
-  if (currentLatest && latestLedgerCompleted && currentLatest !== latestLedgerCompleted) {
-    failures.push(`latest completed task mismatch: CURRENT_STATE has ${currentLatest}, TASK_LEDGER has ${latestLedgerCompleted}`);
+  if (currentLatest && latestWorklogCompleted && currentLatest !== latestWorklogCompleted) {
+    failures.push(`latest completed task mismatch: CURRENT_STATE has ${currentLatest}, WORKLOG has ${latestWorklogCompleted}`);
   }
   if (currentNext && ledgerNext && currentNext !== ledgerNext) {
     failures.push(`next task ID mismatch: CURRENT_STATE has ${currentNext}, TASK_LEDGER has ${ledgerNext}`);

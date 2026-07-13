@@ -2,12 +2,21 @@
 
 ```text
 Date: 2026-07-13
+Task: T-340 - iOS compiler warning audit and cleanup.
+Files changed: Supabase Auth state stream, Customer Request reminder sync, closeout/hygiene compatibility scripts and tests, and task memory.
+Checks: Clean warning RED; focused CustomerRequestsStoreTests and AuthenticationStoreTests; iOS build; 49 governance/rotation/closeout tests; target-warning search; diff check; unified closeout; context hygiene.
+Result: The redundant auth-state await and unused reminder-sync result warnings are removed without changing async behavior. Governance gates now close an older planned task against the ledger's actual next ID and Worklog chronology.
+Risks: AppIntents metadata output remains expected toolchain information. Focused test compilation exposed separate pre-existing unused-result warnings in test sources outside T-340.
+Next: Use T-351 for the next new task.
+```
+
+```text
+Date: 2026-07-13
 Task: T-350 - Periodic governance meta-review and semantic regression gates.
 Files changed: Context hygiene semantic checks/tests, closeout precheck coordination, corrected T-349 summary fact, and task memory.
 Checks: Default active/root/heavy-path audit; TDD RED/GREEN; 46 docs governance/closeout tests; git diff check; unified closeout; context hygiene.
 Result: Active context remains 81 Markdown files at about 37k words, with only routing READMEs visible for heavy/staging paths. Hygiene now rejects completed active artifacts, Current State task-history sections, stale Next instructions outside the newest Worklog entry, and restoration of the removed duplicate agent preflight.
 Risks: The two ignored root review-input copies remain user-local and default-hidden; frozen equivalents already exist. Generic word-reference overages remain informational by policy.
-Next: Use T-351 for the next new task; T-340 remains separately planned and requires explicit selection.
 ```
 
 ```text

@@ -14,7 +14,7 @@ final class SupabaseAuthSessionRepository: AuthSessionRepository {
     }
 
     func sessionStateChanges() async -> AsyncStream<AuthSessionSnapshot?> {
-        let authStateChanges = await client.auth.authStateChanges
+        let authStateChanges = client.auth.authStateChanges
 
         return AsyncStream { continuation in
             let task = Task { @MainActor in

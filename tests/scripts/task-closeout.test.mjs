@@ -138,3 +138,49 @@ test("task closeout dry run does not move eligible artifacts", () => {
   assert.match(result.stdout, /Artifacts: would archive 1/);
   assert.equal(existsSync(path.join(root, "docs/superpowers/plans/fixture-plan.md")), true);
 });
+
+test("task closeout accepts the next ID after higher completed task rows", () => {
+  const root = createFixture();
+  writeFile(root, "docs/06_tasks/TASK_LEDGER.md", [
+    "# Task Ledger",
+    "",
+    "Current branch and task-numbering baseline: use `codex/test`; use `T-351` for the next new task.",
+    "",
+    "| ID | Task | Status | Mode | Milestone | Files/Docs | Checks | Notes |",
+    "|---|---|---|---|---|---|---|---|",
+    "| T-350 | Later completed task | completed | Quick | G0 | docs | checks | done |",
+    "| T-340 | Historical planned task | completed | Standard | M14 | app | checks | done |",
+    "",
+  ].join("\n"));
+  writeFile(root, "docs/00_memory/CURRENT_STATE.md", [
+    "# Current State",
+    "",
+    "- Latest completed task: T-340 Historical planned task.",
+    "- Current task: none.",
+    "- Next task ID: T-351 for the next new task.",
+    "",
+  ].join("\n"));
+  writeFile(root, "docs/00_memory/WORKLOG.md", [
+    "# Worklog",
+    "",
+    "```text",
+    "Task: T-340 - Historical planned task.",
+    "Result: Complete.",
+    "```",
+    "",
+  ].join("\n"));
+  writeFile(root, "docs/superpowers/plans/fixture-plan.md", [
+    "<!-- task-artifact",
+    "task: T-340",
+    "status: completed",
+    "type: plan",
+    "-->",
+    "# Fixture Plan",
+    "",
+  ].join("\n"));
+
+  const result = runCloseout(root, ["--task", "T-340", "--apply"]);
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /Task facts: completed and aligned/);
+});
