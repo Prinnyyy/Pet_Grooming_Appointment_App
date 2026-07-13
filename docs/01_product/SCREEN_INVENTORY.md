@@ -1,6 +1,6 @@
 # Screen Inventory
 
-Last verified: 2026-07-12.
+Last verified: 2026-07-13.
 
 Status values: `beckon adapted`, `planned`, `deferred`. Planned paths are placement contracts, not proof that a file exists.
 
@@ -26,7 +26,7 @@ Future UI work is screenshot-driven. Map every visible module to this table plus
 | GroomerOffersView | Groomer | offers with visible request/booking context / `GroomerOffersStore` | `Features/Groomer/Offers/GroomerOffersView.swift` | beckon adapted |
 | GroomerBookingListView | Groomer | participant bookings, reviews, cancel/complete RPCs / `BookingsStore` | `Features/Bookings/BookingsView.swift` | beckon adapted |
 | BookingDetailView / BookingReviewSection | Shared | booking, review, cancel/complete/review RPCs / `BookingsStore` | `Features/Bookings/BookingsView.swift` | beckon adapted |
-| ConversationListView / ChatView | Shared | `conversations`, `messages`, participant booking context / `ChatStore` | `Features/Chat/ChatView.swift` | beckon adapted |
+| ConversationListView / ChatView | Shared | participant-pair `conversations`, typed `messages`, live bookings / `ChatStore`, `BookingsStore` | `Features/Chat/ChatView.swift` | beckon adapted; booking-event cards route to role Booking detail |
 | AuthenticatedAccountView | Shared | Auth session and loaded profile / `AuthenticationStore` | `Features/Auth/AuthenticatedAccountView.swift` | beckon adapted |
 | CustomerAccountView | Customer | Customer profile plus Auth session / `CustomerProfileStore`, `AuthenticationStore` | `Features/Customer/Profile/CustomerAccountView.swift` | beckon adapted; semantic/AX3 reference |
 | CustomerTabView | Customer | injected customer repositories / View | `Features/Customer/CustomerTabView.swift` | beckon adapted |

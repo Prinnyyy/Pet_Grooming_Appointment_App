@@ -48,7 +48,8 @@ struct GroomerTabView: View {
         _chatStore = State(
             initialValue: Self.makeChatStore(
                 groomerID: groomerID,
-                repository: chatRepository
+                repository: chatRepository,
+                bookingRepository: bookingRepository
             )
         )
     }
@@ -149,11 +150,13 @@ struct GroomerTabView: View {
             )
         } else if tab == .messages,
                   let groomerID,
-                  let chatRepository {
+                  let chatRepository,
+                  let bookingRepository {
             ChatConversationsView(
                 participantID: groomerID,
                 role: .groomer,
                 repository: chatRepository,
+                bookingRepository: bookingRepository,
                 debugRecorder: debugRecorder,
                 store: chatStore,
                 focusedBookingID: $focusedConversationBookingID
@@ -241,14 +244,18 @@ struct GroomerTabView: View {
 
     private static func makeChatStore(
         groomerID: UUID?,
-        repository: (any ChatRepository)?
+        repository: (any ChatRepository)?,
+        bookingRepository: (any BookingRepository)?
     ) -> ChatStore? {
-        guard let groomerID, let repository else { return nil }
+        guard let groomerID, let repository, let bookingRepository else {
+            return nil
+        }
 
         return ChatStore(
             participantID: groomerID,
             role: .groomer,
-            repository: repository
+            repository: repository,
+            bookingRepository: bookingRepository
         )
     }
 

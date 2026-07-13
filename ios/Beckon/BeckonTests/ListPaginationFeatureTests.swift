@@ -149,10 +149,9 @@ struct ListPaginationFeatureTests {
     ) -> ChatConversation {
         ChatConversation(
             id: id,
-            bookingID: UUID(),
-            requestID: UUID(),
             customerID: participantID,
             groomerID: UUID(),
+            latestBookingID: UUID(),
             scheduledStart: "2026-08-22T16:00:00Z",
             scheduledEnd: "2026-08-22T18:00:00Z",
             priceEstimate: 120,
@@ -175,7 +174,9 @@ struct ListPaginationFeatureTests {
             id: id,
             conversationID: conversationID,
             senderID: senderID,
+            kind: .text,
             body: "Hello",
+            booking: nil,
             createdAt: "2026-08-20T12:00:00Z"
         )
     }

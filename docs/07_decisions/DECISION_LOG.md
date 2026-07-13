@@ -18,6 +18,15 @@ Linked files:
 ## Active Decisions
 
 ```text
+Decision ID: D-035
+Date: 2026-07-13
+Decision: Give each Customer/Groomer pair one durable conversation and represent acceptance/cancellation as ordered typed booking events.
+Context: Booking-scoped conversations split the same participants across multiple threads and static chat context could not represent more than one booking or remain current after a status transition.
+Consequences: Existing duplicate threads merge into the earliest participant-pair conversation with messages preserved. Controlled acceptance and first cancellation atomically append a live booking card followed by friendly text from the acting user. Authenticated clients may still insert only self-authored text and cannot forge cards. iOS resolves cards through the Booking repository and routes to the existing role-specific Booking detail with shared state.
+Linked files: supabase/migrations/20260713223400_t351_participant_conversations_booking_events.sql, ios/Beckon/Beckon/Features/Chat/, docs/03_backend/RLS_RPC_POLICY.md, docs/06_tasks/sql_reviews/T-351_PARTICIPANT_CHAT_ROLLBACK_VALIDATION.sql
+```
+
+```text
 Decision ID: D-034
 Date: 2026-07-13
 Decision: Use one guarded task-closeout command for numbered durable closeouts and a metadata-based lifecycle for temporary plans/specs.

@@ -2,7 +2,7 @@
 
 Task ID, status, and next-number source of truth. Keep only planned, active, blocked, and the latest completed rows. Detailed evidence belongs in `docs/00_memory/WORKLOG.md`; older rows live under `docs/09_frozen/task_ledgers/`.
 
-Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup`; use `T-351` for the next new task. T-340 is completed.
+Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup`; use `T-352` for the next new task. T-351 and T-340 are completed.
 
 Active blocked task: T-157 waits for paid Apple Developer Program access and APNs credentials before dispatcher deployment. Q-104 remains user-deferred and is tracked in `docs/06_tasks/ROADMAP_EXECUTION_QUEUE.md` rather than as an allocated task.
 
@@ -12,6 +12,7 @@ Pre-reset source snapshot: `docs/09_frozen/active_state_snapshots/T-345_2026-07-
 
 | ID | Task | Status | Mode | Milestone | Files/Docs | Checks | Notes |
 |---|---|---|---|---|---|---|---|
+| T-351 | Participant-pair chat and automatic booking-event messages | completed | Deep | M14 | Conversation/message schema and RPCs; Chat model/repository/store/UI; Booking detail routing; backend/task docs | Migration RED/GREEN; focused/full iOS tests; preflight/build; linked rollback/security/advisor verification; diff/context/closeout | Historical duplicate threads merge by participant pair with messages preserved. Valid acceptance/cancellation inserts a live booking card first, then actor-authored friendly text; direct clients cannot forge cards. |
 | T-340 | iOS compiler warning audit and cleanup | completed | Standard | M14 | Supabase Auth; Customer Request reminders; closeout/hygiene compatibility; task memory | Warning RED/GREEN; focused app tests; iOS build; 49 governance tests; diff/context/closeout | Removes the two app-owned warnings without behavior changes. Closeout and hygiene now support completing a planned lower task ID while preserving the ledger's real next available ID and Worklog chronology. |
 | T-350 | Periodic governance meta-review and semantic regression gates | completed | Quick | G0 | Context hygiene/check tests; closeout precheck coordination; task memory | 46 docs tests; default-path/root audit; closeout/diff/context checks | Confirms active context remains compact and hidden paths stay isolated; blocks completed active artifacts, Current State task history, stale Worklog Next lines, and duplicate agent-preflight restoration. |
 | T-349 | Closeout Automation V2 | completed | Quick | G0 | Unified closeout script/tests; task-artifact staging; workflow/context/index/decision sync; task memory | 40 docs tests; closeout dry/apply; diff/context checks | Requires aligned durable facts, completed artifact metadata, and clear backlinks before verbatim archival; runs safe rotation and concise hygiene, and removes the broken agent-preflight entrypoint. |

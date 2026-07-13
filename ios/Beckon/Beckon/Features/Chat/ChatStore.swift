@@ -7,12 +7,14 @@ final class ChatStore {
     private let participantID: UUID
     private let role: UserRole
     private let repository: any ChatRepository
+    private let bookingRepository: (any BookingRepository)?
     private let now: () -> Date
     private let readStateCache: any ChatReadStateCaching
     private var debugRecorder: AppDebugEventRecorder?
 
     private(set) var conversations: [ChatConversation] = []
     private(set) var messagesByConversationID: [UUID: [ChatMessage]] = [:]
+    private(set) var bookingDetailStoresByID: [UUID: BookingsStore] = [:]
     private(set) var nextConversationPageRequest: ListPageRequest?
     private(set) var nextMessagePageRequestByConversationID: [UUID: ListPageRequest] = [:]
     private(set) var isLoadingConversations = false
@@ -48,6 +50,7 @@ final class ChatStore {
         participantID: UUID,
         role: UserRole,
         repository: any ChatRepository,
+        bookingRepository: (any BookingRepository)? = nil,
         now: @escaping () -> Date = Date.init,
         readStateCache: any ChatReadStateCaching = UserDefaultsChatReadStateCache.shared,
         debugRecorder: AppDebugEventRecorder? = nil
@@ -55,6 +58,7 @@ final class ChatStore {
         self.participantID = participantID
         self.role = role
         self.repository = repository
+        self.bookingRepository = bookingRepository
         self.now = now
         self.readStateCache = readStateCache
         self.debugRecorder = debugRecorder
@@ -105,8 +109,16 @@ final class ChatStore {
         return "No Messages Yet"
     }
 
-    func conversation(forBookingID bookingID: UUID) -> ChatConversation? {
-        conversations.first { $0.bookingID == bookingID }
+    func conversation(for booking: Booking) -> ChatConversation? {
+        conversations.first {
+            $0.customerID == booking.customerID
+                && $0.groomerID == booking.groomerID
+        }
+    }
+
+    func bookingDetailStore(for message: ChatMessage) -> BookingsStore? {
+        guard let bookingID = message.bookingID else { return nil }
+        return bookingDetailStoresByID[bookingID]
     }
 
     func hasUnreadMessages(in conversation: ChatConversation) -> Bool {
@@ -250,6 +262,7 @@ final class ChatStore {
             messagesByConversationID[conversation.id] = Self.messagesInDisplayOrder(
                 page.items
             )
+            reconcileBookingDetailStores(from: page.items)
             nextMessagePageRequestByConversationID[conversation.id] = page.nextRequest
             markConversationRead(conversation.id)
             recordStoreSuccess(
@@ -505,6 +518,25 @@ final class ChatStore {
         messagesByConversationID[message.conversationID] = Self.messagesInDisplayOrder(
             messages
         )
+        reconcileBookingDetailStores(from: [message])
+    }
+
+    private func reconcileBookingDetailStores(from messages: [ChatMessage]) {
+        guard let bookingRepository else { return }
+
+        for booking in messages.compactMap(\.booking) {
+            if let store = bookingDetailStoresByID[booking.id] {
+                store.synchronizeExternalBooking(booking)
+            } else {
+                bookingDetailStoresByID[booking.id] = BookingsStore(
+                    participantID: participantID,
+                    role: role,
+                    repository: bookingRepository,
+                    initialBookings: [booking],
+                    debugRecorder: debugRecorder
+                )
+            }
+        }
     }
 
     private static func messagesInDisplayOrder(

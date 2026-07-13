@@ -2,10 +2,10 @@ import Foundation
 
 struct ChatConversation: Equatable, Hashable, Identifiable, Sendable {
     let id: UUID
-    let bookingID: UUID
-    let requestID: UUID
     let customerID: UUID
     let groomerID: UUID
+    let latestBookingID: UUID?
+    let latestRequestID: UUID?
     let scheduledStart: String?
     let scheduledEnd: String?
     let priceEstimate: Double?
@@ -21,10 +21,10 @@ struct ChatConversation: Equatable, Hashable, Identifiable, Sendable {
 
     nonisolated init(
         id: UUID,
-        bookingID: UUID,
-        requestID: UUID,
         customerID: UUID,
         groomerID: UUID,
+        latestBookingID: UUID? = nil,
+        latestRequestID: UUID? = nil,
         scheduledStart: String? = nil,
         scheduledEnd: String? = nil,
         priceEstimate: Double? = nil,
@@ -39,10 +39,10 @@ struct ChatConversation: Equatable, Hashable, Identifiable, Sendable {
         updatedAt: String
     ) {
         self.id = id
-        self.bookingID = bookingID
-        self.requestID = requestID
         self.customerID = customerID
         self.groomerID = groomerID
+        self.latestBookingID = latestBookingID
+        self.latestRequestID = latestRequestID
         self.scheduledStart = scheduledStart
         self.scheduledEnd = scheduledEnd
         self.priceEstimate = priceEstimate
@@ -57,8 +57,8 @@ struct ChatConversation: Equatable, Hashable, Identifiable, Sendable {
         self.updatedAt = updatedAt
     }
 
-    nonisolated var bookingReferenceCode: String {
-        Self.referenceCode(for: bookingID)
+    nonisolated var latestBookingReferenceCode: String? {
+        latestBookingID.map(Self.referenceCode)
     }
 
     nonisolated var scheduledTimeSummary: String? {
@@ -74,7 +74,10 @@ struct ChatConversation: Equatable, Hashable, Identifiable, Sendable {
     }
 
     nonisolated var bookingContextSummary: String {
-        var parts = ["Booking ref \(bookingReferenceCode)"]
+        var parts: [String] = []
+        if let latestBookingReferenceCode {
+            parts.append("Booking ref \(latestBookingReferenceCode)")
+        }
         if let scheduledTimeSummary {
             parts.append(scheduledTimeSummary)
         }
@@ -85,7 +88,10 @@ struct ChatConversation: Equatable, Hashable, Identifiable, Sendable {
     }
 
     nonisolated var bookingReferenceAndPriceSummary: String {
-        var parts = ["Booking ref \(bookingReferenceCode)"]
+        var parts: [String] = []
+        if let latestBookingReferenceCode {
+            parts.append("Booking ref \(latestBookingReferenceCode)")
+        }
         if let priceSummary {
             parts.append(priceSummary)
         }
@@ -158,12 +164,23 @@ struct ChatConversation: Equatable, Hashable, Identifiable, Sendable {
     }
 }
 
+enum ChatMessageKind: String, Codable, Equatable, Hashable, Sendable {
+    case text
+    case bookingCard = "booking_card"
+}
+
 struct ChatMessage: Equatable, Hashable, Identifiable, Sendable {
     let id: UUID
     let conversationID: UUID
     let senderID: UUID
-    let body: String
+    let kind: ChatMessageKind
+    let body: String?
+    let booking: Booking?
     let createdAt: String
+
+    nonisolated var bookingID: UUID? {
+        booking?.id
+    }
 
     nonisolated func isSentBy(_ participantID: UUID) -> Bool {
         senderID == participantID

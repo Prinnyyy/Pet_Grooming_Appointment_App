@@ -5,9 +5,9 @@ Current facts for task startup and recovery. Historical task narrative belongs i
 ## Task Baseline
 
 - Date: 2026-07-13
-- Latest completed task: T-340 iOS compiler warning audit and cleanup.
+- Latest completed task: T-351 participant-pair chat and automatic booking-event messages.
 - Current task: none.
-- Next task ID: T-351 for the next new task.
+- Next task ID: T-352 for the next new task.
 - Current branch baseline: `codex/pet-fit-structure-cleanup`.
 - GitHub repository: `Prinnyyy/Pet_Grooming_Appointment_App`.
 
@@ -23,9 +23,9 @@ No roadmap package is automatically active. New work starts from an explicit use
 
 ## Validation Baseline
 
-- Latest app validation: T-340 passed focused Customer Request/Auth tests and `./scripts/ios-build.sh`.
-- Latest full iOS regression: T-343 passed the complete iOS suite and build.
-- Latest documentation validation: T-340 passed 49 governance/rotation/closeout tests, `git diff --check`, unified closeout, and context hygiene.
+- Latest app validation: T-351 passed focused Chat and Booking tests, the complete iOS suite, and `./scripts/ios-build.sh`.
+- Latest full iOS regression: T-351 passed the complete iOS suite and build.
+- Latest documentation/backend validation: T-351 passed preflight, 74 migration tests, 10 Edge Function tests, linked rollback/authorization SQL, final remote dry-run, advisor checks, diff check, unified closeout, and context hygiene.
 - Known iOS validation failure: none currently recorded.
 - No app-owned compiler warning remains in the latest app build. The AppIntents metadata-skipped message remains classified as toolchain information while Beckon has no App Intents dependency.
 
@@ -34,11 +34,13 @@ No roadmap package is automatically active. New work starts from an explicit use
 - Beckon is a request-first iOS marketplace: Customer Request -> Groomer Offer -> Customer Acceptance -> Booking/Chat -> Groomer Completion -> Customer Review.
 - Production uses real Supabase Auth, authoritative profiles, role separation, repository boundaries, RLS/RPC controls, and private authenticated image loading.
 - Implemented areas include onboarding, Customer and Groomer workspaces, requests/offers/bookings/chat, notifications, profiles, photos, account deletion, privacy/support, diagnostics, and TestOps.
+- Chat is unique per Customer/Groomer pair across bookings. Acceptance and either-party cancellation append a live Booking card followed by actor-authored friendly text; cards open the existing role-specific Booking detail.
 - Current UI work must reuse the existing DesignSystem, Store, repository, model, and backend boundaries. New persistence, navigation, role capability, or remote behavior requires separate approval.
 
 ## Operational Guardrails
 
 - Authorized Supabase project: Beckon, ref `lqmasbuqzvcvtawonjlb`; the legacy project is out of scope.
+- Linked Beckon migration history is aligned through `20260713223400_t351_participant_conversations_booking_events.sql`.
 - Standing Git approval covers validated task-completion commits and pushes on the current branch only.
 - PRs, tags, merge/rebase/reset, branch deletion, seeds, migrations, Supabase writes, deploys, repository settings, and other non-Git remote writes require explicit approval.
 - `main` is not the active baseline. The reviewed main-only commit `2fddf7b` is superseded and must not be merged into this branch.

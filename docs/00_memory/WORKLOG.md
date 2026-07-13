@@ -2,12 +2,21 @@
 
 ```text
 Date: 2026-07-13
+Task: T-351 - Participant-pair chat and automatic booking-event messages.
+Files changed: Supabase conversation/message migration and validation; Chat/Booking repositories, models, stores, views, and tests; backend/product/task indexes.
+Checks: Migration RED/GREEN; Chat and Booking focused tests; full iOS suite; iOS build; preflight; linked migration apply, rollback/authorization validation, final dry-run, security/performance advisors; diff check; unified closeout; context hygiene.
+Result: One durable conversation now serves each Customer/Groomer pair. Offer acceptance and first cancellation by either role atomically send a live Booking card before friendly actor-authored text; cards open the shared role-specific Booking detail. Historical messages were preserved while duplicate remote conversations were merged.
+Risks: Historical lifecycle events were not synthesized. Server read receipts, attachments, and server chat expiry remain deferred. Q-93 leaked-password protection remains a known plan-gated advisor warning.
+Next: Use T-352 for the next new task.
+```
+
+```text
+Date: 2026-07-13
 Task: T-340 - iOS compiler warning audit and cleanup.
 Files changed: Supabase Auth state stream, Customer Request reminder sync, closeout/hygiene compatibility scripts and tests, and task memory.
 Checks: Clean warning RED; focused CustomerRequestsStoreTests and AuthenticationStoreTests; iOS build; 49 governance/rotation/closeout tests; target-warning search; diff check; unified closeout; context hygiene.
 Result: The redundant auth-state await and unused reminder-sync result warnings are removed without changing async behavior. Governance gates now close an older planned task against the ledger's actual next ID and Worklog chronology.
 Risks: AppIntents metadata output remains expected toolchain information. Focused test compilation exposed separate pre-existing unused-result warnings in test sources outside T-340.
-Next: Use T-351 for the next new task.
 ```
 
 ```text

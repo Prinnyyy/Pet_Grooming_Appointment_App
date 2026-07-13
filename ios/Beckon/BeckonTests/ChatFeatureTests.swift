@@ -351,8 +351,11 @@ struct ChatStoreTests {
 
     @Test @MainActor
     func conversationLookupFindsLoadedBookingConversation() async throws {
-        let bookingID = UUID()
-        let conversation = Self.conversation(bookingID: bookingID)
+        let conversation = Self.conversation()
+        let booking = Self.booking(
+            customerID: conversation.customerID,
+            groomerID: conversation.groomerID
+        )
         let store = ChatStore(
             participantID: conversation.customerID,
             role: .customer,
@@ -363,7 +366,62 @@ struct ChatStoreTests {
 
         await store.loadConversations()
 
-        #expect(store.conversation(forBookingID: bookingID) == conversation)
+        #expect(store.conversation(for: booking) == conversation)
+    }
+
+    @Test @MainActor
+    func bookingCardMessageCarriesTheLiveBookingAndNoTextBody() {
+        let conversationID = UUID()
+        let booking = Self.booking(status: .cancelledByCustomer)
+        let message = ChatMessage(
+            id: UUID(),
+            conversationID: conversationID,
+            senderID: booking.customerID,
+            kind: .bookingCard,
+            body: nil,
+            booking: booking,
+            createdAt: "2026-06-21T05:01:00Z"
+        )
+
+        #expect(message.kind == .bookingCard)
+        #expect(message.body == nil)
+        #expect(message.booking?.status == .cancelledByCustomer)
+    }
+
+    @Test @MainActor
+    func bookingCardSortsBeforeItsFriendlyText() async throws {
+        let conversation = Self.conversation()
+        let booking = Self.booking(
+            customerID: conversation.customerID,
+            groomerID: conversation.groomerID
+        )
+        let card = ChatMessage(
+            id: UUID(uuidString: "11111111-1111-4111-8111-111111111111")!,
+            conversationID: conversation.id,
+            senderID: conversation.customerID,
+            kind: .bookingCard,
+            body: nil,
+            booking: booking,
+            createdAt: "2026-06-21T05:01:00.000000Z"
+        )
+        let text = ChatMessage(
+            id: UUID(uuidString: "22222222-2222-4222-8222-222222222222")!,
+            conversationID: conversation.id,
+            senderID: conversation.customerID,
+            kind: .text,
+            body: "Hi! I've accepted your offer.",
+            booking: nil,
+            createdAt: "2026-06-21T05:01:00.000001Z"
+        )
+        let store = ChatStore(
+            participantID: conversation.customerID,
+            role: .customer,
+            repository: ChatRepositoryFake(messagesResult: .success([text, card]))
+        )
+
+        await store.loadMessages(for: conversation)
+
+        #expect(store.messages(for: conversation.id) == [card, text])
     }
 
     @Test @MainActor
@@ -643,7 +701,7 @@ struct ChatStoreTests {
             groomerID: UUID(uuidString: "87654321-0000-0000-0000-000000000000")!
         )
 
-        #expect(conversation.bookingReferenceCode == "11111111")
+        #expect(conversation.latestBookingReferenceCode == "11111111")
         #expect(conversation.participantReferenceCode(for: .customer) == "87654321")
         #expect(conversation.participantReferenceCode(for: .groomer) == "12345678")
         #expect(conversation.participantSummary(for: .customer) == "Groomer ref 87654321")
@@ -681,7 +739,6 @@ struct ChatStoreTests {
     private static func conversation(
         id: UUID = UUID(),
         bookingID: UUID = UUID(),
-        requestID: UUID = UUID(),
         customerID: UUID = UUID(),
         groomerID: UUID = UUID(),
         scheduledStart: String? = nil,
@@ -697,10 +754,9 @@ struct ChatStoreTests {
     ) -> ChatConversation {
         ChatConversation(
             id: id,
-            bookingID: bookingID,
-            requestID: requestID,
             customerID: customerID,
             groomerID: groomerID,
+            latestBookingID: bookingID,
             scheduledStart: scheduledStart,
             scheduledEnd: scheduledEnd,
             priceEstimate: priceEstimate,
@@ -727,8 +783,36 @@ struct ChatStoreTests {
             id: id,
             conversationID: conversationID,
             senderID: senderID,
+            kind: .text,
             body: body,
+            booking: nil,
             createdAt: createdAt
+        )
+    }
+
+    private static func booking(
+        id: UUID = UUID(),
+        customerID: UUID = UUID(),
+        groomerID: UUID = UUID(),
+        status: BookingStatus = .confirmed
+    ) -> Booking {
+        Booking(
+            id: id,
+            requestID: UUID(),
+            offerID: UUID(),
+            customerID: customerID,
+            groomerID: groomerID,
+            scheduledStart: "2026-06-21T17:00:00Z",
+            scheduledEnd: "2026-06-21T18:00:00Z",
+            priceEstimate: 125,
+            status: status,
+            cancelledBy: status.isCancellation ? customerID : nil,
+            cancelledAt: status.isCancellation ? "2026-06-21T05:00:00Z" : nil,
+            completedAt: nil,
+            completedBy: nil,
+            createdAt: "2026-06-21T04:00:00Z",
+            updatedAt: "2026-06-21T05:00:00Z",
+            review: nil
         )
     }
 

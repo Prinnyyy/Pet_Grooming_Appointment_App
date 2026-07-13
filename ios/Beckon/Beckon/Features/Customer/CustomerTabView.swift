@@ -48,7 +48,8 @@ struct CustomerTabView: View {
         _chatStore = State(
             initialValue: Self.makeChatStore(
                 customerID: customerID,
-                repository: chatRepository
+                repository: chatRepository,
+                bookingRepository: bookingRepository
             )
         )
         _requestStore = State(
@@ -178,11 +179,13 @@ struct CustomerTabView: View {
             )
         } else if tab == .messages,
                   let customerID,
-                  let chatRepository {
+                  let chatRepository,
+                  let bookingRepository {
             ChatConversationsView(
                 participantID: customerID,
                 role: .customer,
                 repository: chatRepository,
+                bookingRepository: bookingRepository,
                 debugRecorder: debugRecorder,
                 store: chatStore,
                 focusedBookingID: $focusedConversationBookingID
@@ -228,14 +231,18 @@ struct CustomerTabView: View {
 
     private static func makeChatStore(
         customerID: UUID?,
-        repository: (any ChatRepository)?
+        repository: (any ChatRepository)?,
+        bookingRepository: (any BookingRepository)?
     ) -> ChatStore? {
-        guard let customerID, let repository else { return nil }
+        guard let customerID, let repository, let bookingRepository else {
+            return nil
+        }
 
         return ChatStore(
             participantID: customerID,
             role: .customer,
-            repository: repository
+            repository: repository,
+            bookingRepository: bookingRepository
         )
     }
 

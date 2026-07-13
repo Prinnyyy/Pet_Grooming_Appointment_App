@@ -2,7 +2,7 @@
   "version": 1,
   "scope": "ios/Beckon/Beckon/Features",
   "lastChange": {
-    "reason": "T-343 replaces Groomer Account legacy layout debt with shared Beckon account and grouped-surface primitives"
+    "reason": "T-351 removes obsolete single-booking chat surfaces"
   },
   "findings": [
     {
@@ -368,27 +368,6 @@
       "fingerprint": "d4398139984ce24fd1d8a728494a51dd1451cae09cb7c89205cd103b59418bc7",
       "expressionHash": "4fc8553e33e82a3789872690cff0fdcdb9b5e15b1f7255353a70d4b00fe38c5f",
       "occurrence": 2
-    },
-    {
-      "ruleID": "UI101",
-      "path": "ios/Beckon/Beckon/Features/Chat/ChatView.swift",
-      "fingerprint": "97d28f2b86bee3117be7f873a97c7aea0b08165c19f735aef594b6f0e546ea56",
-      "expressionHash": "39d215de2635c55a47c6908248badc91eb995e1ef50457945ed1293f8f8b5516",
-      "occurrence": 1
-    },
-    {
-      "ruleID": "UI005",
-      "path": "ios/Beckon/Beckon/Features/Chat/ChatView.swift",
-      "fingerprint": "b8e226fabdc1d8743739a8ac6dbed8248134f2f6c8982b4b12dba6bdf9ee0012",
-      "expressionHash": "074ef5ad10c07987bda1e930a86fa010ae67749dd001f4e788fde14e9020b4ac",
-      "occurrence": 1
-    },
-    {
-      "ruleID": "UI008",
-      "path": "ios/Beckon/Beckon/Features/Chat/ChatView.swift",
-      "fingerprint": "5697ac6f31341b1ff214379c0a71cff9e2ab5cdab200a35cadce7c389112ceca",
-      "expressionHash": "df86d38a17d04751b5073d2eb1fbdfd12a2212f6380004872fadc168eb6a8dc3",
-      "occurrence": 3
     },
     {
       "ruleID": "UI002",

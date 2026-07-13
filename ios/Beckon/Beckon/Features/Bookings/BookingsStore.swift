@@ -51,6 +51,12 @@ final class BookingsStore {
         bookings.first { $0.id == id }
     }
 
+    func synchronizeExternalBooking(_ booking: Booking) {
+        if !replace(booking) {
+            bookings.append(booking)
+        }
+    }
+
     func load() async {
         guard !isLoading, !isLoadingMore else { return }
 

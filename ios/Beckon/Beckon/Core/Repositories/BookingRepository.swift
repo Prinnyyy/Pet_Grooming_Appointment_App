@@ -32,6 +32,10 @@ protocol BookingRepository: AnyObject {
         page: ListPageRequest
     ) async throws -> ListPage<Booking>
 
+    func bookings(
+        bookingIDs: [UUID]
+    ) async throws -> [Booking]
+
     func acceptOffer(
         offerID: UUID
     ) async throws -> AcceptGroomerOfferResult
@@ -51,6 +55,12 @@ protocol BookingRepository: AnyObject {
 }
 
 extension BookingRepository {
+    func bookings(
+        bookingIDs: [UUID]
+    ) async throws -> [Booking] {
+        throw BookingRepositoryError.unavailable
+    }
+
     func bookings(
         participantID: UUID,
         role: UserRole,

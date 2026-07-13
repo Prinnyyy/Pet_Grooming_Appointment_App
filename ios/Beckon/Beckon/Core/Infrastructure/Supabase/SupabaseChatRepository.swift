@@ -4,17 +4,20 @@ import Supabase
 @MainActor
 final class SupabaseChatRepository: ChatRepository {
     private static let conversationColumns = """
-        id,booking_id,request_id,customer_id,groomer_id,created_at,updated_at
+        id,customer_id,groomer_id,created_at,updated_at
         """
-    private static let bookingSummaryColumns =
-        "id,scheduled_start,scheduled_end,price_estimate,status,completed_at"
+    private static let bookingSummaryColumns = """
+        id,request_id,customer_id,groomer_id,scheduled_start,scheduled_end,price_estimate,status,completed_at
+        """
     private static let groomerSummaryColumns = "user_id,business_name"
-    private static let messageColumns = "id,conversation_id,sender_id,body,created_at"
+    private static let messageColumns =
+        "id,conversation_id,sender_id,kind,body,booking_id,created_at"
     private static let latestMessageColumns =
-        "id,conversation_id,sender_id,body,created_at"
+        "id,conversation_id,sender_id,kind,body,booking_id,created_at"
 
     private let client: SupabaseClient
     private let participantAvatarLoader: SupabaseParticipantAvatarLoader
+    private let bookingRepository: SupabaseBookingRepository
 
     init(
         client: SupabaseClient,
@@ -22,6 +25,10 @@ final class SupabaseChatRepository: ChatRepository {
     ) {
         self.client = client
         participantAvatarLoader = SupabaseParticipantAvatarLoader(
+            client: client,
+            privateImageLoader: privateImageLoader
+        )
+        bookingRepository = SupabaseBookingRepository(
             client: client,
             privateImageLoader: privateImageLoader
         )
@@ -60,8 +67,9 @@ final class SupabaseChatRepository: ChatRepository {
                 .execute()
                 .value
 
-            let bookingSummaries = await bookingSummaries(
-                for: rows.map(\.bookingID)
+            let bookingSummaries = await latestBookingSummaries(
+                participantID: participantID,
+                role: role
             )
             let latestMessages = await latestMessages(
                 for: rows.map(\.id)
@@ -83,7 +91,7 @@ final class SupabaseChatRepository: ChatRepository {
 
             let conversations = rows.map { row in
                 row.conversation(
-                    bookingSummary: bookingSummaries[row.bookingID],
+                    bookingSummary: bookingSummaries[row.participantPair],
                     groomerBusinessName: groomerBusinessNames[row.groomerID],
                     groomerAvatarPhotoData: groomerAvatars[row.groomerID],
                     latestMessage: latestMessages[row.id]
@@ -119,8 +127,13 @@ final class SupabaseChatRepository: ChatRepository {
                 .execute()
                 .value
 
+            let bookingsByID = try await bookingsByID(
+                for: rows.compactMap(\.bookingID)
+            )
             return Self.messagePage(
-                fromDescendingMessages: rows.map(\.message),
+                fromDescendingMessages: rows.map {
+                    $0.message(booking: $0.bookingID.flatMap { bookingsByID[$0] })
+                },
                 request: page
             )
         } catch {
@@ -159,11 +172,11 @@ final class SupabaseChatRepository: ChatRepository {
                 .execute()
                 .value
 
-            guard rows.count == 1, let message = rows.first?.message else {
+            guard rows.count == 1, let row = rows.first else {
                 throw ChatRepositoryError.unavailable
             }
 
-            return message
+            return row.message(booking: nil)
         } catch let error as ChatRepositoryError {
             throw error
         } catch {
@@ -186,6 +199,7 @@ final class SupabaseChatRepository: ChatRepository {
             try await channel.subscribeWithError()
 
             let client = self.client
+            let bookingRepository = self.bookingRepository
             return AsyncStream { continuation in
                 let task = Task {
                     for await action in insertStream {
@@ -194,7 +208,16 @@ final class SupabaseChatRepository: ChatRepository {
                             as: ChatMessageRow.self,
                             decoder: JSONDecoder()
                         ) {
-                            continuation.yield(row.message)
+                            let booking: Booking?
+                            if let bookingID = row.bookingID {
+                                let bookings = try? await bookingRepository.bookings(
+                                    bookingIDs: [bookingID]
+                                )
+                                booking = bookings?.first
+                            } else {
+                                booking = nil
+                            }
+                            continuation.yield(row.message(booking: booking))
                         }
                     }
                     continuation.finish()
@@ -251,26 +274,40 @@ final class SupabaseChatRepository: ChatRepository {
         return .unavailable
     }
 
-    private func bookingSummaries(
-        for bookingIDs: [UUID]
-    ) async -> [UUID: ChatBookingSummary] {
-        let ids = uniqueLowercaseStrings(from: bookingIDs)
-        guard !ids.isEmpty else { return [:] }
-
+    private func latestBookingSummaries(
+        participantID: UUID,
+        role: UserRole
+    ) async -> [ChatParticipantPair: ChatBookingSummary] {
         do {
+            let participantColumn = switch role {
+            case .customer:
+                "customer_id"
+            case .groomer:
+                "groomer_id"
+            }
             let rows: [ChatBookingSummaryRow] = try await client
                 .from("bookings")
                 .select(Self.bookingSummaryColumns)
-                .in("id", values: ids)
+                .eq(participantColumn, value: participantID.uuidString.lowercased())
+                .order("scheduled_start", ascending: false)
                 .execute()
                 .value
 
-            return Dictionary(
-                uniqueKeysWithValues: rows.map { ($0.id, $0.summary) }
-            )
+            var summaries: [ChatParticipantPair: ChatBookingSummary] = [:]
+            for row in rows where summaries[row.participantPair] == nil {
+                summaries[row.participantPair] = row.summary
+            }
+            return summaries
         } catch {
             return [:]
         }
+    }
+
+    private func bookingsByID(
+        for bookingIDs: [UUID]
+    ) async throws -> [UUID: Booking] {
+        let bookings = try await bookingRepository.bookings(bookingIDs: bookingIDs)
+        return Dictionary(uniqueKeysWithValues: bookings.map { ($0.id, $0) })
     }
 
     private func groomerBusinessNames(
@@ -333,12 +370,14 @@ final class SupabaseChatRepository: ChatRepository {
 
 private struct ChatConversationRow: Decodable {
     let id: UUID
-    let bookingID: UUID
-    let requestID: UUID
     let customerID: UUID
     let groomerID: UUID
     let createdAt: String
     let updatedAt: String
+
+    var participantPair: ChatParticipantPair {
+        ChatParticipantPair(customerID: customerID, groomerID: groomerID)
+    }
 
     func conversation(
         bookingSummary: ChatBookingSummary?,
@@ -348,10 +387,10 @@ private struct ChatConversationRow: Decodable {
     ) -> ChatConversation {
         ChatConversation(
             id: id,
-            bookingID: bookingID,
-            requestID: requestID,
             customerID: customerID,
             groomerID: groomerID,
+            latestBookingID: bookingSummary?.id,
+            latestRequestID: bookingSummary?.requestID,
             scheduledStart: bookingSummary?.scheduledStart,
             scheduledEnd: bookingSummary?.scheduledEnd,
             priceEstimate: bookingSummary?.priceEstimate,
@@ -369,8 +408,6 @@ private struct ChatConversationRow: Decodable {
 
     private enum CodingKeys: String, CodingKey {
         case id
-        case bookingID = "booking_id"
-        case requestID = "request_id"
         case customerID = "customer_id"
         case groomerID = "groomer_id"
         case createdAt = "created_at"
@@ -379,6 +416,8 @@ private struct ChatConversationRow: Decodable {
 }
 
 private struct ChatBookingSummary: Sendable {
+    let id: UUID
+    let requestID: UUID
     let scheduledStart: String
     let scheduledEnd: String
     let priceEstimate: Double
@@ -388,14 +427,23 @@ private struct ChatBookingSummary: Sendable {
 
 private struct ChatBookingSummaryRow: Decodable {
     let id: UUID
+    let requestID: UUID
+    let customerID: UUID
+    let groomerID: UUID
     let scheduledStart: String
     let scheduledEnd: String
     let priceEstimate: Double
     let status: BookingStatus
     let completedAt: String?
 
+    var participantPair: ChatParticipantPair {
+        ChatParticipantPair(customerID: customerID, groomerID: groomerID)
+    }
+
     var summary: ChatBookingSummary {
         ChatBookingSummary(
+            id: id,
+            requestID: requestID,
             scheduledStart: scheduledStart,
             scheduledEnd: scheduledEnd,
             priceEstimate: priceEstimate,
@@ -406,6 +454,9 @@ private struct ChatBookingSummaryRow: Decodable {
 
     private enum CodingKeys: String, CodingKey {
         case id
+        case requestID = "request_id"
+        case customerID = "customer_id"
+        case groomerID = "groomer_id"
         case scheduledStart = "scheduled_start"
         case scheduledEnd = "scheduled_end"
         case priceEstimate = "price_estimate"
@@ -434,14 +485,18 @@ private struct ChatLatestMessageRow: Decodable {
     let id: UUID
     let conversationID: UUID
     let senderID: UUID
-    let body: String
+    let kind: ChatMessageKind
+    let body: String?
+    let bookingID: UUID?
     let createdAt: String
 
     private enum CodingKeys: String, CodingKey {
         case id
         case conversationID = "conversation_id"
         case senderID = "sender_id"
+        case kind
         case body
+        case bookingID = "booking_id"
         case createdAt = "created_at"
     }
 }
@@ -450,15 +505,19 @@ private struct ChatMessageRow: Decodable {
     let id: UUID
     let conversationID: UUID
     let senderID: UUID
-    let body: String
+    let kind: ChatMessageKind
+    let body: String?
+    let bookingID: UUID?
     let createdAt: String
 
-    var message: ChatMessage {
+    func message(booking: Booking?) -> ChatMessage {
         ChatMessage(
             id: id,
             conversationID: conversationID,
             senderID: senderID,
+            kind: kind,
             body: body,
+            booking: booking,
             createdAt: createdAt
         )
     }
@@ -467,9 +526,16 @@ private struct ChatMessageRow: Decodable {
         case id
         case conversationID = "conversation_id"
         case senderID = "sender_id"
+        case kind
         case body
+        case bookingID = "booking_id"
         case createdAt = "created_at"
     }
+}
+
+private struct ChatParticipantPair: Hashable, Sendable {
+    let customerID: UUID
+    let groomerID: UUID
 }
 
 private struct ChatMessageInsertRow: Encodable {

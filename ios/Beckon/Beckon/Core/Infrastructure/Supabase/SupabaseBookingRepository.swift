@@ -67,28 +67,28 @@ final class SupabaseBookingRepository: BookingRepository {
                 .execute()
                 .value
 
-            let reviewMap = try await reviewsByBookingID(
-                bookingIDs: rows.map(\.id)
-            )
-            let groomerSummaries = await groomerSummaries(
-                for: rows.map(\.groomerID)
-            )
-            let groomerAvatars = await participantAvatarLoader.groomerAvatars(
-                for: rows.map(\.groomerID)
-            )
-            let requestLocations = await requestLocations(
-                for: rows.map(\.requestID)
-            )
-
-            let bookings = rows.map { row in
-                row.booking(
-                    review: reviewMap[row.id],
-                    groomerSummary: groomerSummaries[row.groomerID],
-                    groomerAvatarPhotoData: groomerAvatars[row.groomerID],
-                    requestLocation: requestLocations[row.requestID]
-                )
-            }
+            let bookings = try await hydrate(rows)
             return ListPage(items: bookings, request: page)
+        } catch {
+            throw Self.map(error)
+        }
+    }
+
+    func bookings(
+        bookingIDs: [UUID]
+    ) async throws -> [Booking] {
+        let ids = uniqueLowercaseStrings(from: bookingIDs)
+        guard !ids.isEmpty else { return [] }
+
+        do {
+            let rows: [BookingRow] = try await client
+                .from("bookings")
+                .select(Self.bookingColumns)
+                .in("id", values: ids)
+                .execute()
+                .value
+
+            return try await hydrate(rows)
         } catch {
             throw Self.map(error)
         }
@@ -269,6 +269,30 @@ final class SupabaseBookingRepository: BookingRepository {
         }
 
         return .unavailable
+    }
+
+    private func hydrate(_ rows: [BookingRow]) async throws -> [Booking] {
+        let reviewMap = try await reviewsByBookingID(
+            bookingIDs: rows.map(\.id)
+        )
+        let groomerSummaries = await groomerSummaries(
+            for: rows.map(\.groomerID)
+        )
+        let groomerAvatars = await participantAvatarLoader.groomerAvatars(
+            for: rows.map(\.groomerID)
+        )
+        let requestLocations = await requestLocations(
+            for: rows.map(\.requestID)
+        )
+
+        return rows.map { row in
+            row.booking(
+                review: reviewMap[row.id],
+                groomerSummary: groomerSummaries[row.groomerID],
+                groomerAvatarPhotoData: groomerAvatars[row.groomerID],
+                requestLocation: requestLocations[row.requestID]
+            )
+        }
     }
 
     private func reviewsByBookingID(

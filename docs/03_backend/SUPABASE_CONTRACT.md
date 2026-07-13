@@ -1,6 +1,6 @@
 # Supabase Contract
 
-Last verified: 2026-07-11 (T-300 strict coordinate cutover and integration gate).
+Last verified: 2026-07-13 (T-351 participant-pair chat migration and remote authorization checks).
 
 This is the active fast-path backend contract. It records current authoritative facts and points to the right detailed source instead of embedding every historical table, RPC, Storage, and migration note.
 
@@ -10,9 +10,9 @@ Full pre-trim contract text is archived at `../09_frozen/backend_contracts/SUPAB
 
 - Authorized fresh project: `Beckon`, ref `lqmasbuqzvcvtawonjlb`, organization `Prinnyyy`, region `us-west-1`.
 - Forbidden legacy project: `Prinnyyy's Project`, ref `swdiiyypysyxbnfrxxsv`. Do not inspect, branch, migrate, reset, or mutate it for this rebuild.
-- Remote verification baseline: linked history aligns through `20260712044858_t300_strict_coordinate_matching.sql` after strict helper, privacy, lifecycle, baseline/radius matching, cleanup, and advisor verification.
+- Remote verification baseline: linked history aligns through `20260713223400_t351_participant_conversations_booking_events.sql`; the final linked dry-run is empty, the rollback validation passed, and security/performance advisors reported no new issue.
 - Local CLI readiness baseline: T-139 confirmed sequential `supabase projects list`, `supabase migration list --linked`, and `supabase db push --linked --dry-run` work from this checkout without `SUPABASE_DB_PASSWORD`.
-- Local migration mirror: `../../supabase/migrations/` is the append-only source for applied and prepared migrations. Local migration mirror count: 67 files. Do not rename or hand-invent migration filenames.
+- Local migration mirror: `../../supabase/migrations/` is the append-only source for applied and prepared migrations. Local migration mirror count: 68 files. Do not rename or hand-invent migration filenames.
 - Full historical contract detail before this fast-path trim is frozen for comparison only. Current implementation truth comes from migrations plus focused active backend policy files.
 
 ## Read Order
@@ -49,7 +49,7 @@ Customer publishes an open grooming request
 -> eligible groomers receive matches
 -> groomers submit offers
 -> customer accepts one offer
--> booking and participant conversation are created
+-> booking is created and its participant-pair conversation is reused or created
 -> groomer completes booking
 -> customer leaves one review
 ```
@@ -63,7 +63,7 @@ Core deployed data areas:
 - Profiles and role markers: `profiles`, `customer_profiles`, `groomer_profiles`.
 - Customer pet data: `pets`, `pet_photos`, fixed taxonomy, weight-derived size, nullable coat type, and private pet photo objects.
 - Groomer marketplace data: services, portfolio photos, availability windows, booking preferences, time off windows, fit claims, and portfolio fit tags.
-- Request lifecycle: grooming requests, request photos, request matches, groomer offers, bookings, conversations, text messages, reviews, and structured pet-fit outcomes.
+- Request lifecycle: grooming requests, request photos, request matches, groomer offers, bookings, participant-pair conversations, typed text/booking-card messages, reviews, and structured pet-fit outcomes.
 - Pet-fit matching: private SQL helper functions, evidence summary view, match scoring/reason text, claim/tag low-confidence signals, negative-evidence suppression, availability-aware matching, and request day-capacity matching.
 - Address matching: PostGIS, private exact location rows, opaque profile/request references, owner profile address RPCs, coordinate Request v2, direction-correct radius scoring, and strict missing-coordinate exclusion.
 - Customer/groomer operational state: `customer_notifications`, `groomer_notifications`, `customer_booking_handoff_acknowledgements`, `customer_push_tokens`, and `account_deletion_requests`.

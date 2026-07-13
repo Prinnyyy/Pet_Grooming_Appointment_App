@@ -24,7 +24,7 @@ Archived pre-trim version: `../09_frozen/backend_policies/RLS_RPC_POLICY_2026-07
 | `request_matches` | Read offered match evidence for own requests only | Read/update own allowed match state | Insert/system statuses denied |
 | `groomer_offers` | Read offers on owned requests; accept one through RPC | Create/withdraw own offers through RPC | Offer status transitions controlled |
 | `bookings` | Participant read; allowed cancellation/review path | Participant read; allowed cancellation/completion path | Insert and critical transitions controlled |
-| `conversations`, `messages` | Booking participant only | Booking participant only | Message insert as self only; update/delete denied |
+| `conversations`, `messages` | Participant-pair conversation and related booking-event reads only | Participant-pair conversation and related booking-event reads only | Authenticated inserts are self-authored text only; booking cards are RPC-authored; update/delete denied |
 | `customer_notifications` | Read own; update own read state; mark-read RPCs | No direct access | Inserts and push state are system/service-role paths |
 | `groomer_notifications` | No direct access | Read own; update own read state; mark-read RPCs | Inserts are system trigger paths |
 | `customer_booking_handoff_acknowledgements` | Read/acknowledge own confirmed booking handoff | No direct access | Insert through acknowledgement path only |
@@ -75,6 +75,7 @@ Every backend access change must cover the relevant negative cases:
 - Groomers cannot read unmatched requests or manage another groomer's profile, services, portfolio, availability, claims, tags, or evidence dashboard.
 - Direct request, match, offer, booking, review, evidence, and outcome writes cannot bypass controlled RPC rules.
 - Non-participants cannot read or insert conversation messages.
+- Authenticated participants cannot forge `booking_card` rows or set message kinds/booking references directly; acceptance and first cancellation insert one live card followed by actor-authored text without duplicate pair conversations.
 - Customers cannot review incomplete, unrelated, or already reviewed bookings.
 - Customers cannot read another customer's notifications, push tokens, handoff acknowledgements, or account deletion request.
 - Groomers cannot read another groomer's notifications or create notification rows directly.
@@ -83,7 +84,7 @@ Every backend access change must cover the relevant negative cases:
 - Authenticated users cannot execute the retired pre-coordinate Request publication RPC.
 - Storage metadata and table predicates must agree with bucket object policies when files are involved.
 
-Current notification negative-test evidence: `../06_tasks/sql_reviews/T-220_NOTIFICATION_RLS_NEGATIVE_CONTRACT.sql` plus `../../tests/migrations/notification-rls-negative-contract.test.mjs`.
+Current chat migration/RLS evidence: `../06_tasks/sql_reviews/T-351_PARTICIPANT_CHAT_ROLLBACK_VALIDATION.sql` plus `../../tests/migrations/participant-chat-booking-events.test.mjs`. Notification evidence remains `../06_tasks/sql_reviews/T-220_NOTIFICATION_RLS_NEGATIVE_CONTRACT.sql` plus `../../tests/migrations/notification-rls-negative-contract.test.mjs`.
 
 ## Update Rules
 

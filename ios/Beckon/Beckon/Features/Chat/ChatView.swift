@@ -4,6 +4,7 @@ struct ChatConversationsView: View {
     @Environment(\.scenePhase) private var scenePhase
     private let participantID: UUID
     private let role: UserRole
+    private let bookingRepository: (any BookingRepository)?
     @Binding private var focusedBookingID: UUID?
     @State private var store: ChatStore
     @State private var focusedConversation: ChatConversation?
@@ -12,18 +13,21 @@ struct ChatConversationsView: View {
         participantID: UUID,
         role: UserRole,
         repository: any ChatRepository,
+        bookingRepository: (any BookingRepository)? = nil,
         debugRecorder: AppDebugEventRecorder? = nil,
         store: ChatStore? = nil,
         focusedBookingID: Binding<UUID?> = .constant(nil)
     ) {
         self.participantID = participantID
         self.role = role
+        self.bookingRepository = bookingRepository
         _focusedBookingID = focusedBookingID
         _store = State(
             initialValue: store ?? ChatStore(
                 participantID: participantID,
                 role: role,
                 repository: repository,
+                bookingRepository: bookingRepository,
                 debugRecorder: debugRecorder
             )
         )
@@ -51,17 +55,17 @@ struct ChatConversationsView: View {
         }
         .refreshable {
             await store.loadConversations()
-            openFocusedConversationIfPossible()
+            await openFocusedConversationIfPossible()
         }
         .task {
             await store.loadConversations()
-            openFocusedConversationIfPossible()
+            await openFocusedConversationIfPossible()
         }
         .onChange(of: scenePhase) { _, newPhase in
             guard newPhase == .active else { return }
             Task {
                 await store.loadConversations()
-                openFocusedConversationIfPossible()
+                await openFocusedConversationIfPossible()
             }
         }
         .onChange(of: focusedBookingID) { _, _ in
@@ -69,18 +73,27 @@ struct ChatConversationsView: View {
             if store.conversations.isEmpty {
                 Task {
                     await store.loadConversations()
-                    openFocusedConversationIfPossible()
+                    await openFocusedConversationIfPossible()
                 }
             } else {
-                openFocusedConversationIfPossible()
+                Task {
+                    await openFocusedConversationIfPossible()
+                }
             }
         }
     }
 
-    private func openFocusedConversationIfPossible() {
-        guard let bookingID = focusedBookingID else { return }
+    private func openFocusedConversationIfPossible() async {
+        guard let bookingID = focusedBookingID,
+              let bookingRepository else { return }
 
-        if let conversation = store.conversation(forBookingID: bookingID) {
+        let bookings = try? await bookingRepository.bookings(
+            bookingIDs: [bookingID]
+        )
+        let booking = bookings?.first
+
+        if let booking,
+           let conversation = store.conversation(for: booking) {
             focusedConversation = conversation
             focusedBookingID = nil
         } else if !store.isLoadingConversations {
@@ -196,10 +209,19 @@ struct ChatConversationsView: View {
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier(
-            AppTestOpsAccessibility.requestIdentifier(
-                prefix: "chat.conversation.request",
-                requestID: conversation.requestID
-            )
+            conversationAccessibilityIdentifier(conversation)
+        )
+    }
+
+    private func conversationAccessibilityIdentifier(
+        _ conversation: ChatConversation
+    ) -> String {
+        guard let requestID = conversation.latestRequestID else {
+            return "chat.conversation.\(conversation.id.uuidString.lowercased())"
+        }
+        return AppTestOpsAccessibility.requestIdentifier(
+            prefix: "chat.conversation.request",
+            requestID: requestID
         )
     }
 }
@@ -250,7 +272,11 @@ private struct ChatConversationRow: View {
                     .minimumScaleFactor(0.82)
 
                 if role == .groomer {
-                    Text("Booking \(conversation.bookingReferenceCode)")
+                    Text(
+                        conversation.latestBookingReferenceCode.map {
+                            "Latest booking \($0)"
+                        } ?? "Participant chat"
+                    )
                         .font(DesignTokens.Typography.caption.weight(.medium))
                         .foregroundStyle(DesignTokens.Colors.textTertiary)
                         .lineLimit(1)
@@ -419,17 +445,6 @@ private struct ChatThreadView: View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                    ChatBookingContextCard(
-                        conversation: conversation,
-                        role: role
-                    )
-
-                    ChatBookingStatusPill(
-                        conversation: conversation,
-                        role: role
-                    )
-                        .frame(maxWidth: .infinity, alignment: .center)
-
                     if !store.canSendMessages(in: conversation) {
                         ChatReadOnlyBanner(message: conversation.readOnlyReason)
                     }
@@ -478,7 +493,10 @@ private struct ChatThreadView: View {
                             ChatMessageRow(
                                 message: message,
                                 isOutgoing: message.isSentBy(participantID),
-                                role: role
+                                role: role,
+                                bookingStore: store.bookingDetailStore(
+                                    for: message
+                                )
                             )
                             .id(message.id)
                         }
@@ -566,76 +584,29 @@ private struct ChatThreadHeader: View {
     }
 }
 
-private struct ChatBookingContextCard: View {
-    let conversation: ChatConversation
-    let role: UserRole
-
-    var body: some View {
-        BeckonCard(padding: DesignTokens.Spacing.md) {
-            HStack(spacing: DesignTokens.Spacing.md) {
-                Image(systemName: "calendar.badge.clock")
-                    .font(.title3.weight(.bold))
-                    .foregroundStyle(role.chatAccentColor)
-                    .frame(width: 54, height: 54)
-                    .background(role.chatAccentColor.opacity(0.16))
-                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                    .accessibilityHidden(true)
-
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                    Text("Grooming Appointment")
-                        .font(DesignTokens.Typography.headline.weight(.bold))
-                        .foregroundStyle(DesignTokens.Colors.textPrimary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.82)
-
-                    Text(conversation.threadAppointmentSummary)
-                        .font(DesignTokens.Typography.body)
-                        .foregroundStyle(DesignTokens.Colors.textSecondary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.8)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-                Image(systemName: "chevron.right")
-                    .font(DesignTokens.Typography.headline.weight(.semibold))
-                    .foregroundStyle(DesignTokens.Colors.textTertiary)
-                    .accessibilityHidden(true)
-            }
-        }
-    }
-}
-
-private struct ChatBookingStatusPill: View {
-    let conversation: ChatConversation
-    let role: UserRole
-
-    var body: some View {
-        Label(conversation.threadStatusText, systemImage: conversation.threadStatusIcon)
-            .font(DesignTokens.Typography.caption.weight(.bold))
-            .foregroundStyle(role.chatAccentColor)
-            .lineLimit(1)
-            .padding(.horizontal, DesignTokens.Spacing.lg)
-            .padding(.vertical, DesignTokens.Spacing.sm)
-            .background {
-                Capsule()
-                    .fill(role.chatAccentColor.opacity(0.16))
-            }
-    }
-}
-
 private struct ChatMessageRow: View {
     let message: ChatMessage
     let isOutgoing: Bool
     let role: UserRole
+    let bookingStore: BookingsStore?
 
     var body: some View {
+        switch message.kind {
+        case .text:
+            textRow
+        case .bookingCard:
+            bookingCardRow
+        }
+    }
+
+    private var textRow: some View {
         HStack(alignment: .bottom) {
             if isOutgoing {
                 Spacer(minLength: 82)
             }
 
             VStack(alignment: isOutgoing ? .trailing : .leading, spacing: DesignTokens.Spacing.xs) {
-                Text(message.body)
+                Text(message.body ?? "")
                     .font(.body.weight(.medium))
                     .foregroundStyle(isOutgoing ? DesignTokens.Colors.surface : DesignTokens.Colors.textPrimary)
                     .padding(.horizontal, DesignTokens.Spacing.lg)
@@ -657,6 +628,119 @@ private struct ChatMessageRow: View {
                 Spacer(minLength: 82)
             }
         }
+    }
+
+    @ViewBuilder
+    private var bookingCardRow: some View {
+        if let booking = message.booking,
+           let bookingStore {
+            NavigationLink {
+                ChatBookingDetailDestination(
+                    bookingID: booking.id,
+                    role: role,
+                    store: bookingStore
+                )
+            } label: {
+                ChatBookingMessageCard(
+                    booking: bookingStore.booking(withID: booking.id) ?? booking,
+                    role: role,
+                    isOutgoing: isOutgoing
+                )
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier(
+                "chat.message.booking.\(booking.id.uuidString.lowercased())"
+            )
+        } else {
+            BeckonCard {
+                Label(
+                    "Booking details are unavailable.",
+                    systemImage: "calendar.badge.exclamationmark"
+                )
+                .font(DesignTokens.Typography.body)
+                .foregroundStyle(DesignTokens.Colors.textSecondary)
+            }
+        }
+    }
+}
+
+private struct ChatBookingDetailDestination: View {
+    @Environment(\.dismiss) private var dismiss
+    let bookingID: UUID
+    let role: UserRole
+    let store: BookingsStore
+
+    var body: some View {
+        BookingDetailView(
+            bookingID: bookingID,
+            role: role,
+            store: store,
+            onOpenChat: { _ in dismiss() }
+        )
+    }
+}
+
+private struct ChatBookingMessageCard: View {
+    let booking: Booking
+    let role: UserRole
+    let isOutgoing: Bool
+
+    var body: some View {
+        HStack(alignment: .bottom) {
+            if isOutgoing {
+                Spacer(minLength: 42)
+            }
+
+            BeckonCard(padding: DesignTokens.Spacing.md) {
+                HStack(spacing: DesignTokens.Spacing.md) {
+                    Image(systemName: booking.status.isCancellation
+                        ? "calendar.badge.exclamationmark"
+                        : "calendar.badge.checkmark")
+                        .font(.title3.weight(.bold))
+                        .foregroundStyle(role.chatAccentColor)
+                        .frame(width: 48, height: 48)
+                        .background(role.chatAccentColor.opacity(0.16))
+                        .clipShape(
+                            RoundedRectangle(
+                                cornerRadius: DesignTokens.CornerRadius.input,
+                                style: .continuous
+                            )
+                        )
+                        .accessibilityHidden(true)
+
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                        Text(booking.status.title)
+                            .font(DesignTokens.Typography.headline.weight(.bold))
+                            .foregroundStyle(DesignTokens.Colors.textPrimary)
+
+                        Text(booking.scheduledTimeSummary)
+                            .font(DesignTokens.Typography.body)
+                            .foregroundStyle(DesignTokens.Colors.textSecondary)
+                            .lineLimit(2)
+
+                        Text("Booking \(booking.referenceCode) • \(booking.priceSummary)")
+                            .font(DesignTokens.Typography.caption.weight(.semibold))
+                            .foregroundStyle(DesignTokens.Colors.textTertiary)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                    Image(systemName: "chevron.right")
+                        .font(DesignTokens.Typography.headline.weight(.semibold))
+                        .foregroundStyle(DesignTokens.Colors.textTertiary)
+                        .accessibilityHidden(true)
+                }
+            }
+            .frame(maxWidth: 360)
+
+            if !isOutgoing {
+                Spacer(minLength: 42)
+            }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(
+            "\(booking.status.title), \(booking.scheduledTimeSummary), \(booking.priceSummary)"
+        )
+        .accessibilityHint("Opens booking details")
     }
 }
 
@@ -827,45 +911,6 @@ private extension ChatConversation {
         return title.split(separator: " ").first.map(String.init) ?? title
     }
 
-    var threadAppointmentSummary: String {
-        if let scheduledTimeSummary {
-            return scheduledTimeSummary
-        }
-
-        if let priceSummary {
-            return "\(bookingStatusTitle) · \(priceSummary)"
-        }
-
-        return bookingStatusTitle
-    }
-
-    var threadStatusText: String {
-        switch bookingStatus {
-        case .confirmed:
-            "Offer Accepted · Booking Confirmed"
-        case .completed:
-            "Booking Completed"
-        case .cancelledByCustomer, .cancelledByGroomer:
-            "Booking Cancelled"
-        case .unknown:
-            "Booking Status Unknown"
-        case nil:
-            "Booking Chat"
-        }
-    }
-
-    var threadStatusIcon: String {
-        switch bookingStatus {
-        case .confirmed, .completed:
-            "checkmark"
-        case .cancelledByCustomer, .cancelledByGroomer:
-            "xmark"
-        case .unknown:
-            "questionmark"
-        case nil:
-            "message"
-        }
-    }
 }
 
 private enum ChatDateFormatting {
@@ -970,10 +1015,9 @@ private final class ChatPreviewRepository: ChatRepository {
     private let participantID = UUID()
     private let conversation = ChatConversation(
         id: UUID(),
-        bookingID: UUID(),
-        requestID: UUID(),
         customerID: UUID(),
         groomerID: UUID(),
+        latestBookingID: UUID(),
         scheduledStart: "2026-06-22T17:00:00Z",
         scheduledEnd: "2026-06-22T18:00:00Z",
         priceEstimate: 95,
@@ -998,7 +1042,9 @@ private final class ChatPreviewRepository: ChatRepository {
                 id: UUID(),
                 conversationID: conversationID,
                 senderID: participantID,
+                kind: .text,
                 body: "Hi, see you tomorrow.",
+                booking: nil,
                 createdAt: "2026-06-21T05:01:00Z"
             ),
         ]
@@ -1013,7 +1059,9 @@ private final class ChatPreviewRepository: ChatRepository {
             id: UUID(),
             conversationID: conversationID,
             senderID: senderID,
+            kind: .text,
             body: body,
+            booking: nil,
             createdAt: "2026-06-21T05:02:00Z"
         )
     }
