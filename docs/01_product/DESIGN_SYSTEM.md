@@ -103,16 +103,25 @@ Approved light-palette color pairs:
 | `groomerOnAccent #642620` | coral or coralDark | Approved AA Groomer action foreground. |
 | `customerHeroText #333333` | Display P3 Hero mint | Softer Customer Home Hero title/supporting copy; measured contrast remains at or above WCAG AAA. |
 | `customerHeroText #333333` | surface white | Customer Home Hero action foreground; matches the Hero copy while remaining above WCAG AAA. |
-
-Feature-level promotional modules use `featureTitle` (28pt bold), `body` (17pt), and `prominentAction` (20pt semibold). These shared semantic tokens avoid local fixed-size typography while keeping feature Heroes below page-title scale.
-Their copy width follows the intrinsic action width through layout measurement; copy must not resize the action.
-| surface white | Customer Home Display P3 `#93CEC2` to `#B0D8D9` Hero | Approved screenshot-specific visual exception; accessibility color remediation is deferred by user direction. |
 | `textPrimary #232323` | success, warning, or error fill | Approved for status chips; pair color with text or an icon. |
 | `textTertiary #69717A` | surface or app background | Approved. |
 | `textSecondary #6F767E` | surface | Approved; do not use on app background for normal-size text. |
 | `successText #37744E` | surface | Approved and implemented AA success body text. |
 | `warningText #8F6800` | surface | Approved and implemented AA warning body text. |
 | `errorText #B4474C` | surface | Approved and implemented AA error body text. |
+
+Approved Customer palette migration:
+
+| Semantic role | Display P3 value | Component purpose |
+|---|---:|---|
+| `customerAccent` | `#93CEC2` | Primary fills and default accent surfaces. |
+| `customerAccentSoft` | `#B0D8D9` | Gradients and quiet filled states. |
+| `customerAccentSubtle` | `#B5DCD9` | Decorative and low-emphasis surfaces. |
+| `customerAccentStrong` | `#518B7F` | Tint, progress, selected borders, and meaningful icons. |
+
+Global primary text migrates from `#232323` to `#333333`. White surfaces, warm `#FAF7F2` backgrounds, Groomer coral, status colors, notification red, and secondary/tertiary text remain unchanged. Existing Customer token names remain temporary aliases during migration; feature code must consume semantic roles rather than raw P3 values.
+
+Feature-level promotional modules use `featureTitle` (28pt bold), `body` (17pt), and `prominentAction` (20pt semibold). These shared semantic tokens avoid local fixed-size typography while keeping feature Heroes below page-title scale. Their copy width follows the intrinsic action width through layout measurement; copy must not resize the action.
 
 Banned pairs:
 

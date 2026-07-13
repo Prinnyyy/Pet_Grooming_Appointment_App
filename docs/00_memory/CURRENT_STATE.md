@@ -7,7 +7,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - Date: 2026-07-13
 - Updated by: Codex
 - Latest completed task: T-339 periodic documentation-governance meta-review.
-- Current task: T-341 Customer Home request Hero visual restoration is in progress at a user-review checkpoint; T-340 remains separately planned, T-157 APNs remains externally blocked, and Q-104 Dynamic Type/Accessibility remains user-deferred.
+- Current task: T-341 Customer Home Hero and global Customer palette alignment is in progress; the Hero is at a user-review checkpoint and the approved scheme A palette migration is specified but not yet implemented. T-340 remains separately planned, T-157 APNs remains externally blocked, and Q-104 Dynamic Type/Accessibility remains user-deferred.
 - Next task ID: T-342 for the next new task; resume current T-341 before starting it.
 
 ## Fast Path
