@@ -71,7 +71,12 @@ const DEFAULT_CONTEXT_EXCLUDE_PREFIXES = [
   "docs/09_frozen/",
   "docs/02_architecture/test_resources/T-129_",
   "docs/08_design/Beckon",
+  "docs/ui-redesign/",
 ];
+
+const DEFAULT_CONTEXT_INCLUDE_FILES = new Set([
+  "docs/ui-redesign/README.md",
+]);
 
 function run(command, args) {
   return spawnSync(command, args, {
@@ -144,7 +149,8 @@ function activeMarkdownFiles() {
       .split(/\r?\n/)
       .filter(Boolean)
       .filter((filePath) => filePath.endsWith(".md"))
-      .filter((filePath) => !DEFAULT_CONTEXT_EXCLUDE_PREFIXES.some((prefix) => filePath.startsWith(prefix))))];
+      .filter((filePath) => DEFAULT_CONTEXT_INCLUDE_FILES.has(filePath)
+        || !DEFAULT_CONTEXT_EXCLUDE_PREFIXES.some((prefix) => filePath.startsWith(prefix))))];
   }
 
   const result = runRequired("rg", ["--files", "AGENTS.md", "README.md", "docs"]);
@@ -289,6 +295,13 @@ function checkIgnoredPaths() {
     .filter((filePath) => /Beckon.*\.html$/i.test(filePath));
   if (visibleBeckonHTML.length > 0) {
     failures.push(`Beckon HTML visible to default rg --files: ${visibleBeckonHTML.join(", ")}`);
+  }
+
+  const uiRedesign = runRequired("rg", ["--files", "docs/ui-redesign"]);
+  const uiRedesignFiles = uiRedesign?.stdout.trim().split(/\r?\n/).filter(Boolean) ?? [];
+  const expectedUIRedesign = ["docs/ui-redesign/README.md"];
+  if (uiRedesignFiles.join("\n") !== expectedUIRedesign.join("\n")) {
+    failures.push(`ui-redesign default rg output changed: ${uiRedesignFiles.join(", ")}`);
   }
 }
 

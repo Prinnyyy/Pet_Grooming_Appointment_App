@@ -29,7 +29,7 @@ Archived files may contain old TODOs, old paths, old branch/task references, or 
 - `backend_policies/`: archived pre-trim backend policy/runbook files such as RLS/RPC, Storage, and migration rules.
 - `feature_indexes/`: archived pre-trim feature index snapshots moved out of the active routing index.
 - `design_prompts/`: archived historical design-task prompts moved out of active design context.
-- `design_notes/`: archived pre-slim design-system and Groomly UI audit notes moved out of active design context.
+- `design_notes/`: archived pre-slim design-system/UI audit notes and dated pre-routing snapshots; T-347 preserves source contracts plus the superseded iOS accessibility checklist before heavy-context separation.
 - `product_briefs/`: archived original product/engineering briefs moved out of active root context.
 - `project_structure/`: archived full structure logs moved out of the active reorganization index.
 - `claude_reference_2026-07-08/`: archived old Claude-only reference snapshots moved out of the active root.

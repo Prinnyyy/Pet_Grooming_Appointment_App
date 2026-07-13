@@ -25,12 +25,16 @@ function createFixture({ branch = "codex/test-baseline", latest = "T-005", next 
     "docs/02_architecture/test_resources/T-129_*_TEST_PROFILES.md",
     "docs/08_design/Beckon.html",
     "docs/08_design/Beckon/**",
+    "docs/ui-redesign/*",
+    "!docs/ui-redesign/README.md",
     "",
   ].join("\n"));
   writeFixtureFile(root, "AGENTS.md", `# AGENTS\n\n- Current branch baseline is \`${branch}\`.\n`);
   writeFixtureFile(root, "README.md", "# Root README\n");
   writeFixtureFile(root, "CLAUDE.md", "# Claude\n");
   writeFixtureFile(root, "docs/README.md", "# Docs README\n");
+  writeFixtureFile(root, "docs/ui-redesign/README.md", "# Heavy UI Index\n\nOpen targeted evidence only.\n");
+  writeFixtureFile(root, "docs/ui-redesign/03-screen-functional-specs.md", `# Heavy Body\n\n${"heavy ".repeat(1200)}\n`);
   writeFixtureFile(root, "docs/00_memory/CURRENT_STATE.md", [
     "# Current State",
     "",
@@ -301,6 +305,25 @@ test("context hygiene falls back to git ls-files when rg is unavailable", () => 
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /warn: rg unavailable, \.rgignore behavior checks skipped/i);
   assert.match(result.stdout, /Active Markdown files: \d+/i);
+  assert.match(result.stdout, /docs\/ui-redesign\/README\.md/i);
+  assert.doesNotMatch(result.stdout, /docs\/ui-redesign\/03-screen-functional-specs\.md/i);
+});
+
+test("context hygiene fails when heavy UI redesign body is default-visible", () => {
+  const root = createFixture();
+  writeFixtureFile(root, ".rgignore", [
+    "docs/09_frozen/**",
+    "artifacts/**",
+    "docs/02_architecture/test_resources/T-129_*_TEST_PROFILES.md",
+    "docs/08_design/Beckon.html",
+    "docs/08_design/Beckon/**",
+    "",
+  ].join("\n"));
+
+  const result = runHygiene(root);
+
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /ui-redesign default rg output changed/i);
 });
 
 test("context hygiene fails when a backtick path is missing", () => {

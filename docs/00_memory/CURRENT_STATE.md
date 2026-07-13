@@ -5,9 +5,9 @@ Current facts for task startup and recovery. Historical task narrative belongs i
 ## Task Baseline
 
 - Date: 2026-07-13
-- Latest completed task: T-346 Roadmap and completed-artifact rotation.
+- Latest completed task: T-347 Heavy UI context routing and design-contract separation.
 - Current task: none.
-- Next task ID: T-347 for the next new task.
+- Next task ID: T-348 for the next new task.
 - Current branch baseline: `codex/pet-fit-structure-cleanup`.
 - GitHub repository: `Prinnyyy/Pet_Grooming_Appointment_App`.
 
@@ -26,7 +26,7 @@ No roadmap package is automatically active. New work starts from an explicit use
 
 - Latest app validation: T-344 passed focused Customer Request tests and `./scripts/ios-build.sh`.
 - Latest full iOS regression: T-343 passed the complete iOS suite and build.
-- Latest documentation validation: T-346 passed brand identity checks, docs governance tests, `git diff --check`, and context hygiene.
+- Latest documentation validation: T-347 passed 34 docs governance tests, active-link/default-visibility checks, `git diff --check`, and context hygiene.
 - Known iOS validation failure: none currently recorded.
 - T-340 owns the known redundant-`await` and unused reminder-result compiler warnings. The AppIntents metadata-skipped message remains classified as toolchain information while Beckon has no App Intents dependency.
 
@@ -50,6 +50,7 @@ No roadmap package is automatically active. New work starts from an explicit use
 - Recent closeout evidence: `docs/00_memory/WORKLOG.md`.
 - Managed direction: `docs/06_tasks/ROADMAP.md` and `docs/06_tasks/ROADMAP_EXECUTION_QUEUE.md`.
 - Feature routing: `docs/00_memory/FEATURE_INDEX.md`.
+- UI design routing: `docs/01_product/DESIGN_SYSTEM.md`; heavy Figma/inventory access starts at `docs/ui-redesign/README.md`.
 - Durable decisions: `docs/07_decisions/DECISION_LOG.md`.
 - Workflow and recovery: `docs/05_workflow/SINGLE_AGENT_WORKFLOW.md` and `docs/05_workflow/CONTEXT_AND_RECOVERY.md`.
 - Tool and Git rules: `docs/05_workflow/TOOLING_POLICY.md` and `docs/05_workflow/GITHUB_RULES.md`.

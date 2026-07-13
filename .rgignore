@@ -9,6 +9,10 @@ docs/02_architecture/test_resources/T-129_*_TEST_PROFILES.md
 docs/08_design/Beckon.html
 docs/08_design/Beckon/**
 
+# Heavy UI inventory/Figma evidence. Keep only its routing README in default search context.
+docs/ui-redesign/*
+!docs/ui-redesign/README.md
+
 # External agent draft reports should not be active search context.
 APP_STATUS_OVERVIEW.md
 V1.0_RELEASE_TASK_PLAN.md

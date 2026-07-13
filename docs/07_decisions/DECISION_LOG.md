@@ -32,7 +32,7 @@ Date: 2026-07-12
 Decision: Govern Beckon UI consistency through the existing DesignSystem, semantic components, and an all-app source-audit debt ratchet, with the first migration slice limited to Customer Home, Requests, Request creation, and Account.
 Context: Existing tokens and shared primitives are real but incomplete; feature code still mixes platform fonts, fixed sizes, local styles, repeated modifier stacks, and layout repairs. Screenshot review catches rendering failures but cannot reliably enforce fine-grained consistency. Customer reference pages establish useful hierarchy and tone but also contain debt, while Groomer intentionally uses denser workspace patterns.
 Consequences: R-041 evolves DesignTokens in place, adds only reuse-backed semantic components, establishes a tested dependency-free source audit with explicit exceptions, baselines non-slice debt, and blocks new violations. The four Customer surfaces migrate first. Business logic, repositories, navigation, Supabase, dependencies, and deferred Groomer Q-104 scope are unchanged unless separately approved.
-Linked files: docs/01_product/DESIGN_SYSTEM.md, docs/04_ios/UI_CODE_GOVERNANCE.md, docs/04_ios/UI_CONSISTENCY_DEBT.md, docs/06_tasks/ROADMAP.md, docs/00_memory/FEATURE_INDEX.md
+Linked files: docs/01_product/DESIGN_SYSTEM.md, docs/01_product/ACCESSIBILITY_RULES.md, docs/01_product/FORM_INTERACTION_RULES.md, docs/04_ios/UI_CODE_GOVERNANCE.md, docs/04_ios/UI_CONSISTENCY_DEBT.md, docs/06_tasks/ROADMAP.md, docs/00_memory/FEATURE_INDEX.md
 ```
 
 ```text

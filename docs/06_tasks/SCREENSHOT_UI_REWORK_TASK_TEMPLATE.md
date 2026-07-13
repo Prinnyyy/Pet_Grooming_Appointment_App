@@ -32,8 +32,10 @@ Read only:
 3. targeted `docs/00_memory/CURRENT_STATE.md` sections when current state or risks matter
 4. `docs/01_product/SCREEN_INVENTORY.md`
 5. `docs/01_product/DESIGN_SYSTEM.md`
-6. relevant SwiftUI view file(s)
-7. relevant Store, repository protocol, and model files only when wiring existing behavior
+6. `docs/01_product/ACCESSIBILITY_RULES.md`
+7. `docs/01_product/FORM_INTERACTION_RULES.md` only for a form, editor, text-entry surface, or sheet
+8. relevant SwiftUI view file(s)
+9. relevant Store, repository protocol, and model files only when wiring existing behavior
 
 ## Screenshot Analysis
 
@@ -127,7 +129,7 @@ Run one validation attempt by mode. If required validation or required simulator
 
 - [ ] Complete a VoiceOver walkthrough covering labels, grouping, headings, and accessibility actions.
 - [ ] Pass AX3 (`.accessibility3`) Dynamic Type with no clipped, overlapping, or scaled-away informational text.
-- [ ] Use only approved foreground/background token pairs from `../01_product/DESIGN_SYSTEM.md`.
+- [ ] Use only approved foreground/background token pairs from `../01_product/ACCESSIBILITY_RULES.md`.
 - [ ] Keep every interactive target at least 44x44pt, including icon-only controls and row actions.
 - [ ] Announce meaningful async success, failure, confirmation, and refresh outcomes.
 - [ ] Preserve existing TestOps `accessibilityIdentifier` values while adding human accessibility labels.

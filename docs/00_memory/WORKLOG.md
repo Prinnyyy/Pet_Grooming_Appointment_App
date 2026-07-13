@@ -2,12 +2,21 @@
 
 ```text
 Date: 2026-07-13
+Task: T-347 - Heavy UI context routing and design-contract separation.
+Files changed: UI redesign routing/ignore rules; core, accessibility, form, and Groomer design contracts; active indexes; frozen source snapshots; context hygiene policy/check/tests; task memory.
+Checks: 34 docs governance tests, git diff check, active links, default and fallback heavy-path visibility, word telemetry, and context hygiene passed.
+Result: The 31.5k-word UI redesign body remains tracked but is hidden from default context behind one README. DesignSystem is a 660-word core entry; accessibility and form behavior are separate on-demand contracts. Completed Groomer execution history is removed from default feature routes and preserved verbatim in frozen snapshots.
+Risks: Heavy evidence can become stale and must be verified against current code. Workflow source ownership, validation conflicts, and closeout automation remain separate tasks.
+Next: No automatic follow-up. Use T-348 for the next new task; T-340 remains separately planned.
+```
+
+```text
+Date: 2026-07-13
 Task: T-346 - Roadmap and completed-artifact rotation.
 Files changed: Managed Roadmap/Queue; active indexes/contracts; completed Superpowers, address, and brand plans; identity checker/tests; frozen indexes; task memory.
 Checks: Brand identity audit/test, 33 docs governance tests, git diff check, active/frozen path checks, word telemetry, and context hygiene passed.
 Result: Roadmap and Queue now contain unresolved direction only. Eleven completed Superpowers files and completed address/brand migration plans are frozen; active identity/address rules now live in domain contracts. All active backlinks were updated before the old paths were removed.
 Risks: Heavy UI redesign inputs and workflow-rule/tool conflicts remain separate follow-up tasks. Q-104, T-157, Q-91, and Q-93 remain deferred or blocked.
-Next: No automatic follow-up. Use T-347 for the next new task; T-340 remains separately planned.
 ```
 
 ```text

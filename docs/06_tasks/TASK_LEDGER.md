@@ -2,7 +2,7 @@
 
 Task ID, status, and next-number source of truth. Keep only planned, active, blocked, and the latest completed rows. Detailed evidence belongs in `docs/00_memory/WORKLOG.md`; older rows live under `docs/09_frozen/task_ledgers/`.
 
-Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup`; use `T-347` for the next new task. T-346 is completed, and T-340 remains separately planned.
+Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup`; use `T-348` for the next new task. T-347 is completed, and T-340 remains separately planned.
 
 Active blocked task: T-157 waits for paid Apple Developer Program access and APNs credentials before dispatcher deployment. Q-104 remains user-deferred and is tracked in `docs/06_tasks/ROADMAP_EXECUTION_QUEUE.md` rather than as an allocated task.
 
@@ -12,6 +12,7 @@ Pre-reset source snapshot: `docs/09_frozen/active_state_snapshots/T-345_2026-07-
 
 | ID | Task | Status | Mode | Milestone | Files/Docs | Checks | Notes |
 |---|---|---|---|---|---|---|---|
+| T-347 | Heavy UI context routing and design-contract separation | completed | Quick | G0 | UI redesign index/ignore; design/accessibility/form contracts; design indexes/snapshots; hygiene script/tests; task memory | 34 docs tests; diff/link/path/word/context checks | Keeps only the heavy UI routing README default-visible, aligns the no-rg fallback, separates on-demand accessibility/form rules, and removes completed Groomer history from active read paths. |
 | T-346 | Roadmap and completed-artifact rotation | completed | Quick | G0 | Roadmap/Queue; active contracts/indexes; completed plans/specs; identity checker/tests; frozen/task memory | Brand audit/test; docs tests; diff/path/word/context checks | Keeps only unresolved roadmap direction, freezes completed task artifacts, and moves current brand/address authority into active domain contracts with all backlinks updated. |
 | T-345 | Active-state reset and context reduction | completed | Quick | G0 | Current State, Worklog, Task Ledger, memory/frozen indexes and snapshots | Docs governance tests; diff/search/word/context checks | Replaces historical startup narrative with current facts, keeps six compact closeouts and eight ledger rows, and preserves the original files plus removed entries in frozen archives. |
 | T-344 | Direct Customer Request Offers entry and action hierarchy | completed | Standard | M14 | Customer Request actions; dedicated Offers page; focused contracts | Focused tests; iOS build; source/diff/context audits | Request cards expose status-backed Offers; the dedicated page owns Offer loading/detail/acceptance and Request Details no longer owns Offers. |

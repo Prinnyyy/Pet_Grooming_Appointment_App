@@ -1,201 +1,63 @@
 # Design System
 
-This is the active design-system contract for current UI work. Keep it as a short source of current rules, not a history of the completed Beckon implementation phase.
+Canonical routing and core visual contract for Beckon UI work. Detailed accessibility and form behavior live in focused, on-demand files rather than this default entry.
 
-Full pre-slim text, including T-023 through T-035 task history and detailed component tables, is archived at `../09_frozen/design_notes/DESIGN_SYSTEM_2026-07-02_PRE_SLIM.md`.
+Pre-routing source snapshot: `../09_frozen/design_notes/T-347_2026-07-13/DESIGN_SYSTEM.md`.
 
-## Role
+## Read Path
 
-Use this file when changing visual style, shared SwiftUI primitives, tokens, or screenshot-driven UI. For detailed prototype audit notes, read `../08_design/UI_IMPLEMENTATION_NOTES.md` first and open frozen archives only with a specific comparison or recovery reason.
+- Always start here for visual style, shared SwiftUI primitives, tokens, or screenshot-driven UI.
+- Add `ACCESSIBILITY_RULES.md` when changing user-visible UI, controls, images, text, status, or async feedback.
+- Add `FORM_INTERACTION_RULES.md` only for text entry, focus, keyboard avoidance, scrolling editors, or sheet gestures.
+- Use `../08_design/UI_IMPLEMENTATION_NOTES.md` to locate current screenshots and design evidence.
+- Use `../08_design/GROOMER_UI_REDESIGN.md` only for deferred Groomer Q-104 or a focused R-039 regression.
+- Use `../ui-redesign/README.md` only when an explicit Figma/inventory task requires the heavy redesign evidence package.
 
-Executable Feature-code rules, audit commands, baseline lifecycle, severities, and the narrow exception contract live in `../04_ios/UI_CODE_GOVERNANCE.md`.
-
-Do not use design work to change product flow, role routing, repository boundaries, Supabase contracts, RLS/RPC behavior, Storage policy, or deferred feature scope.
+Executable Feature-code rules and audit commands live in `../04_ios/UI_CODE_GOVERNANCE.md`. Product flow, role routing, repositories, Supabase, RLS/RPC, Storage, and deferred features are outside this contract.
 
 ## Visual Direction
 
-- Friendly, calm, pet-focused marketplace UI.
-- Warm off-white app backgrounds and soft white cards.
-- Thin warm-gray borders, low-contrast shadows, rounded cards, pills, inputs, and bottom sheets.
-- Mint/teal customer primary actions and progress states.
-- Coral groomer/accent actions.
-- Clear status chips and explicit loading, empty, error, selected, disabled, and success states.
-- Native SwiftUI/SF typography with Dynamic Type support.
+- Friendly, calm, pet-focused marketplace UI with warm off-white pages and white surfaces.
+- Customer uses mint/teal action roles; Groomer uses coral action roles.
+- Clear hierarchy, quiet borders/shadows, content-led imagery, and explicit loading, empty, error, selected, disabled, and success states.
+- Customer remains pet/decision oriented. Groomer remains schedule/action oriented and uses grouped surfaces with row separators rather than card stacks.
+- Native SwiftUI/SF typography and semantic Dynamic Type styles are required.
 
-Avoid dense dashboards, map-first layouts, oversized calendars, decorative animation, and one-off raw colors or spacing in feature views.
+Avoid dense dashboards, map-first layouts, oversized calendars, decorative animation, nested cards, and raw feature-local color, spacing, radius, shadow, or font values.
 
-R-039 applies this foundation with role-adaptive density: Customer remains pet/decision oriented, while Groomer becomes schedule/action oriented. Groomer operational lists use grouped surfaces and row separators rather than one raised card per row. The approved contract and targets live in `../08_design/GROOMER_UI_REDESIGN.md`.
-
-## Current Sources
+## Sources And Ownership
 
 - Swift tokens: `ios/Beckon/Beckon/DesignSystem/DesignTokens.swift`
-- Action primitives: `DesignSystem/BeckonActionPrimitives.swift`
-- Feedback primitives: `DesignSystem/BeckonFeedbackPrimitives.swift`
-- Form primitive: `DesignSystem/BeckonFormPrimitives.swift`
-- Feature fallback: `DesignSystem/FeaturePlaceholderView.swift`
-- Extracted token source: `../08_design/design_tokens.json`
-- Screen inventory: `SCREEN_INVENTORY.md`
-- Visual audit summary: `../08_design/UI_IMPLEMENTATION_NOTES.md`
-- Approved Groomer redesign: `../08_design/GROOMER_UI_REDESIGN.md`
-- Remaining UI debt: `../04_ios/UI_CONSISTENCY_DEBT.md`
+- Shared primitives: `ios/Beckon/Beckon/DesignSystem/`
+- Extracted prototype tokens: `../08_design/design_tokens.json` (reference only)
+- Screen ownership: `SCREEN_INVENTORY.md`
+- Remaining source debt: `../04_ios/UI_CONSISTENCY_DEBT.md`
 
-## Token Rules
+Use semantic `DesignTokens` roles before adding a value. New values enter `DesignTokens` first and must serve repeatable semantics. Shared primitives own presentation; feature Stores and repositories retain validation, loading, retry, navigation, and business mutations.
 
-Use semantic tokens from `DesignTokens` before adding a new value.
-
-Current token groups include:
-
-- Colors: background, raised surface, border, divider, primary/secondary/tertiary text, customer/groomer action states, status fills, AA status text, and notification unread.
-- Layout: semantic page, section, surface, row, field, and action-area insets on the approved grid.
-- Metrics: minimum touch target, field/action height, and settings icon slot.
-- Spacing: compatibility aliases for existing compact through large gaps; new feature work uses semantic Layout roles.
-- Shape: card, button, input, bottom sheet, chip, and circular shapes.
-- Shadow: one canonical soft-card elevation plus customer/groomer action elevations; small-card and carousel-card names are temporary compatibility aliases.
-- Typography: page title, section title, card title, body, supporting, field label, status, and action roles using SwiftUI semantic styles. Legacy large-title/title/headline/caption names remain only until audited usage reaches zero.
-
-New tokens must be introduced through `DesignTokens`, then reused by shared primitives or feature screens. Do not scatter raw Beckon hex colors, radii, shadows, or spacing through feature views.
-
-## Component Rules
-
-Implemented primitives:
-
-- `BeckonPrimaryButtonStyle`
-- `BeckonSecondaryButtonStyle`
-- `BeckonSection` and compatibility `BeckonSectionHeader`
-- `BeckonGroupedSurface`
-- `BeckonSelectionCard`
-- `BeckonGroomingLocationModeSelector`
-- `BeckonSettingsRowLabel`
-- `BeckonFieldGroup`
-- `BeckonCard`
-- `BeckonStatusChip`
-- `BeckonErrorBanner`
-- `BeckonLoadingView`
-- `BeckonEmptyState`
-- `BeckonSectionHeader`
-- `.beckonFormField()`
-
-Use `.beckonPageInsets(bottom:)` for standard page geometry. `BeckonRoleAccent` maps Customer, Groomer, and neutral presentation without owning feature navigation or business semantics. `BeckonComponentCatalog` is DEBUG-only and previews default, disabled, selected, invalid, loading, empty, and error states at default and Accessibility 3 sizes.
-
-These primitives own only presentation. Calling screens still own validation, loading state, duplicate-submit prevention, retry actions, navigation, data fetching, and business mutations through existing Store/repository boundaries.
-
-`BeckonGroomingLocationModePresentation` is the single display-copy source for service-location selectors and read-only details. Customer surfaces use My Home / Groomer's Place; Groomer surfaces use Customer's Home / My Place. Each selector choice renders the presentation's role-aware supporting sentence below its title. Feature views must not recreate location-mode labels, descriptions, section titles, or raw-value display mappings.
-
-Customer Home, Requests, Request Wizard, and Account are the first completed semantic reference slice. They use the token/component contracts above, pass the strict source gate, and reflow through Accessibility 3; future migrations should reuse these contracts without treating any one page as a universal layout.
+Reuse implemented primitives such as action styles, `BeckonSection`, `BeckonGroupedSurface`, selection/card/status/feedback primitives, settings rows, field groups, location-mode presentation, and `.beckonFormField()`. Add a new primitive only when a pattern recurs or a shared contract genuinely removes complexity.
 
 ## UI Design Rules (UI-R1..R8)
 
-- **UI-R1 Component organisms:** A UI pattern used on two or more screens becomes a named `DesignSystem/` primitive with required and optional elements plus applicable default, loading, disabled, error, empty, and selected states. Feature views compose primitives instead of rebuilding recurring modifier stacks.
-- **UI-R2 Semantic typography:** Use `DesignTokens.Typography` semantic styles for all feature text. Express hierarchy through semantic style and weight, not ad hoc sizes; do not add `Font.system(size:)` in feature code. Existing fixed-size sites are migration work, not precedent.
-- **UI-R3 Reserved accents:** A screen has at most one visually primary action pattern in its role accent: mint for Customer and coral for Groomer. Accent means action, not decoration or status. Repeated equivalent card actions count as one pattern.
-- **UI-R4 Semantic color and contrast:** Feature code references semantic color roles only. New foreground/background pairs require measured contrast of at least 4.5:1 for normal text or 3:1 for large text and meaningful UI graphics. Use only the approved pairs below.
-- **UI-R5 Token spacing and shape:** Keep the 4pt grid, existing spacing/radius tokens, and 20/24pt screen padding. Introduce new values through `DesignTokens` before reuse.
-- **UI-R6 Content-first depth:** Let pet, portfolio, and groomer photography lead relevant cards. Use one soft elevation tier with quiet borders and shadows. Groomer operational screens retain R-039 grouped-list density rather than raised card stacks.
-- **UI-R7 Complete async states:** Every async surface provides loading, empty, error, and success presentation through shared primitives. Empty states identify the next available action; spinners and dead-end empty states are insufficient.
-- **UI-R8 Screen archetypes:** Classify each screen as `List/Feed`, `Detail`, `Wizard`, `Thread`, `Editor`, or `Workspace (segmented)`. Follow a consistent title, primary-action, grouping, and accessibility contract for that archetype.
+- **UI-R1 Component organisms:** A pattern used on two or more screens becomes a named `DesignSystem/` primitive with applicable default, loading, disabled, error, empty, and selected states.
+- **UI-R2 Semantic typography:** Feature text uses `DesignTokens.Typography`; hierarchy comes from semantic style and weight, never new `Font.system(size:)` sites.
+- **UI-R3 Reserved accents:** A screen has at most one role-accent primary-action pattern. Accent communicates action or selection, not decoration or status.
+- **UI-R4 Semantic color and contrast:** Feature code uses semantic color roles and only approved foreground/background pairs from `ACCESSIBILITY_RULES.md`.
+- **UI-R5 Token spacing and shape:** Keep the 4pt grid and established semantic insets, spacing, radii, and control metrics. Introduce reusable values through tokens first.
+- **UI-R6 Content-first depth:** Let relevant pet, portfolio, and Groomer imagery lead. Use one quiet elevation tier; operational lists remain grouped rather than card-heavy.
+- **UI-R7 Complete async states:** Every async surface provides truthful loading, empty, error, and success presentation with a useful next action or retry.
+- **UI-R8 Screen archetypes:** Classify screens as List/Feed, Detail, Wizard, Thread, Editor, or Workspace and follow a consistent hierarchy/action/accessibility contract for that archetype.
 
-Approved light-palette color pairs:
+## Screenshot Rework
 
-| Foreground | Background | Rule |
-|---|---|---|
-| `textPrimary #333333` | surface or app background | Approved for primary text. |
-| `textPrimary #333333` | Customer accent or accentSoft | Approved Customer primary-action foreground. |
-| `groomerOnAccent #642620` | coral or coralDark | Approved AA Groomer action foreground. |
-| `customerHeroText #333333` | Display P3 Hero mint | Softer Customer Home Hero title/supporting copy; measured contrast remains at or above WCAG AAA. |
-| `customerHeroText #333333` | surface white | Customer Home Hero action foreground; matches the Hero copy while remaining above WCAG AAA. |
-| `textTertiary #69717A` | surface or app background | Approved. |
-| `textSecondary #6F767E` | surface | Approved; do not use on app background for normal-size text. |
-| `successText #37744E` | surface | Approved and implemented AA success body text. |
-| `warningText #8F6800` | surface | Approved and implemented AA warning body text. |
-| `errorText #B4474C` | surface | Approved and implemented AA error body text. |
-
-Approved Customer palette migration:
-
-| Semantic role | Display P3 value | Component purpose |
-|---|---:|---|
-| `customerAccent` | `#93CEC2` | Primary fills and default accent surfaces. |
-| `customerAccentSoft` | `#B0D8D9` | Gradients and quiet filled states. |
-| `customerAccentSubtle` | `#B5DCD9` | Decorative and low-emphasis surfaces. |
-| `customerAccentStrong` | `#518B7F` | Tint, progress, selected borders, and meaningful icons. |
-
-Global primary text is `#333333`. White surfaces, warm `#FAF7F2` backgrounds, Groomer coral, status colors, notification red, and secondary/tertiary text remain unchanged. Existing Customer token names remain temporary aliases during migration; feature code must consume semantic roles rather than raw P3 values.
-
-Feature-level promotional modules use `featureTitle` (28pt bold), `body` (17pt), and `prominentAction` (20pt semibold). These shared semantic tokens avoid local fixed-size typography while keeping feature Heroes below page-title scale. Their copy width follows the intrinsic action width through layout measurement; copy must not resize the action.
-
-Banned pairs:
-
-- White text on mint, mintDark, coral, or coralDark.
-- Success `#6CBF84`, warning `#F2B84B`, or error `#E56B6F` as normal body text on a surface; use the corresponding `*Text` role after its token is implemented.
-- `textSecondary #6F767E` as normal-size text directly on app background `#FAF7F2`; restrict it to surfaces or use a future AA-adjusted semantic value.
-- Any unmeasured raw foreground/background combination in feature code.
-
-Dark mode remains out of scope. These rules govern the current light palette and preserve semantic role names so a future palette can change values without rewriting feature layouts.
-
-## Accessibility Groundwork (A11Y-R1..R10)
-
-- **A11Y-R1 Dynamic Type:** Use semantic text styles and content-sized containers. Do not fix text heights or truncate informational text to one line unless its full value is available elsewhere. Prefer reflow with stacking, `ViewThatFits`, or `isAccessibilitySize`. `minimumScaleFactor` is not an overflow strategy; allow values of 0.85 or greater only for genuinely fixed chrome with a justification comment. Each UI slice must pass AX3 (`.accessibility3`).
-- **A11Y-R2 Touch targets:** Interactive elements are at least 44x44pt. Button and chip primitives provide the minimum floor; list rows use full-row hit areas such as `contentShape` rather than a glyph's natural size.
-- **A11Y-R3 Contrast:** Enforce UI-R4's approved pair table. Status fills/icons use dark foregrounds, while body text uses the AA `successText`, `warningText`, and `errorText` roles. Never communicate status through color alone.
-- **A11Y-R4 Labels and identifiers:** Every interactive element and informative image has a human, model-derived accessibility label. `accessibilityIdentifier` remains TestOps-only and never substitutes for a VoiceOver label.
-- **A11Y-R5 Grouped reading:** Composite cards and rows read as one coherent element using combined children where appropriate; expose secondary controls as accessibility actions instead of forcing users through fragmented swipes.
-- **A11Y-R6 Headings:** Shared section headers expose the header trait, and page titles use native navigation titles so VoiceOver rotor heading navigation works consistently. Primitive implementation remains follow-up code work.
-- **A11Y-R7 Async announcements:** Shared feedback primitives announce meaningful success, failure, confirmation, and refresh outcomes. Centralized announcement posting remains follow-up code work; new screens must not introduce silent async outcomes.
-- **A11Y-R8 Images:** Hide decorative images from accessibility. Informative pet, portfolio, and avatar images use model-derived labels, and image meaning is also available in text where needed.
-- **A11Y-R9 Reduced motion:** Custom motion routes through a shared helper that reduces to opacity or no animation when Reduce Motion is enabled. Motion never carries meaning by itself; helper implementation remains follow-up code work.
-- **A11Y-R10 Per-slice Definition of Done:** Every UI slice completes the checklist in `../06_tasks/SCREENSHOT_UI_REWORK_TASK_TEMPLATE.md`; accessibility is verified incrementally instead of deferred to a broad retrofit.
-
-## Keyboard-Aware Form Contract
-
-Apply this contract to every editable page, sheet, and scrolling editor. It follows Apple's native keyboard safe-area, focus, scroll-dismissal, and keyboard-layout guidance. The shared implementation source is `BeckonKeyboardFormLayout` and its modifiers in `DesignSystem/BeckonFormPrimitives.swift`.
-
-- Keep the system keyboard safe area active on form content. The software keyboard reduces the real scroll viewport; feature code must not call `ignoresSafeArea(.keyboard)` on a form container or append the keyboard height as bottom padding/inset.
-- Use a vertical `ScrollView`, `List`, or `Form` whenever content can exceed the keyboard-reduced viewport because of device size, Dynamic Type, validation text, localization, or multiple fields. Short forms may remain non-scrolling only when their complete focused field stays visible naturally.
-- Focus targets represent the complete semantic field group: its visible label or title, the full input control, and immediate validation text when practical. Do not scroll only the text cursor into view.
-- Treat the keyboard as a measured occlusion boundary. If the complete focused group is already visible inside that boundary plus `DesignTokens.Layout.fieldSpacing`, perform no programmatic scroll.
-- When an edge is obscured, reveal only the nearest hidden top or bottom edge plus semantic clearance. A group taller than the usable viewport uses the edge requiring less movement so repeated geometry updates cannot make it oscillate. `ScrollViewReader` must allow normal content-bound clamping: the rule is "move only as much as needed and as far as naturally reachable."
-- Do not create synthetic scroll range from keyboard height. The maximum reachable scroll position comes from real content inside the system-reduced viewport, preventing both unreachable lower fields and large blank overscroll regions.
-- Page-level actions such as Back, Continue, Save, Publish, or Submit Review retain their keyboard-hidden page coordinate. When a bottom-docked software keyboard appears, `.beckonStationaryPageAction` moves a stationary overlay action fully below the screen; actions already in scroll content remain in that page flow. Dismissal returns stationary overlays from the bottom. Use `DesignTokens.Layout.stationaryActionContentClearance` when scroll content must remain reachable behind an overlay. Floating, split, hidden, and hardware keyboards produce zero action offset. The audited Chat composer Send control is the intentional true input accessory and may track the keyboard; no other current business action has that classification.
-- Native SwiftUI fields and UIKit-backed representables publish focus through the same field-group target contract. Attach stable IDs to the label-plus-control container, and keep representable focus callbacks at the shared component boundary.
-- Every text-entry surface must provide the shared `.beckonKeyboardDoneAccessory()`, including number-pad, UIKit-backed, Chat, and DEBUG catalog fields. `.beckonKeyboardAvoidance` supplies it automatically to scrolling forms; non-form input owners attach it directly. The shared dismissal control is a 52-point trailing circle placed 12 points above the keyboard and 20 points from the screen edge, with a mint checkmark and no text. It uses interactive native Liquid Glass on iOS 26 and an ultra-thin material circle on earlier supported systems. No Feature may create a separate keyboard toolbar. Keyboard-aware scrolling forms also provide interactive drag dismissal, so a user never needs to leave the page to dismiss the keyboard.
-- Automatic minimum reveal is a one-time, non-animated response to new focus or the keyboard becoming visible. As soon as the user starts tracking or scrolling, cancel pending reveal work and give the native scroll interaction ownership; geometry changes and interactive keyboard-frame updates must not issue another `scrollTo`. Continuing the same downward drag at the focused-field/content boundary then dismisses the keyboard through SwiftUI's interactive mode.
-- Shared geometry reporting uses `onGeometryChange`; only the currently focused, non-empty semantic target may report its bounds, and identical measurements are ignored. Do not use a bound `PreferenceKey` plus immediate parent state writes for keyboard target or viewport measurement because scroll/layout changes can create a same-frame SwiftUI feedback loop.
-- Use one unambiguous optional/Boolean `FocusState` per form scope. Setting it to `nil`/`false` ends editing. Use semantic keyboard types, content types, and `submitLabel`; Return advances focus only when a truthful next field exists, otherwise it completes editing.
-- Keyboard movement and shared action compensation use the system-reported frame and duration, and suppress custom animation under Reduce Motion. Do not guess keyboard height or animation timing.
-- Preserve Dynamic Type, VoiceOver order, safe areas, long text, and native focus behavior. Do not use a fixed input height that clips dynamic text.
-
-### Sheet Gesture Arbitration
-
-| State | Downward gesture | Sheet dismissal |
-|---|---|---|
-| Software keyboard onscreen, or its dismissal drag has not returned to idle | Scroll content or dismiss keyboard interactively | Disabled |
-| Keyboard hidden or hardware keyboard | Normal content/sheet behavior | Enabled |
-| Feature supplies a business lock, such as saving or a critical overlay | Normal keyboard behavior | Disabled until the lock clears |
-
-The shared modifier determines keyboard presence from the actual onscreen keyboard frame, not a feature focus ID. It applies `.presentationContentInteraction(.scrolls)` and combines keyboard state with the caller's optional business lock. A keyboard-dismissal drag keeps this lock through tracking, interaction, and deceleration even after the keyboard leaves the screen; release occurs only when that gesture returns to idle, preventing one drag from changing into sheet dismissal. Every sheet form still provides explicit Cancel/Back and Done/Save actions. Unsaved-change confirmation is a separate data-protection rule: after the keyboard closes, a later dismiss attempt may proceed only through the feature's confirmation flow. Prefer a large-only sheet or full-screen page for long composition and multi-step forms.
-
-Use `BeckonKeyboardFormLayout` for visibility decisions, `.beckonKeyboardFocusTarget(_:)` on complete semantic groups, `.beckonKeyboardAvoidance(focusedTarget:using:additionallyPreventsPresentationDismissal:)` on scrolling forms, and `.beckonStationaryPageAction` only for page actions. DesignSystem owns keyboard observation, geometry, one-shot reveal, scroll-phase handoff, animation, scroll dismissal, sheet gesture arbitration, and stationary-action behavior. A feature may own field IDs, focus order, keyboard/content types, business validation, and one business-lock Boolean; it must not add keyboard padding, offsets, dismissal toolbars, screen-percentage anchors, keyboard-driven `interactiveDismissDisabled`, or a second keyboard observer.
-
-Primary references: Apple HIG `https://developer.apple.com/design/human-interface-guidelines/virtual-keyboards` and `https://developer.apple.com/design/human-interface-guidelines/sheets`; SwiftUI keyboard safe area, `FocusState`, `scrollDismissesKeyboard`, `onScrollPhaseChange`, `presentationContentInteraction`, `interactiveDismissDisabled`, and `glassEffect(_:in:)`; UIKit `UIKeyboardLayoutGuide` and `UIScrollView.KeyboardDismissMode.interactive`.
-
-## Screenshot Rework Rules
-
-Future Beckon UI work is screenshot-driven. Start from `../06_tasks/SCREENSHOT_UI_REWORK_TASK_TEMPLATE.md`, then map each visible module to `SCREEN_INVENTORY.md`, existing SwiftUI files, and existing Store/repository/model owners.
-
-Classify each module before editing:
-
-- `visual-only`: style existing state.
-- `existing-feature rewire`: connect a new visual module to existing app state and backend contracts.
-- `reusable UI primitive`: add a pure design-system helper only when it removes real duplication.
-- `new feature`: stop and request approval before adding persistence, schema, RLS, RPC, Storage behavior, repository contracts, navigation models, role capabilities, or deferred product behavior.
-
-Product correctness and accessibility take priority over visual matching when a prototype or screenshot conflicts with the implemented app.
+Start with `../06_tasks/SCREENSHOT_UI_REWORK_TASK_TEMPLATE.md`. Map visible modules to current screens, Stores, repositories, and models before editing. Classify each as visual-only, existing-feature rewire, reusable primitive, or new feature. Stop for approval before persistence, schema, backend, navigation, role capability, or deferred product changes.
 
 ## Hard Rules
 
-- Never use color alone to communicate status.
-- Buttons must expose disabled/loading state and prevent duplicate submissions.
-- Images need useful accessibility labels unless decorative.
-- Reuse shared primitives before creating feature-local variants.
-- Preserve the Open Request -> Groomer Offer -> Customer Confirmation -> Booking model.
-- Keep primary tab bars to five destinations; feature editors hide the tab bar and expose one navigation back action.
-- Keep dark-mode changes, new brand assets, public groomer directory, direct booking, payments, attachments, maps/calendar, admin tools, and push behavior beyond the approved T-153/T-157 notification scope out of scope unless explicitly requested.
+- Never communicate status through color alone.
+- Buttons expose disabled/loading state and prevent duplicate submissions.
+- Images have useful accessibility labels unless decorative.
+- Reuse shared primitives before adding feature-local variants.
+- Preserve the Request -> Offer -> Acceptance -> Booking/Chat -> Completion -> Review lifecycle.
+- Keep primary tab bars to five destinations; feature editors hide the tab bar and expose one back action.
+- Dark mode, new brand assets, public Groomer discovery, direct booking, payments, attachments, maps/calendar expansion, admin tools, and new push behavior remain out of scope unless explicitly approved.

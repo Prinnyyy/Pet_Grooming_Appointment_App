@@ -1,6 +1,6 @@
 # UI Code Governance
 
-This is the executable governance contract for SwiftUI code under `ios/Beckon/Beckon/Features`. Visual direction and approved semantic roles live in `../01_product/DESIGN_SYSTEM.md`; this file defines what the source audit enforces.
+This is the executable governance contract for SwiftUI code under `ios/Beckon/Beckon/Features`. Visual direction lives in `../01_product/DESIGN_SYSTEM.md`; accessibility/contrast and form interaction live in `../01_product/ACCESSIBILITY_RULES.md` and `../01_product/FORM_INTERACTION_RULES.md`. This file defines what the source audit enforces.
 
 ## Gate
 
@@ -72,7 +72,7 @@ Feature views own data, business order, actions, and state. `DesignSystem` owns 
 
 ### Keyboard and Focus Review
 
-For each changed scrolling form or editor, reviewers must verify the keyboard-aware form contract in `../01_product/DESIGN_SYSTEM.md`:
+For each changed scrolling form or editor, reviewers must verify the keyboard-aware form contract in `../01_product/FORM_INTERACTION_RULES.md`:
 
 - focus scrolls the label/title and complete control as one stable target;
 - an already visible target causes no programmatic scroll;
