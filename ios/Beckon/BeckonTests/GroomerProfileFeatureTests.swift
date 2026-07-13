@@ -188,6 +188,18 @@ struct GroomerAccountPresentationTests {
 
 struct GroomerServicesAvailabilityPresentationTests {
     @Test
+    func groomerEditorsExposeStableNamespacedKeyboardTargets() {
+        let targets =
+            GroomerProfileFocusTarget.allCases.map(\.rawValue)
+            + GroomerServiceFormFocusTarget.allCases.map(\.rawValue)
+            + GroomerTimeOffFocusTarget.allCases.map(\.rawValue)
+
+        #expect(targets.count == 6)
+        #expect(Set(targets).count == targets.count)
+        #expect(targets.allSatisfy { $0.hasPrefix("groomer.") })
+    }
+
+    @Test
     func serviceAndAvailabilitySummariesDescribeCurrentConfiguration() {
         let services = GroomerServicesWorkspacePresentation(serviceCount: 3)
         let availability = GroomerAvailabilityWorkspacePresentation(

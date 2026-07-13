@@ -2,7 +2,7 @@
 
 Track only current, blocked, and recent tasks here so Codex does not continue automatically. Older completed rows through T-190 are archived under `docs/09_frozen/task_ledgers/`; active blocked T-157 remains below. Notes should keep conclusions and pointers only; validation detail belongs in `docs/00_memory/WORKLOG.md` or frozen worklogs. Detailed task records T-001 through T-088 and workflow task records remain archived under `docs/09_frozen/task_records_2026-06-26/`.
 
-Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup`; use `T-327` for the next task, the Groomer and business-editor keyboard-rule adoption.
+Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup`; use `T-328` for the next required periodic meta-review, then `T-329` for the chat, modal, booking, and residual input audit after compaction.
 
 Active blocked task: T-157 is waiting on paid Apple Developer Program access before APNs secrets (`APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_TOPIC`, `APNS_PRIVATE_KEY`) and Edge Function deploy.
 
@@ -10,8 +10,9 @@ Active blocked task: T-157 is waiting on paid Apple Developer Program access bef
 
 | ID | Task | Status | Mode | Milestone | Files/Docs | Checks | Notes |
 |---|---|---|---|---|---|---|---|
-| T-328 | Chat, modal, and residual input audit | planned | Standard | M14 | Chat composer, booking review/editor, residual SwiftUI/UIKit inputs; tests/memory | Focus/accessory classification; focused tests; build; audit/diff/context/preflight | Account for every residual input; retain keyboard-following controls only when they are true input accessories. |
-| T-327 | Groomer and business-editor minimum-reveal migration | planned | Standard | M14 | Groomer profile/services/offer and related editor inputs; tests/memory | Focused tests; build; audit/diff/context/preflight | Apply shared reveal and dismissal behavior without changing Store/repository behavior. |
+| T-329 | Chat, modal, and residual input audit | planned | Standard | M14 | Chat composer, booking review/editor, residual SwiftUI/UIKit inputs; tests/memory | Focus/accessory classification; focused tests; build; audit/diff/context/preflight | Account for every residual input; retain keyboard-following controls only when they are true input accessories. |
+| T-328 | Periodic documentation-governance meta-review | planned | Quick | M14 | Active memory/task/roadmap/index structure; migration/ignore/governance checks | Template checks; targeted consistency audit; diff/context/preflight | Required immediately after T-327; complete in a separate commit, push, and compaction boundary. |
+| T-327 | Groomer and business-editor minimum-reveal migration | completed | Standard | M14 | Groomer profile/services/time-off/offer inputs; semantic action clearance; tests/memory | TDD; full tests/build; repository/source audit; diff/context/preflight | Eight stable focus targets use the shared rule; Save/Submit actions remain stationary and no Feature owns keyboard geometry. |
 | T-326 | Shared keyboard interaction stabilization | completed | Standard | M14 | Shared reveal/presentation policy; contract tests; keyboard rules/task memory | TDD RED/GREEN; full tests/build; audit/diff/context/preflight | Reveal has no residual animation, and keyboard-dismissal gesture ownership stays latched until the scroll phase returns to idle. |
 | T-325 | Shared keyboard drag handoff correction | completed | Standard | M14 | Shared reveal/presentation policy; contract tests; keyboard rules/task memory | Apple-source review; TDD RED/GREEN; full tests/build; audit/diff/context/preflight | One-shot focus/appearance reveal now yields to user scroll phases, allowing native interactive keyboard dismissal without competing `scrollTo` calls. |
 | T-324 | Unified sheet keyboard gesture arbitration | completed | Standard | M14 | Shared presentation policy/modifier; Request/Pet lock routing; tests/rules/memory | TDD; full iOS tests/build; audit/diff/context/preflight | Software keyboard gestures cannot dismiss a sheet; normal dismissal resumes after keyboard exit, with business locks merged through one shared input. |

@@ -1,5 +1,11 @@
 import SwiftUI
 
+nonisolated enum GroomerServiceFormFocusTarget: String, CaseIterable, Hashable {
+    case description = "groomer.services.description.container"
+    case basePrice = "groomer.services.base-price.container"
+    case duration = "groomer.services.duration.container"
+}
+
 struct GroomerServicesEditorView: View {
     @Bindable var store: GroomerProfileStore
 
@@ -252,6 +258,7 @@ private struct GroomerServiceTypePicker: View {
 
 struct GroomerServiceFormView: View {
     @Bindable var store: GroomerProfileStore
+    @FocusState private var focusedTarget: String?
 
     var body: some View {
         let presentation = GroomerServiceFormPresentation(
@@ -260,50 +267,58 @@ struct GroomerServiceFormView: View {
         )
 
         NavigationStack {
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
-                    GroomerWorkspaceSection(title: "Service type") {
-                        GroomerServiceTypePicker(selection: $store.serviceType)
-                    }
+            ScrollViewReader { scrollProxy in
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
+                        GroomerWorkspaceSection(title: "Service type") {
+                            GroomerServiceTypePicker(selection: $store.serviceType)
+                        }
 
-                    GroomerWorkspaceSection(title: "Details") {
-                        GroomerServiceDetailsSection(store: store)
-                    }
+                        GroomerWorkspaceSection(title: "Details") {
+                            GroomerServiceDetailsSection(
+                                store: store,
+                                focusedTarget: $focusedTarget
+                            )
+                        }
 
-                    GroomerWorkspaceSection(title: "Accepted pet size") {
-                        GroomerServiceAcceptedPetSizeSection(store: store)
-                    }
+                        GroomerWorkspaceSection(title: "Accepted pet size") {
+                            GroomerServiceAcceptedPetSizeSection(store: store)
+                        }
 
-                    if let errorMessage = store.errorMessage {
-                        BeckonErrorBanner(
-                            title: "Service Could Not Be Saved",
-                            message: errorMessage
-                        )
-                        .accessibilityIdentifier("groomer.services.form-error")
+                        if let errorMessage = store.errorMessage {
+                            BeckonErrorBanner(
+                                title: "Service Could Not Be Saved",
+                                message: errorMessage
+                            )
+                            .accessibilityIdentifier("groomer.services.form-error")
+                        }
                     }
+                    .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+                    .padding(.top, DesignTokens.Spacing.lg)
+                    .padding(.bottom, DesignTokens.Layout.stationaryActionContentClearance)
                 }
-                .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-                .padding(.top, DesignTokens.Spacing.lg)
-                .padding(.bottom, DesignTokens.Spacing.xl)
+                .beckonKeyboardAvoidance(
+                    focusedTarget: focusedTarget,
+                    using: scrollProxy,
+                    additionallyPreventsPresentationDismissal: store.isSaving
+                )
             }
             .background(DesignTokens.Colors.background.ignoresSafeArea())
             .navigationTitle(store.serviceFormTitle)
             .navigationBarTitleDisplayMode(.inline)
-            .scrollDismissesKeyboard(.interactively)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel", action: cancel)
                         .disabled(store.isSaving)
                 }
             }
-            .safeAreaInset(edge: .bottom, spacing: 0) {
+            .beckonStationaryPageAction {
                 GroomerServiceSaveActionBar(
                     presentation: presentation,
                     save: saveService
                 )
             }
         }
-        .interactiveDismissDisabled(store.isSaving)
         .accessibilityIdentifier("groomer.services.form")
     }
 
@@ -320,6 +335,7 @@ struct GroomerServiceFormView: View {
 
 private struct GroomerServiceDetailsSection: View {
     @Bindable var store: GroomerProfileStore
+    @FocusState.Binding var focusedTarget: String?
 
     var body: some View {
         GroomerGroupedSurface {
@@ -328,7 +344,9 @@ private struct GroomerServiceDetailsSection: View {
                     title: "Description",
                     text: $store.serviceDescription,
                     prompt: "What is included",
-                    axis: .vertical
+                    axis: .vertical,
+                    focusTarget: GroomerServiceFormFocusTarget.description.rawValue,
+                    focusedTarget: $focusedTarget
                 )
                 .lineLimit(2...4)
 
@@ -338,14 +356,18 @@ private struct GroomerServiceDetailsSection: View {
                     GroomerProfileTextField(
                         title: "Base Price",
                         text: $store.serviceBasePrice,
-                        prompt: "Price"
+                        prompt: "Price",
+                        focusTarget: GroomerServiceFormFocusTarget.basePrice.rawValue,
+                        focusedTarget: $focusedTarget
                     )
                     .keyboardType(.decimalPad)
 
                     GroomerProfileTextField(
                         title: "Minutes",
                         text: $store.serviceDurationMinutes,
-                        prompt: "Duration"
+                        prompt: "Duration",
+                        focusTarget: GroomerServiceFormFocusTarget.duration.rawValue,
+                        focusedTarget: $focusedTarget
                     )
                     .keyboardType(.numberPad)
                 }

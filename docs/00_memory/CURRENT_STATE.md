@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-12
 - Updated by: Codex
-- Latest completed task: T-326 shared keyboard interaction stabilization.
+- Latest completed task: T-327 Groomer and business-editor shared keyboard-rule adoption.
 - Current task: none; T-157 APNs remains externally blocked and Q-104 Dynamic Type/Accessibility remains user-deferred.
-- Next task ID: use T-327 for Groomer and business-editor keyboard-rule adoption. T-328 covers residual/modal/chat inputs; Groomer Q-104 remains deferred.
+- Next task ID: use T-328 for the required periodic meta-review; T-329 is reserved for the chat, modal, booking, and residual input audit. Groomer Q-104 remains deferred.
 
 ## Fast Path
 
@@ -32,6 +32,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Validation Baseline
 
+- T-327 connects Groomer Profile, Service, Time Off, and Offer forms to the existing shared minimum-reveal/dismissal/presentation contract through eight stable focus IDs. Their Save/Submit controls use the stationary page-action layer and one semantic content-clearance token; Groomer Feature code owns no keyboard geometry, notifications, or gestures. Full tests, build, repository UI audit, and preflight pass; no Store, repository, backend, dependency, or remote state changed.
 - T-326 removes two remaining shared interaction races: one-shot minimum reveal now uses a disabled-animation transaction, and keyboard-driven sheet locking remains latched after the keyboard leaves the screen until the active tracking/interacting/decelerating sequence returns to idle. All Feature call sites are unchanged; no Store, repository, backend, dependency, or remote state changed.
 - T-325 fixes the shared drag conflict: automatic minimum reveal is requested only by new focus or a hidden-to-visible keyboard transition, and user tracking/interacting/decelerating cancels pending work. Target geometry and interactive keyboard-frame changes no longer issue competing `scrollTo` calls, so SwiftUI's native interactive dismissal owns the continued downward drag. No feature, Store, repository, backend, dependency, or remote state changed.
 - T-324 makes sheet gesture ownership part of the existing shared keyboard modifier: while any software keyboard frame remains onscreen, content scrolling/interactive keyboard dismissal is prioritized and sheet dismissal is disabled; hidden and hardware keyboards restore normal sheet gestures. Request and Edit Pet route their existing saving/critical-overlay locks through the same Boolean input, removing competing presentation modifiers. Focused/full tests, build, audit, and preflight pass; no business, Store, repository, backend, dependency, or remote state changed.

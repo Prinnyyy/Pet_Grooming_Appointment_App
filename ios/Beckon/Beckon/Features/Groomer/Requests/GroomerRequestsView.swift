@@ -1,6 +1,11 @@
 import SwiftUI
 import UIKit
 
+nonisolated enum GroomerOfferFocusTarget: String, CaseIterable, Hashable {
+    case price = "groomer.offers.price.container"
+    case message = "groomer.offers.message.container"
+}
+
 struct GroomerRequestsView: View {
     @Binding private var route: GroomerRequestsRoute
     @State private var requestsStore: GroomerRequestsStore
@@ -441,6 +446,7 @@ private struct GroomerRequestDetailView: View {
     @State private var proposedEnd = Date().addingTimeInterval(26 * 60 * 60)
     @State private var priceEstimateText = ""
     @State private var message = ""
+    @FocusState private var focusedTarget: GroomerOfferFocusTarget?
 
     var body: some View {
         if let matchedRequest = store.matchedRequest(withID: matchID) {
@@ -448,19 +454,32 @@ private struct GroomerRequestDetailView: View {
                 DesignTokens.Colors.background
                     .ignoresSafeArea()
 
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                        detailHero(for: matchedRequest)
-                        matchCard(for: matchedRequest)
-                        requestCard(for: matchedRequest)
-                        petSnapshotCard(for: matchedRequest)
-                        requestPhotosCard(for: matchedRequest)
-                        scheduleLocationCard(for: matchedRequest)
-                        offerSection(for: matchedRequest)
-                        actionsCard(for: matchedRequest)
+                ScrollViewReader { scrollProxy in
+                    ScrollView {
+                        LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                            detailHero(for: matchedRequest)
+                            matchCard(for: matchedRequest)
+                            requestCard(for: matchedRequest)
+                            petSnapshotCard(for: matchedRequest)
+                            requestPhotosCard(for: matchedRequest)
+                            scheduleLocationCard(for: matchedRequest)
+                            offerSection(for: matchedRequest)
+                            actionsCard(for: matchedRequest)
+                        }
+                        .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+                        .padding(.top, DesignTokens.Spacing.lg)
+                        .padding(
+                            .bottom,
+                            matchedRequest.canCreateOffer
+                                ? DesignTokens.Layout.stationaryActionContentClearance
+                                : DesignTokens.Layout.pageBottomInset
+                        )
                     }
-                    .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-                    .padding(.vertical, DesignTokens.Spacing.lg)
+                    .beckonKeyboardAvoidance(
+                        focusedTarget: focusedTarget?.rawValue,
+                        using: scrollProxy,
+                        additionallyPreventsPresentationDismissal: store.isSubmittingOffer
+                    )
                 }
             }
             .navigationTitle(matchedRequest.request.petSnapshot.name)
@@ -469,7 +488,7 @@ private struct GroomerRequestDetailView: View {
             .task(id: matchedRequest.request.id) {
                 initializeOfferFormIfNeeded(for: matchedRequest)
             }
-            .safeAreaInset(edge: .bottom, spacing: 0) {
+            .beckonStationaryPageAction {
                 if matchedRequest.canCreateOffer {
                     submitOfferBar(for: matchedRequest)
                 }
@@ -858,11 +877,13 @@ private struct GroomerRequestDetailView: View {
                         .foregroundStyle(DesignTokens.Colors.textSecondary)
 
                     TextField("Price Estimate", text: $priceEstimateText)
+                        .focused($focusedTarget, equals: .price)
                         .keyboardType(.decimalPad)
                         .beckonFormField()
                         .tint(DesignTokens.Colors.groomerAccentDark)
                         .accessibilityIdentifier("groomer.offers.price")
                 }
+                .beckonKeyboardFocusTarget(GroomerOfferFocusTarget.price.rawValue)
 
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
                     Text("Message")
@@ -870,11 +891,13 @@ private struct GroomerRequestDetailView: View {
                         .foregroundStyle(DesignTokens.Colors.textSecondary)
 
                     TextField("Message", text: $message, axis: .vertical)
+                        .focused($focusedTarget, equals: .message)
                         .lineLimit(3...6)
                         .beckonFormField()
                         .tint(DesignTokens.Colors.groomerAccentDark)
                         .accessibilityIdentifier("groomer.offers.message")
                 }
+                .beckonKeyboardFocusTarget(GroomerOfferFocusTarget.message.rawValue)
 
             }
         }

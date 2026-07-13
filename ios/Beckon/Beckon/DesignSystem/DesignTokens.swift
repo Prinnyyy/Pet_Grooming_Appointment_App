@@ -86,6 +86,7 @@ enum DesignTokens {
         static let rowVerticalInset: CGFloat = 12
         static let fieldSpacing: CGFloat = 12
         static let actionAreaInset: CGFloat = 12
+        static let stationaryActionContentClearance: CGFloat = 124
     }
 
     enum Metrics {

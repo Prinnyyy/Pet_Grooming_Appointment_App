@@ -16,6 +16,7 @@ struct DesignSystemContractTests {
         #expect(DesignTokens.Layout.rowVerticalInset == 12)
         #expect(DesignTokens.Layout.fieldSpacing == 12)
         #expect(DesignTokens.Layout.actionAreaInset == 12)
+        #expect(DesignTokens.Layout.stationaryActionContentClearance == 124)
         #expect(DesignTokens.Metrics.minimumTouchTarget == 44)
         #expect(DesignTokens.Metrics.fieldHeight == 52)
         #expect(DesignTokens.Metrics.actionHeight == 52)

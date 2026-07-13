@@ -1,8 +1,15 @@
 import PhotosUI
 import SwiftUI
 
+nonisolated enum GroomerProfileFocusTarget: String, CaseIterable, Hashable {
+    case businessName = "groomer.profile.business-name.container"
+    case biography = "groomer.profile.biography.container"
+}
+
 struct GroomerProfileEditorView: View {
     @Bindable var store: GroomerProfileStore
+    @State private var addressFocusTarget: String?
+    @FocusState private var focusedTarget: String?
 
     var body: some View {
         let presentation = GroomerProfileEditorPresentation(
@@ -10,28 +17,41 @@ struct GroomerProfileEditorView: View {
             isBusy: store.isBusy
         )
 
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                GroomerAvatarEditorSection(store: store)
-                GroomerProfileFormSection(store: store)
+        ScrollViewReader { scrollProxy in
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                    GroomerAvatarEditorSection(store: store)
+                    GroomerProfileFormSection(
+                        store: store,
+                        focusedTarget: $focusedTarget,
+                        addressFocusTarget: $addressFocusTarget
+                    )
+                }
+                .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+                .padding(.top, DesignTokens.Spacing.lg)
+                .padding(.bottom, DesignTokens.Layout.stationaryActionContentClearance)
             }
-            .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-            .padding(.top, DesignTokens.Spacing.lg)
-            .padding(.bottom, DesignTokens.Spacing.xl)
+            .beckonKeyboardAvoidance(
+                focusedTarget: focusedTarget ?? addressFocusTarget,
+                using: scrollProxy,
+                additionallyPreventsPresentationDismissal: store.isBusy
+            )
         }
         .accessibilityIdentifier("groomer.profile.edit")
         .background(DesignTokens.Colors.background.ignoresSafeArea())
         .navigationTitle("Edit Profile")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .tabBar)
-        .scrollDismissesKeyboard(.interactively)
-        .safeAreaInset(edge: .bottom, spacing: 0) {
+        .beckonStationaryPageAction {
             GroomerProfileSaveActionBar(
                 presentation: presentation,
                 save: {
                     await store.saveProfile()
                 }
             )
+        }
+        .onChange(of: focusedTarget) { _, target in
+            if target != nil { addressFocusTarget = nil }
         }
         .background {
             GroomerProfileStatusView(store: store)
@@ -129,6 +149,8 @@ private struct GroomerAvatarEditorSection: View {
 
 private struct GroomerProfileFormSection: View {
     @Bindable var store: GroomerProfileStore
+    @FocusState.Binding var focusedTarget: String?
+    @Binding var addressFocusTarget: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
@@ -138,7 +160,9 @@ private struct GroomerProfileFormSection: View {
                         GroomerProfileTextField(
                             title: "Business Name",
                             text: $store.businessName,
-                            prompt: "Business Name"
+                            prompt: "Business Name",
+                            focusTarget: GroomerProfileFocusTarget.businessName.rawValue,
+                            focusedTarget: $focusedTarget
                         )
                         .textContentType(.organizationName)
 
@@ -146,7 +170,9 @@ private struct GroomerProfileFormSection: View {
                             title: "Biography",
                             text: $store.bio,
                             prompt: "Biography",
-                            axis: .vertical
+                            axis: .vertical,
+                            focusTarget: GroomerProfileFocusTarget.biography.rawValue,
+                            focusedTarget: $focusedTarget
                         )
                         .lineLimit(3...6)
 
@@ -159,7 +185,13 @@ private struct GroomerProfileFormSection: View {
             GroomerWorkspaceSection(title: "Service area") {
                 GroomerGroupedSurface {
                     VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                        BeckonAddressEditor(state: store.addressEditorState)
+                        BeckonAddressEditor(
+                            state: store.addressEditorState,
+                            onFieldFocused: { target in
+                                focusedTarget = nil
+                                addressFocusTarget = target
+                            }
+                        )
 
                         GroomerWorkspaceDivider()
 
@@ -237,17 +269,23 @@ struct GroomerProfileTextField: View {
     @Binding var text: String
     let prompt: String
     let axis: Axis
+    let focusTarget: String
+    @FocusState.Binding var focusedTarget: String?
 
     init(
         title: String,
         text: Binding<String>,
         prompt: String,
-        axis: Axis = .horizontal
+        axis: Axis = .horizontal,
+        focusTarget: String,
+        focusedTarget: FocusState<String?>.Binding
     ) {
         self.title = title
         _text = text
         self.prompt = prompt
         self.axis = axis
+        self.focusTarget = focusTarget
+        self._focusedTarget = focusedTarget
     }
 
     var body: some View {
@@ -257,9 +295,11 @@ struct GroomerProfileTextField: View {
                 .foregroundStyle(DesignTokens.Colors.textSecondary)
 
             TextField(prompt, text: $text, axis: axis)
+                .focused($focusedTarget, equals: focusTarget)
                 .beckonFormField()
                 .tint(DesignTokens.Colors.groomerAccentDark)
         }
+        .beckonKeyboardFocusTarget(focusTarget)
     }
 }
 

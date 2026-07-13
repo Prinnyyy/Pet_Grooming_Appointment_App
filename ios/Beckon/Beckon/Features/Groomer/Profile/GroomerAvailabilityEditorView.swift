@@ -1,5 +1,9 @@
 import SwiftUI
 
+nonisolated enum GroomerTimeOffFocusTarget: String, CaseIterable, Hashable {
+    case title = "groomer.availability.time-off.title.container"
+}
+
 struct GroomerAvailabilityEditorView: View {
     @Bindable var store: GroomerProfileStore
 
@@ -486,53 +490,63 @@ private struct GroomerAvailabilitySaveActionBar: View {
 private struct GroomerTimeOffFormView: View {
     @Bindable var store: GroomerProfileStore
     @Environment(\.dismiss) private var dismiss
+    @FocusState private var focusedTarget: String?
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
-                    GroomerWorkspaceSection(title: "Time off") {
-                        GroomerGroupedSurface {
-                            VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                                GroomerProfileTextField(
-                                    title: "Title",
-                                    text: $store.timeOffTitle,
-                                    prompt: "Time off title"
-                                )
+            ScrollViewReader { scrollProxy in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
+                        GroomerWorkspaceSection(title: "Time off") {
+                            GroomerGroupedSurface {
+                                VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                                    GroomerProfileTextField(
+                                        title: "Title",
+                                        text: $store.timeOffTitle,
+                                        prompt: "Time off title",
+                                        focusTarget: GroomerTimeOffFocusTarget.title.rawValue,
+                                        focusedTarget: $focusedTarget
+                                    )
 
-                                GroomerWorkspaceDivider()
+                                    GroomerWorkspaceDivider()
 
-                                DatePicker(
-                                    "Start date",
-                                    selection: $store.timeOffStartDate,
-                                    displayedComponents: .date
-                                )
-                                .font(DesignTokens.Typography.body.weight(.semibold))
+                                    DatePicker(
+                                        "Start date",
+                                        selection: $store.timeOffStartDate,
+                                        displayedComponents: .date
+                                    )
+                                    .font(DesignTokens.Typography.body.weight(.semibold))
 
-                                GroomerWorkspaceDivider()
+                                    GroomerWorkspaceDivider()
 
-                                DatePicker(
-                                    "End date",
-                                    selection: $store.timeOffEndDate,
-                                    displayedComponents: .date
-                                )
-                                .font(DesignTokens.Typography.body.weight(.semibold))
+                                    DatePicker(
+                                        "End date",
+                                        selection: $store.timeOffEndDate,
+                                        displayedComponents: .date
+                                    )
+                                    .font(DesignTokens.Typography.body.weight(.semibold))
+                                }
+                                .padding(DesignTokens.Spacing.lg)
                             }
-                            .padding(DesignTokens.Spacing.lg)
+                        }
+
+                        if let errorMessage = store.errorMessage {
+                            BeckonErrorBanner(
+                                title: "Time Off Could Not Be Saved",
+                                message: errorMessage
+                            )
+                            .accessibilityIdentifier("groomer.availability.time-off.error")
                         }
                     }
-
-                    if let errorMessage = store.errorMessage {
-                        BeckonErrorBanner(
-                            title: "Time Off Could Not Be Saved",
-                            message: errorMessage
-                        )
-                        .accessibilityIdentifier("groomer.availability.time-off.error")
-                    }
+                    .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+                    .padding(.top, DesignTokens.Spacing.lg)
+                    .padding(.bottom, DesignTokens.Layout.stationaryActionContentClearance)
                 }
-                .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-                .padding(.top, DesignTokens.Spacing.lg)
-                .padding(.bottom, DesignTokens.Spacing.xl)
+                .beckonKeyboardAvoidance(
+                    focusedTarget: focusedTarget,
+                    using: scrollProxy,
+                    additionallyPreventsPresentationDismissal: store.isSaving
+                )
             }
             .background(DesignTokens.Colors.background.ignoresSafeArea())
             .navigationTitle("Add time off")
@@ -543,7 +557,7 @@ private struct GroomerTimeOffFormView: View {
                         .disabled(store.isSaving)
                 }
             }
-            .safeAreaInset(edge: .bottom, spacing: 0) {
+            .beckonStationaryPageAction {
                 GroomerTimeOffSaveActionBar(
                     isSaving: store.isSaving,
                     isDisabled: store.isBusy,
@@ -551,7 +565,6 @@ private struct GroomerTimeOffFormView: View {
                 )
             }
         }
-        .interactiveDismissDisabled(store.isSaving)
         .accessibilityIdentifier("groomer.availability.time-off.form")
     }
 

@@ -195,10 +195,10 @@ Run the same focused command. Expected: all selected tests pass.
 - Modify only audited editable callers under `Features/Groomer/`, including profile, services, and offer composition.
 - Add tests to the existing Groomer feature test families.
 
-- [ ] **Step 1: Classify page forms versus sheet/modal editors** and identify page-level Save/Submit actions.
-- [ ] **Step 2: Apply shared semantic focus targets and minimum reveal** without moving page actions into keyboard accessories.
-- [ ] **Step 3: Review the lowest single-line and multiline fields** in Groomer Profile, Services, and Offer composition for shared-rule coverage; runtime interaction remains user validation.
-- [ ] **Step 4: Run focused tests, full iOS tests, build, UI audit, diff, context hygiene, and preflight.**
+- [x] **Step 1: Classify page forms versus sheet/modal editors** and identify page-level Save/Submit actions.
+- [x] **Step 2: Apply shared semantic focus targets and minimum reveal** without moving page actions into keyboard accessories.
+- [x] **Step 3: Review the lowest single-line and multiline fields** in Groomer Profile, Services, and Offer composition for shared-rule coverage; runtime interaction remains user validation.
+- [x] **Step 4: Run focused tests, full iOS tests, build, UI audit, diff, context hygiene, and preflight.**
 
 ### Task 11: Modal, Booking, Chat, and Residual Audit
 

@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-07-12
+Task: T-327 - Groomer and business-editor shared keyboard-rule adoption.
+Files changed: Groomer Profile/Service/Time Off/Offer form wiring; semantic action-content clearance token; focus contract tests; plan/task/current-state memory.
+Checks: TDD compile RED then focused GREEN; full iOS tests; iOS build; repository UI audit; Groomer input/policy inventory; diff/context/preflight.
+Result: Every Groomer production text input is now covered by Profile, Service, Time Off, or Offer form integration with the existing shared minimum-reveal, dismissal, and sheet-arbitration modifier. Save/Submit actions retain page coordinates through the shared stationary layer, and repeated bottom clearance is one semantic token.
+Risks: Runtime keyboard feel remains user validation by direction. Chat, Booking, modal, and residual inputs still require T-328 classification; true composer actions may remain keyboard accessories. No Store, repository, backend, dependency, or remote state changed.
+Next: Execute the required T-328 periodic meta-review, then T-329 handles the final residual input audit after compaction.
+```
+
+```text
+Date: 2026-07-12
 Task: T-326 - Shared keyboard interaction stabilization.
 Files changed: Shared reveal/presentation policy; DesignSystem policy tests; keyboard design/governance/plan/task/current-state memory.
 Checks: TDD compile RED then focused GREEN; full iOS tests; iOS build; repository UI audit; diff/context/preflight.

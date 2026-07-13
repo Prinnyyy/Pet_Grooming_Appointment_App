@@ -3,6 +3,17 @@ import Testing
 @testable import Beckon
 
 struct GroomerRequestsStoreTests {
+    @Test
+    func offerEditorExposesStableNamespacedKeyboardTargets() {
+        let targets = GroomerOfferFocusTarget.allCases.map(\.rawValue)
+
+        #expect(targets == [
+            "groomer.offers.price.container",
+            "groomer.offers.message.container",
+        ])
+        #expect(Set(targets).count == targets.count)
+    }
+
     @Test @MainActor
     func requestPaginationRetriesThenAppendsUniqueRowsAndStopsAtLastPage() async {
         let groomerID = UUID()
