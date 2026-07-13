@@ -327,7 +327,7 @@ private struct CustomerHomeHeader: View {
 
 private struct CustomerHomeRequestHero: View {
     private enum Metrics {
-        static let contentWidth: CGFloat = 232
+        static let contentMaxWidth: CGFloat = 280
     }
 
     let isDisabled: Bool
@@ -385,7 +385,7 @@ private struct CustomerHomeRequestHero: View {
                         .foregroundStyle(DesignTokens.Colors.textPrimary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                .frame(width: Metrics.contentWidth, alignment: .leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
                 Button(action: action) {
                     HStack(spacing: DesignTokens.Spacing.sm) {
@@ -402,7 +402,7 @@ private struct CustomerHomeRequestHero: View {
                 .buttonStyle(
                     BeckonSecondaryButtonStyle(
                         accent: .customerHero,
-                        isFullWidth: false,
+                        isFullWidth: true,
                         font: DesignTokens.Typography.prominentAction
                     )
                 )
@@ -421,6 +421,7 @@ private struct CustomerHomeRequestHero: View {
                     .accessibilityIdentifier("customer.home.start-request.requirement")
                 }
             }
+            .frame(maxWidth: Metrics.contentMaxWidth, alignment: .leading)
             .padding(DesignTokens.Spacing.xl)
             .frame(maxWidth: .infinity, alignment: .leading)
         }

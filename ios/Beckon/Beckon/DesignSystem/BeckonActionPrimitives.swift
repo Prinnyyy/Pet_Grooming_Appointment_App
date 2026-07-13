@@ -128,7 +128,7 @@ struct BeckonSecondaryButtonStyle: ButtonStyle {
             case .customer:
                 DesignTokens.Colors.customerOnAccent
             case .customerHero:
-                DesignTokens.Colors.textPrimary
+                DesignTokens.Colors.customerOnAccent
             case .groomer:
                 DesignTokens.Colors.groomerOnAccent
             case .neutral:
