@@ -376,12 +376,12 @@ private struct CustomerHomeRequestHero: View {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                     Text(CustomerHomeRequestHeroPresentation.title)
-                        .font(DesignTokens.Typography.sectionTitle)
+                        .font(DesignTokens.Typography.customerHeroTitle)
                         .foregroundStyle(DesignTokens.Colors.surface)
                         .fixedSize(horizontal: false, vertical: true)
 
                     Text(CustomerHomeRequestHeroPresentation.message)
-                        .font(DesignTokens.Typography.body)
+                        .font(DesignTokens.Typography.customerHeroSupporting)
                         .foregroundStyle(DesignTokens.Colors.surface)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -398,14 +398,12 @@ private struct CustomerHomeRequestHero: View {
 
                         Text(CustomerHomeRequestHeroPresentation.actionTitle)
                     }
-                    .frame(
-                        width: Metrics.contentWidth - (DesignTokens.Spacing.lg * 2)
-                    )
                 }
                 .buttonStyle(
                     BeckonSecondaryButtonStyle(
                         accent: .customerHero,
-                        isFullWidth: false
+                        isFullWidth: false,
+                        font: DesignTokens.Typography.customerHeroAction
                     )
                 )
                 .disabled(isDisabled)

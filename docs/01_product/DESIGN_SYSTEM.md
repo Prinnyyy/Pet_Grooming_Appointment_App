@@ -101,8 +101,8 @@ Approved light-palette color pairs:
 | `textPrimary #232323` | surface or app background | Approved for primary text. |
 | `customerOnAccent #12463F` | mint or mintDark | Approved AA Customer action foreground. |
 | `groomerOnAccent #642620` | coral or coralDark | Approved AA Groomer action foreground. |
-| `customerHeroActionForeground #619B91` | surface white | Customer Home Hero action pair sampled from the approved reference. |
-| surface white | Customer Home `#A2D6CD` to `#BCDEE0` Hero | Approved screenshot-specific visual exception; accessibility color remediation is deferred by user direction. |
+| Display P3 `customerHeroActionForeground #518B7F` | surface white | Customer Home Hero action pair sampled from the approved reference. |
+| surface white | Customer Home Display P3 `#93CEC2` to `#B0D8D9` Hero | Approved screenshot-specific visual exception; accessibility color remediation is deferred by user direction. |
 | `textPrimary #232323` | success, warning, or error fill | Approved for status chips; pair color with text or an icon. |
 | `textTertiary #69717A` | surface or app background | Approved. |
 | `textSecondary #6F767E` | surface | Approved; do not use on app background for normal-size text. |

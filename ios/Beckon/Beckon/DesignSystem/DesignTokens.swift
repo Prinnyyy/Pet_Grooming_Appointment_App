@@ -21,11 +21,6 @@ enum DesignTokens {
         static let customerPrimary: UInt = 0x7ECFC0
         static let customerPrimaryDark: UInt = 0x5FBFAE
         static let customerOnAccent: UInt = 0x12463F
-        static let customerHeroBackgroundStart: UInt = 0xA2D6CD
-        static let customerHeroBackgroundEnd: UInt = 0xBCDEE0
-        static let customerHeroBubble: UInt = 0xC1E2E0
-        static let customerHeroActionForeground: UInt = 0x619B91
-        static let customerHeroDecoration: UInt = 0x636768
         static let groomerAccent: UInt = 0xFF9A8B
         static let groomerAccentDark: UInt = 0xF58575
         static let groomerOnAccent: UInt = 0x642620
@@ -36,6 +31,14 @@ enum DesignTokens {
         static let warningText: UInt = 0x8F6800
         static let errorText: UInt = 0xB4474C
         static let notificationUnread: UInt = 0xFF3B30
+    }
+
+    nonisolated enum DisplayP3Hex {
+        static let customerHeroBackgroundStart: UInt = 0x93CEC2
+        static let customerHeroBackgroundEnd: UInt = 0xB0D8D9
+        static let customerHeroBubble: UInt = 0xB5DCD9
+        static let customerHeroActionForeground: UInt = 0x518B7F
+        static let customerHeroDecoration: UInt = 0x515555
     }
 
     enum Colors {
@@ -51,11 +54,21 @@ enum DesignTokens {
         static let customerPrimary = Color(hex: ColorHex.customerPrimary)
         static let customerPrimaryDark = Color(hex: ColorHex.customerPrimaryDark)
         static let customerOnAccent = Color(hex: ColorHex.customerOnAccent)
-        static let customerHeroBackgroundStart = Color(hex: ColorHex.customerHeroBackgroundStart)
-        static let customerHeroBackgroundEnd = Color(hex: ColorHex.customerHeroBackgroundEnd)
-        static let customerHeroBubble = Color(hex: ColorHex.customerHeroBubble)
-        static let customerHeroActionForeground = Color(hex: ColorHex.customerHeroActionForeground)
-        static let customerHeroDecoration = Color(hex: ColorHex.customerHeroDecoration)
+        static let customerHeroBackgroundStart = Color(
+            displayP3Hex: DisplayP3Hex.customerHeroBackgroundStart
+        )
+        static let customerHeroBackgroundEnd = Color(
+            displayP3Hex: DisplayP3Hex.customerHeroBackgroundEnd
+        )
+        static let customerHeroBubble = Color(
+            displayP3Hex: DisplayP3Hex.customerHeroBubble
+        )
+        static let customerHeroActionForeground = Color(
+            displayP3Hex: DisplayP3Hex.customerHeroActionForeground
+        )
+        static let customerHeroDecoration = Color(
+            displayP3Hex: DisplayP3Hex.customerHeroDecoration
+        )
         static let customerPrimaryPressed = customerPrimaryDark
         static let groomerAccent = Color(hex: ColorHex.groomerAccent)
         static let groomerAccentDark = Color(hex: ColorHex.groomerAccentDark)
@@ -154,6 +167,21 @@ enum DesignTokens {
         static let fieldLabel = Font.subheadline.weight(.semibold)
         static let status = Font.caption.weight(.semibold)
         static let action = Font.headline.weight(.semibold)
+        static let customerHeroTitle = Font.system(
+            size: 21,
+            weight: .bold,
+            design: .rounded
+        )
+        static let customerHeroSupporting = Font.system(
+            size: 13,
+            weight: .regular,
+            design: .rounded
+        )
+        static let customerHeroAction = Font.system(
+            size: 15,
+            weight: .bold,
+            design: .rounded
+        )
 
         // Compatibility names remain until the source audit reports zero usage.
         static let largeTitle = Font.largeTitle.weight(.bold)
@@ -166,6 +194,16 @@ enum DesignTokens {
 private extension Color {
     init(hex: UInt, opacity: Double = 1) {
         self.init(
+            red: Double((hex >> 16) & 0xFF) / 255.0,
+            green: Double((hex >> 8) & 0xFF) / 255.0,
+            blue: Double(hex & 0xFF) / 255.0,
+            opacity: opacity
+        )
+    }
+
+    init(displayP3Hex hex: UInt, opacity: Double = 1) {
+        self.init(
+            .displayP3,
             red: Double((hex >> 16) & 0xFF) / 255.0,
             green: Double((hex >> 8) & 0xFF) / 255.0,
             blue: Double(hex & 0xFF) / 255.0,

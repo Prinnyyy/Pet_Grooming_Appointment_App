@@ -152,15 +152,21 @@ struct BeckonSecondaryButtonStyle: ButtonStyle {
 
     private let accent: Accent
     private let isFullWidth: Bool
+    private let font: Font
 
-    init(accent: Accent = .customer, isFullWidth: Bool = true) {
+    init(
+        accent: Accent = .customer,
+        isFullWidth: Bool = true,
+        font: Font = DesignTokens.Typography.action
+    ) {
         self.accent = accent
         self.isFullWidth = isFullWidth
+        self.font = font
     }
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(DesignTokens.Typography.action)
+            .font(font)
             .foregroundStyle(isEnabled ? accent.foreground : DesignTokens.Colors.textTertiary)
             .frame(maxWidth: isFullWidth ? .infinity : nil, minHeight: DesignTokens.Metrics.actionHeight)
             .padding(.horizontal, DesignTokens.Spacing.lg)
