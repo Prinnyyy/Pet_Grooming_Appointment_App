@@ -156,19 +156,19 @@ extension CustomerRequestsStoreTests {
     }
 
     @Test
-    func keyboardOverlapMovesOnlyStationaryPageActions() {
+    func dockedKeyboardMovesStationaryPageActionsFullyOffscreen() {
         let layout = BeckonKeyboardFormLayout(
             containerFrame: CGRect(x: 0, y: 0, width: 320, height: 800),
             keyboardFrame: CGRect(x: 0, y: 500, width: 320, height: 300)
         )
 
         #expect(layout.keyboardOverlap == 300)
-        #expect(layout.stationaryPageActionOffset == 300)
+        #expect(layout.stationaryPageActionOffset(actionHeight: 88) == 388)
         #expect(
             BeckonKeyboardFormLayout(
                 containerFrame: CGRect(x: 0, y: 0, width: 320, height: 800),
                 keyboardFrame: CGRect(x: 0, y: 800, width: 320, height: 0)
-            ).keyboardOverlap == 0
+            ).stationaryPageActionOffset(actionHeight: 88) == 0
         )
     }
 
@@ -180,7 +180,7 @@ extension CustomerRequestsStoreTests {
         )
 
         #expect(layout.keyboardOverlap == 300)
-        #expect(layout.stationaryPageActionOffset == 0)
+        #expect(layout.stationaryPageActionOffset(actionHeight: 88) == 0)
     }
 
     @Test

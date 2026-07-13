@@ -80,9 +80,10 @@ nonisolated struct BeckonKeyboardFormLayout: Equatable {
         keyboardOverlap = intersection.isNull ? 0 : intersection.height
     }
 
-    var stationaryPageActionOffset: CGFloat {
+    func stationaryPageActionOffset(actionHeight: CGFloat) -> CGFloat {
         let keyboardIsDocked = keyboardFrame.maxY >= containerFrame.maxY - 1
-        return keyboardIsDocked ? keyboardOverlap : 0
+        guard keyboardIsDocked, keyboardOverlap > 0 else { return 0 }
+        return keyboardOverlap + max(0, actionHeight)
     }
 
     func revealAction(for targetFrame: CGRect, clearance: CGFloat) -> RevealAction {
@@ -423,38 +424,49 @@ private struct BeckonStationaryPageActionModifier<Actions: View>: ViewModifier {
     let actions: Actions
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var keyboardOffset: CGFloat = 0
+    @State private var keyboardFrame: CGRect = .null
+    @State private var actionHeight: CGFloat = 0
 
     func body(content: Content) -> some View {
         content
             .overlay(alignment: .bottom) {
                 actions
-                    .offset(y: keyboardOffset)
+                    .onGeometryChange(for: CGFloat.self) { geometry in
+                        geometry.size.height
+                    } action: { height in
+                        actionHeight = height
+                    }
+                    .offset(
+                        y: BeckonKeyboardFormLayout(
+                            containerFrame: beckonActiveScreenBounds,
+                            keyboardFrame: keyboardFrame
+                        ).stationaryPageActionOffset(actionHeight: actionHeight)
+                    )
             }
             .onReceive(NotificationCenter.default.publisher(
                 for: UIResponder.keyboardWillChangeFrameNotification
             )) { notification in
                 guard let frame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey]
                     as? CGRect else { return }
-                let offset = BeckonKeyboardFormLayout(
-                    containerFrame: beckonActiveScreenBounds,
-                    keyboardFrame: frame
-                ).stationaryPageActionOffset
-                let duration = notification.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey]
-                    as? Double ?? 0.25
-                if reduceMotion {
-                    keyboardOffset = offset
-                } else {
-                    withAnimation(.easeOut(duration: duration)) {
-                        keyboardOffset = offset
-                    }
-                }
+                updateKeyboardFrame(frame, from: notification)
             }
             .onReceive(NotificationCenter.default.publisher(
                 for: UIResponder.keyboardWillHideNotification
-            )) { _ in
-                keyboardOffset = 0
+            )) { notification in
+                updateKeyboardFrame(.null, from: notification)
             }
+    }
+
+    private func updateKeyboardFrame(_ frame: CGRect, from notification: Notification) {
+        let duration = notification.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey]
+            as? Double ?? 0.25
+        if reduceMotion {
+            keyboardFrame = frame
+        } else {
+            withAnimation(.easeOut(duration: duration)) {
+                keyboardFrame = frame
+            }
+        }
     }
 }
 

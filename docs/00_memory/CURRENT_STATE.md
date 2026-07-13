@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-12
 - Updated by: Codex
-- Latest completed task: T-330 layered Xcode runtime-log inspection rule.
+- Latest completed task: T-331 stationary page-action keyboard hiding correction.
 - Current task: none; T-157 APNs remains externally blocked and Q-104 Dynamic Type/Accessibility remains user-deferred.
-- Next task ID: use T-331 for the chat, modal, booking, and residual input audit. Groomer Q-104 remains deferred.
+- Next task ID: use T-332 for the chat, modal, booking, and residual input audit. Groomer Q-104 remains deferred.
 
 ## Fast Path
 
@@ -32,6 +32,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Validation Baseline
 
+- T-331 makes the shared stationary page-action layer move fully below the screen for a bottom-docked software keyboard by adding the measured action height to keyboard overlap; keyboard dismissal returns it from the bottom using the same animation path. Floating/hardware keyboards remain unchanged, and all Feature call sites are untouched. TDD, full iOS tests, build/run, Groomer Profile live inspection, sampled runtime logs, UI audit, and preflight pass.
 - T-330 requires layered Debug Area/process-log inspection whenever Standard/Deep validation launches the app: sample recent and severity/task-relevant output, expand relevant messages and narrow time windows, then distinguish Beckon defects from Apple/Simulator noise. Build-only, test-only, docs-only, and static checks remain exempt. No app, backend, dependency, or remote state changed.
 - T-329 replaces the shared keyboard target/viewport `PreferenceKey` measurement path with focused-only `onGeometryChange` reporting, removing the SwiftUI per-frame bound-preference feedback loop without changing Feature call sites. Policy tests, full iOS tests/build, repository UI audit, Edit Pet Simulator interaction/log inspection, and preflight pass. Simulator RTI/keyboard-haptic diagnostics are system runtime noise with no corresponding app API use.
 - T-328 periodic meta-review confirms a clean/synced branch, task/roadmap/index routing, intentional root-draft ignores and frozen copies, zero active conflict markers, the 67/67 migration mirror, current backend markers, 15/15 governance tests, context hygiene, and preflight. It corrects stale T-314/T-328 routing text, rotates Worklog back to its retained window, and prevents rotation from accumulating blank lines; no product, app, backend, dependency, or workflow rule changed.

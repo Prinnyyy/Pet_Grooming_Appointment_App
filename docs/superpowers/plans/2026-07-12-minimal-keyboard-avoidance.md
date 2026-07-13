@@ -202,7 +202,7 @@ Run the same focused command. Expected: all selected tests pass.
 
 ### Task 11: Modal, Booking, Chat, and Residual Audit
 
-T-329's shared geometry fault correction and T-330's standalone runtime-log rule preempted this audit; execute this unchanged scope as T-331.
+T-329's shared geometry fault correction, T-330's runtime-log rule, and T-331's stationary-action hiding correction preempted this audit; execute this unchanged scope as T-332.
 
 **Files:**
 - Modify audited residual editable callers, including `Features/Bookings/BookingsView.swift` and `Features/Chat/ChatView.swift`, only when their current behavior violates their classification.
@@ -227,7 +227,7 @@ T-329's shared geometry fault correction and T-330's standalone runtime-log rule
 | Keyboard hidden or hardware keyboard | Zero keyboard overlap and zero keyboard-driven scroll. |
 | Interactive dismissal | User tracking cancels non-animated automatic reveal; the same native drag moves the keyboard without competing `scrollTo` calls or becoming sheet dismissal. |
 | Dynamic Type | Label, complete control, and immediate validation remain the semantic target. |
-| Page action | Original page coordinate; keyboard may cover it. |
+| Page action | Bottom-docked keyboard moves it fully below the screen; dismissal returns it from the bottom. |
 | Chat/send accessory | May track keyboard after explicit classification. |
 
 ## Sources
