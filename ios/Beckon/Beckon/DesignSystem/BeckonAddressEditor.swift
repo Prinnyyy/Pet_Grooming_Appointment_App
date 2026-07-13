@@ -684,7 +684,7 @@ struct BeckonAddressEditor: View {
                     Task { _ = await state.prepareConfirmation() }
                 }
                 .font(DesignTokens.Typography.caption.weight(.semibold))
-                .foregroundStyle(DesignTokens.Colors.customerPrimary)
+                .foregroundStyle(DesignTokens.Colors.customerAccent)
                 .buttonStyle(.plain)
                 .accessibilityIdentifier(BeckonAddressEditorSelectors.verify)
             }

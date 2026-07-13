@@ -15,13 +15,13 @@ enum DesignTokens {
         static let surface: UInt = 0xFFFFFF
         static let border: UInt = 0xE8E2D8
         static let borderSoft: UInt = 0xEFEAE1
-        static let textPrimary: UInt = 0x232323
+        static let textPrimary: UInt = 0x333333
         static let textSecondary: UInt = 0x6F767E
         static let textTertiary: UInt = 0x69717A
-        static let customerHeroText: UInt = 0x333333
-        static let customerPrimary: UInt = 0x7ECFC0
-        static let customerPrimaryDark: UInt = 0x5FBFAE
-        static let customerOnAccent: UInt = 0x12463F
+        static let customerHeroText = textPrimary
+        static let customerPrimary = DisplayP3Hex.customerAccent
+        static let customerPrimaryDark = DisplayP3Hex.customerAccentStrong
+        static let customerOnAccent = textPrimary
         static let groomerAccent: UInt = 0xFF9A8B
         static let groomerAccentDark: UInt = 0xF58575
         static let groomerOnAccent: UInt = 0x642620
@@ -35,9 +35,13 @@ enum DesignTokens {
     }
 
     nonisolated enum DisplayP3Hex {
-        static let customerHeroBackgroundStart: UInt = 0x93CEC2
-        static let customerHeroBackgroundEnd: UInt = 0xB0D8D9
-        static let customerHeroBubble: UInt = 0xB5DCD9
+        static let customerAccent: UInt = 0x93CEC2
+        static let customerAccentSoft: UInt = 0xB0D8D9
+        static let customerAccentSubtle: UInt = 0xB5DCD9
+        static let customerAccentStrong: UInt = 0x518B7F
+        static let customerHeroBackgroundStart = customerAccent
+        static let customerHeroBackgroundEnd = customerAccentSoft
+        static let customerHeroBubble = customerAccentSubtle
         static let customerHeroDecoration: UInt = 0x515555
     }
 
@@ -52,18 +56,16 @@ enum DesignTokens {
         static let textSecondary = Color(hex: ColorHex.textSecondary)
         static let textTertiary = Color(hex: ColorHex.textTertiary)
         static let customerHeroText = Color(hex: ColorHex.customerHeroText)
-        static let customerPrimary = Color(hex: ColorHex.customerPrimary)
-        static let customerPrimaryDark = Color(hex: ColorHex.customerPrimaryDark)
+        static let customerAccent = Color(displayP3Hex: DisplayP3Hex.customerAccent)
+        static let customerAccentSoft = Color(displayP3Hex: DisplayP3Hex.customerAccentSoft)
+        static let customerAccentSubtle = Color(displayP3Hex: DisplayP3Hex.customerAccentSubtle)
+        static let customerAccentStrong = Color(displayP3Hex: DisplayP3Hex.customerAccentStrong)
+        static let customerPrimary = customerAccent
+        static let customerPrimaryDark = customerAccentStrong
         static let customerOnAccent = Color(hex: ColorHex.customerOnAccent)
-        static let customerHeroBackgroundStart = Color(
-            displayP3Hex: DisplayP3Hex.customerHeroBackgroundStart
-        )
-        static let customerHeroBackgroundEnd = Color(
-            displayP3Hex: DisplayP3Hex.customerHeroBackgroundEnd
-        )
-        static let customerHeroBubble = Color(
-            displayP3Hex: DisplayP3Hex.customerHeroBubble
-        )
+        static let customerHeroBackgroundStart = customerAccent
+        static let customerHeroBackgroundEnd = customerAccentSoft
+        static let customerHeroBubble = customerAccentSubtle
         static let customerHeroDecoration = Color(
             displayP3Hex: DisplayP3Hex.customerHeroDecoration
         )
@@ -132,7 +134,7 @@ enum DesignTokens {
 
     enum Shadows {
         static let softCard = ShadowStyle(
-            color: Color(hex: 0x232323, opacity: 0.05),
+            color: Color(hex: ColorHex.textPrimary, opacity: 0.05),
             radius: 8,
             x: 0,
             y: 4,
@@ -141,7 +143,7 @@ enum DesignTokens {
         static let smallCard = softCard
         static let carouselCard = softCard
         static let primaryAction = ShadowStyle(
-            color: Color(hex: 0x7ECFC0, opacity: 0.55),
+            color: Color(displayP3Hex: DisplayP3Hex.customerAccent, opacity: 0.55),
             radius: 28,
             x: 0,
             y: 14,

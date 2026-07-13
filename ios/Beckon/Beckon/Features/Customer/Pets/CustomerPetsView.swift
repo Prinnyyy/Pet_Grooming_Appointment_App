@@ -620,7 +620,7 @@ private struct CustomerHomePetTile: View {
     private var avatarBackground: Color {
         let palette = [
             DesignTokens.Colors.groomerAccent.opacity(0.22),
-            DesignTokens.Colors.customerPrimary.opacity(0.22),
+            DesignTokens.Colors.customerAccent.opacity(0.22),
             DesignTokens.Colors.warning.opacity(0.18),
         ]
         return palette[abs(pet.name.hashValue) % palette.count]
@@ -635,7 +635,7 @@ private struct CustomerHomeAddPetTile: View {
             VStack(spacing: DesignTokens.Spacing.md) {
                 Image(systemName: "plus")
                     .font(DesignTokens.Typography.sectionTitle)
-                    .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
+                    .foregroundStyle(DesignTokens.Colors.customerAccentStrong)
                     .frame(width: 58, height: 58)
                     .background(DesignTokens.Colors.surfaceRaised)
                     .clipShape(DesignTokens.Shapes.circular)

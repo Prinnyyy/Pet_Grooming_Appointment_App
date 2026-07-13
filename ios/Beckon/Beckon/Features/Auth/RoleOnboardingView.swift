@@ -42,12 +42,12 @@ struct RoleOnboardingView: View {
         VStack(spacing: DesignTokens.Spacing.lg) {
             Image(systemName: "person.2.circle.fill")
                 .font(DesignTokens.Typography.largeTitle.weight(.semibold))
-                .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
+                .foregroundStyle(DesignTokens.Colors.customerAccentStrong)
                 .frame(
                     width: DesignTokens.Spacing.xl + DesignTokens.Spacing.xl + DesignTokens.Spacing.lg,
                     height: DesignTokens.Spacing.xl + DesignTokens.Spacing.xl + DesignTokens.Spacing.lg
                 )
-                .background(DesignTokens.Colors.customerPrimary.opacity(0.16))
+                .background(DesignTokens.Colors.customerAccent.opacity(0.16))
                 .clipShape(DesignTokens.Shapes.circular)
                 .accessibilityHidden(true)
 
@@ -66,10 +66,10 @@ struct RoleOnboardingView: View {
             if let email = session.email {
                 Text(email)
                     .font(DesignTokens.Typography.caption.weight(.semibold))
-                    .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
+                    .foregroundStyle(DesignTokens.Colors.customerAccentStrong)
                     .padding(.horizontal, DesignTokens.Spacing.md)
                     .padding(.vertical, DesignTokens.Spacing.sm)
-                    .background(DesignTokens.Colors.customerPrimary.opacity(0.14))
+                    .background(DesignTokens.Colors.customerAccent.opacity(0.14))
                     .clipShape(DesignTokens.Shapes.chip)
             }
         }
@@ -190,7 +190,7 @@ struct RoleOnboardingView: View {
     private func roleForeground(_ role: UserRole) -> Color {
         switch role {
         case .customer:
-            store.selectedRole == role ? DesignTokens.Colors.customerPrimaryDark : DesignTokens.Colors.textPrimary
+            store.selectedRole == role ? DesignTokens.Colors.customerAccentStrong : DesignTokens.Colors.textPrimary
         case .groomer:
             store.selectedRole == role ? DesignTokens.Colors.groomerAccentDark : DesignTokens.Colors.textPrimary
         }
@@ -199,7 +199,7 @@ struct RoleOnboardingView: View {
     private func roleBackground(_ role: UserRole) -> Color {
         switch role {
         case .customer:
-            store.selectedRole == role ? DesignTokens.Colors.customerPrimary.opacity(0.14) : DesignTokens.Colors.appBackground
+            store.selectedRole == role ? DesignTokens.Colors.customerAccent.opacity(0.14) : DesignTokens.Colors.appBackground
         case .groomer:
             store.selectedRole == role ? DesignTokens.Colors.groomerAccent.opacity(0.14) : DesignTokens.Colors.appBackground
         }
@@ -212,7 +212,7 @@ struct RoleOnboardingView: View {
 
         switch role {
         case .customer:
-            return DesignTokens.Colors.customerPrimary
+            return DesignTokens.Colors.customerAccent
         case .groomer:
             return DesignTokens.Colors.groomerAccent
         }

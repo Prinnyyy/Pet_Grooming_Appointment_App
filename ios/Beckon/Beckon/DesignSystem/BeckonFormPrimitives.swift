@@ -22,7 +22,7 @@ nonisolated enum BeckonKeyboardDoneAccessoryPolicy {
     static let keyboardGap: CGFloat = 12
     static let symbolName = "checkmark"
     static let usesInteractiveSystemGlass = true
-    static let symbolColorHex = DesignTokens.ColorHex.customerPrimaryDark
+    static let symbolColorHex = DesignTokens.DisplayP3Hex.customerAccentStrong
 }
 
 nonisolated enum BeckonKeyboardRevealPolicy {
@@ -484,7 +484,7 @@ private struct BeckonKeyboardDoneAccessoryControl: View {
         Button(action: dismissKeyboard) {
             Image(systemName: BeckonKeyboardDoneAccessoryPolicy.symbolName)
                 .font(.system(size: 20, weight: .semibold))
-                .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
+                .foregroundStyle(DesignTokens.Colors.customerAccentStrong)
                 .frame(
                     width: BeckonKeyboardDoneAccessoryPolicy.controlDiameter,
                     height: BeckonKeyboardDoneAccessoryPolicy.controlDiameter
@@ -747,7 +747,7 @@ private struct BeckonLimitedUITextField: UIViewRepresentable {
         textField.autocapitalizationType = autocapitalizationType
         textField.autocorrectionType = .default
         textField.tintColor = UIColor(
-            isInvalid ? DesignTokens.Colors.error : DesignTokens.Colors.customerPrimaryDark
+            isInvalid ? DesignTokens.Colors.error : DesignTokens.Colors.customerAccentStrong
         )
     }
 
@@ -864,7 +864,7 @@ private struct BeckonFormFieldModifier: ViewModifier {
         content
             .font(DesignTokens.Typography.body)
             .foregroundStyle(DesignTokens.Colors.textPrimary)
-            .tint(isInvalid ? DesignTokens.Colors.error : DesignTokens.Colors.customerPrimaryDark)
+            .tint(isInvalid ? DesignTokens.Colors.error : DesignTokens.Colors.customerAccentStrong)
             .padding(.horizontal, DesignTokens.Spacing.lg)
             .padding(.vertical, DesignTokens.Spacing.md)
             .frame(minHeight: 52)

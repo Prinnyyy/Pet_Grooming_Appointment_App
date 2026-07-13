@@ -22,8 +22,8 @@ struct BeckonPrimaryButtonStyle: ButtonStyle {
             switch self {
             case .customer:
                 [
-                    DesignTokens.Colors.customerPrimary,
-                    DesignTokens.Colors.customerPrimaryDark
+                    DesignTokens.Colors.customerAccent,
+                    DesignTokens.Colors.customerAccentSoft
                 ]
             case .groomer:
                 [
@@ -45,7 +45,7 @@ struct BeckonPrimaryButtonStyle: ButtonStyle {
         fileprivate var foreground: Color {
             switch self {
             case .customer:
-                DesignTokens.Colors.customerOnAccent
+                DesignTokens.Colors.textPrimary
             case .groomer:
                 DesignTokens.Colors.groomerOnAccent
             }
@@ -126,7 +126,7 @@ struct BeckonSecondaryButtonStyle: ButtonStyle {
         fileprivate var foreground: Color {
             switch self {
             case .customer:
-                DesignTokens.Colors.customerOnAccent
+                DesignTokens.Colors.customerAccentStrong
             case .customerHero:
                 DesignTokens.Colors.customerHeroText
             case .groomer:
@@ -139,7 +139,7 @@ struct BeckonSecondaryButtonStyle: ButtonStyle {
         fileprivate var pressedBackground: Color {
             switch self {
             case .customer, .customerHero:
-                DesignTokens.Colors.customerPrimary.opacity(0.14)
+                DesignTokens.Colors.customerAccent.opacity(0.14)
             case .groomer:
                 DesignTokens.Colors.groomerAccent.opacity(0.14)
             case .neutral:
@@ -279,7 +279,7 @@ struct BeckonCard<Content: View>: View {
     }
 
     private var borderColor: Color {
-        isSelected ? DesignTokens.Colors.customerPrimary : DesignTokens.Colors.borderSoft
+        isSelected ? DesignTokens.Colors.customerAccent : DesignTokens.Colors.borderSoft
     }
 }
 
@@ -297,7 +297,7 @@ struct BeckonStatusChip: View {
             case .neutral:
                 DesignTokens.Colors.textSecondary
             case .customer:
-                DesignTokens.Colors.customerPrimaryDark
+                DesignTokens.Colors.customerAccentStrong
             case .groomer:
                 DesignTokens.Colors.groomerAccentDark
             case .success:
@@ -314,7 +314,7 @@ struct BeckonStatusChip: View {
             case .neutral:
                 DesignTokens.Colors.borderSoft.opacity(0.55)
             case .customer:
-                DesignTokens.Colors.customerPrimary.opacity(0.16)
+                DesignTokens.Colors.customerAccent.opacity(0.16)
             case .groomer:
                 DesignTokens.Colors.groomerAccent.opacity(0.16)
             case .success:
@@ -331,7 +331,7 @@ struct BeckonStatusChip: View {
             case .neutral:
                 DesignTokens.Colors.borderSoft
             case .customer:
-                DesignTokens.Colors.customerPrimary.opacity(0.34)
+                DesignTokens.Colors.customerAccent.opacity(0.34)
             case .groomer:
                 DesignTokens.Colors.groomerAccent.opacity(0.34)
             case .success:

@@ -167,7 +167,7 @@ private struct GroomerNotificationRow: View {
 
                 if !notification.isRead {
                     Circle()
-                        .fill(DesignTokens.Colors.customerPrimary)
+                        .fill(DesignTokens.Colors.groomerAccent)
                         .frame(width: 9, height: 9)
                         .offset(x: -2, y: 2)
                 }
@@ -185,7 +185,7 @@ private struct GroomerNotificationRow: View {
                         if !notification.isRead {
                             Text("Unread")
                                 .font(DesignTokens.Typography.caption.weight(.semibold))
-                                .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
+                                .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)

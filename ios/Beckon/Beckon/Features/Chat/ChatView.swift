@@ -938,7 +938,7 @@ private extension UserRole {
     var chatAccentColor: Color {
         switch self {
         case .customer:
-            DesignTokens.Colors.customerPrimaryDark
+            DesignTokens.Colors.customerAccentStrong
         case .groomer:
             DesignTokens.Colors.groomerAccentDark
         }

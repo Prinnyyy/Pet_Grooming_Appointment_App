@@ -60,7 +60,7 @@ struct AuthenticationBootstrapView: View {
     private var iconStyle: Color {
         switch state {
         case .ready:
-            DesignTokens.Colors.customerPrimaryDark
+            DesignTokens.Colors.customerAccentStrong
         case .configurationError:
             DesignTokens.Colors.error
         }
@@ -69,7 +69,7 @@ struct AuthenticationBootstrapView: View {
     private var iconBackground: Color {
         switch state {
         case .ready:
-            DesignTokens.Colors.customerPrimary.opacity(0.16)
+            DesignTokens.Colors.customerAccent.opacity(0.16)
         case .configurationError:
             DesignTokens.Colors.error.opacity(0.12)
         }

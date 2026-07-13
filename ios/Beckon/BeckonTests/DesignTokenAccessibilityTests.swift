@@ -4,6 +4,40 @@ import Testing
 
 struct DesignTokenAccessibilityTests {
     @Test
+    func customerPaletteUsesApprovedDisplayP3Values() {
+        #expect(DesignTokens.DisplayP3Hex.customerAccent == 0x93CEC2)
+        #expect(DesignTokens.DisplayP3Hex.customerAccentSoft == 0xB0D8D9)
+        #expect(DesignTokens.DisplayP3Hex.customerAccentSubtle == 0xB5DCD9)
+        #expect(DesignTokens.DisplayP3Hex.customerAccentStrong == 0x518B7F)
+    }
+
+    @Test
+    func globalPrimaryTextAndUnchangedSemanticColorsUseApprovedValues() {
+        #expect(DesignTokens.ColorHex.textPrimary == 0x333333)
+        #expect(DesignTokens.ColorHex.groomerAccent == 0xFF9A8B)
+        #expect(DesignTokens.ColorHex.groomerAccentDark == 0xF58575)
+        #expect(DesignTokens.ColorHex.success == 0x6CBF84)
+        #expect(DesignTokens.ColorHex.warning == 0xF2B84B)
+        #expect(DesignTokens.ColorHex.error == 0xE56B6F)
+    }
+
+    @Test
+    func legacyCustomerPaletteNamesAliasApprovedSemanticRoles() {
+        #expect(
+            DesignTokens.DisplayP3Hex.customerHeroBackgroundStart ==
+                DesignTokens.DisplayP3Hex.customerAccent
+        )
+        #expect(
+            DesignTokens.DisplayP3Hex.customerHeroBackgroundEnd ==
+                DesignTokens.DisplayP3Hex.customerAccentSoft
+        )
+        #expect(
+            DesignTokens.DisplayP3Hex.customerHeroBubble ==
+                DesignTokens.DisplayP3Hex.customerAccentSubtle
+        )
+    }
+
+    @Test
     func semanticTextColorsMeetContrastOnSurface() {
         let requiredRatio = 4.5
         let surface = DesignTokens.ColorHex.surface
@@ -19,17 +53,27 @@ struct DesignTokenAccessibilityTests {
     }
 
     @Test
-    func customerPrimaryButtonForegroundMeetsContrastOnCustomerBackgrounds() {
+    func customerPrimaryButtonTextMeetsContrastOnApprovedGradient() {
         let requiredRatio = 4.5
-        let foreground = DesignTokens.ColorHex.customerOnAccent
+        let foreground = DesignTokens.ColorHex.textPrimary
         let brandBackgrounds = [
-            DesignTokens.ColorHex.customerPrimary,
-            DesignTokens.ColorHex.customerPrimaryDark,
+            DesignTokens.DisplayP3Hex.customerAccent,
+            DesignTokens.DisplayP3Hex.customerAccentSoft,
         ]
 
         for background in brandBackgrounds {
             #expect(Self.contrastRatio(foreground, background) >= requiredRatio)
         }
+    }
+
+    @Test
+    func customerStrongAccentMeetsNonTextContrastOnSurface() {
+        #expect(
+            Self.contrastRatio(
+                DesignTokens.DisplayP3Hex.customerAccentStrong,
+                DesignTokens.ColorHex.surface
+            ) >= 3
+        )
     }
 
     @Test

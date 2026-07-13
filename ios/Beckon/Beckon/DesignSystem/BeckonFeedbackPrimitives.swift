@@ -123,7 +123,7 @@ enum BeckonFeedbackTone: Equatable, Sendable {
     var tint: Color {
         switch self {
         case .customer:
-            DesignTokens.Colors.customerPrimary
+            DesignTokens.Colors.customerAccent
         case .groomer:
             DesignTokens.Colors.groomerAccent
         case .neutral:
@@ -1218,7 +1218,7 @@ struct BeckonLoadingView: View {
         fileprivate var tint: Color {
             switch self {
             case .customer:
-                DesignTokens.Colors.customerPrimary
+                DesignTokens.Colors.customerAccent
             case .groomer:
                 DesignTokens.Colors.groomerAccent
             }
@@ -1281,7 +1281,7 @@ struct BeckonEmptyState<Action: View>: View {
         fileprivate var foreground: Color {
             switch self {
             case .customer:
-                DesignTokens.Colors.customerPrimaryDark
+                DesignTokens.Colors.customerAccentStrong
             case .groomer:
                 DesignTokens.Colors.groomerAccentDark
             }
@@ -1290,7 +1290,7 @@ struct BeckonEmptyState<Action: View>: View {
         fileprivate var background: Color {
             switch self {
             case .customer:
-                DesignTokens.Colors.customerPrimary.opacity(0.14)
+                DesignTokens.Colors.customerAccent.opacity(0.14)
             case .groomer:
                 DesignTokens.Colors.groomerAccent.opacity(0.14)
             }

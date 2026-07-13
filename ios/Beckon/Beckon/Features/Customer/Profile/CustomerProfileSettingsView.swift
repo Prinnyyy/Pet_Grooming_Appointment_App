@@ -126,7 +126,7 @@ struct CustomerAvatarImage: View {
         .clipShape(DesignTokens.Shapes.circular)
         .overlay {
             Circle()
-                .stroke(DesignTokens.Colors.customerPrimary.opacity(0.26), lineWidth: 2)
+                .stroke(DesignTokens.Colors.customerAccent.opacity(0.26), lineWidth: 2)
         }
         .accessibilityHidden(true)
     }

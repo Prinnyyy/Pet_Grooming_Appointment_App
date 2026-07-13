@@ -468,7 +468,7 @@ private struct CustomerRequestBriefInfoLine: View {
         HStack(alignment: .top, spacing: DesignTokens.Spacing.sm) {
             Image(systemName: systemImage)
                 .font(DesignTokens.Typography.caption)
-                .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
+                .foregroundStyle(DesignTokens.Colors.customerAccentStrong)
                 .frame(width: 18)
                 .accessibilityHidden(true)
 
@@ -707,7 +707,7 @@ private extension CustomerRequestTimelineStep {
         case .complete:
             DesignTokens.Colors.success
         case .active:
-            DesignTokens.Colors.customerPrimary
+            DesignTokens.Colors.customerAccent
         case .upcoming:
             DesignTokens.Colors.borderSoft
         case .stopped:
@@ -720,7 +720,7 @@ private extension CustomerRequestTimelineStep {
         case .complete:
             DesignTokens.Colors.success.opacity(0.9)
         case .active:
-            DesignTokens.Colors.customerPrimary.opacity(0.55)
+            DesignTokens.Colors.customerAccent.opacity(0.55)
         case .upcoming:
             DesignTokens.Colors.borderSoft
         case .stopped:
@@ -820,7 +820,7 @@ private struct CustomerRequestActionLabel: View {
         var foreground: Color {
             switch self {
             case .primary:
-                DesignTokens.Colors.customerPrimaryDark
+                DesignTokens.Colors.customerAccentStrong
             case .neutral:
                 DesignTokens.Colors.textPrimary
             case .destructive:
@@ -831,7 +831,7 @@ private struct CustomerRequestActionLabel: View {
         var border: Color {
             switch self {
             case .primary:
-                DesignTokens.Colors.customerPrimary.opacity(0.46)
+                DesignTokens.Colors.customerAccent.opacity(0.46)
             case .neutral:
                 DesignTokens.Colors.border
             case .destructive:
@@ -842,7 +842,7 @@ private struct CustomerRequestActionLabel: View {
         var background: Color {
             switch self {
             case .primary:
-                DesignTokens.Colors.customerPrimary.opacity(0.15)
+                DesignTokens.Colors.customerAccent.opacity(0.15)
             case .neutral, .destructive:
                 DesignTokens.Colors.surface
             }
@@ -1005,7 +1005,7 @@ private extension CustomerGroomingRequest {
     var avatarBackground: LinearGradient {
         LinearGradient(
             colors: [
-                DesignTokens.Colors.customerPrimary.opacity(0.28),
+                DesignTokens.Colors.customerAccent.opacity(0.28),
                 DesignTokens.Colors.groomerAccent.opacity(0.20),
             ],
             startPoint: .topLeading,

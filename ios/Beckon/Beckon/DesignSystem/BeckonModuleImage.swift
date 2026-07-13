@@ -256,7 +256,7 @@ struct BeckonDefaultProfileAvatar: View {
     private var foregroundColor: Color {
         switch tone {
         case .customer:
-            DesignTokens.Colors.customerPrimaryDark
+            DesignTokens.Colors.customerAccentStrong
         case .groomer:
             DesignTokens.Colors.groomerAccentDark
         case .neutral:
@@ -269,7 +269,7 @@ struct BeckonDefaultProfileAvatar: View {
         case .customer:
             LinearGradient(
                 colors: [
-                    DesignTokens.Colors.customerPrimary.opacity(0.42),
+                    DesignTokens.Colors.customerAccent.opacity(0.42),
                     DesignTokens.Colors.groomerAccent.opacity(0.28),
                 ],
                 startPoint: .topLeading,
@@ -279,7 +279,7 @@ struct BeckonDefaultProfileAvatar: View {
             LinearGradient(
                 colors: [
                     DesignTokens.Colors.groomerAccent.opacity(0.4),
-                    DesignTokens.Colors.customerPrimary.opacity(0.28),
+                    DesignTokens.Colors.customerAccent.opacity(0.28),
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing

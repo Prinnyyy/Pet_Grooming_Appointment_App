@@ -1457,7 +1457,7 @@ private struct BookingReviewForm: View {
                     }
                 }
                 .pickerStyle(.segmented)
-                .tint(DesignTokens.Colors.customerPrimary)
+                .tint(DesignTokens.Colors.customerAccent)
                 .accessibilityIdentifier("bookings.review.rating")
 
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
@@ -1536,7 +1536,7 @@ private struct BookingReviewFitOutcomePicker: View {
                 }
             }
             .pickerStyle(.segmented)
-            .tint(DesignTokens.Colors.customerPrimary)
+            .tint(DesignTokens.Colors.customerAccent)
             .accessibilityIdentifier(
                 "bookings.review.fit.\(selection.signal.id)"
             )
@@ -1683,7 +1683,7 @@ private extension UserRole {
     var primaryColor: Color {
         switch self {
         case .customer:
-            DesignTokens.Colors.customerPrimaryDark
+            DesignTokens.Colors.customerAccentStrong
         case .groomer:
             DesignTokens.Colors.groomerAccentDark
         }

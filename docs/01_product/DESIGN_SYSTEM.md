@@ -98,12 +98,11 @@ Approved light-palette color pairs:
 
 | Foreground | Background | Rule |
 |---|---|---|
-| `textPrimary #232323` | surface or app background | Approved for primary text. |
-| `customerOnAccent #12463F` | mint or mintDark | Approved AA Customer action foreground. |
+| `textPrimary #333333` | surface or app background | Approved for primary text. |
+| `textPrimary #333333` | Customer accent or accentSoft | Approved Customer primary-action foreground. |
 | `groomerOnAccent #642620` | coral or coralDark | Approved AA Groomer action foreground. |
 | `customerHeroText #333333` | Display P3 Hero mint | Softer Customer Home Hero title/supporting copy; measured contrast remains at or above WCAG AAA. |
 | `customerHeroText #333333` | surface white | Customer Home Hero action foreground; matches the Hero copy while remaining above WCAG AAA. |
-| `textPrimary #232323` | success, warning, or error fill | Approved for status chips; pair color with text or an icon. |
 | `textTertiary #69717A` | surface or app background | Approved. |
 | `textSecondary #6F767E` | surface | Approved; do not use on app background for normal-size text. |
 | `successText #37744E` | surface | Approved and implemented AA success body text. |
@@ -119,13 +118,13 @@ Approved Customer palette migration:
 | `customerAccentSubtle` | `#B5DCD9` | Decorative and low-emphasis surfaces. |
 | `customerAccentStrong` | `#518B7F` | Tint, progress, selected borders, and meaningful icons. |
 
-Global primary text migrates from `#232323` to `#333333`. White surfaces, warm `#FAF7F2` backgrounds, Groomer coral, status colors, notification red, and secondary/tertiary text remain unchanged. Existing Customer token names remain temporary aliases during migration; feature code must consume semantic roles rather than raw P3 values.
+Global primary text is `#333333`. White surfaces, warm `#FAF7F2` backgrounds, Groomer coral, status colors, notification red, and secondary/tertiary text remain unchanged. Existing Customer token names remain temporary aliases during migration; feature code must consume semantic roles rather than raw P3 values.
 
 Feature-level promotional modules use `featureTitle` (28pt bold), `body` (17pt), and `prominentAction` (20pt semibold). These shared semantic tokens avoid local fixed-size typography while keeping feature Heroes below page-title scale. Their copy width follows the intrinsic action width through layout measurement; copy must not resize the action.
 
 Banned pairs:
 
-- White text on mint, mintDark, coral, or coralDark outside the explicitly approved Customer Home Hero exception.
+- White text on mint, mintDark, coral, or coralDark.
 - Success `#6CBF84`, warning `#F2B84B`, or error `#E56B6F` as normal body text on a surface; use the corresponding `*Text` role after its token is implemented.
 - `textSecondary #6F767E` as normal-size text directly on app background `#FAF7F2`; restrict it to surfaces or use a future AA-adjusted semantic value.
 - Any unmeasured raw foreground/background combination in feature code.

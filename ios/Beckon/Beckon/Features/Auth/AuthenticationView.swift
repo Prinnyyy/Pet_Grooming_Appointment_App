@@ -102,13 +102,13 @@ struct AuthenticationView: View {
         ZStack {
             FloatingBubbleLayer(
                 isFloating: !reduceMotion && bubblesAreFloating,
-                color: DesignTokens.Colors.customerPrimary
+                color: DesignTokens.Colors.customerAccent
             )
 
             VStack(spacing: DesignTokens.Spacing.lg) {
                 ZStack {
                     Circle()
-                        .fill(DesignTokens.Colors.customerPrimary.opacity(0.78))
+                        .fill(DesignTokens.Colors.customerAccent.opacity(0.78))
 
                     Circle()
                         .fill(DesignTokens.Colors.surface.opacity(0.22))
@@ -116,7 +116,7 @@ struct AuthenticationView: View {
                         .offset(x: -34, y: -34)
 
                     Circle()
-                        .stroke(DesignTokens.Colors.customerPrimaryDark.opacity(0.3), lineWidth: 1)
+                        .stroke(DesignTokens.Colors.customerAccentStrong.opacity(0.3), lineWidth: 1)
 
                     Text("🐶")
                         .font(.system(size: 62))
@@ -348,7 +348,7 @@ struct AuthenticationView: View {
             } label: {
                 Text(isPasswordVisible ? "Hide" : "Show")
                     .font(DesignTokens.Typography.body.weight(.bold))
-                    .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
+                    .foregroundStyle(DesignTokens.Colors.customerAccentStrong)
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("auth.password-visibility")
@@ -424,10 +424,10 @@ struct AuthenticationView: View {
         if let noticeMessage = store.noticeMessage {
             Label(noticeMessage, systemImage: "envelope.badge")
                 .font(DesignTokens.Typography.caption.weight(.semibold))
-                .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
+                .foregroundStyle(DesignTokens.Colors.customerAccentStrong)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(DesignTokens.Spacing.md)
-                .background(DesignTokens.Colors.customerPrimary.opacity(0.14))
+                .background(DesignTokens.Colors.customerAccent.opacity(0.14))
                 .clipShape(
                     RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input, style: .continuous)
                 )

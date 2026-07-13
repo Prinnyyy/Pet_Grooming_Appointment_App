@@ -8,7 +8,7 @@ enum BeckonRoleAccent {
     var color: Color {
         switch self {
         case .customer:
-            DesignTokens.Colors.customerPrimary
+            DesignTokens.Colors.customerAccent
         case .groomer:
             DesignTokens.Colors.groomerAccent
         case .neutral:
@@ -19,7 +19,7 @@ enum BeckonRoleAccent {
     var darkColor: Color {
         switch self {
         case .customer:
-            DesignTokens.Colors.customerPrimaryDark
+            DesignTokens.Colors.customerAccentStrong
         case .groomer:
             DesignTokens.Colors.groomerAccentDark
         case .neutral:

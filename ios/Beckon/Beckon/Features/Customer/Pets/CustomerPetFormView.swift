@@ -167,7 +167,7 @@ struct CustomerPetFormView: View {
                     )
                 }
             }
-            .tint(DesignTokens.Colors.customerPrimaryDark)
+            .tint(DesignTokens.Colors.customerAccentStrong)
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -259,16 +259,16 @@ private struct CustomerPetFormAvatarPreview: View {
         BeckonModuleImage(data: data) {
             Image(systemName: "pawprint.fill")
                 .font(.system(size: 42, weight: .semibold))
-                .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
+                .foregroundStyle(DesignTokens.Colors.customerAccentStrong)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(DesignTokens.Colors.customerPrimary.opacity(0.16))
+                .background(DesignTokens.Colors.customerAccent.opacity(0.16))
         }
         .frame(width: 96, height: 96)
-        .background(DesignTokens.Colors.customerPrimary.opacity(0.12))
+        .background(DesignTokens.Colors.customerAccent.opacity(0.12))
         .clipShape(DesignTokens.Shapes.circular)
         .overlay {
             Circle()
-                .stroke(DesignTokens.Colors.customerPrimary.opacity(0.26), lineWidth: 2)
+                .stroke(DesignTokens.Colors.customerAccent.opacity(0.26), lineWidth: 2)
         }
         .accessibilityHidden(true)
     }
@@ -339,7 +339,7 @@ private struct CustomerPetFormChip: View {
                 .font(CustomerPetFormTypography.fieldValue)
                 .foregroundStyle(
                     isSelected
-                        ? DesignTokens.Colors.customerPrimaryDark
+                        ? DesignTokens.Colors.customerAccentStrong
                         : DesignTokens.Colors.textSecondary
                 )
                 .lineLimit(1)
@@ -349,7 +349,7 @@ private struct CustomerPetFormChip: View {
                     Capsule()
                         .fill(
                             isSelected
-                                ? DesignTokens.Colors.customerPrimary.opacity(0.18)
+                                ? DesignTokens.Colors.customerAccent.opacity(0.18)
                                 : DesignTokens.Colors.surface
                         )
                 }
@@ -357,7 +357,7 @@ private struct CustomerPetFormChip: View {
                     Capsule()
                         .strokeBorder(
                             isSelected
-                                ? DesignTokens.Colors.customerPrimary
+                                ? DesignTokens.Colors.customerAccent
                                 : DesignTokens.Colors.border,
                             lineWidth: isSelected ? 1.5 : 1
                         )
@@ -432,7 +432,7 @@ private struct CustomerPetWeightControl: View {
                 VStack(alignment: .trailing, spacing: DesignTokens.Spacing.xs) {
                     Text(weightText)
                         .font(CustomerPetFormTypography.fieldValue)
-                        .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
+                        .foregroundStyle(DesignTokens.Colors.customerAccentStrong)
 
                     Text(sizeTitle)
                         .font(CustomerPetFormTypography.fieldLabel)
@@ -441,7 +441,7 @@ private struct CustomerPetWeightControl: View {
             }
 
             Slider(value: $weight, in: 5...101, step: 1)
-                .tint(DesignTokens.Colors.customerPrimary)
+                .tint(DesignTokens.Colors.customerAccent)
         }
     }
 }
@@ -455,7 +455,7 @@ private struct CustomerPetBirthdayControl: View {
             Toggle("Birthday Known", isOn: $isKnown)
                 .font(CustomerPetFormTypography.fieldLabel)
                 .foregroundStyle(DesignTokens.Colors.textSecondary)
-                .tint(DesignTokens.Colors.customerPrimary)
+                .tint(DesignTokens.Colors.customerAccent)
 
             if isKnown {
                 DatePicker(

@@ -256,7 +256,7 @@ private struct CustomerRequestPhotoRow: View {
         HStack(spacing: DesignTokens.Spacing.md) {
             RequestPhotoThumbnail(
                 data: data,
-                accentColor: DesignTokens.Colors.customerPrimary,
+                accentColor: DesignTokens.Colors.customerAccent,
                 systemImage: "photo"
             )
 
@@ -551,12 +551,12 @@ private struct CustomerOfferFitEvidenceBlock: View {
         HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
             Image(systemName: "sparkles")
                 .font(DesignTokens.Typography.caption.weight(.semibold))
-                .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
+                .foregroundStyle(DesignTokens.Colors.customerAccentStrong)
                 .frame(
                     width: DesignTokens.Spacing.xl,
                     height: DesignTokens.Spacing.xl
                 )
-                .background(DesignTokens.Colors.customerPrimary.opacity(0.14))
+                .background(DesignTokens.Colors.customerAccent.opacity(0.14))
                 .clipShape(DesignTokens.Shapes.circular)
                 .accessibilityHidden(true)
 
@@ -564,15 +564,15 @@ private struct CustomerOfferFitEvidenceBlock: View {
                 HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
                     Text("Fit Evidence")
                         .font(DesignTokens.Typography.caption.weight(.semibold))
-                        .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
+                        .foregroundStyle(DesignTokens.Colors.customerAccentStrong)
 
                     if let scoreText = presentation.scoreText {
                         Text(scoreText)
                             .font(DesignTokens.Typography.caption.weight(.semibold))
-                            .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
+                            .foregroundStyle(DesignTokens.Colors.customerAccentStrong)
                             .padding(.horizontal, DesignTokens.Spacing.sm)
                             .padding(.vertical, 3)
-                            .background(DesignTokens.Colors.customerPrimary.opacity(0.14))
+                            .background(DesignTokens.Colors.customerAccent.opacity(0.14))
                             .clipShape(Capsule())
                     }
                 }
@@ -588,11 +588,11 @@ private struct CustomerOfferFitEvidenceBlock: View {
         .padding(DesignTokens.Spacing.md)
         .background {
             RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input, style: .continuous)
-                .fill(DesignTokens.Colors.customerPrimary.opacity(0.08))
+                .fill(DesignTokens.Colors.customerAccent.opacity(0.08))
         }
         .overlay {
             RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input, style: .continuous)
-                .stroke(DesignTokens.Colors.customerPrimary.opacity(0.24), lineWidth: 1)
+                .stroke(DesignTokens.Colors.customerAccent.opacity(0.24), lineWidth: 1)
         }
         .accessibilityElement(children: .combine)
     }
@@ -889,12 +889,12 @@ private struct DetailCardHeader<Trailing: View>: View {
             } else {
                 Image(systemName: systemImage)
                     .font(DesignTokens.Typography.headline)
-                    .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
+                    .foregroundStyle(DesignTokens.Colors.customerAccentStrong)
                     .frame(
                         width: DesignTokens.Spacing.xl + DesignTokens.Spacing.md,
                         height: DesignTokens.Spacing.xl + DesignTokens.Spacing.md
                     )
-                    .background(DesignTokens.Colors.customerPrimary.opacity(0.14))
+                    .background(DesignTokens.Colors.customerAccent.opacity(0.14))
                     .clipShape(DesignTokens.Shapes.circular)
                     .accessibilityHidden(true)
             }

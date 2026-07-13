@@ -330,7 +330,7 @@ struct CustomerRequestWizardView: View {
             .onPreferenceChange(CustomerRequestWizardBottomBarHeightKey.self) {
                 bottomBarHeight = $0
             }
-            .tint(DesignTokens.Colors.customerPrimaryDark)
+            .tint(DesignTokens.Colors.customerAccentStrong)
             .toolbar(.hidden, for: .navigationBar)
         }
         .presentationDetents([.large])
@@ -594,16 +594,16 @@ struct CustomerRequestWizardView: View {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
                 Label("How Matching Works", systemImage: "info.circle")
                     .font(DesignTokens.Typography.headline)
-                    .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
+                    .foregroundStyle(DesignTokens.Colors.customerAccentStrong)
 
                 Text(CustomerRequestMatchingCopy.customerReviewInfo)
                     .font(DesignTokens.Typography.body)
-                    .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
+                    .foregroundStyle(DesignTokens.Colors.customerAccentStrong)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .padding(DesignTokens.Spacing.lg)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(DesignTokens.Colors.customerPrimary.opacity(0.12))
+            .background(DesignTokens.Colors.customerAccent.opacity(0.12))
             .clipShape(
                 RoundedRectangle(
                     cornerRadius: DesignTokens.CornerRadius.card,
@@ -953,7 +953,7 @@ private struct CustomerRequestWizardHeader: View {
                         .fill(DesignTokens.Colors.border.opacity(0.8))
 
                     Capsule()
-                        .fill(DesignTokens.Colors.customerPrimary)
+                        .fill(DesignTokens.Colors.customerAccent)
                         .frame(width: proxy.size.width * currentStep.progress)
                 }
             }
@@ -970,7 +970,7 @@ private struct CustomerRequestWizardHeader: View {
     private var currentStepLabel: some View {
         Text("Step \(currentStep.rawValue + 1) of \(CustomerRequestWizardStep.allCases.count): \(currentStep.title)")
             .font(DesignTokens.Typography.supporting)
-            .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
+            .foregroundStyle(DesignTokens.Colors.customerAccentStrong)
             .fixedSize(horizontal: false, vertical: true)
     }
 
@@ -1101,7 +1101,7 @@ private struct CustomerRequestPetChoiceCard: View {
                         .font(DesignTokens.Typography.action)
                         .foregroundStyle(DesignTokens.Colors.textPrimary)
                         .frame(width: 42, height: 42)
-                        .background(DesignTokens.Colors.customerPrimary.opacity(0.42))
+                        .background(DesignTokens.Colors.customerAccent.opacity(0.42))
                         .clipShape(Circle())
                 }
             }
@@ -1135,7 +1135,7 @@ private struct CustomerRequestAddPetButton: View {
                 Text("Add A New Pet")
                     .font(DesignTokens.Typography.body.weight(.bold))
             }
-            .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
+            .foregroundStyle(DesignTokens.Colors.customerAccentStrong)
             .frame(maxWidth: .infinity, minHeight: 78)
             .background(DesignTokens.Colors.surface.opacity(0.5))
             .clipShape(
@@ -1174,9 +1174,9 @@ private struct CustomerRequestServiceOptionCard: View {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                 Image(systemName: "scissors")
                     .font(DesignTokens.Typography.cardTitle)
-                    .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
+                    .foregroundStyle(DesignTokens.Colors.customerAccentStrong)
                     .frame(width: 64, height: 64)
-                    .background(DesignTokens.Colors.customerPrimary.opacity(0.12))
+                    .background(DesignTokens.Colors.customerAccent.opacity(0.12))
                     .clipShape(
                         RoundedRectangle(
                             cornerRadius: DesignTokens.CornerRadius.input,
@@ -1231,7 +1231,7 @@ private struct CustomerRequestDateStrip: View {
                                 cornerRadius: DesignTokens.CornerRadius.button,
                                 style: .continuous
                             )
-                            .fill(isSelected(date) ? DesignTokens.Colors.customerPrimary : DesignTokens.Colors.surface)
+                            .fill(isSelected(date) ? DesignTokens.Colors.customerAccent : DesignTokens.Colors.surface)
                         )
                         .overlay {
                             RoundedRectangle(
@@ -1239,7 +1239,7 @@ private struct CustomerRequestDateStrip: View {
                                 style: .continuous
                             )
                             .stroke(
-                                isSelected(date) ? DesignTokens.Colors.customerPrimary : DesignTokens.Colors.border,
+                                isSelected(date) ? DesignTokens.Colors.customerAccent : DesignTokens.Colors.border,
                                 lineWidth: 1.2
                             )
                         }
@@ -1312,7 +1312,7 @@ private struct CustomerRequestTimeWindowGrid: View {
                             Capsule()
                                 .fill(
                                     selectedTimeWindow == option && !isFlexibleWithTime
-                                        ? DesignTokens.Colors.customerPrimary
+                                        ? DesignTokens.Colors.customerAccent
                                         : DesignTokens.Colors.surface
                                 )
                         )
@@ -1391,7 +1391,7 @@ private struct CustomerRequestFlexibleTimeToggle: View {
                     .foregroundStyle(DesignTokens.Colors.textSecondary)
             }
         }
-        .tint(DesignTokens.Colors.customerPrimary)
+        .tint(DesignTokens.Colors.customerAccent)
         .padding(DesignTokens.Spacing.lg)
         .background(DesignTokens.Colors.surface)
         .clipShape(
@@ -1426,7 +1426,7 @@ private struct CustomerRequestAddressFields: View {
                 HStack(spacing: DesignTokens.Spacing.sm) {
                     if isApplyingProfileAddress {
                         ProgressView()
-                            .tint(DesignTokens.Colors.customerPrimaryDark)
+                            .tint(DesignTokens.Colors.customerAccentStrong)
                     } else {
                         Image(systemName: "person.crop.circle.badge.checkmark")
                             .font(DesignTokens.Typography.action)
@@ -1438,11 +1438,11 @@ private struct CustomerRequestAddressFields: View {
 
                     Spacer(minLength: 0)
                 }
-                .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
+                .foregroundStyle(DesignTokens.Colors.customerAccentStrong)
                 .padding(.horizontal, DesignTokens.Spacing.md)
                 .padding(.vertical, DesignTokens.Spacing.md)
                 .frame(maxWidth: .infinity, minHeight: 52, alignment: .leading)
-                .background(DesignTokens.Colors.customerPrimary.opacity(0.1))
+                .background(DesignTokens.Colors.customerAccent.opacity(0.1))
                 .clipShape(
                     RoundedRectangle(
                         cornerRadius: DesignTokens.CornerRadius.button,
@@ -1454,7 +1454,7 @@ private struct CustomerRequestAddressFields: View {
                         cornerRadius: DesignTokens.CornerRadius.button,
                         style: .continuous
                     )
-                    .stroke(DesignTokens.Colors.customerPrimary.opacity(0.2), lineWidth: 1)
+                    .stroke(DesignTokens.Colors.customerAccent.opacity(0.2), lineWidth: 1)
                 }
             }
             .buttonStyle(.plain)
@@ -1487,7 +1487,7 @@ private struct CustomerRequestAddressFields: View {
 
                         Text("\(CustomerRequestTravelRange.clampedMiles(Double(travelRangeMiles))) mi")
                             .font(DesignTokens.Typography.body.weight(.bold))
-                            .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
+                            .foregroundStyle(DesignTokens.Colors.customerAccentStrong)
                     }
 
                     Slider(
@@ -1498,7 +1498,7 @@ private struct CustomerRequestAddressFields: View {
                         in: Double(CustomerRequestTravelRange.minimumMiles)...Double(CustomerRequestTravelRange.maximumMiles),
                         step: 1
                     )
-                    .tint(DesignTokens.Colors.customerPrimary)
+                    .tint(DesignTokens.Colors.customerAccent)
 
                     Text("Choose how far you can travel to a groomer's location.")
                         .font(DesignTokens.Typography.caption)
@@ -1553,7 +1553,7 @@ private struct CustomerRequestAddPhotoTile: View {
             .font(DesignTokens.Typography.sectionTitle)
             .foregroundStyle(
                 photoCount > 0
-                    ? DesignTokens.Colors.customerPrimaryDark
+                    ? DesignTokens.Colors.customerAccentStrong
                     : DesignTokens.Colors.textTertiary
             )
         // Photo picker geometry matches the adjacent fixed media preview and contains no text.
@@ -1615,7 +1615,7 @@ private struct CustomerRequestWizardPetAvatar: View {
     private var avatarBackground: Color {
         let palette = [
             DesignTokens.Colors.groomerAccent.opacity(0.22),
-            DesignTokens.Colors.customerPrimary.opacity(0.22),
+            DesignTokens.Colors.customerAccent.opacity(0.22),
             DesignTokens.Colors.warning.opacity(0.18),
         ]
         return palette[abs(pet.name.hashValue) % palette.count]
@@ -1677,7 +1677,7 @@ private struct CustomerRequestWizardFitInputCard: View {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                 Label("Fit Needs", systemImage: "sparkles")
                     .font(DesignTokens.Typography.headline)
-                    .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
+                    .foregroundStyle(DesignTokens.Colors.customerAccentStrong)
 
                 Text("Based on the selected pet and service.")
                     .font(DesignTokens.Typography.body)
@@ -1713,7 +1713,7 @@ private struct CustomerRequestWizardFitInputChip: View {
         HStack(alignment: .center, spacing: DesignTokens.Spacing.sm) {
             Image(systemName: chip.systemImage)
                 .font(DesignTokens.Typography.status)
-                .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
+                .foregroundStyle(DesignTokens.Colors.customerAccentStrong)
                 .frame(width: 18)
 
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
@@ -1733,7 +1733,7 @@ private struct CustomerRequestWizardFitInputChip: View {
         .padding(.horizontal, DesignTokens.Spacing.md)
         .padding(.vertical, DesignTokens.Spacing.sm)
         .frame(maxWidth: .infinity, minHeight: 58, alignment: .leading)
-        .background(DesignTokens.Colors.customerPrimary.opacity(0.1))
+        .background(DesignTokens.Colors.customerAccent.opacity(0.1))
         .clipShape(
             RoundedRectangle(
                 cornerRadius: DesignTokens.CornerRadius.button,
@@ -1745,7 +1745,7 @@ private struct CustomerRequestWizardFitInputChip: View {
                 cornerRadius: DesignTokens.CornerRadius.button,
                 style: .continuous
             )
-            .stroke(DesignTokens.Colors.customerPrimary.opacity(0.2), lineWidth: 1)
+            .stroke(DesignTokens.Colors.customerAccent.opacity(0.2), lineWidth: 1)
         )
     }
 }
