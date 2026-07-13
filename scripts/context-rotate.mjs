@@ -154,6 +154,10 @@ function collapseExcessBlankLines(text) {
   return text.replace(/\n{4,}/g, "\n\n\n");
 }
 
+function collapseWorklogBlankLines(text) {
+  return text.replace(/\n{3,}/g, "\n\n");
+}
+
 function rotateWorklog() {
   const filePath = "docs/00_memory/WORKLOG.md";
   const text = read(filePath);
@@ -175,7 +179,7 @@ function rotateWorklog() {
     ...removable.map((entry) => entry.text),
     "",
   ].join("\n");
-  const nextText = `${removeRanges(text, removable).trimEnd()}\n`;
+  const nextText = `${collapseWorklogBlankLines(removeRanges(text, removable)).trimEnd()}\n`;
 
   if (APPLY) {
     write(archivePath, archiveText);

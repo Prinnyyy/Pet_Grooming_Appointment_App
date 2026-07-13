@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-12
 - Updated by: Codex
-- Latest completed task: T-327 Groomer and business-editor shared keyboard-rule adoption.
+- Latest completed task: T-328 periodic documentation-governance meta-review.
 - Current task: none; T-157 APNs remains externally blocked and Q-104 Dynamic Type/Accessibility remains user-deferred.
-- Next task ID: use T-328 for the required periodic meta-review; T-329 is reserved for the chat, modal, booking, and residual input audit. Groomer Q-104 remains deferred.
+- Next task ID: use T-329 for the chat, modal, booking, and residual input audit. Groomer Q-104 remains deferred.
 
 ## Fast Path
 
@@ -32,6 +32,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Validation Baseline
 
+- T-328 periodic meta-review confirms a clean/synced branch, task/roadmap/index routing, intentional root-draft ignores and frozen copies, zero active conflict markers, the 67/67 migration mirror, current backend markers, 15/15 governance tests, context hygiene, and preflight. It corrects stale T-314/T-328 routing text, rotates Worklog back to its retained window, and prevents rotation from accumulating blank lines; no product, app, backend, dependency, or workflow rule changed.
 - T-327 connects Groomer Profile, Service, Time Off, and Offer forms to the existing shared minimum-reveal/dismissal/presentation contract through eight stable focus IDs. Their Save/Submit controls use the stationary page-action layer and one semantic content-clearance token; Groomer Feature code owns no keyboard geometry, notifications, or gestures. Full tests, build, repository UI audit, and preflight pass; no Store, repository, backend, dependency, or remote state changed.
 - T-326 removes two remaining shared interaction races: one-shot minimum reveal now uses a disabled-animation transaction, and keyboard-driven sheet locking remains latched after the keyboard leaves the screen until the active tracking/interacting/decelerating sequence returns to idle. All Feature call sites are unchanged; no Store, repository, backend, dependency, or remote state changed.
 - T-325 fixes the shared drag conflict: automatic minimum reveal is requested only by new focus or a hidden-to-visible keyboard transition, and user tracking/interacting/decelerating cancels pending work. Target geometry and interactive keyboard-frame changes no longer issue competing `scrollTo` calls, so SwiftUI's native interactive dismissal owns the continued downward drag. No feature, Store, repository, backend, dependency, or remote state changed.
@@ -140,7 +141,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - Default context model is L0-L4 in `CONTEXT_AND_RECOVERY.md`.
 - Startup reads stay minimal: `AGENTS.md`, then targeted current-state/task-ledger sections only when needed.
 - Periodic documentation-governance reviews use `docs/06_tasks/META_REVIEW_TEMPLATE.md` every 10 completed tasks or weekly.
-- Last meta-review: T-317 on 2026-07-12.
+- Last meta-review: T-328 on 2026-07-12.
 - V1.0 ideal-operation Q-16...Q-43, Auth package Q-92, and R-038/Q-94...Q-96 are complete. R-039 design T-249 plus Q-97/T-250, Q-98/T-252, Q-99/T-253, Q-100/T-254, Q-101/T-255, Q-102/T-256, Q-103/T-257, and non-Accessibility integration verification T-258 are complete; Q-104 Dynamic Type/Accessibility is user-deferred.
 - Changes to `AGENTS.md`, `CLAUDE.md`, or `docs/05_workflow/**` must be standalone numbered tasks with a decision-log entry and context hygiene.
 - T-180 records standing user approval for task-completion Git commit and push. This approval is limited to current-task changes after validation passes; T-186 requires stopping without auto pull/rebase/merge/reset/force-push if the push fails or is rejected.
@@ -178,4 +179,4 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Next Recommended Task
 
-- No package is currently dependency-satisfied. Q-104 Groomer UI Dynamic Type/Accessibility becomes available only when the user restores that scope; otherwise use T-314 for explicitly selected new work.
+- Execute T-329 for the planned chat, modal, booking, and residual input audit. Q-104 Groomer UI Dynamic Type/Accessibility remains user-deferred.
