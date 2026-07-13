@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-13
 - Updated by: Codex
-- Latest completed task: T-337 shared Liquid Glass keyboard dismissal control.
-- Current task: none; T-338 and T-339 are planned, T-157 APNs remains externally blocked, and Q-104 Dynamic Type/Accessibility remains user-deferred.
-- Next task ID: use T-340 for the next unallocated task. Start T-338 or T-339 by their existing IDs when the user selects one.
+- Latest completed task: T-338 Supabase initial-session compatibility and expiry-safe restore.
+- Current task: none; T-339 is the required periodic meta-review, T-340 is planned, T-157 APNs remains externally blocked, and Q-104 Dynamic Type/Accessibility remains user-deferred.
+- Next task ID: use T-339 for the required periodic meta-review.
 
 ## Fast Path
 
@@ -23,8 +23,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Known Unresolved Issues
 
-- T-338: Supabase Swift 2.46 emits the initial-session compatibility warning because Beckon still reads `currentSession` before the refresh result and does not preserve `Session.isExpired`. The planned fix adopts the runtime flag and makes restore expiry-aware.
-- T-339: The current iOS build reports an app-owned redundant `await` in `SupabaseAuthSessionRepository` and an unused reminder-sync result in `CustomerRequestsStore`. The AppIntents metadata-skipped warning is currently classified as toolchain information because Beckon has no AppIntents dependency.
+- T-340: The current iOS build reports an app-owned redundant `await` in `SupabaseAuthSessionRepository` and an unused reminder-sync result in `CustomerRequestsStore`. The AppIntents metadata-skipped warning is currently classified as toolchain information because Beckon has no AppIntents dependency.
 
 ## Branch and Baseline
 
@@ -37,6 +36,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Validation Baseline
 
+- T-338 enables Supabase Swift 2.46's `emitLocalSessionAsInitialSession` runtime behavior, preserves `Session.isExpired` through the repository snapshot, and keeps an expired stored session at the loading root until refresh succeeds or signs out. Focused expiry/refresh tests, full iOS tests/build, and a legacy-warning scan pass; no backend or remote state changed.
 - T-337 replaces SwiftUI's native keyboard toolbar styling with one keyboard-notification-driven 52-point trailing circle, placed 12 points above the keyboard and 20 points from the screen edge. It uses a mint checkmark, interactive native Liquid Glass on iOS 26, and an ultra-thin material fallback on iOS 18 through 25. Existing avoidance/direct modifier call sites cover every audited SwiftUI and UIKit-backed input owner. Automated tests/build and static audits pass; manual visual acceptance remains user-owned.
 - T-336 moves Pet Create/Save to the navigation confirmation action with snapshot-based dirty/valid state, removes Request's duplicate header back action while preserving bottom Back/TestOps dismissal, adds role-aware supporting copy to the shared Service Location selector, and extracts one Done accessory used by every input owner including Chat and the DEBUG catalog. Focused/full tests, build, source/UI audits, context hygiene, and preflight pass. Manual in-app UI/UX review is intentionally user-owned; no backend or remote state changed.
 - T-335 makes `BeckonGroomingLocationModePresentation` the sole copy source for Service Location selectors and read-only Customer Request, Groomer Request, and Booking details. Old Service Mode and direction strings are removed; Customer sees My Home / Groomer's Place and Groomer sees Customer's Home / My Place. Focused/full tests, build, launch/log sampling, source/UI audits, and preflight pass; no backend or remote state changed.

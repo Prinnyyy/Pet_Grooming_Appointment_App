@@ -1,4 +1,5 @@
 import Foundation
+import Supabase
 import Testing
 @testable import Beckon
 
@@ -437,6 +438,13 @@ struct DebugDiagnosticsTests {
 
 struct AuthenticationStoreTests {
     @Test @MainActor
+    func supabaseClientEmitsStoredSessionBeforeRefresh() {
+        #expect(
+            SupabaseClientFactory.options.auth.emitLocalSessionAsInitialSession
+        )
+    }
+
+    @Test @MainActor
     func signedOutLaunchAuthRepositoryDoesNotRestoreCachedSession() async {
         let store = AuthenticationStore(
             repository: SignedOutAuthSessionRepository()
@@ -459,6 +467,65 @@ struct AuthenticationStoreTests {
         await store.start()
 
         #expect(store.rootState == .signedIn(session))
+    }
+
+    @Test @MainActor
+    func expiredStoredSessionRemainsLoadingUntilRefreshCompletes() async {
+        let expiredSession = AuthSessionSnapshot(
+            userID: UUID(),
+            email: "user@example.com",
+            isExpired: true
+        )
+        let repository = AuthSessionRepositoryFake(
+            currentSession: expiredSession,
+            stateChanges: [expiredSession]
+        )
+        let store = AuthenticationStore(repository: repository)
+
+        await store.start()
+
+        #expect(store.rootState == .loading)
+    }
+
+    @Test @MainActor
+    func refreshedSessionSignsInAfterExpiredStoredSession() async {
+        let userID = UUID()
+        let expiredSession = AuthSessionSnapshot(
+            userID: userID,
+            email: "user@example.com",
+            isExpired: true
+        )
+        let refreshedSession = AuthSessionSnapshot(
+            userID: userID,
+            email: "user@example.com"
+        )
+        let repository = AuthSessionRepositoryFake(
+            currentSession: expiredSession,
+            stateChanges: [expiredSession, refreshedSession]
+        )
+        let store = AuthenticationStore(repository: repository)
+
+        await store.start()
+
+        #expect(store.rootState == .signedIn(refreshedSession))
+    }
+
+    @Test @MainActor
+    func failedExpiredSessionRefreshSignsOut() async {
+        let expiredSession = AuthSessionSnapshot(
+            userID: UUID(),
+            email: "user@example.com",
+            isExpired: true
+        )
+        let repository = AuthSessionRepositoryFake(
+            currentSession: expiredSession,
+            stateChanges: [expiredSession, nil]
+        )
+        let store = AuthenticationStore(repository: repository)
+
+        await store.start()
+
+        #expect(store.rootState == .signedOut)
     }
 
     @Test @MainActor

@@ -103,7 +103,8 @@ final class SupabaseAuthSessionRepository: AuthSessionRepository {
     private static func snapshot(from session: Session) -> AuthSessionSnapshot {
         AuthSessionSnapshot(
             userID: session.user.id,
-            email: session.user.email?.lowercased()
+            email: session.user.email?.lowercased(),
+            isExpired: session.isExpired
         )
     }
 

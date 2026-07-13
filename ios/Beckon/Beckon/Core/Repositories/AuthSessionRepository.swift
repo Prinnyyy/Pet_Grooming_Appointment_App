@@ -3,6 +3,17 @@ import Foundation
 struct AuthSessionSnapshot: Equatable, Sendable {
     let userID: UUID
     let email: String?
+    let isExpired: Bool
+
+    init(
+        userID: UUID,
+        email: String?,
+        isExpired: Bool = false
+    ) {
+        self.userID = userID
+        self.email = email
+        self.isExpired = isExpired
+    }
 }
 
 enum AuthSignUpOutcome: Equatable, Sendable {

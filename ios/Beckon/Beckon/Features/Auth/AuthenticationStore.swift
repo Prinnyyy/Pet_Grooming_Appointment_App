@@ -281,7 +281,12 @@ final class AuthenticationStore {
     }
 
     private func apply(_ session: AuthSessionSnapshot?) {
-        rootState = session.map(AuthenticationRootState.signedIn) ?? .signedOut
+        guard let session else {
+            rootState = .signedOut
+            return
+        }
+
+        rootState = session.isExpired ? .loading : .signedIn(session)
     }
 
     private func clearPasswords() {

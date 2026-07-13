@@ -2,12 +2,21 @@
 
 ```text
 Date: 2026-07-13
+Task: T-338 - Supabase initial-session compatibility and expiry-safe restore.
+Files changed: Supabase client Auth options; Auth session snapshot/repository mapping; Authentication Store restore policy; focused auth tests; task/current-state memory.
+Checks: Supabase Swift 2.46 source and official PR #822 review; TDD compile RED and focused GREEN; full iOS tests; iOS build; legacy initial-session warning scan; diff/context/preflight. The first GREEN compile exposed a missing Supabase test import and MainActor isolation on the options assertion; both test declarations were corrected and the rerun passed. Context hygiene also rejected two ambiguous Ledger phrasings while T-339 was being reserved; the machine-readable wording now identifies T-339 as the next task and keeps T-341 only as the next unallocated ID.
+Result: Beckon opts into local-session-first initial emission, carries `Session.isExpired` through its repository boundary, and never authorizes an expired cached session. The root remains loading until the SDK emits a valid refreshed session or signed-out state, eliminating the ghost-session startup path and its compatibility warning.
+Risks: A transient refresh failure for which the SDK emits neither token-refreshed nor signed-out leaves the app loading under the SDK's documented contract; no custom timeout or competing refresh loop was added. The build reconfirmed the redundant-await warning now tracked as T-340 and the no-AppIntents metadata message classified as toolchain information. No schema, backend, dependency, or remote state changed.
+Next: T-339 is the required periodic documentation-governance meta-review.
+```
+
+```text
+Date: 2026-07-13
 Task: T-337 - Shared Liquid Glass keyboard dismissal control.
 Files changed: Shared keyboard accessory presentation/visibility; DesignSystem contract test and contract documentation; design spec/plan; task/current-state memory.
 Checks: Root-cause/source audit; TDD compile RED and focused GREEN; complete SwiftUI/UIKit input-owner coverage audit; no-native-keyboard-toolbar scan; full iOS tests; iOS build; UI consistency audit; diff/context/preflight. The first GREEN compile exposed main-actor token access from a nonisolated policy; the policy now owns its immutable dimensions and the rerun passed.
 Result: The system-styled floating Done text button is replaced by one 52-point trailing circular dismissal control with a mint checkmark, 12-point keyboard gap, and 20-point screen inset. iOS 26 uses interactive native Liquid Glass; earlier supported systems use an ultra-thin material circle. Existing shared call sites cover all audited input owners.
 Risks: Manual in-app UI/UX review was not performed by Codex per user direction and remains the user's acceptance step. The control only resigns the current first responder; form, Store, repository, backend, and persistence behavior are unchanged. The build also exposed two pre-existing app-owned warnings now tracked by T-339; the AppIntents metadata-skipped message is recorded there as toolchain information. The earlier Supabase startup warning is tracked by T-338.
-Next: T-338 and T-339 are planned; use T-340 for the next unallocated task.
 ```
 
 ```text
