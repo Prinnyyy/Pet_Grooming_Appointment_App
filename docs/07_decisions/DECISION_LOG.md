@@ -18,6 +18,15 @@ Linked files:
 ## Active Decisions
 
 ```text
+Decision ID: D-034
+Date: 2026-07-13
+Decision: Use one guarded task-closeout command for numbered durable closeouts and a metadata-based lifecycle for temporary plans/specs.
+Context: Closeout required several manual steps, so completed artifacts, active backlinks, and rolling windows could drift independently. The unused agent-preflight script also referenced a deleted template and always failed.
+Consequences: task-closeout dry-runs by default. Apply mode first requires aligned completed ledger/current-state/worklog facts, completed task/type metadata, clear active backlinks, a safe rotation preview, and a hygiene precheck; it then moves artifacts verbatim into a dated frozen Superpowers family, applies one rotation batch, and reruns hygiene. Default output is concise and --verbose exposes diagnostics. The broken agent-preflight entrypoint is removed rather than maintained beside the canonical gates.
+Linked files: docs/05_workflow/SINGLE_AGENT_WORKFLOW.md, docs/05_workflow/CONTEXT_AND_RECOVERY.md, docs/superpowers/README.md, scripts/task-closeout.mjs, scripts/context-rotate.mjs, tests/scripts/task-closeout.test.mjs
+```
+
+```text
 Decision ID: D-033
 Date: 2026-07-13
 Decision: Assign each workflow concern to one owner file, enforce compact AGENTS/Claude adapters, and keep one T-### task per session without automatic meta-review chaining.

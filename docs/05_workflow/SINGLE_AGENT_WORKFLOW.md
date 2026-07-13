@@ -14,7 +14,7 @@ Validation commands belong only to `TOOLING_POLICY.md`; Git conventions belong o
 6. Run the mode's completion validation from `TOOLING_POLICY.md`.
 7. Review status and diff; separate unrelated user work.
 8. Write only the required closeout facts.
-9. Run context hygiene when durable memory, task state, workflow, or coordination files changed.
+9. For a numbered durable closeout, run the unified closeout gate described below.
 10. Complete Git closeout under `GITHUB_RULES.md` when Tooling authorization permits it.
 11. End the session. A later user request starts the next task.
 
@@ -41,9 +41,11 @@ Mode determines validation depth, not permission. Remote and destructive operati
 
 Update `TASK_LEDGER.md` and `WORKLOG.md` when the task is Standard/Deep or changes app behavior, workflow rules, backend contracts, durable state, or task coordination. Tiny Micro/Quick work that future runs do not need may skip durable closeout.
 
-`CURRENT_STATE.md` uses replacement semantics and changes only when future startup needs the new branch, latest validation, active risk, current task, or next ID. `FEATURE_INDEX.md` changes only when routing/ownership changes. `DECISION_LOG.md` changes only for a durable architecture, product, backend, or workflow decision.
+Before a numbered durable closeout, mark its ledger row completed, add one compact Worklog entry, and replace the Current State task baseline with the completed and next IDs. Change other Current State sections only when future startup needs the new validation, risk, branch, or product fact. `FEATURE_INDEX.md` changes only when routing/ownership changes. `DECISION_LOG.md` changes only for a durable architecture, product, backend, or workflow decision.
 
-Completed task-specific plans/specs leave active search paths at closeout. Markdown moves/deletions update every active backlink and index in the same task.
+Run `node scripts/task-closeout.mjs --task T-### --apply` after those facts are ready. It verifies their alignment, blocks active backlinks to pending artifacts, archives eligible completed plans/specs, applies structural window rotation, and runs context hygiene. Omit `--apply` for a read-only preview; add `--verbose` only when diagnostics are needed.
+
+Task-specific plans/specs live temporarily under `docs/superpowers/` and use its metadata contract. Mark them completed only at closeout. The gate moves them verbatim to the dated frozen Superpowers family. Markdown moves/deletions update every active backlink and index in the same task.
 
 ## Rule Changes
 

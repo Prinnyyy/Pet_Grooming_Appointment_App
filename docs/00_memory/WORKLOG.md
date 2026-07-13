@@ -2,12 +2,21 @@
 
 ```text
 Date: 2026-07-13
+Task: T-349 - Closeout Automation V2.
+Files changed: Unified task closeout script/tests; task-artifact staging contract; workflow/context/docs/frozen indexes; D-034; task memory; removed agent-preflight.
+Checks: TDD RED/GREEN; 40 docs governance/closeout tests; unified closeout dry/apply; active links; git diff check; context hygiene.
+Result: Numbered durable closeout now fails before writes on task-fact, metadata, backlink, rotation, or hygiene drift; apply mode archives plans/specs verbatim, rotates structural windows, and emits an eight-line summary. The broken duplicate agent-preflight entrypoint is removed.
+Risks: The new gate intentionally accepts only one task's plan/spec artifacts and only metadata types plan/spec. T-350 is the required periodic meta-review and must run in a fresh session.
+Next: Execute reserved T-350 periodic meta-review after a fresh user continuation/request; do not start it in this session.
+```
+
+```text
+Date: 2026-07-13
 Task: T-348 - Workflow source-of-truth consolidation.
 Files changed: AGENTS/Claude adapters; five workflow owner files; Meta Review template; root/docs/memory indexes; D-033; hygiene policy/check/tests; frozen source snapshots; task memory.
 Checks: 36 docs governance tests, workflow ownership/forbidden-rule searches, local links, word/line telemetry, git diff check, and context hygiene passed.
 Result: Seven rule/adapter files fell from 6,517 to 3,149 words. Each concern has one owner; AGENTS/Claude meet enforced 600/250-word ceilings. Meta-review now reserves a fresh session, host telemetry replaces fixed capacity, development RED differs from final validation, Simulator can be user-deferred, host skills are not capped, and incomplete checkpoint Git requires approval.
 Risks: The orphan agent-preflight path and automatic completed-artifact rotation remain for the separate closeout-automation task. Existing generic telemetry overages outside workflow are informational.
-Next: No automatic follow-up. Use T-349 for the next new task; T-340 remains separately planned.
 ```
 
 ```text

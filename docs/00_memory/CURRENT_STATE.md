@@ -5,9 +5,9 @@ Current facts for task startup and recovery. Historical task narrative belongs i
 ## Task Baseline
 
 - Date: 2026-07-13
-- Latest completed task: T-348 Workflow source-of-truth consolidation.
+- Latest completed task: T-349 Closeout Automation V2.
 - Current task: none.
-- Next task ID: T-349 for the next new task.
+- Next task ID: T-350 for the required periodic meta-review.
 - Current branch baseline: `codex/pet-fit-structure-cleanup`.
 - GitHub repository: `Prinnyyy/Pet_Grooming_Appointment_App`.
 
@@ -26,7 +26,7 @@ No roadmap package is automatically active. New work starts from an explicit use
 
 - Latest app validation: T-344 passed focused Customer Request tests and `./scripts/ios-build.sh`.
 - Latest full iOS regression: T-343 passed the complete iOS suite and build.
-- Latest documentation validation: T-348 passed 36 docs governance tests, workflow ownership/conflict checks, active links, `git diff --check`, and context hygiene.
+- Latest documentation validation: T-349 passed 40 docs governance/closeout tests, workflow ownership and active-link checks, `git diff --check`, unified closeout, and context hygiene.
 - Known iOS validation failure: none currently recorded.
 - T-340 owns the known redundant-`await` and unused reminder-result compiler warnings. The AppIntents metadata-skipped message remains classified as toolchain information while Beckon has no App Intents dependency.
 
@@ -59,5 +59,6 @@ No roadmap package is automatically active. New work starts from an explicit use
 ## Governance
 
 - Last meta-review: T-339 on 2026-07-13.
+- T-350 is reserved as the immediate required periodic meta-review; execute it only after a fresh user continuation/request.
 - Run `node scripts/context-hygiene-check.mjs` after durable memory, ledger, workflow, or coordination-document changes.
 - Update this file by replacing stale facts. Do not append task timelines, full validation narratives, credential explanations, or future-task recommendations.

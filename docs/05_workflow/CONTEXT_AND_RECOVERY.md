@@ -43,7 +43,7 @@ node scripts/context-hygiene-check.mjs
 
 The check owns active links, ignored-path visibility, current-fact alignment, workflow ownership, entry windows, and informational word telemetry. Generic word references do not trigger stopping or archival; the compact `AGENTS.md` and `CLAUDE.md` adapter ceilings are enforced workflow interfaces.
 
-Ledger, Worklog, and Decision Log rotate only when their structural entry triggers are exceeded. Run one `node scripts/context-rotate.mjs --apply` batch, then rerun hygiene. Index files replace stale facts. Completed task artifacts move verbatim to the matching frozen family with active pointers updated.
+Ledger, Worklog, and Decision Log rotate only when their structural entry triggers are exceeded. Numbered durable task closeout uses `node scripts/task-closeout.mjs --task T-### --apply`; it performs a safe rotation preview, completed-artifact/backlink checks, one apply batch, and final hygiene. Run `context-rotate.mjs` directly only for a targeted recovery or governance repair. Index files replace stale facts, and completed task artifacts move verbatim to the matching frozen family after active pointers are updated.
 
 ## Recovery
 

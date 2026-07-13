@@ -13,9 +13,7 @@ Archived files may contain old TODOs, old paths, old branch/task references, or 
 - `agent_team_archive_2026-06-24/`: disabled historical `.codex` role cards and agent definitions.
 - `workflow_archive_2026-06-24/`: superseded subagent workflow docs and old agent reports.
 - `task_records_2026-06-26/`: detailed historical T-001 through T-088 and workflow policy task records. Current task state lives in `docs/06_tasks/TASK_LEDGER.md`.
-- `superpowers_2026-06-26/`: historical Superpowers plans/specs moved out of the active docs tree.
-- `superpowers_2026-07-09/`: completed T-245 and T-246 design/implementation plans moved out of the active docs tree at closeout.
-- `superpowers_2026-07-13/`: completed UI consistency, keyboard, Customer form/Hero, and Customer Offers plans/specs rotated in T-346.
+- `superpowers_*/`: dated, verbatim task plans/specs moved out of the active docs tree by manual historical rotations or the unified closeout gate.
 - `completed_task_plans/`: completed standalone execution and migration plans whose current contracts now live in active domain documents.
 - `roadmaps/`: pre-rotation Roadmap and execution-queue snapshots; active files retain unresolved direction only.
 - `workflow_docs_2026-06-26/`: superseded context, recovery, tool, MCP, Superpowers, and Codex workflow docs consolidated into active workflow entrypoints.

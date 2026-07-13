@@ -13,6 +13,7 @@ This folder is the durable project memory and coordination layer for Codex. Use 
 - `06_tasks/`: active task ledger, managed roadmap, screenshot/meta-review templates, and reviewed SQL artifacts
 - `07_decisions/`: canonical durable decision log and ADR template
 - `08_design/`: Beckon implementation notes, screenshots, and tokens; historical prompts and long design audits live in frozen archives
+- `superpowers/`: temporary task plans/specs with closeout metadata; completed artifacts are automatically frozen
 - `ui-redesign/`: heavy point-in-time UI inventory and Figma evidence; only its README is default-visible
 - `09_frozen/`: frozen history and pre-trim snapshots; default searches should not read it
 - `10_project_structure/`: current path map and reorganization history
@@ -41,6 +42,7 @@ Default searches honor `../.rgignore`. Do not use broad `rg --files -g '*.md'` a
 - Git/GitHub rules: `05_workflow/GITHUB_RULES.md`
 - Stop conditions: `05_workflow/STOP_CONDITIONS.md`
 - Context hygiene check: `../scripts/context-hygiene-check.mjs`
+- Numbered durable task closeout: `../scripts/task-closeout.mjs`; artifact metadata: `superpowers/README.md`
 - Durable decisions: `07_decisions/DECISION_LOG.md`; frozen full snapshots: `09_frozen/decisions/`
 - Project structure map: `10_project_structure/README.md`
 - Test resource index: `02_architecture/test_resources/README.md`
