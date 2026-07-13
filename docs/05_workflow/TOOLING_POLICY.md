@@ -38,6 +38,15 @@ Use documented scripts when validation is required:
 
 Do not alter signing, capabilities, entitlements, schemes, project structure, or simulator assumptions unless explicitly planned.
 
+For Simulator or Xcode runtime validation, inspect the Debug Area or captured process log in layers:
+
+1. Sample the recent output around launch and the exercised interaction; do not read the entire console by default.
+2. Check the error/fault/warning summary and task-relevant subsystem or keyword matches.
+3. When a relevant message appears, inspect its full detail and a narrow surrounding time window, reproduce once when practical, and trace whether it originates in Beckon code or Apple/Simulator runtime code.
+4. Expand to broader logs only when the sampled evidence is insufficient, ordering is unclear, or the issue spans multiple subsystems.
+
+Record actionable app diagnostics in the task closeout. Classify known Simulator-only noise explicitly rather than changing app code merely to suppress system messages. Runtime-log sampling is required when a Standard/Deep task launches the app to validate behavior; it is not required for build-only, test-only, docs-only, or static-analysis validation.
+
 ## Supabase
 
 Supabase CLI is the default interface for Supabase work. Use the installed `supabase` binary against the authorized linked project. Do not use `npx supabase`, local containers, direct database tools, or MCP migration writes unless a task explicitly documents that fallback.

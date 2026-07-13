@@ -64,6 +64,8 @@ For local app repros, DEBUG builds expose `Account -> Debug Console` and write s
 
 The full usage and instrumentation rules live in `docs/04_ios/DEBUG_CONSOLE.md`.
 
+When runtime behavior is inspected in Xcode or Simulator, sample only the recent Debug Area/process output for launch and the exercised path. Review faults, errors, warnings, and task-relevant keywords first. Open the full message and a narrow surrounding time window only when a relevant diagnostic appears; broaden the search only if that evidence cannot identify source or ordering. Distinguish Beckon diagnostics from Apple/Simulator keyboard, haptic, rendering, and service noise before changing code.
+
 ## Environment Overrides
 
 All defaults can be overridden explicitly:

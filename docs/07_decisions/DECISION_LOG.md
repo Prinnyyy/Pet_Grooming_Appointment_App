@@ -18,6 +18,15 @@ Linked files:
 ## Active Decisions
 
 ```text
+Decision ID: D-032
+Date: 2026-07-12
+Decision: Use layered Xcode/Simulator runtime-log sampling for app behavior validation.
+Context: Full Debug Area output is noisy and expensive to inspect, but ignoring it can miss SwiftUI faults and runtime warnings that are not visible in screenshots or test assertions.
+Consequences: Runtime validation samples recent interaction output and severity/task keywords first, then expands only relevant messages and narrow time windows. Actionable Beckon diagnostics are recorded; Apple/Simulator noise is classified before any code change. Build-only, test-only, docs-only, and static checks do not require runtime-log inspection.
+Linked files: docs/05_workflow/TOOLING_POLICY.md, docs/04_ios/IOS_BUILD_AND_TESTING.md
+```
+
+```text
 Decision ID: D-031
 Date: 2026-07-12
 Decision: Govern Beckon UI consistency through the existing DesignSystem, semantic components, and an all-app source-audit debt ratchet, with the first migration slice limited to Customer Home, Requests, Request creation, and Account.

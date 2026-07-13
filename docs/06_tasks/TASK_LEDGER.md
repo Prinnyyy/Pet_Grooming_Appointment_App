@@ -2,7 +2,7 @@
 
 Track only current, blocked, and recent tasks here so Codex does not continue automatically. Older completed rows through T-190 are archived under `docs/09_frozen/task_ledgers/`; active blocked T-157 remains below. Notes should keep conclusions and pointers only; validation detail belongs in `docs/00_memory/WORKLOG.md` or frozen worklogs. Detailed task records T-001 through T-088 and workflow task records remain archived under `docs/09_frozen/task_records_2026-06-26/`.
 
-Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup`; use `T-330` for the next chat, modal, booking, and residual input audit.
+Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup`; use `T-331` for the next chat, modal, booking, and residual input audit.
 
 Active blocked task: T-157 is waiting on paid Apple Developer Program access before APNs secrets (`APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_TOPIC`, `APNS_PRIVATE_KEY`) and Edge Function deploy.
 
@@ -10,7 +10,8 @@ Active blocked task: T-157 is waiting on paid Apple Developer Program access bef
 
 | ID | Task | Status | Mode | Milestone | Files/Docs | Checks | Notes |
 |---|---|---|---|---|---|---|---|
-| T-330 | Chat, modal, and residual input audit | planned | Standard | M14 | Chat composer, booking review/editor, residual SwiftUI/UIKit inputs; tests/memory | Focus/accessory classification; focused tests; build; audit/diff/context/preflight | Account for every residual input; retain keyboard-following controls only when they are true input accessories. |
+| T-331 | Chat, modal, and residual input audit | planned | Standard | M14 | Chat composer, booking review/editor, residual SwiftUI/UIKit inputs; tests/memory | Focus/accessory classification; focused tests; build; audit/diff/context/preflight | Account for every residual input; retain keyboard-following controls only when they are true input accessories. |
+| T-330 | Layered Xcode runtime-log inspection rule | completed | Quick | M14 | Tooling policy; iOS testing guide; workflow decision/task memory | Diff/context/preflight | Runtime app validation samples recent/severity/task logs first and expands only relevant diagnostics; non-runtime checks are exempt. |
 | T-329 | Shared keyboard geometry feedback-loop correction | completed | Standard | M14 | Shared focus/viewport geometry reporting; DesignSystem contract tests; keyboard rules/memory | TDD; full tests/build; Edit Pet runtime/log check; audit/diff/context/preflight | Focused-only `onGeometryChange` reporting replaces bound preferences and removes the per-frame SwiftUI feedback loop without Feature changes. |
 | T-328 | Periodic documentation-governance meta-review | completed | Quick | M14 | Active memory/task/roadmap/index structure; Worklog rotation/test; migration/ignore/governance checks | Rotation TDD; 15/15 governance tests; targeted audit; diff/context/preflight | Routing is consistent, mirror is 67/67, and clean Worklog rotation restores six task slots before compaction. |
 | T-327 | Groomer and business-editor minimum-reveal migration | completed | Standard | M14 | Groomer profile/services/time-off/offer inputs; semantic action clearance; tests/memory | TDD; full tests/build; repository/source audit; diff/context/preflight | Eight stable focus targets use the shared rule; Save/Submit actions remain stationary and no Feature owns keyboard geometry. |

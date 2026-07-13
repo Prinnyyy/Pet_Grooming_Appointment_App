@@ -2,12 +2,22 @@
 
 ```text
 Date: 2026-07-12
+Task: T-330 - Layered Xcode runtime-log inspection rule.
+Files changed: Tooling policy; iOS build/testing guidance; decision/task/current-state memory.
+Checks: Targeted rule review; diff check; context hygiene; preflight.
+Result: Any Standard/Deep validation that launches Beckon now samples recent Debug Area/process output and severity/task keywords, expands relevant messages and narrow time windows only when needed, and classifies app-owned versus Apple/Simulator diagnostics before code changes.
+Risks: This is a diagnostic sampling requirement, not a promise that every system warning is actionable. Build-only, test-only, docs-only, and static validation remain exempt. No Swift, backend, dependency, or remote state changed.
+Next: Execute T-331.
+```
+
+```text
+Date: 2026-07-12
 Task: T-329 - Shared keyboard geometry feedback-loop correction.
 Files changed: Shared keyboard focus/viewport geometry reporting; DesignSystem policy test; keyboard design/plan/task/current-state memory.
 Checks: TDD compile RED then focused GREEN; full iOS tests; iOS build; repository UI audit; removed-preference/API source scan; Edit Pet Simulator input/drag and runtime-log inspection; diff/context/preflight.
 Result: Only the currently focused valid target reports geometry through `onGeometryChange`; viewport changes use the same non-preference path. This removes the SwiftUI `BeckonKeyboardFocusTargetBoundsKey` multiple-updates-per-frame feedback loop while preserving every Feature call site and shared keyboard behavior.
-Risks: RTI session and keyboard haptic-library messages are Simulator system diagnostics, not app-owned APIs, and require no product patch unless a physical device reproduces a visible input or haptic failure. The residual input audit moves to T-330; no Store, repository, backend, dependency, or remote state changed.
-Next: Execute T-330.
+Risks: RTI session and keyboard haptic-library messages are Simulator system diagnostics, not app-owned APIs, and require no product patch unless a physical device reproduces a visible input or haptic failure. The residual input audit was subsequently moved to T-331 by T-330; no Store, repository, backend, dependency, or remote state changed.
+Next: Superseded by the T-330 closeout above.
 ```
 
 ```text

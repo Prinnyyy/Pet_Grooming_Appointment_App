@@ -202,7 +202,7 @@ Run the same focused command. Expected: all selected tests pass.
 
 ### Task 11: Modal, Booking, Chat, and Residual Audit
 
-T-329's shared geometry fault correction preempted this audit; execute this unchanged scope as T-330.
+T-329's shared geometry fault correction and T-330's standalone runtime-log rule preempted this audit; execute this unchanged scope as T-331.
 
 **Files:**
 - Modify audited residual editable callers, including `Features/Bookings/BookingsView.swift` and `Features/Chat/ChatView.swift`, only when their current behavior violates their classification.
