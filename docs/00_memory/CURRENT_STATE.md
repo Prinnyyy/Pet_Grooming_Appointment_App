@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-12
 - Updated by: Codex
-- Latest completed task: T-318 reusable keyboard-aware form contract and shared geometry.
+- Latest completed task: T-319 minimum keyboard-avoidance redesign plan.
 - Current task: none; T-157 APNs remains externally blocked and Q-104 Dynamic Type/Accessibility remains user-deferred.
-- Next task ID: use T-319 for the selected Auth and Customer input migration. T-320/T-321 continue the remaining input-surface audit; Groomer Q-104 remains deferred.
+- Next task ID: use T-320 for the selected minimum-reveal algorithm and Request reference migration. T-321...T-323 migrate the remaining input surfaces; Groomer Q-104 remains deferred.
 
 ## Fast Path
 
@@ -32,7 +32,8 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Validation Baseline
 
-- T-318 records the keyboard-aware form contract and moves Request's tested overlap/clearance/55%-anchor geometry into `BeckonKeyboardFormLayout` under DesignSystem. Request remains the first conforming form; focused tests and build pass. T-319 through T-321 are the bounded migration sequence for all remaining input surfaces, with chat/send controls treated as input-accessory candidates rather than page actions.
+- T-319 plans the correction of T-318's fixed 55% anchor before broader rollout. T-320 introduces measured minimum-reveal geometry and revalidates Request; T-321 through T-323 then cover Auth/Customer, Groomer/business, and residual/modal/chat inputs with explicit page-action versus input-accessory classification. No Swift or runtime behavior changed.
+- T-318 records the initial keyboard-aware form contract and moves Request's overlap/clearance geometry into `BeckonKeyboardFormLayout`; its fixed 55% anchor is now explicitly superseded by the T-319 plan and must not be propagated. Request remains the only current consumer until T-320 corrects and revalidates it.
 - T-317 periodic meta-review confirms branch/upstream, task/roadmap/index facts, intentional root Markdown ignores, zero active conflict markers, the 67-file migration mirror, 13/13 governance tests, context hygiene, and preflight. Active Worklog/Ledger retain four/three task slots; no product, app, backend, dependency, or workflow rule changed.
 - T-316 keeps Request Wizard fields keyboard-readable without moving the bottom action area: address and Notes focus scroll their title-plus-control toward a lower visible anchor with natural content-bound clamping; keyboard overlap adds scroll clearance while Back/Continue retain their original screen position behind the keyboard. Focused RED/GREEN, full iOS tests, build/run, ZIP/Notes live inspection, strict/repository UI audits, and build pass; no business, Store, repository, or backend behavior changed.
 - T-315 separates complete-field continuation from Apple Maps confirmation: Continue is active once required Time/Location fields are complete, equivalent unique/candidate results auto-confirm and advance, only corrected/ambiguous results open review, Profile autofill cancels stale continuation intent, and confirmation review starts at a compact 330pt detent. Focused RED/GREEN, full iOS tests, build/run, three live paths, UI audit, and build pass; no provider, repository, backend, or remote state changed.

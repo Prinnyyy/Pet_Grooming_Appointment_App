@@ -2,12 +2,21 @@
 
 ```text
 Date: 2026-07-12
+Task: T-319 - Minimum keyboard-avoidance redesign plan.
+Files changed: Formal T-320...T-323 implementation plan plus current/task/worklog routing.
+Checks: Apple HIG/developer-source reconciliation; current shared geometry, Request orchestration, tests, and production input inventory review; diff/context/preflight.
+Result: The rollout now corrects T-318's fixed 55% anchor before touching other forms. The approved direction uses measured semantic-group bounds, no movement when visible, nearest-edge minimum reveal when obscured, natural clamping, fixed page-action coordinates, and explicit input-accessory exceptions.
+Risks: SwiftUI marker geometry and keyboard-frame interaction must prove stable in T-320 Simulator testing before reuse. No Swift, business, repository, backend, dependency, or remote state changed.
+Next: Execute T-320 minimum-reveal algorithm and Request reference migration.
+```
+
+```text
+Date: 2026-07-12
 Task: T-318 - Reusable keyboard-aware form contract and shared geometry.
 Files changed: DesignSystem keyboard geometry; Request consumer/test rename; design/governance contract; feature/task/current-state routing.
 Checks: Focused Request tests; iOS build; repository UI audit; diff/context/preflight.
 Result: The project now defines one keyboard-aware form contract: focus the label-plus-complete-control group, approach a 55% lower anchor with natural clamping, use measured overlap as content clearance, and keep page actions at their original coordinate. Request consumes the shared geometry without behavior change.
 Risks: Remaining inputs use multiple page, sheet, and accessory containers, so T-319...T-321 migrate them in bounded, Simulator-verified groups. Chat send controls are reviewed as input accessories rather than automatically treated as page actions. No business, repository, backend, or remote state changed.
-Next: Execute T-319 Auth and Customer input migration.
 ```
 
 ```text
