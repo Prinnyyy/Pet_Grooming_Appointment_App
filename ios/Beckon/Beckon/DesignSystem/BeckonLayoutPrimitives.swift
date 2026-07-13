@@ -28,6 +28,16 @@ enum BeckonRoleAccent {
     }
 }
 
+enum BeckonAccountLayoutPolicy {
+    static let identityAvatarSize: CGFloat = 76
+    static let identityAvatarCornerRadius: CGFloat = identityAvatarSize / 2
+    static let pageSectionSpacing = DesignTokens.Layout.sectionSpacing
+    static let groupedRowDividerLeadingInset =
+        DesignTokens.Layout.rowHorizontalInset
+        + DesignTokens.Metrics.settingsIconSlot
+        + DesignTokens.Spacing.md
+}
+
 extension View {
     func beckonPageInsets(
         bottom: CGFloat = DesignTokens.Layout.pageBottomInset
@@ -121,6 +131,71 @@ struct BeckonGroupedSurface<Content: View>: View {
     }
 }
 
+struct BeckonGroupedDivider: View {
+    var leadingInset: CGFloat = 0
+
+    var body: some View {
+        Divider()
+            .overlay(DesignTokens.Colors.divider)
+            .padding(.leading, leadingInset)
+    }
+}
+
+struct BeckonAccountIdentityHeader<Avatar: View>: View {
+    let displayName: String
+    let detailText: String
+    let roleTitle: String
+    let roleSystemImage: String?
+    let roleTone: BeckonStatusChip.Tone
+    private let avatar: Avatar
+
+    init(
+        displayName: String,
+        detailText: String,
+        roleTitle: String,
+        roleSystemImage: String? = nil,
+        roleTone: BeckonStatusChip.Tone,
+        @ViewBuilder avatar: () -> Avatar
+    ) {
+        self.displayName = displayName
+        self.detailText = detailText
+        self.roleTitle = roleTitle
+        self.roleSystemImage = roleSystemImage
+        self.roleTone = roleTone
+        self.avatar = avatar()
+    }
+
+    var body: some View {
+        HStack(spacing: DesignTokens.Spacing.lg) {
+            avatar
+                .frame(
+                    width: BeckonAccountLayoutPolicy.identityAvatarSize,
+                    height: BeckonAccountLayoutPolicy.identityAvatarSize
+                )
+
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                Text(displayName)
+                    .font(DesignTokens.Typography.sectionTitle)
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Text(detailText)
+                    .font(DesignTokens.Typography.supporting)
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                BeckonStatusChip(
+                    roleTitle,
+                    systemImage: roleSystemImage,
+                    tone: roleTone
+                )
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
 struct BeckonSettingsRowLabel: View {
     let title: String
     let summary: String?
@@ -172,6 +247,42 @@ struct BeckonSettingsRowLabel: View {
         .padding(.vertical, DesignTokens.Layout.rowVerticalInset)
         .frame(minHeight: DesignTokens.Metrics.minimumTouchTarget)
         .contentShape(Rectangle())
+    }
+}
+
+struct BeckonSettingsNavigationRow<Destination: View>: View {
+    let title: String
+    let summary: String?
+    let systemImage: String
+    let accent: BeckonRoleAccent
+    private let destination: Destination
+
+    init(
+        title: String,
+        summary: String? = nil,
+        systemImage: String,
+        accent: BeckonRoleAccent,
+        @ViewBuilder destination: () -> Destination
+    ) {
+        self.title = title
+        self.summary = summary
+        self.systemImage = systemImage
+        self.accent = accent
+        self.destination = destination()
+    }
+
+    var body: some View {
+        NavigationLink {
+            destination
+        } label: {
+            BeckonSettingsRowLabel(
+                title: title,
+                summary: summary,
+                systemImage: systemImage,
+                accent: accent
+            )
+        }
+        .buttonStyle(.plain)
     }
 }
 

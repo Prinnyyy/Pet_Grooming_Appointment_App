@@ -24,6 +24,22 @@ struct DesignSystemContractTests {
     }
 
     @Test
+    func accountSurfacesShareOneIdentityAndGroupedRowLayout() {
+        #expect(BeckonAccountLayoutPolicy.identityAvatarSize == 76)
+        #expect(BeckonAccountLayoutPolicy.identityAvatarCornerRadius == 38)
+        #expect(
+            BeckonAccountLayoutPolicy.groupedRowDividerLeadingInset ==
+                DesignTokens.Layout.rowHorizontalInset
+                + DesignTokens.Metrics.settingsIconSlot
+                + DesignTokens.Spacing.md
+        )
+        #expect(
+            BeckonAccountLayoutPolicy.pageSectionSpacing ==
+                DesignTokens.Layout.sectionSpacing
+        )
+    }
+
+    @Test
     func legacyCardElevationsAliasTheCanonicalSoftCard() {
         #expect(DesignTokens.Shadows.smallCard.radius == DesignTokens.Shadows.softCard.radius)
         #expect(DesignTokens.Shadows.smallCard.x == DesignTokens.Shadows.softCard.x)

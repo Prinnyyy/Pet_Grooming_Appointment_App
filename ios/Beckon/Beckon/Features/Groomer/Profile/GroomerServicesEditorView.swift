@@ -19,9 +19,7 @@ struct GroomerServicesEditorView: View {
                 store: store,
                 presentation: presentation
             )
-            .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-            .padding(.top, DesignTokens.Spacing.lg)
-            .padding(.bottom, DesignTokens.Spacing.xl)
+            .beckonPageInsets()
         }
         .accessibilityIdentifier("groomer.services.edit")
         .background(DesignTokens.Colors.background.ignoresSafeArea())
@@ -50,17 +48,16 @@ private struct GroomerServicesSection: View {
     let presentation: GroomerServicesWorkspacePresentation
 
     var body: some View {
-        GroomerWorkspaceSection(title: "Offer menu") {
+        BeckonSection(
+            "Service Menu",
+            subtitle: presentation.summary
+        ) {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                Text(presentation.summary)
-                    .font(DesignTokens.Typography.caption)
-                    .foregroundStyle(DesignTokens.Colors.textSecondary)
-
                 if store.services.isEmpty {
                     GroomerServicesEmptyState(action: startCreateService)
                         .accessibilityIdentifier("groomer.services.empty")
                 } else {
-                    GroomerGroupedSurface {
+                    BeckonGroupedSurface {
                         VStack(spacing: 0) {
                             ForEach(Array(store.services.enumerated()), id: \.element.id) { index, service in
                                 GroomerServiceRow(
@@ -69,7 +66,9 @@ private struct GroomerServicesSection: View {
                                 )
 
                                 if index < store.services.count - 1 {
-                                    GroomerWorkspaceDivider(leadingInset: 64)
+                                    BeckonGroupedDivider(
+                                        leadingInset: BeckonAccountLayoutPolicy.groupedRowDividerLeadingInset
+                                    )
                                 }
                             }
                         }
@@ -88,7 +87,7 @@ private struct GroomerServicesEmptyState: View {
     let action: () -> Void
 
     var body: some View {
-        GroomerGroupedSurface {
+        BeckonGroupedSurface {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                 Image(systemName: "scissors")
                     .font(.title2.weight(.semibold))
@@ -194,7 +193,7 @@ private struct GroomerServiceTypePicker: View {
     @Binding var selection: GroomingServiceType
 
     var body: some View {
-        GroomerGroupedSurface {
+        BeckonGroupedSurface {
             VStack(spacing: 0) {
                 ForEach(GroomingServiceType.allCases) { type in
                     Button {
@@ -231,7 +230,7 @@ private struct GroomerServiceTypePicker: View {
                     .accessibilityValue(selection == type ? "Selected" : "Not selected")
 
                     if type != GroomingServiceType.allCases.last {
-                        GroomerWorkspaceDivider(leadingInset: DesignTokens.Spacing.lg)
+                        BeckonGroupedDivider(leadingInset: DesignTokens.Spacing.lg)
                     }
                 }
             }
@@ -270,18 +269,27 @@ struct GroomerServiceFormView: View {
             ScrollViewReader { scrollProxy in
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
-                        GroomerWorkspaceSection(title: "Service type") {
+                        BeckonSection(
+                            "Service Type",
+                            subtitle: "Choose the category customers will see."
+                        ) {
                             GroomerServiceTypePicker(selection: $store.serviceType)
                         }
 
-                        GroomerWorkspaceSection(title: "Details") {
+                        BeckonSection(
+                            "Details",
+                            subtitle: "Set the description, price, duration, and visibility."
+                        ) {
                             GroomerServiceDetailsSection(
                                 store: store,
                                 focusedTarget: $focusedTarget
                             )
                         }
 
-                        GroomerWorkspaceSection(title: "Accepted pet size") {
+                        BeckonSection(
+                            "Accepted Pet Size",
+                            subtitle: "Follow Fit Signals or set a range for this service."
+                        ) {
                             GroomerServiceAcceptedPetSizeSection(store: store)
                         }
 
@@ -293,9 +301,9 @@ struct GroomerServiceFormView: View {
                             .accessibilityIdentifier("groomer.services.form-error")
                         }
                     }
-                    .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-                    .padding(.top, DesignTokens.Spacing.lg)
-                    .padding(.bottom, DesignTokens.Layout.stationaryActionContentClearance)
+                    .beckonPageInsets(
+                        bottom: DesignTokens.Layout.stationaryActionContentClearance
+                    )
                 }
                 .beckonKeyboardAvoidance(
                     focusedTarget: focusedTarget,
@@ -338,7 +346,7 @@ private struct GroomerServiceDetailsSection: View {
     @FocusState.Binding var focusedTarget: String?
 
     var body: some View {
-        GroomerGroupedSurface {
+        BeckonGroupedSurface {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
                 GroomerProfileTextField(
                     title: "Description",
@@ -350,7 +358,7 @@ private struct GroomerServiceDetailsSection: View {
                 )
                 .lineLimit(2...4)
 
-                GroomerWorkspaceDivider()
+                BeckonGroupedDivider()
 
                 HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
                     GroomerProfileTextField(
@@ -372,7 +380,7 @@ private struct GroomerServiceDetailsSection: View {
                     .keyboardType(.numberPad)
                 }
 
-                GroomerWorkspaceDivider()
+                BeckonGroupedDivider()
 
                 HStack(spacing: DesignTokens.Spacing.md) {
                     VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
@@ -402,7 +410,7 @@ private struct GroomerServiceAcceptedPetSizeSection: View {
     private let serviceSizes = GroomerServicePetSize.allCases
 
     var body: some View {
-        GroomerGroupedSurface {
+        BeckonGroupedSurface {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                 HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
                     VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
@@ -429,7 +437,7 @@ private struct GroomerServiceAcceptedPetSizeSection: View {
                 }
 
                 if store.serviceUsesCustomSizeRange {
-                    GroomerWorkspaceDivider()
+                    BeckonGroupedDivider()
 
                     VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                         HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.md) {

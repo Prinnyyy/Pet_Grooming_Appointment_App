@@ -20,9 +20,7 @@ struct GroomerPortfolioEditorView: View {
                     presentation: presentation
                 )
             }
-            .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-            .padding(.top, DesignTokens.Spacing.lg)
-            .padding(.bottom, DesignTokens.Spacing.xl)
+            .beckonPageInsets()
         }
         .accessibilityIdentifier("groomer.portfolio.edit")
         .background(DesignTokens.Colors.background.ignoresSafeArea())
@@ -80,63 +78,59 @@ private struct GroomerPortfolioGallerySection: View {
     let presentation: GroomerPortfolioWorkspacePresentation
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.md) {
-                Text("Work gallery")
-                    .font(.title3.weight(.bold))
-                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+        BeckonSection(
+            "Work Gallery",
+            subtitle: "Show customers the grooming work that represents your skills."
+        ) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                if let uploadStatus = presentation.uploadStatus {
+                    BeckonGroupedSurface {
+                        HStack(spacing: DesignTokens.Spacing.md) {
+                            ProgressView()
+                                .tint(DesignTokens.Colors.groomerAccent)
 
-                Spacer(minLength: DesignTokens.Spacing.md)
+                            Text(uploadStatus)
+                                .font(DesignTokens.Typography.supporting)
+                                .foregroundStyle(DesignTokens.Colors.textSecondary)
+                        }
+                        .padding(DesignTokens.Layout.surfaceInset)
+                    }
+                    .accessibilityElement(children: .combine)
+                }
 
+                if photos.isEmpty {
+                    GroomerPortfolioEmptyState()
+                        .accessibilityIdentifier("groomer.portfolio.empty")
+                } else {
+                    LazyVGrid(
+                        columns: Self.photoGridColumns,
+                        alignment: .leading,
+                        spacing: DesignTokens.Spacing.lg
+                    ) {
+                        ForEach(photos) { photo in
+                            NavigationLink {
+                                GroomerPortfolioPhotoDetailView(
+                                    photo: photo,
+                                    store: store
+                                )
+                            } label: {
+                                GroomerPortfolioPhotoTile(
+                                    photo: photo,
+                                    store: store
+                                )
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityIdentifier("groomer.portfolio.photo-card")
+                        }
+                    }
+                }
+            }
+        } trailing: {
                 Text(presentation.photoSummary)
-                    .font(DesignTokens.Typography.caption.weight(.semibold))
+                    .font(DesignTokens.Typography.status)
                     .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
                     .lineLimit(1)
-            }
-
-            if let uploadStatus = presentation.uploadStatus {
-                GroomerGroupedSurface {
-                    HStack(spacing: DesignTokens.Spacing.md) {
-                        ProgressView()
-                            .tint(DesignTokens.Colors.groomerAccent)
-
-                        Text(uploadStatus)
-                            .font(DesignTokens.Typography.body)
-                            .foregroundStyle(DesignTokens.Colors.textSecondary)
-                    }
-                    .padding(DesignTokens.Spacing.lg)
-                }
-                .accessibilityElement(children: .combine)
-            }
-
-            if photos.isEmpty {
-                GroomerPortfolioEmptyState()
-                    .accessibilityIdentifier("groomer.portfolio.empty")
-            } else {
-                LazyVGrid(
-                    columns: Self.photoGridColumns,
-                    alignment: .leading,
-                    spacing: DesignTokens.Spacing.lg
-                ) {
-                    ForEach(photos) { photo in
-                        NavigationLink {
-                            GroomerPortfolioPhotoDetailView(
-                                photo: photo,
-                                store: store
-                            )
-                        } label: {
-                            GroomerPortfolioPhotoTile(
-                                photo: photo,
-                                store: store
-                            )
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityIdentifier("groomer.portfolio.photo-card")
-                    }
-                }
-            }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private static let photoGridColumns = [
@@ -147,7 +141,7 @@ private struct GroomerPortfolioGallerySection: View {
 
 private struct GroomerPortfolioEmptyState: View {
     var body: some View {
-        GroomerGroupedSurface {
+        BeckonGroupedSurface {
             HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
                 Image(systemName: "photo.on.rectangle")
                     .font(.body.weight(.semibold))
@@ -246,9 +240,7 @@ private struct GroomerPortfolioPhotoDetailView: View {
                     presentation: presentation
                 )
             }
-            .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-            .padding(.top, DesignTokens.Spacing.lg)
-            .padding(.bottom, DesignTokens.Spacing.xl)
+            .beckonPageInsets()
         }
         .accessibilityIdentifier("groomer.portfolio.detail")
         .background(DesignTokens.Colors.background.ignoresSafeArea())
@@ -408,8 +400,11 @@ private struct GroomerPortfolioFitNotesEditorSection: View {
     let presentation: GroomerPortfolioFitNotesPresentation
 
     var body: some View {
-        GroomerWorkspaceSection(title: "Fit notes") {
-            GroomerGroupedSurface {
+        BeckonSection(
+            "Fit Notes",
+            subtitle: "Connect this work sample to the skills it demonstrates."
+        ) {
+            BeckonGroupedSurface {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
                     Text(presentation.selectionSummary)
                         .font(DesignTokens.Typography.caption.weight(.semibold))

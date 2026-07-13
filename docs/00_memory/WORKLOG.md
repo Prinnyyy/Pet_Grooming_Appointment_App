@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-07-13
+Task: T-343 - Shared Customer/Groomer Account architecture and Groomer subtree restyle.
+Files changed: Shared Account/layout/settings primitives; Auth and Customer Account adoption; Groomer workspace compatibility layer; Groomer Account, Profile Settings, Services, Portfolio, Availability, Fit Signals, and Evidence presentation; DesignSystem contract test; UI debt baseline/inventory; task/current-state memory.
+Checks: TDD compile RED confirmed the Account layout policy did not exist, followed by focused DesignSystem GREEN. Two standard iOS builds and the complete iOS suite passed. The UI audit initially reported 18 stale entries resolved by the shared migration and no new errors; guarded baseline prune then passed at 203 current findings/195 baselined. Shared-usage, removed-private-component, business-boundary, diff, and context audits passed. Manual Simulator/UI review was intentionally not run because visual acceptance is user-owned.
+Result: Customer and Groomer now share Account identity, settings navigation, release links, page sections, grouped surfaces, dividers, page insets, and profile-photo editor presentation. Groomer Account no longer owns parallel menu/header/support implementations; its Profile, Services, Portfolio, Availability, Fit Signals, and Evidence pages compose the same shared hierarchy. Legacy Groomer workspace primitives delegate to the shared implementation so remaining Groomer surfaces inherit future shared style changes. Store, repository, Supabase, matching, persistence, and role colors are unchanged.
+Risks: Groomer-specific controls and destructive sign-out behavior remain feature-owned where semantics differ, but they compose shared typography/layout tokens. Q-104 Dynamic Type/Accessibility remains deferred. The two app-owned compiler warnings remain assigned to T-340; AppIntents metadata extraction remains toolchain information.
+Next: No automatic follow-up. Use T-344 for the next new task; T-340 remains separately planned.
+```
+
+```text
+Date: 2026-07-13
 Task: T-342 - Groomer Profile save RPC null-parameter correction.
 Files changed: Shared Customer/Groomer Profile address RPC payload encoder; Profile address integration contract; Feedback auto-dismiss test synchronization; task/current-state memory.
 Checks: Structured Debug Console trace isolated `GroomerProfileRepository.updateProfileWithAddress` and `save_groomer_profile_address_v2`; the migration signature, shared encoder, and official Swift RPC reference were compared. The Supabase changelog Markdown URL was rejected by the Web tool as an internal/safety error and was not retried. TDD RED confirmed a missing Place ID was omitted instead of encoded as null, and focused Profile address GREEN passed after the fix. The first full suite then exposed the existing Feedback auto-dismiss fixed-sleep race under MainActor load; its focused compile first caught a missing actor annotation, then passed after correction. The final full iOS suite and iOS build passed. Two initial focused xcodebuild commands were accidentally left running by deferred tool sessions and were terminated before a single controlled RED run.
@@ -63,73 +73,6 @@ Checks: Root-cause/source inventory; TDD compile RED and focused GREEN; full iOS
 Result: Service Location selectors and all identified read-only detail surfaces now use one role-aware copy source. Customer details show My Home or Groomer's Place, Groomer details show Customer's Home or My Place, and duplicate Service Mode/Groomer travels/Customer can visit mappings are removed. Raw values, persistence, and matching semantics are unchanged.
 Risks: Visual review remains user-owned by direction. A missing-location Booking retains the neutral Location Details fallback. No Store, repository, backend, schema, dependency, or remote state changed.
 Next: Superseded by the T-336 closeout above.
-```
-
-```text
-Date: 2026-07-13
-Task: T-332 - Chat, modal, Booking, and residual input audit.
-Files changed: Shared keyboard action classification; Booking review focus/minimum-reveal integration; Chat/Booking contract tests; keyboard design plan and Design System contract; task/current-state memory.
-Checks: Complete tracked input inventory; TDD compile RED and focused GREEN; full iOS tests; iOS build; Simulator launch and layered log sample; forbidden keyboard-ownership/source audit; UI audit; diff/context/preflight.
-Result: Every production TextField, SecureField, TextEditor, UITextField, and UITextView occurrence now has an explicit disposition. Chat Send remains the only intentional keyboard accessory. Booking review gains one semantic focus target and the shared minimum-reveal, Done, interactive-dismissal, and hardware-keyboard zero-overlap behavior; Submit Review remains in page flow.
-Risks: Simulator launch recorded the expected previous-run warning after a forced process termination plus Apple Auth/network diagnostics, with no corresponding Beckon crash or T-332 fault. Runtime interaction remains user validation by direction. No Store, repository, backend, schema, dependency, or remote state changed.
-Next: Superseded by the T-335 closeout above.
-```
-
-```text
-Date: 2026-07-13
-Task: T-334 - Shared grooming-location selector.
-Files changed: Shared DesignSystem location selector; Customer Request and Groomer Profile adoption; focused presentation/selection contract test; four-entry UI debt baseline prune; task/current-state memory.
-Checks: TDD compile and expectation RED then focused GREEN; iOS build; stale-component/source audit; UI baseline prune/check; diff/context/preflight.
-Result: Service Location and Address Details replace the provisional Request labels. One icon-free selector now owns location-mode order, card layout, selection feedback, and role-aware copy: Customer sees My Home / Groomer's Place with single selection, while Groomer sees Customer's Home / My Place with multiple selection. Raw values and backend direction remain unchanged, and four resolved Feature-level UI debt entries are removed without adding exceptions.
-Risks: Groomer wording is intentionally perspective-aware rather than copying My Home into the opposite role. Visual spacing remains user review by direction. No Store, repository, backend, schema, dependency, or remote state changed.
-```
-
-```text
-Date: 2026-07-13
-Task: T-333 - Customer Request Grooming Setup separation.
-Files changed: Request Wizard location presentation; customer location-mode copy; focused presentation contract test; task/current-state memory.
-Checks: TDD compile RED then focused GREEN; iOS build; diff/context/preflight.
-Result: Request Step 3 now presents a description-free Grooming Setup group above Location. Its existing mode choices read At My Home and At the Groomer, while Location contains only address and travel-range inputs. Existing enum raw values, Store state, publication parameters, and matching behavior are unchanged.
-Risks: Visual spacing remains user review by direction. No repository, backend, schema, dependency, or remote state changed.
-```
-
-```text
-Date: 2026-07-12
-Task: T-331 - Stationary page-action keyboard hiding correction.
-Files changed: Shared stationary-action geometry/modifier; Request presentation contract test; keyboard design/plan/task/current-state memory.
-Checks: TDD compile RED then focused GREEN; full iOS tests; XcodeBuildMCP build/run; Groomer Profile keyboard show/hide screenshots; sampled recent runtime/OS logs; repository UI audit; diff/context/preflight.
-Result: A bottom-docked software keyboard now moves every shared stationary page action by keyboard overlap plus its measured height, placing the complete action below the screen. Keyboard dismissal animates it back from the bottom. Floating and hardware keyboards produce no offset, and Feature callers remain unchanged.
-Risks: The first post-dismiss screenshot captured a transient black transition frame; a settled recapture was normal and sampled logs contained no relevant fault/error/warning. No Store, repository, backend, dependency, or remote state changed.
-```
-
-```text
-Date: 2026-07-12
-Task: T-330 - Layered Xcode runtime-log inspection rule.
-Files changed: Tooling policy; iOS build/testing guidance; decision/task/current-state memory.
-Checks: Targeted rule review; diff check; context hygiene; preflight.
-Result: Any Standard/Deep validation that launches Beckon now samples recent Debug Area/process output and severity/task keywords, expands relevant messages and narrow time windows only when needed, and classifies app-owned versus Apple/Simulator diagnostics before code changes.
-Risks: This is a diagnostic sampling requirement, not a promise that every system warning is actionable. Build-only, test-only, docs-only, and static validation remain exempt. No Swift, backend, dependency, or remote state changed.
-Next: Superseded by the T-331 closeout above.
-```
-
-```text
-Date: 2026-07-12
-Task: T-329 - Shared keyboard geometry feedback-loop correction.
-Files changed: Shared keyboard focus/viewport geometry reporting; DesignSystem policy test; keyboard design/plan/task/current-state memory.
-Checks: TDD compile RED then focused GREEN; full iOS tests; iOS build; repository UI audit; removed-preference/API source scan; Edit Pet Simulator input/drag and runtime-log inspection; diff/context/preflight.
-Result: Only the currently focused valid target reports geometry through `onGeometryChange`; viewport changes use the same non-preference path. This removes the SwiftUI `BeckonKeyboardFocusTargetBoundsKey` multiple-updates-per-frame feedback loop while preserving every Feature call site and shared keyboard behavior.
-Risks: RTI session and keyboard haptic-library messages are Simulator system diagnostics, not app-owned APIs, and require no product patch unless a physical device reproduces a visible input or haptic failure. The residual input audit was subsequently moved to T-332 by T-330/T-331; no Store, repository, backend, dependency, or remote state changed.
-Next: Superseded by the T-330 closeout above.
-```
-
-```text
-Date: 2026-07-12
-Task: T-328 - Periodic documentation-governance meta-review.
-Files changed: Current/task/worklog/feature routing; automatic Worklog archive rotation; rotation whitespace normalization and isolated regression test.
-Checks: Clean/synced branch; task/roadmap/index facts; root-ignore/frozen-report audit; zero active conflict markers; tracked/local migrations 67/67; backend markers; rotation TDD RED/GREEN; governance tests 15/15; diff/context/preflight.
-Result: Active structure is consistent after correcting stale T-314/T-328 routes and removing historical Next instructions. Worklog rotation restores six task slots and now preserves its footer without accumulating blank lines; T-329 is the sole next planned implementation task, while T-157 remains blocked and Q-104 remains user-deferred.
-Risks: Active word telemetry remains informational. No product, Swift, backend, dependency, remote state, or workflow rule changed.
-Next: Compact at this mandatory boundary, then execute T-329.
 ```
 
 This file is the active recent closeout index, newest first. It intentionally keeps only the newest entries needed for recovery. Older verbatim history is archived under `docs/09_frozen/worklogs/`.

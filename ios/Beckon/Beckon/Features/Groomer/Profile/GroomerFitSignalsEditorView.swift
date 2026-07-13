@@ -26,9 +26,7 @@ struct GroomerFitSignalsEditorView: View {
                     )
                 }
             }
-            .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-            .padding(.top, DesignTokens.Spacing.lg)
-            .padding(.bottom, DesignTokens.Spacing.xl)
+            .beckonPageInsets()
         }
         .accessibilityIdentifier("groomer.fit-signals.edit")
         .background(DesignTokens.Colors.background.ignoresSafeArea())
@@ -62,8 +60,11 @@ private struct GroomerFitSignalsSelectionBalanceSection: View {
     let presentation: GroomerFitSignalsWorkspacePresentation
 
     var body: some View {
-        GroomerWorkspaceSection(title: "Selection balance") {
-            GroomerGroupedSurface {
+        BeckonSection(
+            "Selection Balance",
+            subtitle: "Keep your strongest matching signals focused and current."
+        ) {
+            BeckonGroupedSurface {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
                     VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
                         HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.md) {
@@ -93,7 +94,7 @@ private struct GroomerFitSignalsSelectionBalanceSection: View {
                         .tint(DesignTokens.Colors.groomerAccent)
                     }
 
-                    GroomerWorkspaceDivider()
+                    BeckonGroupedDivider()
 
                     GroomerSizeExperienceRangeControl(store: store)
                 }
@@ -327,14 +328,17 @@ struct GroomerEvidenceDashboardView: View {
                 } else {
                     GroomerEvidenceOverviewSection(presentation: presentation)
 
-                    GroomerWorkspaceSection(title: "Evidence by signal") {
-                        GroomerGroupedSurface {
+                    BeckonSection(
+                        "Evidence by Signal",
+                        subtitle: "Completed bookings and reviews build confidence over time."
+                    ) {
+                        BeckonGroupedSurface {
                             VStack(spacing: 0) {
                                 ForEach(Array(summaries.enumerated()), id: \.element.id) { index, summary in
                                     GroomerEvidenceSummaryRow(summary: summary)
 
                                     if index < summaries.count - 1 {
-                                        GroomerWorkspaceDivider(leadingInset: 56)
+                                        BeckonGroupedDivider(leadingInset: 56)
                                     }
                                 }
                             }
@@ -342,9 +346,7 @@ struct GroomerEvidenceDashboardView: View {
                     }
                 }
             }
-            .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-            .padding(.top, DesignTokens.Spacing.lg)
-            .padding(.bottom, DesignTokens.Spacing.xl)
+            .beckonPageInsets()
         }
         .accessibilityIdentifier("groomer.evidence.dashboard")
         .background(DesignTokens.Colors.background.ignoresSafeArea())
@@ -358,8 +360,11 @@ private struct GroomerEvidenceOverviewSection: View {
     let presentation: GroomerEvidenceWorkspacePresentation
 
     var body: some View {
-        GroomerWorkspaceSection(title: "Evidence overview") {
-            GroomerGroupedSurface {
+        BeckonSection(
+            "Evidence Overview",
+            subtitle: "A summary of outcomes connected to your matching signals."
+        ) {
+            BeckonGroupedSurface {
                 HStack(spacing: DesignTokens.Spacing.md) {
                     GroomerEvidenceMetric(
                         summary: presentation.completedSummary,
@@ -404,8 +409,11 @@ private struct GroomerEvidenceMetric: View {
 
 private struct GroomerEvidenceEmptyState: View {
     var body: some View {
-        GroomerWorkspaceSection(title: "Evidence overview") {
-            GroomerGroupedSurface {
+        BeckonSection(
+            "Evidence Overview",
+            subtitle: "Evidence appears after completed bookings and structured reviews."
+        ) {
+            BeckonGroupedSurface {
                 HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
                     Image(systemName: "chart.bar.xaxis")
                         .font(.body.weight(.semibold))
@@ -493,27 +501,8 @@ private struct GroomerFitSignalGroupSection: View {
     @Bindable var store: GroomerProfileStore
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.md) {
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                    Text(title)
-                        .font(.title3.weight(.bold))
-                        .foregroundStyle(DesignTokens.Colors.textPrimary)
-
-                    Text(subtitle)
-                        .font(DesignTokens.Typography.caption)
-                        .foregroundStyle(DesignTokens.Colors.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-                Text(statusText)
-                    .font(DesignTokens.Typography.caption.weight(.semibold))
-                    .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
-                    .lineLimit(1)
-            }
-
-            GroomerGroupedSurface {
+        BeckonSection(title, subtitle: subtitle) {
+            BeckonGroupedSurface {
                 VStack(spacing: 0) {
                     ForEach(Array(signals.enumerated()), id: \.element.id) { index, signal in
                         GroomerFitSignalRow(
@@ -524,13 +513,17 @@ private struct GroomerFitSignalGroupSection: View {
                         }
 
                         if index < signals.count - 1 {
-                            GroomerWorkspaceDivider(leadingInset: DesignTokens.Spacing.lg)
+                            BeckonGroupedDivider(leadingInset: DesignTokens.Layout.surfaceInset)
                         }
                     }
                 }
             }
+        } trailing: {
+                Text(statusText)
+                    .font(DesignTokens.Typography.status)
+                    .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
+                    .lineLimit(1)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var selectedCount: Int {

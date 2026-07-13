@@ -21,93 +21,122 @@ struct GroomerAccountHomeView: View {
             evidenceSignalCount: store.petFitEvidenceSummary.count
         )
 
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
-            Text("Account")
-                .font(DesignTokens.Typography.largeTitle)
-                .foregroundStyle(DesignTokens.Colors.textPrimary)
-                .frame(maxWidth: .infinity, alignment: .leading)
+        LazyVStack(alignment: .leading, spacing: BeckonAccountLayoutPolicy.pageSectionSpacing) {
+            BeckonPageTitle("Account")
 
-            GroomerAccountProfileHeader(
+            BeckonAccountIdentityHeader(
                 displayName: store.profileDisplayName,
                 detailText: presentation.identitySubtitle,
-                avatarPhotoData: store.avatarPhotoData
-            )
+                roleTitle: "Groomer",
+                roleSystemImage: "scissors",
+                roleTone: .groomer
+            ) {
+                BeckonProfileAvatar(
+                    data: store.avatarPhotoData,
+                    tone: .groomer,
+                    size: BeckonAccountLayoutPolicy.identityAvatarSize,
+                    cornerRadius: BeckonAccountLayoutPolicy.identityAvatarCornerRadius,
+                    placeholderSize: 30
+                )
+            }
 
-            GroomerWorkspaceSection(title: "Business") {
-                GroomerAccountMenuSurface {
-                    GroomerAccountMenuLink(
-                        title: "Edit Profile",
-                        summary: presentation.profileSummary,
-                        systemImage: "pencil",
-                        accessibilityIdentifier: "groomer.account.edit-profile"
-                    ) {
-                        GroomerProfileEditorView(store: store)
-                    }
+            BeckonSection("Business") {
+                BeckonGroupedSurface {
+                    VStack(spacing: 0) {
+                        BeckonSettingsNavigationRow(
+                            title: "Profile Settings",
+                            summary: presentation.profileSummary,
+                            systemImage: "person.crop.circle",
+                            accent: .groomer
+                        ) {
+                            GroomerProfileEditorView(store: store)
+                        }
+                        .accessibilityIdentifier("groomer.account.edit-profile")
 
-                    GroomerWorkspaceDivider(leadingInset: 64)
+                        BeckonGroupedDivider(
+                            leadingInset: BeckonAccountLayoutPolicy.groupedRowDividerLeadingInset
+                        )
 
-                    GroomerAccountMenuLink(
-                        title: "Services",
-                        summary: presentation.servicesSummary,
-                        systemImage: "scissors",
-                        accessibilityIdentifier: "groomer.account.services"
-                    ) {
-                        GroomerServicesEditorView(store: store)
-                    }
+                        BeckonSettingsNavigationRow(
+                            title: "Services",
+                            summary: presentation.servicesSummary,
+                            systemImage: "scissors",
+                            accent: .groomer
+                        ) {
+                            GroomerServicesEditorView(store: store)
+                        }
+                        .accessibilityIdentifier("groomer.account.services")
 
-                    GroomerWorkspaceDivider(leadingInset: 64)
+                        BeckonGroupedDivider(
+                            leadingInset: BeckonAccountLayoutPolicy.groupedRowDividerLeadingInset
+                        )
 
-                    GroomerAccountMenuLink(
-                        title: "Portfolio",
-                        summary: presentation.portfolioSummary,
-                        systemImage: "photo.on.rectangle",
-                        accessibilityIdentifier: "groomer.account.portfolio"
-                    ) {
-                        GroomerPortfolioEditorView(store: store)
+                        BeckonSettingsNavigationRow(
+                            title: "Portfolio",
+                            summary: presentation.portfolioSummary,
+                            systemImage: "photo.on.rectangle",
+                            accent: .groomer
+                        ) {
+                            GroomerPortfolioEditorView(store: store)
+                        }
+                        .accessibilityIdentifier("groomer.account.portfolio")
                     }
                 }
             }
 
-            GroomerWorkspaceSection(title: "Matching & Schedule") {
-                GroomerAccountMenuSurface {
-                    GroomerAccountMenuLink(
-                        title: "Availability",
-                        summary: presentation.availabilitySummary,
-                        systemImage: "calendar",
-                        accessibilityIdentifier: "groomer.account.availability"
-                    ) {
-                        GroomerAvailabilityEditorView(store: store)
-                    }
+            BeckonSection("Matching & Schedule") {
+                BeckonGroupedSurface {
+                    VStack(spacing: 0) {
+                        BeckonSettingsNavigationRow(
+                            title: "Availability",
+                            summary: presentation.availabilitySummary,
+                            systemImage: "calendar",
+                            accent: .groomer
+                        ) {
+                            GroomerAvailabilityEditorView(store: store)
+                        }
+                        .accessibilityIdentifier("groomer.account.availability")
 
-                    GroomerWorkspaceDivider(leadingInset: 64)
+                        BeckonGroupedDivider(
+                            leadingInset: BeckonAccountLayoutPolicy.groupedRowDividerLeadingInset
+                        )
 
-                    GroomerAccountMenuLink(
-                        title: "Fit Signals",
-                        summary: presentation.fitSignalsSummary,
-                        systemImage: "sparkles",
-                        accessibilityIdentifier: "groomer.account.fit-signals"
-                    ) {
-                        GroomerFitSignalsEditorView(store: store)
-                    }
+                        BeckonSettingsNavigationRow(
+                            title: "Fit Signals",
+                            summary: presentation.fitSignalsSummary,
+                            systemImage: "sparkles",
+                            accent: .groomer
+                        ) {
+                            GroomerFitSignalsEditorView(store: store)
+                        }
+                        .accessibilityIdentifier("groomer.account.fit-signals")
 
-                    GroomerWorkspaceDivider(leadingInset: 64)
+                        BeckonGroupedDivider(
+                            leadingInset: BeckonAccountLayoutPolicy.groupedRowDividerLeadingInset
+                        )
 
-                    GroomerAccountMenuLink(
-                        title: "Evidence",
-                        summary: presentation.evidenceSummary,
-                        systemImage: "chart.bar.xaxis",
-                        accessibilityIdentifier: "groomer.account.evidence"
-                    ) {
-                        GroomerEvidenceDashboardView(store: store)
+                        BeckonSettingsNavigationRow(
+                            title: "Evidence",
+                            summary: presentation.evidenceSummary,
+                            systemImage: "chart.bar.xaxis",
+                            accent: .groomer
+                        ) {
+                            GroomerEvidenceDashboardView(store: store)
+                        }
+                        .accessibilityIdentifier("groomer.account.evidence")
                     }
                 }
             }
 
-            GroomerWorkspaceSection(title: "Support") {
-                GroomerAccountSupportSurface()
+            BeckonSection("Support") {
+                AccountReleaseLinksSection(accent: .groomer)
             }
 
-            signOutControl
+            BeckonSection("Account Access") {
+                BeckonGroupedSurface {
+                    signOutControl
+                }
+            }
         }
     }
 
@@ -117,11 +146,7 @@ struct GroomerAccountHomeView: View {
             Button(role: .destructive) {
                 onSignOut()
             } label: {
-                Text("Sign Out")
-                    .font(DesignTokens.Typography.headline)
-                    .foregroundStyle(DesignTokens.Colors.error)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, DesignTokens.Spacing.md)
+                GroomerSignOutRowLabel()
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("groomer.account.sign-out")
@@ -129,165 +154,32 @@ struct GroomerAccountHomeView: View {
             NavigationLink {
                 accountContent
             } label: {
-                Text("Sign Out")
-                    .font(DesignTokens.Typography.headline)
-                    .foregroundStyle(DesignTokens.Colors.error)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, DesignTokens.Spacing.md)
+                GroomerSignOutRowLabel()
             }
             .buttonStyle(.plain)
         }
     }
 }
 
-private struct GroomerAccountProfileHeader: View {
-    let displayName: String
-    let detailText: String
-    let avatarPhotoData: Data?
-
+private struct GroomerSignOutRowLabel: View {
     var body: some View {
-        HStack(spacing: DesignTokens.Spacing.lg) {
-            BeckonProfileAvatar(
-                data: avatarPhotoData,
-                tone: .groomer,
-                size: 76,
-                cornerRadius: 38,
-                placeholderSize: 30
-            )
+        HStack(spacing: DesignTokens.Spacing.md) {
+            Image(systemName: "rectangle.portrait.and.arrow.right")
+                .font(DesignTokens.Typography.action)
+                .foregroundStyle(DesignTokens.Colors.error)
+                .frame(width: DesignTokens.Metrics.settingsIconSlot)
+                .accessibilityHidden(true)
 
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                Text(displayName)
-                    .font(DesignTokens.Typography.title)
-                    .foregroundStyle(DesignTokens.Colors.textPrimary)
-                    .lineLimit(2)
-                    .fixedSize(horizontal: false, vertical: true)
+            Text("Sign Out")
+                .font(DesignTokens.Typography.action)
+                .foregroundStyle(DesignTokens.Colors.error)
 
-                Text(detailText)
-                    .font(DesignTokens.Typography.body)
-                    .foregroundStyle(DesignTokens.Colors.textSecondary)
-
-                BeckonStatusChip(
-                    "Groomer",
-                    systemImage: "scissors",
-                    tone: .groomer
-                )
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            Spacer(minLength: 0)
         }
-        .accessibilityElement(children: .combine)
-    }
-}
-
-private struct GroomerAccountMenuSurface<Content: View>: View {
-    @ViewBuilder let content: () -> Content
-
-    var body: some View {
-        GroomerGroupedSurface {
-            VStack(spacing: 0) {
-                content()
-            }
-        }
-    }
-}
-
-private struct GroomerAccountMenuLink<Destination: View>: View {
-    let title: String
-    let summary: String
-    let systemImage: String
-    let accessibilityIdentifier: String
-    @ViewBuilder let destination: () -> Destination
-
-    var body: some View {
-        NavigationLink {
-            destination()
-        } label: {
-            HStack(spacing: DesignTokens.Spacing.md) {
-                Image(systemName: systemImage)
-                    .font(.body.weight(.semibold))
-                    .foregroundStyle(DesignTokens.Colors.textSecondary)
-                    .frame(width: 28)
-                    .accessibilityHidden(true)
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title)
-                        .font(DesignTokens.Typography.body.weight(.semibold))
-                        .foregroundStyle(DesignTokens.Colors.textPrimary)
-
-                    Text(summary)
-                        .font(DesignTokens.Typography.caption)
-                        .foregroundStyle(DesignTokens.Colors.textSecondary)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(DesignTokens.Colors.textTertiary)
-                    .accessibilityHidden(true)
-            }
-            .padding(.horizontal, DesignTokens.Spacing.lg)
-            .padding(.vertical, DesignTokens.Spacing.md)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityIdentifier(accessibilityIdentifier)
-    }
-}
-
-private struct GroomerAccountSupportSurface: View {
-    var body: some View {
-        GroomerGroupedSurface {
-            VStack(spacing: 0) {
-                GroomerAccountExternalLink(
-                    title: "Privacy Policy",
-                    systemImage: "hand.raised",
-                    destination: AppReleaseLinks.privacyPolicy,
-                    accessibilityIdentifier: "account.privacy-policy"
-                )
-
-                GroomerWorkspaceDivider(leadingInset: 64)
-
-                GroomerAccountExternalLink(
-                    title: "Support",
-                    systemImage: "questionmark.circle",
-                    destination: AppReleaseLinks.support,
-                    accessibilityIdentifier: "account.support"
-                )
-            }
-        }
-    }
-}
-
-private struct GroomerAccountExternalLink: View {
-    let title: String
-    let systemImage: String
-    let destination: URL
-    let accessibilityIdentifier: String
-
-    var body: some View {
-        Link(destination: destination) {
-            HStack(spacing: DesignTokens.Spacing.md) {
-                Image(systemName: systemImage)
-                    .font(.body.weight(.semibold))
-                    .foregroundStyle(DesignTokens.Colors.textSecondary)
-                    .frame(width: 28)
-                    .accessibilityHidden(true)
-
-                Text(title)
-                    .font(DesignTokens.Typography.body.weight(.semibold))
-                    .foregroundStyle(DesignTokens.Colors.textPrimary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                Image(systemName: "arrow.up.right")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(DesignTokens.Colors.textTertiary)
-                    .accessibilityHidden(true)
-            }
-            .padding(.horizontal, DesignTokens.Spacing.lg)
-            .padding(.vertical, DesignTokens.Spacing.md)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityIdentifier(accessibilityIdentifier)
+        .padding(.horizontal, DesignTokens.Layout.rowHorizontalInset)
+        .padding(.vertical, DesignTokens.Layout.rowVerticalInset)
+        .frame(minHeight: DesignTokens.Metrics.minimumTouchTarget)
+        .contentShape(Rectangle())
     }
 }
 

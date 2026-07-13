@@ -58,16 +58,12 @@ struct GroomerProfileManagementView: View {
                 .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
             } else {
                 ScrollView {
-                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                        GroomerAccountHomeView(
-                            store: store,
-                            accountContent: accountContent,
-                            onSignOut: onSignOut
-                        )
-                    }
-                    .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-                    .padding(.top, DesignTokens.Spacing.xl)
-                    .padding(.bottom, 120)
+                    GroomerAccountHomeView(
+                        store: store,
+                        accountContent: accountContent,
+                        onSignOut: onSignOut
+                    )
+                    .beckonPageInsets(bottom: 120)
                 }
                 .accessibilityIdentifier("groomer.account.home")
             }

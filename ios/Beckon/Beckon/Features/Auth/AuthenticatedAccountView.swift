@@ -14,51 +14,22 @@ struct AuthenticatedAccountView: View {
                 LazyVStack(alignment: .leading, spacing: DesignTokens.Layout.sectionSpacing) {
                     BeckonPageTitle("Account")
 
-                    BeckonCard {
-                        HStack(alignment: .center, spacing: DesignTokens.Spacing.lg) {
-                            BeckonDefaultProfileAvatar(
-                                tone: profile.role.defaultAvatarTone,
-                                symbolSize: 30
-                            )
-                                .frame(
-                                    width: 72,
-                                    height: 72
-                                )
-                                .clipShape(
-                                    RoundedRectangle(
-                                        cornerRadius: DesignTokens.CornerRadius.card,
-                                        style: .continuous
-                                    )
-                                )
-                                .accessibilityHidden(true)
-
-                            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                                Text(profile.displayName)
-                                    .font(DesignTokens.Typography.sectionTitle)
-                                    .foregroundStyle(DesignTokens.Colors.textPrimary)
-                                    .lineLimit(1)
-                                    .fixedSize(horizontal: false, vertical: true)
-
-                                if let emailSummary {
-                                    Text(emailSummary)
-                                        .font(DesignTokens.Typography.body)
-                                        .foregroundStyle(DesignTokens.Colors.textSecondary)
-                                        .lineLimit(1)
-                                }
-
-                                BeckonStatusChip(
-                                    profile.role.accountRoleLabel,
-                                    tone: profile.role.accountChipTone
-                                )
-                                .padding(.top, DesignTokens.Spacing.xs)
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                        }
+                    BeckonAccountIdentityHeader(
+                        displayName: profile.displayName,
+                        detailText: emailSummary ?? profile.role.accountRoleLabel,
+                        roleTitle: profile.role.accountRoleLabel,
+                        roleTone: profile.role.accountChipTone
+                    ) {
+                        BeckonDefaultProfileAvatar(
+                            tone: profile.role.defaultAvatarTone,
+                            symbolSize: 30
+                        )
+                        .clipShape(DesignTokens.Shapes.circular)
+                        .accessibilityHidden(true)
                     }
-                    .accessibilityElement(children: .combine)
 
                     BeckonSection("Support") {
-                        AccountReleaseLinksSection()
+                        AccountReleaseLinksSection(accent: profile.role.settingsAccent)
                     }
 
                     if let errorMessage = authenticationStore.errorMessage {
@@ -72,22 +43,19 @@ struct AuthenticatedAccountView: View {
                     #if DEBUG
                     BeckonSection("Development") {
                         BeckonGroupedSurface {
-                            NavigationLink {
+                            BeckonSettingsNavigationRow(
+                                title: "Debug Console",
+                                summary: "Runtime events and diagnostics",
+                                systemImage: "ladybug",
+                                accent: profile.role.settingsAccent
+                            ) {
                                 DebugPanelView(
                                     diagnostics: DebugDiagnostics.current(
                                         session: session,
                                         profile: profile
                                     )
                                 )
-                            } label: {
-                                BeckonSettingsRowLabel(
-                                    title: "Debug Console",
-                                    summary: "Runtime events and diagnostics",
-                                    systemImage: "ladybug",
-                                    accent: profile.role.settingsAccent
-                                )
                             }
-                            .buttonStyle(.plain)
                             .accessibilityIdentifier("account.debug-console")
                         }
                     }
@@ -113,6 +81,8 @@ struct AuthenticatedAccountView: View {
 }
 
 struct AccountReleaseLinksSection: View {
+    var accent: BeckonRoleAccent = .neutral
+
     private let dividerLeadingInset =
         DesignTokens.Layout.rowHorizontalInset
         + DesignTokens.Metrics.settingsIconSlot
@@ -128,9 +98,7 @@ struct AccountReleaseLinksSection: View {
                     accessibilityIdentifier: "account.privacy-policy"
                 )
 
-                Divider()
-                    .overlay(DesignTokens.Colors.divider)
-                    .padding(.leading, dividerLeadingInset)
+                BeckonGroupedDivider(leadingInset: dividerLeadingInset)
 
                 releaseLinkRow(
                     title: "Support",
@@ -152,7 +120,7 @@ struct AccountReleaseLinksSection: View {
             BeckonSettingsRowLabel(
                 title: title,
                 systemImage: systemImage,
-                accent: .neutral,
+                accent: accent,
                 trailingSystemImage: "arrow.up.right"
             )
         }

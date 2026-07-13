@@ -1,12 +1,12 @@
 # UI Consistency Debt
 
-Last generated: 2026-07-12 by T-312/Q-120.
+Last generated: 2026-07-13 by T-343.
 
 This is the active inventory of remaining SwiftUI consistency debt. Rule definitions, severities, commands, baseline lifecycle, and exceptions remain authoritative in `UI_CODE_GOVERNANCE.md`; do not duplicate them here.
 
 ## Snapshot
 
-- Repository check: 222 findings, comprising 218 baselined legacy findings and 4 reviewed unbaselined UI101 warnings.
+- Repository check: 203 findings, comprising 195 baselined legacy findings and 8 reviewed unbaselined warnings.
 - Ratchet state: zero new errors and zero stale baseline entries.
 - Migrated-slice strict gate: zero errors across Customer Home, Requests, Request Wizard, and Account.
 - Evidence: ignored local artifacts under `artifacts/evidence/Q-120/`; full iOS tests, build, preflight, default/Accessibility 3 compact/large rendering, and semantic inspection passed.
@@ -17,12 +17,12 @@ Audit findings are source candidates, not automatically confirmed visual defects
 
 | Rule | Count |
 |---|---:|
-| UI101 fixed-frame review | 80 |
-| UI102 layout-repair review | 12 |
+| UI101 fixed-frame review | 75 |
+| UI102 layout-repair review | 13 |
 | UI001 fixed-size typography | 8 |
-| UI002 direct platform typography | 77 |
+| UI002 direct platform typography | 64 |
 | UI003 raw color | 3 |
-| UI004 numeric spacing | 10 |
+| UI004 numeric spacing | 8 |
 | UI005 numeric shape/radius | 14 |
 | UI008 low text scaling | 18 |
 
@@ -30,13 +30,15 @@ Audit findings are source candidates, not automatically confirmed visual defects
 
 | Feature area | Count |
 |---|---:|
-| Groomer | 129 |
-| Customer | 27 |
+| Groomer | 113 |
+| Customer | 25 |
 | Chat | 24 |
 | Bookings | 23 |
-| Auth | 19 |
+| Auth | 18 |
 
-Highest-count files are `Groomer/Home/GroomerHomeView.swift` (35), `Chat/ChatView.swift` (24), `Bookings/BookingsView.swift` (23), `Groomer/Profile/GroomerFitSignalsEditorView.swift` (21), and `Auth/AuthenticationView.swift` plus `Groomer/Profile/GroomerAvailabilityEditorView.swift` (16 each).
+Highest-count files are `Groomer/Home/GroomerHomeView.swift` (35), `Chat/ChatView.swift` (24), `Bookings/BookingsView.swift` (23), `Groomer/Profile/GroomerFitSignalsEditorView.swift` (20), and `Auth/AuthenticationView.swift` (16).
+
+T-343 moved the Groomer Account/Profile subtree onto shared Account, section, grouped-surface, settings-row, divider, and photo-editor primitives. Remaining Groomer findings are tracked migration candidates; Q-104 Accessibility/Dynamic Type remains deferred.
 
 ## Migrated Reference Slice
 

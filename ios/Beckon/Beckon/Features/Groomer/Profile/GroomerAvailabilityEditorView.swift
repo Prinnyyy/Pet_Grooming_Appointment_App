@@ -41,9 +41,7 @@ struct GroomerAvailabilityEditorView: View {
                     .accessibilityIdentifier("groomer.availability.error")
                 }
             }
-            .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-            .padding(.top, DesignTokens.Spacing.lg)
-            .padding(.bottom, DesignTokens.Spacing.xl)
+            .beckonPageInsets()
         }
         .accessibilityIdentifier("groomer.availability.edit")
         .background(DesignTokens.Colors.background.ignoresSafeArea())
@@ -73,8 +71,11 @@ private struct GroomerAvailabilityMatchingSection: View {
     @Binding var isActive: Bool
 
     var body: some View {
-        GroomerWorkspaceSection(title: "Request matching") {
-            GroomerGroupedSurface {
+        BeckonSection(
+            "Request Matching",
+            subtitle: "Use your saved hours when Beckon finds compatible requests."
+        ) {
+            BeckonGroupedSurface {
                 HStack(spacing: DesignTokens.Spacing.md) {
                     Image(systemName: "checkmark.circle")
                         .font(.body.weight(.semibold))
@@ -113,32 +114,26 @@ private struct GroomerAvailabilityWeeklyHoursSection: View {
     let openDaysSummary: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            HStack(alignment: .firstTextBaseline) {
-                Text("Weekly hours")
-                    .font(.title3.weight(.bold))
-                    .foregroundStyle(DesignTokens.Colors.textPrimary)
-
-                Spacer(minLength: DesignTokens.Spacing.md)
-
-                Text(openDaysSummary)
-                    .font(DesignTokens.Typography.caption)
-                    .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
-            }
-
-            GroomerGroupedSurface {
+        BeckonSection(
+            "Weekly Hours",
+            subtitle: "Set the recurring hours when you can accept appointments."
+        ) {
+            BeckonGroupedSurface {
                 VStack(spacing: 0) {
                     ForEach($dayStates) { $dayState in
                         GroomerAvailabilityDayRow(dayState: $dayState)
 
                         if dayState.weekday != dayStates.last?.weekday {
-                            GroomerWorkspaceDivider(leadingInset: 58)
+                            BeckonGroupedDivider(leadingInset: 58)
                         }
                     }
                 }
             }
+        } trailing: {
+                Text(openDaysSummary)
+                    .font(DesignTokens.Typography.status)
+                    .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
@@ -236,8 +231,11 @@ private struct GroomerBookingPreferencesSection: View {
     }
 
     var body: some View {
-        GroomerWorkspaceSection(title: "Booking preferences") {
-            GroomerGroupedSurface {
+        BeckonSection(
+            "Booking Preferences",
+            subtitle: "Set capacity and notice rules for your schedule."
+        ) {
+            BeckonGroupedSurface {
                 VStack(spacing: 0) {
                     HStack(spacing: DesignTokens.Spacing.md) {
                         preferenceText(
@@ -258,7 +256,7 @@ private struct GroomerBookingPreferencesSection: View {
                     .padding(.horizontal, DesignTokens.Spacing.lg)
                     .padding(.vertical, DesignTokens.Spacing.md)
 
-                    GroomerWorkspaceDivider(leadingInset: DesignTokens.Spacing.lg)
+                    BeckonGroupedDivider(leadingInset: DesignTokens.Spacing.lg)
 
                     HStack(spacing: DesignTokens.Spacing.md) {
                         preferenceText(
@@ -279,7 +277,7 @@ private struct GroomerBookingPreferencesSection: View {
                     .padding(.horizontal, DesignTokens.Spacing.lg)
                     .padding(.vertical, DesignTokens.Spacing.md)
 
-                    GroomerWorkspaceDivider(leadingInset: DesignTokens.Spacing.lg)
+                    BeckonGroupedDivider(leadingInset: DesignTokens.Spacing.lg)
 
                     HStack(spacing: DesignTokens.Spacing.md) {
                         preferenceText(
@@ -350,45 +348,24 @@ private struct GroomerTimeOffSection: View {
     @Bindable var store: GroomerProfileStore
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            HStack(alignment: .firstTextBaseline) {
-                Text("Time off")
-                    .font(.title3.weight(.bold))
-                    .foregroundStyle(DesignTokens.Colors.textPrimary)
-
-                Spacer(minLength: DesignTokens.Spacing.md)
-
-                Button(action: startCreateTimeOff) {
-                    Image(systemName: "plus")
-                        .font(.body.weight(.semibold))
-                        .frame(width: 44, height: 44)
-                        .background(DesignTokens.Colors.surface)
-                        .clipShape(DesignTokens.Shapes.circular)
-                        .overlay {
-                            Circle()
-                                .stroke(DesignTokens.Colors.borderSoft, lineWidth: 1)
-                        }
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Add time off")
-                .accessibilityIdentifier("groomer.availability.time-off.add")
-                .disabled(store.isBusy)
-            }
-
-            GroomerGroupedSurface {
+        BeckonSection(
+            "Time Off",
+            subtitle: "Block dates when you are unavailable for appointments."
+        ) {
+            BeckonGroupedSurface {
                 if store.timeOffWindows.isEmpty {
                     HStack(spacing: DesignTokens.Spacing.md) {
                         Image(systemName: "calendar.badge.minus")
-                            .font(.body.weight(.semibold))
+                            .font(DesignTokens.Typography.action)
                             .foregroundStyle(DesignTokens.Colors.textSecondary)
-                            .frame(width: 28)
+                            .frame(width: DesignTokens.Metrics.settingsIconSlot)
                             .accessibilityHidden(true)
 
                         Text("No time off planned")
-                            .font(DesignTokens.Typography.body)
+                            .font(DesignTokens.Typography.supporting)
                             .foregroundStyle(DesignTokens.Colors.textSecondary)
                     }
-                    .padding(DesignTokens.Spacing.lg)
+                    .padding(DesignTokens.Layout.surfaceInset)
                 } else {
                     VStack(spacing: 0) {
                         ForEach(Array(store.timeOffWindows.enumerated()), id: \.element.id) { index, window in
@@ -402,14 +379,29 @@ private struct GroomerTimeOffSection: View {
                             )
 
                             if index < store.timeOffWindows.count - 1 {
-                                GroomerWorkspaceDivider(leadingInset: 56)
+                                BeckonGroupedDivider(leadingInset: 56)
                             }
                         }
                     }
                 }
             }
+        } trailing: {
+                Button(action: startCreateTimeOff) {
+                    Image(systemName: "plus")
+                        .font(DesignTokens.Typography.action)
+                        .frame(width: 44, height: 44)
+                        .background(DesignTokens.Colors.surface)
+                        .clipShape(DesignTokens.Shapes.circular)
+                        .overlay {
+                            Circle()
+                                .stroke(DesignTokens.Colors.borderSoft, lineWidth: 1)
+                        }
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Add time off")
+                .accessibilityIdentifier("groomer.availability.time-off.add")
+                .disabled(store.isBusy)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func startCreateTimeOff() {
@@ -497,8 +489,11 @@ private struct GroomerTimeOffFormView: View {
             ScrollViewReader { scrollProxy in
                 ScrollView {
                     VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
-                        GroomerWorkspaceSection(title: "Time off") {
-                            GroomerGroupedSurface {
+                        BeckonSection(
+                            "Time Off",
+                            subtitle: "Add the dates you will not accept appointments."
+                        ) {
+                            BeckonGroupedSurface {
                                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
                                     GroomerProfileTextField(
                                         title: "Title",
@@ -508,7 +503,7 @@ private struct GroomerTimeOffFormView: View {
                                         focusedTarget: $focusedTarget
                                     )
 
-                                    GroomerWorkspaceDivider()
+                                    BeckonGroupedDivider()
 
                                     DatePicker(
                                         "Start date",
@@ -517,7 +512,7 @@ private struct GroomerTimeOffFormView: View {
                                     )
                                     .font(DesignTokens.Typography.body.weight(.semibold))
 
-                                    GroomerWorkspaceDivider()
+                                    BeckonGroupedDivider()
 
                                     DatePicker(
                                         "End date",
@@ -538,9 +533,9 @@ private struct GroomerTimeOffFormView: View {
                             .accessibilityIdentifier("groomer.availability.time-off.error")
                         }
                     }
-                    .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-                    .padding(.top, DesignTokens.Spacing.lg)
-                    .padding(.bottom, DesignTokens.Layout.stationaryActionContentClearance)
+                    .beckonPageInsets(
+                        bottom: DesignTokens.Layout.stationaryActionContentClearance
+                    )
                 }
                 .beckonKeyboardAvoidance(
                     focusedTarget: focusedTarget,
