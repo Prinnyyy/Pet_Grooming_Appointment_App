@@ -102,7 +102,7 @@ Approved light-palette color pairs:
 | `customerOnAccent #12463F` | mint or mintDark | Approved AA Customer action foreground. |
 | `groomerOnAccent #642620` | coral or coralDark | Approved AA Groomer action foreground. |
 | `customerHeroText #333333` | Display P3 Hero mint | Softer Customer Home Hero title/supporting copy; measured contrast remains at or above WCAG AAA. |
-| `customerOnAccent #12463F` | surface white | Customer Home Hero action foreground; shared with Customer role action semantics. |
+| `customerHeroText #333333` | surface white | Customer Home Hero action foreground; matches the Hero copy while remaining above WCAG AAA. |
 
 Feature-level promotional modules use `featureTitle` (28pt bold), `body` (17pt), and `prominentAction` (20pt semibold). These shared semantic tokens avoid local fixed-size typography while keeping feature Heroes below page-title scale.
 Their copy width follows the intrinsic action width through layout measurement; copy must not resize the action.
