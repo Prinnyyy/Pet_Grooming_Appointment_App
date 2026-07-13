@@ -18,7 +18,8 @@
 - If obscured, reveal only the nearest hidden edge plus `DesignTokens.Layout.fieldSpacing`; natural scroll bounds decide the final reachable position.
 - Keep page-level Back/Continue/Save/Publish controls at their keyboard-hidden page coordinate. Allow keyboard-following behavior only for controls whose sole purpose is the active input, such as Send.
 - Preserve Dynamic Type, VoiceOver order, interactive keyboard dismissal, long text, safe areas, hardware keyboards, and UIKit-backed focus callbacks.
-- Validate each migration slice on Simulator before continuing to the next slice.
+- Every keyboard-aware scrolling form provides an explicit `Done` action as well as interactive drag dismissal; leaving the page is never the only dismissal path.
+- Validate each migration slice with focused tests, full tests, build, and source audit. Runtime keyboard interaction remains user validation unless the user explicitly requests Simulator inspection.
 
 ## File Structure
 
@@ -121,7 +122,20 @@ Run the same focused command. Expected: all selected tests pass.
 - [x] **Step 4: Review Customer Profile, Pet editing, authentication, and onboarding** for semantic-group coverage, Dynamic Type-safe containers, and stationary page actions. Per the user's T-321 direction, runtime keyboard/Accessibility 3 interaction remains user validation rather than a per-module agent gate.
 - [x] **Step 5: Run focused tests, full iOS tests, build, UI audit, diff, context hygiene, and preflight.**
 
-### Task 5: Groomer and Business Editors
+### Task 5: Shared Keyboard Dismissal Contract
+
+**Files:**
+- Modify: `ios/Beckon/Beckon/DesignSystem/BeckonFormPrimitives.swift`
+- Modify: `ios/Beckon/BeckonTests/DesignSystemContractTests.swift`
+- Modify: keyboard design/governance rules and active task memory.
+
+- [x] **Step 1: Reproduce the contract gap** in Edit Pet: minimum reveal exists, but the shared modifier provides no guaranteed dismissal action and Edit Pet does not own a dismissal policy.
+- [x] **Step 2: Add a failing DesignSystem contract test** requiring interactive scrolling and an explicit `Done` path.
+- [x] **Step 3: Implement both dismissal paths once in `.beckonKeyboardAvoidance`** so current and future consumers inherit them without feature-local toolbars.
+- [x] **Step 4: Keep `Done` classified as a true input accessory**; page Save/Back/Continue actions retain their keyboard-hidden coordinates.
+- [x] **Step 5: Run focused tests, full iOS tests, build, UI audit, diff, context hygiene, and preflight.**
+
+### Task 6: Groomer and Business Editors
 
 **Files:**
 - Modify only audited editable callers under `Features/Groomer/`, including profile, services, and offer composition.
@@ -129,10 +143,10 @@ Run the same focused command. Expected: all selected tests pass.
 
 - [ ] **Step 1: Classify page forms versus sheet/modal editors** and identify page-level Save/Submit actions.
 - [ ] **Step 2: Apply shared semantic focus targets and minimum reveal** without moving page actions into keyboard accessories.
-- [ ] **Step 3: Verify the lowest single-line and multiline fields** in Groomer Profile, Services, and Offer composition at default and Accessibility 3.
+- [ ] **Step 3: Review the lowest single-line and multiline fields** in Groomer Profile, Services, and Offer composition for shared-rule coverage; runtime interaction remains user validation.
 - [ ] **Step 4: Run focused tests, full iOS tests, build, UI audit, diff, context hygiene, and preflight.**
 
-### Task 6: Modal, Booking, Chat, and Residual Audit
+### Task 7: Modal, Booking, Chat, and Residual Audit
 
 **Files:**
 - Modify audited residual editable callers, including `Features/Bookings/BookingsView.swift` and `Features/Chat/ChatView.swift`, only when their current behavior violates their classification.
@@ -142,7 +156,7 @@ Run the same focused command. Expected: all selected tests pass.
 - [ ] **Step 2: Keep Chat Send as a keyboard accessory** if it remains attached to the active composer and does not obscure thread content; document this as the intentional exception.
 - [ ] **Step 3: Migrate form-like booking/review/modal inputs** to minimum reveal and preserve modal detents and dismiss behavior.
 - [ ] **Step 4: Verify hardware-keyboard/no-overlap behavior** so no empty clearance or unnecessary scrolling occurs when the software keyboard is absent.
-- [ ] **Step 5: Run full iOS tests/build, repository UI audit, compact/default/Accessibility 3 Simulator matrix, diff, context hygiene, and preflight.**
+- [ ] **Step 5: Run full iOS tests/build, repository UI audit, source coverage inventory, diff, context hygiene, and preflight.**
 - [ ] **Step 6: Close the migration only when the final inventory has an explicit disposition for every production input.**
 
 ## Acceptance Matrix

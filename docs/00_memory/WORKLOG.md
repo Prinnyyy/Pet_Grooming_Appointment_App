@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-07-12
+Task: T-322 - Shared keyboard dismissal contract.
+Files changed: DesignSystem keyboard modifier/contract test; keyboard design/governance/plan/task/current-state memory.
+Checks: TDD compile RED/GREEN; full iOS tests; iOS build; repository UI audit; diff/context/preflight.
+Result: Every scrolling form using the shared keyboard modifier now inherits interactive drag dismissal and an explicit Done input accessory. Edit Pet and UIKit/number-pad inputs no longer require leaving the page to close the keyboard; page Save/Back/Continue actions retain their original coordinates.
+Risks: Groomer/business and residual/modal inputs still require T-323/T-324 adoption inventory. No Store, repository, backend, dependency, or remote state changed.
+Next: Execute T-323 for Groomer and business-editor inputs.
+```
+
+```text
+Date: 2026-07-12
 Task: T-321 - Auth and Customer shared keyboard-rule adoption.
 Files changed: Auth/Onboarding/Profile/Pet focus integration; shared stationary page-action primitive; Request shared action naming; focus contract tests; design/governance/plan/task/current-state memory.
 Checks: TDD compile RED/GREEN; full iOS tests; iOS build; repository UI audit; feature keyboard-rule duplication search; diff/context/preflight.

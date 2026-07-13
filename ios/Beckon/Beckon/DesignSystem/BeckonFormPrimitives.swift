@@ -1,6 +1,11 @@
 import SwiftUI
 import UIKit
 
+nonisolated enum BeckonKeyboardDismissalPolicy {
+    static let supportsInteractiveScroll = true
+    static let supportsExplicitDoneAction = true
+}
+
 nonisolated struct BeckonKeyboardFormLayout: Equatable {
     enum RevealAction: Equatable, Sendable {
         case none
@@ -146,6 +151,23 @@ private struct BeckonKeyboardAvoidanceModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         content
+            .scrollDismissesKeyboard(.interactively)
+            .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+
+                    Button("Done") {
+                        UIApplication.shared.sendAction(
+                            #selector(UIResponder.resignFirstResponder),
+                            to: nil,
+                            from: nil,
+                            for: nil
+                        )
+                    }
+                    .font(DesignTokens.Typography.action)
+                    .accessibilityIdentifier("beckon.keyboard.done")
+                }
+            }
             .background {
                 GeometryReader { geometry in
                     Color.clear.preference(

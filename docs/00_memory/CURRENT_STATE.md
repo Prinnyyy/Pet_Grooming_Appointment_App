@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-12
 - Updated by: Codex
-- Latest completed task: T-321 Auth and Customer shared keyboard-rule adoption.
+- Latest completed task: T-322 shared keyboard dismissal contract.
 - Current task: none; T-157 APNs remains externally blocked and Q-104 Dynamic Type/Accessibility remains user-deferred.
-- Next task ID: use T-322 for Groomer and business-editor keyboard-rule adoption. T-323 covers residual/modal/chat inputs; Groomer Q-104 remains deferred.
+- Next task ID: use T-323 for Groomer and business-editor keyboard-rule adoption. T-324 covers residual/modal/chat inputs; Groomer Q-104 remains deferred.
 
 ## Fast Path
 
@@ -32,6 +32,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Validation Baseline
 
+- T-322 adds dismissal to the same DesignSystem boundary as keyboard reveal: every `.beckonKeyboardAvoidance` consumer now supports interactive drag dismissal and an explicit keyboard `Done` action, including number-pad and UIKit-backed fields. Edit Pet no longer requires leaving the page to end editing. Page Save/Back/Continue coordinates are unchanged; no feature-local dismissal policy, Store, repository, backend, dependency, or remote state changed.
 - T-321 connects Authentication, Role Onboarding, Customer Profile, and Pet editing to the existing DesignSystem keyboard-avoidance contract using stable semantic focus IDs only. Pet Save uses the shared stationary page-action layer instead of keyboard-following `safeAreaInset`; Request adopts the same shared page-action naming. Feature files contain no copied keyboard geometry. Full iOS tests/build and repository audit pass; no Store, repository, backend, dependency, or remote state changed.
 - T-320 replaces the fixed 55% rule with one reusable DesignSystem keyboard-avoidance modifier: it measures the real scroll viewport and semantic label/control group, performs no scroll when visible, reveals only the nearest hidden edge with field spacing, stabilizes oversized groups, and cancels duplicate or stale work. Request is the verified reference consumer; ZIP sits at semantic clearance above the number pad while Back/Continue remain behind it. Full tests/build and strict/repository audits pass; no Store, repository, backend, dependency, or remote state changed.
 - T-319 plans the correction of T-318's fixed 55% anchor before broader rollout. T-320 introduces measured minimum-reveal geometry and revalidates Request; T-321 through T-323 then cover Auth/Customer, Groomer/business, and residual/modal/chat inputs with explicit page-action versus input-accessory classification. No Swift or runtime behavior changed.

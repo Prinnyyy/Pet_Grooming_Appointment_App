@@ -136,9 +136,10 @@ Apply this contract to scrolling forms and editors. The shared geometry source i
 - Keyboard overlap adds scroll clearance for form content. It must not become arbitrary negative padding, a guessed offset, or a second source of safe-area truth.
 - Page-level actions such as Back, Continue, Save, or Publish retain their original page position and may be covered by the keyboard. They must not automatically become a floating keyboard toolbar. A send/reply control whose sole purpose is text entry is an input accessory and may track the keyboard.
 - Native SwiftUI fields and UIKit-backed representables publish focus through the same field-group target contract. Attach stable IDs to the label-plus-control container, and keep representable focus callbacks at the shared component boundary.
-- Preserve Dynamic Type, VoiceOver order, safe areas, interactive keyboard dismissal, long text, and native focus behavior. Do not use a fixed input height that clips dynamic text.
+- Every keyboard-aware scrolling form must provide both interactive drag dismissal and an explicit keyboard `Done` action, including number-pad and UIKit-backed fields that have no Return key. A user must never need to leave the page to dismiss the keyboard.
+- Preserve Dynamic Type, VoiceOver order, safe areas, long text, and native focus behavior. Do not use a fixed input height that clips dynamic text.
 
-Use `BeckonKeyboardFormLayout` for visibility decisions, `.beckonKeyboardFocusTarget(_:)` on complete semantic groups, and `.beckonKeyboardAvoidance(focusedTarget:using:)` on scrolling forms. Page actions that would otherwise follow keyboard safe-area changes use the shared stationary page-action contract; do not add feature-local keyboard offsets. A feature may own field IDs and business validation, but it must not redefine keyboard geometry policy or introduce a screen-percentage anchor.
+Use `BeckonKeyboardFormLayout` for visibility decisions, `.beckonKeyboardFocusTarget(_:)` on complete semantic groups, and `.beckonKeyboardAvoidance(focusedTarget:using:)` on scrolling forms. The avoidance modifier owns the standard drag and `Done` dismissal paths globally. Page actions that would otherwise follow keyboard safe-area changes use the shared stationary page-action contract; do not add feature-local keyboard offsets or dismissal toolbars. A feature may own field IDs and business validation, but it must not redefine keyboard geometry or dismissal policy or introduce a screen-percentage anchor.
 
 ## Screenshot Rework Rules
 

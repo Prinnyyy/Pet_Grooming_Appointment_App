@@ -48,4 +48,10 @@ struct DesignSystemContractTests {
         #expect(environmentUnavailable.rendersEnabled == false)
         #expect(environmentUnavailable.acceptsTap == false)
     }
+
+    @Test
+    func keyboardAwareFormsAlwaysProvideDismissalPaths() {
+        #expect(BeckonKeyboardDismissalPolicy.supportsInteractiveScroll)
+        #expect(BeckonKeyboardDismissalPolicy.supportsExplicitDoneAction)
+    }
 }
