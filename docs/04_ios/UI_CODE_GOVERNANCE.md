@@ -82,10 +82,12 @@ For each changed scrolling form or editor, reviewers must verify the keyboard-aw
 - page-level actions do not float above the keyboard, while true input accessories such as chat send controls may track it;
 - stationary page-action compensation applies only to a bottom-docked keyboard; floating, split, hidden, and hardware keyboards add no offset or blank space;
 - keyboard-aware scrolling forms expose both interactive drag dismissal and the shared explicit `Done` action, so no keyboard type requires leaving the page;
+- while a software keyboard is onscreen in a sheet, content scrolling/dismissal wins and sheet dismissal is suspended; hidden/hardware keyboards restore normal sheet gestures;
+- feature code passes only an additional business-lock Boolean and does not compose keyboard-driven `presentationContentInteraction` or `interactiveDismissDisabled` locally;
 - UIKit representables report editing focus through the same callback contract as native SwiftUI fields;
 - no fixed viewport-percentage anchor, guessed offset, negative spacing, fixed text-clipping height, or duplicate feature-local keyboard policy was added.
 
-Feature code may declare stable focus IDs, focus order, semantic keyboard/content types, and call the shared keyboard/form modifiers. Keyboard-frame observation, viewport calculations, reveal anchors, animation timing, dismissal behavior, synthetic content clearance, and stationary page-action behavior belong to DesignSystem; duplicating any of them in a feature is a review failure.
+Feature code may declare stable focus IDs, focus order, semantic keyboard/content types, and an optional business-lock Boolean, then call the shared keyboard/form modifiers. Keyboard-frame observation, viewport calculations, reveal anchors, animation timing, keyboard/sheet gesture arbitration, synthetic content clearance, and stationary page-action behavior belong to DesignSystem; duplicating any of them in a feature is a review failure.
 
 The UI audit enforces the deterministic boundary: `UI009` rejects feature-level keyboard safe-area bypass, `UI010` rejects keyboard-derived feature padding/offset, and `UI011` rejects feature-level keyboard notifications/frame reads. Shared geometry tests cover docked versus floating behavior that regex cannot determine.
 

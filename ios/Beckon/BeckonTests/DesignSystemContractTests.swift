@@ -54,4 +54,31 @@ struct DesignSystemContractTests {
         #expect(BeckonKeyboardDismissalPolicy.supportsInteractiveScroll)
         #expect(BeckonKeyboardDismissalPolicy.supportsExplicitDoneAction)
     }
+
+    @Test
+    func sheetDismissalIsSuspendedOnlyWhileSoftwareKeyboardIsOnScreen() {
+        let screen = CGRect(x: 0, y: 0, width: 390, height: 844)
+
+        #expect(BeckonKeyboardPresentationPolicy.preventSheetDismissal(
+            keyboardFrame: CGRect(x: 0, y: 500, width: 390, height: 344),
+            screenBounds: screen
+        ))
+        #expect(BeckonKeyboardPresentationPolicy.preventSheetDismissal(
+            keyboardFrame: CGRect(x: 120, y: 420, width: 250, height: 220),
+            screenBounds: screen
+        ))
+        #expect(!BeckonKeyboardPresentationPolicy.preventSheetDismissal(
+            keyboardFrame: CGRect(x: 0, y: 844, width: 390, height: 0),
+            screenBounds: screen
+        ))
+        #expect(!BeckonKeyboardPresentationPolicy.preventSheetDismissal(
+            keyboardFrame: CGRect(x: 0, y: 844, width: 390, height: 344),
+            screenBounds: screen
+        ))
+        #expect(BeckonKeyboardPresentationPolicy.preventSheetDismissal(
+            keyboardFrame: CGRect(x: 0, y: 844, width: 390, height: 0),
+            screenBounds: screen,
+            additionallyPrevented: true
+        ))
+    }
 }

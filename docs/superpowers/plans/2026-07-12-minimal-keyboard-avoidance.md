@@ -151,7 +151,21 @@ Run the same focused command. Expected: all selected tests pass.
 - [x] **Step 6: Add audit errors** for feature-level keyboard safe-area bypass, keyboard-derived padding/offset, and keyboard notification/frame access; retain geometry tests for semantic cases regex cannot decide.
 - [x] **Step 7: Run focused/full tests, build, audit tests/repository audit, source duplication search, diff, context hygiene, and preflight.**
 
-### Task 7: Groomer and Business Editors
+### Task 7: Unified Sheet Gesture Arbitration
+
+**Files:**
+- Modify: shared keyboard presentation policy/modifier and DesignSystem tests.
+- Modify: Request and Edit Pet only to route existing business dismissal locks through the shared modifier.
+- Modify: keyboard design/governance and active task memory.
+
+- [x] **Step 1: Identify the missing state**: interactive keyboard dismissal inside a sheet can become a sheet-dismiss gesture before editing ends.
+- [x] **Step 2: Add RED policy tests** for docked, floating, hidden, and hardware keyboards plus an independent business lock.
+- [x] **Step 3: Let the shared modifier prioritize sheet content scrolling and disable interactive sheet dismissal only while software keyboard content remains onscreen.**
+- [x] **Step 4: Merge feature business locks through one Boolean input** and remove duplicate Request/Edit Pet presentation modifiers.
+- [x] **Step 5: Record the concise state table and ownership boundary; keep unsaved-change confirmation as a separate feature/data-protection concern.**
+- [x] **Step 6: Run focused/full tests, build, repository audit, diff, context hygiene, and preflight.**
+
+### Task 8: Groomer and Business Editors
 
 **Files:**
 - Modify only audited editable callers under `Features/Groomer/`, including profile, services, and offer composition.
@@ -162,7 +176,7 @@ Run the same focused command. Expected: all selected tests pass.
 - [ ] **Step 3: Review the lowest single-line and multiline fields** in Groomer Profile, Services, and Offer composition for shared-rule coverage; runtime interaction remains user validation.
 - [ ] **Step 4: Run focused tests, full iOS tests, build, UI audit, diff, context hygiene, and preflight.**
 
-### Task 8: Modal, Booking, Chat, and Residual Audit
+### Task 9: Modal, Booking, Chat, and Residual Audit
 
 **Files:**
 - Modify audited residual editable callers, including `Features/Bookings/BookingsView.swift` and `Features/Chat/ChatView.swift`, only when their current behavior violates their classification.

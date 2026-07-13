@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-12
 - Updated by: Codex
-- Latest completed task: T-323 native keyboard safe-area and scroll-range correction.
+- Latest completed task: T-324 unified sheet keyboard gesture arbitration.
 - Current task: none; T-157 APNs remains externally blocked and Q-104 Dynamic Type/Accessibility remains user-deferred.
-- Next task ID: use T-324 for Groomer and business-editor keyboard-rule adoption. T-325 covers residual/modal/chat inputs; Groomer Q-104 remains deferred.
+- Next task ID: use T-325 for Groomer and business-editor keyboard-rule adoption. T-326 covers residual/modal/chat inputs; Groomer Q-104 remains deferred.
 
 ## Fast Path
 
@@ -32,6 +32,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Validation Baseline
 
+- T-324 makes sheet gesture ownership part of the existing shared keyboard modifier: while any software keyboard frame remains onscreen, content scrolling/interactive keyboard dismissal is prioritized and sheet dismissal is disabled; hidden and hardware keyboards restore normal sheet gestures. Request and Edit Pet route their existing saving/critical-overlay locks through the same Boolean input, removing competing presentation modifiers. Focused/full tests, build, audit, and preflight pass; no business, Store, repository, backend, dependency, or remote state changed.
 - T-323 aligns the shared form contract with Apple keyboard guidance: form content keeps SwiftUI's keyboard safe area and no longer receives synthetic keyboard-height padding. The shared stationary-action layer offsets only for a bottom-docked keyboard, using the system duration and Reduce Motion; floating/hardware keyboards add nothing. Request removes its duplicate observer/padding/offset, while Edit Pet inherits a keyboard-reduced viewport that makes lower fields reachable. Focused/full tests, build, audit, and preflight pass; no business, Store, repository, backend, dependency, or remote state changed.
 - T-322 adds dismissal to the same DesignSystem boundary as keyboard reveal: every `.beckonKeyboardAvoidance` consumer now supports interactive drag dismissal and an explicit keyboard `Done` action, including number-pad and UIKit-backed fields. Edit Pet no longer requires leaving the page to end editing. Page Save/Back/Continue coordinates are unchanged; no feature-local dismissal policy, Store, repository, backend, dependency, or remote state changed.
 - T-321 connects Authentication, Role Onboarding, Customer Profile, and Pet editing to the existing DesignSystem keyboard-avoidance contract using stable semantic focus IDs only. Pet Save uses the shared stationary page-action layer instead of keyboard-following `safeAreaInset`; Request adopts the same shared page-action naming. Feature files contain no copied keyboard geometry. Full iOS tests/build and repository audit pass; no Store, repository, backend, dependency, or remote state changed.

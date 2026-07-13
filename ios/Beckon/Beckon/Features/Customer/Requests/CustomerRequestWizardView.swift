@@ -288,7 +288,9 @@ struct CustomerRequestWizardView: View {
                         .scrollIndicators(.hidden)
                         .beckonKeyboardAvoidance(
                             focusedTarget: focusedInputTarget,
-                            using: scrollProxy
+                            using: scrollProxy,
+                            additionallyPreventsPresentationDismissal: store.isSubmitting
+                                || !store.addressEditorState.candidates.isEmpty
                         )
                     }
                 }
@@ -316,11 +318,7 @@ struct CustomerRequestWizardView: View {
             .tint(DesignTokens.Colors.customerPrimaryDark)
             .toolbar(.hidden, for: .navigationBar)
         }
-        .interactiveDismissDisabled(
-            store.isSubmitting || !store.addressEditorState.candidates.isEmpty
-        )
         .presentationDetents([.large])
-        .presentationContentInteraction(.scrolls)
         .presentationDragIndicator(.hidden)
         .onAppear {
             applyInitialDefaults()

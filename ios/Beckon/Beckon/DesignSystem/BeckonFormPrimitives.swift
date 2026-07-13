@@ -6,6 +6,27 @@ nonisolated enum BeckonKeyboardDismissalPolicy {
     static let supportsExplicitDoneAction = true
 }
 
+nonisolated enum BeckonKeyboardPresentationPolicy {
+    static func preventSheetDismissal(
+        keyboardFrame: CGRect,
+        screenBounds: CGRect,
+        additionallyPrevented: Bool = false
+    ) -> Bool {
+        if additionallyPrevented { return true }
+        guard keyboardFrame.width > 0, keyboardFrame.height > 0 else { return false }
+        let intersection = screenBounds.intersection(keyboardFrame)
+        return !intersection.isNull && intersection.width > 0 && intersection.height > 0
+    }
+}
+
+@MainActor
+private var beckonActiveScreenBounds: CGRect {
+    UIApplication.shared.connectedScenes
+        .compactMap { $0 as? UIWindowScene }
+        .first(where: { $0.activationState == .foregroundActive })?
+        .screen.bounds ?? .zero
+}
+
 nonisolated struct BeckonKeyboardFormLayout: Equatable {
     enum RevealAction: Equatable, Sendable {
         case none
@@ -143,16 +164,22 @@ private struct BeckonKeyboardRevealRequest: Equatable {
 private struct BeckonKeyboardAvoidanceModifier: ViewModifier {
     let focusedTarget: String?
     let proxy: ScrollViewProxy
+    let additionallyPreventsPresentationDismissal: Bool
 
     @State private var keyboardFrame: CGRect = .null
     @State private var viewportFrame: CGRect = .zero
     @State private var targetBounds: [String: CGRect] = [:]
     @State private var lastRequest: BeckonKeyboardRevealRequest?
     @State private var pendingTask: Task<Void, Never>?
+    @State private var preventsSheetDismissal = false
 
     func body(content: Content) -> some View {
         content
             .scrollDismissesKeyboard(.interactively)
+            .presentationContentInteraction(.scrolls)
+            .interactiveDismissDisabled(
+                preventsSheetDismissal || additionallyPreventsPresentationDismissal
+            )
             .toolbar {
                 ToolbarItemGroup(placement: .keyboard) {
                     Spacer()
@@ -197,6 +224,10 @@ private struct BeckonKeyboardAvoidanceModifier: ViewModifier {
                 guard let frame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey]
                     as? CGRect else { return }
                 keyboardFrame = frame
+                preventsSheetDismissal = BeckonKeyboardPresentationPolicy.preventSheetDismissal(
+                    keyboardFrame: frame,
+                    screenBounds: beckonActiveScreenBounds
+                )
                 scheduleReveal()
             }
             .onReceive(NotificationCenter.default.publisher(
@@ -205,6 +236,7 @@ private struct BeckonKeyboardAvoidanceModifier: ViewModifier {
                 pendingTask?.cancel()
                 lastRequest = nil
                 keyboardFrame = .null
+                preventsSheetDismissal = false
             }
     }
 
@@ -271,7 +303,7 @@ private struct BeckonStationaryPageActionModifier<Actions: View>: ViewModifier {
                 guard let frame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey]
                     as? CGRect else { return }
                 let offset = BeckonKeyboardFormLayout(
-                    containerFrame: activeScreenBounds,
+                    containerFrame: beckonActiveScreenBounds,
                     keyboardFrame: frame
                 ).stationaryPageActionOffset
                 let duration = notification.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey]
@@ -290,13 +322,6 @@ private struct BeckonStationaryPageActionModifier<Actions: View>: ViewModifier {
                 keyboardOffset = 0
             }
     }
-
-    private var activeScreenBounds: CGRect {
-        UIApplication.shared.connectedScenes
-            .compactMap { $0 as? UIWindowScene }
-            .first(where: { $0.activationState == .foregroundActive })?
-            .screen.bounds ?? .zero
-    }
 }
 
 extension View {
@@ -306,12 +331,15 @@ extension View {
 
     func beckonKeyboardAvoidance(
         focusedTarget: String?,
-        using proxy: ScrollViewProxy
+        using proxy: ScrollViewProxy,
+        additionallyPreventsPresentationDismissal: Bool = false
     ) -> some View {
         modifier(
             BeckonKeyboardAvoidanceModifier(
                 focusedTarget: focusedTarget,
-                proxy: proxy
+                proxy: proxy,
+                additionallyPreventsPresentationDismissal:
+                    additionallyPreventsPresentationDismissal
             )
         )
     }

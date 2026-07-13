@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-07-12
+Task: T-324 - Unified sheet keyboard gesture arbitration.
+Files changed: Shared keyboard presentation policy/modifier; Request/Edit Pet business-lock routing; policy tests; concise keyboard rules/governance/plan/task/current-state memory.
+Checks: TDD compile RED/GREEN; full iOS tests; iOS build; repository UI audit; diff/context/preflight.
+Result: Software-keyboard drags in a sheet now belong to content scrolling/keyboard dismissal and cannot dismiss the sheet. Once the keyboard is offscreen, normal sheet dismissal returns. Existing saving and critical-overlay locks use the same shared Boolean input rather than competing presentation modifiers.
+Risks: Unsaved-change confirmation remains a separate feature/data-protection responsibility. Groomer/business and residual/modal inputs still require T-325/T-326 adoption inventory. No Store, repository, backend, dependency, or remote state changed.
+Next: Execute T-325 for Groomer and business-editor inputs.
+```
+
+```text
+Date: 2026-07-12
 Task: T-323 - Native keyboard safe-area and scroll-range correction.
 Files changed: Shared keyboard/stationary-action geometry; Request duplicate keyboard code removal; focused tests; UI009-UI011 audit enforcement/tests; complete keyboard rules/governance/plan/task/current-state memory.
 Checks: Apple HIG/SwiftUI/UIKit source review; Swift and audit TDD RED/GREEN; full iOS tests; iOS build; repository UI audit; duplicate keyboard-policy search; diff/context/preflight.

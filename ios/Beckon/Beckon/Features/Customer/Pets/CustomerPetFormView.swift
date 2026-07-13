@@ -162,7 +162,8 @@ struct CustomerPetFormView: View {
                     }
                     .beckonKeyboardAvoidance(
                         focusedTarget: focusedField?.rawValue,
-                        using: scrollProxy
+                        using: scrollProxy,
+                        additionallyPreventsPresentationDismissal: store.isSaving
                     )
                 }
             }
@@ -186,7 +187,6 @@ struct CustomerPetFormView: View {
                 }
             }
         }
-        .interactiveDismissDisabled(store.isSaving)
     }
 
     private var birthdayKnownBinding: Binding<Bool> {

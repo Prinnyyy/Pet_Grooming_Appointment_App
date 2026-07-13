@@ -143,9 +143,19 @@ Apply this contract to every editable page, sheet, and scrolling editor. It foll
 - Keyboard movement and shared action compensation use the system-reported frame and duration, and suppress custom animation under Reduce Motion. Do not guess keyboard height or animation timing.
 - Preserve Dynamic Type, VoiceOver order, safe areas, long text, and native focus behavior. Do not use a fixed input height that clips dynamic text.
 
-Use `BeckonKeyboardFormLayout` for visibility decisions, `.beckonKeyboardFocusTarget(_:)` on complete semantic groups, `.beckonKeyboardAvoidance(focusedTarget:using:)` on scrolling forms, and `.beckonStationaryPageAction` only for page actions. DesignSystem owns keyboard observation, geometry, animation, dismissal, and stationary-action behavior. A feature may own field IDs, focus order, keyboard/content types, and business validation; it must not add keyboard padding, offsets, dismissal toolbars, screen-percentage anchors, or a second keyboard observer.
+### Sheet Gesture Arbitration
 
-Primary references: Apple HIG `https://developer.apple.com/design/human-interface-guidelines/virtual-keyboards`, SwiftUI keyboard safe area `https://developer.apple.com/documentation/swiftui/safearearegions/keyboard`, `FocusState` `https://developer.apple.com/documentation/swiftui/focusstate`, `scrollDismissesKeyboard` `https://developer.apple.com/documentation/swiftui/view/scrolldismisseskeyboard(_:)`, and UIKit `UIKeyboardLayoutGuide` `https://developer.apple.com/documentation/uikit/uikeyboardlayoutguide`.
+| State | Downward gesture | Sheet dismissal |
+|---|---|---|
+| Software keyboard onscreen | Scroll content or dismiss keyboard interactively | Disabled |
+| Keyboard hidden or hardware keyboard | Normal content/sheet behavior | Enabled |
+| Feature supplies a business lock, such as saving or a critical overlay | Normal keyboard behavior | Disabled until the lock clears |
+
+The shared modifier determines keyboard presence from the actual onscreen keyboard frame, not a feature focus ID. It applies `.presentationContentInteraction(.scrolls)` and combines keyboard state with the caller's optional business lock. Every sheet form still provides explicit Cancel/Back and Done/Save actions. Unsaved-change confirmation is a separate data-protection rule: after the keyboard closes, a dismiss attempt may proceed only through the feature's confirmation flow. Prefer a large-only sheet or full-screen page for long composition and multi-step forms.
+
+Use `BeckonKeyboardFormLayout` for visibility decisions, `.beckonKeyboardFocusTarget(_:)` on complete semantic groups, `.beckonKeyboardAvoidance(focusedTarget:using:additionallyPreventsPresentationDismissal:)` on scrolling forms, and `.beckonStationaryPageAction` only for page actions. DesignSystem owns keyboard observation, geometry, animation, scroll dismissal, sheet gesture arbitration, and stationary-action behavior. A feature may own field IDs, focus order, keyboard/content types, business validation, and one business-lock Boolean; it must not add keyboard padding, offsets, dismissal toolbars, screen-percentage anchors, keyboard-driven `interactiveDismissDisabled`, or a second keyboard observer.
+
+Primary references: Apple HIG `https://developer.apple.com/design/human-interface-guidelines/virtual-keyboards` and `https://developer.apple.com/design/human-interface-guidelines/sheets`; SwiftUI keyboard safe area, `FocusState`, `scrollDismissesKeyboard`, `presentationContentInteraction`, and `interactiveDismissDisabled`; UIKit `UIKeyboardLayoutGuide`.
 
 ## Screenshot Rework Rules
 
