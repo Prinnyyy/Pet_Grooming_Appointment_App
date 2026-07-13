@@ -5,7 +5,7 @@ import Testing
 @MainActor
 struct ProfileAddressIntegrationTests {
     @Test
-    func profileAddressRPCPayloadKeepsCoordinatesAndOmitsMissingPlaceID() throws {
+    func profileAddressRPCPayloadKeepsCoordinatesAndEncodesMissingPlaceIDAsNull() throws {
         let confirmed = Self.confirmedAddress(placeID: nil)
         let data = try JSONEncoder().encode(
             SaveProfileAddressRPCParameters(confirmedAddress: confirmed)
@@ -16,7 +16,7 @@ struct ProfileAddressIntegrationTests {
 
         #expect(object["p_line_1"] as? String == "770 S Harbor Blvd")
         #expect(object["p_line_2"] as? String == "Unit 2410")
-        #expect(object["p_place_id"] == nil)
+        #expect(object["p_place_id"] is NSNull)
         #expect(object["p_latitude"] as? Double == 33.8703)
         #expect(object["p_longitude"] as? Double == -117.9242)
         #expect((object["p_user_confirmed_at"] as? String)?.contains("T") == true)

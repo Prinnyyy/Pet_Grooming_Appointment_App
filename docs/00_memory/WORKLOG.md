@@ -2,12 +2,21 @@
 
 ```text
 Date: 2026-07-13
+Task: T-342 - Groomer Profile save RPC null-parameter correction.
+Files changed: Shared Customer/Groomer Profile address RPC payload encoder; Profile address integration contract; Feedback auto-dismiss test synchronization; task/current-state memory.
+Checks: Structured Debug Console trace isolated `GroomerProfileRepository.updateProfileWithAddress` and `save_groomer_profile_address_v2`; the migration signature, shared encoder, and official Swift RPC reference were compared. The Supabase changelog Markdown URL was rejected by the Web tool as an internal/safety error and was not retried. TDD RED confirmed a missing Place ID was omitted instead of encoded as null, and focused Profile address GREEN passed after the fix. The first full suite then exposed the existing Feedback auto-dismiss fixed-sleep race under MainActor load; its focused compile first caught a missing actor annotation, then passed after correction. The final full iOS suite and iOS build passed. Two initial focused xcodebuild commands were accidentally left running by deferred tool sessions and were terminated before a single controlled RED run.
+Result: A nil Apple Place ID is now sent as explicit JSON null, preserving the RPC parameter set required by PostgREST and allowing Groomer Profile saves for confirmed/seeded addresses without a Place ID. Customer Profile receives the same shared correction. The Feedback test now polls the expected state within a bounded deadline without changing production toast duration or behavior.
+Risks: No authenticated remote save was performed because non-Git Supabase writes were not authorized; local payload, Store, repository, migration-signature, full-test, and build evidence cover the defect. The AppIntents metadata-skipped warning remains assigned to T-340. No migration, schema, dependency, or remote state changed.
+Next: No automatic follow-up. Use T-343 for the next new task; T-340 remains separately planned.
+```
+
+```text
+Date: 2026-07-13
 Task: T-341 - Customer Home request Hero visual restoration and role action colors (checkpoint).
 Files changed: Customer Home Hero presentation/layout; shared customer/groomer action foreground tokens and button styles; color contract; focused tests; design spec/plan; task/current-state memory.
 Checks: TDD compile RED confirmed missing role tokens, Hero copy, Hero contrast, and finally the four approved global Customer palette roles. Focused palette/DesignSystem tests then passed, followed by the complete iOS suite and iOS build; both complete commands passed again after user visual approval. The earlier full-suite run had failed four Feedback Center timing tests under parallel load, but both final standard runs passed them without code changes in that subsystem. Static source audit found no Feature/primitive use of legacy Customer color names. Final role audit found Groomer Notifications had inherited Customer mint for unread state; it now uses Groomer coral roles and its focused tests pass. The first bulk rename used a zsh scalar containing newline-separated paths, so Perl received one invalid long filename and changed nothing; the rerun used NUL-delimited `rg -0 | xargs -0` and completed safely. Contrast audit found `#333333` on the unchanged full error fill is only 4.01:1; actual StatusChip code already uses `errorText` over a translucent error surface, so the obsolete UI-rule pair was removed without changing status behavior. Earlier command/path errors remain recorded: invalid Swift imports, two unescaped Markdown searches, an over-broad stale-color search, two stale plugin-cache paths, and one overlong Ledger row; each corrected check passed.
 Result: The Hero preserves the approved Display P3 treatment, `#333333` copy/action text, shared feature typography, and action-driven copy width. Its palette is now the global Customer contract: `#333333` primary text plus Display P3 accent `#93CEC2`, soft `#B0D8D9`, subtle `#B5DCD9`, and strong `#518B7F`. Shared primitives and Customer/Auth/Booking/Chat call sites use the semantic roles; compatibility aliases remain only in DesignTokens. Groomer, status, surface, and warm-background semantics are unchanged. No Store, navigation, repository, backend, dependency, or remote state changed.
 Risks: The existing AppIntents metadata-skipped warning remains assigned to T-340. Q-104 Dynamic Type/Accessibility remains user-deferred.
-Next: No automatic follow-up. Use T-342 for the next new task; T-340 remains separately planned.
 ```
 
 ```text

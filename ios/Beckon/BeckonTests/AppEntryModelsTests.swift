@@ -294,7 +294,7 @@ struct BeckonFeedbackCenterTests {
         center.showError(error)
         #expect(center.error?.title == error.title)
 
-        try await waitForFeedbackPromptAutoDismiss()
+        try await waitForFeedbackPromptAutoDismiss(in: center)
 
         #expect(center.error == nil)
         #expect(center.hasVisiblePrompt == false)
@@ -380,10 +380,16 @@ struct BeckonFeedbackCenterTests {
         )
     }
 
-    private func waitForFeedbackPromptAutoDismiss() async throws {
-        try await Task.sleep(
-            nanoseconds: BeckonFeedbackCenter.errorDismissDelayNanoseconds + 350_000_000
+    @MainActor
+    private func waitForFeedbackPromptAutoDismiss(
+        in center: BeckonFeedbackCenter
+    ) async throws {
+        let deadline = Date().addingTimeInterval(
+            Double(BeckonFeedbackCenter.errorDismissDelayNanoseconds) / 1_000_000_000 + 2
         )
+        while center.error != nil, Date() < deadline {
+            try await Task.sleep(nanoseconds: 50_000_000)
+        }
     }
 }
 

@@ -66,7 +66,7 @@ nonisolated struct SaveProfileAddressRPCParameters: Encodable, Sendable {
         try container.encode(address.stateCode?.rawValue, forKey: .state)
         try container.encode(address.postalCode, forKey: .zipCode)
         try container.encode(confirmedAddress.provider, forKey: .provider)
-        try container.encodeIfPresent(confirmedAddress.placeID, forKey: .placeID)
+        try container.encode(confirmedAddress.placeID, forKey: .placeID)
         try container.encode(address.countryCode, forKey: .countryCode)
         try container.encode(confirmedAddress.coordinate.latitude, forKey: .latitude)
         try container.encode(confirmedAddress.coordinate.longitude, forKey: .longitude)
