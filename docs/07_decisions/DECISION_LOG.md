@@ -18,6 +18,15 @@ Linked files:
 ## Active Decisions
 
 ```text
+Decision ID: D-033
+Date: 2026-07-13
+Decision: Assign each workflow concern to one owner file, enforce compact AGENTS/Claude adapters, and keep one T-### task per session without automatic meta-review chaining.
+Context: Validation, context, Git, stop, Simulator, checkpoint, skill, and meta-review rules had been copied across active files and had drifted into contradictions. The repository also assumed a fixed host context capacity it cannot observe.
+Consequences: SINGLE_AGENT_WORKFLOW owns lifecycle; CONTEXT_AND_RECOVERY owns reads/recovery/compaction/hygiene; TOOLING_POLICY owns validation/tools/credentials/remote authorization; GITHUB_RULES owns Git conventions; STOP_CONDITIONS is a short matrix. AGENTS and CLAUDE have enforced 600/250-word interface ceilings. Development RED is distinct from completion failure; user-deferred Simulator review is valid; host-required skills are not repository-capped; incomplete checkpoint Git needs explicit approval. A due meta-review is reserved and runs only in a fresh user-continued session. Host telemetry replaces fixed token thresholds. This supersedes D-029, the fixed-capacity/checkpoint parts of D-028, and creates an entry-adapter exception to D-024's generic informational word telemetry.
+Linked files: AGENTS.md, CLAUDE.md, docs/05_workflow/SINGLE_AGENT_WORKFLOW.md, docs/05_workflow/CONTEXT_AND_RECOVERY.md, docs/05_workflow/TOOLING_POLICY.md, docs/05_workflow/GITHUB_RULES.md, docs/05_workflow/STOP_CONDITIONS.md, docs/06_tasks/META_REVIEW_TEMPLATE.md, scripts/context-hygiene-check.mjs
+```
+
+```text
 Decision ID: D-032
 Date: 2026-07-12
 Decision: Use layered Xcode/Simulator runtime-log sampling for app behavior validation.
@@ -47,6 +56,7 @@ Linked files: docs/02_architecture/DATA_FLOW.md, docs/03_backend/RLS_RPC_POLICY.
 ```text
 Decision ID: D-029
 Date: 2026-07-11
+Status: Superseded by D-033 on 2026-07-13.
 Decision: Automatically chain an immediately due periodic meta-review after the triggering task, then require a conversation-compaction boundary.
 Context: The previous reservation rule prevented a two-task commit deadlock but still required another user turn before the reserved review ran. The user now requires due reviews to execute automatically and every completed meta-review to be followed by context compaction.
 Consequences: The triggering task and meta-review retain separate task IDs, validation, closeouts, commits, and pushes; this is the only automatic exception to one task per session. After meta-review closeout, Codex invokes host compaction when callable. If the host provides no compaction API, Codex emits an explicit /compact handoff, states that compaction is pending, and stops before any implementation task.
@@ -56,6 +66,7 @@ Linked files: AGENTS.md, docs/05_workflow/SINGLE_AGENT_WORKFLOW.md, docs/05_work
 ```text
 Decision ID: D-028
 Date: 2026-07-10
+Status: Fixed-capacity and automatic checkpoint-Git parts superseded by D-033 on 2026-07-13; task-boundary/evidence rules remain active.
 Decision: Use one T-### task per session, with session end as the default context reset and manual compaction as fallback for one oversized task.
 Context: Per-turn cost scales with conversation size. The T-249 through T-257 mega-session and its unattributed modified files drove context and quota growth, while build scripts were already summary-mode and active Markdown was already minimal.
 Consequences: Standard slices use focused tests plus one build; full ios-test.sh is reserved for package/integration gates, Deep tasks, shared-layer changes, and pre-release. Visual evidence stays under artifacts/evidence/<task-id>/ and is referenced by path rather than re-ingested. Full logs are read only in filtered slices. Session boundaries require a task commit or a WORKLOG-linked checkpoint(<id>) commit; stash is not a boundary mechanism. The 65%/80% thresholds govern only a single oversized in-flight task.
@@ -92,6 +103,7 @@ Linked files: AGENTS.md, CLAUDE.md, docs/05_workflow/CONTEXT_AND_RECOVERY.md, do
 ```text
 Decision ID: D-024
 Date: 2026-07-09
+Status: Generic word telemetry remains informational; D-033 adds hard ceilings only for the AGENTS/Claude workflow-entry interfaces.
 Decision: Maintain active Markdown with buffered entry-count windows and treat all word counts as informational telemetry.
 Context: The old trigger and retained counts were identical, so every new closeout rotated one item and left the window full. Separate word limits then caused repeated trimming even when document structure was healthy, while manual compaction guidance started at only 30% of the 353,000-token context.
 Consequences: Ledger uses trigger/retain 18/12; Worklog and active decisions use 14/8; decision archive pointers use 12/6 with one pointer per archive batch. Each completed rotation restores six entries. Word references never warn, fail, stop, compress, or rotate content. Manual compaction uses 65%/80% task-boundary thresholds, and completed task-specific plans/specs move to dated frozen Superpowers archives. This supersedes D-016 and the Markdown-budget parts of D-017; D-017's failed-push rule remains active.

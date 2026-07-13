@@ -7,7 +7,6 @@ import {
   DECISION_LOG_ENTRY_RETAIN,
   DECISION_LOG_ENTRY_TRIGGER,
   DEFAULT_WORD_REFERENCE,
-  MODEL_CONTEXT_CAPACITY_TOKENS,
   TASK_LEDGER_ROW_CHAR_LIMIT,
   TASK_LEDGER_ROW_RETAIN,
   TASK_LEDGER_ROW_TRIGGER,
@@ -267,7 +266,81 @@ function reportActiveMarkdownWords(files) {
     total += words(readOptional(filePath));
   }
   console.log(`Active Markdown words (information only): ${total}`);
-  console.log(`Model context capacity reference: ${MODEL_CONTEXT_CAPACITY_TOKENS} tokens`);
+  console.log("Context capacity: host-managed; Markdown words do not estimate token usage");
+}
+
+function checkWorkflowOwnership() {
+  const agents = readOptional("AGENTS.md");
+  const claude = readOptional("CLAUDE.md");
+  const single = readOptional("docs/05_workflow/SINGLE_AGENT_WORKFLOW.md");
+  const context = readOptional("docs/05_workflow/CONTEXT_AND_RECOVERY.md");
+  const tooling = readOptional("docs/05_workflow/TOOLING_POLICY.md");
+  const github = readOptional("docs/05_workflow/GITHUB_RULES.md");
+  const stop = readOptional("docs/05_workflow/STOP_CONDITIONS.md");
+
+  const entryLimits = [
+    ["AGENTS.md", agents, 600],
+    ["CLAUDE.md", claude, 250],
+  ];
+  for (const [filePath, text, limit] of entryLimits) {
+    const count = words(text);
+    if (count > limit) {
+      failures.push(`${filePath} workflow entry has ${count} words, limit ${limit}`);
+    }
+  }
+
+  const ownershipMarkers = [
+    ["docs/05_workflow/SINGLE_AGENT_WORKFLOW.md", single, /Owns: task lifecycle/i],
+    ["docs/05_workflow/CONTEXT_AND_RECOVERY.md", context, /Owns: context access, recovery, compaction, and context hygiene/i],
+    ["docs/05_workflow/TOOLING_POLICY.md", tooling, /Owns: validation, tools, credentials, and remote-operation authorization/i],
+    ["docs/05_workflow/GITHUB_RULES.md", github, /Owns: Git and GitHub conventions/i],
+    ["docs/05_workflow/STOP_CONDITIONS.md", stop, /Owns: the stop-and-report matrix only/i],
+  ];
+  for (const [filePath, text, marker] of ownershipMarkers) {
+    if (!marker.test(text)) {
+      failures.push(`${filePath} is missing its workflow ownership marker`);
+    }
+  }
+
+  const nonToolValidationOwners = [
+    ["AGENTS.md", agents],
+    ["CLAUDE.md", claude],
+    ["docs/05_workflow/SINGLE_AGENT_WORKFLOW.md", single],
+    ["docs/05_workflow/CONTEXT_AND_RECOVERY.md", context],
+    ["docs/05_workflow/STOP_CONDITIONS.md", stop],
+  ];
+  for (const [filePath, text] of nonToolValidationOwners) {
+    if (/\.\/scripts\/ios-(?:build|test)\.sh|git diff --check/.test(text)) {
+      failures.push(`${filePath} duplicates concrete validation commands owned by TOOLING_POLICY.md`);
+    }
+  }
+
+  const activeRuleText = [agents, claude, single, context, tooling, github, stop].join("\n");
+  const forbiddenRules = [
+    [/execute the meta-review immediately/i, "same-session automatic meta-review"],
+    [/353,?000|229,?000|282,?000|70,?600|\b65%|\b80%/, "static host-context capacity threshold"],
+    [/Superpowers is optional|Use at most one directly relevant capability/i, "repository cap on host-required skills"],
+    [/The first required build or test attempt fails/i, "first-failure rule that conflicts with development RED states"],
+  ];
+  for (const [pattern, label] of forbiddenRules) {
+    if (pattern.test(activeRuleText)) {
+      failures.push(`Active workflow contains forbidden ${label}`);
+    }
+  }
+
+  const requiredRules = [
+    [single, /reserve the next task ID and end the current task/i, "meta-review reservation handoff"],
+    [single, /Do not start the review in the same session/i, "single-session task boundary"],
+    [tooling, /Expected RED/i, "TDD development-failure distinction"],
+    [tooling, /user defers visual review/i, "Simulator user-deferral rule"],
+    [tooling, /Host-mandated skills and tool instructions/i, "host skill precedence"],
+    [github, /Checkpoint commits and pushes require explicit user approval/i, "checkpoint Git authorization"],
+  ];
+  for (const [text, pattern, label] of requiredRules) {
+    if (!pattern.test(text)) {
+      failures.push(`Active workflow is missing ${label}`);
+    }
+  }
 }
 
 function checkIgnoredPaths() {
@@ -631,6 +704,7 @@ checkMarkdownLinks(activeFiles);
 checkBacktickPathIntegrity(activeFiles);
 reportActiveMarkdownWords(activeFiles);
 checkIgnoredPaths();
+checkWorkflowOwnership();
 checkCredentialClaims();
 checkLastVerifiedDates();
 checkMigrationMirrorCount();

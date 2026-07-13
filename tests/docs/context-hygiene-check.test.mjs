@@ -123,12 +123,52 @@ function createFixture({ branch = "codex/test-baseline", latest = "T-005", next 
     "docs/04_ios/testops/TESTOPS_MEMORY.md",
     "docs/04_ios/testops/RUNBOOK.md",
     "docs/04_ios/testops/TEST_CASES.md",
-    "docs/05_workflow/TOOLING_POLICY.md",
     "docs/10_project_structure/REORGANIZATION_LOG.md",
     "docs/02_architecture/test_resources/README.md",
   ]) {
     writeFixtureFile(root, filePath, small);
   }
+
+  writeFixtureFile(root, "CLAUDE.md", "# Claude Adapter\n\nFollow AGENTS.md. Default role is review.\n");
+  writeFixtureFile(root, "docs/05_workflow/SINGLE_AGENT_WORKFLOW.md", [
+    "# Single-Agent Workflow",
+    "",
+    "Owns: task lifecycle, task boundaries, modes, closeout, and meta-review scheduling.",
+    "",
+    "When review cadence is due, reserve the next task ID and end the current task.",
+    "Do not start the review in the same session.",
+    "",
+  ].join("\n"));
+  writeFixtureFile(root, "docs/05_workflow/CONTEXT_AND_RECOVERY.md", [
+    "# Context and Recovery",
+    "",
+    "Owns: context access, recovery, compaction, and context hygiene.",
+    "",
+  ].join("\n"));
+  writeFixtureFile(root, "docs/05_workflow/TOOLING_POLICY.md", [
+    "# Tooling Policy",
+    "",
+    "Owns: validation, tools, credentials, and remote-operation authorization.",
+    "",
+    "Expected RED states during development are not final validation failures.",
+    "Simulator use may be skipped when the user defers visual review.",
+    "Host-mandated skills and tool instructions take precedence over repository preferences.",
+    "",
+  ].join("\n"));
+  writeFixtureFile(root, "docs/05_workflow/GITHUB_RULES.md", [
+    "# GitHub Rules",
+    "",
+    "Owns: Git and GitHub conventions, commit formats, branches, pushes, PRs, and tags.",
+    "",
+    "Checkpoint commits and pushes require explicit user approval.",
+    "",
+  ].join("\n"));
+  writeFixtureFile(root, "docs/05_workflow/STOP_CONDITIONS.md", [
+    "# Stop Conditions",
+    "",
+    "Owns: the stop-and-report matrix only.",
+    "",
+  ].join("\n"));
 
   mkdirSync(path.join(root, "docs/09_frozen"), { recursive: true });
   mkdirSync(path.join(root, "docs/08_design"), { recursive: true });
@@ -326,6 +366,35 @@ test("context hygiene fails when heavy UI redesign body is default-visible", () 
   assert.match(result.stderr, /ui-redesign default rg output changed/i);
 });
 
+test("context hygiene fails when same-session meta-review wording returns", () => {
+  const root = createFixture();
+  writeFixtureFile(root, "docs/05_workflow/SINGLE_AGENT_WORKFLOW.md", [
+    "# Single-Agent Workflow",
+    "",
+    "Owns: task lifecycle, task boundaries, modes, closeout, and meta-review scheduling.",
+    "",
+    "When review cadence is due, reserve the next task ID and end the current task.",
+    "Do not start the review in the same session.",
+    "After closeout, execute the meta-review immediately.",
+    "",
+  ].join("\n"));
+
+  const result = runHygiene(root);
+
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /forbidden same-session automatic meta-review/i);
+});
+
+test("context hygiene fails when a workflow entry exceeds its hard ceiling", () => {
+  const root = createFixture();
+  writeFixtureFile(root, "AGENTS.md", `# AGENTS\n\n${"rule ".repeat(601)}\n`);
+
+  const result = runHygiene(root);
+
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /AGENTS\.md workflow entry has \d+ words, limit 600/i);
+});
+
 test("context hygiene fails when a backtick path is missing", () => {
   const root = createFixture();
   writeFixtureFile(root, "docs/01_product/USER_ROLES.md", [
@@ -370,7 +439,7 @@ test("context hygiene reports active Markdown words without a structural warning
 
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /Active Markdown words \(information only\): \d+/i);
-  assert.match(result.stdout, /Model context capacity reference: 353000 tokens/i);
+  assert.match(result.stdout, /Context capacity: host-managed; Markdown words do not estimate token usage/i);
   assert.doesNotMatch(result.stdout, /schedule a structural context review/i);
 });
 
@@ -382,7 +451,7 @@ test("context hygiene does not fail when active Markdown exceeds the former hard
 
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /Active Markdown words \(information only\): \d+/i);
-  assert.match(result.stdout, /Model context capacity reference: 353000 tokens/i);
+  assert.match(result.stdout, /Context capacity: host-managed; Markdown words do not estimate token usage/i);
   assert.doesNotMatch(result.stderr, /active Markdown has \d+ words, limit 36000/i);
 });
 

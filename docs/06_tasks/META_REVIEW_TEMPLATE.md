@@ -8,7 +8,7 @@ Run one meta-review task every 10 completed tasks or once per week, whichever co
 
 When the tenth task closes, `context-hygiene-check.mjs` permits that closeout only if `CURRENT_STATE.md` explicitly reserves the immediate next task for the required periodic meta-review. The reserved task must run next. An unscheduled tenth-task gap or any gap greater than ten still fails.
 
-The triggering task finishes its own validation, closeout, commit, and push first. Codex then starts the reserved meta-review automatically in the same run without waiting for another user message. This is the only exception to the one-task-per-session default; the two tasks must remain separate commits.
+The triggering task finishes its own validation, closeout, commit, and push, reserves the immediate next ID, and ends the session. The reserved meta-review runs next only in a fresh session after user continuation/request. It never starts automatically in the triggering task's context.
 
 ## Scope
 
@@ -20,13 +20,7 @@ The triggering task finishes its own validation, closeout, commit, and push firs
 
 ## Required Checks
 
-```sh
-git status --short
-git diff --check
-node scripts/context-hygiene-check.mjs
-```
-
-Add targeted `rg` checks for the specific concern being audited.
+Use Quick workflow-rule validation from `../05_workflow/TOOLING_POLICY.md`, run context hygiene, and add targeted `rg` checks for the specific governance concern.
 
 ## Closeout
 

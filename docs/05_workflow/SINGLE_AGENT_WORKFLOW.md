@@ -1,145 +1,62 @@
 # Single-Agent Workflow
 
-Default workflow for this repository. It keeps each run bounded, recoverable, and proportional to risk.
+Owns: task lifecycle, task boundaries, modes, closeout, and meta-review scheduling.
 
-## Core Rules
+Validation commands belong only to `TOOLING_POLICY.md`; Git conventions belong only to `GITHUB_RULES.md`; read/recovery rules belong only to `CONTEXT_AND_RECOVERY.md`; stop triggers belong only to `STOP_CONDITIONS.md`.
 
-- Complete one primary task per run, and one `T-###` task per session by default. The sole exception is an immediately due periodic meta-review, which runs automatically after the triggering task closes and uses its own task ID, closeout, commit, and push.
-- Preserve user work and inspect `git status --short` before edits.
-- Use targeted context only; access tiers live in `CONTEXT_AND_RECOVERY.md`.
-- Do not start adjacent features, broad refactors, seeds, unrelated cleanup, or non-Git remote writes unless explicitly requested.
-- Standing Git approval is active: after a task is complete and required validation passes, commit and push that task's own changes automatically.
-- No subagents or archived agent-team orchestration unless the user explicitly re-enables them.
-- Write a short plan before non-trivial edits.
-- Use one validation attempt by mode unless the user approves more.
-- Stop after the requested task is complete.
+## Task Lifecycle
 
-## Task Flow
-
-1. Identify the single primary task.
-2. Classify it as Micro, Quick, Standard, or Deep.
-3. Read only the L0/L1 context needed to plan the work.
-4. Expand to L2/L3/L4 context only under the access rules in `CONTEXT_AND_RECOVERY.md`.
-5. Implement only the approved scope.
-6. Run mode-appropriate validation.
-7. Review the current diff.
-8. Update task closeout and durable memory only when the completion gate requires it.
-9. Run context hygiene if durable memory or task ledgers changed; resolve entry-count overflow with one `node scripts/context-rotate.mjs --apply` batch before closeout.
-10. Launch the simulator only when required.
-11. Create a task-scoped commit and push the current branch when completion and validation have passed.
-12. If this closeout makes the numerically next task the required periodic meta-review, reserve it, finish the current task's commit/push, and execute the meta-review immediately without waiting for another user message.
-13. After a periodic meta-review closes, write a compaction checkpoint and invoke host compaction. If the host exposes no callable compaction control, emit an explicit `/compact` handoff and stop; do not begin the next implementation task.
-14. Otherwise, write a checkpoint before any threshold-driven manual compaction, then stop and end the session; the next task starts in a fresh session.
+1. Identify one user-visible primary objective.
+2. Confirm the branch and next task ID only when the work changes files or durable state.
+3. Classify the task mode and make a short plan for non-trivial work.
+4. Read the smallest context allowed by `CONTEXT_AND_RECOVERY.md`.
+5. Implement only the approved objective; stop before an independent feature or rule change.
+6. Run the mode's completion validation from `TOOLING_POLICY.md`.
+7. Review status and diff; separate unrelated user work.
+8. Write only the required closeout facts.
+9. Run context hygiene when durable memory, task state, workflow, or coordination files changed.
+10. Complete Git closeout under `GITHUB_RULES.md` when Tooling authorization permits it.
+11. End the session. A later user request starts the next task.
 
 ## Modes
 
-| Mode | Use For | Validation |
-|---|---|---|
-| Micro | Read-only answers, status checks, command output, tiny docs wording | None by default |
-| Quick | Docs, workflow changes, small scripts, one-file fixes | `git diff --check` when files changed |
-| Standard | Normal iOS feature, bug, visible UI, user-facing app behavior | `git diff --check`, focused tests for the touched feature domain when they exist, plus one `./scripts/ios-build.sh`; simulator launch for visible UI/app behavior |
-| Deep | Supabase, auth, RLS, migrations, storage, major navigation, destructive-risk work | State validation plan before edits; make one planned attempt |
+| Mode | Scope |
+|---|---|
+| Micro | Read-only answers, status checks, or tiny wording with no durable effect. |
+| Quick | Docs, workflow, focused scripts, or narrow low-risk fixes. |
+| Standard | Swift/Xcode, visible UI, app behavior, or normal feature/bug work. |
+| Deep | Supabase, auth, RLS, migrations, Storage, major navigation, destructive risk, or broad shared contracts. |
 
-Full `./scripts/ios-test.sh` is reserved for package/integration gate tasks (for example Q-104-style cross-screen gates), Deep-mode tasks, changes to shared Store/repository/DesignSystem code used by multiple features, and pre-release validation. Ordinary single-surface UI slices do not run the full suite by default.
+Mode determines validation depth, not permission. Remote and destructive operations still use Tooling authorization gates.
 
-## Completion Gate
+## Task Boundary
 
-Always:
+- Allocate one `T-###` for each implementation, bugfix, iteration, governed rule change, or requested durable audit.
+- A test run alone is not a task unless it changes test infrastructure, records governed remote evidence, or the user explicitly requests it as the objective.
+- A bugfix discovered inside the current objective stays in the task only when it is necessary, local, and covered by the same validation. Otherwise record it and stop.
+- Do not start adjacent cleanup, roadmap work, dependency changes, or unrelated refactors.
+- Do not use a second task ID in the same session.
 
-- Keep the final response scoped to the user request.
-- Report validation run or why it was intentionally skipped.
-- Report if iOS build, simulator, tests, Supabase, commit, or push were intentionally not run.
+## Closeout
 
-Task closeout in `TASK_LEDGER.md` and `WORKLOG.md` is required when:
+Update `TASK_LEDGER.md` and `WORKLOG.md` when the task is Standard/Deep or changes app behavior, workflow rules, backend contracts, durable state, or task coordination. Tiny Micro/Quick work that future runs do not need may skip durable closeout.
 
-- The user provided or requested a task file.
-- The task is Standard or Deep.
-- The task changes Swift, app behavior, visible UI, backend contracts, Supabase, auth, navigation, persistence, workflow rules, or durable state future runs need.
+`CURRENT_STATE.md` uses replacement semantics and changes only when future startup needs the new branch, latest validation, active risk, current task, or next ID. `FEATURE_INDEX.md` changes only when routing/ownership changes. `DECISION_LOG.md` changes only for a durable architecture, product, backend, or workflow decision.
 
-Task closeout is usually skipped for Micro tasks and tiny docs-only Quick tasks that future runs do not need.
+Completed task-specific plans/specs leave active search paths at closeout. Markdown moves/deletions update every active backlink and index in the same task.
 
-Durable memory updates are limited to changed facts:
+## Rule Changes
 
-- `docs/00_memory/CURRENT_STATE.md`: current branch, latest completed task, validation baseline, active risks, next-task facts.
-- `docs/00_memory/WORKLOG.md`: recent closeout/checkpoint evidence.
-- `docs/06_tasks/TASK_LEDGER.md`: task numbering and status.
-- `docs/00_memory/FEATURE_INDEX.md`: feature ownership or routing changes.
-- `docs/07_decisions/DECISION_LOG.md`: durable architecture/product decisions.
+Changes to `AGENTS.md`, `CLAUDE.md`, or `docs/05_workflow/**` must be one standalone numbered task. They require a decision-log entry, affected indexes, workflow contract checks, and context hygiene. If a rule change appears inside another task, stop and split it.
 
-After durable memory or ledger changes, run context hygiene. Word/reference output is informational only. If an entry-count window exceeds its trigger, run `node scripts/context-rotate.mjs --apply` once and rerun hygiene; the batch must reach the retained count. Freeze completed task-specific plans/specs instead of leaving them in the active search path.
+## Periodic Meta-Review
 
-## Automatic Git Closeout
+Context hygiene owns cadence detection. When completing a task makes the review exactly due, reserve the next task ID and end the current task after its normal closeout. Do not start the review in the same session. The reserved review runs only in a fresh session after a user continuation/request and has its own task ID, validation, closeout, commit, and push.
 
-The user has granted standing approval for Codex to commit and push each completed task.
-
-Automatic commit/push requirements:
-
-- Run required validation for the task mode first.
-- Review `git status --short` and the diff before staging.
-- Stage only files changed for the current task.
-- Use the task-prefixed commit format from `GITHUB_RULES.md`.
-- Push only the current work branch.
-- Skip commit/push and report why if validation fails, the branch is unclear, secrets appear in the diff, unrelated user work would be included, or the user explicitly disables auto Git for the task.
-- If push fails or is rejected, stop and report; do not auto pull, rebase, merge, reset, force-push, or retry remote reconciliation.
-
-This standing approval does not authorize PR creation, tags, branch deletion, merge/rebase/reset, Supabase writes, seeds, unrelated cleanup, or other remote operations.
-
-## Session Budget Rules
-
-Per-turn cost scales with the current conversation size, so session length is a budget rule, not only a context-window concern.
-
-- One `T-###` per session, except for the automatic immediately due periodic meta-review. The triggering task and meta-review remain separate commits and neither may absorb feature work from the other.
-- A session may continue the same interrupted task, never a second task.
-- If an in-flight task approaches the 65% boundary, prefer: write a checkpoint, make a checkpoint commit, end the session, and resume the same task in a fresh session via the Recovery steps in `CONTEXT_AND_RECOVERY.md`. In-place `/compact` is the fallback, not the default.
-- Session end requires a clean tree: the task commit exists, or remaining changes are committed as a checkpoint commit (`GITHUB_RULES.md` format). Never leave unattributed modified files across a session boundary; never use `git stash` as a session-boundary mechanism.
-- At session start, `git status --short` must be explainable from `CURRENT_STATE.md`/`WORKLOG.md` facts. Unattributed modifications are a stop condition: report and ask before editing.
-
-## Evidence and Logs
-
-- Screenshots, recordings, and simulator captures are evidence for humans: save them under `artifacts/evidence/<task-id>/`, reference the paths in the worklog entry, and do not re-read image files into the conversation.
-- In-context verification uses text: build/test script summaries, TestOps selector output, Debug Console output, and targeted diff reads.
-- Build/test scripts already write full logs to a temp file and print summaries. Open the full log only when the summary is insufficient, and only filtered (`grep`, or `sed` a line range) - never whole.
-- Batch visual QA at package gates instead of capturing screenshots on every slice.
-
-## Rule Change Tasks
-
-Changes to `AGENTS.md`, `CLAUDE.md`, or any file under `docs/05_workflow/` are workflow-rule changes.
-
-Workflow-rule changes must:
-
-- Use a standalone `T-###` task; do not bundle them with app, backend, design, or cleanup work.
-- Update `docs/07_decisions/DECISION_LOG.md` with the rule decision and affected files.
-- Update task closeout and current state when the changed rule affects future runs.
-- Run `git diff --check` and `node scripts/context-hygiene-check.mjs` before closeout.
-
-Stop and split scope if a workflow-rule change appears during another task.
+After the meta-review itself completes, follow the mandatory compaction boundary in `CONTEXT_AND_RECOVERY.md`.
 
 ## Screenshot UI Tasks
 
-One uploaded screenshot is one primary task unless the user explicitly says otherwise.
+One uploaded screenshot is one task unless the user explicitly combines scope. Use `docs/06_tasks/SCREENSHOT_UI_REWORK_TASK_TEMPLATE.md`; map each visible in-app module to current SwiftUI, Store, repository, and model ownership. Ignore prototype controls outside the app frame.
 
-Before SwiftUI edits:
-
-- Use `docs/06_tasks/SCREENSHOT_UI_REWORK_TASK_TEMPLATE.md` as the checklist.
-- Map every visible in-app module to an existing SwiftUI surface, Store, repository, model, or mark it as a new feature.
-- Ignore any long oval Customer/Groomer toggle above the visible app frame.
-
-Allowed inside a screenshot task:
-
-- Visual-only work.
-- Existing-feature rewiring to current Store/repository/model paths.
-- Small reusable DesignSystem primitive work within the screenshot scope.
-
-Stop before:
-
-- New persistence, schema, RLS, RPC, Storage, navigation, role capability, or deferred-feature work.
-- Direct Supabase access from SwiftUI.
-- Copying HTML/CSS/React into SwiftUI.
-
-## Compaction
-
-Session end at the task boundary is the default context reset; manual `/compact` is the fallback for a single oversized in-flight task and follows the 353,000-token 65%/80% thresholds in `CONTEXT_AND_RECOVERY.md`. Completing a periodic meta-review always creates a compaction boundary regardless of token percentage. Before compaction or a checkpoint-based session end, write a checkpoint with task ID/status, files changed, validation, key decisions, risks, and next context. Invoke host compaction when callable; otherwise hand off `/compact` explicitly and stop.
-
-## Reporting
-
-Keep final reports concise. Use the final response rules in `AGENTS.md`; do not create a separate report file unless the user explicitly asks for one.
+Visual-only work, existing-feature rewiring, and small presentation primitives may stay in scope. Stop before new persistence, backend behavior, navigation, role capability, deferred features, or direct Supabase access from SwiftUI.

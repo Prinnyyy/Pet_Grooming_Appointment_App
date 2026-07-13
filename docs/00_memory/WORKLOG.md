@@ -2,12 +2,21 @@
 
 ```text
 Date: 2026-07-13
+Task: T-348 - Workflow source-of-truth consolidation.
+Files changed: AGENTS/Claude adapters; five workflow owner files; Meta Review template; root/docs/memory indexes; D-033; hygiene policy/check/tests; frozen source snapshots; task memory.
+Checks: 36 docs governance tests, workflow ownership/forbidden-rule searches, local links, word/line telemetry, git diff check, and context hygiene passed.
+Result: Seven rule/adapter files fell from 6,517 to 3,149 words. Each concern has one owner; AGENTS/Claude meet enforced 600/250-word ceilings. Meta-review now reserves a fresh session, host telemetry replaces fixed capacity, development RED differs from final validation, Simulator can be user-deferred, host skills are not capped, and incomplete checkpoint Git requires approval.
+Risks: The orphan agent-preflight path and automatic completed-artifact rotation remain for the separate closeout-automation task. Existing generic telemetry overages outside workflow are informational.
+Next: No automatic follow-up. Use T-349 for the next new task; T-340 remains separately planned.
+```
+
+```text
+Date: 2026-07-13
 Task: T-347 - Heavy UI context routing and design-contract separation.
 Files changed: UI redesign routing/ignore rules; core, accessibility, form, and Groomer design contracts; active indexes; frozen source snapshots; context hygiene policy/check/tests; task memory.
 Checks: 34 docs governance tests, git diff check, active links, default and fallback heavy-path visibility, word telemetry, and context hygiene passed.
 Result: The 31.5k-word UI redesign body remains tracked but is hidden from default context behind one README. DesignSystem is a 660-word core entry; accessibility and form behavior are separate on-demand contracts. Completed Groomer execution history is removed from default feature routes and preserved verbatim in frozen snapshots.
 Risks: Heavy evidence can become stale and must be verified against current code. Workflow source ownership, validation conflicts, and closeout automation remain separate tasks.
-Next: No automatic follow-up. Use T-348 for the next new task; T-340 remains separately planned.
 ```
 
 ```text

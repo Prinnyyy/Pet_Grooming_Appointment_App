@@ -22,7 +22,7 @@ Durable product and architecture decisions live in `docs/07_decisions/DECISION_L
 - Update `docs/07_decisions/DECISION_LOG.md` when a durable architecture/product decision changes.
 - Keep history out of `CURRENT_STATE.md`; link to `WORKLOG.md`, `TASK_LEDGER.md`, archived task records, or domain docs instead.
 - Keep task-by-task timelines out of `FEATURE_INDEX.md`; route to the smallest active domain docs/code area instead.
-- After any task that updates durable memory, run `node scripts/context-hygiene-check.mjs` and roll older history into `docs/09_frozen/` if active files exceed their limits.
+- After durable-memory changes, run `node scripts/context-hygiene-check.mjs`; rotate only structurally overfull windows or completed artifacts, not generic word telemetry.
 - Whole-file state snapshots taken before a coordinated reset live under `docs/09_frozen/active_state_snapshots/`; they are recovery evidence, never startup context.
 
 ## Conflict Rules

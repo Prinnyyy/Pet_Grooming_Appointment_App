@@ -1,0 +1,84 @@
+# CLAUDE.md
+
+This file gives Claude Code the minimum active context for this repository.
+
+## Active Phase
+
+The MVP implementation is complete and the implemented Beckon UI phase is historical. Current task state and numbering live in `docs/06_tasks/TASK_LEDGER.md`.
+
+Detailed task records, including T-001 through T-088 and completed Beckon UI records, are archived under:
+
+```text
+docs/09_frozen/task_records_2026-06-26/
+```
+
+This Claude guide does not define active work. Start new work only from an explicit user request and the next available task ID in the ledger.
+Historical Claude-only reference snapshots live under `docs/09_frozen/claude_reference_2026-07-08/` and are not default startup context.
+
+## Claude's Role
+
+Claude Code's role in this project is review, not implementation.
+
+Without explicit user authorization, Claude must not modify project files, including Swift, Xcode, Supabase, scripts, configuration, or docs. Allowed default actions are read-only review, analysis, and recommendations.
+
+Changes to `AGENTS.md`, `CLAUDE.md`, or `docs/05_workflow/**` must be a standalone numbered task with a decision-log entry and context hygiene.
+
+## Current Task Reading Rules
+
+For current project work, start with:
+
+- `AGENTS.md`
+- `docs/05_workflow/SINGLE_AGENT_WORKFLOW.md`
+- `docs/05_workflow/CONTEXT_AND_RECOVERY.md` when read-budget or recovery decisions matter
+- targeted sections of `docs/00_memory/CURRENT_STATE.md`
+- `docs/06_tasks/TASK_LEDGER.md` only when choosing or updating task status
+- `docs/06_tasks/ROADMAP.md` when planning or milestone review matters
+- `docs/07_decisions/DECISION_LOG.md` when reviewing rule or scope decisions
+
+For product or UI tasks, add only the relevant current entrypoints:
+
+- `docs/01_product/PRODUCT_BRIEF.md`
+- `docs/06_tasks/SCREENSHOT_UI_REWORK_TASK_TEMPLATE.md` when a screenshot task is active
+- `docs/08_design/UI_IMPLEMENTATION_NOTES.md`
+- `docs/08_design/screenshots/README.md` when screenshot assets are involved
+- `docs/08_design/design_tokens.json`
+- `docs/01_product/DESIGN_SYSTEM.md`
+- the relevant SwiftUI files for the selected screen
+
+Do not read backend docs, old task files, archived workflow docs, frozen snapshots, historical design prompts, archived product briefs, or full worklog history unless the user explicitly asks for that context or the task directly requires it.
+
+## Non-Negotiable Boundaries
+
+- Preserve the Open Request -> Groomer Offer -> Customer Confirmation -> Booking model.
+- SwiftUI views must not call Supabase directly.
+- Do not change backend schema, RLS, RPCs, repositories, role routing, or product behavior during Beckon UI screen slices.
+- Do not copy HTML/CSS/React code directly into SwiftUI.
+- Treat unsupported prototype features as visual inspiration only.
+- Do not expose tokens, API keys, passwords, raw secrets, or full user identifiers.
+
+## Validation Commands
+
+Use only when the active task requires them:
+
+```sh
+./scripts/ios-build.sh
+./scripts/ios-test.sh
+./scripts/preflight.sh
+./scripts/supabase-check.sh
+```
+
+Use the selected task file's validation commands. Standard SwiftUI screen slices should make one `./scripts/ios-build.sh` attempt by default.
+
+## Source of Truth
+
+- Current state: `docs/00_memory/CURRENT_STATE.md`
+- Task ledger: `docs/06_tasks/TASK_LEDGER.md`
+- Managed roadmap: `docs/06_tasks/ROADMAP.md`
+- Context/recovery: `docs/05_workflow/CONTEXT_AND_RECOVERY.md`
+- Git rules: `docs/05_workflow/GITHUB_RULES.md`
+- Decisions: `docs/07_decisions/DECISION_LOG.md`
+- Product brief: `docs/01_product/PRODUCT_BRIEF.md`
+- Product rules: `docs/01_product/`
+- Backend contract: `docs/03_backend/`
+- Current Beckon design notes: `docs/08_design/UI_IMPLEMENTATION_NOTES.md`
+- Frozen archives: `docs/09_frozen/README.md`

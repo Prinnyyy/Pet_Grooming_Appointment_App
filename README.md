@@ -53,11 +53,6 @@ This README does not define active work. Start new work only from an explicit us
 - Beckon prototype source: `docs/08_design/Beckon.html`
 - Existing SwiftUI design tokens: `ios/Beckon/Beckon/DesignSystem/DesignTokens.swift`
 
-## Validation Commands
+## Validation
 
-```sh
-./scripts/ios-build.sh
-./scripts/ios-test.sh
-./scripts/preflight.sh
-./scripts/supabase-check.sh
-```
+Mode-specific validation and remote-operation authorization live only in `docs/05_workflow/TOOLING_POLICY.md`. Use its task-scoped commands rather than treating every repository script as a default gate.

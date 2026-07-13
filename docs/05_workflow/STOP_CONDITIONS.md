@@ -1,58 +1,23 @@
 # Stop Conditions
 
-Codex must stop and report when any condition occurs.
+Owns: the stop-and-report matrix only.
 
-## Scope Stop
+Expected development RED states are governed by `TOOLING_POLICY.md` and are not stop conditions by themselves.
 
-- The task requires more than one major feature.
-- The task begins to affect unrelated screens/modules.
-- The task requires a product decision not documented.
-- The task cannot be completed without turning one requested task into multiple independent tasks.
-- A change to `AGENTS.md`, `CLAUDE.md`, or `docs/05_workflow/**` appears inside a non-rule task.
+| Trigger | Required action | Owner for detail |
+|---|---|---|
+| Objective expands into another feature, rule task, broad refactor, or unrelated cleanup | Stop and split scope. | `SINGLE_AGENT_WORKFLOW.md` |
+| Product/backend/navigation/role decision is missing or a screenshot cannot map to current ownership | Stop before implementation and request the decision. | Active product/backend docs |
+| Target files contain unexplained user work or the branch/task facts conflict | Stop before edits; report the conflict. | `CONTEXT_AND_RECOVERY.md` |
+| Secret, destructive operation, dependency/signing change, or unauthorized remote operation is required | Stop before the operation and request explicit authorization. | `TOOLING_POLICY.md` |
+| Current docs conflict with code/scripts/migrations/verified tools, or safe continuation needs an unclear/broad L4 read | Stop and report the smallest conflicting evidence. | `CONTEXT_AND_RECOVERY.md` |
+| Completion validation fails outside the one allowed narrow task-caused correction | Report the first real error and stop. | `TOOLING_POLICY.md` |
+| Required Simulator/runtime evidence is unavailable and the user has not deferred it | Report the first blocker and stop. | `TOOLING_POLICY.md` |
+| Completion push fails or is rejected | Report and stop without reconciliation. | `GITHUB_RULES.md` |
+| Context pressure makes the next edit or validation unreliable | Write the minimum checkpoint and end/compact; do not start another task. | `CONTEXT_AND_RECOVERY.md` |
+| Hygiene cannot repair a malformed/insufficient rotation window in one scoped batch | Report the structural blocker and stop. | `CONTEXT_AND_RECOVERY.md` |
 
-## Safety Stop
-
-- A destructive database operation appears necessary.
-- Secrets are required.
-- Remote state is uncertain.
-- User changes would be overwritten.
-- PR, remote write, seed, unrelated cleanup, migration apply, dependency changes, or Git work outside the standing task-completion commit/push approval is needed without explicit user approval.
-
-## Technical Stop
-
-- The first required build or test attempt fails; report the first real error and stop unless the user approves a follow-up.
-- A required completion `git diff --check` attempt fails.
-- An automatic task-completion push fails or is rejected; report it without auto pull, rebase, merge, reset, force-push, or remote reconciliation.
-- The app cannot be launched in the iOS Simulator when simulator launch is required for the task.
-- Required scheme/simulator cannot be detected when app build or simulator launch is required.
-- Supabase schema cannot be verified.
-- Tests fail for reasons unrelated to the current task.
-
-## Beckon UI Stop
-
-- The uploaded screenshot or Beckon design source cannot be read.
-- Design asset source, safety, or licensing is unclear.
-- A screenshot module cannot be mapped to an existing SwiftUI surface, Store/repository/model path, or clearly identified new feature.
-- The screenshot or prototype requires backend schema, RLS, RPC, Storage policy, repository contract, or new persistence changes.
-- The screenshot or prototype requires a deferred feature such as favorites, attachments, read receipts, realtime chat, signed URL image rendering, payments, push behavior beyond the approved T-153/T-157 notification scope, maps, calendars, or admin tooling.
-- The screenshot or prototype implies a new navigation model, role capability, or product flow not already documented.
-- The UI change would require direct Supabase access from SwiftUI.
-- The implementation would reintroduce task-card flow, send-task wording, or customer-facing rejection language.
-- The first T-023C, T-023D1, or T-023D2 build attempt fails outside a clearly task-caused compile issue; report the first real error and stop.
-
-## Context Stop
-
-- Conversation context conflicts with memory docs.
-- Memory docs are missing critical project facts.
-- Current code differs greatly from documented architecture.
-- Current docs conflict with source code, scripts, migrations, or verified tool behavior.
-- L4 frozen/heavy context is needed but the reason is not specific.
-- The next step would require broad full-file reads of archives, Beckon HTML/export, T-129 seed tables, large migrations, or large Swift files.
-- Default search would need to bypass `.rgignore` without a targeted reason.
-- `rg --files -g '*.md'` or another broad inventory would re-include ignored heavy Markdown as routine context.
-- Context hygiene reports an entry-count window above its trigger that one scoped rotation cannot reduce to the retained count because eligible entries are insufficient or the document structure is malformed.
-
-## Required Stop Report
+## Stop Report
 
 ```text
 Stop reason:
@@ -63,11 +28,4 @@ Safe next options:
 User decision needed:
 ```
 
-For screenshot-driven Beckon UI stops, also include:
-
-```text
-Screenshot/module:
-Existing support:
-Likely files:
-Validation needed:
-```
+For screenshot/UI stops, also identify the screenshot module, existing ownership, likely files, and required validation.

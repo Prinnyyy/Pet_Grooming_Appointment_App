@@ -19,7 +19,7 @@ This folder is the durable project memory and coordination layer for Codex. Use 
 
 ## Access Model
 
-- L0 startup: `../AGENTS.md`, targeted `00_memory/CURRENT_STATE.md`, targeted `06_tasks/TASK_LEDGER.md`.
+- L0 required: `../AGENTS.md` only. Add targeted Current State/Ledger tops only when branch, task, validation, editing, or recovery facts matter.
 - L1 task indexes: this file, `00_memory/FEATURE_INDEX.md`, `03_backend/SUPABASE_CONTRACT.md`, `04_ios/testops/README.md`, `10_project_structure/README.md`.
 - L2 domain rules: targeted product, architecture, backend, iOS, TestOps, workflow files.
 - L3 trace/history: targeted `WORKLOG.md`, `PROJECT_MEMORY.md`, decision log, and reorganization log.
@@ -36,7 +36,7 @@ Default searches honor `../.rgignore`. Do not use broad `rg --files -g '*.md'` a
 - Feature routing index: `00_memory/FEATURE_INDEX.md`
 - Canonical brand identity: `01_product/BRAND_IDENTITY.md`
 - Workflow rules: `05_workflow/SINGLE_AGENT_WORKFLOW.md`
-- Context/recovery and budgets: `05_workflow/CONTEXT_AND_RECOVERY.md`
+- Context access, recovery, compaction, and hygiene: `05_workflow/CONTEXT_AND_RECOVERY.md`
 - Tooling and validation policy: `05_workflow/TOOLING_POLICY.md`
 - Git/GitHub rules: `05_workflow/GITHUB_RULES.md`
 - Stop conditions: `05_workflow/STOP_CONDITIONS.md`
@@ -55,6 +55,6 @@ The canonical work branch is `codex/pet-fit-structure-cleanup` unless the user e
 
 Detailed task records T-001 through T-088 are archived under `09_frozen/task_records_2026-06-26/`. Use `06_tasks/TASK_LEDGER.md` as the single active task-status and task-numbering record.
 
-Keep active memory and policy files compact. When a file exceeds the budgets in `05_workflow/CONTEXT_AND_RECOVERY.md`, archive old content under the matching `09_frozen/` family and keep only current facts/indexes active.
+Keep active memory and policy files compact through single ownership, replacement semantics, structural windows, and completed-artifact rotation. Generic word telemetry is informational; only the workflow entry adapters have enforced ceilings.
 
 This index does not define active work. Start new work only from an explicit user request and the next available task ID in `06_tasks/TASK_LEDGER.md`.

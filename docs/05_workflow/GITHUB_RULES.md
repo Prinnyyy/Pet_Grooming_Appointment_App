@@ -1,57 +1,43 @@
 # GitHub Rules
 
-Use this file for repository operations. Authorization gates live in `TOOLING_POLICY.md`: task-completion commit/push has standing user approval; PR, merge, reset, rebase, tag, branch deletion, repository-setting changes, and non-Git remote writes still require explicit user approval.
+Owns: Git and GitHub conventions, commit formats, branches, pushes, PRs, tags, and reconciliation.
 
-## Repository
+Authorization belongs to `TOOLING_POLICY.md`. This file defines how an authorized operation is performed.
+
+## Repository And Branch
 
 - Canonical repository: `Prinnyyy/Pet_Grooming_Appointment_App`.
 - Work branch baseline comes from `../00_memory/CURRENT_STATE.md`; use another branch only when the user names it.
-- Branch names for new Codex work use `codex/<short-task-name>`.
+- New Codex branches use `codex/<short-task-name>`.
+- Never switch, reset, reconcile, or delete a branch merely because another branch appears newer.
 
-## Commit Messages
+## Completion Commits
 
-Use one task per commit. New commits must include the task ID:
-
-```text
-T-xxx: <type>: <summary>
-```
-
-Allowed `type` values: `feat`, `fix`, `docs`, `chore`, `test`, `migration`.
-
-Good:
+Use one task per completion commit:
 
 ```text
-T-166: docs: harden GitHub workflow rules
+T-xxx: <type>: <specific summary>
 ```
 
-Bad:
+Allowed types: `feat`, `fix`, `docs`, `chore`, `test`, `migration`. Use English and make the summary traceable to the ledger. Keep code, tests, migrations, and task closeout for one objective together; exclude unrelated user work.
+
+Review status and staged diff before commit. Push only the branch just committed. If the push fails, report it without automatic pull, rebase, merge, reset, force-push, or retry.
+
+## Checkpoints
+
+Checkpoint commits and pushes require explicit user approval because standing Git approval covers completed tasks only.
+
+When authorized, use:
 
 ```text
-update docs
+checkpoint(<T-### or package id>): <one-line scope>
 ```
 
-Write summaries in English, imperative or noun-phrase style, and keep them specific enough to map back to `TASK_LEDGER.md`.
+The Worklog checkpoint records incomplete status, changed files, validation, risks, and next action. The resumed task reviews the checkpoint before editing. Do not use stash as a session handoff.
 
-- Checkpoint commits capture incomplete, unvalidated work at a session boundary. Format: `checkpoint(<T-### or package id>): <one-line scope>`. A checkpoint commit must be listed in a WORKLOG checkpoint entry, and the owning task must review it at its next session start before further edits.
+## PRs, Tags, And Cleanup
 
-## Commit Scope
-
-- Keep code, tests, migrations, and durable memory that describe the same task in the same commit.
-- Do not mix unrelated feature, cleanup, and governance work.
-- For Standard or Deep tasks, avoid leaving large cross-layer work uncommitted after validation when the user has authorized committing. Use the checkpoint format above when an incomplete task must cross a session boundary.
-- If a task is docs/workflow-only, say so in the commit body or closeout when useful.
-
-## Pushes, PRs, and Tags
-
-- Push the current work branch automatically after a task-scoped completion commit passes validation.
-- Push only the branch that was just committed.
-- If push fails or is rejected, stop and report; do not auto pull, rebase, merge, reset, force-push, or retry remote reconciliation.
-- PR creation or update requires a user request and must include task ID, validation, known risks, and any skipped checks.
-- Release tags use `vX.Y.Z` and require explicit user approval. Do not infer a release tag from a roadmap or task name.
-
-## Branch Hygiene
-
-- Delete local or remote branches only after user approval and after confirming the branch was merged or intentionally abandoned.
-- Reconciling `main` is a separate explicit task.
-- T-173 reviewed the `main`-only governance commit `2fddf7b`. Do not merge that commit back into this branch: it resets docs to a T-049/T-050-era architecture and deletes or restores paths superseded here.
-- Future `main` alignment should merge this branch's governed documentation forward, or cherry-pick only explicitly reviewed non-stale changes.
+- PR creation/update requires an explicit request and includes task ID, validation, risks, and skipped checks.
+- Release tags use `vX.Y.Z` and require explicit approval.
+- Branch deletion requires approval plus merged/abandoned confirmation.
+- `main` reconciliation is a separate task. The reviewed main-only commit `2fddf7b` contains stale governance and must not be merged into this branch.

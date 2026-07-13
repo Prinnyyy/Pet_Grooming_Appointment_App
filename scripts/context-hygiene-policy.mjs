@@ -1,4 +1,3 @@
-export const MODEL_CONTEXT_CAPACITY_TOKENS = 353000;
 export const DEFAULT_WORD_REFERENCE = 650;
 export const WORKLOG_ENTRY_TRIGGER = 14;
 export const WORKLOG_ENTRY_RETAIN = 8;
@@ -11,9 +10,9 @@ export const DECISION_ARCHIVE_POINTER_TRIGGER = 12;
 export const DECISION_ARCHIVE_POINTER_RETAIN = 6;
 
 export const WORD_REFERENCES = new Map([
-  ["AGENTS.md", 800],
+  ["AGENTS.md", 600],
   ["README.md", 500],
-  ["CLAUDE.md", 600],
+  ["CLAUDE.md", 250],
   ["docs/README.md", 800],
   ["docs/00_memory/CURRENT_STATE.md", 1200],
   ["docs/00_memory/WORKLOG.md", 2500],

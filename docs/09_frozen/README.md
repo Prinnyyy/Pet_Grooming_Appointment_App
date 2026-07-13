@@ -19,6 +19,7 @@ Archived files may contain old TODOs, old paths, old branch/task references, or 
 - `completed_task_plans/`: completed standalone execution and migration plans whose current contracts now live in active domain documents.
 - `roadmaps/`: pre-rotation Roadmap and execution-queue snapshots; active files retain unresolved direction only.
 - `workflow_docs_2026-06-26/`: superseded context, recovery, tool, MCP, Superpowers, and Codex workflow docs consolidated into active workflow entrypoints.
+- `workflow_docs_2026-07-13/`: pre-T-348 snapshots of the seven active workflow/adapter files before single-owner rule consolidation.
 - `workspace_initialization_2026-06-24/`: original workspace initialization prompt.
 - `current_state_snapshots/`: pre-trim snapshots of active `CURRENT_STATE.md` before context-footprint cleanup.
 - `active_state_snapshots/`: coordinated verbatim snapshots of Current State, Worklog, and Task Ledger taken before an active-state reset.

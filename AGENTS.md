@@ -2,82 +2,46 @@
 
 ## Mission
 
-iOS SwiftUI project. Codex makes small, reversible changes and completes one primary task per run, except for the required automatic periodic meta-review handoff.
+Maintain the Beckon iOS SwiftUI repository through small, reversible changes. Complete one primary `T-###` task per session and preserve user work.
 
-## Active Workflow
+## Rule Priority
 
-Use these files as the active workflow sources:
+Apply instructions in this order: host/system, explicit user request, this file, the owner workflow file below, then active project facts. Host-required tools or skills may shape execution but do not expand scope or grant remote authorization.
 
-- `docs/05_workflow/SINGLE_AGENT_WORKFLOW.md`: task flow and completion gate.
-- `docs/05_workflow/CONTEXT_AND_RECOVERY.md`: context tiers, recovery, compaction, and structural hygiene.
-- `docs/05_workflow/TOOLING_POLICY.md`: tools, validation, Supabase, Git, and remote-write rules.
-- `docs/05_workflow/GITHUB_RULES.md`: commit messages, branches, PRs, tags, and reconciliation rules.
-- `docs/05_workflow/STOP_CONDITIONS.md`: when to stop and report.
+Archived agent-team, subagent, workflow, task, and report files are historical only. Do not use them unless the user explicitly re-enables that material.
 
-Do not use archived agent-team or subagent workflows unless the user explicitly re-enables them.
+## Workflow Owners
+
+- `docs/05_workflow/SINGLE_AGENT_WORKFLOW.md`: task lifecycle, mode, scope, closeout, and meta-review scheduling.
+- `docs/05_workflow/CONTEXT_AND_RECOVERY.md`: context access, recovery, compaction, and structural hygiene.
+- `docs/05_workflow/TOOLING_POLICY.md`: validation, tools, credentials, Simulator policy, Supabase, and remote authorization.
+- `docs/05_workflow/GITHUB_RULES.md`: commit, branch, push, PR, tag, and reconciliation conventions.
+- `docs/05_workflow/STOP_CONDITIONS.md`: stop-and-report matrix.
+
+Do not duplicate an owner rule in another active workflow file; link to its owner.
 
 ## Minimal Startup
 
-Read only what the task needs:
+1. Read this file.
+2. Run `git status --short` before edits and preserve unrelated work.
+3. Read targeted top sections of `docs/00_memory/CURRENT_STATE.md` only when branch, validation, risks, or recovery matter.
+4. Read targeted top rows of `docs/06_tasks/TASK_LEDGER.md` only when assigning or updating task status.
+5. After classifying the task, add at most one domain index before targeted rules/code.
 
-1. `AGENTS.md`.
-2. Targeted top sections of `docs/00_memory/CURRENT_STATE.md` only when current branch, risks, or validation state matter.
-3. Targeted top rows of `docs/06_tasks/TASK_LEDGER.md` only when choosing or updating task status.
-4. An active task file only when the user explicitly provides or requests one.
+Default searches honor `.rgignore`. Never use a broad glob that re-includes frozen, seed, export, or heavy UI material. Root/external-agent Markdown is review input, not current fact.
 
-Default searches must honor `.rgignore`. Do not use broad `rg --files -g '*.md'` as a default Markdown inventory because it can re-include ignored seed tables. Use `rg --no-ignore` only for explicitly needed frozen archives, machine-readable seed profiles, generated artifacts, or full design exports.
+## Hard Gates
 
-Root-level or external-agent status/roadmap Markdown is review input only. Active branch, task number, validation, and product facts come from the active sources above. Preserve approved drafts under `docs/09_frozen/external_agent_reports/`; adopted roadmaps are summarized in `docs/06_tasks/ROADMAP.md` without reactivating old task IDs.
-
-## Task Rules
-
-- Preserve user work; run `git status --short` before edits.
-- Work branch baseline comes from `docs/00_memory/CURRENT_STATE.md`; do not continue work from another branch unless the user names it.
-- Use the next available task ID from `docs/06_tasks/TASK_LEDGER.md` for new bugfix or iteration work.
-- If branch, task ID, or status evidence conflicts, verify `CURRENT_STATE.md` plus `TASK_LEDGER.md`; never infer from stale task files, archives, or external reports.
-- One primary task only. Do not start adjacent features, broad refactors, or unrelated cleanup. The only automatic second task allowed is an immediately due periodic meta-review.
-- One `T-###` task per session by default. If closing a task makes the next task the required periodic meta-review, commit and push the first task, then execute that reserved meta-review immediately with its own task ID and commit before ending the session (see `docs/05_workflow/SINGLE_AGENT_WORKFLOW.md`).
-- Make a short plan before non-trivial edits.
-- Changes to `AGENTS.md`, `CLAUDE.md`, or `docs/05_workflow/**` must be a standalone task with a decision-log entry and context hygiene.
-- Keep SwiftUI views thin and route business logic through Store/ViewModel/repository boundaries.
-- Keep backend access behind repository/service boundaries.
-- Do not invent Supabase schema facts or perform destructive database operations.
-- Do not add dependencies, create PRs, make non-Git remote writes, run seeds, or run unrelated cleanup without explicit user approval.
-- Standing Git approval: after required validation, automatically commit and push each completed task's own changes on the current work branch; never include unrelated user work.
-
-## Beckon UI Work
-
-Implemented Beckon MVP UI work is historical; detailed T-001 through T-088 records are archived under `docs/09_frozen/task_records_2026-06-26/`.
-
-Future Beckon UI work is screenshot-driven. One uploaded screenshot is one bounded UI rework task unless the user combines or splits scope. Before SwiftUI edits, map visible modules to existing screens, Stores, repositories, models, or stop for new-feature approval.
-
-Treat the Beckon design source under `docs/08_design/` as visual/interaction reference only. Do not copy HTML/CSS/React into SwiftUI. Ignore any long oval Customer/Groomer toggle above the visible app screen frame as an external prototype control.
-
-If a screenshot implies new persistence, schema, RLS, RPC, Storage, navigation, role capability, or deferred feature, stop and report the decision needed.
-
-## Validation
-
-- Micro: read-only/status/tiny docs; no validation by default.
-- Quick: docs/workflow/small scripts; usually `git diff --check`.
-- Standard: Swift, Xcode, app behavior, or visible UI; `git diff --check` plus one `./scripts/ios-build.sh`.
-- Deep: Supabase, auth, RLS, migrations, storage, major navigation, or high risk; state a validation plan first.
-
-Launch the iOS Simulator only for app/UI behavior changes, screenshot tasks, or explicit inspection requests. Skip simulator launch for docs-only, workflow-only, read-only, and backend-only tasks unless visual inspection is useful.
-
-If a required validation fails, report the first real error and stop unless the user approves a follow-up.
+- Use the ledger's next task ID for new implementation, bugfix, or governed workflow work.
+- One task per session. A due meta-review is reserved as the next task and runs in a fresh session, never automatically after another task.
+- Rule-file changes are standalone tasks with a decision-log entry and context hygiene.
+- Keep SwiftUI presentation thin; business logic stays in Store/ViewModel/repository boundaries. Backend access stays behind repositories/services.
+- Screenshot work maps every module to existing app ownership before editing. New persistence, schema, RLS/RPC, Storage, navigation, role capability, or deferred behavior requires a separate decision.
+- Do not invent backend facts, expose secrets, perform destructive operations, add dependencies, create PRs, or make non-Git remote writes without explicit approval.
+- Subagents remain disabled unless the user explicitly enables them.
 
 ## Completion
 
-Briefly review the diff when files changed. Record closeout in `docs/06_tasks/TASK_LEDGER.md` and `docs/00_memory/WORKLOG.md` when the task changes durable workflow/product state or app behavior. Update `docs/00_memory/CURRENT_STATE.md` only when a future run needs the changed fact.
+Follow the owner files for validation, closeout, context hygiene, and Git. Standing approval covers validated task-completion commits and pushes on the current work branch only; it does not cover incomplete checkpoint commits or other remote operations.
 
-After required validation and closeout, create a task-scoped commit and push the current branch under standing Git approval. Skip commit/push if validation fails, unrelated user work is mixed in, secrets are present, the branch is unclear, or the user disables auto Git. If push fails or is rejected, stop and report; do not auto pull, rebase, merge, reset, force-push, or reconcile.
-
-After durable memory or task-ledger changes, run context hygiene. Word/reference output is informational only. If an entry-count window exceeds its structural trigger, run `node scripts/context-rotate.mjs --apply` once to return it to the retained count, then rerun hygiene.
-
-When moving, deleting, or archiving Markdown, update linked indexes, source-of-truth notes, and ignore/search rules in the same change.
-
-Manual compaction follows the 353,000-token thresholds in `CONTEXT_AND_RECOVERY.md`; Markdown word telemetry never triggers it. A completed periodic meta-review is an additional mandatory compaction boundary. Before `/compact`, write a concise checkpoint with task ID/status, files changed, validation, risks, and next context. Invoke host compaction when callable; otherwise emit an explicit `/compact` handoff and stop without starting another task.
-
-## Recovery
-
-If interrupted or context is stale, follow `docs/05_workflow/CONTEXT_AND_RECOVERY.md`. Do not reconstruct archived subagent state.
+When Markdown moves or disappears, update every active index, link, source-of-truth note, and ignore/search rule in the same task. On interruption or stale context, recover through `CONTEXT_AND_RECOVERY.md` rather than history reconstruction.
