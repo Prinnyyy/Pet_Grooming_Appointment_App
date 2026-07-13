@@ -177,7 +177,19 @@ Run the same focused command. Expected: all selected tests pass.
 - [x] **Step 4: Preserve native `.scrollDismissesKeyboard(.interactively)` ownership** after handoff; add no feature gesture or threshold.
 - [x] **Step 5: Run focused/full tests, build, repository audit, diff, context hygiene, and preflight.**
 
-### Task 9: Groomer and Business Editors
+### Task 9: Shared Interaction Stabilization
+
+**Files:**
+- Modify: shared keyboard reveal/presentation policy and DesignSystem tests.
+- Modify: keyboard design/governance and active task memory.
+
+- [x] **Step 1: Trace the remaining instability** to an already-started reveal animation that Task cancellation cannot stop, plus sheet-lock release while the dismissal drag is still active.
+- [x] **Step 2: Add RED policy tests** requiring non-animated reveal and a keyboard gesture lock retained through tracking/interacting/decelerating until idle.
+- [x] **Step 3: Execute the one-shot reveal in a disabled-animation transaction** so user input cannot overlap a residual programmatic scroll animation.
+- [x] **Step 4: Latch sheet gesture ownership through the active keyboard-dismissal drag** and release only after the scroll phase returns to idle.
+- [x] **Step 5: Keep native interactive dismissal and all feature call sites unchanged; run focused/full tests, build, audit, diff, context hygiene, and preflight.**
+
+### Task 10: Groomer and Business Editors
 
 **Files:**
 - Modify only audited editable callers under `Features/Groomer/`, including profile, services, and offer composition.
@@ -188,7 +200,7 @@ Run the same focused command. Expected: all selected tests pass.
 - [ ] **Step 3: Review the lowest single-line and multiline fields** in Groomer Profile, Services, and Offer composition for shared-rule coverage; runtime interaction remains user validation.
 - [ ] **Step 4: Run focused tests, full iOS tests, build, UI audit, diff, context hygiene, and preflight.**
 
-### Task 10: Modal, Booking, Chat, and Residual Audit
+### Task 11: Modal, Booking, Chat, and Residual Audit
 
 **Files:**
 - Modify audited residual editable callers, including `Features/Bookings/BookingsView.swift` and `Features/Chat/ChatView.swift`, only when their current behavior violates their classification.
@@ -211,7 +223,7 @@ Run the same focused command. Expected: all selected tests pass.
 | Group taller than usable viewport | Stable nearest-edge reveal; no oscillation. |
 | Short page lacks scroll range | Natural nearest reachable position; no synthetic blank space. |
 | Keyboard hidden or hardware keyboard | Zero keyboard overlap and zero keyboard-driven scroll. |
-| Interactive dismissal | User tracking cancels automatic reveal; the same native drag moves the keyboard without competing `scrollTo` calls. |
+| Interactive dismissal | User tracking cancels non-animated automatic reveal; the same native drag moves the keyboard without competing `scrollTo` calls or becoming sheet dismissal. |
 | Dynamic Type | Label, complete control, and immediate validation remain the semantic target. |
 | Page action | Original page coordinate; keyboard may cover it. |
 | Chat/send accessory | May track keyboard after explicit classification. |

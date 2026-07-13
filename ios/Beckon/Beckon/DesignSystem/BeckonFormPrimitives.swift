@@ -7,6 +7,8 @@ nonisolated enum BeckonKeyboardDismissalPolicy {
 }
 
 nonisolated enum BeckonKeyboardRevealPolicy {
+    static let animatesProgrammaticReveal = false
+
     static func shouldCancelAutomaticReveal(for phase: ScrollPhase) -> Bool {
         switch phase {
         case .tracking, .interacting, .decelerating:
@@ -38,6 +40,16 @@ nonisolated enum BeckonKeyboardPresentationPolicy {
     ) -> Bool {
         if additionallyPrevented { return true }
         return keyboardIsOnScreen(keyboardFrame: keyboardFrame, screenBounds: screenBounds)
+    }
+
+    static func shouldRetainKeyboardGestureLock(
+        isKeyboardVisible: Bool,
+        scrollPhase: ScrollPhase,
+        wasLocked: Bool
+    ) -> Bool {
+        if isKeyboardVisible { return true }
+        return wasLocked
+            && BeckonKeyboardRevealPolicy.shouldCancelAutomaticReveal(for: scrollPhase)
     }
 }
 
@@ -195,6 +207,7 @@ private struct BeckonKeyboardAvoidanceModifier: ViewModifier {
     @State private var pendingTask: Task<Void, Never>?
     @State private var automaticRevealRequested = false
     @State private var preventsSheetDismissal = false
+    @State private var scrollPhase: ScrollPhase = .idle
 
     func body(content: Content) -> some View {
         content
@@ -245,11 +258,12 @@ private struct BeckonKeyboardAvoidanceModifier: ViewModifier {
                 requestAutomaticReveal()
             }
             .onScrollPhaseChange { _, phase in
-                guard BeckonKeyboardRevealPolicy.shouldCancelAutomaticReveal(for: phase) else {
-                    return
+                scrollPhase = phase
+                if BeckonKeyboardRevealPolicy.shouldCancelAutomaticReveal(for: phase) {
+                    pendingTask?.cancel()
+                    automaticRevealRequested = false
                 }
-                pendingTask?.cancel()
-                automaticRevealRequested = false
+                updateKeyboardGestureLock()
             }
             .onReceive(NotificationCenter.default.publisher(
                 for: UIResponder.keyboardWillChangeFrameNotification
@@ -262,14 +276,11 @@ private struct BeckonKeyboardAvoidanceModifier: ViewModifier {
                     screenBounds: screenBounds
                 )
                 keyboardFrame = frame
-                preventsSheetDismissal = BeckonKeyboardPresentationPolicy.preventSheetDismissal(
-                    keyboardFrame: frame,
-                    screenBounds: screenBounds
-                )
                 let isKeyboardVisible = BeckonKeyboardPresentationPolicy.keyboardIsOnScreen(
                     keyboardFrame: frame,
                     screenBounds: screenBounds
                 )
+                updateKeyboardGestureLock(isKeyboardVisible: isKeyboardVisible)
                 if BeckonKeyboardRevealPolicy.shouldRequestReveal(
                     wasKeyboardVisible: wasKeyboardVisible,
                     isKeyboardVisible: isKeyboardVisible
@@ -284,8 +295,22 @@ private struct BeckonKeyboardAvoidanceModifier: ViewModifier {
                 lastRequest = nil
                 automaticRevealRequested = false
                 keyboardFrame = .null
-                preventsSheetDismissal = false
+                updateKeyboardGestureLock(isKeyboardVisible: false)
             }
+    }
+
+    private func updateKeyboardGestureLock(isKeyboardVisible: Bool? = nil) {
+        let keyboardIsVisible = isKeyboardVisible
+            ?? BeckonKeyboardPresentationPolicy.keyboardIsOnScreen(
+                keyboardFrame: keyboardFrame,
+                screenBounds: beckonActiveScreenBounds
+            )
+        preventsSheetDismissal =
+            BeckonKeyboardPresentationPolicy.shouldRetainKeyboardGestureLock(
+                isKeyboardVisible: keyboardIsVisible,
+                scrollPhase: scrollPhase,
+                wasLocked: preventsSheetDismissal
+            )
     }
 
     private func requestAutomaticReveal() {
@@ -330,7 +355,9 @@ private struct BeckonKeyboardAvoidanceModifier: ViewModifier {
             guard !Task.isCancelled, focusedTarget == target else { return }
             automaticRevealRequested = false
             let marker = BeckonKeyboardFocusTargetID(target)
-            withAnimation(.easeOut(duration: 0.22)) {
+            var transaction = Transaction(animation: nil)
+            transaction.disablesAnimations = !BeckonKeyboardRevealPolicy.animatesProgrammaticReveal
+            withTransaction(transaction) {
                 proxy.scrollTo(
                     action == .top ? marker.top : marker.bottom,
                     anchor: anchor

@@ -82,8 +82,8 @@ For each changed scrolling form or editor, reviewers must verify the keyboard-aw
 - page-level actions do not float above the keyboard, while true input accessories such as chat send controls may track it;
 - stationary page-action compensation applies only to a bottom-docked keyboard; floating, split, hidden, and hardware keyboards add no offset or blank space;
 - keyboard-aware scrolling forms expose both interactive drag dismissal and the shared explicit `Done` action, so no keyboard type requires leaving the page;
-- automatic reveal runs only for new focus or keyboard appearance, then yields immediately to user tracking/scrolling; geometry or keyboard-frame changes during that gesture must not restart programmatic scrolling;
-- while a software keyboard is onscreen in a sheet, content scrolling/dismissal wins and sheet dismissal is suspended; hidden/hardware keyboards restore normal sheet gestures;
+- automatic reveal is non-animated, runs only for new focus or keyboard appearance, then yields immediately to user tracking/scrolling; geometry or keyboard-frame changes during that gesture must not restart programmatic scrolling;
+- while a software keyboard is onscreen in a sheet, content scrolling/dismissal wins and sheet dismissal is suspended; after an interactive keyboard dismissal, the lock remains through deceleration and releases at idle so the same drag cannot dismiss the sheet;
 - feature code passes only an additional business-lock Boolean and does not compose keyboard-driven `presentationContentInteraction` or `interactiveDismissDisabled` locally;
 - UIKit representables report editing focus through the same callback contract as native SwiftUI fields;
 - no fixed viewport-percentage anchor, guessed offset, negative spacing, fixed text-clipping height, or duplicate feature-local keyboard policy was added.

@@ -66,6 +66,7 @@ struct DesignSystemContractTests {
 
     @Test
     func automaticKeyboardRevealStartsOnlyWhenKeyboardAppears() {
+        #expect(!BeckonKeyboardRevealPolicy.animatesProgrammaticReveal)
         #expect(BeckonKeyboardRevealPolicy.shouldRequestReveal(
             wasKeyboardVisible: false,
             isKeyboardVisible: true
@@ -77,6 +78,35 @@ struct DesignSystemContractTests {
         #expect(!BeckonKeyboardRevealPolicy.shouldRequestReveal(
             wasKeyboardVisible: true,
             isKeyboardVisible: false
+        ))
+    }
+
+    @Test
+    func sheetKeyboardGestureLockReleasesOnlyAfterUserScrollingEnds() {
+        #expect(BeckonKeyboardPresentationPolicy.shouldRetainKeyboardGestureLock(
+            isKeyboardVisible: true,
+            scrollPhase: .idle,
+            wasLocked: false
+        ))
+        #expect(BeckonKeyboardPresentationPolicy.shouldRetainKeyboardGestureLock(
+            isKeyboardVisible: false,
+            scrollPhase: .interacting,
+            wasLocked: true
+        ))
+        #expect(BeckonKeyboardPresentationPolicy.shouldRetainKeyboardGestureLock(
+            isKeyboardVisible: false,
+            scrollPhase: .decelerating,
+            wasLocked: true
+        ))
+        #expect(!BeckonKeyboardPresentationPolicy.shouldRetainKeyboardGestureLock(
+            isKeyboardVisible: false,
+            scrollPhase: .idle,
+            wasLocked: true
+        ))
+        #expect(!BeckonKeyboardPresentationPolicy.shouldRetainKeyboardGestureLock(
+            isKeyboardVisible: false,
+            scrollPhase: .tracking,
+            wasLocked: false
         ))
     }
 

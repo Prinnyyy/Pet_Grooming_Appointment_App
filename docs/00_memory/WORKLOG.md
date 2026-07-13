@@ -2,12 +2,21 @@
 
 ```text
 Date: 2026-07-12
+Task: T-326 - Shared keyboard interaction stabilization.
+Files changed: Shared reveal/presentation policy; DesignSystem policy tests; keyboard design/governance/plan/task/current-state memory.
+Checks: TDD compile RED then focused GREEN; full iOS tests; iOS build; repository UI audit; diff/context/preflight.
+Result: One-shot field reveal no longer leaves a running animation that can oppose a user's drag. Sheet dismissal stays disabled for the complete interactive keyboard-dismissal gesture and releases only when scrolling returns to idle, preventing one drag from switching gesture owners.
+Risks: Runtime feel remains user validation by direction. Groomer/business and residual/modal inputs still require T-327/T-328 adoption inventory. No Feature, Store, repository, backend, dependency, or remote state changed.
+Next: Execute T-327 for Groomer and business-editor inputs.
+```
+
+```text
+Date: 2026-07-12
 Task: T-325 - Shared keyboard drag handoff correction.
 Files changed: Shared reveal/presentation policy; DesignSystem policy tests; keyboard design/governance/plan/task/current-state memory.
 Checks: Apple SwiftUI/UIKit source review; TDD compile RED then focused GREEN; full iOS tests; iOS build; repository UI audit; diff/context/preflight.
 Result: Automatic minimum reveal now runs once for new focus or keyboard appearance, then cancels when user-driven scrolling starts. Geometry and interactive keyboard-frame updates cannot restart `scrollTo`, so the continued downward drag is handled by native interactive keyboard dismissal across every shared-rule consumer.
 Risks: Runtime feel remains user validation by direction. Groomer/business and residual/modal inputs still require T-326/T-327 adoption inventory. No feature, Store, repository, backend, dependency, or remote state changed.
-Next: Execute T-326 for Groomer and business-editor inputs.
 ```
 
 ```text

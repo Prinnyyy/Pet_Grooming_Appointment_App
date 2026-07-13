@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-12
 - Updated by: Codex
-- Latest completed task: T-325 shared keyboard drag handoff correction.
+- Latest completed task: T-326 shared keyboard interaction stabilization.
 - Current task: none; T-157 APNs remains externally blocked and Q-104 Dynamic Type/Accessibility remains user-deferred.
-- Next task ID: use T-326 for Groomer and business-editor keyboard-rule adoption. T-327 covers residual/modal/chat inputs; Groomer Q-104 remains deferred.
+- Next task ID: use T-327 for Groomer and business-editor keyboard-rule adoption. T-328 covers residual/modal/chat inputs; Groomer Q-104 remains deferred.
 
 ## Fast Path
 
@@ -32,6 +32,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Validation Baseline
 
+- T-326 removes two remaining shared interaction races: one-shot minimum reveal now uses a disabled-animation transaction, and keyboard-driven sheet locking remains latched after the keyboard leaves the screen until the active tracking/interacting/decelerating sequence returns to idle. All Feature call sites are unchanged; no Store, repository, backend, dependency, or remote state changed.
 - T-325 fixes the shared drag conflict: automatic minimum reveal is requested only by new focus or a hidden-to-visible keyboard transition, and user tracking/interacting/decelerating cancels pending work. Target geometry and interactive keyboard-frame changes no longer issue competing `scrollTo` calls, so SwiftUI's native interactive dismissal owns the continued downward drag. No feature, Store, repository, backend, dependency, or remote state changed.
 - T-324 makes sheet gesture ownership part of the existing shared keyboard modifier: while any software keyboard frame remains onscreen, content scrolling/interactive keyboard dismissal is prioritized and sheet dismissal is disabled; hidden and hardware keyboards restore normal sheet gestures. Request and Edit Pet route their existing saving/critical-overlay locks through the same Boolean input, removing competing presentation modifiers. Focused/full tests, build, audit, and preflight pass; no business, Store, repository, backend, dependency, or remote state changed.
 - T-323 aligns the shared form contract with Apple keyboard guidance: form content keeps SwiftUI's keyboard safe area and no longer receives synthetic keyboard-height padding. The shared stationary-action layer offsets only for a bottom-docked keyboard, using the system duration and Reduce Motion; floating/hardware keyboards add nothing. Request removes its duplicate observer/padding/offset, while Edit Pet inherits a keyboard-reduced viewport that makes lower fields reachable. Focused/full tests, build, audit, and preflight pass; no business, Store, repository, backend, dependency, or remote state changed.
