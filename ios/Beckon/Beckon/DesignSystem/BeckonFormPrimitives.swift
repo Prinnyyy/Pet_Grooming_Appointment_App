@@ -1,6 +1,20 @@
 import SwiftUI
 import UIKit
 
+nonisolated struct BeckonKeyboardFormLayout: Equatable {
+    static let focusedGroupAnchorY: CGFloat = 0.55
+
+    let keyboardOverlap: CGFloat
+
+    init(containerMaxY: CGFloat, keyboardMinY: CGFloat) {
+        keyboardOverlap = max(0, containerMaxY - keyboardMinY)
+    }
+
+    func scrollBottomClearance(base: CGFloat) -> CGFloat {
+        base + keyboardOverlap
+    }
+}
+
 nonisolated enum BeckonTextInputLimit {
     struct Change: Equatable, Sendable {
         let text: String

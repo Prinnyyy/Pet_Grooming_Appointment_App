@@ -126,6 +126,19 @@ Dark mode remains out of scope. These rules govern the current light palette and
 - **A11Y-R9 Reduced motion:** Custom motion routes through a shared helper that reduces to opacity or no animation when Reduce Motion is enabled. Motion never carries meaning by itself; helper implementation remains follow-up code work.
 - **A11Y-R10 Per-slice Definition of Done:** Every UI slice completes the checklist in `../06_tasks/SCREENSHOT_UI_REWORK_TASK_TEMPLATE.md`; accessibility is verified incrementally instead of deferred to a broad retrofit.
 
+## Keyboard-Aware Form Contract
+
+Apply this contract to scrolling forms and editors. The shared geometry source is `BeckonKeyboardFormLayout` in `DesignSystem/BeckonFormPrimitives.swift`.
+
+- Focus targets represent the complete semantic field group: its visible label or title, the full input control, and immediate validation text when practical. Do not scroll only the text cursor into view.
+- Move the focused group toward the lower usable area above the keyboard. The standard ideal anchor is 55% of the scroll viewport; `ScrollViewReader` must allow normal content-bound clamping. The rule is "try to reach," never add artificial content or force a short page to reach the anchor.
+- Keyboard overlap adds scroll clearance for form content. It must not become arbitrary negative padding, a guessed offset, or a second source of safe-area truth.
+- Page-level actions such as Back, Continue, Save, or Publish retain their original page position and may be covered by the keyboard. They must not automatically become a floating keyboard toolbar. A send/reply control whose sole purpose is text entry is an input accessory and may track the keyboard.
+- Native SwiftUI fields and UIKit-backed representables publish focus through the same field-group target contract. Attach stable IDs to the label-plus-control container, and keep representable focus callbacks at the shared component boundary.
+- Preserve Dynamic Type, VoiceOver order, safe areas, interactive keyboard dismissal, long text, and native focus behavior. Do not use a fixed input height that clips dynamic text.
+
+After a second production screen needs the same orchestration, reuse or extend one DesignSystem container/helper rather than copying notification and scroll code. A feature may own field IDs and business validation, but it must not redefine the keyboard geometry policy.
+
 ## Screenshot Rework Rules
 
 Future Beckon UI work is screenshot-driven. Start from `../06_tasks/SCREENSHOT_UI_REWORK_TASK_TEMPLATE.md`, then map each visible module to `SCREEN_INVENTORY.md`, existing SwiftUI files, and existing Store/repository/model owners.

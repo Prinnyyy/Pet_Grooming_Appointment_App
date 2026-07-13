@@ -70,6 +70,19 @@ Wildcards, missing reasons, alternate wording, detached directives, and exceptio
 
 Feature views own data, business order, actions, and state. `DesignSystem` owns recurring typography, spacing, alignment, color, shape, elevation, control dimensions, and presentation feedback. The audit catches known source patterns; reviewers must still check component reuse, Dynamic Type, VoiceOver, contrast, localization, safe areas, focus, and native control behavior.
 
+### Keyboard and Focus Review
+
+For each changed scrolling form or editor, reviewers must verify the keyboard-aware form contract in `../01_product/DESIGN_SYSTEM.md`:
+
+- focus scrolls the label/title and complete control as one stable target;
+- the target approaches the shared lower ideal anchor and clamps naturally at content bounds;
+- measured keyboard overlap is used only as content clearance or as encapsulated compensation that preserves a page-level action's original coordinate;
+- page-level actions do not float above the keyboard, while true input accessories such as chat send controls may track it;
+- UIKit representables report editing focus through the same callback contract as native SwiftUI fields;
+- no guessed offset, negative spacing, fixed text-clipping height, or duplicate feature-local keyboard policy was added.
+
+Simulator evidence for a migrated form must cover at least one low single-line field and one multiline field when the screen has both. Compare keyboard hidden and shown states, including Dynamic Type when the changed geometry could reflow. Source audit warnings remain review signals; a measured, shared keyboard compensation is not an invitation to suppress UI102 elsewhere.
+
 ## Migration Status
 
 T-312/Q-120 completes the first reference slice: Customer Home, Requests, Request Wizard, and Account have zero strict errors and passed default/Accessibility 3 compact/large integration checks. Remaining repository debt, reviewed geometry, concentrations, and migration ordering live in `UI_CONSISTENCY_DEBT.md`.

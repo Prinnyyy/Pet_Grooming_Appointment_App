@@ -157,7 +157,7 @@ extension CustomerRequestsStoreTests {
 
     @Test
     func requestWizardKeyboardOverlapBecomesScrollClearance() {
-        let layout = CustomerRequestWizardKeyboardLayout(
+        let layout = BeckonKeyboardFormLayout(
             containerMaxY: 800,
             keyboardMinY: 500
         )
@@ -165,7 +165,7 @@ extension CustomerRequestsStoreTests {
         #expect(layout.keyboardOverlap == 300)
         #expect(layout.scrollBottomClearance(base: 24) == 324)
         #expect(
-            CustomerRequestWizardKeyboardLayout(
+            BeckonKeyboardFormLayout(
                 containerMaxY: 800,
                 keyboardMinY: 800
             ).keyboardOverlap == 0

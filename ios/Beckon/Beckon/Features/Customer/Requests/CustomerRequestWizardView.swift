@@ -140,20 +140,6 @@ struct CustomerRequestWizardReviewPresentation: Equatable {
     }
 }
 
-nonisolated struct CustomerRequestWizardKeyboardLayout: Equatable {
-    static let focusedFieldAnchorY: CGFloat = 0.55
-
-    let keyboardOverlap: CGFloat
-
-    init(containerMaxY: CGFloat, keyboardMinY: CGFloat) {
-        keyboardOverlap = max(0, containerMaxY - keyboardMinY)
-    }
-
-    func scrollBottomClearance(base: CGFloat) -> CGFloat {
-        base + keyboardOverlap
-    }
-}
-
 private struct CustomerRequestWizardBottomBarHeightKey: PreferenceKey {
     static var defaultValue: CGFloat = 0
 
@@ -834,7 +820,7 @@ struct CustomerRequestWizardView: View {
     ) {
         guard let keyboardFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey]
             as? CGRect else { return }
-        keyboardOverlap = CustomerRequestWizardKeyboardLayout(
+        keyboardOverlap = BeckonKeyboardFormLayout(
             containerMaxY: containerMaxY,
             keyboardMinY: keyboardFrame.minY
         ).keyboardOverlap
@@ -850,7 +836,7 @@ struct CustomerRequestWizardView: View {
             withAnimation(.easeOut(duration: 0.22)) {
                 proxy.scrollTo(
                     target,
-                    anchor: UnitPoint(x: 0.5, y: CustomerRequestWizardKeyboardLayout.focusedFieldAnchorY)
+                    anchor: UnitPoint(x: 0.5, y: BeckonKeyboardFormLayout.focusedGroupAnchorY)
                 )
             }
         }

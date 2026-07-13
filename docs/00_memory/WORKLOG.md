@@ -2,12 +2,21 @@
 
 ```text
 Date: 2026-07-12
+Task: T-318 - Reusable keyboard-aware form contract and shared geometry.
+Files changed: DesignSystem keyboard geometry; Request consumer/test rename; design/governance contract; feature/task/current-state routing.
+Checks: Focused Request tests; iOS build; repository UI audit; diff/context/preflight.
+Result: The project now defines one keyboard-aware form contract: focus the label-plus-complete-control group, approach a 55% lower anchor with natural clamping, use measured overlap as content clearance, and keep page actions at their original coordinate. Request consumes the shared geometry without behavior change.
+Risks: Remaining inputs use multiple page, sheet, and accessory containers, so T-319...T-321 migrate them in bounded, Simulator-verified groups. Chat send controls are reviewed as input accessories rather than automatically treated as page actions. No business, repository, backend, or remote state changed.
+Next: Execute T-319 Auth and Customer input migration.
+```
+
+```text
+Date: 2026-07-12
 Task: T-317 - Periodic meta-review.
 Files changed: Current State, Task Ledger, and Worklog closeout only.
 Checks: Clean/synced branch after T-316; task/roadmap/index facts; intentional root Markdown ignore behavior; zero active conflict markers; tracked/local migrations 67/67; governance tests 13/13; context hygiene; preflight; diff.
 Result: Active structure is consistent. T-307 through T-316 satisfy the ten-task cadence; Q-104 remains deferred, T-157 remains blocked, and no package is automatically selectable. Worklog/Ledger retain four/three task slots, so no rotation is due.
 Risks: One reviewed UI102 warning from T-316 is the explicit UIKit keyboard-frame boundary; strict Customer Request Wizard audit has zero errors. No product, app, backend, dependency, remote state, or workflow rule changed.
-Next: T-318 is selected to record the reusable keyboard-aware form positioning rule; compact at this mandatory meta-review boundary before starting it.
 ```
 
 ```text
