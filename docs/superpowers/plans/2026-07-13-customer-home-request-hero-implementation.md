@@ -91,6 +91,5 @@
 - Produces: durable task closeout, commit, and push
 
 - [x] Run focused token/component tests, `./scripts/ios-test.sh`, `./scripts/ios-build.sh`, and `git diff --check`.
-- [ ] Review the diff for visual-only scope and run context hygiene after memory updates.
-- [ ] Record T-341 as completed, preserve T-340 as planned, and set T-342 as next unallocated.
-- [ ] Commit and push only T-341 files on `codex/pet-fit-structure-cleanup`.
+- [x] Review the diff for visual-only scope and run context hygiene after memory updates.
+- [x] Record T-341 as completed, preserve T-340 as planned, and set T-342 as next unallocated.
