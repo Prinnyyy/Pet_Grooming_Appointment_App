@@ -6,6 +6,15 @@ nonisolated enum GroomerOfferFocusTarget: String, CaseIterable, Hashable {
     case message = "groomer.offers.message.container"
 }
 
+nonisolated enum GroomerOfferInputFocusPolicy {
+    static func target(
+        afterTapping tappedTarget: GroomerOfferFocusTarget,
+        current: GroomerOfferFocusTarget?
+    ) -> GroomerOfferFocusTarget {
+        current == tappedTarget ? current ?? tappedTarget : tappedTarget
+    }
+}
+
 struct GroomerRequestsView: View {
     @Binding private var route: GroomerRequestsRoute
     @State private var requestsStore: GroomerRequestsStore
@@ -876,33 +885,21 @@ private struct GroomerRequestDetailView: View {
                     selection: $proposedEnd
                 )
 
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                    Text("Price Estimate")
-                        .font(DesignTokens.Typography.caption)
-                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+                GroomerOfferTextField(
+                    title: "Price Estimate",
+                    text: $priceEstimateText,
+                    keyboardType: .decimalPad,
+                    focusTarget: .price,
+                    focusedTarget: $focusedTarget
+                )
 
-                    TextField("Price Estimate", text: $priceEstimateText)
-                        .focused($focusedTarget, equals: .price)
-                        .keyboardType(.decimalPad)
-                        .beckonFormField()
-                        .tint(DesignTokens.Colors.groomerAccentDark)
-                        .accessibilityIdentifier("groomer.offers.price")
-                }
-                .beckonKeyboardFocusTarget(GroomerOfferFocusTarget.price.rawValue)
-
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                    Text("Message")
-                        .font(DesignTokens.Typography.caption)
-                        .foregroundStyle(DesignTokens.Colors.textSecondary)
-
-                    TextField("Message", text: $message, axis: .vertical)
-                        .focused($focusedTarget, equals: .message)
-                        .lineLimit(3...6)
-                        .beckonFormField()
-                        .tint(DesignTokens.Colors.groomerAccentDark)
-                        .accessibilityIdentifier("groomer.offers.message")
-                }
-                .beckonKeyboardFocusTarget(GroomerOfferFocusTarget.message.rawValue)
+                GroomerOfferTextField(
+                    title: "Message",
+                    text: $message,
+                    isMultiline: true,
+                    focusTarget: .message,
+                    focusedTarget: $focusedTarget
+                )
 
             }
         }
@@ -1209,6 +1206,54 @@ private struct OfferDatePickerField: View {
                 .stroke(DesignTokens.Colors.borderSoft, lineWidth: 1)
         }
         .accessibilityElement(children: .combine)
+    }
+}
+
+private struct GroomerOfferTextField: View {
+    let title: String
+    @Binding var text: String
+    var keyboardType: UIKeyboardType = .default
+    var isMultiline = false
+    let focusTarget: GroomerOfferFocusTarget
+    @FocusState.Binding var focusedTarget: GroomerOfferFocusTarget?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            Text(title)
+                .font(DesignTokens.Typography.caption)
+                .foregroundStyle(DesignTokens.Colors.textSecondary)
+
+            TextField(
+                title,
+                text: $text,
+                axis: isMultiline ? .vertical : .horizontal
+            )
+            .focused($focusedTarget, equals: focusTarget)
+            .keyboardType(keyboardType)
+            .lineLimit(isMultiline ? 3...6 : 1...1)
+            .beckonFormField()
+            .tint(DesignTokens.Colors.groomerAccentDark)
+            .accessibilityIdentifier(accessibilityIdentifier)
+        }
+        .contentShape(Rectangle())
+        .simultaneousGesture(
+            TapGesture().onEnded {
+                focusedTarget = GroomerOfferInputFocusPolicy.target(
+                    afterTapping: focusTarget,
+                    current: focusedTarget
+                )
+            }
+        )
+        .beckonKeyboardFocusTarget(focusTarget.rawValue)
+    }
+
+    private var accessibilityIdentifier: String {
+        switch focusTarget {
+        case .price:
+            "groomer.offers.price"
+        case .message:
+            "groomer.offers.message"
+        }
     }
 }
 

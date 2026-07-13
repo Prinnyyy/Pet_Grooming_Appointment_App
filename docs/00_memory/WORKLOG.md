@@ -2,12 +2,21 @@
 
 ```text
 Date: 2026-07-13
+Task: T-352 - Groomer Offer text-field keyboard activation.
+Files changed: Groomer Request Offer input presentation, focused regression test, and task memory.
+Checks: TDD RED/GREEN; 19 Groomer Requests focused tests; iOS build; git diff check; unified closeout; context hygiene.
+Result: Price Estimate and Message now use one local Offer input component. Tapping anywhere in either visible field group explicitly activates its FocusState while a simultaneous gesture preserves native cursor interaction and the existing shared keyboard avoidance/Done control.
+Risks: Runtime verification could not reopen the consumed match without an unauthorized remote write, so final interaction review remains user-deferred. Focused test compilation exposed three pre-existing unused-result warnings in address/Fit Signals test sources; the app build itself passed with only the expected AppIntents metadata message.
+Next: Use T-353 for the next new task.
+```
+
+```text
+Date: 2026-07-13
 Task: T-351 - Participant-pair chat and automatic booking-event messages.
 Files changed: Supabase conversation/message migration and validation; Chat/Booking repositories, models, stores, views, and tests; backend/product/task indexes.
 Checks: Migration RED/GREEN; Chat and Booking focused tests; full iOS suite; iOS build; preflight; linked migration apply, rollback/authorization validation, final dry-run, security/performance advisors; diff check; unified closeout; context hygiene.
 Result: One durable conversation now serves each Customer/Groomer pair. Offer acceptance and first cancellation by either role atomically send a live Booking card before friendly actor-authored text; cards open the shared role-specific Booking detail. Historical messages were preserved while duplicate remote conversations were merged.
 Risks: Historical lifecycle events were not synthesized. Server read receipts, attachments, and server chat expiry remain deferred. Q-93 leaked-password protection remains a known plan-gated advisor warning.
-Next: Use T-352 for the next new task.
 ```
 
 ```text

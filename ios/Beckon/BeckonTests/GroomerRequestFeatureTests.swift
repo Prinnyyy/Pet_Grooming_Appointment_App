@@ -14,6 +14,22 @@ struct GroomerRequestsStoreTests {
         #expect(Set(targets).count == targets.count)
     }
 
+    @Test
+    func offerInputTapActivatesTheTappedField() {
+        #expect(
+            GroomerOfferInputFocusPolicy.target(
+                afterTapping: .price,
+                current: nil
+            ) == .price
+        )
+        #expect(
+            GroomerOfferInputFocusPolicy.target(
+                afterTapping: .message,
+                current: .price
+            ) == .message
+        )
+    }
+
     @Test @MainActor
     func requestPaginationRetriesThenAppendsUniqueRowsAndStopsAtLastPage() async {
         let groomerID = UUID()
