@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-13
 - Updated by: Codex
-- Latest completed task: T-338 Supabase initial-session compatibility and expiry-safe restore.
-- Current task: none; T-339 is the required periodic meta-review, T-340 is planned, T-157 APNs remains externally blocked, and Q-104 Dynamic Type/Accessibility remains user-deferred.
-- Next task ID: use T-339 for the required periodic meta-review.
+- Latest completed task: T-339 periodic documentation-governance meta-review.
+- Current task: none; T-340 is planned, T-157 APNs remains externally blocked, and Q-104 Dynamic Type/Accessibility remains user-deferred.
+- Next task ID: use T-340 for the planned compiler warning audit and cleanup.
 
 ## Fast Path
 
@@ -36,6 +36,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Validation Baseline
 
+- T-339 periodic meta-review confirms a clean/synced branch, consistent task/roadmap/index and ignored-root routing, zero active conflict markers, the 67/67 migration mirror, current T-300 backend markers, 26/26 governance tests, context hygiene, and preflight. It corrects one stale Feature Index note from T-329 to T-332; no product, app, backend, dependency, or workflow rule changed.
 - T-338 enables Supabase Swift 2.46's `emitLocalSessionAsInitialSession` runtime behavior, preserves `Session.isExpired` through the repository snapshot, and keeps an expired stored session at the loading root until refresh succeeds or signs out. Focused expiry/refresh tests, full iOS tests/build, and a legacy-warning scan pass; no backend or remote state changed.
 - T-337 replaces SwiftUI's native keyboard toolbar styling with one keyboard-notification-driven 52-point trailing circle, placed 12 points above the keyboard and 20 points from the screen edge. It uses a mint checkmark, interactive native Liquid Glass on iOS 26, and an ultra-thin material fallback on iOS 18 through 25. Existing avoidance/direct modifier call sites cover every audited SwiftUI and UIKit-backed input owner. Automated tests/build and static audits pass; manual visual acceptance remains user-owned.
 - T-336 moves Pet Create/Save to the navigation confirmation action with snapshot-based dirty/valid state, removes Request's duplicate header back action while preserving bottom Back/TestOps dismissal, adds role-aware supporting copy to the shared Service Location selector, and extracts one Done accessory used by every input owner including Chat and the DEBUG catalog. Focused/full tests, build, source/UI audits, context hygiene, and preflight pass. Manual in-app UI/UX review is intentionally user-owned; no backend or remote state changed.
@@ -155,7 +156,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - Default context model is L0-L4 in `CONTEXT_AND_RECOVERY.md`.
 - Startup reads stay minimal: `AGENTS.md`, then targeted current-state/task-ledger sections only when needed.
 - Periodic documentation-governance reviews use `docs/06_tasks/META_REVIEW_TEMPLATE.md` every 10 completed tasks or weekly.
-- Last meta-review: T-328 on 2026-07-12.
+- Last meta-review: T-339 on 2026-07-13.
 - V1.0 ideal-operation Q-16...Q-43, Auth package Q-92, and R-038/Q-94...Q-96 are complete. R-039 design T-249 plus Q-97/T-250, Q-98/T-252, Q-99/T-253, Q-100/T-254, Q-101/T-255, Q-102/T-256, Q-103/T-257, and non-Accessibility integration verification T-258 are complete; Q-104 Dynamic Type/Accessibility is user-deferred.
 - Changes to `AGENTS.md`, `CLAUDE.md`, or `docs/05_workflow/**` must be standalone numbered tasks with a decision-log entry and context hygiene.
 - T-180 records standing user approval for task-completion Git commit and push. This approval is limited to current-task changes after validation passes; T-186 requires stopping without auto pull/rebase/merge/reset/force-push if the push fails or is rejected.

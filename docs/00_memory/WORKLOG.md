@@ -2,12 +2,21 @@
 
 ```text
 Date: 2026-07-13
+Task: T-339 - Periodic documentation-governance meta-review.
+Files changed: Current/task/worklog/feature routing only.
+Checks: Clean/synced branch; task/roadmap/index facts; root Markdown ignore/frozen routing; zero active conflict markers; tracked/local migrations 67/67; current backend markers; 26/26 context/rotation governance tests; diff/context/preflight. The first consolidated shell audit used zsh's special `path` variable as a loop name, which removed command lookup for the remaining checks and produced invalid empty counts; those results were discarded, the variable was renamed, and the complete audit reran successfully.
+Result: Active governance is consistent after correcting the stale Feature Index statement that assigned the completed residual/modal/chat audit to T-329 instead of T-332. T-340 is the next planned task and T-341 remains unallocated.
+Risks: T-340 still owns the two app compiler warnings recorded by T-337/T-338; AppIntents metadata extraction remains classified as toolchain information. T-157 and Q-104 remain blocked/deferred. No product, Swift, backend, dependency, remote state, or workflow rule changed.
+Next: T-340 is the planned compiler warning audit and cleanup.
+```
+
+```text
+Date: 2026-07-13
 Task: T-338 - Supabase initial-session compatibility and expiry-safe restore.
 Files changed: Supabase client Auth options; Auth session snapshot/repository mapping; Authentication Store restore policy; focused auth tests; task/current-state memory.
 Checks: Supabase Swift 2.46 source and official PR #822 review; TDD compile RED and focused GREEN; full iOS tests; iOS build; legacy initial-session warning scan; diff/context/preflight. The first GREEN compile exposed a missing Supabase test import and MainActor isolation on the options assertion; both test declarations were corrected and the rerun passed. Context hygiene also rejected two ambiguous Ledger phrasings while T-339 was being reserved; the machine-readable wording now identifies T-339 as the next task and keeps T-341 only as the next unallocated ID.
 Result: Beckon opts into local-session-first initial emission, carries `Session.isExpired` through its repository boundary, and never authorizes an expired cached session. The root remains loading until the SDK emits a valid refreshed session or signed-out state, eliminating the ghost-session startup path and its compatibility warning.
 Risks: A transient refresh failure for which the SDK emits neither token-refreshed nor signed-out leaves the app loading under the SDK's documented contract; no custom timeout or competing refresh loop was added. The build reconfirmed the redundant-await warning now tracked as T-340 and the no-AppIntents metadata message classified as toolchain information. No schema, backend, dependency, or remote state changed.
-Next: T-339 is the required periodic documentation-governance meta-review.
 ```
 
 ```text
