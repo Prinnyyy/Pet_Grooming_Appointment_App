@@ -4,13 +4,20 @@ import Testing
 
 extension CustomerRequestsStoreTests {
     @Test @MainActor
-    func cancelledRequestDetailHidesOffersAndShowsRepublishAfterContent() {
+    func requestCardOffersActionUsesAuthoritativeRequestStatus() {
+        let open = CustomerRequestCardActionsPresentation(status: .open)
+        let hasOffers = CustomerRequestCardActionsPresentation(status: .hasOffers)
+
+        #expect(open.isOffersEnabled == false)
+        #expect(hasOffers.isOffersEnabled)
+    }
+
+    @Test @MainActor
+    func cancelledRequestDetailShowsRepublishWithoutOwningOffers() {
         let cancelled = CustomerRequestDetailPresentation(status: .cancelled)
         let open = CustomerRequestDetailPresentation(status: .open)
 
-        #expect(cancelled.showsOffers == false)
         #expect(cancelled.showsRepublish)
-        #expect(open.showsOffers)
         #expect(open.showsRepublish == false)
     }
 

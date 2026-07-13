@@ -2,12 +2,21 @@
 
 ```text
 Date: 2026-07-13
+Task: T-344 - Direct Customer Request Offers entry and action hierarchy.
+Files changed: Customer Request card action presentation/layout; dedicated Offers destination; Request Detail Offer ownership removal; focused Customer Request contracts; design spec/implementation plan; task/current-state memory.
+Checks: TDD compile RED confirmed the status-backed action presentation did not exist. The first two focused GREEN attempts reached build/signing but stalled before the Simulator test runner because the selected device was shutdown and the deferred execution channel lost process ownership; both Codex-started processes were terminated. After explicitly booting the selected iPhone 17 Pro and retaining a PTY, the focused CustomerRequestsStoreTests completed with TEST SUCCEEDED and both new contracts passed. The standard iOS build passed. Source ownership, diff, and context audits passed. Manual UI/UX review was intentionally not run because visual acceptance is user-owned.
+Result: Active Customer Request cards now place equal Detail and Offers actions on the first row and a full-width red/white Cancel Request action on the second row. Offers is gray/disabled for `.open` and Customer green/enabled only for authoritative `.hasOffers`. The dedicated Offers screen owns loading, refresh, pagination, pending/history groups, Offer detail, and acceptance; Request Details no longer renders or loads Offers. Booking handoff and closed-request behavior are unchanged.
+Risks: Offer-button availability intentionally trusts the Request status machine instead of issuing eager per-card Offer queries. The existing CustomerRequestsStore reminder-result warning remains assigned to T-340; AppIntents metadata extraction remains toolchain information. No Store, repository, backend, persistence, dependency, or remote state changed.
+Next: No automatic follow-up. Use T-345 for the next new task; T-340 remains separately planned.
+```
+
+```text
+Date: 2026-07-13
 Task: T-343 - Shared Customer/Groomer Account architecture and Groomer subtree restyle.
 Files changed: Shared Account/layout/settings primitives; Auth and Customer Account adoption; Groomer workspace compatibility layer; Groomer Account, Profile Settings, Services, Portfolio, Availability, Fit Signals, and Evidence presentation; DesignSystem contract test; UI debt baseline/inventory; task/current-state memory.
 Checks: TDD compile RED confirmed the Account layout policy did not exist, followed by focused DesignSystem GREEN. Two standard iOS builds and the complete iOS suite passed. The UI audit initially reported 18 stale entries resolved by the shared migration and no new errors; guarded baseline prune then passed at 203 current findings/195 baselined. Shared-usage, removed-private-component, business-boundary, diff, and context audits passed. Manual Simulator/UI review was intentionally not run because visual acceptance is user-owned.
 Result: Customer and Groomer now share Account identity, settings navigation, release links, page sections, grouped surfaces, dividers, page insets, and profile-photo editor presentation. Groomer Account no longer owns parallel menu/header/support implementations; its Profile, Services, Portfolio, Availability, Fit Signals, and Evidence pages compose the same shared hierarchy. Legacy Groomer workspace primitives delegate to the shared implementation so remaining Groomer surfaces inherit future shared style changes. Store, repository, Supabase, matching, persistence, and role colors are unchanged.
 Risks: Groomer-specific controls and destructive sign-out behavior remain feature-owned where semantics differ, but they compose shared typography/layout tokens. Q-104 Dynamic Type/Accessibility remains deferred. The two app-owned compiler warnings remain assigned to T-340; AppIntents metadata extraction remains toolchain information.
-Next: No automatic follow-up. Use T-344 for the next new task; T-340 remains separately planned.
 ```
 
 ```text

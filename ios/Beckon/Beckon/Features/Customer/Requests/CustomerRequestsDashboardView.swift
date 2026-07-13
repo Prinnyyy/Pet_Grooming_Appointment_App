@@ -755,17 +755,18 @@ private struct CustomerRequestActionRow: View {
     let onCancelRequest: (CustomerGroomingRequest) -> Void
 
     var body: some View {
-        ViewThatFits(in: .horizontal) {
+        VStack(spacing: DesignTokens.Spacing.sm) {
             HStack(spacing: DesignTokens.Spacing.md) {
                 detailLink
-                cancelButton
+                offersLink
             }
 
-            VStack(spacing: DesignTokens.Spacing.sm) {
-                detailLink
-                cancelButton
-            }
+            cancelButton
         }
+    }
+
+    private var presentation: CustomerRequestCardActionsPresentation {
+        CustomerRequestCardActionsPresentation(status: request.status)
     }
 
     private var detailLink: some View {
@@ -794,14 +795,36 @@ private struct CustomerRequestActionRow: View {
         )
     }
 
+    private var offersLink: some View {
+        NavigationLink {
+            CustomerRequestOffersView(
+                requestID: request.id,
+                store: store
+            )
+        } label: {
+            CustomerRequestActionLabel(
+                title: "Offers",
+                systemImage: "tag",
+                tone: .offersAvailable
+            )
+        }
+        .buttonStyle(.plain)
+        .disabled(!presentation.isOffersEnabled)
+        .accessibilityLabel("Request Offers")
+        .accessibilityIdentifier("customer.requests.offers")
+        .accessibilityValue(
+            AppTestOpsAccessibility.requestReference(request.id)
+        )
+    }
+
     private var cancelButton: some View {
         Button {
             onCancelRequest(request)
         } label: {
             CustomerRequestActionLabel(
-                title: store.isCancelling(request) ? "Cancelling" : "Cancel",
+                title: store.isCancelling(request) ? "Cancelling" : "Cancel Request",
                 systemImage: store.isCancelling(request) ? "hourglass" : "xmark.circle",
-                tone: .destructive
+                tone: .destructiveFilled
             )
         }
         .buttonStyle(.plain)
@@ -811,11 +834,20 @@ private struct CustomerRequestActionRow: View {
     }
 }
 
+struct CustomerRequestCardActionsPresentation: Equatable, Sendable {
+    let isOffersEnabled: Bool
+
+    init(status: GroomingRequestStatus) {
+        isOffersEnabled = status == .hasOffers
+    }
+}
+
 private struct CustomerRequestActionLabel: View {
     enum Tone {
         case primary
         case neutral
-        case destructive
+        case offersAvailable
+        case destructiveFilled
 
         var foreground: Color {
             switch self {
@@ -823,8 +855,10 @@ private struct CustomerRequestActionLabel: View {
                 DesignTokens.Colors.customerAccentStrong
             case .neutral:
                 DesignTokens.Colors.textPrimary
-            case .destructive:
-                DesignTokens.Colors.error
+            case .offersAvailable:
+                DesignTokens.Colors.textPrimary
+            case .destructiveFilled:
+                DesignTokens.Colors.surface
             }
         }
 
@@ -834,8 +868,10 @@ private struct CustomerRequestActionLabel: View {
                 DesignTokens.Colors.customerAccent.opacity(0.46)
             case .neutral:
                 DesignTokens.Colors.border
-            case .destructive:
-                DesignTokens.Colors.error.opacity(0.34)
+            case .offersAvailable:
+                DesignTokens.Colors.customerAccentStrong
+            case .destructiveFilled:
+                DesignTokens.Colors.error
             }
         }
 
@@ -843,8 +879,12 @@ private struct CustomerRequestActionLabel: View {
             switch self {
             case .primary:
                 DesignTokens.Colors.customerAccent.opacity(0.15)
-            case .neutral, .destructive:
+            case .neutral:
                 DesignTokens.Colors.surface
+            case .offersAvailable:
+                DesignTokens.Colors.customerAccent
+            case .destructiveFilled:
+                DesignTokens.Colors.error
             }
         }
     }
@@ -865,13 +905,12 @@ private struct CustomerRequestActionLabel: View {
             .padding(.horizontal, DesignTokens.Spacing.md)
             .background {
                 RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous)
-                    .fill(tone.background)
+                    .fill(isEnabled ? tone.background : DesignTokens.Colors.borderSoft)
             }
             .overlay {
                 RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous)
                     .stroke(isEnabled ? tone.border : DesignTokens.Colors.borderSoft, lineWidth: 1.2)
             }
-            .opacity(isEnabled ? 1 : 0.58)
             .contentShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous))
     }
 }

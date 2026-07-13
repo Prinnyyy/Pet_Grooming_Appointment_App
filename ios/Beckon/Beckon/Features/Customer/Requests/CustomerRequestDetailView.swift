@@ -2,11 +2,9 @@ import Foundation
 import SwiftUI
 
 struct CustomerRequestDetailPresentation: Equatable {
-    let showsOffers: Bool
     let showsRepublish: Bool
 
     init(status: GroomingRequestStatus) {
-        showsOffers = status != .cancelled
         showsRepublish = status == .cancelled
     }
 }
@@ -40,13 +38,6 @@ struct CustomerRequestDetailView: View {
                         requestPhotosCard(request)
                         scheduleLocationCard(request)
 
-                        if presentation.showsOffers {
-                            CustomerOfferReviewSection(
-                                request: request,
-                                store: store
-                            )
-                        }
-
                         if presentation.showsRepublish {
                             CustomerRequestRepublishButton(
                                 actionTitle: "Create a New Request from This Template",
@@ -66,9 +57,6 @@ struct CustomerRequestDetailView: View {
             .navigationTitle("Request Details")
             .navigationBarTitleDisplayMode(.inline)
             .accessibilityIdentifier("customer.requests.detail")
-            .task(id: request.id) {
-                await store.loadOffers(for: request)
-            }
         } else {
             ZStack {
                 DesignTokens.Colors.background
@@ -326,7 +314,7 @@ private struct RequestPhotoThumbnail: View {
     }
 }
 
-private struct CustomerOfferReviewSection: View {
+struct CustomerOfferReviewSection: View {
     let request: CustomerGroomingRequest
     let store: CustomerRequestsStore
 

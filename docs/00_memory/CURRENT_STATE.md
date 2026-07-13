@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-13
 - Updated by: Codex
-- Latest completed task: T-343 shared Customer/Groomer Account architecture and Groomer subtree restyle.
+- Latest completed task: T-344 direct Customer Request Offers entry and action hierarchy.
 - Current task: none. T-340 remains separately planned, T-157 APNs remains externally blocked, and Q-104 Dynamic Type/Accessibility remains user-deferred.
-- Next task ID: T-344 for the next new task.
+- Next task ID: T-345 for the next new task.
 
 ## Fast Path
 
@@ -36,6 +36,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Validation Baseline
 
+- T-344 gives active Customer Request cards a direct, status-backed Offers route: `.open` is gray/disabled and `.hasOffers` is green/enabled. A dedicated Offers page owns loading/list/detail/acceptance while Request Details no longer loads or renders Offers. Focused Customer Request tests and the iOS build pass; manual visual acceptance remains user-owned.
 - T-343 makes Customer and Groomer Account identity, settings navigation, support, section, grouped-surface, divider, and profile-photo presentation share one DesignSystem path. Groomer Profile Settings, Services, Portfolio, Availability, Fit Signals, and Evidence adopt that hierarchy while preserving Store/repository/backend behavior. Focused contracts, full iOS tests/build, and the UI debt ratchet pass; manual visual acceptance remains user-owned.
 - T-342 encodes a missing Apple Place ID as explicit JSON null in the shared Customer/Groomer Profile address RPC payload, allowing PostgREST to match the required nullable `p_place_id` argument. Focused address/Feedback tests, the full iOS suite, and the iOS build pass; no backend or remote state changed.
 - T-341 completed the approved Customer Hero/global palette alignment with focused and full iOS validation plus user visual approval.
