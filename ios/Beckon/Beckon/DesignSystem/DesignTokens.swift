@@ -18,6 +18,7 @@ enum DesignTokens {
         static let textPrimary: UInt = 0x232323
         static let textSecondary: UInt = 0x6F767E
         static let textTertiary: UInt = 0x69717A
+        static let customerHeroText: UInt = 0x333333
         static let customerPrimary: UInt = 0x7ECFC0
         static let customerPrimaryDark: UInt = 0x5FBFAE
         static let customerOnAccent: UInt = 0x12463F
@@ -50,6 +51,7 @@ enum DesignTokens {
         static let textPrimary = Color(hex: ColorHex.textPrimary)
         static let textSecondary = Color(hex: ColorHex.textSecondary)
         static let textTertiary = Color(hex: ColorHex.textTertiary)
+        static let customerHeroText = Color(hex: ColorHex.customerHeroText)
         static let customerPrimary = Color(hex: ColorHex.customerPrimary)
         static let customerPrimaryDark = Color(hex: ColorHex.customerPrimaryDark)
         static let customerOnAccent = Color(hex: ColorHex.customerOnAccent)

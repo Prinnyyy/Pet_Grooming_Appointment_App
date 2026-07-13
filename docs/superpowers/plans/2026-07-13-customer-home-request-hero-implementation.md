@@ -58,7 +58,7 @@
 - [ ] Move hero strings into `CustomerHomeRequestHeroPresentation` and remove the embedded newline.
 - [ ] Match the reference's sampled light mint gradient, 110pt edge-aligned circle, and diagonal paw decoration.
 - [ ] Replace the local filled primary action with a compact white surface action using shared `customerOnAccent` foreground and feature-level semantic typography, with unchanged disabled semantics.
-- [ ] Constrain the copy and action to the same responsive content width, capped at 280pt.
+- [ ] Keep the action content-sized and make the copy follow its measured width, with available-width contraction on narrower devices.
 - [ ] Run focused presentation and accessibility tests and confirm GREEN.
 
 ### Task 4: Validate and close out T-341

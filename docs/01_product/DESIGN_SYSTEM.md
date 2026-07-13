@@ -101,10 +101,11 @@ Approved light-palette color pairs:
 | `textPrimary #232323` | surface or app background | Approved for primary text. |
 | `customerOnAccent #12463F` | mint or mintDark | Approved AA Customer action foreground. |
 | `groomerOnAccent #642620` | coral or coralDark | Approved AA Groomer action foreground. |
-| `textPrimary #232323` | Display P3 Hero mint | Customer Home Hero title and supporting copy; measured contrast remains above WCAG AAA. |
+| `customerHeroText #333333` | Display P3 Hero mint | Softer Customer Home Hero title/supporting copy; measured contrast remains at or above WCAG AAA. |
 | `customerOnAccent #12463F` | surface white | Customer Home Hero action foreground; shared with Customer role action semantics. |
 
 Feature-level promotional modules use `featureTitle` (28pt bold), `body` (17pt), and `prominentAction` (20pt semibold). These shared semantic tokens avoid local fixed-size typography while keeping feature Heroes below page-title scale.
+Their copy width follows the intrinsic action width through layout measurement; copy must not resize the action.
 | surface white | Customer Home Display P3 `#93CEC2` to `#B0D8D9` Hero | Approved screenshot-specific visual exception; accessibility color remediation is deferred by user direction. |
 | `textPrimary #232323` | success, warning, or error fill | Approved for status chips; pair color with text or an icon. |
 | `textTertiary #69717A` | surface or app background | Approved. |

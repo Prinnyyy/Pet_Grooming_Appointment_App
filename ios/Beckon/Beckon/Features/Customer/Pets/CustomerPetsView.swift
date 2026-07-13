@@ -326,10 +326,6 @@ private struct CustomerHomeHeader: View {
 }
 
 private struct CustomerHomeRequestHero: View {
-    private enum Metrics {
-        static let contentMaxWidth: CGFloat = 280
-    }
-
     let isDisabled: Bool
     let action: () -> Void
 
@@ -373,16 +369,16 @@ private struct CustomerHomeRequestHero: View {
                     .accessibilityHidden(true)
                 }
 
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+            CustomerHomeRequestHeroContentLayout(spacing: DesignTokens.Spacing.lg) {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                     Text(CustomerHomeRequestHeroPresentation.title)
                         .font(DesignTokens.Typography.featureTitle)
-                        .foregroundStyle(DesignTokens.Colors.textPrimary)
+                        .foregroundStyle(DesignTokens.Colors.customerHeroText)
                         .fixedSize(horizontal: false, vertical: true)
 
                     Text(CustomerHomeRequestHeroPresentation.message)
                         .font(DesignTokens.Typography.body)
-                        .foregroundStyle(DesignTokens.Colors.textPrimary)
+                        .foregroundStyle(DesignTokens.Colors.customerHeroText)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -402,7 +398,7 @@ private struct CustomerHomeRequestHero: View {
                 .buttonStyle(
                     BeckonSecondaryButtonStyle(
                         accent: .customerHero,
-                        isFullWidth: true,
+                        isFullWidth: false,
                         font: DesignTokens.Typography.prominentAction
                     )
                 )
@@ -416,12 +412,11 @@ private struct CustomerHomeRequestHero: View {
                         systemImage: "pawprint"
                     )
                     .font(DesignTokens.Typography.status)
-                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+                    .foregroundStyle(DesignTokens.Colors.customerHeroText)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityIdentifier("customer.home.start-request.requirement")
                 }
             }
-            .frame(maxWidth: Metrics.contentMaxWidth, alignment: .leading)
             .padding(DesignTokens.Spacing.xl)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -432,6 +427,48 @@ private struct CustomerHomeRequestHero: View {
             )
         )
         .accessibilityElement(children: .contain)
+    }
+}
+
+private struct CustomerHomeRequestHeroContentLayout: Layout {
+    let spacing: CGFloat
+
+    func sizeThatFits(
+        proposal: ProposedViewSize,
+        subviews: Subviews,
+        cache: inout ()
+    ) -> CGSize {
+        guard subviews.count >= 2 else { return .zero }
+
+        let intrinsicActionWidth = subviews[1].sizeThatFits(.unspecified).width
+        let width = min(intrinsicActionWidth, proposal.width ?? intrinsicActionWidth)
+        let sizes = subviews.map {
+            $0.sizeThatFits(ProposedViewSize(width: width, height: nil))
+        }
+        let height = sizes.reduce(0) { $0 + $1.height }
+            + spacing * CGFloat(max(subviews.count - 1, 0))
+
+        return CGSize(width: width, height: height)
+    }
+
+    func placeSubviews(
+        in bounds: CGRect,
+        proposal: ProposedViewSize,
+        subviews: Subviews,
+        cache: inout ()
+    ) {
+        var y = bounds.minY
+
+        for subview in subviews {
+            let childProposal = ProposedViewSize(width: bounds.width, height: nil)
+            let size = subview.sizeThatFits(childProposal)
+            subview.place(
+                at: CGPoint(x: bounds.minX, y: y),
+                anchor: .topLeading,
+                proposal: childProposal
+            )
+            y += size.height + spacing
+        }
     }
 }
 
