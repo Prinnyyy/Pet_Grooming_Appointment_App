@@ -119,6 +119,7 @@ struct BeckonPrimaryButtonStyle: ButtonStyle {
 struct BeckonSecondaryButtonStyle: ButtonStyle {
     enum Accent {
         case customer
+        case customerHero
         case groomer
         case neutral
 
@@ -126,6 +127,8 @@ struct BeckonSecondaryButtonStyle: ButtonStyle {
             switch self {
             case .customer:
                 DesignTokens.Colors.customerOnAccent
+            case .customerHero:
+                DesignTokens.Colors.customerHeroActionForeground
             case .groomer:
                 DesignTokens.Colors.groomerOnAccent
             case .neutral:
@@ -135,7 +138,7 @@ struct BeckonSecondaryButtonStyle: ButtonStyle {
 
         fileprivate var pressedBackground: Color {
             switch self {
-            case .customer:
+            case .customer, .customerHero:
                 DesignTokens.Colors.customerPrimary.opacity(0.14)
             case .groomer:
                 DesignTokens.Colors.groomerAccent.opacity(0.14)

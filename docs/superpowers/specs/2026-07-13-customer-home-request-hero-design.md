@@ -7,10 +7,10 @@ Refresh the existing Customer Home request CTA to follow the supplied Beckon ref
 ## Visual Contract
 
 - Keep the existing light mint customer brand background.
-- Match the supplied light mint background and white title/supporting copy without a darker contrast layer.
+- Match the supplied `#A2D6CD` to `#BCDEE0` light mint background and white title/supporting copy without a darker contrast layer.
 - Let `Need grooming for your pet?` wrap naturally within the same content width as the action; do not embed a manual newline.
-- Present `Start Grooming Request` as a white, full-width action with a scissors SF Symbol and deep customer-mint foreground.
-- Keep the translucent top-right circle and bottom-right paw decoration inside the hero bounds and away from interactive content.
+- Present `Start Grooming Request` as a compact white action with a scissors SF Symbol and sampled `#619B91` foreground, aligned to the copy's leading edge.
+- Keep the approximately 110pt top-right circle and diagonal bottom-right paw decoration inside the hero bounds and away from interactive content.
 - Preserve the disabled requirement message and make disabled action styling visibly distinct.
 
 ## Shared Color Contract

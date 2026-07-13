@@ -326,6 +326,10 @@ private struct CustomerHomeHeader: View {
 }
 
 private struct CustomerHomeRequestHero: View {
+    private enum Metrics {
+        static let contentWidth: CGFloat = 232
+    }
+
     let isDisabled: Bool
     let action: () -> Void
 
@@ -338,8 +342,8 @@ private struct CustomerHomeRequestHero: View {
                 .fill(
                     LinearGradient(
                         colors: [
-                            DesignTokens.Colors.customerPrimary,
-                            DesignTokens.Colors.customerPrimary.opacity(0.78),
+                            DesignTokens.Colors.customerHeroBackgroundStart,
+                            DesignTokens.Colors.customerHeroBackgroundEnd,
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
@@ -347,8 +351,8 @@ private struct CustomerHomeRequestHero: View {
                 )
                 .overlay(alignment: .topTrailing) {
                     Circle()
-                        .fill(DesignTokens.Colors.surface.opacity(0.2))
-                        .frame(width: 152, height: 152)
+                        .fill(DesignTokens.Colors.customerHeroBubble)
+                        .frame(width: 110, height: 110)
                         .accessibilityHidden(true)
                 }
                 .overlay(alignment: .bottomTrailing) {
@@ -357,30 +361,31 @@ private struct CustomerHomeRequestHero: View {
                         Image(systemName: "pawprint.fill")
                             .font(DesignTokens.Typography.pageTitle)
                             .rotationEffect(.degrees(-18))
-                            .offset(x: -34, y: -28)
+                            .offset(x: -26, y: -24)
 
                         Image(systemName: "pawprint.fill")
-                            .font(DesignTokens.Typography.sectionTitle)
+                            .font(DesignTokens.Typography.title)
                             .rotationEffect(.degrees(20))
                     }
-                    .foregroundStyle(DesignTokens.Colors.textPrimary.opacity(0.68))
-                    .padding(DesignTokens.Spacing.lg)
+                    .foregroundStyle(DesignTokens.Colors.customerHeroDecoration)
+                    .padding(.trailing, DesignTokens.Spacing.xl)
+                    .padding(.bottom, DesignTokens.Spacing.xs)
                     .accessibilityHidden(true)
                 }
 
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                     Text(CustomerHomeRequestHeroPresentation.title)
-                        .font(DesignTokens.Typography.pageTitle)
+                        .font(DesignTokens.Typography.sectionTitle)
                         .foregroundStyle(DesignTokens.Colors.surface)
                         .fixedSize(horizontal: false, vertical: true)
 
                     Text(CustomerHomeRequestHeroPresentation.message)
-                        .font(DesignTokens.Typography.body.weight(.semibold))
+                        .font(DesignTokens.Typography.body)
                         .foregroundStyle(DesignTokens.Colors.surface)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(width: Metrics.contentWidth, alignment: .leading)
 
                 Button(action: action) {
                     HStack(spacing: DesignTokens.Spacing.sm) {
@@ -393,9 +398,16 @@ private struct CustomerHomeRequestHero: View {
 
                         Text(CustomerHomeRequestHeroPresentation.actionTitle)
                     }
-                    .frame(maxWidth: .infinity)
+                    .frame(
+                        width: Metrics.contentWidth - (DesignTokens.Spacing.lg * 2)
+                    )
                 }
-                .buttonStyle(BeckonSecondaryButtonStyle(accent: .customer))
+                .buttonStyle(
+                    BeckonSecondaryButtonStyle(
+                        accent: .customerHero,
+                        isFullWidth: false
+                    )
+                )
                 .disabled(isDisabled)
                 .accessibilityIdentifier("customer.home.start-request")
                 .accessibilityLabel(CustomerHomeRequestHeroPresentation.actionTitle)

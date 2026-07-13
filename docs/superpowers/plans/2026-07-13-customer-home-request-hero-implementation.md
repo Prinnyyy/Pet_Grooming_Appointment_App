@@ -56,8 +56,8 @@
 - Produces: reference-aligned hero with natural title wrapping and a white full-width action
 
 - [ ] Move hero strings into `CustomerHomeRequestHeroPresentation` and remove the embedded newline.
-- [ ] Match the reference's light mint gradient, edge-aligned translucent circle, and diagonal paw decoration.
-- [ ] Replace the local filled primary action with a white surface action using deep mint foreground and unchanged disabled semantics.
+- [ ] Match the reference's sampled light mint gradient, 110pt edge-aligned circle, and diagonal paw decoration.
+- [ ] Replace the local filled primary action with a compact white surface action using sampled `#619B91` foreground and unchanged disabled semantics.
 - [ ] Run focused presentation and accessibility tests and confirm GREEN.
 
 ### Task 4: Validate and close out T-341

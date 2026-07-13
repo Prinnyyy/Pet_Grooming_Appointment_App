@@ -21,6 +21,11 @@ enum DesignTokens {
         static let customerPrimary: UInt = 0x7ECFC0
         static let customerPrimaryDark: UInt = 0x5FBFAE
         static let customerOnAccent: UInt = 0x12463F
+        static let customerHeroBackgroundStart: UInt = 0xA2D6CD
+        static let customerHeroBackgroundEnd: UInt = 0xBCDEE0
+        static let customerHeroBubble: UInt = 0xC1E2E0
+        static let customerHeroActionForeground: UInt = 0x619B91
+        static let customerHeroDecoration: UInt = 0x636768
         static let groomerAccent: UInt = 0xFF9A8B
         static let groomerAccentDark: UInt = 0xF58575
         static let groomerOnAccent: UInt = 0x642620
@@ -46,6 +51,11 @@ enum DesignTokens {
         static let customerPrimary = Color(hex: ColorHex.customerPrimary)
         static let customerPrimaryDark = Color(hex: ColorHex.customerPrimaryDark)
         static let customerOnAccent = Color(hex: ColorHex.customerOnAccent)
+        static let customerHeroBackgroundStart = Color(hex: ColorHex.customerHeroBackgroundStart)
+        static let customerHeroBackgroundEnd = Color(hex: ColorHex.customerHeroBackgroundEnd)
+        static let customerHeroBubble = Color(hex: ColorHex.customerHeroBubble)
+        static let customerHeroActionForeground = Color(hex: ColorHex.customerHeroActionForeground)
+        static let customerHeroDecoration = Color(hex: ColorHex.customerHeroDecoration)
         static let customerPrimaryPressed = customerPrimaryDark
         static let groomerAccent = Color(hex: ColorHex.groomerAccent)
         static let groomerAccentDark = Color(hex: ColorHex.groomerAccentDark)
