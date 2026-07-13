@@ -267,8 +267,7 @@ struct CustomerRequestWizardView: View {
                         ScrollView {
                             LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
                                 CustomerRequestWizardHeader(
-                                    currentStep: currentStep,
-                                    backAction: back
+                                    currentStep: currentStep
                                 )
 
                                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
@@ -932,47 +931,14 @@ private enum CustomerRequestWizardDateFormatting {
 }
 
 private struct CustomerRequestWizardHeader: View {
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-
     let currentStep: CustomerRequestWizardStep
-    let backAction: () -> Void
 
     var body: some View {
-        Group {
-            if progressLayout.usesStackedHeader {
-                VStack(alignment: .leading, spacing: progressLayout.horizontalSpacing) {
-                    backButton
-                    progressContent
-                }
-            } else {
-                HStack(spacing: progressLayout.horizontalSpacing) {
-                    backButton
-                    progressContent
-                }
-            }
-        }
-    }
-
-    private var progressLayout: CustomerRequestWizardProgressLayout {
-        CustomerRequestWizardProgressLayout(
-            backButtonWidth: DesignTokens.Metrics.actionHeight,
-            horizontalSpacing: DesignTokens.Layout.sectionContentSpacing,
-            dynamicTypeSize: dynamicTypeSize
-        )
-    }
-
-    private var backButton: some View {
-        Button(action: backAction) {
-            Image(systemName: "chevron.left")
-                .accessibilityHidden(true)
-        }
-        .buttonStyle(BeckonSecondaryButtonStyle(accent: .neutral, isFullWidth: false))
-        .accessibilityLabel("Back")
-        .accessibilityIdentifier(
-            currentStep == .pet
-                ? "customer.requests.wizard.dismiss"
-                : "customer.requests.wizard.header-back"
-        )
+        progressContent
+            .padding(
+                .leading,
+                CustomerRequestWizardHeaderLayout.progressTrackLeadingOffset
+            )
     }
 
     private var progressContent: some View {
@@ -1010,30 +976,17 @@ private struct CustomerRequestWizardHeader: View {
 
 }
 
+nonisolated enum CustomerRequestWizardHeaderLayout {
+    static let progressTrackLeadingOffset: CGFloat = 0
+}
+
 struct CustomerRequestWizardProgressLayout: Equatable {
-    let backButtonWidth: CGFloat
-    let horizontalSpacing: CGFloat
-    let usesStackedHeader: Bool
     let usesSingleColumnChoices: Bool
 
-    init(
-        backButtonWidth: CGFloat,
-        horizontalSpacing: CGFloat,
-        dynamicTypeSize: DynamicTypeSize
-    ) {
-        self.backButtonWidth = backButtonWidth
-        self.horizontalSpacing = horizontalSpacing
-        usesStackedHeader = dynamicTypeSize.isAccessibilitySize
+    init(dynamicTypeSize: DynamicTypeSize) {
         usesSingleColumnChoices = dynamicTypeSize.isAccessibilitySize
     }
 
-    var progressTrackLeadingOffset: CGFloat {
-        backButtonWidth + horizontalSpacing
-    }
-
-    var doesStepLabelShareProgressTrackWidth: Bool {
-        true
-    }
 }
 
 private struct CustomerRequestWizardBottomBar: View {
@@ -1077,6 +1030,11 @@ private struct CustomerRequestWizardBottomBar: View {
         Button("Back", action: backAction)
             .buttonStyle(BeckonSecondaryButtonStyle(accent: .neutral))
             .disabled(isSubmitting)
+            .accessibilityIdentifier(
+                currentStep == .pet
+                    ? "customer.requests.wizard.dismiss"
+                    : "customer.requests.wizard.back"
+            )
 
         Button(action: continueAction) {
             Text(primaryTitle)
@@ -1374,8 +1332,6 @@ private struct CustomerRequestTimeWindowGrid: View {
 
     private var columns: [GridItem] {
         let layout = CustomerRequestWizardProgressLayout(
-            backButtonWidth: DesignTokens.Metrics.actionHeight,
-            horizontalSpacing: DesignTokens.Layout.sectionContentSpacing,
             dynamicTypeSize: dynamicTypeSize
         )
         let count = layout.usesSingleColumnChoices ? 1 : 2

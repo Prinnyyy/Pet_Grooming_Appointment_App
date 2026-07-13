@@ -1,6 +1,25 @@
 import Foundation
 import Observation
 
+nonisolated enum CustomerPetFormConstraints {
+    static let nameMaximumLength = 20
+    static let notesMaximumLength = 2_000
+}
+
+private struct CustomerPetFormSnapshot: Equatable {
+    let name: String
+    let species: CustomerPetSpecies
+    let breed: CustomerPetBreed
+    let coatType: CustomerPetCoatType
+    let weightLbs: Double
+    let birthdayDate: Date?
+    let temperament: CustomerPetTemperament
+    let medicalNotes: String
+    let groomingNotes: String
+    let pendingPhotoData: Data?
+    let pendingPhotoContentType: CustomerPetPhotoContentType?
+}
+
 @MainActor
 @Observable
 final class CustomerPetsStore {
@@ -34,9 +53,23 @@ final class CustomerPetsStore {
     var formMedicalNotes = ""
     var formGroomingNotes = ""
     private(set) var pendingFormPhotos: [PendingCustomerPetPhoto] = []
+    private var formBaseline: CustomerPetFormSnapshot?
 
     var formTitle: String {
         editingPetID == nil ? "Add Pet" : "Edit Pet"
+    }
+
+    var formActionTitle: String {
+        editingPetID == nil ? "Create" : "Save"
+    }
+
+    var hasFormChanges: Bool {
+        guard let formBaseline else { return false }
+        return currentFormSnapshot != formBaseline
+    }
+
+    var canSaveForm: Bool {
+        hasFormChanges && formIsValid && !isSaving
     }
 
     var formAvatarPhotoData: Data? {
@@ -155,6 +188,7 @@ final class CustomerPetsStore {
     func startCreate() {
         editingPetID = nil
         resetForm()
+        captureFormBaseline()
         errorMessage = nil
         noticeMessage = nil
         isShowingPetForm = true
@@ -179,6 +213,7 @@ final class CustomerPetsStore {
         formMedicalNotes = pet.medicalNotes ?? ""
         formGroomingNotes = pet.groomingNotes ?? ""
         pendingFormPhotos = []
+        captureFormBaseline()
         errorMessage = nil
         noticeMessage = nil
         isShowingPetForm = true
@@ -545,6 +580,39 @@ final class CustomerPetsStore {
         formMedicalNotes = ""
         formGroomingNotes = ""
         pendingFormPhotos = []
+        formBaseline = nil
+    }
+
+    private var currentFormSnapshot: CustomerPetFormSnapshot {
+        CustomerPetFormSnapshot(
+            name: formName,
+            species: formSpecies,
+            breed: formBreed,
+            coatType: formCoatType,
+            weightLbs: formWeightLbs,
+            birthdayDate: formBirthdayDate,
+            temperament: formTemperament,
+            medicalNotes: formMedicalNotes,
+            groomingNotes: formGroomingNotes,
+            pendingPhotoData: pendingFormPhotos.last?.data,
+            pendingPhotoContentType: pendingFormPhotos.last?.contentType
+        )
+    }
+
+    private var formIsValid: Bool {
+        let nameCount = formName.trimmingCharacters(in: .whitespacesAndNewlines).count
+        let medicalNotesCount = formMedicalNotes
+            .trimmingCharacters(in: .whitespacesAndNewlines).count
+        let groomingNotesCount = formGroomingNotes
+            .trimmingCharacters(in: .whitespacesAndNewlines).count
+
+        return (1...CustomerPetFormConstraints.nameMaximumLength).contains(nameCount)
+            && medicalNotesCount <= CustomerPetFormConstraints.notesMaximumLength
+            && groomingNotesCount <= CustomerPetFormConstraints.notesMaximumLength
+    }
+
+    private func captureFormBaseline() {
+        formBaseline = currentFormSnapshot
     }
 
     private func makeDraft() throws -> CustomerPetDraft {
@@ -574,12 +642,12 @@ final class CustomerPetsStore {
             medicalNotes: try optional(
                 formMedicalNotes,
                 field: "Medical notes",
-                maximum: 2000
+                maximum: CustomerPetFormConstraints.notesMaximumLength
             ),
             groomingNotes: try optional(
                 formGroomingNotes,
                 field: "Grooming notes",
-                maximum: 2000
+                maximum: CustomerPetFormConstraints.notesMaximumLength
             )
         )
     }

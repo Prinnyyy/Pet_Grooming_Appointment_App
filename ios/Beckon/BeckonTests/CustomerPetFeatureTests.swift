@@ -40,6 +40,46 @@ struct CustomerPetPhotoPathTests {
 }
 
 struct CustomerPetsStoreTests {
+    @Test @MainActor
+    func petFormActionTracksCreateEditValidityAndDirtyState() {
+        let customerID = UUID()
+        let pet = Self.pet(customerID: customerID)
+        let store = CustomerPetsStore(
+            customerID: customerID,
+            repository: CustomerPetRepositoryFake()
+        )
+
+        store.startEdit(pet)
+        #expect(store.formActionTitle == "Save")
+        #expect(!store.hasFormChanges)
+        #expect(!store.canSaveForm)
+
+        store.formName = "Mochi Updated"
+        #expect(store.hasFormChanges)
+        #expect(store.canSaveForm)
+
+        store.formName = pet.name
+        #expect(!store.hasFormChanges)
+        #expect(!store.canSaveForm)
+
+        store.addPendingFormPhoto(data: Data([0x01]), contentType: .jpeg)
+        #expect(store.hasFormChanges)
+        #expect(store.canSaveForm)
+
+        store.startCreate()
+        #expect(store.formActionTitle == "Create")
+        #expect(!store.hasFormChanges)
+        #expect(!store.canSaveForm)
+
+        store.formName = "New Pet"
+        #expect(store.hasFormChanges)
+        #expect(store.canSaveForm)
+
+        store.formName = " "
+        #expect(store.hasFormChanges)
+        #expect(!store.canSaveForm)
+    }
+
     @Test
     func petAgeUsesStoredBirthdayForCardCopy() {
         let pet = CustomerPet(

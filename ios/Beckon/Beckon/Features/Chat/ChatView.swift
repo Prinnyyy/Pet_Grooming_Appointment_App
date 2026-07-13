@@ -332,6 +332,7 @@ nonisolated enum ChatThreadScrollPolicy {
 
 nonisolated enum ChatComposerKeyboardPresentation {
     static let actionPlacement: BeckonKeyboardActionPlacement = .inputAccessory
+    static let includesExplicitDoneAccessory = true
 }
 
 private struct ChatThreadView: View {
@@ -410,6 +411,7 @@ private struct ChatThreadView: View {
             ChatStatusView(store: store, role: role)
         }
         .scrollDismissesKeyboard(.interactively)
+        .beckonKeyboardDoneAccessory()
     }
 
     @ViewBuilder

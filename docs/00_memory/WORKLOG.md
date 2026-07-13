@@ -2,12 +2,22 @@
 
 ```text
 Date: 2026-07-13
+Task: T-336 - Customer form actions and shared keyboard Done.
+Files changed: Pet Store/form navigation action; Request header/progress and TestOps dismissal routing; shared location descriptions; shared Done accessory and input-owner coverage; resolved UI004 baseline prune; focused tests; design spec/plan/system contract; task/current-state memory.
+Checks: TDD compile RED and focused GREEN; complete input-owner source inventory; stale Pet/header source scan; full iOS tests; iOS build; UI consistency audit; diff/context/preflight.
+Result: Add Pet uses Create and Edit Pet uses Save in the navigation bar, disabled until the valid form differs from its baseline; the former bottom Save Pet action is removed. Request has one bottom Back path and full-width progress. Location choices show shared role-aware descriptions. Every Feature input owner and DEBUG catalog receives the same Done accessory with equal trailing/bottom inset.
+Risks: Manual in-app UI/UX review was not performed by Codex per user direction and remains the user's acceptance step. Existing savePet repository behavior, grooming-location raw values, persistence, matching, and backend contracts are unchanged. No schema, dependency, or remote state changed.
+Next: Use T-337 for the next user-directed task.
+```
+
+```text
+Date: 2026-07-13
 Task: T-335 - Shared service-location detail copy cleanup.
 Files changed: Shared grooming-location presentation; Customer/Groomer Request and Booking detail copy; Booking model legacy title removal; presentation tests; Design System and task/current-state memory.
 Checks: Root-cause/source inventory; TDD compile RED and focused GREEN; full iOS tests; iOS build; Simulator launch and error/fault log sample; stale-copy source audit; UI audit; diff/context/preflight.
 Result: Service Location selectors and all identified read-only detail surfaces now use one role-aware copy source. Customer details show My Home or Groomer's Place, Groomer details show Customer's Home or My Place, and duplicate Service Mode/Groomer travels/Customer can visit mappings are removed. Raw values, persistence, and matching semantics are unchanged.
 Risks: Visual review remains user-owned by direction. A missing-location Booking retains the neutral Location Details fallback. No Store, repository, backend, schema, dependency, or remote state changed.
-Next: Use T-336 for the next user-directed task.
+Next: Superseded by the T-336 closeout above.
 ```
 
 ```text

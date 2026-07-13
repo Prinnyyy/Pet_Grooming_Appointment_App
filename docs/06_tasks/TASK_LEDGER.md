@@ -2,7 +2,7 @@
 
 Track only current, blocked, and recent tasks here so Codex does not continue automatically. Older completed rows through T-190 are archived under `docs/09_frozen/task_ledgers/`; active blocked T-157 remains below. Notes should keep conclusions and pointers only; validation detail belongs in `docs/00_memory/WORKLOG.md` or frozen worklogs. Detailed task records T-001 through T-088 and workflow task records remain archived under `docs/09_frozen/task_records_2026-06-26/`.
 
-Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup`; use `T-336` for the next user-directed task.
+Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup`; use `T-337` for the next user-directed task.
 
 Active blocked task: T-157 is waiting on paid Apple Developer Program access before APNs secrets (`APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_TOPIC`, `APNS_PRIVATE_KEY`) and Edge Function deploy.
 
@@ -10,6 +10,7 @@ Active blocked task: T-157 is waiting on paid Apple Developer Program access bef
 
 | ID | Task | Status | Mode | Milestone | Files/Docs | Checks | Notes |
 |---|---|---|---|---|---|---|---|
+| T-336 | Customer form actions and shared keyboard Done | completed | Standard | M14 | Pet dirty-state/navigation action; Request header; location descriptions; shared Done accessory; UI debt prune; tests/spec/plan/memory | TDD RED/GREEN; full iOS tests/build; source/UI audits; diff/context/preflight | Pet Create/Save is a dirty-state navigation action, Request progress has no duplicate header back, shared location choices include role-aware descriptions, and every input owner receives one Done accessory. |
 | T-335 | Shared service-location detail copy cleanup | completed | Standard | M14 | Shared location presentation; Customer/Groomer Request and Booking details; focused presentation tests; task memory | TDD RED/GREEN; full iOS tests/build; launch/log sample; source/UI audit; diff/context/preflight | Selector and read-only details now share Service Location terminology and role-aware values; duplicate old Service Mode mappings are removed without changing raw values or matching. |
 | T-332 | Chat, modal, and residual input audit | completed | Standard | M14 | Shared action classification; Booking review focus integration; Chat/Booking tests; final input inventory; task memory | TDD; focused/full tests; build/launch/log sample; source/UI audit; diff/context/preflight | Every tracked input has an explicit disposition; Chat Send is the sole intentional accessory, and Booking review now uses shared minimum reveal with Submit remaining in page flow. |
 | T-334 | Shared grooming-location selector | completed | Standard | M14 | Shared location selector; Customer Request and Groomer Profile adoption; presentation/selection tests; UI debt baseline; task memory | TDD RED/GREEN; iOS build; source/UI audit; diff/context/preflight | One icon-free component owns role-aware copy, ordering, card layout, and single/multiple selection policy; both forms retain their existing data semantics and four resolved UI debt entries are pruned. |

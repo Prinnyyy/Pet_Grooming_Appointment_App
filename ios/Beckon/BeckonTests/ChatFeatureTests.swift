@@ -6,6 +6,7 @@ struct ChatStoreTests {
     @Test
     func chatComposerRemainsATrueKeyboardAccessory() {
         #expect(ChatComposerKeyboardPresentation.actionPlacement == .inputAccessory)
+        #expect(ChatComposerKeyboardPresentation.includesExplicitDoneAccessory)
     }
 
     @Test

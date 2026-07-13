@@ -107,6 +107,7 @@ struct BeckonComponentCatalog: View {
             .beckonPageInsets()
         }
         .background(DesignTokens.Colors.appBackground)
+        .beckonKeyboardDoneAccessory()
     }
 
     private func catalogCopy(title: String, detail: String) -> some View {

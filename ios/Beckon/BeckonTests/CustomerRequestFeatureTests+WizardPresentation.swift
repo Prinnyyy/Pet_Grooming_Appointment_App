@@ -147,6 +147,14 @@ extension CustomerRequestsStoreTests {
 
         #expect(customerPresentations.map(\.title) == ["My Home", "Groomer's Place"])
         #expect(groomerPresentations.map(\.title) == ["Customer's Home", "My Place"])
+        #expect(customerPresentations.map(\.supportingText) == [
+            "A mobile groomer comes to your address.",
+            "You bring your pet to the groomer's location.",
+        ])
+        #expect(groomerPresentations.map(\.supportingText) == [
+            "You travel to the customer's address.",
+            "The customer brings their pet to your location.",
+        ])
         #expect(
             BeckonGroomingLocationModePresentation.detailSectionTitle ==
                 "Preferred Time and Service Location"
@@ -175,26 +183,19 @@ extension CustomerRequestsStoreTests {
     @Test @MainActor
     func requestWizardStepLabelUsesProgressTrackWidth() {
         let layout = CustomerRequestWizardProgressLayout(
-            backButtonWidth: 54,
-            horizontalSpacing: 16,
             dynamicTypeSize: .large
         )
 
-        #expect(layout.progressTrackLeadingOffset == 70)
-        #expect(layout.doesStepLabelShareProgressTrackWidth == true)
-        #expect(layout.usesStackedHeader == false)
+        #expect(CustomerRequestWizardHeaderLayout.progressTrackLeadingOffset == 0)
         #expect(layout.usesSingleColumnChoices == false)
     }
 
     @Test @MainActor
     func requestWizardAccessibilityThreeUsesStackedSingleColumnLayout() {
         let layout = CustomerRequestWizardProgressLayout(
-            backButtonWidth: 54,
-            horizontalSpacing: 16,
             dynamicTypeSize: .accessibility3
         )
 
-        #expect(layout.usesStackedHeader == true)
         #expect(layout.usesSingleColumnChoices == true)
     }
 

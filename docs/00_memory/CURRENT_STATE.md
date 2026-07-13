@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-13
 - Updated by: Codex
-- Latest completed task: T-335 shared service-location detail copy cleanup.
+- Latest completed task: T-336 customer form actions and shared keyboard Done.
 - Current task: none; T-157 APNs remains externally blocked and Q-104 Dynamic Type/Accessibility remains user-deferred.
-- Next task ID: use T-336 for the next user-directed task. Groomer Q-104 remains deferred.
+- Next task ID: use T-337 for the next user-directed task. Groomer Q-104 remains deferred.
 
 ## Fast Path
 
@@ -32,6 +32,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Validation Baseline
 
+- T-336 moves Pet Create/Save to the navigation confirmation action with snapshot-based dirty/valid state, removes Request's duplicate header back action while preserving bottom Back/TestOps dismissal, adds role-aware supporting copy to the shared Service Location selector, and extracts one Done accessory used by every input owner including Chat and the DEBUG catalog. Focused/full tests, build, source/UI audits, context hygiene, and preflight pass. Manual in-app UI/UX review is intentionally user-owned; no backend or remote state changed.
 - T-335 makes `BeckonGroomingLocationModePresentation` the sole copy source for Service Location selectors and read-only Customer Request, Groomer Request, and Booking details. Old Service Mode and direction strings are removed; Customer sees My Home / Groomer's Place and Groomer sees Customer's Home / My Place. Focused/full tests, build, launch/log sampling, source/UI audits, and preflight pass; no backend or remote state changed.
 - T-332 closes the keyboard migration with an explicit disposition for every tracked production input. Chat Send is the sole true input accessory. Booking review now reports one semantic focus group through shared minimum reveal, Done, interactive dismissal, and hardware-keyboard zero-overlap behavior while Submit Review remains in page flow. Focused/full tests, build, source/UI audits, Simulator launch/log sampling, and preflight pass; no backend or remote state changed.
 - T-334 introduces one icon-free DesignSystem grooming-location selector used by Customer Request and Groomer Profile. It centralizes order, card layout, selection feedback, and perspective-aware copy while preserving Customer single selection, Groomer multiple selection, and the groomer_comes_to_customer / customer_comes_to_groomer backend mapping. Four resolved UI debt entries are explicitly pruned; focused TDD and the standard iOS build pass, with no backend or remote state change.

@@ -11,6 +11,11 @@ nonisolated enum BeckonKeyboardDismissalPolicy {
     static let supportsExplicitDoneAction = true
 }
 
+nonisolated enum BeckonKeyboardDoneAccessoryPolicy {
+    static let trailingInset: CGFloat = 12
+    static let bottomInset: CGFloat = trailingInset
+}
+
 nonisolated enum BeckonKeyboardRevealPolicy {
     static let animatesProgrammaticReveal = false
 
@@ -269,22 +274,7 @@ private struct BeckonKeyboardAvoidanceModifier: ViewModifier {
             .interactiveDismissDisabled(
                 preventsSheetDismissal || additionallyPreventsPresentationDismissal
             )
-            .toolbar {
-                ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
-
-                    Button("Done") {
-                        UIApplication.shared.sendAction(
-                            #selector(UIResponder.resignFirstResponder),
-                            to: nil,
-                            from: nil,
-                            for: nil
-                        )
-                    }
-                    .font(DesignTokens.Typography.action)
-                    .accessibilityIdentifier("beckon.keyboard.done")
-                }
-            }
+            .beckonKeyboardDoneAccessory()
             .onGeometryChange(for: CGRect.self) { geometry in
                 geometry.frame(in: .global)
             } action: { frame in
@@ -425,6 +415,30 @@ private struct BeckonKeyboardAvoidanceModifier: ViewModifier {
     }
 }
 
+private struct BeckonKeyboardDoneAccessoryModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+
+                    Button("Done") {
+                        UIApplication.shared.sendAction(
+                            #selector(UIResponder.resignFirstResponder),
+                            to: nil,
+                            from: nil,
+                            for: nil
+                        )
+                    }
+                    .font(DesignTokens.Typography.action)
+                    .padding(.trailing, BeckonKeyboardDoneAccessoryPolicy.trailingInset)
+                    .padding(.bottom, BeckonKeyboardDoneAccessoryPolicy.bottomInset)
+                    .accessibilityIdentifier("beckon.keyboard.done")
+                }
+            }
+    }
+}
+
 private struct BeckonStationaryPageActionModifier<Actions: View>: ViewModifier {
     let actions: Actions
 
@@ -493,6 +507,10 @@ extension View {
                     additionallyPreventsPresentationDismissal
             )
         )
+    }
+
+    func beckonKeyboardDoneAccessory() -> some View {
+        modifier(BeckonKeyboardDoneAccessoryModifier())
     }
 
     func beckonStationaryPageAction<Actions: View>(

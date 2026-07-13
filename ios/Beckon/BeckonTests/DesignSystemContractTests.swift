@@ -54,6 +54,11 @@ struct DesignSystemContractTests {
     func keyboardAwareFormsAlwaysProvideDismissalPaths() {
         #expect(BeckonKeyboardDismissalPolicy.supportsInteractiveScroll)
         #expect(BeckonKeyboardDismissalPolicy.supportsExplicitDoneAction)
+        #expect(BeckonKeyboardDoneAccessoryPolicy.trailingInset == 12)
+        #expect(
+            BeckonKeyboardDoneAccessoryPolicy.bottomInset ==
+                BeckonKeyboardDoneAccessoryPolicy.trailingInset
+        )
     }
 
     @Test

@@ -510,13 +510,6 @@
       "occurrence": 1
     },
     {
-      "ruleID": "UI004",
-      "path": "ios/Beckon/Beckon/Features/Customer/Pets/CustomerPetFormView.swift",
-      "fingerprint": "6a32689546fddb2fe09c982ec59579c3cba310088bf8f9d23a863780530013b2",
-      "expressionHash": "86096f71cca22f2e742834204f900c3ed76c0bb5ebe9d30b0f603b574bc8ffba",
-      "occurrence": 1
-    },
-    {
       "ruleID": "UI001",
       "path": "ios/Beckon/Beckon/Features/Customer/Pets/CustomerPetFormView.swift",
       "fingerprint": "2435c6084ea9558ee30afd7bf4494d3ca51e284e60812b0ae3818dd7f69f45fc",

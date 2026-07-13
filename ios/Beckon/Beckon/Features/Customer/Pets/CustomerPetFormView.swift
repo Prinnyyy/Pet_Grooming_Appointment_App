@@ -3,7 +3,7 @@ import SwiftUI
 import UIKit
 
 nonisolated enum CustomerPetNameInput {
-    static let maximumLength = 20
+    static let maximumLength = CustomerPetFormConstraints.nameMaximumLength
 
     static func acceptedValue(current: String, proposed: String) -> String {
         proposed.count <= maximumLength ? proposed : current
@@ -158,7 +158,7 @@ struct CustomerPetFormView: View {
                         }
                         .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
                         .padding(.top, DesignTokens.Spacing.lg)
-                        .padding(.bottom, DesignTokens.Spacing.xl * 5)
+                        .padding(.bottom, DesignTokens.Layout.pageBottomInset)
                     }
                     .beckonKeyboardAvoidance(
                         focusedTarget: focusedField?.rawValue,
@@ -170,9 +170,6 @@ struct CustomerPetFormView: View {
             .tint(DesignTokens.Colors.customerPrimaryDark)
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
-            .beckonStationaryPageAction {
-                CustomerPetFormBottomBar(store: store)
-            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
@@ -184,6 +181,15 @@ struct CustomerPetFormView: View {
                     Text(store.formTitle)
                         .font(DesignTokens.Typography.headline)
                         .foregroundStyle(DesignTokens.Colors.textPrimary)
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(store.isSaving ? "Saving..." : store.formActionTitle) {
+                        Task {
+                            await store.savePet()
+                        }
+                    }
+                    .disabled(!store.canSaveForm)
+                    .accessibilityIdentifier("customer.pets.form-save")
                 }
             }
         }
@@ -463,37 +469,6 @@ private struct CustomerPetBirthdayControl: View {
                 .font(CustomerPetFormTypography.fieldValue)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
-        }
-    }
-}
-
-private struct CustomerPetFormBottomBar: View {
-    @Bindable var store: CustomerPetsStore
-
-    var body: some View {
-        VStack(spacing: 0) {
-            Button {
-                Task {
-                    await store.savePet()
-                }
-            } label: {
-                Text(store.isSaving ? "Saving..." : "Save Pet")
-            }
-            .buttonStyle(BeckonPrimaryButtonStyle(accent: .customer))
-            .disabled(store.isSaving)
-            .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-            .padding(.vertical, DesignTokens.Spacing.md)
-            .background(
-                LinearGradient(
-                    colors: [
-                        DesignTokens.Colors.background.opacity(0.2),
-                        DesignTokens.Colors.background,
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .ignoresSafeArea()
-            )
         }
     }
 }

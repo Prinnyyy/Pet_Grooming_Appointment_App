@@ -11,6 +11,7 @@ struct BeckonGroomingLocationModePresentation: Equatable {
     static let detailFieldTitle = "Service Location"
 
     let title: String
+    let supportingText: String
     let leadingIcon: String?
 
     init(
@@ -22,12 +23,16 @@ struct BeckonGroomingLocationModePresentation: Equatable {
         switch (mode, perspective) {
         case (.groomerComesToCustomer, .customer):
             title = "My Home"
+            supportingText = "A mobile groomer comes to your address."
         case (.customerComesToGroomer, .customer):
             title = "Groomer's Place"
+            supportingText = "You bring your pet to the groomer's location."
         case (.groomerComesToCustomer, .groomer):
             title = "Customer's Home"
+            supportingText = "You travel to the customer's address."
         case (.customerComesToGroomer, .groomer):
             title = "My Place"
+            supportingText = "The customer brings their pet to your location."
         }
     }
 }
@@ -78,9 +83,15 @@ struct BeckonGroomingLocationModeSelector: View {
                     )
                 } content: {
                     HStack(spacing: DesignTokens.Spacing.md) {
-                        Text(presentation.title)
-                            .font(DesignTokens.Typography.body.weight(.bold))
-                            .foregroundStyle(DesignTokens.Colors.textPrimary)
+                        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                            Text(presentation.title)
+                                .font(DesignTokens.Typography.body.weight(.bold))
+                                .foregroundStyle(DesignTokens.Colors.textPrimary)
+
+                            Text(presentation.supportingText)
+                                .font(DesignTokens.Typography.supporting)
+                                .foregroundStyle(DesignTokens.Colors.textSecondary)
+                        }
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .fixedSize(horizontal: false, vertical: true)
 
