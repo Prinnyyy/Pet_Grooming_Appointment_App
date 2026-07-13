@@ -873,7 +873,7 @@ struct BookingsStoreTests {
         #expect(booking.participantSummary(for: .groomer) == "Customer ref 12345678")
     }
 
-    @Test
+    @Test @MainActor
     func bookingPresentationUsesGroomerNameAndAppointmentLocationContext() {
         let booking = Self.booking(
             serviceType: .bathAndBrush,
@@ -887,11 +887,22 @@ struct BookingsStoreTests {
 
         #expect(booking.partnerDisplayTitle(for: .customer) == "Ava Chen")
         #expect(booking.appointmentServiceTitle == "Bath & Brush")
-        #expect(booking.appointmentLocationTitle == "Groomer Comes To Customer")
+        #expect(
+            BeckonGroomingLocationModePresentation(
+                mode: .groomerComesToCustomer,
+                perspective: .customer
+            ).title == "My Home"
+        )
+        #expect(
+            BeckonGroomingLocationModePresentation(
+                mode: .groomerComesToCustomer,
+                perspective: .groomer
+            ).title == "Customer's Home"
+        )
         #expect(booking.appointmentAddressSummary == "123 Pine Street, Seattle, WA 98101")
     }
 
-    @Test
+    @Test @MainActor
     func bookingPresentationUsesGroomerLocationFallbackWhenCustomerVisits() {
         let booking = Self.booking(
             groomerBusinessName: nil,
@@ -903,7 +914,12 @@ struct BookingsStoreTests {
         )
 
         #expect(booking.partnerDisplayTitle(for: .customer) == "Groomer Name")
-        #expect(booking.appointmentLocationTitle == "Customer Comes To Groomer")
+        #expect(
+            BeckonGroomingLocationModePresentation(
+                mode: .customerComesToGroomer,
+                perspective: .customer
+            ).title == "Groomer's Place"
+        )
         #expect(booking.appointmentAddressSummary == "456 Groomer Lane, Austin, TX 78701")
     }
 

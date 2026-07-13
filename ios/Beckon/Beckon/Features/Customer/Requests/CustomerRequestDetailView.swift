@@ -148,8 +148,8 @@ struct CustomerRequestDetailView: View {
 
     private func scheduleLocationCard(_ request: CustomerGroomingRequest) -> some View {
         BeckonAnnotatedModule(
-            "Preferred Time and Location",
-            subtitle: "The scheduling window and service area shared with groomers."
+            BeckonGroomingLocationModePresentation.detailSectionTitle,
+            subtitle: BeckonGroomingLocationModePresentation.detailSectionSubtitle
         ) {
             BeckonCard {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
@@ -171,8 +171,11 @@ struct CustomerRequestDetailView: View {
                 DetailMetadataRow(title: "State", value: request.state, systemImage: "map")
                 DetailMetadataRow(title: "ZIP", value: request.zipCode, systemImage: "number")
                 DetailMetadataRow(
-                    title: "Service Mode",
-                    value: request.locationMode.requestDetailTitle,
+                    title: BeckonGroomingLocationModePresentation.detailFieldTitle,
+                    value: BeckonGroomingLocationModePresentation(
+                        mode: request.locationMode,
+                        perspective: .customer
+                    ).title,
                     systemImage: "location.fill"
                 )
                 DetailMetadataRow(
@@ -320,17 +323,6 @@ private struct RequestPhotoThumbnail: View {
             )
         )
         .accessibilityHidden(true)
-    }
-}
-
-private extension GroomingLocationMode {
-    var requestDetailTitle: String {
-        switch self {
-        case .groomerComesToCustomer:
-            "Groomer travels to customer"
-        case .customerComesToGroomer:
-            "Customer can visit groomer"
-        }
     }
 }
 

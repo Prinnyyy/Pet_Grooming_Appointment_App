@@ -147,6 +147,15 @@ extension CustomerRequestsStoreTests {
 
         #expect(customerPresentations.map(\.title) == ["My Home", "Groomer's Place"])
         #expect(groomerPresentations.map(\.title) == ["Customer's Home", "My Place"])
+        #expect(
+            BeckonGroomingLocationModePresentation.detailSectionTitle ==
+                "Preferred Time and Service Location"
+        )
+        #expect(
+            BeckonGroomingLocationModePresentation.detailSectionSubtitle ==
+                "Preferred timing and where grooming will take place."
+        )
+        #expect(BeckonGroomingLocationModePresentation.detailFieldTitle == "Service Location")
         #expect(customerPresentations.allSatisfy { $0.leadingIcon == nil })
         #expect(groomerPresentations.allSatisfy { $0.leadingIcon == nil })
         #expect(

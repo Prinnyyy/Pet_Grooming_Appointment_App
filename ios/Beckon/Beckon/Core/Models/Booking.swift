@@ -182,17 +182,6 @@ struct Booking: Equatable, Hashable, Identifiable, Sendable {
         )
     }
 
-    nonisolated var appointmentLocationTitle: String {
-        switch locationMode {
-        case .groomerComesToCustomer:
-            "Groomer Comes To Customer"
-        case .customerComesToGroomer:
-            "Customer Comes To Groomer"
-        case nil:
-            "Location Details"
-        }
-    }
-
     nonisolated var appointmentAddressSummary: String {
         switch locationMode {
         case .groomerComesToCustomer:

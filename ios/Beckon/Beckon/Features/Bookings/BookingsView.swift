@@ -934,7 +934,10 @@ struct BookingDetailView: View {
                                 BookingDetailFactRow("Service", value: booking.appointmentServiceTitle)
                                 BookingDetailFactRow("Date", value: BookingListDateFormatting.day(from: booking.scheduledStart))
                                 BookingDetailFactRow("Time", value: booking.timeWindowSummary)
-                                BookingDetailFactRow("Service Location", value: booking.appointmentLocationTitle)
+                                BookingDetailFactRow(
+                                    BeckonGroomingLocationModePresentation.detailFieldTitle,
+                                    value: bookingLocationTitle(booking)
+                                )
                                 BookingDetailFactRow("Address", value: booking.appointmentAddressSummary)
                                 BookingDetailFactRow("Price", value: booking.priceSummary)
                             }
@@ -1014,6 +1017,24 @@ struct BookingDetailView: View {
             }
             .navigationTitle("Booking")
         }
+    }
+
+    private func bookingLocationTitle(_ booking: Booking) -> String {
+        guard let locationMode = booking.locationMode else {
+            return "Location Details"
+        }
+
+        let perspective: BeckonGroomingLocationPerspective = switch role {
+        case .customer:
+            .customer
+        case .groomer:
+            .groomer
+        }
+
+        return BeckonGroomingLocationModePresentation(
+            mode: locationMode,
+            perspective: perspective
+        ).title
     }
 }
 

@@ -6,6 +6,10 @@ enum BeckonGroomingLocationPerspective {
 }
 
 struct BeckonGroomingLocationModePresentation: Equatable {
+    static let detailSectionTitle = "Preferred Time and Service Location"
+    static let detailSectionSubtitle = "Preferred timing and where grooming will take place."
+    static let detailFieldTitle = "Service Location"
+
     let title: String
     let leadingIcon: String?
 

@@ -657,7 +657,9 @@ private struct GroomerRequestDetailView: View {
     private func scheduleLocationCard(
         for matchedRequest: GroomerMatchedRequest
     ) -> some View {
-        DetailShellCard(title: "Preferred Time and Service Location") {
+        DetailShellCard(
+            title: BeckonGroomingLocationModePresentation.detailSectionTitle
+        ) {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                 DetailMetadataRow(
                     title: "Start",
@@ -691,8 +693,11 @@ private struct GroomerRequestDetailView: View {
                     systemImage: "number"
                 )
                 DetailMetadataRow(
-                    title: "Service Mode",
-                    value: matchedRequest.request.locationMode.requestDetailTitle,
+                    title: BeckonGroomingLocationModePresentation.detailFieldTitle,
+                    value: BeckonGroomingLocationModePresentation(
+                        mode: matchedRequest.request.locationMode,
+                        perspective: .groomer
+                    ).title,
                     systemImage: "location.fill"
                 )
                 DetailMetadataRow(
@@ -1242,17 +1247,6 @@ private extension GroomingRequestStatus {
 
     var groomerSystemImage: String {
         isOpenForOffers ? "clock" : "checkmark"
-    }
-}
-
-private extension GroomingLocationMode {
-    var requestDetailTitle: String {
-        switch self {
-        case .groomerComesToCustomer:
-            "Groomer travels to customer"
-        case .customerComesToGroomer:
-            "Customer can visit groomer"
-        }
     }
 }
 

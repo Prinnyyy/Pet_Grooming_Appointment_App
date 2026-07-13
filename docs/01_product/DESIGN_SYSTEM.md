@@ -64,6 +64,7 @@ Implemented primitives:
 - `BeckonSection` and compatibility `BeckonSectionHeader`
 - `BeckonGroupedSurface`
 - `BeckonSelectionCard`
+- `BeckonGroomingLocationModeSelector`
 - `BeckonSettingsRowLabel`
 - `BeckonFieldGroup`
 - `BeckonCard`
@@ -77,6 +78,8 @@ Implemented primitives:
 Use `.beckonPageInsets(bottom:)` for standard page geometry. `BeckonRoleAccent` maps Customer, Groomer, and neutral presentation without owning feature navigation or business semantics. `BeckonComponentCatalog` is DEBUG-only and previews default, disabled, selected, invalid, loading, empty, and error states at default and Accessibility 3 sizes.
 
 These primitives own only presentation. Calling screens still own validation, loading state, duplicate-submit prevention, retry actions, navigation, data fetching, and business mutations through existing Store/repository boundaries.
+
+`BeckonGroomingLocationModePresentation` is the single display-copy source for service-location selectors and read-only details. Customer surfaces use My Home / Groomer's Place; Groomer surfaces use Customer's Home / My Place. Feature views must not recreate location-mode labels, section titles, or raw-value display mappings.
 
 Customer Home, Requests, Request Wizard, and Account are the first completed semantic reference slice. They use the token/component contracts above, pass the strict source gate, and reflow through Accessibility 3; future migrations should reuse these contracts without treating any one page as a universal layout.
 
