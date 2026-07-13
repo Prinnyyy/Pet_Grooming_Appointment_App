@@ -6,16 +6,38 @@ nonisolated enum BeckonKeyboardDismissalPolicy {
     static let supportsExplicitDoneAction = true
 }
 
+nonisolated enum BeckonKeyboardRevealPolicy {
+    static func shouldCancelAutomaticReveal(for phase: ScrollPhase) -> Bool {
+        switch phase {
+        case .tracking, .interacting, .decelerating:
+            true
+        case .idle, .animating:
+            false
+        }
+    }
+
+    static func shouldRequestReveal(
+        wasKeyboardVisible: Bool,
+        isKeyboardVisible: Bool
+    ) -> Bool {
+        !wasKeyboardVisible && isKeyboardVisible
+    }
+}
+
 nonisolated enum BeckonKeyboardPresentationPolicy {
+    static func keyboardIsOnScreen(keyboardFrame: CGRect, screenBounds: CGRect) -> Bool {
+        guard keyboardFrame.width > 0, keyboardFrame.height > 0 else { return false }
+        let intersection = screenBounds.intersection(keyboardFrame)
+        return !intersection.isNull && intersection.width > 0 && intersection.height > 0
+    }
+
     static func preventSheetDismissal(
         keyboardFrame: CGRect,
         screenBounds: CGRect,
         additionallyPrevented: Bool = false
     ) -> Bool {
         if additionallyPrevented { return true }
-        guard keyboardFrame.width > 0, keyboardFrame.height > 0 else { return false }
-        let intersection = screenBounds.intersection(keyboardFrame)
-        return !intersection.isNull && intersection.width > 0 && intersection.height > 0
+        return keyboardIsOnScreen(keyboardFrame: keyboardFrame, screenBounds: screenBounds)
     }
 }
 
@@ -171,6 +193,7 @@ private struct BeckonKeyboardAvoidanceModifier: ViewModifier {
     @State private var targetBounds: [String: CGRect] = [:]
     @State private var lastRequest: BeckonKeyboardRevealRequest?
     @State private var pendingTask: Task<Void, Never>?
+    @State private var automaticRevealRequested = false
     @State private var preventsSheetDismissal = false
 
     func body(content: Content) -> some View {
@@ -206,46 +229,76 @@ private struct BeckonKeyboardAvoidanceModifier: ViewModifier {
             }
             .onPreferenceChange(BeckonKeyboardViewportBoundsKey.self) { frame in
                 viewportFrame = frame
-                scheduleReveal()
+                scheduleRequestedReveal()
             }
             .onPreferenceChange(BeckonKeyboardFocusTargetBoundsKey.self) { bounds in
                 targetBounds = bounds
-                scheduleReveal()
+                scheduleRequestedReveal()
             }
             .onChange(of: focusedTarget) { _, target in
                 lastRequest = nil
                 pendingTask?.cancel()
-                guard target != nil else { return }
-                scheduleReveal()
+                guard target != nil else {
+                    automaticRevealRequested = false
+                    return
+                }
+                requestAutomaticReveal()
+            }
+            .onScrollPhaseChange { _, phase in
+                guard BeckonKeyboardRevealPolicy.shouldCancelAutomaticReveal(for: phase) else {
+                    return
+                }
+                pendingTask?.cancel()
+                automaticRevealRequested = false
             }
             .onReceive(NotificationCenter.default.publisher(
                 for: UIResponder.keyboardWillChangeFrameNotification
             )) { notification in
                 guard let frame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey]
                     as? CGRect else { return }
+                let screenBounds = beckonActiveScreenBounds
+                let wasKeyboardVisible = BeckonKeyboardPresentationPolicy.keyboardIsOnScreen(
+                    keyboardFrame: keyboardFrame,
+                    screenBounds: screenBounds
+                )
                 keyboardFrame = frame
                 preventsSheetDismissal = BeckonKeyboardPresentationPolicy.preventSheetDismissal(
                     keyboardFrame: frame,
-                    screenBounds: beckonActiveScreenBounds
+                    screenBounds: screenBounds
                 )
-                scheduleReveal()
+                let isKeyboardVisible = BeckonKeyboardPresentationPolicy.keyboardIsOnScreen(
+                    keyboardFrame: frame,
+                    screenBounds: screenBounds
+                )
+                if BeckonKeyboardRevealPolicy.shouldRequestReveal(
+                    wasKeyboardVisible: wasKeyboardVisible,
+                    isKeyboardVisible: isKeyboardVisible
+                ) {
+                    requestAutomaticReveal()
+                }
             }
             .onReceive(NotificationCenter.default.publisher(
                 for: UIResponder.keyboardWillHideNotification
             )) { _ in
                 pendingTask?.cancel()
                 lastRequest = nil
+                automaticRevealRequested = false
                 keyboardFrame = .null
                 preventsSheetDismissal = false
             }
     }
 
-    private func scheduleReveal() {
+    private func requestAutomaticReveal() {
+        automaticRevealRequested = true
+        scheduleRequestedReveal()
+    }
+
+    private func scheduleRequestedReveal() {
         pendingTask?.cancel()
-        guard let target = focusedTarget,
+        guard automaticRevealRequested,
+              let target = focusedTarget,
               let targetFrame = targetBounds[target],
               viewportFrame != .zero else {
-            lastRequest = nil
             return
         }
 
@@ -257,6 +310,7 @@ private struct BeckonKeyboardAvoidanceModifier: ViewModifier {
         let action = layout.revealAction(for: targetFrame, clearance: clearance)
         guard action != .none,
               let anchor = layout.scrollAnchor(for: action, clearance: clearance) else {
+            automaticRevealRequested = false
             lastRequest = nil
             return
         }
@@ -274,6 +328,7 @@ private struct BeckonKeyboardAvoidanceModifier: ViewModifier {
         pendingTask = Task { @MainActor in
             await Task.yield()
             guard !Task.isCancelled, focusedTarget == target else { return }
+            automaticRevealRequested = false
             let marker = BeckonKeyboardFocusTargetID(target)
             withAnimation(.easeOut(duration: 0.22)) {
                 proxy.scrollTo(

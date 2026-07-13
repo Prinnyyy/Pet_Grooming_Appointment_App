@@ -56,6 +56,31 @@ struct DesignSystemContractTests {
     }
 
     @Test
+    func automaticKeyboardRevealYieldsToUserDrivenScrollPhases() {
+        #expect(!BeckonKeyboardRevealPolicy.shouldCancelAutomaticReveal(for: .idle))
+        #expect(!BeckonKeyboardRevealPolicy.shouldCancelAutomaticReveal(for: .animating))
+        #expect(BeckonKeyboardRevealPolicy.shouldCancelAutomaticReveal(for: .tracking))
+        #expect(BeckonKeyboardRevealPolicy.shouldCancelAutomaticReveal(for: .interacting))
+        #expect(BeckonKeyboardRevealPolicy.shouldCancelAutomaticReveal(for: .decelerating))
+    }
+
+    @Test
+    func automaticKeyboardRevealStartsOnlyWhenKeyboardAppears() {
+        #expect(BeckonKeyboardRevealPolicy.shouldRequestReveal(
+            wasKeyboardVisible: false,
+            isKeyboardVisible: true
+        ))
+        #expect(!BeckonKeyboardRevealPolicy.shouldRequestReveal(
+            wasKeyboardVisible: true,
+            isKeyboardVisible: true
+        ))
+        #expect(!BeckonKeyboardRevealPolicy.shouldRequestReveal(
+            wasKeyboardVisible: true,
+            isKeyboardVisible: false
+        ))
+    }
+
+    @Test
     func sheetDismissalIsSuspendedOnlyWhileSoftwareKeyboardIsOnScreen() {
         let screen = CGRect(x: 0, y: 0, width: 390, height: 844)
 

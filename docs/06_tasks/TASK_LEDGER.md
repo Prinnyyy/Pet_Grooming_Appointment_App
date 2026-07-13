@@ -2,7 +2,7 @@
 
 Track only current, blocked, and recent tasks here so Codex does not continue automatically. Older completed rows through T-190 are archived under `docs/09_frozen/task_ledgers/`; active blocked T-157 remains below. Notes should keep conclusions and pointers only; validation detail belongs in `docs/00_memory/WORKLOG.md` or frozen worklogs. Detailed task records T-001 through T-088 and workflow task records remain archived under `docs/09_frozen/task_records_2026-06-26/`.
 
-Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup`; use `T-325` for the next task, the Groomer and business-editor keyboard-rule adoption.
+Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup`; use `T-326` for the next task, the Groomer and business-editor keyboard-rule adoption.
 
 Active blocked task: T-157 is waiting on paid Apple Developer Program access before APNs secrets (`APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_TOPIC`, `APNS_PRIVATE_KEY`) and Edge Function deploy.
 
@@ -10,8 +10,9 @@ Active blocked task: T-157 is waiting on paid Apple Developer Program access bef
 
 | ID | Task | Status | Mode | Milestone | Files/Docs | Checks | Notes |
 |---|---|---|---|---|---|---|---|
-| T-326 | Chat, modal, and residual input audit | planned | Standard | M14 | Chat composer, booking review/editor, residual SwiftUI/UIKit inputs; tests/memory | Focus/accessory classification; focused tests; build; audit/diff/context/preflight | Account for every residual input; retain keyboard-following controls only when they are true input accessories. |
-| T-325 | Groomer and business-editor minimum-reveal migration | planned | Standard | M14 | Groomer profile/services/offer and related editor inputs; tests/memory | Focused tests; build; audit/diff/context/preflight | Apply shared reveal and dismissal behavior without changing Store/repository behavior. |
+| T-327 | Chat, modal, and residual input audit | planned | Standard | M14 | Chat composer, booking review/editor, residual SwiftUI/UIKit inputs; tests/memory | Focus/accessory classification; focused tests; build; audit/diff/context/preflight | Account for every residual input; retain keyboard-following controls only when they are true input accessories. |
+| T-326 | Groomer and business-editor minimum-reveal migration | planned | Standard | M14 | Groomer profile/services/offer and related editor inputs; tests/memory | Focused tests; build; audit/diff/context/preflight | Apply shared reveal and dismissal behavior without changing Store/repository behavior. |
+| T-325 | Shared keyboard drag handoff correction | completed | Standard | M14 | Shared reveal/presentation policy; contract tests; keyboard rules/task memory | Apple-source review; TDD RED/GREEN; full tests/build; audit/diff/context/preflight | One-shot focus/appearance reveal now yields to user scroll phases, allowing native interactive keyboard dismissal without competing `scrollTo` calls. |
 | T-324 | Unified sheet keyboard gesture arbitration | completed | Standard | M14 | Shared presentation policy/modifier; Request/Pet lock routing; tests/rules/memory | TDD; full iOS tests/build; audit/diff/context/preflight | Software keyboard gestures cannot dismiss a sheet; normal dismissal resumes after keyboard exit, with business locks merged through one shared input. |
 | T-323 | Native keyboard safe-area and scroll-range correction | completed | Standard | M14 | Shared keyboard/action geometry; Request duplicate removal; tests/audit/rules/memory | Apple-source review; TDD; full iOS tests/build; audit tests/diff/context/preflight | Native viewport resizing replaces keyboard-height content padding; docked-only action compensation fixes Request overscroll and Edit Pet reachability globally. |
 | T-322 | Shared keyboard dismissal contract | completed | Standard | M14 | DesignSystem keyboard modifier/contract test; design/governance/plan/memory | TDD RED/GREEN; full iOS tests/build; audit/diff/context/preflight | Every keyboard-aware scrolling form inherits interactive drag dismissal and an explicit Done accessory; page actions remain stationary. |

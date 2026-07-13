@@ -165,7 +165,19 @@ Run the same focused command. Expected: all selected tests pass.
 - [x] **Step 5: Record the concise state table and ownership boundary; keep unsaved-change confirmation as a separate feature/data-protection concern.**
 - [x] **Step 6: Run focused/full tests, build, repository audit, diff, context hygiene, and preflight.**
 
-### Task 8: Groomer and Business Editors
+### Task 8: Interactive Drag Handoff Correction
+
+**Files:**
+- Modify: shared keyboard reveal/presentation policy and DesignSystem tests.
+- Modify: keyboard design/governance and active task memory.
+
+- [x] **Step 1: Trace the drag conflict** to target-geometry and keyboard-frame callbacks repeatedly issuing `ScrollViewProxy.scrollTo` during user scrolling.
+- [x] **Step 2: Add RED policy tests** for user-driven scroll phases and hidden-to-visible keyboard transitions.
+- [x] **Step 3: Make reveal one-shot** for new focus or keyboard appearance, and cancel it when tracking/interacting/decelerating begins.
+- [x] **Step 4: Preserve native `.scrollDismissesKeyboard(.interactively)` ownership** after handoff; add no feature gesture or threshold.
+- [x] **Step 5: Run focused/full tests, build, repository audit, diff, context hygiene, and preflight.**
+
+### Task 9: Groomer and Business Editors
 
 **Files:**
 - Modify only audited editable callers under `Features/Groomer/`, including profile, services, and offer composition.
@@ -176,7 +188,7 @@ Run the same focused command. Expected: all selected tests pass.
 - [ ] **Step 3: Review the lowest single-line and multiline fields** in Groomer Profile, Services, and Offer composition for shared-rule coverage; runtime interaction remains user validation.
 - [ ] **Step 4: Run focused tests, full iOS tests, build, UI audit, diff, context hygiene, and preflight.**
 
-### Task 9: Modal, Booking, Chat, and Residual Audit
+### Task 10: Modal, Booking, Chat, and Residual Audit
 
 **Files:**
 - Modify audited residual editable callers, including `Features/Bookings/BookingsView.swift` and `Features/Chat/ChatView.swift`, only when their current behavior violates their classification.
@@ -199,7 +211,7 @@ Run the same focused command. Expected: all selected tests pass.
 | Group taller than usable viewport | Stable nearest-edge reveal; no oscillation. |
 | Short page lacks scroll range | Natural nearest reachable position; no synthetic blank space. |
 | Keyboard hidden or hardware keyboard | Zero keyboard overlap and zero keyboard-driven scroll. |
-| Interactive dismissal | Clearance and action compensation track the keyboard frame without jumps. |
+| Interactive dismissal | User tracking cancels automatic reveal; the same native drag moves the keyboard without competing `scrollTo` calls. |
 | Dynamic Type | Label, complete control, and immediate validation remain the semantic target. |
 | Page action | Original page coordinate; keyboard may cover it. |
 | Chat/send accessory | May track keyboard after explicit classification. |
@@ -211,3 +223,5 @@ Run the same focused command. Expected: all selected tests pass.
 - Apple UIKit: `https://developer.apple.com/documentation/uikit/adjusting-your-layout-with-keyboard-layout-guide`
 - Apple SwiftUI keyboard safe area: `https://developer.apple.com/documentation/swiftui/safearearegions/keyboard`
 - Apple SwiftUI interactive dismissal: `https://developer.apple.com/documentation/swiftui/view/scrolldismisseskeyboard(_:)`
+- Apple SwiftUI scroll phases: `https://developer.apple.com/documentation/swiftui/view/onscrollphasechange(_:)`
+- Apple UIKit interactive keyboard dismissal: `https://developer.apple.com/documentation/uikit/uiscrollview/keyboarddismissmode-swift.property`
