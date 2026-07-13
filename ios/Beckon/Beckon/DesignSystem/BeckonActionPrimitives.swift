@@ -41,6 +41,15 @@ struct BeckonPrimaryButtonStyle: ButtonStyle {
                 DesignTokens.Shadows.groomerAction
             }
         }
+
+        fileprivate var foreground: Color {
+            switch self {
+            case .customer:
+                DesignTokens.Colors.customerOnAccent
+            case .groomer:
+                DesignTokens.Colors.groomerOnAccent
+            }
+        }
     }
 
     @Environment(\.isEnabled) private var isEnabled
@@ -67,7 +76,7 @@ struct BeckonPrimaryButtonStyle: ButtonStyle {
 
         configuration.label
             .font(DesignTokens.Typography.action)
-            .foregroundStyle(availability.rendersEnabled ? DesignTokens.Colors.primaryButtonForeground : DesignTokens.Colors.textTertiary)
+            .foregroundStyle(availability.rendersEnabled ? accent.foreground : DesignTokens.Colors.textTertiary)
             .frame(maxWidth: isFullWidth ? .infinity : nil, minHeight: DesignTokens.Metrics.actionHeight)
             .padding(.horizontal, DesignTokens.Spacing.lg)
             .background {
@@ -116,9 +125,9 @@ struct BeckonSecondaryButtonStyle: ButtonStyle {
         fileprivate var foreground: Color {
             switch self {
             case .customer:
-                DesignTokens.Colors.customerPrimaryDark
+                DesignTokens.Colors.customerOnAccent
             case .groomer:
-                DesignTokens.Colors.groomerAccentDark
+                DesignTokens.Colors.groomerOnAccent
             case .neutral:
                 DesignTokens.Colors.textPrimary
             }

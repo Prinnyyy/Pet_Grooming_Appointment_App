@@ -99,7 +99,9 @@ Approved light-palette color pairs:
 | Foreground | Background | Rule |
 |---|---|---|
 | `textPrimary #232323` | surface or app background | Approved for primary text. |
-| `textPrimary #232323` | mint, mintDark, coral, or coralDark | Approved for accent actions; dark foreground is required. |
+| `customerOnAccent #12463F` | mint or mintDark | Approved AA Customer action foreground. |
+| `groomerOnAccent #642620` | coral or coralDark | Approved AA Groomer action foreground. |
+| surface white | Customer Home mint Hero | Approved screenshot-specific visual exception; accessibility color remediation is deferred by user direction. |
 | `textPrimary #232323` | success, warning, or error fill | Approved for status chips; pair color with text or an icon. |
 | `textTertiary #69717A` | surface or app background | Approved. |
 | `textSecondary #6F767E` | surface | Approved; do not use on app background for normal-size text. |
@@ -109,7 +111,7 @@ Approved light-palette color pairs:
 
 Banned pairs:
 
-- White text on mint, mintDark, coral, or coralDark.
+- White text on mint, mintDark, coral, or coralDark outside the explicitly approved Customer Home Hero exception.
 - Success `#6CBF84`, warning `#F2B84B`, or error `#E56B6F` as normal body text on a surface; use the corresponding `*Text` role after its token is implemented.
 - `textSecondary #6F767E` as normal-size text directly on app background `#FAF7F2`; restrict it to surfaces or use a future AA-adjusted semantic value.
 - Any unmeasured raw foreground/background combination in feature code.

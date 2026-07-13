@@ -7,8 +7,8 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 - Date: 2026-07-13
 - Updated by: Codex
 - Latest completed task: T-339 periodic documentation-governance meta-review.
-- Current task: none; T-340 is planned, T-157 APNs remains externally blocked, and Q-104 Dynamic Type/Accessibility remains user-deferred.
-- Next task ID: use T-340 for the planned compiler warning audit and cleanup.
+- Current task: T-341 Customer Home request Hero visual restoration is in progress at a user-review checkpoint; T-340 remains separately planned, T-157 APNs remains externally blocked, and Q-104 Dynamic Type/Accessibility remains user-deferred.
+- Next task ID: T-342 for the next new task; resume current T-341 before starting it.
 
 ## Fast Path
 
@@ -36,6 +36,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Validation Baseline
 
+- T-341 is not complete. Its shared role-action foreground and Customer Home Hero changes reached TDD RED, but the first focused GREEN command ended without a test result and the full suite exposed four existing Feedback Center timing failures. The user then prioritized screenshot-faithful light mint/white visuals and explicitly paused tests; the current local checkpoint has no build/test approval and must be manually reviewed before targeted validation resumes.
 - T-339 periodic meta-review confirms a clean/synced branch, consistent task/roadmap/index and ignored-root routing, zero active conflict markers, the 67/67 migration mirror, current T-300 backend markers, 26/26 governance tests, context hygiene, and preflight. It corrects one stale Feature Index note from T-329 to T-332; no product, app, backend, dependency, or workflow rule changed.
 - T-338 enables Supabase Swift 2.46's `emitLocalSessionAsInitialSession` runtime behavior, preserves `Session.isExpired` through the repository snapshot, and keeps an expired stored session at the loading root until refresh succeeds or signs out. Focused expiry/refresh tests, full iOS tests/build, and a legacy-warning scan pass; no backend or remote state changed.
 - T-337 replaces SwiftUI's native keyboard toolbar styling with one keyboard-notification-driven 52-point trailing circle, placed 12 points above the keyboard and 20 points from the screen edge. It uses a mint checkmark, interactive native Liquid Glass on iOS 26, and an ultra-thin material fallback on iOS 18 through 25. Existing avoidance/direct modifier call sites cover every audited SwiftUI and UIKit-backed input owner. Automated tests/build and static audits pass; manual visual acceptance remains user-owned.

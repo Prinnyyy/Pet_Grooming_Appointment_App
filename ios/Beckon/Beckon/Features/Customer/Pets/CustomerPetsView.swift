@@ -206,6 +206,10 @@ struct CustomerPetsView: View {
 }
 
 struct CustomerHomeRequestHeroPresentation: Equatable {
+    static let title = "Need grooming for your pet?"
+    static let message = "Create one request and compare offers from available groomers."
+    static let actionTitle = "Start Grooming Request"
+
     let hasPets: Bool
     let isRequestStoreBusy: Bool
 
@@ -335,7 +339,7 @@ private struct CustomerHomeRequestHero: View {
                     LinearGradient(
                         colors: [
                             DesignTokens.Colors.customerPrimary,
-                            DesignTokens.Colors.customerPrimary.opacity(0.66),
+                            DesignTokens.Colors.customerPrimary.opacity(0.78),
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
@@ -343,51 +347,58 @@ private struct CustomerHomeRequestHero: View {
                 )
                 .overlay(alignment: .topTrailing) {
                     Circle()
-                        .fill(DesignTokens.Colors.surface.opacity(0.22))
-                        .frame(width: 160, height: 160)
-                        .padding(DesignTokens.Spacing.lg)
+                        .fill(DesignTokens.Colors.surface.opacity(0.2))
+                        .frame(width: 152, height: 152)
                         .accessibilityHidden(true)
                 }
                 .overlay(alignment: .bottomTrailing) {
                     // beckon-ui-audit: review UI102 -- Decorative paw placement is isolated to hero bounds and never repairs content layout.
-                    HStack(spacing: DesignTokens.Spacing.xs) {
+                    ZStack(alignment: .bottomTrailing) {
                         Image(systemName: "pawprint.fill")
                             .font(DesignTokens.Typography.pageTitle)
-                            .rotationEffect(.degrees(-12))
+                            .rotationEffect(.degrees(-18))
+                            .offset(x: -34, y: -28)
 
                         Image(systemName: "pawprint.fill")
                             .font(DesignTokens.Typography.sectionTitle)
-                            .rotationEffect(.degrees(18))
+                            .rotationEffect(.degrees(20))
                     }
-                    .foregroundStyle(DesignTokens.Colors.textPrimary.opacity(0.48))
+                    .foregroundStyle(DesignTokens.Colors.textPrimary.opacity(0.68))
                     .padding(DesignTokens.Spacing.lg)
                     .accessibilityHidden(true)
                 }
 
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                    Text("Need Grooming for\nYour Pet?")
-                        .font(DesignTokens.Typography.cardTitle)
-                        .foregroundStyle(DesignTokens.Colors.textPrimary)
+                    Text(CustomerHomeRequestHeroPresentation.title)
+                        .font(DesignTokens.Typography.pageTitle)
+                        .foregroundStyle(DesignTokens.Colors.surface)
                         .fixedSize(horizontal: false, vertical: true)
 
-                    Text("Create one request and compare offers from available groomers.")
-                        .font(DesignTokens.Typography.body)
-                        .foregroundStyle(DesignTokens.Colors.textPrimary)
+                    Text(CustomerHomeRequestHeroPresentation.message)
+                        .font(DesignTokens.Typography.body.weight(.semibold))
+                        .foregroundStyle(DesignTokens.Colors.surface)
                         .fixedSize(horizontal: false, vertical: true)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
 
                 Button(action: action) {
-                    Label("Start Grooming Request", systemImage: "scissors")
+                    HStack(spacing: DesignTokens.Spacing.sm) {
+                        Image(systemName: "scissors")
+                            .symbolRenderingMode(.palette)
+                            .foregroundStyle(
+                                DesignTokens.Colors.error,
+                                DesignTokens.Colors.textSecondary
+                            )
+
+                        Text(CustomerHomeRequestHeroPresentation.actionTitle)
+                    }
+                    .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(
-                    BeckonPrimaryButtonStyle(
-                        accent: .customer,
-                        isVisuallyEnabled: !isDisabled
-                    )
-                )
+                .buttonStyle(BeckonSecondaryButtonStyle(accent: .customer))
                 .disabled(isDisabled)
                 .accessibilityIdentifier("customer.home.start-request")
+                .accessibilityLabel(CustomerHomeRequestHeroPresentation.actionTitle)
 
                 if isDisabled {
                     Label(
@@ -395,7 +406,7 @@ private struct CustomerHomeRequestHero: View {
                         systemImage: "pawprint"
                     )
                     .font(DesignTokens.Typography.status)
-                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+                    .foregroundStyle(DesignTokens.Colors.surface)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityIdentifier("customer.home.start-request.requirement")
                 }

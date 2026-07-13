@@ -20,8 +20,10 @@ enum DesignTokens {
         static let textTertiary: UInt = 0x69717A
         static let customerPrimary: UInt = 0x7ECFC0
         static let customerPrimaryDark: UInt = 0x5FBFAE
+        static let customerOnAccent: UInt = 0x12463F
         static let groomerAccent: UInt = 0xFF9A8B
         static let groomerAccentDark: UInt = 0xF58575
+        static let groomerOnAccent: UInt = 0x642620
         static let success: UInt = 0x6CBF84
         static let warning: UInt = 0xF2B84B
         static let error: UInt = 0xE56B6F
@@ -29,7 +31,6 @@ enum DesignTokens {
         static let warningText: UInt = 0x8F6800
         static let errorText: UInt = 0xB4474C
         static let notificationUnread: UInt = 0xFF3B30
-        static let primaryButtonForeground = textPrimary
     }
 
     enum Colors {
@@ -44,9 +45,11 @@ enum DesignTokens {
         static let textTertiary = Color(hex: ColorHex.textTertiary)
         static let customerPrimary = Color(hex: ColorHex.customerPrimary)
         static let customerPrimaryDark = Color(hex: ColorHex.customerPrimaryDark)
+        static let customerOnAccent = Color(hex: ColorHex.customerOnAccent)
         static let customerPrimaryPressed = customerPrimaryDark
         static let groomerAccent = Color(hex: ColorHex.groomerAccent)
         static let groomerAccentDark = Color(hex: ColorHex.groomerAccentDark)
+        static let groomerOnAccent = Color(hex: ColorHex.groomerOnAccent)
         static let groomerAccentPressed = groomerAccentDark
         static let success = Color(hex: ColorHex.success)
         static let warning = Color(hex: ColorHex.warning)
@@ -55,8 +58,6 @@ enum DesignTokens {
         static let warningText = Color(hex: ColorHex.warningText)
         static let errorText = Color(hex: ColorHex.errorText)
         static let notificationUnread = Color(hex: ColorHex.notificationUnread)
-        static let primaryButtonForeground = Color(hex: ColorHex.primaryButtonForeground)
-
         static let background = appBackground
         static let primaryText = textPrimary
         static let secondaryText = textSecondary

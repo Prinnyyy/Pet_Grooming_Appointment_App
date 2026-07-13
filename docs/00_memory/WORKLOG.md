@@ -2,12 +2,21 @@
 
 ```text
 Date: 2026-07-13
+Task: T-341 - Customer Home request Hero visual restoration and role action colors (checkpoint).
+Files changed: Customer Home Hero presentation/layout; shared customer/groomer action foreground tokens and button styles; color contract; focused tests; design spec/plan; task/current-state memory.
+Checks: TDD compile RED confirmed missing role tokens, then missing Hero copy, then missing Hero contrast token. The first focused GREEN command stopped after test-bundle signing without a result or residual xcodebuild process. A subsequent full iOS suite failed only four existing Feedback Center timing tests under parallel load; xcresult showed queued prompts remained nil or visible past expected timer boundaries, while T-341 tests were not listed as failures. After that result, the user explicitly paused tests and requested screenshot-faithful color/graphics instead of the darker contrast treatment. Static diff whitespace check only after the visual revision; no iOS test/build rerun. The first context-hygiene pass rejected nonstandard `next unallocated task ID` wording; the durable files now use the required extractable `Next task ID`/`use T-### for the next` forms.
+Result: In-progress local checkpoint matches the supplied light-mint Hero direction with white naturally wrapped copy, a white deep-mint action, edge-aligned translucent circle, and diagonal paw decoration. Shared Customer/Groomer action text now uses role-specific deep colors instead of black. No Store, navigation, repository, backend, dependency, or remote state changed.
+Risks: The current visual revision is intentionally unbuilt and untested pending human in-app review. The full-suite Feedback Center timing failures remain recorded and are outside T-341 scope unless separately authorized. No completion commit or push is allowed until validation resumes and succeeds.
+Next: User manually reviews the local T-341 Hero; then resume focused/full validation or revise the same task.
+```
+
+```text
+Date: 2026-07-13
 Task: T-339 - Periodic documentation-governance meta-review.
 Files changed: Current/task/worklog/feature routing only.
 Checks: Clean/synced branch; task/roadmap/index facts; root Markdown ignore/frozen routing; zero active conflict markers; tracked/local migrations 67/67; current backend markers; 26/26 context/rotation governance tests; diff/context/preflight. The first consolidated shell audit used zsh's special `path` variable as a loop name, which removed command lookup for the remaining checks and produced invalid empty counts; those results were discarded, the variable was renamed, and the complete audit reran successfully.
 Result: Active governance is consistent after correcting the stale Feature Index statement that assigned the completed residual/modal/chat audit to T-329 instead of T-332. T-340 is the next planned task and T-341 remains unallocated.
 Risks: T-340 still owns the two app compiler warnings recorded by T-337/T-338; AppIntents metadata extraction remains classified as toolchain information. T-157 and Q-104 remain blocked/deferred. No product, Swift, backend, dependency, remote state, or workflow rule changed.
-Next: T-340 is the planned compiler warning audit and cleanup.
 ```
 
 ```text

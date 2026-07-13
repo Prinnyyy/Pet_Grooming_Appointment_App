@@ -26,6 +26,20 @@ extension CustomerRequestsStoreTests {
     }
 
     @Test @MainActor
+    func homeRequestHeroTitleUsesNaturalWrapping() {
+        #expect(
+            CustomerHomeRequestHeroPresentation.title ==
+                "Need grooming for your pet?"
+        )
+        #expect(CustomerHomeRequestHeroPresentation.title.contains("\n") == false)
+        #expect(
+            CustomerHomeRequestHeroPresentation.message ==
+                "Create one request and compare offers from available groomers."
+        )
+        #expect(CustomerHomeRequestHeroPresentation.actionTitle == "Start Grooming Request")
+    }
+
+    @Test @MainActor
     func homeActiveRequestPresentationUsesAllCardsAndNeverShowsLoadingCard() {
         let customerID = UUID()
         let openRequest = Self.request(

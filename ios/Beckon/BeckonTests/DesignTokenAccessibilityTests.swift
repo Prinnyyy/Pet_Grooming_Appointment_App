@@ -19,12 +19,24 @@ struct DesignTokenAccessibilityTests {
     }
 
     @Test
-    func primaryButtonForegroundMeetsContrastOnBrandBackgrounds() {
+    func customerPrimaryButtonForegroundMeetsContrastOnCustomerBackgrounds() {
         let requiredRatio = 4.5
-        let foreground = DesignTokens.ColorHex.primaryButtonForeground
+        let foreground = DesignTokens.ColorHex.customerOnAccent
         let brandBackgrounds = [
             DesignTokens.ColorHex.customerPrimary,
             DesignTokens.ColorHex.customerPrimaryDark,
+        ]
+
+        for background in brandBackgrounds {
+            #expect(Self.contrastRatio(foreground, background) >= requiredRatio)
+        }
+    }
+
+    @Test
+    func groomerPrimaryButtonForegroundMeetsContrastOnGroomerBackgrounds() {
+        let requiredRatio = 4.5
+        let foreground = DesignTokens.ColorHex.groomerOnAccent
+        let brandBackgrounds = [
             DesignTokens.ColorHex.groomerAccent,
             DesignTokens.ColorHex.groomerAccentDark,
         ]
