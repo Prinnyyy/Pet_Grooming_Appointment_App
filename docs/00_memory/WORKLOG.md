@@ -2,12 +2,21 @@
 
 ```text
 Date: 2026-07-13
+Task: T-350 - Periodic governance meta-review and semantic regression gates.
+Files changed: Context hygiene semantic checks/tests, closeout precheck coordination, corrected T-349 summary fact, and task memory.
+Checks: Default active/root/heavy-path audit; TDD RED/GREEN; 46 docs governance/closeout tests; git diff check; unified closeout; context hygiene.
+Result: Active context remains 81 Markdown files at about 37k words, with only routing READMEs visible for heavy/staging paths. Hygiene now rejects completed active artifacts, Current State task-history sections, stale Next instructions outside the newest Worklog entry, and restoration of the removed duplicate agent preflight.
+Risks: The two ignored root review-input copies remain user-local and default-hidden; frozen equivalents already exist. Generic word-reference overages remain informational by policy.
+Next: Use T-351 for the next new task; T-340 remains separately planned and requires explicit selection.
+```
+
+```text
+Date: 2026-07-13
 Task: T-349 - Closeout Automation V2.
 Files changed: Unified task closeout script/tests; task-artifact staging contract; workflow/context/docs/frozen indexes; D-034; task memory; removed agent-preflight.
 Checks: TDD RED/GREEN; 40 docs governance/closeout tests; unified closeout dry/apply; active links; git diff check; context hygiene.
-Result: Numbered durable closeout now fails before writes on task-fact, metadata, backlink, rotation, or hygiene drift; apply mode archives plans/specs verbatim, rotates structural windows, and emits an eight-line summary. The broken duplicate agent-preflight entrypoint is removed.
+Result: Numbered durable closeout now fails before writes on task-fact, metadata, backlink, rotation, or hygiene drift; apply mode archives plans/specs verbatim, rotates structural windows, and emits a ten-line summary. The broken duplicate agent-preflight entrypoint is removed.
 Risks: The new gate intentionally accepts only one task's plan/spec artifacts and only metadata types plan/spec. T-350 is the required periodic meta-review and must run in a fresh session.
-Next: Execute reserved T-350 periodic meta-review after a fresh user continuation/request; do not start it in this session.
 ```
 
 ```text

@@ -234,13 +234,14 @@ function checkArtifactBacklinks(artifacts) {
   return errors;
 }
 
-function runNodeScript(scriptName, scriptArgs = []) {
+function runNodeScript(scriptName, scriptArgs = [], environment = {}) {
   const result = spawnSync(process.execPath, [fullPath(`scripts/${scriptName}`), ...scriptArgs], {
     cwd: PROJECT_ROOT,
     env: {
       ...process.env,
       CONTEXT_HYGIENE_PROJECT_ROOT: PROJECT_ROOT,
       CONTEXT_HYGIENE_NOW: CHECK_DATE,
+      ...environment,
     },
     encoding: "utf8",
   });
@@ -261,7 +262,9 @@ const taskErrors = checkTaskFacts();
 const { artifacts, errors: artifactErrors } = collectArtifacts();
 const backlinkErrors = checkArtifactBacklinks(artifacts);
 const preRotation = runNodeScript("context-rotate.mjs");
-const preHygiene = runNodeScript("context-hygiene-check.mjs");
+const preHygiene = runNodeScript("context-hygiene-check.mjs", [], {
+  CONTEXT_HYGIENE_CLOSEOUT_TASK: TASK_ID,
+});
 
 if (taskErrors.length || artifactErrors.length || backlinkErrors.length) {
   fail([...taskErrors, ...artifactErrors, ...backlinkErrors]);

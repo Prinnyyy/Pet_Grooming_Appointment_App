@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
+import { appendFileSync, mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -294,6 +294,104 @@ test("context hygiene fails when current-state and ledger task facts drift", () 
   assert.match(result.stderr, /latest completed task mismatch/i);
   assert.match(result.stderr, /next task ID mismatch/i);
   assert.match(result.stderr, /branch baseline mismatch/i);
+});
+
+test("context hygiene fails when Current State regains task-history sections", () => {
+  const root = createFixture();
+  appendFileSync(
+    path.join(root, "docs/00_memory/CURRENT_STATE.md"),
+    "\n## Completed Task History\n\n- T-004 stale narrative.\n",
+  );
+
+  const result = runHygiene(root);
+
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /CURRENT_STATE\.md contains forbidden historical section/i);
+});
+
+test("context hygiene fails when an older Worklog entry retains Next instructions", () => {
+  const root = createFixture();
+  writeFixtureFile(root, "docs/00_memory/WORKLOG.md", [
+    "# Worklog",
+    "",
+    "```text",
+    "Task: T-005 - Current fixture task.",
+    "Next: Current handoff is allowed here.",
+    "```",
+    "",
+    "```text",
+    "Task: T-004 - Older fixture task.",
+    "Next: Stale instruction must not remain active.",
+    "```",
+    "",
+  ].join("\n"));
+
+  const result = runHygiene(root);
+
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /WORKLOG\.md keeps Next instructions outside its newest entry/i);
+});
+
+test("context hygiene fails when a completed task artifact remains active", () => {
+  const root = createFixture();
+  writeFixtureFile(root, "docs/superpowers/plans/completed.md", [
+    "<!-- task-artifact",
+    "task: T-005",
+    "status: completed",
+    "type: plan",
+    "-->",
+    "# Completed Plan",
+    "",
+  ].join("\n"));
+
+  const result = runHygiene(root);
+
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /completed task artifact remains active/i);
+});
+
+test("context hygiene allows only the matching closeout task artifact precheck", () => {
+  const root = createFixture();
+  writeFixtureFile(root, "docs/superpowers/plans/completed.md", [
+    "<!-- task-artifact",
+    "task: T-005",
+    "status: completed",
+    "type: plan",
+    "-->",
+    "# Completed Plan",
+    "",
+  ].join("\n"));
+
+  const result = runHygiene(root, { CONTEXT_HYGIENE_CLOSEOUT_TASK: "T-005" });
+
+  assert.equal(result.status, 0, result.stderr);
+});
+
+test("context hygiene allows an active task artifact with valid metadata", () => {
+  const root = createFixture();
+  writeFixtureFile(root, "docs/superpowers/specs/active.md", [
+    "<!-- task-artifact",
+    "task: T-006",
+    "status: active",
+    "type: spec",
+    "-->",
+    "# Active Spec",
+    "",
+  ].join("\n"));
+
+  const result = runHygiene(root);
+
+  assert.equal(result.status, 0, result.stderr);
+});
+
+test("context hygiene fails when the removed agent preflight entrypoint returns", () => {
+  const root = createFixture();
+  writeFixtureFile(root, "scripts/agent-preflight.sh", "#!/usr/bin/env bash\nexit 0\n");
+
+  const result = runHygiene(root);
+
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /scripts\/agent-preflight\.sh duplicates the canonical governance gates/i);
 });
 
 test("context hygiene reports managed roadmap word excess without failing", () => {

@@ -2,7 +2,7 @@
 
 Task ID, status, and next-number source of truth. Keep only planned, active, blocked, and the latest completed rows. Detailed evidence belongs in `docs/00_memory/WORKLOG.md`; older rows live under `docs/09_frozen/task_ledgers/`.
 
-Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup`; use `T-350` for the next task, the required periodic meta-review. T-349 is completed, and T-340 remains separately planned.
+Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup`; use `T-351` for the next new task. T-350 is completed, and T-340 remains separately planned.
 
 Active blocked task: T-157 waits for paid Apple Developer Program access and APNs credentials before dispatcher deployment. Q-104 remains user-deferred and is tracked in `docs/06_tasks/ROADMAP_EXECUTION_QUEUE.md` rather than as an allocated task.
 
@@ -12,6 +12,7 @@ Pre-reset source snapshot: `docs/09_frozen/active_state_snapshots/T-345_2026-07-
 
 | ID | Task | Status | Mode | Milestone | Files/Docs | Checks | Notes |
 |---|---|---|---|---|---|---|---|
+| T-350 | Periodic governance meta-review and semantic regression gates | completed | Quick | G0 | Context hygiene/check tests; closeout precheck coordination; task memory | 46 docs tests; default-path/root audit; closeout/diff/context checks | Confirms active context remains compact and hidden paths stay isolated; blocks completed active artifacts, Current State task history, stale Worklog Next lines, and duplicate agent-preflight restoration. |
 | T-349 | Closeout Automation V2 | completed | Quick | G0 | Unified closeout script/tests; task-artifact staging; workflow/context/index/decision sync; task memory | 40 docs tests; closeout dry/apply; diff/context checks | Requires aligned durable facts, completed artifact metadata, and clear backlinks before verbatim archival; runs safe rotation and concise hygiene, and removes the broken agent-preflight entrypoint. |
 | T-348 | Workflow source-of-truth consolidation | completed | Quick | G0 | AGENTS/Claude adapters; five workflow owners; Meta Review/index/decision sync; hygiene policy/check/tests; frozen/task memory | 36 docs tests; ownership/conflict/link/diff/context checks | Enforces one owner per workflow concern, host-aware context, fresh-session meta-reviews, scoped validation failure handling, Simulator deferral, host skills, and explicit checkpoint authorization. |
 | T-347 | Heavy UI context routing and design-contract separation | completed | Quick | G0 | UI redesign index/ignore; design/accessibility/form contracts; design indexes/snapshots; hygiene script/tests; task memory | 34 docs tests; diff/link/path/word/context checks | Keeps only the heavy UI routing README default-visible, aligns the no-rg fallback, separates on-demand accessibility/form rules, and removes completed Groomer history from active read paths. |

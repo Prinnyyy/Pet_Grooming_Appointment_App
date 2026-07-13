@@ -21,6 +21,7 @@ const PROJECT_ROOT = path.resolve(
 const LAST_VERIFIED_MAX_AGE_DAYS = 45;
 const CHECK_DATE_TEXT = process.env.CONTEXT_HYGIENE_NOW ?? new Date().toISOString().slice(0, 10);
 const FORCE_NO_RG = process.env.CONTEXT_HYGIENE_FORCE_NO_RG === "1";
+const CLOSEOUT_TASK = process.env.CONTEXT_HYGIENE_CLOSEOUT_TASK ?? null;
 // All console/failure output is English.
 
 const STALE_CREDENTIAL_PATTERNS = [
@@ -376,6 +377,7 @@ function checkIgnoredPaths() {
   if (uiRedesignFiles.join("\n") !== expectedUIRedesign.join("\n")) {
     failures.push(`ui-redesign default rg output changed: ${uiRedesignFiles.join(", ")}`);
   }
+
 }
 
 function checkCredentialClaims() {
@@ -612,6 +614,109 @@ function checkCurrentFacts() {
   }
 }
 
+function checkCurrentStateShape() {
+  const currentState = readOptional("docs/00_memory/CURRENT_STATE.md");
+  const forbiddenSections = [
+    /^##\s+Completed Tasks?\b/im,
+    /^##\s+(?:Completed )?Task History\b/im,
+    /^##\s+Historical Tasks?\b/im,
+    /^##\s+Task Timeline\b/im,
+  ];
+  for (const pattern of forbiddenSections) {
+    const match = currentState.match(pattern);
+    if (match) {
+      failures.push(`CURRENT_STATE.md contains forbidden historical section: ${match[0]}`);
+    }
+  }
+  if (/Next Recommended Task/i.test(currentState)) {
+    failures.push("CURRENT_STATE.md contains forbidden historical instruction: Next Recommended Task");
+  }
+}
+
+function worklogTaskEntries(text) {
+  return [...text.matchAll(/```text\n([\s\S]*?)\n```/g)]
+    .map((match) => ({
+      body: match[1],
+      task: match[1].match(/^Task:\s*(T-\d{3})/m)?.[1] ?? null,
+    }))
+    .filter(({ task }) => task);
+}
+
+function checkWorklogHandoffOwnership() {
+  const entries = worklogTaskEntries(readOptional("docs/00_memory/WORKLOG.md"));
+  const stale = entries.slice(1).filter(({ body }) => /^Next:/m.test(body));
+  if (stale.length > 0) {
+    failures.push(`WORKLOG.md keeps Next instructions outside its newest entry: ${stale.map(({ task }) => task).join(", ")}`);
+  }
+}
+
+function markdownFilesBelow(directory) {
+  if (!fs.existsSync(directory)) {
+    return [];
+  }
+  const files = [];
+  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+    const target = path.join(directory, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...markdownFilesBelow(target));
+    } else if (entry.isFile() && entry.name.endsWith(".md")) {
+      files.push(target);
+    }
+  }
+  return files;
+}
+
+function taskArtifactMetadata(text) {
+  const block = text.match(/^\s*<!--\s*task-artifact\s*\r?\n([\s\S]*?)\r?\n-->/i)?.[1];
+  if (!block) {
+    return null;
+  }
+  const fields = new Map();
+  for (const line of block.split(/\r?\n/)) {
+    const match = line.match(/^([a-z]+):\s*(.+)$/i);
+    if (match) {
+      fields.set(match[1].toLowerCase(), match[2].trim());
+    }
+  }
+  return {
+    task: fields.get("task"),
+    status: fields.get("status")?.toLowerCase(),
+    type: fields.get("type")?.toLowerCase(),
+  };
+}
+
+function checkTaskArtifactLifecycle() {
+  const artifactRoot = path.join(PROJECT_ROOT, "docs/superpowers");
+  for (const absolutePath of markdownFilesBelow(artifactRoot)) {
+    const filePath = path.relative(PROJECT_ROOT, absolutePath);
+    if (filePath === "docs/superpowers/README.md") {
+      continue;
+    }
+    const metadata = taskArtifactMetadata(fs.readFileSync(absolutePath, "utf8"));
+    if (!metadata) {
+      failures.push(`${filePath} is missing task-artifact metadata`);
+      continue;
+    }
+    if (!/^T-\d{3}$/.test(metadata.task ?? "")) {
+      failures.push(`${filePath} has invalid task-artifact task metadata`);
+    }
+    if (!new Set(["plan", "spec"]).has(metadata.type)) {
+      failures.push(`${filePath} has invalid task-artifact type metadata`);
+    }
+    if (metadata.status === "completed" && metadata.task !== CLOSEOUT_TASK) {
+      failures.push(`completed task artifact remains active: ${filePath}`);
+    } else if (!new Set(["active", "completed"]).has(metadata.status)) {
+      failures.push(`${filePath} has invalid task-artifact status metadata`);
+    }
+  }
+}
+
+function checkRemovedGovernanceEntrypoints() {
+  if (fs.existsSync(path.join(PROJECT_ROOT, "scripts/agent-preflight.sh"))) {
+    failures.push("scripts/agent-preflight.sh duplicates the canonical governance gates");
+  }
+}
+
 function checkMetaReviewCadence() {
   const currentState = readOptional("docs/00_memory/CURRENT_STATE.md");
   const match = currentState.match(/Last meta-review:\s*(T-\d{3})\s+on\s+(\d{4}-\d{2}-\d{2})/i);
@@ -711,6 +816,10 @@ checkMigrationMirrorCount();
 checkRoadmapLedgerAlignment();
 checkFeatureIndexCoverage();
 checkCurrentFacts();
+checkCurrentStateShape();
+checkWorklogHandoffOwnership();
+checkTaskArtifactLifecycle();
+checkRemovedGovernanceEntrypoints();
 checkMetaReviewCadence();
 checkRollingWindowSizes();
 
