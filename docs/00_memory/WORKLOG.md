@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-07-12
+Task: T-329 - Shared keyboard geometry feedback-loop correction.
+Files changed: Shared keyboard focus/viewport geometry reporting; DesignSystem policy test; keyboard design/plan/task/current-state memory.
+Checks: TDD compile RED then focused GREEN; full iOS tests; iOS build; repository UI audit; removed-preference/API source scan; Edit Pet Simulator input/drag and runtime-log inspection; diff/context/preflight.
+Result: Only the currently focused valid target reports geometry through `onGeometryChange`; viewport changes use the same non-preference path. This removes the SwiftUI `BeckonKeyboardFocusTargetBoundsKey` multiple-updates-per-frame feedback loop while preserving every Feature call site and shared keyboard behavior.
+Risks: RTI session and keyboard haptic-library messages are Simulator system diagnostics, not app-owned APIs, and require no product patch unless a physical device reproduces a visible input or haptic failure. The residual input audit moves to T-330; no Store, repository, backend, dependency, or remote state changed.
+Next: Execute T-330.
+```
+
+```text
+Date: 2026-07-12
 Task: T-328 - Periodic documentation-governance meta-review.
 Files changed: Current/task/worklog/feature routing; automatic Worklog archive rotation; rotation whitespace normalization and isolated regression test.
 Checks: Clean/synced branch; task/roadmap/index facts; root-ignore/frozen-report audit; zero active conflict markers; tracked/local migrations 67/67; backend markers; rotation TDD RED/GREEN; governance tests 15/15; diff/context/preflight.

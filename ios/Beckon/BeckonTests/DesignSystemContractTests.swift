@@ -57,6 +57,32 @@ struct DesignSystemContractTests {
     }
 
     @Test
+    func keyboardGeometryReportsOnlyTheFocusedValidTarget() {
+        let frame = CGRect(x: 20, y: 420, width: 350, height: 72)
+
+        #expect(BeckonKeyboardFocusMeasurementPolicy.measurement(
+            target: "pet.notes",
+            focusedTarget: "pet.notes",
+            frame: frame
+        ) == BeckonKeyboardFocusMeasurement(target: "pet.notes", frame: frame))
+        #expect(BeckonKeyboardFocusMeasurementPolicy.measurement(
+            target: "pet.name",
+            focusedTarget: "pet.notes",
+            frame: frame
+        ) == nil)
+        #expect(BeckonKeyboardFocusMeasurementPolicy.measurement(
+            target: "pet.notes",
+            focusedTarget: nil,
+            frame: frame
+        ) == nil)
+        #expect(BeckonKeyboardFocusMeasurementPolicy.measurement(
+            target: "pet.notes",
+            focusedTarget: "pet.notes",
+            frame: .null
+        ) == nil)
+    }
+
+    @Test
     func automaticKeyboardRevealYieldsToUserDrivenScrollPhases() {
         #expect(!BeckonKeyboardRevealPolicy.shouldCancelAutomaticReveal(for: .idle))
         #expect(!BeckonKeyboardRevealPolicy.shouldCancelAutomaticReveal(for: .animating))

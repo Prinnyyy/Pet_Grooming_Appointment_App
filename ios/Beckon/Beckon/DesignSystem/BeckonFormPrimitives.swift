@@ -140,25 +140,53 @@ nonisolated struct BeckonKeyboardFocusTargetID: Equatable, Hashable, Sendable {
     var bottom: String { "\(semanticID).keyboard-target.bottom" }
 }
 
-struct BeckonKeyboardFocusTargetBoundsKey: PreferenceKey {
-    static var defaultValue: [String: CGRect] = [:]
+nonisolated struct BeckonKeyboardFocusMeasurement: Equatable, Sendable {
+    let target: String
+    let frame: CGRect
+}
 
-    static func reduce(value: inout [String: CGRect], nextValue: () -> [String: CGRect]) {
-        value.merge(nextValue(), uniquingKeysWith: { _, next in next })
+nonisolated enum BeckonKeyboardFocusMeasurementPolicy {
+    static func measurement(
+        target: String,
+        focusedTarget: String?,
+        frame: CGRect
+    ) -> BeckonKeyboardFocusMeasurement? {
+        guard target == focusedTarget,
+              !frame.isNull,
+              !frame.isInfinite,
+              frame.width > 0,
+              frame.height > 0 else {
+            return nil
+        }
+        return BeckonKeyboardFocusMeasurement(target: target, frame: frame)
     }
 }
 
-private struct BeckonKeyboardViewportBoundsKey: PreferenceKey {
-    static var defaultValue: CGRect = .zero
+private struct BeckonKeyboardFocusReportingContext {
+    let focusedTarget: String?
+    let report: (BeckonKeyboardFocusMeasurement) -> Void
 
-    static func reduce(value: inout CGRect, nextValue: () -> CGRect) {
-        let next = nextValue()
-        if next != .zero { value = next }
+    static let inactive = BeckonKeyboardFocusReportingContext(
+        focusedTarget: nil,
+        report: { _ in }
+    )
+}
+
+private struct BeckonKeyboardFocusReportingContextKey: EnvironmentKey {
+    static let defaultValue = BeckonKeyboardFocusReportingContext.inactive
+}
+
+private extension EnvironmentValues {
+    var beckonKeyboardFocusReportingContext: BeckonKeyboardFocusReportingContext {
+        get { self[BeckonKeyboardFocusReportingContextKey.self] }
+        set { self[BeckonKeyboardFocusReportingContextKey.self] = newValue }
     }
 }
 
 private struct BeckonKeyboardFocusTargetModifier: ViewModifier {
     let id: String
+    @Environment(\.beckonKeyboardFocusReportingContext) private var reportingContext
+    @State private var measuredFrame: CGRect = .null
 
     func body(content: Content) -> some View {
         let marker = BeckonKeyboardFocusTargetID(id)
@@ -170,13 +198,11 @@ private struct BeckonKeyboardFocusTargetModifier: ViewModifier {
                 .id(marker.top)
 
             content
-                .background {
-                    GeometryReader { geometry in
-                        Color.clear.preference(
-                            key: BeckonKeyboardFocusTargetBoundsKey.self,
-                            value: [id: geometry.frame(in: .global)]
-                        )
-                    }
+                .onGeometryChange(for: CGRect.self) { geometry in
+                    geometry.frame(in: .global)
+                } action: { frame in
+                    measuredFrame = frame
+                    reportIfFocused(frame)
                 }
 
             Color.clear
@@ -184,6 +210,20 @@ private struct BeckonKeyboardFocusTargetModifier: ViewModifier {
                 .accessibilityHidden(true)
                 .id(marker.bottom)
         }
+        .onChange(of: reportingContext.focusedTarget) { _, _ in
+            reportIfFocused(measuredFrame)
+        }
+    }
+
+    private func reportIfFocused(_ frame: CGRect) {
+        guard let measurement = BeckonKeyboardFocusMeasurementPolicy.measurement(
+            target: id,
+            focusedTarget: reportingContext.focusedTarget,
+            frame: frame
+        ) else {
+            return
+        }
+        reportingContext.report(measurement)
     }
 }
 
@@ -202,7 +242,7 @@ private struct BeckonKeyboardAvoidanceModifier: ViewModifier {
 
     @State private var keyboardFrame: CGRect = .null
     @State private var viewportFrame: CGRect = .zero
-    @State private var targetBounds: [String: CGRect] = [:]
+    @State private var focusMeasurement: BeckonKeyboardFocusMeasurement?
     @State private var lastRequest: BeckonKeyboardRevealRequest?
     @State private var pendingTask: Task<Void, Never>?
     @State private var automaticRevealRequested = false
@@ -211,6 +251,13 @@ private struct BeckonKeyboardAvoidanceModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         content
+            .environment(
+                \.beckonKeyboardFocusReportingContext,
+                BeckonKeyboardFocusReportingContext(
+                    focusedTarget: focusedTarget,
+                    report: receiveFocusMeasurement
+                )
+            )
             .scrollDismissesKeyboard(.interactively)
             .presentationContentInteraction(.scrolls)
             .interactiveDismissDisabled(
@@ -232,25 +279,19 @@ private struct BeckonKeyboardAvoidanceModifier: ViewModifier {
                     .accessibilityIdentifier("beckon.keyboard.done")
                 }
             }
-            .background {
-                GeometryReader { geometry in
-                    Color.clear.preference(
-                        key: BeckonKeyboardViewportBoundsKey.self,
-                        value: geometry.frame(in: .global)
-                    )
-                }
-            }
-            .onPreferenceChange(BeckonKeyboardViewportBoundsKey.self) { frame in
+            .onGeometryChange(for: CGRect.self) { geometry in
+                geometry.frame(in: .global)
+            } action: { frame in
+                guard frame != viewportFrame else { return }
                 viewportFrame = frame
-                scheduleRequestedReveal()
-            }
-            .onPreferenceChange(BeckonKeyboardFocusTargetBoundsKey.self) { bounds in
-                targetBounds = bounds
                 scheduleRequestedReveal()
             }
             .onChange(of: focusedTarget) { _, target in
                 lastRequest = nil
                 pendingTask?.cancel()
+                if focusMeasurement?.target != target {
+                    focusMeasurement = nil
+                }
                 guard target != nil else {
                     automaticRevealRequested = false
                     return
@@ -318,14 +359,25 @@ private struct BeckonKeyboardAvoidanceModifier: ViewModifier {
         scheduleRequestedReveal()
     }
 
+    private func receiveFocusMeasurement(_ measurement: BeckonKeyboardFocusMeasurement) {
+        guard measurement.target == focusedTarget,
+              measurement != focusMeasurement else {
+            return
+        }
+        focusMeasurement = measurement
+        scheduleRequestedReveal()
+    }
+
     private func scheduleRequestedReveal() {
         pendingTask?.cancel()
         guard automaticRevealRequested,
               let target = focusedTarget,
-              let targetFrame = targetBounds[target],
+              let measurement = focusMeasurement,
+              measurement.target == target,
               viewportFrame != .zero else {
             return
         }
+        let targetFrame = measurement.frame
 
         let layout = BeckonKeyboardFormLayout(
             containerFrame: viewportFrame,
