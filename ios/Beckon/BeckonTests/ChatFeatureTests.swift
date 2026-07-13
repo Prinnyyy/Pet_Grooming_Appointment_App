@@ -4,6 +4,11 @@ import Testing
 
 struct ChatStoreTests {
     @Test
+    func chatComposerRemainsATrueKeyboardAccessory() {
+        #expect(ChatComposerKeyboardPresentation.actionPlacement == .inputAccessory)
+    }
+
+    @Test
     func groomerConversationPresentationUsesOperationalUnreadSummary() {
         let empty = GroomerConversationListPresentation(
             conversationCount: 0,

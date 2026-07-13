@@ -2,12 +2,21 @@
 
 ```text
 Date: 2026-07-13
+Task: T-332 - Chat, modal, Booking, and residual input audit.
+Files changed: Shared keyboard action classification; Booking review focus/minimum-reveal integration; Chat/Booking contract tests; keyboard design plan and Design System contract; task/current-state memory.
+Checks: Complete tracked input inventory; TDD compile RED and focused GREEN; full iOS tests; iOS build; Simulator launch and layered log sample; forbidden keyboard-ownership/source audit; UI audit; diff/context/preflight.
+Result: Every production TextField, SecureField, TextEditor, UITextField, and UITextView occurrence now has an explicit disposition. Chat Send remains the only intentional keyboard accessory. Booking review gains one semantic focus target and the shared minimum-reveal, Done, interactive-dismissal, and hardware-keyboard zero-overlap behavior; Submit Review remains in page flow.
+Risks: Simulator launch recorded the expected previous-run warning after a forced process termination plus Apple Auth/network diagnostics, with no corresponding Beckon crash or T-332 fault. Runtime interaction remains user validation by direction. No Store, repository, backend, schema, dependency, or remote state changed.
+Next: Use T-335 for the next user-directed task.
+```
+
+```text
+Date: 2026-07-13
 Task: T-334 - Shared grooming-location selector.
 Files changed: Shared DesignSystem location selector; Customer Request and Groomer Profile adoption; focused presentation/selection contract test; four-entry UI debt baseline prune; task/current-state memory.
 Checks: TDD compile and expectation RED then focused GREEN; iOS build; stale-component/source audit; UI baseline prune/check; diff/context/preflight.
 Result: Service Location and Address Details replace the provisional Request labels. One icon-free selector now owns location-mode order, card layout, selection feedback, and role-aware copy: Customer sees My Home / Groomer's Place with single selection, while Groomer sees Customer's Home / My Place with multiple selection. Raw values and backend direction remain unchanged, and four resolved Feature-level UI debt entries are removed without adding exceptions.
 Risks: Groomer wording is intentionally perspective-aware rather than copying My Home into the opposite role. Visual spacing remains user review by direction. No Store, repository, backend, schema, dependency, or remote state changed.
-Next: Execute T-332.
 ```
 
 ```text

@@ -1,6 +1,11 @@
 import SwiftUI
 import UIKit
 
+nonisolated enum BeckonKeyboardActionPlacement: Sendable {
+    case pageAction
+    case inputAccessory
+}
+
 nonisolated enum BeckonKeyboardDismissalPolicy {
     static let supportsInteractiveScroll = true
     static let supportsExplicitDoneAction = true

@@ -330,6 +330,10 @@ nonisolated enum ChatThreadScrollPolicy {
     }
 }
 
+nonisolated enum ChatComposerKeyboardPresentation {
+    static let actionPlacement: BeckonKeyboardActionPlacement = .inputAccessory
+}
+
 private struct ChatThreadView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase

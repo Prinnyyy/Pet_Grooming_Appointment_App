@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-13
 - Updated by: Codex
-- Latest completed task: T-334 shared grooming-location selector.
+- Latest completed task: T-334 shared grooming-location selector; T-332 is the most recent closeout from the reserved audit slot.
 - Current task: none; T-157 APNs remains externally blocked and Q-104 Dynamic Type/Accessibility remains user-deferred.
-- Next task ID: use T-332 for the chat, modal, booking, and residual input audit. Groomer Q-104 remains deferred.
+- Next task ID: use T-335 for the next user-directed task. Groomer Q-104 remains deferred.
 
 ## Fast Path
 
@@ -32,6 +32,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Validation Baseline
 
+- T-332 closes the keyboard migration with an explicit disposition for every tracked production input. Chat Send is the sole true input accessory. Booking review now reports one semantic focus group through shared minimum reveal, Done, interactive dismissal, and hardware-keyboard zero-overlap behavior while Submit Review remains in page flow. Focused/full tests, build, source/UI audits, Simulator launch/log sampling, and preflight pass; no backend or remote state changed.
 - T-334 introduces one icon-free DesignSystem grooming-location selector used by Customer Request and Groomer Profile. It centralizes order, card layout, selection feedback, and perspective-aware copy while preserving Customer single selection, Groomer multiple selection, and the groomer_comes_to_customer / customer_comes_to_groomer backend mapping. Four resolved UI debt entries are explicitly pruned; focused TDD and the standard iOS build pass, with no backend or remote state change.
 - T-333 separates Request Step 3's service-setting choice from address entry: a description-free Grooming Setup group precedes Location and uses the concise At My Home / At the Groomer labels. Existing location-mode raw values, Store state, publication parameters, and matching semantics are unchanged. Focused TDD and the standard iOS build pass; no backend or remote state changed.
 - T-331 makes the shared stationary page-action layer move fully below the screen for a bottom-docked software keyboard by adding the measured action height to keyboard overlap; keyboard dismissal returns it from the bottom using the same animation path. Floating/hardware keyboards remain unchanged, and all Feature call sites are untouched. TDD, full iOS tests, build/run, Groomer Profile live inspection, sampled runtime logs, UI audit, and preflight pass.

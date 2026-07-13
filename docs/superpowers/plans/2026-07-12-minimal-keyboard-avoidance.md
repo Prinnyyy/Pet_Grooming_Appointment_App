@@ -208,12 +208,31 @@ T-329's shared geometry fault correction, T-330's runtime-log rule, and T-331's 
 - Modify audited residual editable callers, including `Features/Bookings/BookingsView.swift` and `Features/Chat/ChatView.swift`, only when their current behavior violates their classification.
 - Update existing Booking/Chat tests.
 
-- [ ] **Step 1: Run a complete tracked Swift inventory** for `TextField`, `SecureField`, `TextEditor`, `UITextField`, and `UITextView`; account for every production result.
-- [ ] **Step 2: Keep Chat Send as a keyboard accessory** if it remains attached to the active composer and does not obscure thread content; document this as the intentional exception.
-- [ ] **Step 3: Migrate form-like booking/review/modal inputs** to minimum reveal and preserve modal detents and dismiss behavior.
-- [ ] **Step 4: Verify hardware-keyboard/no-overlap behavior** so no empty clearance or unnecessary scrolling occurs when the software keyboard is absent.
-- [ ] **Step 5: Run full iOS tests/build, repository UI audit, source coverage inventory, diff, context hygiene, and preflight.**
-- [ ] **Step 6: Close the migration only when the final inventory has an explicit disposition for every production input.**
+- [x] **Step 1: Run a complete tracked Swift inventory** for `TextField`, `SecureField`, `TextEditor`, `UITextField`, and `UITextView`; account for every production result.
+- [x] **Step 2: Keep Chat Send as a keyboard accessory** if it remains attached to the active composer and does not obscure thread content; document this as the intentional exception.
+- [x] **Step 3: Migrate form-like booking/review/modal inputs** to minimum reveal and preserve modal detents and dismiss behavior.
+- [x] **Step 4: Verify hardware-keyboard/no-overlap behavior** so no empty clearance or unnecessary scrolling occurs when the software keyboard is absent.
+- [x] **Step 5: Run full iOS tests/build, repository UI audit, source coverage inventory, diff, context hygiene, and preflight.**
+- [x] **Step 6: Close the migration only when the final inventory has an explicit disposition for every production input.**
+
+#### T-332 Final Input Inventory
+
+| Input owner | Editable controls | Disposition |
+|---|---|---|
+| Authentication | Email, password, password confirmation | Scrolling form; shared minimum reveal, interactive dismissal, and Done from T-321/T-322. |
+| Role onboarding | Display name | Scrolling form; shared minimum reveal from T-321. |
+| Shared limited input and address editor | UIKit limited field; Line 1, Line 2, city, ZIP | Shared bridge reports focus to each Customer/Groomer caller; no feature keyboard geometry. |
+| Customer Profile | Nickname, phone, address | Scrolling form; shared minimum reveal from T-321. |
+| Customer Request | Notes and shared address editor | Scrolling sheet; shared minimum reveal and sheet arbitration from T-320/T-324. |
+| Customer Pet | Name, breed fallback, care notes | Scrolling sheet; shared minimum reveal and stationary Save from T-321/T-324. |
+| Groomer Profile | Business name, biography, address | Scrolling form; shared minimum reveal and stationary Save from T-327. |
+| Groomer Service | Price, duration, description | Scrolling sheet; shared minimum reveal, stationary Save, and sheet arbitration from T-327. |
+| Groomer Availability | Time-off reason | Scrolling sheet; shared minimum reveal and stationary Save from T-327. |
+| Groomer Offer | Price estimate and message | Scrolling sheet; shared minimum reveal and stationary Submit from T-327. |
+| Booking review | Review `TextEditor` | Scrolling detail form; T-332 adds a semantic focus group and shared minimum reveal. Submit Review remains a page action. |
+| Chat thread | Message composer | Intentional true input accessory; its field and Send control remain attached to the keyboard through the bottom safe-area inset. |
+| Component Catalog | Two constant demo fields | DEBUG-only presentation examples; not production input workflows. |
+| UIKit `UITextView` | None | No tracked production occurrence. |
 
 ## Acceptance Matrix
 

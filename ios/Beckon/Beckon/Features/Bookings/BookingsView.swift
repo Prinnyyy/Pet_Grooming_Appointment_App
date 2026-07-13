@@ -895,6 +895,7 @@ struct BookingDetailView: View {
     let store: BookingsStore
     let onOpenChat: (Booking) -> Void
     let onCreateNewRequestFromCancelledBooking: ((Booking) -> Void)?
+    @FocusState private var focusedReviewTarget: BookingReviewFocusTarget?
 
     init(
         bookingID: UUID,
@@ -913,72 +914,79 @@ struct BookingDetailView: View {
 
     var body: some View {
         if let booking = store.booking(withID: bookingID) {
-            ZStack {
-                DesignTokens.Colors.background
-                    .ignoresSafeArea()
+            ScrollViewReader { scrollProxy in
+                ZStack {
+                    DesignTokens.Colors.background
+                        .ignoresSafeArea()
 
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                        BookingDetailHeroCard(
-                            booking: booking,
-                            role: role
-                        )
-
-                        BookingDetailInfoCard(
-                            title: "Appointment",
-                            systemImage: "calendar.badge.clock",
-                            role: role
-                        ) {
-                            BookingDetailFactRow("Service", value: booking.appointmentServiceTitle)
-                            BookingDetailFactRow("Date", value: BookingListDateFormatting.day(from: booking.scheduledStart))
-                            BookingDetailFactRow("Time", value: booking.timeWindowSummary)
-                            BookingDetailFactRow("Service Location", value: booking.appointmentLocationTitle)
-                            BookingDetailFactRow("Address", value: booking.appointmentAddressSummary)
-                            BookingDetailFactRow("Price", value: booking.priceSummary)
-                        }
-
-                        if role == .customer,
-                           booking.status.isCancellation,
-                           let onCreateNewRequestFromCancelledBooking {
-                            CustomerRequestRepublishButton(
-                                actionTitle: "Create a New Request from This Booking",
-                                accessibilityIdentifier: "customer.bookings.republish",
-                                action: {
-                                    onCreateNewRequestFromCancelledBooking(booking)
-                                }
+                    ScrollView {
+                        LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                            BookingDetailHeroCard(
+                                booking: booking,
+                                role: role
                             )
-                        }
 
-                        BookingPartnerOverviewCard(
-                            booking: booking,
-                            role: role,
-                            onOpenChat: onOpenChat
-                        )
+                            BookingDetailInfoCard(
+                                title: "Appointment",
+                                systemImage: "calendar.badge.clock",
+                                role: role
+                            ) {
+                                BookingDetailFactRow("Service", value: booking.appointmentServiceTitle)
+                                BookingDetailFactRow("Date", value: BookingListDateFormatting.day(from: booking.scheduledStart))
+                                BookingDetailFactRow("Time", value: booking.timeWindowSummary)
+                                BookingDetailFactRow("Service Location", value: booking.appointmentLocationTitle)
+                                BookingDetailFactRow("Address", value: booking.appointmentAddressSummary)
+                                BookingDetailFactRow("Price", value: booking.priceSummary)
+                            }
 
-                        if booking.status == .completed {
-                            BeckonSectionHeader("Review")
-
-                            if let review = booking.review {
-                                BookingReviewDisplay(review: review)
-                            } else if booking.canReview(for: role) {
-                                BookingReviewForm(
-                                    booking: booking,
-                                    store: store,
-                                    accent: role.primaryButtonAccent
+                            if role == .customer,
+                               booking.status.isCancellation,
+                               let onCreateNewRequestFromCancelledBooking {
+                                CustomerRequestRepublishButton(
+                                    actionTitle: "Create a New Request from This Booking",
+                                    accessibilityIdentifier: "customer.bookings.republish",
+                                    action: {
+                                        onCreateNewRequestFromCancelledBooking(booking)
+                                    }
                                 )
-                            } else {
-                                BeckonCard {
-                                    BookingMetadataRow(
-                                        systemImage: "star",
-                                        text: "Waiting for the customer to leave a review."
+                            }
+
+                            BookingPartnerOverviewCard(
+                                booking: booking,
+                                role: role,
+                                onOpenChat: onOpenChat
+                            )
+
+                            if booking.status == .completed {
+                                BeckonSectionHeader("Review")
+
+                                if let review = booking.review {
+                                    BookingReviewDisplay(review: review)
+                                } else if booking.canReview(for: role) {
+                                    BookingReviewForm(
+                                        booking: booking,
+                                        store: store,
+                                        accent: role.primaryButtonAccent,
+                                        focusedTarget: $focusedReviewTarget
                                     )
+                                } else {
+                                    BeckonCard {
+                                        BookingMetadataRow(
+                                            systemImage: "star",
+                                            text: "Waiting for the customer to leave a review."
+                                        )
+                                    }
                                 }
                             }
                         }
+                        .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+                        .padding(.top, DesignTokens.Spacing.lg)
+                        .padding(.bottom, DesignTokens.Spacing.xl + DesignTokens.Spacing.xl)
                     }
-                    .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-                    .padding(.top, DesignTokens.Spacing.lg)
-                    .padding(.bottom, DesignTokens.Spacing.xl + DesignTokens.Spacing.xl)
+                    .beckonKeyboardAvoidance(
+                        focusedTarget: focusedReviewTarget?.rawValue,
+                        using: scrollProxy
+                    )
                 }
             }
             .navigationTitle("Booking")
@@ -1007,6 +1015,15 @@ struct BookingDetailView: View {
             .navigationTitle("Booking")
         }
     }
+}
+
+nonisolated enum BookingReviewFocusTarget: String, Hashable {
+    case content = "bookings.review.content.container"
+}
+
+nonisolated enum BookingReviewKeyboardPresentation {
+    static let actionPlacement: BeckonKeyboardActionPlacement = .pageAction
+    static let contentFocusTarget = BookingReviewFocusTarget.content.rawValue
 }
 
 private struct BookingDetailActionBar: View {
@@ -1391,15 +1408,18 @@ private struct BookingReviewForm: View {
     @State private var rating = 5
     @State private var content = ""
     @State private var fitOutcomeSelections: [BookingReviewPetFitOutcomeSelection]
+    @FocusState.Binding var focusedTarget: BookingReviewFocusTarget?
 
     init(
         booking: Booking,
         store: BookingsStore,
-        accent: BeckonPrimaryButtonStyle.Accent
+        accent: BeckonPrimaryButtonStyle.Accent,
+        focusedTarget: FocusState<BookingReviewFocusTarget?>.Binding
     ) {
         self.booking = booking
         self.store = store
         self.accent = accent
+        _focusedTarget = focusedTarget
         _fitOutcomeSelections = State(
             initialValue: BookingReviewPetFitOutcomeSelection.defaults(
                 for: booking.reviewableFitSignals
@@ -1419,15 +1439,21 @@ private struct BookingReviewForm: View {
                 .tint(DesignTokens.Colors.customerPrimary)
                 .accessibilityIdentifier("bookings.review.rating")
 
-                TextEditor(text: $content)
-                    .frame(minHeight: 96)
-                    .scrollContentBackground(.hidden)
-                    .beckonFormField()
-                    .accessibilityIdentifier("bookings.review.content")
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                    TextEditor(text: $content)
+                        .focused($focusedTarget, equals: .content)
+                        .frame(minHeight: 96)
+                        .scrollContentBackground(.hidden)
+                        .beckonFormField()
+                        .accessibilityIdentifier("bookings.review.content")
 
-                Text("Optional review text, up to 2,000 characters.")
-                    .font(DesignTokens.Typography.caption)
-                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                    Text("Optional review text, up to 2,000 characters.")
+                        .font(DesignTokens.Typography.caption)
+                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+                }
+                .beckonKeyboardFocusTarget(
+                    BookingReviewKeyboardPresentation.contentFocusTarget
+                )
 
                 if !fitOutcomeSelections.isEmpty {
                     VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {

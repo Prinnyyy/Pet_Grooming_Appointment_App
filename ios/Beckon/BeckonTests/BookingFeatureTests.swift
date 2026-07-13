@@ -1,8 +1,30 @@
+import CoreGraphics
 import Foundation
 import Testing
 @testable import Beckon
 
 struct BookingsStoreTests {
+    @Test @MainActor
+    func bookingReviewUsesPageActionAndStableKeyboardFocusTarget() {
+        #expect(BookingReviewKeyboardPresentation.actionPlacement == .pageAction)
+        #expect(
+            BookingReviewKeyboardPresentation.contentFocusTarget ==
+                "bookings.review.content.container"
+        )
+
+        let hardwareKeyboardLayout = BeckonKeyboardFormLayout(
+            containerFrame: CGRect(x: 0, y: 0, width: 390, height: 844),
+            keyboardFrame: .null
+        )
+        #expect(hardwareKeyboardLayout.keyboardOverlap == 0)
+        #expect(
+            hardwareKeyboardLayout.revealAction(
+                for: CGRect(x: 20, y: 620, width: 350, height: 120),
+                clearance: DesignTokens.Layout.fieldSpacing
+            ) == .none
+        )
+    }
+
     @Test @MainActor
     func customerBookingScopesUseScheduledEndAsTheTimeBoundary() throws {
         let now = try #require(
