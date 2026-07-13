@@ -167,21 +167,6 @@ enum DesignTokens {
         static let fieldLabel = Font.subheadline.weight(.semibold)
         static let status = Font.caption.weight(.semibold)
         static let action = Font.headline.weight(.semibold)
-        static let customerHeroTitle = Font.system(
-            size: 21,
-            weight: .bold,
-            design: .rounded
-        )
-        static let customerHeroSupporting = Font.system(
-            size: 13,
-            weight: .regular,
-            design: .rounded
-        )
-        static let customerHeroAction = Font.system(
-            size: 15,
-            weight: .bold,
-            design: .rounded
-        )
 
         // Compatibility names remain until the source audit reports zero usage.
         static let largeTitle = Font.largeTitle.weight(.bold)
