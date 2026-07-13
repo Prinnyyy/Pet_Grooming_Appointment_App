@@ -120,9 +120,9 @@ enum CustomerRequestLocationSection: CaseIterable {
     var title: String {
         switch self {
         case .groomingSetup:
-            "Grooming Setup"
+            "Service Location"
         case .location:
-            "Location"
+            "Address Details"
         }
     }
 
@@ -491,14 +491,14 @@ struct CustomerRequestWizardView: View {
             CustomerRequestLocationSection.groomingSetup.title,
             supportingText: CustomerRequestLocationSection.groomingSetup.supportingText
         ) {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                ForEach(CustomerRequestLocationMode.allCases) { mode in
-                    CustomerRequestLocationModeCard(
-                        mode: mode,
-                        isSelected: store.locationMode == mode
-                    ) {
-                        store.locationMode = mode
-                    }
+            BeckonGroomingLocationModeSelector(
+                selection: [store.locationMode],
+                selectionPolicy: .single,
+                perspective: .customer,
+                accent: .customer
+            ) { selection in
+                if let mode = selection.first {
+                    store.locationMode = mode
                 }
             }
         }
@@ -1450,42 +1450,6 @@ private struct CustomerRequestFlexibleTimeToggle: View {
                 style: .continuous
             )
             .stroke(DesignTokens.Colors.border, lineWidth: 1)
-        }
-    }
-}
-
-private struct CustomerRequestLocationModeCard: View {
-    let mode: CustomerRequestLocationMode
-    let isSelected: Bool
-    let action: () -> Void
-
-    var body: some View {
-        BeckonSelectionCard(
-            isSelected: isSelected,
-            accent: .customer,
-            action: action
-        ) {
-            HStack(spacing: DesignTokens.Spacing.md) {
-                Text(mode.icon)
-                    .font(DesignTokens.Typography.sectionTitle)
-                    .frame(width: 44)
-
-                Text(mode.customerTitle)
-                    .font(DesignTokens.Typography.body.weight(.bold))
-                    .foregroundStyle(DesignTokens.Colors.textPrimary)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                Spacer()
-
-                if isSelected {
-                    Image(systemName: "checkmark")
-                        .font(DesignTokens.Typography.status)
-                        .foregroundStyle(DesignTokens.Colors.textPrimary)
-                        .frame(width: 34, height: 34)
-                        .background(DesignTokens.Colors.customerPrimary.opacity(0.42))
-                        .clipShape(Circle())
-                }
-            }
         }
     }
 }

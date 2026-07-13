@@ -420,54 +420,13 @@ private struct GroomerProfileLocationModePicker: View {
                 .font(DesignTokens.Typography.caption)
                 .foregroundStyle(DesignTokens.Colors.textSecondary)
 
-            VStack(spacing: DesignTokens.Spacing.sm) {
-                ForEach(GroomingLocationMode.allCases) { mode in
-                    Button {
-                        if selection.contains(mode) {
-                            selection.remove(mode)
-                        } else {
-                            selection.insert(mode)
-                        }
-                    } label: {
-                        let isSelected = selection.contains(mode)
-                        HStack(spacing: DesignTokens.Spacing.md) {
-                            Text(mode.icon)
-                                .font(.title3)
-                                .frame(width: 30)
-
-                            Text(mode.groomerTitle)
-                                .font(DesignTokens.Typography.body.weight(.semibold))
-                                .foregroundStyle(DesignTokens.Colors.textPrimary)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-
-                            if isSelected {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
-                            }
-                        }
-                        .padding(DesignTokens.Spacing.md)
-                        .background(DesignTokens.Colors.surface)
-                        .clipShape(
-                            RoundedRectangle(
-                                cornerRadius: DesignTokens.CornerRadius.input,
-                                style: .continuous
-                            )
-                        )
-                        .overlay {
-                            RoundedRectangle(
-                                cornerRadius: DesignTokens.CornerRadius.input,
-                                style: .continuous
-                            )
-                            .stroke(
-                                isSelected
-                                    ? DesignTokens.Colors.groomerAccent
-                                    : DesignTokens.Colors.borderSoft,
-                                lineWidth: isSelected ? 2 : 1
-                            )
-                        }
-                    }
-                    .buttonStyle(.plain)
-                }
+            BeckonGroomingLocationModeSelector(
+                selection: selection,
+                selectionPolicy: .multiple,
+                perspective: .groomer,
+                accent: .groomer
+            ) { newSelection in
+                selection = newSelection
             }
         }
     }

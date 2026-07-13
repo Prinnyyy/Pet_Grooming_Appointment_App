@@ -130,16 +130,37 @@ extension CustomerRequestsStoreTests {
     }
 
     @Test @MainActor
-    func requestWizardSeparatesGroomingSetupFromAddressLocation() {
+    func requestWizardSeparatesServiceLocationFromAddressDetails() {
         #expect(CustomerRequestLocationSection.allCases.map(\.title) == [
-            "Grooming Setup",
-            "Location",
+            "Service Location",
+            "Address Details",
         ])
         #expect(CustomerRequestLocationSection.groomingSetup.supportingText == nil)
-        #expect(CustomerRequestLocationMode.allCases.map(\.customerTitle) == [
-            "At My Home",
-            "At the Groomer",
-        ])
+        #expect(CustomerRequestLocationMode.groomerComesToCustomer.rawValue == "groomer_comes_to_customer")
+        #expect(CustomerRequestLocationMode.customerComesToGroomer.rawValue == "customer_comes_to_groomer")
+        let customerPresentations = CustomerRequestLocationMode.allCases.map {
+            BeckonGroomingLocationModePresentation(mode: $0, perspective: .customer)
+        }
+        let groomerPresentations = CustomerRequestLocationMode.allCases.map {
+            BeckonGroomingLocationModePresentation(mode: $0, perspective: .groomer)
+        }
+
+        #expect(customerPresentations.map(\.title) == ["My Home", "Groomer's Place"])
+        #expect(groomerPresentations.map(\.title) == ["Customer's Home", "My Place"])
+        #expect(customerPresentations.allSatisfy { $0.leadingIcon == nil })
+        #expect(groomerPresentations.allSatisfy { $0.leadingIcon == nil })
+        #expect(
+            BeckonGroomingLocationSelectionPolicy.single.updatedSelection(
+                [.groomerComesToCustomer],
+                toggling: .customerComesToGroomer
+            ) == [.customerComesToGroomer]
+        )
+        #expect(
+            BeckonGroomingLocationSelectionPolicy.multiple.updatedSelection(
+                [.groomerComesToCustomer],
+                toggling: .customerComesToGroomer
+            ) == [.groomerComesToCustomer, .customerComesToGroomer]
+        )
     }
 
     @Test @MainActor

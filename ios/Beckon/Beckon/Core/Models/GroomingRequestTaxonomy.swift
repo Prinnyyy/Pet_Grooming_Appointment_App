@@ -594,32 +594,6 @@ nonisolated enum GroomingLocationMode:
 
     var id: Self { self }
 
-    var customerTitle: String {
-        switch self {
-        case .groomerComesToCustomer:
-            "At My Home"
-        case .customerComesToGroomer:
-            "At the Groomer"
-        }
-    }
-
-    var groomerTitle: String {
-        switch self {
-        case .groomerComesToCustomer:
-            "I Travel To Customers"
-        case .customerComesToGroomer:
-            "Customers Visit My Place"
-        }
-    }
-
-    var icon: String {
-        switch self {
-        case .groomerComesToCustomer:
-            "🚐"
-        case .customerComesToGroomer:
-            "🏠"
-        }
-    }
 }
 
 nonisolated enum USStateCode:

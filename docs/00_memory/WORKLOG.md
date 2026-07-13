@@ -2,12 +2,21 @@
 
 ```text
 Date: 2026-07-13
+Task: T-334 - Shared grooming-location selector.
+Files changed: Shared DesignSystem location selector; Customer Request and Groomer Profile adoption; focused presentation/selection contract test; four-entry UI debt baseline prune; task/current-state memory.
+Checks: TDD compile and expectation RED then focused GREEN; iOS build; stale-component/source audit; UI baseline prune/check; diff/context/preflight.
+Result: Service Location and Address Details replace the provisional Request labels. One icon-free selector now owns location-mode order, card layout, selection feedback, and role-aware copy: Customer sees My Home / Groomer's Place with single selection, while Groomer sees Customer's Home / My Place with multiple selection. Raw values and backend direction remain unchanged, and four resolved Feature-level UI debt entries are removed without adding exceptions.
+Risks: Groomer wording is intentionally perspective-aware rather than copying My Home into the opposite role. Visual spacing remains user review by direction. No Store, repository, backend, schema, dependency, or remote state changed.
+Next: Execute T-332.
+```
+
+```text
+Date: 2026-07-13
 Task: T-333 - Customer Request Grooming Setup separation.
 Files changed: Request Wizard location presentation; customer location-mode copy; focused presentation contract test; task/current-state memory.
 Checks: TDD compile RED then focused GREEN; iOS build; diff/context/preflight.
 Result: Request Step 3 now presents a description-free Grooming Setup group above Location. Its existing mode choices read At My Home and At the Groomer, while Location contains only address and travel-range inputs. Existing enum raw values, Store state, publication parameters, and matching behavior are unchanged.
 Risks: Visual spacing remains user review by direction. No repository, backend, schema, dependency, or remote state changed.
-Next: Execute T-332.
 ```
 
 ```text

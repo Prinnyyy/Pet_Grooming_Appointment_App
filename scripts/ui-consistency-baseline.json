@@ -2,7 +2,7 @@
   "version": 1,
   "scope": "ios/Beckon/Beckon/Features",
   "lastChange": {
-    "reason": "Q-120"
+    "reason": "T-334"
   },
   "findings": [
     {
@@ -598,20 +598,6 @@
       "path": "ios/Beckon/Beckon/Features/Customer/Requests/CustomerRequestWizardView.swift",
       "fingerprint": "6f6e76fa790c2c45d7c1d3bb97c3de224c366f756bb441e2c8cbcfed81a10eb2",
       "expressionHash": "ffa32d752a6229acef647e8af2b6d24e4edf6dc81d0ff68f4bee9bc0a90ff4c4",
-      "occurrence": 1
-    },
-    {
-      "ruleID": "UI101",
-      "path": "ios/Beckon/Beckon/Features/Customer/Requests/CustomerRequestWizardView.swift",
-      "fingerprint": "badbd7f126084fbec9c9476ff0b4a0864dd7adcb7c88aa0fd25e9391747ad045",
-      "expressionHash": "2385ebc682228fac30f788beb46094c7a0533c6cfeb11bad738e0180892e72d3",
-      "occurrence": 1
-    },
-    {
-      "ruleID": "UI101",
-      "path": "ios/Beckon/Beckon/Features/Customer/Requests/CustomerRequestWizardView.swift",
-      "fingerprint": "b5053ccbb31eaf11ab58f5fa5741c5f786b72e76a9e3683a9ca1df39ae213b6c",
-      "expressionHash": "72167613ce7f79dec736366aabbc01d94d6efb048353ba98af25a1b99da2d528",
       "occurrence": 1
     },
     {
@@ -1320,20 +1306,6 @@
       "fingerprint": "20e66f9e2171748db099d19f51f96b52994c8f5734e540550f2f1bc1b53d2072",
       "expressionHash": "f2674f15e49633f4ec5a8241b684ed2a325924538caff74e4317fd8192820aab",
       "occurrence": 2
-    },
-    {
-      "ruleID": "UI002",
-      "path": "ios/Beckon/Beckon/Features/Groomer/Profile/GroomerProfileFormView.swift",
-      "fingerprint": "c571093967e992daa73a8efb5189950ad50fa98f02050884bd8b24a26ca467b3",
-      "expressionHash": "c4315acec1a200f01a106a25b6b78489d2dbd705b32b085ecb74cbc77437dec4",
-      "occurrence": 1
-    },
-    {
-      "ruleID": "UI101",
-      "path": "ios/Beckon/Beckon/Features/Groomer/Profile/GroomerProfileFormView.swift",
-      "fingerprint": "cf96895cfcf7b203b1de9c2451ace9d9e73c2936f53f4f224df1e16b21dcfc39",
-      "expressionHash": "ed253d6fb7889d5df017e7953e0e2b7ea7c5ced7d7c95e455bcd1bc2558de29c",
-      "occurrence": 1
     },
     {
       "ruleID": "UI101",
