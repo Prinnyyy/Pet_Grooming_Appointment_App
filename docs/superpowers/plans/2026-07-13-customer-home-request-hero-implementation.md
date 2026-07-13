@@ -57,7 +57,7 @@
 
 - [ ] Move hero strings into `CustomerHomeRequestHeroPresentation` and remove the embedded newline.
 - [ ] Match the reference's sampled light mint gradient, 110pt edge-aligned circle, and diagonal paw decoration.
-- [ ] Replace the local filled primary action with a compact white surface action using sampled Display P3 `#518B7F` foreground, shared Beckon semantic typography, and unchanged disabled semantics.
+- [ ] Replace the local filled primary action with a compact white surface action using shared `textPrimary` foreground and semantic typography, with unchanged disabled semantics.
 - [ ] Run focused presentation and accessibility tests and confirm GREEN.
 
 ### Task 4: Validate and close out T-341

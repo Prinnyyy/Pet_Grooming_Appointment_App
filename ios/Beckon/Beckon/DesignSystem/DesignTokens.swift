@@ -37,7 +37,6 @@ enum DesignTokens {
         static let customerHeroBackgroundStart: UInt = 0x93CEC2
         static let customerHeroBackgroundEnd: UInt = 0xB0D8D9
         static let customerHeroBubble: UInt = 0xB5DCD9
-        static let customerHeroActionForeground: UInt = 0x518B7F
         static let customerHeroDecoration: UInt = 0x515555
     }
 
@@ -62,9 +61,6 @@ enum DesignTokens {
         )
         static let customerHeroBubble = Color(
             displayP3Hex: DisplayP3Hex.customerHeroBubble
-        )
-        static let customerHeroActionForeground = Color(
-            displayP3Hex: DisplayP3Hex.customerHeroActionForeground
         )
         static let customerHeroDecoration = Color(
             displayP3Hex: DisplayP3Hex.customerHeroDecoration

@@ -9,7 +9,7 @@ Refresh the existing Customer Home request CTA to follow the supplied Beckon ref
 - Keep the existing light mint customer brand background.
 - Match the supplied Display P3 `#93CEC2` to `#B0D8D9` light mint background and white title/supporting copy without converting the source into lower-saturation sRGB values.
 - Let `Need grooming for your pet?` wrap naturally within the same content width as the action; do not embed a manual newline.
-- Present `Start Grooming Request` as a compact white action with a scissors SF Symbol and sampled Display P3 `#518B7F` foreground, aligned to the copy's leading edge.
+- Present `Start Grooming Request` as a compact white action with a scissors SF Symbol and shared `textPrimary` foreground, aligned to the copy's leading edge.
 - Use the shared Beckon semantic typography: `sectionTitle` for the Hero heading, `supporting` for its description, and `action` for the button label.
 - Keep the approximately 110pt top-right circle and diagonal bottom-right paw decoration inside the hero bounds and away from interactive content.
 - Preserve the disabled requirement message and make disabled action styling visibly distinct.

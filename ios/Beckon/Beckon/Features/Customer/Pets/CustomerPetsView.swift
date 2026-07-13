@@ -377,12 +377,12 @@ private struct CustomerHomeRequestHero: View {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                     Text(CustomerHomeRequestHeroPresentation.title)
                         .font(DesignTokens.Typography.sectionTitle)
-                        .foregroundStyle(DesignTokens.Colors.surface)
+                        .foregroundStyle(DesignTokens.Colors.textPrimary)
                         .fixedSize(horizontal: false, vertical: true)
 
                     Text(CustomerHomeRequestHeroPresentation.message)
                         .font(DesignTokens.Typography.supporting)
-                        .foregroundStyle(DesignTokens.Colors.surface)
+                        .foregroundStyle(DesignTokens.Colors.textPrimary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .frame(width: Metrics.contentWidth, alignment: .leading)
@@ -416,7 +416,7 @@ private struct CustomerHomeRequestHero: View {
                         systemImage: "pawprint"
                     )
                     .font(DesignTokens.Typography.status)
-                    .foregroundStyle(DesignTokens.Colors.surface)
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityIdentifier("customer.home.start-request.requirement")
                 }
