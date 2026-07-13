@@ -2,16 +2,249 @@ import SwiftUI
 import UIKit
 
 nonisolated struct BeckonKeyboardFormLayout: Equatable {
-    static let focusedGroupAnchorY: CGFloat = 0.55
+    enum RevealAction: Equatable, Sendable {
+        case none
+        case top
+        case bottom
+    }
 
+    let containerFrame: CGRect
+    let keyboardFrame: CGRect
     let keyboardOverlap: CGFloat
 
-    init(containerMaxY: CGFloat, keyboardMinY: CGFloat) {
-        keyboardOverlap = max(0, containerMaxY - keyboardMinY)
+    init(containerFrame: CGRect, keyboardFrame: CGRect) {
+        self.containerFrame = containerFrame
+        self.keyboardFrame = keyboardFrame
+
+        let intersection = containerFrame.intersection(keyboardFrame)
+        keyboardOverlap = intersection.isNull ? 0 : intersection.height
     }
 
     func scrollBottomClearance(base: CGFloat) -> CGFloat {
         base + keyboardOverlap
+    }
+
+    func revealAction(for targetFrame: CGRect, clearance: CGFloat) -> RevealAction {
+        let horizontalIntersection = containerFrame.minX < keyboardFrame.maxX
+            && containerFrame.maxX > keyboardFrame.minX
+        let keyboardReachesContainer = keyboardFrame.minY <= containerFrame.maxY
+            && keyboardFrame.maxY > containerFrame.minY
+        guard keyboardFrame.height > 0,
+              horizontalIntersection,
+              keyboardReachesContainer else {
+            return .none
+        }
+
+        let usableMinY = containerFrame.minY + clearance
+        let usableMaxY = min(containerFrame.maxY, keyboardFrame.minY) - clearance
+        guard usableMaxY > usableMinY else { return .none }
+
+        let topCorrection = max(0, usableMinY - targetFrame.minY)
+        let bottomCorrection = max(0, targetFrame.maxY - usableMaxY)
+        guard topCorrection > 0 || bottomCorrection > 0 else { return .none }
+
+        if topCorrection > 0, bottomCorrection > 0 {
+            return topCorrection <= bottomCorrection ? .top : .bottom
+        }
+        return topCorrection > 0 ? .top : .bottom
+    }
+
+    func scrollAnchor(for action: RevealAction, clearance: CGFloat) -> UnitPoint? {
+        guard containerFrame.height > 0 else { return nil }
+
+        switch action {
+        case .none:
+            return nil
+        case .top:
+            let rawY = clearance / containerFrame.height
+            let y = Swift.min(Swift.max(rawY, 0), 1)
+            return UnitPoint(x: 0.5, y: y)
+        case .bottom:
+            let usableMaxY = min(containerFrame.maxY, keyboardFrame.minY) - clearance
+            let rawY = (usableMaxY - containerFrame.minY) / containerFrame.height
+            let y = Swift.min(Swift.max(rawY, 0), 1)
+            return UnitPoint(x: 0.5, y: y)
+        }
+    }
+}
+
+nonisolated struct BeckonKeyboardFocusTargetID: Equatable, Hashable, Sendable {
+    let semanticID: String
+
+    init(_ semanticID: String) {
+        self.semanticID = semanticID
+    }
+
+    var top: String { "\(semanticID).keyboard-target.top" }
+    var bottom: String { "\(semanticID).keyboard-target.bottom" }
+}
+
+struct BeckonKeyboardFocusTargetBoundsKey: PreferenceKey {
+    static var defaultValue: [String: CGRect] = [:]
+
+    static func reduce(value: inout [String: CGRect], nextValue: () -> [String: CGRect]) {
+        value.merge(nextValue(), uniquingKeysWith: { _, next in next })
+    }
+}
+
+private struct BeckonKeyboardViewportBoundsKey: PreferenceKey {
+    static var defaultValue: CGRect = .zero
+
+    static func reduce(value: inout CGRect, nextValue: () -> CGRect) {
+        let next = nextValue()
+        if next != .zero { value = next }
+    }
+}
+
+private struct BeckonKeyboardFocusTargetModifier: ViewModifier {
+    let id: String
+
+    func body(content: Content) -> some View {
+        let marker = BeckonKeyboardFocusTargetID(id)
+
+        VStack(alignment: .leading, spacing: 0) {
+            Color.clear
+                .frame(height: 0)
+                .accessibilityHidden(true)
+                .id(marker.top)
+
+            content
+                .background {
+                    GeometryReader { geometry in
+                        Color.clear.preference(
+                            key: BeckonKeyboardFocusTargetBoundsKey.self,
+                            value: [id: geometry.frame(in: .global)]
+                        )
+                    }
+                }
+
+            Color.clear
+                .frame(height: 0)
+                .accessibilityHidden(true)
+                .id(marker.bottom)
+        }
+    }
+}
+
+private struct BeckonKeyboardRevealRequest: Equatable {
+    let target: String
+    let action: BeckonKeyboardFormLayout.RevealAction
+    let targetFrame: CGRect
+    let keyboardFrame: CGRect
+    let viewportFrame: CGRect
+}
+
+private struct BeckonKeyboardAvoidanceModifier: ViewModifier {
+    let focusedTarget: String?
+    let proxy: ScrollViewProxy
+
+    @State private var keyboardFrame: CGRect = .null
+    @State private var viewportFrame: CGRect = .zero
+    @State private var targetBounds: [String: CGRect] = [:]
+    @State private var lastRequest: BeckonKeyboardRevealRequest?
+    @State private var pendingTask: Task<Void, Never>?
+
+    func body(content: Content) -> some View {
+        content
+            .background {
+                GeometryReader { geometry in
+                    Color.clear.preference(
+                        key: BeckonKeyboardViewportBoundsKey.self,
+                        value: geometry.frame(in: .global)
+                    )
+                }
+            }
+            .onPreferenceChange(BeckonKeyboardViewportBoundsKey.self) { frame in
+                viewportFrame = frame
+                scheduleReveal()
+            }
+            .onPreferenceChange(BeckonKeyboardFocusTargetBoundsKey.self) { bounds in
+                targetBounds = bounds
+                scheduleReveal()
+            }
+            .onChange(of: focusedTarget) { _, target in
+                lastRequest = nil
+                pendingTask?.cancel()
+                guard target != nil else { return }
+                scheduleReveal()
+            }
+            .onReceive(NotificationCenter.default.publisher(
+                for: UIResponder.keyboardWillChangeFrameNotification
+            )) { notification in
+                guard let frame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey]
+                    as? CGRect else { return }
+                keyboardFrame = frame
+                scheduleReveal()
+            }
+            .onReceive(NotificationCenter.default.publisher(
+                for: UIResponder.keyboardWillHideNotification
+            )) { _ in
+                pendingTask?.cancel()
+                lastRequest = nil
+                keyboardFrame = .null
+            }
+    }
+
+    private func scheduleReveal() {
+        pendingTask?.cancel()
+        guard let target = focusedTarget,
+              let targetFrame = targetBounds[target],
+              viewportFrame != .zero else {
+            lastRequest = nil
+            return
+        }
+
+        let layout = BeckonKeyboardFormLayout(
+            containerFrame: viewportFrame,
+            keyboardFrame: keyboardFrame
+        )
+        let clearance = DesignTokens.Layout.fieldSpacing
+        let action = layout.revealAction(for: targetFrame, clearance: clearance)
+        guard action != .none,
+              let anchor = layout.scrollAnchor(for: action, clearance: clearance) else {
+            lastRequest = nil
+            return
+        }
+
+        let request = BeckonKeyboardRevealRequest(
+            target: target,
+            action: action,
+            targetFrame: targetFrame,
+            keyboardFrame: keyboardFrame,
+            viewportFrame: viewportFrame
+        )
+        guard request != lastRequest else { return }
+        lastRequest = request
+
+        pendingTask = Task { @MainActor in
+            await Task.yield()
+            guard !Task.isCancelled, focusedTarget == target else { return }
+            let marker = BeckonKeyboardFocusTargetID(target)
+            withAnimation(.easeOut(duration: 0.22)) {
+                proxy.scrollTo(
+                    action == .top ? marker.top : marker.bottom,
+                    anchor: anchor
+                )
+            }
+        }
+    }
+}
+
+extension View {
+    func beckonKeyboardFocusTarget(_ id: String) -> some View {
+        modifier(BeckonKeyboardFocusTargetModifier(id: id))
+    }
+
+    func beckonKeyboardAvoidance(
+        focusedTarget: String?,
+        using proxy: ScrollViewProxy
+    ) -> some View {
+        modifier(
+            BeckonKeyboardAvoidanceModifier(
+                focusedTarget: focusedTarget,
+                proxy: proxy
+            )
+        )
     }
 }
 

@@ -479,7 +479,7 @@ struct BeckonAddressEditor: View {
                     $0
                 }
             }
-            .id(BeckonAddressEditorSelectors.line1Container)
+            .beckonKeyboardFocusTarget(BeckonAddressEditorSelectors.line1Container)
 
             labeledField("Address Line 2", detail: "Optional") {
                 BeckonLimitedTextField(
@@ -501,7 +501,7 @@ struct BeckonAddressEditor: View {
                 .accessibilityLabel("Address Line 2, optional")
                 .accessibilityIdentifier(BeckonAddressEditorSelectors.line2)
             }
-            .id(BeckonAddressEditorSelectors.line2Container)
+            .beckonKeyboardFocusTarget(BeckonAddressEditorSelectors.line2Container)
 
             if let error = state.inlineError {
                 Text(error)
@@ -530,7 +530,7 @@ struct BeckonAddressEditor: View {
                     )
                     .accessibilityIdentifier(BeckonAddressEditorSelectors.city)
                 }
-                .id(BeckonAddressEditorSelectors.cityContainer)
+                .beckonKeyboardFocusTarget(BeckonAddressEditorSelectors.cityContainer)
 
                 labeledField("State") {
                     Menu {
@@ -581,7 +581,7 @@ struct BeckonAddressEditor: View {
                 )
                 .accessibilityIdentifier(BeckonAddressEditorSelectors.postalCode)
             }
-            .id(BeckonAddressEditorSelectors.postalCodeContainer)
+            .beckonKeyboardFocusTarget(BeckonAddressEditorSelectors.postalCodeContainer)
 
             statusRow
         }

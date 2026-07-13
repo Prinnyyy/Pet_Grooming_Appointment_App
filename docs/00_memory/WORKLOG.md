@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-07-12
+Task: T-320 - Shared minimum keyboard avoidance and Request reference migration.
+Files changed: DesignSystem visibility/viewport/focus-target primitives; shared Address Editor targets; Request reference consumer/tests; design/governance/plan/task/current-state memory.
+Checks: TDD compile RED/GREEN; full iOS tests; iOS build/build-run; live address/ZIP/Notes keyboard inspection; strict Wizard and repository UI audits; fixed-anchor search; diff/context/preflight.
+Result: One reusable DesignSystem modifier now measures the actual scroll viewport, keyboard, and complete semantic group. Visible groups do not move; obscured groups reveal only their nearest edge plus field spacing; oversized groups remain stable. Request supplies IDs only, and ZIP sits directly above the number pad while Back/Continue remain behind it.
+Risks: T-321...T-323 still need to classify and adopt the shared modifier across remaining forms; Chat may remain an explicit input accessory. Existing Supabase auth/reminder/AppIntents warnings are unchanged. No business, Store, repository, backend, dependency, or remote state changed.
+Next: Execute T-321 for Auth and remaining Customer inputs.
+```
+
+```text
+Date: 2026-07-12
 Task: T-319 - Minimum keyboard-avoidance redesign plan.
 Files changed: Formal T-320...T-323 implementation plan plus current/task/worklog routing.
 Checks: Apple HIG/developer-source reconciliation; current shared geometry, Request orchestration, tests, and production input inventory review; diff/context/preflight.

@@ -1,10 +1,10 @@
 # Minimal Keyboard Avoidance Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Replace Beckon's fixed 55% focused-field anchor with Apple-style minimum necessary scrolling, validate the Request Wizard baseline, and then migrate every remaining input surface according to its form or input-accessory semantics.
 
-**Architecture:** `DesignSystem` owns a pure visibility decision and reusable focus-target geometry. A feature supplies the focused semantic group and its scroll proxy; the shared policy returns no movement when the group is visible, reveals only the obscured edge when it is not, and lets content bounds clamp naturally. Page actions remain in page coordinates; true composers such as Chat may remain keyboard accessories after explicit review.
+**Architecture:** `DesignSystem` owns the pure visibility decision, semantic focus-target geometry, measured scroll-viewport orchestration, and keyboard observation. A feature supplies only the focused semantic-group ID and its scroll proxy; the shared modifier returns no movement when the group is visible, reveals only the obscured edge when it is not, and lets content bounds clamp naturally. Page actions remain in page coordinates; true composers such as Chat may remain keyboard accessories after explicit review.
 
 **Tech Stack:** Swift 6, SwiftUI, UIKit keyboard-frame notifications at one shared boundary, Swift Testing, Xcode Simulator, existing UI consistency audit.
 
@@ -42,7 +42,7 @@
 - Produces: `revealAction(for: CGRect, clearance: CGFloat) -> RevealAction`.
 - Retains: `keyboardOverlap` and `scrollBottomClearance(base:)` for page-action and scroll-content geometry.
 
-- [ ] **Step 1: Write failing pure-geometry tests**
+- [x] **Step 1: Write failing pure-geometry tests**
 
 Cover these exact cases with an 800pt container, keyboard beginning at 500pt, and 16pt clearance:
 
@@ -54,7 +54,7 @@ Cover these exact cases with an 800pt container, keyboard beginning at 500pt, an
 
 Also test keyboard hidden, a target exactly on the boundary, a target taller than the usable viewport, and a floating/split keyboard frame that does not horizontally intersect the form container.
 
-- [ ] **Step 2: Run the focused test and confirm RED**
+- [x] **Step 2: Run the focused test and confirm RED**
 
 Run:
 
@@ -64,11 +64,11 @@ Run:
 
 Expected: compilation fails because `RevealAction` and `revealAction` do not exist.
 
-- [ ] **Step 3: Implement the pure decision**
+- [x] **Step 3: Implement the pure decision**
 
 Store the container and keyboard frames, derive their actual intersection, and define the usable vertical interval. Return `.none` when there is no relevant overlap or the target fits inside the interval; otherwise return the nearest obscured edge. For a target taller than the usable interval, prefer the edge closest to its current visible position instead of oscillating between edges.
 
-- [ ] **Step 4: Run the focused test and confirm GREEN**
+- [x] **Step 4: Run the focused test and confirm GREEN**
 
 Run the same focused command. Expected: all selected tests pass.
 
@@ -81,12 +81,12 @@ Run the same focused command. Expected: all selected tests pass.
 **Interfaces:**
 - Produces: `.beckonKeyboardFocusTarget(_ id: String)` applied to the label/control/help container.
 - Produces: top and bottom marker IDs derived deterministically from the semantic ID.
-- Produces: bounds keyed by semantic ID in the form container's named coordinate space.
+- Produces: bounds keyed by semantic ID in the same measured global coordinate space as the shared viewport and keyboard frame.
 
-- [ ] **Step 1: Add a failing contract test** proving one semantic ID yields stable top/bottom marker IDs and cannot collide with another field ID.
-- [ ] **Step 2: Run the focused test and confirm RED** because the target contract does not exist.
-- [ ] **Step 3: Implement the modifier and preference key** using zero-height `Color.clear` markers before and after the complete group. Report one group rect; do not add scrollable height or visual spacing.
-- [ ] **Step 4: Run the focused test and confirm GREEN** and inspect the modifier for unchanged accessibility order.
+- [x] **Step 1: Add a failing contract test** proving one semantic ID yields stable top/bottom marker IDs and cannot collide with another field ID.
+- [x] **Step 2: Run the focused test and confirm RED** because the target contract does not exist.
+- [x] **Step 3: Implement the modifier and preference key** using zero-height `Color.clear` markers before and after the complete group. Report one group rect; do not add scrollable height or visual spacing.
+- [x] **Step 4: Run the focused test and confirm GREEN** and inspect the modifier for unchanged accessibility order.
 
 ### Task 3: Request Wizard Reference Migration
 
@@ -99,15 +99,15 @@ Run the same focused command. Expected: all selected tests pass.
 - Consumes: `BeckonKeyboardFormLayout.revealAction` and `.beckonKeyboardFocusTarget`.
 - Removes: `focusedGroupAnchorY` and every `scrollTo(... anchor: UnitPoint(x: 0.5, y: 0.55))` call.
 
-- [ ] **Step 1: Add failing source/contract assertions** that the Wizard consumes top/bottom target markers and has no fixed focused-field anchor.
-- [ ] **Step 2: Run the focused test and confirm RED** against the existing 55% implementation.
-- [ ] **Step 3: Integrate measured target bounds** and recompute only when focus, keyboard frame, container frame, or focused-group bounds change.
-- [ ] **Step 4: Reveal the selected edge only when required**: scroll to the bottom marker for `.bottom`, top marker for `.top`, and do nothing for `.none`. Preserve keyboard overlap as scroll clearance and preserve the existing measured bottom-action compensation.
-- [ ] **Step 5: Prevent feedback loops** by ignoring unchanged geometry decisions and cancelling any pending reveal when focus changes or the keyboard hides.
-- [ ] **Step 6: Run focused tests and `./scripts/ios-build.sh`**. Expected: pass with no new UI-audit errors.
-- [ ] **Step 7: Verify on Simulator** with a middle address field, ZIP, and multiline Notes. Record keyboard-hidden/shown evidence proving: visible fields do not move, partly hidden fields move only enough, title/control remain visible, short content clamps naturally, and Back/Continue remain behind the keyboard.
-- [ ] **Step 8: Update the active rules** in `docs/01_product/DESIGN_SYSTEM.md` and `docs/04_ios/UI_CODE_GOVERNANCE.md`, replacing 55% language rather than retaining both policies.
-- [ ] **Step 9: Run full T-320 validation**: focused tests, full `./scripts/ios-test.sh`, build, strict Wizard and repository UI audits, `git diff --check`, context hygiene, and preflight.
+- [x] **Step 1: Add failing source/contract assertions** that the Wizard consumes top/bottom target markers and has no fixed focused-field anchor.
+- [x] **Step 2: Run the focused test and confirm RED** against the existing 55% implementation.
+- [x] **Step 3: Integrate measured target bounds** and recompute only when focus, keyboard frame, container frame, or focused-group bounds change.
+- [x] **Step 4: Reveal the selected edge only when required**: scroll to the bottom marker for `.bottom`, top marker for `.top`, and do nothing for `.none`. Preserve keyboard overlap as scroll clearance and preserve the existing measured bottom-action compensation.
+- [x] **Step 5: Prevent feedback loops** by ignoring unchanged geometry decisions and cancelling any pending reveal when focus changes or the keyboard hides.
+- [x] **Step 6: Run focused tests and `./scripts/ios-build.sh`**. Expected: pass with no new UI-audit errors.
+- [x] **Step 7: Verify on Simulator** with a middle address field, ZIP, and multiline Notes. Record keyboard-hidden/shown evidence proving: visible fields do not move, partly hidden fields move only enough, title/control remain visible, short content clamps naturally, and Back/Continue remain behind the keyboard.
+- [x] **Step 8: Update the active rules** in `docs/01_product/DESIGN_SYSTEM.md` and `docs/04_ios/UI_CODE_GOVERNANCE.md`, replacing 55% language rather than retaining both policies.
+- [x] **Step 9: Run full T-320 validation**: focused tests, full `./scripts/ios-test.sh`, build, strict Wizard and repository UI audits, `git diff --check`, context hygiene, and preflight.
 
 ### Task 4: Auth and Customer Forms
 
@@ -167,4 +167,3 @@ Run the same focused command. Expected: all selected tests pass.
 - Apple UIKit: `https://developer.apple.com/documentation/uikit/adjusting-your-layout-with-keyboard-layout-guide`
 - Apple SwiftUI keyboard safe area: `https://developer.apple.com/documentation/swiftui/safearearegions/keyboard`
 - Apple SwiftUI interactive dismissal: `https://developer.apple.com/documentation/swiftui/view/scrolldismisseskeyboard(_:)`
-

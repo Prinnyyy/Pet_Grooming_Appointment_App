@@ -131,13 +131,14 @@ Dark mode remains out of scope. These rules govern the current light palette and
 Apply this contract to scrolling forms and editors. The shared geometry source is `BeckonKeyboardFormLayout` in `DesignSystem/BeckonFormPrimitives.swift`.
 
 - Focus targets represent the complete semantic field group: its visible label or title, the full input control, and immediate validation text when practical. Do not scroll only the text cursor into view.
-- Move the focused group toward the lower usable area above the keyboard. The standard ideal anchor is 55% of the scroll viewport; `ScrollViewReader` must allow normal content-bound clamping. The rule is "try to reach," never add artificial content or force a short page to reach the anchor.
+- Treat the keyboard as a measured occlusion boundary. If the complete focused group is already visible inside that boundary plus `DesignTokens.Layout.fieldSpacing`, perform no programmatic scroll.
+- When an edge is obscured, reveal only the nearest hidden top or bottom edge plus semantic clearance. A group taller than the usable viewport uses the edge requiring less movement so repeated geometry updates cannot make it oscillate. `ScrollViewReader` must allow normal content-bound clamping: the rule is "move only as much as needed and as far as naturally reachable."
 - Keyboard overlap adds scroll clearance for form content. It must not become arbitrary negative padding, a guessed offset, or a second source of safe-area truth.
 - Page-level actions such as Back, Continue, Save, or Publish retain their original page position and may be covered by the keyboard. They must not automatically become a floating keyboard toolbar. A send/reply control whose sole purpose is text entry is an input accessory and may track the keyboard.
 - Native SwiftUI fields and UIKit-backed representables publish focus through the same field-group target contract. Attach stable IDs to the label-plus-control container, and keep representable focus callbacks at the shared component boundary.
 - Preserve Dynamic Type, VoiceOver order, safe areas, interactive keyboard dismissal, long text, and native focus behavior. Do not use a fixed input height that clips dynamic text.
 
-After a second production screen needs the same orchestration, reuse or extend one DesignSystem container/helper rather than copying notification and scroll code. A feature may own field IDs and business validation, but it must not redefine the keyboard geometry policy.
+Use `BeckonKeyboardFormLayout` for visibility decisions and `.beckonKeyboardFocusTarget(_:)` on complete semantic groups. A feature may own field IDs, scroll orchestration, and business validation, but it must not redefine keyboard geometry policy or introduce a screen-percentage anchor.
 
 ## Screenshot Rework Rules
 

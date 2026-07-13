@@ -75,11 +75,13 @@ Feature views own data, business order, actions, and state. `DesignSystem` owns 
 For each changed scrolling form or editor, reviewers must verify the keyboard-aware form contract in `../01_product/DESIGN_SYSTEM.md`:
 
 - focus scrolls the label/title and complete control as one stable target;
-- the target approaches the shared lower ideal anchor and clamps naturally at content bounds;
+- an already visible target causes no programmatic scroll;
+- an obscured target reveals only its nearest hidden edge plus semantic clearance and clamps naturally at content bounds;
+- oversized semantic groups select one stable nearest edge instead of oscillating between top and bottom;
 - measured keyboard overlap is used only as content clearance or as encapsulated compensation that preserves a page-level action's original coordinate;
 - page-level actions do not float above the keyboard, while true input accessories such as chat send controls may track it;
 - UIKit representables report editing focus through the same callback contract as native SwiftUI fields;
-- no guessed offset, negative spacing, fixed text-clipping height, or duplicate feature-local keyboard policy was added.
+- no fixed viewport-percentage anchor, guessed offset, negative spacing, fixed text-clipping height, or duplicate feature-local keyboard policy was added.
 
 Simulator evidence for a migrated form must cover at least one low single-line field and one multiline field when the screen has both. Compare keyboard hidden and shown states, including Dynamic Type when the changed geometry could reflow. Source audit warnings remain review signals; a measured, shared keyboard compensation is not an invitation to suppress UI102 elsewhere.
 

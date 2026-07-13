@@ -158,18 +158,118 @@ extension CustomerRequestsStoreTests {
     @Test
     func requestWizardKeyboardOverlapBecomesScrollClearance() {
         let layout = BeckonKeyboardFormLayout(
-            containerMaxY: 800,
-            keyboardMinY: 500
+            containerFrame: CGRect(x: 0, y: 0, width: 320, height: 800),
+            keyboardFrame: CGRect(x: 0, y: 500, width: 320, height: 300)
         )
 
         #expect(layout.keyboardOverlap == 300)
         #expect(layout.scrollBottomClearance(base: 24) == 324)
         #expect(
             BeckonKeyboardFormLayout(
-                containerMaxY: 800,
-                keyboardMinY: 800
+                containerFrame: CGRect(x: 0, y: 0, width: 320, height: 800),
+                keyboardFrame: CGRect(x: 0, y: 800, width: 320, height: 0)
             ).keyboardOverlap == 0
         )
+    }
+
+    @Test
+    func requestWizardKeyboardRevealUsesMinimumObscuredEdge() {
+        let layout = BeckonKeyboardFormLayout(
+            containerFrame: CGRect(x: 0, y: 0, width: 320, height: 800),
+            keyboardFrame: CGRect(x: 0, y: 500, width: 320, height: 300)
+        )
+
+        #expect(
+            layout.revealAction(
+                for: CGRect(x: 0, y: 300, width: 320, height: 80),
+                clearance: 16
+            ) == .none
+        )
+        #expect(
+            layout.revealAction(
+                for: CGRect(x: 0, y: 450, width: 320, height: 80),
+                clearance: 16
+            ) == .bottom
+        )
+        #expect(
+            layout.revealAction(
+                for: CGRect(x: 0, y: -10, width: 320, height: 80),
+                clearance: 16
+            ) == .top
+        )
+    }
+
+    @Test
+    func requestWizardKeyboardRevealHandlesBoundariesAndOversizedGroups() {
+        let layout = BeckonKeyboardFormLayout(
+            containerFrame: CGRect(x: 0, y: 0, width: 320, height: 800),
+            keyboardFrame: CGRect(x: 0, y: 500, width: 320, height: 300)
+        )
+
+        #expect(
+            layout.revealAction(
+                for: CGRect(x: 0, y: 16, width: 320, height: 468),
+                clearance: 16
+            ) == .none
+        )
+        #expect(
+            layout.revealAction(
+                for: CGRect(x: 0, y: -20, width: 320, height: 540),
+                clearance: 16
+            ) == .top
+        )
+        #expect(
+            layout.revealAction(
+                for: CGRect(x: 0, y: -100, width: 320, height: 620),
+                clearance: 16
+            ) == .bottom
+        )
+    }
+
+    @Test
+    func requestWizardKeyboardRevealIgnoresUnrelatedKeyboardFrames() {
+        let container = CGRect(x: 0, y: 0, width: 320, height: 800)
+        let hiddenLayout = BeckonKeyboardFormLayout(
+            containerFrame: container,
+            keyboardFrame: CGRect(x: 0, y: 800, width: 320, height: 0)
+        )
+        let floatingLayout = BeckonKeyboardFormLayout(
+            containerFrame: container,
+            keyboardFrame: CGRect(x: 400, y: 500, width: 300, height: 250)
+        )
+        let obscuredTarget = CGRect(x: 0, y: 700, width: 320, height: 60)
+
+        #expect(hiddenLayout.revealAction(for: obscuredTarget, clearance: 16) == .none)
+        #expect(floatingLayout.revealAction(for: obscuredTarget, clearance: 16) == .none)
+    }
+
+    @Test
+    func requestWizardKeyboardRevealUsesKeyboardAdjustedScrollViewport() throws {
+        let layout = BeckonKeyboardFormLayout(
+            containerFrame: CGRect(x: 0, y: 0, width: 320, height: 500),
+            keyboardFrame: CGRect(x: 0, y: 500, width: 320, height: 300)
+        )
+
+        #expect(
+            layout.revealAction(
+                for: CGRect(x: 0, y: 450, width: 320, height: 80),
+                clearance: 16
+            ) == .bottom
+        )
+        let anchor = try #require(layout.scrollAnchor(for: .bottom, clearance: 16))
+        #expect(anchor.y == 0.968)
+    }
+
+    @Test
+    func requestWizardKeyboardFocusTargetMarkerIDsAreStableAndDistinct() {
+        let line1 = BeckonKeyboardFocusTargetID("address.line1")
+        let city = BeckonKeyboardFocusTargetID("address.city")
+
+        #expect(line1.top == BeckonKeyboardFocusTargetID("address.line1").top)
+        #expect(line1.bottom == BeckonKeyboardFocusTargetID("address.line1").bottom)
+        #expect(line1.top != line1.bottom)
+        #expect(line1.top != city.top)
+        #expect(line1.bottom != city.bottom)
     }
 
     @Test @MainActor

@@ -288,13 +288,10 @@ struct CustomerRequestWizardView: View {
                             .scrollContentBackground(.hidden)
                             .scrollDismissesKeyboard(.interactively)
                             .scrollIndicators(.hidden)
-                        }
-                        .onChange(of: focusedInputTarget) { _, target in
-                            scrollFocusedInput(target, using: scrollProxy)
-                        }
-                        .onChange(of: keyboardOverlap) { _, overlap in
-                            guard overlap > 0 else { return }
-                            scrollFocusedInput(focusedInputTarget, using: scrollProxy)
+                            .beckonKeyboardAvoidance(
+                                focusedTarget: focusedInputTarget,
+                                using: scrollProxy
+                            )
                         }
                     }
 
@@ -324,7 +321,10 @@ struct CustomerRequestWizardView: View {
             .onReceive(NotificationCenter.default.publisher(
                 for: UIResponder.keyboardWillChangeFrameNotification
             )) { notification in
-                updateKeyboardOverlap(notification, containerMaxY: geometry.frame(in: .global).maxY)
+                updateKeyboardGeometry(
+                    notification,
+                    containerFrame: geometry.frame(in: .global)
+                )
             }
             .onReceive(NotificationCenter.default.publisher(
                 for: UIResponder.keyboardWillHideNotification
@@ -537,7 +537,7 @@ struct CustomerRequestWizardView: View {
                         }
                     }
             }
-            .id(Self.notesFocusTarget)
+            .beckonKeyboardFocusTarget(Self.notesFocusTarget)
 
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                 Text("Photos")
@@ -814,32 +814,16 @@ struct CustomerRequestWizardView: View {
         }
     }
 
-    private func updateKeyboardOverlap(
+    private func updateKeyboardGeometry(
         _ notification: Notification,
-        containerMaxY: CGFloat
+        containerFrame: CGRect
     ) {
-        guard let keyboardFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey]
+        guard let globalKeyboardFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey]
             as? CGRect else { return }
         keyboardOverlap = BeckonKeyboardFormLayout(
-            containerMaxY: containerMaxY,
-            keyboardMinY: keyboardFrame.minY
+            containerFrame: containerFrame,
+            keyboardFrame: globalKeyboardFrame
         ).keyboardOverlap
-    }
-
-    private func scrollFocusedInput(
-        _ target: String?,
-        using proxy: ScrollViewProxy
-    ) {
-        guard let target else { return }
-        Task { @MainActor in
-            await Task.yield()
-            withAnimation(.easeOut(duration: 0.22)) {
-                proxy.scrollTo(
-                    target,
-                    anchor: UnitPoint(x: 0.5, y: BeckonKeyboardFormLayout.focusedGroupAnchorY)
-                )
-            }
-        }
     }
 
     private func showNoProfileAddressPrompt() {
