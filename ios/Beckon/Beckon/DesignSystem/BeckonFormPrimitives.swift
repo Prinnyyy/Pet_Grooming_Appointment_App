@@ -25,8 +25,9 @@ nonisolated struct BeckonKeyboardFormLayout: Equatable {
         keyboardOverlap = intersection.isNull ? 0 : intersection.height
     }
 
-    func scrollBottomClearance(base: CGFloat) -> CGFloat {
-        base + keyboardOverlap
+    var stationaryPageActionOffset: CGFloat {
+        let keyboardIsDocked = keyboardFrame.maxY >= containerFrame.maxY - 1
+        return keyboardIsDocked ? keyboardOverlap : 0
     }
 
     func revealAction(for targetFrame: CGRect, clearance: CGFloat) -> RevealAction {
@@ -252,6 +253,52 @@ private struct BeckonKeyboardAvoidanceModifier: ViewModifier {
     }
 }
 
+private struct BeckonStationaryPageActionModifier<Actions: View>: ViewModifier {
+    let actions: Actions
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var keyboardOffset: CGFloat = 0
+
+    func body(content: Content) -> some View {
+        content
+            .overlay(alignment: .bottom) {
+                actions
+                    .offset(y: keyboardOffset)
+            }
+            .onReceive(NotificationCenter.default.publisher(
+                for: UIResponder.keyboardWillChangeFrameNotification
+            )) { notification in
+                guard let frame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey]
+                    as? CGRect else { return }
+                let offset = BeckonKeyboardFormLayout(
+                    containerFrame: activeScreenBounds,
+                    keyboardFrame: frame
+                ).stationaryPageActionOffset
+                let duration = notification.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey]
+                    as? Double ?? 0.25
+                if reduceMotion {
+                    keyboardOffset = offset
+                } else {
+                    withAnimation(.easeOut(duration: duration)) {
+                        keyboardOffset = offset
+                    }
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(
+                for: UIResponder.keyboardWillHideNotification
+            )) { _ in
+                keyboardOffset = 0
+            }
+    }
+
+    private var activeScreenBounds: CGRect {
+        UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .first(where: { $0.activationState == .foregroundActive })?
+            .screen.bounds ?? .zero
+    }
+}
+
 extension View {
     func beckonKeyboardFocusTarget(_ id: String) -> some View {
         modifier(BeckonKeyboardFocusTargetModifier(id: id))
@@ -269,17 +316,10 @@ extension View {
         )
     }
 
-    func beckonPageActionsRemainBehindKeyboard() -> some View {
-        ignoresSafeArea(.keyboard, edges: .bottom)
-    }
-
     func beckonStationaryPageAction<Actions: View>(
         @ViewBuilder actions: () -> Actions
     ) -> some View {
-        overlay(alignment: .bottom) {
-            actions()
-        }
-        .beckonPageActionsRemainBehindKeyboard()
+        modifier(BeckonStationaryPageActionModifier(actions: actions()))
     }
 }
 

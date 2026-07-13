@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-07-12
+Task: T-323 - Native keyboard safe-area and scroll-range correction.
+Files changed: Shared keyboard/stationary-action geometry; Request duplicate keyboard code removal; focused tests; UI009-UI011 audit enforcement/tests; complete keyboard rules/governance/plan/task/current-state memory.
+Checks: Apple HIG/SwiftUI/UIKit source review; Swift and audit TDD RED/GREEN; full iOS tests; iOS build; repository UI audit; duplicate keyboard-policy search; diff/context/preflight.
+Result: Forms now use the system keyboard-reduced viewport instead of keyboard-height content padding. Docked keyboards move only stationary page actions back to their original coordinate; floating/hardware keyboards add no offset. Request loses excessive blank overscroll, and Edit Pet can reach lower fields through the same shared behavior.
+Risks: Runtime interaction remains user validation by direction. Groomer/business and residual/modal inputs still require T-324/T-325 adoption inventory. No Store, repository, backend, dependency, or remote state changed.
+Next: Execute T-324 for Groomer and business-editor inputs.
+```
+
+```text
+Date: 2026-07-12
 Task: T-322 - Shared keyboard dismissal contract.
 Files changed: DesignSystem keyboard modifier/contract test; keyboard design/governance/plan/task/current-state memory.
 Checks: TDD compile RED/GREEN; full iOS tests; iOS build; repository UI audit; diff/context/preflight.

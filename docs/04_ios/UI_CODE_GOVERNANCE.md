@@ -78,15 +78,18 @@ For each changed scrolling form or editor, reviewers must verify the keyboard-aw
 - an already visible target causes no programmatic scroll;
 - an obscured target reveals only its nearest hidden edge plus semantic clearance and clamps naturally at content bounds;
 - oversized semantic groups select one stable nearest edge instead of oscillating between top and bottom;
-- measured keyboard overlap is used only as content clearance or as encapsulated compensation that preserves a page-level action's original coordinate;
+- form content keeps the native keyboard safe area and has no synthetic keyboard-height padding, inset, or `ignoresSafeArea(.keyboard)`;
 - page-level actions do not float above the keyboard, while true input accessories such as chat send controls may track it;
+- stationary page-action compensation applies only to a bottom-docked keyboard; floating, split, hidden, and hardware keyboards add no offset or blank space;
 - keyboard-aware scrolling forms expose both interactive drag dismissal and the shared explicit `Done` action, so no keyboard type requires leaving the page;
 - UIKit representables report editing focus through the same callback contract as native SwiftUI fields;
 - no fixed viewport-percentage anchor, guessed offset, negative spacing, fixed text-clipping height, or duplicate feature-local keyboard policy was added.
 
-Feature code may declare stable focus IDs and call the shared keyboard/form modifiers. Keyboard-frame observation, viewport calculations, reveal anchors, animation timing, dismissal behavior, and stationary page-action behavior belong to DesignSystem; duplicating any of them in a feature is a review failure.
+Feature code may declare stable focus IDs, focus order, semantic keyboard/content types, and call the shared keyboard/form modifiers. Keyboard-frame observation, viewport calculations, reveal anchors, animation timing, dismissal behavior, synthetic content clearance, and stationary page-action behavior belong to DesignSystem; duplicating any of them in a feature is a review failure.
 
-Simulator evidence for a migrated form must cover at least one low single-line field and one multiline field when the screen has both. Compare keyboard hidden and shown states, including Dynamic Type when the changed geometry could reflow. Source audit warnings remain review signals; a measured, shared keyboard compensation is not an invitation to suppress UI102 elsewhere.
+The UI audit enforces the deterministic boundary: `UI009` rejects feature-level keyboard safe-area bypass, `UI010` rejects keyboard-derived feature padding/offset, and `UI011` rejects feature-level keyboard notifications/frame reads. Shared geometry tests cover docked versus floating behavior that regex cannot determine.
+
+Code review must account for at least one low single-line field and one multiline field when the screen has both, plus docked/floating/hardware keyboard outcomes in the shared contract tests. Runtime interaction remains user validation unless explicitly requested. Source audit warnings remain review signals; the one shared keyboard boundary is not an invitation to suppress UI102 elsewhere.
 
 ## Migration Status
 

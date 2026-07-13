@@ -156,20 +156,31 @@ extension CustomerRequestsStoreTests {
     }
 
     @Test
-    func requestWizardKeyboardOverlapBecomesScrollClearance() {
+    func keyboardOverlapMovesOnlyStationaryPageActions() {
         let layout = BeckonKeyboardFormLayout(
             containerFrame: CGRect(x: 0, y: 0, width: 320, height: 800),
             keyboardFrame: CGRect(x: 0, y: 500, width: 320, height: 300)
         )
 
         #expect(layout.keyboardOverlap == 300)
-        #expect(layout.scrollBottomClearance(base: 24) == 324)
+        #expect(layout.stationaryPageActionOffset == 300)
         #expect(
             BeckonKeyboardFormLayout(
                 containerFrame: CGRect(x: 0, y: 0, width: 320, height: 800),
                 keyboardFrame: CGRect(x: 0, y: 800, width: 320, height: 0)
             ).keyboardOverlap == 0
         )
+    }
+
+    @Test
+    func floatingKeyboardDoesNotMoveStationaryPageActions() {
+        let layout = BeckonKeyboardFormLayout(
+            containerFrame: CGRect(x: 0, y: 0, width: 1024, height: 1366),
+            keyboardFrame: CGRect(x: 420, y: 700, width: 520, height: 300)
+        )
+
+        #expect(layout.keyboardOverlap == 300)
+        #expect(layout.stationaryPageActionOffset == 0)
     }
 
     @Test

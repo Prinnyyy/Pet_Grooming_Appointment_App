@@ -216,7 +216,6 @@ struct CustomerRequestWizardView: View {
     @State private var isApplyingProfileAddress = false
     @State private var isContinuingAfterAddressConfirmation = false
     @State private var globallyPresentedErrorMessage: String?
-    @State private var keyboardOverlap: CGFloat = 0
     @State private var bottomBarHeight: CGFloat = 0
     @State private var focusedInputTarget: String?
     @FocusState private var isNotesFocused: Bool
@@ -242,16 +241,15 @@ struct CustomerRequestWizardView: View {
     }
 
     var body: some View {
-        GeometryReader { geometry in
-            NavigationStack {
-                ZStack(alignment: .bottom) {
-                    ScrollViewReader { scrollProxy in
-                        ZStack {
-                            DesignTokens.Colors.background
-                                .ignoresSafeArea()
+        NavigationStack {
+            ZStack {
+                ScrollViewReader { scrollProxy in
+                    ZStack {
+                        DesignTokens.Colors.background
+                            .ignoresSafeArea()
 
-                            ScrollView {
-                                LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
+                        ScrollView {
+                            LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
                                 CustomerRequestWizardHeader(
                                     currentStep: currentStep,
                                     backAction: back
@@ -281,58 +279,43 @@ struct CustomerRequestWizardView: View {
                                     )
                                     .accessibilityIdentifier("customer.requests.form-error")
                                 }
-                                }
-                                .beckonPageInsets(bottom: DesignTokens.Layout.sectionSpacing)
-                                .padding(.bottom, bottomBarHeight + keyboardOverlap)
                             }
-                            .scrollContentBackground(.hidden)
-                            .scrollDismissesKeyboard(.interactively)
-                            .scrollIndicators(.hidden)
-                            .beckonKeyboardAvoidance(
-                                focusedTarget: focusedInputTarget,
-                                using: scrollProxy
-                            )
+                            .beckonPageInsets(bottom: DesignTokens.Layout.sectionSpacing)
+                            .padding(.bottom, bottomBarHeight)
                         }
-                    }
-
-                    CustomerRequestWizardBottomBar(
-                        currentStep: currentStep,
-                        isSubmitting: store.isSubmitting,
-                        canContinue: canContinue,
-                        backAction: back,
-                        continueAction: continueForward
-                    )
-                    .offset(y: keyboardOverlap)
-                    .background {
-                        GeometryReader { barGeometry in
-                            Color.clear.preference(
-                                key: CustomerRequestWizardBottomBarHeightKey.self,
-                                value: barGeometry.size.height
-                            )
-                        }
+                        .scrollContentBackground(.hidden)
+                        .scrollDismissesKeyboard(.interactively)
+                        .scrollIndicators(.hidden)
+                        .beckonKeyboardAvoidance(
+                            focusedTarget: focusedInputTarget,
+                            using: scrollProxy
+                        )
                     }
                 }
-                .onPreferenceChange(CustomerRequestWizardBottomBarHeightKey.self) {
-                    bottomBarHeight = $0
-                }
-                .tint(DesignTokens.Colors.customerPrimaryDark)
-                .toolbar(.hidden, for: .navigationBar)
             }
-            .onReceive(NotificationCenter.default.publisher(
-                for: UIResponder.keyboardWillChangeFrameNotification
-            )) { notification in
-                updateKeyboardGeometry(
-                    notification,
-                    containerFrame: geometry.frame(in: .global)
+            .beckonStationaryPageAction {
+                CustomerRequestWizardBottomBar(
+                    currentStep: currentStep,
+                    isSubmitting: store.isSubmitting,
+                    canContinue: canContinue,
+                    backAction: back,
+                    continueAction: continueForward
                 )
+                .background {
+                    GeometryReader { barGeometry in
+                        Color.clear.preference(
+                            key: CustomerRequestWizardBottomBarHeightKey.self,
+                            value: barGeometry.size.height
+                        )
+                    }
+                }
             }
-            .onReceive(NotificationCenter.default.publisher(
-                for: UIResponder.keyboardWillHideNotification
-            )) { _ in
-                keyboardOverlap = 0
+            .onPreferenceChange(CustomerRequestWizardBottomBarHeightKey.self) {
+                bottomBarHeight = $0
             }
+            .tint(DesignTokens.Colors.customerPrimaryDark)
+            .toolbar(.hidden, for: .navigationBar)
         }
-        .beckonPageActionsRemainBehindKeyboard()
         .interactiveDismissDisabled(
             store.isSubmitting || !store.addressEditorState.candidates.isEmpty
         )
@@ -812,18 +795,6 @@ struct CustomerRequestWizardView: View {
                 showProfileAddressUnavailablePrompt()
             }
         }
-    }
-
-    private func updateKeyboardGeometry(
-        _ notification: Notification,
-        containerFrame: CGRect
-    ) {
-        guard let globalKeyboardFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey]
-            as? CGRect else { return }
-        keyboardOverlap = BeckonKeyboardFormLayout(
-            containerFrame: containerFrame,
-            keyboardFrame: globalKeyboardFrame
-        ).keyboardOverlap
     }
 
     private func showNoProfileAddressPrompt() {

@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-12
 - Updated by: Codex
-- Latest completed task: T-322 shared keyboard dismissal contract.
+- Latest completed task: T-323 native keyboard safe-area and scroll-range correction.
 - Current task: none; T-157 APNs remains externally blocked and Q-104 Dynamic Type/Accessibility remains user-deferred.
-- Next task ID: use T-323 for Groomer and business-editor keyboard-rule adoption. T-324 covers residual/modal/chat inputs; Groomer Q-104 remains deferred.
+- Next task ID: use T-324 for Groomer and business-editor keyboard-rule adoption. T-325 covers residual/modal/chat inputs; Groomer Q-104 remains deferred.
 
 ## Fast Path
 
@@ -32,6 +32,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Validation Baseline
 
+- T-323 aligns the shared form contract with Apple keyboard guidance: form content keeps SwiftUI's keyboard safe area and no longer receives synthetic keyboard-height padding. The shared stationary-action layer offsets only for a bottom-docked keyboard, using the system duration and Reduce Motion; floating/hardware keyboards add nothing. Request removes its duplicate observer/padding/offset, while Edit Pet inherits a keyboard-reduced viewport that makes lower fields reachable. Focused/full tests, build, audit, and preflight pass; no business, Store, repository, backend, dependency, or remote state changed.
 - T-322 adds dismissal to the same DesignSystem boundary as keyboard reveal: every `.beckonKeyboardAvoidance` consumer now supports interactive drag dismissal and an explicit keyboard `Done` action, including number-pad and UIKit-backed fields. Edit Pet no longer requires leaving the page to end editing. Page Save/Back/Continue coordinates are unchanged; no feature-local dismissal policy, Store, repository, backend, dependency, or remote state changed.
 - T-321 connects Authentication, Role Onboarding, Customer Profile, and Pet editing to the existing DesignSystem keyboard-avoidance contract using stable semantic focus IDs only. Pet Save uses the shared stationary page-action layer instead of keyboard-following `safeAreaInset`; Request adopts the same shared page-action naming. Feature files contain no copied keyboard geometry. Full iOS tests/build and repository audit pass; no Store, repository, backend, dependency, or remote state changed.
 - T-320 replaces the fixed 55% rule with one reusable DesignSystem keyboard-avoidance modifier: it measures the real scroll viewport and semantic label/control group, performs no scroll when visible, reveals only the nearest hidden edge with field spacing, stabilizes oversized groups, and cancels duplicate or stale work. Request is the verified reference consumer; ZIP sits at semantic clearance above the number pad while Back/Continue remain behind it. Full tests/build and strict/repository audits pass; no Store, repository, backend, dependency, or remote state changed.

@@ -135,7 +135,23 @@ Run the same focused command. Expected: all selected tests pass.
 - [x] **Step 4: Keep `Done` classified as a true input accessory**; page Save/Back/Continue actions retain their keyboard-hidden coordinates.
 - [x] **Step 5: Run focused tests, full iOS tests, build, UI audit, diff, context hygiene, and preflight.**
 
-### Task 6: Groomer and Business Editors
+### Task 6: Native Safe-Area and Scroll-Range Correction
+
+**Files:**
+- Modify: shared keyboard/stationary-action primitives and tests.
+- Modify: Request Wizard only to remove its duplicate keyboard observer and synthetic clearance.
+- Modify: UI consistency audit/core tests for deterministic feature-level keyboard-policy violations.
+- Modify: keyboard design/governance and active task memory.
+
+- [x] **Step 1: Reproduce the opposing failures**: Request can expose a keyboard-height blank overscroll region, while Edit Pet cannot reach lower fields.
+- [x] **Step 2: Reconcile the project contract with Apple guidance** for virtual keyboards, keyboard safe areas, `FocusState`, interactive dismissal, and `UIKeyboardLayoutGuide` docked/floating behavior.
+- [x] **Step 3: Add RED tests** proving form content receives no synthetic keyboard clearance, docked keyboards compensate stationary page actions, and floating keyboards do not.
+- [x] **Step 4: Restore native keyboard safe-area resizing** and move docked-only stationary-action compensation into DesignSystem. Preserve Reduce Motion and system keyboard duration.
+- [x] **Step 5: Remove Request's feature-local keyboard observer, overlap padding, and action offset**; Edit Pet changes only by inheriting the corrected shared behavior.
+- [x] **Step 6: Add audit errors** for feature-level keyboard safe-area bypass, keyboard-derived padding/offset, and keyboard notification/frame access; retain geometry tests for semantic cases regex cannot decide.
+- [x] **Step 7: Run focused/full tests, build, audit tests/repository audit, source duplication search, diff, context hygiene, and preflight.**
+
+### Task 7: Groomer and Business Editors
 
 **Files:**
 - Modify only audited editable callers under `Features/Groomer/`, including profile, services, and offer composition.
@@ -146,7 +162,7 @@ Run the same focused command. Expected: all selected tests pass.
 - [ ] **Step 3: Review the lowest single-line and multiline fields** in Groomer Profile, Services, and Offer composition for shared-rule coverage; runtime interaction remains user validation.
 - [ ] **Step 4: Run focused tests, full iOS tests, build, UI audit, diff, context hygiene, and preflight.**
 
-### Task 7: Modal, Booking, Chat, and Residual Audit
+### Task 8: Modal, Booking, Chat, and Residual Audit
 
 **Files:**
 - Modify audited residual editable callers, including `Features/Bookings/BookingsView.swift` and `Features/Chat/ChatView.swift`, only when their current behavior violates their classification.

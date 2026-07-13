@@ -104,6 +104,17 @@ test("semantic components are clean audit replacements", () => {
   assert.deepEqual(auditSwiftSource({ filePath: "SemanticFeature.swift", source }), []);
 });
 
+test("feature audit blocks local keyboard layout policy", () => {
+  const source = [
+    "content.ignoresSafeArea(.keyboard, edges: .bottom)",
+    "content.padding(.bottom, keyboardOverlap)",
+    "NotificationCenter.default.publisher(for: UIResponder.keyboardWillChangeFrameNotification)",
+  ].join("\n");
+  const findings = auditSwiftSource({ filePath: "ios/Beckon/Beckon/Features/Form.swift", source });
+  assert.deepEqual(findings.map(({ ruleID }) => ruleID), ["UI009", "UI010", "UI011"]);
+  assert.ok(findings.every(({ severity }) => severity === "error"));
+});
+
 test("single-site fixed geometry exception requires the exact directive and reason", () => {
   const allowed = [
     "// beckon-ui-audit: allow UI101 -- Fixed square media crop; text is outside this frame.",

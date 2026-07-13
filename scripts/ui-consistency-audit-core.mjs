@@ -9,6 +9,9 @@ export const UI_RULES = Object.freeze([
   { id: "UI006", severity: "error", category: "elevation", message: "Use beckonShadow with a canonical elevation role." },
   { id: "UI007", severity: "error", category: "local-style", message: "Move repeatable presentation styles into DesignSystem." },
   { id: "UI008", severity: "error", category: "text-fit", message: "Reflow text; scale factors below 0.85 are not allowed." },
+  { id: "UI009", severity: "error", category: "keyboard-safe-area", message: "Keep the native keyboard safe area on Feature form content." },
+  { id: "UI010", severity: "error", category: "keyboard-clearance", message: "Do not create Feature-local keyboard padding or offsets." },
+  { id: "UI011", severity: "error", category: "keyboard-observation", message: "Keyboard observation belongs to DesignSystem." },
   { id: "UI101", severity: "warning", category: "fixed-geometry", message: "Review fixed geometry for dynamic text risk." },
   { id: "UI102", severity: "warning", category: "layout-patch", message: "Review offset or negative spacing as a layout repair." },
   { id: "UI201", severity: "review", category: "duplicate-stack", message: "Review repeated visual modifier stacks for a semantic component." },
@@ -209,6 +212,9 @@ export function auditSwiftSource({ filePath, source }) {
   addMatches(findings, { masked, source, filePath, ruleID: "UI006", pattern: /\.shadow\s*\(/g, replacement: ".beckonShadow(<role>)" });
   addMatches(findings, { masked, source, filePath, ruleID: "UI007", pattern: /\b(?:private|fileprivate)\s+(?:struct|enum|class)\s+\w*(?:ButtonStyle|CardStyle|FormStyle)\b/g, replacement: "DesignSystem shared style" });
   addMatches(findings, { masked, source, filePath, ruleID: "UI008", pattern: /\.minimumScaleFactor\s*\(\s*(?:0?\.[0-7]\d*|0?\.8[0-4]\d*)\s*\)/g, replacement: "Reflow content or use >= 0.85" });
+  addMatches(findings, { masked, source, filePath, ruleID: "UI009", pattern: /\.ignoresSafeArea\s*\(\s*\.keyboard\b/g, replacement: "Native keyboard safe-area resizing" });
+  addMatches(findings, { masked, source, filePath, ruleID: "UI010", pattern: /\.(?:padding|offset)\s*\([^)]*\bkeyboard\w*/gi, replacement: "Shared Beckon keyboard modifiers" });
+  addMatches(findings, { masked, source, filePath, ruleID: "UI011", pattern: /\b(?:keyboardWillChangeFrameNotification|keyboardWillHideNotification|keyboardFrameEndUserInfoKey)\b/g, replacement: "DesignSystem keyboard boundary" });
   addMatches(findings, { masked, source, filePath, ruleID: "UI101", pattern: /\.frame\s*\([^)]*\b(?:width|height)\s*:\s*(?:\d+(?:\.\d+)?|DesignTokens\.)/g, replacement: "Content-sized layout", exception: hasFixedGeometryException });
   addMatches(findings, { masked, source, filePath, ruleID: "UI102", pattern: /\.offset\s*\(/g, replacement: "Alignment or layout container" });
   addMatches(findings, { masked, source, filePath, ruleID: "UI102", pattern: /\.(?:padding|spacing)\s*\([^)]*?\b-\d+(?:\.\d+)?\b/g, replacement: "Non-negative semantic spacing" });
