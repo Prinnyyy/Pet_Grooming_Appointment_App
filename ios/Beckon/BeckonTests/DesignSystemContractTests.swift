@@ -54,10 +54,15 @@ struct DesignSystemContractTests {
     func keyboardAwareFormsAlwaysProvideDismissalPaths() {
         #expect(BeckonKeyboardDismissalPolicy.supportsInteractiveScroll)
         #expect(BeckonKeyboardDismissalPolicy.supportsExplicitDoneAction)
-        #expect(BeckonKeyboardDoneAccessoryPolicy.trailingInset == 12)
+        #expect(BeckonKeyboardDoneAccessoryPolicy.presentation == .floatingCircularGlass)
+        #expect(BeckonKeyboardDoneAccessoryPolicy.controlDiameter == 52)
+        #expect(BeckonKeyboardDoneAccessoryPolicy.trailingInset == 20)
+        #expect(BeckonKeyboardDoneAccessoryPolicy.keyboardGap == 12)
+        #expect(BeckonKeyboardDoneAccessoryPolicy.symbolName == "checkmark")
+        #expect(BeckonKeyboardDoneAccessoryPolicy.usesInteractiveSystemGlass)
         #expect(
-            BeckonKeyboardDoneAccessoryPolicy.bottomInset ==
-                BeckonKeyboardDoneAccessoryPolicy.trailingInset
+            BeckonKeyboardDoneAccessoryPolicy.symbolColorHex ==
+                DesignTokens.ColorHex.customerPrimaryDark
         )
     }
 

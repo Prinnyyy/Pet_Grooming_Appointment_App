@@ -2,12 +2,21 @@
 
 ```text
 Date: 2026-07-13
+Task: T-337 - Shared Liquid Glass keyboard dismissal control.
+Files changed: Shared keyboard accessory presentation/visibility; DesignSystem contract test and contract documentation; design spec/plan; task/current-state memory.
+Checks: Root-cause/source audit; TDD compile RED and focused GREEN; complete SwiftUI/UIKit input-owner coverage audit; no-native-keyboard-toolbar scan; full iOS tests; iOS build; UI consistency audit; diff/context/preflight. The first GREEN compile exposed main-actor token access from a nonisolated policy; the policy now owns its immutable dimensions and the rerun passed.
+Result: The system-styled floating Done text button is replaced by one 52-point trailing circular dismissal control with a mint checkmark, 12-point keyboard gap, and 20-point screen inset. iOS 26 uses interactive native Liquid Glass; earlier supported systems use an ultra-thin material circle. Existing shared call sites cover all audited input owners.
+Risks: Manual in-app UI/UX review was not performed by Codex per user direction and remains the user's acceptance step. The control only resigns the current first responder; form, Store, repository, backend, and persistence behavior are unchanged. The build also exposed two pre-existing app-owned warnings now tracked by T-339; the AppIntents metadata-skipped message is recorded there as toolchain information. The earlier Supabase startup warning is tracked by T-338.
+Next: T-338 and T-339 are planned; use T-340 for the next unallocated task.
+```
+
+```text
+Date: 2026-07-13
 Task: T-336 - Customer form actions and shared keyboard Done.
 Files changed: Pet Store/form navigation action; Request header/progress and TestOps dismissal routing; shared location descriptions; shared Done accessory and input-owner coverage; resolved UI004 baseline prune; focused tests; design spec/plan/system contract; task/current-state memory.
 Checks: TDD compile RED and focused GREEN; complete input-owner source inventory; stale Pet/header source scan; full iOS tests; iOS build; UI consistency audit; diff/context/preflight.
 Result: Add Pet uses Create and Edit Pet uses Save in the navigation bar, disabled until the valid form differs from its baseline; the former bottom Save Pet action is removed. Request has one bottom Back path and full-width progress. Location choices show shared role-aware descriptions. Every Feature input owner and DEBUG catalog receives the same Done accessory with equal trailing/bottom inset.
 Risks: Manual in-app UI/UX review was not performed by Codex per user direction and remains the user's acceptance step. Existing savePet repository behavior, grooming-location raw values, persistence, matching, and backend contracts are unchanged. No schema, dependency, or remote state changed.
-Next: Use T-337 for the next user-directed task.
 ```
 
 ```text

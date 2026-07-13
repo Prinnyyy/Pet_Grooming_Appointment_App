@@ -11,9 +11,18 @@ nonisolated enum BeckonKeyboardDismissalPolicy {
     static let supportsExplicitDoneAction = true
 }
 
+nonisolated enum BeckonKeyboardDoneAccessoryPresentation: Sendable {
+    case floatingCircularGlass
+}
+
 nonisolated enum BeckonKeyboardDoneAccessoryPolicy {
-    static let trailingInset: CGFloat = 12
-    static let bottomInset: CGFloat = trailingInset
+    static let presentation: BeckonKeyboardDoneAccessoryPresentation = .floatingCircularGlass
+    static let controlDiameter: CGFloat = 52
+    static let trailingInset: CGFloat = 20
+    static let keyboardGap: CGFloat = 12
+    static let symbolName = "checkmark"
+    static let usesInteractiveSystemGlass = true
+    static let symbolColorHex = DesignTokens.ColorHex.customerPrimaryDark
 }
 
 nonisolated enum BeckonKeyboardRevealPolicy {
@@ -416,26 +425,84 @@ private struct BeckonKeyboardAvoidanceModifier: ViewModifier {
 }
 
 private struct BeckonKeyboardDoneAccessoryModifier: ViewModifier {
+    @State private var isKeyboardVisible = false
+
     func body(content: Content) -> some View {
         content
-            .toolbar {
-                ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
-
-                    Button("Done") {
-                        UIApplication.shared.sendAction(
-                            #selector(UIResponder.resignFirstResponder),
-                            to: nil,
-                            from: nil,
-                            for: nil
-                        )
-                    }
-                    .font(DesignTokens.Typography.action)
-                    .padding(.trailing, BeckonKeyboardDoneAccessoryPolicy.trailingInset)
-                    .padding(.bottom, BeckonKeyboardDoneAccessoryPolicy.bottomInset)
-                    .accessibilityIdentifier("beckon.keyboard.done")
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                if isKeyboardVisible {
+                    BeckonKeyboardDoneAccessoryControl()
                 }
             }
+            .onReceive(NotificationCenter.default.publisher(
+                for: UIResponder.keyboardWillChangeFrameNotification
+            )) { notification in
+                guard let frame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey]
+                    as? CGRect else { return }
+                isKeyboardVisible = BeckonKeyboardPresentationPolicy.keyboardIsOnScreen(
+                    keyboardFrame: frame,
+                    screenBounds: beckonActiveScreenBounds
+                )
+            }
+            .onReceive(NotificationCenter.default.publisher(
+                for: UIResponder.keyboardWillHideNotification
+            )) { _ in
+                isKeyboardVisible = false
+            }
+    }
+}
+
+private struct BeckonKeyboardDoneAccessoryControl: View {
+    var body: some View {
+        HStack(spacing: 0) {
+            Spacer(minLength: 0)
+
+            doneButton
+        }
+        .padding(.trailing, BeckonKeyboardDoneAccessoryPolicy.trailingInset)
+        .padding(.bottom, BeckonKeyboardDoneAccessoryPolicy.keyboardGap)
+        .frame(maxWidth: .infinity)
+    }
+
+    @ViewBuilder
+    private var doneButton: some View {
+        if #available(iOS 26.0, *) {
+            button
+                .glassEffect(.regular.interactive(), in: Circle())
+        } else {
+            button
+                .background(.ultraThinMaterial, in: Circle())
+                .overlay {
+                    Circle()
+                        .stroke(DesignTokens.Colors.borderSoft, lineWidth: 1)
+                        .accessibilityHidden(true)
+                }
+        }
+    }
+
+    private var button: some View {
+        Button(action: dismissKeyboard) {
+            Image(systemName: BeckonKeyboardDoneAccessoryPolicy.symbolName)
+                .font(.system(size: 20, weight: .semibold))
+                .foregroundStyle(DesignTokens.Colors.customerPrimaryDark)
+                .frame(
+                    width: BeckonKeyboardDoneAccessoryPolicy.controlDiameter,
+                    height: BeckonKeyboardDoneAccessoryPolicy.controlDiameter
+                )
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Done")
+        .accessibilityIdentifier("beckon.keyboard.done")
+    }
+
+    private func dismissKeyboard() {
+        UIApplication.shared.sendAction(
+            #selector(UIResponder.resignFirstResponder),
+            to: nil,
+            from: nil,
+            for: nil
+        )
     }
 }
 
