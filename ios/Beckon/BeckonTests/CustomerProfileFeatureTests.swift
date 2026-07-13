@@ -3,6 +3,16 @@ import Testing
 import UIKit
 @testable import Beckon
 
+struct CustomerProfileKeyboardFocusContractTests {
+    @Test
+    func profileTargetsAreStableAndDistinct() {
+        #expect(CustomerProfileFocusTarget.nickname.rawValue == "customer.profile.nickname.container")
+        #expect(CustomerProfileFocusTarget.email.rawValue == "customer.profile.email.container")
+        #expect(CustomerProfileFocusTarget.phone.rawValue == "customer.profile.phone.container")
+        #expect(Set(CustomerProfileFocusTarget.allCases.map(\.rawValue)).count == 3)
+    }
+}
+
 struct CustomerAvatarPhotoPathTests {
     @Test
     func storagePathMatchesBackendContractAndUsesLowercaseUUIDs() {

@@ -2,12 +2,21 @@ import PhotosUI
 import SwiftUI
 import UIKit
 
+nonisolated enum CustomerProfileFocusTarget: String, CaseIterable, Hashable {
+    case nickname = "customer.profile.nickname.container"
+    case email = "customer.profile.email.container"
+    case phone = "customer.profile.phone.container"
+}
+
 struct CustomerProfileSettingsView: View {
     @Bindable var store: CustomerProfileStore
+    @State private var addressFocusTarget: String?
+    @FocusState private var focusedField: CustomerProfileFocusTarget?
 
     var body: some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+        ScrollViewReader { scrollProxy in
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
                 CustomerAvatarEditorSection(store: store)
 
                 BeckonCard {
@@ -15,14 +24,18 @@ struct CustomerProfileSettingsView: View {
                         CustomerProfileTextField(
                             title: "Nickname",
                             text: $store.nickname,
-                            prompt: "Nickname"
+                            prompt: "Nickname",
+                            focusTarget: .nickname,
+                            focusedField: $focusedField
                         )
                         .textContentType(.nickname)
 
                         CustomerProfileTextField(
                             title: "Email",
                             text: $store.contactEmail,
-                            prompt: "name@example.com"
+                            prompt: "name@example.com",
+                            focusTarget: .email,
+                            focusedField: $focusedField
                         )
                         .textContentType(.emailAddress)
                         .keyboardType(.emailAddress)
@@ -32,7 +45,9 @@ struct CustomerProfileSettingsView: View {
                         CustomerProfileTextField(
                             title: "Phone",
                             text: $store.phoneNumber,
-                            prompt: "(555) 555-5555"
+                            prompt: "(555) 555-5555",
+                            focusTarget: .phone,
+                            focusedField: $focusedField
                         )
                         .textContentType(.telephoneNumber)
                         .keyboardType(.phonePad)
@@ -45,7 +60,13 @@ struct CustomerProfileSettingsView: View {
                             .font(DesignTokens.Typography.headline)
                             .foregroundStyle(DesignTokens.Colors.textPrimary)
 
-                        BeckonAddressEditor(state: store.addressEditorState)
+                        BeckonAddressEditor(
+                            state: store.addressEditorState,
+                            onFieldFocused: { target in
+                                focusedField = nil
+                                addressFocusTarget = target
+                            }
+                        )
                     }
                 }
 
@@ -65,15 +86,23 @@ struct CustomerProfileSettingsView: View {
                         message: "Fetching your saved customer details."
                     )
                 }
+                }
+                .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+                .padding(.top, DesignTokens.Spacing.lg)
+                .padding(.bottom, DesignTokens.Spacing.xl)
             }
-            .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-            .padding(.top, DesignTokens.Spacing.lg)
-            .padding(.bottom, DesignTokens.Spacing.xl)
+            .beckonKeyboardAvoidance(
+                focusedTarget: focusedField?.rawValue ?? addressFocusTarget,
+                using: scrollProxy
+            )
         }
         .background(DesignTokens.Colors.background.ignoresSafeArea())
         .navigationTitle("Profile Settings")
         .navigationBarTitleDisplayMode(.inline)
         .scrollDismissesKeyboard(.interactively)
+        .onChange(of: focusedField) { _, target in
+            if target != nil { addressFocusTarget = nil }
+        }
         .background {
             CustomerProfileStatusView(store: store)
         }
@@ -194,6 +223,8 @@ private struct CustomerProfileTextField: View {
     let title: String
     @Binding var text: String
     let prompt: String
+    let focusTarget: CustomerProfileFocusTarget
+    @FocusState.Binding var focusedField: CustomerProfileFocusTarget?
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
@@ -202,8 +233,10 @@ private struct CustomerProfileTextField: View {
                 .foregroundStyle(DesignTokens.Colors.textSecondary)
 
             TextField(prompt, text: $text)
+                .focused($focusedField, equals: focusTarget)
                 .beckonFormField()
         }
+        .beckonKeyboardFocusTarget(focusTarget.rawValue)
     }
 }
 

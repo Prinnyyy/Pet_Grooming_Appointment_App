@@ -2,6 +2,16 @@
 
 ```text
 Date: 2026-07-12
+Task: T-321 - Auth and Customer shared keyboard-rule adoption.
+Files changed: Auth/Onboarding/Profile/Pet focus integration; shared stationary page-action primitive; Request shared action naming; focus contract tests; design/governance/plan/task/current-state memory.
+Checks: TDD compile RED/GREEN; full iOS tests; iOS build; repository UI audit; feature keyboard-rule duplication search; diff/context/preflight.
+Result: Authentication, Role Onboarding, Customer Profile, and Pet editing now call the same DesignSystem keyboard modifier and expose stable complete-field focus IDs. No feature owns keyboard geometry. Pet Save no longer relies on keyboard-following safe-area inset behavior and instead uses the shared stationary page-action layer.
+Risks: T-322 and T-323 still need to adopt the same primitives across Groomer/business and residual/modal inputs. Chat Send remains pending explicit input-accessory classification. No business, Store, repository, backend, dependency, or remote state changed.
+Next: Execute T-322 for Groomer and business-editor inputs.
+```
+
+```text
+Date: 2026-07-12
 Task: T-320 - Shared minimum keyboard avoidance and Request reference migration.
 Files changed: DesignSystem visibility/viewport/focus-target primitives; shared Address Editor targets; Request reference consumer/tests; design/governance/plan/task/current-state memory.
 Checks: TDD compile RED/GREEN; full iOS tests; iOS build/build-run; live address/ZIP/Notes keyboard inspection; strict Wizard and repository UI audits; fixed-anchor search; diff/context/preflight.
@@ -68,71 +78,12 @@ Risks: Live evidence used the first Apple Maps result and did not accept/publish
 Next: Use T-315 for explicitly selected work; Q-104 remains deferred.
 ```
 
-```text
-Date: 2026-07-12
-Task: T-313 - Customer Request address and publish flow fixes.
-Files changed: Shared address editor state/overlay; Request Wizard validation, confirmation, and feedback routing; v2 Request RPC payload encoding; focused tests and memory closeout.
-Checks: TDD compile RED then GREEN; full iOS tests; Simulator build/run; live empty-State, autocomplete overlay, candidate prefill, Continue-confirm, and post-confirm advance inspection; repository/strict UI audit; diff/context/preflight.
-Result: State remains neutral until validation; suggestions form one top overlay; candidate selection no longer opens review; Continue owns format confirmation; accepted addresses advance automatically; publish failure stays in the active Wizard's global bottom feedback. Missing Apple place IDs are sent as explicit RPC null values so PostgREST can match the existing v2 function.
-Risks: Final publish was not exercised manually because it would create remote data without authorization; the exact payload shape and successful repository path are covered by focused/full tests. No schema, RPC signature, Supabase policy, dependency, or remote state changed.
-Next: Use T-314 for explicitly selected work; Q-104 remains deferred.
-```
 
-```text
-Date: 2026-07-12
-Task: T-312 - Q-120 UI consistency first-slice integration gate.
-Files changed: Published the remaining UI debt inventory; marked Customer Home/Requests/Wizard/Account as the semantic reference slice; closed R-041 in design, screen, roadmap, queue, feature, baseline, task, and memory sources.
-Checks: Repository and strict JSON audits; audit/preflight script tests 13/13; full iOS tests; iOS build; preflight; compact/large default and Accessibility 3 screenshots plus semantic snapshots; Reduce Motion launch/navigation check; diff/context hygiene.
-Result: Four Customer reference surfaces have zero strict errors. The repository ratchet reports 218 baselined findings plus four reviewed warnings, no new errors, and no stale entries. The remaining 222 candidates are explicit and prioritized without treating baseline entries as approval.
-Risks: Audit warnings still require human interpretation, and default/AX3 rendering is final anomaly evidence rather than a substitute for code rules. Q-104 Groomer Dynamic Type/Accessibility remains user-deferred; no backend, dependency, navigation, or business behavior changed.
-Next: Use T-313 for explicitly selected work; no package is automatically dependency-satisfied while Q-104 remains deferred.
-```
 
-```text
-Date: 2026-07-12
-Task: T-311 - Q-119 Customer Account migration.
-Files changed: Extracted Customer Account ownership; shared semantic Account/Auth sections, settings rows, and release links; UI audit baseline; roadmap/task/memory closeout.
-Checks: strict RED then GREEN for Customer Account and authenticated Account; baseline prune 16; full iOS tests; iOS build/build-run; default and AX3 Account screenshots/scroll; Profile full-row navigation and semantic selectors; content size reset; audit/diff/context/preflight.
-Result: Customer Account is separate from Profile editing and composes shared page, section, grouped-surface, settings-row, and danger-action contracts. Identity, Profile, Privacy/Support, DEBUG, and Account Access retain behavior and expose complete row labels/taps without AX3 clipping.
-Risks: AuthenticatedAccountView remains a role-fallback surface as before; its release rows now share presentation with Customer Account, while Customer-specific Profile Store ownership remains only in CustomerAccountView. No backend/auth mutation was exercised during visual QA.
-Next: Use T-312 for Q-120 first-slice integration gate.
-```
 
-```text
-Date: 2026-07-12
-Task: T-310 - Q-118 Customer Request Wizard migration.
-Files changed: Wizard semantic/adaptive presentation, Accessibility 3 layout contract tests, UI audit baseline, and roadmap/task/memory closeout.
-Checks: strict RED with 24 errors then GREEN; test-interface RED then GREEN; baseline prune 27; full iOS tests; iOS build/build-run; default and AX3 Pet/Service/Time screenshots, navigation/selectors, date/time/location controls; content size reset; audit/diff/context/preflight.
-Result: Wizard uses semantic page/field/action/selection contracts and shared ButtonStyles, with no local ButtonStyle, low scale factor, direct platform font, local shadow, or negative page compensation. Header, service cards, Time Window, Review rows, and bottom actions reflow without horizontal clipping at AX3; behavior and data paths remain intact.
-Risks: The seeded Customer Profile address was not currently confirmed, so live traversal correctly stopped at Time & Location rather than bypassing validation or writing remote data. Details/Review remain covered by existing full tests plus strict-clean adaptive code, but were not reached in this Simulator run.
-```
 
-```text
-Date: 2026-07-12
-Task: T-309 - Q-117 Customer Requests migration.
-Files changed: Shared semantic page title; Requests page/card/section/action adaptive migration; Bookings title caller; UI audit baseline; roadmap/task/memory closeout.
-Checks: strict RED then GREEN for both Requests files; baseline prune 7; repository UI audit; full iOS tests; iOS build and build-run; default and Accessibility 3 active/cancelled Simulator snapshots and selector checks; content size reset; diff/context/preflight.
-Result: Requests now uses semantic page insets, title/type/section/action contracts and one canonical card elevation. Header/chip, card copy, actions, and closed rows reflow at Accessibility 3 without low scaling or truncation while Store calls, cancellation, detail, paging, handoff, republish, and selectors remain unchanged.
-Risks: Seed data exposed active and cancelled states only; empty and booking-handoff branches retain their existing tested behavior but were not visually manufactured through backend writes. Two reviewed Home UI101 fixed-width warnings remain outside this strict-clean Requests surface.
-```
 
-```text
-Date: 2026-07-12
-Task: T-308 - Q-116 Customer Home migration.
-Files changed: Customer Home semantic migration; mechanically extracted Pet Form; UTF-16 scanner and guarded partial-relocate fix/tests; baseline, audit governance, roadmap/task/memory closeout.
-Checks: strict RED with 22 errors then strict GREEN; mechanical relocate 4 and prune 26; audit tests 12/12; iOS build/tests; default and Accessibility 3 Simulator snapshots/scroll; content size reset; UI audit; diff/context/preflight.
-Result: Home uses semantic insets/sections/type/action contrast, bounded decorative overlays, and width-constrained but height-flexible Pet Cards. Header/Hero/Pets/empty Next Booking reflow without overlap at AX3; Stores, repositories, routes, selectors, image behavior, and copy remain intact.
-Risks: Q-117 subsequently resolved the Active Request Accessibility 3 truncation. Two reviewed UI101 warnings remain for the intentional 172pt horizontal card column width.
-```
 
-```text
-Date: 2026-07-12
-Task: T-307 - Q-115 shared semantic components and catalog.
-Files changed: New layout, selection, and DEBUG catalog primitives; action/form/feedback compatibility updates; contract/audit tests; design, roadmap, task, and memory closeout.
-Checks: Forced compile RED for missing action availability; audit fixture 10/10; full iOS tests; iOS build; Xcode Canvas default and Accessibility 3 rendering at 100%; UI consistency audit; diff/context/preflight.
-Result: DesignSystem now owns focused page, section, grouped, selection, settings, field, and action presentation contracts. Primary actions can render unavailable while preserving feature-owned tap handling; old APIs remain source-compatible.
-Risks: Components are presentation-only and gain production usage in Q-116...Q-119. The catalog is DEBUG-only with static content and no repository/navigation route.
-```
 
 
 

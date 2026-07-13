@@ -2,6 +2,22 @@ import Foundation
 import Testing
 @testable import Beckon
 
+struct CustomerPetKeyboardFocusContractTests {
+    @Test
+    func petFormTargetsAreStableAndDistinct() {
+        #expect(CustomerPetFormFocusTarget.name.rawValue == "customer.pets.form.name.container")
+        #expect(
+            CustomerPetFormFocusTarget.medicalNotes.rawValue
+                == "customer.pets.form.medical-notes.container"
+        )
+        #expect(
+            CustomerPetFormFocusTarget.groomingNotes.rawValue
+                == "customer.pets.form.grooming-notes.container"
+        )
+        #expect(Set(CustomerPetFormFocusTarget.allCases.map(\.rawValue)).count == 3)
+    }
+}
+
 struct CustomerPetPhotoPathTests {
     @Test
     func storagePathMatchesBackendContractAndUsesLowercaseUUIDs() {

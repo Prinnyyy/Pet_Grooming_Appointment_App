@@ -115,11 +115,11 @@ Run the same focused command. Expected: all selected tests pass.
 - Modify only audited callers under `Features/Auth/` and `Features/Customer/` that contain editable text and are not already the Request reference.
 - Add focused tests beside each existing feature test family; do not create one cross-feature mega-test file.
 
-- [ ] **Step 1: Inventory each input and classify its container** as scrolling form, short non-scrolling form, modal editor, or true input accessory.
-- [ ] **Step 2: Add focus IDs around complete semantic groups** and migrate only scrolling forms that can be obscured. Leave naturally visible short forms native unless Simulator evidence shows an occlusion defect.
-- [ ] **Step 3: Preserve submit labels and focus progression** for Email/Password/Confirmation and preserve Customer Store validation.
-- [ ] **Step 4: Verify Customer Profile, Pet editing, authentication, and onboarding** at compact/default and Accessibility 3 with the keyboard shown on their lowest fields.
-- [ ] **Step 5: Run focused tests, full iOS tests, build, UI audit, diff, context hygiene, and preflight.**
+- [x] **Step 1: Inventory each input and classify its container** as scrolling form, short non-scrolling form, modal editor, or true input accessory.
+- [x] **Step 2: Add focus IDs around complete semantic groups** and migrate only scrolling forms that can be obscured. Leave naturally visible short forms native unless Simulator evidence shows an occlusion defect.
+- [x] **Step 3: Preserve submit labels and focus progression** for Email/Password/Confirmation and preserve Customer Store validation.
+- [x] **Step 4: Review Customer Profile, Pet editing, authentication, and onboarding** for semantic-group coverage, Dynamic Type-safe containers, and stationary page actions. Per the user's T-321 direction, runtime keyboard/Accessibility 3 interaction remains user validation rather than a per-module agent gate.
+- [x] **Step 5: Run focused tests, full iOS tests, build, UI audit, diff, context hygiene, and preflight.**
 
 ### Task 5: Groomer and Business Editors
 

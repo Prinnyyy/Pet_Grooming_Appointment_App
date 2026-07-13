@@ -138,7 +138,7 @@ Apply this contract to scrolling forms and editors. The shared geometry source i
 - Native SwiftUI fields and UIKit-backed representables publish focus through the same field-group target contract. Attach stable IDs to the label-plus-control container, and keep representable focus callbacks at the shared component boundary.
 - Preserve Dynamic Type, VoiceOver order, safe areas, interactive keyboard dismissal, long text, and native focus behavior. Do not use a fixed input height that clips dynamic text.
 
-Use `BeckonKeyboardFormLayout` for visibility decisions and `.beckonKeyboardFocusTarget(_:)` on complete semantic groups. A feature may own field IDs, scroll orchestration, and business validation, but it must not redefine keyboard geometry policy or introduce a screen-percentage anchor.
+Use `BeckonKeyboardFormLayout` for visibility decisions, `.beckonKeyboardFocusTarget(_:)` on complete semantic groups, and `.beckonKeyboardAvoidance(focusedTarget:using:)` on scrolling forms. Page actions that would otherwise follow keyboard safe-area changes use the shared stationary page-action contract; do not add feature-local keyboard offsets. A feature may own field IDs and business validation, but it must not redefine keyboard geometry policy or introduce a screen-percentage anchor.
 
 ## Screenshot Rework Rules
 

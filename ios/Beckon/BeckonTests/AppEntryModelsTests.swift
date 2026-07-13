@@ -2,6 +2,19 @@ import Foundation
 import Testing
 @testable import Beckon
 
+struct AuthenticationKeyboardFocusContractTests {
+    @Test
+    func authenticationAndOnboardingTargetsAreStable() {
+        #expect(AuthenticationFocusTarget.email.rawValue == "auth.email.container")
+        #expect(AuthenticationFocusTarget.password.rawValue == "auth.password.container")
+        #expect(
+            AuthenticationFocusTarget.passwordConfirmation.rawValue
+                == "auth.password-confirmation.container"
+        )
+        #expect(RoleOnboardingFocusTarget.displayName.rawValue == "profile.display-name.container")
+    }
+}
+
 struct AppEntryModelsTests {
     @Test
     func userRolesHaveExactOrderAndRoutes() {

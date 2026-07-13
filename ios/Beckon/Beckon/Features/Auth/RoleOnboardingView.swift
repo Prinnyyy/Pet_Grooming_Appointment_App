@@ -1,9 +1,14 @@
 import SwiftUI
 
+nonisolated enum RoleOnboardingFocusTarget: String, Hashable {
+    case displayName = "profile.display-name.container"
+}
+
 struct RoleOnboardingView: View {
     let session: AuthSessionSnapshot
     @Bindable var store: AuthenticatedEntryStore
     let onSignOut: () -> Void
+    @FocusState private var focusedField: RoleOnboardingFocusTarget?
 
     var body: some View {
         NavigationStack {
@@ -11,15 +16,21 @@ struct RoleOnboardingView: View {
                 DesignTokens.Colors.background
                     .ignoresSafeArea()
 
-                ScrollView {
-                    VStack(spacing: DesignTokens.Spacing.large) {
-                        header
-                        form
+                ScrollViewReader { scrollProxy in
+                    ScrollView {
+                        VStack(spacing: DesignTokens.Spacing.large) {
+                            header
+                            form
+                        }
+                        .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+                        .padding(.vertical, DesignTokens.Spacing.xl)
                     }
-                    .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-                    .padding(.vertical, DesignTokens.Spacing.xl)
+                    .beckonKeyboardAvoidance(
+                        focusedTarget: focusedField?.rawValue,
+                        using: scrollProxy
+                    )
+                    .scrollDismissesKeyboard(.interactively)
                 }
-                .scrollDismissesKeyboard(.interactively)
             }
             .navigationTitle("Set up your profile")
             .navigationBarTitleDisplayMode(.inline)
@@ -74,8 +85,12 @@ struct RoleOnboardingView: View {
                         .textInputAutocapitalization(.words)
                         .autocorrectionDisabled()
                         .disabled(store.isSubmitting)
+                        .focused($focusedField, equals: .displayName)
                         .beckonFormField()
                         .accessibilityIdentifier("profile.display-name")
+                        .beckonKeyboardFocusTarget(
+                            RoleOnboardingFocusTarget.displayName.rawValue
+                        )
 
                     VStack(spacing: DesignTokens.Spacing.md) {
                         roleButton(

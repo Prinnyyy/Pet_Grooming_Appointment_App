@@ -246,6 +246,19 @@ extension View {
             )
         )
     }
+
+    func beckonPageActionsRemainBehindKeyboard() -> some View {
+        ignoresSafeArea(.keyboard, edges: .bottom)
+    }
+
+    func beckonStationaryPageAction<Actions: View>(
+        @ViewBuilder actions: () -> Actions
+    ) -> some View {
+        overlay(alignment: .bottom) {
+            actions()
+        }
+        .beckonPageActionsRemainBehindKeyboard()
+    }
 }
 
 nonisolated enum BeckonTextInputLimit {

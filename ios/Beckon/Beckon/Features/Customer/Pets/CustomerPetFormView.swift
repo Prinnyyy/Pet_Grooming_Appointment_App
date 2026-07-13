@@ -10,8 +10,15 @@ nonisolated enum CustomerPetNameInput {
     }
 }
 
+nonisolated enum CustomerPetFormFocusTarget: String, CaseIterable, Hashable {
+    case name = "customer.pets.form.name.container"
+    case medicalNotes = "customer.pets.form.medical-notes.container"
+    case groomingNotes = "customer.pets.form.grooming-notes.container"
+}
+
 struct CustomerPetFormView: View {
     @Bindable var store: CustomerPetsStore
+    @FocusState private var focusedField: CustomerPetFormFocusTarget?
 
     var body: some View {
         NavigationStack {
@@ -19,8 +26,9 @@ struct CustomerPetFormView: View {
                 DesignTokens.Colors.background
                     .ignoresSafeArea()
 
-                ScrollView {
-                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                ScrollViewReader { scrollProxy in
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
                         BeckonAnnotatedModule(
                             "Pet Profile",
                             subtitle: "Pet identity, avatar, breed, and coat details."
@@ -35,7 +43,9 @@ struct CustomerPetFormView: View {
                                             placeholder: "Pet name",
                                             text: $store.formName,
                                             allowsMultiline: false,
-                                            maximumLength: CustomerPetNameInput.maximumLength
+                                            maximumLength: CustomerPetNameInput.maximumLength,
+                                            focusTarget: .name,
+                                            focusedField: $focusedField
                                         )
 
                                         CustomerPetFormChoiceRow(
@@ -121,13 +131,17 @@ struct CustomerPetFormView: View {
                                     CustomerPetFormLabeledTextField(
                                         title: "Medical Notes",
                                         placeholder: "Allergies, medication, injuries",
-                                        text: $store.formMedicalNotes
+                                        text: $store.formMedicalNotes,
+                                        focusTarget: .medicalNotes,
+                                        focusedField: $focusedField
                                     )
 
                                     CustomerPetFormLabeledTextField(
                                         title: "Grooming Notes",
                                         placeholder: "Anxiety, coat needs, handling preferences",
-                                        text: $store.formGroomingNotes
+                                        text: $store.formGroomingNotes,
+                                        focusTarget: .groomingNotes,
+                                        focusedField: $focusedField
                                     )
                                 }
                                 }
@@ -141,16 +155,21 @@ struct CustomerPetFormView: View {
                             )
                             .accessibilityIdentifier("customer.pets.form-error")
                         }
+                        }
+                        .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+                        .padding(.top, DesignTokens.Spacing.lg)
+                        .padding(.bottom, DesignTokens.Spacing.xl * 5)
                     }
-                    .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-                    .padding(.top, DesignTokens.Spacing.lg)
-                    .padding(.bottom, DesignTokens.Spacing.xl * 5)
+                    .beckonKeyboardAvoidance(
+                        focusedTarget: focusedField?.rawValue,
+                        using: scrollProxy
+                    )
                 }
             }
             .tint(DesignTokens.Colors.customerPrimaryDark)
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
-            .safeAreaInset(edge: .bottom) {
+            .beckonStationaryPageAction {
                 CustomerPetFormBottomBar(store: store)
             }
             .toolbar {
@@ -350,6 +369,8 @@ private struct CustomerPetFormLabeledTextField: View {
     var allowsMultiline = true
     var isInvalid = false
     var maximumLength: Int?
+    let focusTarget: CustomerPetFormFocusTarget
+    @FocusState.Binding var focusedField: CustomerPetFormFocusTarget?
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
@@ -362,7 +383,10 @@ private struct CustomerPetFormLabeledTextField: View {
                     placeholder: placeholder,
                     text: $text,
                     maximumLength: maximumLength,
-                    isInvalid: isInvalid
+                    isInvalid: isInvalid,
+                    onEditingBegan: {
+                        focusedField = focusTarget
+                    }
                 )
             } else {
                 TextField(
@@ -371,9 +395,11 @@ private struct CustomerPetFormLabeledTextField: View {
                     axis: allowsMultiline ? .vertical : .horizontal
                 )
                 .lineLimit(allowsMultiline ? 2...5 : 1...1)
+                .focused($focusedField, equals: focusTarget)
                 .beckonFormField(isInvalid: isInvalid)
             }
         }
+        .beckonKeyboardFocusTarget(focusTarget.rawValue)
     }
 }
 

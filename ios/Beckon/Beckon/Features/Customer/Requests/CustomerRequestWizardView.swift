@@ -332,7 +332,7 @@ struct CustomerRequestWizardView: View {
                 keyboardOverlap = 0
             }
         }
-        .ignoresSafeArea(.keyboard, edges: .bottom)
+        .beckonPageActionsRemainBehindKeyboard()
         .interactiveDismissDisabled(
             store.isSubmitting || !store.addressEditorState.candidates.isEmpty
         )

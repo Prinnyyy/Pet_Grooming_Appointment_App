@@ -83,6 +83,8 @@ For each changed scrolling form or editor, reviewers must verify the keyboard-aw
 - UIKit representables report editing focus through the same callback contract as native SwiftUI fields;
 - no fixed viewport-percentage anchor, guessed offset, negative spacing, fixed text-clipping height, or duplicate feature-local keyboard policy was added.
 
+Feature code may declare stable focus IDs and call the shared keyboard/form modifiers. Keyboard-frame observation, viewport calculations, reveal anchors, animation timing, and stationary page-action behavior belong to DesignSystem; duplicating any of them in a feature is a review failure.
+
 Simulator evidence for a migrated form must cover at least one low single-line field and one multiline field when the screen has both. Compare keyboard hidden and shown states, including Dynamic Type when the changed geometry could reflow. Source audit warnings remain review signals; a measured, shared keyboard compensation is not an invitation to suppress UI102 elsewhere.
 
 ## Migration Status

@@ -6,9 +6,9 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 - Date: 2026-07-12
 - Updated by: Codex
-- Latest completed task: T-320 shared minimum keyboard avoidance and Request reference migration.
+- Latest completed task: T-321 Auth and Customer shared keyboard-rule adoption.
 - Current task: none; T-157 APNs remains externally blocked and Q-104 Dynamic Type/Accessibility remains user-deferred.
-- Next task ID: use T-321 for Auth and remaining Customer input migration. T-322...T-323 cover Groomer/business and residual/modal/chat inputs; Groomer Q-104 remains deferred.
+- Next task ID: use T-322 for Groomer and business-editor keyboard-rule adoption. T-323 covers residual/modal/chat inputs; Groomer Q-104 remains deferred.
 
 ## Fast Path
 
@@ -32,6 +32,7 @@ Update this only when project state meaningfully changes. Keep it as a fast path
 
 ## Validation Baseline
 
+- T-321 connects Authentication, Role Onboarding, Customer Profile, and Pet editing to the existing DesignSystem keyboard-avoidance contract using stable semantic focus IDs only. Pet Save uses the shared stationary page-action layer instead of keyboard-following `safeAreaInset`; Request adopts the same shared page-action naming. Feature files contain no copied keyboard geometry. Full iOS tests/build and repository audit pass; no Store, repository, backend, dependency, or remote state changed.
 - T-320 replaces the fixed 55% rule with one reusable DesignSystem keyboard-avoidance modifier: it measures the real scroll viewport and semantic label/control group, performs no scroll when visible, reveals only the nearest hidden edge with field spacing, stabilizes oversized groups, and cancels duplicate or stale work. Request is the verified reference consumer; ZIP sits at semantic clearance above the number pad while Back/Continue remain behind it. Full tests/build and strict/repository audits pass; no Store, repository, backend, dependency, or remote state changed.
 - T-319 plans the correction of T-318's fixed 55% anchor before broader rollout. T-320 introduces measured minimum-reveal geometry and revalidates Request; T-321 through T-323 then cover Auth/Customer, Groomer/business, and residual/modal/chat inputs with explicit page-action versus input-accessory classification. No Swift or runtime behavior changed.
 - T-318 records the initial keyboard-aware form contract and moves Request's overlap/clearance geometry into `BeckonKeyboardFormLayout`; its fixed 55% anchor is now explicitly superseded by the T-319 plan and must not be propagated. Request remains the only current consumer until T-320 corrects and revalidates it.

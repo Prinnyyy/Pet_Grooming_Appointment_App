@@ -1,5 +1,11 @@
 import SwiftUI
 
+nonisolated enum AuthenticationFocusTarget: String, CaseIterable, Hashable {
+    case email = "auth.email.container"
+    case password = "auth.password.container"
+    case passwordConfirmation = "auth.password-confirmation.container"
+}
+
 struct AuthenticationView: View {
     @Bindable var store: AuthenticationStore
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -9,6 +15,7 @@ struct AuthenticationView: View {
     @State private var bubblesAreFloating = false
     @State private var didStartLandingMotion = false
     @State private var isPasswordVisible = false
+    @FocusState private var focusedField: AuthenticationFocusTarget?
 
     var body: some View {
         ZStack {
@@ -179,8 +186,9 @@ struct AuthenticationView: View {
 
     private var authFormSurface: some View {
         GeometryReader { proxy in
-            ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 0) {
+            ScrollViewReader { scrollProxy in
+                ScrollView(showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 0) {
                     formTopBar
 
                     Spacer(
@@ -221,11 +229,16 @@ struct AuthenticationView: View {
                             DesignTokens.Spacing.xl
                         )
                     )
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(minHeight: proxy.size.height, alignment: .top)
+                    .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+                    .padding(.top, DesignTokens.Spacing.md)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .frame(minHeight: proxy.size.height, alignment: .top)
-                .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-                .padding(.top, DesignTokens.Spacing.md)
+                .beckonKeyboardAvoidance(
+                    focusedTarget: focusedField?.rawValue,
+                    using: scrollProxy
+                )
             }
         }
         .scrollDismissesKeyboard(.interactively)
@@ -284,23 +297,30 @@ struct AuthenticationView: View {
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .submitLabel(.next)
+                    .focused($focusedField, equals: .email)
                     .beckonFormField()
                     .accessibilityIdentifier("auth.email")
             }
+            .beckonKeyboardFocusTarget(AuthenticationFocusTarget.email.rawValue)
 
             labeledField("Password") {
                 passwordInput
                     .accessibilityIdentifier("auth.password")
             }
+            .beckonKeyboardFocusTarget(AuthenticationFocusTarget.password.rawValue)
 
             if store.mode == .signUp {
                 labeledField("Confirm password") {
                     SecureField("••••••••", text: $store.passwordConfirmation)
                         .textContentType(.newPassword)
                         .submitLabel(.go)
+                        .focused($focusedField, equals: .passwordConfirmation)
                         .beckonFormField()
                         .accessibilityIdentifier("auth.password-confirmation")
                 }
+                .beckonKeyboardFocusTarget(
+                    AuthenticationFocusTarget.passwordConfirmation.rawValue
+                )
             }
         }
         .frame(maxWidth: .infinity)
@@ -319,6 +339,7 @@ struct AuthenticationView: View {
             .textInputAutocapitalization(.never)
             .autocorrectionDisabled()
             .submitLabel(store.mode == .signUp ? .next : .go)
+            .focused($focusedField, equals: .password)
 
             Button {
                 withAnimation(.easeOut(duration: 0.14)) {
