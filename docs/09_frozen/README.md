@@ -18,6 +18,7 @@ Archived files may contain old TODOs, old paths, old branch/task references, or 
 - `workflow_docs_2026-06-26/`: superseded context, recovery, tool, MCP, Superpowers, and Codex workflow docs consolidated into active workflow entrypoints.
 - `workspace_initialization_2026-06-24/`: original workspace initialization prompt.
 - `current_state_snapshots/`: pre-trim snapshots of active `CURRENT_STATE.md` before context-footprint cleanup.
+- `active_state_snapshots/`: coordinated verbatim snapshots of Current State, Worklog, and Task Ledger taken before an active-state reset.
 - `worklogs/`: verbatim archived worklog entries moved out of active `docs/00_memory/WORKLOG.md`.
 - `task_ledgers/`: archived completed task-ledger rows moved out of active `docs/06_tasks/TASK_LEDGER.md`.
 - `decisions/`: verbatim decision-log snapshots moved out of active `docs/07_decisions/DECISION_LOG.md`.

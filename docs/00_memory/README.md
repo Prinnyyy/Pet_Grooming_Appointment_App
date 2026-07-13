@@ -23,6 +23,7 @@ Durable product and architecture decisions live in `docs/07_decisions/DECISION_L
 - Keep history out of `CURRENT_STATE.md`; link to `WORKLOG.md`, `TASK_LEDGER.md`, archived task records, or domain docs instead.
 - Keep task-by-task timelines out of `FEATURE_INDEX.md`; route to the smallest active domain docs/code area instead.
 - After any task that updates durable memory, run `node scripts/context-hygiene-check.mjs` and roll older history into `docs/09_frozen/` if active files exceed their limits.
+- Whole-file state snapshots taken before a coordinated reset live under `docs/09_frozen/active_state_snapshots/`; they are recovery evidence, never startup context.
 
 ## Conflict Rules
 
@@ -34,4 +35,4 @@ Durable product and architecture decisions live in `docs/07_decisions/DECISION_L
 
 ## Size Rule
 
-Keep `CURRENT_STATE.md`, `WORKLOG.md`, and `TASK_LEDGER.md` short enough to scan during startup. When they start reading like changelogs, move old detail into the appropriate `docs/09_frozen/` archive and keep only current/recent facts active.
+Keep `CURRENT_STATE.md`, `WORKLOG.md`, and `TASK_LEDGER.md` short enough to scan during startup. `CURRENT_STATE.md` replaces stale facts, while Worklog/Ledger retain bounded recent entries. When any file starts reading like a changelog, preserve the source under the matching `docs/09_frozen/` family and keep only current/recent facts active.
