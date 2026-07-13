@@ -113,6 +113,22 @@ enum CustomerRequestTravelRange {
     }
 }
 
+enum CustomerRequestLocationSection: CaseIterable {
+    case groomingSetup
+    case location
+
+    var title: String {
+        switch self {
+        case .groomingSetup:
+            "Grooming Setup"
+        case .location:
+            "Location"
+        }
+    }
+
+    var supportingText: String? { nil }
+}
+
 struct CustomerRequestWizardReviewPresentation: Equatable {
     struct Row: Equatable, Identifiable {
         let title: String
@@ -465,12 +481,16 @@ struct CustomerRequestWizardView: View {
                 }
             }
 
+            groomingSetupSection
             locationSection
         }
     }
 
-    private var locationSection: some View {
-        BeckonFieldGroup("Location") {
+    private var groomingSetupSection: some View {
+        BeckonFieldGroup(
+            CustomerRequestLocationSection.groomingSetup.title,
+            supportingText: CustomerRequestLocationSection.groomingSetup.supportingText
+        ) {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                 ForEach(CustomerRequestLocationMode.allCases) { mode in
                     CustomerRequestLocationModeCard(
@@ -480,18 +500,22 @@ struct CustomerRequestWizardView: View {
                         store.locationMode = mode
                     }
                 }
-
-                CustomerRequestAddressFields(
-                    addressEditorState: store.addressEditorState,
-                    isStateInvalid: invalidFields.contains(.state),
-                    locationMode: store.locationMode,
-                    travelRangeMiles: $store.travelRadiusMiles,
-                    isApplyingProfileAddress: isApplyingProfileAddress,
-                    useProfileAddress: applyProfileAddress,
-                    clearInvalidField: clearInvalidField,
-                    onFieldFocused: { focusedInputTarget = $0 }
-                )
             }
+        }
+    }
+
+    private var locationSection: some View {
+        BeckonFieldGroup(CustomerRequestLocationSection.location.title) {
+            CustomerRequestAddressFields(
+                addressEditorState: store.addressEditorState,
+                isStateInvalid: invalidFields.contains(.state),
+                locationMode: store.locationMode,
+                travelRangeMiles: $store.travelRadiusMiles,
+                isApplyingProfileAddress: isApplyingProfileAddress,
+                useProfileAddress: applyProfileAddress,
+                clearInvalidField: clearInvalidField,
+                onFieldFocused: { focusedInputTarget = $0 }
+            )
         }
     }
 

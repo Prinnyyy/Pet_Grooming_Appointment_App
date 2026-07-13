@@ -597,9 +597,9 @@ nonisolated enum GroomingLocationMode:
     var customerTitle: String {
         switch self {
         case .groomerComesToCustomer:
-            "Mobile Groomer Comes To Me"
+            "At My Home"
         case .customerComesToGroomer:
-            "I Can Visit The Groomer"
+            "At the Groomer"
         }
     }
 

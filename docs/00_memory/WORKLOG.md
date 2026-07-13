@@ -1,13 +1,22 @@
 # Worklog
 
 ```text
+Date: 2026-07-13
+Task: T-333 - Customer Request Grooming Setup separation.
+Files changed: Request Wizard location presentation; customer location-mode copy; focused presentation contract test; task/current-state memory.
+Checks: TDD compile RED then focused GREEN; iOS build; diff/context/preflight.
+Result: Request Step 3 now presents a description-free Grooming Setup group above Location. Its existing mode choices read At My Home and At the Groomer, while Location contains only address and travel-range inputs. Existing enum raw values, Store state, publication parameters, and matching behavior are unchanged.
+Risks: Visual spacing remains user review by direction. No repository, backend, schema, dependency, or remote state changed.
+Next: Execute T-332.
+```
+
+```text
 Date: 2026-07-12
 Task: T-331 - Stationary page-action keyboard hiding correction.
 Files changed: Shared stationary-action geometry/modifier; Request presentation contract test; keyboard design/plan/task/current-state memory.
 Checks: TDD compile RED then focused GREEN; full iOS tests; XcodeBuildMCP build/run; Groomer Profile keyboard show/hide screenshots; sampled recent runtime/OS logs; repository UI audit; diff/context/preflight.
 Result: A bottom-docked software keyboard now moves every shared stationary page action by keyboard overlap plus its measured height, placing the complete action below the screen. Keyboard dismissal animates it back from the bottom. Floating and hardware keyboards produce no offset, and Feature callers remain unchanged.
 Risks: The first post-dismiss screenshot captured a transient black transition frame; a settled recapture was normal and sampled logs contained no relevant fault/error/warning. No Store, repository, backend, dependency, or remote state changed.
-Next: Execute T-332.
 ```
 
 ```text

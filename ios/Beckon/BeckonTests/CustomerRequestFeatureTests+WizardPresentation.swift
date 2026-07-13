@@ -130,6 +130,19 @@ extension CustomerRequestsStoreTests {
     }
 
     @Test @MainActor
+    func requestWizardSeparatesGroomingSetupFromAddressLocation() {
+        #expect(CustomerRequestLocationSection.allCases.map(\.title) == [
+            "Grooming Setup",
+            "Location",
+        ])
+        #expect(CustomerRequestLocationSection.groomingSetup.supportingText == nil)
+        #expect(CustomerRequestLocationMode.allCases.map(\.customerTitle) == [
+            "At My Home",
+            "At the Groomer",
+        ])
+    }
+
+    @Test @MainActor
     func requestWizardStepLabelUsesProgressTrackWidth() {
         let layout = CustomerRequestWizardProgressLayout(
             backButtonWidth: 54,
