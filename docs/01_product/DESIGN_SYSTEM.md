@@ -102,6 +102,8 @@ Approved light-palette color pairs:
 | `customerOnAccent #12463F` | mint or mintDark | Approved AA Customer action foreground. |
 | `groomerOnAccent #642620` | coral or coralDark | Approved AA Groomer action foreground. |
 | `textPrimary #232323` | Display P3 Hero mint / surface white | Customer Home Hero copy and action pair; measured contrast remains above WCAG AAA. |
+
+Feature-level promotional modules use `featureTitle` (28pt bold), `body` (17pt), and `prominentAction` (20pt semibold). These shared semantic tokens avoid local fixed-size typography while keeping feature Heroes below page-title scale.
 | surface white | Customer Home Display P3 `#93CEC2` to `#B0D8D9` Hero | Approved screenshot-specific visual exception; accessibility color remediation is deferred by user direction. |
 | `textPrimary #232323` | success, warning, or error fill | Approved for status chips; pair color with text or an icon. |
 | `textTertiary #69717A` | surface or app background | Approved. |

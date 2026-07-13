@@ -156,6 +156,7 @@ enum DesignTokens {
 
     enum Typography {
         static let pageTitle = Font.largeTitle.weight(.bold)
+        static let featureTitle = Font.title.weight(.bold)
         static let sectionTitle = Font.title2.weight(.bold)
         static let cardTitle = Font.title3.weight(.bold)
         static let body = Font.body
@@ -163,6 +164,7 @@ enum DesignTokens {
         static let fieldLabel = Font.subheadline.weight(.semibold)
         static let status = Font.caption.weight(.semibold)
         static let action = Font.headline.weight(.semibold)
+        static let prominentAction = Font.title3.weight(.semibold)
 
         // Compatibility names remain until the source audit reports zero usage.
         static let largeTitle = Font.largeTitle.weight(.bold)

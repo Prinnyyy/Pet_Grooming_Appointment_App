@@ -376,12 +376,12 @@ private struct CustomerHomeRequestHero: View {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                     Text(CustomerHomeRequestHeroPresentation.title)
-                        .font(DesignTokens.Typography.sectionTitle)
+                        .font(DesignTokens.Typography.featureTitle)
                         .foregroundStyle(DesignTokens.Colors.textPrimary)
                         .fixedSize(horizontal: false, vertical: true)
 
                     Text(CustomerHomeRequestHeroPresentation.message)
-                        .font(DesignTokens.Typography.supporting)
+                        .font(DesignTokens.Typography.body)
                         .foregroundStyle(DesignTokens.Colors.textPrimary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -403,7 +403,7 @@ private struct CustomerHomeRequestHero: View {
                     BeckonSecondaryButtonStyle(
                         accent: .customerHero,
                         isFullWidth: false,
-                        font: DesignTokens.Typography.action
+                        font: DesignTokens.Typography.prominentAction
                     )
                 )
                 .disabled(isDisabled)
