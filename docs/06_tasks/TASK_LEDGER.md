@@ -2,7 +2,7 @@
 
 Task ID, status, and next-number source of truth. Keep only planned, active, blocked, and the latest completed rows. Detailed evidence belongs in `docs/00_memory/WORKLOG.md`; older rows live under `docs/09_frozen/task_ledgers/`.
 
-Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup`; use `T-354` for the next new task. T-353 and T-352 are completed.
+Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup`; use `T-355` for the next new task. T-354 and T-353 are completed.
 
 Active blocked task: T-157 waits for paid Apple Developer Program access and APNs credentials before dispatcher deployment. Q-104 remains user-deferred and is tracked in `docs/06_tasks/ROADMAP_EXECUTION_QUEUE.md` rather than as an allocated task.
 
@@ -12,6 +12,7 @@ Pre-reset source snapshot: `docs/09_frozen/active_state_snapshots/T-345_2026-07-
 
 | ID | Task | Status | Mode | Milestone | Files/Docs | Checks | Notes |
 |---|---|---|---|---|---|---|---|
+| T-354 | Shared Customer/Groomer Messages presentation | completed | Standard | M14 | Shared Chat conversation page/title/card presentation; removed Groomer inbox presentation; focused contract; task indexes | TDD RED/GREEN; 30 focused Chat tests; full iOS tests/build; diff/context/closeout | Both roles use the Customer Messages card layout while retaining role data, semantic accents, shared thread/composer behavior, and existing Store/repository boundaries. |
 | T-353 | Shared Customer/Groomer notification center and bell | completed | Standard | M14 | Shared notification page/row/bell; Customer/Groomer adapters and Home routing; focused contract; task indexes | TDD RED/GREEN; focused notification tests; full iOS tests/build; diff/context/closeout | Customer and Groomer now share one notification page, card row, unread-dot lifecycle, and 56pt bell button while retaining separate Stores/repositories and Groomer destination routing. |
 | T-352 | Groomer Offer text-field keyboard activation | completed | Standard | M14 | Groomer Request Offer inputs; focused regression contract; task memory | TDD RED/GREEN; 19 focused tests; iOS build; diff/context/closeout | Price and Message share one Offer input component whose full visible field group explicitly activates the correct FocusState without suppressing native text-field gestures. |
 | T-351 | Participant-pair chat and automatic booking-event messages | completed | Deep | M14 | Conversation/message schema and RPCs; Chat model/repository/store/UI; Booking detail routing; backend/task docs | Migration RED/GREEN; focused/full iOS tests; preflight/build; linked rollback/security/advisor verification; diff/context/closeout | Historical duplicate threads merge by participant pair with messages preserved. Valid acceptance/cancellation inserts a live booking card first, then actor-authored friendly text; direct clients cannot forge cards. |

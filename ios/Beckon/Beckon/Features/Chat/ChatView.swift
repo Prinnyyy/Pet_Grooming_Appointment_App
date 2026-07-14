@@ -1,5 +1,30 @@
 import SwiftUI
 
+nonisolated struct ChatConversationListPresentation: Equatable, Sendable {
+    enum Audience: Equatable, Sendable {
+        case customer
+        case groomer
+    }
+
+    enum PageStyle: Equatable, Sendable {
+        case messagesCards
+    }
+
+    enum RowStyle: Equatable, Sendable {
+        case participantCard
+    }
+
+    let title = "Messages"
+    let audience: Audience
+    let pageStyle: PageStyle = .messagesCards
+    let rowStyle: RowStyle = .participantCard
+    let avatarSize: CGFloat = 64
+    let previewLineLimit = 2
+
+    static let customer = Self(audience: .customer)
+    static let groomer = Self(audience: .groomer)
+}
+
 struct ChatConversationsView: View {
     @Environment(\.scenePhase) private var scenePhase
     private let participantID: UUID
@@ -40,8 +65,8 @@ struct ChatConversationsView: View {
 
             conversationsContent
         }
-        .navigationTitle(role == .groomer ? "Messages" : "")
-        .navigationBarTitleDisplayMode(role == .groomer ? .large : .inline)
+        .navigationTitle("")
+        .navigationBarTitleDisplayMode(.inline)
         .background {
             ChatStatusView(store: store, role: role)
         }
@@ -140,43 +165,14 @@ struct ChatConversationsView: View {
 
     @ViewBuilder
     private var conversationWorkspace: some View {
-        if role == .groomer {
-            let presentation = GroomerConversationListPresentation(
-                conversationCount: store.conversations.count,
-                unreadConversationCount: store.unreadConversationCount
-            )
+        ChatMessagesTitle(presentation.title)
 
-            GroomerWorkspaceSection(title: presentation.title) {
-                Text(presentation.subtitle)
-                    .font(DesignTokens.Typography.body)
-                    .foregroundStyle(DesignTokens.Colors.textSecondary)
-
-                if presentation.showsGroupedSurface {
-                    GroomerGroupedSurface {
-                        VStack(spacing: 0) {
-                            ForEach(Array(store.conversations.enumerated()), id: \.element.id) { index, conversation in
-                                if index > 0 {
-                                    GroomerWorkspaceDivider(leadingInset: 72)
-                                }
-
-                                conversationLink(conversation)
-                            }
-                        }
-                    }
-                } else {
-                    emptyConversationsState
-                }
-            }
+        if store.conversations.isEmpty {
+            emptyConversationsState
         } else {
-            CustomerMessagesTitle("Messages")
-
-            if store.conversations.isEmpty {
-                emptyConversationsState
-            } else {
-                LazyVStack(spacing: DesignTokens.Spacing.md) {
-                    ForEach(store.conversations) { conversation in
-                        conversationLink(conversation)
-                    }
+            LazyVStack(spacing: DesignTokens.Spacing.md) {
+                ForEach(store.conversations) { conversation in
+                    conversationLink(conversation)
                 }
             }
         }
@@ -224,6 +220,10 @@ struct ChatConversationsView: View {
             requestID: requestID
         )
     }
+
+    private var presentation: ChatConversationListPresentation {
+        role == .groomer ? .groomer : .customer
+    }
 }
 
 private struct ChatConversationRow: View {
@@ -232,69 +232,47 @@ private struct ChatConversationRow: View {
     let store: ChatStore
 
     var body: some View {
-        if role == .groomer {
+        BeckonCard {
             rowContent
-                .padding(DesignTokens.Spacing.lg)
-        } else {
-            BeckonCard {
-                rowContent
-            }
         }
     }
 
     private var rowContent: some View {
         HStack(
             alignment: .center,
-            spacing: role == .groomer
-                ? DesignTokens.Spacing.md
-                : DesignTokens.Spacing.lg
+            spacing: DesignTokens.Spacing.lg
         ) {
             BeckonProfileAvatar(
                 data: role == .customer
                     ? conversation.groomerAvatarPhotoData
                     : nil,
                 tone: role == .customer ? .groomer : .customer,
-                size: role == .groomer ? 48 : 64,
-                cornerRadius: role == .groomer ? 14 : 18,
-                placeholderSize: role == .groomer ? 18 : 24
+                size: presentation.avatarSize,
+                cornerRadius: 18,
+                placeholderSize: 24
             )
 
             VStack(
                 alignment: .leading,
-                spacing: role == .groomer
-                    ? DesignTokens.Spacing.xs
-                    : DesignTokens.Spacing.sm
+                spacing: DesignTokens.Spacing.sm
             ) {
                 Text(conversation.listTitle(for: role))
-                    .font(role == .groomer ? .headline.weight(.bold) : .title3.weight(.bold))
+                    .font(.title3.weight(.bold))
                     .foregroundStyle(DesignTokens.Colors.textPrimary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.82)
 
-                if role == .groomer {
-                    Text(
-                        conversation.latestBookingReferenceCode.map {
-                            "Latest booking \($0)"
-                        } ?? "Participant chat"
-                    )
-                        .font(DesignTokens.Typography.caption.weight(.medium))
-                        .foregroundStyle(DesignTokens.Colors.textTertiary)
-                        .lineLimit(1)
-                }
-
                 Text(store.previewText(for: conversation))
                     .font(DesignTokens.Typography.body)
                     .foregroundStyle(DesignTokens.Colors.textSecondary)
-                    .lineLimit(role == .groomer ? 1 : 2)
+                    .lineLimit(presentation.previewLineLimit)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
             VStack(
                 alignment: .trailing,
-                spacing: role == .groomer
-                    ? DesignTokens.Spacing.xs
-                    : DesignTokens.Spacing.sm
+                spacing: DesignTokens.Spacing.sm
             ) {
                 if store.hasUnreadMessages(in: conversation) {
                     Circle()
@@ -320,17 +298,15 @@ private struct ChatConversationRow: View {
                 }
             }
 
-            if role == .groomer {
-                Image(systemName: "chevron.right")
-                    .font(DesignTokens.Typography.caption.weight(.bold))
-                    .foregroundStyle(DesignTokens.Colors.textTertiary)
-                    .accessibilityHidden(true)
-            }
         }
+    }
+
+    private var presentation: ChatConversationListPresentation {
+        role == .groomer ? .groomer : .customer
     }
 }
 
-private struct CustomerMessagesTitle: View {
+private struct ChatMessagesTitle: View {
     let title: String
 
     init(_ title: String) {

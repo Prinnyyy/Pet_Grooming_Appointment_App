@@ -10,21 +10,18 @@ struct ChatStoreTests {
     }
 
     @Test
-    func groomerConversationPresentationUsesOperationalUnreadSummary() {
-        let empty = GroomerConversationListPresentation(
-            conversationCount: 0,
-            unreadConversationCount: 0
-        )
-        let active = GroomerConversationListPresentation(
-            conversationCount: 3,
-            unreadConversationCount: 2
-        )
+    func customerAndGroomerShareConversationListPresentation() {
+        let customer = ChatConversationListPresentation.customer
+        let groomer = ChatConversationListPresentation.groomer
 
-        #expect(empty.title == "Conversations")
-        #expect(empty.subtitle == "All conversations are read.")
-        #expect(empty.showsGroupedSurface == false)
-        #expect(active.subtitle == "2 unread conversations.")
-        #expect(active.showsGroupedSurface)
+        #expect(customer.title == "Messages")
+        #expect(groomer.title == customer.title)
+        #expect(groomer.pageStyle == customer.pageStyle)
+        #expect(groomer.rowStyle == customer.rowStyle)
+        #expect(groomer.avatarSize == customer.avatarSize)
+        #expect(groomer.previewLineLimit == customer.previewLineLimit)
+        #expect(customer.audience == .customer)
+        #expect(groomer.audience == .groomer)
     }
 
     @Test @MainActor

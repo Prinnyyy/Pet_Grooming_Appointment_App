@@ -4,10 +4,10 @@ Current facts for task startup and recovery. Historical task narrative belongs i
 
 ## Task Baseline
 
-- Date: 2026-07-13
-- Latest completed task: T-353 Shared Customer/Groomer notification center and bell.
+- Date: 2026-07-14
+- Latest completed task: T-354 Shared Customer/Groomer Messages presentation.
 - Current task: none.
-- Next task ID: T-354 for the next new task.
+- Next task ID: T-355 for the next new task.
 - Current branch baseline: `codex/pet-fit-structure-cleanup`.
 - GitHub repository: `Prinnyyy/Pet_Grooming_Appointment_App`.
 
@@ -23,8 +23,8 @@ No roadmap package is automatically active. New work starts from an explicit use
 
 ## Validation Baseline
 
-- Latest app validation: T-353 passed focused shared-notification/Groomer notification tests, the complete iOS suite, and `./scripts/ios-build.sh`.
-- Latest full iOS regression: T-353 passed the complete iOS suite and build.
+- Latest app validation: T-354 passed 30 focused Chat tests, the complete iOS suite, and `./scripts/ios-build.sh`.
+- Latest full iOS regression: T-354 passed the complete iOS suite and build.
 - Latest documentation/backend validation: T-351 passed preflight, 74 migration tests, 10 Edge Function tests, linked rollback/authorization SQL, final remote dry-run, advisor checks, diff check, unified closeout, and context hygiene.
 - Known iOS validation failure: none currently recorded.
 - No app-owned compiler warning remains in the latest app build. The AppIntents metadata-skipped message remains classified as toolchain information while Beckon has no App Intents dependency.
@@ -36,6 +36,7 @@ No roadmap package is automatically active. New work starts from an explicit use
 - Production uses real Supabase Auth, authoritative profiles, role separation, repository boundaries, RLS/RPC controls, and private authenticated image loading.
 - Implemented areas include onboarding, Customer and Groomer workspaces, requests/offers/bookings/chat, notifications, profiles, photos, account deletion, privacy/support, diagnostics, and TestOps.
 - Customer and Groomer notifications share one DesignSystem page, card row, unread indicator, and Home bell button; role Stores/repositories remain separate and Groomer rows preserve focused routing.
+- Customer and Groomer Messages use one conversation-page title and card-row presentation; thread, bubble, composer, Store, repository, pagination, unread, and role-routing behavior remain shared or role-aware behind the same Chat feature boundary.
 - Chat is unique per Customer/Groomer pair across bookings. Acceptance and either-party cancellation append a live Booking card followed by actor-authored friendly text; cards open the existing role-specific Booking detail.
 - Current UI work must reuse the existing DesignSystem, Store, repository, model, and backend boundaries. New persistence, navigation, role capability, or remote behavior requires separate approval.
 
