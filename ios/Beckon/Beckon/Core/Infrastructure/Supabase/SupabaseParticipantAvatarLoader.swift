@@ -19,7 +19,14 @@ final class SupabaseParticipantAvatarLoader {
     }
 
     func groomerAvatars(for groomerIDs: [UUID]) async -> [UUID: Data] {
-        let ids = Array(Set(groomerIDs)).map { $0.uuidString.lowercased() }
+        await avatars(for: groomerIDs, role: .groomer)
+    }
+
+    func avatars(
+        for participantIDs: [UUID],
+        role: UserRole
+    ) async -> [UUID: Data] {
+        let ids = Array(Set(participantIDs)).map { $0.uuidString.lowercased() }
         guard !ids.isEmpty else { return [:] }
 
         do {
@@ -27,7 +34,7 @@ final class SupabaseParticipantAvatarLoader {
                 .from("profiles")
                 .select(Self.profileColumns)
                 .in("id", values: ids)
-                .eq("role", value: UserRole.groomer.rawValue)
+                .eq("role", value: role.rawValue)
                 .execute()
                 .value
 
@@ -35,7 +42,7 @@ final class SupabaseParticipantAvatarLoader {
             for row in rows {
                 guard let avatarPath = normalized(row.avatarPath) else { continue }
                 if let data = try? await privateImageLoader.loadData(
-                    bucketID: PhotoStorageBucketID.groomerAvatar.rawValue,
+                    bucketID: avatarBucketID(for: role),
                     storagePath: avatarPath
                 ) {
                     avatars[row.id] = data
@@ -44,6 +51,15 @@ final class SupabaseParticipantAvatarLoader {
             return avatars
         } catch {
             return [:]
+        }
+    }
+
+    private func avatarBucketID(for role: UserRole) -> String {
+        switch role {
+        case .customer:
+            PhotoStorageBucketID.customerAvatar.rawValue
+        case .groomer:
+            PhotoStorageBucketID.groomerAvatar.rawValue
         }
     }
 

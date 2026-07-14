@@ -12,7 +12,7 @@ struct ChatConversation: Equatable, Hashable, Identifiable, Sendable {
     let bookingStatus: BookingStatus?
     let completedAt: String?
     let groomerBusinessName: String?
-    let groomerAvatarPhotoData: Data?
+    let counterpartAvatarPhotoData: Data?
     let latestMessageSenderID: UUID?
     let latestMessageCreatedAt: String?
     let latestMessageBody: String?
@@ -31,7 +31,7 @@ struct ChatConversation: Equatable, Hashable, Identifiable, Sendable {
         bookingStatus: BookingStatus? = nil,
         completedAt: String? = nil,
         groomerBusinessName: String? = nil,
-        groomerAvatarPhotoData: Data? = nil,
+        counterpartAvatarPhotoData: Data? = nil,
         latestMessageSenderID: UUID? = nil,
         latestMessageCreatedAt: String? = nil,
         latestMessageBody: String? = nil,
@@ -49,7 +49,7 @@ struct ChatConversation: Equatable, Hashable, Identifiable, Sendable {
         self.bookingStatus = bookingStatus
         self.completedAt = completedAt
         self.groomerBusinessName = groomerBusinessName
-        self.groomerAvatarPhotoData = groomerAvatarPhotoData
+        self.counterpartAvatarPhotoData = counterpartAvatarPhotoData
         self.latestMessageSenderID = latestMessageSenderID
         self.latestMessageCreatedAt = latestMessageCreatedAt
         self.latestMessageBody = latestMessageBody
@@ -161,6 +161,45 @@ struct ChatConversation: Equatable, Hashable, Identifiable, Sendable {
     nonisolated private static func normalized(_ value: String?) -> String? {
         let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         return trimmed.isEmpty ? nil : trimmed
+    }
+}
+
+nonisolated enum ChatCounterpartAvatarTarget: Equatable, Sendable {
+    case customer
+    case groomer
+
+    static func viewer(_ role: UserRole) -> Self {
+        switch role {
+        case .customer:
+            .groomer
+        case .groomer:
+            .customer
+        }
+    }
+
+    var role: UserRole {
+        switch self {
+        case .customer:
+            .customer
+        case .groomer:
+            .groomer
+        }
+    }
+
+    func participantID(in conversation: ChatConversation) -> UUID {
+        participantID(
+            customerID: conversation.customerID,
+            groomerID: conversation.groomerID
+        )
+    }
+
+    func participantID(customerID: UUID, groomerID: UUID) -> UUID {
+        switch self {
+        case .customer:
+            customerID
+        case .groomer:
+            groomerID
+        }
     }
 }
 

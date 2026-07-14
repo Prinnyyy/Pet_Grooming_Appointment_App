@@ -1,6 +1,6 @@
 # Supabase Contract
 
-Last verified: 2026-07-13 (T-351 participant-pair chat migration and remote authorization checks).
+Last verified: 2026-07-14 (T-355 conversation-scoped counterpart avatar access).
 
 This is the active fast-path backend contract. It records current authoritative facts and points to the right detailed source instead of embedding every historical table, RPC, Storage, and migration note.
 
@@ -10,9 +10,9 @@ Full pre-trim contract text is archived at `../09_frozen/backend_contracts/SUPAB
 
 - Authorized fresh project: `Beckon`, ref `lqmasbuqzvcvtawonjlb`, organization `Prinnyyy`, region `us-west-1`.
 - Forbidden legacy project: `Prinnyyy's Project`, ref `swdiiyypysyxbnfrxxsv`. Do not inspect, branch, migrate, reset, or mutate it for this rebuild.
-- Remote verification baseline: linked history aligns through `20260713223400_t351_participant_conversations_booking_events.sql`; the final linked dry-run is empty, the rollback validation passed, and security/performance advisors reported no new issue.
+- Remote verification baseline: linked history aligns through `20260714072728_t355_chat_counterpart_avatar_access.sql`; the final linked dry-run is empty, conversation-scoped avatar authorization validation passed, performance advisors found no issue, and security advisors retained only the known Q-93 warning.
 - Local CLI readiness baseline: T-139 confirmed sequential `supabase projects list`, `supabase migration list --linked`, and `supabase db push --linked --dry-run` work from this checkout without `SUPABASE_DB_PASSWORD`.
-- Local migration mirror: `../../supabase/migrations/` is the append-only source for applied and prepared migrations. Local migration mirror count: 68 files. Do not rename or hand-invent migration filenames.
+- Local migration mirror: `../../supabase/migrations/` is the append-only source for applied and prepared migrations. Local migration mirror count: 69 files. Do not rename or hand-invent migration filenames.
 - Full historical contract detail before this fast-path trim is frozen for comparison only. Current implementation truth comes from migrations plus focused active backend policy files.
 
 ## Read Order

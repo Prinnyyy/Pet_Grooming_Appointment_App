@@ -243,9 +243,7 @@ private struct ChatConversationRow: View {
             spacing: DesignTokens.Spacing.lg
         ) {
             BeckonProfileAvatar(
-                data: role == .customer
-                    ? conversation.groomerAvatarPhotoData
-                    : nil,
+                data: conversation.counterpartAvatarPhotoData,
                 tone: role == .customer ? .groomer : .customer,
                 size: presentation.avatarSize,
                 cornerRadius: 18,
@@ -356,9 +354,7 @@ private struct ChatThreadView: View {
                     title: conversation.listTitle(for: role),
                     subtitle: store.canSendMessages(in: conversation) ? "Active Chat" : "Read Only",
                     role: role,
-                    avatarPhotoData: role == .customer
-                        ? conversation.groomerAvatarPhotoData
-                        : nil,
+                    avatarPhotoData: conversation.counterpartAvatarPhotoData,
                     dismiss: dismiss
                 )
 
@@ -787,7 +783,7 @@ private struct ChatComposerView: View {
                                     .tint(DesignTokens.Colors.surface)
                             } else {
                                 Image(systemName: "paperplane.fill")
-                                    .font(.title3.weight(.bold))
+                                    .font(DesignTokens.Typography.cardTitle)
                                     .foregroundStyle(DesignTokens.Colors.surface)
                                     .offset(x: -1, y: 1)
                             }

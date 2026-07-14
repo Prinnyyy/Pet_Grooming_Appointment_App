@@ -724,13 +724,17 @@ struct ChatStoreTests {
     }
 
     @Test @MainActor
-    func customerConversationCarriesTheLoadedGroomerAvatar() {
+    func conversationCarriesTheLoadedCounterpartAvatarForEitherRole() {
         let avatarData = Data([0x07, 0x08, 0x09])
         let conversation = Self.conversation(
-            groomerAvatarPhotoData: avatarData
+            counterpartAvatarPhotoData: avatarData
         )
 
-        #expect(conversation.groomerAvatarPhotoData == avatarData)
+        #expect(conversation.counterpartAvatarPhotoData == avatarData)
+        #expect(ChatCounterpartAvatarTarget.viewer(.customer).role == .groomer)
+        #expect(ChatCounterpartAvatarTarget.viewer(.customer).participantID(in: conversation) == conversation.groomerID)
+        #expect(ChatCounterpartAvatarTarget.viewer(.groomer).role == .customer)
+        #expect(ChatCounterpartAvatarTarget.viewer(.groomer).participantID(in: conversation) == conversation.customerID)
     }
 
     private static func conversation(
@@ -744,7 +748,7 @@ struct ChatStoreTests {
         status: BookingStatus? = nil,
         completedAt: String? = nil,
         groomerBusinessName: String? = nil,
-        groomerAvatarPhotoData: Data? = nil,
+        counterpartAvatarPhotoData: Data? = nil,
         latestMessageSenderID: UUID? = nil,
         latestMessageCreatedAt: String? = nil,
         latestMessageBody: String? = nil
@@ -760,7 +764,7 @@ struct ChatStoreTests {
             bookingStatus: status,
             completedAt: completedAt,
             groomerBusinessName: groomerBusinessName,
-            groomerAvatarPhotoData: groomerAvatarPhotoData,
+            counterpartAvatarPhotoData: counterpartAvatarPhotoData,
             latestMessageSenderID: latestMessageSenderID,
             latestMessageCreatedAt: latestMessageCreatedAt,
             latestMessageBody: latestMessageBody,

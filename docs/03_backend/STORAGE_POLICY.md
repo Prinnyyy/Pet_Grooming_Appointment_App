@@ -11,8 +11,8 @@ Private image rendering audit and current client gaps: `../04_ios/PRIVATE_IMAGE_
 | Bucket | Purpose | Visibility | Owner Path |
 |---|---|---|---|
 | `avatars` | Legacy/shared profile avatar fallback | Private; owner access plus legacy presentation fallback where implemented | `{user_id}/{file_id}.{jpg,png,heic,heif}` |
-| `groomer-avatars` | Groomer account avatar | Private; authenticated non-anonymous groomer owner-only access | `{groomer_id}/{file_id}.{jpg,png,heic,heif}` |
-| `customer-avatars` | Customer account avatar | Private; authenticated non-anonymous customer owner-only access | `{customer_id}/{file_id}.{jpg,png,heic,heif}` |
+| `groomer-avatars` | Groomer account avatar | Private; owner access plus related Customer reads after an offer or booking | `{groomer_id}/{file_id}.{jpg,png,heic,heif}` |
+| `customer-avatars` | Customer account avatar | Private; owner access plus related Groomer reads for an existing conversation | `{customer_id}/{file_id}.{jpg,png,heic,heif}` |
 | `pet-photos` | Customer pet images | Private; owning customer access | `{customer_id}/{pet_id}/{file_id}.{jpg,png,heic,heif}` |
 | `groomer-portfolio` | Groomer work examples | Private bucket; authenticated reads only through active portfolio contract; owner writes | `{groomer_id}/{file_id}.jpg` |
 | `request-photos` | Customer request images | Private; owning customer and matched groomer reads through request metadata/policies | `{customer_id}/{request_id}/{file_id}.{jpg,png,heic,heif}` |

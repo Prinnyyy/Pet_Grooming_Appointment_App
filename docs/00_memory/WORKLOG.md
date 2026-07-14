@@ -2,12 +2,21 @@
 
 ```text
 Date: 2026-07-14
+Task: T-355 - Chat counterpart avatar hydration and access.
+Files changed: Chat model/repository/participant avatar loader/list/thread; Customer avatar profile and Storage RLS migration; rollback/static/focused tests; UI audit baseline; backend/feature/task memory.
+Checks: TDD RED/GREEN; focused Chat and migration tests; UI audit tests; preflight with 77 migration and 10 Edge Function tests; full iOS tests; iOS build; linked migration apply/history/final dry-run; rollback authorization SQL; security/performance advisors; diff check; unified closeout; context hygiene.
+Result: Chat now carries one role-neutral counterpart avatar. Customers load Groomer avatars and Groomers load Customer avatars in the shared conversation row and thread header; remote RLS permits the reverse profile/object read only when the participant-pair conversation exists.
+Risks: Server chat read receipts, attachments, and server expiry remain deferred. Q-93 leaked-password protection remains the known plan-gated security advisor warning; visual interaction review remains user-owned.
+Next: Use T-356 for the next new task.
+```
+
+```text
+Date: 2026-07-14
 Task: T-354 - Shared Customer/Groomer Messages presentation.
 Files changed: Shared Chat conversation-list presentation, title and card row; removed Groomer-only inbox presentation; focused contract; feature/task memory.
 Checks: TDD RED/GREEN; 30 focused Chat tests; full iOS tests; iOS build; source audit; git diff check; unified closeout; context hygiene.
 Result: Groomer Messages now uses the same custom Messages title, participant card, 64pt avatar, two-line preview, unread dot, timestamp, and read-only chip as Customer. The already-shared thread, message bubble, booking card, composer, Store, repository, pagination, and routing remain intact.
-Risks: Groomer customer-avatar data remains unavailable in the current conversation model, so the shared avatar component continues to show its Customer placeholder on Groomer rows. Visual interaction review is user-deferred.
-Next: Use T-355 for the next new task.
+Risks: Visual interaction review is user-deferred.
 ```
 
 ```text

@@ -80,20 +80,27 @@ final class SupabaseChatRepository: ChatRepository {
             case .groomer:
                 [UUID: String]()
             }
-            let groomerAvatars = switch role {
-            case .customer:
-                await participantAvatarLoader.groomerAvatars(
-                    for: rows.map(\.groomerID)
-                )
-            case .groomer:
-                [UUID: Data]()
-            }
+            let avatarTarget = ChatCounterpartAvatarTarget.viewer(role)
+            let counterpartAvatars = await participantAvatarLoader.avatars(
+                for: rows.map { row in
+                    avatarTarget.participantID(
+                        customerID: row.customerID,
+                        groomerID: row.groomerID
+                    )
+                },
+                role: avatarTarget.role
+            )
 
             let conversations = rows.map { row in
                 row.conversation(
                     bookingSummary: bookingSummaries[row.participantPair],
                     groomerBusinessName: groomerBusinessNames[row.groomerID],
-                    groomerAvatarPhotoData: groomerAvatars[row.groomerID],
+                    counterpartAvatarPhotoData: counterpartAvatars[
+                        avatarTarget.participantID(
+                            customerID: row.customerID,
+                            groomerID: row.groomerID
+                        )
+                    ],
                     latestMessage: latestMessages[row.id]
                 )
             }
@@ -382,7 +389,7 @@ private struct ChatConversationRow: Decodable {
     func conversation(
         bookingSummary: ChatBookingSummary?,
         groomerBusinessName: String?,
-        groomerAvatarPhotoData: Data?,
+        counterpartAvatarPhotoData: Data?,
         latestMessage: ChatLatestMessageRow?
     ) -> ChatConversation {
         ChatConversation(
@@ -397,7 +404,7 @@ private struct ChatConversationRow: Decodable {
             bookingStatus: bookingSummary?.status,
             completedAt: bookingSummary?.completedAt,
             groomerBusinessName: groomerBusinessName,
-            groomerAvatarPhotoData: groomerAvatarPhotoData,
+            counterpartAvatarPhotoData: counterpartAvatarPhotoData,
             latestMessageSenderID: latestMessage?.senderID,
             latestMessageCreatedAt: latestMessage?.createdAt,
             latestMessageBody: latestMessage?.body,
