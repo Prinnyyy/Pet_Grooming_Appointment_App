@@ -21,25 +21,3 @@ nonisolated struct GroomerConversationListPresentation: Equatable, Sendable {
         }
     }
 }
-
-nonisolated struct GroomerNotificationsListPresentation: Equatable, Sendable {
-    let title = "Updates"
-    let subtitle: String
-    let canMarkAllRead: Bool
-
-    init(unreadCount: Int) {
-        canMarkAllRead = unreadCount > 0
-        subtitle = Self.unreadSummary(for: unreadCount)
-    }
-
-    private static func unreadSummary(for count: Int) -> String {
-        switch count {
-        case 0:
-            "All notifications are read."
-        case 1:
-            "1 unread notification."
-        default:
-            "\(count) unread notifications."
-        }
-    }
-}

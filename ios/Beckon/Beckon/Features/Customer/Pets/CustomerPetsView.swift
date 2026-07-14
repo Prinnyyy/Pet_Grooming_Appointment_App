@@ -294,33 +294,11 @@ private struct CustomerHomeHeader: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
-            Button(action: notificationAction) {
-                ZStack(alignment: .topTrailing) {
-                    Image(systemName: "bell")
-                        .font(DesignTokens.Typography.cardTitle)
-                        .foregroundStyle(DesignTokens.Colors.textPrimary)
-                        .frame(width: 56, height: 56)
-                        .background(DesignTokens.Colors.surface)
-                        .clipShape(DesignTokens.Shapes.circular)
-                        .overlay(
-                            Circle()
-                                .stroke(DesignTokens.Colors.borderSoft, lineWidth: 1)
-                        )
-                        .beckonShadow(DesignTokens.Shadows.smallCard)
-
-                    if unreadNotificationCount > 0 {
-                        Circle()
-                            .fill(DesignTokens.Colors.notificationUnread)
-                            .frame(width: 10, height: 10)
-                            .padding(.top, DesignTokens.Spacing.sm)
-                            .padding(.trailing, DesignTokens.Spacing.sm)
-                    }
-                }
-            }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("customer.home.notifications")
-            .accessibilityLabel("Notifications")
-            .accessibilityValue("\(unreadNotificationCount) unread")
+            BeckonNotificationBellButton(
+                unreadCount: unreadNotificationCount,
+                accessibilityIdentifier: "customer.home.notifications",
+                action: notificationAction
+            )
         }
     }
 }

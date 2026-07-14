@@ -3,20 +3,6 @@ import Testing
 @testable import Beckon
 
 struct GroomerNotificationsStoreTests {
-    @Test
-    func groomerNotificationPresentationKeepsMarkAllReadBoundToUnreadCount() {
-        let clear = GroomerNotificationsListPresentation(unreadCount: 0)
-        let unread = GroomerNotificationsListPresentation(unreadCount: 1)
-        let multipleUnread = GroomerNotificationsListPresentation(unreadCount: 4)
-
-        #expect(clear.title == "Updates")
-        #expect(clear.subtitle == "All notifications are read.")
-        #expect(clear.canMarkAllRead == false)
-        #expect(unread.subtitle == "1 unread notification.")
-        #expect(unread.canMarkAllRead)
-        #expect(multipleUnread.subtitle == "4 unread notifications.")
-    }
-
     @Test @MainActor
     func paginationRetriesThenAppendsUniqueNotificationsAndStopsAtLastPage() async {
         let groomerID = UUID()

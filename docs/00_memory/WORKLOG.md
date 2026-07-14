@@ -2,12 +2,21 @@
 
 ```text
 Date: 2026-07-13
+Task: T-353 - Shared Customer/Groomer notification center and bell.
+Files changed: Shared notification page, row, bell, and presentation contract; Customer/Groomer adapters and Home entry routing; removed Groomer-only notification visuals; feature/task memory.
+Checks: TDD RED/GREEN; shared presentation and Groomer notification focused tests; full iOS tests; iOS build; source audit; git diff check; unified closeout; context hygiene.
+Result: Both roles now use one 56pt circular bell with a red unread dot and one card-based notification center. Customer and Groomer retain separate Store/repository ownership; Groomer rows still route to the relevant Requests, Bookings, or Messages destination.
+Risks: Visual interaction review is user-deferred. The app target build passed with only the expected AppIntents metadata message; three pre-existing unused-result warnings remain limited to focused test compilation.
+Next: Use T-354 for the next new task.
+```
+
+```text
+Date: 2026-07-13
 Task: T-352 - Groomer Offer text-field keyboard activation.
 Files changed: Groomer Request Offer input presentation, focused regression test, and task memory.
 Checks: TDD RED/GREEN; 19 Groomer Requests focused tests; iOS build; git diff check; unified closeout; context hygiene.
 Result: Price Estimate and Message now use one local Offer input component. Tapping anywhere in either visible field group explicitly activates its FocusState while a simultaneous gesture preserves native cursor interaction and the existing shared keyboard avoidance/Done control.
 Risks: Runtime verification could not reopen the consumed match without an unauthorized remote write, so final interaction review remains user-deferred. Focused test compilation exposed three pre-existing unused-result warnings in address/Fit Signals test sources; the app build itself passed with only the expected AppIntents metadata message.
-Next: Use T-353 for the next new task.
 ```
 
 ```text

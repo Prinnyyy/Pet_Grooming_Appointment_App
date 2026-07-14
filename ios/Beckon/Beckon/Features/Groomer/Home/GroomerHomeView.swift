@@ -2,6 +2,7 @@ import SwiftUI
 
 struct GroomerHomeView: View {
     @State private var store: GroomerHomeStore
+    @State private var isShowingNotifications = false
     let unreadNotificationCount: Int
     let unreadMessageCount: Int
     let notificationStore: GroomerNotificationsStore?
@@ -58,8 +59,10 @@ struct GroomerHomeView: View {
                     businessName: store.businessName,
                     avatarPhotoData: store.avatarPhotoData,
                     unreadNotificationCount: unreadNotificationCount,
-                    notificationStore: notificationStore,
-                    notificationRouteAction: notificationRouteAction
+                    showsNotifications: notificationStore != nil,
+                    notificationAction: {
+                        isShowingNotifications = true
+                    }
                 )
 
                 GroomerWorkspaceSection(title: "Next appointment") {
@@ -90,6 +93,15 @@ struct GroomerHomeView: View {
         }
         .background(DesignTokens.Colors.background.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
+        .navigationDestination(isPresented: $isShowingNotifications) {
+            if let notificationStore {
+                GroomerNotificationsView(
+                    store: notificationStore,
+                    routeAction: notificationRouteAction
+                )
+                .toolbar(.visible, for: .navigationBar)
+            }
+        }
         .foregroundRefreshable {
             await store.load()
         }
@@ -138,8 +150,8 @@ private struct GroomerHomeHeader: View {
     let businessName: String
     let avatarPhotoData: Data?
     let unreadNotificationCount: Int
-    let notificationStore: GroomerNotificationsStore?
-    let notificationRouteAction: (GroomerNotificationRoute) -> Void
+    let showsNotifications: Bool
+    let notificationAction: () -> Void
 
     var body: some View {
         HStack(spacing: DesignTokens.Spacing.md) {
@@ -177,52 +189,14 @@ private struct GroomerHomeHeader: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
-            if let notificationStore {
-                NavigationLink {
-                    GroomerNotificationsView(
-                        store: notificationStore,
-                        routeAction: notificationRouteAction
-                    )
-                    .toolbar(.visible, for: .navigationBar)
-                } label: {
-                    GroomerHomeBell(unreadCount: unreadNotificationCount)
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("groomer.home.notifications")
-                .accessibilityLabel("Notifications")
-                .accessibilityValue(
-                    unreadNotificationCount == 0
-                        ? "No unread notifications"
-                        : "\(unreadNotificationCount) unread"
+            if showsNotifications {
+                BeckonNotificationBellButton(
+                    unreadCount: unreadNotificationCount,
+                    accessibilityIdentifier: "groomer.home.notifications",
+                    action: notificationAction
                 )
             }
         }
-    }
-}
-
-private struct GroomerHomeBell: View {
-    let unreadCount: Int
-
-    var body: some View {
-        ZStack(alignment: .topTrailing) {
-            Image(systemName: "bell")
-                .font(.title2.weight(.medium))
-                .foregroundStyle(DesignTokens.Colors.textPrimary)
-                .frame(width: 52, height: 52)
-
-            if unreadCount > 0 {
-                Text("\(min(unreadCount, 99))")
-                    .font(.caption2.weight(.bold))
-                    .foregroundStyle(.white)
-                    .frame(minWidth: 20, minHeight: 20)
-                    .padding(.horizontal, unreadCount > 9 ? 3 : 0)
-                    .background(DesignTokens.Colors.error)
-                    .clipShape(DesignTokens.Shapes.chip)
-                    .offset(x: 2, y: -2)
-            }
-        }
-        .frame(width: 52, height: 52)
-        .contentShape(Rectangle())
     }
 }
 
