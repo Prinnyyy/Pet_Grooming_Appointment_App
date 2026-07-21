@@ -2,7 +2,7 @@
 
 Task ID, status, and next-number source of truth. Keep only planned, active, blocked, and the latest completed rows. Detailed evidence belongs in `docs/00_memory/WORKLOG.md`; older rows live under `docs/09_frozen/task_ledgers/`.
 
-Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup`; use `T-356` for the next new task. T-355 and T-354 are completed.
+Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup`; use `T-357` for the next new task. T-356 and T-355 are completed.
 
 Active blocked task: T-157 waits for paid Apple Developer Program access and APNs credentials before dispatcher deployment. Q-104 remains user-deferred and is tracked in `docs/06_tasks/ROADMAP_EXECUTION_QUEUE.md` rather than as an allocated task.
 
@@ -12,6 +12,7 @@ Pre-reset source snapshot: `docs/09_frozen/active_state_snapshots/T-345_2026-07-
 
 | ID | Task | Status | Mode | Milestone | Files/Docs | Checks | Notes |
 |---|---|---|---|---|---|---|---|
+| T-356 | Manual preference and skill learning review | completed | Standard | G0 | Learning review CLI/core/tests; memory guide; README/task memory | TDD RED/GREEN; focused script tests; context hygiene | Adds a manual review-only script that scans transcript-like text for preference and skill candidates, deduplicates evidence, and writes a promotion checklist report without automatically changing rules or skills. |
 | T-355 | Chat counterpart avatar hydration and access | completed | Deep | M14 | Chat model/repository/avatar loader/view; conversation-scoped profile/Storage RLS; rollback/static tests; UI audit baseline; backend/task indexes | TDD RED/GREEN; focused/full iOS tests; preflight/build; linked apply/rollback authorization/final dry-run/advisors; diff/context/closeout | Both roles render one counterpart avatar field in conversation rows and thread headers; Groomers can read only Customer avatars belonging to an existing participant-pair conversation. |
 | T-354 | Shared Customer/Groomer Messages presentation | completed | Standard | M14 | Shared Chat conversation page/title/card presentation; removed Groomer inbox presentation; focused contract; task indexes | TDD RED/GREEN; 30 focused Chat tests; full iOS tests/build; diff/context/closeout | Both roles use the Customer Messages card layout while retaining role data, semantic accents, shared thread/composer behavior, and existing Store/repository boundaries. |
 | T-353 | Shared Customer/Groomer notification center and bell | completed | Standard | M14 | Shared notification page/row/bell; Customer/Groomer adapters and Home routing; focused contract; task indexes | TDD RED/GREEN; focused notification tests; full iOS tests/build; diff/context/closeout | Customer and Groomer now share one notification page, card row, unread-dot lifecycle, and 56pt bell button while retaining separate Stores/repositories and Groomer destination routing. |

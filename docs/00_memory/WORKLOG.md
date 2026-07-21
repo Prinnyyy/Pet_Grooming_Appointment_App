@@ -1,13 +1,22 @@
 # Worklog
 
 ```text
+Date: 2026-07-15
+Task: T-356 - Manual preference and skill learning review.
+Files changed: Learning review CLI/core/tests; memory guide; root README; task memory.
+Checks: TDD RED/GREEN focused learning-review tests; context hygiene.
+Result: Added a manual review-only script that reads transcript-like files or stdin, extracts preference and skill candidates with source evidence, deduplicates repeated statements, and writes a promotion checklist report without automatically changing AGENTS, workflow docs, or Codex skills.
+Risks: The extractor is heuristic and intentionally conservative; candidate promotion remains manual and must be checked against current rules before durable updates.
+Next: Use T-357 for the next new task.
+```
+
+```text
 Date: 2026-07-14
 Task: T-355 - Chat counterpart avatar hydration and access.
 Files changed: Chat model/repository/participant avatar loader/list/thread; Customer avatar profile and Storage RLS migration; rollback/static/focused tests; UI audit baseline; backend/feature/task memory.
 Checks: TDD RED/GREEN; focused Chat and migration tests; UI audit tests; preflight with 77 migration and 10 Edge Function tests; full iOS tests; iOS build; linked migration apply/history/final dry-run; rollback authorization SQL; security/performance advisors; diff check; unified closeout; context hygiene.
 Result: Chat now carries one role-neutral counterpart avatar. Customers load Groomer avatars and Groomers load Customer avatars in the shared conversation row and thread header; remote RLS permits the reverse profile/object read only when the participant-pair conversation exists.
 Risks: Server chat read receipts, attachments, and server expiry remain deferred. Q-93 leaked-password protection remains the known plan-gated security advisor warning; visual interaction review remains user-owned.
-Next: Use T-356 for the next new task.
 ```
 
 ```text

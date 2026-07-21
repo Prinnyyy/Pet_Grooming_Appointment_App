@@ -44,6 +44,7 @@ This README does not define active work. Start new work only from an explicit us
 - Git/GitHub rules: `docs/05_workflow/GITHUB_RULES.md`
 - Search ignore rules: `.rgignore`
 - Context hygiene check: `scripts/context-hygiene-check.mjs`
+- Manual learning review: `scripts/learning-review.mjs`
 - Current Beckon UI notes: `docs/08_design/UI_IMPLEMENTATION_NOTES.md`
 - Design screenshots: `docs/08_design/screenshots/`
 - Frozen archives: `docs/09_frozen/README.md`

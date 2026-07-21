@@ -25,6 +25,16 @@ Durable product and architecture decisions live in `docs/07_decisions/DECISION_L
 - After durable-memory changes, run `node scripts/context-hygiene-check.mjs`; rotate only structurally overfull windows or completed artifacts, not generic word telemetry.
 - Whole-file state snapshots taken before a coordinated reset live under `docs/09_frozen/active_state_snapshots/`; they are recovery evidence, never startup context.
 
+## Manual Learning Review
+
+Use `node scripts/learning-review.mjs` when you want a draft list of preference or skill candidates from transcript-like notes, Worklog excerpts, or hand-curated session text. The tool is review-only: it writes a checklist report and never promotes candidates into `AGENTS.md`, workflow docs, or Codex skills by itself.
+
+```sh
+node scripts/learning-review.mjs --input docs/00_memory/WORKLOG.md --output docs/00_memory/learning-review-draft.md --title "Manual Learning Review"
+```
+
+Before promoting any candidate, verify it against newer project rules, avoid secrets and unverified assumptions, and update the owning durable source only once.
+
 ## Conflict Rules
 
 - Task ID, task status, and next task number: `docs/06_tasks/TASK_LEDGER.md` wins.
