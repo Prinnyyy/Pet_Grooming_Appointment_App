@@ -83,6 +83,8 @@ enum CustomerRequestWizardValidationField: Hashable {
 struct CustomerRequestWizardStepValidation: Equatable {
     static let requiredFieldsMessage =
         "Complete the highlighted required fields before continuing."
+    static let customRequestNotesMessage =
+        "Describe your custom grooming request in at least 10 characters."
 
     let fields: Set<CustomerRequestWizardValidationField>
     let message: String?
@@ -104,6 +106,7 @@ struct CustomerRequestWizardStepValidation: Equatable {
 @Observable
 final class CustomerRequestsStore {
     static let minimumPreferredStartLeadTime: TimeInterval = 5 * 60
+    static let minimumCustomRequestNotesLength = 10
     static let maximumRequestPhotoBytes = 10 * 1024 * 1024
 
     let customerID: UUID
@@ -144,7 +147,7 @@ final class CustomerRequestsStore {
     var wizardInitialStep: CustomerRequestWizardStep = .pet
 
     var selectedPetID: UUID?
-    var serviceType: GroomingServiceType = .fullGroom
+    var serviceType: GroomingServiceType?
     var serviceNotes = ""
     var preferredStart: Date
     var preferredEnd: Date
@@ -191,7 +194,7 @@ final class CustomerRequestsStore {
     }
 
     func requestFitInputSignals(referenceDate: Date = Date()) -> [PetFitSignal] {
-        guard let selectedPet else { return [] }
+        guard let selectedPet, let serviceType else { return [] }
 
         let snapshot = GroomingRequestPetSnapshot(
             id: selectedPet.id,
@@ -1161,7 +1164,7 @@ final class CustomerRequestsStore {
         case .pet:
             return validatePetStep()
         case .service:
-            return .valid
+            return validateServiceStep()
         case .time:
             return validateTimeAndLocationStep(now: now)
         case .details:
@@ -1190,11 +1193,23 @@ final class CustomerRequestsStore {
             )
         }
 
+        guard let serviceType else {
+            throw CustomerRequestFormError(
+                message: "Choose a grooming service before publishing."
+            )
+        }
+
         let serviceNotes = try optional(
             self.serviceNotes,
             field: "Service notes",
             maximum: 2000
         )
+        if serviceType == .customRequest,
+           serviceNotes?.count ?? 0 < Self.minimumCustomRequestNotesLength {
+            throw CustomerRequestFormError(
+                message: CustomerRequestWizardStepValidation.customRequestNotesMessage
+            )
+        }
 
         let earliestPreferredStart = now.addingTimeInterval(
             Self.minimumPreferredStartLeadTime
@@ -1270,6 +1285,17 @@ final class CustomerRequestsStore {
         return .valid
     }
 
+    private func validateServiceStep() -> CustomerRequestWizardStepValidation {
+        guard serviceType != nil else {
+            return CustomerRequestWizardStepValidation(
+                fields: [.service],
+                message: "Choose a grooming service before continuing."
+            )
+        }
+
+        return .valid
+    }
+
     private func validateTimeAndLocationStep(
         now: Date
     ) -> CustomerRequestWizardStepValidation {
@@ -1325,12 +1351,20 @@ final class CustomerRequestsStore {
             )
         }
 
+        if serviceType == .customRequest,
+           notes.count < Self.minimumCustomRequestNotesLength {
+            return CustomerRequestWizardStepValidation(
+                fields: [.notes],
+                message: CustomerRequestWizardStepValidation.customRequestNotesMessage
+            )
+        }
+
         return .valid
     }
 
     private func resetForm(now: Date = Date()) {
         publishOperationID = UUID()
-        serviceType = .fullGroom
+        serviceType = nil
         serviceNotes = ""
         locationMode = .groomerComesToCustomer
         addressEditorState.replaceInput(

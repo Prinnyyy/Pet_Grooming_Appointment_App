@@ -2,12 +2,21 @@
 
 ```text
 Date: 2026-07-28
+Task: T-359 - Request Wizard input and time semantics.
+Files changed: Customer Request Wizard and Store; focused/address integration tests; roadmap and task memory.
+Checks: TDD RED/GREEN; focused and complete iOS tests; iOS build; source and diff checks; unified closeout and context hygiene.
+Result: New Requests no longer silently default to Full Groom. Customers must choose a service, Custom Request requires at least 10 trimmed characters of useful detail, the seven-day date strip now has a system date picker for later dates, and Continue uses the same enabled value for visuals and interaction while invalid taps reveal field-level errors.
+Risks: Visible Wizard layout review remains user-owned. Request-photo preview, removal, review, and retry behavior remains Q-123.
+Next: Use T-360 for Q-123 Request photo selection and retry.
+```
+
+```text
+Date: 2026-07-28
 Task: T-358 - Request publish idempotency and recovery.
 Files changed: Private publish-operation table and v3 RPC; Customer Request model/repository/Store; TestOps publisher; rollback/static/iOS tests; backend, TestOps, feature, roadmap, and task memory.
 Checks: TDD RED/GREEN; 81 migration tests; 28 focused migration/TestOps tests; focused and complete iOS tests; iOS build; Supabase/preflight checks; linked migration apply/history/final dry-run; rollback-only replay and authorization validation; security/performance advisors; diff and context/closeout checks.
 Result: One Customer Wizard/TestOps publish operation now creates at most one Request and replays its original ID/match count. Once creation succeeds, photo upload and list refresh failures close the Wizard as published, emit one combined recoverable notice, and never surface a false publish failure.
 Risks: Request-photo retry UI remains owned by Q-123. Q-93 leaked-password protection remains the only security advisor warning and requires a Supabase paid plan.
-Next: Use T-359 for Q-122 Request Wizard input and time semantics.
 ```
 
 ```text

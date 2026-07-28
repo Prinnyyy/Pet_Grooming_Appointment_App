@@ -113,6 +113,48 @@ enum CustomerRequestTravelRange {
     }
 }
 
+struct CustomerRequestDateSelection {
+    static let quickDateCount = 7
+
+    let referenceDate: Date
+    let calendar: Calendar
+
+    init(
+        referenceDate: Date = Date(),
+        calendar: Calendar = .current
+    ) {
+        self.referenceDate = referenceDate
+        self.calendar = calendar
+    }
+
+    var minimumDate: Date {
+        calendar.startOfDay(for: referenceDate)
+    }
+
+    var quickDates: [Date] {
+        (0..<Self.quickDateCount).compactMap {
+            calendar.date(byAdding: .day, value: $0, to: minimumDate)
+        }
+    }
+
+    func isQuickDate(_ date: Date) -> Bool {
+        quickDates.contains { calendar.isDate($0, inSameDayAs: date) }
+    }
+
+    func normalized(_ date: Date) -> Date {
+        calendar.startOfDay(for: date)
+    }
+}
+
+struct CustomerRequestWizardPrimaryActionState: Equatable {
+    let isSubmitting: Bool
+    let isAwaitingAddressConfirmation: Bool
+
+    var isEnabled: Bool {
+        !isSubmitting && !isAwaitingAddressConfirmation
+    }
+}
+
 enum CustomerRequestLocationSection: CaseIterable {
     case groomingSetup
     case location
@@ -223,7 +265,6 @@ struct CustomerRequestWizardView: View {
     private let onAddPet: (() -> Void)?
     private let customerProfileRepository: (any CustomerProfileRepository)?
     @State private var currentStep: CustomerRequestWizardStep
-    @State private var selectedServiceOption: CustomerRequestServiceOption?
     @State private var selectedDate: Date
     @State private var selectedTimeWindow: CustomerRequestTimeWindowOption
     @State private var isFlexibleWithTime = false
@@ -250,9 +291,6 @@ struct CustomerRequestWizardView: View {
         _selectedDate = State(initialValue: store.preferredStart)
         _selectedTimeWindow = State(
             initialValue: store.wizardInitialStep == .review ? .detailed : .afternoon
-        )
-        _selectedServiceOption = State(
-            initialValue: store.serviceType
         )
     }
 
@@ -314,7 +352,7 @@ struct CustomerRequestWizardView: View {
                 CustomerRequestWizardBottomBar(
                     currentStep: currentStep,
                     isSubmitting: store.isSubmitting,
-                    canContinue: canContinue,
+                    isPrimaryActionEnabled: primaryActionState.isEnabled,
                     backAction: back,
                     continueAction: continueForward
                 )
@@ -419,9 +457,9 @@ struct CustomerRequestWizardView: View {
             ForEach(CustomerRequestServiceOption.allCases) { option in
                 CustomerRequestServiceOptionCard(
                     option: option,
-                    isSelected: selectedServiceOption == option
+                    isSelected: store.serviceType == option,
+                    isInvalid: invalidFields.contains(.service)
                 ) {
-                    selectedServiceOption = option
                     store.serviceType = option
                     clearInvalidField(.service)
                 }
@@ -522,7 +560,7 @@ struct CustomerRequestWizardView: View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
             BeckonFieldGroup(
                 "Notes To Groomers",
-                errorText: invalidFields.contains(.notes) ? "Add grooming notes before continuing." : nil
+                errorText: notesErrorText
             ) {
                 TextField("Share coat goals, sensitivities, or handling notes.", text: $store.serviceNotes, axis: .vertical)
                     .lineLimit(5...8)
@@ -621,18 +659,17 @@ struct CustomerRequestWizardView: View {
         }
     }
 
-    private var canContinue: Bool {
-        let validation = store.validateWizardStep(currentStep)
-        return !store.isSubmitting
-            && !isContinuingAfterAddressConfirmation
-            && (validation.isValid
-                || (currentStep == .time && validation.requiresOnlyAddressConfirmation))
+    private var primaryActionState: CustomerRequestWizardPrimaryActionState {
+        CustomerRequestWizardPrimaryActionState(
+            isSubmitting: store.isSubmitting,
+            isAwaitingAddressConfirmation: isContinuingAfterAddressConfirmation
+        )
     }
 
     private var reviewPresentation: CustomerRequestWizardReviewPresentation {
         CustomerRequestWizardReviewPresentation(
             pet: reviewPetSummary,
-            service: store.serviceType.title,
+            service: store.serviceType?.title ?? "Choose A Service",
             preferredTime: reviewPreferredTimeSummary,
             location: reviewLocationSummary,
             notes: notesSummary
@@ -692,6 +729,15 @@ struct CustomerRequestWizardView: View {
     private var notesSummary: String {
         let notes = store.serviceNotes.trimmingCharacters(in: .whitespacesAndNewlines)
         return notes.isEmpty ? "No Notes Added" : notes
+    }
+
+    private var notesErrorText: String? {
+        guard invalidFields.contains(.notes) else { return nil }
+        if store.serviceType == .customRequest {
+            return CustomerRequestWizardStepValidation.customRequestNotesMessage
+        }
+
+        return "Service notes must be 2,000 characters or fewer."
     }
 
     private func back() {
@@ -848,7 +894,6 @@ struct CustomerRequestWizardView: View {
     private func applyInitialDefaults() {
         currentStep = store.wizardInitialStep
         selectedDate = store.preferredStart
-        selectedServiceOption = store.serviceType
         guard store.wizardInitialStep != .review else {
             selectedTimeWindow = .detailed
             isFlexibleWithTime = false
@@ -994,7 +1039,7 @@ private struct CustomerRequestWizardBottomBar: View {
 
     let currentStep: CustomerRequestWizardStep
     let isSubmitting: Bool
-    let canContinue: Bool
+    let isPrimaryActionEnabled: Bool
     let backAction: () -> Void
     let continueAction: () -> Void
 
@@ -1041,10 +1086,10 @@ private struct CustomerRequestWizardBottomBar: View {
         }
         .buttonStyle(
             BeckonPrimaryButtonStyle(
-                isVisuallyEnabled: canContinue && !isSubmitting
+                isVisuallyEnabled: isPrimaryActionEnabled
             )
         )
-        .disabled(isSubmitting)
+        .disabled(!isPrimaryActionEnabled)
         .accessibilityIdentifier(
             currentStep == .review
                 ? "customer.requests.publish"
@@ -1163,11 +1208,13 @@ private struct CustomerRequestAddPetButton: View {
 private struct CustomerRequestServiceOptionCard: View {
     let option: CustomerRequestServiceOption
     let isSelected: Bool
+    let isInvalid: Bool
     let action: () -> Void
 
     var body: some View {
         BeckonSelectionCard(
             isSelected: isSelected,
+            isInvalid: isInvalid,
             accent: .customer,
             action: action
         ) {
@@ -1211,53 +1258,81 @@ private struct CustomerRequestDateStrip: View {
     let onSelect: (Date) -> Void
 
     var body: some View {
-        ScrollView(.horizontal) {
-            LazyHStack(spacing: DesignTokens.Spacing.md) {
-                ForEach(dateOptions, id: \.self) { date in
-                    Button {
-                        onSelect(date)
-                    } label: {
-                        VStack(spacing: DesignTokens.Spacing.xs) {
-                            Text(dayName(date))
-                                .font(DesignTokens.Typography.caption.weight(.bold))
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            ScrollView(.horizontal) {
+                LazyHStack(spacing: DesignTokens.Spacing.md) {
+                    ForEach(configuration.quickDates, id: \.self) { date in
+                        Button {
+                            onSelect(date)
+                        } label: {
+                            VStack(spacing: DesignTokens.Spacing.xs) {
+                                Text(dayName(date))
+                                    .font(DesignTokens.Typography.caption.weight(.bold))
 
-                            Text(dayNumber(date))
-                                .font(DesignTokens.Typography.sectionTitle)
+                                Text(dayNumber(date))
+                                    .font(DesignTokens.Typography.sectionTitle)
+                            }
+                            .foregroundStyle(isSelected(date) ? DesignTokens.Colors.surface : DesignTokens.Colors.textPrimary)
+                            .frame(width: 76, height: 92)
+                            .background(
+                                RoundedRectangle(
+                                    cornerRadius: DesignTokens.CornerRadius.button,
+                                    style: .continuous
+                                )
+                                .fill(isSelected(date) ? DesignTokens.Colors.customerAccent : DesignTokens.Colors.surface)
+                            )
+                            .overlay {
+                                RoundedRectangle(
+                                    cornerRadius: DesignTokens.CornerRadius.button,
+                                    style: .continuous
+                                )
+                                .stroke(
+                                    isSelected(date) ? DesignTokens.Colors.customerAccent : DesignTokens.Colors.border,
+                                    lineWidth: 1.2
+                                )
+                            }
                         }
-                        .foregroundStyle(isSelected(date) ? DesignTokens.Colors.surface : DesignTokens.Colors.textPrimary)
-                        .frame(width: 76, height: 92)
-                        .background(
-                            RoundedRectangle(
-                                cornerRadius: DesignTokens.CornerRadius.button,
-                                style: .continuous
-                            )
-                            .fill(isSelected(date) ? DesignTokens.Colors.customerAccent : DesignTokens.Colors.surface)
-                        )
-                        .overlay {
-                            RoundedRectangle(
-                                cornerRadius: DesignTokens.CornerRadius.button,
-                                style: .continuous
-                            )
-                            .stroke(
-                                isSelected(date) ? DesignTokens.Colors.customerAccent : DesignTokens.Colors.border,
-                                lineWidth: 1.2
-                            )
-                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
                 }
+                .padding(.vertical, DesignTokens.Spacing.xs)
             }
-            .padding(.vertical, DesignTokens.Spacing.xs)
+            .scrollIndicators(.hidden)
+
+            DatePicker(
+                "Choose Another Date",
+                selection: Binding(
+                    get: { selectedDate },
+                    set: { onSelect(configuration.normalized($0)) }
+                ),
+                in: configuration.minimumDate...,
+                displayedComponents: .date
+            )
+            .font(DesignTokens.Typography.body.weight(.semibold))
+            .foregroundStyle(DesignTokens.Colors.textPrimary)
+            .tint(DesignTokens.Colors.customerAccentStrong)
+            .padding(.horizontal, DesignTokens.Spacing.lg)
+            .frame(minHeight: 56)
+            .background(DesignTokens.Colors.surface)
+            .clipShape(
+                RoundedRectangle(
+                    cornerRadius: DesignTokens.CornerRadius.input,
+                    style: .continuous
+                )
+            )
+            .overlay {
+                RoundedRectangle(
+                    cornerRadius: DesignTokens.CornerRadius.input,
+                    style: .continuous
+                )
+                .stroke(DesignTokens.Colors.border, lineWidth: 1)
+            }
+            .accessibilityIdentifier("customer.requests.wizard.date-picker")
         }
-        .scrollIndicators(.hidden)
     }
 
-    private var dateOptions: [Date] {
-        let calendar = Calendar.current
-        let start = calendar.startOfDay(for: Date())
-        return (0..<7).compactMap {
-            calendar.date(byAdding: .day, value: $0, to: start)
-        }
+    private var configuration: CustomerRequestDateSelection {
+        CustomerRequestDateSelection()
     }
 
     private func isSelected(_ date: Date) -> Bool {

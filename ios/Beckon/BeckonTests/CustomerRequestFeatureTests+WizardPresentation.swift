@@ -351,6 +351,145 @@ extension CustomerRequestsStoreTests {
     }
 
     @Test @MainActor
+    func requestWizardRequiresAnExplicitServiceChoiceForNewRequests() async throws {
+        let customerID = UUID()
+        let store = CustomerRequestsStore(
+            customerID: customerID,
+            petRepository: CustomerRequestPetRepositoryFake(
+                petsResult: .success([Self.pet(customerID: customerID)])
+            ),
+            requestRepository: CustomerRequestRepositoryFake(),
+            bookingRepository: CustomerRequestBookingRepositoryFake()
+        )
+        await store.load()
+
+        store.startCreate()
+
+        #expect(store.serviceType == nil)
+        #expect(
+            store.validateWizardStep(.service) ==
+                CustomerRequestWizardStepValidation(
+                    fields: [.service],
+                    message: "Choose a grooming service before continuing."
+                )
+        )
+
+        store.serviceType = .bathAndBrush
+
+        #expect(store.validateWizardStep(.service).isValid)
+    }
+
+    @Test @MainActor
+    func customRequestRequiresUsefulNotesWhileStandardServicesRemainOptional() async throws {
+        let customerID = UUID()
+        let store = CustomerRequestsStore(
+            customerID: customerID,
+            petRepository: CustomerRequestPetRepositoryFake(
+                petsResult: .success([Self.pet(customerID: customerID)])
+            ),
+            requestRepository: CustomerRequestRepositoryFake(),
+            bookingRepository: CustomerRequestBookingRepositoryFake()
+        )
+        await store.load()
+        store.startCreate()
+        store.serviceType = .customRequest
+
+        store.serviceNotes = "         "
+        #expect(store.validateWizardStep(.details).fields == [.notes])
+
+        store.serviceNotes = "123456789"
+        #expect(store.validateWizardStep(.details).fields == [.notes])
+
+        store.serviceNotes = "A custom paw trim"
+        #expect(store.validateWizardStep(.details).isValid)
+
+        store.serviceType = .fullGroom
+        store.serviceNotes = ""
+        #expect(store.validateWizardStep(.details).isValid)
+    }
+
+    @Test @MainActor
+    func publishBoundaryRejectsMissingServiceAndShortCustomNotes() async throws {
+        let customerID = UUID()
+        let requestRepository = CustomerRequestRepositoryFake()
+        let store = CustomerRequestsStore(
+            customerID: customerID,
+            petRepository: CustomerRequestPetRepositoryFake(
+                petsResult: .success([Self.pet(customerID: customerID)])
+            ),
+            requestRepository: requestRepository,
+            bookingRepository: CustomerRequestBookingRepositoryFake()
+        )
+        await store.load()
+        store.startCreate()
+        store.preferredStart = Date().addingTimeInterval(60 * 60)
+        store.preferredEnd = Date().addingTimeInterval(2 * 60 * 60)
+        store.streetAddress = "760 S Harbor Blvd"
+        store.city = "Fullerton"
+        store.stateCode = .california
+        store.zipCode = "92832"
+        store.confirmCurrentTestAddress()
+
+        await store.publish()
+
+        #expect(requestRepository.createCallCount == 0)
+        #expect(store.errorMessage == "Choose a grooming service before publishing.")
+
+        store.serviceType = .customRequest
+        store.serviceNotes = "Too short"
+        await store.publish()
+
+        #expect(requestRepository.createCallCount == 0)
+        #expect(
+            store.errorMessage ==
+                CustomerRequestWizardStepValidation.customRequestNotesMessage
+        )
+    }
+
+    @Test @MainActor
+    func requestWizardDateSelectionKeepsSevenQuickDatesAndSupportsLaterDates() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try #require(TimeZone(secondsFromGMT: 0))
+        let referenceDate = try #require(Self.isoDate("2026-07-28T15:00:00Z"))
+        let configuration = CustomerRequestDateSelection(
+            referenceDate: referenceDate,
+            calendar: calendar
+        )
+        let eighthDay = try #require(
+            calendar.date(
+                byAdding: .day,
+                value: CustomerRequestDateSelection.quickDateCount,
+                to: configuration.minimumDate
+            )
+        )
+
+        #expect(configuration.quickDates.count == 7)
+        #expect(configuration.quickDates.first == configuration.minimumDate)
+        #expect(configuration.isQuickDate(eighthDay) == false)
+        #expect(configuration.normalized(eighthDay) == eighthDay)
+    }
+
+    @Test @MainActor
+    func requestWizardPrimaryActionUsesOneTruthfulEnabledState() {
+        let available = CustomerRequestWizardPrimaryActionState(
+            isSubmitting: false,
+            isAwaitingAddressConfirmation: false
+        )
+        let submitting = CustomerRequestWizardPrimaryActionState(
+            isSubmitting: true,
+            isAwaitingAddressConfirmation: false
+        )
+        let confirmingAddress = CustomerRequestWizardPrimaryActionState(
+            isSubmitting: false,
+            isAwaitingAddressConfirmation: true
+        )
+
+        #expect(available.isEnabled)
+        #expect(submitting.isEnabled == false)
+        #expect(confirmingAddress.isEnabled == false)
+    }
+
+    @Test @MainActor
     func requestWizardTimeWindowsApplyPresetRangesToSelectedDate() throws {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = try #require(TimeZone(secondsFromGMT: 0))

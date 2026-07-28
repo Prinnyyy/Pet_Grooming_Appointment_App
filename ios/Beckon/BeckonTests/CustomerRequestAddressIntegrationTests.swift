@@ -86,6 +86,7 @@ struct CustomerRequestAddressIntegrationTests {
         )
         await store.load()
         store.startCreate()
+        store.serviceType = .fullGroom
         store.preferredStart = Date().addingTimeInterval(60 * 60)
         store.preferredEnd = Date().addingTimeInterval(2 * 60 * 60)
         let confirmed = Self.confirmedAddress(placeID: nil)
