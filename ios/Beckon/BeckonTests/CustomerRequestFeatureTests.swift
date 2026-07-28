@@ -373,6 +373,148 @@ struct CustomerRequestsStoreTests {
     }
 
     @Test @MainActor
+    func publishRetryReusesTheSameOperationIDAfterCreateFailure() async throws {
+        let customerID = UUID()
+        let pet = Self.pet(customerID: customerID)
+        let requestID = UUID()
+        let requestRepository = CustomerRequestRepositoryFake(
+            createResult: .failure(.networkUnavailable)
+        )
+        let store = CustomerRequestsStore(
+            customerID: customerID,
+            petRepository: CustomerRequestPetRepositoryFake(
+                petsResult: .success([pet])
+            ),
+            requestRepository: requestRepository,
+            bookingRepository: CustomerRequestBookingRepositoryFake()
+        )
+        await store.load()
+
+        store.startCreate()
+        store.serviceType = .fullGroom
+        store.preferredStart = Date().addingTimeInterval(60 * 60)
+        store.preferredEnd = Date().addingTimeInterval(3 * 60 * 60)
+        store.streetAddress = "123 Pine St"
+        store.city = "Seattle"
+        store.stateCode = .washington
+        store.zipCode = "98101"
+        store.confirmCurrentTestAddress()
+
+        await store.publish()
+        requestRepository.createResult = .success(
+            GroomingRequestPublishResult(requestID: requestID, matchCount: 1)
+        )
+        await store.publish()
+
+        #expect(requestRepository.receivedDrafts.count == 2)
+        #expect(
+            requestRepository.receivedDrafts[0].publishOperationID ==
+                requestRepository.receivedDrafts[1].publishOperationID
+        )
+        #expect(store.publishResult?.requestID == requestID)
+        #expect(store.isShowingWizard == false)
+    }
+
+    @Test @MainActor
+    func photoUploadFailureDoesNotMisreportCreatedRequestAsPublishFailure() async throws {
+        let customerID = UUID()
+        let pet = Self.pet(customerID: customerID)
+        let requestID = UUID()
+        let request = Self.request(
+            id: requestID,
+            customerID: customerID,
+            petID: pet.id
+        )
+        let requestRepository = CustomerRequestRepositoryFake(
+            requestsResult: .success([request]),
+            createResult: .success(
+                GroomingRequestPublishResult(requestID: requestID, matchCount: 1)
+            ),
+            uploadRequestPhotoResult: .failure(.networkUnavailable)
+        )
+        let store = CustomerRequestsStore(
+            customerID: customerID,
+            petRepository: CustomerRequestPetRepositoryFake(
+                petsResult: .success([pet])
+            ),
+            requestRepository: requestRepository,
+            bookingRepository: CustomerRequestBookingRepositoryFake()
+        )
+        await store.load()
+
+        store.startCreate()
+        store.serviceType = .fullGroom
+        store.preferredStart = Date().addingTimeInterval(60 * 60)
+        store.preferredEnd = Date().addingTimeInterval(3 * 60 * 60)
+        store.streetAddress = "123 Pine St"
+        store.city = "Seattle"
+        store.stateCode = .washington
+        store.zipCode = "98101"
+        store.addPendingPhoto(data: Data([0x01]), contentType: .jpeg)
+        store.confirmCurrentTestAddress()
+
+        await store.publish()
+
+        #expect(requestRepository.createCallCount == 1)
+        #expect(requestRepository.uploadRequestPhotoCallCount == 1)
+        #expect(store.publishResult?.requestID == requestID)
+        #expect(store.isShowingWizard == false)
+        #expect(store.errorMessage == nil)
+        #expect(store.noticeMessage?.contains("Request published.") == true)
+        #expect(store.noticeMessage?.contains("photo could not be added") == true)
+    }
+
+    @Test @MainActor
+    func refreshFailureDoesNotMisreportCreatedRequestAsPublishFailure() async throws {
+        let customerID = UUID()
+        let pet = Self.pet(customerID: customerID)
+        let requestID = UUID()
+        let requestRepository = CustomerRequestRepositoryFake(
+            createResult: .success(
+                GroomingRequestPublishResult(requestID: requestID, matchCount: 2)
+            ),
+            requestPages: [
+                .success(
+                    ListPage(
+                        items: [],
+                        request: .first,
+                        hasMore: false
+                    )
+                ),
+                .failure(.networkUnavailable),
+            ]
+        )
+        let store = CustomerRequestsStore(
+            customerID: customerID,
+            petRepository: CustomerRequestPetRepositoryFake(
+                petsResult: .success([pet])
+            ),
+            requestRepository: requestRepository,
+            bookingRepository: CustomerRequestBookingRepositoryFake()
+        )
+        await store.load()
+
+        store.startCreate()
+        store.serviceType = .fullGroom
+        store.preferredStart = Date().addingTimeInterval(60 * 60)
+        store.preferredEnd = Date().addingTimeInterval(3 * 60 * 60)
+        store.streetAddress = "123 Pine St"
+        store.city = "Seattle"
+        store.stateCode = .washington
+        store.zipCode = "98101"
+        store.confirmCurrentTestAddress()
+
+        await store.publish()
+
+        #expect(requestRepository.createCallCount == 1)
+        #expect(store.publishResult?.requestID == requestID)
+        #expect(store.isShowingWizard == false)
+        #expect(store.errorMessage == nil)
+        #expect(store.noticeMessage?.contains("Request published.") == true)
+        #expect(store.noticeMessage?.contains("refresh later") == true)
+    }
+
+    @Test @MainActor
     func cancelWizardDiscardsUnpublishedDraftAndReturnsToDefaultCreateState() async throws {
         let customerID = UUID()
         let firstPet = Self.pet(customerID: customerID)

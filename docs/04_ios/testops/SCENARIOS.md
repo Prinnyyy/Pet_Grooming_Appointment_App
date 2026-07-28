@@ -9,7 +9,7 @@ Backend path:
 1. Customer signs in with a T-129 seeded account.
 2. Script loads the customer's active dog pet.
 3. Groomer signs in with a T-129 seeded account and exposes only the owner-scoped confirmed coordinate to the runner.
-4. Customer creates a synthetic coordinate-backed grooming request at the target Groomer's location through `create_grooming_request_v2`.
+4. Customer creates a synthetic coordinate-backed grooming request at the target Groomer's location through idempotent `create_grooming_request_v3`.
 5. Script verifies the groomer received a `request_matches` row.
 6. Groomer creates an offer through `create_groomer_offer`.
 7. Customer accepts through `accept_groomer_offer`.
@@ -47,7 +47,7 @@ Backend path:
 1. Customer signs in with a T-129 seeded account.
 2. Script loads the customer's active dog pet selected by the case.
 3. Script signs in the target Groomer and reads the owner-scoped confirmed coordinate.
-4. Customer creates a tagged coordinate-backed Request through `create_grooming_request_v2`; baseline cases use the target coordinate and radius cases project near/edge/outside points.
+4. Customer creates a tagged coordinate-backed Request through idempotent `create_grooming_request_v3`; baseline cases use the target coordinate and radius cases project near/edge/outside points.
 5. Service-role verification loads all `request_matches` rows for that request.
 6. Script asserts target groomer inclusion or exclusion according to the case.
 7. Positive target cases assert expected `match_reason` fragments, such as `Preferred time fits` or `Can suggest another time on your preferred day`.
@@ -64,7 +64,7 @@ Coordinate radius matrix:
 
 - `matching_radius` runs six near, just-inside-edge, and outside cases across both service directions.
 - Runtime coordinates are derived only after the target Groomer owner signs in and are not printed in plans or artifacts.
-- Every matching Request uses `create_grooming_request_v2`; tagged cleanup deletes its `manual_geocode` private Request location first.
+- Every matching Request uses `create_grooming_request_v3` with a stable per-run operation UUID; tagged cleanup deletes its `manual_geocode` private Request location first.
 
 ## Future Scenario Candidates
 

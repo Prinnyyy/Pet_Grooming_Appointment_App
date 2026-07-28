@@ -146,6 +146,7 @@ final class CustomerRequestRepositoryFake: CustomerRequestRepository {
     private(set) var lastRequestPhotoRequestIDs: [UUID] = []
     private(set) var lastRequestPhotoDataID: UUID?
     private(set) var lastDraft: GroomingRequestDraft?
+    private(set) var receivedDrafts: [GroomingRequestDraft] = []
     private(set) var lastUploadCustomerID: UUID?
     private(set) var lastUploadRequestID: UUID?
     private(set) var lastUploadData: Data?
@@ -269,6 +270,7 @@ final class CustomerRequestRepositoryFake: CustomerRequestRepository {
         createCallCount += 1
         lastCustomerID = customerID
         lastDraft = draft
+        receivedDrafts.append(draft)
         return try createResult.get()
     }
 

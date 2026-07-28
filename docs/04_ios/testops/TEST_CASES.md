@@ -44,7 +44,7 @@ Each remote case must assert:
 - Customer password sign-in succeeds.
 - Active dog pet exists for the customer.
 - Request uses `customer_comes_to_groomer` with a valid 15-mile travel radius.
-- `create_grooming_request_v2` returns a request id and `match_count >= 1`.
+- `create_grooming_request_v3` uses a stable per-run operation UUID and returns a request id plus `match_count >= 1`.
 - Selected groomer has a `request_matches` row for that request.
 - `create_groomer_offer` returns an offer id.
 - `accept_groomer_offer` returns a booking id.
@@ -100,7 +100,7 @@ Matching assertions:
 
 - Customer password sign-in succeeds.
 - Active dog pet exists for the selected customer.
-- `create_grooming_request_v2` returns a request id.
+- `create_grooming_request_v3` uses a stable per-run operation UUID and returns a request id.
 - Positive target cases assert the target groomer has a `request_matches` row.
 - Negative target cases assert the target groomer has no `request_matches` row.
 - Positive reason assertions check targeted fragments only, not the entire reason string.
@@ -109,7 +109,7 @@ Matching assertions:
 
 ## Coordinate Radius Matrix: `matching_radius`
 
-This matrix uses `BTC-001` and `BTG-001`, reads the Groomer's owner-scoped private coordinate, and publishes a WGS84-projected Request through `create_grooming_request_v2`.
+This matrix uses `BTC-001` and `BTG-001`, reads the Groomer's owner-scoped private coordinate, and publishes a WGS84-projected Request through idempotent `create_grooming_request_v3`.
 
 | Case | Direction | Distance / Radius | Expected Target |
 |---|---|---|---|

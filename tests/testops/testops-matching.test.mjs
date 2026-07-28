@@ -197,7 +197,7 @@ test("matching evaluation passes positive and negative target assertions", async
   assert.equal(negativeResult.target.matched, false);
 });
 
-test("radius evaluation reads the owner coordinate and publishes through request v2", async () => {
+test("radius evaluation reads the owner coordinate and publishes idempotently through request v3", async () => {
   const [plan] = makeMatchingPlans({
     scenarioID: MATCHING_SCENARIO,
     matrix: MATCHING_RADIUS_MATRIX,
@@ -230,7 +230,7 @@ test("radius evaluation reads the owner coordinate and publishes through request
       if (name === "get_my_groomer_profile_address_v2") {
         return [{ latitude: 33.87, longitude: -117.92 }];
       }
-      if (name === "create_grooming_request_v2") {
+      if (name === "create_grooming_request_v3") {
         return [{ request_id: "123e4567-e89b-12d3-a456-426614174000", match_count: 1 }];
       }
       throw new Error(`unexpected rpc ${name}`);
@@ -238,8 +238,12 @@ test("radius evaluation reads the owner coordinate and publishes through request
   };
 
   const result = await runMatchingEvaluation(api, plan);
-  const create = calls.find((call) => call.name === "create_grooming_request_v2");
+  const create = calls.find((call) => call.name === "create_grooming_request_v3");
   assert.ok(create);
+  assert.match(
+    create.params.p_publish_operation_id,
+    /^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+  );
   assert.equal(create.params.p_resolution_source, "manual_geocode");
   assert.equal(create.params.p_travel_radius_miles, 10);
   assert.ok(Number.isFinite(create.params.p_latitude));
@@ -366,7 +370,7 @@ function fakeMatchingAPI({ targetGroomerID, targetShouldAppear, matchReason }) {
       if (name === "get_my_groomer_profile_address_v2") {
         return [{ latitude: 33.8703, longitude: -117.9242 }];
       }
-      if (name === "create_grooming_request_v2") {
+      if (name === "create_grooming_request_v3") {
         return [{ request_id: "123e4567-e89b-12d3-a456-426614174000", match_count: 3 }];
       }
       throw new Error(`unexpected rpc ${name}`);

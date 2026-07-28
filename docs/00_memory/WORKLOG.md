@@ -2,12 +2,21 @@
 
 ```text
 Date: 2026-07-28
+Task: T-358 - Request publish idempotency and recovery.
+Files changed: Private publish-operation table and v3 RPC; Customer Request model/repository/Store; TestOps publisher; rollback/static/iOS tests; backend, TestOps, feature, roadmap, and task memory.
+Checks: TDD RED/GREEN; 81 migration tests; 28 focused migration/TestOps tests; focused and complete iOS tests; iOS build; Supabase/preflight checks; linked migration apply/history/final dry-run; rollback-only replay and authorization validation; security/performance advisors; diff and context/closeout checks.
+Result: One Customer Wizard/TestOps publish operation now creates at most one Request and replays its original ID/match count. Once creation succeeds, photo upload and list refresh failures close the Wizard as published, emit one combined recoverable notice, and never surface a false publish failure.
+Risks: Request-photo retry UI remains owned by Q-123. Q-93 leaked-password protection remains the only security advisor warning and requires a Supabase paid plan.
+Next: Use T-359 for Q-122 Request Wizard input and time semantics.
+```
+
+```text
+Date: 2026-07-28
 Task: T-357 - Customer Request Journey remediation design.
 Files changed: R-042 roadmap and Q-121...Q-125 execution queue; D-036; task memory.
 Checks: Docs governance; diff check; unified closeout; context hygiene.
 Result: Adopted five dependency-ordered packages that address publish idempotency, Wizard input/time semantics, Request photos, informed Offer acceptance with direct Booking handoff, and Request page-state/visual consistency without mixing implementation into the design task.
 Risks: Q-121 is a Deep backend contract and remains blocked from remote application until explicit Supabase migration authorization. Q-104 Groomer Dynamic Type/Accessibility remains user-deferred.
-Next: Use T-358 for the next new task; select Q-121 first only after explicit migration authorization.
 ```
 
 ```text

@@ -24,12 +24,12 @@ Out of scope unless explicitly adopted: payments, subscriptions, public director
 | Roadmap | Package | State | Resume Condition |
 |---|---|---|---|
 | R-039 | Q-104 Groomer Dynamic Type and Accessibility integration | deferred | The user restores this scope and approves affected cross-screen validation. |
-| R-042 | Q-121...Q-125 Customer Request Journey remediation | ready | Execute Q-121 first after explicit Supabase migration authorization, then continue one package per task. |
+| R-042 | Q-122...Q-125 Customer Request Journey remediation | ready | Execute Q-122 next, then continue one package per task. |
 | R-030 | Q-90 APNs dispatch deployment | blocked | T-157 receives paid Apple Developer access, APNs credentials, and deploy authorization. |
 | R-030 | Q-91 TestFlight/App Store submission | blocked | Paid Apple Developer setup and explicit release/upload authorization exist. |
 | R-033 | Q-93 leaked-password protection | blocked | Supabase Pro-or-higher capability and Auth configuration authorization exist. |
 
-R-042 is adopted but not active. Q-121 is the first dependency-satisfied package and still requires explicit remote migration authorization before its Deep implementation applies backend changes.
+R-042 remains adopted but no package is automatically active. T-358 completed Q-121; Q-122 is the next dependency-satisfied package.
 
 ## Customer Request Journey Remediation
 
@@ -41,7 +41,7 @@ T-357 adopts R-042 from the Customer Request Journey audit. The sequence protect
 4. Q-124 adds an informed Offer acceptance step and direct Booking handoff while preserving existing stale-offer protection.
 5. Q-125 corrects creation entry, loading/empty/error states, carousel position, reviewed copy, contrast, and strict UI-audit debt.
 
-R-042 does not change matching rules, Groomer offer creation, booking lifecycle semantics, dependencies, social login, direct booking, or the user-deferred Groomer Dynamic Type/Accessibility package Q-104. Q-121 is Deep and its Supabase migration requires a separate execution authorization; Q-122 through Q-125 are local Standard tasks unless implementation discovers a new backend contract.
+R-042 does not change matching rules, Groomer offer creation, booking lifecycle semantics, dependencies, social login, direct booking, or the user-deferred Groomer Dynamic Type/Accessibility package Q-104. Q-122 through Q-125 are local Standard tasks unless implementation discovers a new backend contract.
 
 ## V1 Readiness Signals
 

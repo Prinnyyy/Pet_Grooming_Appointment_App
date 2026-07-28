@@ -195,6 +195,7 @@ struct GroomingRequestDraft: Equatable, Sendable {
     let zipCode: String
     let travelRadiusMiles: Int?
     var confirmedAddress: BeckonConfirmedAddress? = nil
+    var publishOperationID: UUID = UUID()
 }
 
 struct GroomingRequestPublishResult: Equatable, Sendable {

@@ -295,7 +295,11 @@ test("lifecycle zero-match failure does not expose full identifiers or credentia
           longitude: -117.9242,
         }];
       }
-      if (name === "create_grooming_request_v2") {
+      if (name === "create_grooming_request_v3") {
+        assert.match(
+          parameters.p_publish_operation_id,
+          /^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+        );
         assert.equal(parameters.p_resolution_source, "manual_geocode");
         assert.equal(parameters.p_latitude, 33.8703);
         assert.equal(parameters.p_longitude, -117.9242);

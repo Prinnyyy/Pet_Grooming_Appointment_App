@@ -171,6 +171,7 @@ final class CustomerRequestsStore {
     }
     var travelRadiusMiles = 15
     private(set) var pendingRequestPhotos: [PendingGroomingRequestPhoto] = []
+    private var publishOperationID = UUID()
 
     var isBusy: Bool {
         isLoading
@@ -882,36 +883,123 @@ final class CustomerRequestsStore {
                 customerID: customerID,
                 draft: draft
             )
-            for photo in pendingRequestPhotos {
-                _ = try await requestRepository.uploadRequestPhoto(
-                    customerID: customerID,
-                    requestID: result.requestID,
-                    data: photo.data,
-                    contentType: photo.contentType,
-                    caption: nil
-                )
-            }
-            let requestPage = try await requestRepository.requests(
-                customerID: customerID,
-                page: .first
-            )
-            requests = requestPage.items
-            nextRequestsPageRequest = requestPage.nextRequest
-            try await loadRequestPhotos(for: requests)
+            let photosToUpload = pendingRequestPhotos
             publishResult = result
-            noticeMessage = result.matchCount == 1
-                ? "Request published. 1 groomer matched."
-                : "Request published. \(result.matchCount) groomers matched."
             isShowingWizard = false
             resetForm()
             selectedPetID = pets.first?.id
             wizardInitialStep = .pet
+
+            var failedPhotoCount = 0
+            for (index, photo) in photosToUpload.enumerated() {
+                if Task.isCancelled {
+                    failedPhotoCount += photosToUpload.count - index
+                    recordStoreCancelled(
+                        "publish.uploadPhotos",
+                        startedAt: startedAt
+                    )
+                    break
+                }
+
+                do {
+                    _ = try await requestRepository.uploadRequestPhoto(
+                        customerID: customerID,
+                        requestID: result.requestID,
+                        data: photo.data,
+                        contentType: photo.contentType,
+                        caption: nil
+                    )
+                } catch CustomerRequestRepositoryError.cancelled {
+                    failedPhotoCount += 1
+                    recordStoreCancelled(
+                        "publish.uploadPhoto",
+                        startedAt: startedAt
+                    )
+                } catch let error as CustomerRequestRepositoryError {
+                    failedPhotoCount += 1
+                    recordStoreFailure(
+                        "publish.uploadPhoto",
+                        error: error,
+                        mappedMessage: "Request photo upload deferred.",
+                        startedAt: startedAt,
+                        level: .warning,
+                        metadata: ["requestID": result.requestID.uuidString]
+                    )
+                } catch where AppDebugErrorClassifier.isCancellation(error) {
+                    failedPhotoCount += 1
+                    recordStoreCancelled(
+                        "publish.uploadPhoto",
+                        startedAt: startedAt
+                    )
+                } catch {
+                    failedPhotoCount += 1
+                    recordStoreFailure(
+                        "publish.uploadPhoto",
+                        error: error,
+                        mappedMessage: "Request photo upload deferred.",
+                        startedAt: startedAt,
+                        level: .warning,
+                        metadata: ["requestID": result.requestID.uuidString]
+                    )
+                }
+            }
+
+            var refreshFailed = false
+            do {
+                let requestPage = try await requestRepository.requests(
+                    customerID: customerID,
+                    page: .first
+                )
+                requests = requestPage.items
+                nextRequestsPageRequest = requestPage.nextRequest
+                try await loadRequestPhotos(for: requests)
+            } catch CustomerRequestRepositoryError.cancelled {
+                refreshFailed = true
+                recordStoreCancelled(
+                    "publish.refresh",
+                    startedAt: startedAt
+                )
+            } catch let error as CustomerRequestRepositoryError {
+                refreshFailed = true
+                recordStoreFailure(
+                    "publish.refresh",
+                    error: error,
+                    mappedMessage: "Published Request refresh deferred.",
+                    startedAt: startedAt,
+                    level: .warning,
+                    metadata: ["requestID": result.requestID.uuidString]
+                )
+            } catch where AppDebugErrorClassifier.isCancellation(error) {
+                refreshFailed = true
+                recordStoreCancelled(
+                    "publish.refresh",
+                    startedAt: startedAt
+                )
+            } catch {
+                refreshFailed = true
+                recordStoreFailure(
+                    "publish.refresh",
+                    error: error,
+                    mappedMessage: "Published Request refresh deferred.",
+                    startedAt: startedAt,
+                    level: .warning,
+                    metadata: ["requestID": result.requestID.uuidString]
+                )
+            }
+
+            noticeMessage = Self.publishNotice(
+                for: result,
+                failedPhotoCount: failedPhotoCount,
+                refreshFailed: refreshFailed
+            )
             recordStoreSuccess(
                 "publish",
                 startedAt: startedAt,
                 metadata: [
                     "matchCount": "\(result.matchCount)",
-                    "pendingPhotoCount": "\(pendingRequestPhotos.count)",
+                    "pendingPhotoCount": "\(photosToUpload.count)",
+                    "failedPhotoCount": "\(failedPhotoCount)",
+                    "refreshFailed": "\(refreshFailed)",
                 ]
             )
             await refreshNotifications?()
@@ -1158,7 +1246,8 @@ final class CustomerRequestsStore {
             stateCode: stateCode,
             zipCode: zipCode,
             travelRadiusMiles: travelRadius,
-            confirmedAddress: confirmedAddress
+            confirmedAddress: confirmedAddress,
+            publishOperationID: publishOperationID
         )
     }
 
@@ -1240,6 +1329,7 @@ final class CustomerRequestsStore {
     }
 
     private func resetForm(now: Date = Date()) {
+        publishOperationID = UUID()
         serviceType = .fullGroom
         serviceNotes = ""
         locationMode = .groomerComesToCustomer
@@ -1260,6 +1350,30 @@ final class CustomerRequestsStore {
         let defaults = Self.defaultPreferredRange(now: now)
         preferredStart = defaults.start
         preferredEnd = defaults.end
+    }
+
+    private static func publishNotice(
+        for result: GroomingRequestPublishResult,
+        failedPhotoCount: Int = 0,
+        refreshFailed: Bool = false
+    ) -> String {
+        var parts = [
+            result.matchCount == 1
+                ? "Request published. 1 groomer matched."
+                : "Request published. \(result.matchCount) groomers matched.",
+        ]
+
+        if failedPhotoCount == 1 {
+            parts.append("1 photo could not be added.")
+        } else if failedPhotoCount > 1 {
+            parts.append("\(failedPhotoCount) photos could not be added.")
+        }
+
+        if refreshFailed {
+            parts.append("Some request details will refresh later.")
+        }
+
+        return parts.joined(separator: " ")
     }
 
     private func normalizedAddressInput() -> BeckonAddressInput {

@@ -187,8 +187,8 @@ final class SupabaseCustomerRequestRepository: CustomerRequestRepository {
         do {
             let rows: [CreateGroomingRequestRow] = try await client
                 .rpc(
-                    "create_grooming_request_v2",
-                    params: CreateGroomingRequestV2Parameters(draft: draft)
+                    "create_grooming_request_v3",
+                    params: CreateGroomingRequestV3Parameters(draft: draft)
                 )
                 .execute()
                 .value
@@ -609,11 +609,15 @@ private struct CustomerOfferMatchEvidenceRow: Decodable {
     }
 }
 
-struct CreateGroomingRequestV2Parameters: Encodable {
+struct CreateGroomingRequestV3Parameters: Encodable {
     let draft: GroomingRequestDraft
 
     func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(
+            draft.publishOperationID.uuidString.lowercased(),
+            forKey: .publishOperationID
+        )
         try container.encode(draft.petID.uuidString.lowercased(), forKey: .petID)
         try container.encode(draft.serviceType.rawValue, forKey: .serviceType)
         if let serviceNotes = draft.serviceNotes {
@@ -672,6 +676,7 @@ struct CreateGroomingRequestV2Parameters: Encodable {
     }
 
     private enum CodingKeys: String, CodingKey {
+        case publishOperationID = "p_publish_operation_id"
         case petID = "p_pet_id"
         case serviceType = "p_service_type"
         case serviceNotes = "p_service_notes"

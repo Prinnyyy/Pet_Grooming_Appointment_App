@@ -12,7 +12,7 @@ Full pre-trim contract text is archived at `../09_frozen/backend_contracts/SUPAB
 - Forbidden legacy project: `Prinnyyy's Project`, ref `swdiiyypysyxbnfrxxsv`. Do not inspect, branch, migrate, reset, or mutate it for this rebuild.
 - Remote verification baseline: linked history aligns through `20260714072728_t355_chat_counterpart_avatar_access.sql`; the final linked dry-run is empty, conversation-scoped avatar authorization validation passed, performance advisors found no issue, and security advisors retained only the known Q-93 warning.
 - Local CLI readiness baseline: T-139 confirmed sequential `supabase projects list`, `supabase migration list --linked`, and `supabase db push --linked --dry-run` work from this checkout without `SUPABASE_DB_PASSWORD`.
-- Local migration mirror: `../../supabase/migrations/` is the append-only source for applied and prepared migrations. Local migration mirror count: 69 files. Do not rename or hand-invent migration filenames.
+- Local migration mirror: `../../supabase/migrations/` is the append-only source for applied and prepared migrations. Local migration mirror count: 70 files. Do not rename or hand-invent migration filenames.
 - Full historical contract detail before this fast-path trim is frozen for comparison only. Current implementation truth comes from migrations plus focused active backend policy files.
 
 ## Read Order
@@ -34,7 +34,7 @@ Do not read this file as proof that a future object is deployed. A deployed clai
 
 T-296/Q-108 deployed the private PostGIS contract. T-299/Q-111 deployed service-role-only list/snapshot-checked atomic backfill/summary RPCs plus exact-tag TestOps location cleanup. T-300/Q-112 removed the temporary text fallback after re-proving zero active gaps. Linked history is aligned and a repeat dry-run reports the remote database up to date.
 
-The deployed contract enables PostGIS in `extensions`, stores exact Apple Maps coordinates and optional Place IDs only in `app_private.address_locations`, adds opaque location references plus Address Line 2 snapshots, and exposes owner-checked profile read/write wrappers and `create_grooming_request_v2`. Matching requires both private coordinates, uses Customer travel radius for `customer_comes_to_groomer` and Groomer service radius for `groomer_comes_to_customer`, and never uses state/city text as an eligibility fallback. The pre-coordinate `create_grooming_request` endpoint remains present only for migration-history compatibility and has no client execute grant.
+The deployed contract enables PostGIS in `extensions`, stores exact Apple Maps coordinates and optional Place IDs only in `app_private.address_locations`, adds opaque location references plus Address Line 2 snapshots, and exposes owner-checked profile read/write wrappers. Current Customer and TestOps publication uses `create_grooming_request_v3`, which binds one private operation UUID to one Request and replays the original Request ID/match count on retry; `v2` remains compatible for older installed builds. Matching requires both private coordinates, uses Customer travel radius for `customer_comes_to_groomer` and Groomer service radius for `groomer_comes_to_customer`, and never uses state/city text as an eligibility fallback. The pre-coordinate `create_grooming_request` endpoint remains present only for migration-history compatibility and has no client execute grant.
 
 Authenticated clients receive no direct table privileges on private address locations. Exact coordinates and full Place IDs are returned only through current-owner profile RPCs. Strict-cutover runtime verification is `../06_tasks/sql_reviews/T-300_STRICT_COORDINATE_ROLLBACK_VALIDATION.sql`; static coverage is `../../tests/migrations/strict-coordinate-cutover.test.mjs`.
 
@@ -75,7 +75,7 @@ Core deployed data areas:
 Controlled public RPCs currently include:
 
 - `create_my_profile`
-- `create_grooming_request_v2`
+- `create_grooming_request_v3`
 - `get_my_customer_profile_address_v2`
 - `save_customer_profile_address_v2`
 - `get_my_groomer_profile_address_v2`

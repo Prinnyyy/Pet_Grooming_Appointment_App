@@ -281,7 +281,7 @@ final class DebugCustomerRequestRepository: CustomerRequestRepository {
             source: "CustomerRequestRepository.createRequest",
             scope: "customer.requests",
             operation: "createRequest",
-            metadata: ["customerID": customerID.uuidString, "rpc": "create_grooming_request_v2"]
+            metadata: ["customerID": customerID.uuidString, "rpc": "create_grooming_request_v3"]
         ) {
             try await base.createRequest(customerID: customerID, draft: draft)
         }

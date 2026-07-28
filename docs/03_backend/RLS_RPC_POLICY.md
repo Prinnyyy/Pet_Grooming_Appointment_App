@@ -32,6 +32,7 @@ Archived pre-trim version: `../09_frozen/backend_policies/RLS_RPC_POLICY_2026-07
 | `reviews`, `review_pet_fit_outcomes` | Create one review through RPC for own completed booking; read own | Read own booking review/outcomes | Direct outcome DML denied |
 | `account_deletion_requests` | Read own deletion request; request deletion through RPC | Read own deletion request; request deletion through RPC | Auth soft-delete/failure recording is service-role only |
 | `app_private.address_locations` | No direct table access; current-owner profile address through controlled RPC | No direct table access; current-owner profile address through controlled RPC | Exact coordinates/Place IDs remain private; profile/Request writes are atomic; backfill and tagged TestOps cleanup are service-role only |
+| `app_private.request_publish_operations` | No direct table access; retry results through Request publication RPC only | No access | Customer + operation UUID is unique; the original Request ID/match count is replayed under a transaction lock |
 | Evidence summary and fit claims/tags | No owner dashboard contract | Manage own claims/tags; read own aggregate evidence through owner RPC | Claims/tags are low-confidence signals only and do not create eligibility |
 
 ## Controlled Operations
@@ -39,7 +40,7 @@ Archived pre-trim version: `../09_frozen/backend_policies/RLS_RPC_POLICY_2026-07
 Public controlled RPCs currently include:
 
 - `create_my_profile`
-- `create_grooming_request_v2`
+- `create_grooming_request_v3`
 - `get_my_customer_profile_address_v2`
 - `save_customer_profile_address_v2`
 - `get_my_groomer_profile_address_v2`
@@ -63,7 +64,7 @@ Public controlled RPCs currently include:
 - `unregister_customer_push_token`
 - `request_account_deletion`
 
-These operations must reject unauthenticated callers, resolve role and ownership from trusted database state, validate current status and inputs, lock or constrain rows where concurrency matters, commit atomically, return stable typed results/errors, and expose execute privileges only to intended roles. The retired pre-coordinate `create_grooming_request` wrapper has no client execute grant. Service-role-only operations include address backfill list/write/summary, exact-tag TestOps request-location cleanup, push claim/delivery recording, and account-deletion Auth finalization/failure recording.
+These operations must reject unauthenticated callers, resolve role and ownership from trusted database state, validate current status and inputs, lock or constrain rows where concurrency matters, commit atomically, return stable typed results/errors, and expose execute privileges only to intended roles. `create_grooming_request_v3` serializes each Customer operation UUID and returns the first stored result without creating another Request; `v2` remains an older-client compatibility endpoint. The retired pre-coordinate `create_grooming_request` wrapper has no client execute grant. Service-role-only operations include address backfill list/write/summary, exact-tag TestOps request-location cleanup, push claim/delivery recording, and account-deletion Auth finalization/failure recording.
 
 ## Required Negative Tests
 
@@ -83,9 +84,10 @@ Every backend access change must cover the relevant negative cases:
 - Authenticated users cannot execute service-role push delivery or account deletion finalization RPCs.
 - Authenticated users cannot execute address backfill or tagged TestOps private-location cleanup RPCs.
 - Authenticated users cannot execute the retired pre-coordinate Request publication RPC.
+- Anonymous callers cannot execute `create_grooming_request_v3`, and one Customer operation UUID cannot create more than one Request.
 - Storage metadata and table predicates must agree with bucket object policies when files are involved.
 
-Current chat migration/RLS evidence: `../06_tasks/sql_reviews/T-351_PARTICIPANT_CHAT_ROLLBACK_VALIDATION.sql`, `../06_tasks/sql_reviews/T-355_CHAT_COUNTERPART_AVATAR_ROLLBACK_VALIDATION.sql`, `../../tests/migrations/participant-chat-booking-events.test.mjs`, and `../../tests/migrations/chat-counterpart-avatar-access.test.mjs`. Notification evidence remains `../06_tasks/sql_reviews/T-220_NOTIFICATION_RLS_NEGATIVE_CONTRACT.sql` plus `../../tests/migrations/notification-rls-negative-contract.test.mjs`.
+Current Request publication evidence: `../06_tasks/sql_reviews/T-358_REQUEST_PUBLISH_IDEMPOTENCY_ROLLBACK_VALIDATION.sql` plus `../../tests/migrations/request-publish-idempotency.test.mjs`. Chat evidence remains `../06_tasks/sql_reviews/T-351_PARTICIPANT_CHAT_ROLLBACK_VALIDATION.sql`, `../06_tasks/sql_reviews/T-355_CHAT_COUNTERPART_AVATAR_ROLLBACK_VALIDATION.sql`, `../../tests/migrations/participant-chat-booking-events.test.mjs`, and `../../tests/migrations/chat-counterpart-avatar-access.test.mjs`. Notification evidence remains `../06_tasks/sql_reviews/T-220_NOTIFICATION_RLS_NEGATIVE_CONTRACT.sql` plus `../../tests/migrations/notification-rls-negative-contract.test.mjs`.
 
 ## Update Rules
 

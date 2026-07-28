@@ -150,8 +150,9 @@ struct CustomerRequestAddressIntegrationTests {
     }
 
     @Test
-    func requestV2PayloadIncludesPrivateLocationContract() throws {
+    func requestV3PayloadIncludesIdempotencyAndPrivateLocationContract() throws {
         let confirmed = Self.confirmedAddress(placeID: nil)
+        let publishOperationID = UUID()
         let draft = GroomingRequestDraft(
             petID: UUID(),
             serviceType: .fullGroom,
@@ -165,11 +166,16 @@ struct CustomerRequestAddressIntegrationTests {
             stateCode: .california,
             zipCode: confirmed.accepted.postalCode,
             travelRadiusMiles: nil,
-            confirmedAddress: confirmed
+            confirmedAddress: confirmed,
+            publishOperationID: publishOperationID
         )
-        let data = try JSONEncoder().encode(CreateGroomingRequestV2Parameters(draft: draft))
+        let data = try JSONEncoder().encode(CreateGroomingRequestV3Parameters(draft: draft))
         let object = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
 
+        #expect(
+            object["p_publish_operation_id"] as? String ==
+                publishOperationID.uuidString.lowercased()
+        )
         #expect(object["p_address_line_2"] as? String == "Unit 2410")
         #expect(object["p_provider"] as? String == "apple_maps")
         #expect(object["p_place_id"] is NSNull)

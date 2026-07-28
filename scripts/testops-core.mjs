@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -577,6 +578,7 @@ export async function runMatchingEvaluation(api, plan) {
       )
     : targetAddress;
   const requestParameters = {
+    p_publish_operation_id: publishOperationID(plan),
     p_pet_id: dog.id,
     p_service_type: plan.request.serviceType,
     p_service_notes: plan.request.serviceNotes,
@@ -600,7 +602,7 @@ export async function runMatchingEvaluation(api, plan) {
 
   const requestRows = await timed(phases, "customer.createRequest", () =>
     api.rpc(
-      "create_grooming_request_v2",
+      "create_grooming_request_v3",
       requestParameters,
       customerSession.accessToken
     )
@@ -608,7 +610,7 @@ export async function runMatchingEvaluation(api, plan) {
   const requestID = firstValue(requestRows, "request_id");
   const matchCount = Number(firstValue(requestRows, "match_count") ?? 0);
   if (!requestID) {
-    throw new Error("create_grooming_request_v2 did not return request_id.");
+    throw new Error("create_grooming_request_v3 did not return request_id.");
   }
 
   const matches = await timed(phases, "service.loadRequestMatches", () =>
@@ -690,8 +692,9 @@ export async function runMarketplaceLifecycle(api, plan) {
 
   const requestRows = await timed(phases, "customer.createRequest", () =>
     api.rpc(
-      "create_grooming_request_v2",
+      "create_grooming_request_v3",
       {
+        p_publish_operation_id: publishOperationID(plan),
         p_pet_id: dog.id,
         p_service_type: plan.request.serviceType,
         p_service_notes: plan.request.serviceNotes,
@@ -718,7 +721,7 @@ export async function runMarketplaceLifecycle(api, plan) {
   requestID = firstValue(requestRows, "request_id");
   const matchCount = Number(firstValue(requestRows, "match_count") ?? 0);
   if (!requestID) {
-    throw new Error("create_grooming_request_v2 did not return request_id.");
+    throw new Error("create_grooming_request_v3 did not return request_id.");
   }
   if (matchCount < 1) {
     throw new Error(`Request ${shortRef(requestID)} produced zero matches.`);
@@ -1479,6 +1482,24 @@ export function emailDomain(email) {
 
 export function shortRef(value) {
   return value ? String(value).slice(0, 8).toUpperCase() : null;
+}
+
+function publishOperationID(plan) {
+  const digest = createHash("sha256")
+    .update(`beckon-request-publish:${plan.runID}:${plan.caseID}`)
+    .digest("hex")
+    .slice(0, 32)
+    .split("");
+  digest[12] = "5";
+  digest[16] = ((Number.parseInt(digest[16], 16) & 0x3) | 0x8).toString(16);
+  const value = digest.join("");
+  return [
+    value.slice(0, 8),
+    value.slice(8, 12),
+    value.slice(12, 16),
+    value.slice(16, 20),
+    value.slice(20),
+  ].join("-");
 }
 
 export function safeErrorMessage(error) {
