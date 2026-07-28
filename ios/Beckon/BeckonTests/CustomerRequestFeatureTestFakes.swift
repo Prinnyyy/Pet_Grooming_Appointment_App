@@ -323,6 +323,7 @@ final class CustomerRequestRepositoryFake: CustomerRequestRepository {
 final class CustomerRequestBookingRepositoryFake: BookingRepository {
     var bookingsResult: Result<[Booking], BookingRepositoryError>
     var acceptResult: Result<AcceptGroomerOfferResult, BookingRepositoryError>
+    var acceptDelayNanoseconds: UInt64
 
     private(set) var bookingsCallCount = 0
     private(set) var acceptCallCount = 0
@@ -333,10 +334,12 @@ final class CustomerRequestBookingRepositoryFake: BookingRepository {
     init(
         bookingsResult: Result<[Booking], BookingRepositoryError> = .success([]),
         acceptResult: Result<AcceptGroomerOfferResult, BookingRepositoryError> =
-            .failure(.unavailable)
+            .failure(.unavailable),
+        acceptDelayNanoseconds: UInt64 = 0
     ) {
         self.bookingsResult = bookingsResult
         self.acceptResult = acceptResult
+        self.acceptDelayNanoseconds = acceptDelayNanoseconds
     }
 
     func bookings(
@@ -354,6 +357,9 @@ final class CustomerRequestBookingRepositoryFake: BookingRepository {
     ) async throws -> AcceptGroomerOfferResult {
         acceptCallCount += 1
         lastAcceptedOfferID = offerID
+        if acceptDelayNanoseconds > 0 {
+            try await Task.sleep(nanoseconds: acceptDelayNanoseconds)
+        }
         return try acceptResult.get()
     }
 

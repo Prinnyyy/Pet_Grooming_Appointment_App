@@ -586,56 +586,176 @@ private struct CustomerOfferFitEvidenceBlock: View {
     }
 }
 
+struct CustomerOfferAcceptancePresentation: Equatable {
+    static let cancellationCopy =
+        "You can cancel from Booking details while the appointment is confirmed. Cancelling will not reopen this request or its other offers."
+
+    let title: String
+    let supportingText: String
+    let groomer: String
+    let service: String
+    let price: String
+    let time: String
+    let location: String
+    let address: String
+    let cancellation: String
+    let confirmActionTitle: String
+
+    init(
+        request: CustomerGroomingRequest,
+        offerReview: CustomerOfferReview
+    ) {
+        title = "Confirm Booking"
+        groomer = offerReview.groomerTitle
+        supportingText =
+            "Review the final appointment details before booking with \(groomer)."
+        service = request.serviceType.title
+        price = offerReview.offer.priceSummary
+        time = offerReview.proposedTimeSummary
+        location = BeckonGroomingLocationModePresentation(
+            mode: request.locationMode,
+            perspective: .customer
+        ).title
+        address = Self.addressSummary(
+            request: request,
+            offerReview: offerReview
+        )
+        cancellation = Self.cancellationCopy
+        confirmActionTitle = "Confirm & Book"
+    }
+
+    private static func addressSummary(
+        request: CustomerGroomingRequest,
+        offerReview: CustomerOfferReview
+    ) -> String {
+        switch request.locationMode {
+        case .groomerComesToCustomer:
+            return formattedAddress(
+                line1: request.streetAddress,
+                line2: request.addressLine2,
+                city: request.city,
+                state: request.state,
+                zipCode: request.zipCode
+            )
+        case .customerComesToGroomer:
+            guard let profile = offerReview.groomerProfile else {
+                return "The groomer's address will appear in your booking."
+            }
+            return formattedAddress(
+                line1: profile.baseStreetAddress,
+                line2: profile.baseAddressLine2,
+                city: profile.baseCity,
+                state: profile.baseState,
+                zipCode: profile.baseZipCode
+            )
+        }
+    }
+
+    private static func formattedAddress(
+        line1: String?,
+        line2: String?,
+        city: String?,
+        state: String?,
+        zipCode: String?
+    ) -> String {
+        let street = [line1, line2]
+            .compactMap(normalized)
+            .joined(separator: ", ")
+        let locality = [normalized(city), normalized(state)]
+            .compactMap { $0 }
+            .joined(separator: ", ")
+        let localityAndZip = [normalized(locality), normalized(zipCode)]
+            .compactMap { $0 }
+            .joined(separator: " ")
+        let parts = [normalized(street), normalized(localityAndZip)]
+            .compactMap { $0 }
+        return parts.isEmpty
+            ? "Address will appear in your booking."
+            : parts.joined(separator: ", ")
+    }
+
+    private static func normalized(_ value: String?) -> String? {
+        let trimmed = value?.trimmingCharacters(
+            in: .whitespacesAndNewlines
+        ) ?? ""
+        return trimmed.isEmpty ? nil : trimmed
+    }
+}
+
 private struct CustomerOfferDetailView: View {
     let request: CustomerGroomingRequest
     let offerID: UUID
     let store: CustomerRequestsStore
+    @State private var pendingAcceptance: CustomerOfferReview?
+    @State private var acceptedBookingHandoff: CustomerRequestBookingHandoff?
 
     private var offerReview: CustomerOfferReview? {
         store.offers(for: request).first { $0.id == offerID }
     }
 
     var body: some View {
-        if let offerReview {
-            ZStack {
-                DesignTokens.Colors.background
-                    .ignoresSafeArea()
+        Group {
+            if let offerReview {
+                ZStack {
+                    DesignTokens.Colors.background
+                        .ignoresSafeArea()
 
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                        BeckonSectionHeader(
-                            "Offer",
-                            subtitle: "Review the groomer proposal before accepting."
-                        )
+                    ScrollView {
+                        LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                            BeckonSectionHeader(
+                                "Offer",
+                                subtitle: "Review the groomer proposal before accepting."
+                            )
 
-                        groomerCard(offerReview)
-                        offerCard(offerReview)
-                        requestCard(offerReview)
-                        acceptanceCard(offerReview)
+                            groomerCard(offerReview)
+                            offerCard(offerReview)
+                            requestCard(offerReview)
+                            acceptanceCard(offerReview)
+                        }
+                        .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+                        .padding(.top, DesignTokens.Spacing.lg)
+                        .padding(.bottom, DesignTokens.Spacing.xl)
                     }
-                    .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-                    .padding(.top, DesignTokens.Spacing.lg)
-                    .padding(.bottom, DesignTokens.Spacing.xl)
+                    .scrollContentBackground(.hidden)
                 }
-                .scrollContentBackground(.hidden)
-            }
-            .navigationTitle("Offer")
-            .navigationBarTitleDisplayMode(.inline)
-            .accessibilityIdentifier("customer.offers.detail")
-        } else {
-            ZStack {
-                DesignTokens.Colors.background
-                    .ignoresSafeArea()
+                .navigationTitle("Offer")
+                .navigationBarTitleDisplayMode(.inline)
+                .accessibilityIdentifier("customer.offers.detail")
+            } else {
+                ZStack {
+                    DesignTokens.Colors.background
+                        .ignoresSafeArea()
 
-                BeckonEmptyState(
-                    title: "Offer Unavailable",
-                    message: "Refresh offers and try again.",
-                    systemImage: "tag.slash",
-                    accent: .customer
-                )
-                .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+                    BeckonEmptyState(
+                        title: "Offer Unavailable",
+                        message: "Refresh offers and try again.",
+                        systemImage: "tag.slash",
+                        accent: .customer
+                    )
+                    .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+                }
+                .navigationTitle("Offer")
             }
-            .navigationTitle("Offer")
+        }
+        .sheet(item: $pendingAcceptance) { offerReview in
+            CustomerOfferAcceptanceConfirmationView(
+                request: request,
+                offerReview: offerReview,
+                store: store,
+                onAccepted: { handoff in
+                    acceptedBookingHandoff = handoff
+                    Task {
+                        await store.acknowledgeBookingHandoff(for: handoff)
+                    }
+                }
+            )
+        }
+        .navigationDestination(item: $acceptedBookingHandoff) { handoff in
+            BookingDetailView(
+                bookingID: handoff.booking.id,
+                role: .customer,
+                store: store.bookingDetailStore(for: handoff.booking)
+            )
         }
     }
 
@@ -765,15 +885,10 @@ private struct CustomerOfferDetailView: View {
                 if offerReview.offer.status == .pending,
                    request.status.isOpenForOffers {
                     Button {
-                        Task {
-                            await store.accept(
-                                offerReview: offerReview,
-                                for: request
-                            )
-                        }
+                        pendingAcceptance = offerReview
                     } label: {
                         Label(
-                            store.isAcceptingOffer(offerReview.offer.id) ? "Accepting…" : "Accept Offer",
+                            "Review & Accept",
                             systemImage: "checkmark.circle"
                         )
                     }
@@ -781,7 +896,7 @@ private struct CustomerOfferDetailView: View {
                     .disabled(store.isAcceptingOffer(offerReview.offer.id))
                     .accessibilityIdentifier("customer.offers.accept")
 
-                    Text("The backend creates the booking and conversation atomically. If the groomer becomes unavailable, no local booking is created.")
+                    Text("You will confirm the appointment details before booking.")
                         .font(DesignTokens.Typography.caption)
                         .foregroundStyle(DesignTokens.Colors.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -799,9 +914,9 @@ private struct CustomerOfferDetailView: View {
     private func acceptanceMessage(for offerReview: CustomerOfferReview) -> String {
         if offerReview.offer.status == .pending,
            request.status.isOpenForOffers {
-            return "Accepting creates the booking and booking chat through the existing backend transaction."
+            return "Review the proposed appointment before you confirm."
         } else if offerReview.offer.status == .acceptedByCustomer {
-            return "This offer has been accepted. Check the Bookings tab for the appointment."
+            return "This offer is now a confirmed booking."
         } else if request.status == .booked {
             return "This request is already booked."
         } else {
@@ -837,6 +952,179 @@ private struct CustomerOfferDetailView: View {
 
     private var requestTimeSummary: String {
         "\(GroomingRequestDateFormatting.displayString(from: request.preferredStart)) – \(GroomingRequestDateFormatting.displayString(from: request.preferredEnd))"
+    }
+}
+
+private struct CustomerOfferAcceptanceConfirmationView: View {
+    let request: CustomerGroomingRequest
+    let offerReview: CustomerOfferReview
+    let store: CustomerRequestsStore
+    let onAccepted: (CustomerRequestBookingHandoff) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var isSubmitting = false
+    @State private var hasAttemptedAcceptance = false
+
+    private var presentation: CustomerOfferAcceptancePresentation {
+        CustomerOfferAcceptancePresentation(
+            request: request,
+            offerReview: offerReview
+        )
+    }
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                DesignTokens.Colors.background
+                    .ignoresSafeArea()
+
+                ScrollView {
+                    LazyVStack(
+                        alignment: .leading,
+                        spacing: DesignTokens.Spacing.lg
+                    ) {
+                        BeckonSectionHeader(
+                            presentation.title,
+                            subtitle: presentation.supportingText
+                        )
+
+                        BeckonCard {
+                            VStack(
+                                alignment: .leading,
+                                spacing: DesignTokens.Spacing.md
+                            ) {
+                                HStack(
+                                    alignment: .center,
+                                    spacing: DesignTokens.Spacing.md
+                                ) {
+                                    BeckonProfileAvatar(
+                                        data: offerReview.groomerAvatarPhotoData,
+                                        tone: .groomer,
+                                        size: 56,
+                                        cornerRadius: 18,
+                                        placeholderSize: 21
+                                    )
+
+                                    VStack(
+                                        alignment: .leading,
+                                        spacing: DesignTokens.Spacing.xs
+                                    ) {
+                                        Text(presentation.groomer)
+                                            .font(DesignTokens.Typography.headline)
+                                            .foregroundStyle(
+                                                DesignTokens.Colors.textPrimary
+                                            )
+                                        Text(presentation.service)
+                                            .font(DesignTokens.Typography.supporting)
+                                            .foregroundStyle(
+                                                DesignTokens.Colors.textSecondary
+                                            )
+                                    }
+                                }
+
+                                Divider()
+
+                                DetailMetadataRow(
+                                    title: "Time",
+                                    value: presentation.time,
+                                    systemImage: "calendar"
+                                )
+                                DetailMetadataRow(
+                                    title: "Price",
+                                    value: presentation.price,
+                                    systemImage: "tag"
+                                )
+                                DetailMetadataRow(
+                                    title: "Service Location",
+                                    value: presentation.location,
+                                    systemImage: "location"
+                                )
+                                DetailMetadataRow(
+                                    title: "Address",
+                                    value: presentation.address,
+                                    systemImage: "mappin.and.ellipse"
+                                )
+                            }
+                        }
+
+                        BeckonAnnotatedModule(
+                            "Cancellation",
+                            subtitle: presentation.cancellation
+                        ) {
+                            EmptyView()
+                        }
+
+                        if hasAttemptedAcceptance,
+                           let errorMessage = store.errorMessage {
+                            BeckonErrorBanner(
+                                title: "We Could Not Confirm This Booking",
+                                message: errorMessage
+                            )
+                        }
+                    }
+                    .beckonPageInsets()
+                }
+                .scrollIndicators(.hidden)
+            }
+            .navigationTitle("Confirm Booking")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Not Yet") {
+                        dismiss()
+                    }
+                    .disabled(isSubmitting)
+                }
+            }
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                CustomerOfferAcceptanceActionBar(
+                    title: presentation.confirmActionTitle,
+                    isSubmitting: isSubmitting,
+                    action: confirmAcceptance
+                )
+            }
+            .interactiveDismissDisabled(isSubmitting)
+            .accessibilityIdentifier("customer.offers.confirmation")
+        }
+    }
+
+    private func confirmAcceptance() {
+        guard !isSubmitting else { return }
+        isSubmitting = true
+        hasAttemptedAcceptance = true
+
+        Task {
+            let handoff = await store.accept(
+                offerReview: offerReview,
+                for: request
+            )
+            isSubmitting = false
+            guard let handoff else { return }
+            onAccepted(handoff)
+            dismiss()
+        }
+    }
+}
+
+private struct CustomerOfferAcceptanceActionBar: View {
+    let title: String
+    let isSubmitting: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Label(
+                isSubmitting ? "Confirming…" : title,
+                systemImage: "checkmark.circle"
+            )
+        }
+        .buttonStyle(BeckonPrimaryButtonStyle())
+        .disabled(isSubmitting)
+        .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+        .padding(.top, DesignTokens.Spacing.md)
+        .padding(.bottom, DesignTokens.Spacing.sm)
+        .background(.ultraThinMaterial)
+        .accessibilityIdentifier("customer.offers.confirm")
     }
 }
 

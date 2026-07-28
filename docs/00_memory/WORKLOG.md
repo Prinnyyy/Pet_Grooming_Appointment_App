@@ -2,12 +2,21 @@
 
 ```text
 Date: 2026-07-28
+Task: T-362 - Offer confirmation and Booking handoff.
+Files changed: Customer Offer detail/confirmation presentation; Customer Requests Store; focused fakes/tests; feature, roadmap, and task memory.
+Checks: TDD RED/GREEN; focused and complete iOS tests; iOS build; user-facing copy, source, diff, context, and unified closeout checks.
+Result: Accepting an Offer now opens one confirmation sheet with groomer, service, time, price, service location, address, and cancellation context. Confirmation is guarded locally and in the Store, RPC success creates a complete local Booking projection before refresh, and the flow opens Booking Detail directly without exposing backend terminology.
+Risks: Visible layout review remains user-owned. The local Booking projection is a recovery bridge; refreshed repository data remains authoritative when available.
+Next: Use T-363 for Q-125 Request page state and visual consistency.
+```
+
+```text
+Date: 2026-07-28
 Task: T-361 - Periodic governance meta-review.
 Files changed: Context hygiene/closeout scripts and tests; Current State, Worklog/archive, Feature Index, Roadmap queue, and Task Ledger.
 Checks: 51 governance tests; context hygiene; default-search boundary, root Markdown, source-of-truth, repeated-rule, diff, and unified closeout checks.
 Result: Active indexes, task facts, migration mirror, links, search exclusions, and workflow ownership remain coherent. Closeout prechecks now admit only explicitly authorized pending structural rotation, then require strict post-rotation hygiene; the Worklog threshold path no longer needs manual recovery.
 Risks: Informational word telemetry still identifies several long domain references, but structural gates pass and no unbounded active-history growth was found.
-Next: Use T-362 for Q-124 Offer confirmation and Booking handoff.
 ```
 
 ```text

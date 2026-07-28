@@ -1109,18 +1109,21 @@ final class CustomerRequestsStore {
         }
     }
 
+    @discardableResult
     func accept(
         offerReview: CustomerOfferReview,
         for request: CustomerGroomingRequest
-    ) async {
-        guard !acceptingOfferIDs.contains(offerReview.offer.id) else { return }
+    ) async -> CustomerRequestBookingHandoff? {
+        guard !acceptingOfferIDs.contains(offerReview.offer.id) else {
+            return nil
+        }
         guard offerReview.offer.status == .pending else {
             errorMessage = "This offer can no longer be accepted."
-            return
+            return nil
         }
         guard request.status.isOpenForOffers else {
             errorMessage = "This request can no longer become a booking."
-            return
+            return nil
         }
 
         let startedAt = Date()
@@ -1142,6 +1145,12 @@ final class CustomerRequestsStore {
             let result = try await bookingRepository.acceptOffer(
                 offerID: offerReview.offer.id
             )
+            let projectedBooking = acceptedBookingProjection(
+                result: result,
+                request: request,
+                offerReview: offerReview
+            )
+            upsertBooking(projectedBooking)
             let didApplyLocalState = applyAcceptanceResult(
                 result,
                 requestID: request.id
@@ -1155,6 +1164,16 @@ final class CustomerRequestsStore {
                 ? "Offer accepted. Booking confirmed."
                 : "Offer accepted. Booking confirmed. Refresh this request if the offer state does not update."
             recordStoreSuccess("accept", startedAt: startedAt)
+            let confirmedRequest = self.request(withID: result.requestID)
+                ?? self.request(withID: request.id)
+                ?? request.replacing(status: result.requestStatus)
+            let confirmedBooking = bookings.first {
+                $0.id == result.bookingID
+            } ?? projectedBooking
+            return CustomerRequestBookingHandoff(
+                request: confirmedRequest,
+                booking: confirmedBooking
+            )
         } catch BookingRepositoryError.cancelled {
             recordStoreCancelled("accept", startedAt: startedAt)
         } catch let error as BookingRepositoryError {
@@ -1179,6 +1198,7 @@ final class CustomerRequestsStore {
                 startedAt: startedAt
             )
         }
+        return nil
     }
 
     func cancel(_ request: CustomerGroomingRequest) async {
@@ -1618,6 +1638,75 @@ final class CustomerRequestsStore {
         setRequestPhotoUploadRetry(requestID: requestID, photos: [])
 
         return didUpdateRequest && didUpdateAcceptedOffer
+    }
+
+    private func acceptedBookingProjection(
+        result: AcceptGroomerOfferResult,
+        request: CustomerGroomingRequest,
+        offerReview: CustomerOfferReview
+    ) -> Booking {
+        let timestamp = offerReview.offer.updatedAt
+            ?? offerReview.offer.createdAt
+            ?? request.updatedAt
+        return Booking(
+            id: result.bookingID,
+            requestID: result.requestID,
+            offerID: result.offerID,
+            customerID: request.customerID,
+            groomerID: offerReview.offer.groomerID,
+            scheduledStart: offerReview.offer.proposedStart,
+            scheduledEnd: offerReview.offer.proposedEnd,
+            priceEstimate: offerReview.offer.priceEstimate,
+            status: result.bookingStatus,
+            cancelledBy: nil,
+            cancelledAt: nil,
+            completedAt: nil,
+            completedBy: nil,
+            createdAt: timestamp,
+            updatedAt: timestamp,
+            review: nil,
+            serviceType: request.serviceType,
+            requestPetSnapshot: request.petSnapshot,
+            groomerBusinessName: offerReview.groomerProfile?.businessName,
+            groomerAvatarPhotoData: offerReview.groomerAvatarPhotoData,
+            groomerBaseStreetAddress: Self.joinedAddressLines(
+                offerReview.groomerProfile?.baseStreetAddress,
+                offerReview.groomerProfile?.baseAddressLine2
+            ),
+            groomerBaseCity: offerReview.groomerProfile?.baseCity,
+            groomerBaseState: offerReview.groomerProfile?.baseState,
+            groomerBaseZipCode: offerReview.groomerProfile?.baseZipCode,
+            locationMode: request.locationMode,
+            customerStreetAddress: Self.joinedAddressLines(
+                request.streetAddress,
+                request.addressLine2
+            ),
+            customerCity: request.city,
+            customerState: request.state,
+            customerZipCode: request.zipCode
+        )
+    }
+
+    private func upsertBooking(_ booking: Booking) {
+        if let index = bookings.firstIndex(where: { $0.id == booking.id }) {
+            bookings[index] = booking
+        } else {
+            bookings.append(booking)
+        }
+    }
+
+    private static func joinedAddressLines(
+        _ line1: String?,
+        _ line2: String?
+    ) -> String? {
+        let lines = [line1, line2]
+            .compactMap {
+                let value = $0?.trimmingCharacters(
+                    in: .whitespacesAndNewlines
+                ) ?? ""
+                return value.isEmpty ? nil : value
+            }
+        return lines.isEmpty ? nil : lines.joined(separator: ", ")
     }
 
     private func refreshAfterAcceptance(requestID: UUID) async {

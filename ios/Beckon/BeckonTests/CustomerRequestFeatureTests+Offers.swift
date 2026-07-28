@@ -4,6 +4,47 @@ import Testing
 
 extension CustomerRequestsStoreTests {
     @Test @MainActor
+    func offerAcceptancePresentationShowsCompleteDecisionContext() {
+        let customerID = UUID()
+        let request = Self.request(
+            customerID: customerID,
+            petID: UUID(),
+            locationMode: .groomerComesToCustomer,
+            streetAddress: "770 S Harbor Blvd",
+            addressLine2: "Unit 2410",
+            city: "Fullerton",
+            state: "CA",
+            zipCode: "92832"
+        )
+        let offerReview = Self.offerReview(
+            customerID: customerID,
+            requestID: request.id
+        )
+
+        let presentation = CustomerOfferAcceptancePresentation(
+            request: request,
+            offerReview: offerReview
+        )
+
+        #expect(presentation.title == "Confirm Booking")
+        #expect(presentation.groomer == "Fresh Paws Grooming")
+        #expect(presentation.service == "Full Groom")
+        #expect(presentation.price == "$125.00")
+        #expect(presentation.time == offerReview.proposedTimeSummary)
+        #expect(presentation.location == "My Home")
+        #expect(
+            presentation.address ==
+                "770 S Harbor Blvd, Unit 2410, Fullerton, CA 92832"
+        )
+        #expect(
+            presentation.cancellation ==
+                "You can cancel from Booking details while the appointment is confirmed. Cancelling will not reopen this request or its other offers."
+        )
+        #expect(presentation.confirmActionTitle == "Confirm & Book")
+        #expect(presentation.supportingText.localizedCaseInsensitiveContains("backend") == false)
+    }
+
+    @Test @MainActor
     func offerReviewCarriesTheLoadedGroomerAvatar() {
         let avatarData = Data([0x04, 0x05, 0x06])
         let review = Self.offerReview(
@@ -254,7 +295,10 @@ extension CustomerRequestsStoreTests {
             competingFinal,
         ])
 
-        await store.accept(offerReview: acceptedPending, for: request)
+        let handoff = await store.accept(
+            offerReview: acceptedPending,
+            for: request
+        )
 
         #expect(bookingRepository.acceptCallCount == 1)
         #expect(bookingRepository.lastAcceptedOfferID == acceptedOfferID)
@@ -272,6 +316,106 @@ extension CustomerRequestsStoreTests {
         #expect(scheduler.syncCallCount == 1)
         #expect(scheduler.lastSyncedBookings == [acceptedBooking])
         #expect(scheduler.lastSyncedRole == .customer)
+        #expect(handoff?.request.id == request.id)
+        #expect(handoff?.booking.id == acceptedBooking.id)
+    }
+
+    @Test @MainActor
+    func acceptOfferReturnsLocalBookingHandoffWhenRefreshFails() async throws {
+        let customerID = UUID()
+        let pet = Self.pet(customerID: customerID)
+        let request = Self.request(customerID: customerID, petID: pet.id)
+        let offerReview = Self.offerReview(
+            customerID: customerID,
+            requestID: request.id
+        )
+        let bookingID = UUID()
+        let requestRepository = CustomerRequestRepositoryFake(
+            requestsResult: .success([request]),
+            offersResult: .success([offerReview])
+        )
+        let bookingRepository = CustomerRequestBookingRepositoryFake(
+            acceptResult: .success(
+                AcceptGroomerOfferResult(
+                    bookingID: bookingID,
+                    conversationID: UUID(),
+                    requestID: request.id,
+                    offerID: offerReview.id,
+                    bookingStatus: .confirmed,
+                    offerStatus: .acceptedByCustomer,
+                    requestStatus: .booked
+                )
+            )
+        )
+        let store = CustomerRequestsStore(
+            customerID: customerID,
+            petRepository: CustomerRequestPetRepositoryFake(
+                petsResult: .success([pet])
+            ),
+            requestRepository: requestRepository,
+            bookingRepository: bookingRepository
+        )
+        await store.load()
+        await store.loadOffers(for: request)
+        requestRepository.requestsResult = .failure(.networkUnavailable)
+
+        let handoff = await store.accept(
+            offerReview: offerReview,
+            for: request
+        )
+
+        #expect(handoff?.request.status == .booked)
+        #expect(handoff?.booking.id == bookingID)
+        #expect(handoff?.booking.offerID == offerReview.id)
+        #expect(handoff?.booking.groomerID == offerReview.offer.groomerID)
+        #expect(handoff?.booking.serviceType == request.serviceType)
+        #expect(handoff?.booking.locationMode == request.locationMode)
+        #expect(handoff?.booking.customerStreetAddress == request.streetAddress)
+        #expect(store.bookingHandoffs.map(\.booking.id) == [bookingID])
+    }
+
+    @Test @MainActor
+    func concurrentOfferAcceptanceSubmitsOnlyOnce() async throws {
+        let customerID = UUID()
+        let request = Self.request(customerID: customerID, petID: UUID())
+        let offerReview = Self.offerReview(
+            customerID: customerID,
+            requestID: request.id
+        )
+        let bookingRepository = CustomerRequestBookingRepositoryFake(
+            acceptResult: .success(
+                AcceptGroomerOfferResult(
+                    bookingID: UUID(),
+                    conversationID: UUID(),
+                    requestID: request.id,
+                    offerID: offerReview.id,
+                    bookingStatus: .confirmed,
+                    offerStatus: .acceptedByCustomer,
+                    requestStatus: .booked
+                )
+            ),
+            acceptDelayNanoseconds: 100_000_000
+        )
+        let store = CustomerRequestsStore(
+            customerID: customerID,
+            petRepository: CustomerRequestPetRepositoryFake(),
+            requestRepository: CustomerRequestRepositoryFake(),
+            bookingRepository: bookingRepository
+        )
+
+        async let first = store.accept(
+            offerReview: offerReview,
+            for: request
+        )
+        await Task.yield()
+        async let second = store.accept(
+            offerReview: offerReview,
+            for: request
+        )
+        let handoffs = await [first, second]
+
+        #expect(bookingRepository.acceptCallCount == 1)
+        #expect(handoffs.compactMap { $0 }.count == 1)
     }
 
     @Test @MainActor

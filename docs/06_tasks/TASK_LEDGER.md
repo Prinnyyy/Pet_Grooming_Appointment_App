@@ -2,7 +2,7 @@
 
 Task ID, status, and next-number source of truth. Keep only planned, active, blocked, and the latest completed rows. Detailed evidence belongs in `docs/00_memory/WORKLOG.md`; older rows live under `docs/09_frozen/task_ledgers/`.
 
-Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup`; use `T-362` for the next new task. T-361 and T-360 are completed.
+Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup`; use `T-363` for the next new task. T-362 and T-361 are completed.
 
 Active blocked task: T-157 waits for paid Apple Developer Program access and APNs credentials before dispatcher deployment. Q-104 remains user-deferred and is tracked in `docs/06_tasks/ROADMAP_EXECUTION_QUEUE.md` rather than as an allocated task.
 
@@ -12,6 +12,7 @@ Pre-reset source snapshot: `docs/09_frozen/active_state_snapshots/T-345_2026-07-
 
 | ID | Task | Status | Mode | Milestone | Files/Docs | Checks | Notes |
 |---|---|---|---|---|---|---|---|
+| T-362 | Offer confirmation and Booking handoff | completed | Standard | M15 | Customer Offer confirmation/detail; Customer Requests Store; focused tests; feature/roadmap/task memory | TDD RED/GREEN; focused/full iOS tests; iOS build; copy/source/diff/context/closeout checks | Acceptance presents complete decision context, guards duplicate submission, creates a local Booking recovery projection, preserves backend stale-offer validation, and opens Booking Detail directly. |
 | T-361 | Periodic governance meta-review | completed | Quick | G0 | Context hygiene/closeout scripts/tests; active memory/index/roadmap/task docs | 51 governance tests; context/search/source-of-truth/diff/closeout checks | Confirms active governance remains coherent and fixes closeout prechecks so pending structural rotation can reach apply before strict final hygiene. |
 | T-360 | Request photo selection and retry | completed | Standard | M15 | Shared Customer Request photo preview/retry presentation; Wizard/Store/Home/Requests; focused tests; roadmap/task memory | TDD RED/GREEN; focused/full iOS tests; iOS build; source/diff/context/closeout checks | Request-specific photos support multi-selection preview, removal, Review count, and Request-ID-scoped retry after creation; Pet avatars remain separate and Home/Requests share one retry module. |
 | T-359 | Request Wizard input and time semantics | completed | Standard | M15 | Customer Request Wizard/Store; focused and integration tests; roadmap/task memory | TDD RED/GREEN; focused/full iOS tests; iOS build; source/diff/context/closeout checks | New Requests require an explicit service; Custom Request requires useful notes; dates beyond the seven-day quick strip use the system date picker; Continue uses one enabled state while invalid taps reveal field-level errors. |
