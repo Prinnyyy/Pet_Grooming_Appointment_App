@@ -24,24 +24,11 @@ Out of scope unless explicitly adopted: payments, subscriptions, public director
 | Roadmap | Package | State | Resume Condition |
 |---|---|---|---|
 | R-039 | Q-104 Groomer Dynamic Type and Accessibility integration | deferred | The user restores this scope and approves affected cross-screen validation. |
-| R-042 | Q-125 Customer Request Journey remediation | ready | Execute Q-125 next. |
 | R-030 | Q-90 APNs dispatch deployment | blocked | T-157 receives paid Apple Developer access, APNs credentials, and deploy authorization. |
 | R-030 | Q-91 TestFlight/App Store submission | blocked | Paid Apple Developer setup and explicit release/upload authorization exist. |
 | R-033 | Q-93 leaked-password protection | blocked | Supabase Pro-or-higher capability and Auth configuration authorization exist. |
 
-R-042 remains adopted but no package is automatically active. T-362 completed Q-124, and Q-125 is the final dependency-satisfied package.
-
-## Customer Request Journey Remediation
-
-T-357 adopts R-042 from the Customer Request Journey audit. The sequence protects Request correctness before changing form, media, decision, and presentation behavior:
-
-1. Q-121 makes publish operations idempotent and separates authoritative Request creation from recoverable photo-upload and refresh failures.
-2. Q-122 requires intentional service/custom-detail input, extends date access beyond the quick strip, and aligns Continue validation with its visible state.
-3. Q-123 gives Request-specific photos preview, removal, review, and retry behavior without merging them with Pet avatars.
-4. Q-124 adds an informed Offer acceptance step and direct Booking handoff while preserving existing stale-offer protection.
-5. Q-125 corrects creation entry, loading/empty/error states, carousel position, reviewed copy, contrast, and strict UI-audit debt.
-
-R-042 does not change matching rules, Groomer offer creation, booking lifecycle semantics, dependencies, social login, direct booking, or the user-deferred Groomer Dynamic Type/Accessibility package Q-104. Q-122 through Q-125 are local Standard tasks unless implementation discovers a new backend contract.
+R-042 Customer Request Journey remediation completed through T-363. Its Q-121 through Q-125 evidence is retained in task memory and completed closeouts rather than this unresolved-direction index.
 
 ## V1 Readiness Signals
 

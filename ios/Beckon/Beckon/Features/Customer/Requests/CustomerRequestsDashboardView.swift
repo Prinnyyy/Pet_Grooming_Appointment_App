@@ -1,22 +1,83 @@
 import Foundation
 import SwiftUI
 
+enum CustomerRequestCollectionState: Equatable {
+    case loading
+    case empty
+    case error(String)
+    case loaded
+}
+
+struct CustomerRequestsDashboardPresentation: Equatable {
+    let activeCardCount: Int
+    let closedRequestCount: Int
+    let photoRetryCount: Int
+    let isLoading: Bool
+    let loadErrorMessage: String?
+
+    var state: CustomerRequestCollectionState {
+        if activeCardCount > 0 || closedRequestCount > 0 || photoRetryCount > 0 {
+            return .loaded
+        }
+        if isLoading {
+            return .loading
+        }
+        if let message = loadErrorMessage?.trimmingCharacters(
+            in: .whitespacesAndNewlines
+        ), !message.isEmpty {
+            return .error(message)
+        }
+        return .empty
+    }
+}
+
 struct CustomerRequestsRootHeader: View {
     static let title = "Requests"
+    static let createActionTitle = "New Request"
+
     let cardCount: Int
+    let isCreateDisabled: Bool
+    let createRequest: () -> Void
 
     var body: some View {
         ViewThatFits(in: .horizontal) {
-            HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.md) {
-                BeckonPageTitle(Self.title)
-                requestCountChip
+            HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
+                titleAndCount
+                Spacer(minLength: DesignTokens.Spacing.md)
+                createButton
             }
 
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                BeckonPageTitle(Self.title)
-                requestCountChip
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                titleAndCount
+                createButton
             }
         }
+    }
+
+    private var titleAndCount: some View {
+        HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.md) {
+            BeckonPageTitle(Self.title)
+            requestCountChip
+        }
+    }
+
+    private var createButton: some View {
+        Button(action: createRequest) {
+            Label(Self.createActionTitle, systemImage: "plus")
+        }
+        .buttonStyle(
+            BeckonSecondaryButtonStyle(
+                accent: .customer,
+                isFullWidth: false
+            )
+        )
+        .disabled(isCreateDisabled)
+        .accessibilityIdentifier("customer.requests.create")
+        .accessibilityHint(
+            isCreateDisabled
+                ? "Add a pet profile before creating a request."
+                : "Opens the grooming request form."
+        )
     }
 
     @ViewBuilder
@@ -28,6 +89,65 @@ struct CustomerRequestsRootHeader: View {
                 tone: .customer
             )
         }
+    }
+}
+
+struct CustomerRequestLoadFailureView: View {
+    let message: String
+    var accessibilityIdentifier = "customer.requests.load-error"
+    let retry: () -> Void
+
+    var body: some View {
+        BeckonErrorBanner(
+            title: "Requests Didn't Load",
+            message: message,
+            systemImage: "arrow.clockwise.circle"
+        ) {
+            Button("Try Again", action: retry)
+                .buttonStyle(
+                    BeckonSecondaryButtonStyle(
+                        accent: .customer,
+                        isFullWidth: false
+                    )
+                )
+        }
+        .accessibilityIdentifier(accessibilityIdentifier)
+    }
+}
+
+struct CustomerRequestCarouselPosition: Equatable {
+    let current: Int
+    let total: Int
+
+    init(requestIDs: [UUID], visibleRequestID: UUID?) {
+        total = requestIDs.count
+        let resolvedID = visibleRequestID.flatMap { requestID in
+            requestIDs.contains(requestID) ? requestID : nil
+        } ?? requestIDs.first
+        current = resolvedID
+            .flatMap { requestIDs.firstIndex(of: $0) }
+            .map { $0 + 1 } ?? 0
+    }
+
+    var label: String {
+        "Request \(current) of \(total)"
+    }
+
+    var displayText: String {
+        "\(current) of \(total)"
+    }
+}
+
+struct CustomerRequestCarouselPositionIndicator: View {
+    let position: CustomerRequestCarouselPosition
+
+    var body: some View {
+        Text(position.displayText)
+            .font(DesignTokens.Typography.status)
+            .foregroundStyle(DesignTokens.Colors.textSecondary)
+            .frame(maxWidth: .infinity, alignment: .trailing)
+            .accessibilityLabel(position.label)
+            .accessibilityIdentifier("customer.requests.carousel-position")
     }
 }
 
@@ -135,45 +255,48 @@ struct CustomerRequestProgressCarousel: View {
     @Binding var focusedRequestID: UUID?
     let onViewBooking: (CustomerRequestBookingHandoff) -> Void
     let onCancelRequest: (CustomerGroomingRequest) -> Void
+    @State private var visibleRequestID: UUID?
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            ScrollViewReader { proxy in
-                ScrollView(.horizontal) {
-                    LazyHStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
-                        ForEach(cards) { card in
-                            CustomerRequestProgressCard(
-                                card: card,
-                                store: store,
-                                onViewBooking: onViewBooking,
-                                onCancelRequest: onCancelRequest
-                            )
-                            .containerRelativeFrame(.horizontal) { length, _ in
-                                length
-                            }
-                            .id(card.request.id)
+            ScrollView(.horizontal) {
+                LazyHStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
+                    ForEach(cards) { card in
+                        CustomerRequestProgressCard(
+                            card: card,
+                            store: store,
+                            onViewBooking: onViewBooking,
+                            onCancelRequest: onCancelRequest
+                        )
+                        .containerRelativeFrame(.horizontal) { length, _ in
+                            length
                         }
+                        .id(card.request.id)
                     }
-                    .padding(.vertical, DesignTokens.Spacing.sm)
-                    .scrollTargetLayout()
                 }
-                .contentMargins(.horizontal, DesignTokens.Spacing.screenHorizontal, for: .scrollContent)
-                // Horizontal paging intentionally cancels page inset so each card aligns to the viewport.
-                .padding(.horizontal, -DesignTokens.Spacing.screenHorizontal)
-                .scrollIndicators(.hidden)
-                .scrollClipDisabled()
-                .scrollTargetBehavior(.viewAligned)
-                .onAppear {
-                    scrollToFocusedRequest(using: proxy)
-                }
-                .onChange(of: focusedRequestID) { _, _ in
-                    scrollToFocusedRequest(using: proxy)
-                }
-                .onChange(of: cards.map(\.request.id)) { _, _ in
-                    scrollToFocusedRequest(using: proxy)
-                }
+                .padding(.vertical, DesignTokens.Spacing.sm)
+                .scrollTargetLayout()
+            }
+            .contentMargins(.horizontal, DesignTokens.Spacing.screenHorizontal, for: .scrollContent)
+            // Horizontal paging intentionally cancels page inset so each card aligns to the viewport.
+            .padding(.horizontal, -DesignTokens.Spacing.screenHorizontal)
+            .scrollIndicators(.hidden)
+            .scrollClipDisabled()
+            .scrollTargetBehavior(.viewAligned)
+            .scrollPosition(id: $visibleRequestID)
+            .onAppear {
+                synchronizeVisibleRequest(animated: false)
+            }
+            .onChange(of: focusedRequestID) { _, _ in
+                synchronizeVisibleRequest(animated: true)
+            }
+            .onChange(of: requestIDs) { _, _ in
+                synchronizeVisibleRequest(animated: false)
             }
 
+            if cardCount > 1 {
+                CustomerRequestCarouselPositionIndicator(position: position)
+            }
         }
     }
 
@@ -181,22 +304,42 @@ struct CustomerRequestProgressCarousel: View {
         cards.count
     }
 
-    private func scrollToFocusedRequest(using proxy: ScrollViewProxy) {
-        guard let requestID = focusedRequestID,
-              cards.contains(where: { $0.request.id == requestID }) else {
-            return
+    private var requestIDs: [UUID] {
+        cards.map(\.request.id)
+    }
+
+    private var position: CustomerRequestCarouselPosition {
+        CustomerRequestCarouselPosition(
+            requestIDs: requestIDs,
+            visibleRequestID: visibleRequestID
+        )
+    }
+
+    private func synchronizeVisibleRequest(animated: Bool) {
+        let target: UUID?
+        if let focusedRequestID, requestIDs.contains(focusedRequestID) {
+            target = focusedRequestID
+            self.focusedRequestID = nil
+        } else if let visibleRequestID, requestIDs.contains(visibleRequestID) {
+            target = visibleRequestID
+        } else {
+            target = requestIDs.first
         }
 
-        withAnimation(.smooth(duration: 0.35)) {
-            proxy.scrollTo(requestID, anchor: .center)
+        if animated {
+            withAnimation(.smooth(duration: 0.35)) {
+                visibleRequestID = target
+            }
+        } else {
+            visibleRequestID = target
         }
-        focusedRequestID = nil
     }
 }
 
 struct CustomerRequestActionCardSummaryCarousel: View {
     let cards: [CustomerRequestActionCardItem]
     let onSelectRequest: (UUID) -> Void
+    @State private var visibleRequestID: UUID?
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
@@ -223,8 +366,36 @@ struct CustomerRequestActionCardSummaryCarousel: View {
             .scrollIndicators(.hidden)
             .scrollClipDisabled()
             .scrollTargetBehavior(.viewAligned)
+            .scrollPosition(id: $visibleRequestID)
+            .onAppear {
+                synchronizeVisibleRequest()
+            }
+            .onChange(of: requestIDs) { _, _ in
+                synchronizeVisibleRequest()
+            }
 
+            if cards.count > 1 {
+                CustomerRequestCarouselPositionIndicator(position: position)
+            }
         }
+    }
+
+    private var requestIDs: [UUID] {
+        cards.map(\.request.id)
+    }
+
+    private var position: CustomerRequestCarouselPosition {
+        CustomerRequestCarouselPosition(
+            requestIDs: requestIDs,
+            visibleRequestID: visibleRequestID
+        )
+    }
+
+    private func synchronizeVisibleRequest() {
+        if let visibleRequestID, requestIDs.contains(visibleRequestID) {
+            return
+        }
+        visibleRequestID = requestIDs.first
     }
 }
 
@@ -1118,7 +1289,7 @@ struct CustomerRequestsEmptyDashboard: View {
 
 enum CustomerRequestEmptyCopy {
     static let title = "No Active Request"
-    static let message = "Open quests and newly confirmed booking handoffs will appear here."
+    static let message = "Open requests and newly confirmed bookings will appear here."
 }
 
 private extension CustomerGroomingRequest {
@@ -1129,7 +1300,7 @@ private extension CustomerGroomingRequest {
         case .hasOffers:
             "Offers\nReady"
         case .booked:
-            "Confirmed\nQuest"
+            "Confirmed\nBooking"
         case .cancelled:
             "Cancelled\nRequest"
         case .expired:

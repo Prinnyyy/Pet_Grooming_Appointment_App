@@ -5,9 +5,9 @@ Current facts for task startup and recovery. Historical task narrative belongs i
 ## Task Baseline
 
 - Date: 2026-07-28
-- Latest completed task: T-362 Offer confirmation and Booking handoff.
+- Latest completed task: T-363 Request page state and visual consistency.
 - Current task: none.
-- Next task ID: T-363 for Q-125 Request page state and visual consistency.
+- Next task ID: T-364 for the next explicitly adopted task.
 - Current branch baseline: `codex/pet-fit-structure-cleanup`.
 - GitHub repository: `Prinnyyy/Pet_Grooming_Appointment_App`.
 
@@ -15,17 +15,16 @@ Current facts for task startup and recovery. Historical task narrative belongs i
 
 | Item | State | Next Condition |
 |---|---|---|
-| R-042 Customer Request Journey | ready | Execute Q-125 next. |
 | T-157 APNs dispatch | blocked | Paid Apple Developer access and APNs credentials are required. |
 | Q-104 Groomer Dynamic Type/Accessibility | deferred | Resume only when the user restores this scope. |
 | Q-93 leaked-password protection | blocked | Supabase Pro-or-higher plan decision and authorization are required. |
 
-No roadmap package is automatically active. R-042 is adopted as Q-121 through Q-125, but each package starts only from an explicit user request and the next task ID in `docs/06_tasks/TASK_LEDGER.md`.
+No roadmap package is automatically active. R-042 and Q-121 through Q-125 are complete; the next product package requires explicit adoption before T-364 starts.
 
 ## Validation Baseline
 
-- Latest app validation: T-362 passed focused Customer Request tests, the complete iOS suite, and `./scripts/ios-build.sh`.
-- Latest full iOS regression: T-362 passed the complete iOS suite and build.
+- Latest app validation: T-363 passed 102 focused Customer Request tests, the complete iOS suite, strict/global UI consistency audits, and `./scripts/ios-build.sh`.
+- Latest full iOS regression: T-363 passed the complete iOS suite and build.
 - Latest documentation validation: T-361 passed 51 governance tests, context hygiene, default-search boundary review, source-of-truth review, and closeout checks.
 - Latest backend validation: T-358 passed 81 migration tests, TestOps coverage, preflight, linked rollback-only replay/authorization validation, and security/performance advisors.
 - Known iOS validation failure: none currently recorded.
@@ -44,6 +43,7 @@ No roadmap package is automatically active. R-042 is adopted as Q-121 through Q-
 - The Customer Request Wizard requires an explicit service, requires useful notes for Custom Request, exposes dates beyond its seven-day quick strip, and uses one truthful Continue interaction state with field-level validation.
 - Request-specific photos are separate from the Pet avatar, appear as removable previews and a Review count, and retain failed post-create uploads in the shared Customer Request Store for retry from Home or Requests.
 - Customer Offer acceptance uses a final confirmation sheet with groomer, appointment, price, location, address, and cancellation context; one guarded acceptance returns a local Booking handoff and routes directly to Booking Detail while backend stale-offer validation remains authoritative.
+- Customer Requests exposes a direct New Request entry. Home and Requests render loading, empty, failure, and loaded states distinctly while preserving usable stale content, and both Request carousels expose the visible card position.
 - Current UI work must reuse the existing DesignSystem, Store, repository, model, and backend boundaries. New persistence, navigation, role capability, or remote behavior requires separate approval.
 
 ## Operational Guardrails

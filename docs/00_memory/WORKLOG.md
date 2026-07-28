@@ -2,12 +2,21 @@
 
 ```text
 Date: 2026-07-28
+Task: T-363 - Request page state and visual consistency.
+Files changed: Customer Home/Requests state presentations and views; shared Request retry/position components; focused tests; roadmap and task memory.
+Checks: TDD RED/GREEN; 102 focused Customer Request tests; complete iOS tests; iOS build; strict/global UI consistency, user-facing copy, diff, context, and unified closeout checks.
+Result: Requests now keeps a direct New Request action above loading, empty, error, and loaded content. Home Active Request and Next Booking no longer disguise loading or failure as empty; persistent retry cards complement the existing global feedback path. Home and Requests carousels report the visible Request position, usable stale content wins over refresh failures, and obsolete Quest/handoff copy was removed.
+Risks: Visible layout and interaction review remains user-owned. Q-104 Dynamic Type/Accessibility remains explicitly deferred.
+Next: Use T-364 only after the next product package is explicitly adopted.
+```
+
+```text
+Date: 2026-07-28
 Task: T-362 - Offer confirmation and Booking handoff.
 Files changed: Customer Offer detail/confirmation presentation; Customer Requests Store; focused fakes/tests; feature, roadmap, and task memory.
 Checks: TDD RED/GREEN; focused and complete iOS tests; iOS build; user-facing copy, source, diff, context, and unified closeout checks.
 Result: Accepting an Offer now opens one confirmation sheet with groomer, service, time, price, service location, address, and cancellation context. Confirmation is guarded locally and in the Store, RPC success creates a complete local Booking projection before refresh, and the flow opens Booking Detail directly without exposing backend terminology.
 Risks: Visible layout review remains user-owned. The local Booking projection is a recovery bridge; refreshed repository data remains authoritative when available.
-Next: Use T-363 for Q-125 Request page state and visual consistency.
 ```
 
 ```text

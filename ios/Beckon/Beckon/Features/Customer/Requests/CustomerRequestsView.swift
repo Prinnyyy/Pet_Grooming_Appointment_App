@@ -143,73 +143,108 @@ struct CustomerRequestsView: View {
         )
     }
 
-    @ViewBuilder
     private var requestsContent: some View {
-        if store.isLoading, store.pets.isEmpty, store.requests.isEmpty {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
+                CustomerRequestsRootHeader(
+                    cardCount: visibleCardCount,
+                    isCreateDisabled: store.pets.isEmpty,
+                    createRequest: store.startCreate
+                )
+
+                dashboardContent
+            }
+            .beckonPageInsets()
+        }
+        .scrollContentBackground(.hidden)
+        .refreshable {
+            await store.load()
+        }
+        .accessibilityIdentifier("customer.requests.list")
+    }
+
+    @ViewBuilder
+    private var dashboardContent: some View {
+        switch dashboardPresentation.state {
+        case .loading:
             BeckonLoadingView(
                 title: "Loading Requests…",
                 message: "Fetching your pet's grooming requests.",
                 accent: .customer
             )
-            .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
             .accessibilityIdentifier("customer.requests.loading")
-        } else {
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
-                    CustomerRequestsRootHeader(cardCount: visibleCardCount)
 
-                    CustomerRequestPhotoUploadRetryList(store: store)
-
-                    if visibleCardCount == 0 {
-                        CustomerRequestsEmptyDashboard()
-                            .accessibilityIdentifier("customer.requests.empty")
-                    } else {
-                        CustomerRequestProgressCarousel(
-                            cards: store.visibleActionCards,
-                            store: store,
-                            focusedRequestID: $focusedRequestID,
-                            onViewBooking: { handoff in
-                                selectedBookingHandoff = handoff
-                                Task {
-                                    await store.acknowledgeBookingHandoff(for: handoff)
-                                }
-                            },
-                            onCancelRequest: { request in
-                                pendingCancelRequest = request
-                            }
-                        )
-                        .accessibilityIdentifier("customer.requests.progress-carousel")
-                    }
-
-                    if !cancelledRequests.isEmpty {
-                        CustomerCancelledRequestsSection(
-                            requests: cancelledRequests,
-                            store: store,
-                            onRepublishRequest: { request in
-                                store.startRepublish(from: request)
-                            }
-                        )
-                        .accessibilityIdentifier("customer.requests.cancelled-section")
-                    }
-
-                    if store.canLoadMoreRequests || store.isLoadingMoreRequests {
-                        BeckonLoadMoreButton(
-                            isLoading: store.isLoadingMoreRequests,
-                            accent: .customer,
-                            accessibilityIdentifier: "customer.requests.load-more"
-                        ) {
-                            await store.loadNextRequestsPage()
-                        }
-                    }
+        case .error(let message):
+            CustomerRequestLoadFailureView(message: message) {
+                Task {
+                    await store.load()
                 }
-                .beckonPageInsets()
             }
-            .scrollContentBackground(.hidden)
-            .refreshable {
-                await store.load()
-            }
-            .accessibilityIdentifier("customer.requests.list")
+
+        case .empty:
+            CustomerRequestsEmptyDashboard()
+                .accessibilityIdentifier("customer.requests.empty")
+
+        case .loaded:
+            loadedDashboardContent
         }
+    }
+
+    @ViewBuilder
+    private var loadedDashboardContent: some View {
+        CustomerRequestPhotoUploadRetryList(store: store)
+
+        if visibleCardCount == 0 {
+            CustomerRequestsEmptyDashboard()
+                .accessibilityIdentifier("customer.requests.empty")
+        } else {
+            CustomerRequestProgressCarousel(
+                cards: store.visibleActionCards,
+                store: store,
+                focusedRequestID: $focusedRequestID,
+                onViewBooking: { handoff in
+                    selectedBookingHandoff = handoff
+                    Task {
+                        await store.acknowledgeBookingHandoff(for: handoff)
+                    }
+                },
+                onCancelRequest: { request in
+                    pendingCancelRequest = request
+                }
+            )
+            .accessibilityIdentifier("customer.requests.progress-carousel")
+        }
+
+        if !cancelledRequests.isEmpty {
+            CustomerCancelledRequestsSection(
+                requests: cancelledRequests,
+                store: store,
+                onRepublishRequest: { request in
+                    store.startRepublish(from: request)
+                }
+            )
+            .accessibilityIdentifier("customer.requests.cancelled-section")
+        }
+
+        if store.canLoadMoreRequests || store.isLoadingMoreRequests {
+            BeckonLoadMoreButton(
+                isLoading: store.isLoadingMoreRequests,
+                accent: .customer,
+                accessibilityIdentifier: "customer.requests.load-more"
+            ) {
+                await store.loadNextRequestsPage()
+            }
+        }
+    }
+
+    private var dashboardPresentation: CustomerRequestsDashboardPresentation {
+        CustomerRequestsDashboardPresentation(
+            activeCardCount: visibleCardCount,
+            closedRequestCount: cancelledRequests.count,
+            photoRetryCount: store.requestPhotoUploadRetries.count,
+            isLoading: store.isLoading,
+            loadErrorMessage: store.errorMessage
+        )
     }
 
     private var visibleCardCount: Int {

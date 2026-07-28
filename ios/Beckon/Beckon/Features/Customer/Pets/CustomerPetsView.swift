@@ -130,13 +130,23 @@ struct CustomerPetsView: View {
 
                 CustomerHomeActiveRequestSection(
                     presentation: activeRequestPresentation,
-                    onSelectRequest: onActiveRequestSelected
+                    onSelectRequest: onActiveRequestSelected,
+                    retry: {
+                        Task {
+                            await requestStore.load()
+                        }
+                    }
                 )
 
                 CustomerHomeNextBookingSection(
                     presentation: nextBookingPresentation,
                     store: bookingStore,
-                    onOpenChat: onBookingChatSelected
+                    onOpenChat: onBookingChatSelected,
+                    retry: {
+                        Task {
+                            await bookingStore.load()
+                        }
+                    }
                 )
             }
             .beckonPageInsets(bottom: DesignTokens.Layout.pageBottomInset * 2)
@@ -154,7 +164,8 @@ struct CustomerPetsView: View {
     private var activeRequestPresentation: CustomerHomeActiveRequestPresentation {
         CustomerHomeActiveRequestPresentation(
             cards: requestStore.visibleActionCards,
-            isLoading: requestStore.isLoading
+            isLoading: requestStore.isLoading,
+            loadErrorMessage: requestStore.errorMessage
         )
     }
 
@@ -223,17 +234,31 @@ struct CustomerHomeRequestHeroPresentation: Equatable {
 struct CustomerHomeActiveRequestPresentation: Equatable {
     let cards: [CustomerRequestActionCardItem]
     let isLoading: Bool
+    let loadErrorMessage: String?
 
-    var shouldShowCarousel: Bool {
-        !cards.isEmpty
+    init(
+        cards: [CustomerRequestActionCardItem],
+        isLoading: Bool,
+        loadErrorMessage: String? = nil
+    ) {
+        self.cards = cards
+        self.isLoading = isLoading
+        self.loadErrorMessage = loadErrorMessage
     }
 
-    var shouldShowEmptyText: Bool {
-        cards.isEmpty
-    }
-
-    var shouldShowLoadingCard: Bool {
-        false
+    var state: CustomerRequestCollectionState {
+        if !cards.isEmpty {
+            return .loaded
+        }
+        if isLoading {
+            return .loading
+        }
+        if let message = loadErrorMessage?.trimmingCharacters(
+            in: .whitespacesAndNewlines
+        ), !message.isEmpty {
+            return .error(message)
+        }
+        return .empty
     }
 }
 
@@ -257,15 +282,19 @@ struct CustomerHomeNextBookingPresentation: Equatable {
     }
 
     var shouldShowLoading: Bool {
-        false
+        booking == nil && isLoading
     }
 
     var shouldShowLoadError: Bool {
-        false
+        booking == nil
+            && !isLoading
+            && !(loadErrorMessage?.trimmingCharacters(
+                in: .whitespacesAndNewlines
+            ).isEmpty ?? true)
     }
 
     var shouldShowEmptyText: Bool {
-        booking == nil
+        booking == nil && !shouldShowLoading && !shouldShowLoadError
     }
 
     var shouldShowEmptyCard: Bool {
@@ -273,7 +302,15 @@ struct CustomerHomeNextBookingPresentation: Equatable {
     }
 
     var globalErrorPrompt: BeckonGlobalFeedbackError? {
-        nil
+        guard shouldShowLoadError, let loadErrorMessage else {
+            return nil
+        }
+        return BeckonGlobalFeedbackError(
+            scope: .page("customer.home"),
+            sourceKey: "customer.home.bookings.load",
+            title: "Bookings Didn't Load",
+            message: loadErrorMessage
+        )
     }
 }
 
@@ -654,19 +691,37 @@ private struct CustomerHomeAddPetTile: View {
 private struct CustomerHomeActiveRequestSection: View {
     let presentation: CustomerHomeActiveRequestPresentation
     let onSelectRequest: (UUID) -> Void
+    let retry: () -> Void
 
     var body: some View {
         BeckonSection("Active Request") {
-            if presentation.shouldShowCarousel {
+            switch presentation.state {
+            case .loaded:
                 CustomerRequestActionCardSummaryCarousel(
                     cards: presentation.cards,
                     onSelectRequest: onSelectRequest
                 )
                     .accessibilityIdentifier("customer.home.active-request.carousel")
-            } else {
+
+            case .loading:
+                BeckonLoadingView(
+                    title: "Loading Requests…",
+                    message: "Checking your active grooming requests.",
+                    accent: .customer
+                )
+                .accessibilityIdentifier("customer.home.active-request.loading")
+
+            case .error(let message):
+                CustomerRequestLoadFailureView(
+                    message: message,
+                    accessibilityIdentifier: "customer.home.active-request.error",
+                    retry: retry
+                )
+
+            case .empty:
                 CustomerHomeInlineDescription(CustomerRequestEmptyCopy.message)
-                .padding(.vertical, DesignTokens.Spacing.sm)
-                .accessibilityIdentifier("customer.home.active-request.empty")
+                    .padding(.vertical, DesignTokens.Spacing.sm)
+                    .accessibilityIdentifier("customer.home.active-request.empty")
             }
         }
     }
@@ -676,6 +731,7 @@ private struct CustomerHomeNextBookingSection: View {
     let presentation: CustomerHomeNextBookingPresentation
     let store: BookingsStore
     let onOpenChat: (Booking) -> Void
+    let retry: () -> Void
 
     var body: some View {
         BeckonSection("Next Booking") {
@@ -686,6 +742,22 @@ private struct CustomerHomeNextBookingSection: View {
                     accent: .customer
                 )
                 .accessibilityIdentifier("customer.home.next-booking.loading")
+            } else if presentation.shouldShowLoadError,
+                      let message = presentation.loadErrorMessage {
+                BeckonErrorBanner(
+                    title: "Bookings Didn't Load",
+                    message: message,
+                    systemImage: "calendar.badge.exclamationmark"
+                ) {
+                    Button("Try Again", action: retry)
+                        .buttonStyle(
+                            BeckonSecondaryButtonStyle(
+                                accent: .customer,
+                                isFullWidth: false
+                            )
+                        )
+                }
+                .accessibilityIdentifier("customer.home.next-booking.error")
             } else if let booking = presentation.booking {
                 NavigationLink {
                     BookingDetailView(

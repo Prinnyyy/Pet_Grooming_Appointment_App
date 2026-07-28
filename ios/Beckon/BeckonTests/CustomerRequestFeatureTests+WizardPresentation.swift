@@ -8,6 +8,7 @@ extension CustomerRequestsStoreTests {
     @Test @MainActor
     func requestsRootUsesStableTitleWithoutSubtitle() {
         #expect(CustomerRequestsRootHeader.title == "Requests")
+        #expect(CustomerRequestsRootHeader.createActionTitle == "New Request")
     }
 
     @Test @MainActor
@@ -40,7 +41,7 @@ extension CustomerRequestsStoreTests {
     }
 
     @Test @MainActor
-    func homeActiveRequestPresentationUsesAllCardsAndNeverShowsLoadingCard() {
+    func homeActiveRequestPresentationDistinguishesLoadingEmptyErrorAndLoaded() {
         let customerID = UUID()
         let openRequest = Self.request(
             customerID: customerID,
@@ -58,25 +59,93 @@ extension CustomerRequestsStoreTests {
         ]
         let populated = CustomerHomeActiveRequestPresentation(
             cards: cards,
-            isLoading: true
+            isLoading: true,
+            loadErrorMessage: "A stale refresh failed."
         )
         let emptyLoading = CustomerHomeActiveRequestPresentation(
             cards: [],
-            isLoading: true
+            isLoading: true,
+            loadErrorMessage: nil
+        )
+        let emptyError = CustomerHomeActiveRequestPresentation(
+            cards: [],
+            isLoading: false,
+            loadErrorMessage: "Check your connection and try again."
+        )
+        let emptyLoaded = CustomerHomeActiveRequestPresentation(
+            cards: [],
+            isLoading: false,
+            loadErrorMessage: nil
         )
 
         #expect(populated.cards == cards)
-        #expect(populated.shouldShowCarousel == true)
-        #expect(populated.shouldShowEmptyText == false)
-        #expect(populated.shouldShowLoadingCard == false)
+        #expect(populated.state == .loaded)
         #expect(emptyLoading.cards.isEmpty)
-        #expect(emptyLoading.shouldShowCarousel == false)
-        #expect(emptyLoading.shouldShowEmptyText == true)
-        #expect(emptyLoading.shouldShowLoadingCard == false)
+        #expect(emptyLoading.state == .loading)
+        #expect(emptyError.state == .error("Check your connection and try again."))
+        #expect(emptyLoaded.state == .empty)
     }
 
     @Test @MainActor
-    func homeNextBookingPresentationUsesInlineEmptyTextInsteadOfCard() {
+    func requestsDashboardStateKeepsUsableContentAheadOfRefreshFailures() {
+        let loading = CustomerRequestsDashboardPresentation(
+            activeCardCount: 0,
+            closedRequestCount: 0,
+            photoRetryCount: 0,
+            isLoading: true,
+            loadErrorMessage: nil
+        )
+        let error = CustomerRequestsDashboardPresentation(
+            activeCardCount: 0,
+            closedRequestCount: 0,
+            photoRetryCount: 0,
+            isLoading: false,
+            loadErrorMessage: "Check your connection and try again."
+        )
+        let empty = CustomerRequestsDashboardPresentation(
+            activeCardCount: 0,
+            closedRequestCount: 0,
+            photoRetryCount: 0,
+            isLoading: false,
+            loadErrorMessage: nil
+        )
+        let staleContent = CustomerRequestsDashboardPresentation(
+            activeCardCount: 1,
+            closedRequestCount: 0,
+            photoRetryCount: 0,
+            isLoading: true,
+            loadErrorMessage: "A refresh failed."
+        )
+
+        #expect(loading.state == .loading)
+        #expect(error.state == .error("Check your connection and try again."))
+        #expect(empty.state == .empty)
+        #expect(staleContent.state == .loaded)
+    }
+
+    @Test @MainActor
+    func requestCarouselPositionUsesVisibleRequestAndStableFallback() {
+        let firstID = UUID()
+        let secondID = UUID()
+        let thirdID = UUID()
+        let visible = CustomerRequestCarouselPosition(
+            requestIDs: [firstID, secondID, thirdID],
+            visibleRequestID: secondID
+        )
+        let fallback = CustomerRequestCarouselPosition(
+            requestIDs: [firstID, secondID, thirdID],
+            visibleRequestID: UUID()
+        )
+
+        #expect(visible.current == 2)
+        #expect(visible.total == 3)
+        #expect(visible.label == "Request 2 of 3")
+        #expect(fallback.current == 1)
+        #expect(fallback.label == "Request 1 of 3")
+    }
+
+    @Test @MainActor
+    func homeNextBookingPresentationDistinguishesLoadingEmptyAndLoaded() {
         let booking = Self.booking(
             requestID: UUID(),
             customerID: UUID()
@@ -99,8 +168,8 @@ extension CustomerRequestsStoreTests {
         #expect(populated.shouldShowEmptyText == false)
         #expect(populated.shouldShowEmptyCard == false)
         #expect(emptyLoading.shouldShowBooking == false)
-        #expect(emptyLoading.shouldShowLoading == false)
-        #expect(emptyLoading.shouldShowEmptyText == true)
+        #expect(emptyLoading.shouldShowLoading == true)
+        #expect(emptyLoading.shouldShowEmptyText == false)
         #expect(emptyLoading.shouldShowEmptyCard == false)
         #expect(emptyLoaded.shouldShowBooking == false)
         #expect(emptyLoaded.shouldShowLoading == false)
@@ -109,16 +178,20 @@ extension CustomerRequestsStoreTests {
     }
 
     @Test @MainActor
-    func homeNextBookingLoadFailureDoesNotCreateGlobalPrompt() {
+    func homeNextBookingLoadFailureCreatesPersistentAndGlobalFeedback() {
         let presentation = CustomerHomeNextBookingPresentation(
             booking: nil,
             isLoading: false,
             loadErrorMessage: "We could not load bookings. Please try again."
         )
 
-        #expect(presentation.shouldShowLoadError == false)
-        #expect(presentation.shouldShowEmptyText == true)
-        #expect(presentation.globalErrorPrompt == nil)
+        #expect(presentation.shouldShowLoadError == true)
+        #expect(presentation.shouldShowEmptyText == false)
+        #expect(presentation.globalErrorPrompt?.title == "Bookings Didn't Load")
+        #expect(
+            presentation.globalErrorPrompt?.message ==
+                "We could not load bookings. Please try again."
+        )
     }
 
     @Test @MainActor
@@ -126,7 +199,7 @@ extension CustomerRequestsStoreTests {
         #expect(CustomerRequestEmptyCopy.title == "No Active Request")
         #expect(
             CustomerRequestEmptyCopy.message ==
-                "Open quests and newly confirmed booking handoffs will appear here."
+                "Open requests and newly confirmed bookings will appear here."
         )
     }
 
