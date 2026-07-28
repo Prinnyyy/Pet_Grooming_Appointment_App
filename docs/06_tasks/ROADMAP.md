@@ -1,6 +1,6 @@
 # Managed Roadmap
 
-Last verified: 2026-07-13.
+Last verified: 2026-07-28.
 
 Governed product direction and unresolved packages only. Task status and numbering live in `TASK_LEDGER.md`; adoptable packages live in `ROADMAP_EXECUTION_QUEUE.md`; completed roadmap history is frozen.
 
@@ -24,11 +24,24 @@ Out of scope unless explicitly adopted: payments, subscriptions, public director
 | Roadmap | Package | State | Resume Condition |
 |---|---|---|---|
 | R-039 | Q-104 Groomer Dynamic Type and Accessibility integration | deferred | The user restores this scope and approves affected cross-screen validation. |
+| R-042 | Q-121...Q-125 Customer Request Journey remediation | ready | Execute Q-121 first after explicit Supabase migration authorization, then continue one package per task. |
 | R-030 | Q-90 APNs dispatch deployment | blocked | T-157 receives paid Apple Developer access, APNs credentials, and deploy authorization. |
 | R-030 | Q-91 TestFlight/App Store submission | blocked | Paid Apple Developer setup and explicit release/upload authorization exist. |
 | R-033 | Q-93 leaked-password protection | blocked | Supabase Pro-or-higher capability and Auth configuration authorization exist. |
 
-No roadmap package is currently active or dependency-satisfied.
+R-042 is adopted but not active. Q-121 is the first dependency-satisfied package and still requires explicit remote migration authorization before its Deep implementation applies backend changes.
+
+## Customer Request Journey Remediation
+
+T-357 adopts R-042 from the Customer Request Journey audit. The sequence protects Request correctness before changing form, media, decision, and presentation behavior:
+
+1. Q-121 makes publish operations idempotent and separates authoritative Request creation from recoverable photo-upload and refresh failures.
+2. Q-122 requires intentional service/custom-detail input, extends date access beyond the quick strip, and aligns Continue validation with its visible state.
+3. Q-123 gives Request-specific photos preview, removal, review, and retry behavior without merging them with Pet avatars.
+4. Q-124 adds an informed Offer acceptance step and direct Booking handoff while preserving existing stale-offer protection.
+5. Q-125 corrects creation entry, loading/empty/error states, carousel position, reviewed copy, contrast, and strict UI-audit debt.
+
+R-042 does not change matching rules, Groomer offer creation, booking lifecycle semantics, dependencies, social login, direct booking, or the user-deferred Groomer Dynamic Type/Accessibility package Q-104. Q-121 is Deep and its Supabase migration requires a separate execution authorization; Q-122 through Q-125 are local Standard tasks unless implementation discovers a new backend contract.
 
 ## V1 Readiness Signals
 

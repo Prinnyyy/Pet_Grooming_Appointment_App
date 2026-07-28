@@ -1,13 +1,22 @@
 # Worklog
 
 ```text
+Date: 2026-07-28
+Task: T-357 - Customer Request Journey remediation design.
+Files changed: R-042 roadmap and Q-121...Q-125 execution queue; D-036; task memory.
+Checks: Docs governance; diff check; unified closeout; context hygiene.
+Result: Adopted five dependency-ordered packages that address publish idempotency, Wizard input/time semantics, Request photos, informed Offer acceptance with direct Booking handoff, and Request page-state/visual consistency without mixing implementation into the design task.
+Risks: Q-121 is a Deep backend contract and remains blocked from remote application until explicit Supabase migration authorization. Q-104 Groomer Dynamic Type/Accessibility remains user-deferred.
+Next: Use T-358 for the next new task; select Q-121 first only after explicit migration authorization.
+```
+
+```text
 Date: 2026-07-15
 Task: T-356 - Manual preference and skill learning review.
 Files changed: Learning review CLI/core/tests; memory guide; root README; task memory.
 Checks: TDD RED/GREEN focused learning-review tests; context hygiene.
 Result: Added a manual review-only script that reads transcript-like files or stdin, extracts preference and skill candidates with source evidence, deduplicates repeated statements, and writes a promotion checklist report without automatically changing AGENTS, workflow docs, or Codex skills.
 Risks: The extractor is heuristic and intentionally conservative; candidate promotion remains manual and must be checked against current rules before durable updates.
-Next: Use T-357 for the next new task.
 ```
 
 ```text

@@ -4,10 +4,10 @@ Current facts for task startup and recovery. Historical task narrative belongs i
 
 ## Task Baseline
 
-- Date: 2026-07-15
-- Latest completed task: T-356 Manual preference and skill learning review.
+- Date: 2026-07-28
+- Latest completed task: T-357 Customer Request Journey remediation design.
 - Current task: none.
-- Next task ID: T-357 for the next new task.
+- Next task ID: T-358 for the next new task.
 - Current branch baseline: `codex/pet-fit-structure-cleanup`.
 - GitHub repository: `Prinnyyy/Pet_Grooming_Appointment_App`.
 
@@ -15,11 +15,12 @@ Current facts for task startup and recovery. Historical task narrative belongs i
 
 | Item | State | Next Condition |
 |---|---|---|
+| R-042 Customer Request Journey | ready | Execute Q-121 first after explicit Supabase migration authorization. |
 | T-157 APNs dispatch | blocked | Paid Apple Developer access and APNs credentials are required. |
 | Q-104 Groomer Dynamic Type/Accessibility | deferred | Resume only when the user restores this scope. |
 | Q-93 leaked-password protection | blocked | Supabase Pro-or-higher plan decision and authorization are required. |
 
-No roadmap package is automatically active. New work starts from an explicit user request and the next task ID in `docs/06_tasks/TASK_LEDGER.md`.
+No roadmap package is automatically active. R-042 is adopted as Q-121 through Q-125, but each package starts only from an explicit user request and the next task ID in `docs/06_tasks/TASK_LEDGER.md`.
 
 ## Validation Baseline
 

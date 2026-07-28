@@ -18,6 +18,15 @@ Linked files:
 ## Active Decisions
 
 ```text
+Decision ID: D-036
+Date: 2026-07-28
+Decision: Remediate the Customer Request Journey through five dependency-ordered packages, with publish correctness and idempotency preceding form, media, offer, and presentation changes.
+Context: The journey audit found a duplicate-Request risk when post-create work fails, implicit service selection, a seven-day date ceiling, incomplete Request-photo review, an under-informed Offer acceptance handoff, misleading loading/empty states, and focused UI consistency debt. Combining backend correctness and all visible refinements in one task would be difficult to validate and reverse.
+Consequences: R-042 uses Q-121 through Q-125. Q-121 owns the separately authorized Deep publish contract; later packages own Wizard semantics, Request media, Offer-to-Booking handoff, and page-state/visual corrections. Matching rules, Groomer offer creation, booking lifecycle semantics, dependencies, direct booking, and deferred Groomer Q-104 scope remain unchanged.
+Linked files: docs/06_tasks/ROADMAP.md, docs/06_tasks/ROADMAP_EXECUTION_QUEUE.md, docs/01_product/DESIGN_SYSTEM.md, docs/01_product/FORM_INTERACTION_RULES.md
+```
+
+```text
 Decision ID: D-035
 Date: 2026-07-13
 Decision: Give each Customer/Groomer pair one durable conversation and represent acceptance/cancellation as ordered typed booking events.
