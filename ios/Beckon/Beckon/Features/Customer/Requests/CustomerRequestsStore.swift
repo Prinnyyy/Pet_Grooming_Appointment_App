@@ -68,6 +68,19 @@ enum CustomerRequestWizardStep: Int, CaseIterable, Identifiable {
     }
 }
 
+struct CustomerRequestWizardStepTransition: Equatable {
+    let previousStep: CustomerRequestWizardStep
+    let currentStep: CustomerRequestWizardStep
+
+    var shouldResetScrollToTop: Bool {
+        previousStep != currentStep
+    }
+
+    var shouldClearFocusedInput: Bool {
+        shouldResetScrollToTop
+    }
+}
+
 enum CustomerRequestWizardValidationField: Hashable {
     case pet
     case service

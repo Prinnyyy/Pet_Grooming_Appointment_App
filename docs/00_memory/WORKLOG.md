@@ -2,12 +2,21 @@
 
 ```text
 Date: 2026-07-28
+Task: T-364 - Request Wizard post-address white-screen fix.
+Files changed: Customer Request Wizard step transition/scroll reset; Customer Request transition model; focused test; task memory.
+Checks: Root-cause trace; TDD RED/GREEN; 103 focused Customer Request tests; strict UI consistency audit; iOS build; diff, context, and unified closeout checks.
+Result: The address editor's keyboard avoidance had scrolled the shared Wizard viewport to a deep focus marker, while step changes retained that offset after the address content disappeared. Every real step transition now clears the stale input target, waits for the new step to lay out, and resets the viewport to a stable top anchor without changing address confirmation or form data.
+Risks: Visible interaction confirmation remains user-owned. The existing AppIntents metadata-skipped toolchain message remains informational because Beckon has no App Intents dependency.
+Next: Use T-365 only after the next task is explicitly adopted.
+```
+
+```text
+Date: 2026-07-28
 Task: T-363 - Request page state and visual consistency.
 Files changed: Customer Home/Requests state presentations and views; shared Request retry/position components; focused tests; roadmap and task memory.
 Checks: TDD RED/GREEN; 102 focused Customer Request tests; complete iOS tests; iOS build; strict/global UI consistency, user-facing copy, diff, context, and unified closeout checks.
 Result: Requests now keeps a direct New Request action above loading, empty, error, and loaded content. Home Active Request and Next Booking no longer disguise loading or failure as empty; persistent retry cards complement the existing global feedback path. Home and Requests carousels report the visible Request position, usable stale content wins over refresh failures, and obsolete Quest/handoff copy was removed.
 Risks: Visible layout and interaction review remains user-owned. Q-104 Dynamic Type/Accessibility remains explicitly deferred.
-Next: Use T-364 only after the next product package is explicitly adopted.
 ```
 
 ```text

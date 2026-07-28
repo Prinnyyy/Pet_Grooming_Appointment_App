@@ -300,6 +300,7 @@ struct CustomerRequestWizardView: View {
     @FocusState private var isNotesFocused: Bool
 
     private static let notesFocusTarget = "customer.requests.wizard.notes.container"
+    private static let scrollTopAnchor = "customer.requests.wizard.scroll-top"
 
     init(
         store: CustomerRequestsStore,
@@ -329,6 +330,7 @@ struct CustomerRequestWizardView: View {
                                 CustomerRequestWizardHeader(
                                     currentStep: currentStep
                                 )
+                                .id(Self.scrollTopAnchor)
 
                                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                                     Text(currentStep.headline)
@@ -367,6 +369,30 @@ struct CustomerRequestWizardView: View {
                             additionallyPreventsPresentationDismissal: store.isSubmitting
                                 || !store.addressEditorState.candidates.isEmpty
                         )
+                        .onChange(of: currentStep) { previousStep, currentStep in
+                            let transition = CustomerRequestWizardStepTransition(
+                                previousStep: previousStep,
+                                currentStep: currentStep
+                            )
+                            guard transition.shouldResetScrollToTop else { return }
+
+                            if transition.shouldClearFocusedInput {
+                                focusedInputTarget = nil
+                                isNotesFocused = false
+                            }
+
+                            Task { @MainActor in
+                                await Task.yield()
+                                var transaction = Transaction(animation: nil)
+                                transaction.disablesAnimations = true
+                                withTransaction(transaction) {
+                                    scrollProxy.scrollTo(
+                                        Self.scrollTopAnchor,
+                                        anchor: .top
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }

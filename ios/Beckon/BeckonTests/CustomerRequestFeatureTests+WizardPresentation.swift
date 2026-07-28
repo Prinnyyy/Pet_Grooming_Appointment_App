@@ -217,6 +217,29 @@ extension CustomerRequestsStoreTests {
     }
 
     @Test @MainActor
+    func requestWizardStepChangesResetScrollAndClearStaleInputFocus() {
+        let forward = CustomerRequestWizardStepTransition(
+            previousStep: .time,
+            currentStep: .details
+        )
+        let backward = CustomerRequestWizardStepTransition(
+            previousStep: .details,
+            currentStep: .time
+        )
+        let unchanged = CustomerRequestWizardStepTransition(
+            previousStep: .time,
+            currentStep: .time
+        )
+
+        #expect(forward.shouldResetScrollToTop)
+        #expect(forward.shouldClearFocusedInput)
+        #expect(backward.shouldResetScrollToTop)
+        #expect(backward.shouldClearFocusedInput)
+        #expect(!unchanged.shouldResetScrollToTop)
+        #expect(!unchanged.shouldClearFocusedInput)
+    }
+
+    @Test @MainActor
     func requestWizardSeparatesServiceLocationFromAddressDetails() {
         #expect(CustomerRequestLocationSection.allCases.map(\.title) == [
             "Service Location",
