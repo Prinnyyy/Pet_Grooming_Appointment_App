@@ -2,12 +2,21 @@
 
 ```text
 Date: 2026-07-28
+Task: T-360 - Request photo selection and retry.
+Files changed: Shared Customer Request photo preview/retry presentation; Wizard, Store, Home, Requests; focused tests; roadmap and task memory.
+Checks: TDD RED/GREEN; focused and complete iOS tests; iOS build; source and diff checks; unified closeout and context hygiene.
+Result: Request-specific photos now support multi-selection preview, per-photo removal, and a Review count without presenting the Pet avatar as an attachment. Once Request creation succeeds, only failed photo payloads are retained against that Request ID and can be retried or removed from one shared module shown on Home and Requests; retry never republishes the Request.
+Risks: Visible layout review remains user-owned. Retry payloads survive tab navigation through the shared Store but are not an offline upload queue across app termination.
+Next: Reserve T-361 for the required periodic meta-review; execute Q-124 in a later fresh task.
+```
+
+```text
+Date: 2026-07-28
 Task: T-359 - Request Wizard input and time semantics.
 Files changed: Customer Request Wizard and Store; focused/address integration tests; roadmap and task memory.
 Checks: TDD RED/GREEN; focused and complete iOS tests; iOS build; source and diff checks; unified closeout and context hygiene.
 Result: New Requests no longer silently default to Full Groom. Customers must choose a service, Custom Request requires at least 10 trimmed characters of useful detail, the seven-day date strip now has a system date picker for later dates, and Continue uses the same enabled value for visuals and interaction while invalid taps reveal field-level errors.
 Risks: Visible Wizard layout review remains user-owned. Request-photo preview, removal, review, and retry behavior remains Q-123.
-Next: Use T-360 for Q-123 Request photo selection and retry.
 ```
 
 ```text

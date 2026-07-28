@@ -569,7 +569,8 @@ extension CustomerRequestsStoreTests {
             service: "Full Groom",
             preferredTime: "Fri 19 · Afternoon",
             location: "Mobile · Seattle, WA 98101",
-            notes: "Mochi needs a teddy-style trim."
+            notes: "Mochi needs a teddy-style trim.",
+            requestPhotoCount: 2
         )
 
         #expect(summary.rows.map(\.title) == [
@@ -578,6 +579,7 @@ extension CustomerRequestsStoreTests {
             "Preferred Time",
             "Location",
             "Notes",
+            "Request Photos",
         ])
         #expect(summary.rows.map(\.value) == [
             "Mochi · Toy Poodle",
@@ -585,7 +587,30 @@ extension CustomerRequestsStoreTests {
             "Fri 19 · Afternoon",
             "Mobile · Seattle, WA 98101",
             "Mochi needs a teddy-style trim.",
+            "2 Selected",
         ])
+    }
+
+    @Test @MainActor
+    func requestPhotoSelectionCopyKeepsRequestPhotosDistinctFromPetAvatar() {
+        #expect(CustomerRequestPhotoSelectionCopy.title == "Request Photos")
+        #expect(
+            CustomerRequestPhotoSelectionCopy.supportingText ==
+                "Add photos specific to this grooming request. Your pet profile photo stays separate."
+        )
+    }
+
+    @Test @MainActor
+    func requestPhotoRetryPresentationUsesActionableSingularAndPluralCopy() {
+        let singular = CustomerRequestPhotoUploadRetryPresentation(photoCount: 1)
+        let plural = CustomerRequestPhotoUploadRetryPresentation(photoCount: 3)
+
+        #expect(singular.title == "1 Request Photo Needs Uploading")
+        #expect(singular.message == "The request was published, but this photo was not uploaded.")
+        #expect(plural.title == "3 Request Photos Need Uploading")
+        #expect(plural.message == "The request was published, but these photos were not uploaded.")
+        #expect(plural.retryTitle == "Retry Upload")
+        #expect(plural.discardTitle == "Remove Photos")
     }
 
     @Test @MainActor

@@ -17,8 +17,7 @@ R-042 remediates the reviewed Customer Request Journey in dependency order. Each
 
 | Order | Roadmap | Package | State / Exit |
 |---|---|---|---|
-| Q-123 | R-042 | Request photo selection and retry | Ready. Request-specific photos have preview, removal, review-summary, and post-create retry behavior while remaining distinct from the Pet avatar snapshot. |
-| Q-124 | R-042 | Offer confirmation and Booking handoff | Ready after Q-123. Acceptance presents groomer/time/price/location/cancellation context, blocks duplicate submission, removes backend jargon, and routes directly to the resulting Booking. |
+| Q-124 | R-042 | Offer confirmation and Booking handoff | Ready. Acceptance presents groomer/time/price/location/cancellation context, blocks duplicate submission, removes backend jargon, and routes directly to the resulting Booking. |
 | Q-125 | R-042 | Request page state and visual consistency | Ready after Q-124. Requests exposes creation directly; Home and Requests distinguish loading/empty/error/loaded; horizontal cards expose position; reviewed copy, contrast, and strict UI-audit findings are corrected without resuming Q-104. |
 
 ## Deferred Queue
@@ -35,4 +34,4 @@ R-042 remediates the reviewed Customer Request Journey in dependency order. Each
 | Q-91 | R-030 | TestFlight/App Store submission | Paid Apple Developer setup and release/upload authorization. |
 | Q-93 | R-033 | Leaked-password protection | Supabase Pro-or-higher plan plus Auth configuration authorization. |
 
-Q-123 is the next selectable package after T-359 completed Q-122. Completed package evidence is preserved in `../09_frozen/roadmaps/T-346_2026-07-13/`, task-ledger archives, worklogs, and durable decisions.
+Q-124 is the next selectable product package after T-360 completed Q-123, but the required periodic meta-review runs first. Completed package evidence is preserved in `../09_frozen/roadmaps/T-346_2026-07-13/`, task-ledger archives, worklogs, and durable decisions.

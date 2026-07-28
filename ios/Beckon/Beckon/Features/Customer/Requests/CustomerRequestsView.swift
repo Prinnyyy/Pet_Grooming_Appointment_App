@@ -158,6 +158,8 @@ struct CustomerRequestsView: View {
                 LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
                     CustomerRequestsRootHeader(cardCount: visibleCardCount)
 
+                    CustomerRequestPhotoUploadRetryList(store: store)
+
                     if visibleCardCount == 0 {
                         CustomerRequestsEmptyDashboard()
                             .accessibilityIdentifier("customer.requests.empty")

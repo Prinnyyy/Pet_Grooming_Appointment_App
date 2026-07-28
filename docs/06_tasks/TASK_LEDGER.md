@@ -2,7 +2,7 @@
 
 Task ID, status, and next-number source of truth. Keep only planned, active, blocked, and the latest completed rows. Detailed evidence belongs in `docs/00_memory/WORKLOG.md`; older rows live under `docs/09_frozen/task_ledgers/`.
 
-Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup`; use `T-360` for the next new task. T-359 and T-358 are completed.
+Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup`; use `T-361` for the next task, which is the required periodic meta-review. T-360 and T-359 are completed.
 
 Active blocked task: T-157 waits for paid Apple Developer Program access and APNs credentials before dispatcher deployment. Q-104 remains user-deferred and is tracked in `docs/06_tasks/ROADMAP_EXECUTION_QUEUE.md` rather than as an allocated task.
 
@@ -12,6 +12,7 @@ Pre-reset source snapshot: `docs/09_frozen/active_state_snapshots/T-345_2026-07-
 
 | ID | Task | Status | Mode | Milestone | Files/Docs | Checks | Notes |
 |---|---|---|---|---|---|---|---|
+| T-360 | Request photo selection and retry | completed | Standard | M15 | Shared Customer Request photo preview/retry presentation; Wizard/Store/Home/Requests; focused tests; roadmap/task memory | TDD RED/GREEN; focused/full iOS tests; iOS build; source/diff/context/closeout checks | Request-specific photos support multi-selection preview, removal, Review count, and Request-ID-scoped retry after creation; Pet avatars remain separate and Home/Requests share one retry module. |
 | T-359 | Request Wizard input and time semantics | completed | Standard | M15 | Customer Request Wizard/Store; focused and integration tests; roadmap/task memory | TDD RED/GREEN; focused/full iOS tests; iOS build; source/diff/context/closeout checks | New Requests require an explicit service; Custom Request requires useful notes; dates beyond the seven-day quick strip use the system date picker; Continue uses one enabled state while invalid taps reveal field-level errors. |
 | T-358 | Request publish idempotency and recovery | completed | Deep | M15 | Private publish-operation ledger and v3 RPC; Customer Request repository/Store; TestOps v3 publisher; rollback/static/iOS tests; backend/task docs | TDD RED/GREEN; focused/TestOps/migration tests; full iOS tests/build; preflight; linked apply/replay/authorization/advisors; diff/context/closeout | One Customer publish operation creates at most one Request; photo upload or refresh failure remains a recoverable post-create warning and cannot invite a duplicate publish retry. |
 | T-357 | Customer Request Journey remediation design | completed | Quick | M15 | R-042 roadmap and Q-121...Q-125 execution queue; D-036; task memory | Docs governance; diff/context/closeout | Adopts five dependency-ordered packages, with separately authorized publish idempotency first and no app/backend implementation in this task. |

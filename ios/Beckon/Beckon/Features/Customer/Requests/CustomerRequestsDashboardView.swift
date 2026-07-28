@@ -31,6 +31,104 @@ struct CustomerRequestsRootHeader: View {
     }
 }
 
+struct CustomerRequestPhotoUploadRetryPresentation: Equatable {
+    let title: String
+    let message: String
+    let retryTitle = "Retry Upload"
+    let discardTitle = "Remove Photos"
+
+    init(photoCount: Int) {
+        let count = max(1, photoCount)
+        if count == 1 {
+            title = "1 Request Photo Needs Uploading"
+            message = "The request was published, but this photo was not uploaded."
+        } else {
+            title = "\(count) Request Photos Need Uploading"
+            message = "The request was published, but these photos were not uploaded."
+        }
+    }
+}
+
+struct CustomerRequestPhotoUploadRetryBanner: View {
+    let retry: CustomerRequestPhotoUploadRetry
+    let isRetrying: Bool
+    let retryAction: () -> Void
+    let discardAction: () -> Void
+
+    var body: some View {
+        let presentation = CustomerRequestPhotoUploadRetryPresentation(
+            photoCount: retry.photos.count
+        )
+        BeckonErrorBanner(
+            title: presentation.title,
+            message: presentation.message,
+            systemImage: "photo.badge.exclamationmark"
+        ) {
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: DesignTokens.Spacing.md) {
+                    actions(presentation: presentation)
+                }
+
+                VStack(spacing: DesignTokens.Spacing.sm) {
+                    actions(presentation: presentation)
+                }
+            }
+        }
+        .accessibilityIdentifier(
+            "customer.requests.photo-retry.\(retry.requestID.uuidString)"
+        )
+    }
+
+    @ViewBuilder
+    private func actions(
+        presentation: CustomerRequestPhotoUploadRetryPresentation
+    ) -> some View {
+        Button(action: retryAction) {
+            if isRetrying {
+                HStack(spacing: DesignTokens.Spacing.sm) {
+                    ProgressView()
+                    Text("Uploading...")
+                }
+            } else {
+                Label(presentation.retryTitle, systemImage: "arrow.clockwise")
+            }
+        }
+        .buttonStyle(BeckonPrimaryButtonStyle())
+        .disabled(isRetrying)
+
+        Button(presentation.discardTitle, role: .destructive, action: discardAction)
+            .buttonStyle(BeckonSecondaryButtonStyle(accent: .neutral))
+            .disabled(isRetrying)
+    }
+}
+
+struct CustomerRequestPhotoUploadRetryList: View {
+    let store: CustomerRequestsStore
+
+    var body: some View {
+        ForEach(store.requestPhotoUploadRetries) { retry in
+            CustomerRequestPhotoUploadRetryBanner(
+                retry: retry,
+                isRetrying: store.isRetryingRequestPhotos(
+                    for: retry.requestID
+                ),
+                retryAction: {
+                    Task {
+                        await store.retryRequestPhotos(
+                            for: retry.requestID
+                        )
+                    }
+                },
+                discardAction: {
+                    store.discardRequestPhotoUploadRetry(
+                        for: retry.requestID
+                    )
+                }
+            )
+        }
+    }
+}
+
 struct CustomerRequestProgressCarousel: View {
     let cards: [CustomerRequestActionCardItem]
     let store: CustomerRequestsStore

@@ -124,6 +124,8 @@ struct CustomerPetsView: View {
                     action: startGroomingRequest
                 )
 
+                CustomerRequestPhotoUploadRetryList(store: requestStore)
+
                 CustomerHomePetsSection(store: petStore)
 
                 CustomerHomeActiveRequestSection(

@@ -5,6 +5,12 @@ import UIKit
 
 typealias CustomerRequestServiceOption = GroomingServiceType
 
+enum CustomerRequestPhotoSelectionCopy {
+    static let title = "Request Photos"
+    static let supportingText =
+        "Add photos specific to this grooming request. Your pet profile photo stays separate."
+}
+
 enum CustomerRequestTimeWindowOption: String, CaseIterable, Identifiable {
     case morning
     case afternoon
@@ -186,7 +192,8 @@ struct CustomerRequestWizardReviewPresentation: Equatable {
         service: String,
         preferredTime: String,
         location: String,
-        notes: String
+        notes: String,
+        requestPhotoCount: Int = 0
     ) {
         rows = [
             Row(title: "Pet", value: pet),
@@ -194,7 +201,22 @@ struct CustomerRequestWizardReviewPresentation: Equatable {
             Row(title: "Preferred Time", value: preferredTime),
             Row(title: "Location", value: location),
             Row(title: "Notes", value: notes),
+            Row(
+                title: "Request Photos",
+                value: Self.requestPhotoSummary(count: requestPhotoCount)
+            ),
         ]
+    }
+
+    private static func requestPhotoSummary(count: Int) -> String {
+        switch count {
+        case 0:
+            "None Selected"
+        case 1:
+            "1 Selected"
+        default:
+            "\(count) Selected"
+        }
     }
 }
 
@@ -268,7 +290,7 @@ struct CustomerRequestWizardView: View {
     @State private var selectedDate: Date
     @State private var selectedTimeWindow: CustomerRequestTimeWindowOption
     @State private var isFlexibleWithTime = false
-    @State private var selectedRequestPhotoItem: PhotosPickerItem?
+    @State private var selectedRequestPhotoItems: [PhotosPickerItem] = []
     @State private var invalidFields: Set<CustomerRequestWizardValidationField> = []
     @State private var isApplyingProfileAddress = false
     @State private var isContinuingAfterAddressConfirmation = false
@@ -376,10 +398,10 @@ struct CustomerRequestWizardView: View {
         .onAppear {
             applyInitialDefaults()
         }
-        .onChange(of: selectedRequestPhotoItem) { _, newItem in
-            guard let newItem else { return }
+        .onChange(of: selectedRequestPhotoItems) { _, newItems in
+            guard !newItems.isEmpty else { return }
             Task {
-                await addPendingRequestPhoto(newItem)
+                await addPendingRequestPhotos(newItems)
             }
         }
         .onChange(of: store.addressEditorState.confirmedAddress) { _, confirmedAddress in
@@ -581,30 +603,28 @@ struct CustomerRequestWizardView: View {
             }
             .beckonKeyboardFocusTarget(Self.notesFocusTarget)
 
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                Text("Photos")
-                    .font(DesignTokens.Typography.headline)
-                    .foregroundStyle(DesignTokens.Colors.textPrimary)
-
-                HStack(spacing: DesignTokens.Spacing.md) {
-                    let pendingPhotoCount = store.pendingRequestPhotos.count
-
-                    if let pet = store.selectedPet {
-                        CustomerRequestPhotoPreviewTile(
-                            pet: pet,
-                            petPhotoData: store.primaryPetPhotoData(for: pet)
+            BeckonFieldGroup(
+                CustomerRequestPhotoSelectionCopy.title,
+                supportingText: CustomerRequestPhotoSelectionCopy.supportingText
+            ) {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                    if !store.pendingRequestPhotos.isEmpty {
+                        CustomerRequestPendingPhotoList(
+                            photos: store.pendingRequestPhotos,
+                            onRemove: { photoID in
+                                store.removePendingPhoto(id: photoID)
+                            }
                         )
                     }
 
                     PhotosPicker(
-                        selection: $selectedRequestPhotoItem,
+                        selection: $selectedRequestPhotoItems,
                         matching: .images
                     ) {
-                        CustomerRequestAddPhotoTile(
-                            photoCount: pendingPhotoCount
-                        )
+                        Label("Add Request Photos", systemImage: "photo.badge.plus")
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(BeckonSecondaryButtonStyle(accent: .customer))
+                    .accessibilityIdentifier("customer.requests.wizard.add-photos")
                 }
             }
         }
@@ -622,6 +642,18 @@ struct CustomerRequestWizardView: View {
                                 .overlay(DesignTokens.Colors.borderSoft)
                         }
                     }
+                }
+            }
+
+            if !store.pendingRequestPhotos.isEmpty {
+                BeckonFieldGroup(
+                    "Selected Request Photos",
+                    supportingText: "These photos will be included with this request."
+                ) {
+                    CustomerRequestPendingPhotoList(
+                        photos: store.pendingRequestPhotos,
+                        onRemove: nil
+                    )
                 }
             }
 
@@ -672,7 +704,8 @@ struct CustomerRequestWizardView: View {
             service: store.serviceType?.title ?? "Choose A Service",
             preferredTime: reviewPreferredTimeSummary,
             location: reviewLocationSummary,
-            notes: notesSummary
+            notes: notesSummary,
+            requestPhotoCount: store.pendingRequestPhotos.count
         )
     }
 
@@ -811,23 +844,33 @@ struct CustomerRequestWizardView: View {
         onAddPet()
     }
 
-    private func addPendingRequestPhoto(_ item: PhotosPickerItem) async {
-        defer { selectedRequestPhotoItem = nil }
+    private func addPendingRequestPhotos(_ items: [PhotosPickerItem]) async {
+        defer { selectedRequestPhotoItems = [] }
 
-        guard let data = try? await item.loadTransferable(type: Data.self) else {
-            store.errorMessage = "We could not read that photo."
-            return
+        var hadFailure = false
+        for item in items {
+            guard let data = try? await item.loadTransferable(type: Data.self) else {
+                hadFailure = true
+                continue
+            }
+
+            let contentType = item.supportedContentTypes
+                .lazy
+                .compactMap(GroomingRequestPhotoContentType.init(uniformType:))
+                .first ?? .jpeg
+
+            if !store.addPendingPhoto(
+                data: data,
+                contentType: contentType
+            ) {
+                hadFailure = true
+            }
         }
 
-        let contentType = item.supportedContentTypes
-            .lazy
-            .compactMap(GroomingRequestPhotoContentType.init(uniformType:))
-            .first ?? .jpeg
-
-        store.addPendingPhoto(
-            data: data,
-            contentType: contentType
-        )
+        if hadFailure {
+            store.errorMessage =
+                "Some photos could not be added. Choose images smaller than 10 MB and try again."
+        }
     }
 
     private func applyProfileAddress() {
@@ -1601,56 +1644,76 @@ private struct CustomerRequestAddressFields: View {
 
 }
 
-private struct CustomerRequestPhotoPreviewTile: View {
-    let pet: CustomerPet
-    let petPhotoData: Data?
+private struct CustomerRequestPendingPhotoList: View {
+    let photos: [PendingGroomingRequestPhoto]
+    let onRemove: ((UUID) -> Void)?
 
     var body: some View {
-        CustomerRequestWizardPetAvatar(
-            pet: pet,
-            data: petPhotoData,
-            size: 112
-        )
+        ScrollView(.horizontal) {
+            LazyHStack(spacing: DesignTokens.Spacing.md) {
+                ForEach(photos) { photo in
+                    CustomerRequestPendingPhotoThumbnail(
+                        photo: photo,
+                        onRemove: onRemove.map { remove in
+                            { remove(photo.id) }
+                        }
+                    )
+                }
+            }
+            .padding(.vertical, DesignTokens.Spacing.xs)
+        }
+        .scrollIndicators(.hidden)
+        .scrollClipDisabled()
+        .accessibilityIdentifier("customer.requests.wizard.photo-preview")
+    }
+}
+
+private struct CustomerRequestPendingPhotoThumbnail: View {
+    let photo: PendingGroomingRequestPhoto
+    let onRemove: (() -> Void)?
+
+    var body: some View {
+        ZStack(alignment: .topTrailing) {
+            BeckonModuleImage(data: photo.data) {
+                Image(systemName: "photo")
+                    .font(DesignTokens.Typography.sectionTitle)
+                    .foregroundStyle(DesignTokens.Colors.textTertiary)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(DesignTokens.Colors.surface)
+            }
+            .frame(width: 112, height: 112)
             .clipShape(
                 RoundedRectangle(
                     cornerRadius: DesignTokens.CornerRadius.input,
                     style: .continuous
                 )
             )
-    }
-}
+            .overlay {
+                RoundedRectangle(
+                    cornerRadius: DesignTokens.CornerRadius.input,
+                    style: .continuous
+                )
+                .stroke(DesignTokens.Colors.border, lineWidth: 1)
+            }
 
-private struct CustomerRequestAddPhotoTile: View {
-    let photoCount: Int
-
-    var body: some View {
-        Image(systemName: photoCount > 0 ? "checkmark.circle.fill" : "camera")
-            .font(DesignTokens.Typography.sectionTitle)
-            .foregroundStyle(
-                photoCount > 0
-                    ? DesignTokens.Colors.customerAccentStrong
-                    : DesignTokens.Colors.textTertiary
-            )
-        // Photo picker geometry matches the adjacent fixed media preview and contains no text.
-        .frame(width: 112, height: 112)
-        .background(DesignTokens.Colors.surface.opacity(0.4))
-        .clipShape(
-            RoundedRectangle(
-                cornerRadius: DesignTokens.CornerRadius.input,
-                style: .continuous
-            )
-        )
-        .overlay {
-            RoundedRectangle(
-                cornerRadius: DesignTokens.CornerRadius.input,
-                style: .continuous
-            )
-            .stroke(
-                DesignTokens.Colors.border,
-                style: StrokeStyle(lineWidth: 1.5, dash: [6, 4])
-            )
+            if let onRemove {
+                Button(action: onRemove) {
+                    Image(systemName: "xmark")
+                        .font(DesignTokens.Typography.caption.weight(.bold))
+                        .foregroundStyle(DesignTokens.Colors.surface)
+                        .frame(width: 30, height: 30)
+                        .background(DesignTokens.Colors.error)
+                        .clipShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .padding(DesignTokens.Spacing.xs)
+                .accessibilityLabel("Remove request photo")
+                .accessibilityIdentifier(
+                    "customer.requests.wizard.remove-photo.\(photo.id.uuidString)"
+                )
+            }
         }
-        .accessibilityLabel(photoCount > 0 ? "\(photoCount) photos added" : "Add photo")
+        .accessibilityElement(children: .contain)
     }
 }
 

@@ -462,6 +462,30 @@ struct CustomerRequestsStoreTests {
         #expect(store.errorMessage == nil)
         #expect(store.noticeMessage?.contains("Request published.") == true)
         #expect(store.noticeMessage?.contains("photo could not be added") == true)
+
+        let retry = try #require(store.requestPhotoUploadRetries.first)
+        #expect(retry.requestID == requestID)
+        #expect(retry.photos.map(\.data) == [Data([0x01])])
+
+        let uploadedPhoto = GroomingRequestPhoto(
+            id: UUID(),
+            requestID: requestID,
+            customerID: customerID,
+            storageBucket: "request-photos",
+            storagePath: "customer/request/retried.jpg",
+            caption: nil,
+            sortOrder: 0,
+            createdAt: "2026-07-28T22:00:00Z"
+        )
+        requestRepository.uploadRequestPhotoResult = .success(uploadedPhoto)
+
+        await store.retryRequestPhotos(for: requestID)
+
+        #expect(requestRepository.uploadRequestPhotoCallCount == 2)
+        #expect(store.requestPhotoUploadRetries.isEmpty)
+        #expect(store.requestPhotos(for: request) == [uploadedPhoto])
+        #expect(store.requestPhotoData(for: uploadedPhoto) == Data([0x01]))
+        #expect(store.noticeMessage == "Request photos uploaded.")
     }
 
     @Test @MainActor
@@ -576,6 +600,25 @@ struct CustomerRequestsStoreTests {
         #expect(store.travelRadiusMiles == 15)
         #expect(store.pendingRequestPhotos.isEmpty)
         #expect(store.errorMessage == nil)
+    }
+
+    @Test @MainActor
+    func pendingRequestPhotosCanBeRemovedBeforePublishing() {
+        let store = CustomerRequestsStore(
+            customerID: UUID(),
+            petRepository: CustomerRequestPetRepositoryFake(),
+            requestRepository: CustomerRequestRepositoryFake(),
+            bookingRepository: CustomerRequestBookingRepositoryFake()
+        )
+        store.addPendingPhoto(data: Data([0x01]), contentType: .jpeg)
+        store.addPendingPhoto(data: Data([0x02]), contentType: .png)
+        let removedID = store.pendingRequestPhotos[0].id
+        let keptID = store.pendingRequestPhotos[1].id
+
+        store.removePendingPhoto(id: removedID)
+
+        #expect(store.pendingRequestPhotos.map(\.id) == [keptID])
+        #expect(store.pendingRequestPhotos.map(\.data) == [Data([0x02])])
     }
 
     @Test @MainActor

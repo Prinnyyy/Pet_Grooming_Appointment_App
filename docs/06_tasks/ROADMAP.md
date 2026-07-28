@@ -24,12 +24,12 @@ Out of scope unless explicitly adopted: payments, subscriptions, public director
 | Roadmap | Package | State | Resume Condition |
 |---|---|---|---|
 | R-039 | Q-104 Groomer Dynamic Type and Accessibility integration | deferred | The user restores this scope and approves affected cross-screen validation. |
-| R-042 | Q-123...Q-125 Customer Request Journey remediation | ready | Execute Q-123 next, then continue one package per task. |
+| R-042 | Q-124...Q-125 Customer Request Journey remediation | ready | Execute Q-124 after the required periodic meta-review, then continue one package per task. |
 | R-030 | Q-90 APNs dispatch deployment | blocked | T-157 receives paid Apple Developer access, APNs credentials, and deploy authorization. |
 | R-030 | Q-91 TestFlight/App Store submission | blocked | Paid Apple Developer setup and explicit release/upload authorization exist. |
 | R-033 | Q-93 leaked-password protection | blocked | Supabase Pro-or-higher capability and Auth configuration authorization exist. |
 
-R-042 remains adopted but no package is automatically active. T-359 completed Q-122; Q-123 is the next dependency-satisfied package.
+R-042 remains adopted but no package is automatically active. T-360 completed Q-123; Q-124 is the next dependency-satisfied package after the required periodic meta-review.
 
 ## Customer Request Journey Remediation
 

@@ -134,6 +134,7 @@ final class CustomerRequestsStore {
     private(set) var isLoadingMoreRequests = false
     private(set) var acceptingOfferIDs: Set<UUID> = []
     private(set) var cancellingRequestIDs: Set<UUID> = []
+    private(set) var retryingRequestPhotoIDs: Set<UUID> = []
     private(set) var acknowledgedBookingHandoffRequestIDs: Set<UUID> = []
     private(set) var isLoading = false
     private(set) var isSubmitting = false
@@ -174,6 +175,7 @@ final class CustomerRequestsStore {
     }
     var travelRadiusMiles = 15
     private(set) var pendingRequestPhotos: [PendingGroomingRequestPhoto] = []
+    private(set) var requestPhotoUploadRetries: [CustomerRequestPhotoUploadRetry] = []
     private var publishOperationID = UUID()
 
     var isBusy: Bool {
@@ -182,6 +184,7 @@ final class CustomerRequestsStore {
             || isSubmitting
             || !acceptingOfferIDs.isEmpty
             || !cancellingRequestIDs.isEmpty
+            || !retryingRequestPhotoIDs.isEmpty
     }
 
     var canLoadMoreRequests: Bool {
@@ -641,13 +644,14 @@ final class CustomerRequestsStore {
         noticeMessage = nil
     }
 
+    @discardableResult
     func addPendingPhoto(
         data: Data,
         contentType: GroomingRequestPhotoContentType
-    ) {
+    ) -> Bool {
         guard data.count <= Self.maximumRequestPhotoBytes else {
             errorMessage = "Choose a request photo smaller than 10 MB."
-            return
+            return false
         }
 
         pendingRequestPhotos.append(
@@ -657,6 +661,93 @@ final class CustomerRequestsStore {
             )
         )
         errorMessage = nil
+        return true
+    }
+
+    func removePendingPhoto(id: UUID) {
+        pendingRequestPhotos.removeAll { $0.id == id }
+    }
+
+    func isRetryingRequestPhotos(for requestID: UUID) -> Bool {
+        retryingRequestPhotoIDs.contains(requestID)
+    }
+
+    func retryRequestPhotos(for requestID: UUID) async {
+        guard !retryingRequestPhotoIDs.contains(requestID),
+              let retry = requestPhotoUploadRetries.first(
+                where: { $0.requestID == requestID }
+              ) else {
+            return
+        }
+
+        let startedAt = Date()
+        recordStoreStart(
+            "retryRequestPhotos",
+            metadata: [
+                "requestID": requestID.uuidString,
+                "photoCount": "\(retry.photos.count)",
+            ]
+        )
+        retryingRequestPhotoIDs.insert(requestID)
+        noticeMessage = nil
+        defer {
+            retryingRequestPhotoIDs.remove(requestID)
+        }
+
+        var failedPhotos: [PendingGroomingRequestPhoto] = []
+        var wasCancelled = false
+        retryLoop: for (index, photo) in retry.photos.enumerated() {
+            if Task.isCancelled {
+                failedPhotos.append(contentsOf: retry.photos[index...])
+                wasCancelled = true
+                break
+            }
+
+            switch await attemptRequestPhotoUpload(
+                photo,
+                requestID: requestID,
+                operation: "retryRequestPhotos.upload",
+                startedAt: startedAt
+            ) {
+            case let .uploaded(uploadedPhoto):
+                recordUploadedRequestPhoto(uploadedPhoto, data: photo.data)
+            case .cancelled:
+                failedPhotos.append(contentsOf: retry.photos[index...])
+                wasCancelled = true
+                break retryLoop
+            case .failed:
+                failedPhotos.append(photo)
+            }
+        }
+
+        setRequestPhotoUploadRetry(
+            requestID: requestID,
+            photos: failedPhotos
+        )
+        if failedPhotos.isEmpty {
+            noticeMessage = "Request photos uploaded."
+        }
+        if wasCancelled {
+            recordStoreCancelled(
+                "retryRequestPhotos",
+                startedAt: startedAt
+            )
+            return
+        }
+        recordStoreSuccess(
+            "retryRequestPhotos",
+            startedAt: startedAt,
+            metadata: [
+                "requestID": requestID.uuidString,
+                "uploadedPhotoCount": "\(retry.photos.count - failedPhotos.count)",
+                "failedPhotoCount": "\(failedPhotos.count)",
+            ]
+        )
+    }
+
+    func discardRequestPhotoUploadRetry(for requestID: UUID) {
+        guard !retryingRequestPhotoIDs.contains(requestID) else { return }
+        setRequestPhotoUploadRetry(requestID: requestID, photos: [])
     }
 
     func acknowledgeBookingHandoff(for handoff: CustomerRequestBookingHandoff) async {
@@ -893,10 +984,11 @@ final class CustomerRequestsStore {
             selectedPetID = pets.first?.id
             wizardInitialStep = .pet
 
-            var failedPhotoCount = 0
-            for (index, photo) in photosToUpload.enumerated() {
+            var failedPhotos: [PendingGroomingRequestPhoto] = []
+            var uploadedPhotos: [(photo: GroomingRequestPhoto, data: Data)] = []
+            publishPhotoLoop: for (index, photo) in photosToUpload.enumerated() {
                 if Task.isCancelled {
-                    failedPhotoCount += photosToUpload.count - index
+                    failedPhotos.append(contentsOf: photosToUpload[index...])
                     recordStoreCancelled(
                         "publish.uploadPhotos",
                         startedAt: startedAt
@@ -904,48 +996,30 @@ final class CustomerRequestsStore {
                     break
                 }
 
-                do {
-                    _ = try await requestRepository.uploadRequestPhoto(
-                        customerID: customerID,
-                        requestID: result.requestID,
-                        data: photo.data,
-                        contentType: photo.contentType,
-                        caption: nil
-                    )
-                } catch CustomerRequestRepositoryError.cancelled {
-                    failedPhotoCount += 1
+                switch await attemptRequestPhotoUpload(
+                    photo,
+                    requestID: result.requestID,
+                    operation: "publish.uploadPhoto",
+                    startedAt: startedAt
+                ) {
+                case let .uploaded(uploadedPhoto):
+                    uploadedPhotos.append((uploadedPhoto, photo.data))
+                    recordUploadedRequestPhoto(uploadedPhoto, data: photo.data)
+                case .cancelled:
+                    failedPhotos.append(contentsOf: photosToUpload[index...])
                     recordStoreCancelled(
                         "publish.uploadPhoto",
                         startedAt: startedAt
                     )
-                } catch let error as CustomerRequestRepositoryError {
-                    failedPhotoCount += 1
-                    recordStoreFailure(
-                        "publish.uploadPhoto",
-                        error: error,
-                        mappedMessage: "Request photo upload deferred.",
-                        startedAt: startedAt,
-                        level: .warning,
-                        metadata: ["requestID": result.requestID.uuidString]
-                    )
-                } catch where AppDebugErrorClassifier.isCancellation(error) {
-                    failedPhotoCount += 1
-                    recordStoreCancelled(
-                        "publish.uploadPhoto",
-                        startedAt: startedAt
-                    )
-                } catch {
-                    failedPhotoCount += 1
-                    recordStoreFailure(
-                        "publish.uploadPhoto",
-                        error: error,
-                        mappedMessage: "Request photo upload deferred.",
-                        startedAt: startedAt,
-                        level: .warning,
-                        metadata: ["requestID": result.requestID.uuidString]
-                    )
+                    break publishPhotoLoop
+                case .failed:
+                    failedPhotos.append(photo)
                 }
             }
+            setRequestPhotoUploadRetry(
+                requestID: result.requestID,
+                photos: failedPhotos
+            )
 
             var refreshFailed = false
             do {
@@ -989,10 +1063,16 @@ final class CustomerRequestsStore {
                     metadata: ["requestID": result.requestID.uuidString]
                 )
             }
+            for uploadedPhoto in uploadedPhotos {
+                recordUploadedRequestPhoto(
+                    uploadedPhoto.photo,
+                    data: uploadedPhoto.data
+                )
+            }
 
             noticeMessage = Self.publishNotice(
                 for: result,
-                failedPhotoCount: failedPhotoCount,
+                failedPhotoCount: failedPhotos.count,
                 refreshFailed: refreshFailed
             )
             recordStoreSuccess(
@@ -1001,7 +1081,7 @@ final class CustomerRequestsStore {
                 metadata: [
                     "matchCount": "\(result.matchCount)",
                     "pendingPhotoCount": "\(photosToUpload.count)",
-                    "failedPhotoCount": "\(failedPhotoCount)",
+                    "failedPhotoCount": "\(failedPhotos.count)",
                     "refreshFailed": "\(refreshFailed)",
                 ]
             )
@@ -1535,6 +1615,7 @@ final class CustomerRequestsStore {
                 )
             }
         )
+        setRequestPhotoUploadRetry(requestID: requestID, photos: [])
 
         return didUpdateRequest && didUpdateAcceptedOffer
     }
@@ -1605,6 +1686,7 @@ final class CustomerRequestsStore {
             }
         )
         offerErrorsByRequestID[requestID] = nil
+        setRequestPhotoUploadRetry(requestID: requestID, photos: [])
 
         return didUpdateRequest
     }
@@ -1678,6 +1760,81 @@ final class CustomerRequestsStore {
         )
         requestPhotosByRequestID = Dictionary(grouping: photos, by: \.requestID)
         requestPhotoDataByID = await requestPhotoDataMap(for: photos)
+    }
+
+    private func recordUploadedRequestPhoto(
+        _ photo: GroomingRequestPhoto,
+        data: Data
+    ) {
+        let existingPhotos = requestPhotosByRequestID[photo.requestID, default: []]
+        requestPhotosByRequestID[photo.requestID] = ListPageMerge.appendingUnique(
+            [photo],
+            to: existingPhotos
+        )
+        .sorted {
+            if $0.sortOrder == $1.sortOrder {
+                return $0.fileName < $1.fileName
+            }
+            return $0.sortOrder < $1.sortOrder
+        }
+        requestPhotoDataByID[photo.id] = data
+    }
+
+    private func attemptRequestPhotoUpload(
+        _ photo: PendingGroomingRequestPhoto,
+        requestID: UUID,
+        operation: String,
+        startedAt: Date
+    ) async -> CustomerRequestPhotoUploadAttempt {
+        do {
+            return .uploaded(
+                try await requestRepository.uploadRequestPhoto(
+                    customerID: customerID,
+                    requestID: requestID,
+                    data: photo.data,
+                    contentType: photo.contentType,
+                    caption: nil
+                )
+            )
+        } catch CustomerRequestRepositoryError.cancelled {
+            return .cancelled
+        } catch let error as CustomerRequestRepositoryError {
+            recordStoreFailure(
+                operation,
+                error: error,
+                mappedMessage: "Request photo upload deferred.",
+                startedAt: startedAt,
+                level: .warning,
+                metadata: ["requestID": requestID.uuidString]
+            )
+            return .failed
+        } catch where AppDebugErrorClassifier.isCancellation(error) {
+            return .cancelled
+        } catch {
+            recordStoreFailure(
+                operation,
+                error: error,
+                mappedMessage: "Request photo upload deferred.",
+                startedAt: startedAt,
+                level: .warning,
+                metadata: ["requestID": requestID.uuidString]
+            )
+            return .failed
+        }
+    }
+
+    private func setRequestPhotoUploadRetry(
+        requestID: UUID,
+        photos: [PendingGroomingRequestPhoto]
+    ) {
+        requestPhotoUploadRetries.removeAll { $0.requestID == requestID }
+        guard !photos.isEmpty else { return }
+        requestPhotoUploadRetries.append(
+            CustomerRequestPhotoUploadRetry(
+                requestID: requestID,
+                photos: photos
+            )
+        )
     }
 
     private func loadRequestPhotosForRepublish(startedAt: Date) async {
@@ -2088,4 +2245,19 @@ struct PendingGroomingRequestPhoto: Equatable, Identifiable, Sendable {
         self.data = data
         self.contentType = contentType
     }
+}
+
+struct CustomerRequestPhotoUploadRetry: Equatable, Identifiable, Sendable {
+    let requestID: UUID
+    let photos: [PendingGroomingRequestPhoto]
+
+    var id: UUID {
+        requestID
+    }
+}
+
+private enum CustomerRequestPhotoUploadAttempt {
+    case uploaded(GroomingRequestPhoto)
+    case failed
+    case cancelled
 }
