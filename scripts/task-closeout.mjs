@@ -267,6 +267,7 @@ const backlinkErrors = checkArtifactBacklinks(artifacts);
 const preRotation = runNodeScript("context-rotate.mjs");
 const preHygiene = runNodeScript("context-hygiene-check.mjs", [], {
   CONTEXT_HYGIENE_CLOSEOUT_TASK: TASK_ID,
+  CONTEXT_HYGIENE_ALLOW_PENDING_ROTATION: "1",
 });
 
 if (taskErrors.length || artifactErrors.length || backlinkErrors.length) {

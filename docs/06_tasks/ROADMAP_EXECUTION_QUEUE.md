@@ -34,4 +34,4 @@ R-042 remediates the reviewed Customer Request Journey in dependency order. Each
 | Q-91 | R-030 | TestFlight/App Store submission | Paid Apple Developer setup and release/upload authorization. |
 | Q-93 | R-033 | Leaked-password protection | Supabase Pro-or-higher plan plus Auth configuration authorization. |
 
-Q-124 is the next selectable product package after T-360 completed Q-123, but the required periodic meta-review runs first. Completed package evidence is preserved in `../09_frozen/roadmaps/T-346_2026-07-13/`, task-ledger archives, worklogs, and durable decisions.
+Q-124 is the next selectable product package after T-360 completed Q-123 and T-361 completed the required periodic meta-review. Completed package evidence is preserved in `../09_frozen/roadmaps/T-346_2026-07-13/`, task-ledger archives, worklogs, and durable decisions.

@@ -894,6 +894,21 @@ test("context hygiene fails above rolling-window structural triggers", () => {
   assert.match(result.stderr, /DECISION_LOG\.md has 15 active decisions, trigger 14/i);
 });
 
+test("context hygiene permits pending structural rotation only for a closeout precheck", () => {
+  const root = createFixture({ latest: "T-019", next: "T-020" });
+  writeFixtureFile(root, "docs/06_tasks/TASK_LEDGER.md", ledgerWindowText("codex/test-baseline", "T-020", 19));
+  writeFixtureFile(root, "docs/00_memory/WORKLOG.md", worklogWindowText(15, 19));
+  writeFixtureFile(root, "docs/07_decisions/DECISION_LOG.md", decisionWindowText(15));
+
+  const result = runHygiene(root, {
+    CONTEXT_HYGIENE_CLOSEOUT_TASK: "T-019",
+    CONTEXT_HYGIENE_ALLOW_PENDING_ROTATION: "1",
+  });
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /Pending structural rotation accepted for T-019 closeout precheck/i);
+});
+
 test("context hygiene fails above the decision archive pointer trigger", () => {
   const root = createFixture();
   writeFixtureFile(root, "docs/07_decisions/DECISION_LOG.md", decisionWindowText(1, 13));

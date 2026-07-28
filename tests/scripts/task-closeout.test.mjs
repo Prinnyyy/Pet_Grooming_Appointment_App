@@ -139,6 +139,41 @@ test("task closeout dry run does not move eligible artifacts", () => {
   assert.equal(existsSync(path.join(root, "docs/superpowers/plans/fixture-plan.md")), true);
 });
 
+test("task closeout admits a pending structural rotation before apply", () => {
+  const root = createFixture();
+  writeFile(root, "scripts/context-rotate.mjs", [
+    "import fs from 'node:fs';",
+    "import path from 'node:path';",
+    "const root = process.env.CONTEXT_HYGIENE_PROJECT_ROOT;",
+    "if (process.argv.includes('--apply')) {",
+    "  fs.writeFileSync(path.join(root, 'rotation-applied'), 'yes');",
+    "  console.log('Rotation applied.');",
+    "} else {",
+    "  console.log('Would rotate structural windows.');",
+    "}",
+    "",
+  ].join("\n"));
+  writeFile(root, "scripts/context-hygiene-check.mjs", [
+    "import fs from 'node:fs';",
+    "import path from 'node:path';",
+    "const root = process.env.CONTEXT_HYGIENE_PROJECT_ROOT;",
+    "const rotationApplied = fs.existsSync(path.join(root, 'rotation-applied'));",
+    "const pendingAllowed = process.env.CONTEXT_HYGIENE_CLOSEOUT_TASK === 'T-349'",
+    "  && process.env.CONTEXT_HYGIENE_ALLOW_PENDING_ROTATION === '1';",
+    "if (!rotationApplied && !pendingAllowed) {",
+    "  console.error('Pending rotation was not authorized for closeout precheck.');",
+    "  process.exit(1);",
+    "}",
+    "console.log('Context hygiene check passed.');",
+    "",
+  ].join("\n"));
+
+  const result = runCloseout(root);
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(existsSync(path.join(root, "rotation-applied")), true);
+});
+
 test("task closeout accepts the next ID after higher completed task rows", () => {
   const root = createFixture();
   writeFile(root, "docs/06_tasks/TASK_LEDGER.md", [

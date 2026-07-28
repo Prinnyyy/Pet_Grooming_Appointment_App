@@ -5,9 +5,9 @@ Current facts for task startup and recovery. Historical task narrative belongs i
 ## Task Baseline
 
 - Date: 2026-07-28
-- Latest completed task: T-360 Request photo selection and retry.
+- Latest completed task: T-361 Periodic governance meta-review.
 - Current task: none.
-- Next task ID: T-361 for the required periodic meta-review.
+- Next task ID: T-362 for Q-124 Offer confirmation and Booking handoff.
 - Current branch baseline: `codex/pet-fit-structure-cleanup`.
 - GitHub repository: `Prinnyyy/Pet_Grooming_Appointment_App`.
 
@@ -15,7 +15,7 @@ Current facts for task startup and recovery. Historical task narrative belongs i
 
 | Item | State | Next Condition |
 |---|---|---|
-| R-042 Customer Request Journey | ready | Execute Q-124 after the required T-361 periodic meta-review. |
+| R-042 Customer Request Journey | ready | Execute Q-124 next. |
 | T-157 APNs dispatch | blocked | Paid Apple Developer access and APNs credentials are required. |
 | Q-104 Groomer Dynamic Type/Accessibility | deferred | Resume only when the user restores this scope. |
 | Q-93 leaked-password protection | blocked | Supabase Pro-or-higher plan decision and authorization are required. |
@@ -26,7 +26,8 @@ No roadmap package is automatically active. R-042 is adopted as Q-121 through Q-
 
 - Latest app validation: T-360 passed focused Customer Request tests, the complete iOS suite, and `./scripts/ios-build.sh`.
 - Latest full iOS regression: T-360 passed the complete iOS suite and build.
-- Latest documentation/backend validation: T-358 passed 81 migration tests, TestOps coverage, preflight, linked rollback-only replay/authorization validation, and security/performance advisors.
+- Latest documentation validation: T-361 passed 51 governance tests, context hygiene, default-search boundary review, source-of-truth review, and closeout checks.
+- Latest backend validation: T-358 passed 81 migration tests, TestOps coverage, preflight, linked rollback-only replay/authorization validation, and security/performance advisors.
 - Known iOS validation failure: none currently recorded.
 - No app-owned compiler warning remains in the latest app build. The AppIntents metadata-skipped message remains classified as toolchain information while Beckon has no App Intents dependency.
 - Focused test compilation currently reports three pre-existing unused-result warnings in `BeckonAddressEditorTests` and `GroomerProfileFeatureTests+FitSignals`; these do not occur in the app target build.
@@ -66,6 +67,6 @@ No roadmap package is automatically active. R-042 is adopted as Q-121 through Q-
 
 ## Governance
 
-- Last meta-review: T-350 on 2026-07-13.
+- Last meta-review: T-361 on 2026-07-28.
 - Run `node scripts/context-hygiene-check.mjs` after durable memory, ledger, workflow, or coordination-document changes.
 - Update this file by replacing stale facts. Do not append task timelines, full validation narratives, credential explanations, or future-task recommendations.

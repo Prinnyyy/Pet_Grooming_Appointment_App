@@ -22,6 +22,8 @@ const LAST_VERIFIED_MAX_AGE_DAYS = 45;
 const CHECK_DATE_TEXT = process.env.CONTEXT_HYGIENE_NOW ?? new Date().toISOString().slice(0, 10);
 const FORCE_NO_RG = process.env.CONTEXT_HYGIENE_FORCE_NO_RG === "1";
 const CLOSEOUT_TASK = process.env.CONTEXT_HYGIENE_CLOSEOUT_TASK ?? null;
+const ALLOW_PENDING_ROTATION = Boolean(CLOSEOUT_TASK)
+  && process.env.CONTEXT_HYGIENE_ALLOW_PENDING_ROTATION === "1";
 // All console/failure output is English.
 
 const STALE_CREDENTIAL_PATTERNS = [
@@ -784,16 +786,24 @@ function checkRollingWindowSizes() {
   console.log(`Decision log entries: ${decisionEntries} / ${DECISION_LOG_ENTRY_TRIGGER} trigger; retain ${DECISION_LOG_ENTRY_RETAIN}; available ${Math.max(0, DECISION_LOG_ENTRY_TRIGGER - decisionEntries)}`);
   console.log(`Decision archive pointers: ${decisionPointers} / ${DECISION_ARCHIVE_POINTER_TRIGGER} trigger; retain ${DECISION_ARCHIVE_POINTER_RETAIN}; available ${Math.max(0, DECISION_ARCHIVE_POINTER_TRIGGER - decisionPointers)}`);
 
-  if (worklogEntries > WORKLOG_ENTRY_TRIGGER) {
+  const hasPendingRotation = worklogEntries > WORKLOG_ENTRY_TRIGGER
+    || taskRows > TASK_LEDGER_ROW_TRIGGER
+    || decisionEntries > DECISION_LOG_ENTRY_TRIGGER
+    || decisionPointers > DECISION_ARCHIVE_POINTER_TRIGGER;
+  if (ALLOW_PENDING_ROTATION && hasPendingRotation) {
+    console.log(`Pending structural rotation accepted for ${CLOSEOUT_TASK} closeout precheck.`);
+  }
+
+  if (!ALLOW_PENDING_ROTATION && worklogEntries > WORKLOG_ENTRY_TRIGGER) {
     failures.push(`WORKLOG.md has ${worklogEntries} active entries, trigger ${WORKLOG_ENTRY_TRIGGER}`);
   }
-  if (taskRows > TASK_LEDGER_ROW_TRIGGER) {
+  if (!ALLOW_PENDING_ROTATION && taskRows > TASK_LEDGER_ROW_TRIGGER) {
     failures.push(`TASK_LEDGER.md has ${taskRows} active rows, trigger ${TASK_LEDGER_ROW_TRIGGER}`);
   }
-  if (decisionEntries > DECISION_LOG_ENTRY_TRIGGER) {
+  if (!ALLOW_PENDING_ROTATION && decisionEntries > DECISION_LOG_ENTRY_TRIGGER) {
     failures.push(`DECISION_LOG.md has ${decisionEntries} active decisions, trigger ${DECISION_LOG_ENTRY_TRIGGER}`);
   }
-  if (decisionPointers > DECISION_ARCHIVE_POINTER_TRIGGER) {
+  if (!ALLOW_PENDING_ROTATION && decisionPointers > DECISION_ARCHIVE_POINTER_TRIGGER) {
     failures.push(`DECISION_LOG.md has ${decisionPointers} archive pointers, trigger ${DECISION_ARCHIVE_POINTER_TRIGGER}`);
   }
 
