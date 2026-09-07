@@ -569,29 +569,45 @@ final class SupabaseGroomerProfileRepository: GroomerProfileRepository {
         groomerID: UUID,
         drafts: [GroomerAvailabilityDraft]
     ) async throws -> [GroomerAvailabilityWindow] {
+        throw GroomerProfileRepositoryError.availabilityUpdateRequired
+    }
+
+    func availabilitySnapshot(groomerID: UUID) async throws -> GroomerAvailabilitySnapshot {
         do {
-            try await client
-                .from("groomer_availability_windows")
-                .delete()
-                .eq("groomer_id", value: groomerID.uuidString.lowercased())
-                .execute()
+            let row: GroomerAvailabilitySnapshotRow = try await client
+                .rpc("get_groomer_availability").execute().value
+            return try row.snapshot(groomerID: groomerID)
+        } catch let error as PostgrestError where error.code == "PGRST202" {
+            // Older deployments remain readable, but never enable partial saves.
+            let windows = try await availabilityWindows(groomerID: groomerID)
+            let preferences = try await bookingPreferences(groomerID: groomerID)
+            let timeOff = try await timeOffWindows(groomerID: groomerID)
+            return GroomerAvailabilitySnapshot(revision: nil, windows: windows, preferences: preferences, timeOff: timeOff)
+        } catch {
+            throw Self.map(error)
+        }
+    }
 
-            let rows: [GroomerAvailabilityWindowRow] = try await client
-                .from("groomer_availability_windows")
-                .insert(
-                    drafts.map {
-                        GroomerAvailabilityWindowInsertRow(
-                            groomerID: groomerID,
-                            draft: $0
-                        )
-                    }
+    func saveAvailability(
+        groomerID: UUID,
+        expectedRevision: String,
+        windows: [GroomerAvailabilityDraft],
+        preferences: GroomerBookingPreferencesDraft,
+        timeOff: [GroomerTimeOffWindow]
+    ) async throws -> GroomerAvailabilitySnapshot {
+        do {
+            let row: GroomerAvailabilitySnapshotRow = try await client.rpc(
+                "save_groomer_availability",
+                params: GroomerAvailabilitySaveParams(
+                    p_expected_revision: expectedRevision,
+                    p_windows: windows.map { GroomerAvailabilityWindowInsertRow(groomerID: groomerID, draft: $0) },
+                    p_preferences: GroomerBookingPreferencesUpsertRow(groomerID: groomerID, draft: preferences),
+                    p_time_off: timeOff.map { GroomerAvailabilityTimeOffParams(window: $0) }
                 )
-                .select(Self.availabilityColumns)
-                .order("weekday")
-                .execute()
-                .value
-
-            return rows.compactMap(\.window)
+            ).execute().value
+            return try row.snapshot(groomerID: groomerID)
+        } catch let error as PostgrestError where error.code == "PGRST202" {
+            throw GroomerProfileRepositoryError.availabilityUpdateRequired
         } catch {
             throw Self.map(error)
         }
@@ -601,30 +617,7 @@ final class SupabaseGroomerProfileRepository: GroomerProfileRepository {
         groomerID: UUID,
         draft: GroomerBookingPreferencesDraft
     ) async throws -> GroomerBookingPreferences {
-        do {
-            let rows: [GroomerBookingPreferencesRow] = try await client
-                .from("groomer_booking_preferences")
-                .upsert(
-                    GroomerBookingPreferencesUpsertRow(
-                        groomerID: groomerID,
-                        draft: draft
-                    ),
-                    onConflict: "groomer_id"
-                )
-                .select(Self.bookingPreferencesColumns)
-                .execute()
-                .value
-
-            guard rows.count == 1, let preferences = rows.first?.preferences else {
-                throw GroomerProfileRepositoryError.unavailable
-            }
-
-            return preferences
-        } catch let error as GroomerProfileRepositoryError {
-            throw error
-        } catch {
-            throw Self.map(error)
-        }
+        throw GroomerProfileRepositoryError.availabilityUpdateRequired
     }
 
     func replaceFitClaims(
@@ -720,37 +713,11 @@ final class SupabaseGroomerProfileRepository: GroomerProfileRepository {
         groomerID: UUID,
         draft: GroomerTimeOffDraft
     ) async throws -> GroomerTimeOffWindow {
-        do {
-            let rows: [GroomerTimeOffWindowRow] = try await client
-                .from("groomer_time_off_windows")
-                .insert(GroomerTimeOffWindowInsertRow(groomerID: groomerID, draft: draft))
-                .select(Self.timeOffColumns)
-                .execute()
-                .value
-
-            guard rows.count == 1 else {
-                throw GroomerProfileRepositoryError.unavailable
-            }
-
-            return rows[0].window
-        } catch let error as GroomerProfileRepositoryError {
-            throw error
-        } catch {
-            throw Self.map(error)
-        }
+        throw GroomerProfileRepositoryError.availabilityUpdateRequired
     }
 
     func deleteTimeOff(_ window: GroomerTimeOffWindow) async throws {
-        do {
-            try await client
-                .from("groomer_time_off_windows")
-                .delete()
-                .eq("id", value: window.id.uuidString.lowercased())
-                .eq("groomer_id", value: window.groomerID.uuidString.lowercased())
-                .execute()
-        } catch {
-            throw Self.map(error)
-        }
+        throw GroomerProfileRepositoryError.availabilityUpdateRequired
     }
 
     private static func normalized(_ value: String?) -> String? {
@@ -836,6 +803,9 @@ final class SupabaseGroomerProfileRepository: GroomerProfileRepository {
         }
 
         if let postgrestError = error as? PostgrestError {
+            if postgrestError.message == "availability_revision_conflict" {
+                return .availabilityConflict
+            }
             switch postgrestError.code {
             case "42501":
                 return .notAllowed
@@ -1079,6 +1049,49 @@ private struct GroomerAvailabilityWindowRow: Decodable {
         case endTime = "end_time"
         case isEnabled = "is_enabled"
         case timezone
+    }
+}
+
+private struct GroomerAvailabilitySnapshotRow: Decodable {
+    let revision: String
+    let windows: [GroomerAvailabilityWindowRow]
+    let preferences: GroomerBookingPreferencesRow
+    let time_off: [GroomerTimeOffWindowRow]
+
+    func snapshot(groomerID: UUID) throws -> GroomerAvailabilitySnapshot {
+        let decodedWindows = windows.compactMap(\.window)
+        guard decodedWindows.count == windows.count,
+              decodedWindows.allSatisfy({ $0.groomerID == groomerID }),
+              preferences.groomerID == groomerID,
+              time_off.allSatisfy({ $0.groomerID == groomerID }),
+              !revision.isEmpty else {
+            throw GroomerProfileRepositoryError.unavailable
+        }
+        return GroomerAvailabilitySnapshot(
+            revision: revision, windows: decodedWindows,
+            preferences: preferences.preferences, timeOff: time_off.map(\.window)
+        )
+    }
+}
+
+private struct GroomerAvailabilitySaveParams: Encodable {
+    let p_expected_revision: String
+    let p_windows: [GroomerAvailabilityWindowInsertRow]
+    let p_preferences: GroomerBookingPreferencesUpsertRow
+    let p_time_off: [GroomerAvailabilityTimeOffParams]
+}
+
+private struct GroomerAvailabilityTimeOffParams: Encodable {
+    let id: UUID
+    let title: String
+    let start_date: String
+    let end_date: String
+
+    init(window: GroomerTimeOffWindow) {
+        id = window.id
+        title = window.title
+        start_date = window.startDate
+        end_date = window.endDate
     }
 }
 

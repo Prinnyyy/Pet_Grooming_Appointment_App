@@ -3,6 +3,35 @@ import Foundation
 
 @MainActor
 final class GroomerProfileRepositoryFake: GroomerProfileRepository {
+    var saveAvailabilityError: GroomerProfileRepositoryError?
+    private(set) var saveAvailabilityCallCount = 0
+    private(set) var lastSavedTimeOff: [GroomerTimeOffWindow] = []
+
+    func availabilitySnapshot(groomerID: UUID) async throws -> GroomerAvailabilitySnapshot {
+        let windows = try await availabilityWindows(groomerID: groomerID)
+        let preferences = try await bookingPreferences(groomerID: groomerID)
+        let timeOff = try await timeOffWindows(groomerID: groomerID)
+        return GroomerAvailabilitySnapshot(revision: "fixture", windows: windows, preferences: preferences, timeOff: timeOff)
+    }
+
+    func saveAvailability(
+        groomerID: UUID, expectedRevision: String, windows: [GroomerAvailabilityDraft],
+        preferences: GroomerBookingPreferencesDraft, timeOff: [GroomerTimeOffWindow]
+    ) async throws -> GroomerAvailabilitySnapshot {
+        saveAvailabilityCallCount += 1
+        lastAvailabilityDrafts = windows
+        lastBookingPreferencesDraft = preferences
+        lastSavedTimeOff = timeOff
+        if let saveAvailabilityError { throw saveAvailabilityError }
+        return GroomerAvailabilitySnapshot(revision: "saved", windows: windows.map {
+            GroomerAvailabilityWindow(id: UUID(), groomerID: groomerID, weekday: $0.weekday,
+                startMinutes: $0.startMinutes, endMinutes: $0.endMinutes, isEnabled: $0.isEnabled, timezone: $0.timezone)
+        }, preferences: GroomerBookingPreferences(groomerID: groomerID,
+            maxAppointmentsPerDay: preferences.maxAppointmentsPerDay,
+            minimumAdvanceNoticeDays: preferences.minimumAdvanceNoticeDays, autoAcceptBookings: preferences.autoAcceptBookings),
+            timeOff: timeOff)
+    }
+
     var profileResult: Result<GroomerProfile, GroomerProfileRepositoryError>
     var servicesResult: Result<[GroomerService], GroomerProfileRepositoryError>
     var portfolioResult: Result<[GroomerPortfolioPhoto], GroomerProfileRepositoryError>

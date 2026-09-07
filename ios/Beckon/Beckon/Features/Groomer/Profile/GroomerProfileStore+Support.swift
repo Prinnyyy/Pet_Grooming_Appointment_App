@@ -163,6 +163,10 @@ extension GroomerProfileStore {
             "The profile action was cancelled."
         case .unavailable:
             "We could not \(action) groomer profile details. Please try again."
+        case .availabilityConflict:
+            "Your saved availability changed. Your edits are still here. Reload the saved schedule before trying again."
+        case .availabilityUpdateRequired:
+            "Availability saving is temporarily unavailable. Your saved schedule has not been changed."
         }
     }
 

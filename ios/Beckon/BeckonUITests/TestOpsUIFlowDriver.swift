@@ -224,6 +224,71 @@ final class TestOpsUIFlowDriver {
         }
     }
 
+    func assertAvailabilitySavePersists() {
+        assertTab("groomer.tab.account", destination: "groomer.account.home")
+        tap(button("groomer.account.availability"))
+        let monday = app.switches["Monday"].firstMatch
+        XCTAssertTrue(monday.waitForExistence(timeout: 8))
+        let baseline = monday.value as? String
+        XCTAssertNotNil(baseline)
+        tap(monday)
+        let changed = monday.value as? String
+        XCTAssertNotEqual(changed, baseline)
+        tap(button("groomer.availability.save"))
+        XCTAssertTrue(app.staticTexts["Availability Saved"].firstMatch.waitForExistence(timeout: 15))
+        XCTAssertFalse(element("groomer.availability.error").exists)
+        tap(app.buttons["Reload saved availability"].firstMatch)
+        tap(app.buttons["Reload"].firstMatch)
+        let restored = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "value == %@ AND enabled == true", changed ?? ""),
+            object: monday
+        )
+        XCTAssertEqual(XCTWaiter.wait(for: [restored], timeout: 12), .completed)
+        tap(backButton)
+        XCTAssertTrue(element("groomer.account.home").waitForExistence(timeout: 8))
+    }
+
+    func assertAvailabilityDraftRecovery() {
+        assertTab("groomer.tab.account", destination: "groomer.account.home")
+        tap(button("groomer.account.availability"))
+        let editor = element("groomer.availability.edit")
+        XCTAssertTrue(editor.waitForExistence(timeout: 12))
+        let monday = app.switches["Monday"].firstMatch
+        XCTAssertTrue(monday.waitForExistence(timeout: 8))
+        let baseline = monday.value as? String
+        XCTAssertNotNil(baseline)
+        tap(monday)
+        XCTAssertNotEqual(monday.value as? String, baseline)
+        tap(backButton)
+        let discard = app.buttons["Discard Changes"].firstMatch
+        XCTAssertTrue(discard.waitForExistence(timeout: 5))
+        let cancel = app.buttons["Cancel"].firstMatch
+        if cancel.exists {
+            tap(cancel)
+        } else {
+            tap(app.otherElements["PopoverDismissRegion"].firstMatch)
+        }
+        XCTAssertTrue(editor.exists)
+        XCTAssertNotEqual(monday.value as? String, baseline)
+
+        tap(backButton)
+        tap(discard)
+        XCTAssertTrue(element("groomer.account.home").waitForExistence(timeout: 8))
+        tap(button("groomer.account.availability"))
+        XCTAssertTrue(monday.waitForExistence(timeout: 8))
+        XCTAssertEqual(monday.value as? String, baseline)
+
+        tap(monday)
+        tap(app.buttons["Reload saved availability"].firstMatch)
+        tap(app.buttons["Reload"].firstMatch)
+        let restored = NSPredicate(format: "value == %@ AND enabled == true", baseline ?? "")
+        let restoredExpectation = XCTNSPredicateExpectation(predicate: restored, object: monday)
+        XCTAssertEqual(XCTWaiter.wait(for: [restoredExpectation], timeout: 12), .completed)
+        XCTAssertFalse(element("groomer.availability.error").exists)
+        tap(backButton)
+        XCTAssertTrue(element("groomer.account.home").waitForExistence(timeout: 8))
+    }
+
     func openAndDismissCustomerRequestSheet() {
         let startRequest = app.buttons["customer.home.start-request"]
         XCTAssertTrue(startRequest.waitForExistence(timeout: 8))

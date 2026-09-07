@@ -5,6 +5,8 @@ enum GroomerProfileRepositoryError: Error, Equatable, Sendable {
     case networkUnavailable
     case cancelled
     case unavailable
+    case availabilityConflict
+    case availabilityUpdateRequired
 }
 
 @MainActor
@@ -16,6 +18,14 @@ protocol GroomerProfileRepository: AnyObject {
     func availabilityWindows(groomerID: UUID) async throws -> [GroomerAvailabilityWindow]
     func bookingPreferences(groomerID: UUID) async throws -> GroomerBookingPreferences
     func timeOffWindows(groomerID: UUID) async throws -> [GroomerTimeOffWindow]
+    func availabilitySnapshot(groomerID: UUID) async throws -> GroomerAvailabilitySnapshot
+    func saveAvailability(
+        groomerID: UUID,
+        expectedRevision: String,
+        windows: [GroomerAvailabilityDraft],
+        preferences: GroomerBookingPreferencesDraft,
+        timeOff: [GroomerTimeOffWindow]
+    ) async throws -> GroomerAvailabilitySnapshot
     func fitClaims(groomerID: UUID) async throws -> [GroomerFitClaim]
     func petFitEvidenceSummary(groomerID: UUID) async throws -> [GroomerPetFitEvidenceSummary]
 
@@ -93,6 +103,23 @@ protocol GroomerProfileRepository: AnyObject {
 }
 
 extension GroomerProfileRepository {
+    func availabilitySnapshot(groomerID: UUID) async throws -> GroomerAvailabilitySnapshot {
+        let windows = try await availabilityWindows(groomerID: groomerID)
+        let preferences = try await bookingPreferences(groomerID: groomerID)
+        let timeOff = try await timeOffWindows(groomerID: groomerID)
+        return GroomerAvailabilitySnapshot(revision: nil, windows: windows, preferences: preferences, timeOff: timeOff)
+    }
+
+    func saveAvailability(
+        groomerID: UUID,
+        expectedRevision: String,
+        windows: [GroomerAvailabilityDraft],
+        preferences: GroomerBookingPreferencesDraft,
+        timeOff: [GroomerTimeOffWindow]
+    ) async throws -> GroomerAvailabilitySnapshot {
+        throw GroomerProfileRepositoryError.availabilityUpdateRequired
+    }
+
     func updateProfile(
         groomerID: UUID,
         draft: GroomerProfileDraft,

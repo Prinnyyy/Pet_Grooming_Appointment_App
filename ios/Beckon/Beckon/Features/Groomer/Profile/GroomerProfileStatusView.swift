@@ -351,6 +351,21 @@ private final class GroomerProfilePreviewRepository: GroomerProfileRepository {
         return storedAvailability
     }
 
+    func availabilitySnapshot(groomerID: UUID) async throws -> GroomerAvailabilitySnapshot {
+        GroomerAvailabilitySnapshot(revision: "preview", windows: storedAvailability,
+            preferences: storedBookingPreferences, timeOff: storedTimeOff)
+    }
+
+    func saveAvailability(
+        groomerID: UUID, expectedRevision: String, windows: [GroomerAvailabilityDraft],
+        preferences: GroomerBookingPreferencesDraft, timeOff: [GroomerTimeOffWindow]
+    ) async throws -> GroomerAvailabilitySnapshot {
+        _ = try await replaceAvailability(groomerID: groomerID, drafts: windows)
+        _ = try await updateBookingPreferences(groomerID: groomerID, draft: preferences)
+        storedTimeOff = timeOff
+        return try await availabilitySnapshot(groomerID: groomerID)
+    }
+
     func updateBookingPreferences(
         groomerID: UUID,
         draft: GroomerBookingPreferencesDraft

@@ -1183,6 +1183,25 @@ final class DebugGroomerProfileRepository: GroomerProfileRepository {
         }
     }
 
+    func availabilitySnapshot(groomerID: UUID) async throws -> GroomerAvailabilitySnapshot {
+        try await groomerCall("availabilitySnapshot", groomerID: groomerID) {
+            try await base.availabilitySnapshot(groomerID: groomerID)
+        }
+    }
+
+    func saveAvailability(
+        groomerID: UUID,
+        expectedRevision: String,
+        windows: [GroomerAvailabilityDraft],
+        preferences: GroomerBookingPreferencesDraft,
+        timeOff: [GroomerTimeOffWindow]
+    ) async throws -> GroomerAvailabilitySnapshot {
+        try await groomerCall("saveAvailability", groomerID: groomerID) {
+            try await base.saveAvailability(groomerID: groomerID, expectedRevision: expectedRevision,
+                windows: windows, preferences: preferences, timeOff: timeOff)
+        }
+    }
+
     func updateBookingPreferences(
         groomerID: UUID,
         draft: GroomerBookingPreferencesDraft

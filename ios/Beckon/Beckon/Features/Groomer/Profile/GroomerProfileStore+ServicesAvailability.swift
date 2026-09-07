@@ -145,15 +145,17 @@ extension GroomerProfileStore {
 
     func saveAvailability() async {
         guard !isSaving else { return }
+        guard !availabilitySaveNeedsReconciliation else {
+            errorMessage = "Reload the saved schedule to confirm its current state before saving again."
+            return
+        }
 
         errorMessage = nil
         noticeMessage = nil
 
-        let profileDraft: GroomerProfileDraft
         let drafts: [GroomerAvailabilityDraft]
         let preferencesDraft: GroomerBookingPreferencesDraft
         do {
-            profileDraft = try makeProfileDraft()
             drafts = try makeAvailabilityDrafts()
             preferencesDraft = try makeBookingPreferencesDraft()
         } catch let error as GroomerProfileFormError {
@@ -169,33 +171,87 @@ extension GroomerProfileStore {
         defer { isSaving = false }
 
         do {
-            let currentAvatarPath = profile?.avatarPath
-            var updatedProfile = try await repository.updateProfile(
-                groomerID: groomerID,
-                draft: profileDraft
-            )
-            if updatedProfile.avatarPath == nil {
-                updatedProfile.avatarPath = currentAvatarPath
+            guard let revision = savedAvailability?.revision else {
+                throw GroomerProfileRepositoryError.availabilityUpdateRequired
             }
-            let updatedWindows = try await repository.replaceAvailability(
+            let snapshot = try await repository.saveAvailability(
                 groomerID: groomerID,
-                drafts: drafts
+                expectedRevision: revision,
+                windows: drafts,
+                preferences: preferencesDraft,
+                timeOff: timeOffWindows
             )
-            let updatedPreferences = try await repository.updateBookingPreferences(
-                groomerID: groomerID,
-                draft: preferencesDraft
-            )
-            profile = updatedProfile
-            availabilityWindows = updatedWindows
-            bookingPreferences = updatedPreferences
-            populateProfileForm(with: updatedProfile)
-            populateAvailabilityForm(with: updatedWindows)
-            populateBookingPreferencesForm(with: updatedPreferences)
+            applyAvailabilitySnapshot(snapshot)
             noticeMessage = "Availability saved."
         } catch let error as GroomerProfileRepositoryError {
-            errorMessage = message(for: error, action: "save availability")
+            switch error {
+            case .notAllowed, .availabilityUpdateRequired:
+                errorMessage = message(for: error, action: "save availability")
+            case .availabilityConflict:
+                availabilitySaveNeedsReconciliation = true
+                errorMessage = message(for: error, action: "save availability")
+            case .networkUnavailable, .cancelled, .unavailable:
+                markAvailabilitySaveUnresolved()
+            }
         } catch {
-            errorMessage = message(for: .unavailable, action: "save availability")
+            markAvailabilitySaveUnresolved()
+        }
+    }
+
+    private func markAvailabilitySaveUnresolved() {
+        availabilitySaveNeedsReconciliation = true
+        errorMessage = "We could not confirm whether availability was saved. Your edits are still here. Reload the saved schedule before trying again."
+    }
+
+    func applyAvailabilitySnapshot(_ snapshot: GroomerAvailabilitySnapshot) {
+        availabilitySaveNeedsReconciliation = false
+        savedAvailability = snapshot
+        availabilityWindows = snapshot.windows
+        bookingPreferences = snapshot.preferences
+        timeOffWindows = snapshot.timeOff
+        populateAvailabilityForm(with: snapshot.windows)
+        populateBookingPreferencesForm(with: snapshot.preferences)
+    }
+
+    func discardAvailabilityEdits() {
+        guard !isSaving else { return }
+        let needsReconciliation = availabilitySaveNeedsReconciliation
+        if let savedAvailability { applyAvailabilitySnapshot(savedAvailability) }
+        availabilitySaveNeedsReconciliation = needsReconciliation
+        errorMessage = nil
+        noticeMessage = nil
+    }
+
+    var hasAvailabilityEdits: Bool {
+        guard let savedAvailability else { return !timeOffWindows.isEmpty }
+        var savedStates = GroomerAvailabilityDayState.defaultStates()
+        for window in savedAvailability.windows {
+            guard let index = savedStates.firstIndex(where: { $0.weekday == window.weekday }) else { continue }
+            savedStates[index] = GroomerAvailabilityDayState(
+                weekday: window.weekday, isEnabled: window.isEnabled,
+                startMinutes: window.startMinutes, endMinutes: window.endMinutes
+            )
+        }
+        return timeOffWindows != savedAvailability.timeOff
+            || maxAppointmentsPerDay != savedAvailability.preferences.maxAppointmentsPerDay
+            || minimumAdvanceNoticeDays != savedAvailability.preferences.minimumAdvanceNoticeDays
+            || autoAcceptBookings != savedAvailability.preferences.autoAcceptBookings
+            || availabilityDayStates != savedStates
+            || savedAvailability.windows.contains { availabilityTimezone != $0.timezone }
+    }
+
+    func reloadAvailability() async {
+        guard !isBusy else { return }
+        isSaving = true
+        profileMutationRevision += 1
+        defer { isSaving = false }
+        do {
+            let snapshot = try await repository.availabilitySnapshot(groomerID: groomerID)
+            applyAvailabilitySnapshot(snapshot)
+            errorMessage = nil
+            noticeMessage = nil
+        } catch {
+            errorMessage = "Could not reload availability. Your edits are still here."
         }
     }
 
@@ -228,49 +284,29 @@ extension GroomerProfileStore {
             return
         }
 
-        isSaving = true
-        defer { isSaving = false }
-
-        do {
-            let window = try await repository.createTimeOff(
-                groomerID: groomerID,
-                draft: draft
-            )
-            timeOffWindows.append(window)
-            timeOffWindows.sort {
-                if $0.startDate == $1.startDate {
-                    $0.title < $1.title
-                } else {
-                    $0.startDate < $1.startDate
-                }
+        let window = GroomerTimeOffWindow(
+            id: UUID(), groomerID: groomerID, title: draft.title,
+            startDate: draft.startDate, endDate: draft.endDate
+        )
+        timeOffWindows.append(window)
+        timeOffWindows.sort {
+            if $0.startDate == $1.startDate {
+                $0.title < $1.title
+            } else {
+                $0.startDate < $1.startDate
             }
-            isShowingTimeOffForm = false
-            resetTimeOffForm()
-            noticeMessage = "Time off added."
-        } catch let error as GroomerProfileRepositoryError {
-            errorMessage = message(for: error, action: "save time off")
-        } catch {
-            errorMessage = message(for: .unavailable, action: "save time off")
         }
+        isShowingTimeOffForm = false
+        resetTimeOffForm()
+        noticeMessage = nil
     }
 
     func deleteTimeOff(_ window: GroomerTimeOffWindow) async {
         guard !isSaving else { return }
 
-        isSaving = true
         errorMessage = nil
         noticeMessage = nil
-        defer { isSaving = false }
-
-        do {
-            try await repository.deleteTimeOff(window)
-            timeOffWindows.removeAll { $0.id == window.id }
-            noticeMessage = "Time off removed."
-        } catch let error as GroomerProfileRepositoryError {
-            errorMessage = message(for: error, action: "delete time off")
-        } catch {
-            errorMessage = message(for: .unavailable, action: "delete time off")
-        }
+        timeOffWindows.removeAll { $0.id == window.id }
     }
 
     func resetTimeOffForm() {
@@ -333,7 +369,7 @@ extension GroomerProfileStore {
                     )
                 }
 
-                if state.isEnabled, state.endMinutes <= state.startMinutes {
+                if state.endMinutes <= state.startMinutes {
                     throw GroomerProfileFormError(
                         message: "\(state.weekday.title) availability needs an end time after the start time."
                     )

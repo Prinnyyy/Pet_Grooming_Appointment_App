@@ -44,4 +44,27 @@ final class TestOpsLaunchSmokeTests: XCTestCase {
         driver.signIn(account)
         driver.assertGroomerFocusedAccountWorkspaces()
     }
+
+    @MainActor
+    func testSeededGroomerAvailabilityDraftCanBeKeptDiscardedAndReloaded() throws {
+        let account = try TestOpsSeedAccount.fromEnvironment(role: .groomer)
+        let driver = TestOpsUIFlowDriver()
+        driver.launchSignedOut()
+        driver.signIn(account)
+        driver.assertAvailabilityDraftRecovery()
+    }
+
+    @MainActor
+    func testSeededGroomerAvailabilitySavePersistsAfterReload() throws {
+        let environment = ProcessInfo.processInfo.environment
+        guard (environment["TESTOPS_AVAILABILITY_WRITE_APPROVED"]
+            ?? environment["TEST_RUNNER_TESTOPS_AVAILABILITY_WRITE_APPROVED"]) == "1" else {
+            throw XCTSkip("Run through the authorized T-371 fixture backup/restore wrapper.")
+        }
+        let account = try TestOpsSeedAccount.fromEnvironment(role: .groomer)
+        let driver = TestOpsUIFlowDriver()
+        driver.launchSignedOut()
+        driver.signIn(account)
+        driver.assertAvailabilitySavePersists()
+    }
 }

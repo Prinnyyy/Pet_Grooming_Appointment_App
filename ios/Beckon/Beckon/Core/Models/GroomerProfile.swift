@@ -364,6 +364,13 @@ struct GroomerAvailabilityDraft: Equatable, Sendable {
     let timezone: String
 }
 
+struct GroomerAvailabilitySnapshot: Equatable, Sendable {
+    let revision: String?
+    let windows: [GroomerAvailabilityWindow]
+    let preferences: GroomerBookingPreferences
+    let timeOff: [GroomerTimeOffWindow]
+}
+
 struct GroomerBookingPreferences: Equatable, Sendable {
     let groomerID: UUID
     let maxAppointmentsPerDay: Int

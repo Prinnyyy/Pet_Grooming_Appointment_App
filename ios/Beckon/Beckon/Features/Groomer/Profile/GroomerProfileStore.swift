@@ -26,6 +26,9 @@ final class GroomerProfileStore {
     var availabilityWindows: [GroomerAvailabilityWindow] = []
     var bookingPreferences: GroomerBookingPreferences?
     var timeOffWindows: [GroomerTimeOffWindow] = []
+    var savedAvailability: GroomerAvailabilitySnapshot?
+    var availabilitySaveNeedsReconciliation = false
+    var isEditingAvailability = false
     var fitClaims: [GroomerFitClaim] = []
     private(set) var petFitEvidenceSummary: [GroomerPetFitEvidenceSummary] = []
     var selectedFitClaimIDs: Set<String> = []
@@ -198,9 +201,7 @@ final class GroomerProfileStore {
             let loadedPortfolioFitTags = try await repository.portfolioFitTags(
                 groomerID: groomerID
             )
-            let loadedAvailability = try await repository.availabilityWindows(groomerID: groomerID)
-            let loadedBookingPreferences = try await repository.bookingPreferences(groomerID: groomerID)
-            let loadedTimeOff = try await repository.timeOffWindows(groomerID: groomerID)
+            let loadedSchedule = try await repository.availabilitySnapshot(groomerID: groomerID)
             let loadedFitClaims = try await repository.fitClaims(groomerID: groomerID)
             let loadedPetFitEvidenceSummary = try await repository.petFitEvidenceSummary(
                 groomerID: groomerID
@@ -220,14 +221,12 @@ final class GroomerProfileStore {
                 with: loadedPortfolioFitTags,
                 visiblePhotos: loadedPhotos
             )
-            availabilityWindows = loadedAvailability
-            bookingPreferences = loadedBookingPreferences
-            timeOffWindows = loadedTimeOff
+            if !isEditingAvailability || savedAvailability == nil {
+                applyAvailabilitySnapshot(loadedSchedule)
+            }
             populateFitClaims(with: loadedFitClaims)
             populatePetFitEvidenceSummary(with: loadedPetFitEvidenceSummary)
             populateProfileForm(with: loadedProfile)
-            populateAvailabilityForm(with: loadedAvailability)
-            populateBookingPreferencesForm(with: loadedBookingPreferences)
             resetTimeOffForm()
             isLoading = false
             saveProfileSnapshot(profile: loadedProfile, avatarData: avatarPhotoData)

@@ -6,6 +6,9 @@ nonisolated enum GroomerTimeOffFocusTarget: String, CaseIterable, Hashable {
 
 struct GroomerAvailabilityEditorView: View {
     @Bindable var store: GroomerProfileStore
+    @State private var isConfirmingReload = false
+    @State private var isConfirmingLeave = false
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         let presentation = GroomerAvailabilityWorkspacePresentation(
@@ -18,8 +21,6 @@ struct GroomerAvailabilityEditorView: View {
 
         ScrollView {
             LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
-                GroomerAvailabilityMatchingSection(isActive: $store.isActive)
-
                 GroomerAvailabilityWeeklyHoursSection(
                     dayStates: $store.availabilityDayStates,
                     openDaysSummary: presentation.openDaysSummary
@@ -35,19 +36,60 @@ struct GroomerAvailabilityEditorView: View {
 
                 if let errorMessage = store.errorMessage {
                     BeckonErrorBanner(
-                        title: "Availability Could Not Be Saved",
+                        title: "Availability Needs Attention",
                         message: errorMessage
                     )
                     .accessibilityIdentifier("groomer.availability.error")
                 }
             }
+            .disabled(store.isBusy)
             .beckonPageInsets()
         }
         .accessibilityIdentifier("groomer.availability.edit")
         .background(DesignTokens.Colors.background.ignoresSafeArea())
         .navigationTitle("Availability")
         .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden()
         .toolbar(.hidden, for: .tabBar)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    if store.hasAvailabilityEdits { isConfirmingLeave = true }
+                    else { dismiss() }
+                } label: {
+                    Image(systemName: "chevron.left")
+                }
+                .accessibilityLabel("Back")
+                .accessibilityIdentifier("BackButton")
+                .disabled(store.isSaving)
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    isConfirmingReload = true
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                }
+                .accessibilityLabel("Reload saved availability")
+                .help("Reload saved availability")
+                .disabled(store.isBusy)
+            }
+        }
+        .confirmationDialog("Discard edits and reload saved availability?", isPresented: $isConfirmingReload) {
+            Button("Reload", role: .destructive) {
+                Task { await store.reloadAvailability() }
+            }
+        }
+        .confirmationDialog("Discard availability changes?", isPresented: $isConfirmingLeave) {
+            Button("Discard Changes", role: .destructive) {
+                store.discardAvailabilityEdits()
+                dismiss()
+            }
+        }
+        .onAppear { store.isEditingAvailability = true }
+        .onDisappear {
+            store.isEditingAvailability = false
+            store.discardAvailabilityEdits()
+        }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             GroomerAvailabilitySaveActionBar(
                 presentation: presentation,

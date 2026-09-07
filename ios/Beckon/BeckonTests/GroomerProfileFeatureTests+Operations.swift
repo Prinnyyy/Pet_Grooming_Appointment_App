@@ -5,13 +5,14 @@ import UIKit
 
 extension GroomerProfileStoreTests {
     @Test @MainActor
-    func saveAvailabilityPersistsProfileWeeklyHoursAndBookingPreferences() async {
+    func saveAvailabilityDoesNotPersistUnrelatedProfileEdits() async throws {
         let groomerID = UUID()
         let repository = GroomerProfileRepositoryFake()
         let store = GroomerProfileStore(
             groomerID: groomerID,
             repository: repository
         )
+        store.applyAvailabilitySnapshot(try await repository.availabilitySnapshot(groomerID: groomerID))
         store.isActive = true
         store.businessName = "Fresh Coat"
         store.baseStreetAddress = "123 Pine Street"
@@ -38,10 +39,10 @@ extension GroomerProfileStoreTests {
 
         await store.saveAvailability()
 
-        #expect(repository.updateProfileCallCount == 1)
-        #expect(repository.replaceAvailabilityCallCount == 1)
-        #expect(repository.updateBookingPreferencesCallCount == 1)
-        #expect(repository.lastProfileDraft?.isActive == true)
+        #expect(repository.updateProfileCallCount == 0)
+        #expect(repository.saveAvailabilityCallCount == 1)
+        #expect(repository.replaceAvailabilityCallCount == 0)
+        #expect(repository.updateBookingPreferencesCallCount == 0)
         #expect(repository.lastAvailabilityDrafts.map(\.weekday) == GroomerAvailabilityWeekday.allCases)
         #expect(repository.lastBookingPreferencesDraft?.maxAppointmentsPerDay == 6)
         #expect(repository.lastBookingPreferencesDraft?.minimumAdvanceNoticeDays == 2)
@@ -77,6 +78,151 @@ extension GroomerProfileStoreTests {
     }
 
     @Test @MainActor
+    func availabilityFailuresPreserveDraftAndAuthoritativeSnapshot() async throws {
+        for error: GroomerProfileRepositoryError in [.unavailable, .networkUnavailable, .availabilityConflict] {
+            let id = UUID()
+            let repository = GroomerProfileRepositoryFake()
+            repository.saveAvailabilityError = error
+            let store = GroomerProfileStore(groomerID: id, repository: repository)
+            let saved = try await repository.availabilitySnapshot(groomerID: id)
+            store.applyAvailabilitySnapshot(saved)
+            store.maxAppointmentsPerDay = 9
+            store.timeOffTitle = "Vacation"
+            await store.createTimeOff()
+            let pendingTimeOff = store.timeOffWindows
+
+            await store.saveAvailability()
+
+            #expect(store.savedAvailability == saved)
+            #expect(store.maxAppointmentsPerDay == 9)
+            #expect(store.timeOffWindows == pendingTimeOff)
+            #expect(repository.lastSavedTimeOff == pendingTimeOff)
+            #expect(repository.replaceAvailabilityCallCount == 0)
+            #expect(store.errorMessage != nil)
+            #expect(store.noticeMessage == nil)
+            #expect(!store.isSaving)
+        }
+    }
+
+    @Test @MainActor
+    func availabilitySaveIgnoresInvalidProfileAndCommitsTimeOffTogether() async throws {
+        let id = UUID()
+        let repository = GroomerProfileRepositoryFake()
+        let store = GroomerProfileStore(groomerID: id, repository: repository)
+        store.applyAvailabilitySnapshot(try await repository.availabilitySnapshot(groomerID: id))
+        store.isActive = true
+        store.businessName = ""
+        store.timeOffTitle = "Vacation"
+        await store.createTimeOff()
+        let pending = store.timeOffWindows
+
+        await store.saveAvailability()
+
+        #expect(repository.saveAvailabilityCallCount == 1)
+        #expect(repository.updateProfileCallCount == 0)
+        #expect(store.savedAvailability?.timeOff == pending)
+        #expect(store.savedAvailability?.revision == "saved")
+        #expect(store.businessName == "")
+        #expect(store.errorMessage == nil)
+    }
+
+    @Test @MainActor
+    func uncertainAvailabilitySaveRequiresReloadBeforeAnotherWrite() async throws {
+        let id = UUID()
+        let repository = GroomerProfileRepositoryFake()
+        let store = GroomerProfileStore(groomerID: id, repository: repository)
+        store.applyAvailabilitySnapshot(try await repository.availabilitySnapshot(groomerID: id))
+        repository.saveAvailabilityError = .networkUnavailable
+        store.maxAppointmentsPerDay = 9
+
+        await store.saveAvailability()
+        #expect(store.errorMessage?.contains("confirm") == true)
+        await store.saveAvailability()
+        #expect(repository.saveAvailabilityCallCount == 1)
+        #expect(store.maxAppointmentsPerDay == 9)
+
+        repository.saveAvailabilityError = nil
+        await store.reloadAvailability()
+        await store.saveAvailability()
+        #expect(repository.saveAvailabilityCallCount == 2)
+        #expect(store.noticeMessage == "Availability saved.")
+    }
+
+    @Test @MainActor
+    func failedAvailabilityReloadPreservesDraftAndUnresolvedWrite() async throws {
+        let id = UUID()
+        let repository = GroomerProfileRepositoryFake()
+        let store = GroomerProfileStore(groomerID: id, repository: repository)
+        let saved = try await repository.availabilitySnapshot(groomerID: id)
+        store.applyAvailabilitySnapshot(saved)
+        repository.saveAvailabilityError = .networkUnavailable
+        store.maxAppointmentsPerDay = 9
+        await store.saveAvailability()
+        repository.availabilityResult = .failure(.networkUnavailable)
+        await store.reloadAvailability()
+        await store.saveAvailability()
+        #expect(repository.saveAvailabilityCallCount == 1)
+        #expect(store.savedAvailability == saved)
+        #expect(store.maxAppointmentsPerDay == 9)
+    }
+
+    @Test @MainActor
+    func disabledUnpersistedDayEditsStillRequireDiscardConfirmation() async throws {
+        let id = UUID()
+        let repository = GroomerProfileRepositoryFake()
+        let store = GroomerProfileStore(groomerID: id, repository: repository)
+        store.applyAvailabilitySnapshot(try await repository.availabilitySnapshot(groomerID: id))
+        #expect(!store.hasAvailabilityEdits)
+        store.setAvailability(day: .monday, isEnabled: false, startMinutes: 600, endMinutes: 720)
+        #expect(store.hasAvailabilityEdits)
+        store.discardAvailabilityEdits()
+        #expect(!store.hasAvailabilityEdits)
+    }
+
+    @Test @MainActor
+    func unversionedAvailabilityNeverFallsBackToPartialWrites() async {
+        let repository = GroomerProfileRepositoryFake()
+        let store = GroomerProfileStore(groomerID: UUID(), repository: repository)
+        await store.saveAvailability()
+        #expect(repository.saveAvailabilityCallCount == 0)
+        #expect(repository.replaceAvailabilityCallCount == 0)
+        #expect(repository.updateBookingPreferencesCallCount == 0)
+        #expect(store.errorMessage != nil)
+    }
+
+    @Test @MainActor
+    func discardingAvailabilityEditsRestoresSavedTimeOffAndPreferences() async throws {
+        let id = UUID()
+        let repository = GroomerProfileRepositoryFake()
+        let store = GroomerProfileStore(groomerID: id, repository: repository)
+        let saved = try await repository.availabilitySnapshot(groomerID: id)
+        store.applyAvailabilitySnapshot(saved)
+        store.maxAppointmentsPerDay = 9
+        store.timeOffTitle = "Vacation"
+        await store.createTimeOff()
+        store.discardAvailabilityEdits()
+        #expect(store.timeOffWindows == saved.timeOff)
+        #expect(store.maxAppointmentsPerDay == saved.preferences.maxAppointmentsPerDay)
+        #expect(repository.saveAvailabilityCallCount == 0)
+    }
+
+    @Test @MainActor
+    func profileRefreshDoesNotOverwriteAvailabilityEditorDraft() async throws {
+        let id = UUID()
+        let repository = GroomerProfileRepositoryFake(profileResult: .success(Self.profile(groomerID: id)))
+        let store = GroomerProfileStore(groomerID: id, repository: repository)
+        store.applyAvailabilitySnapshot(try await repository.availabilitySnapshot(groomerID: id))
+        store.isEditingAvailability = true
+        store.maxAppointmentsPerDay = 9
+        store.timeOffTitle = "Vacation"
+        await store.createTimeOff()
+        let pending = store.timeOffWindows
+        await store.load()
+        #expect(store.maxAppointmentsPerDay == 9)
+        #expect(store.timeOffWindows == pending)
+    }
+
+    @Test @MainActor
     func createAndDeleteTimeOffValidateAndUpdateLocalState() async throws {
         let groomerID = UUID()
         let timeOff = Self.timeOff(groomerID: groomerID)
@@ -93,16 +239,15 @@ extension GroomerProfileStoreTests {
 
         await store.createTimeOff()
 
-        #expect(repository.createTimeOffCallCount == 1)
-        #expect(repository.lastTimeOffDraft?.title == "Long weekend away")
-        #expect(repository.lastTimeOffDraft?.startDate == "2026-07-04")
-        #expect(repository.lastTimeOffDraft?.endDate == "2026-07-06")
-        #expect(store.timeOffWindows == [timeOff])
+        #expect(repository.createTimeOffCallCount == 0)
+        #expect(store.timeOffWindows.first?.title == "Long weekend away")
+        #expect(store.timeOffWindows.first?.startDate == "2026-07-04")
+        #expect(store.timeOffWindows.first?.endDate == "2026-07-06")
 
         let created = try #require(store.timeOffWindows.first)
         await store.deleteTimeOff(created)
 
-        #expect(repository.deleteTimeOffCallCount == 1)
+        #expect(repository.deleteTimeOffCallCount == 0)
         #expect(store.timeOffWindows.isEmpty)
     }
 

@@ -10,4 +10,11 @@ This folder stores reviewed SQL drafts that were originally attached to backend 
 
 ## Lookup Rule
 
+Current T-371 validation artifacts (not migration sources):
+
+- [Availability acceptance](T-371_AVAILABILITY_ACCEPTANCE.md): implementation, actual SQL/HTTP/UI evidence, restoration and remaining release limits.
+
+- [Atomic save rollback validation](T-371_ATOMIC_AVAILABILITY_ROLLBACK_VALIDATION.sql): three write-boundary failures, revision conflict, signed-out/anonymous checks; authenticated-role run completed 2026-09-07.
+- [Availability authorization validation](T-371_AVAILABILITY_AUTHORIZATION_VALIDATION.sql): named cross-account fixtures, spoofed ownership payload, customer denial, and actual direct-write rejection; rollback run completed 2026-09-07.
+
 For deployed backend state, prefer `../../03_backend/SUPABASE_CONTRACT.md` and `../../../supabase/migrations/`. Use these reviewed SQL drafts only when the review discussion or pre-migration draft history matters.
