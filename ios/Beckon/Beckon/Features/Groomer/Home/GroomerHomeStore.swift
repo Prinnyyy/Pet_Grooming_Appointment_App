@@ -50,6 +50,7 @@ final class GroomerHomeStore {
     private(set) var newMatchCount = 0
     private(set) var pendingOfferCount = 0
     private(set) var bookings: [Booking] = []
+    private(set) var bookingsVerifiedAt: Date?
     private(set) var nextBookingPhotoData: Data?
     private(set) var availabilityWindows: [GroomerAvailabilityWindow] = []
     private(set) var issues: [GroomerHomeLoadIssue] = []
@@ -279,12 +280,11 @@ final class GroomerHomeStore {
 
     private func loadBookings() async {
         do {
-            let page = try await bookingRepository.bookings(
-                participantID: groomerID,
-                role: .groomer,
-                page: .first
-            )
-            bookings = page.items
+            let booking = try await bookingRepository.nearestBooking(participantID: groomerID, role: .groomer, now: now())
+            try Task.checkCancellation()
+            guard booking == nil || booking?.groomerID == groomerID else { throw BookingRepositoryError.notAllowed }
+            bookings = booking.map { [$0] } ?? []
+            bookingsVerifiedAt = now()
         } catch BookingRepositoryError.cancelled {
             return
         } catch let error as BookingRepositoryError {

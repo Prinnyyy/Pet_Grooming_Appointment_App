@@ -20,7 +20,11 @@ final class BookingTimingRenderingTests: XCTestCase {
         try await renderSchedule(knownZone: true, largeText: true)
     }
 
-    private func renderSchedule(knownZone: Bool, largeText: Bool = false) async throws {
+    func testUnavailableDateDoesNotRenderAsAnEmptyDay() async throws {
+        try await renderSchedule(knownZone: true, failedDate: true)
+    }
+
+    private func renderSchedule(knownZone: Bool, largeText: Bool = false, failedDate: Bool = false) async throws {
         let owner = UUID()
         let start = Date().addingTimeInterval(3600)
         let booking = BookingsStoreTests.booking(groomerID: owner,
@@ -33,8 +37,10 @@ final class BookingTimingRenderingTests: XCTestCase {
                     startMinutes: 480, endMinutes: 1080, isEnabled: true, timezone: "America/New_York")
             })
         }
+        let repository = BookingRepositoryFake(bookingsResult: .success([booking]))
+        if failedDate { repository.dateRead = { _, _ in throw BookingRepositoryError.networkUnavailable } }
         let store = BookingsStore(participantID: owner, role: .groomer,
-            repository: BookingRepositoryFake(bookingsResult: .success([booking])),
+            repository: DebugBookingRepository(base: repository, debugRecorder: nil),
             groomerProfileRepository: profiles,
             appointmentReminderScheduler: AppointmentReminderSchedulerFake())
         await store.load()
@@ -61,12 +67,17 @@ final class BookingTimingRenderingTests: XCTestCase {
             window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
         }
         let attachment = XCTAttachment(image: image)
-        attachment.name = knownZone ? "T-374 known schedule real page" : "T-374 unknown schedule real page"
-        if largeText { attachment.name = "T-374 known schedule real page accessibility3" }
+        attachment.name = knownZone ? "T-379 scoped schedule real page" : "T-374 unknown schedule real page"
+        if failedDate { attachment.name = "T-379 unavailable day, not empty" }
+        if largeText { attachment.name = "T-379 scoped schedule accessibility3" }
         attachment.lifetime = .keepAlways
         add(attachment)
         XCTAssertEqual(store.scheduleCalendar?.timeZone.identifier, knownZone ? "America/New_York" : nil)
         XCTAssertEqual(store.bookings.map(\.id), [booking.id])
+        if knownZone {
+            XCTAssertEqual(store.scheduleReadState, failedDate ? .failed : .complete)
+            XCTAssertEqual(store.scheduleBookings.map(\.id), failedDate ? [] : [booking.id])
+        }
         XCTAssertEqual(image.size, window.bounds.size)
         let pixels = try XCTUnwrap(image.cgImage?.dataProvider?.data)
         let bytes = try XCTUnwrap(CFDataGetBytePtr(pixels))
@@ -74,7 +85,7 @@ final class BookingTimingRenderingTests: XCTestCase {
         XCTAssertGreaterThan(Set(sample).count, 8, "Rendered screen must not be blank")
         if largeText {
             let scroll = try XCTUnwrap(Self.scrollViews(in: host.view).first {
-                $0.contentSize.height > $0.bounds.height + 100
+                $0.contentSize.height + $0.adjustedContentInset.top + $0.adjustedContentInset.bottom > $0.bounds.height + 1
             })
             scroll.setContentOffset(CGPoint(x: 0,
                 y: max(0, scroll.contentSize.height - scroll.bounds.height + scroll.adjustedContentInset.bottom)),
@@ -84,7 +95,7 @@ final class BookingTimingRenderingTests: XCTestCase {
                 window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
             }
             let bottomAttachment = XCTAttachment(image: bottom)
-            bottomAttachment.name = "T-374 accessibility3 schedule bottom"
+            bottomAttachment.name = "T-379 accessibility3 schedule bottom"
             bottomAttachment.lifetime = .keepAlways
             add(bottomAttachment)
             XCTAssertGreaterThan(scroll.contentOffset.y, 0)
@@ -92,7 +103,7 @@ final class BookingTimingRenderingTests: XCTestCase {
     }
 
     private static func scrollViews(in view: UIView) -> [UIScrollView] {
-        (view as? UIScrollView).map { [$0] } ?? view.subviews.flatMap { scrollViews(in: $0) }
+        ((view as? UIScrollView).map { [$0] } ?? []) + view.subviews.flatMap { scrollViews(in: $0) }
     }
 }
 
@@ -1349,6 +1360,29 @@ final class AppointmentReminderSchedulerFake:
 
 @MainActor
 final class BookingRepositoryFake: BookingRepository {
+    private(set) var nearestCallCount = 0
+    func nearestBooking(participantID: UUID, role: UserRole, now: Date) async throws -> Booking? {
+        nearestCallCount += 1
+        return try bookingsResult.get().filter {
+            (role == .customer ? $0.customerID : $0.groomerID) == participantID && $0.status == .confirmed
+                && (GroomingRequestDateFormatting.parsedDate(from: $0.scheduledEnd).map { $0 >= now } ?? false)
+        }.sortedByScheduledStart(ascending: true).first
+    }
+    var datePages: [Result<ListPage<Booking>, BookingRepositoryError>] = []
+    var dateRead: ((DateInterval, ListPageRequest) async throws -> ListPage<Booking>)?
+    private(set) var datePageRequests: [ListPageRequest] = []
+    func bookings(participantID: UUID, role: UserRole, interval: DateInterval,
+        page: ListPageRequest) async throws -> ListPage<Booking> {
+        datePageRequests.append(page)
+        if let dateRead { return try await dateRead(interval, page) }
+        if !datePages.isEmpty { return try datePages.removeFirst().get() }
+        let rows = try bookingsResult.get().filter { booking in
+            guard let start = GroomingRequestDateFormatting.parsedDate(from: booking.scheduledStart),
+                  let end = GroomingRequestDateFormatting.parsedDate(from: booking.scheduledEnd) else { return false }
+            return start < interval.end && end > interval.start && !booking.status.isCancellation
+        }.sortedByScheduledStart(ascending: true)
+        return ListPage(items: Array(rows.dropFirst(page.offset).prefix(page.fetchLimit)), request: page)
+    }
     var rescheduleResult: Result<BookingRescheduleResult, BookingRepositoryError> = .failure(.unavailable)
     var rescheduleMutationResult: Result<BookingRescheduleResult, BookingRepositoryError> = .failure(.networkUnavailable)
     var rescheduleLookup: BookingRescheduleResult?

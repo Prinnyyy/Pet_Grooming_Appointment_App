@@ -223,10 +223,23 @@ struct BookingsView: View {
 
     private func loadedGroomerScheduleContent(calendar: Calendar) -> some View {
         let schedulePresentation = GroomerSchedulePresentation(referenceDate: Date(), bookings: store.bookings,
-            selectedDayKey: selectedScheduleDayKey, calendar: calendar)
+            selectedDayKey: selectedScheduleDayKey, scopedBookings: store.scheduleBookings, calendar: calendar)
+        let interval = calendar.dateInterval(of: .day, for: schedulePresentation.selectedDate)
+        let scopeMatches = store.scheduleInterval == interval
+        let isComplete = scopeMatches && store.scheduleReadState == .complete
         return ScrollView {
             LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
                 appointmentReminderNotice
+
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                    Text("Appointment Date").font(DesignTokens.Typography.fieldLabel)
+                    DatePicker("Appointment Date", selection: Binding(
+                        get: { schedulePresentation.selectedDate },
+                        set: { selectedScheduleDayKey = GroomerScheduleDateFormatting.dayKey(from: $0, calendar: calendar) }
+                    ), displayedComponents: [.date])
+                        .labelsHidden()
+                        .environment(\.calendar, calendar).environment(\.timeZone, calendar.timeZone)
+                }
 
                 GroomerScheduleDayStrip(
                     days: schedulePresentation.days,
@@ -239,22 +252,27 @@ struct BookingsView: View {
                     .foregroundStyle(DesignTokens.Colors.textSecondary)
                     .accessibilityIdentifier("groomer.schedule.time-zone")
 
-                if store.isLoading, store.bookings.isEmpty {
+                if !scopeMatches || store.scheduleReadState == .idle || store.scheduleReadState == .loading {
                     BeckonLoadingView(
                         title: "Loading Schedule...",
                         message: "Fetching confirmed appointments for your day.",
                         accent: .groomer
                     )
                     .accessibilityIdentifier("groomer.schedule.loading")
-                } else if let persistentLoadError = feedbackPresentation.persistentLoadError {
-                    persistentLoadErrorView(persistentLoadError)
-                } else if schedulePresentation.selectedBookings.isEmpty {
+                } else if !isComplete {
+                    Text("This day's schedule is not verified. Refresh before relying on its availability.")
+                        .font(DesignTokens.Typography.supporting).foregroundStyle(DesignTokens.Colors.textSecondary)
+                    Button("Refresh Day", systemImage: "arrow.clockwise") {
+                        if let interval { Task { await store.loadSchedule(interval: interval) } }
+                    }
+                }
+                if isComplete && schedulePresentation.selectedBookings.isEmpty {
                     GroomerScheduleEmptyDayView(
                         dayTitle: GroomerScheduleDateFormatting.longDayTitle(
                             from: schedulePresentation.selectedDate, calendar: calendar
                         )
                     )
-                } else {
+                } else if scopeMatches && !schedulePresentation.selectedBookings.isEmpty {
                     if let summary = schedulePresentation.summary {
                         GroomerScheduleSummaryBand(
                             dayTitle: GroomerScheduleDateFormatting.longDayTitle(
@@ -272,15 +290,6 @@ struct BookingsView: View {
                     )
                 }
 
-                if store.canLoadMore || store.isLoadingMore {
-                    BeckonLoadMoreButton(
-                        isLoading: store.isLoadingMore,
-                        accent: .groomer,
-                        accessibilityIdentifier: "groomer.schedule.load-more"
-                    ) {
-                        await store.loadNextPage()
-                    }
-                }
             }
             .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
             .padding(.top, DesignTokens.Spacing.xl)
@@ -288,6 +297,9 @@ struct BookingsView: View {
         }
         .scrollContentBackground(.hidden)
             .accessibilityIdentifier("groomer.schedule")
+            .task(id: "\(schedulePresentation.selectedDayKey):\(store.scheduleRefreshID)") {
+                if let interval { await store.loadSchedule(interval: interval) }
+            }
     }
 
     private var feedbackPresentation: BookingsFeedbackPresentation {
@@ -349,11 +361,7 @@ struct BookingsView: View {
         guard let requestStore else { return }
 
         Task {
-            await requestStore.load()
-            _ = requestStore.startRepublish(
-                from: booking,
-                originalRequest: requestStore.request(withID: booking.requestID)
-            )
+            await requestStore.prepareRepublish(from: booking)
         }
     }
 
@@ -1001,6 +1009,11 @@ struct BookingDetailView: View {
     }
 
     var body: some View {
+        detailContent.task(id: bookingID) { await store.resolveBooking(id: bookingID) }
+    }
+
+    @ViewBuilder
+    private var detailContent: some View {
         if let booking = store.booking(withID: bookingID) {
             ScrollViewReader { scrollProxy in
                 ZStack {
@@ -1091,13 +1104,22 @@ struct BookingDetailView: View {
                 DesignTokens.Colors.background
                     .ignoresSafeArea()
 
-                BeckonEmptyState(
-                    title: "Booking Unavailable",
-                    message: "Refresh bookings and try again.",
-                    systemImage: "calendar.badge.exclamationmark",
-                    accent: role.emptyStateAccent
-                )
-                .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+                if store.bookingReadStates[bookingID] == nil || store.bookingReadStates[bookingID] == .loading {
+                    ProgressView("Loading Booking...")
+                } else {
+                    VStack(spacing: DesignTokens.Spacing.md) {
+                        BeckonEmptyState(
+                            title: "Booking Unavailable",
+                            message: "This booking could not be verified.",
+                            systemImage: "calendar.badge.exclamationmark",
+                            accent: role.emptyStateAccent
+                        )
+                        .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+                        Button("Retry Booking", systemImage: "arrow.clockwise") {
+                            Task { await store.resolveBooking(id: bookingID) }
+                        }
+                    }
+                }
             }
             .navigationTitle("Booking")
         }

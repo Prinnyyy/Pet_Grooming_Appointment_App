@@ -76,6 +76,33 @@ final class DebugBookingRepository: BookingRepository {
     private let base: any BookingRepository
     private let debugRecorder: AppDebugEventRecorder?
 
+    func nearestBooking(participantID: UUID, role: UserRole, now: Date) async throws -> Booking? {
+        try await base.nearestBooking(participantID: participantID, role: role, now: now)
+    }
+
+    func bookings(participantID: UUID, role: UserRole, interval: DateInterval,
+        page: ListPageRequest) async throws -> ListPage<Booking> {
+        try await base.bookings(participantID: participantID, role: role, interval: interval, page: page)
+    }
+
+    func bookings(bookingIDs: [UUID]) async throws -> [Booking] { try await base.bookings(bookingIDs: bookingIDs) }
+
+    func acceptOffer(offerID: UUID, expectedQuoteRevision: UUID) async throws -> AcceptGroomerOfferResult {
+        try await base.acceptOffer(offerID: offerID, expectedQuoteRevision: expectedQuoteRevision)
+    }
+
+    func mutateFulfillment(_ operation: BookingFulfillmentOperation) async throws -> BookingFulfillmentResult {
+        try await base.mutateFulfillment(operation)
+    }
+
+    func fulfillmentOperation(id: UUID) async throws -> BookingFulfillmentResult? { try await base.fulfillmentOperation(id: id) }
+    func fulfillmentEvents(bookingID: UUID) async throws -> [BookingFulfillmentEvent] { try await base.fulfillmentEvents(bookingID: bookingID) }
+    func reschedule(bookingID: UUID) async throws -> BookingRescheduleResult { try await base.reschedule(bookingID: bookingID) }
+    func mutateReschedule(_ operation: BookingRescheduleOperation) async throws -> BookingRescheduleResult {
+        try await base.mutateReschedule(operation)
+    }
+    func rescheduleOperation(id: UUID) async throws -> BookingRescheduleResult? { try await base.rescheduleOperation(id: id) }
+
     init(
         base: any BookingRepository,
         debugRecorder: AppDebugEventRecorder?
@@ -187,6 +214,10 @@ final class DebugBookingRepository: BookingRepository {
 final class DebugCustomerRequestRepository: CustomerRequestRepository {
     private let base: any CustomerRequestRepository
     private let debugRecorder: AppDebugEventRecorder?
+
+    func request(customerID: UUID, requestID: UUID) async throws -> CustomerGroomingRequest {
+        try await base.request(customerID: customerID, requestID: requestID)
+    }
 
     init(
         base: any CustomerRequestRepository,

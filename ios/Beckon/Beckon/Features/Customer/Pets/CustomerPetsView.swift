@@ -138,13 +138,16 @@ struct CustomerPetsView: View {
                     }
                 )
 
+                if let message = bookingStore.nearestReadError, bookingStore.nearestBooking != nil {
+                    Text(message).font(DesignTokens.Typography.supporting).foregroundStyle(DesignTokens.Colors.textSecondary)
+                }
                 CustomerHomeNextBookingSection(
                     presentation: nextBookingPresentation,
                     store: bookingStore,
                     onOpenChat: onBookingChatSelected,
                     retry: {
                         Task {
-                            await bookingStore.load()
+                            await bookingStore.loadNearest()
                         }
                     }
                 )
@@ -170,23 +173,14 @@ struct CustomerPetsView: View {
     }
 
     private var nextBooking: Booking? {
-        let referenceDate = Date()
-        return bookingStore.bookings
-            .filter {
-                BookingListScope.upcoming.contains(
-                    $0,
-                    referenceDate: referenceDate
-                )
-            }
-            .sortedByScheduledStart(ascending: true)
-            .first
+        bookingStore.nearestBooking
     }
 
     private var nextBookingPresentation: CustomerHomeNextBookingPresentation {
         CustomerHomeNextBookingPresentation(
             booking: nextBooking,
-            isLoading: bookingStore.isLoading,
-            loadErrorMessage: bookingStore.errorMessage
+            isLoading: bookingStore.nearestReadState == .idle || bookingStore.nearestReadState == .loading,
+            loadErrorMessage: bookingStore.nearestReadError
         )
     }
 
@@ -194,7 +188,7 @@ struct CustomerPetsView: View {
     private func loadHome() async {
         await petStore.load()
         await requestStore.load()
-        await bookingStore.load()
+        await bookingStore.loadNearest()
         await notificationStore.load()
     }
 

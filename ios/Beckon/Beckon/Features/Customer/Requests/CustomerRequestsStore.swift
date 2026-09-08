@@ -150,6 +150,7 @@ final class CustomerRequestsStore {
     private(set) var retryingRequestPhotoIDs: Set<UUID> = []
     private(set) var acknowledgedBookingHandoffRequestIDs: Set<UUID> = []
     private(set) var isLoading = false
+    private(set) var isPreparingRepublish = false
     private(set) var isSubmitting = false
     private(set) var nextRequestsPageRequest: ListPageRequest?
     private(set) var nextOfferPageRequestByRequestID: [UUID: ListPageRequest] = [:]
@@ -209,6 +210,7 @@ final class CustomerRequestsStore {
 
     var isBusy: Bool {
         isLoading
+            || isPreparingRepublish
             || isLoadingMoreRequests
             || isSubmitting
             || !acceptingOfferIDs.isEmpty
@@ -554,6 +556,38 @@ final class CustomerRequestsStore {
         noticeMessage = nil
         publishResult = nil
         isShowingWizard = true
+    }
+
+    @discardableResult
+    func prepareRepublish(from booking: Booking, now: Date = Date()) async -> Bool {
+        guard booking.customerID == customerID, !isShowingWizard, !isPreparingRepublish else { return false }
+        isPreparingRepublish = true
+        defer { isPreparingRepublish = false }
+        do {
+            try checkAcceptanceSession()
+            let currentRows = try await bookingRepository.bookings(bookingIDs: [booking.id])
+            try checkAcceptanceSession()
+            guard currentRows.count == 1, let current = currentRows.first, current.id == booking.id,
+                  current.customerID == customerID, current.requestID == booking.requestID,
+                  current.status.isCancellation || current.status == .unfulfilled else {
+                throw CustomerRequestRepositoryError.notAllowed
+            }
+            let source = try await requestRepository.request(customerID: customerID, requestID: booking.requestID)
+            try checkAcceptanceSession()
+            guard source.id == booking.requestID, source.customerID == customerID else {
+                throw CustomerRequestRepositoryError.notAllowed
+            }
+            let currentPets = try await petRepository.pets(customerID: customerID)
+            try checkAcceptanceSession()
+            guard !isShowingWizard else { return false }
+            pets = currentPets
+            return startRepublish(from: current, originalRequest: source, now: now)
+        } catch where AppDebugErrorClassifier.isCancellation(error) {
+            return false
+        } catch {
+            errorMessage = "The original request could not be verified. Retry before starting a new request."
+            return false
+        }
     }
 
     @discardableResult

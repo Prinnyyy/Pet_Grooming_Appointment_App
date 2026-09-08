@@ -5,6 +5,45 @@ import Testing
 
 @Suite("Profile address transport", .serialized)
 struct ProfileAddressTransportTests {
+    @Test @MainActor
+    func scopedBookingAndExactRequestQueriesKeepServerFiltersAndTieOrdering() async throws {
+        let owner = UUID()
+        let now = ISO8601DateFormatter().date(from: "2026-11-01T00:00:00Z")!
+        let client = Self.client()
+        let repository = SupabaseBookingRepository(client: client)
+        AddressTransportStub.state.reset(mode: .denied)
+        do { _ = try await repository.nearestBooking(participantID: owner, role: .groomer, now: now) }
+        catch { #expect(error as? BookingRepositoryError == .notAllowed) }
+        let nearestURL = try #require(AddressTransportStub.state.urls.first)
+        let nearest = URLComponents(url: nearestURL, resolvingAgainstBaseURL: false)!.queryItems!
+        #expect(nearest.contains(URLQueryItem(name: "groomer_id", value: "eq.\(owner.uuidString.lowercased())")))
+        #expect(nearest.contains(URLQueryItem(name: "status", value: "eq.confirmed")))
+        #expect(nearest.contains(URLQueryItem(name: "order", value: "scheduled_start.asc.nullslast,id.asc.nullslast")))
+        #expect(nearest.contains(URLQueryItem(name: "limit", value: "1")))
+        #expect(nearest.contains { $0.name == "scheduled_end" && $0.value?.hasPrefix("gte.") == true })
+        AddressTransportStub.state.reset(mode: .denied)
+        do { _ = try await repository.bookings(participantID: owner, role: .customer,
+            interval: DateInterval(start: now, duration: 86400), page: .first.next) }
+        catch { #expect(error as? BookingRepositoryError == .notAllowed) }
+        let dateURL = try #require(AddressTransportStub.state.urls.first)
+        let dateQuery = URLComponents(url: dateURL, resolvingAgainstBaseURL: false)!.queryItems!
+        #expect(dateQuery.contains(URLQueryItem(name: "customer_id", value: "eq.\(owner.uuidString.lowercased())")))
+        #expect(dateQuery.contains(URLQueryItem(name: "order", value: "scheduled_start.asc.nullslast,id.asc.nullslast")))
+        #expect(dateQuery.contains { $0.name == "scheduled_start" && $0.value?.hasPrefix("lt.") == true })
+        #expect(dateQuery.contains { $0.name == "scheduled_end" && $0.value?.hasPrefix("gt.") == true })
+        #expect(dateQuery.contains(URLQueryItem(name: "offset", value: "50")))
+        #expect(dateQuery.contains(URLQueryItem(name: "limit", value: "51")))
+        AddressTransportStub.state.reset(mode: .denied)
+        let requestID = UUID()
+        do { _ = try await SupabaseCustomerRequestRepository(client: client).request(customerID: owner, requestID: requestID) }
+        catch { #expect(error as? CustomerRequestRepositoryError == .notAllowed) }
+        let exactURL = try #require(AddressTransportStub.state.urls.first)
+        let exact = URLComponents(url: exactURL, resolvingAgainstBaseURL: false)!.queryItems!
+        #expect(exact.contains(URLQueryItem(name: "id", value: "eq.\(requestID.uuidString.lowercased())")))
+        #expect(exact.contains(URLQueryItem(name: "customer_id", value: "eq.\(owner.uuidString.lowercased())")))
+        #expect(AddressTransportStub.state.paths.count == 1)
+    }
+
     @Test(arguments: [
         ("timing_buffers_confirmation_required", GroomerRequestRepositoryError.timingBuffersRequired),
         ("schedule_timezone_confirmation_required", .scheduleTimeZoneRequired),

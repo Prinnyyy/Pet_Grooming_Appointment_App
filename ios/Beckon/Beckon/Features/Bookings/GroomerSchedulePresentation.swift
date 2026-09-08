@@ -21,13 +21,19 @@ nonisolated struct GroomerSchedulePresentation: Sendable {
         referenceDate: Date,
         bookings: [Booking],
         selectedDayKey: String?,
+        scopedBookings: [Booking]? = nil,
         calendar: Calendar = .current
     ) {
-        let days = GroomerScheduleDay.days(
+        var days = GroomerScheduleDay.days(
             around: referenceDate,
             bookings: bookings,
             calendar: calendar
         )
+        if let selectedDayKey, !days.contains(where: { $0.id == selectedDayKey }),
+           let date = GroomerScheduleDateFormatting.date(fromDayKey: selectedDayKey, calendar: calendar) {
+            days.append(GroomerScheduleDay(id: selectedDayKey, date: date, isToday: calendar.isDate(date, inSameDayAs: referenceDate)))
+            days.sort { $0.date < $1.date }
+        }
         let resolvedDayKey = Self.resolveSelectedDayKey(
             requestedDayKey: selectedDayKey,
             days: days,
@@ -35,7 +41,7 @@ nonisolated struct GroomerSchedulePresentation: Sendable {
             referenceDate: referenceDate,
             calendar: calendar
         )
-        let selectedBookings = bookings
+        let selectedBookings = scopedBookings?.sortedByScheduledStart(ascending: true) ?? bookings
             .filter { booking in
                 !booking.status.isCancellation
                     && GroomerScheduleDateFormatting.dayKey(
@@ -219,6 +225,16 @@ nonisolated struct GroomerScheduleDay: Identifiable, Equatable, Sendable {
 }
 
 nonisolated enum GroomerScheduleDateFormatting {
+    static func date(fromDayKey key: String, calendar: Calendar) -> Date? {
+        let formatter = DateFormatter()
+        formatter.calendar = calendar
+        formatter.timeZone = calendar.timeZone
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.isLenient = false
+        return formatter.date(from: key)
+    }
+
     static func dayKey(
         from value: String,
         calendar: Calendar = .current

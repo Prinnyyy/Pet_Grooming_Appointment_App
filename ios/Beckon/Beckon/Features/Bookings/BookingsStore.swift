@@ -1,6 +1,8 @@
 import Foundation
 import Observation
 
+enum BookingScopeReadState { case idle, loading, complete, stale, failed }
+
 @MainActor
 @Observable
 final class BookingsStore {
@@ -9,6 +11,17 @@ final class BookingsStore {
     private let repository: any BookingRepository
     private let groomerProfileRepository: (any GroomerProfileRepository)?
     private(set) var scheduleCalendar: Calendar?
+    private(set) var scheduleInterval: DateInterval?
+    private(set) var scheduleBookings: [Booking] = []
+    private(set) var scheduleReadState: BookingScopeReadState = .idle
+    private(set) var scheduleVerifiedAt: Date?
+    private(set) var scheduleRefreshID = UUID()
+    private var scheduleReadID = UUID()
+    private(set) var bookingReadStates: [UUID: BookingScopeReadState] = [:]
+    private(set) var nearestBooking: Booking?
+    private(set) var nearestReadState: BookingScopeReadState = .idle
+    private(set) var nearestReadError: String?
+    private var nearestReadID = UUID()
     private let appointmentReminderScheduler: any AppointmentReminderScheduling
     private let debugRecorder: AppDebugEventRecorder?
     private let fulfillmentDefaults: UserDefaults
@@ -74,9 +87,102 @@ final class BookingsStore {
         bookings.first { $0.id == id }
     }
 
+    func resolveBooking(id: UUID) async {
+        guard booking(withID: id) == nil, bookingReadStates[id] != .loading else { return }
+        bookingReadStates[id] = .loading
+        do {
+            let rows = try await repository.bookings(bookingIDs: [id])
+            try Task.checkCancellation()
+            guard rows.count == 1, let booking = rows.first, booking.id == id,
+                  (role == .customer ? booking.customerID : booking.groomerID) == participantID else {
+                throw BookingRepositoryError.bookingNotFound
+            }
+            synchronizeExternalBooking(booking)
+            bookingReadStates[id] = .complete
+        } catch { bookingReadStates[id] = .failed }
+    }
+
     func synchronizeExternalBooking(_ booking: Booking) {
         if !replace(booking) {
             bookings.append(booking)
+        }
+        if nearestBooking?.id == booking.id {
+            nearestReadID = UUID()
+            nearestBooking = booking.status == .confirmed ? booking : nil
+            nearestReadState = .stale
+            nearestReadError = "The appointment changed. Refresh to verify the next appointment."
+        }
+        if let interval = scheduleInterval {
+            scheduleReadID = UUID()
+            scheduleRefreshID = UUID()
+            scheduleBookings.removeAll { $0.id == booking.id }
+            if Self.overlaps(booking, interval: interval) && !booking.status.isCancellation {
+                scheduleBookings.append(booking)
+            }
+            scheduleReadState = .stale
+        }
+    }
+
+    func loadSchedule(interval: DateInterval) async {
+        let operation = UUID()
+        scheduleReadID = operation
+        if scheduleInterval != interval { scheduleBookings = []; scheduleVerifiedAt = nil }
+        scheduleInterval = interval
+        scheduleReadState = .loading
+        var collected: [Booking] = []
+        var page = ListPageRequest.first
+        do {
+            guard interval.duration > 0, interval.duration <= 31 * 86400 else { throw BookingRepositoryError.invalidInput }
+            while true {
+                let result = try await repository.bookings(participantID: participantID, role: role, interval: interval, page: page)
+                try Task.checkCancellation()
+                guard scheduleReadID == operation else { return }
+                guard result.items.allSatisfy({
+                    (role == .customer ? $0.customerID : $0.groomerID) == participantID
+                        && Self.overlaps($0, interval: interval) && !$0.status.isCancellation
+                }) else { throw BookingRepositoryError.unavailable }
+                let merged = ListPageMerge.appendingUnique(result.items, to: collected)
+                guard !result.hasMore || merged.count > collected.count else { throw BookingRepositoryError.unavailable }
+                collected = merged
+                guard let next = result.nextRequest else { break }
+                page = next
+            }
+            guard scheduleReadID == operation else { return }
+            scheduleBookings = collected.sortedByScheduledStart(ascending: true)
+            scheduleReadState = .complete
+            scheduleVerifiedAt = Date()
+            for booking in collected { if !replace(booking) { bookings.append(booking) } }
+        } catch {
+            guard scheduleReadID == operation else { return }
+            scheduleReadState = scheduleVerifiedAt == nil ? .failed : .stale
+        }
+    }
+
+    private static func overlaps(_ booking: Booking, interval: DateInterval) -> Bool {
+        guard let start = GroomingRequestDateFormatting.parsedDate(from: booking.scheduledStart),
+              let end = GroomingRequestDateFormatting.parsedDate(from: booking.scheduledEnd) else { return false }
+        return start < interval.end && end > interval.start
+    }
+
+    func loadNearest(now: Date = Date()) async {
+        let operation = UUID()
+        nearestReadID = operation
+        nearestReadState = .loading
+        nearestReadError = nil
+        do {
+            let booking = try await repository.nearestBooking(participantID: participantID, role: role, now: now)
+            try Task.checkCancellation()
+            guard nearestReadID == operation else { return }
+            guard booking == nil || (role == .customer ? booking?.customerID : booking?.groomerID) == participantID else {
+                throw BookingRepositoryError.notAllowed
+            }
+            nearestBooking = booking
+            nearestReadState = .complete
+            if let booking, !replace(booking) { bookings.append(booking) }
+        } catch {
+            guard nearestReadID == operation else { return }
+            nearestReadState = nearestBooking == nil ? .failed : .stale
+            nearestReadError = "The next appointment could not be verified. Refresh to try again."
         }
     }
 

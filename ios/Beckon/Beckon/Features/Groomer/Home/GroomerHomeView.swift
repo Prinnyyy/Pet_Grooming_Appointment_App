@@ -119,12 +119,16 @@ struct GroomerHomeView: View {
     @ViewBuilder
     private var nextAppointmentContent: some View {
         if let booking = store.nextBooking {
+            if store.isLoading || store.issues.contains(where: { $0.section == .bookings }) {
+                Text(store.isLoading ? "Refreshing appointment..." : "Appointment not refreshed. Pull to retry.")
+                    .font(DesignTokens.Typography.supporting).foregroundStyle(DesignTokens.Colors.textSecondary)
+            }
             GroomerHomeNextBookingCard(
                 booking: booking,
                 photoData: store.nextBookingPhotoData,
                 action: { bookingAction(booking) }
             )
-        } else if store.isLoading {
+        } else if store.isLoading || (store.bookingsVerifiedAt == nil && !store.issues.contains(where: { $0.section == .bookings })) {
             GroomerHomeLoadingSurface(
                 title: "Loading your schedule",
                 accessibilityIdentifier: "groomer.home.next-booking.loading"

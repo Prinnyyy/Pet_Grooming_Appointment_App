@@ -44,6 +44,16 @@ final class SupabaseCustomerRequestRepository: CustomerRequestRepository {
         try await requests(customerID: customerID, page: .first).items
     }
 
+    func request(customerID: UUID, requestID: UUID) async throws -> CustomerGroomingRequest {
+        do {
+            let rows: [GroomingRequestRow] = try await client.from("grooming_requests")
+                .select(Self.requestColumns).eq("customer_id", value: customerID.uuidString.lowercased())
+                .eq("id", value: requestID.uuidString.lowercased()).limit(1).execute().value
+            guard let row = rows.first else { throw CustomerRequestRepositoryError.requestNotFound }
+            return row.request
+        } catch { throw Self.map(error) }
+    }
+
     func requests(
         customerID: UUID,
         page: ListPageRequest
@@ -54,6 +64,7 @@ final class SupabaseCustomerRequestRepository: CustomerRequestRepository {
                 .select(Self.requestColumns)
                 .eq("customer_id", value: customerID.uuidString.lowercased())
                 .order("created_at", ascending: false)
+                .order("id", ascending: true)
                 .range(from: page.offset, to: page.inclusiveRangeEnd)
                 .execute()
                 .value

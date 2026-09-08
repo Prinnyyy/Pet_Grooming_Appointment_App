@@ -26,6 +26,9 @@ enum BookingRepositoryError: Error, Equatable, Sendable {
 
 @MainActor
 protocol BookingRepository: AnyObject {
+    func nearestBooking(participantID: UUID, role: UserRole, now: Date) async throws -> Booking?
+    func bookings(participantID: UUID, role: UserRole, interval: DateInterval,
+        page: ListPageRequest) async throws -> ListPage<Booking>
     func mutateFulfillment(_ operation: BookingFulfillmentOperation) async throws -> BookingFulfillmentResult
     func fulfillmentOperation(id: UUID) async throws -> BookingFulfillmentResult?
     func fulfillmentEvents(bookingID: UUID) async throws -> [BookingFulfillmentEvent]
@@ -69,6 +72,11 @@ protocol BookingRepository: AnyObject {
 }
 
 extension BookingRepository {
+    func nearestBooking(participantID: UUID, role: UserRole, now: Date) async throws -> Booking? {
+        throw BookingRepositoryError.unavailable
+    }
+    func bookings(participantID: UUID, role: UserRole, interval: DateInterval,
+        page: ListPageRequest) async throws -> ListPage<Booking> { throw BookingRepositoryError.unavailable }
     func reschedule(bookingID: UUID) async throws -> BookingRescheduleResult { throw BookingRepositoryError.unavailable }
     func mutateReschedule(_ operation: BookingRescheduleOperation) async throws -> BookingRescheduleResult { throw BookingRepositoryError.unavailable }
     func rescheduleOperation(id: UUID) async throws -> BookingRescheduleResult? { throw BookingRepositoryError.unavailable }

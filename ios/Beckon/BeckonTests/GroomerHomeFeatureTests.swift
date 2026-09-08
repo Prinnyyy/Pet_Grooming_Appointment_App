@@ -4,6 +4,26 @@ import Testing
 
 struct GroomerHomeFeatureTests {
     @Test @MainActor
+    func nearestAppointmentOutsideFirstFiftyIsQueriedDirectly() async throws {
+        let groomerID = UUID()
+        let now = Date()
+        let all = (1...55).map { day in makeBooking(groomerID: groomerID,
+            scheduledStart: GroomingRequestDateFormatting.serverString(from: now.addingTimeInterval(Double(day) * 86400)),
+            scheduledEnd: GroomingRequestDateFormatting.serverString(from: now.addingTimeInterval(Double(day) * 86400 + 3600)),
+            status: .confirmed) }
+        let repository = GroomerHomeBookingRepositoryFake(bookingsResult: .success(all))
+        repository.firstPageOnly = true
+        let store = GroomerHomeStore(groomerID: groomerID, displayName: "Taylor",
+            profileRepository: GroomerProfileRepositoryFake(profileResult: .success(makeProfile(groomerID: groomerID))),
+            requestRepository: GroomerHomeRequestRepositoryFake(),
+            bookingRepository: DebugBookingRepository(base: repository, debugRecorder: nil),
+            profileSnapshotCache: GroomerHomeProfileSnapshotCache(), now: { now })
+        await store.load()
+        #expect(store.nextBooking?.id == all[0].id)
+        #expect(repository.nearestCalls == 1)
+    }
+
+    @Test @MainActor
     func loadBuildsOperationalSummaryFromLiveRepositories() async throws {
         let groomerID = UUID()
         let requestID = UUID()
@@ -246,13 +266,25 @@ private final class GroomerHomeRequestRepositoryFake: GroomerRequestRepository {
 @MainActor
 private final class GroomerHomeBookingRepositoryFake: BookingRepository {
     let bookingsResult: Result<[Booking], BookingRepositoryError>
+    var firstPageOnly = false
+    private(set) var nearestCalls = 0
+
+    func nearestBooking(participantID: UUID, role: UserRole, now: Date) async throws -> Booking? {
+        nearestCalls += 1
+        return try bookingsResult.get().filter {
+            $0.status == .confirmed && (GroomingRequestDateFormatting.parsedDate(from: $0.scheduledEnd).map { $0 >= now } ?? false)
+        }.sorted {
+            $0.scheduledStart == $1.scheduledStart ? $0.id.uuidString < $1.id.uuidString : $0.scheduledStart < $1.scheduledStart
+        }.first
+    }
 
     init(bookingsResult: Result<[Booking], BookingRepositoryError>) {
         self.bookingsResult = bookingsResult
     }
 
     func bookings(participantID: UUID, role: UserRole) async throws -> [Booking] {
-        try bookingsResult.get()
+        let all = try bookingsResult.get()
+        return firstPageOnly ? Array(all.reversed().prefix(50)) : all
     }
 
     func acceptOffer(offerID: UUID) async throws -> AcceptGroomerOfferResult {

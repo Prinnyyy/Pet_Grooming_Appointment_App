@@ -118,6 +118,16 @@ final class CustomerRequestAppointmentReminderSchedulerFake:
 
 @MainActor
 final class CustomerRequestRepositoryFake: CustomerRequestRepository {
+    var exactRequestResult: Result<CustomerGroomingRequest, CustomerRequestRepositoryError>?
+    private(set) var exactRequestIDs: [UUID] = []
+    func request(customerID: UUID, requestID: UUID) async throws -> CustomerGroomingRequest {
+        exactRequestIDs.append(requestID)
+        if let exactRequestResult { return try exactRequestResult.get() }
+        guard let result = try requestsResult.get().first(where: { $0.id == requestID && $0.customerID == customerID }) else {
+            throw CustomerRequestRepositoryError.requestNotFound
+        }
+        return result
+    }
     var requestsResult: Result<[CustomerGroomingRequest], CustomerRequestRepositoryError>
     var offersResult: Result<[CustomerOfferReview], CustomerRequestRepositoryError>
     var createResult: Result<GroomingRequestPublishResult, CustomerRequestRepositoryError>

@@ -35,6 +35,35 @@ final class SupabaseBookingRepository: BookingRepository {
         )
     }
 
+    func nearestBooking(participantID: UUID, role: UserRole, now: Date) async throws -> Booking? {
+        do {
+            let rows: [SupabaseBookingRow] = try await client.from("bookings")
+                .select(Self.bookingColumns + "," + SupabaseBookingRow.fulfillmentColumns)
+                .eq(role == .customer ? "customer_id" : "groomer_id", value: participantID.uuidString.lowercased())
+                .eq("status", value: "confirmed")
+                .gte("scheduled_end", value: GroomingRequestDateFormatting.serverString(from: now))
+                .order("scheduled_start", ascending: true).order("id", ascending: true)
+                .limit(1).execute().value
+            return try await hydrate(rows).first
+        } catch { throw Self.map(error) }
+    }
+
+    func bookings(participantID: UUID, role: UserRole, interval: DateInterval,
+        page: ListPageRequest) async throws -> ListPage<Booking> {
+        guard interval.duration > 0, interval.duration <= 31 * 86400 else { throw BookingRepositoryError.invalidInput }
+        do {
+            let rows: [SupabaseBookingRow] = try await client.from("bookings")
+                .select(Self.bookingColumns + "," + SupabaseBookingRow.fulfillmentColumns)
+                .eq(role == .customer ? "customer_id" : "groomer_id", value: participantID.uuidString.lowercased())
+                .in("status", values: ["confirmed", "completed", "unfulfilled"])
+                .lt("scheduled_start", value: GroomingRequestDateFormatting.serverString(from: interval.end))
+                .gt("scheduled_end", value: GroomingRequestDateFormatting.serverString(from: interval.start))
+                .order("scheduled_start", ascending: true).order("id", ascending: true)
+                .range(from: page.offset, to: page.inclusiveRangeEnd).execute().value
+            return try await ListPage(items: hydrate(rows), request: page)
+        } catch { throw Self.map(error) }
+    }
+
     func bookings(
         participantID: UUID,
         role: UserRole
@@ -64,6 +93,7 @@ final class SupabaseBookingRepository: BookingRepository {
                 .select(Self.bookingColumns + "," + SupabaseBookingRow.fulfillmentColumns)
                 .eq(participantColumn, value: participantID.uuidString.lowercased())
                 .order("scheduled_start", ascending: false)
+                .order("id", ascending: true)
                 .range(from: page.offset, to: page.inclusiveRangeEnd)
                 .execute()
                 .value

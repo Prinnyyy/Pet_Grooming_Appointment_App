@@ -4,6 +4,39 @@ import Testing
 
 extension CustomerRequestsStoreTests {
     @Test @MainActor
+    func republishReadsExactUnloadedSourceAndNeverConfirmsItsOldAddress() async {
+        let owner = UUID()
+        let pet = Self.pet(customerID: owner)
+        let source = Self.request(customerID: owner, petID: pet.id, status: .booked)
+        let booking = Self.booking(requestID: source.id, customerID: owner, status: .cancelledByCustomer)
+        let repository = CustomerRequestRepositoryFake()
+        repository.exactRequestResult = .success(source)
+        let store = CustomerRequestsStore(customerID: owner,
+            petRepository: CustomerRequestPetRepositoryFake(petsResult: .success([pet])),
+            requestRepository: DebugCustomerRequestRepository(base: repository, debugRecorder: nil),
+            bookingRepository: DebugBookingRepository(base: CustomerRequestBookingRepositoryFake(bookingsResult: .success([booking])), debugRecorder: nil))
+        #expect(store.request(withID: source.id) == nil)
+        #expect(await store.prepareRepublish(from: booking))
+        #expect(repository.exactRequestIDs == [source.id])
+        #expect(store.isShowingWizard)
+        #expect(store.selectedPetID == pet.id)
+        #expect(store.addressEditorState.confirmedAddress == nil)
+    }
+
+    @Test @MainActor
+    func missingOriginalRequestDoesNotOpenRepublishWizard() async {
+        let owner = UUID()
+        let booking = Self.booking(requestID: UUID(), customerID: owner, status: .cancelledByCustomer)
+        let repository = CustomerRequestRepositoryFake()
+        repository.exactRequestResult = .failure(.requestNotFound)
+        let store = CustomerRequestsStore(customerID: owner, petRepository: CustomerRequestPetRepositoryFake(),
+            requestRepository: repository, bookingRepository: CustomerRequestBookingRepositoryFake(bookingsResult: .success([booking])))
+        #expect(!(await store.prepareRepublish(from: booking)))
+        #expect(!store.isShowingWizard)
+        #expect(store.errorMessage?.contains("could not be verified") == true)
+    }
+
+    @Test @MainActor
     func revisionBindsOriginalVersionAndCancellationLeavesOriginalOpen() async throws {
         let owner = UUID()
         let pet = Self.pet(customerID: owner)
