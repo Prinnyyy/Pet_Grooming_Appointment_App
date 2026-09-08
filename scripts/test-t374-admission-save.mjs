@@ -13,8 +13,9 @@ assert.equal(readFileSync("supabase/.temp/project-ref", "utf8").trim(), "lqmasbu
 const credentials = parseEnv(readFileSync("supabase_environment_variables", "utf8"));
 assert.equal(credentials.SUPABASE_URL, "https://lqmasbuqzvcvtawonjlb.supabase.co");
 const api = new SupabaseREST(credentials.SUPABASE_URL, credentials.SUPABASE_PUBLISHABLE_KEY);
-const verifyAgreements = process.env.TESTOPS_VERIFY_AGREEMENTS === "1";
-const runID = `${verifyAgreements ? "T376" : "T374"}-${randomUUID()}`;
+const verifyFulfillment = process.env.TESTOPS_VERIFY_FULFILLMENT === "1";
+const verifyAgreements = verifyFulfillment || process.env.TESTOPS_VERIFY_AGREEMENTS === "1";
+const runID = `${verifyFulfillment ? "T377" : verifyAgreements ? "T376" : "T374"}-${randomUUID()}`;
 const verifyMatchRefresh = process.env.TESTOPS_VERIFY_MATCH_REFRESH === "1";
 const directory = `artifacts/testops/${runID}`;
 mkdirSync(directory, { recursive: true, mode: 0o700 });
@@ -47,6 +48,7 @@ const aggregate = table => `(select coalesce(jsonb_agg(to_jsonb(t) order by to_j
 const settingsSQL = `select ${tables.map((table, index) => `${aggregate(table)} as rows${index}`).join(",")};`;
 const baseline = captureT374TimingSnapshot();
 const [backup] = query(settingsSQL);
+if (verifyFulfillment) assert.equal(backup.rows1.length, 1, "Fulfillment fixture requires existing preferences");
 const fixtures = [];
 let configured;
 let unknownOutcome = false;
@@ -91,13 +93,15 @@ try {
     select '${groomerID}',d,'00:00'::time,'24:00'::time,true,'America/Los_Angeles' from generate_series(1,7) d
     on conflict(groomer_id,weekday) do update set start_time=excluded.start_time,end_time=excluded.end_time,
       is_enabled=true,timezone=excluded.timezone;
-    insert into public.groomer_booking_preferences(groomer_id,max_appointments_per_day,minimum_advance_notice_days,timing_buffers)
+    ${verifyFulfillment ? `update public.groomer_booking_preferences
+      set timing_buffers='{"preparation_minutes":15,"cleanup_minutes":10,"inbound_travel_minutes":30,"outbound_travel_minutes":20}'
+      where groomer_id='${groomerID}';` : `insert into public.groomer_booking_preferences(groomer_id,max_appointments_per_day,minimum_advance_notice_days,timing_buffers)
     values('${groomerID}',12,0,'{"preparation_minutes":15,"cleanup_minutes":10,"inbound_travel_minutes":30,"outbound_travel_minutes":20}')
-    on conflict(groomer_id) do update set max_appointments_per_day=12,minimum_advance_notice_days=0,timing_buffers=excluded.timing_buffers;
+    on conflict(groomer_id) do update set max_appointments_per_day=12,minimum_advance_notice_days=0,timing_buffers=excluded.timing_buffers;`}
     commit;`);
   [configured] = query(settingsSQL);
   writeFileSync(`${directory}/configured.json`, JSON.stringify(configured), { mode: 0o600 });
-  for (let attempt = 0; attempt < (verifyAgreements ? 4 : 2); attempt++) {
+  for (let attempt = 0; attempt < (verifyAgreements && !verifyFulfillment ? 4 : 2); attempt++) {
     const fixture = { operationID: randomUUID(), requestID: null, offerID: null };
     fixtures.push(fixture);
     writeFileSync(`${directory}/fixtures.json`, JSON.stringify(fixtures), { mode: 0o600 });
@@ -147,12 +151,48 @@ try {
       assert.equal(allocation.agreement_snapshot?.schema_version, 1);
       quoteRevisions.set(offerID, allocation.agreement_snapshot.quote_revision);
     }
-    assert.deepEqual(allocation.applied_timing_buffers, { preparation_minutes: 15, cleanup_minutes: 10,
-      inbound_travel_minutes: 30, outbound_travel_minutes: 20 });
+    const expectedBuffers = { preparation_minutes: 15, cleanup_minutes: 10,
+      inbound_travel_minutes: 30, outbound_travel_minutes: 20 };
+    assert.deepEqual(allocation.applied_timing_buffers, expectedBuffers);
     assert.equal(allocation.service_time_zone_identifier, "America/Los_Angeles");
     assert.equal(allocation.schedule_time_zone_identifier, "America/Los_Angeles");
-    assert.equal(Date.parse(allocation.occupied_start), Date.parse(created.start) - 45 * 60000);
-    assert.equal(Date.parse(allocation.occupied_end), Date.parse(serviceEnd) + 30 * 60000);
+    assert.equal(Date.parse(allocation.occupied_start), Date.parse(created.start)
+      - (expectedBuffers.preparation_minutes + expectedBuffers.inbound_travel_minutes) * 60000);
+    assert.equal(Date.parse(allocation.occupied_end), Date.parse(serviceEnd)
+      + (expectedBuffers.cleanup_minutes + expectedBuffers.outbound_travel_minutes) * 60000);
+    if (verifyFulfillment) {
+      const [acceptance] = await api.rpc("accept_groomer_offer", { p_offer_id: offerID }, customerAuth.accessToken);
+      const [before] = await api.restSelect("bookings", `select=id,fulfillment_revision,agreement_snapshot&id=eq.${acceptance.booking_id}`, customerAuth.accessToken);
+      assert.ok(before?.fulfillment_revision);
+      const actors = [customerAuth, groomerAuth];
+      const operations = actors.map(() => ({ p_booking_id: before.id,
+        p_expected_revision: before.fulfillment_revision, p_operation_id: randomUUID(), p_action: "cancel", p_note: null }));
+      const outcomes = await runTimingDatabaseBarrier(groomerID, () => Promise.allSettled(actors.map(async (actor, index) => {
+        if (index !== attempt) await new Promise(resolve => setTimeout(resolve, 500));
+        return api.rpc("mutate_booking_fulfillment", operations[index], actor.accessToken);
+      })), { revisionRequestID: requestID, fulfillmentRace: true });
+      assert.equal(outcomes[attempt].status, "fulfilled");
+      assert.equal(outcomes[1 - attempt].status, "rejected");
+      assert.equal(outcomes[1 - attempt].reason.code, "PT409");
+      const result = outcomes[attempt].value;
+      assert.equal(result.booking.status, attempt === 0 ? "cancelled_by_customer" : "cancelled_by_groomer");
+      assert.deepEqual(result.booking.agreement_snapshot, before.agreement_snapshot);
+      const replay = await api.rpc("mutate_booking_fulfillment", operations[attempt], actors[attempt].accessToken);
+      const lookup = await api.rpc("get_booking_fulfillment_operation", {
+        p_operation_id: operations[attempt].p_operation_id }, actors[attempt].accessToken);
+      assert.deepEqual(replay.receipt, result.receipt);
+      assert.deepEqual(lookup, replay);
+      assert.equal(await api.rpc("get_booking_fulfillment_operation", {
+        p_operation_id: operations[attempt].p_operation_id }, actors[1 - attempt].accessToken), null);
+      const events = await api.restSelect("booking_fulfillment_events", `select=id,operation_id&booking_id=eq.${before.id}`, customerAuth.accessToken);
+      assert.equal(events.length, 1);
+      assert.equal(events[0].operation_id, operations[attempt].p_operation_id);
+      writeFileSync(`${directory}/fulfillment-race-${attempt}.json`, JSON.stringify({
+        winner: attempt === 0 ? "customer" : "groomer", dispatch: "verified-database-lock-contention",
+        currentStateAndOriginalReceipt: true, eventCount: events.length }), { mode: 0o600 });
+      console.log(`Fulfillment race ${attempt + 1}: PASS (${attempt === 0 ? "customer" : "groomer"}; exact replay, single event)`);
+      continue;
+    }
     if (verifyAgreements && attempt >= 2) {
       preferSave = false;
       revisionRaceOrder = attempt === 2 ? "booking" : "replacement";
@@ -259,7 +299,11 @@ try {
         if exists(select 1 from public.messages m join public.conversations c on c.id=m.conversation_id
           where c.customer_id='${customerID}' and c.groomer_id='${groomerID}'
           and not (m.kind='booking_card' and m.booking_id in (select id from public.bookings where request_id in (${requestIDs})))
-          and not (m.kind='text' and m.body='Hi! I''ve accepted your offer and confirmed this booking. Looking forward to working with you!'
+          and not (m.kind='text' and (m.body='Hi! I''ve accepted your offer and confirmed this booking. Looking forward to working with you!'
+            ${verifyFulfillment ? `or (m.body='This booking was cancelled before service. The original request remains closed.'
+              and exists(select 1 from public.booking_fulfillment_events event join public.bookings booking on booking.id=event.booking_id
+                where booking.request_id in (${requestIDs}) and event.actor_id=m.sender_id
+                  and event.action='cancel' and m.created_at=event.recorded_at+interval '1 microsecond'))` : ""})
             and exists(select 1 from public.messages card join public.bookings b on b.id=card.booking_id
               where b.request_id in (${requestIDs}) and card.conversation_id=m.conversation_id
               and card.sender_id=m.sender_id and m.created_at=card.created_at+interval '1 microsecond'))) then
@@ -275,7 +319,12 @@ try {
       select app_private.cleanup_testops_request_address_location(id,'${runID}')
         from public.grooming_requests where id in (${requestIDs}) and service_notes='TESTOPS:${runID}';
       delete from public.grooming_requests where id in (${requestIDs}) and service_notes='TESTOPS:${runID}';
-      ${tables.map((table, index) => `delete from public.${table} where groomer_id='${groomerID}';
+      ${verifyFulfillment ? `alter table public.groomer_booking_preferences disable trigger groomer_booking_preferences_set_updated_at;
+        update public.groomer_booking_preferences prefs set timing_buffers=original.timing_buffers,updated_at=original.updated_at
+          from jsonb_populate_recordset(null::public.groomer_booking_preferences,${json(backup.rows1)}) original
+          where prefs.groomer_id=original.groomer_id;
+        alter table public.groomer_booking_preferences enable trigger groomer_booking_preferences_set_updated_at;` : ""}
+      ${tables.map((table, index) => verifyFulfillment && table === "groomer_booking_preferences" ? "" : `delete from public.${table} where groomer_id='${groomerID}';
         insert into public.${table} select * from jsonb_populate_recordset(null::public.${table},${json(backup[`rows${index}`])});`).join("\n")}
       ${verifyMatchRefresh || verifyAgreements ? `delete from app_private.match_refresh_queue where request_id in (${requestIDs});` : ""}
       commit;`);

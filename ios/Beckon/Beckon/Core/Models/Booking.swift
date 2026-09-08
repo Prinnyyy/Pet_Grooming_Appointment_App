@@ -36,6 +36,7 @@ struct Booking: Equatable, Hashable, Identifiable, Sendable {
     let occupiedStart: String?
     let occupiedEnd: String?
     var agreementSnapshot: ServiceAgreement? = nil
+    var fulfillment: BookingFulfillment? = nil
 
     nonisolated init(
         id: UUID,
@@ -72,7 +73,8 @@ struct Booking: Equatable, Hashable, Identifiable, Sendable {
         scheduleTimeZoneIdentifier: String? = nil,
         occupiedStart: String? = nil,
         occupiedEnd: String? = nil,
-        agreementSnapshot: ServiceAgreement? = nil
+        agreementSnapshot: ServiceAgreement? = nil,
+        fulfillment: BookingFulfillment? = nil
     ) {
         self.id = id
         self.requestID = requestID
@@ -109,6 +111,7 @@ struct Booking: Equatable, Hashable, Identifiable, Sendable {
         self.occupiedStart = occupiedStart
         self.occupiedEnd = occupiedEnd
         self.agreementSnapshot = agreementSnapshot
+        self.fulfillment = fulfillment
     }
 
     nonisolated var priceSummary: String {
@@ -141,8 +144,13 @@ struct Booking: Equatable, Hashable, Identifiable, Sendable {
         status == .confirmed
     }
 
-    nonisolated func canComplete(for role: UserRole) -> Bool {
-        role == .groomer && status == .confirmed
+    nonisolated func canComplete(for role: UserRole, now: Date = Date()) -> Bool {
+        guard role == .groomer, status == .confirmed,
+              let start = GroomingRequestDateFormatting.parsedDate(from: scheduledStart), now >= start else { return false }
+        guard let fulfillment else { return true }
+        guard fulfillment.phase == .inService,
+              let actualStart = fulfillment.actualStartedAt.flatMap(GroomingRequestDateFormatting.parsedDate) else { return false }
+        return now >= actualStart.addingTimeInterval(60)
     }
 
     nonisolated func canReview(for role: UserRole) -> Bool {
@@ -254,7 +262,8 @@ struct Booking: Equatable, Hashable, Identifiable, Sendable {
             scheduleTimeZoneIdentifier: scheduleTimeZoneIdentifier,
             occupiedStart: occupiedStart,
             occupiedEnd: occupiedEnd,
-            agreementSnapshot: agreementSnapshot
+            agreementSnapshot: agreementSnapshot,
+            fulfillment: fulfillment
         )
     }
 
@@ -510,6 +519,7 @@ nonisolated enum BookingStatus:
 {
     case confirmed
     case completed
+    case unfulfilled
     case cancelledByCustomer = "cancelled_by_customer"
     case cancelledByGroomer = "cancelled_by_groomer"
     case unknown
@@ -520,6 +530,8 @@ nonisolated enum BookingStatus:
             "Confirmed"
         case .completed:
             "Completed"
+        case .unfulfilled:
+            "Service Not Confirmed"
         case .cancelledByCustomer:
             "Cancelled by customer"
         case .cancelledByGroomer:
@@ -533,7 +545,7 @@ nonisolated enum BookingStatus:
         switch self {
         case .cancelledByCustomer, .cancelledByGroomer:
             true
-        case .confirmed, .completed, .unknown:
+        case .confirmed, .completed, .unfulfilled, .unknown:
             false
         }
     }

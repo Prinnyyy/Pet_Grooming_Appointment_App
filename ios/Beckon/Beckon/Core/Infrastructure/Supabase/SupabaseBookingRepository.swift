@@ -59,9 +59,9 @@ final class SupabaseBookingRepository: BookingRepository {
                 "groomer_id"
             }
 
-            let rows: [BookingRow] = try await client
+            let rows: [SupabaseBookingRow] = try await client
                 .from("bookings")
-                .select(Self.bookingColumns)
+                .select(Self.bookingColumns + "," + SupabaseBookingRow.fulfillmentColumns)
                 .eq(participantColumn, value: participantID.uuidString.lowercased())
                 .order("scheduled_start", ascending: false)
                 .range(from: page.offset, to: page.inclusiveRangeEnd)
@@ -82,9 +82,9 @@ final class SupabaseBookingRepository: BookingRepository {
         guard !ids.isEmpty else { return [] }
 
         do {
-            let rows: [BookingRow] = try await client
+            let rows: [SupabaseBookingRow] = try await client
                 .from("bookings")
-                .select(Self.bookingColumns)
+                .select(Self.bookingColumns + "," + SupabaseBookingRow.fulfillmentColumns)
                 .in("id", values: ids)
                 .execute()
                 .value
@@ -218,6 +218,31 @@ final class SupabaseBookingRepository: BookingRepository {
         }
     }
 
+    func mutateFulfillment(_ operation: BookingFulfillmentOperation) async throws -> BookingFulfillmentResult {
+        do {
+            let row: SupabaseFulfillmentResponse = try await client.rpc("mutate_booking_fulfillment",
+                params: SupabaseFulfillmentParameters(operation: operation)).execute().value
+            return row.result
+        } catch { throw Self.map(error) }
+    }
+
+    func fulfillmentOperation(id: UUID) async throws -> BookingFulfillmentResult? {
+        do {
+            let row: SupabaseFulfillmentResponse? = try await client.rpc("get_booking_fulfillment_operation",
+                params: SupabaseFulfillmentLookup(operationID: id)).execute().value
+            return row?.result
+        } catch { throw Self.map(error) }
+    }
+
+    func fulfillmentEvents(bookingID: UUID) async throws -> [BookingFulfillmentEvent] {
+        do {
+            return try await client.from("booking_fulfillment_events")
+                .select("id,actor_id,action,note,recorded_at")
+                .eq("booking_id", value: bookingID.uuidString.lowercased())
+                .order("recorded_at", ascending: false).limit(50).execute().value
+        } catch { throw Self.map(error) }
+    }
+
     private static func map(_ error: any Error) -> BookingRepositoryError {
         if AppDebugErrorClassifier.isCancellation(error) {
             return .cancelled
@@ -228,12 +253,21 @@ final class SupabaseBookingRepository: BookingRepository {
         }
 
         if let postgrestError = error as? PostgrestError {
+            if let rejection = BookingFulfillmentRejection(rawValue: postgrestError.message) {
+                return .fulfillmentRejected(rejection)
+            }
+            if ["service_not_startable", "service_not_completable", "use_service_outcome_report",
+                "service_not_reportable", "report_not_withdrawable", "elapsed_closure_not_available",
+                "retrospective_completion_not_available", "objection_requires_terminal_outcome",
+                "invalid_fulfillment_action", "invalid_fulfillment_operation"].contains(postgrestError.message) {
+                return .fulfillmentRejected(.unavailable)
+            }
             switch postgrestError.code {
             case "42501", "28000":
                 return .notAllowed
             case "22023":
                 switch postgrestError.message {
-                case "updated_agreement_client_required":
+                case "updated_agreement_client_required", "updated_fulfillment_client_required":
                     return .clientUpdateRequired
                 case "quote_revision_changed", "quote_terms_invalid", "updated_agreement_offer_required":
                     return .updatedOfferRequired
@@ -305,7 +339,7 @@ final class SupabaseBookingRepository: BookingRepository {
         return .unavailable
     }
 
-    private func hydrate(_ rows: [BookingRow]) async throws -> [Booking] {
+    private func hydrate(_ rows: [SupabaseBookingRow]) async throws -> [Booking] {
         let reviewMap = try await reviewsByBookingID(
             bookingIDs: rows.map(\.id)
         )
@@ -438,29 +472,7 @@ final class SupabaseBookingRepository: BookingRepository {
     }
 }
 
-private struct BookingRow: Decodable {
-    let id: UUID
-    let requestID: UUID
-    let offerID: UUID
-    let customerID: UUID
-    let groomerID: UUID
-    let scheduledStart: String
-    let scheduledEnd: String
-    let priceEstimate: Double
-    let status: BookingStatus
-    let cancelledBy: UUID?
-    let cancelledAt: String?
-    let completedAt: String?
-    let completedBy: UUID?
-    let createdAt: String
-    let updatedAt: String
-    let appliedTimingBuffers: GroomingTimingBuffers?
-    let serviceTimeZoneIdentifier: String?
-    let scheduleTimeZoneIdentifier: String?
-    let occupiedStart: String?
-    let occupiedEnd: String?
-    let agreementSnapshot: ServiceAgreement?
-
+private extension SupabaseBookingRow {
     func booking(
         review: BookingReview?,
         groomerSummary: BookingGroomerSummary?,
@@ -502,32 +514,9 @@ private struct BookingRow: Decodable {
             scheduleTimeZoneIdentifier: scheduleTimeZoneIdentifier,
             occupiedStart: occupiedStart,
             occupiedEnd: occupiedEnd,
-            agreementSnapshot: agreementSnapshot
+            agreementSnapshot: agreementSnapshot,
+            fulfillment: fulfillment
         )
-    }
-
-    private enum CodingKeys: String, CodingKey {
-        case id
-        case agreementSnapshot = "agreement_snapshot"
-        case requestID = "request_id"
-        case offerID = "offer_id"
-        case customerID = "customer_id"
-        case groomerID = "groomer_id"
-        case scheduledStart = "scheduled_start"
-        case scheduledEnd = "scheduled_end"
-        case priceEstimate = "price_estimate"
-        case status
-        case cancelledBy = "cancelled_by"
-        case cancelledAt = "cancelled_at"
-        case completedAt = "completed_at"
-        case completedBy = "completed_by"
-        case createdAt = "created_at"
-        case updatedAt = "updated_at"
-        case appliedTimingBuffers = "applied_timing_buffers"
-        case serviceTimeZoneIdentifier = "service_time_zone_identifier"
-        case scheduleTimeZoneIdentifier = "schedule_time_zone_identifier"
-        case occupiedStart = "occupied_start"
-        case occupiedEnd = "occupied_end"
     }
 }
 

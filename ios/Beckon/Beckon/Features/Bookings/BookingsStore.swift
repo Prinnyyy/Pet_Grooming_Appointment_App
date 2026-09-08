@@ -11,6 +11,11 @@ final class BookingsStore {
     private(set) var scheduleCalendar: Calendar?
     private let appointmentReminderScheduler: any AppointmentReminderScheduling
     private let debugRecorder: AppDebugEventRecorder?
+    private let fulfillmentDefaults: UserDefaults
+    private var pendingFulfillment: [UUID: BookingFulfillmentOperation] = [:]
+    private(set) var isMutatingFulfillment = false
+    private(set) var fulfillmentHistory: [UUID: [BookingFulfillmentEvent]] = [:]
+    private(set) var fulfillmentHistoryErrors: [UUID: String] = [:]
 
     private(set) var bookings: [Booking] = []
     private(set) var isLoading = false
@@ -25,7 +30,7 @@ final class BookingsStore {
     var appointmentReminderNotice: String?
 
     var isBusy: Bool {
-        isLoading || isLoadingMore || isCancelling || isCompleting || isSubmittingReview
+        isLoading || isLoadingMore || isCancelling || isCompleting || isSubmittingReview || isMutatingFulfillment
     }
 
     var canLoadMore: Bool {
@@ -40,7 +45,8 @@ final class BookingsStore {
         initialBookings: [Booking] = [],
         appointmentReminderScheduler: any AppointmentReminderScheduling =
             AppointmentReminderScheduler.shared,
-        debugRecorder: AppDebugEventRecorder? = nil
+        debugRecorder: AppDebugEventRecorder? = nil,
+        fulfillmentDefaults: UserDefaults = .standard
     ) {
         self.participantID = participantID
         self.role = role
@@ -48,7 +54,12 @@ final class BookingsStore {
         self.groomerProfileRepository = groomerProfileRepository
         self.appointmentReminderScheduler = appointmentReminderScheduler
         self.debugRecorder = debugRecorder
+        self.fulfillmentDefaults = fulfillmentDefaults
         bookings = initialBookings
+        if let data = fulfillmentDefaults.data(forKey: "beckon.fulfillment.\(participantID).\(role.rawValue)"),
+           let operations = try? JSONDecoder().decode([BookingFulfillmentOperation].self, from: data) {
+            pendingFulfillment = operations.reduce(into: [:]) { $0[$1.bookingID] = $1 }
+        }
     }
 
     func booking(withID id: UUID) -> Booking? {
@@ -181,7 +192,129 @@ final class BookingsStore {
         }
     }
 
+    func pendingFulfillmentOperation(for bookingID: UUID) -> BookingFulfillmentOperation? {
+        pendingFulfillment[bookingID]
+    }
+
+    func fulfillmentActions(for booking: Booking, now: Date = Date()) -> [BookingFulfillmentAction] {
+        guard pendingFulfillment[booking.id] == nil else { return [] }
+        return booking.fulfillmentActions(for: role, participantID: participantID, now: now)
+    }
+
+    func loadFulfillmentHistory(for bookingID: UUID) async {
+        guard booking(withID: bookingID)?.fulfillment != nil else { return }
+        do {
+            fulfillmentHistory[bookingID] = try await repository.fulfillmentEvents(bookingID: bookingID)
+            fulfillmentHistoryErrors[bookingID] = nil
+        } catch {
+            fulfillmentHistoryErrors[bookingID] = "Service activity could not be loaded."
+        }
+    }
+
+    func refreshFulfillment(for bookingID: UUID) async {
+        do {
+            guard let current = try await repository.bookings(bookingIDs: [bookingID]).first,
+                  current.id == bookingID,
+                  (role == .customer ? current.customerID : current.groomerID) == participantID else {
+                throw BookingRepositoryError.unavailable
+            }
+            synchronizeExternalBooking(current)
+            errorMessage = nil
+            await loadFulfillmentHistory(for: bookingID)
+        } catch {
+            errorMessage = "The current service outcome could not be refreshed. Existing details may be out of date."
+        }
+    }
+
+    func performFulfillment(_ action: BookingFulfillmentAction, for booking: Booking, note: String? = nil) async {
+        guard !isMutatingFulfillment else { return }
+        guard pendingFulfillment[booking.id] == nil else {
+            errorMessage = "Check the previous operation before changing this booking."
+            return
+        }
+        guard let revision = booking.fulfillment?.revision,
+              fulfillmentActions(for: booking).contains(action) else {
+            errorMessage = BookingFulfillmentRejection.unavailable.message
+            return
+        }
+        let normalizedNote = note?.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard (!action.requiresNote || normalizedNote?.isEmpty == false), (normalizedNote?.count ?? 0) <= 500 else {
+            errorMessage = BookingFulfillmentRejection.noteRequired.message
+            return
+        }
+        let operation = BookingFulfillmentOperation(id: UUID(), bookingID: booking.id,
+            expectedRevision: revision, action: action, note: normalizedNote?.isEmpty == false ? normalizedNote : nil)
+        pendingFulfillment[booking.id] = operation
+        do { try persistFulfillmentOperations() }
+        catch {
+            pendingFulfillment[booking.id] = nil
+            errorMessage = "The operation could not be saved for safe recovery. No change was sent."
+            return
+        }
+        await runFulfillment(operation, lookupFirst: false, retryIfMissing: true)
+    }
+
+    func recoverFulfillment(for bookingID: UUID, retryIfMissing: Bool = false) async {
+        guard !isMutatingFulfillment, let operation = pendingFulfillment[bookingID] else { return }
+        await runFulfillment(operation, lookupFirst: true, retryIfMissing: retryIfMissing)
+    }
+
+    private func runFulfillment(_ operation: BookingFulfillmentOperation, lookupFirst: Bool, retryIfMissing: Bool) async {
+        isMutatingFulfillment = true
+        errorMessage = nil
+        noticeMessage = nil
+        defer { isMutatingFulfillment = false }
+        do {
+            var result: BookingFulfillmentResult?
+            if lookupFirst { result = try await repository.fulfillmentOperation(id: operation.id) }
+            if result == nil && retryIfMissing { result = try await repository.mutateFulfillment(operation) }
+            guard let result else {
+                noticeMessage = "No recorded outcome yet. The original action remains available to retry."
+                return
+            }
+            guard result.receipt.operationID == operation.id, result.receipt.bookingID == operation.bookingID,
+                  result.receipt.action == operation.action, result.booking.id == operation.bookingID,
+                  (role == .customer ? result.booking.customerID : result.booking.groomerID) == participantID,
+                  result.booking.fulfillment != nil else { throw BookingRepositoryError.unavailable }
+            let current = booking(withID: operation.bookingID)?.applyingFulfillment(result.booking) ?? result.booking
+            synchronizeExternalBooking(current)
+            pendingFulfillment[operation.bookingID] = nil
+            try persistFulfillmentOperations()
+            noticeMessage = "Booking status verified: \(current.fulfillmentTitle)."
+            if current.fulfillment?.phase != .scheduled {
+                await appointmentReminderScheduler.cancelReminder(for: current.id, role: role)
+            }
+            await loadFulfillmentHistory(for: current.id)
+        } catch let error as BookingRepositoryError {
+            switch error {
+            case .networkUnavailable, .unavailable, .cancelled:
+                errorMessage = "The outcome is not confirmed yet. Check booking status before retrying the original action."
+            default:
+                pendingFulfillment[operation.bookingID] = nil
+                try? persistFulfillmentOperations()
+                errorMessage = message(for: error, action: "update")
+                if let current = try? await repository.bookings(bookingIDs: [operation.bookingID]).first,
+                   current.id == operation.bookingID,
+                   (role == .customer ? current.customerID : current.groomerID) == participantID {
+                    synchronizeExternalBooking(current)
+                }
+            }
+        } catch {
+            errorMessage = "The outcome is not confirmed yet. Check booking status before retrying the original action."
+        }
+    }
+
+    private func persistFulfillmentOperations() throws {
+        let key = "beckon.fulfillment.\(participantID).\(role.rawValue)"
+        if pendingFulfillment.isEmpty { fulfillmentDefaults.removeObject(forKey: key) }
+        else { fulfillmentDefaults.set(try JSONEncoder().encode(Array(pendingFulfillment.values)), forKey: key) }
+    }
+
     func cancel(_ booking: Booking) async {
+        if booking.fulfillment != nil {
+            await performFulfillment(.cancel, for: booking)
+            return
+        }
         guard !isCancelling else { return }
         guard booking.canCancel else {
             errorMessage = "This booking can no longer be cancelled."
@@ -237,6 +370,10 @@ final class BookingsStore {
     }
 
     func complete(_ booking: Booking) async {
+        if booking.fulfillment != nil {
+            await performFulfillment(.complete, for: booking)
+            return
+        }
         guard !isCompleting else { return }
         guard booking.canComplete(for: role) else {
             errorMessage = "This booking can no longer be completed by this account."
@@ -404,6 +541,8 @@ final class BookingsStore {
             "This booking is no longer available."
         case .bookingNotCancellable:
             "This booking can no longer be cancelled."
+        case .fulfillmentRejected(let rejection):
+            rejection.message
         case .bookingNotCompletable:
             "This booking can no longer be completed."
         case .bookingNotCompleted:

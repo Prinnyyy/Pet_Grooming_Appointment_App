@@ -13,6 +13,7 @@ enum BookingRepositoryError: Error, Equatable, Sendable {
     case bookingNotFound
     case bookingNotCancellable
     case bookingNotCompletable
+    case fulfillmentRejected(BookingFulfillmentRejection)
     case bookingNotCompleted
     case reviewAlreadyExists
     case invalidReview
@@ -24,6 +25,9 @@ enum BookingRepositoryError: Error, Equatable, Sendable {
 
 @MainActor
 protocol BookingRepository: AnyObject {
+    func mutateFulfillment(_ operation: BookingFulfillmentOperation) async throws -> BookingFulfillmentResult
+    func fulfillmentOperation(id: UUID) async throws -> BookingFulfillmentResult?
+    func fulfillmentEvents(bookingID: UUID) async throws -> [BookingFulfillmentEvent]
     func bookings(
         participantID: UUID,
         role: UserRole
@@ -61,6 +65,15 @@ protocol BookingRepository: AnyObject {
 }
 
 extension BookingRepository {
+    func mutateFulfillment(_ operation: BookingFulfillmentOperation) async throws -> BookingFulfillmentResult {
+        throw BookingRepositoryError.unavailable
+    }
+    func fulfillmentOperation(id: UUID) async throws -> BookingFulfillmentResult? {
+        throw BookingRepositoryError.unavailable
+    }
+    func fulfillmentEvents(bookingID: UUID) async throws -> [BookingFulfillmentEvent] {
+        throw BookingRepositoryError.unavailable
+    }
     func acceptOffer(offerID: UUID, expectedQuoteRevision: UUID) async throws -> AcceptGroomerOfferResult {
         try await acceptOffer(offerID: offerID)
     }

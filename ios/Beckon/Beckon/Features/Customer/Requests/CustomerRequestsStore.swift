@@ -562,8 +562,8 @@ final class CustomerRequestsStore {
         originalRequest: CustomerGroomingRequest?,
         now: Date = Date()
     ) -> Bool {
-        guard booking.status.isCancellation else {
-            errorMessage = "Only cancelled bookings can start a new request."
+        guard booking.status.isCancellation || booking.status == .unfulfilled else {
+            errorMessage = "Only cancelled or unfulfilled bookings can start a new request."
             return false
         }
 
@@ -2343,6 +2343,8 @@ final class CustomerRequestsStore {
             "This booking is no longer available."
         case .bookingNotCancellable:
             "This booking can no longer be cancelled."
+        case .fulfillmentRejected(let rejection):
+            rejection.message
         case .bookingNotCompletable:
             "This booking can no longer be completed."
         case .bookingNotCompleted:

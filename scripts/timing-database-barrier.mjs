@@ -5,6 +5,7 @@ export async function runTimingDatabaseBarrier(groomerID, run, {
   delay = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds)),
   matchRefreshRequestID = null,
   revisionRequestID = null,
+  fulfillmentRace = false,
 } = {}) {
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(groomerID)) {
     throw new Error("Invalid timing barrier groomer identity.");
@@ -14,7 +15,9 @@ export async function runTimingDatabaseBarrier(groomerID, run, {
   }
   if (revisionRequestID !== null && (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(revisionRequestID)
     || matchRefreshRequestID !== null)) throw new Error("Invalid revision barrier request identity or mixed mode.");
-  const competingRPC = revisionRequestID === null ? "save_groomer_availability" : "supersede_grooming_request";
+  if (fulfillmentRace && revisionRequestID === null) throw new Error("Fulfillment barrier requires its booking request.");
+  const acceptingRPC = fulfillmentRace ? "mutate_booking_fulfillment" : "accept_groomer_offer";
+  const competingRPC = fulfillmentRace ? acceptingRPC : revisionRequestID === null ? "save_groomer_availability" : "supersede_grooming_request";
   const holderBlocks = revisionRequestID === null
     ? "pg_backend_pid() = any(pg_blocking_pids(pid))"
     : `exists (with recursive blockers(pid) as (
@@ -45,23 +48,23 @@ export async function runTimingDatabaseBarrier(groomerID, run, {
       for attempt in 1..40 loop
         perform pg_stat_clear_snapshot();
         select count(distinct pid),
-          coalesce(bool_or(query ~ 'accept_groomer_offer'),false),
+          coalesce(bool_or(query ~ '${acceptingRPC}'),false),
           coalesce(bool_or(query ~ '${competingRPC}'),false)
           into blocked_sessions,has_accept,has_save from pg_stat_activity activity
           where application_name like 'PostgREST %' and state='active'
             and wait_event_type='Lock'
             and ${holderBlocks}
-            and query ~ '(accept_groomer_offer|${competingRPC})';
+            and query ~ '(${acceptingRPC}|${competingRPC})';
         exit when blocked_sessions >= 2 and has_accept and has_save;
         perform pg_sleep(0.25);
       end loop;
       if blocked_sessions < 2 or not has_accept or not has_save then
         raise exception 'Timing admission/save database barrier was not verified: %',
-          (select jsonb_agg(jsonb_build_object('accept',query ~ 'accept_groomer_offer',
+          (select jsonb_agg(jsonb_build_object('accept',query ~ '${acceptingRPC}',
             'save',query ~ '${competingRPC}','state',state,'wait',wait_event_type,
             'holder_blocks',pg_backend_pid() = any(pg_blocking_pids(pid))))
             from pg_stat_activity where application_name like 'PostgREST %' and state='active'
-              and query ~ '(accept_groomer_offer|${competingRPC})');
+              and query ~ '(${acceptingRPC}|${competingRPC})');
       end if;
       ${refreshCheck}
     end $$; commit;`;

@@ -4,6 +4,17 @@ import test from "node:test";
 import { runTimingDatabaseBarrier } from "../../scripts/timing-database-barrier.mjs";
 
 const groomerID = "00000000-0000-4000-8000-000000000001";
+test("fulfillment mode requires two real sessions blocked on the booking request", async () => {
+  const h = harness();
+  await runTimingDatabaseBarrier(groomerID, async () => { h.release(); }, {
+    ...h.options, revisionRequestID: "00000000-0000-4000-8000-000000000002", fulfillmentRace: true,
+  });
+  assert.match(h.sql(), /mutate_booking_fulfillment/);
+  assert.match(h.sql(), /count\(distinct pid\)/);
+  assert.match(h.sql(), /blocked_sessions < 2/);
+  assert.match(h.sql(), /with recursive blockers/);
+  assert.doesNotMatch(h.sql(), /accept_groomer_offer|supersede_grooming_request/);
+});
 test("revision mode proves acceptance and replacement wait on the same request", async () => {
   const h = harness();
   await runTimingDatabaseBarrier(groomerID, async () => { h.release(); }, {

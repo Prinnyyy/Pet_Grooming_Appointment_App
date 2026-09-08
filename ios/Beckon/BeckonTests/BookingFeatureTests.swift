@@ -1349,6 +1349,27 @@ final class AppointmentReminderSchedulerFake:
 
 @MainActor
 final class BookingRepositoryFake: BookingRepository {
+    var fulfillmentResult: Result<BookingFulfillmentResult, BookingRepositoryError> = .failure(.networkUnavailable)
+    var fulfillmentLookup: BookingFulfillmentResult?
+    private(set) var fulfillmentOperations: [BookingFulfillmentOperation] = []
+    private(set) var fulfillmentLookupCount = 0
+
+    func mutateFulfillment(_ operation: BookingFulfillmentOperation) async throws -> BookingFulfillmentResult {
+        fulfillmentOperations.append(operation)
+        return try fulfillmentResult.get()
+    }
+
+    func fulfillmentOperation(id: UUID) async throws -> BookingFulfillmentResult? {
+        fulfillmentLookupCount += 1
+        return fulfillmentLookup
+    }
+
+    func fulfillmentEvents(bookingID: UUID) async throws -> [BookingFulfillmentEvent] { [] }
+
+    func bookings(bookingIDs: [UUID]) async throws -> [Booking] {
+        try bookingsResult.get().filter { bookingIDs.contains($0.id) }
+    }
+
     var bookingsResult: Result<[Booking], BookingRepositoryError>
     var bookingPages: [Result<ListPage<Booking>, BookingRepositoryError>]
     var cancelResult: Result<CancelBookingResult, BookingRepositoryError>

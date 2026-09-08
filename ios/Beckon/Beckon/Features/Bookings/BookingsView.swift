@@ -947,6 +947,8 @@ private extension Booking {
             "Booking Confirmed"
         case .completed:
             "Booking Completed"
+        case .unfulfilled:
+            "Service Not Confirmed"
         case .cancelledByCustomer, .cancelledByGroomer:
             "Booking Cancelled"
         case .unknown:
@@ -1029,7 +1031,7 @@ struct BookingDetailView: View {
                             }
 
                             if role == .customer,
-                               booking.status.isCancellation,
+                               (booking.status.isCancellation || booking.status == .unfulfilled),
                                let onCreateNewRequestFromCancelledBooking {
                                 CustomerRequestRepublishButton(
                                     actionTitle: "Create a New Request from This Booking",
@@ -1039,6 +1041,8 @@ struct BookingDetailView: View {
                                     }
                                 )
                             }
+
+                            BookingFulfillmentSection(booking: booking, store: store)
 
                             BookingPartnerOverviewCard(
                                 booking: booking,
@@ -1081,13 +1085,6 @@ struct BookingDetailView: View {
             .navigationTitle("Booking")
             .navigationBarTitleDisplayMode(.inline)
             .accessibilityIdentifier("bookings.detail")
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                BookingDetailActionBar(
-                    booking: booking,
-                    role: role,
-                    store: store
-                )
-            }
         } else {
             ZStack {
                 DesignTokens.Colors.background
@@ -1133,62 +1130,6 @@ nonisolated enum BookingReviewKeyboardPresentation {
     static let contentFocusTarget = BookingReviewFocusTarget.content.rawValue
 }
 
-private struct BookingDetailActionBar: View {
-    let booking: Booking
-    let role: UserRole
-    let store: BookingsStore
-
-    private var presentation: BookingDetailActionPresentation {
-        BookingDetailActionPresentation(booking: booking, role: role)
-    }
-
-    @ViewBuilder
-    var body: some View {
-        if presentation.canCancel || presentation.canComplete {
-            HStack(spacing: DesignTokens.Spacing.sm) {
-                if presentation.canCancel {
-                    Button(role: .destructive) {
-                        Task { await store.cancel(booking) }
-                    } label: {
-                        Label("Cancel", systemImage: "xmark.circle")
-                    }
-                    .buttonStyle(BeckonSecondaryButtonStyle(accent: .neutral))
-                    .disabled(store.isCancelling || store.isCompleting)
-                    .accessibilityIdentifier(
-                        AppTestOpsAccessibility.requestIdentifier(
-                            prefix: role == .groomer
-                                ? "groomer.booking.cancel.request"
-                                : "customer.booking.cancel.request",
-                            requestID: booking.requestID
-                        )
-                    )
-                }
-
-                if presentation.canComplete {
-                    Button {
-                        Task { await store.complete(booking) }
-                    } label: {
-                        Label("Complete", systemImage: "checkmark.circle")
-                    }
-                    .buttonStyle(BeckonPrimaryButtonStyle(accent: .groomer))
-                    .disabled(store.isCancelling || store.isCompleting)
-                    .accessibilityIdentifier(
-                        AppTestOpsAccessibility.requestIdentifier(
-                            prefix: "groomer.booking.detail.complete.request",
-                            requestID: booking.requestID
-                        )
-                    )
-                }
-            }
-            .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
-            .padding(.vertical, DesignTokens.Spacing.sm)
-            .background(.ultraThinMaterial)
-            .overlay(alignment: .top) {
-                GroomerWorkspaceDivider()
-            }
-        }
-    }
-}
 
 private struct BookingDetailHeroCard: View {
     let booking: Booking
@@ -1801,6 +1742,8 @@ private extension BookingStatus {
             "calendar.badge.checkmark"
         case .completed:
             "checkmark.circle.fill"
+        case .unfulfilled:
+            "exclamationmark.circle"
         case .cancelledByCustomer, .cancelledByGroomer:
             "xmark.circle.fill"
         case .unknown:
@@ -1814,6 +1757,8 @@ private extension BookingStatus {
             role == .groomer ? .groomer : .customer
         case .completed:
             .success
+        case .unfulfilled:
+            .neutral
         case .cancelledByCustomer, .cancelledByGroomer:
             .error
         case .unknown:

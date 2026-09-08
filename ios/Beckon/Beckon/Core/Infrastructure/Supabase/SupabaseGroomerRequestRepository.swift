@@ -408,9 +408,9 @@ final class SupabaseGroomerRequestRepository: GroomerRequestRepository {
         guard !ids.isEmpty else { return [:] }
 
         do {
-            let rows: [GroomerOfferBookingRow] = try await client
+            let rows: [SupabaseBookingRow] = try await client
                 .from("bookings")
-                .select(Self.bookingColumns)
+                .select(Self.bookingColumns + "," + SupabaseBookingRow.fulfillmentColumns)
                 .eq("groomer_id", value: groomerID.uuidString.lowercased())
                 .in("offer_id", values: ids)
                 .execute()
@@ -537,83 +537,6 @@ struct SupabaseGroomerOfferRow: Decodable {
     }
 }
 
-struct GroomerOfferBookingRow: Decodable {
-    let id: UUID
-    let requestID: UUID
-    let offerID: UUID
-    let customerID: UUID
-    let groomerID: UUID
-    let scheduledStart: String
-    let scheduledEnd: String
-    let priceEstimate: Double
-    let status: BookingStatus
-    let cancelledBy: UUID?
-    let cancelledAt: String?
-    let completedAt: String?
-    let completedBy: UUID?
-    let createdAt: String
-    let updatedAt: String
-    let appliedTimingBuffers: GroomingTimingBuffers?
-    let serviceTimeZoneIdentifier: String?
-    let scheduleTimeZoneIdentifier: String?
-    let occupiedStart: String?
-    let occupiedEnd: String?
-    let agreementSnapshot: ServiceAgreement?
-
-    var booking: Booking {
-        Booking(
-            id: id,
-            requestID: requestID,
-            offerID: offerID,
-            customerID: customerID,
-            groomerID: groomerID,
-            scheduledStart: scheduledStart,
-            scheduledEnd: scheduledEnd,
-            priceEstimate: priceEstimate,
-            status: status,
-            cancelledBy: cancelledBy,
-            cancelledAt: cancelledAt,
-            completedAt: completedAt,
-            completedBy: completedBy,
-            createdAt: createdAt,
-            updatedAt: updatedAt,
-            review: nil,
-            serviceType: agreementSnapshot?.serviceType,
-            requestPetSnapshot: agreementSnapshot?.petSnapshot,
-            locationMode: agreementSnapshot?.locationMode,
-            appliedTimingBuffers: appliedTimingBuffers,
-            serviceTimeZoneIdentifier: serviceTimeZoneIdentifier,
-            scheduleTimeZoneIdentifier: scheduleTimeZoneIdentifier,
-            occupiedStart: occupiedStart,
-            occupiedEnd: occupiedEnd,
-            agreementSnapshot: agreementSnapshot
-        )
-    }
-
-    private enum CodingKeys: String, CodingKey {
-        case id
-        case requestID = "request_id"
-        case offerID = "offer_id"
-        case customerID = "customer_id"
-        case groomerID = "groomer_id"
-        case scheduledStart = "scheduled_start"
-        case scheduledEnd = "scheduled_end"
-        case priceEstimate = "price_estimate"
-        case status
-        case cancelledBy = "cancelled_by"
-        case cancelledAt = "cancelled_at"
-        case completedAt = "completed_at"
-        case completedBy = "completed_by"
-        case createdAt = "created_at"
-        case updatedAt = "updated_at"
-        case appliedTimingBuffers = "applied_timing_buffers"
-        case serviceTimeZoneIdentifier = "service_time_zone_identifier"
-        case scheduleTimeZoneIdentifier = "schedule_time_zone_identifier"
-        case occupiedStart = "occupied_start"
-        case occupiedEnd = "occupied_end"
-        case agreementSnapshot = "agreement_snapshot"
-    }
-}
 
 private struct MatchedRequestParameters: Encodable {
     let groomerID: UUID

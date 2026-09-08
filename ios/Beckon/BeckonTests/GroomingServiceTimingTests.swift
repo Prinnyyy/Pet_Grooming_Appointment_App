@@ -83,9 +83,9 @@ struct GroomingServiceTimingTests {
         timed["occupied_end"] = "2026-11-02T05:10:00Z"
         timed["applied_timing_buffers"] = ["preparation_minutes": 15, "cleanup_minutes": 10,
             "inbound_travel_minutes": 0, "outbound_travel_minutes": 0]
-        let unknown = try JSONDecoder().decode(GroomerOfferBookingRow.self,
+        let unknown = try JSONDecoder().decode(SupabaseBookingRow.self,
             from: JSONSerialization.data(withJSONObject: base)).booking
-        let known = try JSONDecoder().decode(GroomerOfferBookingRow.self,
+        let known = try JSONDecoder().decode(SupabaseBookingRow.self,
             from: JSONSerialization.data(withJSONObject: timed)).booking
         #expect(known != unknown)
         #expect(unknown.appliedTimingBuffers == nil)
