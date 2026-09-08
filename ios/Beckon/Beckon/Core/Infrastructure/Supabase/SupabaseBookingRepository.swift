@@ -222,6 +222,8 @@ final class SupabaseBookingRepository: BookingRepository {
                 return .notAllowed
             case "22023":
                 switch postgrestError.message {
+                case "match_constraints_changed":
+                    return .matchConstraintsChanged
                 case "occupied_time_off_conflict", "occupied_outside_weekly_hours":
                     return .bookingConflict
                 case "invalid_rating",

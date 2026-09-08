@@ -43,3 +43,18 @@ test("invalid fixture identity is rejected before spawning SQL", async () => {
     spawnProcess() { assert.fail("must not spawn"); },
   }), /groomer identity/);
 });
+test("matching mode verifies the actual request lock and preserves its queued event", async () => {
+  const h = harness();
+  await runTimingDatabaseBarrier(groomerID, async () => { h.release(); }, {
+    ...h.options, matchRefreshRequestID: "00000000-0000-4000-8000-000000000002",
+  });
+  assert.match(h.sql(), /for update nowait/i);
+  assert.match(h.sql(), /insert into app_private\.match_refresh_queue/);
+  assert.match(h.sql(), /drain_match_refresh_queue\(25\)/);
+  assert.match(h.sql(), /where id=refresh_event_id/);
+});
+test("invalid matching request cannot enter barrier SQL", async () => {
+  await assert.rejects(runTimingDatabaseBarrier(groomerID, async () => {}, {
+    matchRefreshRequestID: "not-a-uuid", spawnProcess() { assert.fail("must not spawn"); },
+  }), /request identity/);
+});

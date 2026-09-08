@@ -56,7 +56,7 @@ extension GroomerProfileStore {
 
     func serviceSizePolicySummary(for service: GroomerService) -> String {
         if service.acceptedPetSizes.isEmpty {
-            return "Follows Fit Signals: \(sizeBandFitClaimRangeTitle)"
+            return service.acceptedPetSizeSummary
         }
         return "Custom range: \(Self.serviceSizeRangeTitle(for: service.acceptedPetSizes))"
     }

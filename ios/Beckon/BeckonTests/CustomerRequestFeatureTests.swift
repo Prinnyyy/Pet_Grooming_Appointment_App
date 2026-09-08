@@ -151,8 +151,8 @@ struct CustomerRequestsStoreTests {
         #expect(available.detail == "before.png")
     }
 
-    @Test @MainActor
-    func publishTrimsDraftCallsRepositoryAndReloadsRequests() async throws {
+    @Test(arguments: [0, 1, 2]) @MainActor
+    func publishTrimsDraftCallsRepositoryAndReloadsRequests(matchCount: Int) async throws {
         let customerID = UUID()
         let pet = Self.pet(customerID: customerID)
         let request = Self.request(customerID: customerID, petID: pet.id)
@@ -164,7 +164,7 @@ struct CustomerRequestsStoreTests {
             createResult: .success(
                 GroomingRequestPublishResult(
                     requestID: request.id,
-                    matchCount: 2
+                    matchCount: matchCount
                 )
             )
         )
@@ -200,8 +200,11 @@ struct CustomerRequestsStoreTests {
         #expect(requestRepository.lastDraft?.stateCode == .washington)
         #expect(requestRepository.lastDraft?.zipCode == "98101")
         #expect(store.isShowingWizard == false)
-        #expect(store.noticeMessage == "Request published. 2 groomers matched.")
-        #expect(store.publishResult?.matchCount == 2)
+        let expected = matchCount == 0
+            ? "Request published. No potential groomers found yet. Your request remains open with the same preferences."
+            : "Request published. \(matchCount) potential \(matchCount == 1 ? "groomer" : "groomers") found. Service and timing need confirmation."
+        #expect(store.noticeMessage == expected)
+        #expect(store.publishResult?.matchCount == matchCount)
     }
 
     @Test @MainActor

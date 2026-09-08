@@ -286,10 +286,7 @@ struct GroomerServiceFormView: View {
                             )
                         }
 
-                        BeckonSection(
-                            "Accepted Pet Size",
-                            subtitle: "Follow Fit Signals or set a range for this service."
-                        ) {
+                        BeckonSection("Accepted Pet Size") {
                             GroomerServiceAcceptedPetSizeSection(store: store)
                         }
 
@@ -414,7 +411,7 @@ private struct GroomerServiceAcceptedPetSizeSection: View {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                 HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
                     VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                        Text("Custom service range")
+                        Text("Accepted size range")
                             .font(DesignTokens.Typography.body.weight(.semibold))
                             .foregroundStyle(DesignTokens.Colors.textPrimary)
 
@@ -426,7 +423,7 @@ private struct GroomerServiceAcceptedPetSizeSection: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
 
                     Toggle(
-                        "Custom service range",
+                        "Accepted size range",
                         isOn: Binding(
                             get: { store.serviceUsesCustomSizeRange },
                             set: { store.setServiceUsesCustomSizeRange($0) }
@@ -502,7 +499,7 @@ private struct GroomerServiceAcceptedPetSizeSection: View {
         if store.serviceUsesCustomSizeRange {
             return store.serviceSizeRangeTitle
         }
-        return "Following \(store.sizeBandFitClaimRangeTitle)"
+        return "Size assessment required"
     }
 }
 

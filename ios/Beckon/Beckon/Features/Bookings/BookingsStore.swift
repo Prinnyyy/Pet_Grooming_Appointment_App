@@ -390,6 +390,8 @@ final class BookingsStore {
             "This offer can no longer be accepted."
         case .updatedOfferRequired:
             "This offer needs updated timing details from the groomer before you can book."
+        case .matchConstraintsChanged:
+            "The groomer's current service or location no longer fits this request. No booking was made."
         case .requestNoLongerOpen:
             "This request can no longer become a booking."
         case .bookingAlreadyExists:

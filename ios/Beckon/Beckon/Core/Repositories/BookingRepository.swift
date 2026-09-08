@@ -5,6 +5,7 @@ enum BookingRepositoryError: Error, Equatable, Sendable {
     case offerNotFound
     case offerNoLongerPending
     case updatedOfferRequired
+    case matchConstraintsChanged
     case requestNoLongerOpen
     case bookingAlreadyExists
     case bookingConflict

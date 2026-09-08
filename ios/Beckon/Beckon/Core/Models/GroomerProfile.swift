@@ -60,7 +60,7 @@ struct GroomerService: Equatable, Identifiable, Sendable {
 
     var acceptedPetSizeSummary: String {
         acceptedPetSizes.isEmpty
-            ? "Follows Fit Signals"
+            ? "Size assessment required"
             : acceptedPetSizes.map(\.title).joined(separator: ", ")
     }
 }

@@ -557,7 +557,7 @@ extension GroomerProfileStoreTests {
     }
 
     @Test @MainActor
-    func createServiceUsesFixedServiceTypeKeepsCanonicalPetSizeOrderAndUsesEmptyAsFitSignalInheritance() async {
+    func createServicePreservesExplicitSizesAndLabelsEmptySizesAsAssessment() async {
         let groomerID = UUID()
         let repository = GroomerProfileRepositoryFake()
         let store = GroomerProfileStore(
@@ -599,12 +599,13 @@ extension GroomerProfileStoreTests {
         #expect(repository.lastServiceDraft?.acceptedPetSizes == [])
         #expect(
             store.serviceSizePolicySummary(for: store.services.first!) ==
-                "Follows Fit Signals: XS-Giant (<10lb-101+lb)"
+                "Size assessment required"
         )
+        #expect(store.services.first?.acceptedPetSizeSummary == "Size assessment required")
     }
 
     @Test @MainActor
-    func serviceSizeOverrideSeedsFromFitSignalRangeAndCanReturnToInheritance() {
+    func serviceSizeRangeUsesFitSignalsOnlyAsAnExplicitlyEnabledStartingValue() {
         let store = GroomerProfileStore(
             groomerID: UUID(),
             repository: GroomerProfileRepositoryFake()

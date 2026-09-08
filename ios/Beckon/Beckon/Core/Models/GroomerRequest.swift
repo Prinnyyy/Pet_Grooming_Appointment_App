@@ -18,6 +18,9 @@ struct GroomerMatchedRequest: Equatable, Hashable, Identifiable, Sendable {
     }
 
     var matchSummary: String {
+        if match.eligibilityEvaluation?.state == "pending" {
+            return "Checking service and availability"
+        }
         if fitEvidencePresentation != nil {
             return "\(match.status.title) · Fit evidence available"
         }
@@ -43,6 +46,7 @@ struct GroomerMatchedRequest: Equatable, Hashable, Identifiable, Sendable {
     var canCreateOffer: Bool {
         request.status.isOpenForOffers
             && match.status.isOfferable
+            && (match.eligibilityEvaluation?.isOfferable ?? true)
             && offer?.status != .pending
     }
 
@@ -240,6 +244,23 @@ nonisolated enum MatchFitEvidenceReasonFormatter {
     }
 }
 
+nonisolated struct MatchEligibilityEvaluation: Codable, Equatable, Hashable, Sendable {
+    let state: String
+    let reason: String?
+    let serviceStart: String?
+    let serviceEnd: String?
+
+    var isOfferable: Bool {
+        state == "estimated_fit" || state == "assessment_required"
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case state, reason
+        case serviceStart = "service_start"
+        case serviceEnd = "service_end"
+    }
+}
+
 struct GroomerRequestMatch: Equatable, Hashable, Identifiable, Sendable {
     let id: UUID
     let requestID: UUID
@@ -253,6 +274,7 @@ struct GroomerRequestMatch: Equatable, Hashable, Identifiable, Sendable {
     let dismissedAt: String?
     let createdAt: String
     let updatedAt: String
+    var eligibilityEvaluation: MatchEligibilityEvaluation? = nil
 }
 
 struct GroomerMatchedGroomingRequest:
@@ -531,7 +553,8 @@ extension GroomerRequestMatch {
             viewedAt: viewedAt,
             dismissedAt: dismissedAt,
             createdAt: createdAt,
-            updatedAt: updatedAt
+            updatedAt: updatedAt,
+            eligibilityEvaluation: eligibilityEvaluation
         )
     }
 }

@@ -779,7 +779,7 @@ struct GroomerRequestDetailView: View {
             if matchedRequest.canCreateOffer {
                 offerFormCard(for: matchedRequest)
             } else if matchedRequest.offer?.status != .pending {
-                offerUnavailableCard()
+                offerUnavailableCard(isChecking: matchedRequest.match.eligibilityEvaluation?.state == "pending")
             }
         }
     }
@@ -793,6 +793,10 @@ struct GroomerRequestDetailView: View {
 
         if matchedRequest.canCreateOffer {
             return "Suggest a time, price, and short note for this request."
+        }
+
+        if matchedRequest.match.eligibilityEvaluation?.state == "pending" {
+            return "Service and availability are being checked."
         }
 
         return "This request is not accepting a new offer from this account."
@@ -1032,10 +1036,10 @@ struct GroomerRequestDetailView: View {
         return store.requestPhotoData(for: photo)
     }
 
-    private func offerUnavailableCard() -> some View {
+    private func offerUnavailableCard(isChecking: Bool) -> some View {
         BeckonCard {
             HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
-                Image(systemName: "lock.fill")
+                Image(systemName: isChecking ? "clock.arrow.circlepath" : "lock.fill")
                     .font(DesignTokens.Typography.caption.weight(.semibold))
                     .foregroundStyle(DesignTokens.Colors.textSecondary)
                     .frame(
@@ -1046,7 +1050,8 @@ struct GroomerRequestDetailView: View {
                     .clipShape(DesignTokens.Shapes.circular)
                     .accessibilityHidden(true)
 
-                Text("This request can no longer receive a new offer from this account.")
+                Text(isChecking ? "Service and availability are being checked."
+                    : "This request can no longer receive a new offer from this account.")
                     .font(DesignTokens.Typography.caption)
                     .foregroundStyle(DesignTokens.Colors.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)

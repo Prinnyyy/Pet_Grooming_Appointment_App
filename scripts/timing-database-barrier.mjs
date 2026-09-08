@@ -3,17 +3,32 @@ import { spawn } from "node:child_process";
 export async function runTimingDatabaseBarrier(groomerID, run, {
   spawnProcess = spawn,
   delay = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds)),
+  matchRefreshRequestID = null,
 } = {}) {
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(groomerID)) {
     throw new Error("Invalid timing barrier groomer identity.");
   }
+  if (matchRefreshRequestID !== null && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(matchRefreshRequestID)) {
+    throw new Error("Invalid matching barrier request identity.");
+  }
+  const refreshCheck = matchRefreshRequestID === null ? "" : `
+    begin
+      perform 1 from public.grooming_requests where id='${matchRefreshRequestID}' for update nowait;
+      raise exception 'Matching request was not locked by acceptance';
+    exception when lock_not_available then null; end;
+    insert into app_private.match_refresh_queue(request_id,groomer_id)
+      values('${matchRefreshRequestID}','${groomerID}') returning id into refresh_event_id;
+    perform app_private.drain_match_refresh_queue(25);
+    if not exists(select 1 from app_private.match_refresh_queue where id=refresh_event_id) then
+      raise exception 'Locked request refresh event was lost';
+    end if;`;
   // One CLI holder; only HTTP sessions run concurrently. Require each exact RPC
   // to wait on this holder, not unrelated lock traffic from another account.
   const sql = `begin;
     set local statement_timeout = '20s';
     select pg_advisory_xact_lock(hashtextextended('${groomerID}',71071));
     select pg_sleep(5);
-    do $$ declare blocked_sessions integer; has_accept boolean; has_save boolean; begin
+    do $$ declare blocked_sessions integer; has_accept boolean; has_save boolean; refresh_event_id bigint; begin
       for attempt in 1..40 loop
         perform pg_stat_clear_snapshot();
         select count(distinct pid),
@@ -35,6 +50,7 @@ export async function runTimingDatabaseBarrier(groomerID, run, {
             from pg_stat_activity where application_name like 'PostgREST %' and state='active'
               and query ~ '(accept_groomer_offer|save_groomer_availability)');
       end if;
+      ${refreshCheck}
     end $$; commit;`;
   const holder = spawnProcess("supabase", ["db", "query", "--linked", "--output", "json", sql], {
     env: { ...process.env, SUPABASE_TELEMETRY_DISABLED: "1" }, timeout: 60000,

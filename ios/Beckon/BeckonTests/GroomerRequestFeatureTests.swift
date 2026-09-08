@@ -84,6 +84,14 @@ final class GroomerOfferTimingRenderingTests: XCTestCase {
         try await renderMobileOffer(referenceZone: "America/New_York")
     }
 
+    func testPendingMatchRendersWithoutOfferInputs() async throws {
+        try await renderMobileOffer(referenceZone: "America/New_York", matchingState: "pending")
+    }
+
+    func testAssessmentMatchRetainsExplicitOfferInputs() async throws {
+        try await renderMobileOffer(referenceZone: "America/New_York", matchingState: "assessment_required")
+    }
+
     func testCompactOfferRetainsDraftAcrossDeviceEnvironmentChange() async throws {
         try await renderMobileOffer(referenceZone: "America/New_York", environmentChange: true)
     }
@@ -97,7 +105,7 @@ final class GroomerOfferTimingRenderingTests: XCTestCase {
     }
 
     private func renderMobileOffer(referenceZone: String?, destinationFailure: Bool = false,
-        environmentChange: Bool = false) async throws {
+        environmentChange: Bool = false, matchingState: String? = nil) async throws {
         let owner = UUID()
         // Opt-in local simulator interaction; absent during unattended regression.
         let interactionFile = "/tmp/beckon-t374-offer-interaction.txt"
@@ -108,10 +116,17 @@ final class GroomerOfferTimingRenderingTests: XCTestCase {
         let base = GroomerRequestsStoreTests.matchedRequest(groomerID: owner,
             locationMode: destinationFailure ? .customerComesToGroomer : .groomerComesToCustomer,
             preferredStart: GroomingRequestDateFormatting.serverString(from: start),
-            preferredEnd: GroomingRequestDateFormatting.serverString(from: start.addingTimeInterval(10800)))
+            preferredEnd: GroomingRequestDateFormatting.serverString(from: start.addingTimeInterval(10800)),
+            matchReason: matchingState == nil ? "same_city" : (matchingState == "pending"
+                ? "Service and availability are being checked." : "Service details need assessment."))
         var request = base.request
         request.preferenceTimeZoneIdentifier = referenceZone
-        let matched = GroomerMatchedRequest(match: base.match, request: request, offer: nil)
+        var match = base.match
+        if let matchingState {
+            match.eligibilityEvaluation = MatchEligibilityEvaluation(state: matchingState,
+                reason: "runtime_fixture", serviceStart: nil, serviceEnd: nil)
+        }
+        let matched = GroomerMatchedRequest(match: match, request: request, offer: nil)
         let repository = GroomerRequestRepositoryFake(matchedRequestsResult: .success([matched]))
         let profiles = GroomerProfileRepositoryFake()
         if destinationFailure { profiles.profileResult = .failure(.networkUnavailable) }
@@ -150,8 +165,9 @@ final class GroomerOfferTimingRenderingTests: XCTestCase {
             window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
         }
         let attachment = XCTAttachment(image: image)
-        attachment.name = destinationFailure ? "T-374 destination lookup failure"
+        attachment.name = matchingState.map { "T-375 matching \($0)" } ?? (destinationFailure ? "T-374 destination lookup failure"
             : (referenceZone == nil ? "T-374 mobile offer unknown zone" : "T-374 mobile offer real form")
+        )
         attachment.lifetime = .keepAlways
         add(attachment)
         let pixels = try XCTUnwrap(image.cgImage?.dataProvider?.data) as Data
@@ -159,13 +175,16 @@ final class GroomerOfferTimingRenderingTests: XCTestCase {
         func datePickers(_ view: UIView) -> [UIDatePicker] {
             (view as? UIDatePicker).map { [$0] } ?? view.subviews.flatMap { datePickers($0) }
         }
-        if referenceZone == nil {
-            XCTAssertTrue(datePickers(host.view).isEmpty)
-            XCTAssertEqual(repository.createOfferCallCount, 0)
-            return
-        }
         func textFields(_ view: UIView) -> [UITextField] {
             (view as? UITextField).map { [$0] } ?? view.subviews.flatMap { textFields($0) }
+        }
+        if referenceZone == nil || matchingState == "pending" {
+            XCTAssertTrue(datePickers(host.view).isEmpty)
+            if matchingState == "pending" {
+                XCTAssertFalse(textFields(host.view).contains { $0.placeholder == "Duration (minutes)" || $0.placeholder == "Price Estimate" })
+            }
+            XCTAssertEqual(repository.createOfferCallCount, 0)
+            return
         }
         let duration = try XCTUnwrap(textFields(host.view).first { $0.placeholder == "Duration (minutes)" })
         duration.text = "60"

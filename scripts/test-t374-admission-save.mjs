@@ -14,6 +14,7 @@ const credentials = parseEnv(readFileSync("supabase_environment_variables", "utf
 assert.equal(credentials.SUPABASE_URL, "https://lqmasbuqzvcvtawonjlb.supabase.co");
 const api = new SupabaseREST(credentials.SUPABASE_URL, credentials.SUPABASE_PUBLISHABLE_KEY);
 const runID = `T374-${randomUUID()}`;
+const verifyMatchRefresh = process.env.TESTOPS_VERIFY_MATCH_REFRESH === "1";
 const directory = `artifacts/testops/${runID}`;
 mkdirSync(directory, { recursive: true, mode: 0o700 });
 const json = value => `'${JSON.stringify(value).replaceAll("'", "''")}'::jsonb`;
@@ -65,6 +66,10 @@ api.rpc = async (name, parameters, token) => {
 writeFileSync(`${directory}/recovery.json`, JSON.stringify({ runID, customerID, groomerID, backup, baseline }), { mode: 0o600 });
 
 try {
+  if (verifyMatchRefresh) {
+    const [worker] = query("select active from cron.job where jobname='beckon_refresh_request_matches';");
+    assert.equal(worker?.active, false, "Matching contention acceptance requires the worker to remain paused");
+  }
   query(`begin; select set_config('app.availability_batch','1',true);
     do $$ begin
       if exists(select 1 from public.grooming_requests where status in ('open','has_offers') and expires_at>now())
@@ -94,7 +99,8 @@ try {
     const publication = await api.rpc("create_grooming_request_v4", {
       p_publish_operation_id: fixture.operationID, p_preference_time_zone_identifier: "America/Los_Angeles",
       p_request: { pet_id: created.pet_id, service_type: "full_groom", service_notes: `TESTOPS:${runID}`,
-        preferred_start: created.start, preferred_end: new Date(Date.parse(created.start) + 7200000).toISOString(),
+        preferred_start: created.start,
+        preferred_end: new Date(Date.parse(created.start) + (verifyMatchRefresh ? 10800000 : 7200000)).toISOString(),
         location_mode: "groomer_comes_to_customer", street_address: fixtureAddress.line_1, city: fixtureAddress.city,
         state: fixtureAddress.state, zip_code: fixtureAddress.zip_code, provider: fixtureAddress.provider,
         country_code: fixtureAddress.country_code, latitude: fixtureAddress.latitude,
@@ -132,7 +138,9 @@ try {
     const result = await runTimingAdmissionRace(api, { offerID, groomerID, serviceStart: created.start,
       customerToken: customerAuth.accessToken, groomerToken: groomerAuth.accessToken,
       databaseBarrier: async (...args) => {
-        try { return await runTimingDatabaseBarrier(...args); }
+        try { return await runTimingDatabaseBarrier(...args, {
+          matchRefreshRequestID: verifyMatchRefresh ? requestID : null,
+        }); }
         catch (error) {
           writeFileSync(`${directory}/barrier-error.txt`, error.barrierDiagnostics ?? error.message, { mode: 0o600 });
           throw error;
@@ -140,6 +148,19 @@ try {
       } });
     assert.equal(result.winner, preferSave ? "time_off" : "booking", "Both admission orderings must be observed");
     const { bookingID, ...evidence } = result;
+    if (verifyMatchRefresh) {
+      const parameters = { p_groomer_id: groomerID, p_limit: 100, p_offset: 0 };
+      const before = await api.rpc("get_my_matched_requests", parameters, groomerAuth.accessToken);
+      if (!bookingID) assert.equal(before.find(row => row.request_id === requestID)?.eligibility_evaluation?.state, "pending");
+      query("select app_private.drain_match_refresh_queue(250);");
+      const after = await api.rpc("get_my_matched_requests", parameters, groomerAuth.accessToken);
+      const refreshed = after.find(row => row.request_id === requestID);
+      if (bookingID) assert.equal(refreshed, undefined);
+      // The shared race helper restores its temporary time off before returning.
+      // The legacy empty-size service therefore returns to assessment, not exclusion.
+      else assert.equal(refreshed?.eligibility_evaluation?.state, "assessment_required");
+      evidence.lockedRefreshPreservedAndReadbackVerified = true;
+    }
     if (bookingID) {
       const bookings = await api.restSelect("bookings", `select=${allocationFields}&id=eq.${bookingID}`, customerAuth.accessToken);
       assert.deepEqual(bookings, [allocation], "Booking must preserve the exact quoted allocation");
@@ -188,6 +209,7 @@ try {
       delete from public.grooming_requests where id in (${requestIDs}) and service_notes='TESTOPS:${runID}';
       ${tables.map((table, index) => `delete from public.${table} where groomer_id='${groomerID}';
         insert into public.${table} select * from jsonb_populate_recordset(null::public.${table},${json(backup[`rows${index}`])});`).join("\n")}
+      ${verifyMatchRefresh ? `delete from app_private.match_refresh_queue where request_id in (${requestIDs});` : ""}
       commit;`);
     assert.deepEqual(captureT374TimingSnapshot(), baseline, "Exact fixture restoration failed");
     console.log("Exact 39-field fixture restoration: PASS");

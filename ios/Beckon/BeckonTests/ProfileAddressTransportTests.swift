@@ -11,6 +11,7 @@ struct ProfileAddressTransportTests {
         ("service_timezone_confirmation_required", .serviceTimeZoneRequired),
         ("occupied_outside_weekly_hours", .groomerUnavailable),
         ("occupied_time_off_conflict", .groomerUnavailable),
+        ("match_constraints_changed", .matchNotFound),
         ("invalid_duration", .invalidInput)
     ])
     @MainActor
@@ -41,6 +42,23 @@ struct ProfileAddressTransportTests {
         let selected = try #require(URLComponents(url: url, resolvingAgainstBaseURL: false)?
             .queryItems?.first { $0.name == "select" }?.value)
         #expect(selected.split(separator: ",").contains("preference_time_zone_identifier"))
+    }
+
+    @Test(arguments: ["pending", "estimated_fit", "assessment_required", "excluded", "future_state"]) @MainActor
+    func matchingEvaluationControlsOfferAvailability(state: String) async throws {
+        AddressTransportStub.state.reset(mode: .matchedEvaluation(state))
+        let repository = SupabaseGroomerRequestRepository(client: Self.client())
+        let owner = UUID(uuidString: "00000000-0000-0000-0000-000000000005")!
+        let item = try #require(try await repository.matchedRequests(groomerID: owner).first)
+        #expect(item.match.eligibilityEvaluation?.state == state)
+        #expect(item.canCreateOffer == (state == "estimated_fit" || state == "assessment_required"))
+        #expect(item.match.replacing(status: .viewed).eligibilityEvaluation == item.match.eligibilityEvaluation)
+        if state == "pending" { #expect(item.matchSummary == "Checking service and availability") }
+        let url = try #require(AddressTransportStub.state.urls.first)
+        #expect(url.path == "/rest/v1/rpc/get_my_matched_requests")
+        let selected = try #require(URLComponents(url: url, resolvingAgainstBaseURL: false)?
+            .queryItems?.first { $0.name == "select" }?.value)
+        #expect(selected.split(separator: ",").contains("eligibility_evaluation"))
     }
 
     @Test(arguments: [false, true]) @MainActor
@@ -115,6 +133,19 @@ struct ProfileAddressTransportTests {
             Issue.record("Changed schedule accepted the quote")
         } catch {
             #expect(error as? BookingRepositoryError == .bookingConflict)
+        }
+        #expect(AddressTransportStub.state.paths == ["/rest/v1/rpc/accept_groomer_offer"])
+    }
+
+    @Test @MainActor
+    func acceptanceConstraintsChangedDoesNotAskForInputCorrection() async {
+        AddressTransportStub.state.reset(mode: .timingFailure("match_constraints_changed"))
+        let repository = SupabaseBookingRepository(client: Self.client())
+        do {
+            _ = try await repository.acceptOffer(offerID: UUID())
+            Issue.record("Changed eligibility accepted the quote")
+        } catch {
+            #expect(error as? BookingRepositoryError == .matchConstraintsChanged)
         }
         #expect(AddressTransportStub.state.paths == ["/rest/v1/rpc/accept_groomer_offer"])
     }
@@ -216,6 +247,7 @@ nonisolated private final class AddressTransportStub: URLProtocol, @unchecked Se
     enum Mode: Equatable {
         case missing, denied, available, bookingConflict, weeklyHoursConflict, occupiedHours, occupiedTimeOff, legacyQuote, timingRow, legacyTimingRow, matchedRow, legacyMatchedRow
         case timingFailure(String)
+        case matchedEvaluation(String)
     }
     final class State: @unchecked Sendable {
         private let lock = NSLock()
@@ -234,9 +266,11 @@ nonisolated private final class AddressTransportStub: URLProtocol, @unchecked Se
                     let body = ["code": "22023", "message": message]
                     return (400, String(data: try! JSONSerialization.data(withJSONObject: body), encoding: .utf8)!)
                 }
-                if mode == .matchedRow || mode == .legacyMatchedRow {
-                    guard path.hasSuffix("/request_matches") || path.hasSuffix("/grooming_requests") else { return (200, "[]") }
-                    let isMatch = path.hasSuffix("/request_matches")
+                let evaluationState: String?
+                if case let .matchedEvaluation(value) = mode { evaluationState = value } else { evaluationState = nil }
+                if mode == .matchedRow || mode == .legacyMatchedRow || evaluationState != nil {
+                    guard path.hasSuffix("/get_my_matched_requests") || path.hasSuffix("/grooming_requests") else { return (200, "[]") }
+                    let isMatch = path.hasSuffix("/get_my_matched_requests")
                     var row: [String: Any] = [
                         "id": "00000000-0000-0000-0000-000000000002",
                         "request_id": "00000000-0000-0000-0000-000000000002",
@@ -252,6 +286,9 @@ nonisolated private final class AddressTransportStub: URLProtocol, @unchecked Se
                         "photo_snapshot": []
                     ]
                     if mode == .matchedRow { row["preference_time_zone_identifier"] = "America/New_York" }
+                    if isMatch, let evaluationState {
+                        row["eligibility_evaluation"] = ["state": evaluationState, "reason": "test_evaluation"]
+                    }
                     return (200, String(data: try! JSONSerialization.data(withJSONObject: [row]), encoding: .utf8)!)
                 }
                 if mode == .timingRow || mode == .legacyTimingRow {

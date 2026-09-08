@@ -1636,11 +1636,10 @@ final class CustomerRequestsStore {
         failedPhotoCount: Int = 0,
         refreshFailed: Bool = false
     ) -> String {
-        var parts = [
-            result.matchCount == 1
-                ? "Request published. 1 groomer matched."
-                : "Request published. \(result.matchCount) groomers matched.",
-        ]
+        let matchingNotice = result.matchCount == 0
+            ? "Request published. No potential groomers found yet. Your request remains open with the same preferences."
+            : "Request published. \(result.matchCount) potential \(result.matchCount == 1 ? "groomer" : "groomers") found. Service and timing need confirmation."
+        var parts = [matchingNotice]
 
         if failedPhotoCount == 1 {
             parts.append("1 photo could not be added.")
@@ -1751,7 +1750,7 @@ final class CustomerRequestsStore {
     private static func isDefinitiveAcceptanceFailure(_ error: BookingRepositoryError) -> Bool {
         switch error {
         case .offerNotFound, .offerNoLongerPending, .requestNoLongerOpen,
-             .bookingConflict, .invalidInput, .updatedOfferRequired:
+             .bookingConflict, .invalidInput, .updatedOfferRequired, .matchConstraintsChanged:
             true
         default:
             false
@@ -2299,6 +2298,8 @@ final class CustomerRequestsStore {
             "This offer can no longer be accepted."
         case .updatedOfferRequired:
             "This offer needs updated timing details from the groomer before you can book. Your request is still open."
+        case .matchConstraintsChanged:
+            "The groomer's current service or location no longer fits this request. No booking was made. Review your other offers."
         case .requestNoLongerOpen:
             "This request can no longer become a booking."
         case .bookingAlreadyExists:

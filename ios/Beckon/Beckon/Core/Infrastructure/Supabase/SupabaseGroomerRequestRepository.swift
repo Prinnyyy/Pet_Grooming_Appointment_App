@@ -5,7 +5,7 @@ import Supabase
 final class SupabaseGroomerRequestRepository: GroomerRequestRepository {
     private static let matchColumns = """
         id,request_id,groomer_id,customer_id,match_score,match_reason,dismiss_reason,\
-        status,viewed_at,dismissed_at,created_at,updated_at
+        status,viewed_at,dismissed_at,created_at,updated_at,eligibility_evaluation
         """
     private static let requestColumns = """
         id,customer_id,pet_id,pet_snapshot,photo_snapshot,service_type,service_notes,\
@@ -50,12 +50,10 @@ final class SupabaseGroomerRequestRepository: GroomerRequestRepository {
     ) async throws -> ListPage<GroomerMatchedRequest> {
         do {
             let matchRows: [GroomerRequestMatchRow] = try await client
-                .from("request_matches")
+                .rpc("get_my_matched_requests", params: MatchedRequestParameters(
+                    groomerID: groomerID, limit: page.fetchLimit, offset: page.offset
+                ))
                 .select(Self.matchColumns)
-                .eq("groomer_id", value: groomerID.uuidString.lowercased())
-                .in("status", values: RequestMatchStatus.activeValues)
-                .order("created_at", ascending: false)
-                .range(from: page.offset, to: page.inclusiveRangeEnd)
                 .execute()
                 .value
 
@@ -299,6 +297,8 @@ final class SupabaseGroomerRequestRepository: GroomerRequestRepository {
                 return .notAllowed
             case "22023":
                 switch postgrestError.message {
+                case "match_constraints_changed":
+                    return .matchNotFound
                 case "timing_buffers_confirmation_required":
                     return .timingBuffersRequired
                 case "schedule_timezone_confirmation_required":
@@ -582,6 +582,18 @@ struct GroomerOfferBookingRow: Decodable {
     }
 }
 
+private struct MatchedRequestParameters: Encodable {
+    let groomerID: UUID
+    let limit: Int
+    let offset: Int
+
+    private enum CodingKeys: String, CodingKey {
+        case groomerID = "p_groomer_id"
+        case limit = "p_limit"
+        case offset = "p_offset"
+    }
+}
+
 private struct GroomerRequestMatchRow: Decodable {
     let id: UUID
     let requestID: UUID
@@ -595,6 +607,7 @@ private struct GroomerRequestMatchRow: Decodable {
     let dismissedAt: String?
     let createdAt: String
     let updatedAt: String
+    let eligibilityEvaluation: MatchEligibilityEvaluation?
 
     var match: GroomerRequestMatch {
         GroomerRequestMatch(
@@ -609,7 +622,8 @@ private struct GroomerRequestMatchRow: Decodable {
             viewedAt: viewedAt,
             dismissedAt: dismissedAt,
             createdAt: createdAt,
-            updatedAt: updatedAt
+            updatedAt: updatedAt,
+            eligibilityEvaluation: eligibilityEvaluation
         )
     }
 
@@ -620,6 +634,7 @@ private struct GroomerRequestMatchRow: Decodable {
         case customerID = "customer_id"
         case matchScore = "match_score"
         case matchReason = "match_reason"
+        case eligibilityEvaluation = "eligibility_evaluation"
         case dismissReason = "dismiss_reason"
         case status
         case viewedAt = "viewed_at"

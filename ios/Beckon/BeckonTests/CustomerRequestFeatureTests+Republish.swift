@@ -128,7 +128,7 @@ extension CustomerRequestsStoreTests {
         #expect(requestRepository.lastUploadData == copiedPhotoData)
         #expect(requestRepository.lastUploadContentType == .png)
         #expect(store.isShowingWizard == false)
-        #expect(store.noticeMessage == "Request published. 3 groomers matched.")
+        #expect(store.noticeMessage == "Request published. 3 potential groomers found. Service and timing need confirmation.")
     }
 
     @Test @MainActor
