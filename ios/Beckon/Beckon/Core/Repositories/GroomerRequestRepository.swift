@@ -1,6 +1,7 @@
 import Foundation
 
 enum GroomerRequestRepositoryError: Error, Equatable, Sendable {
+    case clientUpdateRequired
     case notAllowed
     case matchNotFound
     case noLongerDismissible

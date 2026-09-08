@@ -110,6 +110,8 @@ final class GroomerOffersStore {
         for error: GroomerRequestRepositoryError
     ) -> String {
         switch error {
+        case .clientUpdateRequired:
+            "Update Beckon to manage versioned appointment details."
         case .networkUnavailable:
             "Offers unavailable. Check your connection and try again."
         case .notAllowed:

@@ -25,7 +25,7 @@ struct ProfileAddressTransportTests {
         } catch let error as GroomerRequestRepositoryError {
             #expect(error == expected)
         } catch { Issue.record("Unexpected error: \(error)") }
-        #expect(AddressTransportStub.state.paths == ["/rest/v1/rpc/create_groomer_offer"])
+        #expect(AddressTransportStub.state.paths == ["/rest/v1/rpc/create_groomer_offer_v2"])
     }
 
     @Test(arguments: [false, true]) @MainActor
@@ -75,7 +75,7 @@ struct ProfileAddressTransportTests {
         #expect(offer.requiresTimingUpdate == legacy)
         #expect(offer.serviceTimeZoneIdentifier == (legacy ? nil : "America/Los_Angeles"))
         #expect(offer.scheduleTimeZoneIdentifier == (legacy ? nil : "America/New_York"))
-        #expect(AddressTransportStub.state.paths == ["/rest/v1/groomer_offers"])
+        #expect(AddressTransportStub.state.paths == ["/rest/v1/groomer_offers", "/rest/v1/rpc/get_quote_evaluations"])
         let url = try #require(AddressTransportStub.state.urls.first)
         let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
         #expect(items.contains(URLQueryItem(name: "groomer_id", value: "eq.\(owner.uuidString)")))

@@ -4,6 +4,7 @@ export async function runTimingDatabaseBarrier(groomerID, run, {
   spawnProcess = spawn,
   delay = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds)),
   matchRefreshRequestID = null,
+  revisionRequestID = null,
 } = {}) {
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(groomerID)) {
     throw new Error("Invalid timing barrier groomer identity.");
@@ -11,6 +12,18 @@ export async function runTimingDatabaseBarrier(groomerID, run, {
   if (matchRefreshRequestID !== null && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(matchRefreshRequestID)) {
     throw new Error("Invalid matching barrier request identity.");
   }
+  if (revisionRequestID !== null && (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(revisionRequestID)
+    || matchRefreshRequestID !== null)) throw new Error("Invalid revision barrier request identity or mixed mode.");
+  const competingRPC = revisionRequestID === null ? "save_groomer_availability" : "supersede_grooming_request";
+  const holderBlocks = revisionRequestID === null
+    ? "pg_backend_pid() = any(pg_blocking_pids(pid))"
+    : `exists (with recursive blockers(pid) as (
+        select unnest(pg_blocking_pids(activity.pid))
+        union select unnest(pg_blocking_pids(blockers.pid)) from blockers
+      ) select 1 from blockers where blockers.pid=pg_backend_pid())`;
+  const lockSQL = revisionRequestID === null
+    ? `select pg_advisory_xact_lock(hashtextextended('${groomerID}',71071));`
+    : `select id from public.grooming_requests where id='${revisionRequestID}' for update;`;
   const refreshCheck = matchRefreshRequestID === null ? "" : `
     begin
       perform 1 from public.grooming_requests where id='${matchRefreshRequestID}' for update nowait;
@@ -26,29 +39,29 @@ export async function runTimingDatabaseBarrier(groomerID, run, {
   // to wait on this holder, not unrelated lock traffic from another account.
   const sql = `begin;
     set local statement_timeout = '20s';
-    select pg_advisory_xact_lock(hashtextextended('${groomerID}',71071));
-    select pg_sleep(5);
+    ${lockSQL}
+    select pg_sleep(${revisionRequestID === null ? 5 : 2});
     do $$ declare blocked_sessions integer; has_accept boolean; has_save boolean; refresh_event_id bigint; begin
       for attempt in 1..40 loop
         perform pg_stat_clear_snapshot();
         select count(distinct pid),
           coalesce(bool_or(query ~ 'accept_groomer_offer'),false),
-          coalesce(bool_or(query ~ 'save_groomer_availability'),false)
-          into blocked_sessions,has_accept,has_save from pg_stat_activity
+          coalesce(bool_or(query ~ '${competingRPC}'),false)
+          into blocked_sessions,has_accept,has_save from pg_stat_activity activity
           where application_name like 'PostgREST %' and state='active'
             and wait_event_type='Lock'
-            and pg_backend_pid() = any(pg_blocking_pids(pid))
-            and query ~ '(accept_groomer_offer|save_groomer_availability)';
+            and ${holderBlocks}
+            and query ~ '(accept_groomer_offer|${competingRPC})';
         exit when blocked_sessions >= 2 and has_accept and has_save;
         perform pg_sleep(0.25);
       end loop;
       if blocked_sessions < 2 or not has_accept or not has_save then
         raise exception 'Timing admission/save database barrier was not verified: %',
           (select jsonb_agg(jsonb_build_object('accept',query ~ 'accept_groomer_offer',
-            'save',query ~ 'save_groomer_availability','state',state,'wait',wait_event_type,
+            'save',query ~ '${competingRPC}','state',state,'wait',wait_event_type,
             'holder_blocks',pg_backend_pid() = any(pg_blocking_pids(pid))))
             from pg_stat_activity where application_name like 'PostgREST %' and state='active'
-              and query ~ '(accept_groomer_offer|save_groomer_availability)');
+              and query ~ '(accept_groomer_offer|${competingRPC})');
       end if;
       ${refreshCheck}
     end $$; commit;`;

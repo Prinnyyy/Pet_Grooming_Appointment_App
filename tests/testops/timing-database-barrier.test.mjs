@@ -4,6 +4,18 @@ import test from "node:test";
 import { runTimingDatabaseBarrier } from "../../scripts/timing-database-barrier.mjs";
 
 const groomerID = "00000000-0000-4000-8000-000000000001";
+test("revision mode proves acceptance and replacement wait on the same request", async () => {
+  const h = harness();
+  await runTimingDatabaseBarrier(groomerID, async () => { h.release(); }, {
+    ...h.options, revisionRequestID: "00000000-0000-4000-8000-000000000002",
+  });
+  assert.match(h.sql(), /public\.grooming_requests.*for update/i);
+  assert.match(h.sql(), /supersede_grooming_request/);
+  assert.match(h.sql(), /with recursive blockers/);
+  assert.match(h.sql(), /blockers\.pid=pg_backend_pid\(\)/);
+  assert.match(h.sql(), /pg_sleep\(2\)/);
+  assert.doesNotMatch(h.sql(), /save_groomer_availability/);
+});
 function harness(code = 0) {
   const child = new EventEmitter();
   child.stdout = { resume() {} };

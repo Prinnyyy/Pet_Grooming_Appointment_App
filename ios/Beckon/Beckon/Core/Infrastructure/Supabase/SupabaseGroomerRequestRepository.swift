@@ -10,18 +10,18 @@ final class SupabaseGroomerRequestRepository: GroomerRequestRepository {
     private static let requestColumns = """
         id,customer_id,pet_id,pet_snapshot,photo_snapshot,service_type,service_notes,\
         preferred_start,preferred_end,preference_time_zone_identifier,location_mode,street_address,city,state,zip_code,\
-        travel_radius_miles,status,expires_at,created_at,updated_at
+        travel_radius_miles,status,expires_at,created_at,updated_at,terms_revision
         """
     private static let offerColumns = """
         id,request_id,match_id,customer_id,groomer_id,proposed_start,proposed_end,\
         price_estimate,message,status,expires_at,withdrawn_at,created_at,updated_at,\
-        applied_timing_buffers,service_time_zone_identifier,schedule_time_zone_identifier,occupied_start,occupied_end
+        applied_timing_buffers,service_time_zone_identifier,schedule_time_zone_identifier,occupied_start,occupied_end,agreement_snapshot
         """
     private static let bookingColumns = """
         id,request_id,offer_id,customer_id,groomer_id,scheduled_start,scheduled_end,\
         price_estimate,status,cancelled_by,cancelled_at,completed_at,completed_by,\
         created_at,updated_at,applied_timing_buffers,service_time_zone_identifier,\
-        schedule_time_zone_identifier,occupied_start,occupied_end
+        schedule_time_zone_identifier,occupied_start,occupied_end,agreement_snapshot
         """
     private static let requestPhotoColumns =
         "id,request_id,customer_id,storage_bucket,storage_path,caption,sort_order,created_at"
@@ -96,6 +96,12 @@ final class SupabaseGroomerRequestRepository: GroomerRequestRepository {
             for row in offerRows where latestOffersByRequestID[row.requestID] == nil {
                 latestOffersByRequestID[row.requestID] = row.offer
             }
+            let evaluations = try await quoteEvaluations(for: latestOffersByRequestID.values.map(\.id))
+            for requestID in latestOffersByRequestID.keys {
+                if let offerID = latestOffersByRequestID[requestID]?.id {
+                    latestOffersByRequestID[requestID]?.quoteEvaluation = evaluations[offerID]
+                }
+            }
 
             let matchedRequests: [GroomerMatchedRequest] = matchRows.compactMap { row in
                 guard let request = requestsByID[row.requestID] else {
@@ -139,14 +145,17 @@ final class SupabaseGroomerRequestRepository: GroomerRequestRepository {
             let requestsByID = await visibleRequestsByID(
                 requestIDs: offerRows.map(\.requestID)
             )
+            let evaluations = try await quoteEvaluations(for: offerRows.map(\.id))
             let bookingsByOfferID = await visibleBookingsByOfferID(
                 groomerID: groomerID,
                 offerIDs: offerRows.map(\.id)
             )
 
             let offers = offerRows.map { row in
-                GroomerOfferListItem(
-                    offer: row.offer,
+                var offer = row.offer
+                offer.quoteEvaluation = evaluations[row.id]
+                return GroomerOfferListItem(
+                    offer: offer,
                     request: requestsByID[row.requestID],
                     booking: bookingsByOfferID[row.id]
                 )
@@ -225,7 +234,7 @@ final class SupabaseGroomerRequestRepository: GroomerRequestRepository {
         do {
             let rows: [CreateGroomerOfferRow] = try await client
                 .rpc(
-                    "create_groomer_offer",
+                    "create_groomer_offer_v2",
                     params: CreateGroomerOfferParameters(draft: draft)
                 )
                 .execute()
@@ -252,10 +261,20 @@ final class SupabaseGroomerRequestRepository: GroomerRequestRepository {
                 .eq("id", value: offerID.uuidString)
                 .limit(1)
                 .execute().value
-            return rows.first?.offer
+            guard var offer = rows.first?.offer else { return nil }
+            offer.quoteEvaluation = try await quoteEvaluations(for: [offer.id])[offer.id]
+            return offer
         } catch {
             throw Self.map(error)
         }
+    }
+
+    private func quoteEvaluations(for ids: [UUID]) async throws -> [UUID: QuoteEvaluation] {
+        guard !ids.isEmpty else { return [:] }
+        let rows: [SupabaseQuoteEvaluationRow] = try await client
+            .rpc("get_quote_evaluations", params: SupabaseQuoteEvaluationParameters(offerIDs: ids))
+            .execute().value
+        return Dictionary(uniqueKeysWithValues: rows.map { ($0.offerID, $0.evaluation) })
     }
 
     func withdrawOffer(
@@ -297,6 +316,10 @@ final class SupabaseGroomerRequestRepository: GroomerRequestRepository {
                 return .notAllowed
             case "22023":
                 switch postgrestError.message {
+                case "updated_agreement_client_required":
+                    return .clientUpdateRequired
+                case "request_revision_changed":
+                    return .matchNotFound
                 case "match_constraints_changed":
                     return .matchNotFound
                 case "timing_buffers_confirmation_required":
@@ -461,6 +484,7 @@ struct SupabaseGroomerOfferRow: Decodable {
     let scheduleTimeZoneIdentifier: String?
     let occupiedStart: String?
     let occupiedEnd: String?
+    let agreementSnapshot: ServiceAgreement?
 
     var offer: GroomerOffer {
         GroomerOffer(
@@ -483,7 +507,9 @@ struct SupabaseGroomerOfferRow: Decodable {
             scheduleTimeZoneIdentifier: scheduleTimeZoneIdentifier,
             occupiedStart: occupiedStart,
             occupiedEnd: occupiedEnd,
-            timingSnapshotLoaded: true
+            timingSnapshotLoaded: true,
+            agreementSnapshot: agreementSnapshot,
+            agreementSnapshotLoaded: true
         )
     }
 
@@ -507,6 +533,7 @@ struct SupabaseGroomerOfferRow: Decodable {
         case scheduleTimeZoneIdentifier = "schedule_time_zone_identifier"
         case occupiedStart = "occupied_start"
         case occupiedEnd = "occupied_end"
+        case agreementSnapshot = "agreement_snapshot"
     }
 }
 
@@ -531,6 +558,7 @@ struct GroomerOfferBookingRow: Decodable {
     let scheduleTimeZoneIdentifier: String?
     let occupiedStart: String?
     let occupiedEnd: String?
+    let agreementSnapshot: ServiceAgreement?
 
     var booking: Booking {
         Booking(
@@ -550,11 +578,15 @@ struct GroomerOfferBookingRow: Decodable {
             createdAt: createdAt,
             updatedAt: updatedAt,
             review: nil,
+            serviceType: agreementSnapshot?.serviceType,
+            requestPetSnapshot: agreementSnapshot?.petSnapshot,
+            locationMode: agreementSnapshot?.locationMode,
             appliedTimingBuffers: appliedTimingBuffers,
             serviceTimeZoneIdentifier: serviceTimeZoneIdentifier,
             scheduleTimeZoneIdentifier: scheduleTimeZoneIdentifier,
             occupiedStart: occupiedStart,
-            occupiedEnd: occupiedEnd
+            occupiedEnd: occupiedEnd,
+            agreementSnapshot: agreementSnapshot
         )
     }
 
@@ -579,6 +611,7 @@ struct GroomerOfferBookingRow: Decodable {
         case scheduleTimeZoneIdentifier = "schedule_time_zone_identifier"
         case occupiedStart = "occupied_start"
         case occupiedEnd = "occupied_end"
+        case agreementSnapshot = "agreement_snapshot"
     }
 }
 
@@ -655,6 +688,7 @@ private struct GroomerMatchedGroomingRequestRow: Decodable {
     let preferredStart: String
     let preferredEnd: String
     let preferenceTimeZoneIdentifier: String?
+    let termsRevision: UUID?
     let locationMode: GroomingLocationMode
     let streetAddress: String
     let city: String
@@ -687,7 +721,8 @@ private struct GroomerMatchedGroomingRequestRow: Decodable {
             expiresAt: expiresAt,
             createdAt: createdAt,
             updatedAt: updatedAt,
-            preferenceTimeZoneIdentifier: preferenceTimeZoneIdentifier
+            preferenceTimeZoneIdentifier: preferenceTimeZoneIdentifier,
+            termsRevision: termsRevision
         )
     }
 
@@ -702,6 +737,7 @@ private struct GroomerMatchedGroomingRequestRow: Decodable {
         case preferredStart = "preferred_start"
         case preferredEnd = "preferred_end"
         case preferenceTimeZoneIdentifier = "preference_time_zone_identifier"
+        case termsRevision = "terms_revision"
         case locationMode = "location_mode"
         case streetAddress = "street_address"
         case city
@@ -807,6 +843,7 @@ private struct CreateGroomerOfferParameters: Encodable {
 
     func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(draft.expectedRequestRevision, forKey: .expectedRequestRevision)
         try container.encode(
             draft.requestID.uuidString.lowercased(),
             forKey: .requestID
@@ -830,6 +867,7 @@ private struct CreateGroomerOfferParameters: Encodable {
 
     private enum CodingKeys: String, CodingKey {
         case requestID = "p_request_id"
+        case expectedRequestRevision = "p_expected_request_revision"
         case proposedStart = "p_proposed_start"
         case proposedEnd = "p_proposed_end"
         case priceEstimate = "p_price_estimate"

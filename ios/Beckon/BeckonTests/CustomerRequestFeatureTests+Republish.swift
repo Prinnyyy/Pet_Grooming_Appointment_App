@@ -4,6 +4,40 @@ import Testing
 
 extension CustomerRequestsStoreTests {
     @Test @MainActor
+    func revisionBindsOriginalVersionAndCancellationLeavesOriginalOpen() async throws {
+        let owner = UUID()
+        let pet = Self.pet(customerID: owner)
+        var original = Self.request(customerID: owner, petID: pet.id)
+        original.termsRevision = UUID()
+        let repository = CustomerRequestRepositoryFake(requestsResult: .success([original]))
+        let store = CustomerRequestsStore(customerID: owner,
+            petRepository: CustomerRequestPetRepositoryFake(petsResult: .success([pet])),
+            requestRepository: repository, bookingRepository: CustomerRequestBookingRepositoryFake())
+        await store.load()
+        store.startRevision(from: original)
+        #expect(store.isRevisingRequest)
+        #expect(store.isShowingWizard)
+        #expect(repository.cancelCallCount == 0)
+        store.cancelWizard()
+        #expect(!store.isRevisingRequest)
+        #expect(repository.cancelCallCount == 0)
+        #expect(store.request(withID: original.id)?.status == original.status)
+        store.startRevision(from: original)
+        store.preferredStart = Date().addingTimeInterval(86400)
+        store.preferredEnd = store.preferredStart.addingTimeInterval(10800)
+        store.streetAddress = "123 Pine Street"
+        store.city = "Seattle"
+        store.stateCode = .washington
+        store.zipCode = "98101"
+        store.confirmCurrentTestAddress()
+        await store.publish()
+        let draft = try #require(repository.lastDraft)
+        #expect(draft.supersedingRequestID == original.id)
+        #expect(draft.expectedRequestRevision == original.termsRevision)
+        #expect(repository.cancelCallCount == 0)
+    }
+
+    @Test @MainActor
     func startRepublishFromCancelledRequestPrefillsReviewDraftAndCreatesNewRequest() async throws {
         let customerID = UUID()
         let pet = Self.pet(customerID: customerID)

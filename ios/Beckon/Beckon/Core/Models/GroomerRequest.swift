@@ -304,6 +304,7 @@ struct GroomerMatchedGroomingRequest:
     let updatedAt: String
 
     var preferenceTimeZoneIdentifier: String? = nil
+    var termsRevision: UUID? = nil
 
     var locationSummary: String {
         "\(streetAddress), \(city), \(state) \(zipCode)"
@@ -408,6 +409,37 @@ struct GroomerOffer: Equatable, Hashable, Identifiable, Sendable {
     var occupiedEnd: String? = nil
 
     var timingSnapshotLoaded = false
+    var agreementSnapshot: ServiceAgreement? = nil
+    var quoteEvaluation: QuoteEvaluation? = nil
+    var agreementSnapshotLoaded = false
+
+    var requiresAgreementUpdate: Bool {
+        agreementSnapshotLoaded && agreementSnapshot?.isSupported != true
+    }
+
+    var canConfirmCurrentTerms: Bool {
+        guard !requiresTimingUpdate, !requiresAgreementUpdate else { return false }
+        guard agreementSnapshotLoaded else { return true }
+        guard !hasPassedConfirmationDeadline() else { return false }
+        return quoteEvaluation?.termsValid == true && quoteEvaluation?.selectable == true
+    }
+
+    func hasPassedConfirmationDeadline(now: Date = Date()) -> Bool {
+        guard agreementSnapshotLoaded else { return false }
+        guard let expiry = GroomingRequestDateFormatting.parsedDate(from: expiresAt),
+              let start = GroomingRequestDateFormatting.parsedDate(from: proposedStart) else { return true }
+        return now >= min(expiry, start.addingTimeInterval(-300))
+    }
+
+    var evaluatedStatusTitle: String {
+        guard status == .pending, agreementSnapshotLoaded else { return status.title }
+        if hasPassedConfirmationDeadline() { return "Expired" }
+        guard let quoteEvaluation else { return "Checking" }
+        if !quoteEvaluation.termsValid {
+            return quoteEvaluation.reason == "expired" ? "Expired" : "New Offer Required"
+        }
+        return quoteEvaluation.selectable ? status.title : "Time Unavailable"
+    }
 
     var hasTimingSnapshot: Bool {
         guard appliedTimingBuffers != nil,
@@ -466,7 +498,10 @@ struct GroomerOffer: Equatable, Hashable, Identifiable, Sendable {
             scheduleTimeZoneIdentifier: scheduleTimeZoneIdentifier,
             occupiedStart: occupiedStart,
             occupiedEnd: occupiedEnd,
-            timingSnapshotLoaded: timingSnapshotLoaded
+            timingSnapshotLoaded: timingSnapshotLoaded,
+            agreementSnapshot: agreementSnapshot,
+            quoteEvaluation: quoteEvaluation,
+            agreementSnapshotLoaded: agreementSnapshotLoaded
         )
     }
 
@@ -524,6 +559,7 @@ struct GroomerOfferDraft: Equatable, Sendable {
     let proposedEnd: Date
     let priceEstimate: Double
     let message: String?
+    var expectedRequestRevision: UUID? = nil
 }
 
 struct CreateGroomerOfferResult: Equatable, Sendable {

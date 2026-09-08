@@ -411,7 +411,7 @@ private struct GroomerRequestSummaryRow: View {
 
     private var statusSummary: String {
         if let offer = matchedRequest.offer {
-            return "Offer \(offer.status.title.lowercased())"
+            return "Offer \(offer.evaluatedStatusTitle.lowercased())"
         }
 
         return matchedRequest.matchSummary
@@ -814,7 +814,9 @@ struct GroomerRequestDetailView: View {
                             .font(DesignTokens.Typography.headline)
                             .foregroundStyle(DesignTokens.Colors.textPrimary)
 
-                        Text(offer.status.groomerDescription)
+                        Text(offer.status == .pending
+                            ? (offer.quoteEvaluation?.summary ?? offer.status.groomerDescription)
+                            : offer.status.groomerDescription)
                             .font(DesignTokens.Typography.caption)
                             .foregroundStyle(DesignTokens.Colors.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
@@ -822,7 +824,7 @@ struct GroomerRequestDetailView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
 
                     BeckonStatusChip(
-                        offer.status.title,
+                        offer.evaluatedStatusTitle,
                         systemImage: offer.status.groomerSystemImage,
                         tone: offer.status.groomerTone
                     )

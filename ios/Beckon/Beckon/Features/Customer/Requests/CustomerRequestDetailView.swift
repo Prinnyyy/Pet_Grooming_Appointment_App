@@ -44,6 +44,17 @@ struct CustomerRequestDetailView: View {
                         requestPhotosCard(request)
                         scheduleLocationCard(request)
 
+                        if request.status.isOpenForOffers {
+                            Button {
+                                store.startRevision(from: request)
+                            } label: {
+                                Label("Revise Request", systemImage: "square.and.pencil")
+                            }
+                            .buttonStyle(BeckonSecondaryButtonStyle(accent: .customer))
+                            .disabled(store.isSubmitting || request.termsRevision == nil)
+                            .accessibilityIdentifier("customer.requests.revise")
+                        }
+
                         if presentation.showsTimingRecovery {
                             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                                 Text("This request has no confirmed time zone. Cancel it, then create a new request from its template and confirm the service address.")
@@ -640,11 +651,11 @@ struct CustomerOfferAcceptancePresentation: Equatable {
         groomer = offerReview.groomerTitle
         supportingText =
             "Review the final appointment details before booking with \(groomer)."
-        service = request.serviceType.title
+        service = (offerReview.offer.agreementSnapshot?.serviceType ?? request.serviceType).title
         price = offerReview.offer.priceSummary
         time = offerReview.proposedTimeSummary
         location = BeckonGroomingLocationModePresentation(
-            mode: request.locationMode,
+            mode: offerReview.offer.agreementSnapshot?.locationMode ?? request.locationMode,
             perspective: .customer
         ).title
         address = Self.addressSummary(
@@ -659,6 +670,12 @@ struct CustomerOfferAcceptancePresentation: Equatable {
         request: CustomerGroomingRequest,
         offerReview: CustomerOfferReview
     ) -> String {
+        if let agreement = offerReview.offer.agreementSnapshot, agreement.isSupported {
+            return agreement.address.summary
+        }
+        if offerReview.offer.agreementSnapshotLoaded {
+            return "Original address unverified. A new offer is required."
+        }
         switch request.locationMode {
         case .groomerComesToCustomer:
             return formattedAddress(
@@ -739,9 +756,13 @@ private struct CustomerOfferDetailView: View {
                             )
 
                             groomerCard(offerReview)
-                            offerCard(offerReview)
+                            TimelineView(.periodic(from: .now, by: 1)) { _ in
+                                offerCard(offerReview)
+                            }
                             requestCard(offerReview)
-                            acceptanceCard(offerReview)
+                            TimelineView(.periodic(from: .now, by: 1)) { _ in
+                                acceptanceCard(offerReview)
+                            }
                         }
                         .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
                         .padding(.top, DesignTokens.Spacing.lg)
@@ -926,7 +947,8 @@ private struct CustomerOfferDetailView: View {
                         )
                     }
                     .buttonStyle(BeckonPrimaryButtonStyle())
-                    .disabled(store.isAcceptingOffer(offerReview.offer.id) || offerReview.offer.requiresTimingUpdate)
+                    .disabled(store.isAcceptingOffer(offerReview.offer.id)
+                        || (!offerReview.offer.canConfirmCurrentTerms && !store.hasUnresolvedAcceptance(for: offerReview.id)))
                     .accessibilityIdentifier("customer.offers.accept")
 
                     Text(offerReview.offer.requiresTimingUpdate
@@ -949,6 +971,15 @@ private struct CustomerOfferDetailView: View {
     private func acceptanceMessage(for offerReview: CustomerOfferReview) -> String {
         if offerReview.offer.status == .pending,
            request.status.isOpenForOffers {
+            if offerReview.offer.hasPassedConfirmationDeadline() {
+                return "This offer has expired. Request a new offer."
+            }
+            if offerReview.offer.requiresAgreementUpdate {
+                return "Updated agreement required. Request a new offer."
+            }
+            if let evaluation = offerReview.offer.quoteEvaluation, !evaluation.selectable || !evaluation.termsValid {
+                return evaluation.summary
+            }
             if offerReview.offer.requiresTimingUpdate {
                 return "Updated offer required. Your request remains open."
             }
@@ -1115,11 +1146,15 @@ private struct CustomerOfferAcceptanceConfirmationView: View {
                 }
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                CustomerOfferAcceptanceActionBar(
-                    title: presentation.confirmActionTitle,
-                    isSubmitting: isSubmitting,
-                    action: confirmAcceptance
-                )
+                TimelineView(.periodic(from: .now, by: 1)) { _ in
+                    CustomerOfferAcceptanceActionBar(
+                        title: store.hasUnresolvedAcceptance(for: offerReview.id) ? "Check Booking Status"
+                            : offerReview.offer.hasPassedConfirmationDeadline() ? "Offer Expired" : presentation.confirmActionTitle,
+                        isSubmitting: isSubmitting,
+                        action: confirmAcceptance
+                    )
+                    .disabled(!offerReview.offer.canConfirmCurrentTerms && !store.hasUnresolvedAcceptance(for: offerReview.id))
+                }
             }
             .interactiveDismissDisabled(isSubmitting)
             .accessibilityIdentifier("customer.offers.confirmation")

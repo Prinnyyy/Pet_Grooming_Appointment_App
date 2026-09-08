@@ -400,6 +400,7 @@ struct CustomerRequestWizardView: View {
                 CustomerRequestWizardBottomBar(
                     currentStep: currentStep,
                     isSubmitting: store.isSubmitting,
+                    isReplacingRequest: store.isRevisingRequest,
                     isPrimaryActionEnabled: primaryActionState.isEnabled,
                     needsAddressConfirmation: currentStep == .time && store.requestCalendar == nil,
                     backAction: back,
@@ -701,6 +702,11 @@ struct CustomerRequestWizardView: View {
 
     private var reviewStep: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
+            if store.isRevisingRequest {
+                Text("Publishing these changes will replace the original request and close its existing offers.")
+                    .font(DesignTokens.Typography.body)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             BeckonCard(padding: DesignTokens.Spacing.xl) {
                 VStack(spacing: 0) {
                     ForEach(reviewPresentation.rows) { row in
@@ -1124,6 +1130,7 @@ private struct CustomerRequestWizardBottomBar: View {
 
     let currentStep: CustomerRequestWizardStep
     let isSubmitting: Bool
+    var isReplacingRequest = false
     let isPrimaryActionEnabled: Bool
     let needsAddressConfirmation: Bool
     let backAction: () -> Void
@@ -1189,7 +1196,7 @@ private struct CustomerRequestWizardBottomBar: View {
         }
 
         if needsAddressConfirmation { return "Confirm Address" }
-        return currentStep == .review ? "Publish Request" : "Continue"
+        return currentStep == .review ? (isReplacingRequest ? "Replace Request" : "Publish Request") : "Continue"
     }
 }
 

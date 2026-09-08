@@ -196,6 +196,9 @@ final class CustomerRequestsStore {
     private(set) var pendingRequestPhotos: [PendingGroomingRequestPhoto] = []
     private(set) var requestPhotoUploadRetries: [CustomerRequestPhotoUploadRetry] = []
     private var publishOperationID = UUID()
+    private var supersedingRequestID: UUID?
+    private var expectedRequestRevision: UUID?
+    var isRevisingRequest: Bool { supersedingRequestID != nil }
     private var unresolvedAcceptances: [UUID: UUID] = [:]
     private var isReconcilingAcceptances = false
     private var acceptanceSessionIsCurrent: @MainActor () -> Bool = { true }
@@ -509,6 +512,16 @@ final class CustomerRequestsStore {
         isShowingWizard = true
     }
 
+    func startRevision(from request: CustomerGroomingRequest) {
+        guard request.status.isOpenForOffers, let revision = request.termsRevision else {
+            errorMessage = "Refresh this request before changing its details."
+            return
+        }
+        startRepublish(from: request)
+        supersedingRequestID = request.id
+        expectedRequestRevision = revision
+    }
+
     func startRepublish(
         from request: CustomerGroomingRequest,
         now: Date = Date()
@@ -661,6 +674,10 @@ final class CustomerRequestsStore {
 
     func offerError(for request: CustomerGroomingRequest) -> String? {
         offerErrorsByRequestID[request.id]
+    }
+
+    func hasUnresolvedAcceptance(for offerID: UUID) -> Bool {
+        unresolvedAcceptances[offerID] != nil
     }
 
     func isAcceptingOffer(_ offerID: UUID) -> Bool {
@@ -1169,6 +1186,12 @@ final class CustomerRequestsStore {
             errorMessage = "This request can no longer become a booking."
             return nil
         }
+        guard isRecovery || offerReview.offer.canConfirmCurrentTerms else {
+            errorMessage = offerReview.offer.hasPassedConfirmationDeadline()
+                ? "This offer has expired. Request a new offer."
+                : offerReview.offer.quoteEvaluation?.summary ?? "Updated offer details are required before booking."
+            return nil
+        }
 
         let startedAt = Date()
         recordStoreStart(
@@ -1200,6 +1223,9 @@ final class CustomerRequestsStore {
             let result: AcceptGroomerOfferResult
             if let recovered {
                 result = recovered
+            } else if let agreement = offerReview.offer.agreementSnapshot, agreement.isSupported {
+                result = try await bookingRepository.acceptOffer(offerID: offerReview.offer.id,
+                    expectedQuoteRevision: agreement.quoteRevision)
             } else {
                 result = try await bookingRepository.acceptOffer(offerID: offerReview.offer.id)
             }
@@ -1430,7 +1456,9 @@ final class CustomerRequestsStore {
             zipCode: zipCode,
             travelRadiusMiles: travelRadius,
             confirmedAddress: confirmedAddress,
-            publishOperationID: publishOperationID
+            publishOperationID: publishOperationID,
+            supersedingRequestID: supersedingRequestID,
+            expectedRequestRevision: expectedRequestRevision
         )
     }
 
@@ -1609,6 +1637,8 @@ final class CustomerRequestsStore {
 
     private func resetForm(now: Date = Date()) {
         publishOperationID = UUID()
+        supersedingRequestID = nil
+        expectedRequestRevision = nil
         serviceType = nil
         serviceNotes = ""
         locationMode = .groomerComesToCustomer
@@ -1750,7 +1780,7 @@ final class CustomerRequestsStore {
     private static func isDefinitiveAcceptanceFailure(_ error: BookingRepositoryError) -> Bool {
         switch error {
         case .offerNotFound, .offerNoLongerPending, .requestNoLongerOpen,
-             .bookingConflict, .invalidInput, .updatedOfferRequired, .matchConstraintsChanged:
+             .bookingConflict, .invalidInput, .updatedOfferRequired, .matchConstraintsChanged, .clientUpdateRequired:
             true
         default:
             false
@@ -1885,7 +1915,8 @@ final class CustomerRequestsStore {
             serviceTimeZoneIdentifier: offerReview.offer.serviceTimeZoneIdentifier,
             scheduleTimeZoneIdentifier: offerReview.offer.scheduleTimeZoneIdentifier,
             occupiedStart: offerReview.offer.occupiedStart,
-            occupiedEnd: offerReview.offer.occupiedEnd
+            occupiedEnd: offerReview.offer.occupiedEnd,
+            agreementSnapshot: offerReview.offer.agreementSnapshot
         )
     }
 
@@ -2297,7 +2328,9 @@ final class CustomerRequestsStore {
         case .offerNoLongerPending:
             "This offer can no longer be accepted."
         case .updatedOfferRequired:
-            "This offer needs updated timing details from the groomer before you can book. Your request is still open."
+            "The groomer needs to send a new offer with current agreement details before you can book."
+        case .clientUpdateRequired:
+            "Update Beckon to confirm versioned appointment details. No booking was made."
         case .matchConstraintsChanged:
             "The groomer's current service or location no longer fits this request. No booking was made. Review your other offers."
         case .requestNoLongerOpen:

@@ -13,7 +13,8 @@ assert.equal(readFileSync("supabase/.temp/project-ref", "utf8").trim(), "lqmasbu
 const credentials = parseEnv(readFileSync("supabase_environment_variables", "utf8"));
 assert.equal(credentials.SUPABASE_URL, "https://lqmasbuqzvcvtawonjlb.supabase.co");
 const api = new SupabaseREST(credentials.SUPABASE_URL, credentials.SUPABASE_PUBLISHABLE_KEY);
-const runID = `T374-${randomUUID()}`;
+const verifyAgreements = process.env.TESTOPS_VERIFY_AGREEMENTS === "1";
+const runID = `${verifyAgreements ? "T376" : "T374"}-${randomUUID()}`;
 const verifyMatchRefresh = process.env.TESTOPS_VERIFY_MATCH_REFRESH === "1";
 const directory = `artifacts/testops/${runID}`;
 mkdirSync(directory, { recursive: true, mode: 0o700 });
@@ -50,12 +51,20 @@ const fixtures = [];
 let configured;
 let unknownOutcome = false;
 let preferSave = false;
+let revisionRaceOrder = null;
+const quoteRevisions = new Map();
 const originalRPC = api.rpc.bind(api);
 api.rpc = async (name, parameters, token) => {
   try {
     // The holder still requires both blocked sessions before release. This only
     // biases their queue order; the actual winner is asserted below.
-    if (preferSave && name === "accept_groomer_offer") await new Promise(resolve => setTimeout(resolve, 500));
+    if ((preferSave || revisionRaceOrder === "replacement") && name === "accept_groomer_offer") await new Promise(resolve => setTimeout(resolve, 500));
+    if (revisionRaceOrder === "booking" && name === "supersede_grooming_request") await new Promise(resolve => setTimeout(resolve, 500));
+    if (verifyAgreements && name === "accept_groomer_offer") {
+      assert.ok(quoteRevisions.has(parameters.p_offer_id), "Read the exact quote before acceptance");
+      return await originalRPC("accept_groomer_offer_v2", { ...parameters,
+        p_expected_quote_revision: quoteRevisions.get(parameters.p_offer_id) }, token);
+    }
     return await originalRPC(name, parameters, token);
   }
   catch (error) {
@@ -88,7 +97,7 @@ try {
     commit;`);
   [configured] = query(settingsSQL);
   writeFileSync(`${directory}/configured.json`, JSON.stringify(configured), { mode: 0o600 });
-  for (let attempt = 0; attempt < 2; attempt++) {
+  for (let attempt = 0; attempt < (verifyAgreements ? 4 : 2); attempt++) {
     const fixture = { operationID: randomUUID(), requestID: null, offerID: null };
     fixtures.push(fixture);
     writeFileSync(`${directory}/fixtures.json`, JSON.stringify(fixtures), { mode: 0o600 });
@@ -96,16 +105,17 @@ try {
       timezone('America/Los_Angeles',(timezone('America/Los_Angeles',now())::date+${10 + attempt})+time '10:00') as start
       from public.pets where customer_id='${customerID}' and is_active and species='Dog' order by id limit 1;`);
     assert.ok(created?.pet_id, "Active fixture pet required");
-    const publication = await api.rpc("create_grooming_request_v4", {
+    const publishParameters = {
       p_publish_operation_id: fixture.operationID, p_preference_time_zone_identifier: "America/Los_Angeles",
       p_request: { pet_id: created.pet_id, service_type: "full_groom", service_notes: `TESTOPS:${runID}`,
         preferred_start: created.start,
-        preferred_end: new Date(Date.parse(created.start) + (verifyMatchRefresh ? 10800000 : 7200000)).toISOString(),
+        preferred_end: new Date(Date.parse(created.start) + (verifyMatchRefresh || verifyAgreements ? 10800000 : 7200000)).toISOString(),
         location_mode: "groomer_comes_to_customer", street_address: fixtureAddress.line_1, city: fixtureAddress.city,
         state: fixtureAddress.state, zip_code: fixtureAddress.zip_code, provider: fixtureAddress.provider,
         country_code: fixtureAddress.country_code, latitude: fixtureAddress.latitude,
         longitude: fixtureAddress.longitude, resolution_source: "manual_geocode", user_confirmed_at: new Date().toISOString() },
-    }, customerAuth.accessToken);
+    };
+    const publication = await api.rpc("create_grooming_request_v4", publishParameters, customerAuth.accessToken);
     const requestID = publication[0]?.request_id;
     assert.ok(requestID, "Publication receipt missing");
     fixture.requestID = requestID;
@@ -117,23 +127,81 @@ try {
     const matches = await api.restSelect("request_matches", `select=id&request_id=eq.${requestID}&groomer_id=eq.${groomerID}`, groomerAuth.accessToken);
     assert.equal(matches.length, 1, "Publication must actually match the fixture groomer; do not inject a match");
     const serviceEnd = new Date(Date.parse(created.start) + 3600000).toISOString();
-    const receipt = await api.rpc("create_groomer_offer", { p_request_id: requestID,
+    const [requestTerms] = verifyAgreements ? await api.restSelect("grooming_requests",
+      `select=terms_revision&id=eq.${requestID}`, customerAuth.accessToken) : [];
+    const receipt = await api.rpc(verifyAgreements ? "create_groomer_offer_v2" : "create_groomer_offer", {
+      ...(verifyAgreements ? { p_expected_request_revision: requestTerms?.terms_revision } : {}), p_request_id: requestID,
       p_proposed_start: created.start, p_proposed_end: serviceEnd, p_price_estimate: 100,
       p_message: `TESTOPS:${runID} timing allocation` }, groomerAuth.accessToken);
     const offerID = receipt[0]?.offer_id;
     assert.ok(offerID, "Offer RPC receipt missing");
     fixture.offerID = offerID;
     writeFileSync(`${directory}/fixtures.json`, JSON.stringify(fixtures), { mode: 0o600 });
-    const allocationFields = "applied_timing_buffers,service_time_zone_identifier,schedule_time_zone_identifier,occupied_start,occupied_end";
+    const allocationFields = "applied_timing_buffers,service_time_zone_identifier,schedule_time_zone_identifier,occupied_start,occupied_end"
+      + (verifyAgreements ? ",agreement_snapshot" : "");
     const offers = await api.restSelect("groomer_offers", `select=${allocationFields}&id=eq.${offerID}`, customerAuth.accessToken);
     assert.equal(offers.length, 1);
     const allocation = offers[0];
+    if (verifyAgreements) {
+      assert.equal(allocation.agreement_snapshot?.request_revision, requestTerms?.terms_revision);
+      assert.equal(allocation.agreement_snapshot?.schema_version, 1);
+      quoteRevisions.set(offerID, allocation.agreement_snapshot.quote_revision);
+    }
     assert.deepEqual(allocation.applied_timing_buffers, { preparation_minutes: 15, cleanup_minutes: 10,
       inbound_travel_minutes: 30, outbound_travel_minutes: 20 });
     assert.equal(allocation.service_time_zone_identifier, "America/Los_Angeles");
     assert.equal(allocation.schedule_time_zone_identifier, "America/Los_Angeles");
     assert.equal(Date.parse(allocation.occupied_start), Date.parse(created.start) - 45 * 60000);
     assert.equal(Date.parse(allocation.occupied_end), Date.parse(serviceEnd) + 30 * 60000);
+    if (verifyAgreements && attempt >= 2) {
+      preferSave = false;
+      revisionRaceOrder = attempt === 2 ? "booking" : "replacement";
+      const replacementFixture = { operationID: randomUUID(), requestID: null, offerID: null };
+      fixtures.push(replacementFixture);
+      writeFileSync(`${directory}/fixtures.json`, JSON.stringify(fixtures), { mode: 0o600 });
+      const parameters = { ...publishParameters, p_request_id: requestID,
+        p_expected_request_revision: requestTerms.terms_revision,
+        p_publish_operation_id: replacementFixture.operationID,
+        p_request: { ...publishParameters.p_request, service_type: "nail_trim" } };
+      const [acceptance, replacement] = await runTimingDatabaseBarrier(groomerID, async () => {
+        const outcomes = await Promise.allSettled([
+          api.rpc("accept_groomer_offer", { p_offer_id: offerID }, customerAuth.accessToken),
+          api.rpc("supersede_grooming_request", parameters, customerAuth.accessToken),
+        ]);
+        if (outcomes[1].status === "fulfilled") {
+          replacementFixture.requestID = outcomes[1].value[0]?.request_id;
+          writeFileSync(`${directory}/fixtures.json`, JSON.stringify(fixtures), { mode: 0o600 });
+        }
+        console.log("Revision dispatch:", JSON.stringify(outcomes.map(result => ({ status: result.status,
+          message: result.reason?.serverMessage, code: result.reason?.code }))));
+        return outcomes;
+      }, { revisionRequestID: requestID });
+      if (replacement.status === "fulfilled") {
+        replacementFixture.requestID = replacement.value[0]?.request_id;
+        writeFileSync(`${directory}/fixtures.json`, JSON.stringify(fixtures), { mode: 0o600 });
+        assert.ok(replacementFixture.requestID);
+      }
+      assert.notEqual(acceptance.status, replacement.status, "Exactly one revision race operation must succeed");
+      const winner = acceptance.status === "fulfilled" ? "booking" : "replacement";
+      assert.equal(winner, revisionRaceOrder);
+      const rejection = winner === "booking" ? replacement.reason : acceptance.reason;
+      assert.equal(rejection.serverMessage, winner === "booking" ? "request_not_cancellable" : "offer_not_pending");
+      const bookings = await api.restSelect("bookings", `select=id,agreement_snapshot&offer_id=eq.${offerID}`, customerAuth.accessToken);
+      assert.equal(bookings.length, winner === "booking" ? 1 : 0);
+      if (winner === "booking") {
+        assert.deepEqual(bookings[0].agreement_snapshot, allocation.agreement_snapshot);
+        const replay = await api.rpc("accept_groomer_offer", { p_offer_id: offerID }, customerAuth.accessToken);
+        assert.deepEqual(replay, await api.rpc("get_offer_acceptance", { p_offer_id: offerID }, customerAuth.accessToken));
+      } else {
+        assert.deepEqual(await api.rpc("supersede_grooming_request", parameters, customerAuth.accessToken), replacement.value);
+      }
+      writeFileSync(`${directory}/revision-race-${attempt}.json`, JSON.stringify({ winner,
+        dispatch: "verified-database-lock-contention", originalRequestID: requestID,
+        replacementRequestID: replacementFixture.requestID, bookingReadbackVerified: true }), { mode: 0o600 });
+      console.log(`Revision race ${attempt - 1}: PASS (${winner}; verified-database-lock-contention)`);
+      revisionRaceOrder = null;
+      continue;
+    }
     preferSave = attempt === 1;
     const result = await runTimingAdmissionRace(api, { offerID, groomerID, serviceStart: created.start,
       customerToken: customerAuth.accessToken, groomerToken: groomerAuth.accessToken,
@@ -209,7 +277,7 @@ try {
       delete from public.grooming_requests where id in (${requestIDs}) and service_notes='TESTOPS:${runID}';
       ${tables.map((table, index) => `delete from public.${table} where groomer_id='${groomerID}';
         insert into public.${table} select * from jsonb_populate_recordset(null::public.${table},${json(backup[`rows${index}`])});`).join("\n")}
-      ${verifyMatchRefresh ? `delete from app_private.match_refresh_queue where request_id in (${requestIDs});` : ""}
+      ${verifyMatchRefresh || verifyAgreements ? `delete from app_private.match_refresh_queue where request_id in (${requestIDs});` : ""}
       commit;`);
     assert.deepEqual(captureT374TimingSnapshot(), baseline, "Exact fixture restoration failed");
     console.log("Exact 39-field fixture restoration: PASS");

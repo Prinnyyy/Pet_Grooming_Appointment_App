@@ -502,7 +502,8 @@ final class GroomerRequestsStore {
             proposedStart: proposedStart,
             proposedEnd: proposedEnd,
             priceEstimate: priceEstimate,
-            message: normalizedMessage
+            message: normalizedMessage,
+            expectedRequestRevision: matchedRequest.request.termsRevision
         )
     }
 
@@ -630,6 +631,8 @@ final class GroomerRequestsStore {
             "Choose a time that fits your availability, time off, and existing bookings, including preparation, cleanup, and travel."
         case .timingBuffersRequired:
             "Confirm preparation, cleanup, and travel times in your availability settings before sending an offer."
+        case .clientUpdateRequired:
+            "Update Beckon to send versioned appointment details."
         case .scheduleTimeZoneRequired:
             "Confirm the time zone in your availability settings before sending an offer."
         case .serviceTimeZoneRequired:

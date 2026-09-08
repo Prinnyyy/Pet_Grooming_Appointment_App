@@ -35,6 +35,7 @@ struct Booking: Equatable, Hashable, Identifiable, Sendable {
     let scheduleTimeZoneIdentifier: String?
     let occupiedStart: String?
     let occupiedEnd: String?
+    var agreementSnapshot: ServiceAgreement? = nil
 
     nonisolated init(
         id: UUID,
@@ -70,7 +71,8 @@ struct Booking: Equatable, Hashable, Identifiable, Sendable {
         serviceTimeZoneIdentifier: String? = nil,
         scheduleTimeZoneIdentifier: String? = nil,
         occupiedStart: String? = nil,
-        occupiedEnd: String? = nil
+        occupiedEnd: String? = nil,
+        agreementSnapshot: ServiceAgreement? = nil
     ) {
         self.id = id
         self.requestID = requestID
@@ -106,6 +108,7 @@ struct Booking: Equatable, Hashable, Identifiable, Sendable {
         self.scheduleTimeZoneIdentifier = scheduleTimeZoneIdentifier
         self.occupiedStart = occupiedStart
         self.occupiedEnd = occupiedEnd
+        self.agreementSnapshot = agreementSnapshot
     }
 
     nonisolated var priceSummary: String {
@@ -202,14 +205,10 @@ struct Booking: Equatable, Hashable, Identifiable, Sendable {
     }
 
     nonisolated var appointmentAddressSummary: String {
-        switch locationMode {
-        case .groomerComesToCustomer:
-            customerAddressSummary ?? "Customer address unavailable"
-        case .customerComesToGroomer:
-            groomerLocationSummary ?? "Groomer address pending"
-        case nil:
-            customerAddressSummary ?? groomerLocationSummary ?? "Address unavailable"
+        guard let agreementSnapshot, agreementSnapshot.isSupported else {
+            return "Original address unverified. Confirm with the other participant."
         }
+        return agreementSnapshot.address.summary
     }
 
     nonisolated func replacing(
@@ -254,7 +253,8 @@ struct Booking: Equatable, Hashable, Identifiable, Sendable {
             serviceTimeZoneIdentifier: serviceTimeZoneIdentifier,
             scheduleTimeZoneIdentifier: scheduleTimeZoneIdentifier,
             occupiedStart: occupiedStart,
-            occupiedEnd: occupiedEnd
+            occupiedEnd: occupiedEnd,
+            agreementSnapshot: agreementSnapshot
         )
     }
 

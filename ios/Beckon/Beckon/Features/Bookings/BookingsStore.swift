@@ -389,7 +389,9 @@ final class BookingsStore {
         case .offerNoLongerPending:
             "This offer can no longer be accepted."
         case .updatedOfferRequired:
-            "This offer needs updated timing details from the groomer before you can book."
+            "The groomer needs to send a new offer with current agreement details before you can book."
+        case .clientUpdateRequired:
+            "Update Beckon to confirm versioned appointment details. No booking was made."
         case .matchConstraintsChanged:
             "The groomer's current service or location no longer fits this request. No booking was made."
         case .requestNoLongerOpen:

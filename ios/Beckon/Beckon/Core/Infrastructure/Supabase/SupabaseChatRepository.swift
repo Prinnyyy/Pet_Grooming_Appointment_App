@@ -7,7 +7,7 @@ final class SupabaseChatRepository: ChatRepository {
         id,customer_id,groomer_id,created_at,updated_at
         """
     private static let bookingSummaryColumns = """
-        id,request_id,customer_id,groomer_id,scheduled_start,scheduled_end,price_estimate,status,completed_at
+        id,request_id,customer_id,groomer_id,scheduled_start,scheduled_end,price_estimate,status,completed_at,service_time_zone_identifier
         """
     private static let groomerSummaryColumns = "user_id,business_name"
     private static let messageColumns =
@@ -409,7 +409,8 @@ private struct ChatConversationRow: Decodable {
             latestMessageCreatedAt: latestMessage?.createdAt,
             latestMessageBody: latestMessage?.body,
             createdAt: createdAt,
-            updatedAt: updatedAt
+            updatedAt: updatedAt,
+            serviceTimeZoneIdentifier: bookingSummary?.serviceTimeZoneIdentifier
         )
     }
 
@@ -430,6 +431,7 @@ private struct ChatBookingSummary: Sendable {
     let priceEstimate: Double
     let status: BookingStatus
     let completedAt: String?
+    let serviceTimeZoneIdentifier: String?
 }
 
 private struct ChatBookingSummaryRow: Decodable {
@@ -442,6 +444,7 @@ private struct ChatBookingSummaryRow: Decodable {
     let priceEstimate: Double
     let status: BookingStatus
     let completedAt: String?
+    let serviceTimeZoneIdentifier: String?
 
     var participantPair: ChatParticipantPair {
         ChatParticipantPair(customerID: customerID, groomerID: groomerID)
@@ -455,7 +458,8 @@ private struct ChatBookingSummaryRow: Decodable {
             scheduledEnd: scheduledEnd,
             priceEstimate: priceEstimate,
             status: status,
-            completedAt: completedAt
+            completedAt: completedAt,
+            serviceTimeZoneIdentifier: serviceTimeZoneIdentifier
         )
     }
 
@@ -469,6 +473,7 @@ private struct ChatBookingSummaryRow: Decodable {
         case priceEstimate = "price_estimate"
         case status
         case completedAt = "completed_at"
+        case serviceTimeZoneIdentifier = "service_time_zone_identifier"
     }
 }
 

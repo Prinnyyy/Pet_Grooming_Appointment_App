@@ -1055,7 +1055,7 @@ struct BookingsStoreTests {
                 perspective: .groomer
             ).title == "Customer's Home"
         )
-        #expect(booking.appointmentAddressSummary == "123 Pine Street, Seattle, WA 98101")
+        #expect(booking.appointmentAddressSummary == "Original address unverified. Confirm with the other participant.")
     }
 
     @Test @MainActor
@@ -1076,7 +1076,7 @@ struct BookingsStoreTests {
                 perspective: .customer
             ).title == "Groomer's Place"
         )
-        #expect(booking.appointmentAddressSummary == "456 Groomer Lane, Austin, TX 78701")
+        #expect(booking.appointmentAddressSummary == "Original address unverified. Confirm with the other participant.")
     }
 
     @Test
@@ -1315,7 +1315,7 @@ struct AppointmentReminderPlanTests {
     }
 }
 
-private final class AppointmentReminderSchedulerFake:
+final class AppointmentReminderSchedulerFake:
     AppointmentReminderScheduling,
     @unchecked Sendable
 {
@@ -1348,7 +1348,7 @@ private final class AppointmentReminderSchedulerFake:
 }
 
 @MainActor
-private final class BookingRepositoryFake: BookingRepository {
+final class BookingRepositoryFake: BookingRepository {
     var bookingsResult: Result<[Booking], BookingRepositoryError>
     var bookingPages: [Result<ListPage<Booking>, BookingRepositoryError>]
     var cancelResult: Result<CancelBookingResult, BookingRepositoryError>

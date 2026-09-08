@@ -6,12 +6,12 @@ final class SupabaseCustomerRequestRepository: CustomerRequestRepository {
     private static let requestColumns = """
         id,customer_id,pet_id,pet_snapshot,photo_snapshot,service_type,service_notes,\
         preferred_start,preferred_end,location_mode,street_address,address_line_2,city,state,zip_code,\
-        travel_radius_miles,status,expires_at,created_at,updated_at,preference_time_zone_identifier
+        travel_radius_miles,status,expires_at,created_at,updated_at,preference_time_zone_identifier,terms_revision
         """
     private static let offerColumns = """
         id,request_id,match_id,customer_id,groomer_id,proposed_start,proposed_end,\
         price_estimate,message,status,expires_at,withdrawn_at,created_at,updated_at,\
-        applied_timing_buffers,service_time_zone_identifier,schedule_time_zone_identifier,occupied_start,occupied_end
+        applied_timing_buffers,service_time_zone_identifier,schedule_time_zone_identifier,occupied_start,occupied_end,agreement_snapshot
         """
     private static let offerMatchEvidenceColumns =
         "id,match_score,match_reason"
@@ -95,6 +95,10 @@ final class SupabaseCustomerRequestRepository: CustomerRequestRepository {
                 return ListPage(items: [], request: page)
             }
 
+            let evaluations: [SupabaseQuoteEvaluationRow] = try await client
+                .rpc("get_quote_evaluations", params: SupabaseQuoteEvaluationParameters(offerIDs: offerRows.map(\.id)))
+                .execute().value
+            let evaluationsByID = Dictionary(uniqueKeysWithValues: evaluations.map { ($0.offerID, $0.evaluation) })
             let groomerIDs = Set(offerRows.map(\.groomerID))
                 .map { $0.uuidString.lowercased() }
             let matchIDs = Set(offerRows.map(\.matchID))
@@ -129,8 +133,10 @@ final class SupabaseCustomerRequestRepository: CustomerRequestRepository {
 
             let offers = offerRows.map { row in
                 let matchEvidence = matchEvidenceByID[row.matchID]
+                var offer = row.offer
+                offer.quoteEvaluation = evaluationsByID[row.id]
                 return CustomerOfferReview(
-                    offer: row.offer,
+                    offer: offer,
                     groomerProfile: profilesByID[row.groomerID],
                     groomerAvatarPhotoData: groomerAvatars[row.groomerID],
                     matchScore: matchEvidence?.matchScore,
@@ -188,7 +194,7 @@ final class SupabaseCustomerRequestRepository: CustomerRequestRepository {
         do {
             let rows: [CreateGroomingRequestRow] = try await client
                 .rpc(
-                    "create_grooming_request_v4",
+                    draft.supersedingRequestID == nil ? "create_grooming_request_v4" : "supersede_grooming_request",
                     params: CreateGroomingRequestV4Parameters(draft: draft)
                 )
                 .execute()
@@ -412,6 +418,7 @@ private struct GroomingRequestRow: Decodable {
     let createdAt: String
     let updatedAt: String
     let preferenceTimeZoneIdentifier: String?
+    let termsRevision: UUID?
 
     var request: CustomerGroomingRequest {
         CustomerGroomingRequest(
@@ -435,7 +442,8 @@ private struct GroomingRequestRow: Decodable {
             expiresAt: expiresAt,
             createdAt: createdAt,
             updatedAt: updatedAt,
-            preferenceTimeZoneIdentifier: preferenceTimeZoneIdentifier
+            preferenceTimeZoneIdentifier: preferenceTimeZoneIdentifier,
+            termsRevision: termsRevision
         )
     }
 
@@ -450,6 +458,7 @@ private struct GroomingRequestRow: Decodable {
         case preferredStart = "preferred_start"
         case preferredEnd = "preferred_end"
         case preferenceTimeZoneIdentifier = "preference_time_zone_identifier"
+        case termsRevision = "terms_revision"
         case locationMode = "location_mode"
         case streetAddress = "street_address"
         case addressLine2 = "address_line_2"
@@ -521,6 +530,7 @@ struct CustomerOfferRow: Decodable {
     let scheduleTimeZoneIdentifier: String?
     let occupiedStart: String?
     let occupiedEnd: String?
+    let agreementSnapshot: ServiceAgreement?
 
     var offer: GroomerOffer {
         GroomerOffer(
@@ -543,7 +553,9 @@ struct CustomerOfferRow: Decodable {
             scheduleTimeZoneIdentifier: scheduleTimeZoneIdentifier,
             occupiedStart: occupiedStart,
             occupiedEnd: occupiedEnd,
-            timingSnapshotLoaded: true
+            timingSnapshotLoaded: true,
+            agreementSnapshot: agreementSnapshot,
+            agreementSnapshotLoaded: true
         )
     }
 
@@ -567,6 +579,7 @@ struct CustomerOfferRow: Decodable {
         case scheduleTimeZoneIdentifier = "schedule_time_zone_identifier"
         case occupiedStart = "occupied_start"
         case occupiedEnd = "occupied_end"
+        case agreementSnapshot = "agreement_snapshot"
     }
 }
 
@@ -635,6 +648,7 @@ struct CreateGroomingRequestV4Parameters: Encodable {
     private enum CodingKeys: String, CodingKey {
         case operationID = "p_publish_operation_id", request = "p_request"
         case referenceZone = "p_preference_time_zone_identifier"
+        case requestID = "p_request_id", expectedRevision = "p_expected_request_revision"
     }
     private enum RequestKeys: String, CodingKey {
         case petID = "pet_id", serviceType = "service_type", serviceNotes = "service_notes"
@@ -650,6 +664,11 @@ struct CreateGroomingRequestV4Parameters: Encodable {
         }
         _ = try GroomingServiceTiming.locationCalendar(zone)
         var outer = encoder.container(keyedBy: CodingKeys.self)
+        if let original = draft.supersedingRequestID {
+            guard let revision = draft.expectedRequestRevision else { throw CustomerRequestRepositoryError.invalidInput }
+            try outer.encode(original, forKey: .requestID)
+            try outer.encode(revision, forKey: .expectedRevision)
+        }
         try outer.encode(draft.publishOperationID.uuidString.lowercased(), forKey: .operationID)
         try outer.encode(zone, forKey: .referenceZone)
         var container = outer.nestedContainer(keyedBy: RequestKeys.self, forKey: .request)

@@ -109,6 +109,7 @@ extension CustomerRequestsStoreTests {
             petRepository: CustomerRequestPetRepositoryFake(), requestRepository: requests,
             bookingRepository: repository, handoffAcknowledgementDefaults: defaults)
         _ = await original.accept(offerReview: review, for: request)
+        #expect(original.hasUnresolvedAcceptance(for: review.id))
         repository.acceptanceLookupResult = .success(AcceptGroomerOfferResult(
             bookingID: booking.id, conversationID: UUID(), requestID: request.id,
             offerID: review.offer.id, bookingStatus: .confirmed,
@@ -122,6 +123,7 @@ extension CustomerRequestsStoreTests {
         #expect(repository.acceptCallCount == 1)
         #expect(restarted.request(withID: request.id)?.status == .booked)
         #expect(restarted.noticeMessage == "Booking recovered. Confirmed.")
+        #expect(!restarted.hasUnresolvedAcceptance(for: review.id))
         await restarted.load()
         #expect(repository.acceptanceLookupCallCount == 1)
     }
@@ -143,7 +145,7 @@ extension CustomerRequestsStoreTests {
         let handoff = await store.accept(offerReview: review, for: request)
         #expect(handoff == nil)
         #expect(store.request(withID: request.id)?.status == request.status)
-        #expect(store.errorMessage == "This offer needs updated timing details from the groomer before you can book. Your request is still open.")
+        #expect(store.errorMessage == "The groomer needs to send a new offer with current agreement details before you can book.")
         #expect(store.noticeMessage == nil)
         let restarted = CustomerRequestsStore(customerID: customerID,
             petRepository: CustomerRequestPetRepositoryFake(), requestRepository: requests,

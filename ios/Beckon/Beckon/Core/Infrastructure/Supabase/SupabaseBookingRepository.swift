@@ -7,7 +7,7 @@ final class SupabaseBookingRepository: BookingRepository {
         id,request_id,offer_id,customer_id,groomer_id,scheduled_start,scheduled_end,\
         price_estimate,status,cancelled_by,cancelled_at,completed_at,completed_by,\
         created_at,updated_at,applied_timing_buffers,service_time_zone_identifier,\
-        schedule_time_zone_identifier,occupied_start,occupied_end
+        schedule_time_zone_identifier,occupied_start,occupied_end,agreement_snapshot
         """
     private static let reviewColumns = """
         id,booking_id,customer_id,groomer_id,rating,content,created_at
@@ -131,6 +131,17 @@ final class SupabaseBookingRepository: BookingRepository {
         }
     }
 
+    func acceptOffer(offerID: UUID, expectedQuoteRevision: UUID) async throws -> AcceptGroomerOfferResult {
+        do {
+            let rows: [AcceptGroomerOfferRow] = try await client
+                .rpc("accept_groomer_offer_v2", params: VersionedAcceptanceParameters(
+                    offerID: offerID, expectedQuoteRevision: expectedQuoteRevision))
+                .execute().value
+            guard rows.count == 1, let result = rows.first?.result else { throw BookingRepositoryError.unavailable }
+            return result
+        } catch { throw Self.map(error) }
+    }
+
     func cancelBooking(
         bookingID: UUID
     ) async throws -> CancelBookingResult {
@@ -222,6 +233,10 @@ final class SupabaseBookingRepository: BookingRepository {
                 return .notAllowed
             case "22023":
                 switch postgrestError.message {
+                case "updated_agreement_client_required":
+                    return .clientUpdateRequired
+                case "quote_revision_changed", "quote_terms_invalid", "updated_agreement_offer_required":
+                    return .updatedOfferRequired
                 case "match_constraints_changed":
                     return .matchConstraintsChanged
                 case "occupied_time_off_conflict", "occupied_outside_weekly_hours":
@@ -444,6 +459,7 @@ private struct BookingRow: Decodable {
     let scheduleTimeZoneIdentifier: String?
     let occupiedStart: String?
     let occupiedEnd: String?
+    let agreementSnapshot: ServiceAgreement?
 
     func booking(
         review: BookingReview?,
@@ -468,15 +484,15 @@ private struct BookingRow: Decodable {
             createdAt: createdAt,
             updatedAt: updatedAt,
             review: review,
-            serviceType: requestLocation?.serviceType,
-            requestPetSnapshot: requestLocation?.petSnapshot,
+            serviceType: agreementSnapshot?.serviceType ?? requestLocation?.serviceType,
+            requestPetSnapshot: agreementSnapshot?.petSnapshot ?? requestLocation?.petSnapshot,
             groomerBusinessName: groomerSummary?.businessName,
             groomerAvatarPhotoData: groomerAvatarPhotoData,
             groomerBaseStreetAddress: groomerSummary?.baseStreetAddress,
             groomerBaseCity: groomerSummary?.baseCity,
             groomerBaseState: groomerSummary?.baseState,
             groomerBaseZipCode: groomerSummary?.baseZipCode,
-            locationMode: requestLocation?.locationMode,
+            locationMode: agreementSnapshot?.locationMode ?? requestLocation?.locationMode,
             customerStreetAddress: requestLocation?.streetAddress,
             customerCity: requestLocation?.city,
             customerState: requestLocation?.state,
@@ -485,12 +501,14 @@ private struct BookingRow: Decodable {
             serviceTimeZoneIdentifier: serviceTimeZoneIdentifier,
             scheduleTimeZoneIdentifier: scheduleTimeZoneIdentifier,
             occupiedStart: occupiedStart,
-            occupiedEnd: occupiedEnd
+            occupiedEnd: occupiedEnd,
+            agreementSnapshot: agreementSnapshot
         )
     }
 
     private enum CodingKeys: String, CodingKey {
         case id
+        case agreementSnapshot = "agreement_snapshot"
         case requestID = "request_id"
         case offerID = "offer_id"
         case customerID = "customer_id"
@@ -784,6 +802,15 @@ private struct CreateReviewRow: Decodable {
         case createdAt = "created_at"
         case groomerRatingAverage = "groomer_rating_avg"
         case groomerRatingCount = "groomer_rating_count"
+    }
+}
+
+private struct VersionedAcceptanceParameters: Encodable {
+    let offerID: UUID
+    let expectedQuoteRevision: UUID
+    private enum CodingKeys: String, CodingKey {
+        case offerID = "p_offer_id"
+        case expectedQuoteRevision = "p_expected_quote_revision"
     }
 }
 

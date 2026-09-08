@@ -5,6 +5,7 @@ enum BookingRepositoryError: Error, Equatable, Sendable {
     case offerNotFound
     case offerNoLongerPending
     case updatedOfferRequired
+    case clientUpdateRequired
     case matchConstraintsChanged
     case requestNoLongerOpen
     case bookingAlreadyExists
@@ -43,6 +44,7 @@ protocol BookingRepository: AnyObject {
     ) async throws -> AcceptGroomerOfferResult
 
     func offerAcceptance(offerID: UUID) async throws -> AcceptGroomerOfferResult?
+    func acceptOffer(offerID: UUID, expectedQuoteRevision: UUID) async throws -> AcceptGroomerOfferResult
 
     func cancelBooking(
         bookingID: UUID
@@ -59,6 +61,10 @@ protocol BookingRepository: AnyObject {
 }
 
 extension BookingRepository {
+    func acceptOffer(offerID: UUID, expectedQuoteRevision: UUID) async throws -> AcceptGroomerOfferResult {
+        try await acceptOffer(offerID: offerID)
+    }
+
     func offerAcceptance(offerID: UUID) async throws -> AcceptGroomerOfferResult? {
         throw BookingRepositoryError.unavailable
     }

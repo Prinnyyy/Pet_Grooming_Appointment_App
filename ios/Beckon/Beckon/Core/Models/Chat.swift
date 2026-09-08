@@ -18,6 +18,7 @@ struct ChatConversation: Equatable, Hashable, Identifiable, Sendable {
     let latestMessageBody: String?
     let createdAt: String
     let updatedAt: String
+    let serviceTimeZoneIdentifier: String?
 
     nonisolated init(
         id: UUID,
@@ -36,7 +37,8 @@ struct ChatConversation: Equatable, Hashable, Identifiable, Sendable {
         latestMessageCreatedAt: String? = nil,
         latestMessageBody: String? = nil,
         createdAt: String,
-        updatedAt: String
+        updatedAt: String,
+        serviceTimeZoneIdentifier: String? = nil
     ) {
         self.id = id
         self.customerID = customerID
@@ -55,6 +57,7 @@ struct ChatConversation: Equatable, Hashable, Identifiable, Sendable {
         self.latestMessageBody = latestMessageBody
         self.createdAt = createdAt
         self.updatedAt = updatedAt
+        self.serviceTimeZoneIdentifier = serviceTimeZoneIdentifier
     }
 
     nonisolated var latestBookingReferenceCode: String? {
@@ -63,7 +66,7 @@ struct ChatConversation: Equatable, Hashable, Identifiable, Sendable {
 
     nonisolated var scheduledTimeSummary: String? {
         guard let scheduledStart, let scheduledEnd else { return nil }
-        return "\(GroomingRequestDateFormatting.displayString(from: scheduledStart)) – \(GroomingRequestDateFormatting.displayString(from: scheduledEnd))"
+        return "\(GroomingRequestDateFormatting.displayString(from: scheduledStart, serviceTimeZoneIdentifier: serviceTimeZoneIdentifier)) – \(GroomingRequestDateFormatting.displayString(from: scheduledEnd, serviceTimeZoneIdentifier: serviceTimeZoneIdentifier))"
     }
 
     nonisolated var priceSummary: String? {

@@ -22,6 +22,7 @@ struct CustomerGroomingRequest: Equatable, Hashable, Identifiable, Sendable {
     let createdAt: String
     let updatedAt: String
     var preferenceTimeZoneIdentifier: String? = nil
+    var termsRevision: UUID? = nil
 
     var title: String {
         "\(serviceType.title) for \(petSnapshot.name)"
@@ -66,7 +67,8 @@ struct CustomerGroomingRequest: Equatable, Hashable, Identifiable, Sendable {
             expiresAt: expiresAt,
             createdAt: createdAt,
             updatedAt: updatedAt ?? self.updatedAt,
-            preferenceTimeZoneIdentifier: preferenceTimeZoneIdentifier
+            preferenceTimeZoneIdentifier: preferenceTimeZoneIdentifier,
+            termsRevision: termsRevision
         )
     }
 }
@@ -198,6 +200,8 @@ struct GroomingRequestDraft: Equatable, Sendable {
     let travelRadiusMiles: Int?
     var confirmedAddress: BeckonConfirmedAddress? = nil
     var publishOperationID: UUID = UUID()
+    var supersedingRequestID: UUID? = nil
+    var expectedRequestRevision: UUID? = nil
 }
 
 struct GroomingRequestPublishResult: Equatable, Sendable {
@@ -267,11 +271,12 @@ struct CustomerOfferReview: Equatable, Identifiable, Sendable {
     }
 
     var proposedTimeSummary: String {
-        "\(GroomingRequestDateFormatting.displayString(from: offer.proposedStart)) – \(GroomingRequestDateFormatting.displayString(from: offer.proposedEnd))"
+        let zone = offer.agreementSnapshot?.serviceTimeZoneIdentifier ?? offer.serviceTimeZoneIdentifier
+        return "\(GroomingRequestDateFormatting.displayString(from: offer.proposedStart, serviceTimeZoneIdentifier: zone)) – \(GroomingRequestDateFormatting.displayString(from: offer.proposedEnd, serviceTimeZoneIdentifier: zone))"
     }
 
     var statusSummary: String {
-        "\(offer.status.title) · \(offer.priceSummary)"
+        "\(offer.evaluatedStatusTitle) · \(offer.priceSummary)"
     }
 
     var isPending: Bool {

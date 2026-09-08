@@ -138,7 +138,7 @@ private struct GroomerOfferRow: View {
                     Spacer(minLength: DesignTokens.Spacing.xs)
 
                     BeckonStatusChip(
-                        item.offer.status.title,
+                        item.offer.evaluatedStatusTitle,
                         systemImage: item.offer.status.offerListSystemImage,
                         tone: item.offer.status.offerListTone
                     )
@@ -227,7 +227,7 @@ private struct GroomerOfferHero: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
 
                 BeckonStatusChip(
-                    item.offer.status.title,
+                    item.offer.evaluatedStatusTitle,
                     systemImage: item.offer.status.offerListSystemImage,
                     tone: item.offer.status.offerListTone
                 )
@@ -254,23 +254,32 @@ private struct GroomerOfferFactsCard: View {
                 GroomerOfferFactRow(
                     title: "Proposed Start",
                     value: GroomingRequestDateFormatting.displayString(
-                        from: item.offer.proposedStart
+                        from: item.offer.proposedStart,
+                        serviceTimeZoneIdentifier: item.offer.agreementSnapshot?.serviceTimeZoneIdentifier
+                            ?? item.offer.serviceTimeZoneIdentifier
                     ),
                     systemImage: "calendar"
                 )
                 GroomerOfferFactRow(
                     title: "Proposed End",
                     value: GroomingRequestDateFormatting.displayString(
-                        from: item.offer.proposedEnd
+                        from: item.offer.proposedEnd,
+                        serviceTimeZoneIdentifier: item.offer.agreementSnapshot?.serviceTimeZoneIdentifier
+                            ?? item.offer.serviceTimeZoneIdentifier
                     ),
                     systemImage: "clock"
                 )
                 GroomerOfferFactRow(
                     title: "Status",
-                    value: item.offer.status.title,
+                    value: item.offer.evaluatedStatusTitle,
                     systemImage: item.offer.status.offerListSystemImage
                 )
                 if let createdAt = item.offer.createdAt {
+                    if let evaluation = item.offer.quoteEvaluation, item.offer.status == .pending {
+                        Text(evaluation.summary)
+                            .font(DesignTokens.Typography.body)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                     GroomerOfferFactRow(
                         title: "Submitted",
                         value: GroomingRequestDateFormatting.displayString(from: createdAt),
