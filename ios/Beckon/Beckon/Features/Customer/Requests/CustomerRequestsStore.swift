@@ -190,6 +190,13 @@ final class CustomerRequestsStore {
     private(set) var pendingRequestPhotos: [PendingGroomingRequestPhoto] = []
     private(set) var requestPhotoUploadRetries: [CustomerRequestPhotoUploadRetry] = []
     private var publishOperationID = UUID()
+    private var unresolvedAcceptances: [UUID: UUID] = [:]
+    private var isReconcilingAcceptances = false
+    private var acceptanceSessionIsCurrent: @MainActor () -> Bool = { true }
+
+    private var acceptanceStorageKey: String {
+        "beckon.customerRequests.unresolvedAcceptances.\(customerID.uuidString)"
+    }
 
     var isBusy: Bool {
         isLoading
@@ -316,6 +323,13 @@ final class CustomerRequestsStore {
             defaults: handoffAcknowledgementDefaults,
             key: handoffAcknowledgementStorageKey
         )
+        let saved = handoffAcknowledgementDefaults.dictionary(forKey: acceptanceStorageKey) ?? [:]
+        for (offer, request) in saved {
+            if let offerID = UUID(uuidString: offer),
+               let request = request as? String, let requestID = UUID(uuidString: request) {
+                unresolvedAcceptances[offerID] = requestID
+            }
+        }
     }
 
     func setDebugRecorder(_ recorder: AppDebugEventRecorder?) {
@@ -324,6 +338,15 @@ final class CustomerRequestsStore {
 
     func setNotificationRefresh(_ refresh: @escaping @MainActor () async -> Void) {
         refreshNotifications = refresh
+    }
+
+    func setAcceptanceSessionValidation(_ validation: @escaping @MainActor () -> Bool) {
+        acceptanceSessionIsCurrent = validation
+    }
+
+    private func checkAcceptanceSession() throws {
+        try Task.checkCancellation()
+        guard acceptanceSessionIsCurrent() else { throw CancellationError() }
     }
 
     func load() async {
@@ -410,6 +433,7 @@ final class CustomerRequestsStore {
                 startedAt: startedAt
             )
         }
+        await reconcileUnresolvedAcceptances()
     }
 
     func loadNextRequestsPage() async {
@@ -1127,14 +1151,15 @@ final class CustomerRequestsStore {
         offerReview: CustomerOfferReview,
         for request: CustomerGroomingRequest
     ) async -> CustomerRequestBookingHandoff? {
-        guard !acceptingOfferIDs.contains(offerReview.offer.id) else {
+        guard acceptanceSessionIsCurrent(), !isReconcilingAcceptances, acceptingOfferIDs.isEmpty else {
             return nil
         }
-        guard offerReview.offer.status == .pending else {
+        let isRecovery = unresolvedAcceptances[offerReview.offer.id] != nil
+        guard isRecovery || offerReview.offer.status == .pending else {
             errorMessage = "This offer can no longer be accepted."
             return nil
         }
-        guard request.status.isOpenForOffers else {
+        guard isRecovery || request.status.isOpenForOffers else {
             errorMessage = "This request can no longer become a booking."
             return nil
         }
@@ -1155,9 +1180,24 @@ final class CustomerRequestsStore {
         }
 
         do {
-            let result = try await bookingRepository.acceptOffer(
-                offerID: offerReview.offer.id
-            )
+            if unresolvedAcceptances.contains(where: {
+                $0.value == request.id && $0.key != offerReview.offer.id
+            }) {
+                errorMessage = "Check the result of your previous offer before choosing another."
+                return nil
+            }
+            let recovered = isRecovery
+                ? try await bookingRepository.offerAcceptance(offerID: offerReview.offer.id)
+                : nil
+            try checkAcceptanceSession()
+            setUnresolvedAcceptance(offerID: offerReview.offer.id, requestID: request.id)
+            let result: AcceptGroomerOfferResult
+            if let recovered {
+                result = recovered
+            } else {
+                result = try await bookingRepository.acceptOffer(offerID: offerReview.offer.id)
+            }
+            try checkAcceptanceSession()
             let projectedBooking = acceptedBookingProjection(
                 result: result,
                 request: request,
@@ -1169,13 +1209,13 @@ final class CustomerRequestsStore {
                 requestID: request.id
             )
             await refreshAfterAcceptance(requestID: request.id)
+            try checkAcceptanceSession()
+            setUnresolvedAcceptance(offerID: offerReview.offer.id, requestID: nil)
             _ = await appointmentReminderScheduler.syncReminders(
                 for: bookings,
                 role: .customer
             )
-            noticeMessage = didApplyLocalState
-                ? "Offer accepted. Booking confirmed."
-                : "Offer accepted. Booking confirmed. Refresh this request if the offer state does not update."
+            try checkAcceptanceSession()
             recordStoreSuccess("accept", startedAt: startedAt)
             let confirmedRequest = self.request(withID: result.requestID)
                 ?? self.request(withID: request.id)
@@ -1183,6 +1223,11 @@ final class CustomerRequestsStore {
             let confirmedBooking = bookings.first {
                 $0.id == result.bookingID
             } ?? projectedBooking
+            noticeMessage = confirmedBooking.status == .confirmed && !isRecovery
+                ? (didApplyLocalState
+                    ? "Offer accepted. Booking confirmed."
+                    : "Offer accepted. Booking confirmed. Refresh this request if the offer state does not update.")
+                : "Booking recovered. \(confirmedBooking.status.title)."
             return CustomerRequestBookingHandoff(
                 request: confirmedRequest,
                 booking: confirmedBooking
@@ -1190,6 +1235,9 @@ final class CustomerRequestsStore {
         } catch BookingRepositoryError.cancelled {
             recordStoreCancelled("accept", startedAt: startedAt)
         } catch let error as BookingRepositoryError {
+            if Self.isDefinitiveAcceptanceFailure(error) {
+                setUnresolvedAcceptance(offerID: offerReview.offer.id, requestID: nil)
+            }
             errorMessage = message(for: error, action: "accept offer")
             recordStoreFailure(
                 "accept",
@@ -1608,6 +1656,59 @@ final class CustomerRequestsStore {
         }
     }
 
+    private func setUnresolvedAcceptance(offerID: UUID, requestID: UUID?) {
+        unresolvedAcceptances[offerID] = requestID
+        let saved = Dictionary(uniqueKeysWithValues: unresolvedAcceptances.map {
+            ($0.key.uuidString, $0.value.uuidString)
+        })
+        handoffAcknowledgementDefaults.set(saved, forKey: acceptanceStorageKey)
+    }
+
+    private static func isDefinitiveAcceptanceFailure(_ error: BookingRepositoryError) -> Bool {
+        switch error {
+        case .offerNotFound, .offerNoLongerPending, .requestNoLongerOpen,
+             .bookingConflict, .invalidInput:
+            true
+        default:
+            false
+        }
+    }
+
+    private func reconcileUnresolvedAcceptances() async {
+        guard acceptanceSessionIsCurrent(), !Task.isCancelled, !isReconcilingAcceptances,
+              acceptingOfferIDs.isEmpty else { return }
+        isReconcilingAcceptances = true
+        defer { isReconcilingAcceptances = false }
+        for (offerID, requestID) in unresolvedAcceptances {
+            do {
+                guard let result = try await bookingRepository.offerAcceptance(offerID: offerID) else {
+                    errorMessage = "Your previous booking is not confirmed. Retry the same offer to check again."
+                    continue
+                }
+                try checkAcceptanceSession()
+                guard result.offerID == offerID, result.requestID == requestID else {
+                    throw BookingRepositoryError.unavailable
+                }
+                let recovered = try await bookingRepository.bookings(bookingIDs: [result.bookingID])
+                try checkAcceptanceSession()
+                guard let booking = recovered.first(where: {
+                    $0.id == result.bookingID && $0.customerID == customerID
+                }) else { throw BookingRepositoryError.unavailable }
+                upsertBooking(booking)
+                _ = applyAcceptanceResult(result, requestID: requestID)
+                setUnresolvedAcceptance(offerID: offerID, requestID: nil)
+                noticeMessage = "Booking recovered. \(booking.status.title)."
+            } catch where AppDebugErrorClassifier.isCancellation(error) {
+                return
+            } catch let error as BookingRepositoryError where Self.isDefinitiveAcceptanceFailure(error) {
+                setUnresolvedAcceptance(offerID: offerID, requestID: nil)
+                errorMessage = message(for: error, action: "check booking")
+            } catch {
+                errorMessage = "We could not check your previous booking. Refresh before trying again."
+            }
+        }
+    }
+
     private func applyAcceptanceResult(
         _ result: AcceptGroomerOfferResult,
         requestID: UUID
@@ -1724,10 +1825,12 @@ final class CustomerRequestsStore {
 
     private func refreshAfterAcceptance(requestID: UUID) async {
         do {
+            try checkAcceptanceSession()
             let requestPage = try await requestRepository.requests(
                 customerID: customerID,
                 page: .first
             )
+            try checkAcceptanceSession()
             requests = requestPage.items
             nextRequestsPageRequest = requestPage.nextRequest
 
@@ -1736,15 +1839,20 @@ final class CustomerRequestsStore {
                 requestID: requestID,
                 page: .first
             )
+            try checkAcceptanceSession()
             offerReviewsByRequestID[requestID] = Self.displayOrdered(offerPage.items)
             setNextOfferPageRequest(offerPage.nextRequest, for: requestID)
-            bookings = try await bookingRepository.bookings(
+            let refreshedBookings = try await bookingRepository.bookings(
                 participantID: customerID,
                 role: .customer
             )
+            try checkAcceptanceSession()
+            bookings = refreshedBookings
             offerErrorsByRequestID[requestID] = nil
         } catch {
-            offerErrorsByRequestID[requestID] = "Booking confirmed. Refresh this request to see the latest offer state."
+            guard (try? checkAcceptanceSession()) != nil,
+                !AppDebugErrorClassifier.isCancellation(error) else { return }
+            offerErrorsByRequestID[requestID] = "Refresh this request to see the latest booking and offer state."
         }
     }
 
@@ -2105,7 +2213,7 @@ final class CustomerRequestsStore {
         case .bookingAlreadyExists:
             "This request already has a booking."
         case .bookingConflict:
-            "That groomer is no longer available at the proposed time."
+            "That time is no longer available for this booking."
         case .bookingNotFound:
             "This booking is no longer available."
         case .bookingNotCancellable:

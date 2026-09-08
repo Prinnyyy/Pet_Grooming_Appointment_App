@@ -72,7 +72,12 @@ struct AuthenticatedEntryView: View {
                     notificationRepository: customerNotificationRepository,
                     bookingRepository: bookingRepository,
                     chatRepository: chatRepository,
-                    accountContent: customerAccountContent(for: profile)
+                    accountContent: customerAccountContent(for: profile),
+                    acceptanceSessionIsCurrent: {
+                        guard !authenticationStore.isSubmitting,
+                              case let .signedIn(current) = authenticationStore.rootState else { return false }
+                        return current.userID == profile.userID
+                    }
                 )
 
             case let .groomer(profile):

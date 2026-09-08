@@ -113,6 +113,18 @@ final class DebugBookingRepository: BookingRepository {
         }
     }
 
+    func offerAcceptance(offerID: UUID) async throws -> AcceptGroomerOfferResult? {
+        try await debugRepositoryCall(
+            recorder: debugRecorder,
+            source: "BookingRepository.offerAcceptance",
+            scope: "customer.requests",
+            operation: "offerAcceptance",
+            metadata: ["offerID": offerID.uuidString, "rpc": "get_offer_acceptance"]
+        ) {
+            try await base.offerAcceptance(offerID: offerID)
+        }
+    }
+
     func acceptOffer(
         offerID: UUID
     ) async throws -> AcceptGroomerOfferResult {

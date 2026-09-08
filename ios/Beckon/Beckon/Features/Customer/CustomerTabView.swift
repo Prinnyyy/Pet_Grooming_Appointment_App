@@ -11,6 +11,7 @@ struct CustomerTabView: View {
     let bookingRepository: (any BookingRepository)?
     let chatRepository: (any ChatRepository)?
     let accountContent: AnyView?
+    let acceptanceSessionIsCurrent: @MainActor () -> Bool
     @State private var selection: CustomerTab = .home
     @State private var focusedRequestID: UUID?
     @State private var focusedConversationBookingID: UUID?
@@ -28,7 +29,8 @@ struct CustomerTabView: View {
         notificationRepository: (any CustomerNotificationRepository)? = nil,
         bookingRepository: (any BookingRepository)? = nil,
         chatRepository: (any ChatRepository)? = nil,
-        accountContent: AnyView? = nil
+        accountContent: AnyView? = nil,
+        acceptanceSessionIsCurrent: @escaping @MainActor () -> Bool = { true }
     ) {
         self.customerID = customerID
         self.customerDisplayName = customerDisplayName
@@ -39,6 +41,7 @@ struct CustomerTabView: View {
         self.bookingRepository = bookingRepository
         self.chatRepository = chatRepository
         self.accountContent = accountContent
+        self.acceptanceSessionIsCurrent = acceptanceSessionIsCurrent
         _notificationStore = State(
             initialValue: Self.makeNotificationStore(
                 customerID: customerID,
@@ -94,6 +97,7 @@ struct CustomerTabView: View {
             feedbackCenter.setDebugRecorder(debugRecorder)
             chatStore?.setDebugRecorder(debugRecorder)
             requestStore?.setDebugRecorder(debugRecorder)
+            requestStore?.setAcceptanceSessionValidation(acceptanceSessionIsCurrent)
             if let notificationStore {
                 requestStore?.setNotificationRefresh { [weak notificationStore] in
                     await notificationStore?.load()

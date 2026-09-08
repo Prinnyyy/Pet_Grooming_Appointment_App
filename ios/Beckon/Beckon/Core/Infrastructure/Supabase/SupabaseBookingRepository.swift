@@ -94,6 +94,18 @@ final class SupabaseBookingRepository: BookingRepository {
         }
     }
 
+    func offerAcceptance(offerID: UUID) async throws -> AcceptGroomerOfferResult? {
+        do {
+            let rows: [AcceptGroomerOfferRow] = try await client
+                .rpc("get_offer_acceptance", params: AcceptGroomerOfferParameters(offerID: offerID))
+                .execute().value
+            guard rows.count <= 1 else { throw BookingRepositoryError.unavailable }
+            return rows.first?.result
+        } catch {
+            throw Self.map(error)
+        }
+    }
+
     func acceptOffer(
         offerID: UUID
     ) async throws -> AcceptGroomerOfferResult {

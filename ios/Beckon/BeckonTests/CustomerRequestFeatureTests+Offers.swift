@@ -4,6 +4,203 @@ import Testing
 
 extension CustomerRequestsStoreTests {
     @Test @MainActor
+    func signOutDuringAcceptanceRefreshDoesNotPublishRequestPage() async {
+        let customerID = UUID()
+        let request = Self.request(customerID: customerID, petID: UUID())
+        let review = Self.offerReview(customerID: customerID, requestID: request.id)
+        let requests = CustomerRequestRepositoryFake(requestsResult: .success([request]))
+        let repository = CustomerRequestBookingRepositoryFake(acceptResult: .success(
+            AcceptGroomerOfferResult(bookingID: UUID(), conversationID: UUID(), requestID: request.id,
+                offerID: review.offer.id, bookingStatus: .confirmed,
+                offerStatus: .acceptedByCustomer, requestStatus: .booked)))
+        let scheduler = CustomerRequestAppointmentReminderSchedulerFake()
+        let store = CustomerRequestsStore(customerID: customerID,
+            petRepository: CustomerRequestPetRepositoryFake(), requestRepository: requests,
+            bookingRepository: repository, appointmentReminderScheduler: scheduler)
+        var sessionCurrent = true
+        store.setAcceptanceSessionValidation { sessionCurrent }
+        requests.onRequestPageRead = { sessionCurrent = false }
+        let handoff = await store.accept(offerReview: review, for: request)
+        #expect(handoff == nil)
+        #expect(store.requests.isEmpty)
+        #expect(scheduler.syncCallCount == 0)
+    }
+
+    @Test @MainActor
+    func signOutDuringAcceptanceKeepsRecoveryIdentityWithoutPublishingOldAccountState() async {
+        let customerID = UUID()
+        let request = Self.request(customerID: customerID, petID: UUID())
+        let review = Self.offerReview(customerID: customerID, requestID: request.id)
+        let repository = CustomerRequestBookingRepositoryFake(acceptResult: .success(
+            AcceptGroomerOfferResult(bookingID: UUID(), conversationID: UUID(), requestID: request.id,
+                offerID: review.offer.id, bookingStatus: .confirmed,
+                offerStatus: .acceptedByCustomer, requestStatus: .booked)), acceptDelayNanoseconds: 50_000_000)
+        let scheduler = CustomerRequestAppointmentReminderSchedulerFake()
+        let store = CustomerRequestsStore(customerID: customerID,
+            petRepository: CustomerRequestPetRepositoryFake(), requestRepository: CustomerRequestRepositoryFake(),
+            bookingRepository: repository, appointmentReminderScheduler: scheduler)
+        var sessionCurrent = true
+        store.setAcceptanceSessionValidation { sessionCurrent }
+        let pending = Task { await store.accept(offerReview: review, for: request) }
+        while repository.acceptCallCount == 0 { await Task.yield() }
+        sessionCurrent = false
+        let handoff = await pending.value
+        #expect(handoff == nil)
+        #expect(store.bookings.isEmpty)
+        #expect(store.noticeMessage == nil)
+        #expect(scheduler.syncCallCount == 0)
+    }
+
+    @Test(.enabled(if:
+        ProcessInfo.processInfo.environment["T373_RECOVERY_PHASE"] != nil ||
+        ProcessInfo.processInfo.environment["TEST_RUNNER_T373_RECOVERY_PHASE"] != nil
+    )) @MainActor
+    func acceptanceRecoveryAcrossIndependentProcessLaunches() async throws {
+        let phase = ProcessInfo.processInfo.environment["T373_RECOVERY_PHASE"]
+            ?? ProcessInfo.processInfo.environment["TEST_RUNNER_T373_RECOVERY_PHASE"]
+        let customerID = try #require(UUID(uuidString: "37300000-0000-0000-0000-000000000001"))
+        let requestID = try #require(UUID(uuidString: "37300000-0000-0000-0000-000000000002"))
+        let offerID = try #require(UUID(uuidString: "37300000-0000-0000-0000-000000000003"))
+        let suite = "beckon.tests.T373.independentProcessRecovery"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        let request = Self.request(id: requestID, customerID: customerID, petID: UUID())
+        let review = Self.offerReview(offerID: offerID, customerID: customerID, requestID: requestID)
+        let repository = CustomerRequestBookingRepositoryFake(acceptResult: .failure(.networkUnavailable))
+        let requests = CustomerRequestRepositoryFake(requestsResult: .success([request]))
+        if phase == "write" {
+            defaults.removePersistentDomain(forName: suite)
+            let store = CustomerRequestsStore(customerID: customerID,
+                petRepository: CustomerRequestPetRepositoryFake(), requestRepository: requests,
+                bookingRepository: repository, handoffAcknowledgementDefaults: defaults)
+            _ = await store.accept(offerReview: review, for: request)
+            #expect(repository.acceptCallCount == 1)
+            // Do not force a test-only flush: the next process must use the
+            // persistence behavior actually supplied by production code.
+        } else {
+            #expect(phase == "recover")
+            defer { defaults.removePersistentDomain(forName: suite) }
+            let booking = Self.booking(requestID: requestID, customerID: customerID, status: .cancelledByGroomer)
+            repository.bookingsResult = .success([booking])
+            repository.acceptanceLookupResult = .success(AcceptGroomerOfferResult(
+                bookingID: booking.id, conversationID: UUID(), requestID: requestID, offerID: offerID,
+                bookingStatus: .cancelledByGroomer, offerStatus: .acceptedByCustomer, requestStatus: .booked))
+            let store = CustomerRequestsStore(customerID: customerID,
+                petRepository: CustomerRequestPetRepositoryFake(), requestRepository: requests,
+                bookingRepository: repository, handoffAcknowledgementDefaults: defaults)
+            await store.load()
+            #expect(repository.acceptanceLookupCallCount == 1)
+            #expect(repository.acceptCallCount == 0)
+            #expect(store.noticeMessage == "Booking recovered. Cancelled by groomer.")
+        }
+    }
+
+    @Test @MainActor
+    func lostAcceptanceSurvivesStoreRestartAndReconcilesWithoutAnotherWrite() async throws {
+        let customerID = UUID()
+        let request = Self.request(customerID: customerID, petID: UUID())
+        let review = Self.offerReview(customerID: customerID, requestID: request.id)
+        let booking = Self.booking(requestID: request.id, customerID: customerID)
+        let suite = "T373.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let repository = CustomerRequestBookingRepositoryFake(acceptResult: .failure(.networkUnavailable))
+        let requests = CustomerRequestRepositoryFake(requestsResult: .success([request]))
+        let original = CustomerRequestsStore(customerID: customerID,
+            petRepository: CustomerRequestPetRepositoryFake(), requestRepository: requests,
+            bookingRepository: repository, handoffAcknowledgementDefaults: defaults)
+        _ = await original.accept(offerReview: review, for: request)
+        repository.acceptanceLookupResult = .success(AcceptGroomerOfferResult(
+            bookingID: booking.id, conversationID: UUID(), requestID: request.id,
+            offerID: review.offer.id, bookingStatus: .confirmed,
+            offerStatus: .acceptedByCustomer, requestStatus: .booked))
+        repository.bookingsResult = .success([booking])
+        let restarted = CustomerRequestsStore(customerID: customerID,
+            petRepository: CustomerRequestPetRepositoryFake(), requestRepository: requests,
+            bookingRepository: repository, handoffAcknowledgementDefaults: defaults)
+        await restarted.load()
+        #expect(repository.acceptanceLookupCallCount == 1)
+        #expect(repository.acceptCallCount == 1)
+        #expect(restarted.request(withID: request.id)?.status == .booked)
+        #expect(restarted.noticeMessage == "Booking recovered. Confirmed.")
+        await restarted.load()
+        #expect(repository.acceptanceLookupCallCount == 1)
+    }
+
+    @Test @MainActor
+    func terminalAcceptanceReplayDoesNotAnnounceConfirmation() async {
+        let customerID = UUID()
+        let request = Self.request(customerID: customerID, petID: UUID())
+        let review = Self.offerReview(customerID: customerID, requestID: request.id)
+        let repository = CustomerRequestBookingRepositoryFake(acceptResult: .success(
+            AcceptGroomerOfferResult(bookingID: UUID(), conversationID: UUID(),
+                requestID: request.id, offerID: review.offer.id,
+                bookingStatus: .cancelledByCustomer, offerStatus: .acceptedByCustomer,
+                requestStatus: .booked)))
+        let store = CustomerRequestsStore(customerID: customerID,
+            petRepository: CustomerRequestPetRepositoryFake(),
+            requestRepository: CustomerRequestRepositoryFake(requestsResult: .failure(.unavailable)),
+            bookingRepository: repository)
+        let result = await store.accept(offerReview: review, for: request)
+        #expect(result?.booking.status == .cancelledByCustomer)
+        #expect(store.noticeMessage == "Booking recovered. Cancelled by customer.")
+    }
+
+    @Test @MainActor
+    func unresolvedAcceptanceDoesNotLeakAcrossAccountsOrRetryWhenLookupFails() async throws {
+        let customerID = UUID()
+        let request = Self.request(customerID: customerID, petID: UUID())
+        let review = Self.offerReview(customerID: customerID, requestID: request.id)
+        let suite = "T373.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let repository = CustomerRequestBookingRepositoryFake(acceptResult: .failure(.networkUnavailable))
+        let store = CustomerRequestsStore(customerID: customerID,
+            petRepository: CustomerRequestPetRepositoryFake(), requestRepository: CustomerRequestRepositoryFake(),
+            bookingRepository: repository, handoffAcknowledgementDefaults: defaults)
+        _ = await store.accept(offerReview: review, for: request)
+        let otherAccount = CustomerRequestsStore(customerID: UUID(),
+            petRepository: CustomerRequestPetRepositoryFake(), requestRepository: CustomerRequestRepositoryFake(),
+            bookingRepository: repository, handoffAcknowledgementDefaults: defaults)
+        await otherAccount.load()
+        #expect(repository.acceptanceLookupCallCount == 0)
+        repository.acceptanceLookupResult = .failure(.networkUnavailable)
+        _ = await store.accept(offerReview: review, for: request)
+        #expect(repository.acceptanceLookupCallCount == 1)
+        #expect(repository.acceptCallCount == 1)
+        let restarted = CustomerRequestsStore(customerID: customerID,
+            petRepository: CustomerRequestPetRepositoryFake(), requestRepository: CustomerRequestRepositoryFake(),
+            bookingRepository: repository, handoffAcknowledgementDefaults: defaults)
+        await restarted.load()
+        #expect(repository.acceptanceLookupCallCount == 2)
+        #expect(repository.acceptCallCount == 1)
+        #expect(restarted.errorMessage == "We could not check your previous booking. Refresh before trying again.")
+    }
+
+    @Test @MainActor
+    func emptyAcceptanceLookupDoesNotAutomaticallySubmitOnReload() async throws {
+        let customerID = UUID()
+        let request = Self.request(customerID: customerID, petID: UUID())
+        let review = Self.offerReview(customerID: customerID, requestID: request.id)
+        let suite = "T373.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let repository = CustomerRequestBookingRepositoryFake(acceptResult: .failure(.networkUnavailable))
+        let store = CustomerRequestsStore(customerID: customerID,
+            petRepository: CustomerRequestPetRepositoryFake(), requestRepository: CustomerRequestRepositoryFake(),
+            bookingRepository: repository, handoffAcknowledgementDefaults: defaults)
+        _ = await store.accept(offerReview: review, for: request)
+        await store.load()
+        await store.load()
+        #expect(repository.acceptanceLookupCallCount == 2)
+        #expect(repository.acceptCallCount == 1)
+        #expect(store.errorMessage == "Your previous booking is not confirmed. Retry the same offer to check again.")
+        _ = await store.accept(offerReview: review, for: request)
+        #expect(repository.acceptanceLookupCallCount == 3)
+        #expect(repository.acceptCallCount == 2)
+        #expect(repository.lastAcceptedOfferID == review.offer.id)
+    }
+
+    @Test @MainActor
     func offerAcceptancePresentationShowsCompleteDecisionContext() {
         let customerID = UUID()
         let request = Self.request(
@@ -441,7 +638,7 @@ extension CustomerRequestsStoreTests {
         #expect(bookingRepository.acceptCallCount == 1)
         #expect(
             store.errorMessage ==
-                "That groomer is no longer available at the proposed time."
+                "That time is no longer available for this booking."
         )
         #expect(store.noticeMessage == nil)
     }

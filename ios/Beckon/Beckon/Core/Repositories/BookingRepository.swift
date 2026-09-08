@@ -40,6 +40,8 @@ protocol BookingRepository: AnyObject {
         offerID: UUID
     ) async throws -> AcceptGroomerOfferResult
 
+    func offerAcceptance(offerID: UUID) async throws -> AcceptGroomerOfferResult?
+
     func cancelBooking(
         bookingID: UUID
     ) async throws -> CancelBookingResult
@@ -55,6 +57,10 @@ protocol BookingRepository: AnyObject {
 }
 
 extension BookingRepository {
+    func offerAcceptance(offerID: UUID) async throws -> AcceptGroomerOfferResult? {
+        throw BookingRepositoryError.unavailable
+    }
+
     func bookings(
         bookingIDs: [UUID]
     ) async throws -> [Booking] {
