@@ -44,6 +44,7 @@ nonisolated struct BeckonResolvedAddress: Equatable, Sendable {
     let coordinate: BeckonAddressCoordinate
     let suggested: BeckonAddressInput
     let resolutionSource: String
+    var timeZoneIdentifier: String? = nil
 
     var streetAddress: String {
         guard !suggested.line2.isEmpty else { return suggested.line1 }
@@ -62,6 +63,7 @@ nonisolated struct BeckonConfirmedAddress: Equatable, Sendable {
     let coordinate: BeckonAddressCoordinate
     let resolutionSource: String
     let confirmedAt: Date
+    var timeZoneIdentifier: String? = nil
 
     func isBuildingResolutionValid(for input: BeckonAddressInput) -> Bool {
         Self.materialFields(of: accepted) == Self.materialFields(of: input)
@@ -482,7 +484,8 @@ final class MapKitAddressProvider:
                 postalCode: components.zipCode,
                 countryCode: "US"
             ),
-            resolutionSource: source
+            resolutionSource: source,
+            timeZoneIdentifier: (mapItem.timeZone ?? mapItem.placemark.timeZone)?.identifier
         )
     }
 

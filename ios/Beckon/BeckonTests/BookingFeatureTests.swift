@@ -1,9 +1,165 @@
 import CoreGraphics
 import Foundation
 import Testing
+import SwiftUI
+import UIKit
+import XCTest
 @testable import Beckon
 
+@MainActor
+final class BookingTimingRenderingTests: XCTestCase {
+    func testUnknownScheduleRetainsRenderedAppointmentList() async throws {
+        try await renderSchedule(knownZone: false)
+    }
+
+    func testKnownScheduleRendersTimeline() async throws {
+        try await renderSchedule(knownZone: true)
+    }
+
+    func testKnownScheduleRendersAtAccessibilitySize() async throws {
+        try await renderSchedule(knownZone: true, largeText: true)
+    }
+
+    private func renderSchedule(knownZone: Bool, largeText: Bool = false) async throws {
+        let owner = UUID()
+        let start = Date().addingTimeInterval(3600)
+        let booking = BookingsStoreTests.booking(groomerID: owner,
+            scheduledStart: GroomingRequestDateFormatting.serverString(from: start),
+            scheduledEnd: GroomingRequestDateFormatting.serverString(from: start.addingTimeInterval(3600)))
+        let profiles = GroomerProfileRepositoryFake()
+        if knownZone {
+            profiles.availabilityResult = .success(GroomerAvailabilityWeekday.allCases.map {
+                GroomerAvailabilityWindow(id: UUID(), groomerID: owner, weekday: $0,
+                    startMinutes: 480, endMinutes: 1080, isEnabled: true, timezone: "America/New_York")
+            })
+        }
+        let store = BookingsStore(participantID: owner, role: .groomer,
+            repository: BookingRepositoryFake(bookingsResult: .success([booking])),
+            groomerProfileRepository: profiles,
+            appointmentReminderScheduler: AppointmentReminderSchedulerFake())
+        await store.load()
+        let host = UIHostingController(rootView: NavigationStack {
+            BookingsView(role: .groomer, store: store)
+                .environment(\.dynamicTypeSize, largeText ? .accessibility3 : .large)
+        })
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
+        let previousKeyWindow = scene.windows.first(where: \.isKeyWindow)
+        let window = UIWindow(windowScene: scene)
+        window.frame = CGRect(x: 0, y: 0, width: 390, height: 844)
+        window.rootViewController = host
+        window.makeKeyAndVisible()
+        defer {
+            window.isHidden = true
+            window.rootViewController = nil
+            previousKeyWindow?.makeKey()
+        }
+        host.view.frame = window.bounds
+        host.view.setNeedsLayout()
+        host.view.layoutIfNeeded()
+        try await Task.sleep(for: .milliseconds(300))
+        let image = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
+            window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+        }
+        let attachment = XCTAttachment(image: image)
+        attachment.name = knownZone ? "T-374 known schedule real page" : "T-374 unknown schedule real page"
+        if largeText { attachment.name = "T-374 known schedule real page accessibility3" }
+        attachment.lifetime = .keepAlways
+        add(attachment)
+        XCTAssertEqual(store.scheduleCalendar?.timeZone.identifier, knownZone ? "America/New_York" : nil)
+        XCTAssertEqual(store.bookings.map(\.id), [booking.id])
+        XCTAssertEqual(image.size, window.bounds.size)
+        let pixels = try XCTUnwrap(image.cgImage?.dataProvider?.data)
+        let bytes = try XCTUnwrap(CFDataGetBytePtr(pixels))
+        let sample = stride(from: 0, to: CFDataGetLength(pixels), by: 4).map { bytes[$0] }
+        XCTAssertGreaterThan(Set(sample).count, 8, "Rendered screen must not be blank")
+        if largeText {
+            let scroll = try XCTUnwrap(Self.scrollViews(in: host.view).first {
+                $0.contentSize.height > $0.bounds.height + 100
+            })
+            scroll.setContentOffset(CGPoint(x: 0,
+                y: max(0, scroll.contentSize.height - scroll.bounds.height + scroll.adjustedContentInset.bottom)),
+                animated: false)
+            try await Task.sleep(for: .milliseconds(300))
+            let bottom = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
+                window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+            }
+            let bottomAttachment = XCTAttachment(image: bottom)
+            bottomAttachment.name = "T-374 accessibility3 schedule bottom"
+            bottomAttachment.lifetime = .keepAlways
+            add(bottomAttachment)
+            XCTAssertGreaterThan(scroll.contentOffset.y, 0)
+        }
+    }
+
+    private static func scrollViews(in view: UIView) -> [UIScrollView] {
+        (view as? UIScrollView).map { [$0] } ?? view.subviews.flatMap { scrollViews(in: $0) }
+    }
+}
+
 struct BookingsStoreTests {
+    @Test @MainActor
+    func cancelledScheduleLookupDoesNotSynchronizeReminders() async {
+        let owner = UUID()
+        let profiles = GroomerProfileRepositoryFake()
+        profiles.shouldSuspendAvailability = true
+        let scheduler = AppointmentReminderSchedulerFake()
+        let store = BookingsStore(participantID: owner, role: .groomer,
+            repository: BookingRepositoryFake(), groomerProfileRepository: profiles,
+            appointmentReminderScheduler: scheduler)
+        let load = Task { await store.load() }
+        await profiles.waitForSuspendedAvailability()
+        load.cancel()
+        profiles.resumeSuspendedAvailability()
+        await load.value
+        #expect(store.scheduleCalendar == nil)
+        #expect(!store.isLoading)
+        #expect(store.errorMessage == nil)
+        #expect(scheduler.syncCallCount == 0)
+    }
+
+    @Test(arguments: ["missing-day", "duplicate-day", "mixed-zone", "foreign-owner", "invalid-zone"]) @MainActor
+    func scheduleSourceRejectsMalformedSnapshots(kind: String) async {
+        let owner = UUID()
+        var windows = GroomerAvailabilityWeekday.allCases.enumerated().map { index, weekday in
+            GroomerAvailabilityWindow(id: UUID(), groomerID: kind == "foreign-owner" && index == 0 ? UUID() : owner,
+                weekday: kind == "duplicate-day" ? GroomerAvailabilityWeekday.allCases[0] : weekday,
+                startMinutes: 480, endMinutes: 1080, isEnabled: true,
+                timezone: kind == "invalid-zone" ? "Invalid/Zone" :
+                    (kind == "mixed-zone" && index == 0 ? "America/Los_Angeles" : "America/New_York"))
+        }
+        if kind == "missing-day" { windows.removeLast() }
+        let profiles = GroomerProfileRepositoryFake(availabilityResult: .success(windows))
+        let booking = Self.booking(groomerID: owner)
+        let store = BookingsStore(participantID: owner, role: .groomer,
+            repository: BookingRepositoryFake(bookingsResult: .success([booking])),
+            groomerProfileRepository: profiles)
+        await store.load()
+        #expect(store.scheduleCalendar == nil)
+        #expect(store.bookings == [booking])
+    }
+
+    @Test @MainActor
+    func scheduleSourceFailureClearsZoneWithoutDroppingBookings() async {
+        let owner = UUID()
+        let booking = Self.booking(groomerID: owner)
+        let windows = GroomerAvailabilityWeekday.allCases.map {
+            GroomerAvailabilityWindow(id: UUID(), groomerID: owner, weekday: $0,
+                startMinutes: 480, endMinutes: 1080, isEnabled: true, timezone: "America/New_York")
+        }
+        let profiles = GroomerProfileRepositoryFake(availabilityResult: .success(windows))
+        let store = BookingsStore(participantID: owner, role: .groomer,
+            repository: BookingRepositoryFake(bookingsResult: .success([booking])),
+            groomerProfileRepository: profiles)
+        await store.load()
+        #expect(store.scheduleCalendar?.timeZone.identifier == "America/New_York")
+        #expect(store.bookings == [booking])
+        profiles.availabilityResult = .failure(.networkUnavailable)
+        await store.load()
+        #expect(store.scheduleCalendar == nil)
+        #expect(store.bookings == [booking])
+        #expect(store.errorMessage == nil)
+    }
+
     @Test @MainActor
     func bookingReviewUsesPageActionAndStableKeyboardFocusTarget() {
         #expect(BookingReviewKeyboardPresentation.actionPlacement == .pageAction)

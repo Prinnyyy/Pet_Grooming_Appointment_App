@@ -2,6 +2,7 @@ import SwiftUI
 import UIKit
 
 nonisolated enum GroomerOfferFocusTarget: String, CaseIterable, Hashable {
+    case duration = "groomer.offers.duration.container"
     case price = "groomer.offers.price.container"
     case message = "groomer.offers.message.container"
 }
@@ -25,6 +26,7 @@ struct GroomerRequestsView: View {
     init(
         groomerID: UUID,
         repository: any GroomerRequestRepository,
+        profileRepository: (any GroomerProfileRepository)? = nil,
         route: Binding<GroomerRequestsRoute>,
         debugRecorder: AppDebugEventRecorder? = nil
     ) {
@@ -33,6 +35,7 @@ struct GroomerRequestsView: View {
             initialValue: GroomerRequestsStore(
                 groomerID: groomerID,
                 repository: repository,
+                profileRepository: profileRepository,
                 debugRecorder: debugRecorder
             )
         )
@@ -432,7 +435,8 @@ private struct GroomerRequestSummaryRow: View {
 
     private var preferredDate: String {
         GroomingRequestDateFormatting.displayString(
-            from: matchedRequest.request.preferredStart
+            from: matchedRequest.request.preferredStart,
+            serviceTimeZoneIdentifier: matchedRequest.request.preferenceTimeZoneIdentifier
         )
     }
 
@@ -446,13 +450,18 @@ private struct GroomerRequestSummaryRow: View {
     }
 }
 
-private struct GroomerRequestDetailView: View {
+struct GroomerRequestDetailView: View {
     let matchID: UUID
     let store: GroomerRequestsStore
 
     @State private var didInitializeOfferForm = false
+    @State private var activeInitializationID: UUID?
+    @State private var serviceTimeZone: TimeZone?
+    @State private var selectedOccurrence: Date?
+    @State private var timeZoneError: String?
+    @State private var activeTimeZoneLoadID: UUID?
     @State private var proposedStart = Date().addingTimeInterval(24 * 60 * 60)
-    @State private var proposedEnd = Date().addingTimeInterval(26 * 60 * 60)
+    @State private var durationMinutesText = ""
     @State private var priceEstimateText = ""
     @State private var message = ""
     @FocusState private var focusedTarget: GroomerOfferFocusTarget?
@@ -465,7 +474,7 @@ private struct GroomerRequestDetailView: View {
 
                 ScrollViewReader { scrollProxy in
                     ScrollView {
-                        LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                        VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
                             detailHero(for: matchedRequest)
                             matchCard(for: matchedRequest)
                             requestCard(for: matchedRequest)
@@ -473,6 +482,7 @@ private struct GroomerRequestDetailView: View {
                             requestPhotosCard(for: matchedRequest)
                             scheduleLocationCard(for: matchedRequest)
                             offerSection(for: matchedRequest)
+                                .disabled(!didInitializeOfferForm)
                             actionsCard(for: matchedRequest)
                         }
                         .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
@@ -495,7 +505,11 @@ private struct GroomerRequestDetailView: View {
             .navigationBarTitleDisplayMode(.inline)
             .accessibilityIdentifier("groomer.requests.detail")
             .task(id: matchedRequest.request.id) {
-                initializeOfferFormIfNeeded(for: matchedRequest)
+                await initializeOfferFormIfNeeded(for: matchedRequest)
+            }
+            .onDisappear {
+                activeInitializationID = nil
+                activeTimeZoneLoadID = nil
             }
             .beckonStationaryPageAction {
                 if matchedRequest.canCreateOffer {
@@ -673,14 +687,16 @@ private struct GroomerRequestDetailView: View {
                 DetailMetadataRow(
                     title: "Start",
                     value: GroomingRequestDateFormatting.displayString(
-                        from: matchedRequest.request.preferredStart
+                        from: matchedRequest.request.preferredStart,
+                        serviceTimeZoneIdentifier: matchedRequest.request.preferenceTimeZoneIdentifier
                     ),
                     systemImage: "calendar"
                 )
                 DetailMetadataRow(
                     title: "End",
                     value: GroomingRequestDateFormatting.displayString(
-                        from: matchedRequest.request.preferredEnd
+                        from: matchedRequest.request.preferredEnd,
+                        serviceTimeZoneIdentifier: matchedRequest.request.preferenceTimeZoneIdentifier
                     ),
                     systemImage: "clock"
                 )
@@ -817,14 +833,16 @@ private struct GroomerRequestDetailView: View {
                     DetailMetadataRow(
                         title: "Proposed Start",
                         value: GroomingRequestDateFormatting.displayString(
-                            from: offer.proposedStart
+                            from: offer.proposedStart,
+                            serviceTimeZoneIdentifier: offer.serviceTimeZoneIdentifier
                         ),
                         systemImage: "calendar"
                     )
                     DetailMetadataRow(
                         title: "Proposed End",
                         value: GroomingRequestDateFormatting.displayString(
-                            from: offer.proposedEnd
+                            from: offer.proposedEnd,
+                            serviceTimeZoneIdentifier: offer.serviceTimeZoneIdentifier
                         ),
                         systemImage: "clock"
                     )
@@ -835,6 +853,12 @@ private struct GroomerRequestDetailView: View {
                 }
 
                 if offer.status == .pending {
+                    if offer.requiresTimingUpdate {
+                        BeckonErrorBanner(
+                            title: "Updated Offer Required",
+                            message: "This offer is missing confirmed timing details. Withdraw it and send a new offer."
+                        )
+                    }
                     Button(role: .destructive) {
                         Task {
                             await store.withdrawOffer(for: matchedRequest)
@@ -869,21 +893,78 @@ private struct GroomerRequestDetailView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
 
                     BeckonStatusChip(
-                        "Ready",
-                        systemImage: "paperplane.fill",
+                        "Draft",
+                        systemImage: "pencil",
                         tone: .groomer
                     )
                 }
 
-                OfferDatePickerField(
-                    title: "Proposed Start",
-                    selection: $proposedStart
+                if let serviceTimeZone {
+                    OfferDatePickerField(
+                        title: "Proposed Start",
+                        selection: Binding(get: { proposedStart }, set: {
+                            proposedStart = $0
+                            selectedOccurrence = nil
+                        })
+                    )
+                    .environment(\.timeZone, TimeZone(secondsFromGMT: 0)!)
+                    .environment(\.calendar, Calendar(identifier: .gregorian))
+                    .accessibilityIdentifier("groomer.offers.start-input")
+                    DetailMetadataRow(title: "Service Time Zone", value: serviceTimeZone.identifier,
+                        systemImage: "globe")
+                    .accessibilityIdentifier("groomer.offers.service-time-zone")
+                    if case let .ambiguous(first, last) = proposedStartResolution {
+                        Picker("Start occurrence", selection: $selectedOccurrence) {
+                            Text("Choose occurrence").tag(Optional<Date>.none)
+                            ForEach([first, last], id: \.self) { date in
+                                Text(date.formatted(Date.FormatStyle(timeZone: serviceTimeZone)
+                                    .hour().minute().timeZone(.iso8601(.short))))
+                                    .tag(Optional(date))
+                            }
+                        }
+                        .accessibilityIdentifier("groomer.offers.start-occurrence")
+                    }
+                    if proposedStartResolution == .nonexistent {
+                        Text("This local time does not exist. Choose another start time.")
+                            .font(DesignTokens.Typography.caption)
+                            .foregroundStyle(DesignTokens.Colors.textSecondary)
+                            .accessibilityIdentifier("groomer.offers.nonexistent-start")
+                    }
+                } else if isLoadingTimeZone || !didInitializeOfferForm {
+                    ProgressView("Loading service time zone")
+                        .accessibilityIdentifier("groomer.offers.time-zone-loading")
+                } else if matchedRequest.request.locationMode == .groomerComesToCustomer {
+                    Text("This request has no confirmed service time zone. The customer needs to publish a new request with a confirmed address.")
+                        .font(DesignTokens.Typography.caption)
+                        .accessibilityIdentifier("groomer.offers.request-time-zone-missing")
+                } else {
+                    Text(timeZoneError ?? "Confirm the service address time zone before making an offer.")
+                        .font(DesignTokens.Typography.caption)
+                    Button("Retry", systemImage: "arrow.clockwise") {
+                        Task { await loadServiceTimeZone(for: matchedRequest) }
+                    }
+                    .disabled(isInitializingOfferForm)
+                    .accessibilityIdentifier("groomer.offers.time-zone-retry")
+                }
+
+                GroomerOfferTextField(
+                    title: "Duration (minutes)",
+                    text: $durationMinutesText,
+                    keyboardType: .numberPad,
+                    focusTarget: .duration,
+                    focusedTarget: $focusedTarget
                 )
 
-                OfferDatePickerField(
-                    title: "Proposed End",
-                    selection: $proposedEnd
-                )
+                if let proposedEnd, let serviceTimeZone {
+                    DetailMetadataRow(
+                        title: "Proposed End",
+                        value: GroomingRequestDateFormatting.displayString(
+                            from: GroomingRequestDateFormatting.serverString(from: proposedEnd),
+                            serviceTimeZoneIdentifier: serviceTimeZone.identifier),
+                        systemImage: "clock"
+                    )
+                    .accessibilityIdentifier("groomer.offers.proposed-end")
+                }
 
                 GroomerOfferTextField(
                     title: "Price Estimate",
@@ -909,10 +990,11 @@ private struct GroomerRequestDetailView: View {
         for matchedRequest: GroomerMatchedRequest
     ) -> some View {
         Button {
+            guard let proposedEnd, let start = resolvedProposedStart else { return }
             Task {
                 await store.submitOffer(
                     for: matchedRequest,
-                    proposedStart: proposedStart,
+                    proposedStart: start,
                     proposedEnd: proposedEnd,
                     priceEstimateText: priceEstimateText,
                     message: message
@@ -930,7 +1012,7 @@ private struct GroomerRequestDetailView: View {
             }
         }
         .buttonStyle(BeckonPrimaryButtonStyle(accent: .groomer))
-        .disabled(store.isSubmittingOffer)
+        .disabled(store.isSubmittingOffer || !didInitializeOfferForm || proposedEnd == nil || serviceTimeZone == nil)
         .accessibilityIdentifier("groomer.offers.submit")
         .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
         .padding(.top, DesignTokens.Spacing.sm)
@@ -1001,16 +1083,83 @@ private struct GroomerRequestDetailView: View {
         }
     }
 
+    private var proposedEnd: Date? {
+        guard let start = resolvedProposedStart else { return nil }
+        return GroomerRequestsStore.proposedEnd(start: start, durationText: durationMinutesText)
+    }
+
+    private var proposedStartResolution: GroomingWallTimeResolution? {
+        guard let serviceTimeZone else { return nil }
+        return try? GroomingServiceTiming.resolveWallInput(proposedStart,
+            timeZoneIdentifier: serviceTimeZone.identifier)
+    }
+
+    private var resolvedProposedStart: Date? {
+        switch proposedStartResolution {
+        case let .unique(date): return date
+        case let .ambiguous(first, last):
+            return selectedOccurrence == first || selectedOccurrence == last ? selectedOccurrence : nil
+        case .nonexistent, nil: return nil
+        }
+    }
+
+    private var isInitializingOfferForm: Bool { activeInitializationID != nil }
+    private var isLoadingTimeZone: Bool { activeTimeZoneLoadID != nil }
+
+    private func loadServiceTimeZone(for matchedRequest: GroomerMatchedRequest) async {
+        let loadID = UUID()
+        activeTimeZoneLoadID = loadID
+        timeZoneError = nil
+        defer {
+            if activeTimeZoneLoadID == loadID { activeTimeZoneLoadID = nil }
+        }
+        do {
+            let zone = try await store.serviceTimeZoneForOffer(for: matchedRequest.request)
+            guard !Task.isCancelled, activeTimeZoneLoadID == loadID else { return }
+            if serviceTimeZone == nil, let zone {
+                proposedStart = try GroomingServiceTiming.wallInput(for: proposedStart,
+                    timeZoneIdentifier: zone.identifier)
+            }
+            serviceTimeZone = zone
+        } catch {
+            guard !Task.isCancelled, activeTimeZoneLoadID == loadID else { return }
+            timeZoneError = "Service time zone could not be loaded. Try again."
+        }
+    }
+
     private func initializeOfferFormIfNeeded(
         for matchedRequest: GroomerMatchedRequest
-    ) {
+    ) async {
         guard !didInitializeOfferForm else { return }
-
+        let initializationID = UUID()
+        activeInitializationID = initializationID
+        defer {
+            if activeInitializationID == initializationID { activeInitializationID = nil }
+        }
+        guard matchedRequest.canCreateOffer else {
+            didInitializeOfferForm = true
+            return
+        }
+        let service = await store.serviceForOffer(for: matchedRequest.request)
+        guard !Task.isCancelled, activeInitializationID == initializationID else { return }
         let range = GroomerRequestsStore.defaultOfferRange(
-            for: matchedRequest.request
+            for: matchedRequest.request,
+            durationMinutes: service?.durationMinutes
         )
-        proposedStart = range.start
-        proposedEnd = range.end
+        serviceTimeZone = nil
+        selectedOccurrence = nil
+        proposedStart = range?.start ?? max(
+            GroomingRequestDateFormatting.parsedDate(from: matchedRequest.request.preferredStart) ?? Date(),
+            Date().addingTimeInterval(GroomerRequestsStore.minimumProposedStartLeadTime)
+        )
+        await loadServiceTimeZone(for: matchedRequest)
+        guard !Task.isCancelled, activeInitializationID == initializationID else { return }
+        if durationMinutesText.isEmpty, let service {
+            durationMinutesText = String(service.durationMinutes)
+        }
+        if priceEstimateText.isEmpty, let service {
+            priceEstimateText = String(service.basePrice)
+        }
         didInitializeOfferForm = true
     }
 }
@@ -1249,6 +1398,8 @@ private struct GroomerOfferTextField: View {
 
     private var accessibilityIdentifier: String {
         switch focusTarget {
+        case .duration:
+            "groomer.offers.duration"
         case .price:
             "groomer.offers.price"
         case .message:

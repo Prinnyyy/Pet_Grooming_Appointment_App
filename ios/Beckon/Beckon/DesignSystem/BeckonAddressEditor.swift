@@ -198,7 +198,11 @@ final class BeckonAddressEditorState {
         }
     }
 
-    func prepareConfirmation() async -> BeckonAddressPreparationResult {
+    func prepareConfirmation(requiringTimeZone: Bool = false) async -> BeckonAddressPreparationResult {
+        if requiringTimeZone {
+            if !hasResolvedTimeZone(confirmedAddress?.timeZoneIdentifier) { confirmedAddress = nil }
+            if !hasResolvedTimeZone(confirmation?.resolved.timeZoneIdentifier) { confirmation = nil }
+        }
         guard secondaryConflict == nil else {
             status = .needsReview
             return .unavailable
@@ -230,6 +234,11 @@ final class BeckonAddressEditorState {
                 recoverFromLookupFailure()
                 return .unavailable
             case 1:
+                if requiringTimeZone, !hasResolvedTimeZone(results[0].timeZoneIdentifier) {
+                    inlineError = "Apple Maps could not determine this address's time zone. Choose another address result."
+                    status = .editing
+                    return .unavailable
+                }
                 confirmation = BeckonAddressConfirmationPresentation(
                     entered: input,
                     resolved: results[0]
@@ -256,6 +265,11 @@ final class BeckonAddressEditorState {
         }
     }
 
+    private func hasResolvedTimeZone(_ identifier: String?) -> Bool {
+        guard let identifier else { return false }
+        return (try? GroomingServiceTiming.locationCalendar(identifier)) != nil
+    }
+
     func chooseManualResult(_ resolved: BeckonResolvedAddress) {
         manualChoices = []
         confirmation = BeckonAddressConfirmationPresentation(
@@ -276,7 +290,8 @@ final class BeckonAddressEditorState {
             placeID: confirmation.resolved.placeID,
             coordinate: confirmation.resolved.coordinate,
             resolutionSource: confirmation.resolved.resolutionSource,
-            confirmedAt: now
+            confirmedAt: now,
+            timeZoneIdentifier: confirmation.resolved.timeZoneIdentifier
         )
         self.confirmation = nil
         manualChoices = []

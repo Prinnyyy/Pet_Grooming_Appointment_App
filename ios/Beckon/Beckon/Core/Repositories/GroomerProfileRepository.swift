@@ -6,6 +6,7 @@ enum GroomerProfileRepositoryError: Error, Equatable, Sendable {
     case cancelled
     case unavailable
     case availabilityConflict
+    case bookingOccupancyConflict
     case availabilityUpdateRequired
 }
 

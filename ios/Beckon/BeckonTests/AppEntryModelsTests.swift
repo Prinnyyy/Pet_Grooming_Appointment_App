@@ -228,7 +228,7 @@ struct BeckonFeedbackCenterTests {
         center.clearNotice(id: firstID)
         #expect(center.notice == nil)
 
-        try await waitForFeedbackQueueAdvance()
+        try await waitForFeedbackQueueAdvance(in: center)
 
         #expect(center.notice?.id == secondID)
         #expect(center.notice?.message == "Message Sent.")
@@ -260,7 +260,7 @@ struct BeckonFeedbackCenterTests {
         center.clearNotice(id: noticeID)
         #expect(center.hasVisiblePrompt == false)
 
-        try await waitForFeedbackQueueAdvance()
+        try await waitForFeedbackQueueAdvance(in: center)
 
         #expect(center.notice == nil)
         #expect(center.error?.title == error.title)
@@ -270,7 +270,7 @@ struct BeckonFeedbackCenterTests {
         center.clearError(matching: error)
         #expect(center.hasVisiblePrompt == false)
 
-        try await waitForFeedbackQueueAdvance()
+        try await waitForFeedbackQueueAdvance(in: center)
 
         #expect(center.notice == nil)
         #expect(center.error == nil)
@@ -339,7 +339,7 @@ struct BeckonFeedbackCenterTests {
         center.clearTransientPrompts(in: pageScope)
         #expect(center.error == nil)
 
-        try await waitForFeedbackQueueAdvance()
+        try await waitForFeedbackQueueAdvance(in: center)
 
         #expect(center.error == operationError)
         #expect(center.error?.scope == .operation("bookings.cancel"))
@@ -374,10 +374,14 @@ struct BeckonFeedbackCenterTests {
         #expect(error.actionTitle == "Try Again")
     }
 
-    private func waitForFeedbackQueueAdvance() async throws {
-        try await Task.sleep(
-            nanoseconds: BeckonFeedbackCenter.queuedPromptAdvanceDelayNanoseconds + 370_000_000
-        )
+    @MainActor
+    private func waitForFeedbackQueueAdvance(in center: BeckonFeedbackCenter) async throws {
+        let clock = ContinuousClock()
+        let deadline = clock.now.advanced(by: .seconds(5))
+        while !center.hasVisiblePrompt, clock.now < deadline {
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        #expect(center.hasVisiblePrompt, "Feedback queue did not advance before the deadline")
     }
 
     @MainActor

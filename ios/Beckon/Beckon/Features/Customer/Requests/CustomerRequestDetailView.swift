@@ -3,9 +3,13 @@ import SwiftUI
 
 struct CustomerRequestDetailPresentation: Equatable {
     let showsRepublish: Bool
+    let showsTimingRecovery: Bool
 
-    init(status: GroomingRequestStatus) {
+    init(status: GroomingRequestStatus, preferenceTimeZoneIdentifier: String? = nil) {
         showsRepublish = status == .cancelled
+        showsTimingRecovery = status.isOpenForOffers && preferenceTimeZoneIdentifier.flatMap {
+            try? GroomingServiceTiming.locationCalendar($0)
+        } == nil
     }
 }
 
@@ -13,20 +17,22 @@ struct CustomerRequestDetailView: View {
     let requestID: UUID
     let store: CustomerRequestsStore
     let onRepublishRequest: (CustomerGroomingRequest) -> Void
+    @State private var isTimingCancellationPresented = false
 
     init(
         requestID: UUID,
         store: CustomerRequestsStore,
-        onRepublishRequest: @escaping (CustomerGroomingRequest) -> Void = { _ in }
+        onRepublishRequest: ((CustomerGroomingRequest) -> Void)? = nil
     ) {
         self.requestID = requestID
         self.store = store
-        self.onRepublishRequest = onRepublishRequest
+        self.onRepublishRequest = onRepublishRequest ?? { store.startRepublish(from: $0) }
     }
 
     var body: some View {
         if let request = store.request(withID: requestID) {
-            let presentation = CustomerRequestDetailPresentation(status: request.status)
+            let presentation = CustomerRequestDetailPresentation(status: request.status,
+                preferenceTimeZoneIdentifier: request.preferenceTimeZoneIdentifier)
             ZStack {
                 DesignTokens.Colors.background
                     .ignoresSafeArea()
@@ -37,6 +43,21 @@ struct CustomerRequestDetailView: View {
                         petSnapshotCard(request)
                         requestPhotosCard(request)
                         scheduleLocationCard(request)
+
+                        if presentation.showsTimingRecovery {
+                            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                                Text("This request has no confirmed time zone. Cancel it, then create a new request from its template and confirm the service address.")
+                                    .font(DesignTokens.Typography.body)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                Button(role: .destructive) {
+                                    isTimingCancellationPresented = true
+                                } label: {
+                                    Label("Cancel Outdated Request", systemImage: "xmark.circle")
+                                }
+                                .disabled(store.cancellingRequestIDs.contains(request.id))
+                                .accessibilityIdentifier("customer.requests.timing-recovery.cancel")
+                            }
+                        }
 
                         if presentation.showsRepublish {
                             CustomerRequestRepublishButton(
@@ -57,6 +78,14 @@ struct CustomerRequestDetailView: View {
             .navigationTitle("Request Details")
             .navigationBarTitleDisplayMode(.inline)
             .accessibilityIdentifier("customer.requests.detail")
+            .alert("Cancel this request?", isPresented: $isTimingCancellationPresented) {
+                Button("Keep Request", role: .cancel) {}
+                Button("Cancel Request", role: .destructive) {
+                    Task { await store.cancel(request) }
+                }
+            } message: {
+                Text("This closes the request and any pending offers. After cancellation succeeds, you can create a new request from its template.")
+            }
         } else {
             ZStack {
                 DesignTokens.Colors.background
@@ -144,14 +173,16 @@ struct CustomerRequestDetailView: View {
                 DetailMetadataRow(
                     title: "Start",
                     value: GroomingRequestDateFormatting.displayString(
-                        from: request.preferredStart
+                        from: request.preferredStart,
+                        serviceTimeZoneIdentifier: request.preferenceTimeZoneIdentifier
                     ),
                     systemImage: "clock"
                 )
                 DetailMetadataRow(
                     title: "End",
                     value: GroomingRequestDateFormatting.displayString(
-                        from: request.preferredEnd
+                        from: request.preferredEnd,
+                        serviceTimeZoneIdentifier: request.preferenceTimeZoneIdentifier
                     ),
                     systemImage: "clock.badge.checkmark"
                 )
@@ -820,14 +851,16 @@ private struct CustomerOfferDetailView: View {
                 DetailMetadataRow(
                     title: "Start",
                     value: GroomingRequestDateFormatting.displayString(
-                        from: offerReview.offer.proposedStart
+                        from: offerReview.offer.proposedStart,
+                        serviceTimeZoneIdentifier: offerReview.offer.serviceTimeZoneIdentifier
                     ),
                     systemImage: "clock"
                 )
                 DetailMetadataRow(
                     title: "End",
                     value: GroomingRequestDateFormatting.displayString(
-                        from: offerReview.offer.proposedEnd
+                        from: offerReview.offer.proposedEnd,
+                        serviceTimeZoneIdentifier: offerReview.offer.serviceTimeZoneIdentifier
                     ),
                     systemImage: "clock.badge.checkmark"
                 )
@@ -893,10 +926,12 @@ private struct CustomerOfferDetailView: View {
                         )
                     }
                     .buttonStyle(BeckonPrimaryButtonStyle())
-                    .disabled(store.isAcceptingOffer(offerReview.offer.id))
+                    .disabled(store.isAcceptingOffer(offerReview.offer.id) || offerReview.offer.requiresTimingUpdate)
                     .accessibilityIdentifier("customer.offers.accept")
 
-                    Text("You will confirm the appointment details before booking.")
+                    Text(offerReview.offer.requiresTimingUpdate
+                        ? "The groomer needs to replace this offer with updated timing details."
+                        : "You will confirm the appointment details before booking.")
                         .font(DesignTokens.Typography.caption)
                         .foregroundStyle(DesignTokens.Colors.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -914,6 +949,9 @@ private struct CustomerOfferDetailView: View {
     private func acceptanceMessage(for offerReview: CustomerOfferReview) -> String {
         if offerReview.offer.status == .pending,
            request.status.isOpenForOffers {
+            if offerReview.offer.requiresTimingUpdate {
+                return "Updated offer required. Your request remains open."
+            }
             return "Review the proposed appointment before you confirm."
         } else if offerReview.offer.status == .acceptedByCustomer {
             return "This offer is now a confirmed booking."
@@ -951,7 +989,7 @@ private struct CustomerOfferDetailView: View {
     }
 
     private var requestTimeSummary: String {
-        "\(GroomingRequestDateFormatting.displayString(from: request.preferredStart)) – \(GroomingRequestDateFormatting.displayString(from: request.preferredEnd))"
+        "\(GroomingRequestDateFormatting.displayString(from: request.preferredStart, serviceTimeZoneIdentifier: request.preferenceTimeZoneIdentifier)) – \(GroomingRequestDateFormatting.displayString(from: request.preferredEnd, serviceTimeZoneIdentifier: request.preferenceTimeZoneIdentifier))"
     }
 }
 

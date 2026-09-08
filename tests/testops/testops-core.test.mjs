@@ -230,7 +230,6 @@ test("cleanup plan is run-id scoped and dry-run friendly", () => {
   assert.deepEqual(plan.deleteOrder, [
     "request_address_locations",
     "messages",
-    "conversations",
     "review_pet_fit_outcomes",
     "reviews",
     "bookings",

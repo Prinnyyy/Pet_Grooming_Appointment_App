@@ -6,11 +6,12 @@ final class SupabaseCustomerRequestRepository: CustomerRequestRepository {
     private static let requestColumns = """
         id,customer_id,pet_id,pet_snapshot,photo_snapshot,service_type,service_notes,\
         preferred_start,preferred_end,location_mode,street_address,address_line_2,city,state,zip_code,\
-        travel_radius_miles,status,expires_at,created_at,updated_at
+        travel_radius_miles,status,expires_at,created_at,updated_at,preference_time_zone_identifier
         """
     private static let offerColumns = """
         id,request_id,match_id,customer_id,groomer_id,proposed_start,proposed_end,\
-        price_estimate,message,status,expires_at,withdrawn_at,created_at,updated_at
+        price_estimate,message,status,expires_at,withdrawn_at,created_at,updated_at,\
+        applied_timing_buffers,service_time_zone_identifier,schedule_time_zone_identifier,occupied_start,occupied_end
         """
     private static let offerMatchEvidenceColumns =
         "id,match_score,match_reason"
@@ -187,8 +188,8 @@ final class SupabaseCustomerRequestRepository: CustomerRequestRepository {
         do {
             let rows: [CreateGroomingRequestRow] = try await client
                 .rpc(
-                    "create_grooming_request_v3",
-                    params: CreateGroomingRequestV3Parameters(draft: draft)
+                    "create_grooming_request_v4",
+                    params: CreateGroomingRequestV4Parameters(draft: draft)
                 )
                 .execute()
                 .value
@@ -410,6 +411,7 @@ private struct GroomingRequestRow: Decodable {
     let expiresAt: String
     let createdAt: String
     let updatedAt: String
+    let preferenceTimeZoneIdentifier: String?
 
     var request: CustomerGroomingRequest {
         CustomerGroomingRequest(
@@ -432,7 +434,8 @@ private struct GroomingRequestRow: Decodable {
             status: status,
             expiresAt: expiresAt,
             createdAt: createdAt,
-            updatedAt: updatedAt
+            updatedAt: updatedAt,
+            preferenceTimeZoneIdentifier: preferenceTimeZoneIdentifier
         )
     }
 
@@ -446,6 +449,7 @@ private struct GroomingRequestRow: Decodable {
         case serviceNotes = "service_notes"
         case preferredStart = "preferred_start"
         case preferredEnd = "preferred_end"
+        case preferenceTimeZoneIdentifier = "preference_time_zone_identifier"
         case locationMode = "location_mode"
         case streetAddress = "street_address"
         case addressLine2 = "address_line_2"
@@ -497,7 +501,7 @@ private struct CancelGroomingRequestRow: Decodable {
     }
 }
 
-private struct CustomerOfferRow: Decodable {
+struct CustomerOfferRow: Decodable {
     let id: UUID
     let requestID: UUID
     let matchID: UUID
@@ -512,6 +516,11 @@ private struct CustomerOfferRow: Decodable {
     let withdrawnAt: String?
     let createdAt: String?
     let updatedAt: String?
+    let appliedTimingBuffers: GroomingTimingBuffers?
+    let serviceTimeZoneIdentifier: String?
+    let scheduleTimeZoneIdentifier: String?
+    let occupiedStart: String?
+    let occupiedEnd: String?
 
     var offer: GroomerOffer {
         GroomerOffer(
@@ -528,7 +537,13 @@ private struct CustomerOfferRow: Decodable {
             expiresAt: expiresAt,
             withdrawnAt: withdrawnAt,
             createdAt: createdAt,
-            updatedAt: updatedAt
+            updatedAt: updatedAt,
+            appliedTimingBuffers: appliedTimingBuffers,
+            serviceTimeZoneIdentifier: serviceTimeZoneIdentifier,
+            scheduleTimeZoneIdentifier: scheduleTimeZoneIdentifier,
+            occupiedStart: occupiedStart,
+            occupiedEnd: occupiedEnd,
+            timingSnapshotLoaded: true
         )
     }
 
@@ -547,6 +562,11 @@ private struct CustomerOfferRow: Decodable {
         case withdrawnAt = "withdrawn_at"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
+        case appliedTimingBuffers = "applied_timing_buffers"
+        case serviceTimeZoneIdentifier = "service_time_zone_identifier"
+        case scheduleTimeZoneIdentifier = "schedule_time_zone_identifier"
+        case occupiedStart = "occupied_start"
+        case occupiedEnd = "occupied_end"
     }
 }
 
@@ -606,6 +626,52 @@ private struct CustomerOfferMatchEvidenceRow: Decodable {
         case id
         case matchScore = "match_score"
         case matchReason = "match_reason"
+    }
+}
+
+struct CreateGroomingRequestV4Parameters: Encodable {
+    let draft: GroomingRequestDraft
+
+    private enum CodingKeys: String, CodingKey {
+        case operationID = "p_publish_operation_id", request = "p_request"
+        case referenceZone = "p_preference_time_zone_identifier"
+    }
+    private enum RequestKeys: String, CodingKey {
+        case petID = "pet_id", serviceType = "service_type", serviceNotes = "service_notes"
+        case preferredStart = "preferred_start", preferredEnd = "preferred_end", locationMode = "location_mode"
+        case streetAddress = "street_address", addressLine2 = "address_line_2", city, state, zipCode = "zip_code"
+        case travelRadiusMiles = "travel_radius_miles", provider, placeID = "place_id", countryCode = "country_code"
+        case latitude, longitude, resolutionSource = "resolution_source", userConfirmedAt = "user_confirmed_at"
+    }
+
+    func encode(to encoder: any Encoder) throws {
+        guard let address = draft.confirmedAddress, let zone = address.timeZoneIdentifier else {
+            throw CustomerRequestRepositoryError.invalidInput
+        }
+        _ = try GroomingServiceTiming.locationCalendar(zone)
+        var outer = encoder.container(keyedBy: CodingKeys.self)
+        try outer.encode(draft.publishOperationID.uuidString.lowercased(), forKey: .operationID)
+        try outer.encode(zone, forKey: .referenceZone)
+        var container = outer.nestedContainer(keyedBy: RequestKeys.self, forKey: .request)
+        try container.encode(draft.petID.uuidString.lowercased(), forKey: .petID)
+        try container.encode(draft.serviceType.rawValue, forKey: .serviceType)
+        try container.encode(draft.serviceNotes, forKey: .serviceNotes)
+        try container.encode(GroomingRequestDateFormatting.serverString(from: draft.preferredStart), forKey: .preferredStart)
+        try container.encode(GroomingRequestDateFormatting.serverString(from: draft.preferredEnd), forKey: .preferredEnd)
+        try container.encode(draft.locationMode.rawValue, forKey: .locationMode)
+        try container.encode(draft.streetAddress, forKey: .streetAddress)
+        try container.encode(draft.addressLine2, forKey: .addressLine2)
+        try container.encode(draft.city, forKey: .city)
+        try container.encode(draft.stateCode.rawValue, forKey: .state)
+        try container.encode(draft.zipCode, forKey: .zipCode)
+        try container.encode(draft.travelRadiusMiles, forKey: .travelRadiusMiles)
+        try container.encode(address.provider, forKey: .provider)
+        try container.encode(address.placeID, forKey: .placeID)
+        try container.encode(address.accepted.countryCode, forKey: .countryCode)
+        try container.encode(address.coordinate.latitude, forKey: .latitude)
+        try container.encode(address.coordinate.longitude, forKey: .longitude)
+        try container.encode(address.resolutionSource, forKey: .resolutionSource)
+        try container.encode(address.confirmedAt.ISO8601Format(), forKey: .userConfirmedAt)
     }
 }
 

@@ -113,7 +113,11 @@ struct GroomerOfferListItem:
     }
 
     var timeSummary: String {
-        "\(GroomingRequestDateFormatting.displayString(from: offer.proposedStart)) – \(GroomingRequestDateFormatting.displayString(from: offer.proposedEnd))"
+        let start = GroomingRequestDateFormatting.displayString(from: offer.proposedStart,
+            serviceTimeZoneIdentifier: offer.serviceTimeZoneIdentifier)
+        let end = GroomingRequestDateFormatting.displayString(from: offer.proposedEnd,
+            serviceTimeZoneIdentifier: offer.serviceTimeZoneIdentifier)
+        return "\(start) – \(end)"
     }
 
     var createdAtDate: Date {
@@ -277,6 +281,8 @@ struct GroomerMatchedGroomingRequest:
     let createdAt: String
     let updatedAt: String
 
+    var preferenceTimeZoneIdentifier: String? = nil
+
     var locationSummary: String {
         "\(streetAddress), \(city), \(state) \(zipCode)"
     }
@@ -373,6 +379,32 @@ struct GroomerOffer: Equatable, Hashable, Identifiable, Sendable {
     let withdrawnAt: String?
     let createdAt: String?
     let updatedAt: String?
+    var appliedTimingBuffers: GroomingTimingBuffers? = nil
+    var serviceTimeZoneIdentifier: String? = nil
+    var scheduleTimeZoneIdentifier: String? = nil
+    var occupiedStart: String? = nil
+    var occupiedEnd: String? = nil
+
+    var timingSnapshotLoaded = false
+
+    var hasTimingSnapshot: Bool {
+        guard appliedTimingBuffers != nil,
+              let serviceTimeZoneIdentifier, let scheduleTimeZoneIdentifier,
+              (try? GroomingServiceTiming.locationCalendar(serviceTimeZoneIdentifier)) != nil,
+              (try? GroomingServiceTiming.locationCalendar(scheduleTimeZoneIdentifier)) != nil,
+              let occupiedStart, let occupiedEnd,
+              let start = GroomingRequestDateFormatting.parsedDate(from: proposedStart),
+              let end = GroomingRequestDateFormatting.parsedDate(from: proposedEnd),
+              let occupiedStartDate = GroomingRequestDateFormatting.parsedDate(from: occupiedStart),
+              let occupiedEndDate = GroomingRequestDateFormatting.parsedDate(from: occupiedEnd),
+              let service = try? GroomingTimeSpan(start: start, end: end),
+              let occupied = try? GroomingTimeSpan(start: occupiedStartDate, end: occupiedEndDate) else {
+            return false
+        }
+        return occupied.contains(service)
+    }
+
+    var requiresTimingUpdate: Bool { timingSnapshotLoaded && !hasTimingSnapshot }
 
     var priceSummary: String {
         priceEstimate.formatted(
@@ -406,7 +438,13 @@ struct GroomerOffer: Equatable, Hashable, Identifiable, Sendable {
             expiresAt: expiresAt,
             withdrawnAt: withdrawnAt,
             createdAt: createdAt,
-            updatedAt: updatedAt
+            updatedAt: updatedAt,
+            appliedTimingBuffers: appliedTimingBuffers,
+            serviceTimeZoneIdentifier: serviceTimeZoneIdentifier,
+            scheduleTimeZoneIdentifier: scheduleTimeZoneIdentifier,
+            occupiedStart: occupiedStart,
+            occupiedEnd: occupiedEnd,
+            timingSnapshotLoaded: timingSnapshotLoaded
         )
     }
 
@@ -519,7 +557,8 @@ extension GroomerMatchedGroomingRequest {
             status: status,
             expiresAt: expiresAt,
             createdAt: createdAt,
-            updatedAt: updatedAt
+            updatedAt: updatedAt,
+            preferenceTimeZoneIdentifier: preferenceTimeZoneIdentifier
         )
     }
 }

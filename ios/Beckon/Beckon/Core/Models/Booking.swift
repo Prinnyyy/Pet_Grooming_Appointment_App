@@ -30,6 +30,11 @@ struct Booking: Equatable, Hashable, Identifiable, Sendable {
     let customerCity: String?
     let customerState: String?
     let customerZipCode: String?
+    let appliedTimingBuffers: GroomingTimingBuffers?
+    let serviceTimeZoneIdentifier: String?
+    let scheduleTimeZoneIdentifier: String?
+    let occupiedStart: String?
+    let occupiedEnd: String?
 
     nonisolated init(
         id: UUID,
@@ -60,7 +65,12 @@ struct Booking: Equatable, Hashable, Identifiable, Sendable {
         customerStreetAddress: String? = nil,
         customerCity: String? = nil,
         customerState: String? = nil,
-        customerZipCode: String? = nil
+        customerZipCode: String? = nil,
+        appliedTimingBuffers: GroomingTimingBuffers? = nil,
+        serviceTimeZoneIdentifier: String? = nil,
+        scheduleTimeZoneIdentifier: String? = nil,
+        occupiedStart: String? = nil,
+        occupiedEnd: String? = nil
     ) {
         self.id = id
         self.requestID = requestID
@@ -91,6 +101,11 @@ struct Booking: Equatable, Hashable, Identifiable, Sendable {
         self.customerCity = customerCity
         self.customerState = customerState
         self.customerZipCode = customerZipCode
+        self.appliedTimingBuffers = appliedTimingBuffers
+        self.serviceTimeZoneIdentifier = serviceTimeZoneIdentifier
+        self.scheduleTimeZoneIdentifier = scheduleTimeZoneIdentifier
+        self.occupiedStart = occupiedStart
+        self.occupiedEnd = occupiedEnd
     }
 
     nonisolated var priceSummary: String {
@@ -100,7 +115,11 @@ struct Booking: Equatable, Hashable, Identifiable, Sendable {
     }
 
     nonisolated var scheduledTimeSummary: String {
-        "\(GroomingRequestDateFormatting.displayString(from: scheduledStart)) – \(GroomingRequestDateFormatting.displayString(from: scheduledEnd))"
+        let start = GroomingRequestDateFormatting.displayString(from: scheduledStart,
+            serviceTimeZoneIdentifier: serviceTimeZoneIdentifier)
+        let end = GroomingRequestDateFormatting.displayString(from: scheduledEnd,
+            serviceTimeZoneIdentifier: serviceTimeZoneIdentifier)
+        return "\(start) – \(end)"
     }
 
     nonisolated var referenceCode: String {
@@ -230,7 +249,12 @@ struct Booking: Equatable, Hashable, Identifiable, Sendable {
             customerStreetAddress: customerStreetAddress,
             customerCity: customerCity,
             customerState: customerState,
-            customerZipCode: customerZipCode
+            customerZipCode: customerZipCode,
+            appliedTimingBuffers: appliedTimingBuffers,
+            serviceTimeZoneIdentifier: serviceTimeZoneIdentifier,
+            scheduleTimeZoneIdentifier: scheduleTimeZoneIdentifier,
+            occupiedStart: occupiedStart,
+            occupiedEnd: occupiedEnd
         )
     }
 

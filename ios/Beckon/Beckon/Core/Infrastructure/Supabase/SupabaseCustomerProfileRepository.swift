@@ -85,6 +85,7 @@ final class SupabaseCustomerProfileRepository: CustomerProfileRepository {
         confirmedAddress: BeckonConfirmedAddress?
     ) async throws -> CustomerProfileDetails {
         do {
+            try await ProfileAddressRPC.validateSaveSupport(client: client, address: confirmedAddress)
             let currentAvatarPath = try? await avatarPath(customerID: customerID)
 
             let profileRows: [CustomerProfileAccountRow] = try await client
@@ -151,15 +152,8 @@ final class SupabaseCustomerProfileRepository: CustomerProfileRepository {
             }
 
             if let confirmedAddress {
-                let _: UUID = try await client
-                    .rpc(
-                        "save_customer_profile_address_v2",
-                        params: SaveProfileAddressRPCParameters(
-                            confirmedAddress: confirmedAddress
-                        )
-                    )
-                    .execute()
-                    .value
+                try await ProfileAddressRPC.save(client: client,
+                    legacyRPC: "save_customer_profile_address_v2", address: confirmedAddress)
             }
 
             return CustomerProfileDetails(
@@ -184,14 +178,7 @@ final class SupabaseCustomerProfileRepository: CustomerProfileRepository {
     }
 
     private func loadConfirmedAddress() async throws -> BeckonConfirmedAddress? {
-        let rows: [ProfileAddressRPCRow] = try await client
-            .rpc("get_my_customer_profile_address_v2")
-            .execute()
-            .value
-        guard rows.count <= 1 else {
-            throw CustomerProfileRepositoryError.unavailable
-        }
-        return rows.first?.confirmedAddress
+        try await ProfileAddressRPC.load(client: client, legacyRPC: "get_my_customer_profile_address_v2")
     }
 
     func uploadAvatarPhoto(

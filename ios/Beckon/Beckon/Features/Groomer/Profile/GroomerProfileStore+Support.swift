@@ -165,6 +165,8 @@ extension GroomerProfileStore {
             "We could not \(action) groomer profile details. Please try again."
         case .availabilityConflict:
             "Your saved availability changed. Your edits are still here. Reload the saved schedule before trying again."
+        case .bookingOccupancyConflict:
+            "Your availability must cover existing appointments, including preparation, travel, and cleanup. Adjust your hours or time off and try again."
         case .availabilityUpdateRequired:
             "Availability saving is temporarily unavailable. Your saved schedule has not been changed."
         }

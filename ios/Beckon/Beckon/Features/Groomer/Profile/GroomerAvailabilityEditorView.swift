@@ -32,6 +32,8 @@ struct GroomerAvailabilityEditorView: View {
                     autoAcceptBookings: $store.autoAcceptBookings
                 )
 
+                GroomerTimingBuffersSection(store: store)
+
                 GroomerTimeOffSection(store: store)
 
                 if let errorMessage = store.errorMessage {
@@ -255,6 +257,47 @@ private struct GroomerAvailabilityTimeMenu: View {
         by: 30
     )
     .map { $0 }
+}
+
+private struct GroomerTimingBuffersSection: View {
+    @Bindable var store: GroomerProfileStore
+    @FocusState private var focusedField: String?
+
+    var body: some View {
+        BeckonSection("Timing Buffers", subtitle: "Minutes") {
+            VStack(spacing: DesignTokens.Spacing.md) {
+                field("Preparation", id: "preparation", text: $store.preparationMinutesText)
+                field("Cleanup", id: "cleanup", text: $store.cleanupMinutesText)
+                field("Mobile travel before", id: "inbound", text: $store.inboundTravelMinutesText)
+                field("Mobile travel after", id: "outbound", text: $store.outboundTravelMinutesText)
+            }
+        }
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button { focusedField = nil } label: { Image(systemName: "checkmark") }
+                    .accessibilityLabel("Done")
+            }
+        }
+    }
+
+    private func field(_ title: String, id: String, text: Binding<String>) -> some View {
+        HStack(spacing: DesignTokens.Spacing.md) {
+            Text(title)
+                .font(DesignTokens.Typography.body)
+                .foregroundStyle(DesignTokens.Colors.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: DesignTokens.Spacing.sm)
+            TextField("Required", text: text)
+                .keyboardType(.numberPad)
+                .multilineTextAlignment(.trailing)
+                .focused($focusedField, equals: id)
+                .beckonFormField()
+                .frame(width: 110)
+                .accessibilityLabel(title)
+                .accessibilityIdentifier("groomer.availability.buffers.\(id)")
+        }
+    }
 }
 
 private struct GroomerBookingPreferencesSection: View {

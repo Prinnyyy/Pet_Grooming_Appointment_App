@@ -2,6 +2,8 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { captureT374TimingSnapshot } from "./t374-timing-snapshot.mjs";
+import { runWithTimingRestoration } from "./timing-restoration.mjs";
 
 import {
   ARTIFACT_DIR,
@@ -74,7 +76,7 @@ async function main() {
 function usage() {
   console.log(`Usage:
   node scripts/testops.mjs doctor [--dry-run]
-  node scripts/testops.mjs run backend --scenario ${DEFAULT_SCENARIO} [--customer BTC-001] [--groomer BTG-001] [--matrix smoke5] [--run-id RUN] [--execute] [--cleanup]
+  node scripts/testops.mjs run backend --scenario ${DEFAULT_SCENARIO} [--customer BTC-001] [--groomer BTG-001] [--matrix smoke5] [--run-id RUN] [--timing | --timing-race] [--execute] [--cleanup]
   node scripts/testops.mjs run matching --scenario ${MATCHING_SCENARIO} [--matrix ${MATCHING_BASELINE_MATRIX}|${MATCHING_RADIUS_MATRIX}] [--run-id RUN] [--execute] [--cleanup]
   node scripts/testops.mjs cleanup --run-id RUN [--execute]
   node scripts/testops.mjs verify ui-lifecycle --run-id RUN
@@ -159,6 +161,11 @@ async function runBackend(args) {
   const scenarioID = optionValue(options, "scenario") ?? DEFAULT_SCENARIO;
   const execute = options.has("execute");
   const cleanupAfterRun = options.has("cleanup");
+  const timingRace = options.has("timing-race");
+  const timingContract = options.has("timing") || timingRace;
+  if (execute && timingContract && !cleanupAfterRun) {
+    throw new Error("Timing lifecycle execution requires --cleanup.");
+  }
   const matrix = optionValue(options, "matrix");
   const plans = makeBackendPlans({
     scenarioID,
@@ -168,7 +175,10 @@ async function runBackend(args) {
     groomerSeedID: optionValue(options, "groomer") ?? "BTG-001",
     customerProfiles: parseCustomerProfiles(CUSTOMER_RESOURCE),
     groomerProfiles: parseGroomerProfiles(GROOMER_RESOURCE),
-  });
+  }).map(plan => timingContract ? { ...plan, timingContract: true, timingRace } : plan);
+  if (timingContract && plans.some(plan => plan.customer.seedID !== "BTC-001" || plan.groomer.seedID !== "BTG-001")) {
+    throw new Error("Timing fixture snapshots currently cover BTC-001 and BTG-001 only.");
+  }
 
   if (!execute) {
     if (plans.length === 1) {
@@ -193,9 +203,24 @@ async function runBackend(args) {
   );
   const results = [];
   for (const plan of plans) {
-    const result = await runMarketplaceLifecycle(api, plan);
-    if (cleanupAfterRun) {
-      result.cleanup = await cleanupRun(api, plan.runID);
+    let result;
+    if (timingContract) {
+      const tag = `TESTOPS:${plan.runID}`;
+      const existing = await api.restSelect("grooming_requests",
+        `select=id&or=(service_notes.eq.${encodeURIComponent(tag)},service_notes.like.${encodeURIComponent(`${tag} `)}*)&limit=1`,
+        api.requireServiceRole());
+      if (existing.length) {
+        throw new Error("Timing run marker already exists; no lifecycle or cleanup was attempted.");
+      }
+      result = await runWithTimingRestoration({
+        snapshot: captureT374TimingSnapshot,
+        run: async () => runMarketplaceLifecycle(api, plan, { timingDatabaseBarrier: plan.timingRace
+          ? (await import("./timing-database-barrier.mjs")).runTimingDatabaseBarrier : undefined }),
+        cleanup: () => cleanupRun(api, plan.runID),
+      });
+    } else {
+      result = await runMarketplaceLifecycle(api, plan);
+      if (cleanupAfterRun) result.cleanup = await cleanupRun(api, plan.runID);
     }
     writeArtifacts(result);
     results.push(result);

@@ -157,7 +157,7 @@ struct GroomerOffersStoreTests {
         #expect(item.subtitle == "Seattle, WA 98101")
         #expect(
             item.timeSummary
-                == "\(GroomingRequestDateFormatting.displayString(from: item.offer.proposedStart)) – \(GroomingRequestDateFormatting.displayString(from: item.offer.proposedEnd))"
+                == "\(item.offer.proposedStart) (service time zone unconfirmed) – \(item.offer.proposedEnd) (service time zone unconfirmed)"
         )
     }
 

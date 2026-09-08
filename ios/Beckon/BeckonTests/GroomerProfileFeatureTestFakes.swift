@@ -3,6 +3,7 @@ import Foundation
 
 @MainActor
 final class GroomerProfileRepositoryFake: GroomerProfileRepository {
+    var availabilityTimingVersion: Int? = 1
     var saveAvailabilityError: GroomerProfileRepositoryError?
     private(set) var saveAvailabilityCallCount = 0
     private(set) var lastSavedTimeOff: [GroomerTimeOffWindow] = []
@@ -11,7 +12,8 @@ final class GroomerProfileRepositoryFake: GroomerProfileRepository {
         let windows = try await availabilityWindows(groomerID: groomerID)
         let preferences = try await bookingPreferences(groomerID: groomerID)
         let timeOff = try await timeOffWindows(groomerID: groomerID)
-        return GroomerAvailabilitySnapshot(revision: "fixture", windows: windows, preferences: preferences, timeOff: timeOff)
+        return GroomerAvailabilitySnapshot(revision: "fixture", windows: windows, preferences: preferences,
+            timeOff: timeOff, timingVersion: availabilityTimingVersion)
     }
 
     func saveAvailability(
@@ -28,12 +30,15 @@ final class GroomerProfileRepositoryFake: GroomerProfileRepository {
                 startMinutes: $0.startMinutes, endMinutes: $0.endMinutes, isEnabled: $0.isEnabled, timezone: $0.timezone)
         }, preferences: GroomerBookingPreferences(groomerID: groomerID,
             maxAppointmentsPerDay: preferences.maxAppointmentsPerDay,
-            minimumAdvanceNoticeDays: preferences.minimumAdvanceNoticeDays, autoAcceptBookings: preferences.autoAcceptBookings),
-            timeOff: timeOff)
+            minimumAdvanceNoticeDays: preferences.minimumAdvanceNoticeDays, autoAcceptBookings: preferences.autoAcceptBookings,
+            timingBuffers: preferences.timingBuffers),
+            timeOff: timeOff, timingVersion: availabilityTimingVersion)
     }
 
     var profileResult: Result<GroomerProfile, GroomerProfileRepositoryError>
     var servicesResult: Result<[GroomerService], GroomerProfileRepositoryError>
+    var onServicesRead: (@MainActor () async -> Void)?
+    private(set) var servicesReadCount = 0
     var portfolioResult: Result<[GroomerPortfolioPhoto], GroomerProfileRepositoryError>
     var portfolioFitTagsResult: Result<[GroomerPortfolioFitTag], GroomerProfileRepositoryError>
     var availabilityResult: Result<[GroomerAvailabilityWindow], GroomerProfileRepositoryError>
@@ -160,7 +165,9 @@ final class GroomerProfileRepositoryFake: GroomerProfileRepository {
     }
 
     func services(groomerID: UUID) async throws -> [GroomerService] {
-        try servicesResult.get()
+        servicesReadCount += 1
+        await onServicesRead?()
+        return try servicesResult.get()
     }
 
     func portfolioPhotos(groomerID: UUID) async throws -> [GroomerPortfolioPhoto] {

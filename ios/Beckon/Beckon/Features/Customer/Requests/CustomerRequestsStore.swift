@@ -118,7 +118,7 @@ struct CustomerRequestWizardStepValidation: Equatable {
 @MainActor
 @Observable
 final class CustomerRequestsStore {
-    static let minimumPreferredStartLeadTime: TimeInterval = 5 * 60
+    static let minimumPreferredStartLeadTime = GroomingServiceTiming.minimumLeadTime
     static let minimumCustomRequestNotesLength = 10
     static let maximumRequestPhotoBytes = 10 * 1024 * 1024
 
@@ -163,8 +163,14 @@ final class CustomerRequestsStore {
     var selectedPetID: UUID?
     var serviceType: GroomingServiceType?
     var serviceNotes = ""
-    var preferredStart: Date
-    var preferredEnd: Date
+    var preferredStart: Date {
+        didSet { if preferredStart != oldValue { startOccurrenceChoice = nil } }
+    }
+    var preferredEnd: Date {
+        didSet { if preferredEnd != oldValue { endOccurrenceChoice = nil } }
+    }
+    private var startOccurrenceChoice: (date: Date, zone: String, operation: UUID)?
+    private var endOccurrenceChoice: (date: Date, zone: String, operation: UUID)?
     var locationMode: GroomingLocationMode = .groomerComesToCustomer
     var streetAddress: String {
         get { addressEditorState.input.line1 }
@@ -1372,18 +1378,9 @@ final class CustomerRequestsStore {
             )
         }
 
-        let earliestPreferredStart = now.addingTimeInterval(
-            Self.minimumPreferredStartLeadTime
-        )
-        guard preferredStart >= earliestPreferredStart else {
+        guard let remainingRange = remainingPreferredRange(now: now) else {
             throw CustomerRequestFormError(
-                message: "Preferred start must be at least 5 minutes from now."
-            )
-        }
-
-        guard preferredEnd > preferredStart else {
-            throw CustomerRequestFormError(
-                message: "Preferred end must be after the start time."
+                message: "Choose a time window with time remaining at least 5 minutes from now."
             )
         }
 
@@ -1409,12 +1406,22 @@ final class CustomerRequestsStore {
             )
         }
 
+        guard hasConfirmedReferenceTimeZone else {
+            throw CustomerRequestFormError(
+                message: "Confirm the service address time zone with Apple Maps before publishing."
+            )
+        }
+
+        guard !hasUnresolvedPreferredOccurrence else {
+            throw CustomerRequestFormError(message: "Choose which occurrence of the repeated time you mean.")
+        }
+
         return GroomingRequestDraft(
             petID: selectedPetID,
             serviceType: serviceType,
             serviceNotes: serviceNotes,
-            preferredStart: preferredStart,
-            preferredEnd: preferredEnd,
+            preferredStart: remainingRange.start,
+            preferredEnd: remainingRange.end,
             locationMode: locationMode,
             streetAddress: streetAddress,
             addressLine2: addressLine2,
@@ -1457,15 +1464,84 @@ final class CustomerRequestsStore {
         return .valid
     }
 
+    var requestCalendar: Calendar? {
+        guard let address = addressEditorState.confirmedAddress,
+              address.isCurrent(for: normalizedAddressInput()),
+              let identifier = address.timeZoneIdentifier else { return nil }
+        return try? GroomingServiceTiming.locationCalendar(identifier)
+    }
+
+    private var hasConfirmedReferenceTimeZone: Bool { requestCalendar != nil }
+
+    var preferredStartOccurrences: [Date] { occurrences(for: preferredStart) }
+    var preferredEndOccurrences: [Date] { occurrences(for: preferredEnd) }
+
+    func confirmedPreferredOccurrence(isStart: Bool) -> Date? {
+        let choice = isStart ? startOccurrenceChoice : endOccurrenceChoice
+        guard choice?.zone == requestCalendar?.timeZone.identifier,
+              choice?.operation == publishOperationID else { return nil }
+        return choice?.date
+    }
+
+    var hasUnresolvedPreferredOccurrence: Bool {
+        (preferredStartOccurrences.count == 2 && confirmedPreferredOccurrence(isStart: true) != preferredStart)
+            || (preferredEndOccurrences.count == 2 && confirmedPreferredOccurrence(isStart: false) != preferredEnd)
+    }
+
+    func confirmPreferredOccurrence(_ date: Date, isStart: Bool) {
+        guard let calendar = requestCalendar,
+              (isStart ? preferredStartOccurrences : preferredEndOccurrences).contains(date) else { return }
+        if isStart {
+            preferredStart = date
+            startOccurrenceChoice = (date, calendar.timeZone.identifier, publishOperationID)
+        } else {
+            preferredEnd = date
+            endOccurrenceChoice = (date, calendar.timeZone.identifier, publishOperationID)
+        }
+    }
+
+    func applyDetailedDate(_ day: Date) -> Bool {
+        let starts = occurrences(for: preferredStart, on: day)
+        let ends = occurrences(for: preferredEnd, on: day)
+        guard let start = starts.first, let end = ends.first else {
+            errorMessage = "That time does not exist on this date. Choose another time before changing the date."
+            return false
+        }
+        preferredStart = start
+        preferredEnd = end
+        startOccurrenceChoice = nil
+        endOccurrenceChoice = nil
+        return true
+    }
+
+    private func occurrences(for time: Date, on day: Date? = nil) -> [Date] {
+        guard let calendar = requestCalendar, time.timeIntervalSinceReferenceDate.isFinite,
+              (day ?? time).timeIntervalSinceReferenceDate.isFinite else { return [] }
+        let date = calendar.dateComponents([.year, .month, .day], from: day ?? time)
+        let clock = calendar.dateComponents([.hour, .minute], from: time)
+        guard let resolution = try? GroomingServiceTiming.resolveWallTime(year: date.year ?? 0,
+            month: date.month ?? 0, day: date.day ?? 0, hour: clock.hour ?? -1,
+            minute: clock.minute ?? -1, timeZoneIdentifier: calendar.timeZone.identifier) else { return [] }
+        switch resolution {
+        case .unique(let value): return [value]
+        case .ambiguous(let first, let last): return [first, last]
+        case .nonexistent: return []
+        }
+    }
+
+    func remainingPreferredRange(now: Date) -> (start: Date, end: Date)? {
+        guard let range = GroomingServiceTiming.remainingWindow(start: preferredStart, end: preferredEnd, now: now) else {
+            return nil
+        }
+        return (range.start, range.end)
+    }
+
     private func validateTimeAndLocationStep(
         now: Date
     ) -> CustomerRequestWizardStepValidation {
         var fields: Set<CustomerRequestWizardValidationField> = []
 
-        let earliestPreferredStart = now.addingTimeInterval(
-            Self.minimumPreferredStartLeadTime
-        )
-        if preferredStart < earliestPreferredStart || preferredEnd <= preferredStart {
+        if requestCalendar != nil, remainingPreferredRange(now: now) == nil {
             fields.insert(.timeWindow)
         }
 
@@ -1493,6 +1569,14 @@ final class CustomerRequestsStore {
                     fields: [.addressConfirmation],
                     message: "Confirm the service address with Apple Maps before continuing."
                 )
+            }
+            guard hasConfirmedReferenceTimeZone else {
+                return CustomerRequestWizardStepValidation(fields: [.addressConfirmation],
+                    message: "Confirm the service address time zone with Apple Maps before continuing.")
+            }
+            guard !hasUnresolvedPreferredOccurrence else {
+                return CustomerRequestWizardStepValidation(fields: [.timeWindow],
+                    message: "Choose which occurrence of the repeated time you mean.")
             }
             return .valid
         }
@@ -1667,7 +1751,7 @@ final class CustomerRequestsStore {
     private static func isDefinitiveAcceptanceFailure(_ error: BookingRepositoryError) -> Bool {
         switch error {
         case .offerNotFound, .offerNoLongerPending, .requestNoLongerOpen,
-             .bookingConflict, .invalidInput:
+             .bookingConflict, .invalidInput, .updatedOfferRequired:
             true
         default:
             false
@@ -1797,7 +1881,12 @@ final class CustomerRequestsStore {
             ),
             customerCity: request.city,
             customerState: request.state,
-            customerZipCode: request.zipCode
+            customerZipCode: request.zipCode,
+            appliedTimingBuffers: offerReview.offer.appliedTimingBuffers,
+            serviceTimeZoneIdentifier: offerReview.offer.serviceTimeZoneIdentifier,
+            scheduleTimeZoneIdentifier: offerReview.offer.scheduleTimeZoneIdentifier,
+            occupiedStart: offerReview.offer.occupiedStart,
+            occupiedEnd: offerReview.offer.occupiedEnd
         )
     }
 
@@ -2208,6 +2297,8 @@ final class CustomerRequestsStore {
             "This offer is no longer available."
         case .offerNoLongerPending:
             "This offer can no longer be accepted."
+        case .updatedOfferRequired:
+            "This offer needs updated timing details from the groomer before you can book. Your request is still open."
         case .requestNoLongerOpen:
             "This request can no longer become a booking."
         case .bookingAlreadyExists:

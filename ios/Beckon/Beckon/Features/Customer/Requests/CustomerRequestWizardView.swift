@@ -401,6 +401,7 @@ struct CustomerRequestWizardView: View {
                     currentStep: currentStep,
                     isSubmitting: store.isSubmitting,
                     isPrimaryActionEnabled: primaryActionState.isEnabled,
+                    needsAddressConfirmation: currentStep == .time && store.requestCalendar == nil,
                     backAction: back,
                     continueAction: continueForward
                 )
@@ -430,13 +431,23 @@ struct CustomerRequestWizardView: View {
                 await addPendingRequestPhotos(newItems)
             }
         }
-        .onChange(of: store.addressEditorState.confirmedAddress) { _, confirmedAddress in
+        .onChange(of: store.addressEditorState.confirmedAddress) { oldAddress, confirmedAddress in
+            if store.requestCalendar != nil,
+               oldAddress?.timeZoneIdentifier != confirmedAddress?.timeZoneIdentifier {
+                selectedDate = store.preferredStart
+                selectedTimeWindow = .detailed
+                isFlexibleWithTime = false
+            }
             guard isContinuingAfterAddressConfirmation,
                   confirmedAddress != nil else { return }
             isContinuingAfterAddressConfirmation = false
+            let validation = store.validateWizardStep(.time)
+            guard validation.isValid else {
+                invalidFields = validation.fields
+                store.errorMessage = validation.message
+                return
+            }
             store.errorMessage = nil
-            guard currentStep == .time, let next = currentStep.next else { return }
-            currentStep = next
         }
         .onChange(of: store.addressEditorState.isReviewPresented) { _, isPresented in
             guard !isPresented,
@@ -517,8 +528,21 @@ struct CustomerRequestWizardView: View {
 
     private var timeStep: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
+            groomingSetupSection
+            locationSection
+            if let calendar = store.requestCalendar {
+                timeSelection(calendar: calendar)
+                    .environment(\.calendar, calendar)
+                    .environment(\.timeZone, calendar.timeZone)
+            }
+        }
+    }
+
+    private func timeSelection(calendar: Calendar) -> some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
             CustomerRequestDateStrip(
-                selectedDate: selectedDate
+                selectedDate: selectedDate,
+                calendar: calendar
             ) { date in
                 selectedDate = date
                 clearInvalidField(.timeWindow)
@@ -551,6 +575,8 @@ struct CustomerRequestWizardView: View {
                             clearInvalidField(.timeWindow)
                         }
                         .transition(.opacity.combined(with: .move(edge: .top)))
+                        occurrencePicker(isStart: true, calendar: calendar)
+                        occurrencePicker(isStart: false, calendar: calendar)
                     }
 
                     CustomerRequestFlexibleTimeToggle(
@@ -566,8 +592,6 @@ struct CustomerRequestWizardView: View {
                 }
             }
 
-            groomingSetupSection
-            locationSection
         }
     }
 
@@ -586,6 +610,25 @@ struct CustomerRequestWizardView: View {
                     store.locationMode = mode
                 }
             }
+        }
+    }
+
+    @ViewBuilder
+    private func occurrencePicker(isStart: Bool, calendar: Calendar) -> some View {
+        let choices = isStart ? store.preferredStartOccurrences : store.preferredEndOccurrences
+        if choices.count == 2 {
+            Picker(isStart ? "Start Occurrence" : "End Occurrence", selection: Binding<Date?>(
+                get: { store.confirmedPreferredOccurrence(isStart: isStart) },
+                set: { if let date = $0 { store.confirmPreferredOccurrence(date, isStart: isStart) } }
+            )) {
+                Text("Choose occurrence").tag(Optional<Date>.none)
+                ForEach(choices, id: \.self) { date in
+                    Text(CustomerRequestWizardDateFormatting.occurrence(date, calendar: calendar))
+                        .tag(Optional(date))
+                }
+            }
+            .pickerStyle(.menu)
+            .accessibilityIdentifier(isStart ? "customer.requests.start-occurrence" : "customer.requests.end-occurrence")
         }
     }
 
@@ -755,19 +798,10 @@ struct CustomerRequestWizardView: View {
     }
 
     private var reviewPreferredTimeSummary: String {
-        let day = CustomerRequestWizardDateFormatting.daySummary(selectedDate)
-        if isFlexibleWithTime {
-            return "\(day) · Flexible"
-        }
-
-        if selectedTimeWindow == .detailed {
-            return CustomerRequestWizardDateFormatting.compactRange(
-                from: store.preferredStart,
-                to: store.preferredEnd
-            )
-        }
-
-        return "\(day) · \(selectedTimeWindow.title)"
+        guard let calendar = store.requestCalendar,
+              let range = store.remainingPreferredRange(now: Date()) else { return "Choose a valid time window" }
+        return CustomerRequestWizardDateFormatting.compactRange(from: range.start, to: range.end,
+            calendar: calendar) + " (\(calendar.timeZone.identifier))"
     }
 
     private var reviewLocationSummary: String {
@@ -819,14 +853,11 @@ struct CustomerRequestWizardView: View {
                 globallyPresentedErrorMessage = nil
                 isContinuingAfterAddressConfirmation = true
                 Task {
-                    let result = await store.addressEditorState.prepareConfirmation()
+                    let result = await store.addressEditorState.prepareConfirmation(requiringTimeZone: true)
                     guard isContinuingAfterAddressConfirmation else { return }
                     guard result != .needsReview else { return }
                     isContinuingAfterAddressConfirmation = false
-                    guard result == .confirmed,
-                          currentStep == .time,
-                          let next = currentStep.next else { return }
-                    currentStep = next
+                    guard result == .confirmed else { return }
                 }
                 return
             }
@@ -975,22 +1006,16 @@ struct CustomerRequestWizardView: View {
     }
 
     private func applySelectedTimeWindow() {
+        guard let calendar = store.requestCalendar else { return }
         if isFlexibleWithTime {
-            let range = CustomerRequestTimeWindowOption.flexibleRange(on: selectedDate)
+            let range = CustomerRequestTimeWindowOption.flexibleRange(on: selectedDate, calendar: calendar)
             store.preferredStart = range.start
             store.preferredEnd = range.end
             return
         }
 
-        guard let range = selectedTimeWindow.range(on: selectedDate) else {
-            store.preferredStart = CustomerRequestWizardDateFormatting.date(
-                matchingTimeOf: store.preferredStart,
-                on: selectedDate
-            )
-            store.preferredEnd = CustomerRequestWizardDateFormatting.date(
-                matchingTimeOf: store.preferredEnd,
-                on: selectedDate
-            )
+        guard let range = selectedTimeWindow.range(on: selectedDate, calendar: calendar) else {
+            if !store.applyDetailedDate(selectedDate) { selectedDate = store.preferredStart }
             return
         }
 
@@ -1011,37 +1036,28 @@ struct CustomerRequestWizardView: View {
 typealias CustomerRequestLocationMode = GroomingLocationMode
 
 private enum CustomerRequestWizardDateFormatting {
-    static func daySummary(_ date: Date) -> String {
+    static func occurrence(_ date: Date, calendar: Calendar) -> String {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.dateFormat = "EEE d"
+        formatter.calendar = calendar
+        formatter.timeZone = calendar.timeZone
+        formatter.dateFormat = "h:mm a XXX"
         return formatter.string(from: date)
     }
 
-    static func compactRange(from start: Date, to end: Date) -> String {
-        "\(compactDateTime(start)) - \(compactDateTime(end))"
+    static func compactRange(from start: Date, to end: Date, calendar: Calendar) -> String {
+        "\(compactDateTime(start, calendar: calendar)) - \(compactDateTime(end, calendar: calendar))"
     }
 
-    static func compactDateTime(_ date: Date) -> String {
+    static func compactDateTime(_ date: Date, calendar: Calendar) -> String {
         let formatter = DateFormatter()
+        formatter.calendar = calendar
+        formatter.timeZone = calendar.timeZone
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.dateFormat = "MMM d 'at' h:mm a"
         return formatter.string(from: date)
     }
 
-    static func date(
-        matchingTimeOf source: Date,
-        on selectedDate: Date,
-        calendar: Calendar = .current
-    ) -> Date {
-        let time = calendar.dateComponents([.hour, .minute], from: source)
-        return calendar.date(
-            bySettingHour: time.hour ?? 12,
-            minute: time.minute ?? 0,
-            second: 0,
-            of: selectedDate
-        ) ?? selectedDate
-    }
 }
 
 private struct CustomerRequestWizardHeader: View {
@@ -1109,6 +1125,7 @@ private struct CustomerRequestWizardBottomBar: View {
     let currentStep: CustomerRequestWizardStep
     let isSubmitting: Bool
     let isPrimaryActionEnabled: Bool
+    let needsAddressConfirmation: Bool
     let backAction: () -> Void
     let continueAction: () -> Void
 
@@ -1171,6 +1188,7 @@ private struct CustomerRequestWizardBottomBar: View {
             return "Publishing..."
         }
 
+        if needsAddressConfirmation { return "Confirm Address" }
         return currentStep == .review ? "Publish Request" : "Continue"
     }
 }
@@ -1324,6 +1342,7 @@ private struct CustomerRequestServiceOptionCard: View {
 
 private struct CustomerRequestDateStrip: View {
     let selectedDate: Date
+    let calendar: Calendar
     let onSelect: (Date) -> Void
 
     var body: some View {
@@ -1401,15 +1420,17 @@ private struct CustomerRequestDateStrip: View {
     }
 
     private var configuration: CustomerRequestDateSelection {
-        CustomerRequestDateSelection()
+        CustomerRequestDateSelection(calendar: calendar)
     }
 
     private func isSelected(_ date: Date) -> Bool {
-        Calendar.current.isDate(date, inSameDayAs: selectedDate)
+        calendar.isDate(date, inSameDayAs: selectedDate)
     }
 
     private func dayName(_ date: Date) -> String {
         let formatter = DateFormatter()
+        formatter.calendar = calendar
+        formatter.timeZone = calendar.timeZone
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.dateFormat = "EEE"
         return formatter.string(from: date)
@@ -1417,6 +1438,8 @@ private struct CustomerRequestDateStrip: View {
 
     private func dayNumber(_ date: Date) -> String {
         let formatter = DateFormatter()
+        formatter.calendar = calendar
+        formatter.timeZone = calendar.timeZone
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.dateFormat = "d"
         return formatter.string(from: date)
@@ -1530,7 +1553,7 @@ private struct CustomerRequestFlexibleTimeToggle: View {
                     .font(DesignTokens.Typography.body.weight(.bold))
                     .foregroundStyle(DesignTokens.Colors.textPrimary)
 
-                Text("Let groomers suggest nearby times")
+                Text("Any time on this date")
                     .font(DesignTokens.Typography.caption)
                     .foregroundStyle(DesignTokens.Colors.textSecondary)
             }

@@ -7,6 +7,8 @@ final class BookingsStore {
     private let participantID: UUID
     private let role: UserRole
     private let repository: any BookingRepository
+    private let groomerProfileRepository: (any GroomerProfileRepository)?
+    private(set) var scheduleCalendar: Calendar?
     private let appointmentReminderScheduler: any AppointmentReminderScheduling
     private let debugRecorder: AppDebugEventRecorder?
 
@@ -34,6 +36,7 @@ final class BookingsStore {
         participantID: UUID,
         role: UserRole,
         repository: any BookingRepository,
+        groomerProfileRepository: (any GroomerProfileRepository)? = nil,
         initialBookings: [Booking] = [],
         appointmentReminderScheduler: any AppointmentReminderScheduling =
             AppointmentReminderScheduler.shared,
@@ -42,6 +45,7 @@ final class BookingsStore {
         self.participantID = participantID
         self.role = role
         self.repository = repository
+        self.groomerProfileRepository = groomerProfileRepository
         self.appointmentReminderScheduler = appointmentReminderScheduler
         self.debugRecorder = debugRecorder
         bookings = initialBookings
@@ -74,6 +78,8 @@ final class BookingsStore {
             )
             bookings = page.items
             nextPageRequest = page.nextRequest
+            await loadScheduleCalendar()
+            try Task.checkCancellation()
             recordStoreSuccess(
                 "load",
                 startedAt: startedAt,
@@ -103,6 +109,23 @@ final class BookingsStore {
                 mappedMessage: errorMessage,
                 startedAt: startedAt
             )
+        }
+    }
+
+    private func loadScheduleCalendar() async {
+        guard role == .groomer, let groomerProfileRepository else { return }
+        scheduleCalendar = nil
+        do {
+            let snapshot = try await groomerProfileRepository.availabilitySnapshot(groomerID: participantID)
+            guard !Task.isCancelled else { return }
+            let zones = Set(snapshot.windows.map(\.timezone))
+            guard snapshot.windows.count == 7,
+                  Set(snapshot.windows.map(\.weekday)).count == 7,
+                  snapshot.windows.allSatisfy({ $0.groomerID == participantID }),
+                  zones.count == 1, let identifier = zones.first else { return }
+            scheduleCalendar = try GroomingServiceTiming.locationCalendar(identifier)
+        } catch {
+            scheduleCalendar = nil
         }
     }
 
@@ -365,6 +388,8 @@ final class BookingsStore {
             "This offer is no longer available."
         case .offerNoLongerPending:
             "This offer can no longer be accepted."
+        case .updatedOfferRequired:
+            "This offer needs updated timing details from the groomer before you can book."
         case .requestNoLongerOpen:
             "This request can no longer become a booking."
         case .bookingAlreadyExists:

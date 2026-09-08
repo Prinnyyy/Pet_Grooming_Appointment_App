@@ -625,6 +625,30 @@ extension CustomerRequestsStoreTests {
     }
 
     @Test @MainActor
+    func todayMorningRetainsTheRemainingPreferenceWindow() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try #require(TimeZone(identifier: "America/Los_Angeles"))
+        let now = try #require(Self.isoDate("2026-09-07T17:00:00Z"))
+        let range = try #require(CustomerRequestTimeWindowOption.morning.range(on: now, calendar: calendar))
+        let store = CustomerRequestsStore(customerID: UUID(),
+            petRepository: CustomerRequestPetRepositoryFake(),
+            requestRepository: CustomerRequestRepositoryFake(),
+            bookingRepository: CustomerRequestBookingRepositoryFake())
+        store.preferredStart = range.start
+        store.preferredEnd = range.end
+        store.streetAddress = "123 Test Street"
+        store.city = "Los Angeles"
+        store.stateCode = .california
+        store.zipCode = "90001"
+        store.confirmCurrentTestAddress()
+        #expect(store.requestCalendar != nil)
+
+        let validation = store.validateWizardStep(.time, now: now)
+
+        #expect(validation.isValid)
+    }
+
+    @Test @MainActor
     func requestWizardFlexibleTimeUsesAllDayWindow() throws {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = try #require(TimeZone(secondsFromGMT: 0))

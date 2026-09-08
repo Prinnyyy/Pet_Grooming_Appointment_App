@@ -127,6 +127,33 @@ extension CustomerRequestsStoreTests {
     }
 
     @Test @MainActor
+    func legacyQuoteRejectionDoesNotPersistUnknownAcceptanceOrCloseRequest() async throws {
+        let customerID = UUID()
+        let request = Self.request(customerID: customerID, petID: UUID())
+        let review = Self.offerReview(customerID: customerID, requestID: request.id)
+        let suite = "T374.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let repository = CustomerRequestBookingRepositoryFake(acceptResult: .failure(.updatedOfferRequired))
+        let requests = CustomerRequestRepositoryFake(requestsResult: .success([request]))
+        let store = CustomerRequestsStore(customerID: customerID,
+            petRepository: CustomerRequestPetRepositoryFake(), requestRepository: requests,
+            bookingRepository: repository, handoffAcknowledgementDefaults: defaults)
+        await store.load()
+        let handoff = await store.accept(offerReview: review, for: request)
+        #expect(handoff == nil)
+        #expect(store.request(withID: request.id)?.status == request.status)
+        #expect(store.errorMessage == "This offer needs updated timing details from the groomer before you can book. Your request is still open.")
+        #expect(store.noticeMessage == nil)
+        let restarted = CustomerRequestsStore(customerID: customerID,
+            petRepository: CustomerRequestPetRepositoryFake(), requestRepository: requests,
+            bookingRepository: repository, handoffAcknowledgementDefaults: defaults)
+        await restarted.load()
+        #expect(repository.acceptanceLookupCallCount == 0)
+        #expect(repository.acceptCallCount == 1)
+    }
+
+    @Test @MainActor
     func terminalAcceptanceReplayDoesNotAnnounceConfirmation() async {
         let customerID = UUID()
         let request = Self.request(customerID: customerID, petID: UUID())
@@ -522,10 +549,20 @@ extension CustomerRequestsStoreTests {
         let customerID = UUID()
         let pet = Self.pet(customerID: customerID)
         let request = Self.request(customerID: customerID, petID: pet.id)
-        let offerReview = Self.offerReview(
+        let initialReview = Self.offerReview(
             customerID: customerID,
             requestID: request.id
         )
+        var timedOffer = initialReview.offer
+        timedOffer.appliedTimingBuffers = try GroomingTimingBuffers(preparation: 15, cleanup: 10,
+            inboundTravel: 0, outboundTravel: 0)
+        timedOffer.serviceTimeZoneIdentifier = "America/Los_Angeles"
+        timedOffer.scheduleTimeZoneIdentifier = "America/New_York"
+        let start = try #require(GroomingRequestDateFormatting.parsedDate(from: timedOffer.proposedStart))
+        let end = try #require(GroomingRequestDateFormatting.parsedDate(from: timedOffer.proposedEnd))
+        timedOffer.occupiedStart = ISO8601DateFormatter().string(from: start.addingTimeInterval(-900))
+        timedOffer.occupiedEnd = ISO8601DateFormatter().string(from: end.addingTimeInterval(600))
+        let offerReview = CustomerOfferReview(offer: timedOffer, groomerProfile: initialReview.groomerProfile)
         let bookingID = UUID()
         let requestRepository = CustomerRequestRepositoryFake(
             requestsResult: .success([request]),
@@ -568,6 +605,11 @@ extension CustomerRequestsStoreTests {
         #expect(handoff?.booking.serviceType == request.serviceType)
         #expect(handoff?.booking.locationMode == request.locationMode)
         #expect(handoff?.booking.customerStreetAddress == request.streetAddress)
+        #expect(handoff?.booking.appliedTimingBuffers == timedOffer.appliedTimingBuffers)
+        #expect(handoff?.booking.serviceTimeZoneIdentifier == timedOffer.serviceTimeZoneIdentifier)
+        #expect(handoff?.booking.scheduleTimeZoneIdentifier == timedOffer.scheduleTimeZoneIdentifier)
+        #expect(handoff?.booking.occupiedStart == timedOffer.occupiedStart)
+        #expect(handoff?.booking.occupiedEnd == timedOffer.occupiedEnd)
         #expect(store.bookingHandoffs.map(\.booking.id) == [bookingID])
     }
 

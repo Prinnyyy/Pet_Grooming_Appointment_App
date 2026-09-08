@@ -8,6 +8,9 @@ enum GroomerRequestRepositoryError: Error, Equatable, Sendable {
     case noLongerOfferable
     case activeOfferExists
     case groomerUnavailable
+    case timingBuffersRequired
+    case scheduleTimeZoneRequired
+    case serviceTimeZoneRequired
     case offerNotFound
     case noLongerWithdrawable
     case invalidInput
@@ -18,6 +21,7 @@ enum GroomerRequestRepositoryError: Error, Equatable, Sendable {
 
 @MainActor
 protocol GroomerRequestRepository: AnyObject {
+    func offer(groomerID: UUID, offerID: UUID) async throws -> GroomerOffer?
     func matchedRequests(groomerID: UUID) async throws -> [GroomerMatchedRequest]
 
     func matchedRequests(
@@ -54,6 +58,10 @@ protocol GroomerRequestRepository: AnyObject {
 }
 
 extension GroomerRequestRepository {
+    func offer(groomerID: UUID, offerID: UUID) async throws -> GroomerOffer? {
+        throw GroomerRequestRepositoryError.unavailable
+    }
+
     func matchedRequests(
         groomerID: UUID,
         page: ListPageRequest

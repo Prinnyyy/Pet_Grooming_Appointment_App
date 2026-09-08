@@ -1,8 +1,162 @@
 import Foundation
 import Testing
+import SwiftUI
+import UIKit
+import XCTest
 @testable import Beckon
 
+@MainActor
+final class CustomerTimingRecoveryRenderingTests: XCTestCase {
+    func testOldRequestExposesRecoveryWithoutCancellingOnRender() async throws {
+        let owner = UUID()
+        let pet = CustomerRequestsStoreTests.pet(customerID: owner)
+        let request = CustomerRequestsStoreTests.request(customerID: owner, petID: pet.id)
+        let newRequestID = UUID()
+        let provider = TimingRecoveryAddressProvider()
+        let repository = CustomerRequestRepositoryFake(requestsResult: .success([request]),
+            createResult: .success(GroomingRequestPublishResult(requestID: newRequestID, matchCount: 1)),
+            cancelResult: .success(CancelGroomingRequestResult(requestID: request.id,
+                requestStatus: .cancelled, cancelledTimestamp: "2026-09-08T15:00:00Z")))
+        let store = CustomerRequestsStore(customerID: owner,
+            petRepository: CustomerRequestPetRepositoryFake(petsResult: .success([pet])),
+            requestRepository: repository, bookingRepository: CustomerRequestBookingRepositoryFake(),
+            addressProvider: provider)
+        await store.load()
+        let host = UIHostingController(rootView: NavigationStack {
+            CustomerRequestDetailView(requestID: request.id, store: store)
+                .sheet(isPresented: Binding(get: { store.isShowingWizard }, set: { store.setWizardPresentation($0) })) {
+                    CustomerRequestWizardView(store: store)
+                }
+        })
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
+        let previous = scene.windows.first(where: \.isKeyWindow)
+        let window = UIWindow(windowScene: scene)
+        window.frame = CGRect(x: 0, y: 0, width: 390, height: 844)
+        window.rootViewController = host
+        window.makeKeyAndVisible()
+        defer { window.isHidden = true; window.rootViewController = nil; previous?.makeKey() }
+        host.view.frame = window.bounds
+        host.view.layoutIfNeeded()
+        try await Task.sleep(for: .milliseconds(300))
+        func scrollViews(_ view: UIView) -> [UIScrollView] {
+            (view as? UIScrollView).map { [$0] } ?? view.subviews.flatMap { scrollViews($0) }
+        }
+        let scroll = try XCTUnwrap(scrollViews(host.view).first { $0.contentSize.height > $0.bounds.height })
+        for _ in 0..<6 {
+            scroll.setContentOffset(CGPoint(x: 0, y: max(0, scroll.contentSize.height - scroll.bounds.height
+                + scroll.adjustedContentInset.bottom)), animated: false)
+            try await Task.sleep(for: .milliseconds(150))
+        }
+        let image = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
+            window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+        }
+        let pixels = try XCTUnwrap(image.cgImage?.dataProvider?.data) as Data
+        XCTAssertGreaterThan(Set(stride(from: 0, to: pixels.count, by: 4).map { pixels[$0] }).count, 8)
+        let attachment = XCTAttachment(image: image)
+        attachment.name = "T-374 customer timing recovery"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+        XCTAssertEqual(repository.cancelCallCount, 0)
+        if FileManager.default.fileExists(atPath: "/tmp/beckon-t374-customer-recovery-interaction") {
+            for _ in 0..<180 where !store.isShowingWizard {
+                try await Task.sleep(for: .seconds(1))
+            }
+            XCTAssertEqual(repository.cancelCallCount, 1)
+            XCTAssertEqual(store.request(withID: request.id)?.status, .cancelled)
+            XCTAssertTrue(store.isShowingWizard)
+            XCTAssertEqual(store.wizardInitialStep, .time)
+            XCTAssertNil(store.addressEditorState.confirmedAddress)
+            try await Task.sleep(for: .milliseconds(500))
+            let wizard = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
+                window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+            }
+            let wizardAttachment = XCTAttachment(image: wizard)
+            wizardAttachment.name = "T-374 recovery template wizard"
+            wizardAttachment.lifetime = .keepAlways
+            add(wizardAttachment)
+            for _ in 0..<240 where repository.createCallCount == 0 {
+                try await Task.sleep(for: .seconds(1))
+            }
+            XCTAssertEqual(repository.createCallCount, 1)
+            XCTAssertGreaterThan(provider.geocodeCount, 0)
+            let draft = try XCTUnwrap(repository.lastDraft)
+            XCTAssertEqual(draft.petID, pet.id)
+            XCTAssertEqual(draft.serviceType, request.serviceType)
+            XCTAssertEqual(draft.confirmedAddress?.timeZoneIdentifier, "America/Los_Angeles")
+            XCTAssertGreaterThan(draft.preferredEnd, draft.preferredStart)
+            XCTAssertNotEqual(newRequestID, request.id)
+            XCTAssertEqual(repository.cancelCallCount, 1)
+        }
+    }
+}
+
+@MainActor
+private final class TimingRecoveryAddressProvider: BeckonAddressProviding {
+    private(set) var geocodeCount = 0
+    func clear() {}
+    func updateSuggestions(for line1Query: String) async -> [BeckonAddressCandidate] { [] }
+    func resolve(candidateID: String, preservingLine2: String) async throws -> BeckonResolvedAddress {
+        throw BeckonAddressProviderError.unknownCandidate
+    }
+    func geocode(_ input: BeckonAddressInput) async throws -> [BeckonResolvedAddress] {
+        geocodeCount += 1
+        return [BeckonResolvedAddress(provider: "apple_maps", placeID: nil,
+            coordinate: BeckonAddressCoordinate(latitude: 33.8703, longitude: -117.9242),
+            suggested: input, resolutionSource: "manual_geocode", timeZoneIdentifier: "America/Los_Angeles")]
+    }
+}
+
 extension CustomerRequestsStoreTests {
+    @Test @MainActor
+    func defaultDetailRepublishActionOpensUnconfirmedTemplate() async {
+        let owner = UUID()
+        let pet = Self.pet(customerID: owner)
+        let request = Self.request(customerID: owner, petID: pet.id, status: .cancelled)
+        let store = CustomerRequestsStore(customerID: owner,
+            petRepository: CustomerRequestPetRepositoryFake(petsResult: .success([pet])),
+            requestRepository: CustomerRequestRepositoryFake(requestsResult: .success([request])),
+            bookingRepository: CustomerRequestBookingRepositoryFake())
+        await store.load()
+        let detail = CustomerRequestDetailView(requestID: request.id, store: store)
+        detail.onRepublishRequest(request)
+        #expect(store.isShowingWizard)
+        #expect(store.wizardInitialStep == .time)
+        #expect(store.addressEditorState.confirmedAddress == nil)
+        #expect(store.request(withID: request.id)?.status == .cancelled)
+    }
+
+    @Test @MainActor
+    func failedTimingRecoveryCancellationDoesNotEnableRepublish() async throws {
+        let owner = UUID()
+        let pet = Self.pet(customerID: owner)
+        let request = Self.request(customerID: owner, petID: pet.id)
+        let repository = CustomerRequestRepositoryFake(requestsResult: .success([request]),
+            cancelResult: .failure(.networkUnavailable))
+        let store = CustomerRequestsStore(customerID: owner,
+            petRepository: CustomerRequestPetRepositoryFake(petsResult: .success([pet])),
+            requestRepository: repository, bookingRepository: CustomerRequestBookingRepositoryFake())
+        await store.load()
+        await store.cancel(request)
+        let retained = try #require(store.request(withID: request.id))
+        #expect(retained.status == request.status)
+        #expect(!CustomerRequestDetailPresentation(status: retained.status).showsRepublish)
+        #expect(store.errorMessage != nil)
+        #expect(store.cancellingRequestIDs.isEmpty)
+        #expect(repository.cancelCallCount == 1)
+    }
+
+    @Test @MainActor
+    func timingRecoveryRequiresOpenRequestAndMissingReferenceZone() {
+        for status in GroomingRequestStatus.allCases {
+            for zone in [nil, "Invalid/Zone", "America/New_York"] as [String?] {
+                let presentation = CustomerRequestDetailPresentation(status: status, preferenceTimeZoneIdentifier: zone)
+                #expect(presentation.showsTimingRecovery ==
+                    (status.isOpenForOffers && zone != "America/New_York"))
+                #expect(presentation.showsRepublish == (status == .cancelled))
+            }
+        }
+    }
+
     @Test @MainActor
     func requestCardOffersActionUsesAuthoritativeRequestStatus() {
         let open = CustomerRequestCardActionsPresentation(status: .open)

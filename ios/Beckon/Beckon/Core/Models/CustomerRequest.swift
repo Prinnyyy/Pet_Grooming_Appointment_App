@@ -21,6 +21,7 @@ struct CustomerGroomingRequest: Equatable, Hashable, Identifiable, Sendable {
     let expiresAt: String
     let createdAt: String
     let updatedAt: String
+    var preferenceTimeZoneIdentifier: String? = nil
 
     var title: String {
         "\(serviceType.title) for \(petSnapshot.name)"
@@ -64,7 +65,8 @@ struct CustomerGroomingRequest: Equatable, Hashable, Identifiable, Sendable {
             status: status,
             expiresAt: expiresAt,
             createdAt: createdAt,
-            updatedAt: updatedAt ?? self.updatedAt
+            updatedAt: updatedAt ?? self.updatedAt,
+            preferenceTimeZoneIdentifier: preferenceTimeZoneIdentifier
         )
     }
 }
@@ -323,6 +325,17 @@ nonisolated enum GroomingRequestDateFormatting {
 
     static func parsedDate(from value: String) -> Date? {
         date(from: value)
+    }
+
+    static func displayString(from value: String, serviceTimeZoneIdentifier: String?) -> String {
+        guard let date = date(from: value) else { return value }
+        guard let identifier = serviceTimeZoneIdentifier,
+              let calendar = try? GroomingServiceTiming.locationCalendar(identifier) else {
+            return "\(value) (service time zone unconfirmed)"
+        }
+        let formatted = date.formatted(Date.FormatStyle(date: .abbreviated, time: .shortened,
+            calendar: calendar, timeZone: calendar.timeZone).timeZone(.iso8601(.short)))
+        return "\(formatted) (\(identifier))"
     }
 
     private static func serverFormatter() -> ISO8601DateFormatter {

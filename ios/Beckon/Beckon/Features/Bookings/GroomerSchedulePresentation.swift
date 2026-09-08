@@ -236,20 +236,20 @@ nonisolated enum GroomerScheduleDateFormatting {
         format(date, pattern: "yyyy-MM-dd", calendar: calendar)
     }
 
-    static func weekday(from date: Date) -> String {
-        format(date, pattern: "EEE").uppercased()
+    static func weekday(from date: Date, calendar: Calendar = .current) -> String {
+        format(date, pattern: "EEE", calendar: calendar).uppercased()
     }
 
-    static func dayNumber(from date: Date) -> String {
-        format(date, pattern: "d")
+    static func dayNumber(from date: Date, calendar: Calendar = .current) -> String {
+        format(date, pattern: "d", calendar: calendar)
     }
 
-    static func month(from date: Date) -> String {
-        format(date, pattern: "MMM")
+    static func month(from date: Date, calendar: Calendar = .current) -> String {
+        format(date, pattern: "MMM", calendar: calendar)
     }
 
-    static func longDayTitle(from date: Date) -> String {
-        format(date, pattern: "EEEE, MMM d")
+    static func longDayTitle(from date: Date, calendar: Calendar = .current) -> String {
+        format(date, pattern: "EEEE, MMM d", calendar: calendar)
     }
 
     static func time(
@@ -260,6 +260,11 @@ nonisolated enum GroomerScheduleDateFormatting {
             return "Time unavailable"
         }
         return format(date, pattern: "h:mm a", calendar: calendar)
+    }
+
+    static func offset(from value: String, calendar: Calendar) -> String {
+        guard let date = GroomingRequestDateFormatting.parsedDate(from: value) else { return "" }
+        return format(date, pattern: "XXX", calendar: calendar)
     }
 
     private static func format(

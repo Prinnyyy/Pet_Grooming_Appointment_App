@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { runTimingAdmissionRace } from "./timing-admission-race.mjs";
 
 export const PROJECT_ROOT = path.resolve(import.meta.dirname, "..");
 export const CUSTOMER_RESOURCE = path.join(
@@ -654,7 +655,50 @@ export async function runMatchingEvaluation(api, plan) {
   };
 }
 
-export async function runMarketplaceLifecycle(api, plan) {
+export function lifecyclePublicationParameters(parameters, timeZone) {
+  if (timeZone === undefined) return parameters;
+  const { p_publish_operation_id, ...request } = parameters;
+  return {
+    p_publish_operation_id,
+    p_request: Object.fromEntries(Object.entries(request).map(([key, value]) => {
+      if (!key.startsWith("p_")) throw new Error("Invalid lifecycle publication parameter.");
+      return [key.slice(2), value];
+    })),
+    p_preference_time_zone_identifier: timeZone,
+  };
+}
+
+export async function requireLifecycleTiming(api, accessToken) {
+  const availability = await api.rpc("get_groomer_availability", {}, accessToken);
+  const limits = { preparation_minutes: 120, cleanup_minutes: 120,
+    inbound_travel_minutes: 180, outbound_travel_minutes: 180 };
+  const buffers = availability?.preferences?.timing_buffers;
+  if (availability?.timing_version !== 1 || !buffers
+    || Object.keys(buffers).length !== 4
+    || Object.entries(limits).some(([key, maximum]) =>
+      !Number.isInteger(buffers[key]) || buffers[key] < 0 || buffers[key] > maximum)) {
+    throw new Error("Timing acceptance requires backend version 1 and confirmed buffer settings.");
+  }
+  const windows = availability.windows;
+  const validZone = value => {
+    if (typeof value !== "string" || !value) return false;
+    try { new Intl.DateTimeFormat("en", { timeZone: value }); return true; }
+    catch { return false; }
+  };
+  if (!Array.isArray(windows) || windows.length !== 7
+    || new Set(windows.map(w => w.weekday)).size !== 7
+    || windows.some(w => !Number.isInteger(w.weekday) || w.weekday < 1 || w.weekday > 7)
+    || new Set(windows.map(w => w.timezone)).size !== 1 || !validZone(windows[0].timezone)) {
+    throw new Error("Timing acceptance requires seven confirmed weekdays in one schedule time zone.");
+  }
+  const location = await api.rpc("get_my_profile_address_v3", {}, accessToken);
+  if (location?.timing_version !== 1 || !validZone(location.address?.time_zone_identifier)) {
+    throw new Error("Timing acceptance requires a confirmed address time zone.");
+  }
+  return requireCoordinateAddress(location.address, "Timing acceptance requires a coordinate-backed address.");
+}
+
+export async function runMarketplaceLifecycle(api, plan, { timingDatabaseBarrier } = {}) {
   const startedAt = new Date().toISOString();
   const phases = [];
   let requestID = null;
@@ -683,17 +727,20 @@ export async function runMarketplaceLifecycle(api, plan) {
   }
 
   const addressRows = await timed(phases, "groomer.loadAddress", () =>
-    api.rpc("get_my_groomer_profile_address_v2", {}, groomerSession.accessToken)
+    plan.timingContract
+      ? requireLifecycleTiming(api, groomerSession.accessToken).then(address => [address])
+      : api.rpc("get_my_groomer_profile_address_v2", {}, groomerSession.accessToken)
   );
   const targetAddress = requireCoordinateAddress(
     addressRows[0],
     `${plan.groomer.seedID} has no coordinate-backed profile.`,
   );
 
+  const publicationRPC = plan.timingContract ? "create_grooming_request_v4" : "create_grooming_request_v3";
   const requestRows = await timed(phases, "customer.createRequest", () =>
     api.rpc(
-      "create_grooming_request_v3",
-      {
+      publicationRPC,
+      lifecyclePublicationParameters({
         p_publish_operation_id: publishOperationID(plan),
         p_pet_id: dog.id,
         p_service_type: plan.request.serviceType,
@@ -714,14 +761,14 @@ export async function runMarketplaceLifecycle(api, plan) {
         p_longitude: targetAddress.longitude,
         p_resolution_source: "manual_geocode",
         p_user_confirmed_at: new Date().toISOString(),
-      },
+      }, plan.timingContract ? targetAddress.time_zone_identifier : undefined),
       customerSession.accessToken
     )
   );
   requestID = firstValue(requestRows, "request_id");
   const matchCount = Number(firstValue(requestRows, "match_count") ?? 0);
   if (!requestID) {
-    throw new Error("create_grooming_request_v3 did not return request_id.");
+    throw new Error(`${publicationRPC} did not return request_id.`);
   }
   if (matchCount < 1) {
     throw new Error(`Request ${shortRef(requestID)} produced zero matches.`);
@@ -756,6 +803,20 @@ export async function runMarketplaceLifecycle(api, plan) {
   offerID = firstValue(offerRows, "offer_id");
   if (!offerID) {
     throw new Error("create_groomer_offer did not return offer_id.");
+  }
+
+  if (plan.timingRace) {
+    const race = await timed(phases, "timing.admissionSaveRace", () => runTimingAdmissionRace(api, {
+      offerID, serviceStart: plan.offer.proposedStart, groomerID,
+      customerToken: customerSession.accessToken, groomerToken: groomerSession.accessToken,
+      databaseBarrier: timingDatabaseBarrier,
+    }));
+    const { bookingID: raceBookingID, ...raceEvidence } = race;
+    return { runID: plan.runID, scenarioID: plan.scenarioID, caseID: plan.caseID,
+      startedAt, finishedAt: new Date().toISOString(),
+      customer: safeActor(plan.customer, customerID), groomer: safeActor(plan.groomer, groomerID),
+      ids: { requestID, offerID, bookingID: raceBookingID }, matchCount, phases,
+      timingContract: true, timingRace: true, verification: { scope: "timing-admission-save", ...raceEvidence } };
   }
 
   const bookingRows = await timed(phases, "customer.acceptOffer", () =>
@@ -797,6 +858,7 @@ export async function runMarketplaceLifecycle(api, plan) {
     customer: safeActor(plan.customer, customerID),
     groomer: safeActor(plan.groomer, groomerID),
     ids: { requestID, offerID, bookingID, reviewID },
+    ...(plan.timingContract ? { timingContract: true } : {}),
     matchCount,
     phases,
     verification,
@@ -813,11 +875,17 @@ function requireCoordinateAddress(address, message) {
 export async function cleanupRun(api, runID) {
   const serviceToken = api.requireServiceRole();
   const cleanupPlan = buildCleanupPlan(runID);
+  const tagPrefix = `${cleanupPlan.tag} `;
+  const taggedQuery = `select=id,service_notes&or=(service_notes.eq.${encodeURIComponent(cleanupPlan.tag)},service_notes.like.${encodeURIComponent(tagPrefix)}*)`;
   const requests = await api.restSelect(
     "grooming_requests",
-    `select=id&service_notes=ilike.*${encodeURIComponent(cleanupPlan.tag)}*`,
+    taggedQuery,
     serviceToken
   );
+  if (requests.some(row => typeof row.service_notes !== "string"
+    || (row.service_notes !== cleanupPlan.tag && !row.service_notes.startsWith(tagPrefix)))) {
+    throw new Error("Cleanup returned a request outside the exact run marker; no deletes attempted.");
+  }
   const requestIDs = requests.map((row) => row.id).filter(Boolean);
   const summary = {
     runID,
@@ -846,22 +914,20 @@ export async function cleanupRun(api, runID) {
     serviceToken
   );
   const bookingIDs = bookings.map((row) => row.id).filter(Boolean);
-  const conversations = await api.restSelect(
-    "conversations",
-    `select=id&request_id=${requestFilter}`,
+  const bookingCards = bookingIDs.length ? await api.restSelect(
+    "messages",
+    `select=conversation_id&booking_id=in.(${bookingIDs.join(",")})`,
     serviceToken
-  );
-  const conversationIDs = conversations.map((row) => row.id).filter(Boolean);
+  ) : [];
+  const conversationIDs = [...new Set(bookingCards.map(row => row.conversation_id).filter(Boolean))];
+  summary.preservedParticipantConversationCount = conversationIDs.length;
 
+  // Participant threads can contain unrelated bookings and chat. Only explicit
+  // run-tagged text is owned here; booking cards cascade with their bookings.
   if (conversationIDs.length > 0) {
     summary.deleted.messages = await api.restDelete(
       "messages",
-      `conversation_id=in.(${conversationIDs.join(",")})`,
-      serviceToken
-    );
-    summary.deleted.conversations = await api.restDelete(
-      "conversations",
-      `id=in.(${conversationIDs.join(",")})`,
+      `conversation_id=in.(${conversationIDs.join(",")})&or=(body.eq.${encodeURIComponent(cleanupPlan.tag)},body.like.${encodeURIComponent(tagPrefix)}*)`,
       serviceToken
     );
   }
@@ -908,10 +974,13 @@ export async function cleanupRun(api, runID) {
 
   const remainingRequests = await api.restSelect(
     "grooming_requests",
-    `select=id&service_notes=ilike.*${encodeURIComponent(cleanupPlan.tag)}*`,
+    taggedQuery,
     serviceToken
   );
   summary.remainingTaggedRequests = remainingRequests.length;
+  if (summary.remainingTaggedRequests !== 0) {
+    throw new Error(`Tagged requests remain after cleanup for ${runID}; restoration is unverified.`);
+  }
 
   return summary;
 }
@@ -924,7 +993,6 @@ export function buildCleanupPlan(runID) {
     deleteOrder: [
       "request_address_locations",
       "messages",
-      "conversations",
       "review_pet_fit_outcomes",
       "reviews",
       "bookings",
@@ -995,7 +1063,7 @@ export async function verifyUILifecycleRun(api, runID) {
 
   const bookings = await api.restSelect(
     "bookings",
-    `select=id,status&request_id=eq.${request.id}`,
+    `select=id,status,customer_id,groomer_id&request_id=eq.${request.id}`,
     serviceToken
   );
   if (bookings.length !== 1 || bookings[0].status !== "completed") {
@@ -1003,9 +1071,12 @@ export async function verifyUILifecycleRun(api, runID) {
   }
 
   const booking = bookings[0];
+  if (!booking.customer_id || !booking.groomer_id) {
+    throw new Error("Booking participant identity is missing; conversation verification is unavailable.");
+  }
   const conversations = await api.restSelect(
     "conversations",
-    `select=id&request_id=eq.${request.id}&booking_id=eq.${booking.id}`,
+    `select=id&customer_id=eq.${booking.customer_id}&groomer_id=eq.${booking.groomer_id}`,
     serviceToken
   );
   if (conversations.length !== 1) {
@@ -1204,7 +1275,9 @@ export class SupabaseREST {
           ?? payload?.error_description
           ?? payload?.error
           ?? response.statusText;
-      throw new Error(`${kind} ${response.status}: ${message}`);
+      throw Object.assign(new Error(`${kind} ${response.status}: ${message}`), {
+        code: payload?.code, serverMessage: message, httpStatus: response.status,
+      });
     }
     return payload;
   }
@@ -1212,6 +1285,8 @@ export class SupabaseREST {
 
 export function redactedPlan(plan) {
   return {
+    ...(plan.timingContract ? { timingContract: true } : {}),
+    ...(plan.timingRace ? { timingRace: true } : {}),
     runID: plan.runID,
     scenarioID: plan.scenarioID,
     caseID: plan.caseID,
@@ -1324,6 +1399,9 @@ export function destinationCoordinateWGS84(origin, distanceMiles, bearingDegrees
 
 export function redactedResult(result) {
   return {
+    ...(result.timingContract ? { timingContract: true } : {}),
+    ...(result.timingRace ? { timingRace: true } : {}),
+    ...(result.restoration ? { restoration: result.restoration } : {}),
     runID: result.runID,
     scenarioID: result.scenarioID,
     caseID: result.caseID,

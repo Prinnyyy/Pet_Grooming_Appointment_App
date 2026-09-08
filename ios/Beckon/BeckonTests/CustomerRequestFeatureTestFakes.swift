@@ -24,7 +24,8 @@ extension CustomerRequestsStore {
             placeID: placeID,
             coordinate: coordinate,
             resolutionSource: "autocomplete_selection",
-            confirmedAt: Date(timeIntervalSince1970: 1_750_000_000)
+            confirmedAt: Date(timeIntervalSince1970: 1_750_000_000),
+            timeZoneIdentifier: "America/Los_Angeles"
         )
         addressEditorState.replaceInput(input, confirmedAddress: confirmed)
     }

@@ -14,8 +14,8 @@ final class SupabaseGroomerProfileRepository: GroomerProfileRepository {
         "id,portfolio_photo_id,groomer_id,trait_type,trait_value"
     private static let availabilityColumns =
         "id,groomer_id,weekday,start_time,end_time,is_enabled,timezone"
-    private static let bookingPreferencesColumns =
-        "groomer_id,max_appointments_per_day,minimum_advance_notice_days,auto_accept_bookings"
+    // The owned settings row must remain readable before additive timing columns deploy.
+    private static let bookingPreferencesColumns = "*"
     private static let timeOffColumns =
         "id,groomer_id,title,start_date,end_date"
     private static let fitClaimColumns =
@@ -212,6 +212,7 @@ final class SupabaseGroomerProfileRepository: GroomerProfileRepository {
         confirmedAddress: BeckonConfirmedAddress?
     ) async throws -> GroomerProfile {
         do {
+            try await ProfileAddressRPC.validateSaveSupport(client: client, address: confirmedAddress)
             let rows: [GroomerProfileRow] = try await client
                 .from("groomer_profiles")
                 .update(
@@ -230,15 +231,8 @@ final class SupabaseGroomerProfileRepository: GroomerProfileRepository {
             }
 
             if let confirmedAddress {
-                let _: UUID = try await client
-                    .rpc(
-                        "save_groomer_profile_address_v2",
-                        params: SaveProfileAddressRPCParameters(
-                            confirmedAddress: confirmedAddress
-                        )
-                    )
-                    .execute()
-                    .value
+                try await ProfileAddressRPC.save(client: client,
+                    legacyRPC: "save_groomer_profile_address_v2", address: confirmedAddress)
                 profile.baseStreetAddress = confirmedAddress.accepted.line1
                 profile.baseAddressLine2 = confirmedAddress.accepted.line2
                 profile.baseCity = confirmedAddress.accepted.city
@@ -256,14 +250,7 @@ final class SupabaseGroomerProfileRepository: GroomerProfileRepository {
     }
 
     private func loadConfirmedAddress() async throws -> BeckonConfirmedAddress? {
-        let rows: [ProfileAddressRPCRow] = try await client
-            .rpc("get_my_groomer_profile_address_v2")
-            .execute()
-            .value
-        guard rows.count <= 1 else {
-            throw GroomerProfileRepositoryError.unavailable
-        }
-        return rows.first?.confirmedAddress
+        try await ProfileAddressRPC.load(client: client, legacyRPC: "get_my_groomer_profile_address_v2")
     }
 
     func createService(
@@ -803,6 +790,11 @@ final class SupabaseGroomerProfileRepository: GroomerProfileRepository {
         }
 
         if let postgrestError = error as? PostgrestError {
+            if postgrestError.code == "22023",
+               ["time_off_conflicts_with_booking_occupancy", "weekly_hours_conflict_with_booking_occupancy"]
+                .contains(postgrestError.message) {
+                return .bookingOccupancyConflict
+            }
             if postgrestError.message == "availability_revision_conflict" {
                 return .availabilityConflict
             }
@@ -1057,6 +1049,7 @@ private struct GroomerAvailabilitySnapshotRow: Decodable {
     let windows: [GroomerAvailabilityWindowRow]
     let preferences: GroomerBookingPreferencesRow
     let time_off: [GroomerTimeOffWindowRow]
+    let timing_version: Int?
 
     func snapshot(groomerID: UUID) throws -> GroomerAvailabilitySnapshot {
         let decodedWindows = windows.compactMap(\.window)
@@ -1069,7 +1062,7 @@ private struct GroomerAvailabilitySnapshotRow: Decodable {
         }
         return GroomerAvailabilitySnapshot(
             revision: revision, windows: decodedWindows,
-            preferences: preferences.preferences, timeOff: time_off.map(\.window)
+            preferences: preferences.preferences, timeOff: time_off.map(\.window), timingVersion: timing_version
         )
     }
 }
@@ -1100,13 +1093,15 @@ private struct GroomerBookingPreferencesRow: Decodable {
     let maxAppointmentsPerDay: Int
     let minimumAdvanceNoticeDays: Int
     let autoAcceptBookings: Bool
+    let timingBuffers: GroomingTimingBuffers?
 
     var preferences: GroomerBookingPreferences {
         GroomerBookingPreferences(
             groomerID: groomerID,
             maxAppointmentsPerDay: maxAppointmentsPerDay,
             minimumAdvanceNoticeDays: minimumAdvanceNoticeDays,
-            autoAcceptBookings: autoAcceptBookings
+            autoAcceptBookings: autoAcceptBookings,
+            timingBuffers: timingBuffers
         )
     }
 
@@ -1115,6 +1110,7 @@ private struct GroomerBookingPreferencesRow: Decodable {
         case maxAppointmentsPerDay = "max_appointments_per_day"
         case minimumAdvanceNoticeDays = "minimum_advance_notice_days"
         case autoAcceptBookings = "auto_accept_bookings"
+        case timingBuffers = "timing_buffers"
     }
 }
 
@@ -1308,6 +1304,7 @@ private struct GroomerBookingPreferencesUpsertRow: Encodable {
             forKey: .minimumAdvanceNoticeDays
         )
         try container.encode(draft.autoAcceptBookings, forKey: .autoAcceptBookings)
+        try container.encodeIfPresent(draft.timingBuffers, forKey: .timingBuffers)
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -1315,6 +1312,7 @@ private struct GroomerBookingPreferencesUpsertRow: Encodable {
         case maxAppointmentsPerDay = "max_appointments_per_day"
         case minimumAdvanceNoticeDays = "minimum_advance_notice_days"
         case autoAcceptBookings = "auto_accept_bookings"
+        case timingBuffers = "timing_buffers"
     }
 }
 

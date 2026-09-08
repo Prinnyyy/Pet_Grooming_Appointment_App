@@ -253,7 +253,7 @@ test("cleanup run with no tagged requests does not issue delete calls", async ()
     {
       kind: "select",
       table: "grooming_requests",
-      query: "select=id&service_notes=ilike.*TESTOPS%3ATESTOPS-EDGE-NONE*",
+      query: "select=id,service_notes&or=(service_notes.eq.TESTOPS%3ATESTOPS-EDGE-NONE,service_notes.like.TESTOPS%3ATESTOPS-EDGE-NONE%20*)",
       token: jwtServiceRoleKey,
     },
   ]);
@@ -422,7 +422,7 @@ function uiLifecycleVerificationAPI(ids, overrides = {}) {
     requireServiceRole() {
       return jwtServiceRoleKey;
     },
-    async restSelect(table) {
+    async restSelect(table, query) {
       switch (table) {
         case "grooming_requests":
           return [{ id: ids.request, status: "booked" }];
@@ -431,8 +431,11 @@ function uiLifecycleVerificationAPI(ids, overrides = {}) {
         case "groomer_offers":
           return [{ id: ids.offer, status: "accepted_by_customer" }];
         case "bookings":
-          return [{ id: ids.booking, status: overrides.bookingStatus ?? "completed" }];
+          assert.match(query, /customer_id,groomer_id/);
+          return [{ id: ids.booking, customer_id: "customer", groomer_id: "groomer",
+            status: overrides.bookingStatus ?? "completed" }];
         case "conversations":
+          assert.equal(query, "select=id&customer_id=eq.customer&groomer_id=eq.groomer");
           return [{ id: ids.conversation }];
         case "messages":
           return [{ id: "message-1", body: "TESTOPS:TESTOPS-UI-VERIFY hello" }];

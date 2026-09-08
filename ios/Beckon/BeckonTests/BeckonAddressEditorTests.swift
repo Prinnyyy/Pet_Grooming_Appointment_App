@@ -5,6 +5,100 @@ import Testing
 @Suite("Shared address editor")
 struct BeckonAddressEditorTests {
     @Test @MainActor
+    func timedConfirmationRefreshesLegacyZoneAndRejectsUnresolvedZone() async throws {
+        let input = Self.input(line1: "770 S Harbor Blvd")
+        var resolved = Self.resolved(line1: input.line1)
+        let provider = AddressProviderFake(geocodeResults: [resolved])
+        let state = BeckonAddressEditorState(input: input, provider: provider)
+        _ = await state.prepareConfirmation()
+        let legacyAddress = try #require(state.confirmedAddress)
+        #expect(state.confirmedAddress?.timeZoneIdentifier == nil)
+        #expect(await state.prepareConfirmation(requiringTimeZone: true) == .unavailable)
+        #expect(state.inlineError != nil)
+        resolved.timeZoneIdentifier = "America/Los_Angeles"
+        let refreshed = BeckonAddressEditorState(input: input,
+            provider: AddressProviderFake(geocodeResults: [resolved]))
+        refreshed.replaceInput(input, confirmedAddress: legacyAddress)
+        #expect(await refreshed.prepareConfirmation(requiringTimeZone: true) == .confirmed)
+        #expect(refreshed.confirmedAddress?.timeZoneIdentifier == "America/Los_Angeles")
+    }
+
+    @Test
+    func versionedAddressEnvelopeAndPayloadPreserveTimingContract() throws {
+        let decoder = JSONDecoder()
+        let response = try decoder.decode(ProfileAddressV3Response.self,
+            from: Data(#"{"timing_version":1,"address":null}"#.utf8))
+        #expect(response.timingVersion == 1)
+        #expect(response.address == nil)
+        for malformed in [#"{"timing_version":2,"address":null}"#,
+                          #"{"timing_version":1}"#] {
+            #expect(throws: (any Error).self) {
+                try decoder.decode(ProfileAddressV3Response.self, from: Data(malformed.utf8))
+            }
+        }
+        var address = BeckonConfirmedAddress(entered: Self.input(line1: "123 Test Street"),
+            accepted: Self.input(line1: "123 Test Street"), provider: "apple_maps", placeID: nil,
+            coordinate: BeckonAddressCoordinate(latitude: 33.83, longitude: -117.92),
+            resolutionSource: "manual_geocode", confirmedAt: Date(timeIntervalSince1970: 0))
+        address.timeZoneIdentifier = "America/Los_Angeles"
+        let data = try JSONEncoder().encode(SaveProfileAddressV3Parameters(confirmedAddress: address))
+        let outer = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        let payload = try #require(outer["p_address"] as? [String: Any])
+        #expect(payload["time_zone_identifier"] as? String == "America/Los_Angeles")
+        #expect(payload["line_1"] as? String == "123 Test Street")
+        #expect(payload["user_confirmed_at"] as? String == "1970-01-01T00:00:00Z")
+        #expect(payload["owner_id"] == nil)
+        address.timeZoneIdentifier = nil
+        #expect(throws: (any Error).self) {
+            try JSONEncoder().encode(SaveProfileAddressV3Parameters(confirmedAddress: address))
+        }
+    }
+
+    @Test
+    func profileAddressHydrationRetainsExplicitZoneWithoutInventingLegacyZone() throws {
+        let base: [String: Any] = [
+            "line_1": "770 S Harbor Blvd", "city": "Anaheim", "state": "CA",
+            "zip_code": "92805", "provider": "mapkit", "country_code": "US",
+            "latitude": 33.83, "longitude": -117.92, "resolution_source": "geocode",
+            "user_confirmed_at": "2026-09-07T12:00:00Z"
+        ]
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        for zone in [nil, "America/Los_Angeles", "America/New_York"] as [String?] {
+            var payload = base
+            if let zone { payload["time_zone_identifier"] = zone }
+            let row = try decoder.decode(ProfileAddressRPCRow.self,
+                from: JSONSerialization.data(withJSONObject: payload))
+            let address = try #require(row.confirmedAddress)
+            #expect(address.timeZoneIdentifier == zone)
+            #expect(address.accepted.line1 == "770 S Harbor Blvd")
+        }
+    }
+
+    @Test @MainActor
+    func addressConfirmationPreservesTheResolvedLocationTimeZone() async {
+        let input = Self.input(line1: "770 S Harbor Blvd")
+        var resolved = Self.resolved(line1: input.line1)
+        resolved.timeZoneIdentifier = "America/Los_Angeles"
+        let state = BeckonAddressEditorState(input: input,
+            provider: AddressProviderFake(geocodeResults: [resolved]))
+        _ = await state.prepareConfirmation()
+        #expect(state.confirmedAddress?.timeZoneIdentifier == "America/Los_Angeles")
+        state.updateLine1("123 Changed Street")
+        #expect(state.confirmedAddress == nil)
+    }
+
+    @Test @MainActor
+    func missingResolvedTimeZoneIsNotReplacedByTheDeviceZone() async {
+        let input = Self.input(line1: "770 S Harbor Blvd")
+        let state = BeckonAddressEditorState(input: input,
+            provider: AddressProviderFake(geocodeResults: [Self.resolved(line1: input.line1)]))
+        _ = await state.prepareConfirmation()
+        #expect(state.confirmedAddress != nil)
+        #expect(state.confirmedAddress?.timeZoneIdentifier == nil)
+    }
+
+    @Test @MainActor
     func completeSecondarySuffixMovesToLineTwoAndPublishesNotice() {
         let state = BeckonAddressEditorState(
             input: Self.input(line1: "770 S Harbor Blvd"),

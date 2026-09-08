@@ -336,8 +336,8 @@ extension CustomerRequestsStoreTests {
         #expect(store.errorMessage == "Add a pet before creating a request.")
     }
 
-    @Test @MainActor
-    func nearFutureStartTimeDoesNotCallRepository() async {
+    @Test(arguments: [120.0, 7200.0]) @MainActor
+    func nearFutureWindowPublishesOnlyWhenTimeRemains(endOffset: TimeInterval) async throws {
         let customerID = UUID()
         let pet = Self.pet(customerID: customerID)
         let repository = CustomerRequestRepositoryFake()
@@ -353,8 +353,9 @@ extension CustomerRequestsStoreTests {
 
         store.startCreate()
         store.serviceType = .bathAndBrush
-        store.preferredStart = Date().addingTimeInterval(60)
-        store.preferredEnd = Date().addingTimeInterval(2 * 60 * 60)
+        let now = Date()
+        store.preferredStart = now.addingTimeInterval(60)
+        store.preferredEnd = now.addingTimeInterval(endOffset)
         store.streetAddress = "123 Pine Street"
         store.city = "Seattle"
         store.stateCode = .washington
@@ -363,11 +364,17 @@ extension CustomerRequestsStoreTests {
 
         await store.publish()
 
-        #expect(repository.createCallCount == 0)
-        #expect(
-            store.errorMessage ==
-                "Preferred start must be at least 5 minutes from now."
-        )
+        if endOffset < CustomerRequestsStore.minimumPreferredStartLeadTime {
+            #expect(repository.createCallCount == 0)
+            #expect(store.errorMessage ==
+                "Choose a time window with time remaining at least 5 minutes from now.")
+        } else {
+            #expect(repository.createCallCount == 1)
+            let draft = try #require(repository.lastDraft)
+            #expect(draft.preferredStart >= now.addingTimeInterval(300))
+            #expect(draft.preferredStart <= Date().addingTimeInterval(300))
+            #expect(draft.preferredEnd == store.preferredEnd)
+        }
     }
 
     @Test @MainActor

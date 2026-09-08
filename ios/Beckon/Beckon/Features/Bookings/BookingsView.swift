@@ -9,6 +9,14 @@ struct BookingsView: View {
     @State private var selectedScope: BookingListScope = .upcoming
     @State private var selectedScheduleDayKey: String?
 
+    init(role: UserRole, store: BookingsStore, onOpenChat: @escaping (Booking) -> Void = { _ in }) {
+        self.role = role
+        self.customerProfileRepository = nil
+        self.onOpenChat = onOpenChat
+        _store = State(initialValue: store)
+        _requestStore = State(initialValue: nil)
+    }
+
     init(
         participantID: UUID,
         role: UserRole,
@@ -16,6 +24,7 @@ struct BookingsView: View {
         petRepository: (any CustomerPetRepository)? = nil,
         requestRepository: (any CustomerRequestRepository)? = nil,
         customerProfileRepository: (any CustomerProfileRepository)? = nil,
+        groomerProfileRepository: (any GroomerProfileRepository)? = nil,
         debugRecorder: AppDebugEventRecorder? = nil,
         onOpenChat: @escaping (Booking) -> Void = { _ in }
     ) {
@@ -27,6 +36,7 @@ struct BookingsView: View {
                 participantID: participantID,
                 role: role,
                 repository: repository,
+                groomerProfileRepository: groomerProfileRepository,
                 debugRecorder: debugRecorder
             )
         )
@@ -167,16 +177,67 @@ struct BookingsView: View {
         .accessibilityIdentifier("bookings.list")
     }
 
+    @ViewBuilder
     private var groomerScheduleContent: some View {
-        ScrollView {
+        if let calendar = store.scheduleCalendar {
+            loadedGroomerScheduleContent(calendar: calendar)
+        } else if store.isLoading, store.bookings.isEmpty {
+            ProgressView("Loading schedule time zone")
+        } else {
+            ScrollView {
+            LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                Text("Schedule time zone is unavailable. Check your availability settings or try again.")
+                Button("Retry", systemImage: "arrow.clockwise") { Task { await store.load() } }
+                    .disabled(store.isLoading)
+                ForEach(store.bookings.sortedByScheduledStart(ascending: true)) { booking in
+                    NavigationLink {
+                        BookingDetailView(bookingID: booking.id, role: .groomer, store: store,
+                            onOpenChat: onOpenChat)
+                    } label: {
+                        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                            Text(booking.appointmentServiceTitle)
+                                .font(DesignTokens.Typography.headline)
+                            Text(booking.scheduledTimeSummary)
+                                .font(DesignTokens.Typography.caption)
+                                .fixedSize(horizontal: false, vertical: true)
+                            Text(booking.status.title)
+                                .font(DesignTokens.Typography.caption)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("groomer.schedule.fallback.\(booking.id.uuidString)")
+                }
+                if store.canLoadMore || store.isLoadingMore {
+                    BeckonLoadMoreButton(isLoading: store.isLoadingMore, accent: .groomer,
+                        accessibilityIdentifier: "groomer.schedule.load-more") {
+                        await store.loadNextPage()
+                    }
+                }
+            }
+            .padding()
+            }
+            .accessibilityIdentifier("groomer.schedule.time-zone-unavailable")
+        }
+    }
+
+    private func loadedGroomerScheduleContent(calendar: Calendar) -> some View {
+        let schedulePresentation = GroomerSchedulePresentation(referenceDate: Date(), bookings: store.bookings,
+            selectedDayKey: selectedScheduleDayKey, calendar: calendar)
+        return ScrollView {
             LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
                 appointmentReminderNotice
 
                 GroomerScheduleDayStrip(
                     days: schedulePresentation.days,
+                    calendar: calendar,
                     selectedDayKey: schedulePresentation.selectedDayKey,
                     onSelect: { selectedScheduleDayKey = $0.id }
                 )
+                Label(calendar.timeZone.identifier, systemImage: "globe")
+                    .font(DesignTokens.Typography.caption)
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                    .accessibilityIdentifier("groomer.schedule.time-zone")
 
                 if store.isLoading, store.bookings.isEmpty {
                     BeckonLoadingView(
@@ -190,14 +251,14 @@ struct BookingsView: View {
                 } else if schedulePresentation.selectedBookings.isEmpty {
                     GroomerScheduleEmptyDayView(
                         dayTitle: GroomerScheduleDateFormatting.longDayTitle(
-                            from: schedulePresentation.selectedDate
+                            from: schedulePresentation.selectedDate, calendar: calendar
                         )
                     )
                 } else {
                     if let summary = schedulePresentation.summary {
                         GroomerScheduleSummaryBand(
                             dayTitle: GroomerScheduleDateFormatting.longDayTitle(
-                                from: schedulePresentation.selectedDate
+                                from: schedulePresentation.selectedDate, calendar: calendar
                             ),
                             summary: summary
                         )
@@ -205,6 +266,7 @@ struct BookingsView: View {
 
                     GroomerScheduleTimeline(
                         bookings: schedulePresentation.selectedBookings,
+                        calendar: calendar,
                         store: store,
                         onOpenChat: onOpenChat
                     )
@@ -320,13 +382,6 @@ struct BookingsView: View {
             .sortedByScheduledStart(ascending: selectedScope == .upcoming)
     }
 
-    private var schedulePresentation: GroomerSchedulePresentation {
-        GroomerSchedulePresentation(
-            referenceDate: Date(),
-            bookings: store.bookings,
-            selectedDayKey: selectedScheduleDayKey
-        )
-    }
 }
 
 struct BookingsFeedbackPresentation {
@@ -562,6 +617,7 @@ private struct BookingScopeControl: View {
 
 private struct GroomerScheduleDayStrip: View {
     let days: [GroomerScheduleDay]
+    let calendar: Calendar
     let selectedDayKey: String
     let onSelect: (GroomerScheduleDay) -> Void
 
@@ -576,6 +632,7 @@ private struct GroomerScheduleDayStrip: View {
                     } label: {
                         GroomerScheduleDayChip(
                             day: day,
+                            calendar: calendar,
                             isSelected: day.id == selectedDayKey
                         )
                     }
@@ -590,24 +647,27 @@ private struct GroomerScheduleDayStrip: View {
 }
 
 private struct GroomerScheduleDayChip: View {
+    @ScaledMetric(relativeTo: .caption) private var chipWidth = 64.0
+    @ScaledMetric(relativeTo: .caption) private var chipHeight = 78.0
     let day: GroomerScheduleDay
+    let calendar: Calendar
     let isSelected: Bool
 
     var body: some View {
         VStack(spacing: 3) {
-            Text(GroomerScheduleDateFormatting.weekday(from: day.date))
+            Text(GroomerScheduleDateFormatting.weekday(from: day.date, calendar: calendar))
                 .font(.caption.weight(.bold))
                 .foregroundStyle(isSelected ? Color.white.opacity(0.86) : DesignTokens.Colors.textTertiary)
 
-            Text(GroomerScheduleDateFormatting.dayNumber(from: day.date))
+            Text(GroomerScheduleDateFormatting.dayNumber(from: day.date, calendar: calendar))
                 .font(.system(size: 24, weight: .bold))
                 .foregroundStyle(isSelected ? Color.white : DesignTokens.Colors.textPrimary)
 
-            Text(day.isToday ? "Today" : GroomerScheduleDateFormatting.month(from: day.date))
+            Text(day.isToday ? "Today" : GroomerScheduleDateFormatting.month(from: day.date, calendar: calendar))
                 .font(.caption2.weight(.bold))
                 .foregroundStyle(isSelected ? Color.white.opacity(0.8) : DesignTokens.Colors.textTertiary)
         }
-        .frame(width: 64, height: 78)
+        .frame(width: chipWidth, height: chipHeight)
         .background {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .fill(isSelected ? DesignTokens.Colors.groomerAccent : DesignTokens.Colors.surface)
@@ -625,12 +685,13 @@ private struct GroomerScheduleDayChip: View {
 }
 
 private struct GroomerScheduleSummaryBand: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let dayTitle: String
     let summary: GroomerScheduleSummary
 
     var body: some View {
         GroomerGroupedSurface {
-            HStack(alignment: .center, spacing: DesignTokens.Spacing.lg) {
+            summaryLayout {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     Text(dayTitle)
                         .font(DesignTokens.Typography.headline)
@@ -639,8 +700,7 @@ private struct GroomerScheduleSummaryBand: View {
                     Text("Next at \(summary.nextStartSummary) · \(summary.totalDurationSummary) booked")
                         .font(DesignTokens.Typography.caption)
                         .foregroundStyle(DesignTokens.Colors.textSecondary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.8)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -650,12 +710,18 @@ private struct GroomerScheduleSummaryBand: View {
                     .padding(.horizontal, DesignTokens.Spacing.sm)
                     .padding(.vertical, DesignTokens.Spacing.xs)
                     .background(DesignTokens.Colors.groomerAccent.opacity(0.14))
-                    .clipShape(Capsule())
+                    .clipShape(DesignTokens.Shapes.chip)
             }
             .padding(DesignTokens.Spacing.md)
         }
         .accessibilityIdentifier("groomer.schedule.summary")
         .accessibilityElement(children: .combine)
+    }
+
+    private var summaryLayout: AnyLayout {
+        dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.md))
+            : AnyLayout(HStackLayout(alignment: .center, spacing: DesignTokens.Spacing.lg))
     }
 }
 
@@ -681,6 +747,7 @@ private struct GroomerScheduleEmptyDayView: View {
 
 private struct GroomerScheduleTimeline: View {
     let bookings: [Booking]
+    let calendar: Calendar
     let store: BookingsStore
     let onOpenChat: (Booking) -> Void
 
@@ -695,6 +762,7 @@ private struct GroomerScheduleTimeline: View {
 
                         GroomerScheduleAppointmentRow(
                             booking: booking,
+                            calendar: calendar,
                             store: store,
                             onOpenChat: onOpenChat
                         )
@@ -707,12 +775,26 @@ private struct GroomerScheduleTimeline: View {
 }
 
 private struct GroomerScheduleAppointmentRow: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let booking: Booking
+    let calendar: Calendar
     let store: BookingsStore
     let onOpenChat: (Booking) -> Void
 
     private var presentation: GroomerScheduleAppointmentPresentation {
         GroomerScheduleAppointmentPresentation(booking: booking)
+    }
+
+    private var appointmentLayout: AnyLayout {
+        dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.md))
+            : AnyLayout(HStackLayout(alignment: .top, spacing: DesignTokens.Spacing.md))
+    }
+
+    private var actionLayout: AnyLayout {
+        dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(spacing: DesignTokens.Spacing.sm))
+            : AnyLayout(HStackLayout(spacing: DesignTokens.Spacing.sm))
     }
 
     var body: some View {
@@ -725,17 +807,21 @@ private struct GroomerScheduleAppointmentRow: View {
                     onOpenChat: onOpenChat
                 )
             } label: {
-                HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
+                appointmentLayout {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(BookingListDateFormatting.time(from: booking.scheduledStart))
+                        Text(GroomerScheduleDateFormatting.time(from: booking.scheduledStart, calendar: calendar))
                             .font(DesignTokens.Typography.caption.weight(.bold))
                             .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
+                        Text(GroomerScheduleDateFormatting.offset(from: booking.scheduledStart, calendar: calendar))
+                            .font(DesignTokens.Typography.caption)
 
-                        Text(BookingListDateFormatting.time(from: booking.scheduledEnd))
+                        Text(GroomerScheduleDateFormatting.time(from: booking.scheduledEnd, calendar: calendar))
                             .font(.caption2.weight(.semibold))
                             .foregroundStyle(DesignTokens.Colors.textTertiary)
+                        Text(GroomerScheduleDateFormatting.offset(from: booking.scheduledEnd, calendar: calendar))
+                            .font(DesignTokens.Typography.caption)
                     }
-                    .frame(width: 56, alignment: .leading)
+                    .frame(width: dynamicTypeSize.isAccessibilitySize ? nil : 56, alignment: .leading)
 
                     ZStack {
                         DesignTokens.Colors.groomerAccent.opacity(0.15)
@@ -790,7 +876,7 @@ private struct GroomerScheduleAppointmentRow: View {
                 )
             )
 
-            HStack(spacing: DesignTokens.Spacing.sm) {
+            actionLayout {
                 Button {
                     onOpenChat(booking)
                 } label: {

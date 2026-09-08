@@ -369,6 +369,7 @@ struct GroomerAvailabilitySnapshot: Equatable, Sendable {
     let windows: [GroomerAvailabilityWindow]
     let preferences: GroomerBookingPreferences
     let timeOff: [GroomerTimeOffWindow]
+    var timingVersion: Int? = nil
 }
 
 struct GroomerBookingPreferences: Equatable, Sendable {
@@ -376,6 +377,7 @@ struct GroomerBookingPreferences: Equatable, Sendable {
     let maxAppointmentsPerDay: Int
     let minimumAdvanceNoticeDays: Int
     let autoAcceptBookings: Bool
+    var timingBuffers: GroomingTimingBuffers? = nil
 
     static func `default`(groomerID: UUID) -> GroomerBookingPreferences {
         GroomerBookingPreferences(
@@ -391,6 +393,7 @@ struct GroomerBookingPreferencesDraft: Equatable, Sendable {
     let maxAppointmentsPerDay: Int
     let minimumAdvanceNoticeDays: Int
     let autoAcceptBookings: Bool
+    var timingBuffers: GroomingTimingBuffers? = nil
 }
 
 struct GroomerTimeOffWindow: Equatable, Identifiable, Sendable {

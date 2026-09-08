@@ -4,10 +4,11 @@ import Observation
 @MainActor
 @Observable
 final class GroomerRequestsStore {
-    static let minimumProposedStartLeadTime: TimeInterval = 5 * 60
+    static let minimumProposedStartLeadTime = GroomingServiceTiming.minimumLeadTime
 
     private let groomerID: UUID
     private let repository: any GroomerRequestRepository
+    private let profileRepository: (any GroomerProfileRepository)?
     private let debugRecorder: AppDebugEventRecorder?
 
     private(set) var matchedRequests: [GroomerMatchedRequest] = []
@@ -34,10 +35,12 @@ final class GroomerRequestsStore {
     init(
         groomerID: UUID,
         repository: any GroomerRequestRepository,
+        profileRepository: (any GroomerProfileRepository)? = nil,
         debugRecorder: AppDebugEventRecorder? = nil
     ) {
         self.groomerID = groomerID
         self.repository = repository
+        self.profileRepository = profileRepository
         self.debugRecorder = debugRecorder
     }
 
@@ -301,6 +304,7 @@ final class GroomerRequestsStore {
             )
             noticeMessage = "Offer submitted."
             recordStoreSuccess("submitOffer", startedAt: startedAt)
+            await readCreatedOffer(offer, matchedRequestID: matchedRequest.id)
         } catch GroomerRequestRepositoryError.cancelled {
             recordStoreCancelled("submitOffer", startedAt: startedAt)
         } catch let error as GroomerRequestRepositoryError {
@@ -387,10 +391,47 @@ final class GroomerRequestsStore {
         }
     }
 
+    func serviceTimeZoneForOffer(for request: GroomerMatchedGroomingRequest) async throws -> TimeZone? {
+        let identifier: String?
+        switch request.locationMode {
+        case .groomerComesToCustomer:
+            identifier = request.preferenceTimeZoneIdentifier
+        case .customerComesToGroomer:
+            guard let profileRepository else { return nil }
+            let profile = try await profileRepository.profile(groomerID: groomerID)
+            try Task.checkCancellation()
+            identifier = profile.confirmedAddress?.timeZoneIdentifier
+        }
+        guard let identifier else { return nil }
+        return try? GroomingServiceTiming.locationCalendar(identifier).timeZone
+    }
+
+    func serviceForOffer(for request: GroomerMatchedGroomingRequest) async -> GroomerService? {
+        guard request.serviceType != .customRequest, let profileRepository else { return nil }
+        do {
+            let services = try await profileRepository.services(groomerID: groomerID)
+            try Task.checkCancellation()
+            let eligible = services.filter {
+                $0.groomerID == groomerID && $0.isActive && $0.serviceType == request.serviceType
+                    && GroomingServiceTiming.durationBounds.contains($0.durationMinutes)
+            }
+            return eligible.count == 1 ? eligible.first : nil
+        } catch {
+            return nil
+        }
+    }
+
+    static func proposedEnd(start: Date, durationText: String) -> Date? {
+        guard let duration = Int(durationText.trimmingCharacters(in: .whitespacesAndNewlines)) else { return nil }
+        return GroomingServiceTiming.serviceEnd(start: start, durationMinutes: duration)
+    }
+
     static func defaultOfferRange(
         for request: GroomerMatchedGroomingRequest,
+        durationMinutes: Int? = nil,
         now: Date = Date()
-    ) -> (start: Date, end: Date) {
+    ) -> (start: Date, end: Date)? {
+        guard let durationMinutes else { return nil }
         let minimumStart = now.addingTimeInterval(minimumProposedStartLeadTime)
         if let preferredStart = GroomingRequestDateFormatting.parsedDate(
             from: request.preferredStart
@@ -398,14 +439,13 @@ final class GroomerRequestsStore {
            let preferredEnd = GroomingRequestDateFormatting.parsedDate(
                from: request.preferredEnd
            ),
-           preferredStart >= minimumStart,
            preferredEnd > preferredStart {
-            return (preferredStart, preferredEnd)
+            let start = max(preferredStart, minimumStart)
+            guard let end = GroomingServiceTiming.serviceEnd(start: start, durationMinutes: durationMinutes),
+                  end <= preferredEnd else { return nil }
+            return (start, end)
         }
-
-        let start = now.addingTimeInterval(24 * 60 * 60)
-        let end = start.addingTimeInterval(2 * 60 * 60)
-        return (start, end)
+        return nil
     }
 
     private func makeOfferDraft(
@@ -431,10 +471,23 @@ final class GroomerRequestsStore {
             )
         }
 
-        guard proposedEnd > proposedStart else {
+        guard let service = try? GroomingTimeSpan(start: proposedStart, end: proposedEnd) else {
             throw GroomerOfferFormError(
                 message: "Proposed end must be after the start time."
             )
+        }
+
+        let duration = service.end.timeIntervalSince(service.start) / 60
+        guard duration.isFinite, duration.rounded(.towardZero) == duration,
+              duration >= Double(GroomingServiceTiming.durationBounds.lowerBound),
+              duration <= Double(GroomingServiceTiming.durationBounds.upperBound) else {
+            throw GroomerOfferFormError(message: "Service duration must be 15-720 whole minutes.")
+        }
+        guard let start = GroomingRequestDateFormatting.parsedDate(from: matchedRequest.request.preferredStart),
+              let end = GroomingRequestDateFormatting.parsedDate(from: matchedRequest.request.preferredEnd),
+              let preference = try? GroomingTimeSpan(start: start, end: end),
+              preference.contains(service) else {
+            throw GroomerOfferFormError(message: "The entire service must fit within the customer's requested time window.")
         }
 
         let priceEstimate = try price(from: priceEstimateText)
@@ -484,6 +537,23 @@ final class GroomerRequestsStore {
             )
         }
         return trimmed
+    }
+
+    private func readCreatedOffer(_ submitted: GroomerOffer, matchedRequestID: UUID) async {
+        // Creation already succeeded; an optional read must never turn it into a failed write.
+        guard let hydrated = try? await repository.offer(groomerID: groomerID, offerID: submitted.id),
+              !Task.isCancelled,
+              hydrated.id == submitted.id, hydrated.groomerID == groomerID,
+              hydrated.customerID == submitted.customerID, hydrated.requestID == submitted.requestID,
+              hydrated.matchID == submitted.matchID,
+              hydrated.status == submitted.status,
+              GroomingRequestDateFormatting.parsedDate(from: hydrated.proposedStart)
+                == GroomingRequestDateFormatting.parsedDate(from: submitted.proposedStart),
+              GroomingRequestDateFormatting.parsedDate(from: hydrated.proposedEnd)
+                == GroomingRequestDateFormatting.parsedDate(from: submitted.proposedEnd),
+              let current = matchedRequest(withID: matchedRequestID),
+              current.offer?.id == submitted.id, current.offer?.status == submitted.status else { return }
+        replace(current.replacing(offer: hydrated))
     }
 
     private func replace(_ matchedRequest: GroomerMatchedRequest) {
@@ -557,7 +627,13 @@ final class GroomerRequestsStore {
         case .activeOfferExists:
             "You already have an active offer for this request."
         case .groomerUnavailable:
-            "Choose a time within your availability and outside time off."
+            "Choose a time that fits your availability, time off, and existing bookings, including preparation, cleanup, and travel."
+        case .timingBuffersRequired:
+            "Confirm preparation, cleanup, and travel times in your availability settings before sending an offer."
+        case .scheduleTimeZoneRequired:
+            "Confirm the time zone in your availability settings before sending an offer."
+        case .serviceTimeZoneRequired:
+            "The service address needs a confirmed time zone. For mobile service, the customer needs to publish a new request with a confirmed address. For service at your location, confirm your profile address."
         case .offerNotFound:
             "This offer is no longer available."
         case .noLongerWithdrawable:

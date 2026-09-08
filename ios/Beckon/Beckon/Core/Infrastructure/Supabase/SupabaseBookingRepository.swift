@@ -6,7 +6,8 @@ final class SupabaseBookingRepository: BookingRepository {
     private static let bookingColumns = """
         id,request_id,offer_id,customer_id,groomer_id,scheduled_start,scheduled_end,\
         price_estimate,status,cancelled_by,cancelled_at,completed_at,completed_by,\
-        created_at,updated_at
+        created_at,updated_at,applied_timing_buffers,service_time_zone_identifier,\
+        schedule_time_zone_identifier,occupied_start,occupied_end
         """
     private static let reviewColumns = """
         id,booking_id,customer_id,groomer_id,rating,content,created_at
@@ -221,6 +222,8 @@ final class SupabaseBookingRepository: BookingRepository {
                 return .notAllowed
             case "22023":
                 switch postgrestError.message {
+                case "occupied_time_off_conflict", "occupied_outside_weekly_hours":
+                    return .bookingConflict
                 case "invalid_rating",
                      "invalid_review_content",
                      "invalid_review_outcomes",
@@ -234,6 +237,8 @@ final class SupabaseBookingRepository: BookingRepository {
                 }
             case "P0001":
                 switch postgrestError.message {
+                case "updated_timing_offer_required":
+                    return .updatedOfferRequired
                 case "customer_profile_required", "groomer_profile_required":
                     return .notAllowed
                 case "offer_not_found", "invalid_offer":
@@ -432,6 +437,11 @@ private struct BookingRow: Decodable {
     let completedBy: UUID?
     let createdAt: String
     let updatedAt: String
+    let appliedTimingBuffers: GroomingTimingBuffers?
+    let serviceTimeZoneIdentifier: String?
+    let scheduleTimeZoneIdentifier: String?
+    let occupiedStart: String?
+    let occupiedEnd: String?
 
     func booking(
         review: BookingReview?,
@@ -468,7 +478,12 @@ private struct BookingRow: Decodable {
             customerStreetAddress: requestLocation?.streetAddress,
             customerCity: requestLocation?.city,
             customerState: requestLocation?.state,
-            customerZipCode: requestLocation?.zipCode
+            customerZipCode: requestLocation?.zipCode,
+            appliedTimingBuffers: appliedTimingBuffers,
+            serviceTimeZoneIdentifier: serviceTimeZoneIdentifier,
+            scheduleTimeZoneIdentifier: scheduleTimeZoneIdentifier,
+            occupiedStart: occupiedStart,
+            occupiedEnd: occupiedEnd
         )
     }
 
@@ -488,6 +503,11 @@ private struct BookingRow: Decodable {
         case completedBy = "completed_by"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
+        case appliedTimingBuffers = "applied_timing_buffers"
+        case serviceTimeZoneIdentifier = "service_time_zone_identifier"
+        case scheduleTimeZoneIdentifier = "schedule_time_zone_identifier"
+        case occupiedStart = "occupied_start"
+        case occupiedEnd = "occupied_end"
     }
 }
 

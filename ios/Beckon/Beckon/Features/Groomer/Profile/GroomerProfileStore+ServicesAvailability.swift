@@ -174,6 +174,9 @@ extension GroomerProfileStore {
             guard let revision = savedAvailability?.revision else {
                 throw GroomerProfileRepositoryError.availabilityUpdateRequired
             }
+            if preferencesDraft.timingBuffers != nil, savedAvailability?.timingVersion != 1 {
+                throw GroomerProfileRepositoryError.availabilityUpdateRequired
+            }
             let snapshot = try await repository.saveAvailability(
                 groomerID: groomerID,
                 expectedRevision: revision,
@@ -181,11 +184,15 @@ extension GroomerProfileStore {
                 preferences: preferencesDraft,
                 timeOff: timeOffWindows
             )
+            if let requested = preferencesDraft.timingBuffers,
+               snapshot.preferences.timingBuffers != requested {
+                throw GroomerProfileRepositoryError.unavailable
+            }
             applyAvailabilitySnapshot(snapshot)
             noticeMessage = "Availability saved."
         } catch let error as GroomerProfileRepositoryError {
             switch error {
-            case .notAllowed, .availabilityUpdateRequired:
+            case .notAllowed, .availabilityUpdateRequired, .bookingOccupancyConflict:
                 errorMessage = message(for: error, action: "save availability")
             case .availabilityConflict:
                 availabilitySaveNeedsReconciliation = true
@@ -236,6 +243,10 @@ extension GroomerProfileStore {
             || maxAppointmentsPerDay != savedAvailability.preferences.maxAppointmentsPerDay
             || minimumAdvanceNoticeDays != savedAvailability.preferences.minimumAdvanceNoticeDays
             || autoAcceptBookings != savedAvailability.preferences.autoAcceptBookings
+            || preparationMinutesText != (savedAvailability.preferences.timingBuffers.map { String($0.preparation) } ?? "")
+            || cleanupMinutesText != (savedAvailability.preferences.timingBuffers.map { String($0.cleanup) } ?? "")
+            || inboundTravelMinutesText != (savedAvailability.preferences.timingBuffers.map { String($0.inboundTravel) } ?? "")
+            || outboundTravelMinutesText != (savedAvailability.preferences.timingBuffers.map { String($0.outboundTravel) } ?? "")
             || availabilityDayStates != savedStates
             || savedAvailability.windows.contains { availabilityTimezone != $0.timezone }
     }
@@ -385,6 +396,22 @@ extension GroomerProfileStore {
             }
     }
 
+    private func makeTimingBuffersDraft() throws -> GroomingTimingBuffers? {
+        let values = [preparationMinutesText, cleanupMinutesText, inboundTravelMinutesText, outboundTravelMinutesText]
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+        if values.allSatisfy(\.isEmpty), savedAvailability?.preferences.timingBuffers == nil { return nil }
+        guard let preparation = Int(values[0]), let cleanup = Int(values[1]),
+              let inbound = Int(values[2]), let outbound = Int(values[3]) else {
+            throw GroomerProfileFormError(message: "Enter all four timing buffers. Use 0 when no buffer is needed.")
+        }
+        do {
+            return try GroomingTimingBuffers(preparation: preparation, cleanup: cleanup,
+                inboundTravel: inbound, outboundTravel: outbound)
+        } catch {
+            throw GroomerProfileFormError(message: "Preparation and cleanup must be 0-120 minutes. Mobile travel must be 0-180 minutes.")
+        }
+    }
+
     private func makeBookingPreferencesDraft() throws -> GroomerBookingPreferencesDraft {
         guard (1...12).contains(maxAppointmentsPerDay) else {
             throw GroomerProfileFormError(
@@ -401,7 +428,8 @@ extension GroomerProfileStore {
         return GroomerBookingPreferencesDraft(
             maxAppointmentsPerDay: maxAppointmentsPerDay,
             minimumAdvanceNoticeDays: minimumAdvanceNoticeDays,
-            autoAcceptBookings: autoAcceptBookings
+            autoAcceptBookings: autoAcceptBookings,
+            timingBuffers: try makeTimingBuffersDraft()
         )
     }
 

@@ -135,6 +135,7 @@ struct GroomerTabView: View {
             GroomerRequestsView(
                 groomerID: groomerID,
                 repository: requestRepository,
+                profileRepository: profileRepository,
                 route: $requestsRoute,
                 debugRecorder: debugRecorder
             )
@@ -145,6 +146,7 @@ struct GroomerTabView: View {
                 participantID: groomerID,
                 role: .groomer,
                 repository: bookingRepository,
+                groomerProfileRepository: profileRepository,
                 debugRecorder: debugRecorder,
                 onOpenChat: openBookingChat
             )

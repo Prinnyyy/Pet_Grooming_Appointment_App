@@ -2,7 +2,7 @@
   "version": 1,
   "scope": "ios/Beckon/Beckon/Features",
   "lastChange": {
-    "reason": "T-355 prune resolved UI debt exposed during avatar validation"
+    "reason": "T-374 accessibility layout removes summary truncation and replaces raw badge shape with semantic token"
   },
   "findings": [
     {
@@ -174,13 +174,6 @@
       "occurrence": 1
     },
     {
-      "ruleID": "UI101",
-      "path": "ios/Beckon/Beckon/Features/Bookings/BookingsView.swift",
-      "fingerprint": "55175fbd76a186a61e0c54d41c5bd752f78c34a16adac91eba07d8ced5dc681f",
-      "expressionHash": "2ab0044b205124d6093bf5a25d477b58d5540fbeed68c777a2b8428ff0e331ad",
-      "occurrence": 1
-    },
-    {
       "ruleID": "UI005",
       "path": "ios/Beckon/Beckon/Features/Bookings/BookingsView.swift",
       "fingerprint": "4d87edb6d61e86aab7944d14dcb9588e9a355a589f0c37b72de25510f5c7a126",
@@ -206,13 +199,6 @@
       "path": "ios/Beckon/Beckon/Features/Bookings/BookingsView.swift",
       "fingerprint": "0fc5ab34ca082f8598c2ad9cea6e675db171403c4ec2749e9012de5dddb2de5d",
       "expressionHash": "5c2470bc6f20a4a72db1777dfa6622c5d3e71273ef5cd06ca1d8d4981d838b6b",
-      "occurrence": 1
-    },
-    {
-      "ruleID": "UI101",
-      "path": "ios/Beckon/Beckon/Features/Bookings/BookingsView.swift",
-      "fingerprint": "35354d86e8a3a7ad7027de75077773511757a3d61140930c0564456ff5780451",
-      "expressionHash": "993f54d3de6b46446a467acac962a1006e79113fa920397d1d2451c77b8322af",
       "occurrence": 1
     },
     {
