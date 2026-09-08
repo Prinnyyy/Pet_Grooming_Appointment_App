@@ -16,6 +16,10 @@ final class BookingsStore {
     private(set) var isMutatingFulfillment = false
     private(set) var fulfillmentHistory: [UUID: [BookingFulfillmentEvent]] = [:]
     private(set) var fulfillmentHistoryErrors: [UUID: String] = [:]
+    private var pendingReschedules: [UUID: BookingRescheduleOperation] = [:]
+    private(set) var rescheduleSnapshots: [UUID: BookingRescheduleResult] = [:]
+    private(set) var rescheduleErrors: [UUID: String] = [:]
+    private(set) var isMutatingReschedule = false
 
     private(set) var bookings: [Booking] = []
     private(set) var isLoading = false
@@ -30,7 +34,7 @@ final class BookingsStore {
     var appointmentReminderNotice: String?
 
     var isBusy: Bool {
-        isLoading || isLoadingMore || isCancelling || isCompleting || isSubmittingReview || isMutatingFulfillment
+        isLoading || isLoadingMore || isCancelling || isCompleting || isSubmittingReview || isMutatingFulfillment || isMutatingReschedule
     }
 
     var canLoadMore: Bool {
@@ -59,6 +63,10 @@ final class BookingsStore {
         if let data = fulfillmentDefaults.data(forKey: "beckon.fulfillment.\(participantID).\(role.rawValue)"),
            let operations = try? JSONDecoder().decode([BookingFulfillmentOperation].self, from: data) {
             pendingFulfillment = operations.reduce(into: [:]) { $0[$1.bookingID] = $1 }
+        }
+        if let data = fulfillmentDefaults.data(forKey: "beckon.reschedule.\(participantID).\(role.rawValue)"),
+           let operations = try? JSONDecoder().decode([BookingRescheduleOperation].self, from: data) {
+            pendingReschedules = operations.reduce(into: [:]) { $0[$1.bookingID] = $1 }
         }
     }
 
@@ -197,7 +205,7 @@ final class BookingsStore {
     }
 
     func fulfillmentActions(for booking: Booking, now: Date = Date()) -> [BookingFulfillmentAction] {
-        guard pendingFulfillment[booking.id] == nil else { return [] }
+        guard pendingFulfillment[booking.id] == nil, pendingReschedules[booking.id] == nil else { return [] }
         return booking.fulfillmentActions(for: role, participantID: participantID, now: now)
     }
 
@@ -227,7 +235,7 @@ final class BookingsStore {
     }
 
     func performFulfillment(_ action: BookingFulfillmentAction, for booking: Booking, note: String? = nil) async {
-        guard !isMutatingFulfillment else { return }
+        guard !isMutatingFulfillment, !isMutatingReschedule, pendingReschedules[booking.id] == nil else { return }
         guard pendingFulfillment[booking.id] == nil else {
             errorMessage = "Check the previous operation before changing this booking."
             return
@@ -255,7 +263,7 @@ final class BookingsStore {
     }
 
     func recoverFulfillment(for bookingID: UUID, retryIfMissing: Bool = false) async {
-        guard !isMutatingFulfillment, let operation = pendingFulfillment[bookingID] else { return }
+        guard !isMutatingFulfillment, !isMutatingReschedule, let operation = pendingFulfillment[bookingID] else { return }
         await runFulfillment(operation, lookupFirst: true, retryIfMissing: retryIfMissing)
     }
 
@@ -308,6 +316,121 @@ final class BookingsStore {
         let key = "beckon.fulfillment.\(participantID).\(role.rawValue)"
         if pendingFulfillment.isEmpty { fulfillmentDefaults.removeObject(forKey: key) }
         else { fulfillmentDefaults.set(try JSONEncoder().encode(Array(pendingFulfillment.values)), forKey: key) }
+    }
+
+    func pendingRescheduleOperation(for bookingID: UUID) -> BookingRescheduleOperation? {
+        pendingReschedules[bookingID]
+    }
+
+    func rescheduleActions(for booking: Booking, now: Date = Date()) -> [BookingRescheduleAction] {
+        guard pendingReschedules[booking.id] == nil, pendingFulfillment[booking.id] == nil,
+              (role == .customer ? booking.customerID : booking.groomerID) == participantID,
+              let snapshot = rescheduleSnapshots[booking.id] else { return [] }
+        if let proposal = snapshot.proposal, proposal.currentStatus(for: booking, now: now) == .pending {
+            return proposal.actions(for: booking, participantID: participantID, now: now)
+        }
+        return booking.canProposeReschedule(now: now) ? [.propose] : []
+    }
+
+    func loadReschedule(for bookingID: UUID) async {
+        do {
+            let result = try await repository.reschedule(bookingID: bookingID)
+            try applyReschedule(result, bookingID: bookingID)
+            rescheduleErrors[bookingID] = nil
+        } catch {
+            rescheduleErrors[bookingID] = "Time changes could not be refreshed. The current appointment remains in place."
+        }
+    }
+
+    func performReschedule(_ action: BookingRescheduleAction, for booking: Booking,
+        reviewedProposal: BookingRescheduleProposal? = nil, newStart: Date? = nil) async {
+        guard !isMutatingReschedule, !isMutatingFulfillment,
+              rescheduleActions(for: booking).contains(action), let revision = booking.fulfillment?.revision else { return }
+        if action == .propose && newStart == nil { return }
+        let proposalID: UUID
+        if action == .propose { proposalID = UUID() }
+        else if let reviewedProposal, reviewedProposal.id == rescheduleSnapshots[booking.id]?.proposal?.id {
+            proposalID = reviewedProposal.id
+        }
+        else {
+            rescheduleErrors[booking.id] = "The time proposal has changed. Review the current proposal before responding."
+            return
+        }
+        let operation = BookingRescheduleOperation(id: UUID(), bookingID: booking.id,
+            expectedRevision: revision, proposalID: proposalID, action: action,
+            newStart: action == .propose ? newStart.map(GroomingRequestDateFormatting.serverString(from:)) : nil)
+        pendingReschedules[booking.id] = operation
+        do { try persistRescheduleOperations() }
+        catch {
+            pendingReschedules[booking.id] = nil
+            rescheduleErrors[booking.id] = "The time change could not be saved for recovery. Nothing was submitted."
+            return
+        }
+        await runReschedule(operation, lookupFirst: false, retryIfMissing: true)
+    }
+
+    func recoverReschedule(for bookingID: UUID, retryIfMissing: Bool = false) async {
+        guard !isMutatingReschedule, !isMutatingFulfillment, let operation = pendingReschedules[bookingID] else { return }
+        await runReschedule(operation, lookupFirst: true, retryIfMissing: retryIfMissing)
+    }
+
+    private func runReschedule(_ operation: BookingRescheduleOperation, lookupFirst: Bool, retryIfMissing: Bool) async {
+        isMutatingReschedule = true
+        rescheduleErrors[operation.bookingID] = nil
+        defer { isMutatingReschedule = false }
+        do {
+            var result: BookingRescheduleResult?
+            if lookupFirst { result = try await repository.rescheduleOperation(id: operation.id) }
+            if result == nil && retryIfMissing { result = try await repository.mutateReschedule(operation) }
+            guard let result else {
+                rescheduleErrors[operation.bookingID] = "No recorded result yet. The original operation remains available to retry."
+                return
+            }
+            guard let receipt = result.receipt, receipt.operationID == operation.id,
+                  receipt.bookingID == operation.bookingID, receipt.proposalID == operation.proposalID,
+                  receipt.action == operation.action, result.proposal?.id == operation.proposalID else {
+                throw BookingRepositoryError.unavailable
+            }
+            let previous = booking(withID: operation.bookingID)
+            try applyReschedule(result, bookingID: operation.bookingID)
+            pendingReschedules[operation.bookingID] = nil
+            try persistRescheduleOperations()
+            noticeMessage = result.proposal?.currentStatus(for: result.booking).title
+            if previous?.scheduledStart != result.booking.scheduledStart || previous?.status != result.booking.status {
+                await appointmentReminderScheduler.cancelReminder(for: result.booking.id, role: role)
+                let reminderResult = await appointmentReminderScheduler.syncReminders(for: [result.booking], role: role)
+                if case .scheduled = reminderResult { appointmentReminderNotice = nil }
+                else { appointmentReminderNotice = "The appointment changed, but its local reminder could not be updated." }
+            }
+        } catch let error as BookingRepositoryError {
+            switch error {
+            case .networkUnavailable, .unavailable, .cancelled:
+                rescheduleErrors[operation.bookingID] = "The time-change result is not verified. Check its status before retrying."
+            default:
+                pendingReschedules[operation.bookingID] = nil
+                try? persistRescheduleOperations()
+                await loadReschedule(for: operation.bookingID)
+                rescheduleErrors[operation.bookingID] = message(for: error, action: "change time")
+            }
+        } catch {
+            rescheduleErrors[operation.bookingID] = "The time-change result is not verified. Check its status before retrying."
+        }
+    }
+
+    private func applyReschedule(_ result: BookingRescheduleResult, bookingID: UUID) throws {
+        guard result.booking.id == bookingID,
+              (role == .customer ? result.booking.customerID : result.booking.groomerID) == participantID,
+              result.booking.fulfillment != nil,
+              result.proposal == nil || result.proposal?.bookingID == bookingID else { throw BookingRepositoryError.unavailable }
+        let current = booking(withID: bookingID)?.applyingReschedule(result.booking) ?? result.booking
+        synchronizeExternalBooking(current)
+        rescheduleSnapshots[bookingID] = result
+    }
+
+    private func persistRescheduleOperations() throws {
+        let key = "beckon.reschedule.\(participantID).\(role.rawValue)"
+        if pendingReschedules.isEmpty { fulfillmentDefaults.removeObject(forKey: key) }
+        else { fulfillmentDefaults.set(try JSONEncoder().encode(Array(pendingReschedules.values)), forKey: key) }
     }
 
     func cancel(_ booking: Booking) async {
@@ -543,6 +666,8 @@ final class BookingsStore {
             "This booking can no longer be cancelled."
         case .fulfillmentRejected(let rejection):
             rejection.message
+        case .rescheduleRejected(let message):
+            message
         case .bookingNotCompletable:
             "This booking can no longer be completed."
         case .bookingNotCompleted:

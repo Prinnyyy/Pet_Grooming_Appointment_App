@@ -243,6 +243,30 @@ final class SupabaseBookingRepository: BookingRepository {
         } catch { throw Self.map(error) }
     }
 
+    func reschedule(bookingID: UUID) async throws -> BookingRescheduleResult {
+        do {
+            let response: SupabaseRescheduleResponse = try await client.rpc("get_booking_reschedule",
+                params: SupabaseRescheduleLookup(bookingID: bookingID)).execute().value
+            return response.result
+        } catch { throw Self.map(error) }
+    }
+
+    func mutateReschedule(_ operation: BookingRescheduleOperation) async throws -> BookingRescheduleResult {
+        do {
+            let response: SupabaseRescheduleResponse = try await client.rpc("mutate_booking_reschedule",
+                params: SupabaseRescheduleParameters(operation: operation)).execute().value
+            return response.result
+        } catch { throw Self.map(error) }
+    }
+
+    func rescheduleOperation(id: UUID) async throws -> BookingRescheduleResult? {
+        do {
+            let response: SupabaseRescheduleResponse? = try await client.rpc("get_booking_reschedule_operation",
+                params: SupabaseFulfillmentLookup(operationID: id)).execute().value
+            return response?.result
+        } catch { throw Self.map(error) }
+    }
+
     private static func map(_ error: any Error) -> BookingRepositoryError {
         if AppDebugErrorClassifier.isCancellation(error) {
             return .cancelled
@@ -253,6 +277,22 @@ final class SupabaseBookingRepository: BookingRepository {
         }
 
         if let postgrestError = error as? PostgrestError {
+            let rescheduleMessages = [
+                "booking_not_reschedulable": "Only a confirmed appointment that has not started can change time.",
+                "invalid_reschedule_time": "Choose a different valid appointment time.",
+                "invalid_reschedule_operation": "This time change could not be submitted. Refresh and try again.",
+                "reschedule_agreement_verification_required": "The original agreement needs verification before its time can change.",
+                "reschedule_notice_required": "The proposed time does not meet the current advance-notice requirement.",
+                "reschedule_outside_availability": "The proposed service and its buffers do not fit the current schedule.",
+                "reschedule_resource_conflict": "The proposed time is no longer available. The original appointment is unchanged.",
+                "reschedule_daily_limit": "The groomer has reached the daily limit on that date.",
+                "reschedule_proposal_pending": "An existing time change must be resolved or withdrawn first.",
+                "reschedule_deadline_passed": "This proposal has expired. The original appointment remains unchanged.",
+                "reschedule_proposal_changed": "This proposal or booking changed. Review the current appointment.",
+                "reschedule_other_participant_required": "The other participant must accept or decline this proposal.",
+                "reschedule_operation_intent_changed": "Reconcile the original time-change operation before submitting a different one.",
+            ]
+            if let message = rescheduleMessages[postgrestError.message] { return .rescheduleRejected(message) }
             if let rejection = BookingFulfillmentRejection(rawValue: postgrestError.message) {
                 return .fulfillmentRejected(rejection)
             }

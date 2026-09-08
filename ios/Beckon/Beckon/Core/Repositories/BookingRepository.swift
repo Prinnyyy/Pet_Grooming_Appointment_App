@@ -14,6 +14,7 @@ enum BookingRepositoryError: Error, Equatable, Sendable {
     case bookingNotCancellable
     case bookingNotCompletable
     case fulfillmentRejected(BookingFulfillmentRejection)
+    case rescheduleRejected(String)
     case bookingNotCompleted
     case reviewAlreadyExists
     case invalidReview
@@ -28,6 +29,9 @@ protocol BookingRepository: AnyObject {
     func mutateFulfillment(_ operation: BookingFulfillmentOperation) async throws -> BookingFulfillmentResult
     func fulfillmentOperation(id: UUID) async throws -> BookingFulfillmentResult?
     func fulfillmentEvents(bookingID: UUID) async throws -> [BookingFulfillmentEvent]
+    func reschedule(bookingID: UUID) async throws -> BookingRescheduleResult
+    func mutateReschedule(_ operation: BookingRescheduleOperation) async throws -> BookingRescheduleResult
+    func rescheduleOperation(id: UUID) async throws -> BookingRescheduleResult?
     func bookings(
         participantID: UUID,
         role: UserRole
@@ -65,6 +69,9 @@ protocol BookingRepository: AnyObject {
 }
 
 extension BookingRepository {
+    func reschedule(bookingID: UUID) async throws -> BookingRescheduleResult { throw BookingRepositoryError.unavailable }
+    func mutateReschedule(_ operation: BookingRescheduleOperation) async throws -> BookingRescheduleResult { throw BookingRepositoryError.unavailable }
+    func rescheduleOperation(id: UUID) async throws -> BookingRescheduleResult? { throw BookingRepositoryError.unavailable }
     func mutateFulfillment(_ operation: BookingFulfillmentOperation) async throws -> BookingFulfillmentResult {
         throw BookingRepositoryError.unavailable
     }

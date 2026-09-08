@@ -6,6 +6,7 @@ export async function runTimingDatabaseBarrier(groomerID, run, {
   matchRefreshRequestID = null,
   revisionRequestID = null,
   fulfillmentRace = false,
+  rescheduleRace = false,
 } = {}) {
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(groomerID)) {
     throw new Error("Invalid timing barrier groomer identity.");
@@ -16,8 +17,9 @@ export async function runTimingDatabaseBarrier(groomerID, run, {
   if (revisionRequestID !== null && (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(revisionRequestID)
     || matchRefreshRequestID !== null)) throw new Error("Invalid revision barrier request identity or mixed mode.");
   if (fulfillmentRace && revisionRequestID === null) throw new Error("Fulfillment barrier requires its booking request.");
-  const acceptingRPC = fulfillmentRace ? "mutate_booking_fulfillment" : "accept_groomer_offer";
-  const competingRPC = fulfillmentRace ? acceptingRPC : revisionRequestID === null ? "save_groomer_availability" : "supersede_grooming_request";
+  if (rescheduleRace && (revisionRequestID === null || fulfillmentRace)) throw new Error("Invalid reschedule barrier mode.");
+  const acceptingRPC = rescheduleRace ? "mutate_booking_reschedule" : fulfillmentRace ? "mutate_booking_fulfillment" : "accept_groomer_offer";
+  const competingRPC = rescheduleRace || fulfillmentRace ? "mutate_booking_fulfillment" : revisionRequestID === null ? "save_groomer_availability" : "supersede_grooming_request";
   const holderBlocks = revisionRequestID === null
     ? "pg_backend_pid() = any(pg_blocking_pids(pid))"
     : `exists (with recursive blockers(pid) as (

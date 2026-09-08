@@ -2345,6 +2345,8 @@ final class CustomerRequestsStore {
             "This booking can no longer be cancelled."
         case .fulfillmentRejected(let rejection):
             rejection.message
+        case .rescheduleRejected(let message):
+            message
         case .bookingNotCompletable:
             "This booking can no longer be completed."
         case .bookingNotCompleted:

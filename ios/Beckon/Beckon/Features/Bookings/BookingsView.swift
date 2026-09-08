@@ -1043,6 +1043,7 @@ struct BookingDetailView: View {
                             }
 
                             BookingFulfillmentSection(booking: booking, store: store)
+                            BookingRescheduleSection(booking: booking, store: store)
 
                             BookingPartnerOverviewCard(
                                 booking: booking,
