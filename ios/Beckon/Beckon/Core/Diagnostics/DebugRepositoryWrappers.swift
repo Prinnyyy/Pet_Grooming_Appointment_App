@@ -892,6 +892,10 @@ final class DebugCustomerPetRepository: CustomerPetRepository {
 
 @MainActor
 final class DebugChatRepository: ChatRepository {
+    func conversation(customerID: UUID, groomerID: UUID, role: UserRole) async throws -> ChatConversation {
+        try await base.conversation(customerID: customerID, groomerID: groomerID, role: role)
+    }
+
     private let base: any ChatRepository
     private let debugRecorder: AppDebugEventRecorder?
 

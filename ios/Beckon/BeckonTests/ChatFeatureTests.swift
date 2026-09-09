@@ -367,6 +367,18 @@ struct ChatStoreTests {
     }
 
     @Test @MainActor
+    func refreshedSummaryIsNotOverriddenByOlderLoadedHistory() async {
+        let conversation = Self.conversation(latestMessageCreatedAt: "2027-01-01T00:00:00Z",
+            latestMessageBody: "New server preview")
+        let repository = ChatRepositoryFake(messagesResult: .success([
+            Self.message(conversationID: conversation.id, body: "Old cached preview")
+        ]))
+        let store = ChatStore(participantID: conversation.customerID, role: .customer, repository: repository)
+        await store.loadMessages(for: conversation)
+        #expect(store.previewText(for: conversation) == "New server preview")
+    }
+
+    @Test @MainActor
     func bookingCardMessageCarriesTheLiveBookingAndNoTextBody() {
         let conversationID = UUID()
         let booking = Self.booking(status: .cancelledByCustomer)
@@ -383,6 +395,31 @@ struct ChatStoreTests {
         #expect(message.kind == .bookingCard)
         #expect(message.body == nil)
         #expect(message.booking?.status == .cancelledByCustomer)
+    }
+
+    @Test @MainActor
+    func exactConversationResolvesOutsideLoadedPagesAndRejectsForeignBooking() async {
+        let conversation = Self.conversation()
+        let booking = Self.booking(customerID: conversation.customerID, groomerID: conversation.groomerID)
+        let repository = ChatRepositoryFake()
+        repository.exactConversationResult = .success(conversation)
+        let bookings = BookingRepositoryFake(bookingsResult: .success([booking]))
+        let store = ChatStore(
+            participantID: conversation.customerID, role: .customer,
+            repository: DebugChatRepository(base: repository, debugRecorder: nil),
+            bookingRepository: bookings
+        )
+        #expect(await store.resolveConversation(bookingID: booking.id) == conversation)
+        #expect(repository.conversationsCallCount == 0)
+        #expect(repository.exactConversationCallCount == 1)
+        #expect(store.conversations.isEmpty)
+        repository.exactConversationResult = .failure(.networkUnavailable)
+        #expect(await store.resolveConversation(bookingID: booking.id) == nil)
+        #expect(store.errorMessage != nil)
+        let foreignStore = ChatStore(participantID: UUID(), role: .customer,
+            repository: repository, bookingRepository: bookings)
+        #expect(await foreignStore.resolveConversation(bookingID: booking.id) == nil)
+        #expect(repository.exactConversationCallCount == 2)
     }
 
     @Test @MainActor
@@ -851,6 +888,14 @@ private final class ChatReadStateCacheFake: ChatReadStateCaching {
 
 @MainActor
 private final class ChatRepositoryFake: ChatRepository {
+    var exactConversationResult: Result<ChatConversation, ChatRepositoryError> = .failure(.conversationNotFound)
+    private(set) var exactConversationCallCount = 0
+
+    func conversation(customerID: UUID, groomerID: UUID, role: UserRole) async throws -> ChatConversation {
+        exactConversationCallCount += 1
+        return try exactConversationResult.get()
+    }
+
     var conversationsResult: Result<[ChatConversation], ChatRepositoryError>
     var messagesResult: Result<[ChatMessage], ChatRepositoryError>
     var conversationPages: [Result<ListPage<ChatConversation>, ChatRepositoryError>]

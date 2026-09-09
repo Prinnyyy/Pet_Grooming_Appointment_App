@@ -6,13 +6,8 @@ final class SupabaseChatRepository: ChatRepository {
     private static let conversationColumns = """
         id,customer_id,groomer_id,created_at,updated_at
         """
-    private static let bookingSummaryColumns = """
-        id,request_id,customer_id,groomer_id,scheduled_start,scheduled_end,price_estimate,status,completed_at,service_time_zone_identifier
-        """
     private static let groomerSummaryColumns = "user_id,business_name"
     private static let messageColumns =
-        "id,conversation_id,sender_id,kind,body,booking_id,created_at"
-    private static let latestMessageColumns =
         "id,conversation_id,sender_id,kind,body,booking_id,created_at"
 
     private let client: SupabaseClient
@@ -51,6 +46,7 @@ final class SupabaseChatRepository: ChatRepository {
         page: ListPageRequest
     ) async throws -> ListPage<ChatConversation> {
         do {
+            guard page.limit <= 100 else { throw ChatRepositoryError.unavailable }
             let participantColumn = switch role {
             case .customer:
                 "customer_id"
@@ -63,50 +59,72 @@ final class SupabaseChatRepository: ChatRepository {
                 .select(Self.conversationColumns)
                 .eq(participantColumn, value: participantID.uuidString.lowercased())
                 .order("updated_at", ascending: false)
+                .order("id", ascending: false)
                 .range(from: page.offset, to: page.inclusiveRangeEnd)
                 .execute()
                 .value
 
-            let bookingSummaries = await latestBookingSummaries(
-                participantID: participantID,
-                role: role
-            )
-            let latestMessages = await latestMessages(
-                for: rows.map(\.id)
-            )
-            let groomerBusinessNames = switch role {
-            case .customer:
-                await groomerBusinessNames(for: rows.map(\.groomerID))
-            case .groomer:
-                [UUID: String]()
+            let rowPage = ListPage(items: rows, request: page)
+            return ListPage(items: try await hydrate(rowPage.items, role: role), request: page, hasMore: rowPage.hasMore)
+        } catch {
+            throw Self.map(error)
+        }
+    }
+
+    func conversation(customerID: UUID, groomerID: UUID, role: UserRole) async throws -> ChatConversation {
+        do {
+            let rows: [ChatConversationRow] = try await client.from("conversations")
+                .select(Self.conversationColumns)
+                .eq("customer_id", value: customerID.uuidString.lowercased())
+                .eq("groomer_id", value: groomerID.uuidString.lowercased())
+                .limit(1).execute().value
+            guard rows.count == 1, let result = try await hydrate(rows, role: role).first else {
+                throw ChatRepositoryError.conversationNotFound
             }
-            let avatarTarget = ChatCounterpartAvatarTarget.viewer(role)
-            let counterpartAvatars = await participantAvatarLoader.avatars(
-                for: rows.map { row in
+            return result
+        } catch { throw Self.map(error) }
+    }
+
+    private func hydrate(_ rows: [ChatConversationRow], role: UserRole) async throws -> [ChatConversation] {
+        guard !rows.isEmpty else { return [] }
+        let summaries: [ChatConversationSummaryRow] = try await client.rpc(
+            "get_conversation_summaries",
+            params: ["p_conversation_ids": rows.map { $0.id.uuidString.lowercased() }]
+        ).execute().value
+        guard summaries.count == rows.count,
+              Set(summaries.map(\.conversationID)) == Set(rows.map(\.id)) else {
+            throw ChatRepositoryError.unavailable
+        }
+        let summariesByID = Dictionary(uniqueKeysWithValues: summaries.map { ($0.conversationID, $0) })
+        let groomerBusinessNames = switch role {
+        case .customer:
+            await groomerBusinessNames(for: rows.map(\.groomerID))
+        case .groomer:
+            [UUID: String]()
+        }
+        let avatarTarget = ChatCounterpartAvatarTarget.viewer(role)
+        let counterpartAvatars = await participantAvatarLoader.avatars(
+            for: rows.map { row in
+                avatarTarget.participantID(
+                    customerID: row.customerID,
+                    groomerID: row.groomerID
+                )
+            },
+            role: avatarTarget.role
+        )
+
+        return rows.map { row in
+            row.conversation(
+                bookingSummary: summariesByID[row.id]?.bookingSummary?.summary,
+                groomerBusinessName: groomerBusinessNames[row.groomerID],
+                counterpartAvatarPhotoData: counterpartAvatars[
                     avatarTarget.participantID(
                         customerID: row.customerID,
                         groomerID: row.groomerID
                     )
-                },
-                role: avatarTarget.role
+                ],
+                latestMessage: summariesByID[row.id]?.latestMessage
             )
-
-            let conversations = rows.map { row in
-                row.conversation(
-                    bookingSummary: bookingSummaries[row.participantPair],
-                    groomerBusinessName: groomerBusinessNames[row.groomerID],
-                    counterpartAvatarPhotoData: counterpartAvatars[
-                        avatarTarget.participantID(
-                            customerID: row.customerID,
-                            groomerID: row.groomerID
-                        )
-                    ],
-                    latestMessage: latestMessages[row.id]
-                )
-            }
-            return ListPage(items: conversations, request: page)
-        } catch {
-            throw Self.map(error)
         }
     }
 
@@ -281,35 +299,6 @@ final class SupabaseChatRepository: ChatRepository {
         return .unavailable
     }
 
-    private func latestBookingSummaries(
-        participantID: UUID,
-        role: UserRole
-    ) async -> [ChatParticipantPair: ChatBookingSummary] {
-        do {
-            let participantColumn = switch role {
-            case .customer:
-                "customer_id"
-            case .groomer:
-                "groomer_id"
-            }
-            let rows: [ChatBookingSummaryRow] = try await client
-                .from("bookings")
-                .select(Self.bookingSummaryColumns)
-                .eq(participantColumn, value: participantID.uuidString.lowercased())
-                .order("scheduled_start", ascending: false)
-                .execute()
-                .value
-
-            var summaries: [ChatParticipantPair: ChatBookingSummary] = [:]
-            for row in rows where summaries[row.participantPair] == nil {
-                summaries[row.participantPair] = row.summary
-            }
-            return summaries
-        } catch {
-            return [:]
-        }
-    }
-
     private func bookingsByID(
         for bookingIDs: [UUID]
     ) async throws -> [UUID: Booking] {
@@ -344,34 +333,20 @@ final class SupabaseChatRepository: ChatRepository {
         }
     }
 
-    private func latestMessages(
-        for conversationIDs: [UUID]
-    ) async -> [UUID: ChatLatestMessageRow] {
-        let ids = uniqueLowercaseStrings(from: conversationIDs)
-        guard !ids.isEmpty else { return [:] }
-
-        do {
-            let rows: [ChatLatestMessageRow] = try await client
-                .from("messages")
-                .select(Self.latestMessageColumns)
-                .in("conversation_id", values: ids)
-                .order("created_at", ascending: false)
-                .order("id", ascending: false)
-                .execute()
-                .value
-
-            var messagesByConversationID: [UUID: ChatLatestMessageRow] = [:]
-            for row in rows where messagesByConversationID[row.conversationID] == nil {
-                messagesByConversationID[row.conversationID] = row
-            }
-            return messagesByConversationID
-        } catch {
-            return [:]
-        }
-    }
-
     private func uniqueLowercaseStrings(from ids: [UUID]) -> [String] {
         Array(Set(ids)).map { $0.uuidString.lowercased() }
+    }
+}
+
+private struct ChatConversationSummaryRow: Decodable {
+    let conversationID: UUID
+    let latestMessage: ChatLatestMessageRow?
+    let bookingSummary: ChatBookingSummaryRow?
+
+    private enum CodingKeys: String, CodingKey {
+        case conversationID = "conversation_id"
+        case latestMessage = "latest_message"
+        case bookingSummary = "booking_summary"
     }
 }
 

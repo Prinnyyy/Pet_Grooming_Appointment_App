@@ -97,8 +97,9 @@ final class ChatStore {
     }
 
     func previewText(for conversation: ChatConversation) -> String {
-        if let body = messagesByConversationID[conversation.id]?.last?.body,
-           let normalized = Self.normalizedPreview(body) {
+        if let message = messagesByConversationID[conversation.id]?.last,
+           message.createdAt >= (conversation.latestMessageCreatedAt ?? message.createdAt),
+           let normalized = Self.normalizedPreview(message.body) {
             return normalized
         }
 
@@ -113,6 +114,37 @@ final class ChatStore {
         conversations.first {
             $0.customerID == booking.customerID
                 && $0.groomerID == booking.groomerID
+        }
+    }
+
+    func resolveConversation(bookingID: UUID) async -> ChatConversation? {
+        guard let bookingRepository else {
+            errorMessage = "Booking chat could not be verified. Try again."
+            return nil
+        }
+        do {
+            let bookings = try await bookingRepository.bookings(bookingIDs: [bookingID])
+            guard bookings.count == 1, let booking = bookings.first, booking.id == bookingID,
+                  (role == .customer ? booking.customerID : booking.groomerID) == participantID else {
+                throw ChatRepositoryError.conversationNotFound
+            }
+            let conversation = try await repository.conversation(
+                customerID: booking.customerID, groomerID: booking.groomerID, role: role
+            )
+            try Task.checkCancellation()
+            guard conversation.customerID == booking.customerID,
+                  conversation.groomerID == booking.groomerID else {
+                throw ChatRepositoryError.notAllowed
+            }
+            errorMessage = nil
+            return conversation
+        } catch is CancellationError {
+            return nil
+        } catch ChatRepositoryError.cancelled {
+            return nil
+        } catch {
+            errorMessage = "Booking chat could not be verified. Refresh to try again."
+            return nil
         }
     }
 

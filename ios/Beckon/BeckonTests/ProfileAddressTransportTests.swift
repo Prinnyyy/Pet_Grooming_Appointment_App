@@ -6,6 +6,28 @@ import Testing
 @Suite("Profile address transport", .serialized)
 struct ProfileAddressTransportTests {
     @Test @MainActor
+    func chatSummariesUseOneBoundedRPCAndExactPairQuery() async throws {
+        AddressTransportStub.state.reset(mode: .chatSummaries)
+        let customer = UUID(uuidString: "00000000-0000-0000-0000-000000000004")!
+        let groomer = UUID(uuidString: "00000000-0000-0000-0000-000000000005")!
+        let repository = SupabaseChatRepository(client: Self.client())
+        let conversations = try await repository.conversations(participantID: customer, role: .customer)
+        #expect(conversations.count == 2)
+        #expect(conversations.last?.latestMessageBody == "Quiet latest")
+        #expect(AddressTransportStub.state.paths.filter { $0.hasSuffix("/get_conversation_summaries") }.count == 1)
+        #expect(!AddressTransportStub.state.paths.contains("/rest/v1/messages"))
+        #expect(!AddressTransportStub.state.paths.contains("/rest/v1/bookings"))
+        AddressTransportStub.state.reset(mode: .denied)
+        do { _ = try await repository.conversation(customerID: customer, groomerID: groomer, role: .customer) }
+        catch { #expect(error as? ChatRepositoryError == .notAllowed) }
+        let url = try #require(AddressTransportStub.state.urls.first)
+        let query = URLComponents(url: url, resolvingAgainstBaseURL: false)!.queryItems!
+        #expect(query.contains(URLQueryItem(name: "customer_id", value: "eq.\(customer.uuidString.lowercased())")))
+        #expect(query.contains(URLQueryItem(name: "groomer_id", value: "eq.\(groomer.uuidString.lowercased())")))
+        #expect(query.contains(URLQueryItem(name: "limit", value: "1")))
+    }
+
+    @Test @MainActor
     func scopedBookingAndExactRequestQueriesKeepServerFiltersAndTieOrdering() async throws {
         let owner = UUID()
         let now = ISO8601DateFormatter().date(from: "2026-11-01T00:00:00Z")!
@@ -284,6 +306,7 @@ struct ProfileAddressTransportTests {
 nonisolated private final class AddressTransportStub: URLProtocol, @unchecked Sendable {
     static let state = State()
     enum Mode: Equatable {
+        case chatSummaries
         case missing, denied, available, bookingConflict, weeklyHoursConflict, occupiedHours, occupiedTimeOff, legacyQuote, timingRow, legacyTimingRow, matchedRow, legacyMatchedRow
         case timingFailure(String)
         case matchedEvaluation(String)
@@ -301,6 +324,23 @@ nonisolated private final class AddressTransportStub: URLProtocol, @unchecked Se
                 let path = url.path
                 recorded.append(path)
                 recordedURLs.append(url)
+                if mode == .chatSummaries {
+                    let customer = "00000000-0000-0000-0000-000000000004"
+                    let groomer = "00000000-0000-0000-0000-000000000005"
+                    let ids = ["00000000-0000-0000-0000-000000000001", "00000000-0000-0000-0000-000000000002"]
+                    let time = "2026-09-08T00:00:00Z"
+                    let rows: [[String: Any]]
+                    if path.hasSuffix("/conversations") {
+                        rows = ids.map { ["id": $0, "customer_id": customer, "groomer_id": groomer,
+                            "created_at": time, "updated_at": time] }
+                    } else if path.hasSuffix("/get_conversation_summaries") {
+                        rows = ids.enumerated().map { index, id in ["conversation_id": id,
+                            "booking_summary": NSNull(), "latest_message": ["id": id,
+                            "conversation_id": id, "sender_id": groomer, "kind": "text",
+                            "body": index == 0 ? "Busy latest" : "Quiet latest", "created_at": time]] }
+                    } else { rows = [] }
+                    return (200, String(data: try! JSONSerialization.data(withJSONObject: rows), encoding: .utf8)!)
+                }
                 if case let .timingFailure(message) = mode {
                     let body = ["code": "22023", "message": message]
                     return (400, String(data: try! JSONSerialization.data(withJSONObject: body), encoding: .utf8)!)

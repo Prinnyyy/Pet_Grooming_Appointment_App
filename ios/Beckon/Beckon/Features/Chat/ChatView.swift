@@ -84,6 +84,8 @@ struct ChatConversationsView: View {
         }
         .task {
             await store.loadConversations()
+        }
+        .task(id: focusedBookingID) {
             await openFocusedConversationIfPossible()
         }
         .onChange(of: scenePhase) { _, newPhase in
@@ -93,36 +95,13 @@ struct ChatConversationsView: View {
                 await openFocusedConversationIfPossible()
             }
         }
-        .onChange(of: focusedBookingID) { _, _ in
-            guard focusedBookingID != nil else { return }
-            if store.conversations.isEmpty {
-                Task {
-                    await store.loadConversations()
-                    await openFocusedConversationIfPossible()
-                }
-            } else {
-                Task {
-                    await openFocusedConversationIfPossible()
-                }
-            }
-        }
     }
 
     private func openFocusedConversationIfPossible() async {
-        guard let bookingID = focusedBookingID,
-              let bookingRepository else { return }
-
-        let bookings = try? await bookingRepository.bookings(
-            bookingIDs: [bookingID]
-        )
-        let booking = bookings?.first
-
-        if let booking,
-           let conversation = store.conversation(for: booking) {
+        guard let bookingID = focusedBookingID else { return }
+        if let conversation = await store.resolveConversation(bookingID: bookingID),
+           focusedBookingID == bookingID, !Task.isCancelled {
             focusedConversation = conversation
-            focusedBookingID = nil
-        } else if !store.isLoadingConversations {
-            store.reportMissingConversationForBooking()
             focusedBookingID = nil
         }
     }
