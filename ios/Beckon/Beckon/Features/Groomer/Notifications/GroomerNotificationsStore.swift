@@ -86,7 +86,48 @@ final class GroomerNotificationsStore {
         }
     }
 
+    func resolveDestination(_ notification: GroomerNotification,
+        requests: GroomerRequestsStore?, bookings: BookingsStore?, chat: ChatStore?
+    ) async -> NotificationDestination? {
+        guard notification.groomerID == groomerID else { return nil }
+        do {
+            let destination: NotificationDestination
+            switch notification.kind {
+            case .newMatch:
+                guard let id = notification.relatedRequestID, let requests else {
+                    throw GroomerNotificationRepositoryError.notificationNotFound
+                }
+                let item = try await requests.resolveNotificationRequest(id: id)
+                destination = .request(item.id)
+            case .offerAccepted, .bookingCancelledByCustomer:
+                guard let id = notification.relatedBookingID, let bookings else {
+                    throw GroomerNotificationRepositoryError.notificationNotFound
+                }
+                await bookings.resolveBooking(id: id, forceRefresh: true)
+                guard bookings.bookingReadStates[id] == .complete else { throw GroomerNotificationRepositoryError.notificationNotFound }
+                destination = .booking(id)
+            case .newMessage:
+                guard let id = notification.relatedBookingID, let chat,
+                      let conversation = await chat.resolveConversation(bookingID: id) else {
+                    throw GroomerNotificationRepositoryError.notificationNotFound
+                }
+                destination = .message(conversation)
+            case .unknown: throw GroomerNotificationRepositoryError.notificationNotFound
+            }
+            try Task.checkCancellation()
+            await markRead(notification)
+            try Task.checkCancellation()
+            return destination
+        } catch is CancellationError { return nil }
+        catch {
+            guard !Task.isCancelled else { return nil }
+            errorMessage = "This notification's destination could not be opened. Refresh and try again."
+            return nil
+        }
+    }
+
     func markRead(_ notification: GroomerNotification) async {
+        guard notification.groomerID == groomerID, !Task.isCancelled else { return }
         guard !notification.isRead else { return }
         guard !markingNotificationIDs.contains(notification.id) else { return }
 
@@ -97,7 +138,12 @@ final class GroomerNotificationsStore {
         }
 
         do {
-            replace(try await repository.markRead(notificationID: notification.id))
+            let result = try await repository.markRead(notificationID: notification.id)
+            try Task.checkCancellation()
+            guard result.id == notification.id, result.groomerID == groomerID else {
+                throw GroomerNotificationRepositoryError.notAllowed
+            }
+            replace(result)
         } catch GroomerNotificationRepositoryError.cancelled {
             return
         } catch let error as GroomerNotificationRepositoryError {

@@ -1059,7 +1059,7 @@ struct GroomerRequestsStoreTests {
         #expect(matchedRequest.fitEvidencePresentation == nil)
     }
 
-    fileprivate static func matchedRequest(
+    static func matchedRequest(
         groomerID: UUID,
         locationMode: GroomingLocationMode = .groomerComesToCustomer,
         preferredStart: String = "2026-06-22T16:00:00Z",
@@ -1148,7 +1148,11 @@ struct GroomerRequestsStoreTests {
 }
 
 @MainActor
-private final class GroomerRequestRepositoryFake: GroomerRequestRepository {
+final class GroomerRequestRepositoryFake: GroomerRequestRepository {
+    var exactMatchResult: Result<GroomerMatchedRequest, GroomerRequestRepositoryError> = .failure(.matchNotFound)
+    func matchedRequest(groomerID: UUID, requestID: UUID) async throws -> GroomerMatchedRequest {
+        try exactMatchResult.get()
+    }
     var offerReadResult: Result<GroomerOffer?, GroomerRequestRepositoryError> = .failure(.networkUnavailable)
     var onOfferRead: (@MainActor () async -> Void)?
     private(set) var offerReadCallCount = 0

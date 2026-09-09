@@ -96,7 +96,50 @@ final class CustomerNotificationsStore {
         }
     }
 
+    func resolveDestination(_ notification: CustomerNotification,
+        requests: CustomerRequestsStore?, bookings: BookingsStore?, chat: ChatStore?
+    ) async -> NotificationDestination? {
+        guard notification.customerID == customerID else { return nil }
+        do {
+            let destination: NotificationDestination
+            switch notification.kind {
+            case .requestPublished, .requestCancelled, .newOffer:
+                guard let id = notification.relatedRequestID, let requests else {
+                    throw CustomerNotificationRepositoryError.notificationNotFound
+                }
+                let offerID = notification.kind == .newOffer ? notification.relatedOfferID : nil
+                if notification.kind == .newOffer && offerID == nil { throw CustomerNotificationRepositoryError.notificationNotFound }
+                _ = try await requests.resolveNotificationRequest(id: id, offerID: offerID)
+                destination = offerID.map { .offer(requestID: id, offerID: $0) } ?? .request(id)
+            case .bookingConfirmed, .bookingCancelled:
+                guard let id = notification.relatedBookingID, let bookings else {
+                    throw CustomerNotificationRepositoryError.notificationNotFound
+                }
+                await bookings.resolveBooking(id: id, forceRefresh: true)
+                guard bookings.bookingReadStates[id] == .complete else { throw CustomerNotificationRepositoryError.notificationNotFound }
+                destination = .booking(id)
+            case .newMessage:
+                guard let id = notification.relatedBookingID, let chat,
+                      let conversation = await chat.resolveConversation(bookingID: id) else {
+                    throw CustomerNotificationRepositoryError.notificationNotFound
+                }
+                destination = .message(conversation)
+            case .unknown: throw CustomerNotificationRepositoryError.notificationNotFound
+            }
+            try Task.checkCancellation()
+            await markRead(notification)
+            try Task.checkCancellation()
+            return destination
+        } catch is CancellationError { return nil }
+        catch {
+            guard !Task.isCancelled else { return nil }
+            errorMessage = "This notification's destination could not be opened. Refresh and try again."
+            return nil
+        }
+    }
+
     func markRead(_ notification: CustomerNotification) async {
+        guard notification.customerID == customerID, !Task.isCancelled else { return }
         guard !notification.isRead else { return }
         guard !markingNotificationIDs.contains(notification.id) else { return }
 
@@ -107,7 +150,12 @@ final class CustomerNotificationsStore {
         }
 
         do {
-            replace(try await repository.markRead(notificationID: notification.id))
+            let result = try await repository.markRead(notificationID: notification.id)
+            try Task.checkCancellation()
+            guard result.id == notification.id, result.customerID == customerID else {
+                throw CustomerNotificationRepositoryError.notAllowed
+            }
+            replace(result)
         } catch CustomerNotificationRepositoryError.cancelled {
             return
         } catch let error as CustomerNotificationRepositoryError {

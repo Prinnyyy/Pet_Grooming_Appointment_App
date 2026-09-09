@@ -32,6 +32,17 @@ final class GroomerRequestsStore {
         nextPageRequest != nil
     }
 
+    func resolveNotificationRequest(id: UUID) async throws -> GroomerMatchedRequest {
+        let item = try await repository.matchedRequest(groomerID: groomerID, requestID: id)
+        try Task.checkCancellation()
+        guard item.request.id == id, item.match.groomerID == groomerID else {
+            throw GroomerRequestRepositoryError.notAllowed
+        }
+        matchedRequests.removeAll { $0.id == item.id }
+        matchedRequests.append(item)
+        return item
+    }
+
     init(
         groomerID: UUID,
         repository: any GroomerRequestRepository,

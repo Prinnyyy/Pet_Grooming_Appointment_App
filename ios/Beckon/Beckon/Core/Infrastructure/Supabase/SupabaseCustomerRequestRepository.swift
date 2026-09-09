@@ -102,9 +102,27 @@ final class SupabaseCustomerRequestRepository: CustomerRequestRepository {
                 .execute()
                 .value
 
-            guard !offerRows.isEmpty else {
-                return ListPage(items: [], request: page)
+            return ListPage(items: try await hydrateOffers(offerRows, customerID: customerID, requestID: requestID), request: page)
+        } catch { throw Self.map(error) }
+    }
+
+    func offer(customerID: UUID, requestID: UUID, offerID: UUID) async throws -> CustomerOfferReview {
+        do {
+            let rows: [CustomerOfferRow] = try await client.from("groomer_offers")
+                .select(Self.offerColumns)
+                .eq("customer_id", value: customerID.uuidString.lowercased())
+                .eq("request_id", value: requestID.uuidString.lowercased())
+                .eq("id", value: offerID.uuidString.lowercased())
+                .limit(1).execute().value
+            guard rows.count == 1, let item = try await hydrateOffers(rows, customerID: customerID, requestID: requestID).first else {
+                throw CustomerRequestRepositoryError.requestNotFound
             }
+            return item
+        } catch { throw Self.map(error) }
+    }
+
+    private func hydrateOffers(_ offerRows: [CustomerOfferRow], customerID: UUID, requestID: UUID) async throws -> [CustomerOfferReview] {
+            guard !offerRows.isEmpty else { return [] }
 
             let evaluations: [SupabaseQuoteEvaluationRow] = try await client
                 .rpc("get_quote_evaluations", params: SupabaseQuoteEvaluationParameters(offerIDs: offerRows.map(\.id)))
@@ -154,10 +172,7 @@ final class SupabaseCustomerRequestRepository: CustomerRequestRepository {
                     matchReason: matchEvidence?.matchReason
                 )
             }
-            return ListPage(items: offers, request: page)
-        } catch {
-            throw Self.map(error)
-        }
+            return offers
     }
 
     func requestPhotos(

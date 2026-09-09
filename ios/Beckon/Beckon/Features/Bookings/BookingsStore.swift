@@ -87,8 +87,8 @@ final class BookingsStore {
         bookings.first { $0.id == id }
     }
 
-    func resolveBooking(id: UUID) async {
-        guard booking(withID: id) == nil, bookingReadStates[id] != .loading else { return }
+    func resolveBooking(id: UUID, forceRefresh: Bool = false) async {
+        guard forceRefresh || booking(withID: id) == nil, bookingReadStates[id] != .loading else { return }
         bookingReadStates[id] = .loading
         do {
             let rows = try await repository.bookings(bookingIDs: [id])

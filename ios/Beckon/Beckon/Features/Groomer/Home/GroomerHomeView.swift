@@ -2,11 +2,13 @@ import SwiftUI
 
 struct GroomerHomeView: View {
     @State private var store: GroomerHomeStore
+    @State private var notificationRequestsStore: GroomerRequestsStore
+    @State private var notificationBookingsStore: BookingsStore
+    private let chatStore: ChatStore?
     @State private var isShowingNotifications = false
     let unreadNotificationCount: Int
     let unreadMessageCount: Int
     let notificationStore: GroomerNotificationsStore?
-    let notificationRouteAction: (GroomerNotificationRoute) -> Void
     let requestsAction: () -> Void
     let offersAction: () -> Void
     let bookingAction: (Booking) -> Void
@@ -23,7 +25,7 @@ struct GroomerHomeView: View {
         unreadMessageCount: Int,
         notificationStore: GroomerNotificationsStore?,
         debugRecorder: AppDebugEventRecorder? = nil,
-        notificationRouteAction: @escaping (GroomerNotificationRoute) -> Void,
+        chatStore: ChatStore? = nil,
         requestsAction: @escaping () -> Void,
         offersAction: @escaping () -> Void,
         bookingAction: @escaping (Booking) -> Void,
@@ -43,7 +45,11 @@ struct GroomerHomeView: View {
         self.unreadNotificationCount = unreadNotificationCount
         self.unreadMessageCount = unreadMessageCount
         self.notificationStore = notificationStore
-        self.notificationRouteAction = notificationRouteAction
+        self.chatStore = chatStore
+        _notificationRequestsStore = State(initialValue: GroomerRequestsStore(groomerID: groomerID,
+            repository: requestRepository, profileRepository: profileRepository, debugRecorder: debugRecorder))
+        _notificationBookingsStore = State(initialValue: BookingsStore(participantID: groomerID, role: .groomer,
+            repository: bookingRepository, groomerProfileRepository: profileRepository, debugRecorder: debugRecorder))
         self.requestsAction = requestsAction
         self.offersAction = offersAction
         self.bookingAction = bookingAction
@@ -97,7 +103,9 @@ struct GroomerHomeView: View {
             if let notificationStore {
                 GroomerNotificationsView(
                     store: notificationStore,
-                    routeAction: notificationRouteAction
+                    requestStore: notificationRequestsStore,
+                    bookingStore: notificationBookingsStore,
+                    chatStore: chatStore
                 )
                 .toolbar(.visible, for: .navigationBar)
             }

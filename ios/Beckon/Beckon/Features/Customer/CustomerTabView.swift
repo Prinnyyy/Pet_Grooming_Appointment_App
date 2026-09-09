@@ -143,6 +143,7 @@ struct CustomerTabView: View {
                 debugRecorder: debugRecorder,
                 notificationStore: notificationStore,
                 requestStore: requestStore,
+                chatStore: chatStore,
                 onActiveRequestSelected: { requestID in
                     focusedRequestID = requestID
                     withAnimation(.easeInOut(duration: 0.22)) {

@@ -349,7 +349,7 @@ struct GroomerNotificationsStoreTests {
 }
 
 @MainActor
-private final class GroomerNotificationRepositoryFake: GroomerNotificationRepository {
+final class GroomerNotificationRepositoryFake: GroomerNotificationRepository {
     var notificationsResult: Result<[GroomerNotification], GroomerNotificationRepositoryError>
     var notificationPages: [Result<ListPage<GroomerNotification>, GroomerNotificationRepositoryError>]
     var markReadResult: Result<GroomerNotification, GroomerNotificationRepositoryError>

@@ -57,9 +57,24 @@ final class SupabaseGroomerRequestRepository: GroomerRequestRepository {
                 .execute()
                 .value
 
-            guard !matchRows.isEmpty else {
-                return ListPage(items: [], request: page)
+            return ListPage(items: try await hydrateMatches(matchRows, groomerID: groomerID), request: page)
+        } catch { throw Self.map(error) }
+    }
+
+    func matchedRequest(groomerID: UUID, requestID: UUID) async throws -> GroomerMatchedRequest {
+        do {
+            let rows: [GroomerRequestMatchRow] = try await client.rpc("get_my_matched_request", params: [
+                "p_groomer_id": groomerID.uuidString.lowercased(), "p_request_id": requestID.uuidString.lowercased()
+            ]).select(Self.matchColumns).execute().value
+            guard rows.count == 1, let item = try await hydrateMatches(rows, groomerID: groomerID).first else {
+                throw GroomerRequestRepositoryError.matchNotFound
             }
+            return item
+        } catch { throw Self.map(error) }
+    }
+
+    private func hydrateMatches(_ matchRows: [GroomerRequestMatchRow], groomerID: UUID) async throws -> [GroomerMatchedRequest] {
+            guard !matchRows.isEmpty else { return [] }
 
             let requestIDs = matchRows.map {
                 $0.requestID.uuidString.lowercased()
@@ -114,10 +129,7 @@ final class SupabaseGroomerRequestRepository: GroomerRequestRepository {
                     offer: latestOffersByRequestID[row.requestID]
                 )
             }
-            return ListPage(items: matchedRequests, request: page)
-        } catch {
-            throw Self.map(error)
-        }
+            return matchedRequests
     }
 
     func offers(groomerID: UUID) async throws -> [GroomerOfferListItem] {

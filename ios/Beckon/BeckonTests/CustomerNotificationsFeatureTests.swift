@@ -4,6 +4,26 @@ import Testing
 
 struct CustomerNotificationsStoreTests {
     @Test @MainActor
+    func cancelledReadCannotUpdateThePreviousAccountCache() async throws {
+        let owner = UUID()
+        let notification = Self.notification(customerID: owner, kind: .newOffer)
+        let repository = CustomerNotificationRepositoryFake(notificationsResult: .success([notification]),
+            markReadResult: .success(notification.replacingReadState(isRead: true, readAt: "2026-09-08T00:00:00Z")))
+        repository.markReadDelayNanoseconds = 100_000_000
+        let store = CustomerNotificationsStore(customerID: owner, repository: repository)
+        await store.load()
+        let operation = Task { await store.markRead(notification) }
+        await Task.yield()
+        operation.cancel()
+        await operation.value
+        #expect(store.notifications.first?.isRead == false)
+        let foreign = CustomerNotificationsStore(customerID: UUID(), repository: repository)
+        let calls = repository.markReadCallCount
+        await foreign.markRead(notification)
+        #expect(repository.markReadCallCount == calls)
+    }
+
+    @Test @MainActor
     func paginationRetriesThenAppendsUniqueNotificationsAndStopsAtLastPage() async {
         let customerID = UUID()
         let first = Self.notification(
@@ -308,7 +328,7 @@ struct CustomerNotificationsStoreTests {
 }
 
 @MainActor
-private final class CustomerNotificationRepositoryFake: CustomerNotificationRepository {
+final class CustomerNotificationRepositoryFake: CustomerNotificationRepository {
     var notificationsResult: Result<[CustomerNotification], CustomerNotificationRepositoryError>
     var notificationPages: [Result<ListPage<CustomerNotification>, CustomerNotificationRepositoryError>]
     var markReadResult: Result<CustomerNotification, CustomerNotificationRepositoryError>

@@ -6,6 +6,25 @@ import Testing
 @Suite("Profile address transport", .serialized)
 struct ProfileAddressTransportTests {
     @Test @MainActor
+    func notificationTargetsUseExactOwnedOfferAndMatchReads() async throws {
+        let owner = UUID(), requestID = UUID(), offerID = UUID()
+        AddressTransportStub.state.reset(mode: .denied)
+        do { _ = try await SupabaseCustomerRequestRepository(client: Self.client())
+            .offer(customerID: owner, requestID: requestID, offerID: offerID) }
+        catch { #expect(error as? CustomerRequestRepositoryError == .notAllowed) }
+        let url = try #require(AddressTransportStub.state.urls.first)
+        let query = URLComponents(url: url, resolvingAgainstBaseURL: false)!.queryItems!
+        #expect(query.contains(URLQueryItem(name: "customer_id", value: "eq.\(owner.uuidString.lowercased())")))
+        #expect(query.contains(URLQueryItem(name: "request_id", value: "eq.\(requestID.uuidString.lowercased())")))
+        #expect(query.contains(URLQueryItem(name: "id", value: "eq.\(offerID.uuidString.lowercased())")))
+        #expect(query.contains(URLQueryItem(name: "limit", value: "1")))
+        AddressTransportStub.state.reset(mode: .denied)
+        do { _ = try await SupabaseGroomerRequestRepository(client: Self.client()).matchedRequest(groomerID: owner, requestID: requestID) }
+        catch { #expect(error as? GroomerRequestRepositoryError == .notAllowed) }
+        #expect(AddressTransportStub.state.paths == ["/rest/v1/rpc/get_my_matched_request"])
+    }
+
+    @Test @MainActor
     func chatSummariesUseOneBoundedRPCAndExactPairQuery() async throws {
         AddressTransportStub.state.reset(mode: .chatSummaries)
         let customer = UUID(uuidString: "00000000-0000-0000-0000-000000000004")!

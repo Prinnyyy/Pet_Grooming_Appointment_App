@@ -237,20 +237,16 @@ private struct BeckonSystemNotificationRow: View {
     var body: some View {
         BeckonCard {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
-                    Text(notification.title)
-                        .font(DesignTokens.Typography.headline)
-                        .foregroundStyle(DesignTokens.Colors.textPrimary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.88)
-
-                    Spacer(minLength: DesignTokens.Spacing.md)
-
-                    Text(notification.createdAtSummary)
-                        .font(DesignTokens.Typography.caption)
-                        .foregroundStyle(DesignTokens.Colors.textTertiary)
-                        .lineLimit(1)
-                        .fixedSize(horizontal: true, vertical: false)
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.md) {
+                        title.fixedSize()
+                        Spacer(minLength: DesignTokens.Spacing.md)
+                        timestamp.fixedSize()
+                    }
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                        title.fixedSize(horizontal: false, vertical: true)
+                        timestamp.fixedSize(horizontal: false, vertical: true)
+                    }
                 }
 
                 Text(notification.body)
@@ -270,5 +266,17 @@ private struct BeckonSystemNotificationRow: View {
             }
         }
         .accessibilityElement(children: .combine)
+    }
+
+    private var title: some View {
+        Text(notification.title)
+            .font(DesignTokens.Typography.headline)
+            .foregroundStyle(DesignTokens.Colors.textPrimary)
+    }
+
+    private var timestamp: some View {
+        Text(notification.createdAtSummary)
+            .font(DesignTokens.Typography.caption)
+            .foregroundStyle(DesignTokens.Colors.textTertiary)
     }
 }

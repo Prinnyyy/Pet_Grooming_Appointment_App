@@ -730,7 +730,7 @@ struct CustomerOfferAcceptancePresentation: Equatable {
     }
 }
 
-private struct CustomerOfferDetailView: View {
+struct CustomerOfferDetailView: View {
     let request: CustomerGroomingRequest
     let offerID: UUID
     let store: CustomerRequestsStore

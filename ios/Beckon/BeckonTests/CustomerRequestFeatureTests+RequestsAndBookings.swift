@@ -497,7 +497,7 @@ extension CustomerRequestsStoreTests {
     }
 
     @Test @MainActor
-    func bookingHandoffLoadMergesRemoteAcknowledgementsWithLocalFallback() async throws {
+    func bookingHandoffLoadIgnoresUnverifiedLegacyLocalAcknowledgements() async throws {
         let customerID = UUID()
         let suiteName = "CustomerRequestsStoreTests.\(UUID().uuidString)"
         let defaults = try #require(UserDefaults(suiteName: suiteName))
@@ -556,13 +556,12 @@ extension CustomerRequestsStoreTests {
         #expect(requestRepository.lastAcknowledgedBookingHandoffCustomerID == customerID)
         #expect(store.acknowledgedBookingHandoffRequestIDs == [
             remoteAcknowledgedRequest.id,
-            localAcknowledgedRequest.id,
         ])
-        #expect(store.bookingHandoffs.map(\.request.id) == [visibleRequest.id])
+        #expect(Set(store.bookingHandoffs.map(\.request.id)) == [visibleRequest.id, localAcknowledgedRequest.id])
     }
 
     @Test @MainActor
-    func acknowledgeBookingHandoffKeepsLocalFallbackWhenRemoteWriteFails() async throws {
+    func acknowledgeBookingHandoffRetriesAfterRemoteWriteFails() async throws {
         let customerID = UUID()
         let suiteName = "CustomerRequestsStoreTests.\(UUID().uuidString)"
         let defaults = try #require(UserDefaults(suiteName: suiteName))
@@ -604,13 +603,13 @@ extension CustomerRequestsStoreTests {
         #expect(requestRepository.acknowledgeBookingHandoffCallCount == 1)
         #expect(requestRepository.lastAcknowledgedBookingHandoffRequestID == bookedRequest.id)
         #expect(requestRepository.lastAcknowledgedBookingHandoffBookingID == booking.id)
+        #expect(!store.bookingHandoffs.isEmpty)
+        #expect(!store.acknowledgedBookingHandoffRequestIDs.contains(bookedRequest.id))
+        requestRepository.acknowledgeBookingHandoffResult = .success(())
+        await store.acknowledgeBookingHandoff(for: handoff)
+        #expect(requestRepository.acknowledgeBookingHandoffCallCount == 2)
         #expect(store.bookingHandoffs.isEmpty)
         #expect(store.acknowledgedBookingHandoffRequestIDs.contains(bookedRequest.id))
-        #expect(
-            defaults.stringArray(
-                forKey: "beckon.customerRequests.bookingHandoffAcknowledgements.\(customerID.uuidString)"
-            ) == [bookedRequest.id.uuidString]
-        )
     }
 
     @Test @MainActor
@@ -659,6 +658,40 @@ extension CustomerRequestsStoreTests {
 
         #expect(store.activeRequests.isEmpty)
         #expect(store.bookingHandoffs.isEmpty)
+    }
+
+    @Test @MainActor
+    func handoffAcknowledgementUsesServerAcrossClientsAndRejectsLateSessionResults() async throws {
+        let owner = UUID()
+        let pet = Self.pet(customerID: owner)
+        let request = Self.request(customerID: owner, petID: pet.id, status: .booked)
+        let booking = Self.booking(requestID: request.id, customerID: owner)
+        let repository = CustomerRequestRepositoryFake(requestsResult: .success([request]))
+        let bookingRepository = CustomerRequestBookingRepositoryFake(bookingsResult: .success([booking]))
+        let suiteA = "T381.clientA.\(UUID())", suiteB = "T381.clientB.\(UUID())"
+        let a = try #require(UserDefaults(suiteName: suiteA)), b = try #require(UserDefaults(suiteName: suiteB))
+        defer { a.removePersistentDomain(forName: suiteA); b.removePersistentDomain(forName: suiteB) }
+        let first = CustomerRequestsStore(customerID: owner, petRepository: CustomerRequestPetRepositoryFake(petsResult: .success([pet])),
+            requestRepository: repository, bookingRepository: bookingRepository, handoffAcknowledgementDefaults: a)
+        let second = CustomerRequestsStore(customerID: owner, petRepository: CustomerRequestPetRepositoryFake(petsResult: .success([pet])),
+            requestRepository: repository, bookingRepository: bookingRepository, handoffAcknowledgementDefaults: b)
+        await first.load()
+        let handoff = try #require(first.bookingHandoffs.first)
+        var sessionIsCurrent = true
+        first.setAcceptanceSessionValidation { sessionIsCurrent }
+        repository.onAcknowledgeHandoff = { sessionIsCurrent = false }
+        await first.acknowledgeBookingHandoff(for: handoff)
+        #expect(first.acknowledgedBookingHandoffRequestIDs.isEmpty)
+        repository.onAcknowledgeHandoff = nil
+        repository.acknowledgedBookingHandoffRequestIDsResult = .success([request.id])
+        await second.load()
+        #expect(second.acknowledgedBookingHandoffRequestIDs == [request.id])
+        #expect(second.bookingHandoffs.isEmpty)
+        let other = CustomerRequestsStore(customerID: UUID(), petRepository: CustomerRequestPetRepositoryFake(),
+            requestRepository: repository, bookingRepository: bookingRepository, handoffAcknowledgementDefaults: b)
+        #expect(other.acknowledgedBookingHandoffRequestIDs.isEmpty)
+        await other.acknowledgeBookingHandoff(for: handoff)
+        #expect(repository.acknowledgeBookingHandoffCallCount == 1)
     }
 
     @Test @MainActor

@@ -6,6 +6,7 @@ struct CustomerPetsView: View {
     private let customerProfileRepository: (any CustomerProfileRepository)?
     private let onActiveRequestSelected: (UUID) -> Void
     private let onBookingChatSelected: (Booking) -> Void
+    private let chatStore: ChatStore?
     @State private var petStore: CustomerPetsStore
     @State private var requestStore: CustomerRequestsStore
     @State private var bookingStore: BookingsStore
@@ -24,6 +25,7 @@ struct CustomerPetsView: View {
         debugRecorder: AppDebugEventRecorder? = nil,
         notificationStore: CustomerNotificationsStore? = nil,
         requestStore: CustomerRequestsStore? = nil,
+        chatStore: ChatStore? = nil,
         onActiveRequestSelected: @escaping (UUID) -> Void = { _ in },
         onBookingChatSelected: @escaping (Booking) -> Void = { _ in }
     ) {
@@ -35,6 +37,7 @@ struct CustomerPetsView: View {
         self.customerProfileRepository = customerProfileRepository
         self.onActiveRequestSelected = onActiveRequestSelected
         self.onBookingChatSelected = onBookingChatSelected
+        self.chatStore = chatStore
         _petStore = State(
             initialValue: CustomerPetsStore(
                 customerID: customerID,
@@ -100,7 +103,8 @@ struct CustomerPetsView: View {
             }
         }
         .navigationDestination(isPresented: $isShowingNotifications) {
-            CustomerNotificationsView(store: notificationStore)
+            CustomerNotificationsView(store: notificationStore, requestStore: requestStore,
+                bookingStore: bookingStore, chatStore: chatStore)
         }
         .foregroundRefreshable {
             await loadHome()

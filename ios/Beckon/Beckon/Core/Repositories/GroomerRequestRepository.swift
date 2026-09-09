@@ -22,6 +22,7 @@ enum GroomerRequestRepositoryError: Error, Equatable, Sendable {
 
 @MainActor
 protocol GroomerRequestRepository: AnyObject {
+    func matchedRequest(groomerID: UUID, requestID: UUID) async throws -> GroomerMatchedRequest
     func offer(groomerID: UUID, offerID: UUID) async throws -> GroomerOffer?
     func matchedRequests(groomerID: UUID) async throws -> [GroomerMatchedRequest]
 
@@ -59,6 +60,9 @@ protocol GroomerRequestRepository: AnyObject {
 }
 
 extension GroomerRequestRepository {
+    func matchedRequest(groomerID: UUID, requestID: UUID) async throws -> GroomerMatchedRequest {
+        throw GroomerRequestRepositoryError.unavailable
+    }
     func offer(groomerID: UUID, offerID: UUID) async throws -> GroomerOffer? {
         throw GroomerRequestRepositoryError.unavailable
     }

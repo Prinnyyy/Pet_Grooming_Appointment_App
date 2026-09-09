@@ -119,6 +119,11 @@ final class CustomerRequestAppointmentReminderSchedulerFake:
 @MainActor
 final class CustomerRequestRepositoryFake: CustomerRequestRepository {
     var exactRequestResult: Result<CustomerGroomingRequest, CustomerRequestRepositoryError>?
+    var onAcknowledgeHandoff: (@MainActor () -> Void)?
+    var exactOfferResult: Result<CustomerOfferReview, CustomerRequestRepositoryError> = .failure(.requestNotFound)
+    func offer(customerID: UUID, requestID: UUID, offerID: UUID) async throws -> CustomerOfferReview {
+        try exactOfferResult.get()
+    }
     private(set) var exactRequestIDs: [UUID] = []
     func request(customerID: UUID, requestID: UUID) async throws -> CustomerGroomingRequest {
         exactRequestIDs.append(requestID)
@@ -328,6 +333,7 @@ final class CustomerRequestRepositoryFake: CustomerRequestRepository {
         lastAcknowledgedBookingHandoffCustomerID = customerID
         lastAcknowledgedBookingHandoffRequestID = requestID
         lastAcknowledgedBookingHandoffBookingID = bookingID
+        onAcknowledgeHandoff?()
         try acknowledgeBookingHandoffResult.get()
     }
 }

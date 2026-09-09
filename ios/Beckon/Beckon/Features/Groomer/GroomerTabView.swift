@@ -122,7 +122,7 @@ struct GroomerTabView: View {
                 unreadMessageCount: messageUnreadCount,
                 notificationStore: notificationStore,
                 debugRecorder: debugRecorder,
-                notificationRouteAction: openNotificationRoute,
+                chatStore: chatStore,
                 requestsAction: { openRequests(.matches) },
                 offersAction: { openRequests(.offers) },
                 bookingAction: { _ in select(.bookings) },

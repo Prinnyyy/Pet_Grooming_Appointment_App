@@ -149,6 +149,7 @@ final class CustomerRequestsStore {
     private(set) var cancellingRequestIDs: Set<UUID> = []
     private(set) var retryingRequestPhotoIDs: Set<UUID> = []
     private(set) var acknowledgedBookingHandoffRequestIDs: Set<UUID> = []
+    private var acknowledgingHandoffRequestIDs: Set<UUID> = []
     private(set) var isLoading = false
     private(set) var isPreparingRepublish = false
     private(set) var isSubmitting = false
@@ -706,6 +707,25 @@ final class CustomerRequestsStore {
         requests.first { $0.id == id }
     }
 
+    func resolveNotificationRequest(id: UUID, offerID: UUID? = nil) async throws -> CustomerGroomingRequest {
+        try checkAcceptanceSession()
+        let request = try await requestRepository.request(customerID: customerID, requestID: id)
+        try checkAcceptanceSession()
+        guard request.id == id, request.customerID == customerID else { throw CustomerRequestRepositoryError.notAllowed }
+        if let offerID {
+            let review = try await requestRepository.offer(customerID: customerID, requestID: id, offerID: offerID)
+            try checkAcceptanceSession()
+            guard review.id == offerID, review.offer.requestID == id, review.offer.customerID == customerID else {
+                throw CustomerRequestRepositoryError.notAllowed
+            }
+            let old = offerReviewsByRequestID[id, default: []].filter { $0.id != offerID }
+            offerReviewsByRequestID[id] = Self.displayOrdered(old + [review])
+        }
+        requests.removeAll { $0.id == id }
+        requests.append(request)
+        return request
+    }
+
     func offerError(for request: CustomerGroomingRequest) -> String? {
         offerErrorsByRequestID[request.id]
     }
@@ -845,9 +865,11 @@ final class CustomerRequestsStore {
     }
 
     func acknowledgeBookingHandoff(for handoff: CustomerRequestBookingHandoff) async {
-        let insertion = acknowledgedBookingHandoffRequestIDs.insert(handoff.request.id)
-        guard insertion.inserted else { return }
-        persistAcknowledgedBookingHandoffRequestIDs()
+        guard handoff.request.customerID == customerID, handoff.booking.customerID == customerID,
+              handoff.booking.requestID == handoff.request.id,
+              !acknowledgedBookingHandoffRequestIDs.contains(handoff.request.id),
+              acknowledgingHandoffRequestIDs.insert(handoff.request.id).inserted else { return }
+        defer { acknowledgingHandoffRequestIDs.remove(handoff.request.id) }
 
         let startedAt = Date()
         recordStoreStart(
@@ -858,11 +880,15 @@ final class CustomerRequestsStore {
             ]
         )
         do {
+            try checkAcceptanceSession()
             try await requestRepository.acknowledgeBookingHandoff(
                 customerID: customerID,
                 requestID: handoff.request.id,
                 bookingID: handoff.booking.id
             )
+            try checkAcceptanceSession()
+            acknowledgedBookingHandoffRequestIDs.insert(handoff.request.id)
+            persistAcknowledgedBookingHandoffRequestIDs()
             recordStoreSuccess(
                 "acknowledgeBookingHandoff",
                 startedAt: startedAt,
@@ -871,12 +897,15 @@ final class CustomerRequestsStore {
                     "bookingID": handoff.booking.id.uuidString,
                 ]
             )
+        } catch is CancellationError {
+            return
         } catch CustomerRequestRepositoryError.cancelled {
             recordStoreCancelled(
                 "acknowledgeBookingHandoff",
                 startedAt: startedAt
             )
         } catch let error as CustomerRequestRepositoryError {
+            noticeMessage = "Your booking is unchanged. Its confirmation could not be saved; open the booking again to retry."
             recordStoreFailure(
                 "acknowledgeBookingHandoff",
                 error: error,
@@ -885,6 +914,7 @@ final class CustomerRequestsStore {
                 level: .warning
             )
         } catch {
+            noticeMessage = "Your booking is unchanged. Its confirmation could not be saved; open the booking again to retry."
             recordStoreFailure(
                 "acknowledgeBookingHandoff",
                 error: error,
@@ -2503,10 +2533,12 @@ final class CustomerRequestsStore {
 
     private func loadAcknowledgedBookingHandoffs(startedAt: Date) async {
         do {
+            try checkAcceptanceSession()
             let remoteAcknowledgedRequestIDs =
                 try await requestRepository.acknowledgedBookingHandoffRequestIDs(
                     customerID: customerID
                 )
+            try checkAcceptanceSession()
             guard !remoteAcknowledgedRequestIDs.isEmpty else { return }
 
             acknowledgedBookingHandoffRequestIDs.formUnion(remoteAcknowledgedRequestIDs)
@@ -2518,6 +2550,8 @@ final class CustomerRequestsStore {
                     "acknowledgementCount": "\(acknowledgedBookingHandoffRequestIDs.count)",
                 ]
             )
+        } catch is CancellationError {
+            return
         } catch CustomerRequestRepositoryError.cancelled {
             recordStoreCancelled(
                 "load.bookingHandoffAcknowledgements",
@@ -2563,7 +2597,7 @@ final class CustomerRequestsStore {
     }
 
     private static func handoffAcknowledgementStorageKey(customerID: UUID) -> String {
-        "beckon.customerRequests.bookingHandoffAcknowledgements.\(customerID.uuidString)"
+        "beckon.customerRequests.verifiedBookingHandoffAcknowledgements.\(customerID.uuidString)"
     }
 }
 

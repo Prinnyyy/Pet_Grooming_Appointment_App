@@ -14,6 +14,7 @@ enum CustomerRequestRepositoryError: Error, Equatable, Sendable {
 
 @MainActor
 protocol CustomerRequestRepository: AnyObject {
+    func offer(customerID: UUID, requestID: UUID, offerID: UUID) async throws -> CustomerOfferReview
     func request(customerID: UUID, requestID: UUID) async throws -> CustomerGroomingRequest
     func requests(customerID: UUID) async throws -> [CustomerGroomingRequest]
 
@@ -69,6 +70,9 @@ protocol CustomerRequestRepository: AnyObject {
 }
 
 extension CustomerRequestRepository {
+    func offer(customerID: UUID, requestID: UUID, offerID: UUID) async throws -> CustomerOfferReview {
+        throw CustomerRequestRepositoryError.unavailable
+    }
     func request(customerID: UUID, requestID: UUID) async throws -> CustomerGroomingRequest {
         throw CustomerRequestRepositoryError.unavailable
     }

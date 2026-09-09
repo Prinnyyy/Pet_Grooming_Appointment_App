@@ -887,7 +887,7 @@ private final class ChatReadStateCacheFake: ChatReadStateCaching {
 }
 
 @MainActor
-private final class ChatRepositoryFake: ChatRepository {
+final class ChatRepositoryFake: ChatRepository {
     var exactConversationResult: Result<ChatConversation, ChatRepositoryError> = .failure(.conversationNotFound)
     private(set) var exactConversationCallCount = 0
 

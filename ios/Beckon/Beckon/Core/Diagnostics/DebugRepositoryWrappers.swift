@@ -212,6 +212,9 @@ final class DebugBookingRepository: BookingRepository {
 
 @MainActor
 final class DebugCustomerRequestRepository: CustomerRequestRepository {
+    func offer(customerID: UUID, requestID: UUID, offerID: UUID) async throws -> CustomerOfferReview {
+        try await base.offer(customerID: customerID, requestID: requestID, offerID: offerID)
+    }
     private let base: any CustomerRequestRepository
     private let debugRecorder: AppDebugEventRecorder?
 
@@ -1338,6 +1341,9 @@ final class DebugGroomerProfileRepository: GroomerProfileRepository {
 
 @MainActor
 final class DebugGroomerRequestRepository: GroomerRequestRepository {
+    func matchedRequest(groomerID: UUID, requestID: UUID) async throws -> GroomerMatchedRequest {
+        try await base.matchedRequest(groomerID: groomerID, requestID: requestID)
+    }
     private let base: any GroomerRequestRepository
     private let debugRecorder: AppDebugEventRecorder?
 

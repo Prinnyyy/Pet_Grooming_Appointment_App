@@ -314,7 +314,7 @@ nonisolated enum ChatComposerKeyboardPresentation {
     static let includesExplicitDoneAccessory = true
 }
 
-private struct ChatThreadView: View {
+struct ChatThreadView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
     let participantID: UUID
