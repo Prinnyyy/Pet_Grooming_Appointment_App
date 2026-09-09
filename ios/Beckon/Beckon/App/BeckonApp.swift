@@ -42,6 +42,9 @@ struct BeckonApp: App {
             }
             .onChange(of: scenePhase) { _, newPhase in
                 composition.operationalEventRecorder.recordScenePhase(newPhase)
+                if newPhase == .active {
+                    Task { _ = await AppointmentReminderScheduler.shared.refresh() }
+                }
             }
             .onOpenURL { url in
                 Task {

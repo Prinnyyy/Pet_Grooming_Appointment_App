@@ -35,4 +35,12 @@ final class CustomerPushNotificationAppDelegate:
     ) async -> UNNotificationPresentationOptions {
         [.banner, .sound, .badge]
     }
+
+    func userNotificationCenter(_ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse) async {
+        await MainActor.run {
+            guard response.notification.request.identifier.hasPrefix(AppointmentReminderPlan.prefix) else { return }
+            AppointmentReminderScheduler.shared.acceptTap(userInfo: response.notification.request.content.userInfo)
+        }
+    }
 }

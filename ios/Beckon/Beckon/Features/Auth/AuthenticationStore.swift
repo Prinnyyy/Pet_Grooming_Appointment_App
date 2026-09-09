@@ -69,10 +69,16 @@ final class AuthenticationStore {
     private let repository: any AuthSessionRepository
     private let clearsSessionBeforeRestore: Bool
     private let localAccountCleanup: (UUID) -> Void
+    private let reminderScheduler: any AppointmentReminderScheduling
     private var didRestoreSession = false
     private var isObservingSession = false
 
-    var rootState: AuthenticationRootState = .loading
+    var rootState: AuthenticationRootState = .loading {
+        didSet {
+            if case let .signedIn(session) = rootState { reminderScheduler.setAccount(session.userID) }
+            else { reminderScheduler.setAccount(nil) }
+        }
+    }
     var mode: AuthenticationMode = .signIn {
         didSet {
             guard mode != oldValue else { return }
@@ -91,11 +97,13 @@ final class AuthenticationStore {
     init(
         repository: any AuthSessionRepository,
         clearsSessionBeforeRestore: Bool = false,
-        localAccountCleanup: @escaping (UUID) -> Void = { _ in }
+        localAccountCleanup: @escaping (UUID) -> Void = { _ in },
+        reminderScheduler: any AppointmentReminderScheduling = AppointmentReminderScheduler.shared
     ) {
         self.repository = repository
         self.clearsSessionBeforeRestore = clearsSessionBeforeRestore
         self.localAccountCleanup = localAccountCleanup
+        self.reminderScheduler = reminderScheduler
     }
 
     func start() async {

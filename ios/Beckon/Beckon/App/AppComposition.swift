@@ -105,6 +105,8 @@ struct AppComposition {
             self.customerNotificationRepository = customerNotificationRepository
             self.customerPushNotificationRepository = customerPushNotificationRepository
             self.bookingRepository = bookingRepository
+            AppointmentReminderScheduler.shared.configure(repository: bookingRepository)
+            AppointmentReminderScheduler.shared.startConnectivityMonitoring()
             self.chatRepository = chatRepository
             self.groomerProfileRepository = groomerProfileRepository
             self.groomerRequestRepository = groomerRequestRepository
@@ -125,6 +127,8 @@ struct AppComposition {
                 repository: customerPushNotificationRepository
             )
         } catch {
+            AppointmentReminderScheduler.shared.configure(repository: nil)
+            AppointmentReminderScheduler.shared.setAccount(nil)
             authenticationBootstrapState = .configurationError(
                 message: error.localizedDescription
             )

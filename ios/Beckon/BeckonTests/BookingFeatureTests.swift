@@ -1165,7 +1165,7 @@ struct BookingsStoreTests {
         )
     }
 
-    fileprivate static func booking(
+    static func booking(
         id: UUID = UUID(),
         requestID: UUID = UUID(),
         offerID: UUID = UUID(),
@@ -1258,6 +1258,13 @@ struct BookingsStoreTests {
 
 struct AppointmentReminderPlanTests {
     @Test @MainActor
+    func reminderIdentityIncludesItsAccountOwner() throws {
+        let booking = BookingsStoreTests.booking(status: .confirmed, scheduledStart: "2026-08-22T16:00:00Z")
+        let now = try #require(GroomingRequestDateFormatting.parsedDate(from: "2026-08-22T14:00:00Z"))
+        let reminder = try #require(AppointmentReminderPlan.reminders(for: [booking], role: .customer, now: now).first)
+        #expect(reminder.identifier.contains(booking.customerID.uuidString.lowercased()))
+    }
+    @Test @MainActor
     func plannerKeepsOnlyFutureConfirmedBookings() throws {
         let now = try #require(
             GroomingRequestDateFormatting.parsedDate(
@@ -1290,7 +1297,7 @@ struct AppointmentReminderPlanTests {
         #expect(reminders.first?.bookingID == eligible.id)
         #expect(
             reminders.first?.identifier ==
-                "beckon.appointment-reminder.customer.11111111-2222-4333-8444-555555555555"
+                AppointmentReminderPlan.identifier(for: eligible.id, role: .customer, accountID: eligible.customerID)
         )
         #expect(
             reminders.first?.fireDate ==
@@ -1321,7 +1328,7 @@ struct AppointmentReminderPlanTests {
         )
 
         #expect(reminders.map(\.identifier) == [
-            "beckon.appointment-reminder.customer.11111111-2222-4333-8444-555555555555",
+            AppointmentReminderPlan.identifier(for: booking.id, role: .customer, accountID: booking.customerID),
         ])
     }
 }
@@ -1360,6 +1367,13 @@ final class AppointmentReminderSchedulerFake:
 
 @MainActor
 final class BookingRepositoryFake: BookingRepository {
+    var reminderResult: Result<AppointmentReminderSnapshot, BookingRepositoryError> = .failure(.unavailable)
+    var onReminderSnapshot: (() async -> Void)?
+    func reminderSnapshot(participantID: UUID, role: UserRole) async throws -> AppointmentReminderSnapshot {
+        let result = reminderResult
+        await onReminderSnapshot?()
+        return try result.get()
+    }
     private(set) var nearestCallCount = 0
     func nearestBooking(participantID: UUID, role: UserRole, now: Date) async throws -> Booking? {
         nearestCallCount += 1

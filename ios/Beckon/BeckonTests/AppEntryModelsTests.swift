@@ -737,6 +737,32 @@ struct AuthenticationStoreTests {
     }
 
     @Test @MainActor
+    func authenticationExitClearsItsScheduledAndDeliveredReminders() async {
+        let session = AuthSessionSnapshot(userID: UUID(), email: "user@example.com")
+        let repository = AuthSessionRepositoryFake(currentSession: session)
+        let center = ReminderCenterFake()
+        let scheduler = AppointmentReminderScheduler(notificationCenter: center)
+        let bookings = BookingRepositoryFake()
+        let now = Date()
+        bookings.reminderResult = .success(AppointmentReminderSnapshot(participantID: session.userID, role: .customer,
+            asOf: GroomingRequestDateFormatting.serverString(from: now),
+            horizonEnd: GroomingRequestDateFormatting.serverString(from: now.addingTimeInterval(30 * 86400)), complete: true,
+            bookings: [AppointmentReminderBooking(id: UUID(), customerID: session.userID, groomerID: UUID(),
+                scheduledStart: GroomingRequestDateFormatting.serverString(from: now.addingTimeInterval(7200)),
+                updatedAt: GroomingRequestDateFormatting.serverString(from: now))]))
+        scheduler.configure(repository: bookings)
+        let store = AuthenticationStore(repository: repository, reminderScheduler: scheduler)
+        await store.start()
+        await scheduler.activate(participantID: session.userID, role: .customer)
+        #expect(center.pendingRequests.count == 1)
+        center.deliveredRequests = center.pendingRequests
+        await store.signOut()
+        await scheduler.clearObsoleteSessions()
+        #expect(center.pendingRequests.isEmpty)
+        #expect(center.deliveredRequests.isEmpty)
+    }
+
+    @Test @MainActor
     func deleteAccountAnonymizesAuthUserClearsLocalStateAndSignsOut() async {
         let session = AuthSessionSnapshot(
             userID: UUID(),

@@ -6,6 +6,13 @@ import Testing
 @Suite("Profile address transport", .serialized)
 struct ProfileAddressTransportTests {
     @Test @MainActor
+    func reminderSnapshotUsesSingleOwnedRPCWithoutImageHydration() async throws {
+        AddressTransportStub.state.reset(mode: .denied)
+        do { _ = try await SupabaseBookingRepository(client: Self.client()).reminderSnapshot(participantID: UUID(), role: .customer) }
+        catch { #expect(error as? BookingRepositoryError == .notAllowed) }
+        #expect(AddressTransportStub.state.paths == ["/rest/v1/rpc/get_my_reminder_snapshot"])
+    }
+    @Test @MainActor
     func notificationTargetsUseExactOwnedOfferAndMatchReads() async throws {
         let owner = UUID(), requestID = UUID(), offerID = UUID()
         AddressTransportStub.state.reset(mode: .denied)

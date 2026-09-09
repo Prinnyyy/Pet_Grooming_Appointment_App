@@ -80,6 +80,10 @@ final class DebugBookingRepository: BookingRepository {
         try await base.nearestBooking(participantID: participantID, role: role, now: now)
     }
 
+    func reminderSnapshot(participantID: UUID, role: UserRole) async throws -> AppointmentReminderSnapshot {
+        try await base.reminderSnapshot(participantID: participantID, role: role)
+    }
+
     func bookings(participantID: UUID, role: UserRole, interval: DateInterval,
         page: ListPageRequest) async throws -> ListPage<Booking> {
         try await base.bookings(participantID: participantID, role: role, interval: interval, page: page)

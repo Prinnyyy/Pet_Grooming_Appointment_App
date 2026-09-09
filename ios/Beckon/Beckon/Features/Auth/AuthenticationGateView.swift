@@ -49,6 +49,7 @@ struct AuthenticationGateView: View {
                     groomerNotificationRepository: groomerNotificationRepository,
                     operationalEventRecorder: operationalEventRecorder
                 )
+                .id(session.userID)
             }
         }
         .task {

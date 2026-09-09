@@ -14,6 +14,7 @@ struct AuthenticatedEntryView: View {
     private let groomerNotificationRepository: any GroomerNotificationRepository
     private let operationalEventRecorder: AppOperationalEventRecorder?
     @State private var store: AuthenticatedEntryStore
+    @State private var reminderScheduler = AppointmentReminderScheduler.shared
 
     init(
         session: AuthSessionSnapshot,
@@ -103,6 +104,16 @@ struct AuthenticatedEntryView: View {
         .task(id: activeCustomerIDForPushRegistration) {
             await CustomerPushNotificationRegistrationCoordinator.shared
                 .activate(customerID: activeCustomerIDForPushRegistration)
+        }
+        .task(id: store.state) {
+            switch store.state {
+            case let .customer(profile): await reminderScheduler.activate(participantID: profile.userID, role: .customer)
+            case let .groomer(profile): await reminderScheduler.activate(participantID: profile.userID, role: .groomer)
+            default: break
+            }
+        }
+        .sheet(item: $reminderScheduler.tap) { target in
+            AppointmentReminderDestinationView(target: target, repository: bookingRepository)
         }
         .onDisappear {
             Task {

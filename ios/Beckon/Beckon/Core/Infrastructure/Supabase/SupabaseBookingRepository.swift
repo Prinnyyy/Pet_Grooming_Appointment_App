@@ -48,6 +48,14 @@ final class SupabaseBookingRepository: BookingRepository {
         } catch { throw Self.map(error) }
     }
 
+    func reminderSnapshot(participantID: UUID, role: UserRole) async throws -> AppointmentReminderSnapshot {
+        struct Input: Encodable { let p_participant_id: UUID; let p_role: String }
+        do {
+            return try await client.rpc("get_my_reminder_snapshot",
+                params: Input(p_participant_id: participantID, p_role: role.rawValue)).execute().value
+        } catch { throw Self.map(error) }
+    }
+
     func bookings(participantID: UUID, role: UserRole, interval: DateInterval,
         page: ListPageRequest) async throws -> ListPage<Booking> {
         guard interval.duration > 0, interval.duration <= 31 * 86400 else { throw BookingRepositoryError.invalidInput }
