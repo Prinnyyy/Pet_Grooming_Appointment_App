@@ -168,7 +168,7 @@ final class CustomerNotificationsStore {
     }
 
     func markAllRead() async {
-        guard unreadCount > 0, !isMarkingAllRead else { return }
+        guard !isMarkingAllRead else { return }
 
         isMarkingAllRead = true
         errorMessage = nil

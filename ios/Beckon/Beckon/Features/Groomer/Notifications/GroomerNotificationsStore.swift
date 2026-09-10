@@ -156,7 +156,7 @@ final class GroomerNotificationsStore {
     }
 
     func markAllRead() async {
-        guard unreadCount > 0, !isMarkingAllRead else { return }
+        guard !isMarkingAllRead else { return }
 
         isMarkingAllRead = true
         errorMessage = nil

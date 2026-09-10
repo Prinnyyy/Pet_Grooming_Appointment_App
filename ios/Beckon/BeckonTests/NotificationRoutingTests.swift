@@ -50,6 +50,26 @@ final class NotificationRoutingRenderingTests: XCTestCase {
 }
 
 struct NotificationRoutingTests {
+    @Test(arguments: [UserRole.customer, .groomer]) @MainActor
+    func explicitMarkAllReadDoesNotInferServerStateFromAnEmptyPage(role: UserRole) async {
+        let owner = UUID()
+        if role == .customer {
+            let repository = CustomerNotificationRepositoryFake(markAllReadResult: .failure(.networkUnavailable))
+            let store = CustomerNotificationsStore(customerID: owner, repository: repository)
+            await store.load()
+            await store.markAllRead()
+            #expect(store.errorMessage != nil)
+            #expect(store.notifications.isEmpty)
+        } else {
+            let repository = GroomerNotificationRepositoryFake(markAllReadResult: .failure(.networkUnavailable))
+            let store = GroomerNotificationsStore(groomerID: owner, repository: repository)
+            await store.load()
+            await store.markAllRead()
+            #expect(store.errorMessage != nil)
+            #expect(store.notifications.isEmpty)
+        }
+    }
+
     @Test(arguments: CustomerNotificationKind.allCases) @MainActor
     func customerKindsResolveExactCurrentTargetsWithoutAcknowledging(kind: CustomerNotificationKind) async throws {
         let owner = UUID()

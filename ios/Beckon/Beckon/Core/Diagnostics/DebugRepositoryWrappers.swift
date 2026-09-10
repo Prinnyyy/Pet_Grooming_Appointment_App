@@ -1348,6 +1348,18 @@ final class DebugGroomerRequestRepository: GroomerRequestRepository {
     func matchedRequest(groomerID: UUID, requestID: UUID) async throws -> GroomerMatchedRequest {
         try await base.matchedRequest(groomerID: groomerID, requestID: requestID)
     }
+
+    func offer(groomerID: UUID, offerID: UUID) async throws -> GroomerOffer? {
+        try await requestCall(
+            "offer",
+            groomerID: groomerID,
+            table: "groomer_offers",
+            metadata: ["offerID": offerID.uuidString]
+        ) {
+            try await base.offer(groomerID: groomerID, offerID: offerID)
+        }
+    }
+
     private let base: any GroomerRequestRepository
     private let debugRecorder: AppDebugEventRecorder?
 

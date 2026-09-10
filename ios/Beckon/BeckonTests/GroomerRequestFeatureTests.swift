@@ -772,8 +772,8 @@ struct GroomerRequestsStoreTests {
         #expect(store.errorMessage == "Price must be 0–100000 with at most 2 decimals.")
     }
 
-    @Test(arguments: ["matching", "wrong_owner", "cancelled", "withdrawn"]) @MainActor
-    func createdOfferReadbackUsesOnlyMatchingAuthoritativeSnapshot(scenario: String) async throws {
+    @Test(arguments: ["matching", "wrong_owner", "cancelled", "withdrawn"], [false, true]) @MainActor
+    func createdOfferReadbackUsesOnlyMatchingAuthoritativeSnapshot(scenario: String, wrapped: Bool) async throws {
         let wrongOwner = scenario == "wrong_owner"
         let groomerID = UUID()
         let matched = Self.matchedRequest(groomerID: groomerID)
@@ -791,7 +791,9 @@ struct GroomerRequestsStoreTests {
             createOfferResult: .success(CreateGroomerOfferResult(offerID: offerID, offerStatus: .pending,
                 requestStatus: .hasOffers)))
         repository.offerReadResult = .success(readback)
-        let store = GroomerRequestsStore(groomerID: groomerID, repository: repository)
+        let effectiveRepository: any GroomerRequestRepository = wrapped
+            ? DebugGroomerRequestRepository(base: repository, debugRecorder: nil) : repository
+        let store = GroomerRequestsStore(groomerID: groomerID, repository: effectiveRepository)
         await store.load()
         let start = try #require(GroomingRequestDateFormatting.parsedDate(from: matched.request.preferredStart))
         let end = try #require(GroomingRequestDateFormatting.parsedDate(from: matched.request.preferredEnd))

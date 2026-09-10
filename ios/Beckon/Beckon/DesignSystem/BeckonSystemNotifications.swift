@@ -112,6 +112,7 @@ struct BeckonSystemNotificationsView: View {
     let loadNextPageAction: () async -> Void
     let markAllReadAction: () async -> Void
     var selectAction: ((UUID) -> Void)? = nil
+    @State private var isMarkingAllRead = false
 
     var body: some View {
         ZStack {
@@ -124,9 +125,19 @@ struct BeckonSystemNotificationsView: View {
         .task {
             await loadAction()
         }
-        .onDisappear {
-            Task {
-                await markAllReadAction()
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("Mark All Read", systemImage: "checkmark.circle") {
+                    guard !isMarkingAllRead else { return }
+                    isMarkingAllRead = true
+                    Task {
+                        await markAllReadAction()
+                        isMarkingAllRead = false
+                    }
+                }
+                .labelStyle(.iconOnly)
+                .disabled(isMarkingAllRead || isLoading)
+                .accessibilityIdentifier("\(presentation.accessibilityPrefix).mark-all-read")
             }
         }
         .foregroundRefreshable {

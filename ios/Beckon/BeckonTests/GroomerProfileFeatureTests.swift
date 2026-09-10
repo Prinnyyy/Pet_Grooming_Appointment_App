@@ -428,8 +428,12 @@ struct GroomerProfileStoreTests {
         let loadTask = Task {
             await store.load()
         }
-        try? await Task.sleep(nanoseconds: 50_000_000)
+        let deadline = ContinuousClock.now.advanced(by: .seconds(5))
+        while repository.portfolioPhotoDataCallCount == 0, ContinuousClock.now < deadline {
+            try? await Task.sleep(nanoseconds: 10_000_000)
+        }
 
+        #expect(repository.portfolioPhotoDataCallCount == 1)
         #expect(store.profile?.avatarPath == avatarPath)
         #expect(store.avatarPhotoData == Data("avatar:\(avatarPath)".utf8))
 
