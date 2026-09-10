@@ -50,6 +50,92 @@ final class NotificationRoutingRenderingTests: XCTestCase {
 }
 
 struct NotificationRoutingTests {
+    @Test(arguments: [false, true]) @MainActor
+    func notificationWireRowsPreserveOptionalConversationAcrossReadState(hasTarget: Bool) throws {
+        let conversation = UUID()
+        var payload: [String: Any] = ["id": UUID().uuidString, "customer_id": UUID().uuidString,
+            "groomer_id": UUID().uuidString, "kind": "new_message", "title": "Message", "body": "New message",
+            "is_read": false, "created_at": "2026-09-10T12:00:00Z"]
+        if hasTarget { payload["related_conversation_id"] = conversation.uuidString }
+        let data = try JSONSerialization.data(withJSONObject: payload)
+        let customer = try JSONDecoder().decode(CustomerNotificationRow.self, from: data).notification
+        let groomer = try JSONDecoder().decode(GroomerNotificationRow.self, from: data).notification
+        #expect(customer.relatedConversationID == (hasTarget ? conversation : nil))
+        #expect(groomer.relatedConversationID == (hasTarget ? conversation : nil))
+        #expect(customer.replacingReadState(isRead: true, readAt: customer.createdAt).relatedConversationID == customer.relatedConversationID)
+        #expect(groomer.replacingReadState(isRead: true, readAt: groomer.createdAt).relatedConversationID == groomer.relatedConversationID)
+    }
+
+    @Test @MainActor
+    func exactConversationRejectsForeignOrWrongIdentityAndDistinguishesNetworkFailure() async {
+        let owner = UUID(), id = UUID()
+        let repository = ChatRepositoryFake()
+        let store = ChatStore(participantID: owner, role: .customer, repository: repository)
+        for (customer, target) in [(UUID(), id), (owner, UUID())] {
+            repository.exactConversationResult = .success(ChatConversation(id: target, customerID: customer,
+                groomerID: UUID(), createdAt: "2026-09-10T12:00:00Z", updatedAt: "2026-09-10T12:00:00Z"))
+            #expect(await store.resolveConversation(conversationID: id) == nil)
+            #expect(store.errorMessage?.contains("no longer available") == true)
+        }
+        repository.exactConversationResult = .failure(.networkUnavailable)
+        #expect(await store.resolveConversation(conversationID: id) == nil)
+        #expect(store.errorMessage?.contains("connection") == true)
+        #expect(repository.conversationsCallCount == 0)
+    }
+
+    @Test @MainActor
+    func missingHistoricalTargetIsNotGuessedAndMarkReadFailureDoesNotBlockVerifiedChat() async {
+        let owner = UUID(), date = "2026-09-10T12:00:00Z"
+        let conversation = ChatConversation(id: UUID(), customerID: owner, groomerID: UUID(), createdAt: date, updatedAt: date)
+        let chats = ChatRepositoryFake()
+        chats.exactConversationResult = .success(conversation)
+        let chat = ChatStore(participantID: owner, role: .customer, repository: chats)
+        let repository = CustomerNotificationRepositoryFake(markReadResult: .failure(.networkUnavailable))
+        let store = CustomerNotificationsStore(customerID: owner, repository: repository)
+        var notice = CustomerNotification(id: UUID(), customerID: owner, kind: .newMessage, title: "Message", body: "New message",
+            isRead: false, createdAt: date, readAt: nil, relatedRequestID: nil, relatedBookingID: nil, relatedOfferID: nil)
+        #expect(await store.resolveDestination(notice, requests: nil, bookings: nil, chat: chat) == nil)
+        #expect(store.errorMessage?.contains("older notification") == true)
+        #expect(chats.exactConversationCallCount == 0)
+        #expect(repository.markReadCallCount == 0)
+        notice.relatedConversationID = conversation.id
+        #expect(await store.resolveDestination(notice, requests: nil, bookings: nil, chat: chat) == .message(conversation))
+        #expect(repository.markReadCallCount == 1)
+        #expect(store.errorMessage != nil)
+    }
+
+    @Test(arguments: [UserRole.customer, .groomer]) @MainActor
+    func textNotificationResolvesConversationWithoutAnyBookingTarget(role: UserRole) async {
+        let owner = UUID()
+        let date = "2026-09-10T12:00:00Z"
+        let conversation = ChatConversation(id: UUID(), customerID: role == .customer ? owner : UUID(),
+            groomerID: role == .groomer ? owner : UUID(), createdAt: date, updatedAt: date)
+        let chats = ChatRepositoryFake()
+        chats.exactConversationResult = .success(conversation)
+        let chat = ChatStore(participantID: owner, role: role,
+            repository: DebugChatRepository(base: chats, debugRecorder: nil))
+        if role == .customer {
+            let notice = CustomerNotification(id: UUID(), customerID: owner, kind: .newMessage, title: "New message",
+                body: "Your groomer sent you a message.", isRead: false, createdAt: date, readAt: nil,
+                relatedRequestID: nil, relatedBookingID: nil, relatedOfferID: nil, relatedConversationID: conversation.id)
+            let repository = CustomerNotificationRepositoryFake(markReadResult:
+                .success(notice.replacingReadState(isRead: true, readAt: date)))
+            let store = CustomerNotificationsStore(customerID: owner, repository: repository)
+            #expect(await store.resolveDestination(notice, requests: nil, bookings: nil, chat: chat) == .message(conversation))
+            #expect(repository.markReadCallCount == 1)
+        } else {
+            let notice = GroomerNotification(id: UUID(), groomerID: owner, kind: .newMessage, title: "New message",
+                body: "Your customer sent you a message.", isRead: false, createdAt: date, readAt: nil,
+                relatedRequestID: nil, relatedBookingID: nil, relatedOfferID: nil, relatedConversationID: conversation.id)
+            let repository = GroomerNotificationRepositoryFake(markReadResult:
+                .success(notice.replacingReadState(isRead: true, readAt: date)))
+            let store = GroomerNotificationsStore(groomerID: owner, repository: repository)
+            #expect(await store.resolveDestination(notice, requests: nil, bookings: nil, chat: chat) == .message(conversation))
+            #expect(repository.markReadCallCount == 1)
+        }
+        #expect(chats.conversationsCallCount == 0)
+    }
+
     @Test(arguments: [UserRole.customer, .groomer]) @MainActor
     func explicitMarkAllReadDoesNotInferServerStateFromAnEmptyPage(role: UserRole) async {
         let owner = UUID()

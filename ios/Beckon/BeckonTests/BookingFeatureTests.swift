@@ -1425,11 +1425,15 @@ final class BookingRepositoryFake: BookingRepository {
     func fulfillmentEvents(bookingID: UUID) async throws -> [BookingFulfillmentEvent] { [] }
 
     func bookings(bookingIDs: [UUID]) async throws -> [Booking] {
-        try bookingsResult.get().filter { bookingIDs.contains($0.id) }
+        if let exactRead { return try await exactRead(bookingIDs) }
+        return try bookingsResult.get().filter { bookingIDs.contains($0.id) }
     }
+
+    var exactRead: (([UUID]) async throws -> [Booking])?
 
     var bookingsResult: Result<[Booking], BookingRepositoryError>
     var bookingPages: [Result<ListPage<Booking>, BookingRepositoryError>]
+    var pageRead: ((ListPageRequest) async throws -> ListPage<Booking>)?
     var cancelResult: Result<CancelBookingResult, BookingRepositoryError>
     var completeResult: Result<CompleteBookingResult, BookingRepositoryError>
     var reviewResult: Result<CreateReviewResult, BookingRepositoryError>
@@ -1482,6 +1486,7 @@ final class BookingRepositoryFake: BookingRepository {
         lastParticipantID = participantID
         lastRole = role
         receivedBookingPages.append(page)
+        if let pageRead { return try await pageRead(page) }
         if !bookingPages.isEmpty {
             return try bookingPages.removeFirst().get()
         }

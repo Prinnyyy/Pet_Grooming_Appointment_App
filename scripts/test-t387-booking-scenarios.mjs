@@ -30,6 +30,8 @@ async function run(saved) {
   const selection = process.env.TESTOPS_CASES?.split(",");
   const knownCases = new Set(Array.from({ length: 72 }, (_, i) => i + 1)
     .filter(i => i <= 64 || i >= 69).map(i => `B${String(i).padStart(2, "0")}`));
+  for (let i = 1; i <= 8; i++) knownCases.add(`E${String(i).padStart(2, "0")}`);
+  for (const id of ["E12", "E17", "E18", "E19", "E21", "E23", "E24"]) knownCases.add(id);
   assert.ok(!selection || selection.every(id => knownCases.has(id)), "Select defined HTTP cases only");
   const dayOffset = Number(process.env.TESTOPS_DAY_OFFSET ?? 0);
   assert.ok(Number.isInteger(dayOffset) && dayOffset >= 0 && dayOffset <= 40);
@@ -66,8 +68,14 @@ async function run(saved) {
     const tables = [ ["grooming_requests", `id in (${owned})`], ["groomer_offers", `request_id in (${owned})`],
       ["bookings", `request_id in (${owned})`], ["booking_reschedule_proposals", `booking_id in (select id from public.bookings where request_id in (${owned}))`],
       ["booking_fulfillment_events", `booking_id in (select id from public.bookings where request_id in (${owned}))`],
-      ["reviews", `booking_id in (select id from public.bookings where request_id in (${owned}))`] ];
-    return query(`select ${tables.map(([table, where], i) => `(select md5(coalesce(jsonb_agg(to_jsonb(t) order by to_jsonb(t)::text),'[]'::jsonb)::text) from public.${table} t where ${where}) h${i}`).join(",")};`)[0];
+      ["reviews", `booking_id in (select id from public.bookings where request_id in (${owned}))`],
+      ["request_matches", `request_id in (${owned})`],
+      ["messages", `conversation_id in (select id from public.conversations where customer_id in (${sqlIDs(saved.customerIDs)}) and groomer_id in (${sqlIDs(saved.groomerIDs)}))`],
+      ["customer_notifications", `customer_id in (${sqlIDs(saved.customerIDs)})`],
+      ["groomer_notifications", `groomer_id in (${sqlIDs(saved.groomerIDs)})`],
+      ["app_private.request_publish_operations", `customer_id in (${sqlIDs(saved.customerIDs)})`],
+      ["app_private.address_locations", `owner_id in (${sqlIDs(saved.customerIDs)})`] ];
+    return query(`select ${tables.map(([table, where], i) => `(select md5(coalesce(jsonb_agg(to_jsonb(t) order by to_jsonb(t)::text),'[]'::jsonb)::text) from ${table.includes(".") ? table : `public.${table}`} t where ${where}) h${i}`).join(",")};`)[0];
   }
   async function denied(action, expected) {
     const before = digest();
@@ -85,7 +93,8 @@ async function run(saved) {
     current = id;
     if (saved.uncertainWrite) throw Error("Uncertain write requires outcome inspection before continuing");
     if (!["B33", "B34", "B37", "B43", "B44"].includes(id)) {
-      const requests = query(`select id,customer_id from public.grooming_requests where id in (${owned}) and status in ('open','has_offers');`);
+      const requests = query(`select id,customer_id from public.grooming_requests where id in (${owned})
+        and status in ('open','has_offers') and expires_at>statement_timestamp();`);
       for (const request of requests) {
         const customer = Object.keys(actors).find(name => actors[name].id === request.customer_id);
         assert.ok(customer?.startsWith("C"));
@@ -545,9 +554,14 @@ async function run(saved) {
     assert.equal(notifications.length, 1);
     const evidence = { booking: f.booking.id.slice(0, 8), bookingStatus: f.booking.status,
       notification: notifications[0].id.slice(0, 8), targetBooking: notifications[0].related_booking_id,
-      targetRequest: notifications[0].related_request_id, targetOffer: notifications[0].related_offer_id };
+      targetRequest: notifications[0].related_request_id, targetOffer: notifications[0].related_offer_id,
+      targetConversation: notifications[0].related_conversation_id };
     saveArtifact("chat-notification-destination", evidence);
-    assert.ok(notifications[0].related_booking_id, `Live booking notification has no client-resolvable target: ${JSON.stringify(evidence)}`);
+    assert.equal(notifications[0].related_conversation_id, f.acceptance.conversation_id);
+    const target = await rows("C1", "conversations", `id=eq.${notifications[0].related_conversation_id}`);
+    assert.equal(target.length, 1);
+    assert.equal(target[0].customer_id, actors.C1.id);
+    assert.equal(target[0].groomer_id, actors.G1.id);
     return evidence;
   });
   await check("B72", "replace request while already at open cap", async () => {
@@ -568,7 +582,262 @@ async function run(saved) {
     const open = await rows("C1", "grooming_requests", `customer_id=eq.${actors.C1.id}&status=in.(open,has_offers)`, "id");
     assert.equal(open.length, 3);
     assert.notEqual(result[0].request_id, original.request.id);
+    const [old] = await rows("C1", "grooming_requests", `id=eq.${original.request.id}`);
+    const [next] = await rows("C1", "grooming_requests", `id=eq.${result[0].request_id}`);
+    assert.equal(old.status, "cancelled");
+    assert.equal(next.supersedes_request_id, old.id);
+    assert.deepEqual(await rows("C1", "grooming_requests", `id=in.(${requests.slice(1).map(f => f.request.id).join(",")})&order=id`),
+      requests.slice(1).map(f => f.request).sort((a, b) => a.id.localeCompare(b.id)));
     return { open: 3, replacementPublished: true };
+  });
+
+  const replacementPayload = f => ({ ...publication(f.customer, f.day), p_request_id: f.request.id,
+    p_expected_request_revision: f.request.terms_revision });
+  const replaceRequest = (f, params = replacementPayload(f), actor = f.customer) => rpc(actor, "supersede_grooming_request", params);
+  const openCount = async customer => (await rows(customer, "grooming_requests",
+    `customer_id=eq.${actors[customer].id}&status=in.(open,has_offers)&expires_at=gt.${encodeURIComponent(new Date().toISOString())}`, "id")).length;
+  async function cancelOpen(customer) {
+    const tagged = query(`select id from public.grooming_requests where id in (${owned})
+      and customer_id='${actors[customer].id}' and status in ('open','has_offers');`);
+    for (const row of tagged) {
+      await rpc(customer, "cancel_grooming_request", { p_request_id: row.id });
+    }
+  }
+  await check("E01", "replacement preserves one, two and three request counts and closes quotes", async () => {
+    for (let count = 1; count <= 3; count++) {
+      await cancelOpen("C1");
+      const original = await quote(await publish("C1", 31));
+      for (let i = 1; i < count; i++) await publish("C1", 31);
+      const [result] = await replaceRequest(original);
+      assert.equal(await openCount("C1"), count);
+      const [next] = await rows("C1", "grooming_requests", `id=eq.${result.request_id}`);
+      assert.equal(next.supersedes_request_id, original.request.id);
+      assert.equal((await rows("C1", "groomer_offers", `request_id=eq.${original.request.id}&status=eq.pending`)).length, 0);
+      assert.equal((await rows("C1", "request_matches", `request_id=eq.${original.request.id}&status=in.(visible,viewed,offered)`)).length, 0);
+    }
+    return { counts: [1, 2, 3], originalQuotesAndMatchesClosed: true };
+  });
+  await check("E02", "replacement replay preserves the first result without extra mutations", async () => {
+    const f = await publish("C1", 32);
+    const params = replacementPayload(f);
+    const results = await Promise.all(Array.from({ length: 4 }, () => replaceRequest(f, params)));
+    for (const result of results) assert.deepEqual(result, results[0]);
+    const before = digest();
+    assert.deepEqual(await replaceRequest(f, { ...params, p_request: { ...params.p_request, service_notes: `${marker} changed replay` } }), results[0]);
+    assert.deepEqual(digest(), before);
+    assert.equal(await openCount("C1"), 1);
+    return { attempts: 5, replacements: 1, unchangedReplay: true };
+  });
+  await check("E03", "different operations replacing one request have one winner", async () => {
+    const f = await publish("C1", 32);
+    const outcomes = await Promise.allSettled([replaceRequest(f), replaceRequest(f)]);
+    assert.equal(outcomes.filter(o => o.status === "fulfilled").length, 1);
+    for (const o of outcomes.filter(o => o.status === "rejected")) assert.match(o.reason.serverMessage, /request_not_cancellable/);
+    assert.equal((await rows("C1", "grooming_requests", `supersedes_request_id=eq.${f.request.id}`)).length, 1);
+    assert.equal(await openCount("C1"), 1);
+    return { replacements: 1 };
+  });
+  await check("E04", "two different originals can be replaced concurrently", async () => {
+    const originals = [await quote(await publish("C1", 33)), await quote(await publish("C1", 33))];
+    const results = await Promise.all(originals.map(f => replaceRequest(f)));
+    assert.notEqual(results[0][0].request_id, results[1][0].request_id);
+    for (let i = 0; i < originals.length; i++) {
+      const [next] = await rows("C1", "grooming_requests", `id=eq.${results[i][0].request_id}`);
+      assert.equal(next.supersedes_request_id, originals[i].request.id);
+    }
+    assert.equal(await openCount("C1"), 2);
+    return { successfulReplacements: 2 };
+  });
+  await check("E05", "replacement racing ordinary publication preserves the global cap", async () => {
+    for (const initial of [2, 3]) {
+      await cancelOpen("C1");
+      const f = await publish("C1", 34);
+      for (let i = 1; i < initial; i++) await publish("C1", 34);
+      const outcomes = await Promise.allSettled([replaceRequest(f), rpc("C1", "create_grooming_request_v4", publication("C1", 34))]);
+      assert.equal(outcomes[0].status, "fulfilled");
+      assert.equal(outcomes[1].status, initial === 2 ? "fulfilled" : "rejected");
+      if (initial === 3) assert.match(outcomes[1].reason.serverMessage, /open_request_limit_exceeded/);
+      assert.equal(await openCount("C1"), 3);
+    }
+    return { initialCounts: [2, 3], finalCounts: [3, 3] };
+  });
+  await check("E06", "replacement competes atomically with acceptance and cancellation", async () => {
+    const f = await quote(await publish("C1", 35));
+    const outcomes = await Promise.allSettled([replaceRequest(f), rpc("C1", "accept_groomer_offer_v2", {
+      p_offer_id: f.offer.id, p_expected_quote_revision: f.offer.quote_revision })]);
+    assert.equal(outcomes.filter(o => o.status === "fulfilled").length, 1);
+    for (const o of outcomes.filter(o => o.status === "rejected")) {
+      assert.match(o.reason.serverMessage, /request_not_cancellable|offer_not_pending|request_not_open|quote_terms_invalid/);
+    }
+    assert.equal((await rows("C1", "bookings", `request_id=eq.${f.request.id}`)).length, outcomes[1].status === "fulfilled" ? 1 : 0);
+    const other = await publish("C2", 35);
+    const cancelRace = await Promise.allSettled([replaceRequest(other), rpc("C2", "cancel_grooming_request", { p_request_id: other.request.id })]);
+    assert.equal(cancelRace[1].status, "fulfilled");
+    if (cancelRace[0].status === "rejected") assert.match(cancelRace[0].reason.serverMessage, /request_not_cancellable/);
+    assert.equal((await rows("C2", "grooming_requests", `supersedes_request_id=eq.${other.request.id}`)).length,
+      cancelRace[0].status === "fulfilled" ? 1 : 0);
+    return { acceptOrReplacementWinners: 1, cancellationRace: cancelRace.map(o => o.status) };
+  });
+  await check("E07", "failed replacement rolls back original, quotes, matches, notices, addresses and receipts", async () => {
+    const f = await quote(await publish("C1", 36));
+    const params = replacementPayload(f);
+    const failure = await denied(() => replaceRequest(f, { ...params,
+      p_request: { ...params.p_request, pet_id: actors.C2.pet.id } }), /pet_not_found/);
+    assert.equal((await rows("C1", "groomer_offers", `id=eq.${f.offer.id}`))[0].status, "pending");
+    return failure;
+  });
+  await check("E08", "replacement denies stale terms, foreign intent and closed originals", async () => {
+    const f = await publish("C1", 37);
+    const params = replacementPayload(f);
+    await denied(() => replaceRequest(f, { ...params, p_expected_request_revision: randomUUID() }), /request_revision_changed/);
+    await denied(() => replaceRequest(f, params, "C2"), /request_not_found/);
+    await denied(() => replaceRequest(f, { ...params, p_publish_operation_id: f.payload.p_publish_operation_id }), /publish_operation_intent_changed/);
+    const [next] = await replaceRequest(f, params);
+    const other = await publish("C1", 37);
+    await denied(() => replaceRequest(other, { ...replacementPayload(other), p_publish_operation_id: params.p_publish_operation_id }), /publish_operation_intent_changed/);
+    await denied(() => replaceRequest(f), /request_not_cancellable/);
+    assert.equal((await rows("C1", "grooming_requests", `id=eq.${next.request_id}`))[0].status, "open");
+    const booked = await job("C2", 37, 14);
+    await denied(() => replaceRequest(booked), /request_not_cancellable/);
+    const expiredID = randomUUID();
+    // Seed a separate historical fixture; never alter immutable terms or the server clock.
+    query(`do $$ declare fixture public.grooming_requests%rowtype; begin
+      select * into strict fixture from public.grooming_requests where id='${other.request.id}'
+        and customer_id='${actors.C1.id}' and id in (${owned});
+      fixture.id:='${expiredID}'; fixture.terms_revision:=gen_random_uuid();
+      fixture.supersedes_request_id:=null;
+      fixture.created_at:=statement_timestamp()-interval '2 days';
+      fixture.expires_at:=statement_timestamp()-interval '1 day';
+      insert into public.grooming_requests select fixture.*;
+    end $$;`);
+    const [expired] = await rows("C1", "grooming_requests", `id=eq.${expiredID}`);
+    assert.ok(expired);
+    await denied(() => replaceRequest({ ...other, request: expired }), /request_not_cancellable/);
+    return { staleForeignReusedClosedBookedAndExpiredRejected: true,
+      expiredSetup: "separate SQL-seeded historical fixture; rejection through authenticated HTTP" };
+  });
+
+  async function textNotification(f, sender) {
+    const recipient = sender === f.customer ? f.groomer : f.customer;
+    const role = recipient.startsWith("C") ? "customer" : "groomer";
+    const body = `${marker} ${current} ${sender} ${randomUUID()}`;
+    const [sent] = await api.request("/rest/v1/messages", { method: "POST",
+      headers: api.headers(actors[sender].token, { Prefer: "return=representation" }),
+      body: JSON.stringify({ conversation_id: f.acceptance.conversation_id, sender_id: actors[sender].id, body }) }, "rest");
+    const notices = await rows(recipient, `${role}_notifications`,
+      `${role}_id=eq.${actors[recipient].id}&kind=eq.new_message&related_conversation_id=eq.${sent.conversation_id}` +
+        `&created_at=gte.${encodeURIComponent(sent.created_at)}`);
+    assert.equal(notices.length, 1);
+    assert.equal(notices[0].related_conversation_id, sent.conversation_id);
+    return { recipient, role, sent, notice: notices[0] };
+  }
+  await check("E12", "acceptance recovery resolves the current cancelled booking without writing again", async () => {
+    const f = await job("C1", 38);
+    await cancel(f);
+    const before = digest();
+    const result = await rpc("C1", "get_offer_acceptance", { p_offer_id: f.offer.id });
+    assert.equal(result.length, 1);
+    assert.equal(result[0].booking_id, f.booking.id);
+    assert.equal(result[0].offer_id, f.offer.id);
+    assert.equal(result[0].booking_status, "cancelled_by_customer");
+    const [currentBooking] = await rows("C1", "bookings", `id=eq.${f.booking.id}`);
+    assert.equal(currentBooking.status, "cancelled_by_customer");
+    assert.deepEqual(digest(), before);
+    return { recoveredBooking: f.booking.id, currentStatus: currentBooking.status, readOnly: true };
+  });
+  await check("E17", "both participants send real text and receive exactly targeted notifications", async () => {
+    const f = await job("C1", 39);
+    const customer = await textNotification(f, "G1");
+    const groomer = await textNotification(f, "C1");
+    assert.equal(customer.recipient, "C1");
+    assert.equal(groomer.recipient, "G1");
+    return { conversation: f.acceptance.conversation_id, notifications: [customer.notice.id, groomer.notice.id] };
+  });
+  await check("E18", "multiple bookings and one cancellation retain the same message conversation", async () => {
+    const first = await job("C1", 39, 14);
+    const second = await job("C1", 39, 17);
+    assert.equal(first.acceptance.conversation_id, second.acceptance.conversation_id);
+    await cancel(first);
+    const result = await textNotification(second, "G1");
+    assert.equal(result.notice.related_conversation_id, first.acceptance.conversation_id);
+    assert.equal((await rows("C1", "bookings", `id=eq.${second.booking.id}`))[0].status, "confirmed");
+    return { reusedConversation: first.acceptance.conversation_id, otherBookingUnchanged: true };
+  });
+  async function existingConversation() {
+    const rowsFound = await rows("C1", "conversations", `customer_id=eq.${actors.C1.id}&groomer_id=eq.${actors.G1.id}`);
+    assert.equal(rowsFound.length, 1, "Run B71 or E17 setup first");
+    return rowsFound[0];
+  }
+  await check("E19", "participant conversation can be resolved by exact identity without paging", async () => {
+    const conversation = await existingConversation();
+    for (const [actor, role] of [["C1", "customer"], ["G1", "groomer"]]) {
+      const result = await rows(actor, "conversations", `id=eq.${conversation.id}&${role}_id=eq.${actors[actor].id}&limit=1`);
+      assert.equal(result.length, 1);
+      assert.equal(result[0].id, conversation.id);
+    }
+    return { exactIdentity: true, unloadedPageBehavior: "covered by Swift repository/store tests" };
+  });
+  await check("E21", "nonparticipants cannot read or redirect a conversation notification", async () => {
+    const conversation = await existingConversation();
+    const notices = await rows("C1", "customer_notifications", `related_conversation_id=eq.${conversation.id}&limit=1`);
+    assert.equal(notices.length, 1);
+    assert.equal((await rows("X", "conversations", `id=eq.${conversation.id}`)).length, 0);
+    assert.equal((await rows("X", "customer_notifications", `id=eq.${notices[0].id}`)).length, 0);
+    await denied(() => api.request(`/rest/v1/customer_notifications?id=eq.${notices[0].id}`, { method: "PATCH",
+      headers: api.headers(actors.C1.token), body: JSON.stringify({ related_conversation_id: randomUUID() }) }, "rest"), /permission denied/);
+    await denied(() => api.request("/rest/v1/messages", { method: "POST", headers: api.headers(actors.X.token),
+      body: JSON.stringify({ conversation_id: conversation.id, sender_id: actors.X.id, body: `${marker} forbidden` }) }, "rest"), /row-level security|not_allowed|permission denied/);
+    return { foreignReads: 0, targetAndSenderWritesDenied: true };
+  });
+  await check("E23", "old notification column projections remain readable on the expanded schema", async () => {
+    const conversation = await existingConversation();
+    for (const [actor, role] of [["C1", "customer"], ["G1", "groomer"]]) {
+      const legacy = await rows(actor, `${role}_notifications`, `related_conversation_id=eq.${conversation.id}&limit=1`,
+        `id,${role}_id,kind,title,body,is_read,created_at,read_at,related_request_id,related_booking_id,related_offer_id`);
+      assert.equal(legacy.length, 1);
+      assert.equal(legacy[0].kind, "new_message");
+    }
+    return { oldColumnQueriesReadable: true, oldClientRoutingFixed: false };
+  });
+  await check("E24", "notification read RPCs retain targets and FK deletion is rollback-verified", async () => {
+    const conversation = await existingConversation();
+    const ids = [];
+    for (const [actor, role] of [["C1", "customer"], ["G1", "groomer"]]) {
+      const notices = await rows(actor, `${role}_notifications`, `related_conversation_id=eq.${conversation.id}&limit=1`);
+      assert.equal(notices.length, 1);
+      ids.push(notices[0].id);
+      const marked = await rpc(actor, `mark_${role}_notification_read`, { p_notification_id: notices[0].id });
+      assert.equal(marked[0].related_conversation_id, conversation.id);
+      // Batch reads can touch baseline notices, so verify the authenticated RPC inside a rollback transaction.
+      const beforeBatch = digest();
+      query(`begin; set local lock_timeout='5s';
+        select set_config('request.jwt.claims','{"sub":"${actors[actor].id}","role":"authenticated","is_anonymous":false}',true);
+        set local role authenticated;
+        select * from public.mark_all_${role}_notifications_read();
+        do $$ begin
+          if not exists(select 1 from public.${role}_notifications where id='${notices[0].id}'
+            and is_read and related_conversation_id='${conversation.id}')
+            or exists(select 1 from public.${role}_notifications where ${role}_id='${actors[actor].id}' and not is_read) then
+            raise exception 'Batch read did not preserve target or mark visible notices';
+          end if;
+        end $$;
+        rollback;`);
+      assert.deepEqual(digest(), beforeBatch);
+    }
+    const before = digest();
+    // This is a transactional FK test, not a simulated user deleting a conversation.
+    query(`begin; set local lock_timeout='5s';
+      delete from public.conversations where id='${conversation.id}' and customer_id='${actors.C1.id}' and groomer_id='${actors.G1.id}';
+      do $$ begin
+        if exists(select 1 from public.customer_notifications where id in (${sqlIDs(ids)}) and related_conversation_id is not null)
+          or exists(select 1 from public.groomer_notifications where id in (${sqlIDs(ids)}) and related_conversation_id is not null) then
+          raise exception 'Notification conversation FK did not clear';
+        end if;
+      end $$;
+      rollback;`);
+    assert.deepEqual(digest(), before);
+    return { singleRead: "authenticated HTTP", batchRead: "authenticated SQL transaction rolled back",
+      readRPCsRetainTarget: true, deletionFK: "SQL transaction rolled back; no persisted conversation deletion" };
   });
   saveArtifact(`fixture-references${suffix}`, Object.fromEntries(Object.entries(fixtures).filter(([, f]) => f?.request).map(([name, f]) => [name,
     { customer: f.customer, groomer: f.groomer, request: f.request.id, offer: f.offer?.id, booking: f.booking?.id }])));

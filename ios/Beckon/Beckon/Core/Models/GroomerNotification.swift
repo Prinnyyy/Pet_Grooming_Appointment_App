@@ -17,6 +17,7 @@ struct GroomerNotification:
     let relatedRequestID: UUID?
     let relatedBookingID: UUID?
     let relatedOfferID: UUID?
+    var relatedConversationID: UUID? = nil
 
     var createdAtDate: Date {
         GroomingRequestDateFormatting.parsedDate(from: createdAt) ?? .distantPast
@@ -54,7 +55,8 @@ struct GroomerNotification:
             readAt: readAt,
             relatedRequestID: relatedRequestID,
             relatedBookingID: relatedBookingID,
-            relatedOfferID: relatedOfferID
+            relatedOfferID: relatedOfferID,
+            relatedConversationID: relatedConversationID
         )
     }
 }

@@ -4,13 +4,37 @@ import Testing
 
 extension CustomerRequestsStoreTests {
     @Test @MainActor
+    func acceptedBookingIsSharedBeforeAuxiliaryRefreshAndUsesTheSameDetailStore() async {
+        let owner = UUID()
+        let request = Self.request(customerID: owner, petID: UUID())
+        let review = Self.offerReview(customerID: owner, requestID: request.id)
+        let booking = Self.booking(requestID: request.id, customerID: owner)
+        let repository = CustomerRequestBookingRepositoryFake(bookingsResult: .success([booking]), acceptResult: .success(
+            AcceptGroomerOfferResult(bookingID: booking.id, conversationID: UUID(), requestID: request.id,
+                offerID: review.id, bookingStatus: .confirmed, offerStatus: .acceptedByCustomer, requestStatus: .booked)))
+        let shared = BookingsStore(participantID: owner, role: .customer, repository: repository,
+            appointmentReminderScheduler: AppointmentReminderSchedulerFake())
+        let requests = CustomerRequestRepositoryFake()
+        var observedBeforeRefresh = false
+        requests.onRequestPageRead = { observedBeforeRefresh = shared.booking(withID: booking.id) == booking }
+        let store = CustomerRequestsStore(customerID: owner, petRepository: CustomerRequestPetRepositoryFake(),
+            requestRepository: requests, bookingRepository: repository,
+            appointmentReminderScheduler: CustomerRequestAppointmentReminderSchedulerFake(), bookingsStore: shared)
+        #expect(await store.accept(offerReview: review, for: request) != nil)
+        #expect(observedBeforeRefresh)
+        #expect(shared.booking(withID: booking.id) == booking)
+        #expect(store.bookingDetailStore(for: booking) === shared)
+    }
+
+    @Test @MainActor
     func signOutDuringAcceptanceRefreshDoesNotPublishRequestPage() async {
         let customerID = UUID()
         let request = Self.request(customerID: customerID, petID: UUID())
         let review = Self.offerReview(customerID: customerID, requestID: request.id)
         let requests = CustomerRequestRepositoryFake(requestsResult: .success([request]))
-        let repository = CustomerRequestBookingRepositoryFake(acceptResult: .success(
-            AcceptGroomerOfferResult(bookingID: UUID(), conversationID: UUID(), requestID: request.id,
+        let booking = Self.booking(requestID: request.id, customerID: customerID)
+        let repository = CustomerRequestBookingRepositoryFake(bookingsResult: .success([booking]), acceptResult: .success(
+            AcceptGroomerOfferResult(bookingID: booking.id, conversationID: UUID(), requestID: request.id,
                 offerID: review.offer.id, bookingStatus: .confirmed,
                 offerStatus: .acceptedByCustomer, requestStatus: .booked)))
         let scheduler = CustomerRequestAppointmentReminderSchedulerFake()
@@ -115,10 +139,13 @@ extension CustomerRequestsStoreTests {
             offerID: review.offer.id, bookingStatus: .confirmed,
             offerStatus: .acceptedByCustomer, requestStatus: .booked))
         repository.bookingsResult = .success([booking])
+        let shared = BookingsStore(participantID: customerID, role: .customer, repository: repository,
+            appointmentReminderScheduler: AppointmentReminderSchedulerFake())
         let restarted = CustomerRequestsStore(customerID: customerID,
             petRepository: CustomerRequestPetRepositoryFake(), requestRepository: requests,
-            bookingRepository: repository, handoffAcknowledgementDefaults: defaults)
+            bookingRepository: repository, handoffAcknowledgementDefaults: defaults, bookingsStore: shared)
         await restarted.load()
+        #expect(shared.booking(withID: booking.id) == booking)
         #expect(repository.acceptanceLookupCallCount == 1)
         #expect(repository.acceptCallCount == 1)
         #expect(restarted.request(withID: request.id)?.status == .booked)
@@ -160,8 +187,9 @@ extension CustomerRequestsStoreTests {
         let customerID = UUID()
         let request = Self.request(customerID: customerID, petID: UUID())
         let review = Self.offerReview(customerID: customerID, requestID: request.id)
-        let repository = CustomerRequestBookingRepositoryFake(acceptResult: .success(
-            AcceptGroomerOfferResult(bookingID: UUID(), conversationID: UUID(),
+        let current = Self.booking(requestID: request.id, customerID: customerID, status: .cancelledByCustomer)
+        let repository = CustomerRequestBookingRepositoryFake(bookingsResult: .success([current]), acceptResult: .success(
+            AcceptGroomerOfferResult(bookingID: current.id, conversationID: UUID(),
                 requestID: request.id, offerID: review.offer.id,
                 bookingStatus: .cancelledByCustomer, offerStatus: .acceptedByCustomer,
                 requestStatus: .booked)))
@@ -566,11 +594,22 @@ extension CustomerRequestsStoreTests {
         timedOffer.occupiedEnd = ISO8601DateFormatter().string(from: end.addingTimeInterval(600))
         let offerReview = CustomerOfferReview(offer: timedOffer, groomerProfile: initialReview.groomerProfile)
         let bookingID = UUID()
+        let authoritativeBooking = Booking(id: bookingID, requestID: request.id, offerID: offerReview.id,
+            customerID: customerID, groomerID: timedOffer.groomerID,
+            scheduledStart: timedOffer.proposedStart, scheduledEnd: timedOffer.proposedEnd,
+            priceEstimate: timedOffer.priceEstimate, status: .confirmed, cancelledBy: nil, cancelledAt: nil,
+            completedAt: nil, completedBy: nil, createdAt: request.updatedAt, updatedAt: request.updatedAt,
+            review: nil, serviceType: request.serviceType, locationMode: request.locationMode,
+            customerStreetAddress: request.streetAddress, appliedTimingBuffers: timedOffer.appliedTimingBuffers,
+            serviceTimeZoneIdentifier: timedOffer.serviceTimeZoneIdentifier,
+            scheduleTimeZoneIdentifier: timedOffer.scheduleTimeZoneIdentifier,
+            occupiedStart: timedOffer.occupiedStart, occupiedEnd: timedOffer.occupiedEnd)
         let requestRepository = CustomerRequestRepositoryFake(
             requestsResult: .success([request]),
             offersResult: .success([offerReview])
         )
         let bookingRepository = CustomerRequestBookingRepositoryFake(
+            bookingsResult: .success([authoritativeBooking]),
             acceptResult: .success(
                 AcceptGroomerOfferResult(
                     bookingID: bookingID,
@@ -623,10 +662,12 @@ extension CustomerRequestsStoreTests {
             customerID: customerID,
             requestID: request.id
         )
+        let booking = Self.booking(requestID: request.id, customerID: customerID)
         let bookingRepository = CustomerRequestBookingRepositoryFake(
+            bookingsResult: .success([booking]),
             acceptResult: .success(
                 AcceptGroomerOfferResult(
-                    bookingID: UUID(),
+                    bookingID: booking.id,
                     conversationID: UUID(),
                     requestID: request.id,
                     offerID: offerReview.id,
@@ -695,10 +736,12 @@ extension CustomerRequestsStoreTests {
             customerID: customerID,
             requestID: request.id
         )
+        let booking = Self.booking(requestID: request.id, customerID: customerID)
         let bookingRepository = CustomerRequestBookingRepositoryFake(
+            bookingsResult: .success([booking]),
             acceptResult: .success(
                 AcceptGroomerOfferResult(
-                    bookingID: UUID(),
+                    bookingID: booking.id,
                     conversationID: UUID(),
                     requestID: request.id,
                     offerID: offerReview.offer.id,

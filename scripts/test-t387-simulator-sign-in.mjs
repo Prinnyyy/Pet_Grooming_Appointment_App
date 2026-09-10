@@ -8,7 +8,7 @@ import { connect, recover, query, saveArtifact, runID, directory, marker } from 
 assert.equal(process.env.TESTOPS_REMOTE_WRITE_APPROVED, "1");
 const role = process.argv[2];
 const phase = process.argv[3] ?? "SignIn";
-assert.ok(["SignIn", "PublishTwoRequests", "QuoteTwoRequests", "AcceptTwoRequests", "CancelOneRequest"].includes(phase));
+assert.ok(["SignIn", "PublishTwoRequests", "QuoteTwoRequests", "AcceptTwoRequests", "CancelOneRequest", "OpenMessageNotification"].includes(phase));
 assert.ok(["customer", "groomer"].includes(role));
 if (phase !== "SignIn") recover();
 const seed = role === "customer" ? "BTC-003" : "BTG-001";
@@ -23,11 +23,41 @@ const env = { ...process.env, TEST_RUNNER_TESTOPS_INTERACTIVE_ROLE: role,
 const requests = () => query(`select id,status,preferred_start,preferred_end from public.grooming_requests
   where customer_id=(select id from auth.users where raw_app_meta_data->>'beckon_seed_id'='BTC-003')
     and service_notes like 'TESTOPS:${runID} B65 UI-%' order by service_notes;`);
+const artifactPhase = phase === "OpenMessageNotification" ? `${phase}-${role}` : phase;
+let messageProbe;
 if (process.env.TESTOPS_VERIFY_ONLY === "1") {
-  const ui = JSON.parse(readFileSync(`${directory}/ui-${phase}.json`, "utf8"));
-  await verifyOutcomes(requests());
+  const ui = JSON.parse(readFileSync(`${directory}/ui-${artifactPhase}.json`, "utf8"));
+  if (phase === "OpenMessageNotification") {
+    messageProbe = JSON.parse(readFileSync(`${directory}/ui-message-${role}.json`, "utf8"));
+    await verifyMessageNotification();
+  } else { await verifyOutcomes(requests()); }
   console.log(`${phase} authenticated outcome verification: PASS; original UI exit code: ${ui.exitCode} (unchanged)`);
   process.exit(0);
+}
+if (phase === "OpenMessageNotification") {
+  const { api, actors } = await connect(["C1", "G1"]);
+  const sender = role === "customer" ? "G1" : "C1";
+  const recipient = role === "customer" ? "C1" : "G1";
+  const [conversation] = await api.restSelect("conversations",
+    `select=*&customer_id=eq.${actors.C1.id}&groomer_id=eq.${actors.G1.id}`, actors[recipient].token);
+  assert.ok(conversation, "Existing UI booking conversation required");
+  const body = `${marker} E17 ${sender} notification`;
+  let messages = await api.restSelect("messages",
+    `select=*&conversation_id=eq.${conversation.id}&sender_id=eq.${actors[sender].id}&body=eq.${encodeURIComponent(body)}`, actors[sender].token);
+  assert.ok(messages.length <= 1, "Message intent must remain unique");
+  if (!messages.length) {
+    saveArtifact(`ui-message-intent-${role}`, { conversation: conversation.id, sender, body, status: "sending" });
+    messages = await api.request("/rest/v1/messages", { method: "POST",
+      headers: api.headers(actors[sender].token, { Prefer: "return=representation" }),
+      body: JSON.stringify({ conversation_id: conversation.id, sender_id: actors[sender].id, body }) }, "rest");
+  }
+  const notices = await api.restSelect(`${role}_notifications`,
+    `select=*&${role}_id=eq.${actors[recipient].id}&kind=eq.new_message&related_conversation_id=eq.${conversation.id}` +
+      `&created_at=gte.${encodeURIComponent(messages[0].created_at)}&order=created_at.desc`, actors[recipient].token);
+  assert.equal(notices.length, 1);
+  messageProbe = { sender, recipient, conversation: conversation.id, message: messages[0].id, body, notification: notices[0].id };
+  saveArtifact(`ui-message-${role}`, messageProbe);
+  env.TEST_RUNNER_T388_CHAT_MESSAGE = body;
 }
 if (!["SignIn", "PublishTwoRequests"].includes(phase)) {
   const existing = requests();
@@ -54,13 +84,30 @@ try {
   console.log(safe.split("\n").filter(line => /T387 |Test Case|TEST SUCCEEDED|TEST FAILED|error:|Executed/.test(line)).slice(-40).join("\n"));
   if (phase !== "SignIn") {
     const observed = requests();
-    saveArtifact(`ui-${phase}`, { at: new Date().toISOString(), exitCode: code, requests: observed, summary: safe.split("\n")
+    saveArtifact(`ui-${artifactPhase}`, { at: new Date().toISOString(), exitCode: code, requests: observed, summary: safe.split("\n")
       .filter(line => /T387 |Test Case|TEST SUCCEEDED|TEST FAILED|error:|Executed/.test(line)).slice(-40) });
-    if (code === 0 || phase === "AcceptTwoRequests") await verifyOutcomes(observed);
+    if (code === 0 || phase === "AcceptTwoRequests") {
+      if (phase === "OpenMessageNotification") await verifyMessageNotification();
+      else await verifyOutcomes(observed);
+    }
   }
   assert.equal(code, 0, `Simulator ${phase} did not pass`);
 } finally {
   rmSync(resultDirectory, { recursive: true, force: true });
+}
+
+async function verifyMessageNotification() {
+  const { api, actors } = await connect(["C1", "G1"]);
+  const [notice] = await api.restSelect(`${role}_notifications`, `select=*&id=eq.${messageProbe.notification}`,
+    actors[messageProbe.recipient].token);
+  assert.equal(notice.related_conversation_id, messageProbe.conversation);
+  assert.equal(notice.is_read, true, "The exact message notification must be marked read by the UI route");
+  const messages = await api.restSelect("messages", `select=*&id=eq.${messageProbe.message}`, actors[messageProbe.recipient].token);
+  assert.equal(messages.length, 1);
+  assert.equal(messages[0].body, messageProbe.body);
+  assert.equal(messages[0].conversation_id, messageProbe.conversation);
+  saveArtifact(`ui-outcomes-${artifactPhase}`, { notification: notice.id, conversation: messageProbe.conversation,
+    exactMessageVisibleToRecipient: true, isRead: notice.is_read });
 }
 
 async function verifyOutcomes(observed) {

@@ -126,6 +126,7 @@ final class CustomerRequestsStore {
     private let petRepository: any CustomerPetRepository
     private let requestRepository: any CustomerRequestRepository
     private let bookingRepository: any BookingRepository
+    private let bookingsStore: BookingsStore?
     private let appointmentReminderScheduler: any AppointmentReminderScheduling
     private let handoffAcknowledgementDefaults: UserDefaults
     private let handoffAcknowledgementStorageKey: String
@@ -310,7 +311,8 @@ final class CustomerRequestsStore {
         handoffAcknowledgementDefaults: UserDefaults = .standard,
         now: Date = Date(),
         debugRecorder: AppDebugEventRecorder? = nil,
-        addressProvider: (any BeckonAddressProviding)? = nil
+        addressProvider: (any BeckonAddressProviding)? = nil,
+        bookingsStore: BookingsStore? = nil
     ) {
         let emptyAddress = BeckonAddressInput(
             line1: "",
@@ -324,6 +326,7 @@ final class CustomerRequestsStore {
         self.petRepository = petRepository
         self.requestRepository = requestRepository
         self.bookingRepository = bookingRepository
+        self.bookingsStore = bookingsStore
         self.appointmentReminderScheduler = appointmentReminderScheduler
         self.handoffAcknowledgementDefaults = handoffAcknowledgementDefaults
         self.debugRecorder = debugRecorder
@@ -972,7 +975,8 @@ final class CustomerRequestsStore {
     }
 
     func bookingDetailStore(for booking: Booking) -> BookingsStore {
-        BookingsStore(
+        if let bookingsStore { return bookingsStore }
+        return BookingsStore(
             participantID: customerID,
             role: .customer,
             repository: bookingRepository,
@@ -1340,12 +1344,17 @@ final class CustomerRequestsStore {
                 result = try await bookingRepository.acceptOffer(offerID: offerReview.offer.id)
             }
             try checkAcceptanceSession()
-            let projectedBooking = acceptedBookingProjection(
-                result: result,
-                request: request,
-                offerReview: offerReview
-            )
+            guard result.requestID == request.id, result.offerID == offerReview.offer.id else {
+                throw BookingRepositoryError.unavailable
+            }
+            // A confirmed receipt can also replay an already rescheduled booking.
+            let current = try await bookingRepository.bookings(bookingIDs: [result.bookingID])
+            try checkAcceptanceSession()
+            guard current.count == 1, let projectedBooking = current.first,
+                  projectedBooking.id == result.bookingID, projectedBooking.customerID == customerID,
+                  projectedBooking.requestID == request.id else { throw BookingRepositoryError.unavailable }
             upsertBooking(projectedBooking)
+            bookingsStore?.synchronizeExternalBooking(projectedBooking)
             let didApplyLocalState = applyAcceptanceResult(
                 result,
                 requestID: request.id
@@ -1365,6 +1374,7 @@ final class CustomerRequestsStore {
             let confirmedBooking = bookings.first {
                 $0.id == result.bookingID
             } ?? projectedBooking
+            bookingsStore?.synchronizeExternalBooking(confirmedBooking)
             noticeMessage = confirmedBooking.status == .confirmed && !isRecovery
                 ? (didApplyLocalState
                     ? "Offer accepted. Booking confirmed."
@@ -1918,6 +1928,7 @@ final class CustomerRequestsStore {
                     $0.id == result.bookingID && $0.customerID == customerID
                 }) else { throw BookingRepositoryError.unavailable }
                 upsertBooking(booking)
+                bookingsStore?.synchronizeExternalBooking(booking)
                 _ = applyAcceptanceResult(result, requestID: requestID)
                 setUnresolvedAcceptance(offerID: offerID, requestID: nil)
                 noticeMessage = "Booking recovered. \(booking.status.title)."
@@ -1975,59 +1986,6 @@ final class CustomerRequestsStore {
         setRequestPhotoUploadRetry(requestID: requestID, photos: [])
 
         return didUpdateRequest && didUpdateAcceptedOffer
-    }
-
-    private func acceptedBookingProjection(
-        result: AcceptGroomerOfferResult,
-        request: CustomerGroomingRequest,
-        offerReview: CustomerOfferReview
-    ) -> Booking {
-        let timestamp = offerReview.offer.updatedAt
-            ?? offerReview.offer.createdAt
-            ?? request.updatedAt
-        return Booking(
-            id: result.bookingID,
-            requestID: result.requestID,
-            offerID: result.offerID,
-            customerID: request.customerID,
-            groomerID: offerReview.offer.groomerID,
-            scheduledStart: offerReview.offer.proposedStart,
-            scheduledEnd: offerReview.offer.proposedEnd,
-            priceEstimate: offerReview.offer.priceEstimate,
-            status: result.bookingStatus,
-            cancelledBy: nil,
-            cancelledAt: nil,
-            completedAt: nil,
-            completedBy: nil,
-            createdAt: timestamp,
-            updatedAt: timestamp,
-            review: nil,
-            serviceType: request.serviceType,
-            requestPetSnapshot: request.petSnapshot,
-            groomerBusinessName: offerReview.groomerProfile?.businessName,
-            groomerAvatarPhotoData: offerReview.groomerAvatarPhotoData,
-            groomerBaseStreetAddress: Self.joinedAddressLines(
-                offerReview.groomerProfile?.baseStreetAddress,
-                offerReview.groomerProfile?.baseAddressLine2
-            ),
-            groomerBaseCity: offerReview.groomerProfile?.baseCity,
-            groomerBaseState: offerReview.groomerProfile?.baseState,
-            groomerBaseZipCode: offerReview.groomerProfile?.baseZipCode,
-            locationMode: request.locationMode,
-            customerStreetAddress: Self.joinedAddressLines(
-                request.streetAddress,
-                request.addressLine2
-            ),
-            customerCity: request.city,
-            customerState: request.state,
-            customerZipCode: request.zipCode,
-            appliedTimingBuffers: offerReview.offer.appliedTimingBuffers,
-            serviceTimeZoneIdentifier: offerReview.offer.serviceTimeZoneIdentifier,
-            scheduleTimeZoneIdentifier: offerReview.offer.scheduleTimeZoneIdentifier,
-            occupiedStart: offerReview.offer.occupiedStart,
-            occupiedEnd: offerReview.offer.occupiedEnd,
-            agreementSnapshot: offerReview.offer.agreementSnapshot
-        )
     }
 
     private func upsertBooking(_ booking: Booking) {

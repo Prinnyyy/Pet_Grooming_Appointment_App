@@ -5,7 +5,7 @@ import Supabase
 final class SupabaseGroomerNotificationRepository: GroomerNotificationRepository {
     private static let notificationColumns = """
         id,groomer_id,kind,title,body,is_read,created_at,read_at,\
-        related_request_id,related_booking_id,related_offer_id
+        related_request_id,related_booking_id,related_offer_id,related_conversation_id
         """
 
     private let client: SupabaseClient
@@ -128,7 +128,7 @@ final class SupabaseGroomerNotificationRepository: GroomerNotificationRepository
     }
 }
 
-private struct GroomerNotificationRow: Decodable {
+struct GroomerNotificationRow: Decodable {
     let id: UUID
     let groomerID: UUID
     let kind: GroomerNotificationKind
@@ -140,6 +140,7 @@ private struct GroomerNotificationRow: Decodable {
     let relatedRequestID: UUID?
     let relatedBookingID: UUID?
     let relatedOfferID: UUID?
+    let relatedConversationID: UUID?
 
     var notification: GroomerNotification {
         GroomerNotification(
@@ -153,7 +154,8 @@ private struct GroomerNotificationRow: Decodable {
             readAt: readAt,
             relatedRequestID: relatedRequestID,
             relatedBookingID: relatedBookingID,
-            relatedOfferID: relatedOfferID
+            relatedOfferID: relatedOfferID,
+            relatedConversationID: relatedConversationID
         )
     }
 
@@ -169,6 +171,7 @@ private struct GroomerNotificationRow: Decodable {
         case relatedRequestID = "related_request_id"
         case relatedBookingID = "related_booking_id"
         case relatedOfferID = "related_offer_id"
+        case relatedConversationID = "related_conversation_id"
     }
 }
 

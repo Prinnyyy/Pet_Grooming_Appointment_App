@@ -4,6 +4,120 @@ import Testing
 
 @MainActor
 struct BookingScopedReadTests {
+    @Test(arguments: [BookingRepositoryError.networkUnavailable, .cancelled])
+    func failedRefreshRetainsCommittedBookingAndExplicitRetryRestoresPaging(failure: BookingRepositoryError) async {
+        let owner = UUID()
+        let accepted = CustomerRequestsStoreTests.booking(requestID: UUID(), customerID: owner)
+        let repository = BookingRepositoryFake(bookingPages: [
+            .success(ListPage(items: [], request: .first, hasMore: true))
+        ])
+        let store = BookingsStore(participantID: owner, role: .customer, repository: repository,
+            appointmentReminderScheduler: AppointmentReminderSchedulerFake())
+        await store.load()
+        #expect(store.nextPageRequest != nil)
+        repository.pageRead = { _ in throw failure }
+        store.synchronizeExternalBooking(accepted)
+        while repository.receivedBookingPages.count < 2 || store.isLoading { await Task.yield() }
+        #expect(store.bookings == [accepted])
+        #expect(store.nextPageRequest == nil)
+        #expect(repository.receivedBookingPages == [.first, .first])
+        repository.pageRead = { page in ListPage(items: [accepted], request: page, hasMore: true) }
+        await store.load()
+        #expect(store.bookings == [accepted])
+        #expect(store.nextPageRequest == .first.next)
+        #expect(store.errorMessage == nil)
+        #expect(repository.receivedBookingPages == [.first, .first, .first])
+    }
+
+    @Test func lateExactReadCannotUndoCommittedCancellation() async {
+        let owner = UUID()
+        let original = CustomerRequestsStoreTests.booking(requestID: UUID(), customerID: owner)
+        let cancelled = original.replacing(status: .cancelledByCustomer, cancelledBy: owner, cancelledAt: original.updatedAt)
+        var continuation: CheckedContinuation<[Booking], any Error>?
+        let repository = BookingRepositoryFake()
+        repository.exactRead = { _ in try await withCheckedThrowingContinuation { continuation = $0 } }
+        let store = BookingsStore(participantID: owner, role: .customer, repository: repository,
+            initialBookings: [original], appointmentReminderScheduler: AppointmentReminderSchedulerFake())
+        let read = Task { await store.resolveBooking(id: original.id, forceRefresh: true) }
+        while continuation == nil { await Task.yield() }
+        store.synchronizeExternalBooking(cancelled)
+        continuation?.resume(returning: [original])
+        await read.value
+        #expect(store.booking(withID: original.id)?.status == .cancelledByCustomer)
+    }
+
+    @Test func lateNextPageCannotOverwriteSynchronizedBooking() async {
+        let owner = UUID()
+        let original = CustomerRequestsStoreTests.booking(requestID: UUID(), customerID: owner)
+        let cancelled = original.replacing(status: .cancelledByCustomer, cancelledBy: owner, cancelledAt: original.updatedAt)
+        let repository = BookingRepositoryFake(bookingPages: [.success(ListPage(items: [original], request: .first, hasMore: true))])
+        let store = BookingsStore(participantID: owner, role: .customer, repository: repository,
+            appointmentReminderScheduler: AppointmentReminderSchedulerFake())
+        await store.load()
+        var continuation: CheckedContinuation<ListPage<Booking>, any Error>?
+        repository.pageRead = { page in
+            if page == .first { return ListPage(items: [cancelled], request: page, hasMore: false) }
+            return try await withCheckedThrowingContinuation { continuation = $0 }
+        }
+        let read = Task { await store.loadNextPage() }
+        while continuation == nil { await Task.yield() }
+        store.synchronizeExternalBooking(cancelled)
+        continuation?.resume(returning: ListPage(items: [original], request: .first.next, hasMore: true))
+        await read.value
+        #expect(store.booking(withID: original.id)?.status == .cancelledByCustomer)
+        #expect(store.nextPageRequest == nil)
+        #expect(store.bookings.count == 1)
+    }
+
+    @Test func sessionChangeDiscardsLateListAndForeignSynchronization() async {
+        let owner = UUID()
+        let booking = CustomerRequestsStoreTests.booking(requestID: UUID(), customerID: owner)
+        var active = true
+        let repository = BookingRepositoryFake()
+        repository.pageRead = { page in
+            active = false
+            return ListPage(items: [booking], request: page, hasMore: false)
+        }
+        let store = BookingsStore(participantID: owner, role: .customer, repository: repository,
+            appointmentReminderScheduler: AppointmentReminderSchedulerFake(), sessionIsCurrent: { active })
+        await store.load()
+        store.synchronizeExternalBooking(booking)
+        #expect(store.bookings.isEmpty)
+    }
+
+    @Test func acceptedBookingSurvivesLateFirstPage() async {
+        let owner = UUID()
+        let accepted = CustomerRequestsStoreTests.booking(requestID: UUID(), customerID: owner)
+        var continuation: CheckedContinuation<ListPage<Booking>, any Error>?
+        let repository = BookingRepositoryFake()
+        repository.pageRead = { page in
+            if repository.receivedBookingPages.count == 1 {
+                return try await withCheckedThrowingContinuation { continuation = $0 }
+            }
+            throw BookingRepositoryError.networkUnavailable
+        }
+        let store = BookingsStore(participantID: owner, role: .customer, repository: repository,
+            appointmentReminderScheduler: AppointmentReminderSchedulerFake())
+        let old = Task { await store.load() }
+        while continuation == nil { await Task.yield() }
+        store.synchronizeExternalBooking(accepted)
+        continuation?.resume(returning: ListPage(items: [], request: .first, hasMore: false))
+        await old.value
+        #expect(store.booking(withID: accepted.id) == accepted)
+    }
+
+    @Test func firstPageAbsenceDoesNotDeleteSynchronizedBookingAndForeignRowsAreRejected() async {
+        let owner = UUID()
+        let accepted = CustomerRequestsStoreTests.booking(requestID: UUID(), customerID: owner)
+        let foreign = CustomerRequestsStoreTests.booking(requestID: UUID(), customerID: UUID())
+        let store = BookingsStore(participantID: owner, role: .customer, repository: BookingRepositoryFake(),
+            appointmentReminderScheduler: AppointmentReminderSchedulerFake())
+        store.synchronizeExternalBooking(accepted)
+        store.synchronizeExternalBooking(foreign)
+        await store.load()
+        #expect(store.bookings == [accepted])
+    }
+
     @Test func customerHomeReadsNearestIndependentlyOfHistoryAndReportsStaleFailure() async {
         let owner = UUID()
         let now = ISO8601DateFormatter().date(from: "2026-06-24T00:00:00Z")!

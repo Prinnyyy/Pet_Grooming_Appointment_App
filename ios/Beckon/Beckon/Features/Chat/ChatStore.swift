@@ -117,6 +117,32 @@ final class ChatStore {
         }
     }
 
+    func resolveConversation(conversationID: UUID) async -> ChatConversation? {
+        do {
+            let conversation = try await repository.conversation(id: conversationID, participantID: participantID, role: role)
+            try Task.checkCancellation()
+            guard conversation.id == conversationID,
+                  (role == .customer ? conversation.customerID : conversation.groomerID) == participantID else {
+                throw ChatRepositoryError.notAllowed
+            }
+            errorMessage = nil
+            return conversation
+        } catch where AppDebugErrorClassifier.isCancellation(error) {
+            return nil
+        } catch ChatRepositoryError.cancelled {
+            return nil
+        } catch ChatRepositoryError.conversationNotFound {
+            errorMessage = "This conversation is no longer available to this account."
+            return nil
+        } catch ChatRepositoryError.notAllowed {
+            errorMessage = "This conversation is no longer available to this account."
+            return nil
+        } catch {
+            errorMessage = "The conversation could not be verified. Check your connection and try again."
+            return nil
+        }
+    }
+
     func resolveConversation(bookingID: UUID) async -> ChatConversation? {
         guard let bookingRepository else {
             errorMessage = "Booking chat could not be verified. Try again."

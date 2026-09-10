@@ -251,7 +251,8 @@ final class TestOpsBookingAdversarialTests: XCTestCase {
             XCTAssertTrue(element("bookings.detail").waitForExistence(timeout: 20))
             for _ in 0..<3 { tap(app.navigationBars.buttons.firstMatch) }
             tap(element("customer.tab.bookings"))
-            XCTAssertTrue(element("bookings.row.request.\(reference)").waitForExistence(timeout: 20))
+            XCTAssertTrue(element("bookings.row.request.\(reference)").waitForExistence(timeout: 3),
+                "A committed booking must reach the loaded list without a refresh or relaunch")
         }
     }
 
@@ -272,5 +273,24 @@ final class TestOpsBookingAdversarialTests: XCTestCase {
         tap(app.navigationBars.buttons.firstMatch)
         XCTAssertTrue(element("bookings.row.request.\(references[0])").waitForNonExistence(timeout: 20))
         XCTAssertTrue(element("bookings.row.request.\(references[1])").waitForExistence(timeout: 20))
+    }
+
+    func testOpenMessageNotification() throws {
+        let environment = ProcessInfo.processInfo.environment
+        let rawRole = environment["TEST_RUNNER_TESTOPS_INTERACTIVE_ROLE"] ?? environment["TESTOPS_INTERACTIVE_ROLE"] ?? ""
+        let role = try XCTUnwrap(TestOpsSeedRole(rawValue: rawRole))
+        let message = try XCTUnwrap(environment["TEST_RUNNER_T388_CHAT_MESSAGE"] ?? environment["T388_CHAT_MESSAGE"])
+        XCTAssertTrue(message.hasPrefix("TESTOPS:\(runID) E17 "))
+        try start(role)
+        tap(element("\(rawRole).tab.home"))
+        tap(element("\(rawRole).home.notifications"))
+        let notice = app.buttons.matching(identifier: "\(rawRole).notifications.open")
+            .matching(NSPredicate(format: "label CONTAINS %@", "New message")).firstMatch
+        XCTAssertTrue(notice.waitForExistence(timeout: 15))
+        tap(notice)
+        XCTAssertTrue(element("chat.thread").waitForExistence(timeout: 15))
+        XCTAssertTrue(app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@", message))
+            .firstMatch.waitForExistence(timeout: 15),
+            "The notification must open the conversation containing the exact newly sent message")
     }
 }

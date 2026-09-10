@@ -71,6 +71,22 @@ final class SupabaseChatRepository: ChatRepository {
         }
     }
 
+    func conversation(id: UUID, participantID: UUID, role: UserRole) async throws -> ChatConversation {
+        do {
+            let rows: [ChatConversationRow] = try await client.from("conversations")
+                .select(Self.conversationColumns)
+                .eq("id", value: id.uuidString.lowercased())
+                .eq(role == .customer ? "customer_id" : "groomer_id", value: participantID.uuidString.lowercased())
+                .limit(1).execute().value
+            guard rows.count == 1, let row = rows.first, row.id == id,
+                  (role == .customer ? row.customerID : row.groomerID) == participantID,
+                  let result = try await hydrate(rows, role: role).first else {
+                throw ChatRepositoryError.conversationNotFound
+            }
+            return result
+        } catch { throw Self.map(error) }
+    }
+
     func conversation(customerID: UUID, groomerID: UUID, role: UserRole) async throws -> ChatConversation {
         do {
             let rows: [ChatConversationRow] = try await client.from("conversations")

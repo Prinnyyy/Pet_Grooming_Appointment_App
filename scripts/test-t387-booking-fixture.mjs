@@ -157,8 +157,7 @@ export async function cleanup(context, saved) {
   };
   const newMessages = type => `kind='new_message' and ${originalNotifications(type)}
     and created_at>='${saved.startedAt}' and ${type === "customer_notifications" ? `customer_id in (${customers})` : `groomer_id in (${groomers})`}`;
-  // Message notifications currently have no foreign-key target. Snapshot IDs and
-  // the absence of unrelated recipient conversations guard their test cleanup.
+  // Snapshot IDs protect baseline notices; conversation ownership guards the new target column.
   const [messageNotifications] = query(`select
     ${aggregate("public.customer_notifications", newMessages("customer_notifications"))} customer,
     ${aggregate("public.groomer_notifications", newMessages("groomer_notifications"))} groomer;`);
@@ -168,6 +167,10 @@ export async function cleanup(context, saved) {
   query(`begin; set local lock_timeout='5s'; select set_config('app.availability_batch','1',true);
     ${saved.groomerIDs.map(id => `select pg_advisory_xact_lock(hashtextextended('${id}',71071));`).join("\n")}
     do $$ begin
+      ${["customer_notifications", "groomer_notifications"].map(type => `if exists(select 1 from public.${type}
+        where ${newMessages(type)} and (related_conversation_id is null or related_conversation_id not in
+          (select id from public.conversations where customer_id in (${customers}) and groomer_id in (${groomers})))) then
+          raise exception 'Unscoped message notification; inspect before cleanup'; end if;`).join("\n")}
       ${saved.groomerIDs.flatMap(id => settingsTables.map((table, index) => {
         const current = saved.configured[id];
         const expected = [current.windows, [current.preferences], current.time_off][index];

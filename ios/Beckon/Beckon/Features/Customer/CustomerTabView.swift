@@ -18,6 +18,7 @@ struct CustomerTabView: View {
     @State private var notificationStore: CustomerNotificationsStore?
     @State private var chatStore: ChatStore?
     @State private var requestStore: CustomerRequestsStore?
+    @State private var bookingsStore: BookingsStore?
     @State private var feedbackCenter = BeckonFeedbackCenter()
 
     init(
@@ -55,14 +56,20 @@ struct CustomerTabView: View {
                 bookingRepository: bookingRepository
             )
         )
-        _requestStore = State(
-            initialValue: Self.makeRequestStore(
+        let sharedBookingsStore: BookingsStore? = if let customerID, let bookingRepository {
+            BookingsStore(participantID: customerID, role: .customer, repository: bookingRepository,
+                sessionIsCurrent: acceptanceSessionIsCurrent)
+        } else { nil }
+        _bookingsStore = State(initialValue: sharedBookingsStore)
+        let sharedRequestsStore = Self.makeRequestStore(
                 customerID: customerID,
                 petRepository: petRepository,
                 requestRepository: requestRepository,
-                bookingRepository: bookingRepository
+                bookingRepository: bookingRepository,
+                bookingsStore: sharedBookingsStore
             )
-        )
+        sharedRequestsStore?.setAcceptanceSessionValidation(acceptanceSessionIsCurrent)
+        _requestStore = State(initialValue: sharedRequestsStore)
     }
 
     var body: some View {
@@ -180,6 +187,7 @@ struct CustomerTabView: View {
                 requestRepository: requestRepository,
                 customerProfileRepository: customerProfileRepository,
                 debugRecorder: debugRecorder,
+                store: bookingsStore,
                 onOpenChat: openBookingChat
             )
         } else if tab == .messages,
@@ -255,7 +263,8 @@ struct CustomerTabView: View {
         customerID: UUID?,
         petRepository: (any CustomerPetRepository)?,
         requestRepository: (any CustomerRequestRepository)?,
-        bookingRepository: (any BookingRepository)?
+        bookingRepository: (any BookingRepository)?,
+        bookingsStore: BookingsStore?
     ) -> CustomerRequestsStore? {
         guard let customerID, let petRepository, let requestRepository,
               let bookingRepository else { return nil }
@@ -263,7 +272,8 @@ struct CustomerTabView: View {
             customerID: customerID,
             petRepository: petRepository,
             requestRepository: requestRepository,
-            bookingRepository: bookingRepository
+            bookingRepository: bookingRepository,
+            bookingsStore: bookingsStore
         )
     }
 

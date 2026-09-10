@@ -12,6 +12,7 @@ Archived pre-trim version: `../09_frozen/backend_policies/RLS_RPC_POLICY_2026-07
 - Critical multi-row writes and status transitions use controlled RPCs. Direct table writes are denied where they could bypass ownership, status, limits, uniqueness, matching, booking, review, or evidence rules.
 - Public controlled RPCs use `SECURITY INVOKER` API wrappers with a safe search path and explicit execute grants.
 - Privileged `SECURITY DEFINER` logic lives under `app_private`, performs explicit auth/role/ownership/status checks, revokes broad execution, and is reached only through controlled wrappers or trigger/service-role paths.
+- T-388 conversation notification targets are system-owned: authenticated clients cannot update `related_conversation_id`. Each text trigger derives the recipient from the existing conversation and verifies the sender; trigger functions remain uncallable by client roles. Participant-scoped exact conversation reads use existing RLS. Replacement retains authenticated owner/revision/replay guards and the normal publication quota; original cancellation and replacement commit or roll back together. Deployment metadata is verified; runtime evidence is in [T-388 acceptance](../04_ios/testops/T-388_BOOKING_REMEDIATION_ACCEPTANCE.md).
 
 ## Access Matrix
 

@@ -119,9 +119,22 @@ final class CustomerNotificationsStore {
                 guard bookings.bookingReadStates[id] == .complete else { throw CustomerNotificationRepositoryError.notificationNotFound }
                 destination = .booking(id)
             case .newMessage:
-                guard let id = notification.relatedBookingID, let chat,
-                      let conversation = await chat.resolveConversation(bookingID: id) else {
+                guard let chat else {
                     throw CustomerNotificationRepositoryError.notificationNotFound
+                }
+                let resolved: ChatConversation?
+                if let id = notification.relatedConversationID {
+                    resolved = await chat.resolveConversation(conversationID: id)
+                } else if let id = notification.relatedBookingID {
+                    resolved = await chat.resolveConversation(bookingID: id)
+                } else {
+                    errorMessage = "This older notification does not identify its conversation. You can mark it as read."
+                    return nil
+                }
+                try Task.checkCancellation()
+                guard let conversation = resolved else {
+                    errorMessage = chat.errorMessage ?? "This conversation is no longer available."
+                    return nil
                 }
                 destination = .message(conversation)
             case .unknown: throw CustomerNotificationRepositoryError.notificationNotFound

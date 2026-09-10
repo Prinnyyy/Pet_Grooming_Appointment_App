@@ -18,6 +18,16 @@ Linked files:
 ## Active Decisions
 
 ```text
+Decision ID: D-054
+Date: 2026-09-10
+Task: T-388
+Decision: Text-message notifications target the participant conversation, not one of its bookings. Customer Requests and Bookings share a session-owned Store; acceptance receipts require an exact current Booking read before publication because confirmed receipts do not distinguish first execution from replay after rescheduling. Atomic request replacement retires the locked original before invoking the unchanged quota-checked publication in the same transaction.
+Context: T-387 confirmed three defects. The adopted remediation retains the three-open-request limit, role boundaries, existing repositories and Simulator-only acceptance.
+Consequences: Add a nullable conversation target with no historical guessing; deploy its schema before the client's explicit select. One bounded booking read replaces unsafe quote projection; read failures preserve acceptance recovery identity. Invalidate stale list/exact reads after committed mutations. Migrations and real TestOps acceptance remain separately authorized and are not claimed deployed by this decision.
+Linked files: docs/superpowers/plans/2026-09-10-booking-defect-remediation-plan.md.
+```
+
+```text
 Decision ID: D-053
 Date: 2026-09-10
 Task: T-386

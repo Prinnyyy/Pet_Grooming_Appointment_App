@@ -888,6 +888,13 @@ private final class ChatReadStateCacheFake: ChatReadStateCaching {
 
 @MainActor
 final class ChatRepositoryFake: ChatRepository {
+    private(set) var exactConversationIDs: [UUID] = []
+    func conversation(id: UUID, participantID: UUID, role: UserRole) async throws -> ChatConversation {
+        exactConversationIDs.append(id)
+        exactConversationCallCount += 1
+        return try exactConversationResult.get()
+    }
+
     var exactConversationResult: Result<ChatConversation, ChatRepositoryError> = .failure(.conversationNotFound)
     private(set) var exactConversationCallCount = 0
 

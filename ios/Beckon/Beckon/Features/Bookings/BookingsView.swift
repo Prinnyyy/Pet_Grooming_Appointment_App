@@ -26,13 +26,14 @@ struct BookingsView: View {
         customerProfileRepository: (any CustomerProfileRepository)? = nil,
         groomerProfileRepository: (any GroomerProfileRepository)? = nil,
         debugRecorder: AppDebugEventRecorder? = nil,
+        store: BookingsStore? = nil,
         onOpenChat: @escaping (Booking) -> Void = { _ in }
     ) {
         self.role = role
         self.customerProfileRepository = customerProfileRepository
         self.onOpenChat = onOpenChat
         _store = State(
-            initialValue: BookingsStore(
+            initialValue: store ?? BookingsStore(
                 participantID: participantID,
                 role: role,
                 repository: repository,

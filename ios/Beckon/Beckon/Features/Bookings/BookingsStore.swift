@@ -22,6 +22,11 @@ final class BookingsStore {
     private(set) var nearestReadState: BookingScopeReadState = .idle
     private(set) var nearestReadError: String?
     private var nearestReadID = UUID()
+    private let sessionIsCurrent: @MainActor () -> Bool
+    private var listGeneration = 0
+    private var synchronizedBookingIDs: Set<UUID> = []
+    private var needsListRefresh = false
+    private var listRefreshTask: Task<Void, Never>?
     private let appointmentReminderScheduler: any AppointmentReminderScheduling
     private let debugRecorder: AppDebugEventRecorder?
     private let fulfillmentDefaults: UserDefaults
@@ -63,7 +68,8 @@ final class BookingsStore {
         appointmentReminderScheduler: any AppointmentReminderScheduling =
             AppointmentReminderScheduler.shared,
         debugRecorder: AppDebugEventRecorder? = nil,
-        fulfillmentDefaults: UserDefaults = .standard
+        fulfillmentDefaults: UserDefaults = .standard,
+        sessionIsCurrent: @escaping @MainActor () -> Bool = { true }
     ) {
         self.participantID = participantID
         self.role = role
@@ -72,6 +78,7 @@ final class BookingsStore {
         self.appointmentReminderScheduler = appointmentReminderScheduler
         self.debugRecorder = debugRecorder
         self.fulfillmentDefaults = fulfillmentDefaults
+        self.sessionIsCurrent = sessionIsCurrent
         bookings = initialBookings
         if let data = fulfillmentDefaults.data(forKey: "beckon.fulfillment.\(participantID).\(role.rawValue)"),
            let operations = try? JSONDecoder().decode([BookingFulfillmentOperation].self, from: data) {
@@ -88,11 +95,23 @@ final class BookingsStore {
     }
 
     func resolveBooking(id: UUID, forceRefresh: Bool = false) async {
-        guard forceRefresh || booking(withID: id) == nil, bookingReadStates[id] != .loading else { return }
+        guard sessionIsCurrent(), !Task.isCancelled,
+              forceRefresh || booking(withID: id) == nil, bookingReadStates[id] != .loading else { return }
+        let generation = listGeneration
         bookingReadStates[id] = .loading
         do {
             let rows = try await repository.bookings(bookingIDs: [id])
             try Task.checkCancellation()
+            guard sessionIsCurrent(), generation == listGeneration else {
+                bookingReadStates[id] = .stale
+                return
+            }
+            if rows.isEmpty {
+                synchronizedBookingIDs.remove(id)
+                bookings.removeAll { $0.id == id }
+                invalidateList()
+                scheduleListRefreshIfNeeded()
+            }
             guard rows.count == 1, let booking = rows.first, booking.id == id,
                   (role == .customer ? booking.customerID : booking.groomerID) == participantID else {
                 throw BookingRepositoryError.bookingNotFound
@@ -103,6 +122,10 @@ final class BookingsStore {
     }
 
     func synchronizeExternalBooking(_ booking: Booking) {
+        guard sessionIsCurrent(), owns(booking) else { return }
+        guard self.booking(withID: booking.id) != booking || !synchronizedBookingIDs.contains(booking.id) else { return }
+        invalidateList()
+        synchronizedBookingIDs.insert(booking.id)
         if !replace(booking) {
             bookings.append(booking)
         }
@@ -120,6 +143,31 @@ final class BookingsStore {
                 scheduleBookings.append(booking)
             }
             scheduleReadState = .stale
+        }
+        scheduleListRefreshIfNeeded()
+    }
+
+    private func owns(_ booking: Booking) -> Bool {
+        (role == .customer ? booking.customerID : booking.groomerID) == participantID
+    }
+
+    private func invalidateList() {
+        listGeneration += 1
+        nextPageRequest = nil
+        needsListRefresh = true
+    }
+
+    private func scheduleListRefreshIfNeeded() {
+        guard needsListRefresh, !isLoading, !isLoadingMore, listRefreshTask == nil,
+              sessionIsCurrent(), !Task.isCancelled else { return }
+        listRefreshTask = Task { [weak self] in
+            await Task.yield()
+            guard let self else { return }
+            if self.needsListRefresh, self.sessionIsCurrent(), !Task.isCancelled {
+                await self.load()
+            }
+            self.listRefreshTask = nil
+            self.scheduleListRefreshIfNeeded()
         }
     }
 
@@ -187,13 +235,16 @@ final class BookingsStore {
     }
 
     func load() async {
-        guard !isLoading, !isLoadingMore else { return }
+        guard sessionIsCurrent(), !Task.isCancelled else { return }
+        guard !isLoading, !isLoadingMore else { needsListRefresh = true; return }
+        needsListRefresh = false
+        let generation = listGeneration
 
         let startedAt = Date()
         recordStoreStart("load")
         isLoading = true
         errorMessage = nil
-        defer { isLoading = false }
+        defer { isLoading = false; scheduleListRefreshIfNeeded() }
 
         do {
             let page = try await repository.bookings(
@@ -201,10 +252,16 @@ final class BookingsStore {
                 role: role,
                 page: .first
             )
-            bookings = page.items
+            try Task.checkCancellation()
+            guard sessionIsCurrent(), generation == listGeneration else { return }
+            guard page.items.allSatisfy(owns) else { throw BookingRepositoryError.notAllowed }
+            // A page does not establish absence of an individually verified booking.
+            let retained = bookings.filter { synchronizedBookingIDs.contains($0.id) }
+            bookings = ListPageMerge.appendingUnique(retained, to: page.items)
             nextPageRequest = page.nextRequest
             await loadScheduleCalendar()
             try Task.checkCancellation()
+            guard sessionIsCurrent(), generation == listGeneration else { return }
             recordStoreSuccess(
                 "load",
                 startedAt: startedAt,
@@ -217,6 +274,7 @@ final class BookingsStore {
         } catch BookingRepositoryError.cancelled {
             recordStoreCancelled("load", startedAt: startedAt)
         } catch let error as BookingRepositoryError {
+            guard sessionIsCurrent(), generation == listGeneration else { return }
             errorMessage = message(for: error, action: "load")
             recordStoreFailure(
                 "load",
@@ -227,6 +285,7 @@ final class BookingsStore {
         } catch where AppDebugErrorClassifier.isCancellation(error) {
             recordStoreCancelled("load", startedAt: startedAt)
         } catch {
+            guard sessionIsCurrent(), generation == listGeneration else { return }
             errorMessage = message(for: .unavailable, action: "load")
             recordStoreFailure(
                 "load",
@@ -255,15 +314,16 @@ final class BookingsStore {
     }
 
     func loadNextPage() async {
-        guard !isLoading,
+        guard sessionIsCurrent(), !Task.isCancelled, !isLoading,
               !isLoadingMore,
               let pageRequest = nextPageRequest else { return }
 
         let startedAt = Date()
+        let generation = listGeneration
         recordStoreStart("loadNextPage")
         isLoadingMore = true
         errorMessage = nil
-        defer { isLoadingMore = false }
+        defer { isLoadingMore = false; scheduleListRefreshIfNeeded() }
 
         do {
             let page = try await repository.bookings(
@@ -271,6 +331,10 @@ final class BookingsStore {
                 role: role,
                 page: pageRequest
             )
+            try Task.checkCancellation()
+            guard sessionIsCurrent(), generation == listGeneration else { return }
+            guard page.items.allSatisfy(owns) else { throw BookingRepositoryError.notAllowed }
+            for booking in page.items { replace(booking) }
             bookings = ListPageMerge.appendingUnique(page.items, to: bookings)
             nextPageRequest = page.nextRequest
             recordStoreSuccess(
@@ -286,6 +350,7 @@ final class BookingsStore {
         } catch BookingRepositoryError.cancelled {
             recordStoreCancelled("loadNextPage", startedAt: startedAt)
         } catch let error as BookingRepositoryError {
+            guard sessionIsCurrent(), generation == listGeneration else { return }
             errorMessage = message(for: error, action: "load")
             recordStoreFailure(
                 "loadNextPage",
@@ -296,6 +361,7 @@ final class BookingsStore {
         } catch where AppDebugErrorClassifier.isCancellation(error) {
             recordStoreCancelled("loadNextPage", startedAt: startedAt)
         } catch {
+            guard sessionIsCurrent(), generation == listGeneration else { return }
             errorMessage = message(for: .unavailable, action: "load")
             recordStoreFailure(
                 "loadNextPage",
@@ -565,9 +631,15 @@ final class BookingsStore {
                 cancelledAt: result.cancelledTimestamp
             )
 
-            if replace(updatedBooking) {
+            try Task.checkCancellation()
+            guard sessionIsCurrent() else { return }
+            let wasLoaded = self.booking(withID: booking.id) != nil
+            if wasLoaded {
+                synchronizeExternalBooking(updatedBooking)
                 noticeMessage = "Booking cancelled. The original request and offers remain closed."
             } else {
+                invalidateList()
+                scheduleListRefreshIfNeeded()
                 noticeMessage = "Booking cancelled. Refresh bookings to see the latest state. The original request and offers remain closed."
             }
             await appointmentReminderScheduler.cancelReminder(
@@ -627,9 +699,15 @@ final class BookingsStore {
                 review: booking.review
             )
 
-            if replace(updatedBooking) {
+            try Task.checkCancellation()
+            guard sessionIsCurrent() else { return }
+            let wasLoaded = self.booking(withID: booking.id) != nil
+            if wasLoaded {
+                synchronizeExternalBooking(updatedBooking)
                 noticeMessage = "Booking completed. The customer can now leave one review."
             } else {
+                invalidateList()
+                scheduleListRefreshIfNeeded()
                 noticeMessage = "Booking completed. Refresh bookings to see the latest state."
             }
             await appointmentReminderScheduler.cancelReminder(
@@ -704,9 +782,15 @@ final class BookingsStore {
             )
             let updatedBooking = booking.adding(review: result.review)
 
-            if replace(updatedBooking) {
+            try Task.checkCancellation()
+            guard sessionIsCurrent() else { return }
+            let wasLoaded = self.booking(withID: booking.id) != nil
+            if wasLoaded {
+                synchronizeExternalBooking(updatedBooking)
                 noticeMessage = "Review submitted. Thank you for your feedback."
             } else {
+                invalidateList()
+                scheduleListRefreshIfNeeded()
                 noticeMessage = "Review submitted. Refresh bookings to see the latest state."
             }
             recordStoreSuccess("createReview", startedAt: startedAt)

@@ -8,11 +8,12 @@ Full pre-trim contract text is archived at `../09_frozen/backend_contracts/SUPAB
 
 ## Current Status
 
+- T-388 migration verification (2026-09-10): 85 aligned versions through `20260910125207_t388_message_notification_conversations.sql`; repeat dry run empty. Both notification tables now expose nullable `related_conversation_id` with indexed `ON DELETE SET NULL` references. Text triggers target the opposite participant's conversation; no historical target inference. Atomic replacement cancels the locked original before unchanged quota-checked publication in the same transaction. Schema/RLS/ACL and real behavior acceptance passed; see [T-388](../04_ios/testops/T-388_BOOKING_REMEDIATION_ACCEPTANCE.md). Earlier runtime evidence below retains its named historical baseline, not current migration counts.
 - Authorized fresh project: `Beckon`, ref `lqmasbuqzvcvtawonjlb`, organization `Prinnyyy`, region `us-west-1`.
 - Forbidden legacy project: `Prinnyyy's Project`, ref `swdiiyypysyxbnfrxxsv`. Do not inspect, branch, migrate, reset, or mutate it for this rebuild.
 - Remote verification baseline: linked history aligns through `20260714072728_t355_chat_counterpart_avatar_access.sql`; the final linked dry-run is empty, conversation-scoped avatar authorization validation passed, performance advisors found no issue, and security advisors retained only the known Q-93 warning.
 - Local CLI readiness baseline: T-139 confirmed sequential `supabase projects list`, `supabase migration list --linked`, and `supabase db push --linked --dry-run` work from this checkout without `SUPABASE_DB_PASSWORD`.
-- Local migration mirror: `../../supabase/migrations/` is the append-only source for applied and prepared migrations. Local migration mirror count: 70 files. Do not rename or hand-invent migration filenames.
+- Local migration mirror: `../../supabase/migrations/`. Local migration mirror count: 85 files, aligned through T-388. T-385 `20260910075314_t385_chat_realtime_publication.sql` adds only `messages` to the existing publication after requiring enabled RLS; grants and participant policy are unchanged. Do not rename applied migrations.
 - Full historical contract detail before this fast-path trim is frozen for comparison only. Current implementation truth comes from migrations plus focused active backend policy files.
 
 ## Read Order
