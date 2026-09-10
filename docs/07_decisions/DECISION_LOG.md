@@ -18,6 +18,16 @@ Linked files:
 ## Active Decisions
 
 ```text
+Decision ID: D-055
+Date: 2026-09-10
+Task: T-389
+Decision: Design matching as explicit eligibility, trustworthy contextual evidence, role-specific explicit-preference ranking and authoritative booking admission. Retain request-first distribution and all lawful candidates; raw public ratings remain exact and separate from internal smoothed scores. No implicit customer-value or behavioral-learning model is adopted.
+Context: The user approved the conceptual rules and requested continued discovery of defects or simpler approaches while preparing the detailed design. Review uncovered refinements to decay under repeat-customer caps, partial evidence, custom-service comparability, historical service timestamps and globally ranked pagination.
+Consequences: Publish one detailed spec with counterexamples, tunable parameters and implementation acceptance boundaries. Reuse existing Store/repository/SQL and refresh ownership. This is a design decision, not deployment or implementation approval; source-integrity fixes cannot be rolled back merely to revert ranking. Written refinements remain reviewable before the detailed execution plan.
+Linked files: docs/superpowers/specs/2026-09-10-matching-rating-system-design.md.
+```
+
+```text
 Decision ID: D-054
 Date: 2026-09-10
 Task: T-388

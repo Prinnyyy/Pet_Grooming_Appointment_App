@@ -4,7 +4,7 @@ Only dynamic task and recovery facts. Git owns branch, worktree and completion h
 
 ```json
 {
-  "next_task_id": "T-389",
+  "next_task_id": "T-390",
   "task": null,
   "pending_tasks": [
     {
@@ -49,7 +49,7 @@ Only dynamic task and recovery facts. Git owns branch, worktree and completion h
     }
   ],
   "last_completed": {
-    "id": "T-388"
+    "id": "T-389"
   }
 }
 ```
