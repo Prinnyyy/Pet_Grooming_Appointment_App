@@ -4,8 +4,20 @@ Only dynamic task and recovery facts. Git owns branch, worktree and completion h
 
 ```json
 {
-  "next_task_id": "T-390",
-  "task": null,
+  "next_task_id": "T-391",
+  "task": {
+    "id": "T-390",
+    "status": "planned",
+    "goal": "Implement the matching, rating and explicit preference design across six complete work packages",
+    "plan": "docs/superpowers/plans/2026-09-10-matching-rating-implementation-plan.md",
+    "next_action": "Implementation plan authored and self-reviewed; implementation has not started. On explicit start, resume MR-01 and continue through MR-06 within the adopted authorization.",
+    "authorization": [
+      "Current request authorizes implementation-plan authoring only; no new business code, migration, historical repair or remote account mutation was performed. Remote writes require explicit matching-task scope."
+    ],
+    "preserve": [
+      "Preserve pre-existing dirty backend/TestOps/history documents and untracked frozen archives. T-385/T-388 accepted functionality is not reopened; reuse only unchanged relevant evidence."
+    ]
+  },
   "pending_tasks": [
     {
       "id": "T-365",
