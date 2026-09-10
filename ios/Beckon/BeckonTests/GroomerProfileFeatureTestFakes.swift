@@ -3,12 +3,19 @@ import Foundation
 
 @MainActor
 final class GroomerProfileRepositoryFake: GroomerProfileRepository {
+    var onRead: (@MainActor (String) async -> Void)?
+    private(set) var readNames: [String] = []
+    private func recordRead(_ name: String) async {
+        readNames.append(name)
+        await onRead?(name)
+    }
     var availabilityTimingVersion: Int? = 1
     var saveAvailabilityError: GroomerProfileRepositoryError?
     private(set) var saveAvailabilityCallCount = 0
     private(set) var lastSavedTimeOff: [GroomerTimeOffWindow] = []
 
     func availabilitySnapshot(groomerID: UUID) async throws -> GroomerAvailabilitySnapshot {
+        await recordRead("availability")
         let windows = try await availabilityWindows(groomerID: groomerID)
         let preferences = try await bookingPreferences(groomerID: groomerID)
         let timeOff = try await timeOffWindows(groomerID: groomerID)
@@ -161,21 +168,26 @@ final class GroomerProfileRepositoryFake: GroomerProfileRepository {
     }
 
     func profile(groomerID: UUID) async throws -> GroomerProfile {
-        try profileResult.get()
+        let result = profileResult
+        await recordRead("profile")
+        return try result.get()
     }
 
     func services(groomerID: UUID) async throws -> [GroomerService] {
+        await recordRead("services")
         servicesReadCount += 1
         await onServicesRead?()
         return try servicesResult.get()
     }
 
     func portfolioPhotos(groomerID: UUID) async throws -> [GroomerPortfolioPhoto] {
-        try portfolioResult.get()
+        await recordRead("portfolio")
+        return try portfolioResult.get()
     }
 
     func portfolioFitTags(groomerID: UUID) async throws -> [GroomerPortfolioFitTag] {
-        try portfolioFitTagsResult.get()
+        await recordRead("tags")
+        return try portfolioFitTagsResult.get()
     }
 
     func availabilityWindows(groomerID: UUID) async throws -> [GroomerAvailabilityWindow] {
@@ -208,11 +220,13 @@ final class GroomerProfileRepositoryFake: GroomerProfileRepository {
     }
 
     func fitClaims(groomerID: UUID) async throws -> [GroomerFitClaim] {
-        try fitClaimsResult.get()
+        await recordRead("claims")
+        return try fitClaimsResult.get()
     }
 
     func petFitEvidenceSummary(groomerID: UUID) async throws -> [GroomerPetFitEvidenceSummary] {
-        try petFitEvidenceSummaryResult.get()
+        await recordRead("evidence")
+        return try petFitEvidenceSummaryResult.get()
     }
 
     func updateProfile(
@@ -401,11 +415,13 @@ final class GroomerProfileRepositoryFake: GroomerProfileRepository {
     }
 
     func latestAvatarPhotoPath(groomerID: UUID) async throws -> String? {
+        await recordRead("avatarPath")
         latestAvatarPathCallCount += 1
         return try latestAvatarPathResult.get()
     }
 
     func portfolioPhotoData(_ photo: GroomerPortfolioPhoto) async throws -> Data {
+        await recordRead("image")
         portfolioPhotoDataCallCount += 1
         if shouldSuspendPortfolioPhotoData {
             while !Task.isCancelled {

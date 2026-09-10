@@ -13,6 +13,9 @@ final class CustomerProfileStore {
     private let debugRecorder: AppDebugEventRecorder?
     let addressEditorState: BeckonAddressEditorState
     private var loadedAddressInput: BeckonAddressInput
+    private var loadID = UUID()
+    private var mutationRevision = 0
+    private var loadedForm: ProfileFormSnapshot?
 
     private(set) var profile: CustomerProfileDetails?
     private(set) var cachedProfileSnapshot: ProfileSnapshot?
@@ -102,23 +105,31 @@ final class CustomerProfileStore {
             provider: addressProvider ?? MapKitAddressProvider()
         )
         self.loadedAddressInput = emptyAddress
+        self.loadedForm = profileFormSnapshot
     }
 
     func load() async {
+        guard !isSaving, !isUploading else { return }
         let startedAt = Date()
         recordStoreStart("load")
+        let operation = UUID()
+        loadID = operation
+        let revision = mutationRevision
         isLoading = true
         errorMessage = nil
         populateCachedProfileSnapshot()
+        defer { if loadID == operation { isLoading = false } }
 
         do {
             let loadedProfile = try await repository.profile(customerID: customerID)
+            guard isCurrentLoad(operation, revision: revision) else { return }
             profile = loadedProfile
-            populateForm(with: loadedProfile)
+            if profileFormSnapshot == loadedForm { populateForm(with: loadedProfile) }
             isLoading = false
             saveProfileSnapshot(profile: loadedProfile, avatarData: avatarPhotoData)
 
             let loadedAvatarPhoto = await avatarPhotoPayload(from: loadedProfile.avatarPath)
+            guard isCurrentLoad(operation, revision: revision) else { return }
             if let loadedAvatarPath = loadedAvatarPhoto.path,
                loadedAvatarPath != profile?.avatarPath,
                var profile {
@@ -137,14 +148,14 @@ final class CustomerProfileStore {
                 ]
             )
         } catch CustomerProfileRepositoryError.cancelled {
-            isLoading = false
+            guard isCurrentLoad(operation, revision: revision) else { return }
             recordStoreCancelled("load", startedAt: startedAt)
         } catch let error as CustomerProfileRepositoryError {
-            isLoading = false
+            guard isCurrentLoad(operation, revision: revision) else { return }
             errorMessage = message(for: error, action: "load")
             recordStoreFailure("load", startedAt: startedAt, error: error)
         } catch {
-            isLoading = false
+            guard isCurrentLoad(operation, revision: revision) else { return }
             let mappedError = CustomerProfileRepositoryError.unavailable
             errorMessage = message(for: mappedError, action: "load")
             recordStoreFailure("load", startedAt: startedAt, error: error)
@@ -169,6 +180,7 @@ final class CustomerProfileStore {
 
         let startedAt = Date()
         recordStoreStart("save")
+        mutationRevision += 1
         isSaving = true
         errorMessage = nil
         noticeMessage = nil
@@ -214,6 +226,7 @@ final class CustomerProfileStore {
 
         let startedAt = Date()
         recordStoreStart("uploadAvatar")
+        mutationRevision += 1
         isUploading = true
         errorMessage = nil
         noticeMessage = nil
@@ -275,6 +288,23 @@ final class CustomerProfileStore {
         loadedAddressInput = normalizedAddressInput(addressInput)
         contactEmail = profile.contactEmail ?? sessionEmail ?? ""
         phoneNumber = profile.phoneNumber ?? ""
+        loadedForm = profileFormSnapshot
+    }
+
+    private func isCurrentLoad(_ operation: UUID, revision: Int) -> Bool {
+        !Task.isCancelled && operation == loadID && revision == mutationRevision
+    }
+
+    private struct ProfileFormSnapshot: Equatable {
+        let nickname: String
+        let address: BeckonAddressInput
+        let email: String
+        let phone: String
+    }
+
+    private var profileFormSnapshot: ProfileFormSnapshot {
+        ProfileFormSnapshot(nickname: nickname, address: addressEditorState.input,
+            email: contactEmail, phone: phoneNumber)
     }
 
     private func populateCachedProfileSnapshot() {

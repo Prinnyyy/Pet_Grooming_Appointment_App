@@ -14,6 +14,17 @@ final class GroomerProfileStore {
     let addressEditorState: BeckonAddressEditorState
     var loadedAddressInput: BeckonAddressInput
     var profileMutationRevision = 0
+    private var profileLoadID = UUID()
+    private var loadedProfileForm: ProfileFormSnapshot?
+    private(set) var isLoadingOptionalMetadata = false
+    private(set) var optionalLoadError: String?
+    private(set) var hasLoadedFitClaims = false
+    private(set) var hasLoadedPortfolioTags = false
+    private var fitClaimsLoadFailed = false
+    private var portfolioMetadataLoadFailed = false
+
+    var canEditFitSignals: Bool { hasLoadedFitClaims && !isLoadingOptionalMetadata && !fitClaimsLoadFailed }
+    var canEditPortfolioTags: Bool { hasLoadedPortfolioTags && !isLoadingOptionalMetadata && !portfolioMetadataLoadFailed }
 
     var profile: GroomerProfile?
     private(set) var cachedProfileSnapshot: ProfileSnapshot?
@@ -188,59 +199,83 @@ final class GroomerProfileStore {
             provider: addressProvider ?? MapKitAddressProvider()
         )
         self.loadedAddressInput = emptyAddress
+        self.loadedProfileForm = profileFormSnapshot
     }
 
     func load() async {
+        guard !isSaving, !isUploading else { return }
         let startedAt = Date()
         recordStoreStart("load")
         let loadRevision = profileMutationRevision
+        let loadID = UUID()
+        profileLoadID = loadID
+        let originalClaims = selectedFitClaimIDs
+        let originalTags = selectedPortfolioFitTagIDsByPhotoID
+        let supportedClaims = Set(GroomerFitClaim.availableSignals)
+        let claimsWereClean = originalClaims == Set(fitClaims.filter {
+            $0.isActive && supportedClaims.contains($0.signal)
+        }.map { $0.signal.id })
+        let tagsWereClean = originalTags == Dictionary(grouping: portfolioFitTags, by: \.portfolioPhotoID)
+            .mapValues { Set($0.map { $0.signal.id }) }
         isLoading = true
+        isLoadingOptionalMetadata = true
+        optionalLoadError = nil
         errorMessage = nil
         populateCachedProfileSnapshot()
+        defer {
+            if profileLoadID == loadID {
+                isLoading = false
+                isLoadingOptionalMetadata = false
+            }
+        }
 
         do {
             let loadedProfile = try await repository.profile(groomerID: groomerID)
             let loadedServices = try await repository.services(groomerID: groomerID)
-            let loadedPhotos = try await repository.portfolioPhotos(groomerID: groomerID)
-            let loadedPortfolioFitTags = try await repository.portfolioFitTags(
-                groomerID: groomerID
-            )
             let loadedSchedule = try await repository.availabilitySnapshot(groomerID: groomerID)
-            let loadedFitClaims = try await repository.fitClaims(groomerID: groomerID)
-            let loadedPetFitEvidenceSummary = try await repository.petFitEvidenceSummary(
-                groomerID: groomerID
-            )
 
-            guard loadRevision == profileMutationRevision else {
-                isLoading = false
-                return
-            }
+            guard isCurrentProfileLoad(loadID, revision: loadRevision) else { return }
 
             profile = loadedProfile
             services = loadedServices
-            portfolioPhotos = loadedPhotos
-            portfolioPhotoDataByID = [:]
-            attemptedPortfolioPhotoDataIDs = []
-            populatePortfolioFitTags(
-                with: loadedPortfolioFitTags,
-                visiblePhotos: loadedPhotos
-            )
             if !isEditingAvailability || savedAvailability == nil {
                 applyAvailabilitySnapshot(loadedSchedule)
             }
-            populateFitClaims(with: loadedFitClaims)
-            populatePetFitEvidenceSummary(with: loadedPetFitEvidenceSummary)
-            populateProfileForm(with: loadedProfile)
-            resetTimeOffForm()
+            if profileFormSnapshot == loadedProfileForm { populateProfileForm(with: loadedProfile) }
             isLoading = false
             saveProfileSnapshot(profile: loadedProfile, avatarData: avatarPhotoData)
+
+            // Optional metadata cannot prevent publication of authoritative profile/schedule facts.
+            async let photosRead = { @MainActor in try? await self.repository.portfolioPhotos(groomerID: self.groomerID) }()
+            async let tagsRead = { @MainActor in try? await self.repository.portfolioFitTags(groomerID: self.groomerID) }()
+            async let claimsRead = { @MainActor in try? await self.repository.fitClaims(groomerID: self.groomerID) }()
+            async let evidenceRead = { @MainActor in try? await self.repository.petFitEvidenceSummary(groomerID: self.groomerID) }()
+            let (photos, tags, claims, evidence) = await (photosRead, tagsRead, claimsRead, evidenceRead)
+            guard isCurrentProfileLoad(loadID, revision: loadRevision) else { return }
+            if let photos {
+                portfolioPhotos = photos
+                let ids = Set(photos.map(\.id))
+                portfolioPhotoDataByID = portfolioPhotoDataByID.filter { ids.contains($0.key) }
+                attemptedPortfolioPhotoDataIDs.formIntersection(ids)
+            }
+            if let tags, let photos, tagsWereClean, selectedPortfolioFitTagIDsByPhotoID == originalTags {
+                populatePortfolioFitTags(with: tags, visiblePhotos: photos)
+            }
+            if let claims, claimsWereClean, selectedFitClaimIDs == originalClaims { populateFitClaims(with: claims) }
+            if claims != nil { hasLoadedFitClaims = true }
+            if tags != nil && photos != nil { hasLoadedPortfolioTags = true }
+            fitClaimsLoadFailed = claims == nil
+            portfolioMetadataLoadFailed = tags == nil || photos == nil
+            if let evidence { populatePetFitEvidenceSummary(with: evidence) }
+            if photos == nil || tags == nil || claims == nil || evidence == nil {
+                optionalLoadError = "Some portfolio or fit details could not be refreshed. Retry before editing those details."
+            }
+            isLoadingOptionalMetadata = false
 
             let loadedAvatarPhoto = await avatarPhotoPayload(
                 from: loadedProfile.avatarPath
             )
-            guard loadRevision == profileMutationRevision else {
-                return
-            }
+            guard isCurrentProfileLoad(loadID, revision: loadRevision) else { return }
             if let loadedAvatarPath = loadedAvatarPhoto.path,
                loadedAvatarPath != profile?.avatarPath,
                var profile {
@@ -251,9 +286,9 @@ final class GroomerProfileStore {
             saveProfileSnapshot(profile: profile, avatarData: avatarPhotoData)
 
             let loadedPortfolioPhotoPayload = await portfolioPhotoDataMap(
-                for: loadedPhotos
+                for: photos ?? []
             )
-            guard loadRevision == profileMutationRevision else {
+            guard isCurrentProfileLoad(loadID, revision: loadRevision) else {
                 recordStoreCancelled(
                     "load",
                     startedAt: startedAt,
@@ -261,8 +296,8 @@ final class GroomerProfileStore {
                 )
                 return
             }
-            portfolioPhotoDataByID = loadedPortfolioPhotoPayload.dataByID
-            attemptedPortfolioPhotoDataIDs = loadedPortfolioPhotoPayload.attemptedPhotoIDs
+            portfolioPhotoDataByID.merge(loadedPortfolioPhotoPayload.dataByID, uniquingKeysWith: { _, new in new })
+            attemptedPortfolioPhotoDataIDs.formUnion(loadedPortfolioPhotoPayload.attemptedPhotoIDs)
             recordStoreSuccess(
                 "load",
                 startedAt: startedAt,
@@ -273,10 +308,10 @@ final class GroomerProfileStore {
                 ]
             )
         } catch GroomerProfileRepositoryError.cancelled {
-            isLoading = false
+            guard isCurrentProfileLoad(loadID, revision: loadRevision) else { return }
             recordStoreCancelled("load", startedAt: startedAt)
         } catch let error as GroomerProfileRepositoryError {
-            isLoading = false
+            guard isCurrentProfileLoad(loadID, revision: loadRevision) else { return }
             errorMessage = message(for: error, action: "load")
             recordStoreFailure(
                 "load",
@@ -285,10 +320,10 @@ final class GroomerProfileStore {
                 startedAt: startedAt
             )
         } catch where AppDebugErrorClassifier.isCancellation(error) {
-            isLoading = false
+            guard isCurrentProfileLoad(loadID, revision: loadRevision) else { return }
             recordStoreCancelled("load", startedAt: startedAt)
         } catch {
-            isLoading = false
+            guard isCurrentProfileLoad(loadID, revision: loadRevision) else { return }
             errorMessage = message(for: .unavailable, action: "load")
             recordStoreFailure(
                 "load",
@@ -320,6 +355,27 @@ final class GroomerProfileStore {
         serviceRadiusMiles = min(max(profile.serviceRadiusMiles ?? 12, 5), 50)
         serviceLocationModes = profile.effectiveServiceLocationModes
         isActive = profile.isActive
+        loadedProfileForm = profileFormSnapshot
+    }
+
+    private func isCurrentProfileLoad(_ id: UUID, revision: Int) -> Bool {
+        !Task.isCancelled && id == profileLoadID && revision == profileMutationRevision
+    }
+
+    private struct ProfileFormSnapshot: Equatable {
+        let businessName: String
+        let bio: String
+        let yearsExperience: Int
+        let address: BeckonAddressInput
+        let serviceRadiusMiles: Int
+        let modes: Set<GroomingLocationMode>
+        let isActive: Bool
+    }
+
+    private var profileFormSnapshot: ProfileFormSnapshot {
+        ProfileFormSnapshot(businessName: businessName, bio: bio, yearsExperience: yearsExperience,
+            address: addressEditorState.input, serviceRadiusMiles: serviceRadiusMiles,
+            modes: serviceLocationModes, isActive: isActive)
     }
 
     func normalizedAddressInput(_ input: BeckonAddressInput) -> BeckonAddressInput {
@@ -415,14 +471,26 @@ final class GroomerProfileStore {
     ) async -> (dataByID: [UUID: Data], attemptedPhotoIDs: Set<UUID>) {
         var dataByID: [UUID: Data] = [:]
         var attemptedPhotoIDs: Set<UUID> = []
-        for photo in photos {
-            attemptedPhotoIDs.insert(photo.id)
-            guard let data = try? await repository.portfolioPhotoData(photo) else {
-                continue
+        await withTaskGroup(of: (UUID, Data?).self) { group in
+            var remaining = photos.makeIterator()
+            for _ in 0..<3 {
+                guard let photo = remaining.next() else { break }
+                group.addTask { await self.portfolioPhotoPayload(photo) }
             }
-            dataByID[photo.id] = data
+            for await (id, data) in group {
+                guard !Task.isCancelled else { group.cancelAll(); break }
+                attemptedPhotoIDs.insert(id)
+                if let data { dataByID[id] = data }
+                if let photo = remaining.next() {
+                    group.addTask { await self.portfolioPhotoPayload(photo) }
+                }
+            }
         }
         return (dataByID, attemptedPhotoIDs)
+    }
+
+    private func portfolioPhotoPayload(_ photo: GroomerPortfolioPhoto) async -> (UUID, Data?) {
+        (photo.id, try? await repository.portfolioPhotoData(photo))
     }
 
     func populateAvailabilityForm(with windows: [GroomerAvailabilityWindow]) {

@@ -58,6 +58,15 @@ struct GroomerProfileManagementView: View {
                 .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
             } else {
                 ScrollView {
+                    if let error = store.optionalLoadError {
+                        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                            Text(error).font(DesignTokens.Typography.supporting)
+                                .foregroundStyle(DesignTokens.Colors.secondaryText)
+                            Button("Retry Details", systemImage: "arrow.clockwise") { Task { await store.load() } }
+                                .disabled(store.isLoadingOptionalMetadata)
+                        }
+                        .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+                    }
                     GroomerAccountHomeView(
                         store: store,
                         accountContent: accountContent,

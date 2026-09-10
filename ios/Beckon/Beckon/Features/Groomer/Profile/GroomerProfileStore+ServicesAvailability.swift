@@ -79,6 +79,7 @@ extension GroomerProfileStore {
         }
 
         isSaving = true
+        profileMutationRevision += 1
         defer { isSaving = false }
 
         do {
@@ -113,6 +114,7 @@ extension GroomerProfileStore {
         guard !isSaving else { return }
 
         isSaving = true
+        profileMutationRevision += 1
         errorMessage = nil
         noticeMessage = nil
         defer { isSaving = false }

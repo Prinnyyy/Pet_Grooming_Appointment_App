@@ -157,11 +157,13 @@ extension GroomerProfileStoreTests {
 
     @Test @MainActor
     func saveFitClaimsAllowsSizeBandsAboveCoreSelectionLimit() async {
-        let repository = GroomerProfileRepositoryFake()
+        let groomerID = UUID()
+        let repository = GroomerProfileRepositoryFake(profileResult: .success(Self.profile(groomerID: groomerID)))
         let store = GroomerProfileStore(
-            groomerID: UUID(),
+            groomerID: groomerID,
             repository: repository
         )
+        await store.load()
         let coreSignals = Array(
             GroomerFitClaim.availableSignals
                 .filter { $0.group != .sizeBand }

@@ -58,6 +58,7 @@ extension GroomerProfileStore {
         }
 
         isUploading = true
+        profileMutationRevision += 1
         errorMessage = nil
         noticeMessage = nil
         defer { isUploading = false }
@@ -84,6 +85,7 @@ extension GroomerProfileStore {
         guard !isUploading else { return }
 
         isUploading = true
+        profileMutationRevision += 1
         errorMessage = nil
         noticeMessage = nil
         defer { isUploading = false }
@@ -142,6 +144,10 @@ extension GroomerProfileStore {
 
     func savePortfolioFitTags(for photo: GroomerPortfolioPhoto) async {
         guard !isSaving else { return }
+        guard canEditPortfolioTags else {
+            errorMessage = "Refresh portfolio details before saving tags."
+            return
+        }
 
         errorMessage = nil
         noticeMessage = nil
@@ -160,6 +166,7 @@ extension GroomerProfileStore {
         let drafts = makePortfolioFitTagDrafts(for: photo)
 
         isSaving = true
+        profileMutationRevision += 1
         defer { isSaving = false }
 
         do {

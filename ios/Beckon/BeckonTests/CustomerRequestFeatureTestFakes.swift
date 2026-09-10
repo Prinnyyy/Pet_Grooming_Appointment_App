@@ -33,6 +33,7 @@ extension CustomerRequestsStore {
 
 @MainActor
 final class CustomerRequestPetRepositoryFake: CustomerPetRepository {
+    var onPhotoRead: (@MainActor () async -> Void)?
     var petsResult: Result<[CustomerPet], CustomerPetRepositoryError>
     var photosResult: Result<[CustomerPetPhoto], CustomerPetRepositoryError>
     var photoDataResultsByPhotoID: [UUID: Result<Data, CustomerPetRepositoryError>]
@@ -88,6 +89,7 @@ final class CustomerRequestPetRepositoryFake: CustomerPetRepository {
 
     func photoData(_ photo: CustomerPetPhoto) async throws -> Data {
         photoDataCallCount += 1
+        await onPhotoRead?()
         guard let result = photoDataResultsByPhotoID[photo.id] else {
             throw CustomerPetRepositoryError.unavailable
         }
@@ -118,6 +120,7 @@ final class CustomerRequestAppointmentReminderSchedulerFake:
 
 @MainActor
 final class CustomerRequestRepositoryFake: CustomerRequestRepository {
+    var onRequestPageReadAsync: (@MainActor () async -> Void)?
     var exactRequestResult: Result<CustomerGroomingRequest, CustomerRequestRepositoryError>?
     var onAcknowledgeHandoff: (@MainActor () -> Void)?
     var exactOfferResult: Result<CustomerOfferReview, CustomerRequestRepositoryError> = .failure(.requestNotFound)
@@ -222,11 +225,15 @@ final class CustomerRequestRepositoryFake: CustomerRequestRepository {
         receivedRequestPages.append(page)
         onRequestPageRead?()
         if !requestPages.isEmpty {
-            return try requestPages.removeFirst().get()
+            let result = try requestPages.removeFirst().get()
+            await onRequestPageReadAsync?()
+            return result
         }
 
+        let items = try requestsResult.get()
+        await onRequestPageReadAsync?()
         return ListPage(
-            items: try requestsResult.get(),
+            items: items,
             request: page,
             hasMore: false
         )

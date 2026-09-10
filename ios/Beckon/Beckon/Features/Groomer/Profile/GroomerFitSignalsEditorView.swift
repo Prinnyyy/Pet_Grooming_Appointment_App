@@ -8,15 +8,24 @@ struct GroomerFitSignalsEditorView: View {
             selectedCoreFitClaimCount: store.selectedCoreFitClaimCount,
             maximumActiveClaims: GroomerFitClaim.maximumActiveClaims,
             isSaving: store.isSaving,
-            isBusy: store.isBusy
+            isBusy: store.isBusy || !store.canEditFitSignals
         )
 
         ScrollView {
             LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
+                if !store.canEditFitSignals {
+                    if store.isLoadingOptionalMetadata { ProgressView("Loading fit signals...") }
+                    else {
+                        Text("Fit signals could not be refreshed.").font(DesignTokens.Typography.supporting)
+                        Button("Retry", systemImage: "arrow.clockwise") { Task { await store.load() } }
+                    }
+                }
+                if store.hasLoadedFitClaims {
                 GroomerFitSignalsSelectionBalanceSection(
                     store: store,
                     presentation: presentation
                 )
+                .disabled(!store.canEditFitSignals)
 
                 ForEach(Self.visibleGroups) { group in
                     GroomerFitSignalGroupSection(
@@ -24,6 +33,8 @@ struct GroomerFitSignalsEditorView: View {
                         signals: signals(for: group),
                         store: store
                     )
+                    .disabled(!store.canEditFitSignals)
+                }
                 }
             }
             .beckonPageInsets()
@@ -34,13 +45,18 @@ struct GroomerFitSignalsEditorView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .tabBar)
         .onAppear {
-            store.ensureSizeBandFitClaimRange()
+            if store.canEditFitSignals { store.ensureSizeBandFitClaimRange() }
+        }
+        .onChange(of: store.canEditFitSignals) { _, ready in
+            if ready { store.ensureSizeBandFitClaimRange() }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
+            if store.hasLoadedFitClaims {
             GroomerFitSignalsSaveBar(
                 store: store,
                 presentation: presentation
             )
+            }
         }
     }
 

@@ -136,10 +136,17 @@ final class CustomerRequestsStore {
     private(set) var pets: [CustomerPet] = []
     private(set) var petPhotosByPetID: [UUID: [CustomerPetPhoto]] = [:]
     private(set) var petPhotoDataByID: [UUID: Data] = [:]
-    private(set) var requests: [CustomerGroomingRequest] = []
+    private(set) var requests: [CustomerGroomingRequest] = [] {
+        didSet { requestFactsRevision += 1 }
+    }
     private(set) var requestPhotosByRequestID: [UUID: [GroomingRequestPhoto]] = [:]
     private(set) var requestPhotoDataByID: [UUID: Data] = [:]
-    private(set) var bookings: [Booking] = []
+    private(set) var bookings: [Booking] = [] {
+        didSet { requestFactsRevision += 1 }
+    }
+    private var requestFactsRevision = 0
+    private var requestLoadID = UUID()
+    private var requestPhotoLoadID = UUID()
     private(set) var offerReviewsByRequestID: [UUID: [CustomerOfferReview]] = [:]
     private(set) var offerErrorsByRequestID: [UUID: String] = [:]
     private(set) var loadingOfferRequestIDs: Set<UUID> = []
@@ -361,35 +368,50 @@ final class CustomerRequestsStore {
         guard acceptanceSessionIsCurrent() else { throw CancellationError() }
     }
 
+    private func isCurrentRequestLoad(_ id: UUID, revision: Int? = nil) -> Bool {
+        !Task.isCancelled && acceptanceSessionIsCurrent() && id == requestLoadID
+            && (revision == nil || revision == requestFactsRevision)
+    }
+
     func load() async {
         guard !isLoading, !isLoadingMoreRequests else { return }
 
         let startedAt = Date()
         recordStoreStart("load")
+        let operation = UUID()
+        requestLoadID = operation
+        var revision = requestFactsRevision
         isLoading = true
         errorMessage = nil
-        defer { isLoading = false }
+        defer { if requestLoadID == operation { isLoading = false } }
 
         do {
-            pets = try await petRepository.pets(customerID: customerID)
-            await loadPetPhotosForWizard(startedAt: startedAt)
+            try checkAcceptanceSession()
+            let loadedPets = try await petRepository.pets(customerID: customerID)
+            guard isCurrentRequestLoad(operation, revision: revision) else { return }
+            pets = loadedPets
             let requestPage = try await requestRepository.requests(
                 customerID: customerID,
                 page: .first
             )
+            guard isCurrentRequestLoad(operation, revision: revision) else { return }
             requests = requestPage.items
+            revision = requestFactsRevision
             nextRequestsPageRequest = requestPage.nextRequest
-            await loadRequestPhotosForRepublish(startedAt: startedAt)
             do {
-                bookings = try await bookingRepository.bookings(
+                let loadedBookings = try await bookingRepository.bookings(
                     participantID: customerID,
                     role: .customer
                 )
+                guard isCurrentRequestLoad(operation, revision: revision) else { return }
+                bookings = loadedBookings
+                revision = requestFactsRevision
             } catch BookingRepositoryError.cancelled {
-                bookings = []
+                guard isCurrentRequestLoad(operation, revision: revision) else { return }
                 recordStoreCancelled("load.bookingHandoff", startedAt: startedAt)
             } catch {
-                bookings = []
+                guard isCurrentRequestLoad(operation, revision: revision) else { return }
+                noticeMessage = "Requests loaded, but appointment details could not be refreshed. Try again."
                 recordStoreFailure(
                     "load.bookingHandoff",
                     error: error,
@@ -399,10 +421,18 @@ final class CustomerRequestsStore {
                 )
             }
             await loadAcknowledgedBookingHandoffs(startedAt: startedAt)
+            guard isCurrentRequestLoad(operation, revision: revision) else { return }
 
             if selectedPetID == nil {
                 selectedPetID = pets.first?.id
             }
+            isLoading = false
+            await reconcileUnresolvedAcceptances()
+            guard isCurrentRequestLoad(operation) else { return }
+            await loadPetPhotosForWizard(startedAt: startedAt)
+            guard isCurrentRequestLoad(operation) else { return }
+            await loadRequestPhotosForRepublish(startedAt: startedAt)
+            guard isCurrentRequestLoad(operation) else { return }
             recordStoreSuccess(
                 "load",
                 startedAt: startedAt,
@@ -414,11 +444,15 @@ final class CustomerRequestsStore {
                     "bookingCount": "\(bookings.count)",
                 ]
             )
+            return
         } catch CustomerPetRepositoryError.cancelled {
+            guard isCurrentRequestLoad(operation, revision: revision) else { return }
             recordStoreCancelled("load", startedAt: startedAt)
         } catch CustomerRequestRepositoryError.cancelled {
+            guard isCurrentRequestLoad(operation, revision: revision) else { return }
             recordStoreCancelled("load", startedAt: startedAt)
         } catch let error as CustomerPetRepositoryError {
+            guard isCurrentRequestLoad(operation, revision: revision) else { return }
             errorMessage = message(for: error, action: "load")
             recordStoreFailure(
                 "load",
@@ -427,6 +461,7 @@ final class CustomerRequestsStore {
                 startedAt: startedAt
             )
         } catch let error as CustomerRequestRepositoryError {
+            guard isCurrentRequestLoad(operation, revision: revision) else { return }
             errorMessage = message(for: error, action: "load")
             recordStoreFailure(
                 "load",
@@ -435,8 +470,10 @@ final class CustomerRequestsStore {
                 startedAt: startedAt
             )
         } catch where AppDebugErrorClassifier.isCancellation(error) {
+            guard isCurrentRequestLoad(operation, revision: revision) else { return }
             recordStoreCancelled("load", startedAt: startedAt)
         } catch {
+            guard isCurrentRequestLoad(operation, revision: revision) else { return }
             errorMessage = message(for: CustomerRequestRepositoryError.unavailable, action: "load")
             recordStoreFailure(
                 "load",
@@ -445,6 +482,8 @@ final class CustomerRequestsStore {
                 startedAt: startedAt
             )
         }
+        guard isCurrentRequestLoad(operation) else { return }
+        isLoading = false
         await reconcileUnresolvedAcceptances()
     }
 
@@ -455,6 +494,8 @@ final class CustomerRequestsStore {
 
         let startedAt = Date()
         recordStoreStart("loadNextRequestsPage")
+        let operation = requestLoadID
+        let revision = requestFactsRevision
         isLoadingMoreRequests = true
         errorMessage = nil
         defer { isLoadingMoreRequests = false }
@@ -464,6 +505,7 @@ final class CustomerRequestsStore {
                 customerID: customerID,
                 page: pageRequest
             )
+            guard isCurrentRequestLoad(operation, revision: revision) else { return }
             requests = ListPageMerge.appendingUnique(page.items, to: requests)
             nextRequestsPageRequest = page.nextRequest
             await loadAdditionalRequestPhotos(
@@ -480,8 +522,10 @@ final class CustomerRequestsStore {
                 ]
             )
         } catch CustomerRequestRepositoryError.cancelled {
+            guard isCurrentRequestLoad(operation, revision: revision) else { return }
             recordStoreCancelled("loadNextRequestsPage", startedAt: startedAt)
         } catch let error as CustomerRequestRepositoryError {
+            guard isCurrentRequestLoad(operation, revision: revision) else { return }
             errorMessage = message(for: error, action: "load")
             recordStoreFailure(
                 "loadNextRequestsPage",
@@ -490,8 +534,10 @@ final class CustomerRequestsStore {
                 startedAt: startedAt
             )
         } catch where AppDebugErrorClassifier.isCancellation(error) {
+            guard isCurrentRequestLoad(operation, revision: revision) else { return }
             recordStoreCancelled("loadNextRequestsPage", startedAt: startedAt)
         } catch {
+            guard isCurrentRequestLoad(operation, revision: revision) else { return }
             errorMessage = message(
                 for: CustomerRequestRepositoryError.unavailable,
                 action: "load"
@@ -2147,18 +2193,30 @@ final class CustomerRequestsStore {
     private func loadRequestPhotos(
         for requests: [CustomerGroomingRequest]
     ) async throws {
+        let operation = UUID()
+        let loadOperation = requestLoadID
+        requestPhotoLoadID = operation
         let photos = try await requestRepository.requestPhotos(
             customerID: customerID,
             requestIDs: requests.map(\.id)
         )
-        requestPhotosByRequestID = Dictionary(grouping: photos, by: \.requestID)
-        requestPhotoDataByID = await requestPhotoDataMap(for: photos)
+        try checkAcceptanceSession()
+        guard isCurrentRequestLoad(loadOperation), requestPhotoLoadID == operation else { return }
+        let grouped = Dictionary(grouping: photos, by: \.requestID)
+        for request in requests { requestPhotosByRequestID[request.id] = grouped[request.id] ?? [] }
+        let data = await requestPhotoDataMap(for: photos)
+        try checkAcceptanceSession()
+        guard isCurrentRequestLoad(loadOperation), requestPhotoLoadID == operation else { return }
+        let visibleIDs = Set(requestPhotosByRequestID.values.flatMap { $0.map(\.id) })
+        requestPhotoDataByID = requestPhotoDataByID.filter { visibleIDs.contains($0.key) }
+        requestPhotoDataByID.merge(data.filter { visibleIDs.contains($0.key) }, uniquingKeysWith: { _, new in new })
     }
 
     private func recordUploadedRequestPhoto(
         _ photo: GroomingRequestPhoto,
         data: Data
     ) {
+        requestPhotoLoadID = UUID()
         let existingPhotos = requestPhotosByRequestID[photo.requestID, default: []]
         requestPhotosByRequestID[photo.requestID] = ListPageMerge.appendingUnique(
             [photo],
@@ -2231,13 +2289,13 @@ final class CustomerRequestsStore {
     }
 
     private func loadRequestPhotosForRepublish(startedAt: Date) async {
+        let operation = requestLoadID
         do {
             try await loadRequestPhotos(for: requests)
         } catch CustomerRequestRepositoryError.cancelled {
             recordStoreCancelled("load.requestPhotos", startedAt: startedAt)
         } catch {
-            requestPhotosByRequestID = [:]
-            requestPhotoDataByID = [:]
+            guard isCurrentRequestLoad(operation) else { return }
             recordStoreFailure(
                 "load.requestPhotos",
                 error: error,
@@ -2252,19 +2310,24 @@ final class CustomerRequestsStore {
         for requests: [CustomerGroomingRequest],
         startedAt: Date
     ) async {
+        let operation = requestLoadID
+        let photoOperation = requestPhotoLoadID
         do {
             let photos = try await requestRepository.requestPhotos(
                 customerID: customerID,
                 requestIDs: requests.map(\.id)
             )
+            guard isCurrentRequestLoad(operation), requestPhotoLoadID == photoOperation else { return }
             for (requestID, requestPhotos) in Dictionary(grouping: photos, by: \.requestID) {
                 requestPhotosByRequestID[requestID] = ListPageMerge.appendingUnique(
                     requestPhotos,
                     to: requestPhotosByRequestID[requestID, default: []]
                 )
             }
+            let data = await requestPhotoDataMap(for: photos)
+            guard isCurrentRequestLoad(operation), requestPhotoLoadID == photoOperation else { return }
             requestPhotoDataByID.merge(
-                await requestPhotoDataMap(for: photos),
+                data,
                 uniquingKeysWith: { _, newValue in newValue }
             )
         } catch CustomerRequestRepositoryError.cancelled {
@@ -2292,15 +2355,18 @@ final class CustomerRequestsStore {
     }
 
     private func loadPetPhotosForWizard(startedAt: Date) async {
+        let operation = requestLoadID
         do {
             let photos = try await petRepository.photos(customerID: customerID)
+            guard isCurrentRequestLoad(operation) else { return }
             petPhotosByPetID = Dictionary(grouping: photos, by: \.petID)
-            petPhotoDataByID = await petPhotoDataMap(for: photos)
+            let data = await petPhotoDataMap(for: photos)
+            guard isCurrentRequestLoad(operation) else { return }
+            petPhotoDataByID = data
         } catch CustomerPetRepositoryError.cancelled {
             recordStoreCancelled("load.petPhotos", startedAt: startedAt)
         } catch {
-            petPhotosByPetID = [:]
-            petPhotoDataByID = [:]
+            guard isCurrentRequestLoad(operation) else { return }
             recordStoreFailure(
                 "load.petPhotos",
                 error: error,
@@ -2315,11 +2381,16 @@ final class CustomerRequestsStore {
         for photos: [CustomerPetPhoto]
     ) async -> [UUID: Data] {
         var dataByID: [UUID: Data] = [:]
-        for photo in photos {
-            do {
-                dataByID[photo.id] = try await petRepository.photoData(photo)
-            } catch {
-                continue
+        await withTaskGroup(of: (UUID, Data?).self) { group in
+            var remaining = photos.makeIterator()
+            for _ in 0..<3 {
+                guard let photo = remaining.next() else { break }
+                group.addTask { await self.petPhotoPayload(photo) }
+            }
+            for await (id, data) in group {
+                guard !Task.isCancelled else { group.cancelAll(); break }
+                if let data { dataByID[id] = data }
+                if let photo = remaining.next() { group.addTask { await self.petPhotoPayload(photo) } }
             }
         }
         return dataByID
@@ -2329,13 +2400,27 @@ final class CustomerRequestsStore {
         for photos: [GroomingRequestPhoto]
     ) async -> [UUID: Data] {
         var dataByID: [UUID: Data] = [:]
-        for photo in photos {
-            guard let data = try? await requestRepository.requestPhotoData(photo) else {
-                continue
+        await withTaskGroup(of: (UUID, Data?).self) { group in
+            var remaining = photos.makeIterator()
+            for _ in 0..<3 {
+                guard let photo = remaining.next() else { break }
+                group.addTask { await self.requestPhotoPayload(photo) }
             }
-            dataByID[photo.id] = data
+            for await (id, data) in group {
+                guard !Task.isCancelled else { group.cancelAll(); break }
+                if let data { dataByID[id] = data }
+                if let photo = remaining.next() { group.addTask { await self.requestPhotoPayload(photo) } }
+            }
         }
         return dataByID
+    }
+
+    private func petPhotoPayload(_ photo: CustomerPetPhoto) async -> (UUID, Data?) {
+        (photo.id, try? await petRepository.photoData(photo))
+    }
+
+    private func requestPhotoPayload(_ photo: GroomingRequestPhoto) async -> (UUID, Data?) {
+        (photo.id, try? await requestRepository.requestPhotoData(photo))
     }
 
     private func message(

@@ -265,9 +265,13 @@ struct CustomerProfileStoreTests {
 
 @MainActor
 final class CustomerProfileRepositoryFake: CustomerProfileRepository {
+    var onProfileRead: (@MainActor () async -> Void)?
+    var onAvatarRead: (@MainActor () async -> Void)?
+    var avatarResult: Data?
     var profileResult: Result<CustomerProfileDetails, CustomerProfileRepositoryError>
     var updateProfileResult: Result<CustomerProfileDetails, CustomerProfileRepositoryError>?
     var updateCallCount = 0
+    var onProfileUpdate: (@MainActor () async -> Void)?
     var uploadAvatarCallCount = 0
     var lastCustomerID: UUID?
     var lastDraft: CustomerProfileDraft?
@@ -296,7 +300,9 @@ final class CustomerProfileRepositoryFake: CustomerProfileRepository {
     }
 
     func profile(customerID: UUID) async throws -> CustomerProfileDetails {
-        try profileResult.get()
+        let result = profileResult
+        await onProfileRead?()
+        return try result.get()
     }
 
     func updateProfile(
@@ -304,6 +310,7 @@ final class CustomerProfileRepositoryFake: CustomerProfileRepository {
         draft: CustomerProfileDraft
     ) async throws -> CustomerProfileDetails {
         updateCallCount += 1
+        await onProfileUpdate?()
         lastCustomerID = customerID
         lastDraft = draft
 
@@ -351,7 +358,9 @@ final class CustomerProfileRepositoryFake: CustomerProfileRepository {
     }
 
     func avatarPhotoData(storagePath: String) async throws -> Data {
-        Data("avatar:\(storagePath)".utf8)
+        let data = avatarResult ?? Data("avatar:\(storagePath)".utf8)
+        await onAvatarRead?()
+        return data
     }
 
     func latestAvatarPhotoPath(customerID: UUID) async throws -> String? {

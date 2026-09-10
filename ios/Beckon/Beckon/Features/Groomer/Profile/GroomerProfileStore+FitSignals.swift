@@ -52,6 +52,10 @@ extension GroomerProfileStore {
 
     func saveFitClaims() async -> String? {
         guard !isSaving else { return nil }
+        guard canEditFitSignals else {
+            errorMessage = "Refresh fit signals before saving."
+            return nil
+        }
 
         errorMessage = nil
         noticeMessage = nil
@@ -64,6 +68,7 @@ extension GroomerProfileStore {
         let drafts = makeFitClaimDrafts()
 
         isSaving = true
+        profileMutationRevision += 1
         defer { isSaving = false }
 
         do {

@@ -217,7 +217,7 @@ private struct GroomerPortfolioPhotoDetailView: View {
             selectedTagCount: store.selectedPortfolioFitTagIDsByPhotoID[photo.id]?.count ?? 0,
             maximumTagCount: GroomerPortfolioFitTag.maximumTagsPerPhoto,
             isSaving: store.isSaving,
-            isBusy: store.isBusy
+            isBusy: store.isBusy || !store.canEditPortfolioTags
         )
 
         ScrollView {
@@ -406,6 +406,14 @@ private struct GroomerPortfolioFitNotesEditorSection: View {
         ) {
             BeckonGroupedSurface {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                    if !store.canEditPortfolioTags {
+                        if store.isLoadingOptionalMetadata { ProgressView("Loading fit notes...") }
+                        else {
+                            Text("Fit notes could not be refreshed.").font(DesignTokens.Typography.supporting)
+                            Button("Retry", systemImage: "arrow.clockwise") { Task { await store.load() } }
+                        }
+                    }
+                    if store.hasLoadedPortfolioTags {
                     Text(presentation.selectionSummary)
                         .font(DesignTokens.Typography.caption.weight(.semibold))
                         .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
@@ -436,9 +444,11 @@ private struct GroomerPortfolioFitNotesEditorSection: View {
                                     ) {
                                         store.togglePortfolioFitTag(signal, for: photo)
                                     }
+                                    .disabled(!store.canEditPortfolioTags)
                                 }
                             }
                         }
+                    }
                     }
                 }
                 .padding(DesignTokens.Spacing.lg)
