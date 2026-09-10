@@ -14,6 +14,11 @@ enum AuthenticationMode: String, CaseIterable, Identifiable {
     var id: Self { self }
 }
 
+enum PasswordRecoveryState: Equatable {
+    case request, emailSent, invalidLink, complete
+    case newPassword(AuthSessionSnapshot)
+}
+
 #if DEBUG
 enum DebugQuickLoginAccount: CaseIterable, Identifiable {
     case customer
@@ -93,6 +98,15 @@ final class AuthenticationStore {
     var isSubmitting = false
     var errorMessage: String?
     var noticeMessage: String?
+    var recoveryState: PasswordRecoveryState?
+    var recoveryEmail = ""
+    var recoveryPassword = ""
+    var recoveryPasswordConfirmation = ""
+    var recoveryError: String?
+    private(set) var isRecovering = false
+    private var recoveryOperation = UUID()
+    private var recoveryPasswordWasUpdated = false
+    private var recoveryRetryURL: URL?
 
     init(
         repository: any AuthSessionRepository,
@@ -113,6 +127,9 @@ final class AuthenticationStore {
 
         if !didRestoreSession {
             didRestoreSession = true
+            if let session = repository.recoverySession() {
+                recoveryState = session.isExpired ? .invalidLink : .newPassword(session)
+            }
             if clearsSessionBeforeRestore {
                 try? await repository.signOut()
                 apply(nil)
@@ -193,6 +210,10 @@ final class AuthenticationStore {
     }
 
     func handleAuthCallback(_ url: URL) async {
+        if AuthCallbackConfiguration.isRecoveryCallback(url) {
+            await handlePasswordRecoveryCallback(url)
+            return
+        }
         guard !isSubmitting else { return }
 
         errorMessage = nil
@@ -220,6 +241,129 @@ final class AuthenticationStore {
             errorMessage = message(for: error)
         } catch {
             errorMessage = message(for: .invalidCallback)
+        }
+    }
+
+    func beginPasswordRecovery() async {
+        guard !isRecovering else { return }
+        isRecovering = true
+        defer { isRecovering = false }
+        recoveryError = nil
+        recoveryEmail = email
+        recoveryState = .request
+        clearPasswords()
+        do {
+            try await repository.endPasswordRecovery()
+            recoveryPassword = ""
+            recoveryPasswordConfirmation = ""
+            recoveryPasswordWasUpdated = false
+            recoveryRetryURL = nil
+        } catch { recoveryError = "Could not close the previous reset session. Try again." }
+    }
+
+    func requestPasswordRecovery() async {
+        guard !isRecovering else { return }
+        let normalized = recoveryEmail.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard isValidEmail(normalized) else { recoveryError = "Enter a valid email address."; return }
+        recoveryEmail = normalized
+        recoveryError = nil
+        isRecovering = true
+        defer { isRecovering = false }
+        do {
+            try await repository.endPasswordRecovery()
+            try await repository.requestPasswordRecovery(email: normalized, redirectTo: AuthCallbackConfiguration.recoveryURL)
+            try Task.checkCancellation()
+            recoveryState = .emailSent
+        } catch {
+            recoveryError = recoveryMessage(error)
+        }
+    }
+
+    func handlePasswordRecoveryCallback(_ url: URL) async {
+        guard !isRecovering else { return }
+        recoveryOperation = UUID()
+        let operation = recoveryOperation
+        isRecovering = true
+        recoveryError = nil
+        recoveryState = .invalidLink
+        recoveryRetryURL = nil
+        recoveryPasswordWasUpdated = false
+        recoveryPassword = ""
+        recoveryPasswordConfirmation = ""
+        defer { isRecovering = false }
+        do {
+            guard AuthCallbackConfiguration.isRecoveryCallback(url),
+                  AuthCallbackConfiguration.callbackErrorParameters(from: url).isEmpty else { throw AuthSessionError.invalidCallback }
+            let session = try await repository.handleRecoveryCallback(url)
+            try Task.checkCancellation()
+            guard operation == recoveryOperation, !session.isExpired else { throw AuthSessionError.invalidCallback }
+            recoveryState = .newPassword(session)
+        } catch {
+            if error as? AuthSessionError == .networkUnavailable { recoveryRetryURL = url }
+            recoveryError = recoveryMessage(error)
+        }
+    }
+
+    var canRetryRecoveryLink: Bool { recoveryRetryURL != nil }
+
+    func retryRecoveryLink() async {
+        guard let recoveryRetryURL else { return }
+        await handlePasswordRecoveryCallback(recoveryRetryURL)
+    }
+
+    func saveRecoveredPassword() async {
+        guard !isRecovering, case let .newPassword(session) = recoveryState else { return }
+        if !recoveryPasswordWasUpdated {
+            guard recoveryPassword.count >= 8 else { recoveryError = "Password must be at least 8 characters."; return }
+            guard recoveryPassword == recoveryPasswordConfirmation else { recoveryError = "Passwords do not match."; return }
+        }
+        isRecovering = true
+        recoveryError = nil
+        defer { isRecovering = false }
+        do {
+            if !recoveryPasswordWasUpdated {
+                try await repository.updateRecoveredPassword(recoveryPassword, userID: session.userID)
+                recoveryPasswordWasUpdated = true
+                recoveryPassword = ""
+                recoveryPasswordConfirmation = ""
+            }
+            // A cleanup retry must not repeat an already successful password change.
+            try await repository.endPasswordRecovery()
+            recoveryState = .complete
+            recoveryRetryURL = nil
+        } catch {
+            recoveryError = recoveryPasswordWasUpdated
+                ? "Your password changed, but the reset session could not be closed. Retry to finish."
+                : recoveryMessage(error)
+            if error as? AuthSessionError == .invalidCallback, !recoveryPasswordWasUpdated {
+                recoveryState = .invalidLink
+            }
+        }
+    }
+
+    func closePasswordRecovery() async {
+        guard !isRecovering else { return }
+        isRecovering = true
+        defer { isRecovering = false }
+        do {
+            try await repository.endPasswordRecovery()
+            recoveryOperation = UUID()
+            recoveryState = nil
+            recoveryError = nil
+            recoveryRetryURL = nil
+            recoveryPassword = ""
+            recoveryPasswordConfirmation = ""
+            recoveryPasswordWasUpdated = false
+        } catch { recoveryError = "Could not close the reset session. Try again." }
+    }
+
+    private func recoveryMessage(_ error: any Error) -> String {
+        switch error as? AuthSessionError {
+        case .networkUnavailable: "Check your connection and try again."
+        case .rateLimited: "Too many requests. Wait a minute and try again."
+        case .weakPassword: "Choose a stronger password and try again."
+        case .invalidCallback: "This reset link is expired, already used, or belongs to another device. Request a new email here."
+        default: "Password recovery could not be completed. Try again."
         }
     }
 

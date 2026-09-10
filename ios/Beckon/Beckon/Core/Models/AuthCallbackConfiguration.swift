@@ -9,6 +9,15 @@ enum AuthCallbackConfiguration {
         string: "\(scheme)://\(host)\(path)"
     )!
 
+    static let recoveryURL = URL(string: "\(scheme)://\(host)/recovery")!
+
+    static func isRecoveryCallback(_ url: URL) -> Bool {
+        guard url.scheme == scheme, url.host == host else { return false }
+        if url.path == "/recovery" { return true }
+        return url.path == path && (formEncodedParameters(from: url.query)["type"] == "recovery"
+            || formEncodedParameters(from: url.fragment)["type"] == "recovery")
+    }
+
     static func isSupportedCallback(_ url: URL) -> Bool {
         url.scheme == scheme
             && url.host == host

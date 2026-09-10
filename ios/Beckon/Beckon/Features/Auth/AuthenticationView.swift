@@ -309,6 +309,14 @@ struct AuthenticationView: View {
             }
             .beckonKeyboardFocusTarget(AuthenticationFocusTarget.password.rawValue)
 
+            if store.mode == .signIn {
+                Button("Forgot Password?", systemImage: "key") {
+                    Task { await store.beginPasswordRecovery() }
+                }
+                .disabled(store.isSubmitting || store.isRecovering)
+                .accessibilityIdentifier("auth.forgot-password")
+            }
+
             if store.mode == .signUp {
                 labeledField("Confirm password") {
                     SecureField("••••••••", text: $store.passwordConfirmation)

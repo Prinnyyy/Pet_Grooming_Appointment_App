@@ -448,6 +448,17 @@ struct DebugDiagnosticsTests {
 
 struct AuthenticationStoreTests {
     @Test @MainActor
+    func recoveryCallbackNeverReplacesAnAlreadySignedInAccount() async {
+        let current = AuthSessionSnapshot(userID: UUID(), email: "current@example.com")
+        let repository = AuthSessionRepositoryFake(currentSession: current)
+        repository.handleAuthCallbackResult = .success(AuthSessionSnapshot(userID: UUID(), email: "recovery@example.com"))
+        let store = AuthenticationStore(repository: repository)
+        await store.start()
+        await store.handleAuthCallback(URL(string: "com.hellobeckon.beckon://auth/callback#type=recovery&code=fixture")!)
+        #expect(store.rootState == .signedIn(current))
+        #expect(repository.handleAuthCallbackCallCount == 0)
+    }
+    @Test @MainActor
     func supabaseClientEmitsStoredSessionBeforeRefresh() {
         #expect(
             SupabaseClientFactory.options.auth.emitLocalSessionAsInitialSession
@@ -1042,7 +1053,41 @@ private final class ProfileRepositoryFake: ProfileRepository {
 }
 
 @MainActor
-private final class AuthSessionRepositoryFake: AuthSessionRepository {
+final class AuthSessionRepositoryFake: AuthSessionRepository {
+    var currentRecovery: AuthSessionSnapshot?
+    var recoveryRequestError: AuthSessionError?
+    var recoveryCallbackResult: Result<AuthSessionSnapshot, AuthSessionError> = .failure(.invalidCallback)
+    var recoveryUpdateError: AuthSessionError?
+    var recoveryEndError: AuthSessionError?
+    var recoveryRequestCount = 0
+    var recoveryCallbackCount = 0
+    var recoveryUpdateCount = 0
+    var recoveryUpdateUserID: UUID?
+    var recoveryRequestedEmail: String?
+    var recoveryRedirect: URL?
+
+    func requestPasswordRecovery(email: String, redirectTo: URL) async throws {
+        recoveryRequestCount += 1
+        recoveryRequestedEmail = email
+        recoveryRedirect = redirectTo
+        if let recoveryRequestError { throw recoveryRequestError }
+    }
+    func recoverySession() -> AuthSessionSnapshot? { currentRecovery }
+    func handleRecoveryCallback(_ url: URL) async throws -> AuthSessionSnapshot {
+        recoveryCallbackCount += 1
+        let result = try recoveryCallbackResult.get()
+        currentRecovery = result
+        return result
+    }
+    func updateRecoveredPassword(_ password: String, userID: UUID) async throws {
+        recoveryUpdateCount += 1
+        recoveryUpdateUserID = userID
+        if let recoveryUpdateError { throw recoveryUpdateError }
+    }
+    func endPasswordRecovery() async throws {
+        if let recoveryEndError { throw recoveryEndError }
+        currentRecovery = nil
+    }
     private let initialSession: AuthSessionSnapshot?
     private let stateStream: AsyncStream<AuthSessionSnapshot?>
 

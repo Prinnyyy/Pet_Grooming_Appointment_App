@@ -4,9 +4,46 @@ import Supabase
 @MainActor
 final class SupabaseAuthSessionRepository: AuthSessionRepository {
     private let client: SupabaseClient
+    private let recoveryClient: SupabaseClient?
 
-    init(client: SupabaseClient) {
+    init(client: SupabaseClient, recoveryClient: SupabaseClient? = nil) {
         self.client = client
+        self.recoveryClient = recoveryClient
+    }
+
+    func requestPasswordRecovery(email: String, redirectTo: URL) async throws {
+        guard let recoveryClient, redirectTo == AuthCallbackConfiguration.recoveryURL else { throw AuthSessionError.unavailable }
+        do { try await recoveryClient.auth.resetPasswordForEmail(email, redirectTo: redirectTo) }
+        catch let error as AuthError where error.errorCode == .userNotFound { return }
+        catch { throw Self.map(error) }
+    }
+
+    func recoverySession() -> AuthSessionSnapshot? { recoveryClient?.auth.currentSession.map(Self.snapshot) }
+
+    func handleRecoveryCallback(_ url: URL) async throws -> AuthSessionSnapshot {
+        guard let recoveryClient, AuthCallbackConfiguration.isRecoveryCallback(url),
+              AuthCallbackConfiguration.callbackErrorParameters(from: url).isEmpty else { throw AuthSessionError.invalidCallback }
+        do {
+            let session = try await recoveryClient.auth.session(from: url)
+            guard !session.isExpired else { throw AuthSessionError.invalidCallback }
+            return Self.snapshot(from: session)
+        } catch { throw Self.mapCallback(error) }
+    }
+
+    func updateRecoveredPassword(_ password: String, userID: UUID) async throws {
+        guard let recoveryClient, let session = recoveryClient.auth.currentSession,
+              !session.isExpired, session.user.id == userID else { throw AuthSessionError.invalidCallback }
+        do {
+            let user = try await recoveryClient.auth.update(user: UserAttributes(password: password))
+            guard user.id == userID else { throw AuthSessionError.invalidCallback }
+        } catch let error as AuthSessionError { throw error }
+        catch { throw Self.map(error) }
+    }
+
+    func endPasswordRecovery() async throws {
+        guard let recoveryClient else { return }
+        do { try await recoveryClient.auth.signOut(scope: .local) }
+        catch { throw Self.map(error) }
     }
 
     func currentSession() -> AuthSessionSnapshot? {

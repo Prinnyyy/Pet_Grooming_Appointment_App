@@ -12,4 +12,12 @@ enum SupabaseClientFactory {
             options: options
         )
     }
+
+    static func makeRecovery(configuration: SupabaseConfiguration) -> SupabaseClient {
+        SupabaseClient(supabaseURL: configuration.url, supabaseKey: configuration.publishableKey,
+            options: SupabaseClientOptions(auth: .init(
+                redirectToURL: AuthCallbackConfiguration.recoveryURL,
+                storageKey: "beckon.password-recovery.v1", flowType: .pkce,
+                autoRefreshToken: false, emitLocalSessionAsInitialSession: true)))
+    }
 }

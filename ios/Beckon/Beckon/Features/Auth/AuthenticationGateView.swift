@@ -52,6 +52,15 @@ struct AuthenticationGateView: View {
                 .id(session.userID)
             }
         }
+        .fullScreenCover(isPresented: Binding(
+            get: { store.recoveryState != nil },
+            set: { presented in
+                if !presented { Task { await store.closePasswordRecovery() } }
+            }
+        )) {
+            PasswordRecoveryView(store: store)
+                .interactiveDismissDisabled()
+        }
         .task {
             await store.start()
         }

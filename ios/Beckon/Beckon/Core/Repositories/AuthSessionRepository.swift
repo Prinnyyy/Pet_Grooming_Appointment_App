@@ -34,6 +34,11 @@ enum AuthSessionError: Error, Equatable, Sendable {
 
 @MainActor
 protocol AuthSessionRepository: AnyObject {
+    func requestPasswordRecovery(email: String, redirectTo: URL) async throws
+    func recoverySession() -> AuthSessionSnapshot?
+    func handleRecoveryCallback(_ url: URL) async throws -> AuthSessionSnapshot
+    func updateRecoveredPassword(_ password: String, userID: UUID) async throws
+    func endPasswordRecovery() async throws
     func currentSession() -> AuthSessionSnapshot?
     func sessionStateChanges() async -> AsyncStream<AuthSessionSnapshot?>
     func signUp(
@@ -45,4 +50,12 @@ protocol AuthSessionRepository: AnyObject {
     func signIn(email: String, password: String) async throws -> AuthSessionSnapshot
     func signOut() async throws
     func deleteAccount() async throws
+}
+
+extension AuthSessionRepository {
+    func requestPasswordRecovery(email: String, redirectTo: URL) async throws { throw AuthSessionError.unavailable }
+    func recoverySession() -> AuthSessionSnapshot? { nil }
+    func handleRecoveryCallback(_ url: URL) async throws -> AuthSessionSnapshot { throw AuthSessionError.invalidCallback }
+    func updateRecoveredPassword(_ password: String, userID: UUID) async throws { throw AuthSessionError.invalidCallback }
+    func endPasswordRecovery() async throws {}
 }

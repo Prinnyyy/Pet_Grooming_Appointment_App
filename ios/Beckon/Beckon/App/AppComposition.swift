@@ -39,7 +39,8 @@ struct AppComposition {
                 if launchConfiguration.usesSignedOutAuthSessionRepository {
                     SignedOutAuthSessionRepository()
                 } else {
-                    SupabaseAuthSessionRepository(client: client)
+                    SupabaseAuthSessionRepository(client: client,
+                        recoveryClient: SupabaseClientFactory.makeRecovery(configuration: configuration))
                 }
             let profileRepository = SupabaseProfileRepository(client: client)
             #if DEBUG
