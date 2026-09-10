@@ -18,6 +18,16 @@ Linked files:
 ## Active Decisions
 
 ```text
+Decision ID: D-053
+Date: 2026-09-10
+Task: T-386
+Decision: Adopt the revised lean-governance plan: one on-demand Development Guide and one structured Current State with scoped pending-task recovery. Retire daily ledger/worklog writes, fixed cadence/wording gates, forced session boundaries and automatic closeout rotation.
+Context: User requested lower coordination overhead and approved implementation after four review corrections. Existing dirty originals were preserved before cutover; historical T-365 through T-367 drafting closure is not functional incompletion or a fabricated old Git commit.
+Consequences: Continue adopted objectives with risk-based validation and reusable valid evidence. The read-only checker validates structure, safe paths and active/changed links, including search-hidden current plans. Keep task authorization isolated, user edits and credentials protected, backend freshness verified by relevant evidence, and existing completion-only Git authorization unchanged. No app/backend/signing/store or host-plugin changes.
+Linked files: docs/05_workflow/DEVELOPMENT_GUIDE.md; docs/superpowers/plans/2026-09-10-lean-governance-plan.md.
+```
+
+```text
 Decision ID: D-036
 Date: 2026-07-28
 Decision: Remediate the Customer Request Journey through five dependency-ordered packages, with publish correctness and idempotency preceding form, media, offer, and presentation changes.

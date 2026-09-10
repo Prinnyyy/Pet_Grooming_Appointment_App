@@ -1,74 +1,55 @@
 # Current State
 
-Current facts for task startup and recovery. Historical task narrative belongs in `WORKLOG.md`, frozen snapshots, or domain documents.
+Only dynamic task and recovery facts. Git owns branch, worktree and completion hashes.
 
-## Task Baseline
-
-- Date: 2026-07-28
-- Latest completed task: T-364 Request Wizard post-address white-screen fix.
-- Current task: none.
-- Next task ID: T-365 for the next explicitly adopted task.
-- Current branch baseline: `codex/pet-fit-structure-cleanup`.
-- GitHub repository: `Prinnyyy/Pet_Grooming_Appointment_App`.
-
-## Active Work
-
-| Item | State | Next Condition |
-|---|---|---|
-| T-157 APNs dispatch | blocked | Paid Apple Developer access and APNs credentials are required. |
-| Q-104 Groomer Dynamic Type/Accessibility | deferred | Resume only when the user restores this scope. |
-| Q-93 leaked-password protection | blocked | Supabase Pro-or-higher plan decision and authorization are required. |
-
-No roadmap package is automatically active. R-042 and Q-121 through Q-125 are complete; the next product package requires explicit adoption before T-365 starts.
-
-## Validation Baseline
-
-- Latest app validation: T-364 passed 103 focused Customer Request tests, strict UI consistency audit, and `./scripts/ios-build.sh`.
-- Latest full iOS regression: T-363 passed the complete iOS suite and build.
-- Latest documentation validation: T-361 passed 51 governance tests, context hygiene, default-search boundary review, source-of-truth review, and closeout checks.
-- Latest backend validation: T-358 passed 81 migration tests, TestOps coverage, preflight, linked rollback-only replay/authorization validation, and security/performance advisors.
-- Known iOS validation failure: none currently recorded.
-- No app-owned compiler warning remains in the latest app build. The AppIntents metadata-skipped message remains classified as toolchain information while Beckon has no App Intents dependency.
-- Focused test compilation currently reports three pre-existing unused-result warnings in `BeckonAddressEditorTests` and `GroomerProfileFeatureTests+FitSignals`; these do not occur in the app target build.
-
-## Product Baseline
-
-- Beckon is a request-first iOS marketplace: Customer Request -> Groomer Offer -> Customer Acceptance -> Booking/Chat -> Groomer Completion -> Customer Review.
-- Production uses real Supabase Auth, authoritative profiles, role separation, repository boundaries, RLS/RPC controls, and private authenticated image loading.
-- Implemented areas include onboarding, Customer and Groomer workspaces, requests/offers/bookings/chat, notifications, profiles, photos, account deletion, privacy/support, diagnostics, and TestOps.
-- Customer and Groomer notifications share one DesignSystem page, card row, unread indicator, and Home bell button; role Stores/repositories remain separate and Groomer rows preserve focused routing.
-- Customer and Groomer Messages use one conversation-page title, card-row presentation, and counterpart-avatar field; role-aware repository loading hydrates Groomer or Customer images from their dedicated private buckets for both list and thread header.
-- Chat is unique per Customer/Groomer pair across bookings. Acceptance and either-party cancellation append a live Booking card followed by actor-authored friendly text; cards open the existing role-specific Booking detail.
-- Customer Request publication uses an operation-scoped idempotent v3 RPC. The Store treats RPC creation as authoritative and reports later photo/refresh failures only as recoverable warnings.
-- The Customer Request Wizard requires an explicit service, requires useful notes for Custom Request, exposes dates beyond its seven-day quick strip, and uses one truthful Continue interaction state with field-level validation.
-- Customer Request Wizard step changes clear stale input focus and reset the shared ScrollView to its top anchor after layout, preventing address-field keyboard positioning from leaving later steps outside the visible viewport.
-- Request-specific photos are separate from the Pet avatar, appear as removable previews and a Review count, and retain failed post-create uploads in the shared Customer Request Store for retry from Home or Requests.
-- Customer Offer acceptance uses a final confirmation sheet with groomer, appointment, price, location, address, and cancellation context; one guarded acceptance returns a local Booking handoff and routes directly to Booking Detail while backend stale-offer validation remains authoritative.
-- Customer Requests exposes a direct New Request entry. Home and Requests render loading, empty, failure, and loaded states distinctly while preserving usable stale content, and both Request carousels expose the visible card position.
-- Current UI work must reuse the existing DesignSystem, Store, repository, model, and backend boundaries. New persistence, navigation, role capability, or remote behavior requires separate approval.
-
-## Operational Guardrails
-
-- Authorized Supabase project: Beckon, ref `lqmasbuqzvcvtawonjlb`; the legacy project is out of scope.
-- Linked Beckon migration history is aligned through `20260728215928_t358_request_publish_idempotency.sql`.
-- Standing Git approval covers validated task-completion commits and pushes on the current branch only.
-- PRs, tags, merge/rebase/reset, branch deletion, seeds, migrations, Supabase writes, deploys, repository settings, and other non-Git remote writes require explicit approval.
-- `main` is not the active baseline. The reviewed main-only commit `2fddf7b` is superseded and must not be merged into this branch.
-
-## Recovery Routes
-
-- Task status and numbering: `docs/06_tasks/TASK_LEDGER.md`.
-- Recent closeout evidence: `docs/00_memory/WORKLOG.md`.
-- Managed direction: `docs/06_tasks/ROADMAP.md` and `docs/06_tasks/ROADMAP_EXECUTION_QUEUE.md`.
-- Feature routing: `docs/00_memory/FEATURE_INDEX.md`.
-- UI design routing: `docs/01_product/DESIGN_SYSTEM.md`; heavy Figma/inventory access starts at `docs/ui-redesign/README.md`.
-- Durable decisions: `docs/07_decisions/DECISION_LOG.md`.
-- Task lifecycle and context/recovery: `docs/05_workflow/SINGLE_AGENT_WORKFLOW.md` and `docs/05_workflow/CONTEXT_AND_RECOVERY.md`.
-- Validation/remote authorization and Git conventions: `docs/05_workflow/TOOLING_POLICY.md` and `docs/05_workflow/GITHUB_RULES.md`.
-- Pre-reset source snapshot: `docs/09_frozen/active_state_snapshots/T-345_2026-07-13/` (history only; never default startup context).
-
-## Governance
-
-- Last meta-review: T-361 on 2026-07-28.
-- Run `node scripts/context-hygiene-check.mjs` after durable memory, ledger, workflow, or coordination-document changes.
-- Update this file by replacing stale facts. Do not append task timelines, full validation narratives, credential explanations, or future-task recommendations.
+```json
+{
+  "next_task_id": "T-387",
+  "task": null,
+  "pending_tasks": [
+    {
+      "id": "T-365",
+      "status": "paused",
+      "goal": "Preserve original functional findings documentation closure",
+      "plan": null,
+      "next_action": "Retain original drafting provenance; do not reopen functionality accepted in T-385",
+      "preserve": [
+        "docs/06_tasks/APP_FUNCTIONAL_DESIGN_FINDINGS.md was uncommitted at T-386 entry; no historical T-365 completion commit is claimed. Original document retained in the T-386 publication; separate authoring completion is not inferred."
+      ]
+    },
+    {
+      "id": "T-366",
+      "status": "paused",
+      "goal": "Preserve matching review addendum documentation closure",
+      "plan": null,
+      "next_action": "Retain original drafting provenance; separate it from completed functional remediation",
+      "preserve": [
+        "Original matching addendum is part of docs/06_tasks/APP_FUNCTIONAL_DESIGN_FINDINGS.md; no historical T-366 completion commit is claimed. Original document retained in the T-386 publication; separate authoring completion is not inferred."
+      ]
+    },
+    {
+      "id": "T-367",
+      "status": "paused",
+      "goal": "Preserve master plan authoring provenance",
+      "plan": "docs/superpowers/plans/2026-09-07-functional-reliability-task-plan.md",
+      "next_action": "Retain historical authoring closure separately from WP-00 through WP-14 accepted in T-385",
+      "preserve": [
+        "Master plan was uncommitted at T-386 entry; no historical T-367 completion commit is claimed. Original document retained in the T-386 publication; separate authoring completion is not inferred."
+      ]
+    },
+    {
+      "id": "T-157",
+      "status": "blocked",
+      "goal": "APNs dispatch deployment outside the local Simulator scope",
+      "plan": null,
+      "next_action": "Do not resume unless the user adopts deployment scope and supplies its prerequisites",
+      "blockers": [
+        "External Apple membership/APNs credentials and deployment authorization; not a local app completion gate."
+      ]
+    }
+  ],
+  "last_completed": {
+    "id": "T-386"
+  }
+}
+```

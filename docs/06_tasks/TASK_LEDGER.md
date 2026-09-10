@@ -1,4 +1,6 @@
-# Task Ledger
+# Historical Task Ledger
+
+Retired from allocation and daily updates by T-386. Rows below are preserved history, not current task status or execution instructions. Use [Current State](../00_memory/CURRENT_STATE.md) for allocation, pending work and recovery; historical missing completion commits are not retroactively claimed.
 
 Task ID, status, and next-number source of truth. Keep only planned, active, blocked, and the latest completed rows. Detailed evidence belongs in `docs/00_memory/WORKLOG.md`; older rows live under `docs/09_frozen/task_ledgers/`.
 

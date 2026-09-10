@@ -1,4 +1,6 @@
-# Worklog
+# Historical Worklog
+
+Retired from daily updates by T-386. The entries below preserve their original claims and timestamps; they are not current instructions. Live task and recovery facts belong only to [Current State](CURRENT_STATE.md).
 
 ```text
 Date: 2026-07-28

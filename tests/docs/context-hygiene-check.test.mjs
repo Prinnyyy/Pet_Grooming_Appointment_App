@@ -1,921 +1,224 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { appendFileSync, mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
 
-const projectRoot = process.cwd();
-const scriptPath = path.join(projectRoot, "scripts/context-hygiene-check.mjs");
+const script = path.resolve(import.meta.dirname, "../../scripts/context-hygiene-check.mjs");
+const statePath = "docs/00_memory/CURRENT_STATE.md";
+const planPath = "docs/superpowers/plans/current.md";
 
-function writeFixtureFile(root, filePath, text) {
-  const fullPath = path.join(root, filePath);
-  mkdirSync(path.dirname(fullPath), { recursive: true });
-  writeFileSync(fullPath, text);
+function writeFixtureFile(root, file, text = "# Fixture\n") {
+  mkdirSync(path.dirname(path.join(root, file)), { recursive: true });
+  writeFileSync(path.join(root, file), text);
 }
 
-function createFixture({ branch = "codex/test-baseline", latest = "T-005", next = "T-006" } = {}) {
-  const root = mkdtempSync(path.join(tmpdir(), "context-hygiene-"));
-  const small = "# Placeholder\n\nCurrent active placeholder.\n";
-  const verified = "Last verified: 2026-07-08.\n\n";
+function git(root, ...args) {
+  const result = spawnSync("git", ["-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", ...args], { cwd: root, encoding: "utf8" });
+  assert.equal(result.status, 0, result.stderr);
+  return result.stdout.trim();
+}
 
-  writeFixtureFile(root, ".rgignore", [
-    "docs/09_frozen/**",
-    "artifacts/**",
-    "docs/02_architecture/test_resources/T-129_*_TEST_PROFILES.md",
-    "docs/08_design/Beckon.html",
-    "docs/08_design/Beckon/**",
-    "docs/ui-redesign/*",
-    "!docs/ui-redesign/README.md",
-    "",
-  ].join("\n"));
-  writeFixtureFile(root, "AGENTS.md", `# AGENTS\n\n- Current branch baseline is \`${branch}\`.\n`);
-  writeFixtureFile(root, "README.md", "# Root README\n");
-  writeFixtureFile(root, "CLAUDE.md", "# Claude\n");
-  writeFixtureFile(root, "docs/README.md", "# Docs README\n");
-  writeFixtureFile(root, "docs/ui-redesign/README.md", "# Heavy UI Index\n\nOpen targeted evidence only.\n");
-  writeFixtureFile(root, "docs/ui-redesign/03-screen-functional-specs.md", `# Heavy Body\n\n${"heavy ".repeat(1200)}\n`);
-  writeFixtureFile(root, "docs/00_memory/CURRENT_STATE.md", [
-    "# Current State",
-    "",
-    `- Latest completed task: ${latest} fixture task.`,
-    `- Next task ID: use ${next} unless directed otherwise.`,
-    "",
-    "## Branch and Baseline",
-    "",
-    `- Current branch baseline: \`${branch}\`.`,
-    "",
-    "## Active Workflow State",
-    "",
-    `- Last meta-review: ${latest} on 2026-07-08.`,
-    "",
-  ].join("\n"));
-  writeFixtureFile(root, "docs/06_tasks/TASK_LEDGER.md", [
-    "# Task Ledger",
-    "",
-    `Current branch and task-numbering baseline: use \`${branch}\`; use \`${next}\` for the next task unless directed otherwise.`,
-    "",
-    "| ID | Task | Status | Mode | Milestone | Files/Docs | Checks | Notes |",
-    "|---|---|---|---|---|---|---|---|",
-    `| ${latest} | Fixture task | completed | Quick | G0 | docs | check | done |`,
-    "",
-  ].join("\n"));
-  writeFixtureFile(root, "docs/06_tasks/ROADMAP.md", [
-    "# Managed Roadmap",
-    "",
-    verified.trim(),
-    "",
-    "| Milestone | Goal | Status | Exit Signal |",
-    "|---|---|---|---|",
-    `| G0 | Fixture governance | ${latest} complete; ${next}+ candidates. | Indexed. |`,
-    "",
-    "| Roadmap ID | Milestone | Candidate | Status |",
-    "|---|---|---|---|",
-    `| R-001 | G0 | Fixture item | Complete ${latest} |`,
-    "",
-  ].join("\n"));
-  writeFixtureFile(root, "docs/00_memory/WORKLOG.md", [
-    "# Worklog",
-    "",
-    "```text",
-    `Task: ${latest} - Fixture task.`,
-    "```",
-    "",
-  ].join("\n"));
-  writeFixtureFile(root, "docs/00_memory/FEATURE_INDEX.md", [
-    "# Feature Index",
-    "",
-    verified.trim(),
-    "",
-    "| Feature Area | Read First | Code Area | Current Status |",
-    "|---|---|---|---|",
-    "| Fixture feature | `01_product/USER_ROLES.md` | `Features/Fixture/` | Current. |",
-    "",
-  ].join("\n"));
-  writeFixtureFile(root, "docs/03_backend/SUPABASE_CONTRACT.md", [
-    "# Supabase Contract",
-    "",
-    verified.trim(),
-    "",
-    "- Local migration mirror count: 2 files.",
-    "",
-  ].join("\n"));
-  writeFixtureFile(root, "docs/03_backend/MIGRATION_RULES.md", [
-    "# Migration Rules",
-    "",
-    verified.trim(),
-    "",
-    "Current migration rules.",
-    "",
-  ].join("\n"));
-  writeFixtureFile(root, "docs/01_product/USER_ROLES.md", small);
-  writeFixtureFile(root, "supabase/migrations/20260708000100_fixture_one.sql", "-- one\n");
-  writeFixtureFile(root, "supabase/migrations/20260708000200_fixture_two.sql", "-- two\n");
+function writeState(root, state) {
+  writeFixtureFile(root, statePath, `# Current State\n\n\`\`\`json\n${JSON.stringify(state, null, 2)}\n\`\`\`\n`);
+}
 
-  for (const filePath of [
-    "docs/00_memory/PROJECT_MEMORY.md",
-    "docs/07_decisions/DECISION_LOG.md",
-    "docs/01_product/DESIGN_SYSTEM.md",
-    "docs/01_product/SCREEN_INVENTORY.md",
-    "docs/08_design/UI_IMPLEMENTATION_NOTES.md",
-    "docs/03_backend/RLS_RPC_POLICY.md",
-    "docs/03_backend/STORAGE_POLICY.md",
-    "docs/04_ios/testops/TESTOPS_MEMORY.md",
-    "docs/04_ios/testops/RUNBOOK.md",
-    "docs/04_ios/testops/TEST_CASES.md",
-    "docs/10_project_structure/REORGANIZATION_LOG.md",
-    "docs/02_architecture/test_resources/README.md",
-  ]) {
-    writeFixtureFile(root, filePath, small);
+function createFixture(t) {
+  const root = mkdtempSync(path.join(tmpdir(), "lean-governance-"));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  git(root, "init", "--quiet");
+  for (const file of ["AGENTS.md", "CLAUDE.md", "README.md", "docs/README.md", "docs/00_memory/FEATURE_INDEX.md", "docs/05_workflow/DEVELOPMENT_GUIDE.md", "docs/06_tasks/ROADMAP.md", planPath]) writeFixtureFile(root, file);
+  writeFixtureFile(root, ".gitignore", "artifacts/\n.env*\n");
+  writeFixtureFile(root, ".rgignore", "docs/09_frozen/**\nartifacts/**\ndocs/superpowers/**\ndocs/06_tasks/sql_reviews/**\n!docs/06_tasks/sql_reviews/README.md\ndocs/06_tasks/APP_FUNCTIONAL_DESIGN_FINDINGS.md\ndocs/ui-redesign/*\n!docs/ui-redesign/README.md\ndocs/02_architecture/test_resources/T-129_*_TEST_PROFILES.md\n");
+  const state = { next_task_id: "T-003", task: { id: "T-002", status: "active", goal: "Fixture governance", plan: planPath, next_action: "Validate" }, pending_tasks: [], last_completed: { id: "T-001" } };
+  writeState(root, state);
+  git(root, "add", ".");
+  git(root, "commit", "--quiet", "-m", "T-001: test: fixture baseline");
+  return { root, state };
+}
+
+function run(root, ...args) {
+  const result = spawnSync(process.execPath, [script, ...args], { env: { ...process.env, CONTEXT_HYGIENE_PROJECT_ROOT: root }, encoding: "utf8" });
+  return { ...result, output: `${result.stdout}\n${result.stderr}` };
+}
+
+function snapshot(root) {
+  const entries = [];
+  function walk(dir) {
+    for (const item of readdirSync(path.join(root, dir), { withFileTypes: true })) {
+      if (item.name === ".git") continue;
+      const file = path.join(dir, item.name);
+      if (item.isDirectory()) walk(file);
+      else if (item.isFile()) entries.push([file, readFileSync(path.join(root, file), "utf8")]);
+    }
   }
-
-  writeFixtureFile(root, "CLAUDE.md", "# Claude Adapter\n\nFollow AGENTS.md. Default role is review.\n");
-  writeFixtureFile(root, "docs/05_workflow/SINGLE_AGENT_WORKFLOW.md", [
-    "# Single-Agent Workflow",
-    "",
-    "Owns: task lifecycle, task boundaries, modes, closeout, and meta-review scheduling.",
-    "",
-    "When review cadence is due, reserve the next task ID and end the current task.",
-    "Do not start the review in the same session.",
-    "",
-  ].join("\n"));
-  writeFixtureFile(root, "docs/05_workflow/CONTEXT_AND_RECOVERY.md", [
-    "# Context and Recovery",
-    "",
-    "Owns: context access, recovery, compaction, and context hygiene.",
-    "",
-  ].join("\n"));
-  writeFixtureFile(root, "docs/05_workflow/TOOLING_POLICY.md", [
-    "# Tooling Policy",
-    "",
-    "Owns: validation, tools, credentials, and remote-operation authorization.",
-    "",
-    "Expected RED states during development are not final validation failures.",
-    "Simulator use may be skipped when the user defers visual review.",
-    "Host-mandated skills and tool instructions take precedence over repository preferences.",
-    "",
-  ].join("\n"));
-  writeFixtureFile(root, "docs/05_workflow/GITHUB_RULES.md", [
-    "# GitHub Rules",
-    "",
-    "Owns: Git and GitHub conventions, commit formats, branches, pushes, PRs, and tags.",
-    "",
-    "Checkpoint commits and pushes require explicit user approval.",
-    "",
-  ].join("\n"));
-  writeFixtureFile(root, "docs/05_workflow/STOP_CONDITIONS.md", [
-    "# Stop Conditions",
-    "",
-    "Owns: the stop-and-report matrix only.",
-    "",
-  ].join("\n"));
-
-  mkdirSync(path.join(root, "docs/09_frozen"), { recursive: true });
-  mkdirSync(path.join(root, "docs/08_design"), { recursive: true });
-  spawnSync("git", ["init"], { cwd: root, encoding: "utf8" });
-  spawnSync("git", ["add", "."], { cwd: root, encoding: "utf8" });
-  return root;
+  walk("");
+  return entries;
 }
 
-function runHygiene(root, extraEnv = {}) {
-  return spawnSync(process.execPath, [scriptPath], {
-    cwd: projectRoot,
-    env: {
-      ...process.env,
-      CONTEXT_HYGIENE_PROJECT_ROOT: root,
-      ...extraEnv,
-    },
-    encoding: "utf8",
+test("single state works without ledger or worklog and exposes structured read-only output", (t) => {
+  const { root } = createFixture(t);
+  const before = snapshot(root);
+  const result = run(root, "--json");
+  assert.equal(result.status, 0, result.output);
+  const report = JSON.parse(result.stdout);
+  assert.equal(report.ok, true);
+  assert.deepEqual(report.errors, []);
+  assert.deepEqual(report.warnings, []);
+  assert(report.checkedFiles.includes(planPath));
+  assert.deepEqual(snapshot(root), before);
+});
+
+for (const [name, mutate] of [
+  ["illegal id", s => { s.task.id = "task-2"; }],
+  ["reused next id", s => { s.next_task_id = "T-002"; }],
+  ["illegal status", s => { s.task.status = "completed"; }],
+  ["duplicate pending id", s => { s.pending_tasks = [{ ...s.task, status: "paused" }]; }],
+  ["active pending task", s => { s.pending_tasks = [{ ...s.task, id: "T-004" }]; s.next_task_id = "T-005"; }],
+  ["missing plan", s => { s.task.plan = "docs/missing.md"; }],
+  ["missing pending plan", s => { s.pending_tasks = [{ ...s.task, id: "T-004", status: "blocked", plan: "docs/missing.md" }]; s.next_task_id = "T-005"; }],
+  ["misplaced authorization", s => { s.authorization = ["not task-scoped"]; }],
+  ["incomplete verification", s => { s.task.verification = [{ result: "pass" }]; }],
+]) {
+  test(`rejects ${name} without changing user content`, (t) => {
+    const { root, state } = createFixture(t);
+    mutate(state); writeState(root, state);
+    const before = snapshot(root);
+    const result = run(root, "--json");
+    assert.equal(result.status, 1, result.output);
+    assert.equal(JSON.parse(result.stdout).ok, false);
+    assert.deepEqual(snapshot(root), before);
   });
 }
 
-function writeExtraMarkdownFiles(root, count, wordsPerFile) {
-  for (let index = 1; index <= count; index += 1) {
-    writeFixtureFile(root, `docs/98_fixture/extra_${index}.md`, [
-      `# Extra Fixture ${index}`,
-      "",
-      `${"extra ".repeat(wordsPerFile)}`,
-      "",
-    ].join("\n"));
+for (const body of ["```json\n{\n```\n", "```json\n{}\n```\n```json\n{}\n```\n", "# No state\n"]) {
+  test(`malformed state is an error: ${body.slice(0, 18)}`, (t) => {
+    const { root } = createFixture(t);
+    writeFixtureFile(root, statePath, body);
+    const result = run(root, "--json");
+    assert.equal(result.status, 1, result.output);
+    assert.equal(readFileSync(path.join(root, statePath), "utf8"), body);
+  });
+}
+
+test("wording, old dates and task-number gaps do not impose workflow gates", (t) => {
+  const { root, state } = createFixture(t);
+  state.next_task_id = "T-387"; state.task.id = "T-386";
+  writeState(root, state);
+  writeFixtureFile(root, "docs/old.md", "Last verified: 2000-01-01.\nLast meta-review: T-001.\n" + "Long prose. ".repeat(2000));
+  writeFixtureFile(root, "AGENTS.md", "# Changed wording\nNo fixed ownership sentence or table.\n");
+  assert.equal(run(root, "--full").status, 0);
+});
+
+for (const file of ["docs/new.md", planPath, "docs/superpowers/plans/new.md", "docs/06_tasks/APP_FUNCTIONAL_DESIGN_FINDINGS.md", "docs/06_tasks/sql_reviews/new.md"]) {
+  test(`checks changed or untracked document despite search hiding: ${file}`, (t) => {
+    const { root } = createFixture(t);
+    writeFixtureFile(root, file, "[broken](missing-target.md)\n");
+    for (const args of [[], ["--full"]]) {
+      const result = run(root, ...args, "--json");
+      assert.equal(result.status, 1, result.output);
+      assert(JSON.parse(result.stdout).checkedFiles.includes(file));
+    }
+  });
+}
+
+test("full check adds unchanged visible docs; default includes staged changes", (t) => {
+  const { root } = createFixture(t);
+  writeFixtureFile(root, "docs/old.md", "[broken](missing.md)\n");
+  git(root, "add", "."); git(root, "commit", "--quiet", "-m", "Fixture old document");
+  assert.equal(run(root).status, 0);
+  assert.equal(run(root, "--full").status, 1);
+  writeFixtureFile(root, "docs/staged.md", "[broken](missing.md)\n"); git(root, "add", "docs/staged.md");
+  assert.equal(run(root).status, 1);
+});
+
+test("deletion checks unchanged backlinks", (t) => {
+  const { root } = createFixture(t);
+  writeFixtureFile(root, "docs/target.md"); writeFixtureFile(root, "docs/ref.md", "[target](target.md)\n");
+  git(root, "add", "."); git(root, "commit", "--quiet", "-m", "Fixture links");
+  rmSync(path.join(root, "docs/target.md"));
+  assert.equal(run(root).status, 1);
+});
+
+test("local links include images and references, not code examples or external URLs", (t) => {
+  const { root } = createFixture(t);
+  writeFixtureFile(root, "docs/a (b).md");
+  writeFixtureFile(root, "docs/links.md", "[a](<a (b).md>)\n[a](a%20(b).md#section)\n[web](https://example.invalid)\n`[example](missing.md)`\n```md\n[example](missing.md)\n```\n[ref][r]\n[r]: <a (b).md>\n");
+  assert.equal(run(root).status, 0);
+  writeFixtureFile(root, "docs/image.md", "![image](missing.png)\n");
+  assert.equal(run(root).status, 1);
+});
+
+test("history and heavy bodies remain unread; exposed heavy docs are rejected", (t) => {
+  const { root } = createFixture(t);
+  for (const file of ["docs/09_frozen/old.md", "docs/ui-redesign/heavy.md", "docs/02_architecture/test_resources/T-129_CUSTOMER_TEST_PROFILES.md", "artifacts/private.md"]) writeFixtureFile(root, file, "[sentinel](must-not-read.md)\n");
+  assert.equal(run(root, "--full").status, 0);
+  writeFixtureFile(root, ".rgignore", "docs/09_frozen/**\nartifacts/**\ndocs/02_architecture/test_resources/T-129_*_TEST_PROFILES.md\n");
+  const result = run(root, "--full");
+  assert.equal(result.status, 1);
+  assert(!result.output.includes("must-not-read"));
+});
+
+test("plan pointer cannot read outside repo, secrets, heavy files or escaping symlinks", (t) => {
+  const { root, state } = createFixture(t);
+  const outside = mkdtempSync(path.join(tmpdir(), "lean-outside-"));
+  t.after(() => rmSync(outside, { recursive: true, force: true }));
+  writeFixtureFile(outside, "outside.md", "[sentinel](must-not-read.md)\n");
+  symlinkSync(path.join(outside, "outside.md"), path.join(root, "docs/link.md"));
+  writeFixtureFile(root, "docs/09_frozen/old.md", "[sentinel](must-not-read.md)\n");
+  for (const plan of [path.join(outside, "outside.md"), "docs/link.md", "docs/09_frozen/old.md", ".env.local"]) {
+    state.task.plan = plan; writeState(root, state);
+    const result = run(root, "--json");
+    assert.equal(result.status, 1, result.output);
+    assert(!result.output.includes("must-not-read"));
   }
-}
+});
 
-function ledgerWindowText(branch, next, count) {
-  const rows = Array.from({ length: count }, (_, index) => {
-    const id = `T-${String(count - index).padStart(3, "0")}`;
-    return `| ${id} | Fixture task | completed | Quick | G0 | docs | check | done |`;
+test("pause, switch, complete and resume retain scoped recovery without hash rewriting", (t) => {
+  const { root, state } = createFixture(t);
+  const original = { ...state.task, plan: null, authorization: ["Local docs only"], preserve: ["docs/user.md contains user changes"], next_action: "Resume targeted edit" };
+  state.pending_tasks = [{ ...original, status: "paused" }];
+  state.task = { id: "T-003", status: "active", goal: "Other task", plan: null, next_action: "Finish" }; state.next_task_id = "T-004";
+  writeFixtureFile(root, "docs/user.md", "User content\n"); writeState(root, state);
+  assert.equal(run(root).status, 0);
+  state.last_completed = { id: "T-003" }; state.task = null; writeState(root, state);
+  git(root, "add", "."); git(root, "commit", "--quiet", "-m", "T-003: docs: finish fixture");
+  assert.match(git(root, "log", "-1", "--format=%s"), /^T-003:/);
+  assert.equal(git(root, "status", "--porcelain"), "");
+  state.task = { ...state.pending_tasks.pop(), status: "active" }; writeState(root, state);
+  assert.equal(run(root).status, 0);
+  assert.deepEqual(state.task.authorization, original.authorization);
+  const before = readFileSync(path.join(root, "docs/user.md"), "utf8");
+  writeFixtureFile(root, "docs/own.md", "Task edit\n\nLater user edit\n");
+  const restore = spawnSync("git", ["apply", "--reverse", "--unidiff-zero"], {
+    cwd: root, encoding: "utf8",
+    input: "--- a/docs/own.md\n+++ b/docs/own.md\n@@ -1 +1 @@\n-Original task line\n+Task edit\n",
   });
-  return [
-    "# Task Ledger",
-    "",
-    `Current branch and task-numbering baseline: use \`${branch}\`; use \`${next}\` for the next task unless directed otherwise.`,
-    "",
-    "| ID | Task | Status | Mode | Milestone | Files/Docs | Checks | Notes |",
-    "|---|---|---|---|---|---|---|---|",
-    ...rows,
-    "",
-  ].join("\n");
-}
-
-function worklogWindowText(count, latestTaskNumber = count) {
-  return [
-    "# Worklog",
-    "",
-    ...Array.from({ length: count }, (_, index) => {
-      const id = `T-${String(latestTaskNumber - index).padStart(3, "0")}`;
-      return [
-        "```text",
-        `Task: ${id} - Fixture task.`,
-        "```",
-        "",
-      ].join("\n");
-    }),
-  ].join("\n");
-}
-
-function decisionWindowText(count, pointerCount = 0) {
-  const decisions = Array.from({ length: count }, (_, index) => {
-    const id = `D-${String(count - index).padStart(3, "0")}`;
-    return [
-      "```text",
-      `Decision ID: ${id}`,
-      "Date: 2026-07-08",
-      `Decision: Fixture decision ${id}.`,
-      "Context: Fixture.",
-      "Consequences: Fixture.",
-      "Linked files: docs/00_memory/CURRENT_STATE.md",
-      "```",
-      "",
-    ].join("\n");
-  });
-  return [
-    "# Decision Log",
-    "",
-    "## Active Decisions",
-    "",
-    ...decisions,
-    "## Archived Decision Index",
-    "",
-    "| Date | Decision | Current entry point |",
-    "|---|---|---|",
-    ...Array.from({ length: pointerCount }, (_, index) => {
-      const pointer = pointerCount - index;
-      return `| 2026-07-08 | Archived decision batch ${pointer}. | frozen-${pointer} |`;
-    }),
-    "",
-  ].join("\n");
-}
-
-test("context hygiene passes a consistent fixture", () => {
-  const root = createFixture();
-  const result = runHygiene(root);
-
-  assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /Context hygiene check passed/);
+  assert.equal(restore.status, 0, restore.stderr);
+  assert.equal(readFileSync(path.join(root, "docs/own.md"), "utf8"), "Original task line\n\nLater user edit\n");
+  assert.equal(readFileSync(path.join(root, "docs/user.md"), "utf8"), before);
 });
 
-test("context hygiene allows the latest completion to use an older task ID", () => {
-  const root = createFixture({ latest: "T-004", next: "T-006" });
-  writeFixtureFile(root, "docs/06_tasks/TASK_LEDGER.md", [
-    "# Task Ledger",
-    "",
-    "Current branch and task-numbering baseline: use `codex/test-baseline`; use `T-006` for the next task unless directed otherwise.",
-    "",
-    "| ID | Task | Status | Mode | Milestone | Files/Docs | Checks | Notes |",
-    "|---|---|---|---|---|---|---|---|",
-    "| T-005 | Earlier completion | completed | Quick | G0 | docs | check | done |",
-    "| T-004 | Latest completion | completed | Quick | G0 | docs | check | done |",
-    "",
-  ].join("\n"));
-
-  const result = runHygiene(root);
-
-  assert.equal(result.status, 0, result.stderr);
+test("Git-ignored Markdown cannot be read through a current plan pointer", (t) => {
+  const { root, state } = createFixture(t);
+  writeFixtureFile(root, ".gitignore", "artifacts/\n.env*\nprivate/\n");
+  writeFixtureFile(root, "private/notes.md", "# Private fixture\n");
+  state.task.plan = "private/notes.md"; writeState(root, state);
+  const result = run(root, "--json");
+  assert.equal(result.status, 1, result.output);
+  assert(!JSON.parse(result.stdout).checkedFiles.includes("private/notes.md"));
 });
 
-test("context hygiene fails when current-state and ledger task facts drift", () => {
-  const root = createFixture({ latest: "T-005", next: "T-006" });
-  writeFixtureFile(root, "docs/00_memory/CURRENT_STATE.md", [
-    "# Current State",
-    "",
-    "- Latest completed task: T-004 stale fixture task.",
-    "- Next task ID: use T-005 unless directed otherwise.",
-    "",
-    "## Branch and Baseline",
-    "",
-    "- Current branch baseline: `codex/wrong-baseline`.",
-    "",
-  ].join("\n"));
-
-  const result = runHygiene(root);
-
-  assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /latest completed task mismatch/i);
-  assert.match(result.stderr, /next task ID mismatch/i);
-  assert.match(result.stderr, /branch baseline mismatch/i);
+test("project-root override must identify the repository root", (t) => {
+  const { root } = createFixture(t);
+  assert.equal(run(path.join(root, "docs")).status, 2);
 });
 
-test("context hygiene fails when Current State regains task-history sections", () => {
-  const root = createFixture();
-  appendFileSync(
-    path.join(root, "docs/00_memory/CURRENT_STATE.md"),
-    "\n## Completed Task History\n\n- T-004 stale narrative.\n",
-  );
-
-  const result = runHygiene(root);
-
-  assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /CURRENT_STATE\.md contains forbidden historical section/i);
-});
-
-test("context hygiene fails when an older Worklog entry retains Next instructions", () => {
-  const root = createFixture();
-  writeFixtureFile(root, "docs/00_memory/WORKLOG.md", [
-    "# Worklog",
-    "",
-    "```text",
-    "Task: T-005 - Current fixture task.",
-    "Next: Current handoff is allowed here.",
-    "```",
-    "",
-    "```text",
-    "Task: T-004 - Older fixture task.",
-    "Next: Stale instruction must not remain active.",
-    "```",
-    "",
-  ].join("\n"));
-
-  const result = runHygiene(root);
-
-  assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /WORKLOG\.md keeps Next instructions outside its newest entry/i);
-});
-
-test("context hygiene fails when a completed task artifact remains active", () => {
-  const root = createFixture();
-  writeFixtureFile(root, "docs/superpowers/plans/completed.md", [
-    "<!-- task-artifact",
-    "task: T-005",
-    "status: completed",
-    "type: plan",
-    "-->",
-    "# Completed Plan",
-    "",
-  ].join("\n"));
-
-  const result = runHygiene(root);
-
-  assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /completed task artifact remains active/i);
-});
-
-test("context hygiene allows only the matching closeout task artifact precheck", () => {
-  const root = createFixture();
-  writeFixtureFile(root, "docs/superpowers/plans/completed.md", [
-    "<!-- task-artifact",
-    "task: T-005",
-    "status: completed",
-    "type: plan",
-    "-->",
-    "# Completed Plan",
-    "",
-  ].join("\n"));
-
-  const result = runHygiene(root, { CONTEXT_HYGIENE_CLOSEOUT_TASK: "T-005" });
-
-  assert.equal(result.status, 0, result.stderr);
-});
-
-test("context hygiene allows an active task artifact with valid metadata", () => {
-  const root = createFixture();
-  writeFixtureFile(root, "docs/superpowers/specs/active.md", [
-    "<!-- task-artifact",
-    "task: T-006",
-    "status: active",
-    "type: spec",
-    "-->",
-    "# Active Spec",
-    "",
-  ].join("\n"));
-
-  const result = runHygiene(root);
-
-  assert.equal(result.status, 0, result.stderr);
-});
-
-test("context hygiene fails when the removed agent preflight entrypoint returns", () => {
-  const root = createFixture();
-  writeFixtureFile(root, "scripts/agent-preflight.sh", "#!/usr/bin/env bash\nexit 0\n");
-
-  const result = runHygiene(root);
-
-  assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /scripts\/agent-preflight\.sh duplicates the canonical governance gates/i);
-});
-
-test("context hygiene reports managed roadmap word excess without failing", () => {
-  const root = createFixture();
-  writeFixtureFile(root, "docs/06_tasks/ROADMAP.md", `# Roadmap\n\nLast verified: 2026-07-08.\n\n${"roadmap ".repeat(1801)}\n`);
-
-  const result = runHygiene(root);
-
-  assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /over\s+\d+ \/\s+1800 reference\s+docs\/06_tasks\/ROADMAP\.md/i);
-  assert.doesNotMatch(result.stderr, /ROADMAP\.md has \d+ words, limit 1800/i);
-});
-
-test("context hygiene reports default word reference excess without failing", () => {
-  const root = createFixture();
-  writeFixtureFile(root, "docs/98_fixture/unlisted.md", [
-    "# Unlisted",
-    "",
-    `${"unlisted ".repeat(651)}`,
-    "",
-  ].join("\n"));
-
-  const result = runHygiene(root);
-
-  assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /over\s+\d+ \/\s+650 reference\s+docs\/98_fixture\/unlisted\.md/i);
-  assert.doesNotMatch(result.stderr, /unlisted\.md has \d+ words, limit 650/i);
-});
-
-test("context hygiene reports an unlisted active Markdown file within the default reference", () => {
-  const root = createFixture();
-  writeFixtureFile(root, "docs/98_fixture/unlisted.md", [
-    "# Unlisted",
-    "",
-    `${"unlisted ".repeat(640)}`,
-    "",
-  ].join("\n"));
-
-  const result = runHygiene(root);
-
-  assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /Reference coverage: \d+\/\d+ files \(sum of references: \d+\)/i);
-});
-
-test("context hygiene falls back to git ls-files when rg is unavailable", () => {
-  const root = createFixture();
-  const result = runHygiene(root, { CONTEXT_HYGIENE_FORCE_NO_RG: "1" });
-
-  assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /warn: rg unavailable, \.rgignore behavior checks skipped/i);
-  assert.match(result.stdout, /Active Markdown files: \d+/i);
-  assert.match(result.stdout, /docs\/ui-redesign\/README\.md/i);
-  assert.doesNotMatch(result.stdout, /docs\/ui-redesign\/03-screen-functional-specs\.md/i);
-});
-
-test("context hygiene fails when heavy UI redesign body is default-visible", () => {
-  const root = createFixture();
-  writeFixtureFile(root, ".rgignore", [
-    "docs/09_frozen/**",
-    "artifacts/**",
-    "docs/02_architecture/test_resources/T-129_*_TEST_PROFILES.md",
-    "docs/08_design/Beckon.html",
-    "docs/08_design/Beckon/**",
-    "",
-  ].join("\n"));
-
-  const result = runHygiene(root);
-
-  assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /ui-redesign default rg output changed/i);
-});
-
-test("context hygiene fails when same-session meta-review wording returns", () => {
-  const root = createFixture();
-  writeFixtureFile(root, "docs/05_workflow/SINGLE_AGENT_WORKFLOW.md", [
-    "# Single-Agent Workflow",
-    "",
-    "Owns: task lifecycle, task boundaries, modes, closeout, and meta-review scheduling.",
-    "",
-    "When review cadence is due, reserve the next task ID and end the current task.",
-    "Do not start the review in the same session.",
-    "After closeout, execute the meta-review immediately.",
-    "",
-  ].join("\n"));
-
-  const result = runHygiene(root);
-
-  assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /forbidden same-session automatic meta-review/i);
-});
-
-test("context hygiene fails when a workflow entry exceeds its hard ceiling", () => {
-  const root = createFixture();
-  writeFixtureFile(root, "AGENTS.md", `# AGENTS\n\n${"rule ".repeat(601)}\n`);
-
-  const result = runHygiene(root);
-
-  assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /AGENTS\.md workflow entry has \d+ words, limit 600/i);
-});
-
-test("context hygiene fails when a backtick path is missing", () => {
-  const root = createFixture();
-  writeFixtureFile(root, "docs/01_product/USER_ROLES.md", [
-    "# User Roles",
-    "",
-    "Read `docs/01_product/MISSING.md` before changing roles.",
-    "",
-  ].join("\n"));
-
-  const result = runHygiene(root);
-
-  assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /docs\/01_product\/USER_ROLES\.md references missing backtick path: docs\/01_product\/MISSING\.md/i);
-});
-
-test("context hygiene resolves relative backtick paths and skips placeholders", () => {
-  const root = createFixture();
-  writeFixtureFile(root, "docs/06_tasks/ROADMAP.md", [
-    "# Managed Roadmap",
-    "",
-    "Last verified: 2026-07-08.",
-    "",
-    "Inputs: `../00_memory/CURRENT_STATE.md`, `docs/09_frozen/**`, and `docs/<area>/EXAMPLE.md`.",
-    "",
-    "| Roadmap ID | Milestone | Candidate | Status |",
-    "|---|---|---|---|",
-    "| R-001 | G0 | Fixture item | Complete T-005 |",
-    "",
-  ].join("\n"));
-
-  const result = runHygiene(root);
-
-  assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /Backtick paths checked: \d+/i);
-});
-
-test("context hygiene reports active Markdown words without a structural warning", () => {
-  const root = createFixture();
-  writeExtraMarkdownFiles(root, 54, 630);
-
-  const result = runHygiene(root);
-
-  assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /Active Markdown words \(information only\): \d+/i);
-  assert.match(result.stdout, /Context capacity: host-managed; Markdown words do not estimate token usage/i);
-  assert.doesNotMatch(result.stdout, /schedule a structural context review/i);
-});
-
-test("context hygiene does not fail when active Markdown exceeds the former hard limit", () => {
-  const root = createFixture();
-  writeExtraMarkdownFiles(root, 58, 630);
-
-  const result = runHygiene(root);
-
-  assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /Active Markdown words \(information only\): \d+/i);
-  assert.match(result.stdout, /Context capacity: host-managed; Markdown words do not estimate token usage/i);
-  assert.doesNotMatch(result.stderr, /active Markdown has \d+ words, limit 36000/i);
-});
-
-test("context hygiene fails when a last-verified marker is stale", () => {
-  const root = createFixture();
-  writeFixtureFile(root, "docs/00_memory/FEATURE_INDEX.md", [
-    "# Feature Index",
-    "",
-    "Last verified: 2026-05-01.",
-    "",
-    "| Feature Area | Read First | Code Area | Current Status |",
-    "|---|---|---|---|",
-    "| Fixture feature | `01_product/USER_ROLES.md` | `Features/Fixture/` | Current. |",
-    "",
-  ].join("\n"));
-
-  const result = runHygiene(root, { CONTEXT_HYGIENE_NOW: "2026-07-08" });
-
-  assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /FEATURE_INDEX\.md last verified 2026-05-01 is stale/i);
-});
-
-test("context hygiene fails when the documented migration count drifts", () => {
-  const root = createFixture();
-  writeFixtureFile(root, "docs/03_backend/SUPABASE_CONTRACT.md", [
-    "# Supabase Contract",
-    "",
-    "Last verified: 2026-07-08.",
-    "",
-    "- Local migration mirror count: 1 file.",
-    "",
-  ].join("\n"));
-
-  const result = runHygiene(root);
-
-  assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /migration mirror count mismatch/i);
-});
-
-test("context hygiene fails when roadmap task evidence is missing from ledgers", () => {
-  const root = createFixture();
-  writeFixtureFile(root, "docs/06_tasks/ROADMAP.md", [
-    "# Managed Roadmap",
-    "",
-    "Last verified: 2026-07-08.",
-    "",
-    "| Roadmap ID | Milestone | Candidate | Status |",
-    "|---|---|---|---|",
-    "| R-001 | G0 | Fixture item | Complete T-999 |",
-    "",
-  ].join("\n"));
-
-  const result = runHygiene(root);
-
-  assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /ROADMAP.md references T-999 without task-ledger evidence/i);
-});
-
-test("context hygiene fails when Feature Index read-first paths are missing", () => {
-  const root = createFixture();
-  writeFixtureFile(root, "docs/00_memory/FEATURE_INDEX.md", [
-    "# Feature Index",
-    "",
-    "Last verified: 2026-07-08.",
-    "",
-    "| Feature Area | Read First | Code Area | Current Status |",
-    "|---|---|---|---|",
-    "| Broken feature | `01_product/MISSING.md` | `Features/Broken/` | Current. |",
-    "",
-  ].join("\n"));
-
-  const result = runHygiene(root);
-
-  assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /Feature Index read-first target is missing/i);
-});
-
-test("context hygiene allows roadmap completed mapping to mix completed and blocked evidence", () => {
-  const root = createFixture({ latest: "T-005", next: "T-006" });
-  writeFixtureFile(root, "docs/06_tasks/TASK_LEDGER.md", [
-    "# Task Ledger",
-    "",
-    "Current branch and task-numbering baseline: use `codex/test-baseline`; use `T-006` for the next task unless directed otherwise.",
-    "",
-    "| ID | Task | Status | Mode | Milestone | Files/Docs | Checks | Notes |",
-    "|---|---|---|---|---|---|---|---|",
-    "| T-005 | Fixture task | completed | Quick | G0 | docs | check | done |",
-    "| T-004 | Fixture block | blocked | Deep | M2 | docs | check | waiting |",
-    "",
-  ].join("\n"));
-  writeFixtureFile(root, "docs/06_tasks/ROADMAP.md", [
-    "# Managed Roadmap",
-    "",
-    "Last verified: 2026-07-08.",
-    "",
-    "Completed mapping: T-004 M2 blocked; T-005 G0.",
-    "",
-  ].join("\n"));
-
-  const result = runHygiene(root);
-
-  assert.equal(result.status, 0, result.stderr);
-});
-
-test("context hygiene checks roadmap complete and blocked status per segment", () => {
-  const root = createFixture({ latest: "T-005", next: "T-006" });
-  writeFixtureFile(root, "docs/06_tasks/TASK_LEDGER.md", [
-    "# Task Ledger",
-    "",
-    "Current branch and task-numbering baseline: use `codex/test-baseline`; use `T-006` for the next task unless directed otherwise.",
-    "",
-    "| ID | Task | Status | Mode | Milestone | Files/Docs | Checks | Notes |",
-    "|---|---|---|---|---|---|---|---|",
-    "| T-005 | Fixture task | completed | Quick | G0 | docs | check | done |",
-    "| T-004 | Fixture block | blocked | Deep | M2 | docs | check | waiting |",
-    "",
-  ].join("\n"));
-  writeFixtureFile(root, "docs/06_tasks/ROADMAP.md", [
-    "# Managed Roadmap",
-    "",
-    "Last verified: 2026-07-08.",
-    "",
-    "| Milestone | Goal | Status | Exit Signal |",
-    "|---|---|---|---|",
-    "| M2 | Fixture state | T-005 complete; T-004 dispatch blocked; T-006+ candidates. | Clear. |",
-    "",
-  ].join("\n"));
-
-  const result = runHygiene(root);
-
-  assert.equal(result.status, 0, result.stderr);
-});
-
-test("context hygiene fails closed when current-state facts cannot be extracted", () => {
-  const root = createFixture();
-  writeFixtureFile(root, "docs/00_memory/CURRENT_STATE.md", [
-    "# Current State",
-    "",
-    "- Last completed task: T-005 fixture task.",
-    "- Next task ID: use T-006 unless directed otherwise.",
-    "",
-    "## Branch and Baseline",
-    "",
-    "- Current branch baseline: `codex/test-baseline`.",
-    "",
-    "## Active Workflow State",
-    "",
-    "- Last meta-review: T-005 on 2026-07-08.",
-    "",
-  ].join("\n"));
-
-  const result = runHygiene(root);
-
-  assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /CURRENT_STATE\.md is missing an extractable latest completed task/i);
-});
-
-test("context hygiene fails when the meta-review marker is missing", () => {
-  const root = createFixture();
-  writeFixtureFile(root, "docs/00_memory/CURRENT_STATE.md", [
-    "# Current State",
-    "",
-    "- Latest completed task: T-005 fixture task.",
-    "- Next task ID: use T-006 unless directed otherwise.",
-    "",
-    "## Branch and Baseline",
-    "",
-    "- Current branch baseline: `codex/test-baseline`.",
-    "",
-  ].join("\n"));
-
-  const result = runHygiene(root);
-
-  assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /CURRENT_STATE\.md is missing an extractable Last meta-review marker/i);
-});
-
-test("context hygiene fails when meta-review is ten completed tasks old", () => {
-  const root = createFixture({ latest: "T-015", next: "T-016" });
-  writeFixtureFile(root, "docs/00_memory/CURRENT_STATE.md", [
-    "# Current State",
-    "",
-    "- Latest completed task: T-015 fixture task.",
-    "- Next task ID: use T-016 unless directed otherwise.",
-    "",
-    "## Branch and Baseline",
-    "",
-    "- Current branch baseline: `codex/test-baseline`.",
-    "",
-    "## Active Workflow State",
-    "",
-    "- Last meta-review: T-005 on 2026-07-08.",
-    "",
-  ].join("\n"));
-  writeFixtureFile(root, "docs/06_tasks/TASK_LEDGER.md", [
-    "# Task Ledger",
-    "",
-    "Current branch and task-numbering baseline: use `codex/test-baseline`; use `T-016` for the next task unless directed otherwise.",
-    "",
-    "| ID | Task | Status | Mode | Milestone | Files/Docs | Checks | Notes |",
-    "|---|---|---|---|---|---|---|---|",
-    "| T-015 | Fixture task | completed | Quick | G0 | docs | check | done |",
-    "",
-  ].join("\n"));
-
-  const result = runHygiene(root);
-
-  assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /Last meta-review T-005 is 10 completed tasks behind/i);
-});
-
-test("context hygiene allows meta-review at nine completed tasks old", () => {
-  const root = createFixture({ latest: "T-014", next: "T-015" });
-  writeFixtureFile(root, "docs/00_memory/CURRENT_STATE.md", [
-    "# Current State",
-    "",
-    "- Latest completed task: T-014 fixture task.",
-    "- Next task ID: use T-015 unless directed otherwise.",
-    "",
-    "## Branch and Baseline",
-    "",
-    "- Current branch baseline: `codex/test-baseline`.",
-    "",
-    "## Active Workflow State",
-    "",
-    "- Last meta-review: T-005 on 2026-07-08.",
-    "",
-  ].join("\n"));
-  writeFixtureFile(root, "docs/06_tasks/TASK_LEDGER.md", [
-    "# Task Ledger",
-    "",
-    "Current branch and task-numbering baseline: use `codex/test-baseline`; use `T-015` for the next task unless directed otherwise.",
-    "",
-    "| ID | Task | Status | Mode | Milestone | Files/Docs | Checks | Notes |",
-    "|---|---|---|---|---|---|---|---|",
-    "| T-014 | Fixture task | completed | Quick | G0 | docs | check | done |",
-    "",
-  ].join("\n"));
-
-  const result = runHygiene(root);
-
-  assert.equal(result.status, 0, result.stderr);
-});
-
-test("context hygiene allows an exactly due meta-review when the next task is explicitly reserved", () => {
-  const root = createFixture({ latest: "T-015", next: "T-016" });
-  writeFixtureFile(root, "docs/00_memory/CURRENT_STATE.md", [
-    "# Current State",
-    "",
-    "- Latest completed task: T-015 fixture task.",
-    "- Next task ID: use T-016 for the required periodic meta-review.",
-    "",
-    "## Branch and Baseline",
-    "",
-    "- Current branch baseline: `codex/test-baseline`.",
-    "",
-    "## Active Workflow State",
-    "",
-    "- Last meta-review: T-005 on 2026-07-08.",
-    "",
-  ].join("\n"));
-  writeFixtureFile(root, "docs/06_tasks/TASK_LEDGER.md", [
-    "# Task Ledger",
-    "",
-    "Current branch and task-numbering baseline: use `codex/test-baseline`; use `T-016` for the next task unless directed otherwise.",
-    "",
-    "| ID | Task | Status | Mode | Milestone | Files/Docs | Checks | Notes |",
-    "|---|---|---|---|---|---|---|---|",
-    "| T-015 | Fixture task | completed | Quick | G0 | docs | check | done |",
-    "",
-  ].join("\n"));
-
-  const result = runHygiene(root);
-
-  assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /Meta-review due: T-016 is explicitly reserved/i);
-});
-
-test("context hygiene fails when a task ledger row is too long", () => {
-  const root = createFixture();
-  writeFixtureFile(root, "docs/06_tasks/TASK_LEDGER.md", [
-    "# Task Ledger",
-    "",
-    "Current branch and task-numbering baseline: use `codex/test-baseline`; use `T-006` for the next task unless directed otherwise.",
-    "",
-    "| ID | Task | Status | Mode | Milestone | Files/Docs | Checks | Notes |",
-    "|---|---|---|---|---|---|---|---|",
-    `| T-005 | Fixture task | completed | Quick | G0 | docs | check | ${"long note ".repeat(90)} |`,
-    "",
-  ].join("\n"));
-
-  const result = runHygiene(root);
-
-  assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /TASK_LEDGER\.md table row \d+ has \d+ characters, limit 700/i);
-});
-
-test("context hygiene allows rolling windows at their structural triggers", () => {
-  const root = createFixture({ latest: "T-018", next: "T-019" });
-  writeFixtureFile(root, "docs/06_tasks/TASK_LEDGER.md", ledgerWindowText("codex/test-baseline", "T-019", 18));
-  writeFixtureFile(root, "docs/00_memory/WORKLOG.md", worklogWindowText(14, 18));
-  writeFixtureFile(root, "docs/07_decisions/DECISION_LOG.md", decisionWindowText(14));
-
-  const result = runHygiene(root);
-
-  assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /Worklog entries: 14 \/ 14 trigger; retain 8/i);
-  assert.match(result.stdout, /Task ledger rows: 18 \/ 18 trigger; retain 12/i);
-  assert.match(result.stdout, /Decision log entries: 14 \/ 14 trigger; retain 8/i);
-});
-
-test("context hygiene fails above rolling-window structural triggers", () => {
-  const root = createFixture({ latest: "T-019", next: "T-020" });
-  writeFixtureFile(root, "docs/06_tasks/TASK_LEDGER.md", ledgerWindowText("codex/test-baseline", "T-020", 19));
-  writeFixtureFile(root, "docs/00_memory/WORKLOG.md", worklogWindowText(15, 19));
-  writeFixtureFile(root, "docs/07_decisions/DECISION_LOG.md", decisionWindowText(15));
-
-  const result = runHygiene(root);
-
-  assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /WORKLOG\.md has 15 active entries, trigger 14/i);
-  assert.match(result.stderr, /TASK_LEDGER\.md has 19 active rows, trigger 18/i);
-  assert.match(result.stderr, /DECISION_LOG\.md has 15 active decisions, trigger 14/i);
-});
-
-test("context hygiene permits pending structural rotation only for a closeout precheck", () => {
-  const root = createFixture({ latest: "T-019", next: "T-020" });
-  writeFixtureFile(root, "docs/06_tasks/TASK_LEDGER.md", ledgerWindowText("codex/test-baseline", "T-020", 19));
-  writeFixtureFile(root, "docs/00_memory/WORKLOG.md", worklogWindowText(15, 19));
-  writeFixtureFile(root, "docs/07_decisions/DECISION_LOG.md", decisionWindowText(15));
-
-  const result = runHygiene(root, {
-    CONTEXT_HYGIENE_CLOSEOUT_TASK: "T-019",
-    CONTEXT_HYGIENE_ALLOW_PENDING_ROTATION: "1",
-  });
-
-  assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /Pending structural rotation accepted for T-019 closeout precheck/i);
-});
-
-test("context hygiene fails above the decision archive pointer trigger", () => {
-  const root = createFixture();
-  writeFixtureFile(root, "docs/07_decisions/DECISION_LOG.md", decisionWindowText(1, 13));
-
-  const result = runHygiene(root);
-
-  assert.notEqual(result.status, 0);
-  assert.match(result.stdout, /Decision archive pointers: 13 \/ 12 trigger; retain 6/i);
-  assert.match(result.stderr, /DECISION_LOG\.md has 13 archive pointers, trigger 12/i);
+test("bad arguments and unavailable environment report exit 2", (t) => {
+  const { root } = createFixture(t);
+  assert.equal(run(root, "--apply").status, 2);
+  assert.equal(run(path.join(root, "missing"), "--json").status, 2);
+  rmSync(path.join(root, ".git"), { recursive: true });
+  assert.equal(run(root).status, 2);
 });

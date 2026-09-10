@@ -18,3 +18,24 @@ APP_STATUS_OVERVIEW.md
 V1.0_RELEASE_TASK_PLAN.md
 UI_DESIGN_RULES_PROPOSAL.md
 CONTEXT_QUOTA_GOVERNANCE_PLAN.md
+
+# Historical rules, journals and duplicate indexes; current state is never hidden.
+docs/00_memory/PROJECT_MEMORY.md
+docs/00_memory/WORKLOG.md
+docs/06_tasks/TASK_LEDGER.md
+docs/06_tasks/ROADMAP_EXECUTION_QUEUE.md
+docs/06_tasks/META_REVIEW_TEMPLATE.md
+docs/05_workflow/SINGLE_AGENT_WORKFLOW.md
+docs/05_workflow/CONTEXT_AND_RECOVERY.md
+docs/05_workflow/TOOLING_POLICY.md
+docs/05_workflow/GITHUB_RULES.md
+docs/05_workflow/STOP_CONDITIONS.md
+docs/04_ios/testops/TESTOPS_MEMORY.md
+docs/10_project_structure/**
+
+# Plans/evidence remain at stable paths. Hygiene adds the current/changed artifacts explicitly.
+docs/superpowers/**
+!docs/superpowers/README.md
+docs/06_tasks/APP_FUNCTIONAL_DESIGN_FINDINGS.md
+docs/06_tasks/sql_reviews/**
+!docs/06_tasks/sql_reviews/README.md

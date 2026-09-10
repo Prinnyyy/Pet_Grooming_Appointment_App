@@ -17,6 +17,7 @@ ios/Beckon/Config/Supabase.local.xcconfig
 artifacts/testops/
 artifacts/evidence/
 artifacts/address-backfill/
+artifacts/governance/
 
 # External agent draft reports; archive under docs/09_frozen/external_agent_reports/ when needed.
 APP_STATUS_OVERVIEW.md

@@ -9,15 +9,10 @@ git status --short || true
 echo "-- Required docs --"
 required_files=(
   "AGENTS.md"
-  "docs/00_memory/PROJECT_MEMORY.md"
   "docs/00_memory/CURRENT_STATE.md"
   "docs/00_memory/FEATURE_INDEX.md"
-  "docs/06_tasks/TASK_LEDGER.md"
   "docs/06_tasks/ROADMAP.md"
-  "docs/05_workflow/SINGLE_AGENT_WORKFLOW.md"
-  "docs/05_workflow/CONTEXT_AND_RECOVERY.md"
-  "docs/05_workflow/TOOLING_POLICY.md"
-  "docs/05_workflow/GITHUB_RULES.md"
+  "docs/05_workflow/DEVELOPMENT_GUIDE.md"
 )
 
 for file in "${required_files[@]}"; do

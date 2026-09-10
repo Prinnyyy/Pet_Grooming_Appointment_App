@@ -12,7 +12,7 @@ Use this file as the index only. Open the smallest next document for the task:
 | Review executable case sets | `TEST_CASES.md` |
 | Connect failures to Debug Console JSONL | `DEBUG_INTEGRATION.md` |
 | Write a test run record | `TEMPLATES.md` |
-| See current module state | `TESTOPS_MEMORY.md` |
+| See capability and limits | This index; `RUNBOOK.md` for execution |
 | Find saved run records | `RESULTS_INDEX.md` |
 
 ## Current Scope
@@ -25,3 +25,12 @@ Use this file as the index only. Open the smallest next document for the task:
 - Authorized full UI lifecycle execution uses `scripts/ios-testops-lifecycle.sh`; it drives both roles, verifies Debug JSONL and Supabase final state, and always performs run-tag cleanup.
 - Pass/fail assertions must use API state, repository state, accessibility identifiers, and Debug JSONL events. Screenshots are failure artifacts only.
 - Remote data writes require explicit operator approval outside the script plus `--execute` and `TESTOPS_REMOTE_WRITE_APPROVED=1`.
+
+## Preserved Capability Limits
+
+- `smoke5` is backend-only. Full UI lifecycle uses the fixed BTC-001/BTG-001 pair; a UI matrix is not implemented.
+- `matching_baseline` evaluates requests and matches only, not offers/bookings/chat/reviews or image/Storage writes.
+- The launch harness always exercises clear-session smoke; seeded navigation requires environment-supplied role credentials. Stable selectors belong to `TestOpsUIFlowDriver`, not screenshots.
+- Generated runs live in ignored `artifacts/testops/`; entity identifiers in console and report output use eight-character support references. Credentials are never report content.
+- Doctor recognizes modern secret and legacy service-role credentials. Execution, `apikey` handling and cleanup gates are owned by [Runbook](RUNBOOK.md); seed writers retain their separate JWT-only restriction.
+- TestOps uses the existing T-129 account pool and does not create accounts; start from [test resource index](../../02_architecture/test_resources/README.md), not broad profile-table reads. [Rules](RULES.md) and [Scenarios](SCENARIOS.md) retain detailed boundaries. This consolidation grants no new account or remote permissions.

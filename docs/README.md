@@ -1,62 +1,37 @@
-# Project Documentation Index
+# Documentation And Paths
 
-This folder is the durable project memory and coordination layer for Codex. Use it to avoid relying on long conversation context.
+Read one domain entry when needed, then targeted contracts/code. [Current State](00_memory/CURRENT_STATE.md) alone owns task IDs and recovery. [Development Guide](05_workflow/DEVELOPMENT_GUIDE.md) owns workflow and safety; this index does not define active work.
 
-## Sections
+## Domain Entries
 
-- `00_memory/`: current state, recent worklog, feature routing, and project memory
-- `01_product/`: product definition, user roles, flows, screen inventory, UX, and design system
-- `02_architecture/`: iOS/client architecture, data flow, boundaries, error handling, and fixtures
-- `03_backend/`: Supabase fast-path contract, RLS/RPC policy, Storage policy, and migration rules
-- `04_ios/`: Swift, SwiftUI source governance, build/test, Debug Console, and TestOps runbooks
-- `05_workflow/`: active workflow, context/recovery, tooling, GitHub, and stop rules
-- `06_tasks/`: active task ledger, managed roadmap, screenshot/meta-review templates, and reviewed SQL artifacts
-- `07_decisions/`: canonical durable decision log and ADR template
-- `08_design/`: Beckon implementation notes, screenshots, and tokens; historical prompts and long design audits live in frozen archives
-- `superpowers/`: temporary task plans/specs with closeout metadata; completed artifacts are automatically frozen
-- `ui-redesign/`: heavy point-in-time UI inventory and Figma evidence; only its README is default-visible
-- `09_frozen/`: frozen history and pre-trim snapshots; default searches should not read it
-- `10_project_structure/`: current path map and reorganization history
+| Need | Entry |
+|---|---|
+| Find feature ownership | [Feature Index](00_memory/FEATURE_INDEX.md) |
+| Product, roles and flows | [Product brief](01_product/PRODUCT_BRIEF.md), [navigation](01_product/NAVIGATION_AND_FLOWS.md) |
+| UI contract | [Design System](01_product/DESIGN_SYSTEM.md), [brand](01_product/BRAND_IDENTITY.md) |
+| Client architecture | [Architecture](02_architecture/ARCHITECTURE.md) |
+| Backend definitions and safety | [Supabase Contract](03_backend/SUPABASE_CONTRACT.md) |
+| Build and tests | [iOS commands](04_ios/IOS_BUILD_AND_TESTING.md), [TestOps](04_ios/testops/README.md) |
+| Future product directions | [Roadmap](06_tasks/ROADMAP.md) |
+| Durable decisions | [Decision Log](07_decisions/DECISION_LOG.md) |
+| Plans and acceptance evidence | [Task artifacts](superpowers/README.md), [reviewed SQL/evidence index](06_tasks/sql_reviews/README.md) |
+| Design assets | [UI notes](08_design/UI_IMPLEMENTATION_NOTES.md), [screenshots](08_design/screenshots/README.md) |
+| Named heavy design inspection | [UI redesign entry](ui-redesign/README.md) |
+| Named fixture/account lookup | [Test resources](02_architecture/test_resources/README.md) |
 
-## Access Model
+## Repository Paths
 
-- L0 required: `../AGENTS.md` only. Add targeted Current State/Ledger tops only when branch, task, validation, editing, or recovery facts matter.
-- L1 task indexes: this file, `00_memory/FEATURE_INDEX.md`, `03_backend/SUPABASE_CONTRACT.md`, `04_ios/testops/README.md`, `10_project_structure/README.md`.
-- L2 domain rules: targeted product, architecture, backend, iOS, TestOps, workflow files.
-- L3 trace/history: targeted `WORKLOG.md`, `PROJECT_MEMORY.md`, decision log, and reorganization log.
-- L4 frozen/heavy: `09_frozen/**`, `ui-redesign/` body files, Beckon HTML/export, T-129 seed tables, and generated artifacts. Read only with a named target and specific reason.
+| Path | Ownership |
+|---|---|
+| [ios](../ios/) | SwiftUI app, Xcode project and tests; moves need Xcode-reference validation. |
+| [migrations](../supabase/migrations/) | Append-only migration mirrors; do not rename, rewrite or reorder applied versions. |
+| [functions](../supabase/functions/) | Backend functions; deployment needs scoped authorization. |
+| [scripts](../scripts/) and [tests](../tests/) | Existing validation and operational tools. |
+| [project config](../.codex/config.toml) | Local Codex configuration; not changed by repository governance. |
+| [search exclusions](../.rgignore) | Historical and heavy material hidden from ordinary searches. |
+| [frozen archives](09_frozen/README.md) | Historical evidence, read only for a named purpose. |
+| [reorganization history](10_project_structure/REORGANIZATION_LOG.md) | Prior moves, not another live path index. |
 
-Default searches honor `../.rgignore`. Do not use broad `rg --files -g '*.md'` as the default Markdown inventory because it can re-include ignored seed Markdown.
+Credentials and generated artifacts remain ignored and outside ordinary reads. Search hiding is not a security permission. Current plans and changed task documents remain eligible for targeted hygiene checks even when excluded from broad search.
 
-## Quick Path Lookup
-
-- Agent rules: `../AGENTS.md`
-- Current state and branch baseline: `00_memory/CURRENT_STATE.md`
-- Task numbering/status source: `06_tasks/TASK_LEDGER.md`
-- Managed roadmap: `06_tasks/ROADMAP.md`
-- Feature routing index: `00_memory/FEATURE_INDEX.md`
-- Canonical brand identity: `01_product/BRAND_IDENTITY.md`
-- Workflow rules: `05_workflow/SINGLE_AGENT_WORKFLOW.md`
-- Context access, recovery, compaction, and hygiene: `05_workflow/CONTEXT_AND_RECOVERY.md`
-- Tooling and validation policy: `05_workflow/TOOLING_POLICY.md`
-- Git/GitHub rules: `05_workflow/GITHUB_RULES.md`
-- Stop conditions: `05_workflow/STOP_CONDITIONS.md`
-- Context hygiene check: `../scripts/context-hygiene-check.mjs`
-- Numbered durable task closeout: `../scripts/task-closeout.mjs`; artifact metadata: `superpowers/README.md`
-- Durable decisions: `07_decisions/DECISION_LOG.md`; frozen full snapshots: `09_frozen/decisions/`
-- Project structure map: `10_project_structure/README.md`
-- Test resource index: `02_architecture/test_resources/README.md`
-- TestOps index: `04_ios/testops/README.md`
-- Design screenshots: `08_design/screenshots/`
-- Heavy UI redesign evidence index: `ui-redesign/README.md`
-- Frozen archive guide: `09_frozen/README.md`
-
-## Current Baseline
-
-The canonical work branch is `codex/pet-fit-structure-cleanup` unless the user explicitly names another branch. New bugfix and iteration work should use the next available task ID from `06_tasks/TASK_LEDGER.md`.
-
-Detailed task records T-001 through T-088 are archived under `09_frozen/task_records_2026-06-26/`. Use `06_tasks/TASK_LEDGER.md` as the single active task-status and task-numbering record.
-
-Keep active memory and policy files compact through single ownership, replacement semantics, structural windows, and completed-artifact rotation. Generic word telemetry is informational; only the workflow entry adapters have enforced ceilings.
-
-This index does not define active work. Start new work only from an explicit user request and the next available task ID in `06_tasks/TASK_LEDGER.md`.
+The [functional findings](06_tasks/APP_FUNCTIONAL_DESIGN_FINDINGS.md) and [original reliability plan](superpowers/plans/2026-09-07-functional-reliability-task-plan.md) are historical inputs to [T-385 local acceptance](06_tasks/sql_reviews/T-385_RELEASE_CHECKPOINT.md), not an unadopted remediation queue.

@@ -68,7 +68,7 @@ test("identity audit excludes immutable history but audits active workflow sourc
     "AGENTS.md",
     "CLAUDE.md",
     "docs/01_product/BRAND_IDENTITY.md",
-    "docs/05_workflow/TOOLING_POLICY.md",
+    "docs/05_workflow/DEVELOPMENT_GUIDE.md",
   ]) {
     assert.equal(isIdentityAuditExcluded(file), false, file);
   }

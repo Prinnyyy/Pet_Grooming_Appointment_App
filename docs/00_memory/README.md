@@ -1,48 +1,10 @@
-# Memory Directory Guide
+# State And Routing
 
-This directory holds compact project memory for current work and recovery. It is not a dumping ground for every historical fact.
+- [Current State](CURRENT_STATE.md): the only dynamic task record, including pending-task recovery.
+- [Feature Index](FEATURE_INDEX.md): code ownership and relevant domain contracts, without implementation timelines.
+- [Development Guide](../05_workflow/DEVELOPMENT_GUIDE.md): task lifecycle, validation, authorization and Git.
+- [Decision Log](../07_decisions/DECISION_LOG.md): durable decisions, not daily progress.
 
-## File Ownership
+Worklog, Project Memory and Task Ledger have retired from routine reads/writes. Their preserved text is historical only. Stable product facts belong in the root README and domain contracts; Git owns current branch and changes.
 
-| File | Owns | Does Not Own |
-|---|---|---|
-| `CURRENT_STATE.md` | Current branch, latest task, active blockers, latest validation state, current high-level product/iOS/backend facts, live risks, next task guidance | Detailed task history, per-feature implementation timelines, long migration notes |
-| `WORKLOG.md` | Recent reverse-chronological closeout history and checkpoints | Full historical worklog archives, current instructions from old `Next:` lines, task numbering authority |
-| `FEATURE_INDEX.md` | Feature-to-doc/code routing and compact current status | Current branch/build status, detailed task closeouts, task-by-task timelines |
-| `PROJECT_MEMORY.md` | Highest-level project identity and permanent constraints | Current task status, detailed feature or backend facts |
-
-Durable product and architecture decisions live in `docs/07_decisions/DECISION_LOG.md`.
-
-## Update Rules
-
-- Update `CURRENT_STATE.md` only when a future run needs a changed current fact.
-- Append to `WORKLOG.md` only for meaningful implementation, workflow, product, or recovery checkpoints.
-- Update `FEATURE_INDEX.md` only when a feature is added, removed, relocated, or materially changes ownership.
-- Update `PROJECT_MEMORY.md` only when a permanent high-level project fact changes.
-- Update `docs/07_decisions/DECISION_LOG.md` when a durable architecture/product decision changes.
-- Keep history out of `CURRENT_STATE.md`; link to `WORKLOG.md`, `TASK_LEDGER.md`, archived task records, or domain docs instead.
-- Keep task-by-task timelines out of `FEATURE_INDEX.md`; route to the smallest active domain docs/code area instead.
-- After durable-memory changes, run `node scripts/context-hygiene-check.mjs`; rotate only structurally overfull windows or completed artifacts, not generic word telemetry.
-- Whole-file state snapshots taken before a coordinated reset live under `docs/09_frozen/active_state_snapshots/`; they are recovery evidence, never startup context.
-
-## Manual Learning Review
-
-Use `node scripts/learning-review.mjs` when you want a draft list of preference or skill candidates from transcript-like notes, Worklog excerpts, or hand-curated session text. The tool is review-only: it writes a checklist report and never promotes candidates into `AGENTS.md`, workflow docs, or Codex skills by itself.
-
-```sh
-node scripts/learning-review.mjs --input docs/00_memory/WORKLOG.md --output docs/00_memory/learning-review-draft.md --title "Manual Learning Review"
-```
-
-Before promoting any candidate, verify it against newer project rules, avoid secrets and unverified assumptions, and update the owning durable source only once.
-
-## Conflict Rules
-
-- Task ID, task status, and next task number: `docs/06_tasks/TASK_LEDGER.md` wins.
-- Current branch, current baseline, current blockers, latest validation: `CURRENT_STATE.md` wins.
-- Detailed evidence for what happened in a task: newest relevant `WORKLOG.md` entry wins.
-- Durable architecture/product decision: `docs/07_decisions/DECISION_LOG.md` wins.
-- Domain truth: product docs, architecture docs, backend docs, iOS docs, or source code win over old memory summaries.
-
-## Size Rule
-
-Keep `CURRENT_STATE.md`, `WORKLOG.md`, and `TASK_LEDGER.md` short enough to scan during startup. `CURRENT_STATE.md` replaces stale facts, while Worklog/Ledger retain bounded recent entries. When any file starts reading like a changelog, preserve the source under the matching `docs/09_frozen/` family and keep only current/recent facts active.
+The existing `scripts/learning-review.mjs` is an optional, explicitly requested draft generator from selected notes, not an automatic promotion mechanism for rules or skills. No scheduled review or context-size threshold applies.

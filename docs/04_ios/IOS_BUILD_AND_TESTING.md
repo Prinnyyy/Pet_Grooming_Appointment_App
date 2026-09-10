@@ -98,4 +98,4 @@ Do not use a secret or service-role key. If the local file is absent or invalid,
 - Use the scripts for repository build and test checks.
 - Add or update local Node tests for new migrations and Edge Function helpers before remote validation.
 - If a task needs a different simulator or project, use an environment override instead of changing the safe defaults.
-- Stop after two focused repair attempts for task-related build failures.
+- Diagnose task-related failures using the [Development Guide](../05_workflow/DEVELOPMENT_GUIDE.md#decisions-and-stops); retries require new evidence or a relevant correction, not a fixed attempt count.

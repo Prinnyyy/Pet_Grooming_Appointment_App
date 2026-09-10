@@ -1,47 +1,19 @@
 # AGENTS.md
 
-## Mission
+Maintain Beckon, a request-first iOS SwiftUI marketplace. Preserve user work and complete the adopted objective through validation.
 
-Maintain the Beckon iOS SwiftUI repository through small, reversible changes. Complete one primary `T-###` task per session and preserve user work.
+## Priority And Startup
 
-## Rule Priority
+Host/system instructions and explicit user requests take priority. This file is the repository entry; [Development Guide](docs/05_workflow/DEVELOPMENT_GUIDE.md) owns the on-demand workflow. Archived rules are history, not instructions. Subagents remain disabled.
 
-Apply instructions in this order: host/system, explicit user request, this file, the owner workflow file below, then active project facts. Host-required tools or skills may shape execution but do not expand scope or grant remote authorization.
+For read-only questions, inspect only the requested facts; do not allocate a task or write memory.
+Before edits, inspect Git status and [Current State](docs/00_memory/CURRENT_STATE.md). It alone owns task IDs and recovery pointers. Use [Feature Index](docs/00_memory/FEATURE_INDEX.md) only when routing is unclear, then read targeted code/contracts. Default searches honor `.rgignore`.
 
-Archived agent-team, subagent, workflow, task, and report files are historical only. Do not use them unless the user explicitly re-enables that material.
+## Boundaries
 
-## Workflow Owners
-
-- `docs/05_workflow/SINGLE_AGENT_WORKFLOW.md`: task lifecycle, mode, scope, closeout, and meta-review scheduling.
-- `docs/05_workflow/CONTEXT_AND_RECOVERY.md`: context access, recovery, compaction, and structural hygiene.
-- `docs/05_workflow/TOOLING_POLICY.md`: validation, tools, credentials, Simulator policy, Supabase, and remote authorization.
-- `docs/05_workflow/GITHUB_RULES.md`: commit, branch, push, PR, tag, and reconciliation conventions.
-- `docs/05_workflow/STOP_CONDITIONS.md`: stop-and-report matrix.
-
-Do not duplicate an owner rule in another active workflow file; link to its owner.
-
-## Minimal Startup
-
-1. Read this file.
-2. Run `git status --short` before edits and preserve unrelated work.
-3. Read targeted top sections of `docs/00_memory/CURRENT_STATE.md` only when branch, validation, risks, or recovery matter.
-4. Read targeted top rows of `docs/06_tasks/TASK_LEDGER.md` only when assigning or updating task status.
-5. After classifying the task, add at most one domain index before targeted rules/code.
-
-Default searches honor `.rgignore`. Never use a broad glob that re-includes frozen, seed, export, or heavy UI material. Root/external-agent Markdown is review input, not current fact.
-
-## Hard Gates
-
-- Use the ledger's next task ID for new implementation, bugfix, or governed workflow work.
-- One task per session. A due meta-review is reserved as the next task and runs in a fresh session, never automatically after another task.
-- Rule-file changes are standalone tasks with a decision-log entry and context hygiene.
-- Keep SwiftUI presentation thin; business logic stays in Store/ViewModel/repository boundaries. Backend access stays behind repositories/services.
-- Screenshot work maps every module to existing app ownership before editing. New persistence, schema, RLS/RPC, Storage, navigation, role capability, or deferred behavior requires a separate decision.
-- Do not invent backend facts, expose secrets, perform destructive operations, add dependencies, create PRs, or make non-Git remote writes without explicit approval.
-- Subagents remain disabled unless the user explicitly enables them.
-
-## Completion
-
-Follow the owner files for validation, closeout, context hygiene, and Git. Standing approval covers validated task-completion commits and pushes on the current work branch only; it does not cover incomplete checkpoint commits or other remote operations.
-
-When Markdown moves or disappears, update every active index, link, source-of-truth note, and ignore/search rule in the same task. On interruption or stale context, recover through `CONTEXT_AND_RECOVERY.md` rather than history reconstruction.
+- Continue within the adopted objective; small steps and task numbers do not require ending a session. Do not start unrelated backlog work.
+- Keep SwiftUI thin and business/backend operations behind Store/ViewModel and repository boundaries.
+- Preserve existing edits, credentials, RLS and applied migration history. No new dependency, destructive operation or non-Git remote write without explicit authorization.
+- Screenshot work must map to existing ownership; new persistence, navigation or role capabilities need an adopted decision.
+- Validate according to affected risk. Do not repeat unchanged valid evidence, weaken safety checks, or claim unperformed verification.
+- Standing Git approval covers validated completion commits and pushes on the current work branch only, not checkpoints, reconciliation or PRs.

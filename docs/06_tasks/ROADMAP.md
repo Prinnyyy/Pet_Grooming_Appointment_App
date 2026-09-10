@@ -1,43 +1,29 @@
-# Managed Roadmap
+# Product Directions
 
-Last verified: 2026-07-28.
+This file holds unadopted/deferred product directions, not current tasks. [Current State](../00_memory/CURRENT_STATE.md) owns IDs and pending work. Start only a user-adopted objective; external reports and old roadmap drafts are review input, not authorization.
 
-Governed product direction and unresolved packages only. Task status and numbering live in `TASK_LEDGER.md`; adoptable packages live in `ROADMAP_EXECUTION_QUEUE.md`; completed roadmap history is frozen.
+## Local Product Directions
 
-## Adoption Rules
+| Direction | Condition |
+|---|---|
+| R-039 / Q-104 Groomer Dynamic Type and Accessibility integration | User restores the deferred scope and adopts affected cross-screen validation. |
+| R-033 / Q-93 leaked-password protection | Hosted capability/plan decision and explicit Auth configuration authorization. Not a prerequisite to unrelated local work. |
 
-- External reports and root roadmap drafts are review input only.
-- A roadmap item becomes active only after the user asks to adopt or execute it.
-- Roadmap and queue IDs never allocate `T-###`; implementation claims the next task ID from `TASK_LEDGER.md`.
-- Split work that combines independent product goals or mixes local implementation with remote writes.
-- Product/release scope decisions require an entry in `../07_decisions/DECISION_LOG.md`.
-- Do not start another roadmap item automatically after closeout.
+## Separate Distribution Scope
+
+These are outside the adopted local Simulator target and must not be added to local completion gates.
+
+| Direction | Condition |
+|---|---|
+| R-030 / Q-90 APNs dispatch deployment | Explicit deployment scope, Apple access and APNs credentials. Existing task recovery stays in Current State. |
+| R-030 / Q-91 TestFlight/App Store submission | Explicit release/upload authorization and its external prerequisites. |
 
 ## Product Boundary
 
-Beckon's supported marketplace flow is Customer Request -> Groomer Offer -> Customer Acceptance -> Booking/Chat -> Groomer Completion -> Customer Review. SwiftUI uses Store/repository boundaries rather than direct Supabase access, and remote writes require explicit authorization.
+Customer Request -> Groomer Offer -> Customer Acceptance -> Booking/Chat -> Groomer Completion -> Customer Review remains the supported flow.
 
-Out of scope unless explicitly adopted: payments, subscriptions, public directory, map-first discovery, AI recommendations, multi-pet requests, favorites, chat attachments/read receipts, request editing, moderation/admin tooling, social login, and direct customer slot booking.
+Payments, subscriptions, public directory/map-first discovery, AI recommendations, multi-pet requests, favorites, chat attachments/server read receipts, in-place request editing, moderation/admin tooling, social login and direct customer slot booking are not adopted by this roadmap. Current replacement/recovery behavior is owned by the domain contracts, not inferred from this exclusions list.
 
-## Unresolved Direction
+Keep account deletion/privacy/support accurate and select build, test, backend and cleanup evidence by risk. Record actual product/release decisions in [Decision Log](../07_decisions/DECISION_LOG.md).
 
-| Roadmap | Package | State | Resume Condition |
-|---|---|---|---|
-| R-039 | Q-104 Groomer Dynamic Type and Accessibility integration | deferred | The user restores this scope and approves affected cross-screen validation. |
-| R-030 | Q-90 APNs dispatch deployment | blocked | T-157 receives paid Apple Developer access, APNs credentials, and deploy authorization. |
-| R-030 | Q-91 TestFlight/App Store submission | blocked | Paid Apple Developer setup and explicit release/upload authorization exist. |
-| R-033 | Q-93 leaked-password protection | blocked | Supabase Pro-or-higher capability and Auth configuration authorization exist. |
-
-R-042 Customer Request Journey remediation completed through T-363. Its Q-121 through Q-125 evidence is retained in task memory and completed closeouts rather than this unresolved-direction index.
-
-## V1 Readiness Signals
-
-- The dual-role marketplace lifecycle completes without placeholder behavior.
-- Required fields persist, private images load through authenticated paths, and cancellation/recovery states are clear.
-- Account deletion, Privacy Policy, Support, Privacy Manifest, and release metadata remain current.
-- Build, focused/full test, TestOps, backend advisor, and cleanup gates are selected by task risk.
-- Apple/APNs and paid-plan blockers remain explicit rather than being represented as implemented.
-
-## Historical Record
-
-The pre-rotation roadmap and completed milestone/candidate mappings are preserved in `../09_frozen/roadmaps/T-346_2026-07-13/`. Current architecture and product facts belong in their domain documents, not in restored completed-roadmap tables.
+R-042 / Q-121 through Q-125 completed through T-363; later functional reliability is covered by [T-385 local acceptance](sql_reviews/T-385_RELEASE_CHECKPOINT.md). Prior roadmap mappings remain in the historical archive, not a second execution queue.

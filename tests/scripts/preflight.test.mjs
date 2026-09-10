@@ -4,6 +4,7 @@ import {
   copyFileSync,
   mkdirSync,
   mkdtempSync,
+  rmSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -19,8 +20,9 @@ function writeFile(root, filePath, text = "# Placeholder\n") {
   writeFileSync(fullPath, text);
 }
 
-function createPreflightFixture() {
+function createPreflightFixture(t) {
   const root = mkdtempSync(path.join(tmpdir(), "preflight-fixture-"));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
   const gitInit = spawnSync("git", ["init", "--quiet"], {
     cwd: root,
     encoding: "utf8",
@@ -29,15 +31,10 @@ function createPreflightFixture() {
 
   for (const filePath of [
     "AGENTS.md",
-    "docs/00_memory/PROJECT_MEMORY.md",
     "docs/00_memory/CURRENT_STATE.md",
     "docs/00_memory/FEATURE_INDEX.md",
-    "docs/06_tasks/TASK_LEDGER.md",
     "docs/06_tasks/ROADMAP.md",
-    "docs/05_workflow/SINGLE_AGENT_WORKFLOW.md",
-    "docs/05_workflow/CONTEXT_AND_RECOVERY.md",
-    "docs/05_workflow/TOOLING_POLICY.md",
-    "docs/05_workflow/GITHUB_RULES.md",
+    "docs/05_workflow/DEVELOPMENT_GUIDE.md",
   ]) {
     writeFile(root, filePath);
   }
@@ -45,6 +42,7 @@ function createPreflightFixture() {
     "console.log('fixture migration test ran');",
     "",
   ].join("\n"));
+  writeFile(root, "tests/brand/fixture-brand.test.mjs", "console.log('fixture brand test ran');\n");
   writeFile(root, "tests/functions/fixture-function.test.mjs", [
     "console.log('fixture function test ran');",
     "",
@@ -81,24 +79,44 @@ function createPreflightFixture() {
   return { preflightPath, root };
 }
 
-test("preflight runs migration and function Node tests when present", () => {
-  const { preflightPath, root } = createPreflightFixture();
+function runPreflight(preflightPath, root) {
   const env = { ...process.env };
   for (const key of Object.keys(env)) {
     if (key.startsWith("NODE_TEST")) {
       delete env[key];
     }
   }
-  const result = spawnSync(preflightPath, {
+  return spawnSync(preflightPath, {
     cwd: root,
     env,
     encoding: "utf8",
   });
-  const output = `${result.stdout}\n${result.stderr}`;
+}
 
-  assert.equal(result.status, 0, result.stderr);
+test("preflight runs brand, UI, migration and function checks with the new guide", (t) => {
+  const { preflightPath, root } = createPreflightFixture(t);
+  const result = runPreflight(preflightPath, root);
+  const output = `${result.stdout}\n${result.stderr}`;
+  assert.equal(result.status, 0, output);
   assert.match(output, /Beckon identity check passed/);
   assert.match(output, /UI consistency audit passed/);
+  assert.match(output, /fixture brand test ran/);
   assert.match(output, /fixture migration test ran/);
   assert.match(output, /fixture function test ran/);
+});
+
+test("preflight rejects a missing guide rather than requiring retired owners", (t) => {
+  const { preflightPath, root } = createPreflightFixture(t);
+  rmSync(path.join(root, "docs/05_workflow/DEVELOPMENT_GUIDE.md"));
+  const result = runPreflight(preflightPath, root);
+  assert.equal(result.status, 1);
+  assert.match(result.stdout, /Missing required file: docs\/05_workflow\/DEVELOPMENT_GUIDE.md/);
+});
+
+test("preflight propagates a failing domain test", (t) => {
+  const { preflightPath, root } = createPreflightFixture(t);
+  writeFile(root, "tests/migrations/fixture-migration.test.mjs", "throw new Error('fixture domain failure');\n");
+  const result = runPreflight(preflightPath, root);
+  assert.notEqual(result.status, 0);
+  assert(!result.stdout.includes("Preflight passed."));
 });
