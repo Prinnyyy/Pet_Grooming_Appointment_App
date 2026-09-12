@@ -86,7 +86,7 @@ final class TestOpsLaunchSmokeTests: XCTestCase {
 @MainActor
 final class TestOpsBookingAdversarialTests: XCTestCase {
     private let app = XCUIApplication()
-    private var runID: String { ProcessInfo.processInfo.environment["TESTOPS_RUN_ID"]
+    private nonisolated var runID: String { ProcessInfo.processInfo.environment["TESTOPS_RUN_ID"]
         ?? ProcessInfo.processInfo.environment["TEST_RUNNER_TESTOPS_RUN_ID"] ?? "" }
     private var references: [String] { (ProcessInfo.processInfo.environment["TEST_RUNNER_T387_REQUEST_REFS"]
         ?? ProcessInfo.processInfo.environment["T387_REQUEST_REFS"] ?? "").split(separator: ",").map(String.init) }
@@ -94,10 +94,10 @@ final class TestOpsBookingAdversarialTests: XCTestCase {
     override func setUpWithError() throws {
         continueAfterFailure = false
         let environment = ProcessInfo.processInfo.environment
-        guard runID.hasPrefix("TESTOPS-T387-"),
+        guard (runID.hasPrefix("TESTOPS-T387-") || runID.hasPrefix("TESTOPS-T390-")),
               (environment["TESTOPS_REMOTE_WRITE_APPROVED"]
                 ?? environment["TEST_RUNNER_TESTOPS_REMOTE_WRITE_APPROVED"]) == "1" else {
-            throw XCTSkip("Authorized scoped T-387 runner required.")
+            throw XCTSkip("Authorized scoped booking or matching runner required.")
         }
     }
 
@@ -213,8 +213,53 @@ final class TestOpsBookingAdversarialTests: XCTestCase {
         XCTAssertTrue(element("customer.requests.list").waitForExistence(timeout: 15))
     }
 
+    func testMatchingSortPreferenceAndPaging() throws {
+        XCTAssertTrue(runID.hasPrefix("TESTOPS-T390-"))
+        XCTAssertEqual(references.count, 4)
+        try start(.groomer)
+        tap(element("groomer.tab.requests"))
+
+        func assertFirstReference(_ reference: String) {
+            let first = app.buttons.matching(identifier: "groomer.requests.row.\(runID)").firstMatch
+            XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(
+                predicate: NSPredicate(format: "exists == true AND value == %@", reference),
+                object: first)], timeout: 20), .completed)
+        }
+
+        func selectSort(_ title: String, reference: String) {
+            tap(element("groomer.requests.sort"))
+            tap(app.buttons[title].firstMatch)
+            assertFirstReference(reference)
+            let attachment = XCTAttachment(screenshot: app.screenshot())
+            attachment.name = "Matching sort: \(title)"
+            attachment.lifetime = .keepAlways
+            add(attachment)
+        }
+
+        selectSort("Nearest", reference: references[0])
+        selectSort("Newest", reference: references[1])
+        selectSort("Relevant experience", reference: references[2])
+        selectSort("Nearest", reference: references[0])
+        app.terminate()
+        app.launchArguments = ["--beckon-testops-run-id", runID, "--beckon-testops-disable-animations"]
+        app.launch()
+        tap(element("groomer.tab.requests"))
+        assertFirstReference(references[0])
+        selectSort("Relevant experience", reference: references[2])
+        tap(element("groomer.requests.load-more"))
+        XCTAssertTrue(referenceRow(prefix: "groomer.requests.row", reference: references[3]).waitForExistence(timeout: 20))
+        let attachment = XCTAttachment(screenshot: app.screenshot())
+        attachment.name = "Matching second page"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+
     func testQuoteTwoRequests() throws {
-        XCTAssertEqual(references.count, 2)
+        if runID.hasPrefix("TESTOPS-T390-") {
+            XCTAssertTrue((1...2).contains(references.count))
+        } else {
+            XCTAssertEqual(references.count, 2)
+        }
         try start(.groomer)
         for reference in references {
             tap(element("groomer.tab.requests"))
@@ -227,10 +272,264 @@ final class TestOpsBookingAdversarialTests: XCTestCase {
             }
             fillOfferField("groomer.offers.price", text: "105")
             fillOfferField("groomer.offers.message", text: "TESTOPS:\(runID) B66 UI offer")
+            if runID.hasPrefix("TESTOPS-T390-") {
+                fillOfferField("groomer.offers.duration", text: "60")
+                XCTAssertFalse(element("groomer.offers.submit").isEnabled)
+                XCTAssertTrue(element("groomer.offers.confirmation.pet_size").exists)
+                for key in ["pet_size", "pet_coat", "pet_matting"] {
+                    let confirmation = element("groomer.offers.confirmation.\(key)")
+                    if confirmation.exists {
+                        let visibleArea = app.frame.inset(by: UIEdgeInsets(top: 140, left: 0, bottom: 180, right: 0))
+                        for _ in 0..<10 {
+                            if confirmation.isHittable && visibleArea.contains(confirmation.frame) { break }
+                            let destinationY: CGFloat = confirmation.frame.minY < visibleArea.minY ? 0.6 : 0.4
+                            app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+                                .press(forDuration: 0.05, thenDragTo: app.coordinate(
+                                    withNormalizedOffset: CGVector(dx: 0.5, dy: destinationY)))
+                        }
+                        XCTAssertTrue(visibleArea.contains(confirmation.frame), "Confirmation must be clear of stationary bars: \(key)")
+                        confirmation.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.5)).tap()
+                        XCTAssertEqual(confirmation.value as? String, "1", key)
+                    }
+                }
+                XCTAssertTrue(element("groomer.offers.submit").isEnabled)
+            }
             tap(element("groomer.offers.submit"))
             XCTAssertTrue(element("groomer.offers.withdraw").waitForExistence(timeout: 35))
             tap(app.navigationBars.buttons.firstMatch)
         }
+    }
+
+    func testCustomerMatchingSortModes() throws {
+        XCTAssertEqual(references.count, 1)
+        let environment = ProcessInfo.processInfo.environment
+        let expected = (environment["TEST_RUNNER_T390_SORT_PRICES"] ?? environment["T390_SORT_PRICES"] ?? "")
+            .split(separator: ",").map(String.init)
+        XCTAssertEqual(expected.count, 4)
+        try start(.customer)
+        tap(element("customer.tab.requests"))
+        tap(app.buttons.matching(NSPredicate(format:
+            "(identifier == 'customer.requests.offers' OR label == 'Request Offers') AND value == %@", references[0])).firstMatch)
+        for (index, title) in ["Recommended", "Nearest", "Earliest appointment", "Lowest price"].enumerated() {
+            tap(element("customer.offers.sort"))
+            tap(app.buttons[title].firstMatch)
+            let first = app.buttons.matching(identifier: "customer.offers.row.\(runID)").firstMatch
+            XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(
+                predicate: NSPredicate(format: "exists == true AND label CONTAINS %@", expected[index]),
+                object: first)], timeout: 20), .completed)
+            let attachment = XCTAttachment(screenshot: app.screenshot())
+            attachment.name = "Customer matching sort: \(title)"
+            attachment.lifetime = .keepAlways
+            add(attachment)
+        }
+    }
+
+    func testMatchingDismissPersistsAfterRefresh() throws {
+        XCTAssertEqual(references.count, 1)
+        try start(.groomer)
+        tap(element("groomer.tab.requests"))
+        let row = referenceRow(prefix: "groomer.requests.row", reference: references[0])
+        tap(row)
+        tap(element("groomer.requests.dismiss"))
+        tap(app.navigationBars.buttons.firstMatch)
+        tap(app.buttons["Refresh"].firstMatch)
+        XCTAssertTrue(row.waitForNonExistence(timeout: 20))
+        app.terminate()
+        app.launchArguments = ["--beckon-testops-run-id", runID, "--beckon-testops-disable-animations"]
+        app.launch()
+        tap(element("groomer.tab.requests"))
+        XCTAssertFalse(row.exists)
+        let attachment = XCTAttachment(screenshot: app.screenshot())
+        attachment.name = "Dismissal survives refresh and relaunch"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+
+    func testMatchingLivePageChanges() async throws {
+        let environment = ProcessInfo.processInfo.environment
+        func setting(_ name: String) throws -> String {
+            try XCTUnwrap(environment["TEST_RUNNER_" + name] ?? environment[name])
+        }
+        func mutate(_ operation: String) async throws {
+            let route = operation == "REVIEW" ? "create_review_v2" : "create_groomer_offer_v3"
+            var request = URLRequest(url: URL(string: "https://lqmasbuqzvcvtawonjlb.supabase.co/rest/v1/rpc/" + route)!)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.setValue(try setting("T390_API_KEY"), forHTTPHeaderField: "apikey")
+            request.setValue("Bearer " + (try setting("T390_" + operation + "_TOKEN")), forHTTPHeaderField: "Authorization")
+            request.httpBody = try setting("T390_" + operation + "_BODY").data(using: .utf8)
+            let (_, response) = try await URLSession.shared.data(for: request)
+            XCTAssertEqual((response as? HTTPURLResponse)?.statusCode, 200, "Scoped role mutation must succeed")
+        }
+        try start(.groomer)
+        tap(element("groomer.tab.requests"))
+        tap(element("groomer.requests.sort"))
+        tap(app.buttons["Relevant experience"].firstMatch)
+        for operation in ["REVIEW", "QUOTE"] {
+            let first = app.buttons.matching(identifier: "groomer.requests.row.\(runID)").firstMatch
+            XCTAssertTrue(first.waitForExistence(timeout: 20))
+            let originalReference = first.value as? String
+            try await mutate(operation)
+            tap(element("groomer.requests.load-more"))
+            let changed = app.staticTexts["Matches changed. Refresh to continue."].firstMatch
+            XCTAssertTrue(changed.waitForExistence(timeout: 20))
+            XCTAssertEqual(first.value as? String, originalReference)
+            XCTAssertFalse(element("groomer.requests.load-more").exists)
+            let attachment = XCTAttachment(screenshot: app.screenshot())
+            attachment.name = "Live page invalidation: \(operation)"
+            attachment.lifetime = .keepAlways
+            add(attachment)
+            tap(app.buttons["Refresh"].firstMatch)
+            XCTAssertTrue(changed.waitForNonExistence(timeout: 20))
+        }
+    }
+
+    func testMatchingOfferExpiresDuringConfirmation() throws {
+        XCTAssertEqual(references.count, 1)
+        try start(.customer)
+        tap(element("customer.tab.requests"))
+        tap(app.buttons.matching(NSPredicate(format:
+            "(identifier == 'customer.requests.offers' OR label == 'Request Offers') AND value == %@", references[0])).firstMatch)
+        tap(element("customer.offers.row.\(runID)"))
+        tap(element("customer.offers.accept"))
+        let confirm = app.buttons.matching(NSPredicate(format:
+            "identifier == 'customer.offers.confirm' OR label == 'Confirm & Book' OR label == 'Offer Expired'")).firstMatch
+        XCTAssertTrue(confirm.waitForExistence(timeout: 15))
+        XCTAssertTrue(confirm.isEnabled)
+        XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "exists == true AND enabled == false"), object: confirm)],
+            timeout: 300), .completed)
+        XCTAssertTrue(app.buttons["Offer Expired"].firstMatch.exists)
+        let attachment = XCTAttachment(screenshot: app.screenshot())
+        attachment.name = "Offer naturally expired during confirmation"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+
+    func testMatchingProposeTimeChange() throws {
+        XCTAssertEqual(references.count, 1)
+        try start(.customer)
+        tap(element("customer.tab.bookings"))
+        tap(element("bookings.row.request.\(references[0])"))
+        tap(element("booking.reschedule.propose"))
+        tap(element("booking.reschedule.confirm"))
+        XCTAssertTrue(element("booking.reschedule.confirm").waitForNonExistence(timeout: 30))
+        XCTAssertTrue(app.staticTexts["Proposed by Customer"].firstMatch.waitForExistence(timeout: 20))
+    }
+
+    func testMatchingNetworkRefreshRecovery() throws {
+        XCTAssertEqual(references.count, 1)
+        let driver = TestOpsUIFlowDriver()
+        driver.launchSignedOut(additionalArguments: ["--beckon-testops-fail-matching-refresh-once"])
+        driver.signIn(try TestOpsSeedAccount.fromEnvironment(role: .groomer))
+        tap(element("groomer.tab.requests"))
+        let row = referenceRow(prefix: "groomer.requests.row", reference: references[0])
+        XCTAssertTrue(row.waitForExistence(timeout: 25))
+        let error = app.staticTexts["Check your connection and try again."].firstMatch
+        if !error.exists { tap(app.buttons["Refresh"].firstMatch) }
+        XCTAssertTrue(error.waitForExistence(timeout: 20))
+        XCTAssertTrue(row.exists, "Failed refresh must retain the loaded candidate")
+        let attachment = XCTAttachment(screenshot: app.screenshot())
+        attachment.name = "Retained candidate during injected network failure"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+        tap(app.buttons["Refresh"].firstMatch)
+        XCTAssertTrue(error.waitForNonExistence(timeout: 20))
+        XCTAssertTrue(row.exists)
+        tap(row)
+        XCTAssertTrue(app.staticTexts["Evidence unavailable"].firstMatch.waitForExistence(timeout: 15))
+        fillOfferField("groomer.offers.price", text: "110")
+        fillOfferField("groomer.offers.duration", text: "60")
+        fillOfferField("groomer.offers.message", text: "TESTOPS:\(runID) fallback quote")
+        tap(element("groomer.offers.submit"))
+        XCTAssertTrue(element("groomer.offers.withdraw").waitForExistence(timeout: 30))
+    }
+
+    func testMatchingAcceptTimeChange() throws {
+        XCTAssertEqual(references.count, 1)
+        try start(.groomer)
+        tap(element("groomer.tab.bookings"))
+        tap(element("groomer.booking.row.request.\(references[0])"))
+        tap(element("booking.reschedule.accept"))
+        tap(element("booking.reschedule.confirm"))
+        XCTAssertTrue(element("booking.reschedule.confirm").waitForNonExistence(timeout: 30))
+        XCTAssertTrue(element("booking.reschedule.accept").waitForNonExistence(timeout: 20))
+        let attachment = XCTAttachment(screenshot: app.screenshot())
+        attachment.name = "Accepted time change"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+
+    func testMatchingLiveStartAndComplete() throws {
+        XCTAssertEqual(references.count, 1)
+        try start(.groomer)
+        tap(element("groomer.tab.bookings"))
+        tap(element("groomer.booking.row.request.\(references[0])"))
+        let startButton = element("booking.fulfillment.start")
+        XCTAssertTrue(startButton.waitForExistence(timeout: 600), "The real scheduled start must arrive")
+        tap(startButton)
+        tap(element("booking.fulfillment.confirm"))
+        XCTAssertTrue(element("booking.fulfillment.confirm").waitForNonExistence(timeout: 30))
+        XCTAssertTrue(app.staticTexts["In Service"].firstMatch.waitForExistence(timeout: 20))
+        let complete = element("booking.fulfillment.complete")
+        XCTAssertTrue(complete.waitForExistence(timeout: 90), "Completion requires one real minute of service")
+        tap(complete)
+        tap(element("booking.fulfillment.confirm"))
+        XCTAssertTrue(element("booking.fulfillment.confirm").waitForNonExistence(timeout: 30))
+        XCTAssertTrue(app.staticTexts["Completed"].firstMatch.waitForExistence(timeout: 20))
+        let attachment = XCTAttachment(screenshot: app.screenshot())
+        attachment.name = "Real-time completed service"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+
+    func testMatchingSubmitVerifiedReview() throws {
+        XCTAssertEqual(references.count, 1)
+        try start(.customer)
+        tap(element("customer.tab.bookings"))
+        tap(element("bookings.scope.past"))
+        tap(element("bookings.row.request.\(references[0])"))
+        let content = element("bookings.review.content")
+        tap(content)
+        content.typeText("TESTOPS:\(runID) verified live service")
+        finishInput()
+        let fit = app.segmentedControls.matching(NSPredicate(format:
+            "identifier BEGINSWITH 'bookings.review.fit.'")).firstMatch
+        XCTAssertTrue(fit.waitForExistence(timeout: 20))
+        XCTAssertTrue(element("bookings.review.fit.size:S").exists, "Review uses the confirmed service's original size")
+        XCTAssertFalse(element("bookings.review.fit.size:Giant").exists, "Later pet edits must not change the review context")
+        tap(fit.buttons.element(boundBy: 2))
+        tap(element("bookings.review.submit"))
+        XCTAssertTrue(element("bookings.review.display").waitForExistence(timeout: 30))
+        let attachment = XCTAttachment(screenshot: app.screenshot())
+        attachment.name = "Verified service review"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+
+    func testConfirmMatchingServiceSpecies() throws {
+        guard runID.hasPrefix("TESTOPS-T390-") else { throw XCTSkip("Matching fixture only") }
+        try start(.groomer)
+        tap(element("groomer.tab.account"))
+        tap(element("groomer.account.services"))
+        tap(app.buttons["Actions for Matching test Full Groom"].firstMatch)
+        tap(app.buttons["Edit"].firstMatch)
+        let dog = element("groomer.services.species.dog")
+        XCTAssertTrue(dog.waitForExistence(timeout: 10))
+        XCTAssertEqual(dog.value as? String, "0")
+        tap(dog)
+        if dog.value as? String == "0" {
+            dog.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.5)).tap()
+        }
+        XCTAssertEqual(dog.value as? String, "1")
+        let visible = app.switches["Visible to customers"].firstMatch
+        tap(visible)
+        if visible.value as? String == "0" {
+            visible.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.5)).tap()
+        }
+        XCTAssertEqual(visible.value as? String, "1")
+        tap(element("groomer.services.save"))
+        XCTAssertTrue(element("groomer.services.form").waitForNonExistence(timeout: 30))
     }
 
     func testAcceptTwoRequests() throws {

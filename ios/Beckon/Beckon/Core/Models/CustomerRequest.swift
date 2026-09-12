@@ -86,6 +86,9 @@ struct GroomingRequestPetSnapshot: Decodable, Equatable, Hashable, Sendable {
     let medicalNotes: String?
     let groomingNotes: String?
     let snapshotAt: String?
+    var coatTypeSource: String? = nil
+    var mattingConfirmed: Bool? = nil
+    var factsVersion: Int? = nil
 
     private enum CodingKeys: String, CodingKey {
         case id
@@ -100,6 +103,9 @@ struct GroomingRequestPetSnapshot: Decodable, Equatable, Hashable, Sendable {
         case medicalNotes = "medical_notes"
         case groomingNotes = "grooming_notes"
         case snapshotAt = "snapshot_at"
+        case coatTypeSource = "coat_type_source"
+        case mattingConfirmed = "matting_confirmed"
+        case factsVersion = "facts_version"
     }
 }
 
@@ -221,19 +227,22 @@ struct CustomerOfferReview: Equatable, Identifiable, Sendable {
     let groomerAvatarPhotoData: Data?
     let matchScore: Double?
     let matchReason: String?
+    let matchingEvidence: MatchingEvidence?
 
     nonisolated init(
         offer: GroomerOffer,
         groomerProfile: GroomerProfile?,
         groomerAvatarPhotoData: Data? = nil,
         matchScore: Double? = nil,
-        matchReason: String? = nil
+        matchReason: String? = nil,
+        matchingEvidence: MatchingEvidence? = nil
     ) {
         self.offer = offer
         self.groomerProfile = groomerProfile
         self.groomerAvatarPhotoData = groomerAvatarPhotoData
         self.matchScore = matchScore
         self.matchReason = matchReason
+        self.matchingEvidence = matchingEvidence
     }
 
     var id: UUID {
@@ -264,7 +273,8 @@ struct CustomerOfferReview: Equatable, Identifiable, Sendable {
             return "No reviews yet"
         }
 
-        let average = groomerProfile.ratingAverage.formatted(
+        guard let exactAverage = groomerProfile.exactRatingAverage else { return "Rating unavailable" }
+        let average = exactAverage.formatted(
             .number.precision(.fractionLength(1))
         )
         return "\(average) · \(groomerProfile.ratingCount) reviews"
@@ -284,18 +294,11 @@ struct CustomerOfferReview: Equatable, Identifiable, Sendable {
     }
 
     var fitEvidencePresentation: CustomerOfferFitPresentation? {
-        guard
-            let rawReason = matchReason,
-            !rawReason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        else {
-            return nil
+        if let matchingEvidence {
+            return CustomerOfferFitPresentation(scoreText: nil, reason: matchingEvidence.detail,
+                structuredSummary: matchingEvidence.summary)
         }
-
-        let reason = rawReason.trimmingCharacters(in: .whitespacesAndNewlines)
-        return CustomerOfferFitPresentation(
-            scoreText: nil,
-            reason: reason
-        )
+        return nil
     }
 }
 
@@ -306,9 +309,10 @@ struct CustomerOfferFitPresentation:
 {
     let scoreText: String?
     let reason: String
+    var structuredSummary: String? = nil
 
     var listSummary: String {
-        MatchFitEvidenceReasonFormatter.explanationSummary(from: reason)
+        structuredSummary ?? reason
     }
 }
 

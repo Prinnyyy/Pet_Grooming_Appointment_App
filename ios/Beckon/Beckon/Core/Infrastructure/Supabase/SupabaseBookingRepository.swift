@@ -228,14 +228,22 @@ final class SupabaseBookingRepository: BookingRepository {
         }
     }
 
+    func reviewContext(bookingID: UUID) async throws -> BookingReviewContext {
+        do {
+            return try await client.rpc("get_booking_review_context", params: ["p_booking_id": bookingID.uuidString.lowercased()])
+                .execute().value
+        } catch { throw Self.map(error) }
+    }
+
     func createReview(
         bookingID: UUID,
         draft: BookingReviewDraft
     ) async throws -> CreateReviewResult {
         do {
-            let rows: [CreateReviewRow] = try await client
+            guard draft.contextRevision != nil else { throw BookingRepositoryError.reviewContextChanged }
+            let row: CreateReviewRow = try await client
                 .rpc(
-                    "create_review",
+                    "create_review_v2",
                     params: CreateReviewParameters(
                         bookingID: bookingID,
                         draft: draft
@@ -244,11 +252,7 @@ final class SupabaseBookingRepository: BookingRepository {
                 .execute()
                 .value
 
-            guard rows.count == 1, let result = rows.first?.result else {
-                throw BookingRepositoryError.unavailable
-            }
-
-            return result
+            return row.result
         } catch let error as BookingRepositoryError {
             throw error
         } catch {
@@ -354,6 +358,7 @@ final class SupabaseBookingRepository: BookingRepository {
                 case "occupied_time_off_conflict", "occupied_outside_weekly_hours":
                     return .bookingConflict
                 case "invalid_rating",
+                     "invalid_pet_fit_context",
                      "invalid_review_content",
                      "invalid_review_outcomes",
                      "too_many_review_outcomes",
@@ -361,6 +366,8 @@ final class SupabaseBookingRepository: BookingRepository {
                      "invalid_review_outcome_value",
                      "duplicate_review_outcome":
                     return .invalidReview
+                case "review_context_changed":
+                    return .reviewContextChanged
                 default:
                     return .invalidInput
                 }
@@ -928,6 +935,7 @@ nonisolated struct CreateReviewParameters: Encodable {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(bookingID.uuidString.lowercased(), forKey: .bookingID)
         try container.encode(draft.rating, forKey: .rating)
+        try container.encode(draft.contextRevision, forKey: .contextRevision)
 
         if let content = draft.content {
             try container.encode(content, forKey: .content)
@@ -941,6 +949,7 @@ nonisolated struct CreateReviewParameters: Encodable {
     private enum CodingKeys: String, CodingKey {
         case bookingID = "p_booking_id"
         case rating = "p_rating"
+        case contextRevision = "p_expected_context_revision"
         case content = "p_content"
         case petFitOutcomes = "p_pet_fit_outcomes"
     }

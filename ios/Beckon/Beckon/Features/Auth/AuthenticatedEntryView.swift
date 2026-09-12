@@ -91,7 +91,12 @@ struct AuthenticatedEntryView: View {
                     bookingRepository: bookingRepository,
                     chatRepository: chatRepository,
                     accountContent: genericAccountContent(for: profile),
-                    onSignOut: signOut
+                    onSignOut: signOut,
+                    sessionIsCurrent: {
+                        guard !authenticationStore.isSubmitting,
+                              case let .signedIn(current) = authenticationStore.rootState else { return false }
+                        return current.userID == profile.userID
+                    }
                 )
 
             case let .failure(message):

@@ -374,6 +374,10 @@ struct CustomerOfferReviewSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            if store.rankedOfferPages[request.id]?.effectiveMode == "time_fallback" {
+                Text("Recommendation unavailable. Showing earliest appointments.")
+                    .font(DesignTokens.Typography.caption)
+            }
             BeckonAnnotatedModule(
                 "Offers",
                 subtitle: "Compare pending offers and review previous offer activity."
@@ -607,7 +611,7 @@ private struct CustomerOfferFitEvidenceBlock: View {
                     }
                 }
 
-                Text(presentation.listSummary)
+                Text(isCompact ? presentation.listSummary : presentation.reason)
                     .font(isCompact ? DesignTokens.Typography.caption : DesignTokens.Typography.body)
                     .foregroundStyle(DesignTokens.Colors.textSecondary)
                     .lineLimit(isCompact ? 2 : nil)

@@ -211,9 +211,9 @@ struct ProfileBadges: View {
     var body: some View {
         if profile.ratingCount > 0 || profile.isVerified {
             HStack(spacing: DesignTokens.Spacing.sm) {
-                if profile.ratingCount > 0 {
+                if let average = profile.exactRatingAverage {
                     BeckonStatusChip(
-                        "\(profile.ratingAverage.formatted(.number.precision(.fractionLength(2)))) from \(profile.ratingCount) review\(profile.ratingCount == 1 ? "" : "s")",
+                        "\(average.formatted(.number.precision(.fractionLength(2)))) from \(profile.ratingCount) review\(profile.ratingCount == 1 ? "" : "s")",
                         systemImage: "star.fill",
                         tone: .warning
                     )

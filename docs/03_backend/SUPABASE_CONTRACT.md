@@ -41,6 +41,16 @@ Authenticated clients receive no direct table privileges on private address loca
 
 The controlled backfill linked 51 Groomers, 50 Customers, and 1 active Request. One Customer support ref remains a reviewed ZIP-conflict exception; Groomer and active Request gaps, incomplete active targets, orphan legacy/TestOps locations, and tagged TestOps Requests are zero. The six-case `matching_radius` matrix verifies near/edge/outside behavior in both service directions. Operational usage is `../04_ios/ADDRESS_BACKFILL.md`; durable evidence is `../04_ios/testops/runs/T-299_ADDRESS_BACKFILL_RADIUS.md`.
 
+## Matching Contract - T-390
+
+Verified 2026-09-12: 107 aligned migrations through `20260912144522_t390_enable_matching_ranking.sql`, empty repeat dry run, matching-v1 enabled and private validation cohort empty. This scoped current verification supersedes earlier matching/rating descriptions and migration counts above; unrelated historical evidence keeps its original scope. [Acceptance and limits](../04_ios/testops/T-390_MATCHING_RATING_ACCEPTANCE.md).
+
+- Service species are explicitly confirmed. Unknown weight/size/coat/matting are not invented; `save_my_pet_v2` owns provenance. `create_groomer_offer_v3` requires applicable unknown-fact confirmations and binds a service configuration/revision. Compatible v2 calls cannot bypass confirmations or locked admission.
+- `get_booking_review_context` exposes only the owning customer's frozen, eligible completed-service keys. `create_review_v2` validates context revision and answers. Public stars use exact integer sum/count; private professional evidence uses trusted service time and independently bounded customer influence. Claims/portfolio do not raise evidence scores; missing and negative answers remain distinct.
+- `get_ranked_matched_requests` and `get_ranked_customer_offers` rank the complete authorized candidate set before paging. Signed cursors bind actor, role, scope, mode, source revision and score clock. Changed/expired pages return list_changed; a soft arithmetic failure uses independent fallback ranking without changing quote/acceptance eligibility.
+- Hard-source events and expiring feasible-interval proofs share the existing bounded worker. Soft evidence/rating/display events do not repeat schedule analysis. Cancellation, release and dismissal retain their transaction semantics; local sort preferences are explicit and account/role/page scoped.
+- Account anonymization clears matching/review-derived personal evidence, retains anonymous commercial facts, and uses bounded rollback/retry for source-lock contention. Auth/Storage deletion boundaries are unchanged. No new private score, signing secret or exact coordinate is exposed to clients.
+
 ## Product Contract
 
 The backend implements the request-first marketplace model:
@@ -65,7 +75,7 @@ Core deployed data areas:
 - Customer pet data: `pets`, `pet_photos`, fixed taxonomy, weight-derived size, nullable coat type, and private pet photo objects.
 - Groomer marketplace data: services, portfolio photos, availability windows, booking preferences, time off windows, fit claims, and portfolio fit tags.
 - Request lifecycle: grooming requests, request photos, request matches, groomer offers, bookings, participant-pair conversations, typed text/booking-card messages, reviews, and structured pet-fit outcomes.
-- Pet-fit matching: private SQL helper functions, evidence summary view, match scoring/reason text, claim/tag low-confidence signals, negative-evidence suppression, availability-aware matching, and request day-capacity matching.
+- Pet-fit matching: private verified-service evidence, exact public rating aggregates, structured explanations including negative/unknown feedback, complete-set ranking and signed pagination, availability-aware eligibility and request day-capacity matching. The T-390 section above owns current matching semantics.
 - Address matching: PostGIS, private exact location rows, opaque profile/request references, owner profile address RPCs, coordinate Request v2, direction-correct radius scoring, and strict missing-coordinate exclusion.
 - Customer/groomer operational state: `customer_notifications`, `groomer_notifications`, `customer_booking_handoff_acknowledgements`, `customer_push_tokens`, and `account_deletion_requests`.
 - Automation: request-expiry cron job, match backfill triggers for groomer activation/availability changes, customer/groomer notification triggers, and account-deletion service-role finalization RPCs.

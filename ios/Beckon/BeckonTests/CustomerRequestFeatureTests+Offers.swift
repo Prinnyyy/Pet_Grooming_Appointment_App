@@ -353,7 +353,8 @@ extension CustomerRequestsStoreTests {
 
         await store.loadNextOffersPage(for: request)
 
-        #expect(repository.receivedOfferPages == [.first, .first.next, .first.next])
+        #expect(repository.rankedRequests.map(\.cursor) == [nil, "50", "50"])
+        #expect(repository.rankedRequests.map(\.limit) == [25, 25, 25])
         #expect(store.offers(for: request).map(\.id) == [first.id, second.id])
         #expect(store.canLoadMoreOffers(for: request) == false)
     }
@@ -386,7 +387,7 @@ extension CustomerRequestsStoreTests {
     }
 
     @Test @MainActor
-    func loadOffersOrdersPendingBeforeHistoricalOffers() async throws {
+    func loadOffersPreservesRepositoryOrderWithoutLocalReranking() async throws {
         let customerID = UUID()
         let request = Self.request(customerID: customerID, petID: UUID())
         let withdrawnOffer = Self.offerReview(
@@ -414,13 +415,13 @@ extension CustomerRequestsStoreTests {
         await store.loadOffers(for: request)
 
         #expect(store.offers(for: request).map(\.offer.status) == [
-            .pending,
             .withdrawnByGroomer,
+            .pending,
         ])
     }
 
     @Test @MainActor
-    func offerReviewFitEvidencePresentationUsesExplanationFirstCopyWithoutRawScore() {
+    func legacyOfferReasonDoesNotBecomeVerifiedEvidence() {
         let offerReview = Self.offerReview(
             customerID: UUID(),
             requestID: UUID(),
@@ -432,15 +433,7 @@ extension CustomerRequestsStoreTests {
 
         let presentation = offerReview.fitEvidencePresentation
 
-        #expect(presentation?.scoreText == nil)
-        #expect(
-            presentation?.reason
-                == "Same city and service location. Pet-fit evidence: completed poodle coats."
-        )
-        #expect(
-            presentation?.listSummary
-                == "Location And Service Fit: Same city and service location. Earned Evidence: completed poodle coats."
-        )
+        #expect(presentation == nil)
     }
 
     @Test @MainActor

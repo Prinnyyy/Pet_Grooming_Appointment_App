@@ -73,6 +73,9 @@ private enum AppDebugRepositoryCancellation {
 
 @MainActor
 final class DebugBookingRepository: BookingRepository {
+    func reviewContext(bookingID: UUID) async throws -> BookingReviewContext {
+        try await base.reviewContext(bookingID: bookingID)
+    }
     private let base: any BookingRepository
     private let debugRecorder: AppDebugEventRecorder?
 
@@ -207,7 +210,7 @@ final class DebugBookingRepository: BookingRepository {
             source: "BookingRepository.createReview",
             scope: "customer.bookings",
             operation: "createReview",
-            metadata: ["bookingID": bookingID.uuidString, "rpc": "create_review"]
+            metadata: ["bookingID": bookingID.uuidString, "rpc": "create_review_v2"]
         ) {
             try await base.createReview(bookingID: bookingID, draft: draft)
         }
@@ -216,6 +219,12 @@ final class DebugBookingRepository: BookingRepository {
 
 @MainActor
 final class DebugCustomerRequestRepository: CustomerRequestRepository {
+    func quoteEvaluations(offerIDs: [UUID]) async throws -> [UUID: QuoteEvaluation] {
+        try await base.quoteEvaluations(offerIDs: offerIDs)
+    }
+    func rankedOffers(customerID: UUID, requestID: UUID, page: RankedPageRequest<CustomerOfferSort>) async throws -> RankedPage<CustomerOfferReview> {
+        try await base.rankedOffers(customerID: customerID, requestID: requestID, page: page)
+    }
     func offer(customerID: UUID, requestID: UUID, offerID: UUID) async throws -> CustomerOfferReview {
         try await base.offer(customerID: customerID, requestID: requestID, offerID: offerID)
     }
@@ -1349,6 +1358,21 @@ final class DebugGroomerProfileRepository: GroomerProfileRepository {
 
 @MainActor
 final class DebugGroomerRequestRepository: GroomerRequestRepository {
+#if DEBUG
+    private var matchingTestReadCount = 0
+#endif
+    func rankedMatches(groomerID: UUID, page: RankedPageRequest<GroomerMatchSort>) async throws -> RankedPage<GroomerMatchedRequest> {
+#if DEBUG
+        let arguments = ProcessInfo.processInfo.arguments
+        if arguments.contains("--beckon-testops-fail-matching-refresh-once"),
+           AppTestOpsConfiguration(arguments: arguments).runID?.hasPrefix("TESTOPS-T390-") == true {
+            matchingTestReadCount += 1
+            try await Task.sleep(for: .milliseconds(500))
+            if matchingTestReadCount == 2 { throw GroomerRequestRepositoryError.networkUnavailable }
+        }
+#endif
+        return try await base.rankedMatches(groomerID: groomerID, page: page)
+    }
     func matchedRequest(groomerID: UUID, requestID: UUID) async throws -> GroomerMatchedRequest {
         try await base.matchedRequest(groomerID: groomerID, requestID: requestID)
     }

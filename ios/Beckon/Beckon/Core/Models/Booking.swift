@@ -200,7 +200,8 @@ struct Booking: Equatable, Hashable, Identifiable, Sendable {
         guard
             status == .completed,
             let serviceType,
-            let requestPetSnapshot
+            let requestPetSnapshot,
+            let referenceDate = reviewableFitReferenceDate
         else {
             return []
         }
@@ -208,7 +209,7 @@ struct Booking: Equatable, Hashable, Identifiable, Sendable {
         return PetFitSignal.signals(
             for: requestPetSnapshot,
             serviceType: serviceType,
-            referenceDate: reviewableFitReferenceDate
+            referenceDate: referenceDate
         )
     }
 
@@ -293,21 +294,8 @@ struct Booking: Equatable, Hashable, Identifiable, Sendable {
         return "\(parts[0]!), \(parts[1]!), \(parts[2]!) \(parts[3]!)"
     }
 
-    nonisolated private var reviewableFitReferenceDate: Date {
-        if let completedAt,
-           let completedDate = GroomingRequestDateFormatting.parsedDate(
-                from: completedAt
-           ) {
-            return completedDate
-        }
-
-        if let scheduledEndDate = GroomingRequestDateFormatting.parsedDate(
-            from: scheduledEnd
-        ) {
-            return scheduledEndDate
-        }
-
-        return Date()
+    nonisolated private var reviewableFitReferenceDate: Date? {
+        GroomingRequestDateFormatting.parsedDate(from: scheduledStart)
     }
 
     nonisolated private var groomerLocationSummary: String? {
@@ -396,15 +384,18 @@ nonisolated struct BookingReviewDraft: Equatable, Sendable {
     let rating: Int
     let content: String?
     let petFitOutcomes: [BookingReviewPetFitOutcomeDraft]
+    var contextRevision: UUID? = nil
 
     init(
         rating: Int,
         content: String?,
-        petFitOutcomes: [BookingReviewPetFitOutcomeDraft] = []
+        petFitOutcomes: [BookingReviewPetFitOutcomeDraft] = [],
+        contextRevision: UUID? = nil
     ) {
         self.rating = rating
         self.content = content
         self.petFitOutcomes = petFitOutcomes
+        self.contextRevision = contextRevision
     }
 }
 

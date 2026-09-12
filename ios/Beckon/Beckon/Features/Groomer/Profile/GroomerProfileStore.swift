@@ -91,6 +91,8 @@ final class GroomerProfileStore {
     var serviceDurationMinutes = ""
     var serviceUsesCustomSizeRange = false
     var selectedServiceSizes: Set<GroomerServicePetSize> = []
+    var selectedServiceSpecies: Set<GroomerServiceSpecies> = []
+    var serviceSpeciesConfirmed = false
     var serviceIsActive = true
     var availabilityDayStates: [GroomerAvailabilityDayState] =
         GroomerAvailabilityDayState.defaultStates()
@@ -423,7 +425,8 @@ final class GroomerProfileStore {
             return "★ New profile"
         }
 
-        return "★ \(profile.ratingAverage.formatted(.number.precision(.fractionLength(1)))) · \(profile.ratingCount) review\(profile.ratingCount == 1 ? "" : "s")"
+        guard let average = profile.exactRatingAverage else { return "Rating unavailable" }
+        return "★ \(average.formatted(.number.precision(.fractionLength(1)))) · \(profile.ratingCount) review\(profile.ratingCount == 1 ? "" : "s")"
     }
 
     private static func normalized(_ value: String?) -> String? {

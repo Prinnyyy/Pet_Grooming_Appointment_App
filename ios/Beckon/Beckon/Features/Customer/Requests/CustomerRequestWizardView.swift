@@ -251,30 +251,30 @@ struct CustomerRequestWizardFitInputPresentation: Equatable {
 
     private static func label(for group: PetFitSignal.Group) -> String {
         switch group {
-        case .coatType:
+        case .coatType, .verifiedCoat:
             "Coat"
         case .breedGroup:
             "Breed"
-        case .sizeBand:
+        case .sizeBand, .verifiedSize:
             "Pet Size"
-        case .careFlag:
+        case .careFlag, .verifiedCare:
             "Care Need"
-        case .serviceFit:
+        case .serviceFit, .verifiedService:
             "Service Fit"
         }
     }
 
     private static func systemImage(for group: PetFitSignal.Group) -> String {
         switch group {
-        case .coatType:
+        case .coatType, .verifiedCoat:
             "comb"
         case .breedGroup:
             "pawprint"
-        case .sizeBand:
+        case .sizeBand, .verifiedSize:
             "ruler"
-        case .careFlag:
+        case .careFlag, .verifiedCare:
             "heart"
-        case .serviceFit:
+        case .serviceFit, .verifiedService:
             "sparkles"
         }
     }

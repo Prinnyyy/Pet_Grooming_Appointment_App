@@ -12,6 +12,8 @@ enum GroomerRequestRepositoryError: Error, Equatable, Sendable {
     case timingBuffersRequired
     case scheduleTimeZoneRequired
     case serviceTimeZoneRequired
+    case serviceSpeciesRequired
+    case assessmentConfirmationRequired
     case offerNotFound
     case noLongerWithdrawable
     case invalidInput
@@ -22,6 +24,7 @@ enum GroomerRequestRepositoryError: Error, Equatable, Sendable {
 
 @MainActor
 protocol GroomerRequestRepository: AnyObject {
+    func rankedMatches(groomerID: UUID, page: RankedPageRequest<GroomerMatchSort>) async throws -> RankedPage<GroomerMatchedRequest>
     func matchedRequest(groomerID: UUID, requestID: UUID) async throws -> GroomerMatchedRequest
     func offer(groomerID: UUID, offerID: UUID) async throws -> GroomerOffer?
     func matchedRequests(groomerID: UUID) async throws -> [GroomerMatchedRequest]
@@ -60,6 +63,9 @@ protocol GroomerRequestRepository: AnyObject {
 }
 
 extension GroomerRequestRepository {
+    func rankedMatches(groomerID: UUID, page: RankedPageRequest<GroomerMatchSort>) async throws -> RankedPage<GroomerMatchedRequest> {
+        throw MatchRankingError.unavailable
+    }
     func matchedRequest(groomerID: UUID, requestID: UUID) async throws -> GroomerMatchedRequest {
         throw GroomerRequestRepositoryError.unavailable
     }

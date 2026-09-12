@@ -18,6 +18,7 @@ enum BookingRepositoryError: Error, Equatable, Sendable {
     case bookingNotCompleted
     case reviewAlreadyExists
     case invalidReview
+    case reviewContextChanged
     case invalidInput
     case networkUnavailable
     case cancelled
@@ -26,6 +27,7 @@ enum BookingRepositoryError: Error, Equatable, Sendable {
 
 @MainActor
 protocol BookingRepository: AnyObject {
+    func reviewContext(bookingID: UUID) async throws -> BookingReviewContext
     func reminderSnapshot(participantID: UUID, role: UserRole) async throws -> AppointmentReminderSnapshot
     func nearestBooking(participantID: UUID, role: UserRole, now: Date) async throws -> Booking?
     func bookings(participantID: UUID, role: UserRole, interval: DateInterval,
@@ -73,6 +75,9 @@ protocol BookingRepository: AnyObject {
 }
 
 extension BookingRepository {
+    func reviewContext(bookingID: UUID) async throws -> BookingReviewContext {
+        throw BookingRepositoryError.unavailable
+    }
     func reminderSnapshot(participantID: UUID, role: UserRole) async throws -> AppointmentReminderSnapshot {
         throw BookingRepositoryError.unavailable
     }

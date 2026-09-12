@@ -5,6 +5,27 @@ import UIKit
 import XCTest
 @testable import Beckon
 
+struct MatchEligibilityContractTests {
+    @Test(arguments: ["pet_size", "custom_service", "pet_coat", "pet_matting"])
+    func supportedConfirmationIsPreserved(_ key: String) throws {
+        let data = try JSONSerialization.data(withJSONObject: [
+            "state": "assessment_required", "required_confirmations": [key]
+        ])
+        let result = try JSONDecoder().decode(MatchEligibilityEvaluation.self, from: data)
+        #expect(result.isOfferable)
+        #expect(result.confirmationKeys == [key])
+    }
+
+    @Test(arguments: ["service_species_configuration", "unknown_future_requirement"])
+    func unsupportedConfirmationCannotEnableQuote(_ key: String) throws {
+        let data = try JSONSerialization.data(withJSONObject: [
+            "state": "assessment_required", "required_confirmations": [key]
+        ])
+        let result = try JSONDecoder().decode(MatchEligibilityEvaluation.self, from: data)
+        #expect(!result.isOfferable)
+    }
+}
+
 @MainActor
 final class GroomerOfferTimingRenderingTests: XCTestCase {
     func testReturningWhileCancelledInitializationIsPendingStartsFreshRead() async throws {
@@ -545,7 +566,8 @@ struct GroomerRequestsStoreTests {
 
         await store.loadNextPage()
 
-        #expect(repository.receivedMatchedRequestPages == [.first, .first.next, .first.next])
+        #expect(repository.rankedRequests.map(\.cursor) == [nil, "50", "50"])
+        #expect(repository.rankedRequests.map(\.limit) == [25, 25, 25])
         #expect(store.matchedRequests.map(\.id) == [first.id, second.id])
         #expect(store.canLoadMore == false)
     }
@@ -743,6 +765,38 @@ struct GroomerRequestsStoreTests {
         #expect(store.matchedRequests.first?.offer?.id == offerID)
         #expect(store.matchedRequests.first?.offer?.status == .pending)
         #expect(store.noticeMessage == "Offer submitted.")
+    }
+
+    @Test @MainActor
+    func assessmentWithoutConfirmationDoesNotCallRepository() async throws {
+        let groomerID = UUID()
+        let base = Self.matchedRequest(groomerID: groomerID)
+        var match = base.match
+        match.eligibilityEvaluation = MatchEligibilityEvaluation(
+            state: "assessment_required", reason: nil, serviceStart: nil, serviceEnd: nil,
+            requiredConfirmations: ["pet_size"]
+        )
+        let matched = GroomerMatchedRequest(match: match, request: base.request, offer: nil)
+        let repository = GroomerRequestRepositoryFake(matchedRequestsResult: .success([matched]))
+        let store = GroomerRequestsStore(groomerID: groomerID, repository: repository)
+        await store.load()
+        let start = try #require(GroomingRequestDateFormatting.parsedDate(from: matched.request.preferredStart))
+        await store.submitOffer(for: matched, proposedStart: start,
+            proposedEnd: start.addingTimeInterval(3600), priceEstimateText: "80", message: "",
+            now: start.addingTimeInterval(-3600))
+        #expect(repository.createOfferCallCount == 0)
+        #expect(store.errorMessage != nil)
+
+        await store.submitOffer(for: matched, proposedStart: start,
+            proposedEnd: start.addingTimeInterval(3600), priceEstimateText: "80", message: "",
+            confirmedAssessmentKeys: ["pet_size", "custom_service"], now: start.addingTimeInterval(-3600))
+        #expect(repository.createOfferCallCount == 0)
+
+        await store.submitOffer(for: matched, proposedStart: start,
+            proposedEnd: start.addingTimeInterval(3600), priceEstimateText: "80", message: "",
+            confirmedAssessmentKeys: ["pet_size"], now: start.addingTimeInterval(-3600))
+        #expect(repository.createOfferCallCount == 1)
+        #expect(repository.lastOfferDraft?.assessmentConfirmations == ["pet_size"])
     }
 
     @Test @MainActor
@@ -995,7 +1049,7 @@ struct GroomerRequestsStoreTests {
     }
 
     @Test @MainActor
-    func fitEvidencePresentationUsesExplanationFirstCopyWithoutRawScore() {
+    func legacyMatchReasonDoesNotBecomeVerifiedEvidence() {
         let matchedRequest = Self.matchedRequest(
             groomerID: UUID(),
             matchScore: 94.6,
@@ -1006,19 +1060,11 @@ struct GroomerRequestsStoreTests {
 
         let presentation = matchedRequest.fitEvidencePresentation
 
-        #expect(presentation?.scoreText == nil)
-        #expect(
-            presentation?.reason
-                == "Same city and service location. Pet-fit evidence: curly coats with positive reviews, poodles from completed bookings."
-        )
-        #expect(
-            presentation?.listSummary
-                == "Location And Service Fit: Same city and service location. Earned Evidence: curly coats with positive reviews, poodles from completed bookings."
-        )
+        #expect(presentation == nil)
     }
 
     @Test @MainActor
-    func fitEvidencePresentationLabelsStarterSignalsAsLowConfidence() {
+    func claimedSignalsDoNotBecomeVerifiedEvidence() {
         let matchedRequest = Self.matchedRequest(
             groomerID: UUID(),
             matchScore: 86,
@@ -1029,11 +1075,7 @@ struct GroomerRequestsStoreTests {
 
         let presentation = matchedRequest.fitEvidencePresentation
 
-        #expect(presentation?.scoreText == nil)
-        #expect(
-            presentation?.listSummary
-                == "Location And Service Fit: Same city and service location. Starter Signals: portfolio tag for poodles, claim for gentle handling."
-        )
+        #expect(presentation == nil)
     }
 
     @Test @MainActor
@@ -1047,7 +1089,7 @@ struct GroomerRequestsStoreTests {
             """
         )
 
-        #expect(matchedRequest.matchSummary == "Viewed · Fit evidence available")
+        #expect(matchedRequest.matchSummary == "Viewed")
     }
 
     @Test @MainActor
@@ -1151,6 +1193,25 @@ struct GroomerRequestsStoreTests {
 
 @MainActor
 final class GroomerRequestRepositoryFake: GroomerRequestRepository {
+    var rankedPages: [Result<RankedPage<GroomerMatchedRequest>, MatchRankingError>] = []
+    var onRankedRead: (@MainActor () async -> Void)?
+    private(set) var rankedRequests: [RankedPageRequest<GroomerMatchSort>] = []
+
+    func rankedMatches(groomerID: UUID, page: RankedPageRequest<GroomerMatchSort>) async throws -> RankedPage<GroomerMatchedRequest> {
+        rankedRequests.append(page)
+        if !rankedPages.isEmpty {
+            let result = rankedPages.removeFirst()
+            await onRankedRead?()
+            return try result.get()
+        }
+        let legacy = try await matchedRequests(groomerID: groomerID,
+            page: ListPageRequest(limit: page.limit, offset: Int(page.cursor ?? "0") ?? 0))
+        await onRankedRead?()
+        return RankedPage(items: legacy.items, rankingRevision: "fixture", scoreAsOf: Date(timeIntervalSince1970: 1),
+            validUntil: Date(timeIntervalSince1970: 301), algorithmVersion: "matching-v1",
+            requestedMode: page.mode.rawValue, effectiveMode: page.mode.rawValue, pendingCount: 0,
+            assessmentCount: 0, nextCursor: legacy.nextRequest.map { String($0.offset) })
+    }
     var exactMatchResult: Result<GroomerMatchedRequest, GroomerRequestRepositoryError> = .failure(.matchNotFound)
     func matchedRequest(groomerID: UUID, requestID: UUID) async throws -> GroomerMatchedRequest {
         try exactMatchResult.get()

@@ -219,7 +219,7 @@ extension GroomerProfileStoreTests {
 
         #expect(store.selectedSizeBandRange == 0...6)
         #expect(store.selectedSizeBandFitClaimCount == CustomerPetSizeCode.allCases.count)
-        #expect(store.sizeBandFitClaimRangeTitle == "XS-Giant (<10lb-101+lb)")
+        #expect(store.sizeBandFitClaimRangeTitle == "XS-Giant (<10lb->100lb)")
     }
 
 }

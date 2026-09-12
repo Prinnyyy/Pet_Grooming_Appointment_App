@@ -11,6 +11,7 @@ struct GroomerTabView: View {
     let chatRepository: (any ChatRepository)?
     let accountContent: AnyView?
     let onSignOut: (() -> Void)?
+    let sessionIsCurrent: @MainActor () -> Bool
     @State private var selection: GroomerTab = .home
     @State private var focusedConversationBookingID: UUID?
     @State private var requestedProfileRoute: GroomerProfileRoute?
@@ -28,7 +29,8 @@ struct GroomerTabView: View {
         bookingRepository: (any BookingRepository)? = nil,
         chatRepository: (any ChatRepository)? = nil,
         accountContent: AnyView? = nil,
-        onSignOut: (() -> Void)? = nil
+        onSignOut: (() -> Void)? = nil,
+        sessionIsCurrent: @escaping @MainActor () -> Bool = { true }
     ) {
         self.groomerID = groomerID
         self.groomerDisplayName = groomerDisplayName
@@ -39,6 +41,7 @@ struct GroomerTabView: View {
         self.chatRepository = chatRepository
         self.accountContent = accountContent
         self.onSignOut = onSignOut
+        self.sessionIsCurrent = sessionIsCurrent
         _notificationStore = State(
             initialValue: Self.makeNotificationStore(
                 groomerID: groomerID,
@@ -137,7 +140,8 @@ struct GroomerTabView: View {
                 repository: requestRepository,
                 profileRepository: profileRepository,
                 route: $requestsRoute,
-                debugRecorder: debugRecorder
+                debugRecorder: debugRecorder,
+                sessionIsCurrent: sessionIsCurrent
             )
         } else if tab == .bookings,
                   let groomerID,

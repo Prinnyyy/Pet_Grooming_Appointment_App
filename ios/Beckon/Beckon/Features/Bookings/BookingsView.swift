@@ -779,6 +779,7 @@ private struct GroomerScheduleTimeline: View {
                 }
             }
         }
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("groomer.schedule.timeline")
     }
 }
@@ -1492,11 +1493,7 @@ private struct BookingReviewForm: View {
         self.store = store
         self.accent = accent
         _focusedTarget = focusedTarget
-        _fitOutcomeSelections = State(
-            initialValue: BookingReviewPetFitOutcomeSelection.defaults(
-                for: booking.reviewableFitSignals
-            )
-        )
+        _fitOutcomeSelections = State(initialValue: [])
     }
 
     var body: some View {
@@ -1537,6 +1534,19 @@ private struct BookingReviewForm: View {
                             BookingReviewFitOutcomePicker(selection: $selection)
                         }
                     }
+                    .disabled(store.reviewContexts[booking.id] == nil)
+                }
+
+                if store.loadingReviewContexts.contains(booking.id) {
+                    ProgressView("Loading service details")
+                } else if let error = store.reviewContextErrors[booking.id] {
+                    HStack {
+                        Text(error).font(DesignTokens.Typography.caption)
+                        Button {
+                            Task { await store.loadReviewContext(for: booking) }
+                        } label: { Image(systemName: "arrow.clockwise") }
+                            .accessibilityLabel("Retry service details")
+                    }
                 }
 
                 Button {
@@ -1552,8 +1562,17 @@ private struct BookingReviewForm: View {
                     Label("Submit Review", systemImage: "star.bubble")
                 }
                 .buttonStyle(BeckonPrimaryButtonStyle(accent: accent))
-                .disabled(store.isSubmittingReview)
+                .disabled(store.isSubmittingReview || store.reviewContexts[booking.id] == nil)
                 .accessibilityIdentifier("bookings.review.submit")
+            }
+        }
+        .task(id: booking.id) { await store.loadReviewContext(for: booking) }
+        .onChange(of: store.reviewContexts[booking.id]) { _, context in
+            guard let context else { return }
+            let previous = fitOutcomeSelections
+            fitOutcomeSelections = context.signals.map { signal in
+                BookingReviewPetFitOutcomeSelection(signal: signal,
+                    outcome: previous.first(where: { $0.signal == signal })?.outcome)
             }
         }
     }

@@ -120,6 +120,29 @@ final class CustomerRequestAppointmentReminderSchedulerFake:
 
 @MainActor
 final class CustomerRequestRepositoryFake: CustomerRequestRepository {
+    var quoteEvaluationsResult: Result<[UUID: QuoteEvaluation], CustomerRequestRepositoryError> = .success([:])
+    func quoteEvaluations(offerIDs: [UUID]) async throws -> [UUID: QuoteEvaluation] {
+        try quoteEvaluationsResult.get()
+    }
+    var rankedPages: [Result<RankedPage<CustomerOfferReview>, MatchRankingError>] = []
+    var onRankedRead: (@MainActor () async -> Void)?
+    private(set) var rankedRequests: [RankedPageRequest<CustomerOfferSort>] = []
+
+    func rankedOffers(customerID: UUID, requestID: UUID, page: RankedPageRequest<CustomerOfferSort>) async throws -> RankedPage<CustomerOfferReview> {
+        rankedRequests.append(page)
+        if !rankedPages.isEmpty {
+            let result = rankedPages.removeFirst()
+            await onRankedRead?()
+            return try result.get()
+        }
+        let legacy = try await offers(customerID: customerID, requestID: requestID,
+            page: ListPageRequest(limit: page.limit, offset: Int(page.cursor ?? "0") ?? 0))
+        await onRankedRead?()
+        return RankedPage(items: legacy.items, rankingRevision: "fixture", scoreAsOf: Date(timeIntervalSince1970: 1),
+            validUntil: Date(timeIntervalSince1970: 301), algorithmVersion: "matching-v1",
+            requestedMode: page.mode.rawValue, effectiveMode: page.mode.rawValue, pendingCount: 0,
+            assessmentCount: 0, nextCursor: legacy.nextRequest.map { String($0.offset) })
+    }
     var onRequestPageReadAsync: (@MainActor () async -> Void)?
     var exactRequestResult: Result<CustomerGroomingRequest, CustomerRequestRepositoryError>?
     var onAcknowledgeHandoff: (@MainActor () -> Void)?

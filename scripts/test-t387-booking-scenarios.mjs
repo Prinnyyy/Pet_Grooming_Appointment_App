@@ -140,7 +140,16 @@ async function run(saved) {
     const params = { p_request_id: fixture.request.id, p_expected_request_revision: fixture.request.terms_revision,
       p_proposed_start: at(fixture.day, 10), p_proposed_end: at(fixture.day, 11),
       p_price_estimate: 100, p_message: `${marker} ${current}`, ...options };
-    const [receipt] = await rpc(groomer, "create_groomer_offer_v2", params);
+    const matchingRun = runID.startsWith("TESTOPS-T390-");
+    if (matchingRun) {
+      const [facts] = query(`select app_private.match_required_confirmations(r.pet_snapshot,r.service_type,
+        s.accepted_species,s.accepted_pet_sizes) confirmations from public.grooming_requests r
+        cross join lateral app_private.offer_service_configuration(r.id,'${actors[groomer].id}',null) s
+        where r.id='${fixture.request.id}';`);
+      assert.ok(facts, "Matching regression requires an explicit compatible service configuration");
+      params.p_assessment_confirmations = facts.confirmations;
+    }
+    const [receipt] = await rpc(groomer, matchingRun ? "create_groomer_offer_v3" : "create_groomer_offer_v2", params);
     const [offer] = await rows(fixture.customer, "groomer_offers", `id=eq.${receipt.offer_id}`);
     assert.equal(offer.agreement_snapshot.request_revision, fixture.request.terms_revision);
     assert.equal(offer.groomer_id, actors[groomer].id);

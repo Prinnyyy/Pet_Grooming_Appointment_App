@@ -24,6 +24,24 @@ struct CustomerRequestOffersView: View {
             }
             .navigationTitle("Offers")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Menu {
+                        Picker("Sort", selection: Binding(get: { store.offerSort }, set: { mode in
+                            Task { await store.changeOfferSort(to: mode, for: request) }
+                        })) {
+                            ForEach(CustomerOfferSort.allCases, id: \.self) { mode in Text(mode.title).tag(mode) }
+                        }
+                    } label: { Label("Sort", systemImage: "arrow.up.arrow.down") }
+                    .accessibilityIdentifier("customer.offers.sort")
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { Task { await store.loadOffers(for: request) } } label: {
+                        Label("Refresh", systemImage: "arrow.clockwise")
+                    }
+                    .disabled(store.isLoadingOffers(for: request))
+                }
+            }
             .accessibilityIdentifier("customer.offers.list")
             .task(id: request.id) {
                 await store.loadOffers(for: request)

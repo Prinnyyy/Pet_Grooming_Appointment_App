@@ -3,6 +3,43 @@ import Supabase
 
 @MainActor
 final class SupabaseCustomerRequestRepository: CustomerRequestRepository {
+    func quoteEvaluations(offerIDs: [UUID]) async throws -> [UUID: QuoteEvaluation] {
+        guard !offerIDs.isEmpty else { return [:] }
+        do {
+            let rows: [SupabaseQuoteEvaluationRow] = try await client.rpc("get_quote_evaluations",
+                params: SupabaseQuoteEvaluationParameters(offerIDs: offerIDs)).execute().value
+            return Dictionary(uniqueKeysWithValues: rows.map { ($0.offerID, $0.evaluation) })
+        } catch { throw Self.map(error) }
+    }
+    func rankedOffers(customerID: UUID, requestID: UUID, page: RankedPageRequest<CustomerOfferSort>) async throws -> RankedPage<CustomerOfferReview> {
+        do {
+            let row: RankedPageRow<RankedOfferRow> = try await client.rpc("get_ranked_customer_offers",
+                params: RankedOfferParameters(p_request_id: requestID, p_sort: page.mode.rawValue,
+                    p_limit: page.limit, p_cursor: page.cursor)).execute().value
+            let result = try row.page()
+            guard result.requestedMode == page.mode.rawValue,
+                  result.effectiveMode == page.mode.rawValue || (page.mode == .balanced && result.effectiveMode == "time_fallback") else {
+                throw MatchRankingError.unavailable
+            }
+            for item in result.items {
+                guard item.offer.customerID == customerID, item.offer.requestID == requestID,
+                      item.groomerProfile == nil || item.groomerProfile?.userID == item.offer.groomerID else {
+                    throw CustomerRequestRepositoryError.notAllowed
+                }
+            }
+            let avatars = await participantAvatarLoader.groomerAvatars(for: result.items.map(\.offer.groomerID))
+            return result.mapping { item in
+                var offer = item.offer.offer
+                offer.quoteEvaluation = item.quoteEvaluation
+                return CustomerOfferReview(offer: offer, groomerProfile: item.groomerProfile?.profile,
+                    groomerAvatarPhotoData: avatars[offer.groomerID], matchingEvidence: item.evidence)
+            }
+        } catch let error as MatchRankingError { throw error }
+        catch let error as PostgrestError where error.message == "list_changed" { throw MatchRankingError.listChanged }
+        catch let error as PostgrestError where error.message == "invalid_cursor" { throw MatchRankingError.invalidCursor }
+        catch let error as PostgrestError where error.message == "ranking_unavailable" { throw MatchRankingError.unavailable }
+        catch { throw Self.map(error) }
+    }
     private static let requestColumns = """
         id,customer_id,pet_id,pet_snapshot,photo_snapshot,service_type,service_notes,\
         preferred_start,preferred_end,location_mode,street_address,address_line_2,city,state,zip_code,\
@@ -16,7 +53,7 @@ final class SupabaseCustomerRequestRepository: CustomerRequestRepository {
     private static let offerMatchEvidenceColumns =
         "id,match_score,match_reason"
     private static let groomerProfileColumns =
-        "user_id,business_name,bio,years_experience,base_city,base_state,service_radius_miles,service_location_mode,rating_avg,rating_count,is_active,is_verified"
+        "user_id,business_name,bio,years_experience,base_city,base_state,service_radius_miles,service_location_mode,rating_avg,rating_count,rating_sum,is_active,is_verified"
     private static let requestPhotoColumns =
         "id,request_id,customer_id,storage_bucket,storage_path,caption,sort_order,created_at"
     fileprivate static let requestPhotoBucketID = PhotoStorageBucketID.groomingRequest.rawValue
@@ -536,7 +573,27 @@ private struct CancelGroomingRequestRow: Decodable {
     }
 }
 
-struct CustomerOfferRow: Decodable {
+private struct RankedOfferParameters: Encodable {
+    let p_request_id: UUID
+    let p_sort: String
+    let p_limit: Int
+    let p_cursor: String?
+}
+
+nonisolated private struct RankedOfferRow: Decodable, Sendable {
+    let offer: CustomerOfferRow
+    let groomerProfile: CustomerOfferGroomerProfileRow?
+    let quoteEvaluation: QuoteEvaluation
+    let evidence: MatchingEvidence
+
+    private enum CodingKeys: String, CodingKey {
+        case offer, evidence
+        case groomerProfile = "groomer_profile"
+        case quoteEvaluation = "quote_evaluation"
+    }
+}
+
+nonisolated struct CustomerOfferRow: Decodable, Sendable {
     let id: UUID
     let requestID: UUID
     let matchID: UUID
@@ -609,7 +666,7 @@ struct CustomerOfferRow: Decodable {
     }
 }
 
-private struct CustomerOfferGroomerProfileRow: Decodable {
+nonisolated private struct CustomerOfferGroomerProfileRow: Decodable, Sendable {
     let userID: UUID
     let businessName: String?
     let bio: String?
@@ -620,6 +677,7 @@ private struct CustomerOfferGroomerProfileRow: Decodable {
     let serviceLocationMode: GroomingLocationMode?
     let ratingAverage: Double
     let ratingCount: Int
+    let ratingSum: Int?
     let isActive: Bool
     let isVerified: Bool
 
@@ -636,7 +694,8 @@ private struct CustomerOfferGroomerProfileRow: Decodable {
             ratingAverage: ratingAverage,
             ratingCount: ratingCount,
             isActive: isActive,
-            isVerified: isVerified
+            isVerified: isVerified,
+            ratingSum: ratingSum
         )
     }
 
@@ -651,6 +710,7 @@ private struct CustomerOfferGroomerProfileRow: Decodable {
         case serviceLocationMode = "service_location_mode"
         case ratingAverage = "rating_avg"
         case ratingCount = "rating_count"
+        case ratingSum = "rating_sum"
         case isActive = "is_active"
         case isVerified = "is_verified"
     }

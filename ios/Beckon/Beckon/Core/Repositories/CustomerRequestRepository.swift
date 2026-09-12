@@ -14,6 +14,8 @@ enum CustomerRequestRepositoryError: Error, Equatable, Sendable {
 
 @MainActor
 protocol CustomerRequestRepository: AnyObject {
+    func quoteEvaluations(offerIDs: [UUID]) async throws -> [UUID: QuoteEvaluation]
+    func rankedOffers(customerID: UUID, requestID: UUID, page: RankedPageRequest<CustomerOfferSort>) async throws -> RankedPage<CustomerOfferReview>
     func offer(customerID: UUID, requestID: UUID, offerID: UUID) async throws -> CustomerOfferReview
     func request(customerID: UUID, requestID: UUID) async throws -> CustomerGroomingRequest
     func requests(customerID: UUID) async throws -> [CustomerGroomingRequest]
@@ -70,6 +72,12 @@ protocol CustomerRequestRepository: AnyObject {
 }
 
 extension CustomerRequestRepository {
+    func quoteEvaluations(offerIDs: [UUID]) async throws -> [UUID: QuoteEvaluation] {
+        throw CustomerRequestRepositoryError.unavailable
+    }
+    func rankedOffers(customerID: UUID, requestID: UUID, page: RankedPageRequest<CustomerOfferSort>) async throws -> RankedPage<CustomerOfferReview> {
+        throw MatchRankingError.unavailable
+    }
     func offer(customerID: UUID, requestID: UUID, offerID: UUID) async throws -> CustomerOfferReview {
         throw CustomerRequestRepositoryError.unavailable
     }

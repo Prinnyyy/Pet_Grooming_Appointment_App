@@ -3,7 +3,7 @@ import Supabase
 
 @MainActor
 final class SupabaseCustomerPetRepository: CustomerPetRepository {
-    private static let petColumns = "id,customer_id,name,species,breed,coat_type,size,weight_lbs,birthday,temperament,medical_notes,grooming_notes,is_active"
+    private static let petColumns = "id,customer_id,name,species,breed,coat_type,size,weight_lbs,birthday,temperament,medical_notes,grooming_notes,is_active,coat_type_source,matting_confirmed"
     private static let photoColumns = "id,pet_id,customer_id,storage_bucket,storage_path,caption,sort_order,is_primary"
     fileprivate static let bucketID = PhotoStorageBucketID.customerPet.rawValue
 
@@ -60,8 +60,7 @@ final class SupabaseCustomerPetRepository: CustomerPetRepository {
     ) async throws -> CustomerPet {
         do {
             let rows: [PetRow] = try await client
-                .from("pets")
-                .insert(PetInsertRow(customerID: customerID, draft: draft))
+                .rpc("save_my_pet_v2", params: SavePetParameters(petID: nil, draft: draft))
                 .select(Self.petColumns)
                 .execute()
                 .value
@@ -84,10 +83,7 @@ final class SupabaseCustomerPetRepository: CustomerPetRepository {
     ) async throws -> CustomerPet {
         do {
             let rows: [PetRow] = try await client
-                .from("pets")
-                .update(PetUpdateRow(draft: draft))
-                .eq("id", value: pet.id.uuidString.lowercased())
-                .eq("customer_id", value: pet.customerID.uuidString.lowercased())
+                .rpc("save_my_pet_v2", params: SavePetParameters(petID: pet.id, draft: draft))
                 .select(Self.petColumns)
                 .execute()
                 .value
@@ -275,6 +271,8 @@ private struct PetRow: Decodable {
     let medicalNotes: String?
     let groomingNotes: String?
     let isActive: Bool
+    let coatTypeSource: String?
+    let mattingConfirmed: Bool?
 
     var pet: CustomerPet {
         CustomerPet(
@@ -290,7 +288,9 @@ private struct PetRow: Decodable {
             temperament: temperament,
             medicalNotes: medicalNotes,
             groomingNotes: groomingNotes,
-            isActive: isActive
+            isActive: isActive,
+            coatTypeSource: coatTypeSource ?? "legacy_unverified",
+            mattingConfirmed: mattingConfirmed
         )
     }
 
@@ -301,6 +301,8 @@ private struct PetRow: Decodable {
         case species
         case breed
         case coatType = "coat_type"
+        case coatTypeSource = "coat_type_source"
+        case mattingConfirmed = "matting_confirmed"
         case size
         case weightLbs = "weight_lbs"
         case birthday
@@ -346,37 +348,21 @@ private struct PetPhotoRow: Decodable {
     }
 }
 
-private struct PetInsertRow: Encodable {
-    let customerID: UUID
+private struct SavePetParameters: Encodable {
+    let petID: UUID?
     let draft: CustomerPetDraft
 
     func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(customerID.uuidString.lowercased(), forKey: .customerID)
-        try container.encode(draft.name, forKey: .name)
-        try container.encode(draft.species, forKey: .species)
-        try container.encodeIfPresent(draft.breed, forKey: .breed)
-        try container.encodeIfPresent(draft.coatType, forKey: .coatType)
-        try container.encodeIfPresent(draft.size, forKey: .size)
-        try container.encodeIfPresent(draft.weightLbs, forKey: .weightLbs)
-        try container.encodeIfPresent(draft.birthday, forKey: .birthday)
-        try container.encodeIfPresent(draft.temperament, forKey: .temperament)
-        try container.encodeIfPresent(draft.medicalNotes, forKey: .medicalNotes)
-        try container.encodeIfPresent(draft.groomingNotes, forKey: .groomingNotes)
+        try container.encode(petID, forKey: .petID)
+        try container.encode(PetUpdateRow(draft: draft), forKey: .facts)
+        try container.encode(draft.coatTypeConfirmed, forKey: .coatConfirmed)
     }
 
     private enum CodingKeys: String, CodingKey {
-        case customerID = "customer_id"
-        case name
-        case species
-        case breed
-        case coatType = "coat_type"
-        case size
-        case weightLbs = "weight_lbs"
-        case birthday
-        case temperament
-        case medicalNotes = "medical_notes"
-        case groomingNotes = "grooming_notes"
+        case petID = "p_pet_id"
+        case facts = "p_facts"
+        case coatConfirmed = "p_coat_confirmed"
     }
 }
 
@@ -395,6 +381,7 @@ private struct PetUpdateRow: Encodable {
         try encodeNullable(draft.temperament, forKey: .temperament, in: &container)
         try encodeNullable(draft.medicalNotes, forKey: .medicalNotes, in: &container)
         try encodeNullable(draft.groomingNotes, forKey: .groomingNotes, in: &container)
+        try encodeNullable(draft.mattingConfirmed, forKey: .mattingConfirmed, in: &container)
     }
 
     private func encodeNullable<T: Encodable>(
@@ -420,6 +407,7 @@ private struct PetUpdateRow: Encodable {
         case temperament
         case medicalNotes = "medical_notes"
         case groomingNotes = "grooming_notes"
+        case mattingConfirmed = "matting_confirmed"
     }
 }
 

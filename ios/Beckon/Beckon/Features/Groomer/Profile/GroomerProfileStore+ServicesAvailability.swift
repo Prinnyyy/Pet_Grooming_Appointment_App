@@ -18,6 +18,8 @@ extension GroomerProfileStore {
         serviceDurationMinutes = String(service.durationMinutes)
         serviceUsesCustomSizeRange = !service.acceptedPetSizes.isEmpty
         selectedServiceSizes = Set(service.acceptedPetSizes)
+        selectedServiceSpecies = Set(service.acceptedSpecies ?? [])
+        serviceSpeciesConfirmed = service.acceptedSpecies != nil
         serviceIsActive = service.isActive
         errorMessage = nil
         noticeMessage = nil
@@ -44,6 +46,14 @@ extension GroomerProfileStore {
         } else if !isEnabled {
             selectedServiceSizes = []
         }
+    }
+
+    func setServiceSpecies(_ species: GroomerServiceSpecies, accepted: Bool) {
+        if accepted { selectedServiceSpecies.insert(species) }
+        else { selectedServiceSpecies.remove(species) }
+        serviceSpeciesConfirmed = true
+        errorMessage = nil
+        noticeMessage = nil
     }
 
     func setServiceAcceptedPetSizeRange(lowerIndex: Int, upperIndex: Int) {
@@ -338,6 +348,8 @@ extension GroomerProfileStore {
         serviceUsesCustomSizeRange = false
         selectedServiceSizes = []
         serviceIsActive = true
+        selectedServiceSpecies = []
+        serviceSpeciesConfirmed = false
     }
 
     private func replace(_ service: GroomerService) {
@@ -349,6 +361,9 @@ extension GroomerProfileStore {
     }
 
     private func makeServiceDraft() throws -> GroomerServiceDraft {
+        guard !serviceIsActive || (serviceSpeciesConfirmed && !selectedServiceSpecies.isEmpty) else {
+            throw GroomerProfileFormError(message: "Choose the species accepted by this service before making it visible.")
+        }
         let serviceTitle = serviceType.title
         return GroomerServiceDraft(
             serviceType: serviceType,
@@ -367,7 +382,9 @@ extension GroomerProfileStore {
             acceptedPetSizes: serviceUsesCustomSizeRange
                 ? GroomerServicePetSize.allCases.filter { selectedServiceSizes.contains($0) }
                 : [],
-            isActive: serviceIsActive
+            isActive: serviceIsActive,
+            acceptedSpecies: serviceSpeciesConfirmed
+                ? GroomerServiceSpecies.allCases.filter(selectedServiceSpecies.contains) : nil
         )
     }
 

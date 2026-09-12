@@ -162,7 +162,11 @@ final class CustomerRequestsStore {
     private(set) var isPreparingRepublish = false
     private(set) var isSubmitting = false
     private(set) var nextRequestsPageRequest: ListPageRequest?
-    private(set) var nextOfferPageRequestByRequestID: [UUID: ListPageRequest] = [:]
+    private(set) var rankedOfferPages: [UUID: RankedPage<CustomerOfferReview>] = [:]
+    private(set) var offerListsNeedingRefresh: Set<UUID> = []
+    private(set) var offerSort: CustomerOfferSort
+    private let sortPreferences: MatchSortPreferenceStore
+    private var offerLoadIDs: [UUID: UUID] = [:]
 
     var errorMessage: String?
     var noticeMessage: String?
@@ -312,7 +316,8 @@ final class CustomerRequestsStore {
         now: Date = Date(),
         debugRecorder: AppDebugEventRecorder? = nil,
         addressProvider: (any BeckonAddressProviding)? = nil,
-        bookingsStore: BookingsStore? = nil
+        bookingsStore: BookingsStore? = nil,
+        sortPreferences: MatchSortPreferenceStore = MatchSortPreferenceStore()
     ) {
         let emptyAddress = BeckonAddressInput(
             line1: "",
@@ -323,6 +328,8 @@ final class CustomerRequestsStore {
             countryCode: "US"
         )
         self.customerID = customerID
+        self.sortPreferences = sortPreferences
+        self.offerSort = sortPreferences.customerSort(accountID: customerID)
         self.petRepository = petRepository
         self.requestRepository = requestRepository
         self.bookingRepository = bookingRepository
@@ -364,6 +371,17 @@ final class CustomerRequestsStore {
 
     func setAcceptanceSessionValidation(_ validation: @escaping @MainActor () -> Bool) {
         acceptanceSessionIsCurrent = validation
+    }
+
+    func changeOfferSort(to mode: CustomerOfferSort, for request: CustomerGroomingRequest) async {
+        guard mode != offerSort else { return }
+        offerSort = mode
+        sortPreferences.setCustomerSort(mode, accountID: customerID)
+        offerLoadIDs = [:]
+        rankedOfferPages = [:]
+        loadingOfferRequestIDs = []
+        loadingMoreOfferRequestIDs = []
+        await loadOffers(for: request)
     }
 
     private func checkAcceptanceSession() throws {
@@ -704,7 +722,7 @@ final class CustomerRequestsStore {
     }
 
     func canLoadMoreOffers(for request: CustomerGroomingRequest) -> Bool {
-        nextOfferPageRequestByRequestID[request.id] != nil
+        rankedOfferPages[request.id]?.nextCursor != nil && !offerListsNeedingRefresh.contains(request.id)
     }
 
     func requestPhotos(for request: CustomerGroomingRequest) -> [GroomingRequestPhoto] {
@@ -767,8 +785,11 @@ final class CustomerRequestsStore {
             guard review.id == offerID, review.offer.requestID == id, review.offer.customerID == customerID else {
                 throw CustomerRequestRepositoryError.notAllowed
             }
-            let old = offerReviewsByRequestID[id, default: []].filter { $0.id != offerID }
-            offerReviewsByRequestID[id] = Self.displayOrdered(old + [review])
+            var old = offerReviewsByRequestID[id, default: []]
+            if let index = old.firstIndex(where: { $0.id == offerID }) { old[index] = review }
+            else { old.append(review) }
+            offerReviewsByRequestID[id] = old
+            offerListsNeedingRefresh.insert(id)
         }
         requests.removeAll { $0.id == id }
         requests.append(request)
@@ -986,24 +1007,29 @@ final class CustomerRequestsStore {
     }
 
     func loadOffers(for request: CustomerGroomingRequest) async {
-        guard !loadingOfferRequestIDs.contains(request.id) else { return }
+        guard !loadingOfferRequestIDs.contains(request.id), acceptanceSessionIsCurrent() else { return }
+        let operation = UUID()
+        offerLoadIDs[request.id] = operation
 
         let startedAt = Date()
         recordStoreStart("loadOffers", metadata: ["requestID": request.id.uuidString])
         loadingOfferRequestIDs.insert(request.id)
         offerErrorsByRequestID[request.id] = nil
         defer {
-            loadingOfferRequestIDs.remove(request.id)
+            if offerLoadIDs[request.id] == operation { loadingOfferRequestIDs.remove(request.id) }
         }
 
         do {
-            let page = try await requestRepository.offers(
+            let page = try await requestRepository.rankedOffers(
                 customerID: customerID,
                 requestID: request.id,
-                page: .first
+                page: RankedPageRequest(mode: offerSort)
             )
-            offerReviewsByRequestID[request.id] = Self.displayOrdered(page.items)
-            setNextOfferPageRequest(page.nextRequest, for: request.id)
+            try checkAcceptanceSession()
+            guard offerLoadIDs[request.id] == operation else { return }
+            offerReviewsByRequestID[request.id] = page.items
+            rankedOfferPages[request.id] = page
+            offerListsNeedingRefresh.remove(request.id)
             recordStoreSuccess(
                 "loadOffers",
                 startedAt: startedAt,
@@ -1016,6 +1042,7 @@ final class CustomerRequestsStore {
         } catch CustomerRequestRepositoryError.cancelled {
             recordStoreCancelled("loadOffers", startedAt: startedAt)
         } catch let error as CustomerRequestRepositoryError {
+            guard offerLoadIDs[request.id] == operation, acceptanceSessionIsCurrent() else { return }
             offerErrorsByRequestID[request.id] = message(for: error, action: "load offers")
             recordStoreFailure(
                 "loadOffers",
@@ -1027,6 +1054,7 @@ final class CustomerRequestsStore {
         } catch where AppDebugErrorClassifier.isCancellation(error) {
             recordStoreCancelled("loadOffers", startedAt: startedAt)
         } catch {
+            guard offerLoadIDs[request.id] == operation, acceptanceSessionIsCurrent() else { return }
             offerErrorsByRequestID[request.id] = message(
                 for: CustomerRequestRepositoryError.unavailable,
                 action: "load offers"
@@ -1043,7 +1071,10 @@ final class CustomerRequestsStore {
 
     func loadNextOffersPage(for request: CustomerGroomingRequest) async {
         guard !loadingOfferRequestIDs.contains(request.id),
-              let pageRequest = nextOfferPageRequestByRequestID[request.id] else { return }
+              !offerListsNeedingRefresh.contains(request.id), acceptanceSessionIsCurrent(),
+              let previous = rankedOfferPages[request.id], let cursor = previous.nextCursor else { return }
+        let operation = UUID()
+        offerLoadIDs[request.id] = operation
 
         let startedAt = Date()
         recordStoreStart(
@@ -1054,23 +1085,26 @@ final class CustomerRequestsStore {
         loadingMoreOfferRequestIDs.insert(request.id)
         offerErrorsByRequestID[request.id] = nil
         defer {
-            loadingOfferRequestIDs.remove(request.id)
-            loadingMoreOfferRequestIDs.remove(request.id)
+            if offerLoadIDs[request.id] == operation {
+                loadingOfferRequestIDs.remove(request.id)
+                loadingMoreOfferRequestIDs.remove(request.id)
+            }
         }
 
         do {
-            let page = try await requestRepository.offers(
+            let page = try await requestRepository.rankedOffers(
                 customerID: customerID,
                 requestID: request.id,
-                page: pageRequest
+                page: RankedPageRequest(mode: offerSort, cursor: cursor)
             )
-            offerReviewsByRequestID[request.id] = Self.displayOrdered(
-                ListPageMerge.appendingUnique(
+            try checkAcceptanceSession()
+            guard offerLoadIDs[request.id] == operation else { return }
+            guard previous.canAppend(page) else { throw MatchRankingError.listChanged }
+            offerReviewsByRequestID[request.id] = ListPageMerge.appendingUnique(
                     page.items,
                     to: offerReviewsByRequestID[request.id, default: []]
                 )
-            )
-            setNextOfferPageRequest(page.nextRequest, for: request.id)
+            rankedOfferPages[request.id] = page
             recordStoreSuccess(
                 "loadNextOffersPage",
                 startedAt: startedAt,
@@ -1081,9 +1115,15 @@ final class CustomerRequestsStore {
                     "hasMore": "\(canLoadMoreOffers(for: request))",
                 ]
             )
+        } catch let error as MatchRankingError where error == .listChanged || error == .invalidCursor {
+            guard offerLoadIDs[request.id] == operation, acceptanceSessionIsCurrent() else { return }
+            offerListsNeedingRefresh.insert(request.id)
+            offerErrorsByRequestID[request.id] = "Offers changed. Refresh to see the current order."
+            await refreshLoadedQuoteValidity(requestID: request.id, operation: operation)
         } catch CustomerRequestRepositoryError.cancelled {
             recordStoreCancelled("loadNextOffersPage", startedAt: startedAt)
         } catch let error as CustomerRequestRepositoryError {
+            guard offerLoadIDs[request.id] == operation, acceptanceSessionIsCurrent() else { return }
             offerErrorsByRequestID[request.id] = message(for: error, action: "load offers")
             recordStoreFailure(
                 "loadNextOffersPage",
@@ -1095,6 +1135,7 @@ final class CustomerRequestsStore {
         } catch where AppDebugErrorClassifier.isCancellation(error) {
             recordStoreCancelled("loadNextOffersPage", startedAt: startedAt)
         } catch {
+            guard offerLoadIDs[request.id] == operation, acceptanceSessionIsCurrent() else { return }
             offerErrorsByRequestID[request.id] = message(
                 for: CustomerRequestRepositoryError.unavailable,
                 action: "load offers"
@@ -1283,6 +1324,29 @@ final class CustomerRequestsStore {
         }
     }
 
+    private func refreshLoadedQuoteValidity(requestID: UUID, operation: UUID) async {
+        let ids = offerReviewsByRequestID[requestID, default: []].filter(\.isPending).map(\.id)
+        do {
+            for start in stride(from: 0, to: ids.count, by: 100) {
+                let batch = Array(ids[start..<min(start + 100, ids.count)])
+                let evaluations = try await requestRepository.quoteEvaluations(offerIDs: batch)
+                try checkAcceptanceSession()
+                guard offerLoadIDs[requestID] == operation else { return }
+                offerReviewsByRequestID[requestID] = offerReviewsByRequestID[requestID, default: []].map { review in
+                    guard let evaluation = evaluations[review.id] else { return review }
+                    var offer = review.offer
+                    offer.quoteEvaluation = evaluation
+                    return CustomerOfferReview(offer: offer, groomerProfile: review.groomerProfile,
+                        groomerAvatarPhotoData: review.groomerAvatarPhotoData, matchScore: review.matchScore,
+                        matchReason: review.matchReason, matchingEvidence: review.matchingEvidence)
+                }
+            }
+        } catch {
+            guard offerLoadIDs[requestID] == operation, acceptanceSessionIsCurrent(), !Task.isCancelled else { return }
+            offerErrorsByRequestID[requestID] = "Offers changed. Current availability could not be refreshed. Try again."
+        }
+    }
+
     @discardableResult
     func accept(
         offerReview: CustomerOfferReview,
@@ -1292,6 +1356,11 @@ final class CustomerRequestsStore {
             return nil
         }
         let isRecovery = unresolvedAcceptances[offerReview.offer.id] != nil
+        if !isRecovery, let current = offerReviewsByRequestID[request.id]?.first(where: { $0.id == offerReview.id }),
+           current.offer.quoteEvaluation?.selectable == false {
+            errorMessage = current.offer.quoteEvaluation?.summary
+            return nil
+        }
         guard isRecovery || offerReview.offer.status == .pending else {
             errorMessage = "This offer can no longer be accepted."
             return nil
@@ -1959,8 +2028,7 @@ final class CustomerRequestsStore {
         }
 
         let reviews = offerReviewsByRequestID[requestID] ?? []
-        offerReviewsByRequestID[requestID] = Self.displayOrdered(
-            reviews.map { review in
+        offerReviewsByRequestID[requestID] = reviews.map { review in
                 let nextStatus: GroomerOfferStatus
                 if review.offer.id == result.offerID {
                     nextStatus = result.offerStatus
@@ -1979,10 +2047,11 @@ final class CustomerRequestsStore {
                     groomerProfile: review.groomerProfile,
                     groomerAvatarPhotoData: review.groomerAvatarPhotoData,
                     matchScore: review.matchScore,
-                    matchReason: review.matchReason
+                    matchReason: review.matchReason,
+                    matchingEvidence: review.matchingEvidence
                 )
             }
-        )
+        offerListsNeedingRefresh.insert(requestID)
         setRequestPhotoUploadRetry(requestID: requestID, photos: [])
 
         return didUpdateRequest && didUpdateAcceptedOffer
@@ -2011,6 +2080,9 @@ final class CustomerRequestsStore {
     }
 
     private func refreshAfterAcceptance(requestID: UUID) async {
+        let operation = UUID()
+        offerLoadIDs[requestID] = operation
+        let mode = offerSort
         do {
             try checkAcceptanceSession()
             let requestPage = try await requestRepository.requests(
@@ -2021,23 +2093,26 @@ final class CustomerRequestsStore {
             requests = requestPage.items
             nextRequestsPageRequest = requestPage.nextRequest
 
-            let offerPage = try await requestRepository.offers(
+            let offerPage = try await requestRepository.rankedOffers(
                 customerID: customerID,
                 requestID: requestID,
-                page: .first
+                page: RankedPageRequest(mode: mode)
             )
             try checkAcceptanceSession()
-            offerReviewsByRequestID[requestID] = Self.displayOrdered(offerPage.items)
-            setNextOfferPageRequest(offerPage.nextRequest, for: requestID)
+            if offerLoadIDs[requestID] == operation {
+                offerReviewsByRequestID[requestID] = offerPage.items
+                rankedOfferPages[requestID] = offerPage
+                offerListsNeedingRefresh.remove(requestID)
+            }
             let refreshedBookings = try await bookingRepository.bookings(
                 participantID: customerID,
                 role: .customer
             )
             try checkAcceptanceSession()
             bookings = refreshedBookings
-            offerErrorsByRequestID[requestID] = nil
+            if offerLoadIDs[requestID] == operation { offerErrorsByRequestID[requestID] = nil }
         } catch {
-            guard (try? checkAcceptanceSession()) != nil,
+            guard offerLoadIDs[requestID] == operation, (try? checkAcceptanceSession()) != nil,
                 !AppDebugErrorClassifier.isCancellation(error) else { return }
             offerErrorsByRequestID[requestID] = "Refresh this request to see the latest booking and offer state."
         }
@@ -2064,8 +2139,7 @@ final class CustomerRequestsStore {
         }
 
         let reviews = offerReviewsByRequestID[requestID] ?? []
-        offerReviewsByRequestID[requestID] = Self.displayOrdered(
-            reviews.map { review in
+        offerReviewsByRequestID[requestID] = reviews.map { review in
                 let nextStatus: GroomerOfferStatus = review.offer.status == .pending
                     ? .declinedByCustomer
                     : review.offer.status
@@ -2078,10 +2152,11 @@ final class CustomerRequestsStore {
                     groomerProfile: review.groomerProfile,
                     groomerAvatarPhotoData: review.groomerAvatarPhotoData,
                     matchScore: review.matchScore,
-                    matchReason: review.matchReason
+                    matchReason: review.matchReason,
+                    matchingEvidence: review.matchingEvidence
                 )
             }
-        )
+        offerListsNeedingRefresh.insert(requestID)
         offerErrorsByRequestID[requestID] = nil
         setRequestPhotoUploadRetry(requestID: requestID, photos: [])
 
@@ -2301,17 +2376,6 @@ final class CustomerRequestsStore {
         }
     }
 
-    private func setNextOfferPageRequest(
-        _ pageRequest: ListPageRequest?,
-        for requestID: UUID
-    ) {
-        if let pageRequest {
-            nextOfferPageRequestByRequestID[requestID] = pageRequest
-        } else {
-            nextOfferPageRequestByRequestID.removeValue(forKey: requestID)
-        }
-    }
-
     private func loadPetPhotosForWizard(startedAt: Date) async {
         let operation = requestLoadID
         do {
@@ -2460,7 +2524,7 @@ final class CustomerRequestsStore {
             "This booking must be completed before it can be reviewed."
         case .reviewAlreadyExists:
             "This booking already has a review."
-        case .invalidReview:
+        case .invalidReview, .reviewContextChanged:
             "Check the review and try again."
         case .invalidInput:
             "Check the offer and try again."
@@ -2553,25 +2617,6 @@ final class CustomerRequestsStore {
         let start = now.addingTimeInterval(24 * 60 * 60)
         let end = start.addingTimeInterval(2 * 60 * 60)
         return (start, end)
-    }
-
-    private static func displayOrdered(
-        _ offerReviews: [CustomerOfferReview]
-    ) -> [CustomerOfferReview] {
-        offerReviews.sorted { lhs, rhs in
-            if lhs.isPending != rhs.isPending {
-                return lhs.isPending
-            }
-
-            let lhsTimestamp = lhs.offer.createdAt ?? lhs.offer.updatedAt ?? ""
-            let rhsTimestamp = rhs.offer.createdAt ?? rhs.offer.updatedAt ?? ""
-
-            if lhsTimestamp != rhsTimestamp {
-                return lhsTimestamp > rhsTimestamp
-            }
-
-            return lhs.id.uuidString < rhs.id.uuidString
-        }
     }
 
     private func loadAcknowledgedBookingHandoffs(startedAt: Date) async {

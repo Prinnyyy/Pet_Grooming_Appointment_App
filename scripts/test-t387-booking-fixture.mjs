@@ -6,7 +6,7 @@ import { randomUUID } from "node:crypto";
 import { parseCustomerProfiles, parseGroomerProfiles, SupabaseREST } from "./testops-core.mjs";
 
 export const runID = process.env.TESTOPS_RUN_ID ?? "TESTOPS-T387-20260910-A";
-assert.match(runID, /^TESTOPS-T387-[A-Z0-9-]{1,70}$/);
+assert.match(runID, /^TESTOPS-T(?:387|390)-[A-Z0-9-]{1,70}$/);
 export const directory = `artifacts/testops/${runID}`;
 export const marker = `TESTOPS:${runID}`;
 const recoveryPath = `${directory}/recovery.json`;
@@ -19,10 +19,11 @@ export function saveArtifact(name, value) {
   mkdirSync(directory, { recursive: true, mode: 0o700 });
   writeFileSync(`${directory}/${name}.json`, JSON.stringify(value, null, 2), { mode: 0o600 });
 }
-export function query(sql) {
+export function query(sql, timeoutMS = 120000) {
+  assert.ok(Number.isInteger(timeoutMS) && timeoutMS > 0 && timeoutMS <= 1800000);
   assert.equal(readFileSync("supabase/.temp/project-ref", "utf8").trim(), "lqmasbuqzvcvtawonjlb");
   const result = spawnSync("supabase", ["db", "query", "--linked", "--output", "json", sql], {
-    encoding: "utf8", timeout: 120000, maxBuffer: 16 * 1024 * 1024,
+    encoding: "utf8", timeout: timeoutMS, maxBuffer: 16 * 1024 * 1024,
     env: { ...process.env, SUPABASE_TELEMETRY_DISABLED: "1" },
   });
   if (result.status !== 0) {
@@ -65,7 +66,7 @@ function scope(saved) {
   return { customers, groomers, owned: `select id from public.grooming_requests where customer_id in (${customers})
     and (service_notes='${marker}' or service_notes like '${marker} %')` };
 }
-function snapshot(saved) {
+export function snapshot(saved) {
   const { customers, groomers } = scope(saved);
   const participants = `${customers},${groomers}`;
   const tables = {
@@ -142,7 +143,7 @@ export async function updateSchedule(context, saved, name, transform) {
   saveArtifact("recovery", saved);
   return { before, result, params };
 }
-export async function cleanup(context, saved) {
+export async function cleanup(context, saved, verifyDerivedCleanup = null) {
   assert.ok(!saved.uncertainWrite, "Resolve the uncertain write outcome before cleanup");
   const { customers, groomers, owned } = scope(saved);
   for (const id of saved.groomerIDs) {
@@ -204,6 +205,9 @@ export async function cleanup(context, saved) {
     delete from public.conversations where customer_id in (${customers}) and groomer_id in (${groomers});
     select app_private.cleanup_testops_request_address_location(id,'${runID}') from public.grooming_requests where id in (${owned});
     delete from public.grooming_requests where id in (${owned});
+    ${runID.startsWith("TESTOPS-T390-") && saved.matching?.pets?.length
+      ? `delete from public.pets where id in (${sqlIDs(saved.matching.pets)})
+        and customer_id in (${customers}) and grooming_notes='${marker}';` : ""}
     ${settingsTables.map((t, i) => i === 1
       ? `insert into public.${t} select * from jsonb_populate_recordset(null::public.${t},${sqlJSON(saved.backup.rows1)})
         on conflict(groomer_id) do update set max_appointments_per_day=excluded.max_appointments_per_day,
@@ -214,8 +218,24 @@ export async function cleanup(context, saved) {
     commit;`);
   const restored = snapshot(saved);
   saveArtifact("restoration", { baseline: saved.baseline, actual: restored });
-  assert.deepEqual(restored, saved.baseline, "Exact fixture restoration mismatch");
+  const comparable = { ...restored };
+  if (runID.startsWith("TESTOPS-T390-") && saved.matching?.evidenceBaseline) {
+    const [row] = query(`select ${aggregate("public.groomer_profiles", `user_id in (${groomers})`)} profiles;`);
+    const withoutTimestamp = rows => rows.map(({ updated_at, ...profile }) => profile)
+      .sort((a, b) => a.user_id.localeCompare(b.user_id));
+    assert.deepEqual(withoutTimestamp(row.profiles), withoutTimestamp(saved.relatedBaseline.profiles),
+      "Review cleanup must restore every profile field except its legitimate update timestamp");
+    saveArtifact("review-profile-restoration", {
+      fieldsRestored: true,
+      timestamps: row.profiles.map(profile => ({ id: profile.user_id, actual: profile.updated_at,
+        baseline: saved.relatedBaseline.profiles.find(original => original.user_id === profile.user_id).updated_at })),
+    });
+    // h3 is the full profile hash; the field-by-field check above retains stronger diagnostics.
+    comparable.h3 = saved.baseline.h3;
+  }
+  assert.deepEqual(comparable, saved.baseline, "Exact fixture restoration mismatch");
   assert.equal(query(`select count(*) remaining from public.grooming_requests where id in (${owned});`)[0].remaining, 0);
+  if (verifyDerivedCleanup) await verifyDerivedCleanup();
   saved.restored = true;
   saveArtifact("recovery", saved);
   console.log("Fixture data/settings restoration: PASS; preference updated_at intentionally advances; tagged requests: 0");

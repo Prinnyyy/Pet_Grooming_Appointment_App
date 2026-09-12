@@ -3,6 +3,16 @@ import Testing
 @testable import Beckon
 
 struct PetFitTaxonomyTests {
+    @Test
+    func serviceWeightLabelsIncludeFractionalBoundaryValues() {
+        #expect(GroomerServicePetSize.giant.singleWeightLabel == ">100lb")
+        #expect(GroomerServicePetSize.giant.lowerWeightLabel == ">100lb")
+        #expect(GroomerServicePetSize.s.singleWeightLabel == "10-<20lb")
+        #expect(GroomerServicePetSize.xs.upperWeightLabel == "<10lb")
+        #expect(CustomerPetSizeCode.giant.lowerWeightLabel == ">100lb")
+        #expect(CustomerPetSizeCode.xl.upperWeightLabel == "<80lb")
+    }
+
     @Test @MainActor
     func petFitSignalsExposeCanonicalSqlTraitPairs() {
         #expect(
@@ -11,7 +21,11 @@ struct PetFitTaxonomyTests {
                 "breed_group",
                 "size_band",
                 "care_flag",
-                "service_fit"
+                "service_fit",
+                "service",
+                "coat",
+                "size",
+                "care"
             ]
         )
 
@@ -56,6 +70,7 @@ struct PetFitTaxonomyTests {
 
         let pairIDs = PetFitSignal.allCases.map(\.id)
         #expect(Set(pairIDs).count == pairIDs.count)
+        #expect(Set(PetFitSignal.allCases.map(\.traitType)) == Set(["coat_type", "breed_group", "size_band", "care_flag", "service_fit"]))
     }
 
     @Test @MainActor
@@ -68,7 +83,7 @@ struct PetFitTaxonomyTests {
         #expect(signal.traitType == "service_fit")
         #expect(signal.traitValue == "gentle_handling")
         #expect(signal.title == "Gentle Handling")
-        #expect(PetFitSignal.Group.allCases.map(\.sortOrder) == [10, 20, 30, 40, 50])
+        #expect(PetFitSignal.Group.allCases.map(\.sortOrder) == [10, 20, 30, 40, 50, 50, 10, 30, 40])
     }
 
     @Test @MainActor

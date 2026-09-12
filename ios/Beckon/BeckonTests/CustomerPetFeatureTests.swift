@@ -169,7 +169,7 @@ struct CustomerPetsStoreTests {
     }
 
     @Test @MainActor
-    func selectingKnownBreedAppliesRecommendedCoatType() {
+    func selectingKnownBreedDoesNotConfirmCoatType() {
         let store = CustomerPetsStore(
             customerID: UUID(),
             repository: CustomerPetRepositoryFake()
@@ -178,7 +178,61 @@ struct CustomerPetsStoreTests {
         store.updateFormBreed(.siberianHusky)
 
         #expect(store.formBreed == .siberianHusky)
-        #expect(store.formCoatType == .doubleCoat)
+        #expect(store.formCoatType == .notSure)
+    }
+
+    @Test @MainActor
+    func unknownCoatIsNotInferredWhenSavingKnownBreed() async {
+        let repository = CustomerPetRepositoryFake()
+        let store = CustomerPetsStore(customerID: UUID(), repository: repository)
+        store.formName = "Mochi"
+        store.formBreed = .siberianHusky
+        store.formCoatType = .notSure
+        await store.savePet()
+        #expect(repository.createCallCount == 1)
+        #expect(repository.lastDraft?.coatType == nil)
+    }
+
+    @Test @MainActor
+    func legacyMissingCoatStaysUnknownWhenEditing() {
+        let pet = Self.pet(customerID: UUID(), breed: "Siberian Husky")
+        let store = CustomerPetsStore(customerID: pet.customerID, repository: CustomerPetRepositoryFake())
+        store.startEdit(pet)
+        #expect(store.formCoatType == .notSure)
+    }
+
+    @Test @MainActor
+    func explicitlyChosenCoatCarriesConfirmation() async {
+        let repository = CustomerPetRepositoryFake()
+        let store = CustomerPetsStore(customerID: UUID(), repository: repository)
+        store.formName = "Mochi"
+        store.formCoatType = .wire
+        await store.savePet()
+        #expect(repository.lastDraft?.coatTypeConfirmed == true)
+    }
+
+    @Test @MainActor
+    func editingLegacyFactsDoesNotInventWeightOrConfirmCoat() async {
+        let pet = Self.pet(customerID: UUID(), coatType: "wire")
+        let repository = CustomerPetRepositoryFake()
+        let store = CustomerPetsStore(customerID: pet.customerID, repository: repository)
+        store.startEdit(pet)
+        store.formName = "Mochi II"
+        await store.savePet()
+        #expect(repository.lastDraft?.weightLbs == nil)
+        #expect(repository.lastDraft?.size == nil)
+        #expect(repository.lastDraft?.coatTypeConfirmed == false)
+    }
+
+    @Test(arguments: [(100.1, "Giant"), (100.001, "Giant"), (200.0, "Giant"), (2.5, "XS")]) @MainActor
+    func fractionalWeightDoesNotRoundIntoAnotherSizeBand(weight: Double, size: String) async {
+        let repository = CustomerPetRepositoryFake()
+        let store = CustomerPetsStore(customerID: UUID(), repository: repository)
+        store.formName = "Mochi"
+        store.formWeightLbs = weight
+        await store.savePet()
+        #expect(repository.lastDraft?.weightLbs == weight)
+        #expect(repository.lastDraft?.size == size)
     }
 
     @Test @MainActor
@@ -228,7 +282,7 @@ struct CustomerPetsStoreTests {
             isActive: true
         )
 
-        #expect(pet.accessibilitySummary == "Toy Poodle, Dog, 12 pounds, size S")
+        #expect(pet.accessibilitySummary == "Toy Poodle, Dog, 12.2 pounds, size S")
     }
 
     @Test
@@ -987,7 +1041,9 @@ private final class CustomerPetRepositoryFake: CustomerPetRepository {
             temperament: draft.temperament,
             medicalNotes: draft.medicalNotes,
             groomingNotes: draft.groomingNotes,
-            isActive: true
+            isActive: true,
+            coatTypeSource: draft.coatType == nil ? "unknown" : (draft.coatTypeConfirmed ? "explicit" : "legacy_unverified"),
+            mattingConfirmed: draft.mattingConfirmed
         )
     }
 
@@ -1015,7 +1071,10 @@ private final class CustomerPetRepositoryFake: CustomerPetRepository {
             temperament: draft.temperament,
             medicalNotes: draft.medicalNotes,
             groomingNotes: draft.groomingNotes,
-            isActive: true
+            isActive: true,
+            coatTypeSource: draft.coatType == nil ? "unknown" : (draft.coatTypeConfirmed ? "explicit" :
+                (draft.coatType == pet.coatType && draft.species == pet.species && draft.breed == pet.breed ? pet.coatTypeSource : "legacy_unverified")),
+            mattingConfirmed: draft.mattingConfirmed
         )
     }
 

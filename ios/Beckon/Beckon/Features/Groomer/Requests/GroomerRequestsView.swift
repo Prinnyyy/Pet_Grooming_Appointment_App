@@ -22,14 +22,17 @@ struct GroomerRequestsView: View {
     @State private var offersStore: GroomerOffersStore
     @State private var focusedMatchID: UUID?
     @State private var focusedOfferID: UUID?
+    private let sessionIsCurrent: @MainActor () -> Bool
 
     init(
         groomerID: UUID,
         repository: any GroomerRequestRepository,
         profileRepository: (any GroomerProfileRepository)? = nil,
         route: Binding<GroomerRequestsRoute>,
-        debugRecorder: AppDebugEventRecorder? = nil
+        debugRecorder: AppDebugEventRecorder? = nil,
+        sessionIsCurrent: @escaping @MainActor () -> Bool = { true }
     ) {
+        self.sessionIsCurrent = sessionIsCurrent
         _route = route
         _requestsStore = State(
             initialValue: GroomerRequestsStore(
@@ -69,6 +72,20 @@ struct GroomerRequestsView: View {
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
+                if route.segment == .matches {
+                    Menu {
+                        Picker("Sort", selection: Binding(get: { requestsStore.sort }, set: { mode in
+                            Task { await requestsStore.changeSort(to: mode) }
+                        })) {
+                            ForEach(GroomerMatchSort.allCases, id: \.self) { mode in
+                                Text(mode.title).tag(mode)
+                            }
+                        }
+                    } label: { Label("Sort", systemImage: "arrow.up.arrow.down") }
+                    .accessibilityIdentifier("groomer.requests.sort")
+                }
+            }
+            ToolbarItem(placement: .topBarTrailing) {
                 Button(action: refresh) {
                     Label("Refresh", systemImage: "arrow.clockwise")
                 }
@@ -80,7 +97,11 @@ struct GroomerRequestsView: View {
             GroomerOffersStatusView(store: offersStore)
         }
         .foregroundRefreshable {
+            requestsStore.setSessionValidation(sessionIsCurrent)
             await refreshAll()
+        }
+        .onChange(of: sessionIsCurrent()) { _, current in
+            if !current { requestsStore.invalidateSession() }
         }
         .onChange(of: route) { _, _ in
             applyRouteIfAvailable()
@@ -240,9 +261,23 @@ private struct GroomerMatchesContentView: View {
             .accessibilityIdentifier("groomer.requests.loading")
         } else {
             GroomerWorkspaceSection(title: "Matched requests") {
+                if store.rankedPage?.effectiveMode == "time_fallback" {
+                    Text("Experience ranking unavailable. Showing newest requests.")
+                        .font(DesignTokens.Typography.caption)
+                }
+                if let count = store.rankedPage?.pendingCount, count > 0 {
+                    Text("\(count) requests awaiting availability checks")
+                        .font(DesignTokens.Typography.caption)
+                }
+                if store.listNeedsRefresh {
+                    Text("Matches changed. Refresh to continue.")
+                        .font(DesignTokens.Typography.caption)
+                }
                 if store.matchedRequests.isEmpty {
                     if let errorMessage = store.errorMessage {
                         requestError(message: errorMessage)
+                    } else if (store.rankedPage?.pendingCount ?? 0) > 0 {
+                        Text("Availability checks pending")
                     } else {
                         requestEmptyState
                     }
@@ -464,6 +499,7 @@ struct GroomerRequestDetailView: View {
     @State private var durationMinutesText = ""
     @State private var priceEstimateText = ""
     @State private var message = ""
+    @State private var confirmedAssessmentKeys: Set<String> = []
     @FocusState private var focusedTarget: GroomerOfferFocusTarget?
 
     var body: some View {
@@ -506,6 +542,15 @@ struct GroomerRequestDetailView: View {
             .accessibilityIdentifier("groomer.requests.detail")
             .task(id: matchedRequest.request.id) {
                 await initializeOfferFormIfNeeded(for: matchedRequest)
+            }
+            .onChange(of: matchedRequest.request.termsRevision) { _, _ in
+                confirmedAssessmentKeys = []
+            }
+            .onChange(of: matchedRequest.match.eligibilityEvaluation?.sourceRevision) { _, _ in
+                confirmedAssessmentKeys = []
+            }
+            .onChange(of: matchedRequest.match.eligibilityEvaluation?.confirmationKeys) { _, _ in
+                confirmedAssessmentKeys = []
             }
             .onDisappear {
                 activeInitializationID = nil
@@ -798,6 +843,12 @@ struct GroomerRequestDetailView: View {
         if matchedRequest.match.eligibilityEvaluation?.state == "pending" {
             return "Service and availability are being checked."
         }
+        if matchedRequest.match.eligibilityEvaluation?.confirmationKeys.contains("service_species_configuration") == true {
+            return "Confirm the accepted species for this service in your profile before making an offer."
+        }
+        if matchedRequest.match.eligibilityEvaluation?.state == "assessment_required" {
+            return "This request requires service confirmations that are not supported by this version of Beckon."
+        }
 
         return "This request is not accepting a new offer from this account."
     }
@@ -905,6 +956,20 @@ struct GroomerRequestDetailView: View {
                     )
                 }
 
+                ForEach((matchedRequest.match.eligibilityEvaluation?.confirmationKeys ?? []).sorted(), id: \.self) { key in
+                    Toggle(isOn: Binding(
+                        get: { confirmedAssessmentKeys.contains(key) },
+                        set: { confirmed in
+                            if confirmed { confirmedAssessmentKeys.insert(key) }
+                            else { confirmedAssessmentKeys.remove(key) }
+                        }
+                    )) {
+                        Text(assessmentConfirmationTitle(key))
+                            .font(DesignTokens.Typography.body)
+                    }
+                    .accessibilityIdentifier("groomer.offers.confirmation.\(key)")
+                }
+
                 if let serviceTimeZone {
                     OfferDatePickerField(
                         title: "Proposed Start",
@@ -992,6 +1057,16 @@ struct GroomerRequestDetailView: View {
         }
     }
 
+    private func assessmentConfirmationTitle(_ key: String) -> String {
+        switch key {
+        case "pet_size": "I have assessed this pet's size and can provide the quoted service."
+        case "pet_coat": "I have assessed the coat and included its care in this quote."
+        case "pet_matting": "I have assessed possible matting and included its care in this quote."
+        case "custom_service": "I have reviewed the custom request and included its scope in this quote."
+        default: "Unsupported service confirmation"
+        }
+    }
+
     private func submitOfferBar(
         for matchedRequest: GroomerMatchedRequest
     ) -> some View {
@@ -1003,7 +1078,8 @@ struct GroomerRequestDetailView: View {
                     proposedStart: start,
                     proposedEnd: proposedEnd,
                     priceEstimateText: priceEstimateText,
-                    message: message
+                    message: message,
+                    confirmedAssessmentKeys: confirmedAssessmentKeys
                 )
             }
         } label: {
@@ -1018,7 +1094,8 @@ struct GroomerRequestDetailView: View {
             }
         }
         .buttonStyle(BeckonPrimaryButtonStyle(accent: .groomer))
-        .disabled(store.isSubmittingOffer || !didInitializeOfferForm || proposedEnd == nil || serviceTimeZone == nil)
+        .disabled(store.isSubmittingOffer || !didInitializeOfferForm || proposedEnd == nil || serviceTimeZone == nil
+            || confirmedAssessmentKeys != (matchedRequest.match.eligibilityEvaluation?.confirmationKeys ?? []))
         .accessibilityIdentifier("groomer.offers.submit")
         .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
         .padding(.top, DesignTokens.Spacing.sm)
@@ -1205,7 +1282,7 @@ private struct GroomerFitEvidenceBlock: View {
                     }
                 }
 
-                Text(presentation.listSummary)
+                Text(isCompact ? presentation.listSummary : presentation.reason)
                     .font(isCompact ? DesignTokens.Typography.caption : DesignTokens.Typography.body)
                     .foregroundStyle(DesignTokens.Colors.textSecondary)
                     .lineLimit(isCompact ? 2 : nil)
@@ -1578,6 +1655,13 @@ private struct GroomerRequestsStatusView: View {
 
 @MainActor
 private final class GroomerRequestsPreviewRepository: GroomerRequestRepository {
+    func rankedMatches(groomerID: UUID, page: RankedPageRequest<GroomerMatchSort>) async throws -> RankedPage<GroomerMatchedRequest> {
+        let now = Date()
+        return RankedPage(items: try await matchedRequests(groomerID: groomerID), rankingRevision: "preview",
+            scoreAsOf: now, validUntil: now.addingTimeInterval(300), algorithmVersion: "matching-v1",
+            requestedMode: page.mode.rawValue, effectiveMode: page.mode.rawValue,
+            pendingCount: 0, assessmentCount: 0, nextCursor: nil)
+    }
     private var matches = [
         GroomerMatchedRequest(
             match: GroomerRequestMatch(

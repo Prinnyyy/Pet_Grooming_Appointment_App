@@ -19,7 +19,12 @@ final class GroomerRequestsStore {
     private(set) var isDismissing = false
     private(set) var isSubmittingOffer = false
     private(set) var isWithdrawingOffer = false
-    private(set) var nextPageRequest: ListPageRequest?
+    private(set) var rankedPage: RankedPage<GroomerMatchedRequest>?
+    private(set) var sort: GroomerMatchSort
+    private(set) var listNeedsRefresh = false
+    private let sortPreferences: MatchSortPreferenceStore
+    private var listGeneration = UUID()
+    private var sessionIsCurrent: @MainActor () -> Bool = { true }
 
     var errorMessage: String?
     var noticeMessage: String?
@@ -29,17 +34,23 @@ final class GroomerRequestsStore {
     }
 
     var canLoadMore: Bool {
-        nextPageRequest != nil
+        rankedPage?.nextCursor != nil && !listNeedsRefresh
     }
 
     func resolveNotificationRequest(id: UUID) async throws -> GroomerMatchedRequest {
+        let generation = listGeneration
         let item = try await repository.matchedRequest(groomerID: groomerID, requestID: id)
         try Task.checkCancellation()
+        guard sessionIsCurrent(), listGeneration == generation else { throw CancellationError() }
         guard item.request.id == id, item.match.groomerID == groomerID else {
             throw GroomerRequestRepositoryError.notAllowed
         }
-        matchedRequests.removeAll { $0.id == item.id }
-        matchedRequests.append(item)
+        if let index = matchedRequests.firstIndex(where: { $0.id == item.id }) {
+            matchedRequests[index] = item
+        } else {
+            matchedRequests.append(item)
+        }
+        listNeedsRefresh = true
         return item
     }
 
@@ -47,12 +58,40 @@ final class GroomerRequestsStore {
         groomerID: UUID,
         repository: any GroomerRequestRepository,
         profileRepository: (any GroomerProfileRepository)? = nil,
-        debugRecorder: AppDebugEventRecorder? = nil
+        debugRecorder: AppDebugEventRecorder? = nil,
+        sortPreferences: MatchSortPreferenceStore = MatchSortPreferenceStore()
     ) {
         self.groomerID = groomerID
         self.repository = repository
         self.profileRepository = profileRepository
         self.debugRecorder = debugRecorder
+        self.sortPreferences = sortPreferences
+        self.sort = sortPreferences.groomerSort(accountID: groomerID)
+    }
+
+    func setSessionValidation(_ validation: @escaping @MainActor () -> Bool) {
+        sessionIsCurrent = validation
+    }
+
+    func invalidateSession() {
+        listGeneration = UUID()
+        matchedRequests = []
+        rankedPage = nil
+        requestPhotosByRequestID = [:]
+        requestPhotoDataByID = [:]
+        isLoading = false
+        isLoadingMore = false
+    }
+
+    func changeSort(to mode: GroomerMatchSort) async {
+        guard mode != sort else { return }
+        sort = mode
+        sortPreferences.setGroomerSort(mode, accountID: groomerID)
+        listGeneration = UUID()
+        rankedPage = nil
+        isLoading = false
+        isLoadingMore = false
+        await load()
     }
 
     func matchedRequest(withID id: UUID) -> GroomerMatchedRequest? {
@@ -77,21 +116,27 @@ final class GroomerRequestsStore {
     }
 
     func load() async {
-        guard !isLoading, !isLoadingMore else { return }
+        guard !isLoading, !isLoadingMore, sessionIsCurrent() else { return }
+
+        let generation = UUID()
+        listGeneration = generation
 
         let startedAt = Date()
         recordStoreStart("load")
         isLoading = true
         errorMessage = nil
-        defer { isLoading = false }
+        defer { if listGeneration == generation { isLoading = false } }
 
         do {
-            let page = try await repository.matchedRequests(
+            let page = try await repository.rankedMatches(
                 groomerID: groomerID,
-                page: .first
+                page: RankedPageRequest(mode: sort)
             )
+            try Task.checkCancellation()
+            guard listGeneration == generation, sessionIsCurrent() else { return }
             matchedRequests = page.items
-            nextPageRequest = page.nextRequest
+            rankedPage = page
+            listNeedsRefresh = false
             try await loadRequestPhotos(for: matchedRequests)
             recordStoreSuccess(
                 "load",
@@ -106,6 +151,7 @@ final class GroomerRequestsStore {
         } catch GroomerRequestRepositoryError.cancelled {
             recordStoreCancelled("load", startedAt: startedAt)
         } catch let error as GroomerRequestRepositoryError {
+            guard listGeneration == generation, sessionIsCurrent() else { return }
             errorMessage = message(for: error, action: "load")
             recordStoreFailure(
                 "load",
@@ -116,6 +162,7 @@ final class GroomerRequestsStore {
         } catch where AppDebugErrorClassifier.isCancellation(error) {
             recordStoreCancelled("load", startedAt: startedAt)
         } catch {
+            guard listGeneration == generation, sessionIsCurrent() else { return }
             errorMessage = message(for: .unavailable, action: "load")
             recordStoreFailure(
                 "load",
@@ -129,25 +176,31 @@ final class GroomerRequestsStore {
     func loadNextPage() async {
         guard !isLoading,
               !isLoadingMore,
-              let pageRequest = nextPageRequest else { return }
+              !listNeedsRefresh, sessionIsCurrent(),
+              let previous = rankedPage, let cursor = previous.nextCursor else { return }
+        let generation = listGeneration
 
         let startedAt = Date()
         recordStoreStart("loadNextPage")
         isLoadingMore = true
         errorMessage = nil
-        defer { isLoadingMore = false }
+        defer { if listGeneration == generation { isLoadingMore = false } }
 
         do {
-            let page = try await repository.matchedRequests(
+            let page = try await repository.rankedMatches(
                 groomerID: groomerID,
-                page: pageRequest
+                page: RankedPageRequest(mode: sort, cursor: cursor)
             )
+            try Task.checkCancellation()
+            guard listGeneration == generation, sessionIsCurrent() else { return }
+            guard previous.canAppend(page) else { throw MatchRankingError.listChanged }
             try await loadAdditionalRequestPhotos(for: page.items)
+            guard listGeneration == generation, sessionIsCurrent() else { return }
             matchedRequests = ListPageMerge.appendingUnique(
                 page.items,
                 to: matchedRequests
             )
-            nextPageRequest = page.nextRequest
+            rankedPage = page
             recordStoreSuccess(
                 "loadNextPage",
                 startedAt: startedAt,
@@ -157,9 +210,14 @@ final class GroomerRequestsStore {
                     "hasMore": "\(canLoadMore)",
                 ]
             )
+        } catch let error as MatchRankingError where error == .listChanged || error == .invalidCursor {
+            guard listGeneration == generation, sessionIsCurrent() else { return }
+            listNeedsRefresh = true
+            noticeMessage = "Matches changed. Refresh to see the current order."
         } catch GroomerRequestRepositoryError.cancelled {
             recordStoreCancelled("loadNextPage", startedAt: startedAt)
         } catch let error as GroomerRequestRepositoryError {
+            guard listGeneration == generation, sessionIsCurrent() else { return }
             errorMessage = message(for: error, action: "load")
             recordStoreFailure(
                 "loadNextPage",
@@ -170,6 +228,7 @@ final class GroomerRequestsStore {
         } catch where AppDebugErrorClassifier.isCancellation(error) {
             recordStoreCancelled("loadNextPage", startedAt: startedAt)
         } catch {
+            guard listGeneration == generation, sessionIsCurrent() else { return }
             errorMessage = message(for: .unavailable, action: "load")
             recordStoreFailure(
                 "loadNextPage",
@@ -234,6 +293,7 @@ final class GroomerRequestsStore {
         proposedEnd: Date,
         priceEstimateText: String,
         message offerMessage: String,
+        confirmedAssessmentKeys: Set<String> = [],
         now: Date = Date()
     ) async {
         guard !isSubmittingOffer else { return }
@@ -250,6 +310,7 @@ final class GroomerRequestsStore {
                 proposedEnd: proposedEnd,
                 priceEstimateText: priceEstimateText,
                 message: offerMessage,
+                confirmedAssessmentKeys: confirmedAssessmentKeys,
                 now: now
             )
         } catch let error as GroomerOfferFormError {
@@ -465,12 +526,17 @@ final class GroomerRequestsStore {
         proposedEnd: Date,
         priceEstimateText: String,
         message: String,
+        confirmedAssessmentKeys: Set<String>,
         now: Date
     ) throws -> GroomerOfferDraft {
         guard matchedRequest.canCreateOffer else {
             throw GroomerOfferFormError(
                 message: "This request can no longer receive offers."
             )
+        }
+
+        guard confirmedAssessmentKeys == (matchedRequest.match.eligibilityEvaluation?.confirmationKeys ?? []) else {
+            throw GroomerOfferFormError(message: "Confirm the required service details before submitting an offer.")
         }
 
         let minimumStart = now.addingTimeInterval(
@@ -514,7 +580,8 @@ final class GroomerRequestsStore {
             proposedEnd: proposedEnd,
             priceEstimate: priceEstimate,
             message: normalizedMessage,
-            expectedRequestRevision: matchedRequest.request.termsRevision
+            expectedRequestRevision: matchedRequest.request.termsRevision,
+            assessmentConfirmations: confirmedAssessmentKeys.sorted()
         )
     }
 
@@ -579,21 +646,29 @@ final class GroomerRequestsStore {
     private func loadRequestPhotos(
         for matchedRequests: [GroomerMatchedRequest]
     ) async throws {
+        let generation = listGeneration
         let photos = try await repository.requestPhotos(
             groomerID: groomerID,
             requestIDs: matchedRequests.map(\.request.id)
         )
+        let data = await requestPhotoDataMap(for: photos)
+        try Task.checkCancellation()
+        guard generation == listGeneration, sessionIsCurrent() else { return }
         requestPhotosByRequestID = Dictionary(grouping: photos, by: \.requestID)
-        requestPhotoDataByID = await requestPhotoDataMap(for: photos)
+        requestPhotoDataByID = data
     }
 
     private func loadAdditionalRequestPhotos(
         for matchedRequests: [GroomerMatchedRequest]
     ) async throws {
+        let generation = listGeneration
         let photos = try await repository.requestPhotos(
             groomerID: groomerID,
             requestIDs: matchedRequests.map(\.request.id)
         )
+        let data = await requestPhotoDataMap(for: photos)
+        try Task.checkCancellation()
+        guard generation == listGeneration, sessionIsCurrent() else { return }
         for (requestID, requestPhotos) in Dictionary(grouping: photos, by: \.requestID) {
             requestPhotosByRequestID[requestID] = ListPageMerge.appendingUnique(
                 requestPhotos,
@@ -601,7 +676,7 @@ final class GroomerRequestsStore {
             )
         }
         requestPhotoDataByID.merge(
-            await requestPhotoDataMap(for: photos),
+            data,
             uniquingKeysWith: { _, newValue in newValue }
         )
     }
@@ -611,6 +686,7 @@ final class GroomerRequestsStore {
     ) async -> [UUID: Data] {
         var dataByID: [UUID: Data] = [:]
         for photo in photos {
+            guard !Task.isCancelled, sessionIsCurrent() else { return [:] }
             guard let data = try? await repository.requestPhotoData(photo) else {
                 continue
             }
@@ -648,6 +724,10 @@ final class GroomerRequestsStore {
             "Confirm the time zone in your availability settings before sending an offer."
         case .serviceTimeZoneRequired:
             "The service address needs a confirmed time zone. For mobile service, the customer needs to publish a new request with a confirmed address. For service at your location, confirm your profile address."
+        case .serviceSpeciesRequired:
+            "Confirm the accepted species for this service in your profile before making an offer."
+        case .assessmentConfirmationRequired:
+            "Service details have changed. Refresh the request and confirm its required details before submitting."
         case .offerNotFound:
             "This offer is no longer available."
         case .noLongerWithdrawable:

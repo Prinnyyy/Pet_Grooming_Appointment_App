@@ -215,7 +215,8 @@ private final class GroomerProfilePreviewRepository: GroomerProfileRepository {
             ratingAverage: storedProfile.ratingAverage,
             ratingCount: storedProfile.ratingCount,
             isActive: draft.isActive,
-            isVerified: storedProfile.isVerified
+            isVerified: storedProfile.isVerified,
+            ratingSum: storedProfile.ratingSum
         )
         return storedProfile
     }

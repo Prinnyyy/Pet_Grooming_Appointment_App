@@ -11,7 +11,10 @@ private struct CustomerPetFormSnapshot: Equatable {
     let species: CustomerPetSpecies
     let breed: CustomerPetBreed
     let coatType: CustomerPetCoatType
+    let coatTypeConfirmed: Bool
+    let mattingConfirmed: Bool?
     let weightLbs: Double
+    let weightIsKnown: Bool
     let birthdayDate: Date?
     let temperament: CustomerPetTemperament
     let medicalNotes: String
@@ -46,8 +49,15 @@ final class CustomerPetsStore {
     var formName = ""
     var formSpecies: CustomerPetSpecies = .dog
     var formBreed: CustomerPetBreed = .unspecified
-    var formCoatType: CustomerPetCoatType = .notSure
-    var formWeightLbs = 20.0
+    var formCoatType: CustomerPetCoatType = .notSure {
+        didSet { formCoatTypeConfirmed = formCoatType != .notSure }
+    }
+    private(set) var formCoatTypeConfirmed = false
+    var formMattingConfirmed: Bool?
+    var formWeightLbs = 20.0 {
+        didSet { formWeightIsKnown = true }
+    }
+    var formWeightIsKnown = false
     var formBirthdayDate: Date?
     var formTemperament: CustomerPetTemperament = .notSure
     var formMedicalNotes = ""
@@ -204,9 +214,11 @@ final class CustomerPetsStore {
             : .unspecified
         formCoatType = pet.coatType
             .flatMap(CustomerPetCoatType.init(storedValue:))
-            ?? formBreed.recommendedCoatType
             ?? .notSure
-        formWeightLbs = Self.clampedFormWeight(pet.weightLbs ?? 20)
+        formCoatTypeConfirmed = pet.coatTypeSource == "explicit" && formCoatType != .notSure
+        formMattingConfirmed = pet.mattingConfirmed
+        formWeightLbs = pet.weightLbs ?? 20
+        formWeightIsKnown = pet.weightLbs != nil
         formBirthdayDate = pet.birthday.flatMap(Self.date)
         formTemperament = pet.temperament
             .flatMap(CustomerPetTemperament.init(storedValue:)) ?? .notSure
@@ -234,12 +246,12 @@ final class CustomerPetsStore {
         if !CustomerPetBreed.options(for: species).contains(formBreed) {
             formBreed = .unspecified
         }
-        formCoatType = formBreed.recommendedCoatType ?? .notSure
+        formCoatType = .notSure
     }
 
     func updateFormBreed(_ breed: CustomerPetBreed) {
         formBreed = breed
-        formCoatType = breed.recommendedCoatType ?? .notSure
+        formCoatType = .notSure
     }
 
     func addPendingFormPhoto(
@@ -575,6 +587,8 @@ final class CustomerPetsStore {
         formBreed = .unspecified
         formCoatType = .notSure
         formWeightLbs = 20
+        formWeightIsKnown = false
+        formMattingConfirmed = nil
         formBirthdayDate = nil
         formTemperament = .notSure
         formMedicalNotes = ""
@@ -589,7 +603,10 @@ final class CustomerPetsStore {
             species: formSpecies,
             breed: formBreed,
             coatType: formCoatType,
+            coatTypeConfirmed: formCoatTypeConfirmed,
+            mattingConfirmed: formMattingConfirmed,
             weightLbs: formWeightLbs,
+            weightIsKnown: formWeightIsKnown,
             birthdayDate: formBirthdayDate,
             temperament: formTemperament,
             medicalNotes: formMedicalNotes,
@@ -621,12 +638,16 @@ final class CustomerPetsStore {
             field: "Pet name",
             range: 1...80
         )
-        formWeightLbs = Self.clampedFormWeight(formWeightLbs)
+        if formWeightIsKnown {
+            guard formWeightLbs.isFinite, formWeightLbs > 0 else {
+                throw CustomerPetFormError(message: "Enter a valid pet weight.")
+            }
+        }
         if !CustomerPetBreed.options(for: formSpecies).contains(formBreed) {
             formBreed = .unspecified
         }
         let coatType = formCoatType == .notSure
-            ? formBreed.recommendedCoatType
+            ? nil
             : formCoatType
         let size = CustomerPetSizeCode.code(forWeightLbs: formWeightLbs)
 
@@ -635,8 +656,8 @@ final class CustomerPetsStore {
             species: formSpecies.rawValue,
             breed: formBreed.rawValue,
             coatType: coatType?.rawValue,
-            size: size.rawValue,
-            weightLbs: formWeightLbs,
+            size: formWeightIsKnown ? size.rawValue : nil,
+            weightLbs: formWeightIsKnown ? formWeightLbs : nil,
             birthday: formBirthdayDate.map(Self.dateString),
             temperament: formTemperament.rawValue,
             medicalNotes: try optional(
@@ -648,7 +669,9 @@ final class CustomerPetsStore {
                 formGroomingNotes,
                 field: "Grooming notes",
                 maximum: CustomerPetFormConstraints.notesMaximumLength
-            )
+            ),
+            coatTypeConfirmed: formCoatTypeConfirmed,
+            mattingConfirmed: formMattingConfirmed
         )
     }
 
@@ -697,10 +720,6 @@ final class CustomerPetsStore {
         formatter.timeZone = TimeZone(secondsFromGMT: 0)
         formatter.dateFormat = "yyyy-MM-dd"
         return formatter.string(from: date)
-    }
-
-    private static func clampedFormWeight(_ value: Double) -> Double {
-        min(101, max(5, value.rounded()))
     }
 
     private func uploadPendingFormPhotos(for pet: CustomerPet) async -> Int {

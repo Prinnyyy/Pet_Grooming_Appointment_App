@@ -291,7 +291,8 @@ final class GroomerProfileRepositoryFake: GroomerProfileRepository {
             basePrice: draft.basePrice,
             durationMinutes: draft.durationMinutes,
             acceptedPetSizes: draft.acceptedPetSizes,
-            isActive: draft.isActive
+            isActive: draft.isActive,
+            acceptedSpecies: draft.acceptedSpecies
         )
     }
 
@@ -378,7 +379,8 @@ final class GroomerProfileRepositoryFake: GroomerProfileRepository {
             basePrice: draft.basePrice,
             durationMinutes: draft.durationMinutes,
             acceptedPetSizes: draft.acceptedPetSizes,
-            isActive: draft.isActive
+            isActive: draft.isActive,
+            acceptedSpecies: draft.acceptedSpecies
         )
     }
 

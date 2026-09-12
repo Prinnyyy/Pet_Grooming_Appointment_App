@@ -83,7 +83,7 @@ final class TestOpsUIFlowDriver {
     private let app = XCUIApplication()
     private let environment = ProcessInfo.processInfo.environment
 
-    func launchSignedOut() {
+    func launchSignedOut(additionalArguments: [String] = []) {
         app.launchArguments = [
             "--beckon-testops-run-id",
             environment["TESTOPS_RUN_ID"] ?? "TESTOPS-UITEST-0001",
@@ -91,7 +91,7 @@ final class TestOpsUIFlowDriver {
             environment["TESTOPS_SCENARIO_ID"] ?? "marketplace_full_lifecycle",
             "--beckon-testops-clear-session",
             "--beckon-testops-disable-animations",
-        ]
+        ] + additionalArguments
         app.launch()
     }
 

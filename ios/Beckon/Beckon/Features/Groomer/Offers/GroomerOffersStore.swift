@@ -127,6 +127,8 @@ final class GroomerOffersStore {
              .timingBuffersRequired,
              .scheduleTimeZoneRequired,
              .serviceTimeZoneRequired,
+             .serviceSpeciesRequired,
+             .assessmentConfirmationRequired,
              .offerNotFound,
              .noLongerWithdrawable,
              .invalidInput,

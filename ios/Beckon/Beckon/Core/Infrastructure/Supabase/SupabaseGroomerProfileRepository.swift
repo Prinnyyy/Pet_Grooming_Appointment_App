@@ -4,10 +4,10 @@ import Supabase
 @MainActor
 final class SupabaseGroomerProfileRepository: GroomerProfileRepository {
     private static let profileColumns =
-        "user_id,business_name,bio,years_experience,base_street_address,base_address_line_2,base_city,base_state,base_zip_code,service_radius_miles,service_location_mode,service_location_modes,rating_avg,rating_count,is_active,is_verified"
+        "user_id,business_name,bio,years_experience,base_street_address,base_address_line_2,base_city,base_state,base_zip_code,service_radius_miles,service_location_mode,service_location_modes,rating_avg,rating_count,rating_sum,is_active,is_verified"
     private static let accountProfileColumns = "id,avatar_path"
     private static let serviceColumns =
-        "id,groomer_id,service_type,title,description,base_price,duration_minutes,accepted_pet_sizes,is_active"
+        "id,groomer_id,service_type,title,description,base_price,duration_minutes,accepted_pet_sizes,is_active,accepted_species"
     private static let portfolioColumns =
         "id,groomer_id,storage_bucket,storage_path,caption,sort_order"
     private static let portfolioFitTagColumns =
@@ -21,7 +21,7 @@ final class SupabaseGroomerProfileRepository: GroomerProfileRepository {
     private static let fitClaimColumns =
         "id,groomer_id,trait_type,trait_value,is_active"
     private static let petFitEvidenceSummaryRPC =
-        "get_my_groomer_pet_fit_evidence_summary"
+        "get_my_groomer_pet_fit_evidence_summary_v2"
     fileprivate static let bucketID = PhotoStorageBucketID.groomerPortfolio.rawValue
     fileprivate static let avatarBucketID = PhotoStorageBucketID.groomerAvatar.rawValue
     private static let legacyAvatarBucketID = "avatars"
@@ -839,6 +839,7 @@ private struct GroomerProfileRow: Decodable {
     let serviceLocationModes: [String]?
     let ratingAverage: Double
     let ratingCount: Int
+    let ratingSum: Int?
     let isActive: Bool
     let isVerified: Bool
 
@@ -862,7 +863,8 @@ private struct GroomerProfileRow: Decodable {
             ratingAverage: ratingAverage,
             ratingCount: ratingCount,
             isActive: isActive,
-            isVerified: isVerified
+            isVerified: isVerified,
+            ratingSum: ratingSum
         )
     }
 
@@ -881,6 +883,7 @@ private struct GroomerProfileRow: Decodable {
         case serviceLocationModes = "service_location_modes"
         case ratingAverage = "rating_avg"
         case ratingCount = "rating_count"
+        case ratingSum = "rating_sum"
         case isActive = "is_active"
         case isVerified = "is_verified"
     }
@@ -906,6 +909,7 @@ private struct GroomerServiceRow: Decodable {
     let durationMinutes: Int
     let acceptedPetSizes: [String]
     let isActive: Bool
+    let acceptedSpecies: [GroomerServiceSpecies]?
 
     var service: GroomerService {
         GroomerService(
@@ -917,7 +921,8 @@ private struct GroomerServiceRow: Decodable {
             basePrice: basePrice,
             durationMinutes: durationMinutes,
             acceptedPetSizes: acceptedPetSizes.compactMap(GroomerServicePetSize.init(rawValue:)),
-            isActive: isActive
+            isActive: isActive,
+            acceptedSpecies: acceptedSpecies
         )
     }
 
@@ -930,6 +935,7 @@ private struct GroomerServiceRow: Decodable {
         case basePrice = "base_price"
         case durationMinutes = "duration_minutes"
         case acceptedPetSizes = "accepted_pet_sizes"
+        case acceptedSpecies = "accepted_species"
         case isActive = "is_active"
     }
 }
@@ -1185,9 +1191,7 @@ private struct GroomerPetFitEvidenceSummaryRow: Decodable {
     let confidenceTier: String
 
     var summary: GroomerPetFitEvidenceSummary? {
-        guard let signal = PetFitSignal.allCases.first(where: {
-            $0.traitType == traitType && $0.traitValue == traitValue
-        }) else {
+        guard let signal = ReviewEvidenceKey(dimension: traitType, value: traitValue).signal else {
             return nil
         }
 
@@ -1357,6 +1361,7 @@ private struct GroomerServiceInsertRow: Encodable {
         try container.encode(draft.basePrice, forKey: .basePrice)
         try container.encode(draft.durationMinutes, forKey: .durationMinutes)
         try container.encode(draft.acceptedPetSizes.map(\.rawValue), forKey: .acceptedPetSizes)
+        try container.encode(draft.acceptedSpecies, forKey: .acceptedSpecies)
         try container.encode(draft.isActive, forKey: .isActive)
     }
 
@@ -1368,6 +1373,7 @@ private struct GroomerServiceInsertRow: Encodable {
         case basePrice = "base_price"
         case durationMinutes = "duration_minutes"
         case acceptedPetSizes = "accepted_pet_sizes"
+        case acceptedSpecies = "accepted_species"
         case isActive = "is_active"
     }
 }
@@ -1383,6 +1389,7 @@ private struct GroomerServiceUpdateRow: Encodable {
         try container.encode(draft.basePrice, forKey: .basePrice)
         try container.encode(draft.durationMinutes, forKey: .durationMinutes)
         try container.encode(draft.acceptedPetSizes.map(\.rawValue), forKey: .acceptedPetSizes)
+        try container.encode(draft.acceptedSpecies, forKey: .acceptedSpecies)
         try container.encode(draft.isActive, forKey: .isActive)
     }
 
@@ -1405,6 +1412,7 @@ private struct GroomerServiceUpdateRow: Encodable {
         case basePrice = "base_price"
         case durationMinutes = "duration_minutes"
         case acceptedPetSizes = "accepted_pet_sizes"
+        case acceptedSpecies = "accepted_species"
         case isActive = "is_active"
     }
 }

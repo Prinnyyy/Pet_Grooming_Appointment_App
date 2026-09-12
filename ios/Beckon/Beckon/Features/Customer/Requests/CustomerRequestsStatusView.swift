@@ -106,6 +106,13 @@ private final class CustomerRequestsPreviewPetRepository: CustomerPetRepository 
 
 @MainActor
 private final class CustomerRequestsPreviewRequestRepository: CustomerRequestRepository {
+    func rankedOffers(customerID: UUID, requestID: UUID, page: RankedPageRequest<CustomerOfferSort>) async throws -> RankedPage<CustomerOfferReview> {
+        let now = Date()
+        return RankedPage(items: try await offers(customerID: customerID, requestID: requestID), rankingRevision: "preview",
+            scoreAsOf: now, validUntil: now.addingTimeInterval(300), algorithmVersion: "matching-v1",
+            requestedMode: page.mode.rawValue, effectiveMode: page.mode.rawValue,
+            pendingCount: 0, assessmentCount: 0, nextCursor: nil)
+    }
     func requests(customerID: UUID) async throws -> [CustomerGroomingRequest] {
         [
             CustomerGroomingRequest(

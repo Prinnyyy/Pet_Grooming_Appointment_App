@@ -329,24 +329,17 @@ struct GroomerEvidenceDashboardView: View {
     }
 
     var body: some View {
-        let presentation = GroomerEvidenceWorkspacePresentation(
-            signalCount: summaries.count,
-            completedBookingCount: summaries.reduce(0) { $0 + $1.completedBookingCount },
-            positiveOutcomeCount: summaries.reduce(0) { $0 + $1.positiveReviewOutcomeCount },
-            highConfidenceCount: summaries.filter { $0.confidenceTier == .high }.count
-        )
-
         ScrollView {
             LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
-                if presentation.isEmpty {
+                if summaries.isEmpty {
                     GroomerEvidenceEmptyState()
                         .accessibilityIdentifier("groomer.evidence.empty")
                 } else {
-                    GroomerEvidenceOverviewSection(presentation: presentation)
+                    GroomerEvidenceOverviewSection(summaries: summaries)
 
                     BeckonSection(
                         "Evidence by Signal",
-                        subtitle: "Completed bookings and reviews build confidence over time."
+                        subtitle: "Verified service feedback"
                     ) {
                         BeckonGroupedSurface {
                             VStack(spacing: 0) {
@@ -373,7 +366,7 @@ struct GroomerEvidenceDashboardView: View {
 }
 
 private struct GroomerEvidenceOverviewSection: View {
-    let presentation: GroomerEvidenceWorkspacePresentation
+    let summaries: [GroomerPetFitEvidenceSummary]
 
     var body: some View {
         BeckonSection(
@@ -383,16 +376,16 @@ private struct GroomerEvidenceOverviewSection: View {
             BeckonGroupedSurface {
                 HStack(spacing: DesignTokens.Spacing.md) {
                     GroomerEvidenceMetric(
-                        summary: presentation.completedSummary,
-                        label: "Bookings"
+                        summary: String(summaries.count),
+                        label: "Service details"
                     )
                     GroomerEvidenceMetric(
-                        summary: presentation.positiveSummary,
-                        label: "Reviews"
+                        summary: String(summaries.reduce(0) { $0 + $1.positiveReviewOutcomeCount }),
+                        label: "Positive answers"
                     )
                     GroomerEvidenceMetric(
-                        summary: presentation.highConfidenceSummary,
-                        label: "Signals"
+                        summary: String(summaries.reduce(0) { $0 + $1.negativeReviewOutcomeCount }),
+                        label: "Negative answers"
                     )
                 }
                 .padding(DesignTokens.Spacing.lg)
@@ -471,15 +464,15 @@ private struct GroomerEvidenceSummaryRow: View {
                     .foregroundStyle(DesignTokens.Colors.textPrimary)
                     .lineLimit(2)
 
-                Text("\(summary.signal.groupTitle) · \(summary.confidenceTier.title) confidence")
+                Text(summary.signal.groupTitle)
                     .font(DesignTokens.Typography.caption)
                     .foregroundStyle(DesignTokens.Colors.textSecondary)
                     .lineLimit(2)
 
-                Text("\(summary.completedBookingCount) completed · \(summary.positiveReviewOutcomeCount) positive")
+                Text("\(summary.completedBookingCount) completed · \(summary.positiveReviewOutcomeCount) positive · \(summary.negativeReviewOutcomeCount) negative · \(max(0, summary.completedBookingCount - summary.structuredReviewOutcomeCount)) unreported")
                     .font(DesignTokens.Typography.caption)
                     .foregroundStyle(DesignTokens.Colors.textTertiary)
-                    .lineLimit(1)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 if let updatedAt = summary.evidenceUpdatedAt {
                     Text("Updated \(GroomingRequestDateFormatting.displayString(from: updatedAt))")
@@ -497,15 +490,15 @@ private struct GroomerEvidenceSummaryRow: View {
 
     private var iconName: String {
         switch summary.signal.group {
-        case .coatType:
+        case .coatType, .verifiedCoat:
             "comb"
         case .breedGroup:
             "pawprint.fill"
-        case .sizeBand:
+        case .sizeBand, .verifiedSize:
             "ruler"
-        case .careFlag:
+        case .careFlag, .verifiedCare:
             "heart.fill"
-        case .serviceFit:
+        case .serviceFit, .verifiedService:
             "scissors"
         }
     }
@@ -548,30 +541,30 @@ private struct GroomerFitSignalGroupSection: View {
 
     private var title: String {
         switch group {
-        case .coatType:
+        case .coatType, .verifiedCoat:
             "Coat skills"
         case .breedGroup:
             "Breed groups"
-        case .sizeBand:
+        case .sizeBand, .verifiedSize:
             "Size experience"
-        case .careFlag:
+        case .careFlag, .verifiedCare:
             "Handling needs"
-        case .serviceFit:
+        case .serviceFit, .verifiedService:
             "Service strengths"
         }
     }
 
     private var subtitle: String {
         switch group {
-        case .coatType:
+        case .coatType, .verifiedCoat:
             "Coat structures you handle reliably."
         case .breedGroup:
             "Breed contexts retained for matching compatibility."
-        case .sizeBand:
+        case .sizeBand, .verifiedSize:
             "Body-size experience is set above and does not use core slots."
-        case .careFlag:
+        case .careFlag, .verifiedCare:
             "Care situations you accept."
-        case .serviceFit:
+        case .serviceFit, .verifiedService:
             "Service work that matches your setup."
         }
     }

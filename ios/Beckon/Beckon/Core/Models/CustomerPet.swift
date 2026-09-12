@@ -15,6 +15,8 @@ struct CustomerPet: Equatable, Identifiable, Sendable {
     let medicalNotes: String?
     let groomingNotes: String?
     let isActive: Bool
+    var coatTypeSource: String = "legacy_unverified"
+    var mattingConfirmed: Bool? = nil
 
     nonisolated var displaySpecies: String {
         CustomerPetSpecies(storedValue: species)?.title ?? species
@@ -36,6 +38,7 @@ struct CustomerPet: Equatable, Identifiable, Sendable {
     }
 
     nonisolated var displayWeightAndSize: String? {
+        if let weightLbs, !weightLbs.isFinite || weightLbs <= 0 { return displaySize }
         let sizeTitle = displaySize
             ?? weightLbs.map { CustomerPetSizeCode.code(forWeightLbs: $0).title }
 
@@ -43,8 +46,7 @@ struct CustomerPet: Equatable, Identifiable, Sendable {
             return sizeTitle
         }
 
-        let roundedWeight = Int(weightLbs.rounded())
-        let weightTitle = "\(roundedWeight)lb"
+        let weightTitle = "\(weightLbs.formatted(.number.precision(.fractionLength(0...2))))lb"
         guard let sizeTitle, !sizeTitle.isEmpty else {
             return weightTitle
         }
@@ -82,12 +84,12 @@ struct CustomerPet: Equatable, Identifiable, Sendable {
 
         let sizeTitle = displaySize
             ?? weightLbs.map { CustomerPetSizeCode.code(forWeightLbs: $0).title }
-        if let weightLbs {
-            let roundedWeight = Int(weightLbs.rounded())
+        if let weightLbs, weightLbs.isFinite, weightLbs > 0 {
+            let weight = weightLbs.formatted(.number.precision(.fractionLength(0...2)))
             if let sizeTitle, !sizeTitle.isEmpty {
-                parts.append("\(roundedWeight) pounds, size \(sizeTitle)")
+                parts.append("\(weight) pounds, size \(sizeTitle)")
             } else {
-                parts.append("\(roundedWeight) pounds")
+                parts.append("\(weight) pounds")
             }
         } else if let sizeTitle, !sizeTitle.isEmpty {
             parts.append("size \(sizeTitle)")
@@ -121,6 +123,8 @@ struct CustomerPetDraft: Equatable, Sendable {
     let temperament: String?
     let medicalNotes: String?
     let groomingNotes: String?
+    var coatTypeConfirmed = false
+    var mattingConfirmed: Bool? = nil
 }
 
 nonisolated enum CustomerPetSpecies: String, CaseIterable, Identifiable, Sendable {

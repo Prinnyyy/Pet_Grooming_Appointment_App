@@ -5,6 +5,60 @@ import UIKit
 
 extension GroomerProfileStoreTests {
     @Test @MainActor
+    func activeServiceRequiresExplicitSpeciesBeforeSaving() async {
+        let repository = GroomerProfileRepositoryFake()
+        let store = GroomerProfileStore(groomerID: UUID(), repository: repository)
+        store.startCreateService()
+        store.serviceBasePrice = "80"
+        store.serviceDurationMinutes = "60"
+
+        await store.saveService()
+
+        #expect(repository.createServiceCallCount == 0)
+        #expect(store.isShowingServiceForm)
+        #expect(store.errorMessage != nil)
+        #expect(store.serviceBasePrice == "80")
+    }
+
+    @Test @MainActor
+    func serviceSpeciesSelectionIsExplicitAndResetsBetweenServices() async {
+        let repository = GroomerProfileRepositoryFake()
+        let store = GroomerProfileStore(groomerID: UUID(), repository: repository)
+        store.startCreateService()
+        #expect(store.selectedServiceSpecies.isEmpty)
+        store.serviceBasePrice = "80"
+        store.serviceDurationMinutes = "60"
+        store.setServiceSpecies(.cat, accepted: true)
+        await store.saveService()
+        #expect(repository.lastServiceDraft?.acceptedSpecies == [.cat])
+        #expect(store.services.first?.acceptedSpecies == [.cat])
+        #expect(!store.isShowingServiceForm)
+        store.startCreateService()
+        #expect(store.selectedServiceSpecies.isEmpty)
+    }
+
+    @Test @MainActor
+    func legacyServiceSpeciesRemainsUnknownUntilConfirmed() async {
+        let owner = UUID()
+        let service = Self.service(groomerID: owner)
+        let repository = GroomerProfileRepositoryFake(servicesResult: .success([service]))
+        let store = GroomerProfileStore(groomerID: owner, repository: repository)
+        await store.load()
+        #expect(service.acceptedSpecies == nil)
+        store.startEditService(service)
+        #expect(store.selectedServiceSpecies.isEmpty)
+        store.serviceIsActive = false
+        await store.saveService()
+        #expect(repository.lastServiceDraft?.acceptedSpecies == nil)
+        store.startEditService(service)
+        store.setServiceSpecies(.dog, accepted: true)
+        store.setServiceSpecies(.dog, accepted: false)
+        store.serviceIsActive = false
+        await store.saveService()
+        #expect(repository.lastServiceDraft?.acceptedSpecies == [])
+    }
+
+    @Test @MainActor
     func invalidTimingBuffersNeverReachRepository() async throws {
         let id = UUID()
         let repository = GroomerProfileRepositoryFake()
@@ -566,6 +620,7 @@ extension GroomerProfileStoreTests {
         )
         store.serviceType = .bathAndBrush
         store.serviceDescription = " Shampoo "
+        store.setServiceSpecies(.dog, accepted: true)
         store.serviceBasePrice = "45.50"
         store.serviceDurationMinutes = "60"
         store.setServiceUsesCustomSizeRange(true)
@@ -591,6 +646,7 @@ extension GroomerProfileStoreTests {
 
         store.startCreateService()
         store.serviceType = .nailTrim
+        store.setServiceSpecies(.dog, accepted: true)
         store.serviceBasePrice = "20"
         store.serviceDurationMinutes = "30"
 
@@ -617,7 +673,7 @@ extension GroomerProfileStoreTests {
         #expect(store.serviceUsesCustomSizeRange == false)
         #expect(store.selectedServiceSizes == [])
         #expect(store.selectedServiceSizeRange == 1...4)
-        #expect(store.serviceSizeRangeTitle == "S-XL (10lb-79lb)")
+        #expect(store.serviceSizeRangeTitle == "S-XL (10lb-<80lb)")
 
         store.setServiceUsesCustomSizeRange(true)
 
@@ -662,7 +718,7 @@ extension GroomerProfileStoreTests {
 
         #expect(store.serviceUsesCustomSizeRange)
         #expect(store.selectedServiceSizeRange == 2...4)
-        #expect(store.serviceSizeRangeTitle == "M-XL (20lb-79lb)")
+        #expect(store.serviceSizeRangeTitle == "M-XL (20lb-<80lb)")
     }
 
     @Test @MainActor
@@ -673,6 +729,7 @@ extension GroomerProfileStoreTests {
             repository: repository
         )
         store.serviceTitle = "Bath"
+        store.setServiceSpecies(.dog, accepted: true)
         store.serviceBasePrice = "45.999"
         store.serviceDurationMinutes = "60"
 

@@ -797,6 +797,10 @@ struct BookingsStoreTests {
         )
         await store.load()
 
+        let context = BookingReviewContext(bookingID: booking.id, contextRevision: UUID(),
+            evidenceContextVersion: 2, serviceAt: booking.scheduledStart, allowedKeys: [])
+        repository.reviewContextResult = .success(context)
+        await store.loadReviewContext(for: booking)
         await store.createReview(
             for: booking,
             rating: 5,
@@ -807,7 +811,8 @@ struct BookingsStoreTests {
         #expect(repository.lastReviewedBookingID == booking.id)
         #expect(repository.lastReviewDraft == BookingReviewDraft(
             rating: 5,
-            content: "Great service"
+            content: "Great service",
+            contextRevision: context.contextRevision
         ))
         #expect(store.bookings.first?.review == review)
         #expect(
@@ -850,16 +855,21 @@ struct BookingsStoreTests {
         )
         let selectedOutcomes = [
             BookingReviewPetFitOutcomeDraft(
-                signal: .serviceFit(.curlyCoat),
+                signal: try #require(ReviewEvidenceKey(dimension: "coat", value: "curly_wavy").signal),
                 outcome: .positive
             ),
             BookingReviewPetFitOutcomeDraft(
-                signal: .careFlag(.anxious),
+                signal: try #require(ReviewEvidenceKey(dimension: "care", value: "anxious").signal),
                 outcome: .negative
             )
         ]
         await store.load()
 
+        let context = BookingReviewContext(bookingID: booking.id, contextRevision: UUID(),
+            evidenceContextVersion: 2, serviceAt: booking.scheduledStart,
+            allowedKeys: selectedOutcomes.map { ReviewEvidenceKey(dimension: $0.signal.traitType, value: $0.signal.traitValue) })
+        repository.reviewContextResult = .success(context)
+        await store.loadReviewContext(for: booking)
         await store.createReview(
             for: booking,
             rating: 4,
@@ -871,7 +881,8 @@ struct BookingsStoreTests {
         #expect(repository.lastReviewDraft == BookingReviewDraft(
             rating: 4,
             content: nil,
-            petFitOutcomes: selectedOutcomes
+            petFitOutcomes: selectedOutcomes,
+            contextRevision: context.contextRevision
         ))
     }
 
@@ -1367,6 +1378,13 @@ final class AppointmentReminderSchedulerFake:
 
 @MainActor
 final class BookingRepositoryFake: BookingRepository {
+    var reviewContextResult: Result<BookingReviewContext, BookingRepositoryError> = .failure(.unavailable)
+    var onReviewContext: (() async -> Void)?
+    func reviewContext(bookingID: UUID) async throws -> BookingReviewContext {
+        let result = reviewContextResult
+        await onReviewContext?()
+        return try result.get()
+    }
     var reminderResult: Result<AppointmentReminderSnapshot, BookingRepositoryError> = .failure(.unavailable)
     var onReminderSnapshot: (() async -> Void)?
     func reminderSnapshot(participantID: UUID, role: UserRole) async throws -> AppointmentReminderSnapshot {
@@ -1517,7 +1535,16 @@ final class BookingRepositoryFake: BookingRepository {
     ) async throws -> CompleteBookingResult {
         completeCallCount += 1
         lastCompletedBookingID = bookingID
-        return try completeResult.get()
+        let result = try completeResult.get()
+        if case .success(let rows) = bookingsResult {
+            bookingsResult = .success(rows.map { booking in
+                guard booking.id == bookingID else { return booking }
+                return booking.replacing(status: result.bookingStatus,
+                    cancelledBy: booking.cancelledBy, cancelledAt: booking.cancelledAt,
+                    completedAt: result.completedTimestamp, completedBy: result.completedBy, review: booking.review)
+            })
+        }
+        return result
     }
 
     func createReview(

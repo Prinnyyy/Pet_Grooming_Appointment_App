@@ -44,6 +44,30 @@ final class SupabaseGroomerRequestRepository: GroomerRequestRepository {
         try await matchedRequests(groomerID: groomerID, page: .first).items
     }
 
+    func rankedMatches(groomerID: UUID, page: RankedPageRequest<GroomerMatchSort>) async throws -> RankedPage<GroomerMatchedRequest> {
+        do {
+            let row: RankedPageRow<RankedMatchRow> = try await client.rpc("get_ranked_matched_requests",
+                params: RankedMatchParameters(p_sort: page.mode.rawValue, p_limit: page.limit, p_cursor: page.cursor))
+                .execute().value
+            let result = try row.page()
+            guard result.requestedMode == page.mode.rawValue,
+                  result.effectiveMode == page.mode.rawValue || (page.mode == .fit && result.effectiveMode == "time_fallback") else {
+                throw MatchRankingError.unavailable
+            }
+            return try result.mapping { item in
+                guard item.match.groomerID == groomerID, item.match.requestID == item.request.id else {
+                    throw GroomerRequestRepositoryError.notAllowed
+                }
+                return GroomerMatchedRequest(match: item.match.match, request: item.request.request,
+                    offer: nil, matchingEvidence: item.evidence)
+            }
+        } catch let error as MatchRankingError { throw error }
+        catch let error as PostgrestError where error.message == "list_changed" { throw MatchRankingError.listChanged }
+        catch let error as PostgrestError where error.message == "invalid_cursor" { throw MatchRankingError.invalidCursor }
+        catch let error as PostgrestError where error.message == "ranking_unavailable" { throw MatchRankingError.unavailable }
+        catch { throw Self.map(error) }
+    }
+
     func matchedRequests(
         groomerID: UUID,
         page: ListPageRequest
@@ -246,7 +270,7 @@ final class SupabaseGroomerRequestRepository: GroomerRequestRepository {
         do {
             let rows: [CreateGroomerOfferRow] = try await client
                 .rpc(
-                    "create_groomer_offer_v2",
+                    "create_groomer_offer_v3",
                     params: CreateGroomerOfferParameters(draft: draft)
                 )
                 .execute()
@@ -340,6 +364,10 @@ final class SupabaseGroomerRequestRepository: GroomerRequestRepository {
                     return .scheduleTimeZoneRequired
                 case "service_timezone_confirmation_required":
                     return .serviceTimeZoneRequired
+                case "service_species_confirmation_required":
+                    return .serviceSpeciesRequired
+                case "assessment_confirmation_required":
+                    return .assessmentConfirmationRequired
                 case "occupied_outside_weekly_hours", "occupied_time_off_conflict":
                     return .groomerUnavailable
                 default:
@@ -562,7 +590,19 @@ private struct MatchedRequestParameters: Encodable {
     }
 }
 
-private struct GroomerRequestMatchRow: Decodable {
+private struct RankedMatchParameters: Encodable {
+    let p_sort: String
+    let p_limit: Int
+    let p_cursor: String?
+}
+
+nonisolated private struct RankedMatchRow: Decodable, Sendable {
+    let match: GroomerRequestMatchRow
+    let request: GroomerMatchedGroomingRequestRow
+    let evidence: MatchingEvidence
+}
+
+nonisolated private struct GroomerRequestMatchRow: Decodable, Sendable {
     let id: UUID
     let requestID: UUID
     let groomerID: UUID
@@ -612,7 +652,7 @@ private struct GroomerRequestMatchRow: Decodable {
     }
 }
 
-private struct GroomerMatchedGroomingRequestRow: Decodable {
+nonisolated private struct GroomerMatchedGroomingRequestRow: Decodable, Sendable {
     let id: UUID
     let customerID: UUID
     let petID: UUID?
@@ -779,6 +819,7 @@ private struct CreateGroomerOfferParameters: Encodable {
     func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(draft.expectedRequestRevision, forKey: .expectedRequestRevision)
+        try container.encode(draft.assessmentConfirmations, forKey: .assessmentConfirmations)
         try container.encode(
             draft.requestID.uuidString.lowercased(),
             forKey: .requestID
@@ -803,6 +844,7 @@ private struct CreateGroomerOfferParameters: Encodable {
     private enum CodingKeys: String, CodingKey {
         case requestID = "p_request_id"
         case expectedRequestRevision = "p_expected_request_revision"
+        case assessmentConfirmations = "p_assessment_confirmations"
         case proposedStart = "p_proposed_start"
         case proposedEnd = "p_proposed_end"
         case priceEstimate = "p_price_estimate"

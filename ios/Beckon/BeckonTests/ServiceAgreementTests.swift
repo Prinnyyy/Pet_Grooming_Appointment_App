@@ -50,6 +50,23 @@ struct ServiceAgreementTests {
         #expect(agreement.priceEstimate == 125)
     }
 
+    @Test func anonymizedAgreementRetainsReadableCommercialTermsWithoutPrivateAddress() throws {
+        var payload = try #require(JSONSerialization.jsonObject(with: Self.snapshot) as? [String: Any])
+        payload["pet_snapshot"] = ["id": "33333333-3333-4333-8333-333333333333", "name": "Deleted pet", "species": "pet"]
+        payload["service_notes"] = NSNull()
+        payload["address"] = ["street_address": "Address removed", "city": "", "state": "",
+            "zip_code": "", "country_code": "", "redacted": true] as [String: Any]
+        let agreement = try JSONDecoder().decode(ServiceAgreement.self,
+            from: JSONSerialization.data(withJSONObject: payload))
+        #expect(agreement.isSupported)
+        #expect(agreement.address.summary == "Address removed")
+        #expect(agreement.petSnapshot.name == "Deleted pet")
+        #expect(agreement.petSnapshot.weightLbs == nil)
+        #expect(agreement.serviceNotes == nil)
+        #expect(agreement.priceEstimate == 125)
+        #expect(agreement.scheduledStart == "2026-10-01T16:00:00Z")
+    }
+
     @Test func unsupportedSnapshotCannotBecomeConfirmedTerms() throws {
         let data = Data(String(decoding: Self.snapshot, as: UTF8.self)
             .replacingOccurrences(of: "\"schema_version\":1", with: "\"schema_version\":99").utf8)

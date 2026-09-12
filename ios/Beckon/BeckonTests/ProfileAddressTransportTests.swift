@@ -6,6 +6,70 @@ import Testing
 @Suite("Profile address transport", .serialized)
 struct ProfileAddressTransportTests {
     @Test @MainActor
+    func rankedSuccessDecodesNestedSnapshotWithoutReorderingOrFactHydration() async throws {
+        let customer = UUID(uuidString: "00000000-0000-0000-0000-000000000004")!
+        let groomer = UUID(uuidString: "00000000-0000-0000-0000-000000000005")!
+        let request = UUID(uuidString: "00000000-0000-0000-0000-000000000002")!
+        let time = "2026-09-11T08:00:00.123456+00:00"
+        let evidence: [String: Any] = ["state": "no_evidence", "algorithm_version": "matching-v1",
+            "score_as_of": time, "related_review_count": 0, "independent_customers": 0,
+            "completed_count": 0, "coverage": []]
+        func response(items: [[String: Any]], mode: String) throws -> String {
+            let value: [String: Any] = ["items": items, "ranking_revision": "snapshot-one", "score_as_of": time,
+                "valid_until": "2026-09-11T08:05:00.123456+00:00", "algorithm_version": "matching-v1",
+                "requested_mode": mode, "effective_mode": mode, "pending_count": 0,
+                "assessment_count": 0, "next_cursor": "opaque-signed-cursor"]
+            return String(data: try JSONSerialization.data(withJSONObject: value), encoding: .utf8)!
+        }
+        let offer: [String: Any] = ["id": "00000000-0000-0000-0000-000000000003", "request_id": request.uuidString,
+            "match_id": request.uuidString, "customer_id": customer.uuidString, "groomer_id": groomer.uuidString,
+            "proposed_start": time, "proposed_end": "2026-09-11T09:00:00Z", "price_estimate": 80.25,
+            "status": "pending", "expires_at": "2026-09-12T00:00:00Z"]
+        AddressTransportStub.state.reset(mode: .rankedPayload(try response(items: [["offer": offer,
+            "quote_evaluation": ["terms_valid": true, "selectable": true, "reason": "available"],
+            "evidence": evidence]], mode: "price")))
+        let offers = try await DebugCustomerRequestRepository(base: SupabaseCustomerRequestRepository(client: Self.client()),
+            debugRecorder: nil).rankedOffers(customerID: customer, requestID: request, page: RankedPageRequest(mode: .price))
+        #expect(offers.items.first?.offer.priceEstimate == 80.25)
+        #expect(offers.items.first?.offer.quoteEvaluation?.selectable == true)
+        #expect(offers.items.first?.matchingEvidence?.state == "no_evidence")
+        #expect(offers.nextCursor == "opaque-signed-cursor")
+        #expect(!AddressTransportStub.state.paths.contains("/rest/v1/groomer_offers"))
+        let match: [String: Any] = ["id": request.uuidString, "request_id": request.uuidString,
+            "groomer_id": groomer.uuidString, "customer_id": customer.uuidString,
+            "status": "visible", "created_at": time, "updated_at": time,
+            "eligibility_evaluation": ["state": "estimated_fit", "reason": "continuous_opening"]]
+        let requestRow: [String: Any] = ["id": request.uuidString, "customer_id": customer.uuidString,
+            "pet_snapshot": ["id": "00000000-0000-0000-0000-000000000006", "name": "Test", "species": "Dog"], "photo_snapshot": [], "service_type": "nail_trim",
+            "preferred_start": time, "preferred_end": "2026-09-12T00:00:00Z", "status": "open",
+            "location_mode": "groomer_comes_to_customer", "street_address": "1 Test Street", "city": "Test",
+            "state": "CA", "zip_code": "90001", "expires_at": "2026-09-12T00:00:00Z", "created_at": time, "updated_at": time]
+        AddressTransportStub.state.reset(mode: .rankedPayload(try response(items: [["match": match,
+            "request": requestRow, "evidence": evidence]], mode: "fit")))
+        let matches = try await DebugGroomerRequestRepository(base: SupabaseGroomerRequestRepository(client: Self.client()),
+            debugRecorder: nil).rankedMatches(groomerID: groomer, page: RankedPageRequest(mode: .fit))
+        #expect(matches.items.first?.request.id == request)
+        #expect(matches.items.first?.matchingEvidence?.state == "no_evidence")
+        #expect(AddressTransportStub.state.paths == ["/rest/v1/rpc/get_ranked_matched_requests"])
+    }
+    @Test @MainActor
+    func rankedReadsPreserveTypedChangesAndNeverFallBackToUnrankedHydration() async throws {
+        AddressTransportStub.state.reset(mode: .timingFailure("list_changed"))
+        let groomer = DebugGroomerRequestRepository(base: SupabaseGroomerRequestRepository(client: Self.client()), debugRecorder: nil)
+        do {
+            _ = try await groomer.rankedMatches(groomerID: UUID(), page: RankedPageRequest(mode: .fit, cursor: "opaque"))
+            Issue.record("Expected changed list")
+        } catch { #expect(error as? MatchRankingError == .listChanged) }
+        #expect(AddressTransportStub.state.paths == ["/rest/v1/rpc/get_ranked_matched_requests"])
+        AddressTransportStub.state.reset(mode: .timingFailure("invalid_cursor"))
+        let customer = DebugCustomerRequestRepository(base: SupabaseCustomerRequestRepository(client: Self.client()), debugRecorder: nil)
+        do {
+            _ = try await customer.rankedOffers(customerID: UUID(), requestID: UUID(), page: RankedPageRequest(mode: .price, cursor: "opaque"))
+            Issue.record("Expected invalid cursor")
+        } catch { #expect(error as? MatchRankingError == .invalidCursor) }
+        #expect(AddressTransportStub.state.paths == ["/rest/v1/rpc/get_ranked_customer_offers"])
+    }
+    @Test @MainActor
     func reminderSnapshotUsesSingleOwnedRPCWithoutImageHydration() async throws {
         AddressTransportStub.state.reset(mode: .denied)
         do { _ = try await SupabaseBookingRepository(client: Self.client()).reminderSnapshot(participantID: UUID(), role: .customer) }
@@ -96,6 +160,8 @@ struct ProfileAddressTransportTests {
         ("timing_buffers_confirmation_required", GroomerRequestRepositoryError.timingBuffersRequired),
         ("schedule_timezone_confirmation_required", .scheduleTimeZoneRequired),
         ("service_timezone_confirmation_required", .serviceTimeZoneRequired),
+        ("service_species_confirmation_required", .serviceSpeciesRequired),
+        ("assessment_confirmation_required", .assessmentConfirmationRequired),
         ("occupied_outside_weekly_hours", .groomerUnavailable),
         ("occupied_time_off_conflict", .groomerUnavailable),
         ("match_constraints_changed", .matchNotFound),
@@ -112,7 +178,7 @@ struct ProfileAddressTransportTests {
         } catch let error as GroomerRequestRepositoryError {
             #expect(error == expected)
         } catch { Issue.record("Unexpected error: \(error)") }
-        #expect(AddressTransportStub.state.paths == ["/rest/v1/rpc/create_groomer_offer_v2"])
+        #expect(AddressTransportStub.state.paths == ["/rest/v1/rpc/create_groomer_offer_v3"])
     }
 
     @Test(arguments: [false, true]) @MainActor
@@ -336,6 +402,7 @@ nonisolated private final class AddressTransportStub: URLProtocol, @unchecked Se
         case missing, denied, available, bookingConflict, weeklyHoursConflict, occupiedHours, occupiedTimeOff, legacyQuote, timingRow, legacyTimingRow, matchedRow, legacyMatchedRow
         case timingFailure(String)
         case matchedEvaluation(String)
+        case rankedPayload(String)
     }
     final class State: @unchecked Sendable {
         private let lock = NSLock()
@@ -350,6 +417,9 @@ nonisolated private final class AddressTransportStub: URLProtocol, @unchecked Se
                 let path = url.path
                 recorded.append(path)
                 recordedURLs.append(url)
+                if case let .rankedPayload(payload) = mode {
+                    return (200, path.contains("/rpc/get_ranked_") ? payload : "[]")
+                }
                 if mode == .chatSummaries {
                     let customer = "00000000-0000-0000-0000-000000000004"
                     let groomer = "00000000-0000-0000-0000-000000000005"

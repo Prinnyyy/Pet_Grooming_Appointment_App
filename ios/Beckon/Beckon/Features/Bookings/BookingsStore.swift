@@ -45,6 +45,10 @@ final class BookingsStore {
     private(set) var isCancelling = false
     private(set) var isCompleting = false
     private(set) var isSubmittingReview = false
+    private(set) var reviewContexts: [UUID: BookingReviewContext] = [:]
+    private(set) var reviewContextErrors: [UUID: String] = [:]
+    private(set) var loadingReviewContexts: Set<UUID> = []
+    private var reviewContextReads: [UUID: UUID] = [:]
     private(set) var nextPageRequest: ListPageRequest?
 
     var errorMessage: String?
@@ -738,19 +742,55 @@ final class BookingsStore {
         }
     }
 
+    func loadReviewContext(for booking: Booking) async {
+        guard sessionIsCurrent(), !Task.isCancelled, owns(booking), role == .customer,
+              booking.canReview(for: role) else { return }
+        let readID = UUID()
+        reviewContextReads[booking.id] = readID
+        reviewContexts[booking.id] = nil
+        reviewContextErrors[booking.id] = nil
+        loadingReviewContexts.insert(booking.id)
+        defer {
+            if reviewContextReads[booking.id] == readID { loadingReviewContexts.remove(booking.id) }
+        }
+        do {
+            let context = try await repository.reviewContext(bookingID: booking.id)
+            try Task.checkCancellation()
+            guard sessionIsCurrent(), reviewContextReads[booking.id] == readID else { return }
+            guard context.bookingID == booking.id, context.evidenceContextVersion == 2,
+                  context.signals.count == context.allowedKeys.count,
+                  Set(context.allowedKeys).count == context.allowedKeys.count else {
+                throw BookingRepositoryError.clientUpdateRequired
+            }
+            reviewContexts[booking.id] = context
+        } catch {
+            guard sessionIsCurrent(), !Task.isCancelled, reviewContextReads[booking.id] == readID else { return }
+            reviewContextErrors[booking.id] = message(for: error as? BookingRepositoryError ?? .unavailable, action: "review")
+        }
+    }
+
     func createReview(
         for booking: Booking,
         rating: Int,
         content: String,
         petFitOutcomes: [BookingReviewPetFitOutcomeDraft] = []
     ) async {
-        guard !isSubmittingReview else { return }
+        guard !isSubmittingReview, sessionIsCurrent(), owns(booking) else { return }
         guard booking.canReview(for: role) else {
             errorMessage = "This booking can no longer be reviewed by this account."
             return
         }
         guard (1...5).contains(rating) else {
             errorMessage = "Choose a rating from 1 to 5."
+            return
+        }
+        guard let context = reviewContexts[booking.id] else {
+            errorMessage = "Load the verified service details before submitting a review."
+            return
+        }
+        let keys = petFitOutcomes.map { ReviewEvidenceKey(dimension: $0.signal.traitType, value: $0.signal.traitValue) }
+        guard Set(keys).count == keys.count, Set(keys).isSubset(of: Set(context.allowedKeys)) else {
+            errorMessage = "Review selections must match this appointment's verified service details."
             return
         }
 
@@ -772,7 +812,8 @@ final class BookingsStore {
         let draft = BookingReviewDraft(
             rating: rating,
             content: trimmedContent.isEmpty ? nil : trimmedContent,
-            petFitOutcomes: petFitOutcomes
+            petFitOutcomes: petFitOutcomes,
+            contextRevision: context.contextRevision
         )
 
         do {
@@ -797,7 +838,11 @@ final class BookingsStore {
         } catch BookingRepositoryError.cancelled {
             recordStoreCancelled("createReview", startedAt: startedAt)
         } catch let error as BookingRepositoryError {
+            guard sessionIsCurrent(), !Task.isCancelled else { return }
             errorMessage = message(for: error, action: "review")
+            if error == .reviewContextChanged {
+                await loadReviewContext(for: booking)
+            }
             recordStoreFailure(
                 "createReview",
                 error: error,
@@ -807,6 +852,7 @@ final class BookingsStore {
         } catch where AppDebugErrorClassifier.isCancellation(error) {
             recordStoreCancelled("createReview", startedAt: startedAt)
         } catch {
+            guard sessionIsCurrent(), !Task.isCancelled else { return }
             errorMessage = message(for: .unavailable, action: "review")
             recordStoreFailure(
                 "createReview",
@@ -866,6 +912,8 @@ final class BookingsStore {
             "This booking already has a review."
         case .invalidReview:
             "Choose a 1–5 rating and keep review text under 2,000 characters."
+        case .reviewContextChanged:
+            "Verified service details changed. Review the refreshed selections before submitting again."
         case .invalidInput:
             "Check the booking and try again."
         case .networkUnavailable:

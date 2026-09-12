@@ -329,36 +329,40 @@ nonisolated struct PetFitSignal:
         case sizeBand = "size_band"
         case careFlag = "care_flag"
         case serviceFit = "service_fit"
+        case verifiedService = "service"
+        case verifiedCoat = "coat"
+        case verifiedSize = "size"
+        case verifiedCare = "care"
 
         var id: Self { self }
         var traitType: String { rawValue }
 
         var title: String {
             switch self {
-            case .coatType:
+            case .coatType, .verifiedCoat:
                 "Coat Type"
             case .breedGroup:
                 "Breed Group"
-            case .sizeBand:
+            case .sizeBand, .verifiedSize:
                 "Size Band"
-            case .careFlag:
+            case .careFlag, .verifiedCare:
                 "Care Flag"
-            case .serviceFit:
+            case .serviceFit, .verifiedService:
                 "Service Fit"
             }
         }
 
         var sortOrder: Int {
             switch self {
-            case .coatType:
+            case .coatType, .verifiedCoat:
                 10
             case .breedGroup:
                 20
-            case .sizeBand:
+            case .sizeBand, .verifiedSize:
                 30
-            case .careFlag:
+            case .careFlag, .verifiedCare:
                 40
-            case .serviceFit:
+            case .serviceFit, .verifiedService:
                 50
             }
         }
@@ -402,7 +406,7 @@ nonisolated struct PetFitSignal:
     }
 
     static func stored(traitType: String, traitValue: String) -> Self? {
-        allCases.first {
+        ReviewEvidenceKey(dimension: traitType, value: traitValue).signal ?? allCases.first {
             $0.traitType == traitType && $0.traitValue == traitValue
         }
     }

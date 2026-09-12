@@ -122,9 +122,6 @@ extension GroomerProfileStore {
         _ lhs: GroomerPetFitEvidenceSummary,
         _ rhs: GroomerPetFitEvidenceSummary
     ) -> Bool {
-        if lhs.confidenceTier.sortOrder != rhs.confidenceTier.sortOrder {
-            return lhs.confidenceTier.sortOrder < rhs.confidenceTier.sortOrder
-        }
         if lhs.completedBookingCount != rhs.completedBookingCount {
             return lhs.completedBookingCount > rhs.completedBookingCount
         }
@@ -265,26 +262,26 @@ extension CustomerPetSizeCode {
         case .xxl:
             "80lb"
         case .giant:
-            "101lb"
+            ">100lb"
         }
     }
 
     var upperWeightLabel: String {
         switch self {
         case .xs:
-            "9lb"
+            "<10lb"
         case .s:
-            "19lb"
+            "<20lb"
         case .m:
-            "39lb"
+            "<40lb"
         case .l:
-            "59lb"
+            "<60lb"
         case .xl:
-            "79lb"
+            "<80lb"
         case .xxl:
             "100lb"
         case .giant:
-            "101+lb"
+            ">100lb"
         }
     }
 }

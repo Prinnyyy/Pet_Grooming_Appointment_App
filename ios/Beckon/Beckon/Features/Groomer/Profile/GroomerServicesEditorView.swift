@@ -151,6 +151,11 @@ private struct GroomerServiceRow: View {
                     .foregroundStyle(DesignTokens.Colors.textTertiary)
                     .lineLimit(2)
 
+                Text(service.acceptedSpeciesSummary)
+                    .font(DesignTokens.Typography.caption)
+                    .foregroundStyle(DesignTokens.Colors.textTertiary)
+                    .fixedSize(horizontal: false, vertical: true)
+
                 if let description = service.description,
                    !description.isEmpty {
                     Text(description)
@@ -284,6 +289,24 @@ struct GroomerServiceFormView: View {
                                 store: store,
                                 focusedTarget: $focusedTarget
                             )
+                        }
+
+                        BeckonSection("Accepted Species") {
+                            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                                ForEach(GroomerServiceSpecies.allCases) { species in
+                                    Toggle(species.title, isOn: Binding(
+                                        get: { store.selectedServiceSpecies.contains(species) },
+                                        set: { store.setServiceSpecies(species, accepted: $0) }
+                                    ))
+                                    .tint(DesignTokens.Colors.groomerAccent)
+                                    .accessibilityIdentifier("groomer.services.species.\(species.rawValue)")
+                                }
+                                if !store.serviceSpeciesConfirmed {
+                                    Text("Species confirmation required")
+                                        .font(DesignTokens.Typography.caption)
+                                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+                                }
+                            }
                         }
 
                         BeckonSection("Accepted Pet Size") {

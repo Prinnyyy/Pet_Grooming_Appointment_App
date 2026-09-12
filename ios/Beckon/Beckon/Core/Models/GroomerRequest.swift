@@ -4,6 +4,7 @@ struct GroomerMatchedRequest: Equatable, Hashable, Identifiable, Sendable {
     let match: GroomerRequestMatch
     let request: GroomerMatchedGroomingRequest
     let offer: GroomerOffer?
+    var matchingEvidence: MatchingEvidence? = nil
 
     var id: UUID {
         match.id
@@ -18,10 +19,16 @@ struct GroomerMatchedRequest: Equatable, Hashable, Identifiable, Sendable {
     }
 
     var matchSummary: String {
+        if match.eligibilityEvaluation?.confirmationKeys.contains("service_species_configuration") == true {
+            return "Service species confirmation required"
+        }
+        if match.eligibilityEvaluation?.state == "assessment_required" {
+            return "Service details need assessment"
+        }
         if match.eligibilityEvaluation?.state == "pending" {
             return "Checking service and availability"
         }
-        if fitEvidencePresentation != nil {
+        if matchingEvidence?.state == "available" {
             return "\(match.status.title) · Fit evidence available"
         }
 
@@ -29,18 +36,11 @@ struct GroomerMatchedRequest: Equatable, Hashable, Identifiable, Sendable {
     }
 
     var fitEvidencePresentation: GroomerMatchFitPresentation? {
-        guard
-            let rawReason = match.matchReason,
-            !rawReason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        else {
-            return nil
+        if let matchingEvidence {
+            return GroomerMatchFitPresentation(scoreText: nil, reason: matchingEvidence.detail,
+                structuredSummary: matchingEvidence.summary)
         }
-
-        let reason = rawReason.trimmingCharacters(in: .whitespacesAndNewlines)
-        return GroomerMatchFitPresentation(
-            scoreText: nil,
-            reason: reason
-        )
+        return nil
     }
 
     var canCreateOffer: Bool {
@@ -58,7 +58,8 @@ struct GroomerMatchedRequest: Equatable, Hashable, Identifiable, Sendable {
         GroomerMatchedRequest(
             match: match.replacing(status: matchStatus ?? match.status),
             request: request.replacing(status: requestStatus ?? request.status),
-            offer: offer
+            offer: offer,
+            matchingEvidence: matchingEvidence
         )
     }
 }
@@ -70,9 +71,10 @@ struct GroomerMatchFitPresentation:
 {
     let scoreText: String?
     let reason: String
+    var structuredSummary: String? = nil
 
     var listSummary: String {
-        MatchFitEvidenceReasonFormatter.explanationSummary(from: reason)
+        structuredSummary ?? reason
     }
 }
 
@@ -143,121 +145,34 @@ struct GroomerOfferListSection:
     }
 }
 
-nonisolated enum MatchFitEvidenceReasonFormatter {
-    private struct Marker {
-        let range: Range<String.Index>
-        let title: String
-    }
-
-    static func explanationSummary(from reason: String) -> String {
-        let trimmedReason = reason.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedReason.isEmpty else {
-            return ""
-        }
-
-        let markers = [
-            marker(
-                in: trimmedReason,
-                markerText: ". Pet-fit evidence: ",
-                title: "Earned Evidence"
-            ),
-            marker(
-                in: trimmedReason,
-                markerText: ". Groomer fit signals: ",
-                title: "Starter Signals"
-            ),
-        ]
-        .compactMap(\.self)
-        .sorted { $0.range.lowerBound < $1.range.lowerBound }
-
-        guard !markers.isEmpty else {
-            return "Fit Evidence: \(sentence(trimmedReason))"
-        }
-
-        var sections: [String] = []
-
-        if let firstMarker = markers.first {
-            let location = trimmedReason[..<firstMarker.range.lowerBound]
-            appendSection(
-                title: "Location And Service Fit",
-                body: String(location),
-                to: &sections
-            )
-        }
-
-        for index in markers.indices {
-            let marker = markers[index]
-            let endIndex = markers.index(after: index) < markers.endIndex
-                ? markers[markers.index(after: index)].range.lowerBound
-                : trimmedReason.endIndex
-            let body = trimmedReason[marker.range.upperBound..<endIndex]
-            appendSection(
-                title: marker.title,
-                body: String(body),
-                to: &sections
-            )
-        }
-
-        guard !sections.isEmpty else {
-            return "Fit Evidence: \(sentence(trimmedReason))"
-        }
-
-        return sections.joined(separator: " ")
-    }
-
-    private static func marker(
-        in reason: String,
-        markerText: String,
-        title: String
-    ) -> Marker? {
-        guard let range = reason.range(of: markerText) else {
-            return nil
-        }
-
-        return Marker(range: range, title: title)
-    }
-
-    private static func appendSection(
-        title: String,
-        body: String,
-        to sections: inout [String]
-    ) {
-        let sectionBody = sentence(body)
-        guard !sectionBody.isEmpty else {
-            return
-        }
-
-        sections.append("\(title): \(sectionBody)")
-    }
-
-    private static func sentence(_ value: String) -> String {
-        let trimmedValue = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedValue.isEmpty else {
-            return ""
-        }
-
-        if trimmedValue.hasSuffix(".") {
-            return trimmedValue
-        }
-
-        return "\(trimmedValue)."
-    }
-}
 
 nonisolated struct MatchEligibilityEvaluation: Codable, Equatable, Hashable, Sendable {
     let state: String
     let reason: String?
     let serviceStart: String?
     let serviceEnd: String?
+    var requiredConfirmations: [String]? = nil
+    var sourceRevision: String? = nil
+    var evaluatedAt: String? = nil
+    var validUntil: String? = nil
+
+    var confirmationKeys: Set<String> {
+        Set(requiredConfirmations ?? [])
+    }
 
     var isOfferable: Bool {
-        state == "estimated_fit" || state == "assessment_required"
+        (state == "estimated_fit" || state == "assessment_required")
+            && confirmationKeys.isSubset(of: ["pet_size", "custom_service", "pet_coat", "pet_matting"])
     }
 
     private enum CodingKeys: String, CodingKey {
         case state, reason
         case serviceStart = "service_start"
         case serviceEnd = "service_end"
+        case requiredConfirmations = "required_confirmations"
+        case sourceRevision = "source_revision"
+        case evaluatedAt = "evaluated_at"
+        case validUntil = "valid_until"
     }
 }
 
@@ -560,6 +475,7 @@ struct GroomerOfferDraft: Equatable, Sendable {
     let priceEstimate: Double
     let message: String?
     var expectedRequestRevision: UUID? = nil
+    var assessmentConfirmations: [String] = []
 }
 
 struct CreateGroomerOfferResult: Equatable, Sendable {

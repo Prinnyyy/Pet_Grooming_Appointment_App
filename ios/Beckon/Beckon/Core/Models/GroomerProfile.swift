@@ -20,6 +20,13 @@ struct GroomerProfile: Equatable, Sendable {
     let isActive: Bool
     let isVerified: Bool
     var confirmedAddress: BeckonConfirmedAddress? = nil
+    var ratingSum: Int? = nil
+
+    var exactRatingAverage: Double? {
+        guard let ratingSum, ratingCount > 0, ratingSum >= ratingCount,
+              Double(ratingSum) <= 5 * Double(ratingCount) else { return nil }
+        return Double(ratingSum) / Double(ratingCount)
+    }
 
     var effectiveServiceLocationModes: Set<GroomingLocationMode> {
         if !serviceLocationModes.isEmpty {
@@ -57,6 +64,13 @@ struct GroomerService: Equatable, Identifiable, Sendable {
     let durationMinutes: Int
     let acceptedPetSizes: [GroomerServicePetSize]
     let isActive: Bool
+    var acceptedSpecies: [GroomerServiceSpecies]? = nil
+
+    var acceptedSpeciesSummary: String {
+        guard let acceptedSpecies else { return "Species confirmation required" }
+        guard !acceptedSpecies.isEmpty else { return "No species accepted" }
+        return GroomerServiceSpecies.allCases.filter(acceptedSpecies.contains).map(\.title).joined(separator: ", ")
+    }
 
     var acceptedPetSizeSummary: String {
         acceptedPetSizes.isEmpty
@@ -73,6 +87,14 @@ struct GroomerServiceDraft: Equatable, Sendable {
     let durationMinutes: Int
     let acceptedPetSizes: [GroomerServicePetSize]
     let isActive: Bool
+    var acceptedSpecies: [GroomerServiceSpecies]? = nil
+}
+
+nonisolated enum GroomerServiceSpecies: String, Codable, CaseIterable, Hashable, Identifiable, Sendable {
+    case dog, cat
+
+    var id: Self { self }
+    var title: String { self == .dog ? "Dogs" : "Cats" }
 }
 
 nonisolated enum GroomerServicePetSize:
@@ -101,17 +123,17 @@ nonisolated enum GroomerServicePetSize:
         case .xs:
             "<10lb"
         case .s:
-            "10-19lb"
+            "10-<20lb"
         case .m:
-            "20-39lb"
+            "20-<40lb"
         case .l:
-            "40-59lb"
+            "40-<60lb"
         case .xl:
-            "60-79lb"
+            "60-<80lb"
         case .xxl:
             "80-100lb"
         case .giant:
-            "101+lb"
+            ">100lb"
         }
     }
 
@@ -130,26 +152,26 @@ nonisolated enum GroomerServicePetSize:
         case .xxl:
             "80lb"
         case .giant:
-            "101lb"
+            ">100lb"
         }
     }
 
     var upperWeightLabel: String {
         switch self {
         case .xs:
-            "9lb"
+            "<10lb"
         case .s:
-            "19lb"
+            "<20lb"
         case .m:
-            "39lb"
+            "<40lb"
         case .l:
-            "59lb"
+            "<60lb"
         case .xl:
-            "79lb"
+            "<80lb"
         case .xxl:
             "100lb"
         case .giant:
-            "101+lb"
+            ">100lb"
         }
     }
 }

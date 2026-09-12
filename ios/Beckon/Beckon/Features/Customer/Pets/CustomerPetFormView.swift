@@ -100,6 +100,9 @@ struct CustomerPetFormView: View {
                         ) {
                             BeckonCard {
                                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                                    Toggle("Weight Known", isOn: $store.formWeightIsKnown)
+                                        .accessibilityIdentifier("customer.pets.weight-known")
+                                    if store.formWeightIsKnown {
                                     CustomerPetWeightControl(
                                         weight: $store.formWeightLbs,
                                         weightText: weightText,
@@ -107,6 +110,7 @@ struct CustomerPetFormView: View {
                                             .code(forWeightLbs: store.formWeightLbs)
                                             .title
                                     )
+                                    }
 
                                 CustomerPetBirthdayControl(
                                     isKnown: birthdayKnownBinding,
@@ -126,6 +130,13 @@ struct CustomerPetFormView: View {
                                         }
                                     }
                                 }
+
+                                Picker("Coat Matting", selection: $store.formMattingConfirmed) {
+                                    Text("Not Sure").tag(Bool?.none)
+                                    Text("No").tag(Bool?.some(false))
+                                    Text("Yes").tag(Bool?.some(true))
+                                }
+                                .accessibilityIdentifier("customer.pets.matting")
 
                                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
                                     CustomerPetFormLabeledTextField(
@@ -214,13 +225,7 @@ struct CustomerPetFormView: View {
     }
 
     private var weightText: String {
-        if store.formWeightLbs < 10 {
-            return "<10 lbs"
-        }
-        if store.formWeightLbs > 100 {
-            return ">100 lbs"
-        }
-        return "\(Int(store.formWeightLbs.rounded())) lbs"
+        "\(store.formWeightLbs.formatted(.number.precision(.fractionLength(0...2)))) lbs"
     }
 
 }
@@ -440,8 +445,17 @@ private struct CustomerPetWeightControl: View {
                 }
             }
 
-            Slider(value: $weight, in: 5...101, step: 1)
+            Slider(value: Binding(get: { min(101, max(0.1, weight)) }, set: { weight = $0 }), in: 0.1...101, step: 0.1)
                 .tint(DesignTokens.Colors.customerAccent)
+            HStack {
+                TextField("Weight in pounds", value: $weight, format: .number)
+                    .keyboardType(.decimalPad)
+                    .accessibilityIdentifier("customer.pets.weight-input")
+                Stepper("Weight", value: $weight, step: 0.1)
+                    .labelsHidden()
+                    .fixedSize()
+                    .accessibilityIdentifier("customer.pets.weight-stepper")
+            }
         }
     }
 }
