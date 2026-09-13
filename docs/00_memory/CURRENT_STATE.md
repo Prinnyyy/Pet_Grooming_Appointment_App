@@ -4,8 +4,20 @@ Only dynamic task and recovery facts. Git owns branch, worktree and completion h
 
 ```json
 {
-  "next_task_id": "T-391",
-  "task": null,
+  "next_task_id": "T-392",
+  "task": {
+    "id": "T-391",
+    "status": "planned",
+    "goal": "Validate matching and rating reliability with reused engineering evidence, independent baseline comparisons and human decisions",
+    "plan": "docs/superpowers/plans/2026-09-12-matching-rating-reliability-validation-plan.md",
+    "next_action": "Validation plan authored and self-reviewed; execution has not started. On explicit execution, begin RV-01 and continue all locally available work while retaining genuine human-data dependencies.",
+    "authorization": [
+      "Current request authorizes the validation plan and task entry only. No validation execution, credentials access, remote fixtures, account mutations, migrations or deployment is authorized by this plan."
+    ],
+    "preserve": [
+      "Preserve existing dirty backend/TestOps/history documents and untracked frozen archives. Reuse unchanged relevant T-390 evidence; do not reopen accepted functionality or add device/store scope."
+    ]
+  },
   "pending_tasks": [
     {
       "id": "T-365",
