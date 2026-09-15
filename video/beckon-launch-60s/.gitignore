@@ -1,0 +1,10 @@
+node_modules/
+assets/
+renders/
+qa/
+snapshots/
+capture/
+fixtures/
+.hyperframes/
+.thumbnails/
+*.log

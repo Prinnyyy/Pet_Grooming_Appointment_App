@@ -1,0 +1,15 @@
+{
+  "name": "beckon-launch-60s",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "hyperframes preview --background",
+    "check": "hyperframes check",
+    "render": "hyperframes render --composition index.html --output renders/beckon-launch-60s-v2.mp4 --fps 30 --quality high --video-frame-format png --sdr --low-memory-mode --workers 1",
+    "render:sample": "hyperframes render --composition compositions/sample.html --output renders/beckon-sample-10s-v2.mp4 --fps 30 --quality high --video-frame-format png --sdr --low-memory-mode --workers 1"
+  },
+  "devDependencies": {
+    "hyperframes": "0.8.41",
+    "gsap": "3.14.2"
+  }
+}
