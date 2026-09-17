@@ -18,6 +18,16 @@ Linked files:
 ## Active Decisions
 
 ```text
+Decision ID: D-056
+Date: 2026-09-15
+Task: T-392 / V-04
+Decision: Use a marketplace-only, short-lived soft-evidence snapshot for new ranked v2 POST reads, under the adopted plan's delegated consistency decision. Preserve the current algorithm and explicit sort priorities. A fresh browse/refresh captures current scores, public rating aggregates and explanations; continuation keeps that same score_as_of for at most five minutes, shortened by existing hard deadlines.
+Context: Recomputing changed professional evidence on every page makes ordinary review arrivals interrupt browsing. Merely omitting soft fields from the revision could silently mix ordering/versions; eager full-list client reads would evade the real paging requirement. Neither is accepted.
+Consequences: Retain stable, single-statement authorized candidate evaluation in a private core. A narrow volatile v2 wrapper persists only candidate score/aggregate data, never credentials, coordinates, request text or individual review/customer details. Every page revalidates live hard facts, membership, role/ownership, mode, algorithm and privacy epoch; hard changes still return list_changed and booking admission remains uncached. Signed cursors bind an opaque snapshot ID. Existing stable endpoints/cursors remain compatible. Private RLS/no-client-grant storage expires after five minutes, caps each entry at256KiB and each viewer at32 entries, and uses bounded scheduled expiry cleanup. Oversized scopes keep all candidates using the legacy strict-consistency path, never truncate the pool. Privacy redaction changes the epoch immediately; expired/evicted/missing snapshots recover through the existing one-refresh path. Validate actual soft/hard/privacy behavior and original performance budgets before claiming deployment or acceptance.
+Linked files: docs/superpowers/plans/2026-09-15-synthetic-multi-simulator-acceptance-plan.md; docs/04_ios/testops/T-392_CLIENT_ACCEPTANCE.md.
+```
+
+```text
 Decision ID: D-055
 Date: 2026-09-10
 Task: T-389

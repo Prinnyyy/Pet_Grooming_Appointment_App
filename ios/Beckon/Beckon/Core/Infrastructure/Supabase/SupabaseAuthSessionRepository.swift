@@ -5,6 +5,7 @@ import Supabase
 final class SupabaseAuthSessionRepository: AuthSessionRepository {
     private let client: SupabaseClient
     private let recoveryClient: SupabaseClient?
+    private var signOutTask: Task<Void, Error>?
 
     init(client: SupabaseClient, recoveryClient: SupabaseClient? = nil) {
         self.client = client
@@ -55,9 +56,9 @@ final class SupabaseAuthSessionRepository: AuthSessionRepository {
 
         return AsyncStream { continuation in
             let task = Task { @MainActor in
-                for await (_, session) in authStateChanges {
+                for await _ in authStateChanges {
                     continuation.yield(
-                        session.map(Self.snapshot)
+                        self.currentSession()
                     )
                 }
 
@@ -119,11 +120,25 @@ final class SupabaseAuthSessionRepository: AuthSessionRepository {
     }
 
     func signOut() async throws {
-        do {
-            try await client.auth.signOut(scope: .local)
-        } catch {
-            throw Self.map(error)
+        if let signOutTask { return try await signOutTask.value }
+        let task = Task { @MainActor [client] in
+            await client.auth.stopAutoRefresh()
+            // The SDK does not cancel a refresh when removing local storage. Join
+            // it before logout so a late response cannot recreate the old session.
+            if client.auth.currentSession != nil {
+                _ = try? await client.auth.refreshSession()
+            }
+            do {
+                try await client.auth.signOut(scope: .local)
+                await client.auth.startAutoRefresh()
+            } catch {
+                await client.auth.startAutoRefresh()
+                throw Self.map(error)
+            }
         }
+        signOutTask = task
+        defer { signOutTask = nil }
+        try await task.value
     }
 
     func deleteAccount() async throws {

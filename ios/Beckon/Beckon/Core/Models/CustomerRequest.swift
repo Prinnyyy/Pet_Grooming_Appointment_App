@@ -191,7 +191,7 @@ nonisolated enum GroomingRequestStatus:
     }
 }
 
-struct GroomingRequestDraft: Equatable, Sendable {
+struct GroomingRequestDraft: Codable, Equatable, Sendable {
     let petID: UUID
     let serviceType: GroomingServiceType
     let serviceNotes: String?
@@ -291,6 +291,12 @@ struct CustomerOfferReview: Equatable, Identifiable, Sendable {
 
     var isPending: Bool {
         offer.status == .pending
+    }
+
+    func isCurrentProposal(now: Date = Date()) -> Bool {
+        isPending && !offer.requiresTimingUpdate && !offer.requiresAgreementUpdate
+            && !offer.hasPassedConfirmationDeadline(now: now)
+            && offer.quoteEvaluation?.termsValid != false
     }
 
     var fitEvidencePresentation: CustomerOfferFitPresentation? {

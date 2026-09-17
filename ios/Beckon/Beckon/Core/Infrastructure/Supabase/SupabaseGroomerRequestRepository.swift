@@ -46,7 +46,7 @@ final class SupabaseGroomerRequestRepository: GroomerRequestRepository {
 
     func rankedMatches(groomerID: UUID, page: RankedPageRequest<GroomerMatchSort>) async throws -> RankedPage<GroomerMatchedRequest> {
         do {
-            let row: RankedPageRow<RankedMatchRow> = try await client.rpc("get_ranked_matched_requests",
+            let row: RankedPageRow<RankedMatchRow> = try await client.rpc("get_ranked_matched_requests_v2",
                 params: RankedMatchParameters(p_sort: page.mode.rawValue, p_limit: page.limit, p_cursor: page.cursor))
                 .execute().value
             let result = try row.page()

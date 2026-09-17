@@ -3,7 +3,7 @@ import CoreLocation
 import Foundation
 import MapKit
 
-nonisolated struct BeckonAddressInput: Equatable, Sendable {
+nonisolated struct BeckonAddressInput: Codable, Equatable, Sendable {
     var line1: String
     var line2: String
     var city: String
@@ -12,7 +12,7 @@ nonisolated struct BeckonAddressInput: Equatable, Sendable {
     var countryCode: String
 }
 
-nonisolated struct BeckonAddressCoordinate: Equatable, Sendable {
+nonisolated struct BeckonAddressCoordinate: Codable, Equatable, Sendable {
     let latitude: Double
     let longitude: Double
 }
@@ -55,7 +55,7 @@ nonisolated struct BeckonResolvedAddress: Equatable, Sendable {
     var zipCode: String { suggested.postalCode }
 }
 
-nonisolated struct BeckonConfirmedAddress: Equatable, Sendable {
+nonisolated struct BeckonConfirmedAddress: Codable, Equatable, Sendable {
     let entered: BeckonAddressInput
     let accepted: BeckonAddressInput
     let provider: String

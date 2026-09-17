@@ -210,6 +210,15 @@ final class CustomerRequestsStore {
     private(set) var pendingRequestPhotos: [PendingGroomingRequestPhoto] = []
     private(set) var requestPhotoUploadRetries: [CustomerRequestPhotoUploadRetry] = []
     private var publishOperationID = UUID()
+    private var pendingPublication: PendingRequestPublication?
+    private var publicationRecoveryError: String?
+    var isRecoveringPublication: Bool { pendingPublication != nil }
+
+    private var publicationStorageURL: URL {
+        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("Beckon/PendingPublications", isDirectory: true)
+            .appendingPathComponent("\(customerID.uuidString).json")
+    }
     private var supersedingRequestID: UUID?
     private var expectedRequestRevision: UUID?
     var isRevisingRequest: Bool { supersedingRequestID != nil }
@@ -357,6 +366,18 @@ final class CustomerRequestsStore {
             if let offerID = UUID(uuidString: offer),
                let request = request as? String, let requestID = UUID(uuidString: request) {
                 unresolvedAcceptances[offerID] = requestID
+            }
+        }
+        if FileManager.default.fileExists(atPath: publicationStorageURL.path) {
+            do {
+                let pending = try JSONDecoder().decode(PendingRequestPublication.self,
+                    from: Data(contentsOf: publicationStorageURL))
+                guard pending.customerID == customerID else {
+                    throw CustomerRequestRepositoryError.notAllowed
+                }
+                pendingPublication = pending
+            } catch {
+                publicationRecoveryError = "Your previous publication could not be recovered. No new request was submitted."
             }
         }
     }
@@ -573,6 +594,8 @@ final class CustomerRequestsStore {
     }
 
     func startCreate() {
+        guard !isSubmitting else { return }
+        if resumePendingPublication() { return }
         resetForm()
         selectedPetID = pets.first?.id
         wizardInitialStep = .pet
@@ -583,6 +606,8 @@ final class CustomerRequestsStore {
     }
 
     func startRevision(from request: CustomerGroomingRequest) {
+        guard !isSubmitting else { return }
+        if resumePendingPublication() { return }
         guard request.status.isOpenForOffers, let revision = request.termsRevision else {
             errorMessage = "Refresh this request before changing its details."
             return
@@ -596,6 +621,8 @@ final class CustomerRequestsStore {
         from request: CustomerGroomingRequest,
         now: Date = Date()
     ) {
+        guard !isSubmitting else { return }
+        if resumePendingPublication() { return }
         resetForm(now: now)
         selectedPetID = republishPetID(for: request)
         serviceType = request.serviceType
@@ -709,7 +736,9 @@ final class CustomerRequestsStore {
     }
 
     func cancelWizard(now: Date = Date()) {
+        guard !isSubmitting else { return }
         isShowingWizard = false
+        guard pendingPublication == nil else { return }
         resetForm(now: now)
         selectedPetID = pets.first?.id
         wizardInitialStep = .pet
@@ -833,6 +862,7 @@ final class CustomerRequestsStore {
         data: Data,
         contentType: GroomingRequestPhotoContentType
     ) -> Bool {
+        guard pendingPublication == nil else { return false }
         guard data.count <= Self.maximumRequestPhotoBytes else {
             errorMessage = "Choose a request photo smaller than 10 MB."
             return false
@@ -849,6 +879,7 @@ final class CustomerRequestsStore {
     }
 
     func removePendingPhoto(id: UUID) {
+        guard pendingPublication == nil else { return }
         pendingRequestPhotos.removeAll { $0.id == id }
     }
 
@@ -1151,7 +1182,11 @@ final class CustomerRequestsStore {
     }
 
     func publish() async {
-        guard !isSubmitting else { return }
+        guard !isSubmitting, acceptanceSessionIsCurrent() else { return }
+        if let publicationRecoveryError {
+            errorMessage = publicationRecoveryError
+            return
+        }
 
         let startedAt = Date()
         recordStoreStart("publish")
@@ -1161,7 +1196,12 @@ final class CustomerRequestsStore {
 
         let draft: GroomingRequestDraft
         do {
-            draft = try makeDraft()
+            if let pendingPublication {
+                restorePublicationForm(pendingPublication)
+                draft = pendingPublication.draft
+            } else {
+                draft = try makeDraft()
+            }
         } catch let error as CustomerRequestFormError {
             errorMessage = error.message
             recordStoreFailure(
@@ -1188,11 +1228,18 @@ final class CustomerRequestsStore {
         defer { isSubmitting = false }
 
         do {
+            // Write the immutable intent before sending: a lost response must not become a new operation.
+            if pendingPublication == nil {
+                try savePendingPublication(PendingRequestPublication(customerID: customerID,
+                    draft: draft, photos: pendingRequestPhotos))
+            }
             let result = try await requestRepository.createRequest(
                 customerID: customerID,
                 draft: draft
             )
+            try checkAcceptanceSession()
             let photosToUpload = pendingRequestPhotos
+            try savePendingPublication(nil)
             publishResult = result
             isShowingWizard = false
             resetForm()
@@ -1304,6 +1351,13 @@ final class CustomerRequestsStore {
         } catch CustomerRequestRepositoryError.cancelled {
             recordStoreCancelled("publish", startedAt: startedAt)
         } catch let error as CustomerRequestRepositoryError {
+            switch error {
+            case .requestLimitExceeded, .requestNotFound, .requestNotCancellable, .petNotFound, .invalidInput:
+                // These are authoritative rejections. Transport/cancellation/auth failures remain unresolved.
+                if (try? savePendingPublication(nil)) != nil { publishOperationID = UUID() }
+            case .notAllowed, .networkUnavailable, .cancelled, .unavailable:
+                break
+            }
             errorMessage = message(for: error, action: "publish")
             recordStoreFailure(
                 "publish",
@@ -1402,6 +1456,11 @@ final class CustomerRequestsStore {
                 ? try await bookingRepository.offerAcceptance(offerID: offerReview.offer.id)
                 : nil
             try checkAcceptanceSession()
+            if isRecovery, recovered == nil, let booking = try await existingRequestBooking(requestID: request.id) {
+                let handoff = try await recoveredHandoff(booking, for: request)
+                recordStoreSuccess("accept", startedAt: startedAt)
+                return handoff
+            }
             setUnresolvedAcceptance(offerID: offerReview.offer.id, requestID: request.id)
             let result: AcceptGroomerOfferResult
             if let recovered {
@@ -1456,6 +1515,30 @@ final class CustomerRequestsStore {
         } catch BookingRepositoryError.cancelled {
             recordStoreCancelled("accept", startedAt: startedAt)
         } catch let error as BookingRepositoryError {
+            guard acceptanceSessionIsCurrent(), !Task.isCancelled else {
+                recordStoreCancelled("accept", startedAt: startedAt)
+                return nil
+            }
+            if [.offerNoLongerPending, .requestNoLongerOpen, .bookingAlreadyExists].contains(error) {
+                do {
+                    if let booking = try await existingRequestBooking(requestID: request.id) {
+                        let handoff = try await recoveredHandoff(booking, for: request)
+                        recordStoreSuccess("accept", startedAt: startedAt)
+                        return handoff
+                    }
+                } catch where AppDebugErrorClassifier.isCancellation(error) {
+                    recordStoreCancelled("accept", startedAt: startedAt)
+                    return nil
+                } catch {
+                    guard acceptanceSessionIsCurrent(), !Task.isCancelled else {
+                        recordStoreCancelled("accept", startedAt: startedAt)
+                        return nil
+                    }
+                    errorMessage = "We could not check this request's booking. Check the booking result before trying again."
+                    recordStoreFailure("accept", error: error, mappedMessage: errorMessage, startedAt: startedAt)
+                    return nil
+                }
+            }
             if Self.isDefinitiveAcceptanceFailure(error) {
                 setUnresolvedAcceptance(offerID: offerReview.offer.id, requestID: nil)
             }
@@ -1824,6 +1907,56 @@ final class CustomerRequestsStore {
         return .valid
     }
 
+    private func savePendingPublication(_ value: PendingRequestPublication?) throws {
+        let url = publicationStorageURL
+        if let value {
+            var directory = url.deletingLastPathComponent()
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            var resources = URLResourceValues()
+            resources.isExcludedFromBackup = true
+            try directory.setResourceValues(resources)
+            try JSONEncoder().encode(value).write(to: url,
+                options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+        } else if FileManager.default.fileExists(atPath: url.path) {
+            try FileManager.default.removeItem(at: url)
+        }
+        pendingPublication = value
+    }
+
+    private func resumePendingPublication() -> Bool {
+        if let publicationRecoveryError {
+            errorMessage = publicationRecoveryError
+            return true
+        }
+        guard let pendingPublication else { return false }
+        restorePublicationForm(pendingPublication)
+        wizardInitialStep = .review
+        errorMessage = nil
+        noticeMessage = nil
+        publishResult = nil
+        isShowingWizard = true
+        return true
+    }
+
+    private func restorePublicationForm(_ pending: PendingRequestPublication) {
+        let draft = pending.draft
+        selectedPetID = draft.petID
+        serviceType = draft.serviceType
+        serviceNotes = draft.serviceNotes ?? ""
+        preferredStart = draft.preferredStart
+        preferredEnd = draft.preferredEnd
+        locationMode = draft.locationMode
+        addressEditorState.replaceInput(BeckonAddressInput(line1: draft.streetAddress,
+            line2: draft.addressLine2, city: draft.city, stateCode: draft.stateCode,
+            postalCode: draft.zipCode, countryCode: draft.confirmedAddress?.accepted.countryCode ?? "US"),
+            confirmedAddress: draft.confirmedAddress)
+        travelRadiusMiles = draft.travelRadiusMiles ?? 15
+        publishOperationID = draft.publishOperationID
+        supersedingRequestID = draft.supersedingRequestID
+        expectedRequestRevision = draft.expectedRequestRevision
+        pendingRequestPhotos = pending.photos
+    }
+
     private func resetForm(now: Date = Date()) {
         publishOperationID = UUID()
         supersedingRequestID = nil
@@ -1968,7 +2101,7 @@ final class CustomerRequestsStore {
 
     private static func isDefinitiveAcceptanceFailure(_ error: BookingRepositoryError) -> Bool {
         switch error {
-        case .offerNotFound, .offerNoLongerPending, .requestNoLongerOpen,
+        case .offerNotFound, .offerNoLongerPending, .requestNoLongerOpen, .bookingAlreadyExists,
              .bookingConflict, .invalidInput, .updatedOfferRequired, .matchConstraintsChanged, .clientUpdateRequired:
             true
         default:
@@ -1984,6 +2117,10 @@ final class CustomerRequestsStore {
         for (offerID, requestID) in unresolvedAcceptances {
             do {
                 guard let result = try await bookingRepository.offerAcceptance(offerID: offerID) else {
+                    if let booking = try await existingRequestBooking(requestID: requestID) {
+                        applyRecoveredAcceptance(booking)
+                        continue
+                    }
                     errorMessage = "Your previous booking is not confirmed. Retry the same offer to check again."
                     continue
                 }
@@ -2007,6 +2144,7 @@ final class CustomerRequestsStore {
                 setUnresolvedAcceptance(offerID: offerID, requestID: nil)
                 errorMessage = message(for: error, action: "check booking")
             } catch {
+                guard acceptanceSessionIsCurrent(), !Task.isCancelled else { return }
                 errorMessage = "We could not check your previous booking. Refresh before trying again."
             }
         }
@@ -2016,22 +2154,57 @@ final class CustomerRequestsStore {
         _ result: AcceptGroomerOfferResult,
         requestID: UUID
     ) -> Bool {
+        applyAcceptedState(requestID: requestID, offerID: result.offerID,
+            requestStatus: result.requestStatus, offerStatus: result.offerStatus)
+    }
+
+    private func existingRequestBooking(requestID: UUID) async throws -> Booking? {
+        try checkAcceptanceSession()
+        let booking = try await bookingRepository.booking(customerID: customerID, requestID: requestID)
+        try checkAcceptanceSession()
+        guard let booking else { return nil }
+        guard booking.customerID == customerID, booking.requestID == requestID else {
+            throw BookingRepositoryError.unavailable
+        }
+        return booking
+    }
+
+    private func applyRecoveredAcceptance(_ booking: Booking) {
+        upsertBooking(booking)
+        bookingsStore?.synchronizeExternalBooking(booking)
+        _ = applyAcceptedState(requestID: booking.requestID, offerID: booking.offerID,
+            requestStatus: .booked, offerStatus: .acceptedByCustomer)
+        for (offerID, requestID) in unresolvedAcceptances where requestID == booking.requestID {
+            setUnresolvedAcceptance(offerID: offerID, requestID: nil)
+        }
+        errorMessage = nil
+        noticeMessage = "This request was already booked. Existing booking recovered."
+    }
+
+    private func recoveredHandoff(_ booking: Booking, for request: CustomerGroomingRequest) async throws
+        -> CustomerRequestBookingHandoff {
+        applyRecoveredAcceptance(booking)
+        _ = await appointmentReminderScheduler.syncReminders(for: bookings, role: .customer)
+        try checkAcceptanceSession()
+        return CustomerRequestBookingHandoff(request: self.request(withID: request.id) ?? request.replacing(status: .booked),
+            booking: booking)
+    }
+
+    private func applyAcceptedState(requestID: UUID, offerID: UUID,
+        requestStatus: GroomingRequestStatus, offerStatus: GroomerOfferStatus) -> Bool {
         var didUpdateRequest = false
         var didUpdateAcceptedOffer = false
 
-        if let index = requests.firstIndex(where: { $0.id == result.requestID }) {
-            requests[index] = requests[index].replacing(status: result.requestStatus)
-            didUpdateRequest = true
-        } else if let index = requests.firstIndex(where: { $0.id == requestID }) {
-            requests[index] = requests[index].replacing(status: result.requestStatus)
+        if let index = requests.firstIndex(where: { $0.id == requestID }) {
+            requests[index] = requests[index].replacing(status: requestStatus)
             didUpdateRequest = true
         }
 
         let reviews = offerReviewsByRequestID[requestID] ?? []
         offerReviewsByRequestID[requestID] = reviews.map { review in
                 let nextStatus: GroomerOfferStatus
-                if review.offer.id == result.offerID {
-                    nextStatus = result.offerStatus
+                if review.offer.id == offerID {
+                    nextStatus = offerStatus
                     didUpdateAcceptedOffer = true
                 } else if review.offer.status == .pending {
                     nextStatus = .declinedByCustomer
@@ -2726,7 +2899,13 @@ struct CustomerRequestActionCardItem: Equatable, Hashable, Identifiable, Sendabl
     }
 }
 
-struct PendingGroomingRequestPhoto: Equatable, Identifiable, Sendable {
+private struct PendingRequestPublication: Codable {
+    let customerID: UUID
+    let draft: GroomingRequestDraft
+    let photos: [PendingGroomingRequestPhoto]
+}
+
+struct PendingGroomingRequestPhoto: Codable, Equatable, Identifiable, Sendable {
     let id: UUID
     let data: Data
     let contentType: GroomingRequestPhotoContentType

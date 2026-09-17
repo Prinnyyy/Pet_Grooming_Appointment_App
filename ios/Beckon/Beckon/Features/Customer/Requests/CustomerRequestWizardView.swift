@@ -401,6 +401,7 @@ struct CustomerRequestWizardView: View {
                     currentStep: currentStep,
                     isSubmitting: store.isSubmitting,
                     isReplacingRequest: store.isRevisingRequest,
+                    isRecoveringPublication: store.isRecoveringPublication,
                     isPrimaryActionEnabled: primaryActionState.isEnabled,
                     needsAddressConfirmation: currentStep == .time && store.requestCalendar == nil,
                     backAction: back,
@@ -661,6 +662,7 @@ struct CustomerRequestWizardView: View {
                     .accessibilityIdentifier("customer.requests.wizard.notes")
                     .onTapGesture {
                         clearInvalidField(.notes)
+                        isNotesFocused = true
                     }
                     .onChange(of: store.serviceNotes) { _, _ in
                         clearInvalidField(.notes)
@@ -702,6 +704,12 @@ struct CustomerRequestWizardView: View {
 
     private var reviewStep: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
+            if store.isRecoveringPublication {
+                Text("Publication is not yet confirmed. Retrying checks the original request without creating a second one.")
+                    .font(DesignTokens.Typography.body)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("customer.requests.publication-recovery")
+            }
             if store.isRevisingRequest {
                 Text("Publishing these changes will replace the original request and close its existing offers.")
                     .font(DesignTokens.Typography.body)
@@ -841,6 +849,10 @@ struct CustomerRequestWizardView: View {
 
     private func back() {
         guard !store.isSubmitting else { return }
+        if store.isRecoveringPublication {
+            store.cancelWizard()
+            return
+        }
 
         if let previous = currentStep.previous {
             currentStep = previous
@@ -850,6 +862,10 @@ struct CustomerRequestWizardView: View {
     }
 
     private func continueForward() {
+        if store.isRecoveringPublication {
+            publish()
+            return
+        }
         let validation = store.validateWizardStep(currentStep)
         guard validation.isValid else {
             if currentStep == .time,
@@ -1131,6 +1147,7 @@ private struct CustomerRequestWizardBottomBar: View {
     let currentStep: CustomerRequestWizardStep
     let isSubmitting: Bool
     var isReplacingRequest = false
+    var isRecoveringPublication = false
     let isPrimaryActionEnabled: Bool
     let needsAddressConfirmation: Bool
     let backAction: () -> Void
@@ -1165,11 +1182,11 @@ private struct CustomerRequestWizardBottomBar: View {
 
     @ViewBuilder
     private var actions: some View {
-        Button("Back", action: backAction)
+        Button(isRecoveringPublication ? "Close" : "Back", action: backAction)
             .buttonStyle(BeckonSecondaryButtonStyle(accent: .neutral))
             .disabled(isSubmitting)
             .accessibilityIdentifier(
-                currentStep == .pet
+                currentStep == .pet || isRecoveringPublication
                     ? "customer.requests.wizard.dismiss"
                     : "customer.requests.wizard.back"
             )
@@ -1194,6 +1211,8 @@ private struct CustomerRequestWizardBottomBar: View {
         if isSubmitting {
             return "Publishing..."
         }
+
+        if isRecoveringPublication { return "Retry Publish" }
 
         if needsAddressConfirmation { return "Confirm Address" }
         return currentStep == .review ? (isReplacingRequest ? "Replace Request" : "Publish Request") : "Continue"
@@ -1538,6 +1557,7 @@ private struct CustomerRequestDetailedTimeFields: View {
             )
             .font(DesignTokens.Typography.body.weight(.semibold))
             .beckonFormField(isInvalid: isInvalid)
+            .accessibilityIdentifier("customer.requests.start-time")
 
             DatePicker(
                 "End Time",
@@ -1546,6 +1566,7 @@ private struct CustomerRequestDetailedTimeFields: View {
             )
             .font(DesignTokens.Typography.body.weight(.semibold))
             .beckonFormField(isInvalid: isInvalid)
+            .accessibilityIdentifier("customer.requests.end-time")
         }
     }
 }
@@ -1652,17 +1673,20 @@ private struct CustomerRequestAddressFields: View {
 
             if locationMode == .customerComesToGroomer {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                    HStack {
-                        Text("Travel Range")
-                            .font(DesignTokens.Typography.body.weight(.bold))
-                            .foregroundStyle(DesignTokens.Colors.textPrimary)
-
-                        Spacer()
-
-                        Text("\(CustomerRequestTravelRange.clampedMiles(Double(travelRangeMiles))) mi")
-                            .font(DesignTokens.Typography.body.weight(.bold))
-                            .foregroundStyle(DesignTokens.Colors.customerAccentStrong)
+                    Stepper(
+                        value: $travelRangeMiles,
+                        in: CustomerRequestTravelRange.minimumMiles...CustomerRequestTravelRange.maximumMiles
+                    ) {
+                        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                            Text("Travel Range")
+                                .foregroundStyle(DesignTokens.Colors.textPrimary)
+                            Text("\(travelRangeMiles) mi")
+                                .foregroundStyle(DesignTokens.Colors.customerAccentStrong)
+                        }
+                        .font(DesignTokens.Typography.body.weight(.bold))
                     }
+                    .accessibilityIdentifier("customer.requests.travel-range")
+                    .accessibilityValue("\(travelRangeMiles) miles")
 
                     Slider(
                         value: Binding(
@@ -1673,6 +1697,7 @@ private struct CustomerRequestAddressFields: View {
                         step: 1
                     )
                     .tint(DesignTokens.Colors.customerAccent)
+                    .accessibilityLabel("Travel Range")
 
                     Text("Choose how far you can travel to a groomer's location.")
                         .font(DesignTokens.Typography.caption)

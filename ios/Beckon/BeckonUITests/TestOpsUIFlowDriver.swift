@@ -86,9 +86,9 @@ final class TestOpsUIFlowDriver {
     func launchSignedOut(additionalArguments: [String] = []) {
         app.launchArguments = [
             "--beckon-testops-run-id",
-            environment["TESTOPS_RUN_ID"] ?? "TESTOPS-UITEST-0001",
+            environment["TESTOPS_RUN_ID"] ?? environment["TEST_RUNNER_TESTOPS_RUN_ID"] ?? "TESTOPS-UITEST-0001",
             "--beckon-testops-scenario",
-            environment["TESTOPS_SCENARIO_ID"] ?? "marketplace_full_lifecycle",
+            environment["TESTOPS_SCENARIO_ID"] ?? environment["TEST_RUNNER_TESTOPS_SCENARIO_ID"] ?? "marketplace_full_lifecycle",
             "--beckon-testops-clear-session",
             "--beckon-testops-disable-animations",
         ] + additionalArguments
@@ -112,9 +112,9 @@ final class TestOpsUIFlowDriver {
         XCTAssertFalse(element("groomer.tabs").exists)
     }
 
-    func signIn(_ account: TestOpsSeedAccount) {
+    func signIn(_ account: TestOpsSeedAccount, signedOutTimeout: TimeInterval = 8) {
         let signInEntry = app.buttons["auth.already-have-account"]
-        XCTAssertTrue(signInEntry.waitForExistence(timeout: 8))
+        XCTAssertTrue(signInEntry.waitForExistence(timeout: signedOutTimeout))
         signInEntry.tap()
 
         let emailField = app.textFields["auth.email"]
@@ -122,10 +122,18 @@ final class TestOpsUIFlowDriver {
         XCTAssertTrue(emailField.waitForExistence(timeout: 5))
         XCTAssertTrue(passwordField.exists)
 
-        emailField.tap()
-        emailField.typeText(account.email)
-        passwordField.tap()
-        passwordField.typeText(account.password)
+        for (field, text) in [(emailField, account.email), (passwordField, account.password)] {
+            field.tap()
+            if !app.keyboards.firstMatch.waitForExistence(timeout: 2) {
+                field.tap()
+            }
+            XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 3),
+                "The sign-in field must receive keyboard input before typing")
+            if let value = field.value as? String, !value.isEmpty {
+                field.typeKey("a", modifierFlags: .command)
+            }
+            field.typeText(text)
+        }
         app.buttons["auth.submit"].tap()
 
         XCTAssertTrue(

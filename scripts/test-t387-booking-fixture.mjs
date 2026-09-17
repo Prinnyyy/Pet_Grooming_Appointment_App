@@ -1,12 +1,13 @@
 import assert from "node:assert/strict";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { parseEnv } from "node:util";
 import { randomUUID } from "node:crypto";
 import { parseCustomerProfiles, parseGroomerProfiles, SupabaseREST } from "./testops-core.mjs";
 
 export const runID = process.env.TESTOPS_RUN_ID ?? "TESTOPS-T387-20260910-A";
-assert.match(runID, /^TESTOPS-T(?:387|390)-[A-Z0-9-]{1,70}$/);
+assert.match(runID, /^TESTOPS-T(?:387|390|391|392)-[A-Z0-9-]{1,70}$/);
+export const isMatchingRun = id => /^TESTOPS-T(?:390|391|392)-[A-Z0-9-]{1,70}$/.test(id);
 export const directory = `artifacts/testops/${runID}`;
 export const marker = `TESTOPS:${runID}`;
 const recoveryPath = `${directory}/recovery.json`;
@@ -15,19 +16,55 @@ export const buffers = { preparation_minutes: 15, cleanup_minutes: 10,
 const settingsTables = ["groomer_availability_windows", "groomer_booking_preferences", "groomer_time_off_windows"];
 export const sqlJSON = value => `'${JSON.stringify(value).replaceAll("'", "''")}'::jsonb`;
 export const sqlIDs = ids => ids.map(id => { assert.match(id, /^[0-9a-f-]{36}$/i); return `'${id}'::uuid`; }).join(",");
+export function fixedPagingSchedule(periodMS) {
+  assert.ok([0,10000,60000].includes(periodMS), "Unsupported paging event period");
+  return Array.from({length:10}, (_, index) => ({
+    index,waitMS:index<5?1000:5000,phaseMS:periodMS ? (index%5)*periodMS/5 : null,
+  }));
+}
+export function rankingValidationPlan(config, actorIDs, id = runID) {
+  assert.ok(isMatchingRun(id), "Invalid matching run ID");
+  assert.equal(typeof config.enabled, "boolean");
+  assert.ok(Array.isArray(config.validation_actor_ids));
+  assert.ok(actorIDs.length > 0 && new Set(actorIDs).size === actorIDs.length);
+  const array = ids => ids.length ? `array[${sqlIDs(ids)}]` : "'{}'::uuid[]";
+  const before = `enabled=${config.enabled} and validation_actor_ids=${array(config.validation_actor_ids)}`;
+  const verifySQL = `do $$ begin if not exists(select 1 from app_private.match_ranking_config where singleton and ${before})
+    then raise exception 'Unexpected ranking config; preserve it';end if;end $$;`;
+  if (/^TESTOPS-T(?:391|392)-/.test(id)) assert.equal(config.enabled, true, "Validation requires the adopted enabled algorithm");
+  if (config.enabled) return { activateSQL: null, restoreSQL: null, verifySQL };
+  assert.deepEqual(config.validation_actor_ids, [], "Preserve another validation cohort");
+  return { verifySQL,
+    activateSQL: `do $$ begin update app_private.match_ranking_config set validation_actor_ids=${array(actorIDs)}
+      where singleton and ${before};if not found then raise exception 'Unexpected ranking config; preserve it';end if;end $$;`,
+    restoreSQL: `do $$ begin if exists(select 1 from app_private.match_ranking_config where singleton and ${before}) then return;end if;
+      update app_private.match_ranking_config set validation_actor_ids='{}' where singleton and not enabled
+        and validation_actor_ids=${array(actorIDs)};
+      if not found then raise exception 'Unexpected ranking config; preserve it';end if;end $$;` };
+}
 export function saveArtifact(name, value) {
   mkdirSync(directory, { recursive: true, mode: 0o700 });
   writeFileSync(`${directory}/${name}.json`, JSON.stringify(value, null, 2), { mode: 0o600 });
 }
 export function query(sql, timeoutMS = 120000) {
+  assert.equal(process.env.TESTOPS_REMOTE_WRITE_APPROVED, "1", "Explicit test-operation authorization required");
   assert.ok(Number.isInteger(timeoutMS) && timeoutMS > 0 && timeoutMS <= 1800000);
   assert.equal(readFileSync("supabase/.temp/project-ref", "utf8").trim(), "lqmasbuqzvcvtawonjlb");
-  const result = spawnSync("supabase", ["db", "query", "--linked", "--output", "json", sql], {
+  let temporary;
+  let input=[sql];
+  if(Buffer.byteLength(sql)>32768) {
+    mkdirSync(directory,{recursive:true,mode:0o700});
+    temporary=mkdtempSync(`${directory}/sql-`);
+    writeFileSync(`${temporary}/query.sql`,sql,{mode:0o600});
+    input=["--file",`${temporary}/query.sql`];
+  }
+  let result;
+  try { result = spawnSync("supabase", ["db", "query", "--linked", "--output", "json", ...input], {
     encoding: "utf8", timeout: timeoutMS, maxBuffer: 16 * 1024 * 1024,
     env: { ...process.env, SUPABASE_TELEMETRY_DISABLED: "1" },
-  });
+  }); } finally { if(temporary) rmSync(temporary,{recursive:true,force:true}); }
   if (result.status !== 0) {
-    saveArtifact("query-error", { message: result.stderr });
+    saveArtifact("query-error", { message: result.stderr || result.error?.message });
     throw Error("Scoped SQL failed; inspect private query-error.json before retrying");
   }
   return JSON.parse(result.stdout).rows;
@@ -205,7 +242,7 @@ export async function cleanup(context, saved, verifyDerivedCleanup = null) {
     delete from public.conversations where customer_id in (${customers}) and groomer_id in (${groomers});
     select app_private.cleanup_testops_request_address_location(id,'${runID}') from public.grooming_requests where id in (${owned});
     delete from public.grooming_requests where id in (${owned});
-    ${runID.startsWith("TESTOPS-T390-") && saved.matching?.pets?.length
+    ${isMatchingRun(runID) && saved.matching?.pets?.length
       ? `delete from public.pets where id in (${sqlIDs(saved.matching.pets)})
         and customer_id in (${customers}) and grooming_notes='${marker}';` : ""}
     ${settingsTables.map((t, i) => i === 1
@@ -219,7 +256,7 @@ export async function cleanup(context, saved, verifyDerivedCleanup = null) {
   const restored = snapshot(saved);
   saveArtifact("restoration", { baseline: saved.baseline, actual: restored });
   const comparable = { ...restored };
-  if (runID.startsWith("TESTOPS-T390-") && saved.matching?.evidenceBaseline) {
+  if (isMatchingRun(runID) && saved.matching?.evidenceBaseline) {
     const [row] = query(`select ${aggregate("public.groomer_profiles", `user_id in (${groomers})`)} profiles;`);
     const withoutTimestamp = rows => rows.map(({ updated_at, ...profile }) => profile)
       .sort((a, b) => a.user_id.localeCompare(b.user_id));

@@ -260,7 +260,8 @@ struct CustomerRequestsStoreTests {
     func publishMobileRequestOmitsTravelRangeAndRequiresValidUSAddress() async throws {
         let customerID = UUID()
         let pet = Self.pet(customerID: customerID)
-        let requestRepository = CustomerRequestRepositoryFake()
+        let requestRepository = CustomerRequestRepositoryFake(
+            createResult: .success(.init(requestID: UUID(), matchCount: 0)))
         let store = CustomerRequestsStore(
             customerID: customerID,
             petRepository: CustomerRequestPetRepositoryFake(
@@ -416,6 +417,143 @@ struct CustomerRequestsStoreTests {
         )
         #expect(store.publishResult?.requestID == requestID)
         #expect(store.isShowingWizard == false)
+    }
+
+    @Test(arguments: ["edited", "dismissed", "restarted", "signedOut"])
+    @MainActor
+    func uncertainPublicationRetainsOriginalIntent(variant: String) async throws {
+        let customerID = UUID()
+        let pet = Self.pet(customerID: customerID)
+        let repository = CustomerRequestRepositoryFake(createResult: .failure(.networkUnavailable))
+        func makeStore() -> CustomerRequestsStore {
+            CustomerRequestsStore(customerID: customerID,
+                petRepository: CustomerRequestPetRepositoryFake(petsResult: .success([pet])),
+                requestRepository: repository,
+                bookingRepository: CustomerRequestBookingRepositoryFake())
+        }
+        var store = makeStore()
+        await store.load()
+        store.startCreate()
+        store.serviceType = .nailTrim
+        store.serviceNotes = "Nails only. No other services."
+        store.preferredStart = Date().addingTimeInterval(3600)
+        store.preferredEnd = Date().addingTimeInterval(7200)
+        store.streetAddress = "123 Pine St"
+        store.city = "Seattle"
+        store.stateCode = .washington
+        store.zipCode = "98101"
+        store.confirmCurrentTestAddress()
+        store.addPendingPhoto(data: Data([1, 2, 3]), contentType: .jpeg)
+        var sessionCurrent = true
+        if variant == "signedOut" {
+            repository.createResult = .success(.init(requestID: UUID(), matchCount: 1))
+            repository.onCreate = { sessionCurrent = false }
+            store.setAcceptanceSessionValidation { sessionCurrent }
+        }
+        await store.publish()
+        let original = try #require(repository.receivedDrafts.first)
+        #expect(store.publishResult == nil)
+        #expect(store.isRecoveringPublication)
+        repository.onCreate = nil
+
+        if variant == "edited" {
+            store.serviceNotes = "Changed after the uncertain response."
+            store.preferredStart = store.preferredStart.addingTimeInterval(300)
+        } else {
+            store.cancelWizard()
+            if variant == "restarted" || variant == "signedOut" {
+                let otherID = UUID()
+                let other = CustomerRequestsStore(customerID: otherID,
+                    petRepository: CustomerRequestPetRepositoryFake(petsResult: .success([Self.pet(customerID: otherID)])),
+                    requestRepository: repository, bookingRepository: CustomerRequestBookingRepositoryFake())
+                await other.load()
+                other.startCreate()
+                #expect(!other.isRecoveringPublication)
+                #expect(other.serviceNotes.isEmpty)
+                #expect(other.pendingRequestPhotos.isEmpty)
+                store = makeStore()
+                await store.load()
+            }
+            store.startCreate()
+            #expect(store.serviceNotes == original.serviceNotes)
+            #expect(store.pendingRequestPhotos.count == 1)
+            #expect(store.wizardInitialStep == .review)
+        }
+        let requestID = UUID()
+        repository.createResult = .success(.init(requestID: requestID, matchCount: 1))
+        await store.publish()
+        #expect(repository.receivedDrafts.count == 2)
+        #expect(repository.receivedDrafts.last == original)
+        #expect(repository.uploadRequestPhotoCallCount == 1)
+        #expect(store.publishResult?.requestID == requestID)
+        let fresh = makeStore()
+        await fresh.load()
+        fresh.startCreate()
+        #expect(fresh.serviceNotes.isEmpty)
+        #expect(fresh.wizardInitialStep == .pet)
+    }
+
+    @Test(arguments: [CustomerRequestRepositoryError.invalidInput, .petNotFound, .requestLimitExceeded])
+    @MainActor
+    func definitivePublicationRejectionAllowsCorrectedNewIntent(error: CustomerRequestRepositoryError) async throws {
+        let customerID = UUID(), pet = Self.pet(customerID: customerID)
+        let repository = CustomerRequestRepositoryFake(createResult: .failure(error))
+        let store = CustomerRequestsStore(customerID: customerID,
+            petRepository: CustomerRequestPetRepositoryFake(petsResult: .success([pet])),
+            requestRepository: repository, bookingRepository: CustomerRequestBookingRepositoryFake())
+        await store.load()
+        store.startCreate()
+        store.serviceType = .nailTrim
+        store.preferredStart = Date().addingTimeInterval(3600)
+        store.preferredEnd = Date().addingTimeInterval(7200)
+        store.streetAddress = "123 Pine St"
+        store.city = "Seattle"
+        store.stateCode = .washington
+        store.zipCode = "98101"
+        store.confirmCurrentTestAddress()
+        await store.publish()
+        #expect(!store.isRecoveringPublication)
+        let original = try #require(repository.receivedDrafts.first)
+        store.serviceNotes = "Corrected request."
+        repository.createResult = .success(.init(requestID: UUID(), matchCount: 1))
+        await store.publish()
+        let corrected = try #require(repository.receivedDrafts.last)
+        #expect(corrected.publishOperationID != original.publishOperationID)
+        #expect(corrected.serviceNotes == "Corrected request.")
+        #expect(repository.createCallCount == 2)
+    }
+
+    @Test(arguments: ["beforeSubmit", "afterCommit", "otherCustomer", "otherPet", "otherRun", "otherMarker", "unknownPhase"])
+    @MainActor
+    func publicationFaultIsScopedAndOneShot(variant: String) async throws {
+        let customerID = UUID(), petID = UUID(), requestID = UUID()
+        let active = ["beforeSubmit", "afterCommit"].contains(variant)
+        let result = GroomingRequestPublishResult(requestID: requestID, matchCount: 1)
+        let base = CustomerRequestRepositoryFake(createResult: .success(result))
+        let repository = DebugCustomerRequestRepository(base: base, debugRecorder: nil, testOpsArguments: [
+            "--beckon-testops-run-id", variant == "otherRun" ? "TESTOPS-T391-A" : "TESTOPS-T392-UNIT",
+            "--beckon-testops-publish-fault", active ? variant : variant == "unknownPhase" ? "unknown" : "afterCommit",
+            "--beckon-testops-publish-customer", (variant == "otherCustomer" ? UUID() : customerID).uuidString,
+            "--beckon-testops-publish-pet", (variant == "otherPet" ? UUID() : petID).uuidString,
+            "--beckon-testops-publish-marker", "F09-A"
+        ])
+        let draft = GroomingRequestDraft(petID: petID, serviceType: .nailTrim,
+            serviceNotes: "TESTOPS:TESTOPS-T392-UNIT \(variant == "otherMarker" ? "F10-A" : "F09-A")\nNail-only test.",
+            preferredStart: Date().addingTimeInterval(3600), preferredEnd: Date().addingTimeInterval(7200),
+            locationMode: .customerComesToGroomer, streetAddress: "123 Pine St", city: "Seattle",
+            stateCode: .washington, zipCode: "98101", travelRadiusMiles: 10)
+        do {
+            _ = try await repository.createRequest(customerID: customerID, draft: draft)
+            #expect(!active)
+        } catch {
+            #expect(active)
+            #expect(error as? CustomerRequestRepositoryError == .networkUnavailable)
+        }
+        #expect(base.createCallCount == (variant == "beforeSubmit" ? 0 : 1))
+        let retry = try await repository.createRequest(customerID: customerID, draft: draft)
+        #expect(retry == result)
+        #expect(base.createCallCount == (variant == "beforeSubmit" ? 1 : 2))
+        #expect(base.receivedDrafts.allSatisfy { $0.publishOperationID == draft.publishOperationID })
     }
 
     @Test @MainActor

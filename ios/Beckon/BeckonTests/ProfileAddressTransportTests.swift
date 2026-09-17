@@ -6,6 +6,23 @@ import Testing
 @Suite("Profile address transport", .serialized)
 struct ProfileAddressTransportTests {
     @Test @MainActor
+    func requestBookingRecoveryIsBoundedAndOwnedThroughTheDebugWrapper() async throws {
+        let owner = UUID(), requestID = UUID()
+        AddressTransportStub.state.reset(mode: .denied)
+        let repository = DebugBookingRepository(base: SupabaseBookingRepository(client: Self.client()), debugRecorder: nil)
+        do {
+            _ = try await repository.booking(customerID: owner, requestID: requestID)
+            Issue.record("Expected denied booking read")
+        } catch { #expect(error as? BookingRepositoryError == .notAllowed) }
+        #expect(AddressTransportStub.state.paths == ["/rest/v1/bookings"])
+        let url = try #require(AddressTransportStub.state.urls.first)
+        let query = try #require(URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems)
+        #expect(query.contains(URLQueryItem(name: "customer_id", value: "eq.\(owner.uuidString.lowercased())")))
+        #expect(query.contains(URLQueryItem(name: "request_id", value: "eq.\(requestID.uuidString.lowercased())")))
+        #expect(query.contains(URLQueryItem(name: "limit", value: "2")))
+    }
+
+    @Test @MainActor
     func rankedSuccessDecodesNestedSnapshotWithoutReorderingOrFactHydration() async throws {
         let customer = UUID(uuidString: "00000000-0000-0000-0000-000000000004")!
         let groomer = UUID(uuidString: "00000000-0000-0000-0000-000000000005")!
@@ -50,7 +67,7 @@ struct ProfileAddressTransportTests {
             debugRecorder: nil).rankedMatches(groomerID: groomer, page: RankedPageRequest(mode: .fit))
         #expect(matches.items.first?.request.id == request)
         #expect(matches.items.first?.matchingEvidence?.state == "no_evidence")
-        #expect(AddressTransportStub.state.paths == ["/rest/v1/rpc/get_ranked_matched_requests"])
+        #expect(AddressTransportStub.state.paths == ["/rest/v1/rpc/get_ranked_matched_requests_v2"])
     }
     @Test @MainActor
     func rankedReadsPreserveTypedChangesAndNeverFallBackToUnrankedHydration() async throws {
@@ -60,14 +77,14 @@ struct ProfileAddressTransportTests {
             _ = try await groomer.rankedMatches(groomerID: UUID(), page: RankedPageRequest(mode: .fit, cursor: "opaque"))
             Issue.record("Expected changed list")
         } catch { #expect(error as? MatchRankingError == .listChanged) }
-        #expect(AddressTransportStub.state.paths == ["/rest/v1/rpc/get_ranked_matched_requests"])
+        #expect(AddressTransportStub.state.paths == ["/rest/v1/rpc/get_ranked_matched_requests_v2"])
         AddressTransportStub.state.reset(mode: .timingFailure("invalid_cursor"))
         let customer = DebugCustomerRequestRepository(base: SupabaseCustomerRequestRepository(client: Self.client()), debugRecorder: nil)
         do {
             _ = try await customer.rankedOffers(customerID: UUID(), requestID: UUID(), page: RankedPageRequest(mode: .price, cursor: "opaque"))
             Issue.record("Expected invalid cursor")
         } catch { #expect(error as? MatchRankingError == .invalidCursor) }
-        #expect(AddressTransportStub.state.paths == ["/rest/v1/rpc/get_ranked_customer_offers"])
+        #expect(AddressTransportStub.state.paths == ["/rest/v1/rpc/get_ranked_customer_offers_v2"])
     }
     @Test @MainActor
     func reminderSnapshotUsesSingleOwnedRPCWithoutImageHydration() async throws {

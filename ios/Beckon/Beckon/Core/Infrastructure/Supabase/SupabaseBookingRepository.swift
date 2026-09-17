@@ -145,6 +145,21 @@ final class SupabaseBookingRepository: BookingRepository {
         }
     }
 
+    func booking(customerID: UUID, requestID: UUID) async throws -> Booking? {
+        do {
+            let rows: [SupabaseBookingRow] = try await client.from("bookings")
+                .select(Self.bookingColumns + "," + SupabaseBookingRow.fulfillmentColumns)
+                .eq("customer_id", value: customerID.uuidString.lowercased())
+                .eq("request_id", value: requestID.uuidString.lowercased())
+                .limit(2)
+                .execute().value
+            guard rows.count <= 1 else { throw BookingRepositoryError.unavailable }
+            return try await hydrate(rows).first
+        } catch {
+            throw Self.map(error)
+        }
+    }
+
     func acceptOffer(
         offerID: UUID
     ) async throws -> AcceptGroomerOfferResult {

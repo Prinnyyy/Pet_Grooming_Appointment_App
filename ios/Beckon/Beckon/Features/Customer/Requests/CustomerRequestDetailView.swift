@@ -364,16 +364,16 @@ struct CustomerOfferReviewSection: View {
         store.offers(for: request)
     }
 
-    private var pendingOffers: [CustomerOfferReview] {
-        offers.filter(\.isPending)
-    }
-
-    private var historicalOffers: [CustomerOfferReview] {
-        offers.filter { !$0.isPending }
-    }
-
     var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+        TimelineView(.periodic(from: .now, by: 1)) { context in
+            content(now: context.date)
+        }
+    }
+
+    private func content(now: Date) -> some View {
+        let pendingOffers = offers.filter { $0.isCurrentProposal(now: now) }
+        let historicalOffers = offers.filter { !$0.isCurrentProposal(now: now) }
+        return VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
             if store.rankedOfferPages[request.id]?.effectiveMode == "time_fallback" {
                 Text("Recommendation unavailable. Showing earliest appointments.")
                     .font(DesignTokens.Typography.caption)
@@ -421,7 +421,8 @@ struct CustomerOfferReviewSection: View {
                             offerGroup(
                                 title: "Pending Offers",
                                 offers: pendingOffers,
-                                isHistorical: false
+                                isHistorical: false,
+                                now: now
                             )
                             .accessibilityIdentifier("customer.offers.pending-list")
                         } else {
@@ -437,7 +438,8 @@ struct CustomerOfferReviewSection: View {
                             offerGroup(
                                 title: "Offer History",
                                 offers: historicalOffers,
-                                isHistorical: true
+                                isHistorical: true,
+                                now: now
                             )
                             .accessibilityIdentifier("customer.offers.history-list")
                         }
@@ -481,7 +483,8 @@ struct CustomerOfferReviewSection: View {
     private func offerGroup(
         title: String,
         offers: [CustomerOfferReview],
-        isHistorical: Bool
+        isHistorical: Bool,
+        now: Date
     ) -> some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
             Text(title)
@@ -500,7 +503,8 @@ struct CustomerOfferReviewSection: View {
                     } label: {
                         CustomerOfferSummaryRow(
                             offerReview: offerReview,
-                            isHistorical: isHistorical
+                            isHistorical: isHistorical,
+                            now: now
                         )
                     }
                     .buttonStyle(.plain)
@@ -519,6 +523,7 @@ struct CustomerOfferReviewSection: View {
 private struct CustomerOfferSummaryRow: View {
     let offerReview: CustomerOfferReview
     var isHistorical = false
+    let now: Date
 
     var body: some View {
         BeckonCard {
@@ -546,7 +551,7 @@ private struct CustomerOfferSummaryRow: View {
                     Spacer(minLength: DesignTokens.Spacing.md)
 
                     BeckonStatusChip(
-                        offerReview.offer.status.title,
+                        offerReview.offer.evaluatedStatusTitle(now: now),
                         systemImage: offerReview.offer.status.detailSystemImage,
                         tone: offerReview.offer.status.detailTone
                     )
@@ -867,7 +872,7 @@ struct CustomerOfferDetailView: View {
                     systemImage: "tag.fill"
                 ) {
                     BeckonStatusChip(
-                        offerReview.offer.status.title,
+                        offerReview.offer.evaluatedStatusTitle,
                         systemImage: offerReview.offer.status.detailSystemImage,
                         tone: offerReview.offer.status.detailTone
                     )

@@ -13,7 +13,7 @@ final class SupabaseCustomerRequestRepository: CustomerRequestRepository {
     }
     func rankedOffers(customerID: UUID, requestID: UUID, page: RankedPageRequest<CustomerOfferSort>) async throws -> RankedPage<CustomerOfferReview> {
         do {
-            let row: RankedPageRow<RankedOfferRow> = try await client.rpc("get_ranked_customer_offers",
+            let row: RankedPageRow<RankedOfferRow> = try await client.rpc("get_ranked_customer_offers_v2",
                 params: RankedOfferParameters(p_request_id: requestID, p_sort: page.mode.rawValue,
                     p_limit: page.limit, p_cursor: page.cursor)).execute().value
             let result = try row.page()

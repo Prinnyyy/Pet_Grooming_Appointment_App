@@ -173,6 +173,7 @@ final class CustomerRequestRepositoryFake: CustomerRequestRepository {
 
     private(set) var requestsCallCount = 0
     var onRequestPageRead: (() -> Void)?
+    var onCreate: (() -> Void)?
     private(set) var offersCallCount = 0
     private(set) var createCallCount = 0
     private(set) var uploadRequestPhotoCallCount = 0
@@ -319,6 +320,7 @@ final class CustomerRequestRepositoryFake: CustomerRequestRepository {
         lastCustomerID = customerID
         lastDraft = draft
         receivedDrafts.append(draft)
+        onCreate?()
         return try createResult.get()
     }
 
@@ -375,6 +377,11 @@ final class CustomerRequestBookingRepositoryFake: BookingRepository {
     var acceptDelayNanoseconds: UInt64
     var acceptanceLookupResult: Result<AcceptGroomerOfferResult?, BookingRepositoryError> = .success(nil)
     private(set) var acceptanceLookupCallCount = 0
+    var requestBookingResult: Result<Booking?, BookingRepositoryError> = .success(nil)
+    var onRequestBookingRead: (() -> Void)?
+    private(set) var requestBookingReadCount = 0
+    private(set) var requestBookingCustomerID: UUID?
+    private(set) var requestBookingRequestID: UUID?
 
     private(set) var bookingsCallCount = 0
     private(set) var acceptCallCount = 0
@@ -421,6 +428,14 @@ final class CustomerRequestBookingRepositoryFake: BookingRepository {
 
     func bookings(bookingIDs: [UUID]) async throws -> [Booking] {
         try bookingsResult.get().filter { bookingIDs.contains($0.id) }
+    }
+
+    func booking(customerID: UUID, requestID: UUID) async throws -> Booking? {
+        requestBookingReadCount += 1
+        requestBookingCustomerID = customerID
+        requestBookingRequestID = requestID
+        onRequestBookingRead?()
+        return try requestBookingResult.get()
     }
 
     func cancelBooking(

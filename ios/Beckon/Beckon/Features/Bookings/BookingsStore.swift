@@ -839,6 +839,13 @@ final class BookingsStore {
             recordStoreCancelled("createReview", startedAt: startedAt)
         } catch let error as BookingRepositoryError {
             guard sessionIsCurrent(), !Task.isCancelled else { return }
+            if [.networkUnavailable, .unavailable, .reviewAlreadyExists].contains(error) {
+                if await recoverSavedReview(for: booking) {
+                    recordStoreSuccess("createReview", startedAt: startedAt)
+                    return
+                }
+                guard sessionIsCurrent(), !Task.isCancelled else { return }
+            }
             errorMessage = message(for: error, action: "review")
             if error == .reviewContextChanged {
                 await loadReviewContext(for: booking)
@@ -853,6 +860,11 @@ final class BookingsStore {
             recordStoreCancelled("createReview", startedAt: startedAt)
         } catch {
             guard sessionIsCurrent(), !Task.isCancelled else { return }
+            if await recoverSavedReview(for: booking) {
+                recordStoreSuccess("createReview", startedAt: startedAt)
+                return
+            }
+            guard sessionIsCurrent(), !Task.isCancelled else { return }
             errorMessage = message(for: .unavailable, action: "review")
             recordStoreFailure(
                 "createReview",
@@ -861,6 +873,21 @@ final class BookingsStore {
                 startedAt: startedAt
             )
         }
+    }
+
+    private func recoverSavedReview(for booking: Booking) async -> Bool {
+        // A lost response is ambiguous. Read once; never retry the write automatically.
+        guard let rows = try? await repository.bookings(bookingIDs: [booking.id]),
+              sessionIsCurrent(), !Task.isCancelled, rows.count == 1,
+              let current = rows.first, current.id == booking.id, owns(current),
+              current.customerID == booking.customerID, current.groomerID == booking.groomerID,
+              current.status == .completed, let review = current.review,
+              review.bookingID == current.id, review.customerID == current.customerID,
+              review.groomerID == current.groomerID else { return false }
+        synchronizeExternalBooking(current)
+        errorMessage = nil
+        noticeMessage = "Your saved review has been restored."
+        return true
     }
 
     @discardableResult

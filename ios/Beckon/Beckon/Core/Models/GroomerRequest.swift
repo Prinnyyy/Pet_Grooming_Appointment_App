@@ -347,8 +347,12 @@ struct GroomerOffer: Equatable, Hashable, Identifiable, Sendable {
     }
 
     var evaluatedStatusTitle: String {
+        evaluatedStatusTitle(now: Date())
+    }
+
+    func evaluatedStatusTitle(now: Date) -> String {
         guard status == .pending, agreementSnapshotLoaded else { return status.title }
-        if hasPassedConfirmationDeadline() { return "Expired" }
+        if hasPassedConfirmationDeadline(now: now) { return "Expired" }
         guard let quoteEvaluation else { return "Checking" }
         if !quoteEvaluation.termsValid {
             return quoteEvaluation.reason == "expired" ? "Expired" : "New Offer Required"

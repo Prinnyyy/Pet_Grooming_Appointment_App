@@ -94,6 +94,35 @@ final class GroomerOffersStore {
         }
     }
 
+    func refreshOffer(id: UUID) async {
+        guard let previous = offers.first(where: { $0.id == id }) else { return }
+        errorMessage = nil
+        do {
+            guard let offer = try await repository.offer(groomerID: groomerID, offerID: id) else {
+                throw GroomerRequestRepositoryError.offerNotFound
+            }
+            try Task.checkCancellation()
+            guard offer.id == id, offer.groomerID == groomerID,
+                  offer.requestID == previous.offer.requestID,
+                  offer.customerID == previous.offer.customerID,
+                  offer.matchID == previous.offer.matchID else {
+                throw GroomerRequestRepositoryError.notAllowed
+            }
+            // A concurrent list reload wins over this detail-only refresh.
+            guard let index = offers.firstIndex(where: { $0 == previous }) else { return }
+            offers[index] = GroomerOfferListItem(
+                offer: offer, request: previous.request, booking: previous.booking)
+        } catch GroomerRequestRepositoryError.cancelled {
+            return
+        } catch where AppDebugErrorClassifier.isCancellation(error) {
+            return
+        } catch let error as GroomerRequestRepositoryError {
+            errorMessage = Self.message(for: error)
+        } catch {
+            errorMessage = Self.message(for: .unavailable)
+        }
+    }
+
     private static func displayOrdered(
         _ offers: [GroomerOfferListItem]
     ) -> [GroomerOfferListItem] {

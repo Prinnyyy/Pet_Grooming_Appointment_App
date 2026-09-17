@@ -2,6 +2,7 @@ import SwiftUI
 
 struct GroomerOffersContentView: View {
     let store: GroomerOffersStore
+    let requestsStore: GroomerRequestsStore
 
     @ViewBuilder
     var body: some View {
@@ -18,7 +19,7 @@ struct GroomerOffersContentView: View {
                     emptyOrErrorState
                 } else {
                     ForEach(store.sections) { section in
-                        GroomerOfferSectionView(section: section)
+                        GroomerOfferSectionView(section: section, store: store, requestsStore: requestsStore)
                     }
 
                     if let errorMessage = store.errorMessage {
@@ -86,6 +87,8 @@ struct GroomerOffersContentView: View {
 
 private struct GroomerOfferSectionView: View {
     let section: GroomerOfferListSection
+    let store: GroomerOffersStore
+    let requestsStore: GroomerRequestsStore
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
@@ -110,7 +113,7 @@ private struct GroomerOfferSectionView: View {
                         }
 
                         NavigationLink {
-                            GroomerOfferDetailView(item: item)
+                            GroomerOfferDetailView(item: item, store: store, requestsStore: requestsStore)
                         } label: {
                             GroomerOfferRow(item: item)
                         }
@@ -174,8 +177,14 @@ private struct GroomerOfferRow: View {
 
 struct GroomerOfferDetailView: View {
     let item: GroomerOfferListItem
+    let store: GroomerOffersStore
+    let requestsStore: GroomerRequestsStore
+    @State private var focusedMatchID: UUID?
+    @State private var isOpeningRequest = false
+    @State private var requestError: String?
 
     var body: some View {
+        let item = store.offers.first(where: { $0.id == self.item.id }) ?? self.item
         ZStack {
             DesignTokens.Colors.background
                 .ignoresSafeArea()
@@ -183,6 +192,19 @@ struct GroomerOfferDetailView: View {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
                     GroomerOfferHero(item: item)
+                    if item.request != nil {
+                        Button {
+                            Task { await openRequest() }
+                        } label: {
+                            Label("View Request", systemImage: "arrow.right")
+                        }
+                        .buttonStyle(BeckonSecondaryButtonStyle(accent: .groomer))
+                        .disabled(isOpeningRequest)
+                        .accessibilityIdentifier("groomer.offers.view-request")
+                    }
+                    if let requestError {
+                        BeckonErrorBanner(title: "Request Unavailable", message: requestError)
+                    }
                     GroomerOfferFactsCard(item: item)
 
                     if let request = item.request {
@@ -205,6 +227,28 @@ struct GroomerOfferDetailView: View {
         .navigationTitle("Offer")
         .navigationBarTitleDisplayMode(.inline)
         .accessibilityIdentifier("groomer.offers.detail")
+        .navigationDestination(item: $focusedMatchID) { matchID in
+            GroomerRequestDetailView(matchID: matchID, store: requestsStore)
+        }
+        .onChange(of: focusedMatchID) { previous, current in
+            guard previous != nil, current == nil else { return }
+            Task { await store.refreshOffer(id: item.id) }
+        }
+    }
+
+    private func openRequest() async {
+        guard !isOpeningRequest else { return }
+        isOpeningRequest = true
+        requestError = nil
+        defer { isOpeningRequest = false }
+        do {
+            let match = try await requestsStore.resolveNotificationRequest(id: item.offer.requestID)
+            focusedMatchID = match.id
+        } catch where AppDebugErrorClassifier.isCancellation(error) {
+            return
+        } catch {
+            requestError = "The request may have changed. Refresh your offers and try again."
+        }
     }
 }
 

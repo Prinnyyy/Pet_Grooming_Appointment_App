@@ -680,6 +680,7 @@ struct GroomingRequestPhoto: Equatable, Identifiable, Sendable {
 
 nonisolated enum GroomingRequestPhotoContentType:
     String,
+    Codable,
     CaseIterable,
     Identifiable,
     Sendable

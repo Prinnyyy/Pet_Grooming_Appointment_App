@@ -105,7 +105,8 @@ struct BookingsView: View {
 
     private var customerBookingsContent: some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+            // Keep one lazy row container; nested height estimation can stall scrolling.
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
                 BeckonPageTitle("Bookings")
 
                 BookingScopeControl(selection: $selectedScope)
@@ -1023,7 +1024,8 @@ struct BookingDetailView: View {
                         .ignoresSafeArea()
 
                     ScrollView {
-                        LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                        // This finite detail page has dynamic section heights; keep its scroll geometry stable.
+                        VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
                             BookingDetailHeroCard(
                                 booking: booking,
                                 role: role

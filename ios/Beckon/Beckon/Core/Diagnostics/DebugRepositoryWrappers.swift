@@ -78,6 +78,26 @@ final class DebugBookingRepository: BookingRepository {
     }
     private let base: any BookingRepository
     private let debugRecorder: AppDebugEventRecorder?
+    private let testOpsArguments: [String]
+#if DEBUG && targetEnvironment(simulator)
+    private var reviewFaultUsed = false
+
+    private func takeReviewFault(bookingID: UUID) -> String? {
+        func argument(_ name: String) -> String? {
+            guard let index = testOpsArguments.firstIndex(of: name),
+                  index + 1 < testOpsArguments.count else { return nil }
+            return testOpsArguments[index + 1]
+        }
+        guard !reviewFaultUsed,
+              let run = AppTestOpsConfiguration(arguments: testOpsArguments).runID,
+              run.range(of: "^TESTOPS-T392-[A-Z0-9-]{1,70}$", options: .regularExpression) != nil,
+              UUID(uuidString: argument("--beckon-testops-review-booking") ?? "") == bookingID,
+              let phase = argument("--beckon-testops-review-fault"),
+              ["beforeSubmit", "afterCommit"].contains(phase) else { return nil }
+        reviewFaultUsed = true
+        return phase
+    }
+#endif
 
     func nearestBooking(participantID: UUID, role: UserRole, now: Date) async throws -> Booking? {
         try await base.nearestBooking(participantID: participantID, role: role, now: now)
@@ -93,6 +113,10 @@ final class DebugBookingRepository: BookingRepository {
     }
 
     func bookings(bookingIDs: [UUID]) async throws -> [Booking] { try await base.bookings(bookingIDs: bookingIDs) }
+
+    func booking(customerID: UUID, requestID: UUID) async throws -> Booking? {
+        try await base.booking(customerID: customerID, requestID: requestID)
+    }
 
     func acceptOffer(offerID: UUID, expectedQuoteRevision: UUID) async throws -> AcceptGroomerOfferResult {
         try await base.acceptOffer(offerID: offerID, expectedQuoteRevision: expectedQuoteRevision)
@@ -112,10 +136,12 @@ final class DebugBookingRepository: BookingRepository {
 
     init(
         base: any BookingRepository,
-        debugRecorder: AppDebugEventRecorder?
+        debugRecorder: AppDebugEventRecorder?,
+        testOpsArguments: [String] = ProcessInfo.processInfo.arguments
     ) {
         self.base = base
         self.debugRecorder = debugRecorder
+        self.testOpsArguments = testOpsArguments
     }
 
     func bookings(
@@ -205,7 +231,15 @@ final class DebugBookingRepository: BookingRepository {
         bookingID: UUID,
         draft: BookingReviewDraft
     ) async throws -> CreateReviewResult {
-        try await debugRepositoryCall(
+#if DEBUG && targetEnvironment(simulator)
+        let fault = takeReviewFault(bookingID: bookingID)
+        if fault == "beforeSubmit" {
+            debugRecorder?.record(level: .warning, category: .repository, source: "TestOps.reviewFault",
+                message: "beforeSubmit", metadata: ["bookingID": bookingID.uuidString])
+            throw BookingRepositoryError.networkUnavailable
+        }
+#endif
+        let result = try await debugRepositoryCall(
             recorder: debugRecorder,
             source: "BookingRepository.createReview",
             scope: "customer.bookings",
@@ -214,6 +248,14 @@ final class DebugBookingRepository: BookingRepository {
         ) {
             try await base.createReview(bookingID: bookingID, draft: draft)
         }
+#if DEBUG && targetEnvironment(simulator)
+        if fault == "afterCommit" {
+            debugRecorder?.record(level: .warning, category: .repository, source: "TestOps.reviewFault",
+                message: "afterCommit", metadata: ["bookingID": bookingID.uuidString, "reviewID": result.review.id.uuidString])
+            throw BookingRepositoryError.networkUnavailable
+        }
+#endif
+        return result
     }
 }
 
@@ -230,6 +272,30 @@ final class DebugCustomerRequestRepository: CustomerRequestRepository {
     }
     private let base: any CustomerRequestRepository
     private let debugRecorder: AppDebugEventRecorder?
+    private let testOpsArguments: [String]
+#if DEBUG && targetEnvironment(simulator)
+    private var publishFaultUsed = false
+
+    private func takePublishFault(customerID: UUID, draft: GroomingRequestDraft) -> String? {
+        func argument(_ name: String) -> String? {
+            guard let index = testOpsArguments.firstIndex(of: name),
+                  index + 1 < testOpsArguments.count else { return nil }
+            return testOpsArguments[index + 1]
+        }
+        guard !publishFaultUsed,
+              let run = AppTestOpsConfiguration(arguments: testOpsArguments).runID,
+              run.range(of: "^TESTOPS-T392-[A-Z0-9-]{1,70}$", options: .regularExpression) != nil,
+              UUID(uuidString: argument("--beckon-testops-publish-customer") ?? "") == customerID,
+              UUID(uuidString: argument("--beckon-testops-publish-pet") ?? "") == draft.petID,
+              let marker = argument("--beckon-testops-publish-marker"),
+              marker.range(of: "^[A-Z0-9-]{1,60}$", options: .regularExpression) != nil,
+              draft.serviceNotes?.hasPrefix("TESTOPS:\(run) \(marker)\n") == true,
+              let phase = argument("--beckon-testops-publish-fault"),
+              ["beforeSubmit", "afterCommit"].contains(phase) else { return nil }
+        publishFaultUsed = true
+        return phase
+    }
+#endif
 
     func request(customerID: UUID, requestID: UUID) async throws -> CustomerGroomingRequest {
         try await base.request(customerID: customerID, requestID: requestID)
@@ -237,10 +303,12 @@ final class DebugCustomerRequestRepository: CustomerRequestRepository {
 
     init(
         base: any CustomerRequestRepository,
-        debugRecorder: AppDebugEventRecorder?
+        debugRecorder: AppDebugEventRecorder?,
+        testOpsArguments: [String] = ProcessInfo.processInfo.arguments
     ) {
         self.base = base
         self.debugRecorder = debugRecorder
+        self.testOpsArguments = testOpsArguments
     }
 
     func requests(customerID: UUID) async throws -> [CustomerGroomingRequest] {
@@ -335,15 +403,34 @@ final class DebugCustomerRequestRepository: CustomerRequestRepository {
         customerID: UUID,
         draft: GroomingRequestDraft
     ) async throws -> GroomingRequestPublishResult {
-        try await debugRepositoryCall(
+#if DEBUG && targetEnvironment(simulator)
+        let fault = takePublishFault(customerID: customerID, draft: draft)
+        if fault == "beforeSubmit" {
+            debugRecorder?.record(level: .info, category: .repository, source: "TestOps.publishFault",
+                message: "beforeSubmit", metadata: ["operationID": draft.publishOperationID.uuidString])
+            throw CustomerRequestRepositoryError.networkUnavailable
+        }
+#endif
+        let result = try await debugRepositoryCall(
             recorder: debugRecorder,
             source: "CustomerRequestRepository.createRequest",
             scope: "customer.requests",
             operation: "createRequest",
-            metadata: ["customerID": customerID.uuidString, "rpc": "create_grooming_request_v3"]
+            metadata: ["customerID": customerID.uuidString,
+                "operationID": draft.publishOperationID.uuidString,
+                "rpc": draft.supersedingRequestID == nil ? "create_grooming_request_v4" : "supersede_grooming_request"]
         ) {
             try await base.createRequest(customerID: customerID, draft: draft)
         }
+#if DEBUG && targetEnvironment(simulator)
+        if fault == "afterCommit" {
+            debugRecorder?.record(level: .info, category: .repository, source: "TestOps.publishFault",
+                message: "afterCommit", metadata: ["operationID": draft.publishOperationID.uuidString,
+                    "requestID": result.requestID.uuidString])
+            throw CustomerRequestRepositoryError.networkUnavailable
+        }
+#endif
+        return result
     }
 
     func uploadRequestPhoto(

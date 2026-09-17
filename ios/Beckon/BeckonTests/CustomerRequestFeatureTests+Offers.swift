@@ -3,6 +3,115 @@ import Testing
 @testable import Beckon
 
 extension CustomerRequestsStoreTests {
+    @Test(arguments: ["wrongCustomer", "wrongRequest", "missing", "readFailure", "signOut", "signOutFailure"])
+    @MainActor
+    func rejectedAcceptanceNeverPublishesAnUnverifiedBooking(scenario: String) async {
+        let owner = UUID()
+        let request = Self.request(customerID: owner, petID: UUID())
+        let selected = Self.offerReview(customerID: owner, requestID: request.id)
+        let repository = CustomerRequestBookingRepositoryFake(acceptResult: .failure(.offerNoLongerPending))
+        let winner = Self.booking(requestID: scenario == "wrongRequest" ? UUID() : request.id,
+            customerID: scenario == "wrongCustomer" ? UUID() : owner)
+        repository.requestBookingResult = ["readFailure", "signOutFailure"].contains(scenario) ? .failure(.networkUnavailable)
+            : .success(scenario == "missing" ? nil : winner)
+        let scheduler = CustomerRequestAppointmentReminderSchedulerFake()
+        let store = CustomerRequestsStore(customerID: owner, petRepository: CustomerRequestPetRepositoryFake(),
+            requestRepository: CustomerRequestRepositoryFake(), bookingRepository: repository,
+            appointmentReminderScheduler: scheduler)
+        var currentSession = true
+        store.setAcceptanceSessionValidation { currentSession }
+        repository.onRequestBookingRead = { if scenario.hasPrefix("signOut") { currentSession = false } }
+
+        #expect(await store.accept(offerReview: selected, for: request) == nil)
+        #expect(store.bookings.isEmpty)
+        #expect(store.noticeMessage == nil)
+        if scenario.hasPrefix("signOut") { #expect(store.errorMessage == nil) }
+        #expect(scheduler.syncCallCount == 0)
+        #expect(repository.acceptCallCount == 1)
+        #expect(repository.requestBookingReadCount == 1)
+        #expect(store.hasUnresolvedAcceptance(for: selected.id) == (scenario != "missing"))
+    }
+
+    @Test @MainActor
+    func competingAcceptanceRecoverySurvivesStoreRestartWithoutAnotherWrite() async throws {
+        let owner = UUID()
+        let request = Self.request(customerID: owner, petID: UUID())
+        let selected = Self.offerReview(customerID: owner, requestID: request.id)
+        let winner = Self.booking(requestID: request.id, customerID: owner, status: .cancelledByGroomer)
+        let repository = CustomerRequestBookingRepositoryFake(acceptResult: .failure(.requestNoLongerOpen))
+        repository.requestBookingResult = .failure(.networkUnavailable)
+        let suite = "T392.CA11.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        func makeStore() -> CustomerRequestsStore {
+            CustomerRequestsStore(customerID: owner, petRepository: CustomerRequestPetRepositoryFake(),
+                requestRepository: CustomerRequestRepositoryFake(requestsResult: .success([request])),
+                bookingRepository: DebugBookingRepository(base: repository, debugRecorder: nil),
+                appointmentReminderScheduler: CustomerRequestAppointmentReminderSchedulerFake(),
+                handoffAcknowledgementDefaults: defaults)
+        }
+        #expect(await makeStore().accept(offerReview: selected, for: request) == nil)
+        repository.requestBookingResult = .success(winner)
+        let restarted = makeStore()
+        await restarted.load()
+        #expect(restarted.bookings.contains(winner))
+        #expect(restarted.request(withID: request.id)?.status == .booked)
+        #expect(!restarted.hasUnresolvedAcceptance(for: selected.id))
+        #expect(repository.acceptCallCount == 1)
+        #expect(repository.requestBookingReadCount == 2)
+    }
+
+    @Test @MainActor
+    func failedWinnerLookupRecoversOnRetryWithoutAnotherAcceptanceWrite() async {
+        let owner = UUID()
+        let request = Self.request(customerID: owner, petID: UUID())
+        let selected = Self.offerReview(customerID: owner, requestID: request.id)
+        let winner = Self.booking(requestID: request.id, customerID: owner)
+        let repository = CustomerRequestBookingRepositoryFake(acceptResult: .failure(.offerNoLongerPending))
+        repository.requestBookingResult = .failure(.networkUnavailable)
+        let store = CustomerRequestsStore(customerID: owner, petRepository: CustomerRequestPetRepositoryFake(),
+            requestRepository: CustomerRequestRepositoryFake(), bookingRepository: repository,
+            appointmentReminderScheduler: CustomerRequestAppointmentReminderSchedulerFake())
+        #expect(await store.accept(offerReview: selected, for: request) == nil)
+        #expect(store.hasUnresolvedAcceptance(for: selected.id))
+        repository.requestBookingResult = .success(winner)
+        #expect(await store.accept(offerReview: selected, for: request)?.booking == winner)
+        #expect(repository.acceptCallCount == 1)
+        #expect(!store.hasUnresolvedAcceptance(for: selected.id))
+    }
+
+    @Test(arguments: [BookingRepositoryError.offerNoLongerPending, .requestNoLongerOpen, .bookingAlreadyExists])
+    @MainActor
+    func competingAcceptanceRecoversTheActualWinningBooking(rejection: BookingRepositoryError) async {
+        let owner = UUID()
+        let request = Self.request(customerID: owner, petID: UUID())
+        let selected = Self.offerReview(customerID: owner, requestID: request.id)
+        let winner = Self.booking(requestID: request.id, customerID: owner)
+        let repository = CustomerRequestBookingRepositoryFake(acceptResult: .failure(rejection))
+        repository.requestBookingResult = .success(winner)
+        let shared = BookingsStore(participantID: owner, role: .customer, repository: repository,
+            appointmentReminderScheduler: AppointmentReminderSchedulerFake())
+        let store = CustomerRequestsStore(customerID: owner, petRepository: CustomerRequestPetRepositoryFake(),
+            requestRepository: CustomerRequestRepositoryFake(), bookingRepository: repository,
+            appointmentReminderScheduler: CustomerRequestAppointmentReminderSchedulerFake(), bookingsStore: shared)
+
+        let handoff = await store.accept(offerReview: selected, for: request)
+
+        #expect(winner.offerID != selected.id)
+        #expect(handoff?.booking == winner)
+        #expect(handoff?.request.status == .booked)
+        #expect(shared.booking(withID: winner.id) == winner)
+        #expect(store.bookings == [winner])
+        #expect(store.errorMessage == nil)
+        #expect(store.noticeMessage == "This request was already booked. Existing booking recovered.")
+        #expect(!store.hasUnresolvedAcceptance(for: selected.id))
+        #expect(repository.acceptCallCount == 1)
+        #expect(repository.requestBookingReadCount == 1)
+        #expect(repository.requestBookingCustomerID == owner)
+        #expect(repository.requestBookingRequestID == request.id)
+        #expect(repository.bookingsCallCount == 0)
+    }
+
     @Test @MainActor
     func acceptedBookingIsSharedBeforeAuxiliaryRefreshAndUsesTheSameDetailStore() async {
         let owner = UUID()

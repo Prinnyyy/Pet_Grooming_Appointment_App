@@ -886,6 +886,105 @@ struct BookingsStoreTests {
         ))
     }
 
+    @Test(arguments: [BookingRepositoryError.networkUnavailable, .unavailable, .reviewAlreadyExists])
+    @MainActor
+    func uncertainReviewRecoversAuthoritativeResult(error: BookingRepositoryError) async throws {
+        let booking = Self.booking(status: .completed, completedAt: "2026-06-22T18:05:00Z")
+        let review = BookingReview(id: UUID(), bookingID: booking.id,
+            customerID: booking.customerID, groomerID: booking.groomerID,
+            rating: 3, content: "Previously committed", createdAt: "2026-06-22T19:00:00Z")
+        let repository = BookingRepositoryFake(reviewResult: .failure(error))
+        var reads = 0
+        repository.exactRead = { ids in
+            #expect(ids == [booking.id])
+            reads += 1
+            return [booking.adding(review: review)]
+        }
+        let store = BookingsStore(participantID: booking.customerID, role: .customer,
+            repository: repository, initialBookings: [booking])
+        repository.reviewContextResult = .success(BookingReviewContext(bookingID: booking.id,
+            contextRevision: UUID(), evidenceContextVersion: 2, serviceAt: booking.scheduledStart, allowedKeys: []))
+        await store.loadReviewContext(for: booking)
+        await store.createReview(for: booking, rating: 5, content: "Retry must not replace the original")
+
+        #expect(reads == 1)
+        #expect(repository.reviewCallCount == 1)
+        #expect(store.booking(withID: booking.id)?.review == review)
+        #expect(store.errorMessage == nil)
+        #expect(store.noticeMessage == "Your saved review has been restored.")
+        #expect(!store.isSubmittingReview)
+    }
+
+    @Test(arguments: ["missing", "failed", "wrongBooking", "wrongCustomer", "signedOut"])
+    @MainActor
+    func uncertainReviewDoesNotInventSuccess(variant: String) async throws {
+        let booking = Self.booking(status: .completed, completedAt: "2026-06-22T18:05:00Z")
+        let review = BookingReview(id: UUID(), bookingID: booking.id,
+            customerID: booking.customerID, groomerID: booking.groomerID,
+            rating: 3, content: "Saved", createdAt: "2026-06-22T19:00:00Z")
+        let repository = BookingRepositoryFake(reviewResult: .failure(.networkUnavailable))
+        var current = true
+        var reads = 0
+        repository.exactRead = { _ in
+            reads += 1
+            switch variant {
+            case "failed": throw BookingRepositoryError.networkUnavailable
+            case "missing": return [booking]
+            case "wrongBooking": return [Self.booking(status: .completed).adding(review: review)]
+            case "wrongCustomer":
+                let otherReview = BookingReview(id: review.id, bookingID: booking.id,
+                    customerID: UUID(), groomerID: booking.groomerID, rating: 3,
+                    content: "Not this account", createdAt: review.createdAt)
+                return [booking.adding(review: otherReview)]
+            default:
+                current = false
+                return [booking.adding(review: review)]
+            }
+        }
+        let store = BookingsStore(participantID: booking.customerID, role: .customer,
+            repository: repository, initialBookings: [booking], sessionIsCurrent: { current })
+        repository.reviewContextResult = .success(BookingReviewContext(bookingID: booking.id,
+            contextRevision: UUID(), evidenceContextVersion: 2, serviceAt: booking.scheduledStart, allowedKeys: []))
+        await store.loadReviewContext(for: booking)
+        await store.createReview(for: booking, rating: 5, content: "Attempt")
+
+        #expect(reads == 1)
+        #expect(repository.reviewCallCount == 1)
+        #expect(store.booking(withID: booking.id)?.review == nil)
+        #expect(store.noticeMessage == nil)
+        #expect(!store.isSubmittingReview)
+        if current { #expect(store.errorMessage != nil) }
+    }
+
+    @Test(arguments: ["beforeSubmit", "afterCommit", "otherBooking", "otherRun", "unknownPhase"])
+    @MainActor
+    func reviewFaultIsScopedAndOneShot(variant: String) async throws {
+        let booking = Self.booking(status: .completed)
+        let review = BookingReview(id: UUID(), bookingID: booking.id,
+            customerID: booking.customerID, groomerID: booking.groomerID,
+            rating: 3, content: nil, createdAt: "2026-06-22T19:00:00Z")
+        let result = CreateReviewResult(review: review, groomerRatingAverage: 3, groomerRatingCount: 1)
+        let base = BookingRepositoryFake(reviewResult: .success(result))
+        let active = ["beforeSubmit", "afterCommit"].contains(variant)
+        let repository = DebugBookingRepository(base: base, debugRecorder: nil, testOpsArguments: [
+            "--beckon-testops-run-id", variant == "otherRun" ? "TESTOPS-T391-A" : "TESTOPS-T392-UNIT",
+            "--beckon-testops-review-fault", active ? variant : variant == "unknownPhase" ? "unknown" : "afterCommit",
+            "--beckon-testops-review-booking", (variant == "otherBooking" ? UUID() : booking.id).uuidString
+        ])
+        let draft = BookingReviewDraft(rating: 3, content: nil, contextRevision: UUID())
+        do {
+            _ = try await repository.createReview(bookingID: booking.id, draft: draft)
+            #expect(!active)
+        } catch {
+            #expect(active)
+            #expect(error as? BookingRepositoryError == .networkUnavailable)
+        }
+        #expect(base.reviewCallCount == (variant == "beforeSubmit" ? 0 : 1))
+        let retry = try await repository.createReview(bookingID: booking.id, draft: draft)
+        #expect(retry.review == review)
+        #expect(base.reviewCallCount == (variant == "beforeSubmit" ? 1 : 2))
+    }
+
     @Test
     func reviewPetFitOutcomeSelectionsDefaultToEmptyOutcomes() {
         let signals: [PetFitSignal] = [

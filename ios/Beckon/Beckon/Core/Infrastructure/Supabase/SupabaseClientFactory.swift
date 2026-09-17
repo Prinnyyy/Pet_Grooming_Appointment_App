@@ -1,9 +1,20 @@
+import Foundation
 import Supabase
 
 enum SupabaseClientFactory {
     static let options = SupabaseClientOptions(
-        auth: .init(emitLocalSessionAsInitialSession: true)
+        auth: .init(emitLocalSessionAsInitialSession: true),
+        global: .init(session: session)
     )
+
+    private static var session: URLSession {
+        #if DEBUG && targetEnvironment(simulator)
+        if let metrics = TestOpsHTTPMetrics(arguments: ProcessInfo.processInfo.arguments) {
+            return URLSession(configuration: .default, delegate: metrics, delegateQueue: nil)
+        }
+        #endif
+        return .shared
+    }
 
     static func make(configuration: SupabaseConfiguration) -> SupabaseClient {
         SupabaseClient(

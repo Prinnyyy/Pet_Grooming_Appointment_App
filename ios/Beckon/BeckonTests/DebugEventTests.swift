@@ -1,7 +1,25 @@
 import Foundation
+import Supabase
 import SwiftUI
 import Testing
 @testable import Beckon
+
+#if DEBUG && targetEnvironment(simulator)
+struct TestOpsHTTPMetricsTests {
+    @Test(arguments: ["TESTOPS-T392-CONCURRENCY", "TESTOPS-T391-A", "TESTOPS-T392-../unsafe", ""])
+    func metricsRequireExplicitFlagAndBoundedRun(runID: String) {
+        let args = ["--beckon-testops-run-id", runID]
+        #expect(TestOpsHTTPMetrics(arguments: args) == nil)
+        let enabled = TestOpsHTTPMetrics(arguments: args + ["--beckon-testops-record-http"])
+        #expect((enabled != nil) == (runID == "TESTOPS-T392-CONCURRENCY"))
+    }
+
+    @Test @MainActor
+    func ordinarySessionRemainsUnchanged() {
+        #expect(SupabaseClientFactory.options.global.session === URLSession.shared)
+    }
+}
+#endif
 
 struct AppDebugEventTests {
     @Test @MainActor

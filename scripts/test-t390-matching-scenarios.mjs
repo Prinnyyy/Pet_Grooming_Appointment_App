@@ -1,20 +1,26 @@
 import assert from "node:assert/strict";
-import { randomUUID } from "node:crypto";
+import { randomUUID, createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { parseCustomerProfiles, parseGroomerProfiles } from "./testops-core.mjs";
 import { scoreEvidence } from "../tests/support/matching-rating-reference.mjs";
 import { connect, prepare, recover, cleanup, query, saveArtifact, intent,
-  runID, marker, sqlIDs } from "./test-t387-booking-fixture.mjs";
+  runID, marker, sqlIDs, sqlJSON, isMatchingRun, rankingValidationPlan, fixedPagingSchedule } from "./test-t387-booking-fixture.mjs";
 
-assert.match(runID, /^TESTOPS-T390-/);
+assert.ok(isMatchingRun(runID), "Invalid matching run ID");
 const mode = process.argv[2];
-assert.ok(["run", "verify", "roles", "review-db", "review-race", "privacy-db", "event-db", "admission-db", "paging-db", "paging-live", "http-ranking", "cohort-db", "evidence-db", "time-db", "ranges-db", "qualification-clock-db", "release-db", "fallback-db", "scale-db", "live-worker", "cleanup"].includes(mode), "Unknown scenario mode");
+assert.ok(["run", "prepare", "marketplace-db", "revision-live", "paging-matrix", "role-latency", "verify", "roles", "review-db", "review-race", "privacy-db", "event-db", "admission-db", "paging-db", "paging-live", "http-ranking", "cohort-db", "evidence-db", "time-db", "ranges-db", "qualification-clock-db", "release-db", "fallback-db", "scale-db", "live-worker", "cleanup"].includes(mode), "Unknown scenario mode");
 assert.ok(process.argv.includes("--execute"), "Explicit --execute is required before any remote scenario operation");
+if (mode === "marketplace-db") {
+  await marketplaceDatabase();
+  process.exit(0);
+}
 const context = await connect(mode === "cohort-db"
   ? ["C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8", "C9", "C10", "G1", "G2"]
   : ["C1", "C2", "X", "G1", "G2"]);
 const {api, actors} = context;
 const rpc = (actor, name, params) => api.rpc(name, params, actors[actor].token);
 const results = [];
-const saved = mode === "run" ? await prepare(context) : recover();
+const saved = ["run", "prepare"].includes(mode) ? await prepare(context) : recover();
 saved.matching ??= {pets: [], services: []};
 saveArtifact("recovery", saved);
 const originalRequest = api.request.bind(api);
@@ -56,9 +62,9 @@ async function restore() {
     (select count(*)::integer from app_private.match_candidate_evaluations where ${predicate("request_id",cleanupScope.requests)}) candidates,
     (select count(*)::integer from app_private.match_refresh_queue where ${predicate("request_id",cleanupScope.requests)}) queue;`)[0];
     let privateRestoration=readRestoration();
-    // Cascading resource releases can enqueue deleted sources; let the normal worker discard them.
-    for(let attempt=0;privateRestoration.queue>0 && attempt<3;attempt++) {
-      await new Promise(resolve=>setTimeout(resolve,10000));
+    // Bulk deletion can enqueue more than one cron batch; use the same bounded worker as fixture setup.
+    for(let attempt=0;privateRestoration.queue>0 && attempt<12;attempt++) {
+      query("select app_private.drain_match_refresh_queue(250);");
       privateRestoration=readRestoration();
     }
     saveArtifact("matching-private-restoration",privateRestoration);
@@ -93,7 +99,11 @@ if (mode === "cleanup") {
   await restore();
 } else {
   try {
-    if (mode === "roles") await roleBoundaries();
+    if (mode === "prepare") await run();
+    else if (mode === "revision-live") await revisionLive();
+    else if (mode === "paging-matrix") await pagingMatrix();
+    else if (mode === "role-latency") await roleLatency();
+    else if (mode === "roles") await roleBoundaries();
     else if (mode === "fallback-db") await fallbackDatabase();
     else if (mode === "qualification-clock-db") await qualificationClockDatabase();
     else if (mode === "release-db") await releaseDatabase();
@@ -640,7 +650,7 @@ async function cohortDatabase() {
       select set_config('app.fulfillment_write','1',true);
       do $$ declare fixture public.grooming_requests%rowtype; pet public.pets%rowtype;
         actor uuid; ordinal integer:=0; offer uuid; booking uuid; venue uuid;
-        context jsonb; samples jsonb:='[]'; score jsonb; as_of timestamptz; confirmations text[];
+        context jsonb; samples jsonb:='[]'; score jsonb; negative_score jsonb; as_of timestamptz; confirmations text[];
       begin
         foreach actor in array array[${sqlIDs(customers)}] loop
           ordinal:=ordinal+1;
@@ -686,7 +696,15 @@ async function cohortDatabase() {
         score:=app_private.score_match_evidence('${saved.requests[0]}','${actors.G1.id}',as_of);
         if (score->>'f_customer_count')::integer<>10 or (score->>'positive_weight')::numeric<=1 then
           raise exception 'Independent customer influence was incorrectly collapsed'; end if;
-        perform set_config('test.cohort_result',jsonb_build_object('score',score,'samples',samples,'as_of',as_of,'rollback',true)::text,true);
+        update public.reviews v set rating=1 from public.bookings b,public.grooming_requests r
+          where b.id=v.booking_id and r.id=b.request_id and r.customer_id in (${sqlIDs(customers)})
+            and b.groomer_id='${actors.G1.id}' and r.service_notes='${marker} cohort-db';
+        update public.review_pet_fit_outcomes o set outcome='negative' from public.bookings b,public.grooming_requests r
+          where b.id=o.booking_id and r.id=b.request_id and r.customer_id in (${sqlIDs(customers)})
+            and b.groomer_id='${actors.G1.id}' and r.service_notes='${marker} cohort-db';
+        negative_score:=app_private.score_match_evidence('${saved.requests[0]}','${actors.G1.id}',as_of);
+        perform set_config('test.cohort_result',jsonb_build_object('score',score,'negative_score',negative_score,
+          'samples',samples,'as_of',as_of,'rollback',true)::text,true);
       end $$;
       select current_setting('test.cohort_result')::jsonb result; rollback;`);
     const data=row.result;
@@ -695,8 +713,12 @@ async function cohortDatabase() {
         age:(Date.parse(data.as_of)-Date.parse(sample.service_at))/86400000,answers:{'service:nail_trim':'positive'}})),
       data.score.distance_miles);
     for(const key of ['f','q','d','b','s']) assert.ok(Math.abs(data.score[key]-expected[key])<1e-7,key);
+    const negative=scoreEvidence({species:'dog',service:'nail_trim',keys:['service:nail_trim','size:XS']},
+      data.samples.map(sample=>({customer:sample.customer,species:'dog',service:'nail_trim',rating:1,
+        age:(Date.parse(data.as_of)-Date.parse(sample.service_at))/86400000,answers:{'service:nail_trim':'negative'}})),data.negative_score.distance_miles);
+    for(const key of ['f','q','d','b','s']) assert.ok(Math.abs(data.negative_score[key]-negative[key])<1e-7,`negative ${key}`);
     saveArtifact("cohort-db",data);
-    return {customers:10,score:data.score,rollback:true};
+    return {customers:10,score:data.score,negativeScore:data.negative_score,rollback:true,independentHumansNotProven:true};
   });
 }
 
@@ -882,8 +904,10 @@ async function verify() {
       duration_minutes,accepted_pet_sizes,is_active,service_type,accepted_species)
       select groomer_id,title,description,base_price,duration_minutes,accepted_pet_sizes,is_active,service_type,accepted_species
       from public.groomer_services where id in (${sqlIDs(saved.matching.services.slice(0,1))});
-      select app_private.evaluate_quote(id) evaluation from public.groomer_offers where request_id='${requestID}'; rollback;`);
-    assert.ok(rows.every(row=>row.evaluation.selectable)); return {checked:rows.length,rollback:true};
+      select status,app_private.evaluate_quote(id) evaluation from public.groomer_offers where request_id='${requestID}'; rollback;`);
+    assert.ok(rows.filter(row=>row.status==='pending').length>=2);
+    assert.ok(rows.every(row=>Boolean(row.evaluation.selectable)===(row.status==='pending')));
+    return {checked:rows.length,withdrawnRemainUnselectable:true,rollback:true};
   });
   const offers=await api.restSelect("groomer_offers",`select=*&request_id=eq.${requestID}`,actors.C1.token);
   const selected=offers.find(offer=>offer.groomer_id===actors.G1.id);
@@ -901,10 +925,251 @@ async function verify() {
     {p_booking_id:saved.matching.booking},/booking_not_completed/));
 }
 
+function delay(ms) { return new Promise(resolve => setTimeout(resolve,ms)); }
+function revisionFixture() {
+  assert.ok(runID.startsWith("TESTOPS-T391-"));
+  assert.equal(saved.matching.httpRequests?.length,26);
+  assert.equal(saved.matching.evidenceCompleted,1000);
+  const [config]=query("select enabled,validation_actor_ids from app_private.match_ranking_config where singleton;");
+  assert.equal(config.enabled,true);
+  assert.deepEqual(config,saved.matching.rankingConfigBaseline);
+  if(!saved.matching.validationHistory?.prepared) {
+    const [history]=query(`select count(*)::integer n,min(c.service_at) minimum,max(c.service_at) maximum,
+      greatest(0,ceil(extract(epoch from max(c.service_at)-statement_timestamp()+interval '1 day')))::integer shift
+      from app_private.booking_review_contexts c join public.bookings b on b.id=c.booking_id
+      join public.grooming_requests r on r.id=b.request_id where r.customer_id='${actors.C1.id}'
+        and b.groomer_id='${actors.G2.id}' and r.service_notes='${marker} evidence-db';`);
+    assert.equal(history.n,1000);
+    saved.matching.validationHistory??={...history,prepared:false,synthetic:true,cleanup:"delete exact owned contexts with fixture"};
+    const before=saved.matching.validationHistory;
+    saveArtifact("recovery",saved);
+    if(history.maximum===before.maximum) query(`begin;set local lock_timeout='5s';set local statement_timeout='100s';
+      update app_private.booking_review_contexts c set service_at=c.service_at-make_interval(secs=>${before.shift})
+        from public.bookings b,public.grooming_requests r where b.id=c.booking_id and r.id=b.request_id
+          and r.customer_id='${actors.C1.id}' and b.groomer_id='${actors.G2.id}' and r.service_notes='${marker} evidence-db';
+      update app_private.review_evidence_projection e set service_at=c.service_at
+        from public.reviews v,app_private.booking_review_contexts c,public.bookings b,public.grooming_requests r
+        where v.id=e.review_id and c.booking_id=v.booking_id and b.id=c.booking_id and r.id=b.request_id
+          and r.customer_id='${actors.C1.id}' and b.groomer_id='${actors.G2.id}' and r.service_notes='${marker} evidence-db';commit;`);
+    else assert.equal(Date.parse(history.maximum),Date.parse(before.maximum)-before.shift*1000,"History changed outside this run");
+    saved.matching.validationHistory.prepared=true;saveArtifact("recovery",saved);
+  }
+  const [review]=query(`select v.id,v.rating,o.id outcome_id,o.outcome,c.service_at from public.reviews v
+    join public.bookings b on b.id=v.booking_id join public.grooming_requests r on r.id=b.request_id
+    join public.review_pet_fit_outcomes o on o.review_id=v.id and o.trait_type='service'
+    join app_private.booking_review_contexts c on c.booking_id=b.id
+    where r.customer_id='${actors.C1.id}' and b.groomer_id='${actors.G2.id}'
+      and r.service_notes='${marker} evidence-db' order by c.service_at desc,v.id limit 1;`);
+  assert.ok(review,"Owned review required");
+  return review;
+}
+function changeReview(review,kind,value) {
+  const isRating=kind==="rating";
+  const result=query(`begin;set local lock_timeout='5s';set local statement_timeout='30s';
+    update public.${isRating?"reviews":"review_pet_fit_outcomes"} v set ${isRating?"rating":"outcome"}=${isRating?Number(value):`'${value}'`}
+    from public.bookings b,public.grooming_requests r where v.id='${isRating?review.id:review.outcome_id}'
+      and b.id=v.booking_id and r.id=b.request_id and r.customer_id='${actors.C1.id}'
+      and b.groomer_id='${actors.G2.id}' and r.service_notes='${marker} evidence-db'
+      and v.${isRating?"rating":"outcome"} in (${isRating?`${review.rating},${review.rating===5?1:5}`:"'positive','negative'"})
+    returning v.id;commit;`);
+  assert.equal(result.length,1,"Mutation must affect exactly one owned row");
+}
+function pageRequest(role,cursor=null) {
+  return role==="groomer"
+    ? rpc("G2","get_ranked_matched_requests",{p_sort:"fit",p_limit:6,p_cursor:cursor})
+    : rpc("C1","get_ranked_customer_offers",{p_request_id:saved.requests[0],p_sort:"balanced",p_limit:1,p_cursor:cursor});
+}
+function pageIDs(role,page) { return page.items.map(item => role==="groomer"?item.request.id:item.offer.id); }
+async function browsePages(role,waitMS=0) {
+  const result={complete:false,pages:[],ids:[],readMS:[],startedAt:new Date().toISOString()};
+  let cursor=null;
+  do {
+    try {
+      const start=performance.now(),page=await pageRequest(role,cursor);
+      result.readMS.push(performance.now()-start);
+      assert.equal(page.effective_mode,role==="groomer"?"fit":"balanced");
+      const ids=pageIDs(role,page);
+      assert.ok(ids.every(id=>!result.ids.includes(id)),"Repeated page member");
+      result.ids.push(...ids);result.pages.push({revision:page.ranking_revision,asOf:page.score_as_of,ids});
+      cursor=page.next_cursor;
+      if(cursor) await delay(waitMS);
+    } catch(error) {
+      if(!/list_changed/.test(error.serverMessage??error.message)) throw error;
+      result.reason="list_changed";result.finishedAt=new Date().toISOString();return result;
+    }
+  } while(cursor);
+  result.complete=true;result.finishedAt=new Date().toISOString();return result;
+}
+async function revisionLive() {
+  const review=revisionFixture();
+  const expectConflict=process.argv.includes("--expect-conflict");
+  await check(`V01 real HTTP star-only update ${expectConflict?"reproduction":"correction"}`,async()=>{
+    const groomer=await pageRequest("groomer"),customer=await pageRequest("customer");
+    assert.ok(groomer.next_cursor && customer.next_cursor);
+    const score=()=>query(`select app_private.score_match_evidence('${groomer.items[0].request.id}',
+      '${actors.G2.id}','${groomer.score_as_of}') score;`)[0].score;
+    const before=score();
+    saved.matching.revisionMutation={review,restored:false};saveArtifact("recovery",saved);
+    try {
+      changeReview(review,"rating",review.rating===5?1:5);
+      const after=score();
+      assert.equal(after.f,before.f);assert.equal(after.b,before.b);
+      assert.notEqual(after.q,before.q,"The star update must affect actual historical rating evidence");
+      let response,error;
+      try {response=await pageRequest("groomer",groomer.next_cursor);} catch(caught) {error=caught;}
+      if(expectConflict) assert.match(error?.serverMessage??error?.message??"",/list_changed/);
+      else {assert.ifError(error);assert.equal(response.ranking_revision,groomer.ranking_revision);}
+      await denied("C1","get_ranked_customer_offers",{p_request_id:saved.requests[0],p_sort:"balanced",p_limit:1,
+        p_cursor:customer.next_cursor},/list_changed/);
+      query(`set statement_timeout='100s';do $$ declare i integer;begin for i in 1..12 loop
+        perform app_private.drain_match_refresh_queue(250);
+        exit when not exists(select 1 from app_private.match_refresh_queue where request_id in (${sqlIDs(saved.matching.httpRequests)}));
+      end loop;end $$;`);
+      if(!expectConflict) {
+        const drained=await pageRequest("groomer",groomer.next_cursor);
+        assert.equal(drained.ranking_revision,groomer.ranking_revision);
+      }
+      return {reviewID:review.id,first:groomer.ranking_revision,before,after,
+        oldCodeConflict:expectConflict,customerVisibleChangeRejected:true,softDrainChecked:!expectConflict};
+    } finally {
+      changeReview(review,"rating",review.rating);
+      saved.matching.revisionMutation.restored=true;saveArtifact("recovery",saved);
+    }
+  });
+}
+async function pagingMatrix() {
+  const review=revisionFixture();
+  const loads=[{name:"unchanged",periodMS:0},{name:"unrelated",periodMS:10000},
+    {name:"soft-60s",periodMS:60000},{name:"soft-10s",periodMS:10000}];
+  const evidence={seed:391,loads:[],mutationType:"owned SQL outcome update with actual projection/queue triggers",hard:[]};
+  const [pet]=query(`select id,name from public.pets where id='${saved.matching.pets[1]}' and customer_id='${actors.C1.id}'
+    and grooming_notes='${marker}';`);
+  assert.equal(pet.name,"Matching test");
+  saved.matching.matrixMutation={review,pet,restored:false};saveArtifact("recovery",saved);
+  try {
+    for(const load of loads) for(const role of ["groomer","customer"]) {
+      const baseline=await browsePages(role);
+      assert.ok(baseline.complete);
+      assert.equal(baseline.ids.length,role==="groomer"?26:2);
+      const row={...load,role,sessions:[]};evidence.loads.push(row);
+      for(const schedule of fixedPagingSchedule(load.periodMS)) {
+        let timer,mutationError,sequence=0,nextDue=schedule.phaseMS;
+        const started=performance.now(),mutations=[];
+        const mutate=()=>{
+          const begun=performance.now()-started;sequence++;
+          try {
+            if(load.name==="unrelated") {
+              const updated=query(`update public.pets set name='${sequence%2?"Matching test alternate":"Matching test"}'
+                where id='${pet.id}' and customer_id='${actors.C1.id}' and grooming_notes='${marker}'
+                  and name in('Matching test','Matching test alternate') returning id;`);
+              assert.equal(updated.length,1);
+            } else changeReview(review,"outcome",sequence%2?(review.outcome==="positive"?"negative":"positive"):review.outcome);
+            mutations.push({plannedMS:nextDue,begunMS:begun,committedMS:performance.now()-started,committedAt:new Date().toISOString()});
+            nextDue+=load.periodMS;
+            timer=setTimeout(mutate,Math.max(0,nextDue-(performance.now()-started)));
+          } catch(error) {mutationError=error;}
+        };
+        if(load.periodMS) {
+          if(nextDue===0) mutate(); else timer=setTimeout(mutate,nextDue);
+        }
+        let session;
+        try {session=await browsePages(role,schedule.waitMS);} finally {clearTimeout(timer);}
+        if(mutationError) throw mutationError;
+        Object.assign(session,schedule,{mutations,refreshes:0});
+        row.sessions.push(session);saveArtifact("paging-matrix",evidence);
+        if(session.complete) assert.deepEqual([...session.ids].sort(),[...baseline.ids].sort());
+        else {
+          const recovered=await browsePages(role,schedule.waitMS);
+          session.refreshes=1;session.recovery=recovered;
+          assert.ok(recovered.complete,"First refresh after changes stop must finish");
+          assert.deepEqual([...recovered.ids].sort(),[...baseline.ids].sort());
+        }
+        if(load.name.startsWith("soft")) changeReview(review,"outcome",review.outcome);
+        if(load.name==="unrelated") query(`update public.pets set name='Matching test' where id='${pet.id}'
+          and customer_id='${actors.C1.id}' and grooming_notes='${marker}' and name in('Matching test','Matching test alternate');`);
+        saveArtifact("paging-matrix",evidence);
+      }
+      row.complete=row.sessions.filter(s=>s.complete).length;
+      row.required=load.name==="soft-10s"?8:load.name==="soft-60s"?9:10;
+      row.budgetMet=row.complete>=row.required;
+      row.overlappingSessions=row.sessions.filter(s=>s.mutations.some(m=>m.committedAt>s.startedAt && m.committedAt<s.finishedAt)).length;
+      saveArtifact("paging-matrix",evidence);
+      console.log(`Paging ${load.name}/${role}: ${row.complete}/10 first-pass; budget ${row.required}/10`);
+      if(!load.name.startsWith("soft")) assert.ok(row.budgetMet,"Unchanged/unrelated load must never interrupt");
+    }
+    const starts=[];
+    for(const role of ["groomer","customer"]) for(const schedule of fixedPagingSchedule(0)) {
+      const first=await pageRequest(role);assert.ok(first.next_cursor);
+      starts.push({role,...schedule,first});
+    }
+    const [offer]=await api.restSelect("groomer_offers",`select=*&request_id=eq.${saved.requests[0]}&groomer_id=eq.${actors.G2.id}&status=eq.pending`,actors.C1.token);
+    assert.ok(offer);
+    saved.matching.hardMutation={offerID:offer.id,restored:false};saveArtifact("recovery",saved);
+    try {
+      const changedAt=new Date().toISOString();
+      await rpc("G2","withdraw_groomer_offer",{p_offer_id:offer.id});
+      const rejected=await denied("C1","accept_groomer_offer_v2",{p_offer_id:offer.id,
+        p_expected_quote_revision:offer.quote_revision},/offer_not_pending|offer_not_available|offer_unavailable|quote_terms_invalid/);
+      evidence.hardChange={offerID:offer.id,changedAt,staleAcceptance:rejected};
+      for(const start of starts) {
+        await delay(start.waitMS);
+        let failure;
+        try {await pageRequest(start.role,start.first.next_cursor);} catch(error) {failure=error;}
+        assert.match(failure?.serverMessage??failure?.message??"",/list_changed/);
+        const recovery=await browsePages(start.role,start.waitMS);
+        evidence.hard.push({role:start.role,index:start.index,waitMS:start.waitMS,
+          firstRevision:start.first.ranking_revision,oldCursorRejected:true,recovery});
+        saveArtifact("paging-matrix",evidence);
+        assert.ok(recovery.complete,"Hard change must recover on the first fresh browse");
+      }
+    } finally {
+      assert.ok(!saved.uncertainWrite,"Reconcile an uncertain role write before restoring the hard-change fixture");
+      const [request]=await api.restSelect("grooming_requests",`select=terms_revision&id=eq.${saved.requests[0]}`,actors.C1.token);
+      const [replacement]=await rpc("G2","create_groomer_offer_v3",{p_request_id:saved.requests[0],
+        p_expected_request_revision:request.terms_revision,p_proposed_start:offer.proposed_start,p_proposed_end:offer.proposed_end,
+        p_price_estimate:offer.price_estimate,p_message:marker,p_assessment_confirmations:[]});
+      saved.matching.hardMutation={...saved.matching.hardMutation,restored:true,replacementID:replacement.offer_id};
+      saveArtifact("recovery",saved);
+    }
+  } finally {
+    changeReview(review,"outcome",review.outcome);
+    query(`update public.pets set name='Matching test' where id='${pet.id}' and customer_id='${actors.C1.id}'
+      and grooming_notes='${marker}' and name in('Matching test','Matching test alternate');`);
+    saved.matching.matrixMutation.restored=true;saveArtifact("recovery",saved);
+    saveArtifact("paging-matrix",evidence);
+  }
+}
+async function roleLatency() {
+  revisionFixture();
+  for(const role of ["groomer","customer"]) await check(`RV02 ${role} 30 SQL and HTTP reads`,async()=>{
+    const actor=actors[role==="groomer"?"G2":"C1"].id;
+    const call=role==="groomer"?"public.get_ranked_matched_requests('fit',6,null)":
+      `public.get_ranked_customer_offers('${saved.requests[0]}','balanced',1,null)`;
+    const full=await browsePages(role);assert.ok(full.complete);
+    assert.equal(full.ids.length,role==="groomer"?26:2);
+    const [row]=query(`begin;set local statement_timeout='90s';
+      select set_config('request.jwt.claims','${JSON.stringify({sub:actor,role:"authenticated",is_anonymous:false})}',true);
+      set local role authenticated;
+      do $$ declare i integer;t timestamptz;readings numeric[]:='{}';page jsonb;begin
+        for i in 1..30 loop t:=clock_timestamp();page:=${call};
+          if page->>'effective_mode'<>'${role==="groomer"?"fit":"balanced"}' then raise exception 'Unexpected fallback';end if;
+          readings:=array_append(readings,extract(epoch from clock_timestamp()-t)*1000);end loop;
+        perform set_config('test.t391_readings',to_jsonb(readings)::text,true);end $$;
+      select current_setting('test.t391_readings')::jsonb readings;rollback;`);
+    const http=[];
+    for(let i=0;i<30;i++) {const start=performance.now();await pageRequest(role);http.push(performance.now()-start);}
+    const p95=values=>[...values].sort((a,b)=>a-b)[28];
+    const result={candidateCount:full.ids.length,firstHTTP:full.readMS[0],sql:row.readings.map(Number),http,
+      sqlP95:p95(row.readings.map(Number)),httpP95:p95(http)};
+    saveArtifact(`role-latency-${role}`,result);
+    assert.ok(result.sqlP95<=1500);assert.ok(result.httpP95<=2500);return result;
+  });
+}
+
 async function pagingLive() {
   await check("M47/M50 five-page HTTP browsing with ten-second review mutations",async()=>{
     const [config]=query("select enabled,validation_actor_ids from app_private.match_ranking_config where singleton;");
-    assert.equal(config.enabled,false);assert.deepEqual(config.validation_actor_ids,[]);
+    const validationPolicy=rankingValidationPlan(config,[actors.G2.id]);
     const [review]=query(`select v.id,v.rating from public.reviews v join public.bookings b on b.id=v.booking_id
       join public.grooming_requests r on r.id=b.request_id where r.customer_id='${actors.C1.id}'
         and b.groomer_id='${actors.G2.id}' and r.service_notes='${marker} evidence-db' order by v.id limit 1;`);
@@ -914,7 +1179,7 @@ async function pagingLive() {
     saved.matching.rankingValidationRestored=false;saveArtifact("recovery",saved);
     let timer,mutationError,consecutiveFailures=0;
     try {
-      query(`update app_private.match_ranking_config set validation_actor_ids=array['${actors.G2.id}'::uuid] where singleton and not enabled;`);
+      if(validationPolicy.activateSQL) query(validationPolicy.activateSQL);
       const started=Date.now();
       timer=setInterval(()=>{
         try {
@@ -957,9 +1222,7 @@ async function pagingLive() {
         assert.equal(rows.length,1,"Review changed outside the fixture; preserve it");
         saved.matching.pagingMutation.restored=true;saveArtifact("recovery",saved);
       } finally {
-        query(`do $$ begin if not exists(select 1 from app_private.match_ranking_config where singleton and not enabled
-          and validation_actor_ids=array['${actors.G2.id}'::uuid]) then raise exception 'Unexpected validation config; preserve it';end if;
-          update app_private.match_ranking_config set validation_actor_ids='{}' where singleton;end $$;`);
+        query(validationPolicy.restoreSQL ?? validationPolicy.verifySQL);
         saved.matching.rankingValidationRestored=true;saveArtifact("recovery",saved);
       }
     }
@@ -1069,14 +1332,13 @@ async function httpRanking() {
   const historical=process.env.TESTOPS_HISTORICAL_CLOCK==="1";
   assert.ok(!saved.matching.httpHistory || saved.matching.httpHistory.restored,"Restore prior historical-clock fixture first");
   const [config]=query("select enabled,validation_actor_ids from app_private.match_ranking_config where singleton;");
-  assert.equal(config.enabled,false);
-  assert.deepEqual(config.validation_actor_ids,[]);
+  const validation=[actors.C1.id,actors.G1.id,actors.G2.id];
+  const validationPolicy=rankingValidationPlan(config,validation);
   const ids=saved.matching.httpRequests?.length ? saved.matching.httpRequests : Array.from({length:26},()=>randomUUID());
   const [existing]=query(`select count(*)::integer n,count(*) filter(where customer_id='${actors.C1.id}'
     and service_notes='${marker} http-ranking')::integer owned from public.grooming_requests where id in (${sqlIDs(ids)});`);
   assert.equal(existing.n,existing.owned,"HTTP fixture ownership changed");
   assert.ok(existing.n===0 || existing.n===26,"Partial HTTP fixture requires reconciliation");
-  const validation=[actors.C1.id,actors.G1.id,actors.G2.id];
   saved.matching.httpRequests=ids;
   saved.matching.rankingConfigBaseline=config;
   saved.matching.rankingValidationActors=validation;
@@ -1093,9 +1355,9 @@ async function httpRanking() {
           insert into public.grooming_requests select r.*;
         end loop;
       end $$;
-      update app_private.match_ranking_config set validation_actor_ids=array[${sqlIDs(validation)}] where singleton and not enabled;
+      ${validationPolicy.activateSQL ?? ""}
       commit;`);
-    else query(`update app_private.match_ranking_config set validation_actor_ids=array[${sqlIDs(validation)}] where singleton and not enabled;`);
+    else if(validationPolicy.activateSQL) query(validationPolicy.activateSQL);
     if(historical) {
       const [history]=query(`select count(*)::integer n,min(c.service_at) minimum,max(c.service_at) maximum,
         ceil(extract(epoch from max(c.service_at)-statement_timestamp()+interval '1 day'))::integer shift_seconds
@@ -1118,12 +1380,13 @@ async function httpRanking() {
         exit when not exists(select 1 from app_private.match_refresh_queue where request_id in (${sqlIDs(ids)}));end loop;
       if exists(select 1 from app_private.match_refresh_queue where request_id in (${sqlIDs(ids)}))
         then raise exception 'HTTP fixture queue not drained';end if;end $$;`);
-    await check("MR06 private rollout remains account scoped",async()=>{
+    if(process.argv.includes("--fixtures-only")) return;
+    await check("MR06 ranking retains authenticated role boundaries",async()=>{
       const selected=await rpc("G1","get_ranked_matched_requests",{p_sort:"fit",p_limit:25,p_cursor:null});
       assert.equal(selected.effective_mode,"fit");
       const outside=await rpc("C2","get_ranked_matched_requests",{p_sort:"fit",p_limit:25,p_cursor:null}).then(()=>null,error=>error);
       assert.ok(outside && /not_allowed/.test(outside.serverMessage??outside.message));
-      return {globalEnabled:false,validatedMode:selected.effective_mode,wrongRoleDenied:true};
+      return {globalEnabled:config.enabled,validatedMode:selected.effective_mode,wrongRoleDenied:true};
     });
     if(historical) await check("MR05 historical 1000-review SQL 30-read budget",async()=>{
       const [row]=query(`begin;set local statement_timeout='60s';
@@ -1186,12 +1449,7 @@ async function httpRanking() {
         saved.matching.httpHistory.restored=true;saveArtifact("recovery",saved);
       }
     } finally {
-    query(`begin;set local lock_timeout='5s';do $$ begin
-      if not exists(select 1 from app_private.match_ranking_config where singleton and not enabled
-        and (validation_actor_ids=array[${sqlIDs(validation)}] or validation_actor_ids='{}'))
-        then raise exception 'Ranking config changed concurrently; preserve it';end if;
-      update app_private.match_ranking_config set validation_actor_ids='{}' where singleton;
-      end $$;commit;`);
+    query(`begin;set local lock_timeout='5s';${validationPolicy.restoreSQL ?? validationPolicy.verifySQL}commit;`);
       saved.matching.rankingValidationRestored=true;saveArtifact("recovery",saved);
     }
   }
@@ -1304,6 +1562,82 @@ async function privacyDatabase() {
   });
 }
 
+async function marketplaceDatabase() {
+  assert.match(runID, /^TESTOPS-T391-/);
+  assert.equal(process.env.TESTOPS_REMOTE_WRITE_APPROVED, "1");
+  const phase=process.env.TESTOPS_MARKETPLACE_PHASE;
+  assert.ok(["groomer","customer"].includes(phase),"Select one bounded marketplace phase");
+  const batch=phase==="customer"?Number(process.env.TESTOPS_MARKETPLACE_BATCH):0;
+  assert.ok(phase!=="customer" || [1,2,3].includes(batch),"Select customer snapshot batch 1, 2 or 3");
+  const source = JSON.parse(readFileSync("tests/fixtures/matching-marketplace-la-synthetic.json", "utf8"));
+  assert.equal(source.source_kind, "synthetic");
+  assert.equal(source.human_labels, null);
+  const seeds = [...parseCustomerProfiles().map(p => ({seed:p.seedID,email:p.email,role:"customer"})),
+    ...parseGroomerProfiles().map(p => ({seed:p.seedID,email:p.email,role:"groomer"}))];
+  const inventory = query(`select s.seed,s.role,u.id from jsonb_to_recordset(${sqlJSON(seeds)}) s(seed text,email text,role text)
+    join auth.users u on u.email=s.email join public.profiles p on p.id=u.id and p.role::text=s.role
+    where not exists(select 1 from public.grooming_requests r where r.customer_id=u.id
+      and r.status in ('open','has_offers') and r.expires_at>now())
+    and not exists(select 1 from public.bookings b where (b.customer_id=u.id or b.groomer_id=u.id) and b.scheduled_end>now())
+    order by s.seed;`);
+  const aliases = {customer:[...new Set(source.requests.map(r => r.customer_id))].sort(),
+    groomer:source.groomers.map(g => g.id)};
+  const actors = Object.entries(aliases).flatMap(([role, names]) => {
+    const pool=inventory.filter(p => p.role===role);
+    assert.ok(pool.length>=names.length, `Not enough existing idle ${role} seeds`);
+    return names.map((alias,i) => ({alias,...pool[i]}));
+  });
+  const ids=sqlIDs(actors.map(a => a.id));
+  const fingerprintSQL=`select
+    ${["profiles","customer_profiles","groomer_profiles","groomer_services","groomer_availability_windows",
+      "groomer_booking_preferences","groomer_time_off_windows","pets"].map(t => {
+      const col=t==="profiles"?"id":t.endsWith("profiles")?"user_id":t==="pets"?"customer_id":"groomer_id";
+      return `(select md5(coalesce(jsonb_agg(to_jsonb(t) order by to_jsonb(t)::text),'[]'::jsonb)::text)
+        from public.${t} t where ${col} in (${ids})) ${t}`;
+    }).join(",")},
+    (select to_jsonb(c)-'signing_key' from app_private.match_ranking_config c where singleton) ranking_config,
+    (select count(*) from public.grooming_requests where service_notes like '${marker}%') tagged_requests,
+    (select count(*) from public.pets where grooming_notes='${marker}') tagged_pets;`;
+  const [before]=query(fingerprintSQL);
+  assert.equal(before.ranking_config.enabled,true);
+  assert.equal(before.tagged_requests,0); assert.equal(before.tagged_pets,0);
+  const template=readFileSync("tests/fixtures/matching-marketplace-replay.sql","utf8");
+  assert.ok(template.trimEnd().endsWith("rollback;"));
+  assert.doesNotMatch(template,/\bcommit\s*;/i);
+  const capture=source.requests.filter(r=>phase==="groomer" || (batch===1?r.id<="R08":batch===2?r.id>="R09"&&r.id<="R17":r.id>="R18")).map(r=>r.id);
+  const seedRequests=source.requests.filter(r=>capture.includes(r.id)||(phase==="customer"&&batch===2&&r.id==="R05"));
+  const input={...source,actors,marker,phase,batch,capture_requests:capture,requests:seedRequests,
+    auxiliary_request:source.requests.find(r=>r.id==="R04"),
+    rejected_proposals:source.rejected_proposals.filter(x=>capture.includes(x.request_id))};
+  const sql=template.replace("/* INPUT_JSON */",sqlJSON(input));
+  const stamp=new Date().toISOString().replaceAll(/[:.]/g,"-");
+  saveArtifact(`marketplace-manifest-${stamp}`,{source_hash:createHash("sha256").update(JSON.stringify(source)).digest("hex"),
+    sql_hash:createHash("sha256").update(sql).digest("hex"),actors,before,source_kind:"synthetic",
+    phase,batch,capture_requests:capture,seed_requests:seedRequests.map(r=>r.id),
+    execution:"rollback-only SQL with authenticated role claims, not live user HTTP",human_labels:null,
+    deviations:["Synthetic neighborhood coordinates replace approximate mile estimates",
+      "Service dates move by whole weeks into the future; creation times are actual RPC time",
+      "Public RPC owns expiry; expired history is checked with evaluate_quote at the deadline, not overwritten",
+      "Existing controlled seed review evidence is retained; invented rating summaries are not imported"]});
+  let output;
+  try {
+    output=query(sql,180000);
+    saveArtifact(`marketplace-results-${stamp}`,output);
+  } catch (error) {
+    saveArtifact(`marketplace-failure-${stamp}`,{message:error.message,
+      detail:JSON.parse(readFileSync(`artifacts/testops/${runID}/query-error.json`,"utf8")).message});
+    throw error;
+  } finally {
+    const [after]=query(fingerprintSQL);
+    saveArtifact(`marketplace-restoration-${stamp}`,{before,after,restored:JSON.stringify(before)===JSON.stringify(after)});
+    assert.deepEqual(after,before,"Rollback restoration mismatch");
+  }
+  const result=output[0]?.result;
+  assert.ok(result,"Missing marketplace result");
+  console.log(JSON.stringify({requests:result.requests?.length,offers:result.offers?.length,
+    negative:result.negative?.length,sequences:result.sequences?.length,restored:true}));
+}
+
 async function run() {
   const dates = query(`select jsonb_agg(timezone('America/Los_Angeles',
     (timezone('America/Los_Angeles',now())::date+d)+time '10:00') order by d) starts
@@ -1341,9 +1675,11 @@ async function run() {
   const [request]=await api.restSelect("grooming_requests",`select=*&id=eq.${receipt.request_id}`,actors.C1.token);
   await check("MR04 candidate worker",async()=>query("select app_private.drain_match_refresh_queue(100) result;"));
   await check("M26 discoverable new request",async()=>{
+    const [config]=query("select enabled,validation_actor_ids from app_private.match_ranking_config where singleton;");
     const page=await rpc("G1","get_ranked_matched_requests",{p_sort:"fit",p_limit:25,p_cursor:null});
     assert.ok(page.items.some(item=>item.request.id===request.id));
-    assert.equal(page.effective_mode,"time_fallback"); return {count:page.items.length};
+    assert.equal(page.effective_mode,config.enabled || config.validation_actor_ids.includes(actors.G1.id) ? "fit" : "time_fallback");
+    return {count:page.items.length,mode:page.effective_mode};
   });
   const offers=[];
   for (const groomer of ["G1","G2"]) {

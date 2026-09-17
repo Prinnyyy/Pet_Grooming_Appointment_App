@@ -69,6 +69,10 @@ These operations must reject unauthenticated callers, resolve role and ownership
 
 ## Required Negative Tests
 
+T-392 browse v2 RPCs use authenticated-only public invoker/private definer wrappers. Private browse snapshots and their core/prune/epoch functions have no client or service-role execution/table grant. Signed cursors additionally bind a viewer-owned expiring snapshot; hard qualification and acceptance never reuse cached scores as authorization. Old RPC ACLs and definitions are retained. Validate wrong viewer/role/scope, expired/invalidated cursors and direct snapshot access; actual acceptance remains tracked in `../04_ios/testops/T-392_CLIENT_ACCEPTANCE.md`.
+
+CA-14 preserves those ACLs while batching quote timezone validation. New catalog-accepting admission overloads revoke all execution from public, anon, authenticated and service_role. Existing private signatures remain wrappers that load the live server catalog themselves; authorized quote-detail batches still filter every offer by participant and role.
+
 Every backend access change must cover the relevant negative cases:
 
 - Anonymous callers cannot execute onboarding or controlled RPCs.

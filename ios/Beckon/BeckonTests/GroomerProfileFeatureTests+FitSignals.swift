@@ -5,6 +5,36 @@ import UIKit
 
 extension GroomerProfileStoreTests {
     @Test @MainActor
+    func loadRetainsCanonicalVerifiedEvidenceAndRejectsForeignOrForgedSignals() async throws {
+        let groomerID = UUID()
+        let keys = [
+            ReviewEvidenceKey(dimension: "service", value: "full_groom"),
+            ReviewEvidenceKey(dimension: "coat", value: "curly_wavy"),
+            ReviewEvidenceKey(dimension: "size", value: "S"),
+            ReviewEvidenceKey(dimension: "care", value: "anxious"),
+        ]
+        let valid = try keys.map { key in
+            Self.evidenceSummary(groomerID: groomerID, signal: try #require(key.signal),
+                completedBookingCount: 12, confidenceTier: .low)
+        }
+        let foreign = Self.evidenceSummary(groomerID: UUID(), signal: valid[0].signal,
+            completedBookingCount: 99, confidenceTier: .low)
+        let forged = Self.evidenceSummary(groomerID: groomerID,
+            signal: PetFitSignal(group: .verifiedService, traitValue: "forged", title: "Forged"),
+            completedBookingCount: 99, confidenceTier: .low)
+        let repository = GroomerProfileRepositoryFake(
+            profileResult: .success(Self.profile(groomerID: groomerID)),
+            petFitEvidenceSummaryResult: .success(valid + [foreign, forged]))
+        let store = GroomerProfileStore(groomerID: groomerID, repository: repository)
+
+        await store.load()
+
+        #expect(Set(store.petFitEvidenceSummary.map(\.id)) == Set(valid.map(\.id)))
+        #expect(store.petFitEvidenceSummary.allSatisfy { $0.completedBookingCount == 12 })
+        #expect(Set(GroomerFitClaim.availableSignals).isDisjoint(with: Set(valid.map(\.signal))))
+    }
+
+    @Test @MainActor
     func loadKeepsOnlySupportedPetFitEvidenceSignals() async {
         let groomerID = UUID()
         let poodle = Self.evidenceSummary(

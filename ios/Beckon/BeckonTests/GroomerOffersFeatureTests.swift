@@ -4,6 +4,47 @@ import Testing
 
 struct GroomerOffersStoreTests {
     @Test @MainActor
+    func refreshManagedOfferUpdatesStatusWithoutResettingPagination() async {
+        let owner = UUID()
+        let first = Self.offerItem(groomerID: owner, status: .pending)
+        let second = Self.offerItem(groomerID: owner, status: .pending)
+        let repository = GroomerOfferListRepositoryFake(offerPages: [
+            .success(ListPage(items: [first, second], request: .first, hasMore: true))
+        ])
+        let store = GroomerOffersStore(groomerID: owner, repository: repository)
+        await store.load()
+        let order = store.offers.map(\.id)
+        repository.offerResult = .success(first.offer.replacing(
+            status: .withdrawnByGroomer, withdrawnAt: "2026-06-22T12:30:00Z"))
+
+        await store.refreshOffer(id: first.id)
+
+        #expect(store.offers.map(\.id) == order)
+        #expect(store.offers.first(where: { $0.id == first.id })?.offer.status == .withdrawnByGroomer)
+        #expect(store.sections.first(where: { $0.status == .pending })?.offers == [second])
+        #expect(store.canLoadMore)
+        #expect(repository.offersCallCount == 1)
+        #expect(store.errorMessage == nil)
+    }
+
+    @Test @MainActor
+    func managedOfferRefreshRejectsForeignResponseAndPreservesExistingDataOnFailure() async {
+        let owner = UUID(), existing = Self.offerItem(groomerID: UUID(), status: .pending)
+        let own = Self.offerItem(groomerID: owner, status: .pending)
+        let repository = GroomerOfferListRepositoryFake(offersResult: .success([own]))
+        let store = GroomerOffersStore(groomerID: owner, repository: repository)
+        await store.load()
+        repository.offerResult = .success(existing.offer)
+        await store.refreshOffer(id: own.id)
+        #expect(store.offers == [own])
+        #expect(store.errorMessage != nil)
+        repository.offerResult = .failure(.networkUnavailable)
+        await store.refreshOffer(id: own.id)
+        #expect(store.offers == [own])
+        #expect(store.errorMessage == "Offers unavailable. Check your connection and try again.")
+    }
+
+    @Test @MainActor
     func paginationRetriesThenAppendsUniqueOffersAndStopsAtLastPage() async {
         let groomerID = UUID()
         let first = Self.offerItem(
@@ -230,6 +271,7 @@ struct GroomerOffersStoreTests {
 
 @MainActor
 private final class GroomerOfferListRepositoryFake: GroomerRequestRepository {
+    var offerResult: Result<GroomerOffer?, GroomerRequestRepositoryError> = .failure(.unavailable)
     var offersResult: Result<[GroomerOfferListItem], GroomerRequestRepositoryError>
     var offerPages: [Result<ListPage<GroomerOfferListItem>, GroomerRequestRepositoryError>]
 
@@ -247,6 +289,10 @@ private final class GroomerOfferListRepositoryFake: GroomerRequestRepository {
 
     func matchedRequests(groomerID: UUID) async throws -> [GroomerMatchedRequest] {
         []
+    }
+
+    func offer(groomerID: UUID, offerID: UUID) async throws -> GroomerOffer? {
+        try offerResult.get()
     }
 
     func offers(groomerID: UUID) async throws -> [GroomerOfferListItem] {

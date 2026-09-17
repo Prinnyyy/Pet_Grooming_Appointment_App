@@ -88,13 +88,16 @@ final class TestOpsBookingAdversarialTests: XCTestCase {
     private let app = XCUIApplication()
     private nonisolated var runID: String { ProcessInfo.processInfo.environment["TESTOPS_RUN_ID"]
         ?? ProcessInfo.processInfo.environment["TEST_RUNNER_TESTOPS_RUN_ID"] ?? "" }
+    private nonisolated var isMatchingRun: Bool {
+        runID.hasPrefix("TESTOPS-T390-") || runID.hasPrefix("TESTOPS-T391-")
+    }
     private var references: [String] { (ProcessInfo.processInfo.environment["TEST_RUNNER_T387_REQUEST_REFS"]
         ?? ProcessInfo.processInfo.environment["T387_REQUEST_REFS"] ?? "").split(separator: ",").map(String.init) }
 
     override func setUpWithError() throws {
         continueAfterFailure = false
         let environment = ProcessInfo.processInfo.environment
-        guard (runID.hasPrefix("TESTOPS-T387-") || runID.hasPrefix("TESTOPS-T390-")),
+        guard (runID.hasPrefix("TESTOPS-T387-") || isMatchingRun),
               (environment["TESTOPS_REMOTE_WRITE_APPROVED"]
                 ?? environment["TEST_RUNNER_TESTOPS_REMOTE_WRITE_APPROVED"]) == "1" else {
             throw XCTSkip("Authorized scoped booking or matching runner required.")
@@ -214,7 +217,7 @@ final class TestOpsBookingAdversarialTests: XCTestCase {
     }
 
     func testMatchingSortPreferenceAndPaging() throws {
-        XCTAssertTrue(runID.hasPrefix("TESTOPS-T390-"))
+        XCTAssertTrue(isMatchingRun)
         XCTAssertEqual(references.count, 4)
         try start(.groomer)
         tap(element("groomer.tab.requests"))
@@ -255,7 +258,7 @@ final class TestOpsBookingAdversarialTests: XCTestCase {
     }
 
     func testQuoteTwoRequests() throws {
-        if runID.hasPrefix("TESTOPS-T390-") {
+        if isMatchingRun {
             XCTAssertTrue((1...2).contains(references.count))
         } else {
             XCTAssertEqual(references.count, 2)
@@ -272,7 +275,7 @@ final class TestOpsBookingAdversarialTests: XCTestCase {
             }
             fillOfferField("groomer.offers.price", text: "105")
             fillOfferField("groomer.offers.message", text: "TESTOPS:\(runID) B66 UI offer")
-            if runID.hasPrefix("TESTOPS-T390-") {
+            if isMatchingRun {
                 fillOfferField("groomer.offers.duration", text: "60")
                 XCTAssertFalse(element("groomer.offers.submit").isEnabled)
                 XCTAssertTrue(element("groomer.offers.confirmation.pet_size").exists)
@@ -508,7 +511,7 @@ final class TestOpsBookingAdversarialTests: XCTestCase {
     }
 
     func testConfirmMatchingServiceSpecies() throws {
-        guard runID.hasPrefix("TESTOPS-T390-") else { throw XCTSkip("Matching fixture only") }
+        guard isMatchingRun else { throw XCTSkip("Matching fixture only") }
         try start(.groomer)
         tap(element("groomer.tab.account"))
         tap(element("groomer.account.services"))

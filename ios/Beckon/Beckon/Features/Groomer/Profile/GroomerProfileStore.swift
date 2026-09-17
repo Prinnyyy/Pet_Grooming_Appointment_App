@@ -536,9 +536,11 @@ final class GroomerProfileStore {
     }
 
     private func populatePetFitEvidenceSummary(with summaries: [GroomerPetFitEvidenceSummary]) {
-        let supportedSignals = Set(PetFitSignal.allCases)
         petFitEvidenceSummary = summaries
-            .filter { $0.groomerID == groomerID && supportedSignals.contains($0.signal) }
+            .filter {
+                $0.groomerID == groomerID
+                    && PetFitSignal.stored(traitType: $0.signal.traitType, traitValue: $0.signal.traitValue) == $0.signal
+            }
             .sorted(by: Self.sortPetFitEvidenceSummary)
     }
 

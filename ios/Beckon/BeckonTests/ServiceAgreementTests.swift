@@ -7,6 +7,51 @@ import XCTest
 
 @MainActor
 struct ServiceAgreementTests {
+    @Test func currentProposalGroupingExpiresWithoutChangingRawStatus() throws {
+        var offer = CustomerRequestsStoreTests.offerReview(customerID: UUID(), requestID: UUID()).offer
+        offer.agreementSnapshotLoaded = true
+        offer.agreementSnapshot = try JSONDecoder().decode(ServiceAgreement.self, from: Self.snapshot)
+        offer.quoteEvaluation = try JSONDecoder().decode(QuoteEvaluation.self, from: Data(
+            #"{"terms_valid":true,"selectable":true,"reason":"available"}"#.utf8))
+        let cutoff = try #require(GroomingRequestDateFormatting.parsedDate(from: offer.expiresAt))
+        let review = CustomerOfferReview(offer: offer, groomerProfile: nil)
+        #expect(review.isCurrentProposal(now: cutoff.addingTimeInterval(-1)))
+        #expect(!review.isCurrentProposal(now: cutoff))
+        #expect(!review.isCurrentProposal(now: cutoff.addingTimeInterval(1)))
+        #expect(review.isPending)
+        #expect(offer.evaluatedStatusTitle(now: cutoff) == "Expired")
+    }
+
+    @Test func currentProposalGroupingPreservesTemporaryCapacityAndChecking() throws {
+        var offer = CustomerRequestsStoreTests.offerReview(customerID: UUID(), requestID: UUID()).offer
+        offer.agreementSnapshotLoaded = true
+        offer.agreementSnapshot = try JSONDecoder().decode(ServiceAgreement.self, from: Self.snapshot)
+        let now = try #require(GroomingRequestDateFormatting.parsedDate(from: offer.expiresAt))
+            .addingTimeInterval(-1)
+        #expect(CustomerOfferReview(offer: offer, groomerProfile: nil).isCurrentProposal(now: now))
+        #expect(offer.evaluatedStatusTitle(now: now) == "Checking")
+        offer.quoteEvaluation = try JSONDecoder().decode(QuoteEvaluation.self, from: Data(
+            #"{"terms_valid":true,"selectable":false,"reason":"capacity_unavailable"}"#.utf8))
+        #expect(CustomerOfferReview(offer: offer, groomerProfile: nil).isCurrentProposal(now: now))
+        #expect(offer.evaluatedStatusTitle(now: now) == "Time Unavailable")
+        offer.quoteEvaluation = try JSONDecoder().decode(QuoteEvaluation.self, from: Data(
+            #"{"terms_valid":false,"selectable":false,"reason":"expired"}"#.utf8))
+        #expect(!CustomerOfferReview(offer: offer, groomerProfile: nil).isCurrentProposal(now: now))
+        #expect(offer.evaluatedStatusTitle(now: now) == "Expired")
+    }
+
+    @Test func terminalAndUnsupportedProposalsStayOutOfCurrentGroup() throws {
+        let withdrawn = CustomerRequestsStoreTests.offerReview(customerID: UUID(), requestID: UUID(), status: .withdrawnByGroomer)
+        #expect(!withdrawn.isCurrentProposal())
+        var unsupported = CustomerRequestsStoreTests.offerReview(customerID: UUID(), requestID: UUID()).offer
+        unsupported.agreementSnapshotLoaded = true
+        let now = try #require(GroomingRequestDateFormatting.parsedDate(from: unsupported.expiresAt))
+            .addingTimeInterval(-1)
+        #expect(!CustomerOfferReview(offer: unsupported, groomerProfile: nil).isCurrentProposal(now: now))
+        let legacy = CustomerRequestsStoreTests.offerReview(customerID: UUID(), requestID: UUID())
+        #expect(legacy.isCurrentProposal())
+    }
+
     @Test func displayedQuoteExpiresWithoutAnotherNetworkRead() throws {
         var offer = CustomerRequestsStoreTests.offerReview(customerID: UUID(), requestID: UUID()).offer
         offer.agreementSnapshotLoaded = true

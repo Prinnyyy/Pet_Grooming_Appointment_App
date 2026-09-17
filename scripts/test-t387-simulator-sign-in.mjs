@@ -1,17 +1,43 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { createHash, randomUUID } from "node:crypto";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { parseCustomerProfiles, parseGroomerProfiles } from "./testops-core.mjs";
 import { connect, recover, query, saveArtifact, runID, directory, marker } from "./test-t387-booking-fixture.mjs";
+import { validateActorMap, validateClientUIPhase, writeReceipt } from "./test-t392-client-acceptance.mjs";
 
 assert.equal(process.env.TESTOPS_REMOTE_WRITE_APPROVED, "1");
 const role = process.argv[2];
 const phase = process.argv[3] ?? "SignIn";
-assert.ok(["SignIn", "PublishTwoRequests", "QuoteTwoRequests", "AcceptTwoRequests", "CancelOneRequest", "OpenMessageNotification"].includes(phase));
+const clientAcceptance = runID.startsWith("TESTOPS-T392-");
+const clientTransaction = clientAcceptance && phase !== "SignIn";
+if(clientTransaction) validateClientUIPhase(phase,role);
+const matchingPhase=["MatchingSortPreferenceAndPaging","CustomerMatchingSortModes","MatchingLivePageChanges","MatchingOfferExpiresDuringConfirmation"].includes(phase);
+assert.ok(clientTransaction || matchingPhase || ["SignIn", "PublishTwoRequests", "QuoteTwoRequests", "AcceptTwoRequests", "CancelOneRequest", "OpenMessageNotification"].includes(phase));
+if(matchingPhase) assert.ok(runID.startsWith("TESTOPS-T391-"));
 assert.ok(["customer", "groomer"].includes(role));
-if (phase !== "SignIn") recover();
-const seed = role === "customer" ? "BTC-003" : "BTG-001";
+if (phase !== "SignIn" && !clientAcceptance) recover();
+let clientInput;
+let seed = role === "customer" ? "BTC-003" : matchingPhase ? "BTG-006" : "BTG-001";
+if (clientAcceptance) {
+  assert.ok(phase === "SignIn" || clientTransaction,"T392 transaction phases require the data-driven acceptance driver");
+  const {actors} = JSON.parse(readFileSync(`${directory}/inventory.json`,"utf8"));
+  validateActorMap(actors);
+  const selected=actors.find(a=>a.alias===process.env.TESTOPS_ACTOR_ALIAS);
+  assert.ok(selected,"Explicit frozen actor alias required");
+  assert.equal(selected.role,role,"Actor role mismatch");
+  assert.ok(process.env.TESTOPS_SIMULATOR_UDID,"Explicit device required");
+  seed=selected.seed;
+  if (clientTransaction) {
+    const name=process.env.TESTOPS_UI_INPUT;
+    assert.match(name??"",/^ui-input-[A-Za-z0-9-]+\.json$/,"Scoped UI input artifact required");
+    clientInput=JSON.parse(readFileSync(`${directory}/${name}`));
+    assert.equal(clientInput.runID,runID);assert.equal(clientInput.actor,selected.alias);
+    assert.equal(clientInput.role,role);assert.ok(Array.isArray(clientInput.rows) && clientInput.rows.length>0);
+    assert.equal(typeof clientInput.previewOnly,"boolean");
+  }
+}
 const profile = (role === "customer" ? parseCustomerProfiles() : parseGroomerProfiles()).find(p => p.seedID === seed);
 const device = process.env.TESTOPS_SIMULATOR_UDID ?? "FBD6D82D-12FF-457E-884D-AC35D2A8D0C7";
 assert.match(device, /^[A-F0-9-]{36}$/i);
@@ -20,6 +46,19 @@ const env = { ...process.env, TEST_RUNNER_TESTOPS_INTERACTIVE_ROLE: role,
   TEST_RUNNER_TESTOPS_RUN_ID: runID,
   [`TEST_RUNNER_TESTOPS_UI_${role.toUpperCase()}_EMAIL`]: profile.email,
   [`TEST_RUNNER_TESTOPS_UI_${role.toUpperCase()}_PASSWORD`]: profile.password };
+if(clientInput) {
+  env.TEST_RUNNER_T392_UI_INPUT=Buffer.from(JSON.stringify(clientInput)).toString("base64");
+  env.TEST_RUNNER_TESTOPS_ACTOR_ALIAS=process.env.TESTOPS_ACTOR_ALIAS;
+  if(phase==="SessionSwitch") {
+    const {actors}=JSON.parse(readFileSync(`${directory}/inventory.json`));
+    const counterpart=actors.find(a=>a.alias===clientInput.switchActor);
+    assert.equal(role,"customer");assert.equal(counterpart?.role,"groomer");
+    const groomer=parseGroomerProfiles().find(p=>p.seedID===counterpart.seed);
+    assert.ok(groomer);
+    env.TEST_RUNNER_TESTOPS_UI_GROOMER_EMAIL=groomer.email;
+    env.TEST_RUNNER_TESTOPS_UI_GROOMER_PASSWORD=groomer.password;
+  }
+}
 const requests = () => query(`select id,status,preferred_start,preferred_end from public.grooming_requests
   where customer_id=(select id from auth.users where raw_app_meta_data->>'beckon_seed_id'='BTC-003')
     and service_notes like 'TESTOPS:${runID} B65 UI-%' order by service_notes;`);
@@ -59,7 +98,93 @@ if (phase === "OpenMessageNotification") {
   saveArtifact(`ui-message-${role}`, messageProbe);
   env.TEST_RUNNER_T388_CHAT_MESSAGE = body;
 }
-if (!["SignIn", "PublishTwoRequests"].includes(phase)) {
+if(matchingPhase) {
+  const saved=recover();
+  const {api,actors}=await connect(["C1","G2"]);
+  const ref=id=>id.slice(0,8).toUpperCase();
+  if(phase==="MatchingSortPreferenceAndPaging") {
+    const pages=[];
+    for(const sort of ["distance","newest","fit"]) pages.push(await api.rpc("get_ranked_matched_requests",
+      {p_sort:sort,p_limit:50,p_cursor:null},actors.G2.token));
+    assert.equal(pages[2].items.length,26);
+    env.TEST_RUNNER_T387_REQUEST_REFS=[...pages.map(page=>ref(page.items[0].request.id)),ref(pages[2].items[25].request.id)].join(",");
+    saveArtifact(`ui-input-${phase}`,{references:env.TEST_RUNNER_T387_REQUEST_REFS});
+  } else if(phase==="CustomerMatchingSortModes") {
+    // Keep quote-sort navigation independent of the synthetic history volume.
+    const [order]=query(`update public.grooming_requests set created_at=statement_timestamp()
+      where id='${saved.requests[0]}' and customer_id='${actors.C1.id}' and service_notes='${marker}' returning id,created_at;`);
+    assert.ok(order);
+    saveArtifact(`ui-order-${phase}`,{...order,controlledFixtureOrder:true});
+    const prices=[];
+    for(const sort of ["balanced","distance","earliest","price"]) {
+      const page=await api.rpc("get_ranked_customer_offers",{p_request_id:saved.requests[0],p_sort:sort,p_limit:25,p_cursor:null},actors.C1.token);
+      prices.push(String(page.items[0].offer.price_estimate));
+    }
+    env.TEST_RUNNER_T387_REQUEST_REFS=ref(saved.requests[0]);
+    env.TEST_RUNNER_T390_SORT_PRICES=prices.join(",");
+    saveArtifact(`ui-input-${phase}`,{request:saved.requests[0],prices});
+  } else {
+    const requestID=saved.matching.httpRequests[phase==="MatchingLivePageChanges"?0:1];
+    assert.match(requestID,/^[0-9a-f-]{36}$/);
+    const [request]=query(`select r.id,r.terms_revision,
+      app_private.evaluate_match_eligibility(r.id,'${actors.G2.id}',statement_timestamp()) eligibility
+      from public.grooming_requests r where r.id='${requestID}' and r.customer_id='${actors.C1.id}'
+        and r.service_notes='${marker} http-ranking' and not exists
+        (select 1 from public.groomer_offers o where o.request_id=r.id);`);
+    assert.equal(request?.eligibility.state,"estimated_fit");
+    const quote={p_request_id:requestID,p_expected_request_revision:request.terms_revision,
+      p_proposed_start:request.eligibility.service_start,p_proposed_end:request.eligibility.service_end,
+      p_price_estimate:100,p_message:marker,p_assessment_confirmations:[]};
+    env.TEST_RUNNER_T387_REQUEST_REFS=ref(requestID);
+    if(phase==="MatchingLivePageChanges") {
+      const [review]=query(`select v.id,v.booking_id,c.context_revision from public.reviews v
+        join public.bookings b on b.id=v.booking_id join public.grooming_requests r on r.id=b.request_id
+        join app_private.booking_review_contexts c on c.booking_id=b.id
+        where r.customer_id='${actors.C1.id}' and b.groomer_id='${actors.G2.id}'
+          and r.service_notes='${marker} evidence-db' and v.content='${marker}' order by c.service_at desc limit 1;`);
+      assert.ok(review);
+      saveArtifact(`ui-input-${phase}`,{request:requestID,review,syntheticServiceContext:true});
+      const deleted=query(`delete from public.reviews where id='${review.id}' and booking_id='${review.booking_id}'
+        and customer_id='${actors.C1.id}' and content='${marker}' returning id;`);
+      assert.equal(deleted.length,1);
+      env.TEST_RUNNER_T390_API_KEY=api.publishableKey;
+      env.TEST_RUNNER_T390_REVIEW_TOKEN=actors.C1.token;
+      env.TEST_RUNNER_T390_REVIEW_BODY=JSON.stringify({p_booking_id:review.booking_id,
+        p_expected_context_revision:review.context_revision,p_rating:5,p_content:marker,
+        p_pet_fit_outcomes:[{trait_type:"service",trait_value:"nail_trim",outcome:"negative"},
+          {trait_type:"size",trait_value:"XS",outcome:"positive"}]});
+      env.TEST_RUNNER_T390_QUOTE_TOKEN=actors.G2.token;
+      env.TEST_RUNNER_T390_QUOTE_BODY=JSON.stringify(quote);
+    } else {
+      const expiryID=randomUUID();
+      quote.p_request_id=expiryID;
+      saveArtifact(`ui-input-${phase}`,{request:expiryID,source:requestID,quote,controlledExpiry:true,status:"preparing"});
+      // Published terms are immutable: create a disposable boundary fixture, never relax its guard.
+      const [changed]=query(`begin;do $$ declare r public.grooming_requests%rowtype;i integer;begin
+        select * into strict r from public.grooming_requests where id='${requestID}'
+          and customer_id='${actors.C1.id}' and service_notes='${marker} http-ranking';
+        r.id:='${expiryID}';r.terms_revision:=gen_random_uuid();r.status:='open';r.supersedes_request_id:=null;
+        r.service_notes:='${marker} expiry-ui';r.created_at:=statement_timestamp();r.updated_at:=r.created_at;
+        r.expires_at:=statement_timestamp()+interval '240 seconds';
+        insert into public.grooming_requests select r.*;
+        for i in 1..12 loop
+          perform app_private.drain_match_refresh_queue(250);
+          exit when not exists(select 1 from app_private.match_refresh_queue where request_id=r.id);
+        end loop;
+        if not exists(select 1 from public.request_matches where request_id=r.id and groomer_id='${actors.G2.id}'
+          and status in('visible','viewed')) then raise exception 'Expiry fixture was not discovered';end if;
+        end $$;
+        select terms_revision,expires_at from public.grooming_requests where id='${expiryID}';commit;`);
+      assert.ok(changed);
+      quote.p_expected_request_revision=changed.terms_revision;
+      const receipt=await api.rpc("create_groomer_offer_v3",quote,actors.G2.token);
+      env.TEST_RUNNER_T387_REQUEST_REFS=ref(expiryID);
+      saveArtifact(`ui-input-${phase}`,{request:expiryID,quote,receipt,expiresAt:changed.expires_at,
+        controlledExpiry:true,status:"ready"});
+    }
+  }
+}
+if (!clientAcceptance && !matchingPhase && !["SignIn", "PublishTwoRequests"].includes(phase)) {
   const existing = requests();
   assert.equal(existing.length, 2, "Exactly two UI-published requests required");
   env.TEST_RUNNER_T387_REQUEST_REFS = existing.map(r => r.id.slice(0, 8).toUpperCase()).join(",");
@@ -70,19 +195,46 @@ if (phase === "CancelOneRequest") {
     "A complete pre-cancellation snapshot is required before UI writes");
 }
 const selector = phase === "SignIn" ? "TestOpsLaunchSmokeTests/testAuthorizedInteractiveSeedSignIn"
+  : clientTransaction ? `TestOpsMarketplaceAcceptanceTests/test${phase}`
   : `TestOpsBookingAdversarialTests/test${phase}`;
-const resultDirectory = mkdtempSync(`${tmpdir()}/t387-sign-in-`);
+if (clientAcceptance) mkdirSync(directory,{recursive:true,mode:0o700});
+const resultDirectory = mkdtempSync(matchingPhase || clientAcceptance?`${directory}/ui-${phase}-${role}-`:`${tmpdir()}/t387-sign-in-`);
 const processHandle = spawn("xcodebuild", ["-project", "ios/Beckon/Beckon.xcodeproj", "-scheme", "Beckon",
   "-destination", `platform=iOS Simulator,id=${device}`, "-resultBundlePath", `${resultDirectory}/result.xcresult`,
-  "-parallel-testing-enabled", "NO", "test", `-only-testing:BeckonUITests/${selector}`], { env });
+  ...(clientAcceptance ? ["-derivedDataPath",`${directory}/DerivedData`,"-test-timeouts-enabled","YES",
+    "-maximum-test-execution-time-allowance",clientTransaction ? "600" : "180"] : []),
+  "-parallel-testing-enabled", "NO", process.env.TESTOPS_SKIP_BUILD === "1" && clientAcceptance ? "test-without-building" : "test",
+  `-only-testing:BeckonUITests/${selector}`], { env });
 let output = "";
-processHandle.stdout.on("data", data => { output += data; });
-processHandle.stderr.on("data", data => { output += data; });
+const collect = data => {
+  output += data;
+  // Only non-sensitive progress markers escape the private XCTest output buffer.
+  for (const line of data.toString().split("\n")) {
+    if (/^Test Case '-\[BeckonUITests\..*\]' (started|passed|failed)|^T392 UI /.test(line)) console.log(line);
+  }
+};
+processHandle.stdout.on("data", collect);
+processHandle.stderr.on("data", collect);
 const code = await new Promise(resolve => processHandle.on("close", resolve));
 try {
-  const safe = output.replaceAll(profile.email, "<seed-email>").replaceAll(profile.password, "<seed-password>");
+  let safe = output.replaceAll(profile.email, "<seed-email>").replaceAll(profile.password, "<seed-password>");
+  for(const [key,value] of Object.entries(env)) {
+    if(/TOKEN|PASSWORD|SECRET|API_KEY/.test(key) && value?.length>5) safe=safe.replaceAll(value,"<redacted>");
+  }
   console.log(safe.split("\n").filter(line => /T387 |Test Case|TEST SUCCEEDED|TEST FAILED|error:|Executed/.test(line)).slice(-40).join("\n"));
-  if (phase !== "SignIn") {
+  if (clientAcceptance) {
+    writeReceipt(directory,`${clientTransaction ? `ui-${phase}` : "signin"}-${process.env.TESTOPS_ACTOR_ALIAS}-${Date.now()}`,{
+      at:new Date().toISOString(),actor:process.env.TESTOPS_ACTOR_ALIAS,seed,role,device,exitCode:code,
+      build_hash:createHash("sha256").update(readFileSync(`${directory}/DerivedData/Build/Products/Debug-iphonesimulator/Beckon.app/Beckon.debug.dylib`)).digest("hex"),
+      resultBundle:`${resultDirectory}/result.xcresult`,
+      ...(clientInput ? {input:process.env.TESTOPS_UI_INPUT,previewOnly:clientInput.previewOnly,
+        sourceIDs:clientInput.rows.map(r=>r.id),events:safe.split("\n").filter(line=>line.startsWith("T392 UI ")),
+        scope:"UI execution only; server/cross-client reconciliation required"} : {}),
+      summary:safe.split("\n").filter(line=>/Test Case|TEST SUCCEEDED|TEST FAILED|error:|Executed/.test(line)).slice(-40)});
+  } else if(matchingPhase) {
+    saveArtifact(`ui-${phase}`,{at:new Date().toISOString(),exitCode:code,resultBundle:`${resultDirectory}/result.xcresult`,
+      summary:safe.split("\n").filter(line=>/Test Case|TEST SUCCEEDED|TEST FAILED|error:|Executed/.test(line)).slice(-40)});
+  } else if (phase !== "SignIn") {
     const observed = requests();
     saveArtifact(`ui-${artifactPhase}`, { at: new Date().toISOString(), exitCode: code, requests: observed, summary: safe.split("\n")
       .filter(line => /T387 |Test Case|TEST SUCCEEDED|TEST FAILED|error:|Executed/.test(line)).slice(-40) });
@@ -93,7 +245,7 @@ try {
   }
   assert.equal(code, 0, `Simulator ${phase} did not pass`);
 } finally {
-  rmSync(resultDirectory, { recursive: true, force: true });
+  if(!matchingPhase && !clientAcceptance) rmSync(resultDirectory, { recursive: true, force: true });
 }
 
 async function verifyMessageNotification() {

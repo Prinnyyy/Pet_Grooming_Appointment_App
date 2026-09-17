@@ -1,0 +1,567 @@
+{
+  "schema_version": 2,
+  "source_kind": "synthetic",
+  "source_hash": "2cc028625390ac5da9e28e321f916099157b357e5185af6b434f8e9c8cd3356c",
+  "seed": 392,
+  "time_zone": "America/Los_Angeles",
+  "history": [
+    {
+    "groomer": "G01",
+      "count": 68,
+      "sum": 333,
+      "cat": 0,
+      "profile": "small_curly"
+    },
+    {
+      "groomer": "G02",
+      "count": 182,
+      "sum": 855,
+      "cat": 0
+    },
+    {
+    "groomer": "G03",
+      "count": 96,
+      "sum": 461,
+      "cat": 0,
+      "profile": "senior"
+    },
+    {
+    "groomer": "G04",
+      "count": 142,
+      "sum": 682,
+      "cat": 0,
+      "profile": "large_double_coat"
+    },
+    {
+    "groomer": "G05",
+      "count": 57,
+      "sum": 262,
+      "cat": 0,
+      "profile": "large_double_coat"
+    },
+    {
+      "groomer": "G06",
+      "count": 211,
+      "sum": 928,
+      "cat": 0
+    },
+    {
+      "groomer": "G07",
+      "count": 204,
+      "sum": 1000,
+      "cat": 6
+    },
+    {
+      "groomer": "G08",
+      "count": 83,
+      "sum": 398,
+      "cat": 72
+    },
+    {
+      "groomer": "G09",
+      "count": 75,
+      "sum": 353,
+      "cat": 75
+    },
+    {
+      "groomer": "G10",
+      "count": 101,
+      "sum": 475,
+      "cat": 11
+    },
+    {
+      "groomer": "G11",
+      "count": 0,
+      "sum": 0,
+      "cat": 0
+    },
+    {
+      "groomer": "G12",
+      "count": 9,
+      "sum": 44,
+      "cat": 5
+    }
+  ],
+  "history_policy": {
+    "repeat_customer": "C01",
+    "repeat_count": 100,
+    "sparse_customers": [
+      "C01",
+      "C02",
+      "C03"
+    ],
+    "max_daily": 4,
+    "duration_minutes": 60,
+    "earliest_age_days": 1,
+    "latest_age_days": 730
+  },
+  "neighborhoods": {
+    "Culver City": [
+      34.0211,
+      -118.3965
+    ],
+    "West LA": [
+      34.043,
+      -118.4465
+    ],
+    "Mar Vista": [
+      34.003,
+      -118.43
+    ],
+    "Pasadena": [
+      34.1478,
+      -118.1445
+    ],
+    "Burbank": [
+      34.18,
+      -118.309
+    ],
+    "Koreatown": [
+      34.061,
+      -118.3
+    ],
+    "Los Feliz": [
+      34.112,
+      -118.287
+    ],
+    "Sherman Oaks": [
+      34.15,
+      -118.449
+    ],
+    "Hollywood": [
+      34.101,
+      -118.326
+    ],
+    "Echo Park": [
+      34.078,
+      -118.26
+    ],
+    "Santa Monica": [
+      34.019,
+      -118.491
+    ],
+    "Silver Lake": [
+      34.086,
+      -118.27
+    ],
+    "Downtown LA": [
+      34.045,
+      -118.25
+    ],
+    "Glendale": [
+      34.142,
+      -118.255
+    ]
+  },
+  "slots": [
+    {
+      "id": "S1",
+      "role": "customer",
+      "actor": "C01",
+      "udid": "FBD6D82D-12FF-457E-884D-AC35D2A8D0C7"
+    },
+    {
+      "id": "S2",
+      "role": "groomer",
+      "actor": "G01",
+      "udid": "45D452E8-DC6C-4CD4-A747-4D21671E68A6"
+    },
+    {
+      "id": "S3",
+      "role": "customer",
+      "actor": "C02",
+      "udid": "B9639233-9E78-41C9-A372-330D36C38DA7"
+    },
+    {
+      "id": "S4",
+      "role": "groomer",
+      "actor": "G02",
+      "udid": "429D1A58-4FD3-4091-A5F8-26212FFBACF8"
+    }
+  ],
+  "cases": [
+    {
+      "id": "F01",
+      "scenario": "R01:publish_restart",
+      "required_layer": "client_and_authoritative_audit",
+      "status": "not_run"
+    },
+    {
+      "id": "F02",
+      "scenario": "R02:same_household",
+      "required_layer": "client_and_authoritative_audit",
+      "status": "not_run"
+    },
+    {
+      "id": "F03",
+      "scenario": "R03,R04,R05:location_modes",
+      "required_layer": "client_and_authoritative_audit",
+      "status": "not_run"
+    },
+    {
+      "id": "F04",
+      "scenario": "R12,R13:cat",
+      "required_layer": "client_and_authoritative_audit",
+      "status": "not_run"
+    },
+    {
+      "id": "F05",
+      "scenario": "R09:unknown",
+      "required_layer": "client_and_authoritative_audit",
+      "status": "not_run"
+    },
+    {
+      "id": "F06",
+      "scenario": "R08,R11,R15,R24:custom",
+      "required_layer": "client_and_authoritative_audit",
+      "status": "not_run"
+    },
+    {
+      "id": "F07",
+      "scenario": "R01-R24:source_publish",
+      "required_layer": "client_and_authoritative_audit",
+      "status": "not_run"
+    },
+    {
+      "id": "F08",
+      "scenario": "branch:frozen_pet",
+      "required_layer": "client_and_authoritative_audit",
+      "status": "not_run"
+    },
+    {
+      "id": "F09",
+      "scenario": "branch:publish_idempotency",
+      "required_layer": "client_and_authoritative_audit",
+      "status": "not_run"
+    },
+    {
+      "id": "F10",
+      "scenario": "branch:cancel_republish",
+      "required_layer": "client_and_authoritative_audit",
+      "status": "not_run"
+    },
+    {
+      "id": "F11",
+      "scenario": "session:role_switch",
+      "required_layer": "client_and_authoritative_audit",
+      "status": "not_run"
+    },
+    {
+      "id": "F12",
+      "scenario": "branch:foreign_access",
+      "required_layer": "client_and_authoritative_audit",
+      "status": "not_run"
+    },
+    {
+      "id": "Q01",
+      "scenario": "all57:source_quotes",
+      "required_layer": "client_and_authoritative_audit",
+      "status": "not_run"
+    },
+    {
+      "id": "Q02",
+      "scenario": "R06:price_sort",
+      "required_layer": "client_and_authoritative_audit",
+      "status": "not_run"
+    },
+    {
+      "id": "Q03",
+      "scenario": "R03,R04:explicit_sorts",
+      "required_layer": "client_and_authoritative_audit",
+      "status": "not_run"
+    },
+    {
+      "id": "Q04",
+      "scenario": "X01:location",
+      "required_layer": "client_and_authoritative_audit",
+      "status": "not_run"
+    },
+    {
+      "id": "Q05",
+      "scenario": "X06:species",
+      "required_layer": "client_and_authoritative_audit",
+      "status": "not_run"
+    },
+    {
+      "id": "Q06",
+      "scenario": "X07,X08:size_radius",
+      "required_layer": "client_and_authoritative_audit",
+      "status": "not_run"
+    },
+    {
+      "id": "Q07",
+      "scenario": "X02,X03:occupied_window",
+      "required_layer": "client_and_authoritative_audit",
+      "status": "not_run"
+    },
+    {
+      "id": "Q08",
+      "scenario": "X04,X05:assessment",
+      "required_layer": "client_and_authoritative_audit",
+      "status": "not_run"
+    },
+    {
+      "id": "Q09",
+      "scenario": "R23-B:withdraw_resubmit",
+      "required_layer": "client_and_authoritative_audit",
+      "status": "not_run"
+    },
+    {
+      "id": "Q10",
+      "scenario": "R23-A:natural_expiry",
+      "required_layer": "client_and_authoritative_audit",
+      "status": "not_run"
+    },
+    {
+      "id": "C01",
+      "scenario": "source:pending_capacity",
+      "required_layer": "client_and_authoritative_audit",
+      "status": "not_run"
+    },
+    {
+      "id": "C02",
+      "scenario": "SEQ01:conflict",
+      "required_layer": "client_and_authoritative_audit",
+      "status": "not_run"
+    },
+    {
+      "id": "C03",
+      "scenario": "SEQ02:sequential",
+      "required_layer": "client_and_authoritative_audit",
+      "status": "not_run"
+    },
+    {
+      "id": "C04",
+      "scenario": "SEQ03:buffer_boundary",
+      "required_layer": "client_and_authoritative_audit",
+      "status": "not_run"
+    },
+    {
+      "id": "C05",
+      "scenario": "SEQ04:shared_groomer",
+      "required_layer": "client_and_authoritative_audit",
+      "status": "not_run"
+    },
+    {
+      "id": "C06",
+      "scenario": "branch:same_request_race",
+      "required_layer": "client_and_authoritative_audit",
+      "status": "not_run"
+    },
+    {
+      "id": "C07",
+      "scenario": "branch:shared_resource_race",
+      "required_layer": "client_and_authoritative_audit",
+      "status": "not_run"
+    },
+    {
+      "id": "C08",
+      "scenario": "branch:daily_capacity",
+      "required_layer": "client_and_authoritative_audit",
+      "status": "not_run"
+    },
+    {
+      "id": "C09",
+      "scenario": "branch:occupied_buffer",
+      "required_layer": "client_and_authoritative_audit",
+      "status": "not_run"
+    },
+    {
+      "id": "C10",
+      "scenario": "branch:cancel_release",
+      "required_layer": "client_and_authoritative_audit",
+      "status": "not_run"
+    },
+    {
+      "id": "L01",
+      "scenario": "branch:reschedule",
+      "required_layer": "client_and_authoritative_audit",
+      "status": "not_run"
+    },
+    {
+      "id": "L02",
+      "scenario": "branch:reschedule_conflict",
+      "required_layer": "client_and_authoritative_audit",
+      "status": "not_run"
+    },
+    {
+      "id": "L03",
+      "scenario": "branch:stale_revision",
+      "required_layer": "client_and_authoritative_audit",
+      "status": "not_run"
+    },
+    {
+      "id": "L04",
+      "scenario": "branch:groomer_cancel",
+      "required_layer": "client_and_authoritative_audit",
+      "status": "not_run"
+    },
+    {
+      "id": "L05",
+      "scenario": "live:fulfill_review",
+      "required_layer": "client_and_authoritative_audit",
+      "status": "not_run"
+    },
+    {
+      "id": "L06",
+      "scenario": "branch:unfulfilled_review",
+      "required_layer": "client_and_authoritative_audit",
+      "status": "not_run"
+    },
+    {
+      "id": "L07",
+      "scenario": "branch:frozen_review_context",
+      "required_layer": "client_and_authoritative_audit",
+      "status": "not_run"
+    },
+    {
+      "id": "L08",
+      "scenario": "branch:message_notification",
+      "required_layer": "client_and_authoritative_audit",
+      "status": "not_run"
+    },
+    {
+      "id": "R01",
+      "scenario": "G11:no_history",
+      "required_layer": "client_and_authoritative_audit",
+      "status": "not_run"
+    },
+    {
+      "id": "R02",
+      "scenario": "G12:sparse",
+      "required_layer": "client_and_authoritative_audit",
+      "status": "not_run"
+    },
+    {
+      "id": "R03",
+      "scenario": "G07,G08,G09:species_service",
+      "required_layer": "client_and_authoritative_audit",
+      "status": "not_run"
+    },
+    {
+      "id": "R04",
+      "scenario": "G06:repeat_customer",
+      "required_layer": "client_and_authoritative_audit",
+      "status": "not_run"
+    },
+    {
+      "id": "R05",
+      "scenario": "G05:recent_negative",
+      "required_layer": "client_and_authoritative_audit",
+      "status": "not_run"
+    },
+    {
+      "id": "R06",
+      "scenario": "variant:unknown_answers",
+      "required_layer": "client_and_authoritative_audit",
+      "status": "not_run"
+    },
+    {
+      "id": "R07",
+      "scenario": "variant:allowed_keys",
+      "required_layer": "client_and_authoritative_audit",
+      "status": "not_run"
+    },
+    {
+      "id": "R08",
+      "scenario": "live:review_idempotency",
+      "required_layer": "client_and_authoritative_audit",
+      "status": "not_run"
+    },
+    {
+      "id": "R09",
+      "scenario": "variant:cold_bucket",
+      "required_layer": "client_and_authoritative_audit",
+      "status": "not_run"
+    },
+    {
+      "id": "R10",
+      "scenario": "live:cross_client_update",
+      "required_layer": "client_and_authoritative_audit",
+      "status": "not_run"
+    },
+    {
+      "id": "S01",
+      "scenario": "scale:groomer26",
+      "required_layer": "client_and_authoritative_audit",
+      "status": "not_run"
+    },
+    {
+      "id": "S02",
+      "scenario": "scale:customer26",
+      "required_layer": "client_and_authoritative_audit",
+      "status": "not_run"
+    },
+    {
+      "id": "S03",
+      "scenario": "scale:newest",
+      "required_layer": "client_and_authoritative_audit",
+      "status": "not_run"
+    },
+    {
+      "id": "S04",
+      "scenario": "scale:unrelated",
+      "required_layer": "client_and_authoritative_audit",
+      "status": "not_run"
+    },
+    {
+      "id": "S05",
+      "scenario": "scale:soft60",
+      "required_layer": "client_and_authoritative_audit",
+      "status": "not_run"
+    },
+    {
+      "id": "S06",
+      "scenario": "scale:soft10",
+      "required_layer": "client_and_authoritative_audit",
+      "status": "not_run"
+    },
+    {
+      "id": "S07",
+      "scenario": "scale:hard_change",
+      "required_layer": "client_and_authoritative_audit",
+      "status": "not_run"
+    },
+    {
+      "id": "S08",
+      "scenario": "branch:response_loss",
+      "required_layer": "client_and_authoritative_audit",
+      "status": "not_run"
+    },
+    {
+      "id": "S09",
+      "scenario": "session:restart",
+      "required_layer": "client_and_authoritative_audit",
+      "status": "not_run"
+    },
+    {
+      "id": "S10",
+      "scenario": "session:sort_isolation",
+      "required_layer": "client_and_authoritative_audit",
+      "status": "not_run"
+    }
+  ],
+  "budgets": {
+    "paging": {
+      "static": 10,
+      "unrelated": 10,
+      "soft60": 9,
+      "soft10": 8,
+      "attempts_per_role_per_load": 10,
+      "page_size": 6,
+      "native_page_size": 25,
+      "pool_size": 26
+    },
+    "sql_p95_ms": 1500,
+    "http_p95_ms": 2500,
+    "samples_per_role": 30,
+    "score_tolerance": 1e-7
+  },
+  "negative_history_variants": [
+    "future",
+    "unfulfilled",
+    "cancelled",
+    "duplicate",
+    "forged_key"
+  ]
+}

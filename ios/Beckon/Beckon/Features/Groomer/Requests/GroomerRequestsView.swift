@@ -121,7 +121,7 @@ struct GroomerRequestsView: View {
         }
         .navigationDestination(item: $focusedOfferID) { offerID in
             if let item = offersStore.offers.first(where: { $0.id == offerID }) {
-                GroomerOfferDetailView(item: item)
+                GroomerOfferDetailView(item: item, store: offersStore, requestsStore: requestsStore)
             }
         }
         .accessibilityIdentifier("groomer.requests.list")
@@ -133,7 +133,7 @@ struct GroomerRequestsView: View {
         case .matches:
             GroomerMatchesContentView(store: requestsStore)
         case .offers:
-            GroomerOffersContentView(store: offersStore)
+            GroomerOffersContentView(store: offersStore, requestsStore: requestsStore)
         }
     }
 
