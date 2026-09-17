@@ -1,0 +1,381 @@
+{
+  "schema_version": 1,
+  "dataset_id": "T391-LA-SYNTHETIC-20260914",
+  "source_kind": "synthetic",
+  "purpose": "Designed request-and-quote scenarios, not real transactions, evaluation snapshots or human ground truth.",
+  "as_of": "2026-09-14T10:00:00-07:00",
+  "time_zone": "America/Los_Angeles",
+  "currency": "USD",
+  "human_labels": null,
+  "production_rankings": null,
+  "split": "development_only",
+  "conventions": {
+    "provenance": "All people, pets, reviews, availability and quotes are fictional. This source_kind applies to every nested record.",
+    "ids": "Local aliases only; not database UUIDs or real identities. R01/R02 share C01; R12/R17 share C11.",
+    "money": "Integer cents. price_estimate_cents includes all declared mandatory charges for the described scope, excludes optional tips, and is not a payment receipt or a final-price guarantee.",
+    "budgets": "Customer-stated preferences in scenario context/service notes, not a new app hard-filter field.",
+    "location": "Neighborhoods and approximate straight-line miles, not real addresses, geocoded coordinates, road distances or measured travel times.",
+    "offers": "Nested offers are issued quote scenarios. expected_selectable is a designed expectation at as_of, NOT a result from the backend. rejected_proposals are never selectable quotes.",
+    "timing": "Quote end = start + duration_minutes. Request window contains service time; occupied time additionally uses the groomer pre/post buffers. All intervals are half-open. Offer confirmation deadline is the earlier of expires_at and start minus five minutes.",
+    "defaults": "All requests are open; default offer status is pending, expires_at is 2026-09-14T18:00:00-07:00, expected_selectable is true, assessment_confirmations is empty. Overrides are explicit.",
+    "availability": "Scenario opening hours apply Sep 14-21 except closed_dates. Existing occupied slots are listed separately. Pending quotes do not reserve capacity; acceptance must revalidate shared resources.",
+    "rating_context": "Invented display context only, not raw verified-review events or input to scoreEvidence. Claims and stars do not establish task-specific skill or produce a success probability.",
+    "pet_facts": "Known pet facts are fictional owner-confirmed scenario facts, not inferred from breed. Null means unknown; custom requests and applicable unknown facts require explicit confirmation. Replay must map known coat provenance to explicit, not omit coat_type_source.",
+    "size_configuration": "service_size_configurations applies to each listed service in this scenario. The app hard gate uses weight-derived size codes. max_weight_lbs is additional fictional equipment/operating context, NOT an existing exact-weight server gate. Claims within a size band need manual confirmation, not an invented RPC rule.",
+    "replay_boundary": "Not a direct RPC/seed payload. Authorized replay must resolve owned actors/services/addresses, current terms and revisions, shift all linked timestamps together, and capture actual eligibility/rankings. Do not bypass admission with these expected fields."
+  },
+  "price_references": [
+    {"id":"P1","url":"https://gohollywoodgrooming.com/pricing","accessed_on":"2026-09-14","use":"Direction and rough magnitude of size/coat and mobile-versus-salon price differences, not wholesale copying of the menu."},
+    {"id":"P2","url":"https://cateaumarmont.com/grooming/","accessed_on":"2026-09-14","use":"Cat bath, trim and nail-service price anchors. Its boarding and fee conditions are specific to that business and are not Beckon rules."},
+    {"id":"P3","url":"https://junglepetspa.com/","accessed_on":"2026-09-14","use":"Mobile one-pet service and premium pricing context; invented quotes do not represent this business."}
+  ],
+  "groomers": [
+    {"id":"G01","alias":"Maya / Culver Studio (fictional)","neighborhood":"Culver City","location_mode":"customer_comes_to_groomer","species":["dog"],"max_weight_lbs":55,"services":["full_groom","bath_and_brush","haircut_only","nail_trim","de_shedding","custom_request"],"hours_local":["09:00","18:00"],"closed_dates":["2026-09-20"],"buffers_minutes":[0,15],"claims":["small curly coats","quiet appointments"],"rating_context":{"stars":4.9,"review_count":68,"dog_reviews":68,"cat_reviews":0},"context":"Several returning small-dog households; limited large-dog equipment."},
+    {"id":"G02","alias":"Theo / West LA Coat Room (fictional)","neighborhood":"West LA","location_mode":"customer_comes_to_groomer","species":["dog"],"max_weight_lbs":90,"services":["full_groom","bath_and_brush","haircut_only","nail_trim","de_shedding","custom_request"],"hours_local":["08:00","18:00"],"closed_dates":["2026-09-20"],"buffers_minutes":[0,15],"claims":["poodle scissor work","long-coat maintenance"],"rating_context":{"stars":4.7,"review_count":182,"dog_reviews":182,"cat_reviews":0},"context":"More substantial poodle history than G01, but a busier salon and longer trip for some owners."},
+    {"id":"G03","alias":"Elena / Westside Mobile (fictional)","neighborhood":"Mar Vista","location_mode":"groomer_comes_to_customer","service_radius_miles":15,"species":["dog"],"max_weight_lbs":80,"services":["full_groom","bath_and_brush","haircut_only","nail_trim","de_shedding","custom_request"],"hours_local":["08:00","18:00"],"closed_dates":["2026-09-20"],"buffers_minutes":[30,15],"claims":["one pet at a time","senior comfort breaks"],"rating_context":{"stars":4.8,"review_count":96,"dog_reviews":96,"cat_reviews":0},"context":"Self-contained grooming van; declared buffers are scenario capacity allowances, not live route predictions."},
+    {"id":"G04","alias":"Jordan / Pasadena Coat Care (fictional)","neighborhood":"Pasadena","location_mode":"customer_comes_to_groomer","species":["dog"],"max_weight_lbs":140,"services":["full_groom","bath_and_brush","haircut_only","nail_trim","de_shedding","custom_request"],"hours_local":["08:00","19:00"],"closed_dates":["2026-09-20"],"buffers_minutes":[0,15],"claims":["large-dog equipment","double-coat blowouts"],"rating_context":{"stars":4.8,"review_count":142,"dog_reviews":142,"cat_reviews":0},"context":"Existing occupied slot B01 is authoritative for this synthetic calendar."},
+    {"id":"G05","alias":"Chris / Valley Mobile (fictional)","neighborhood":"Burbank","location_mode":"groomer_comes_to_customer","service_radius_miles":20,"species":["dog"],"max_weight_lbs":110,"services":["full_groom","bath_and_brush","haircut_only","nail_trim","de_shedding","custom_request"],"hours_local":["08:00","18:00"],"closed_dates":["2026-09-20"],"buffers_minutes":[30,15],"claims":["large double coats","slow introductions"],"rating_context":{"stars":4.6,"review_count":57,"dog_reviews":57,"cat_reviews":0},"context":"Can accept large dogs; central/westside visits may use most of the configured radius."},
+    {"id":"G06","alias":"Alex / Central Wash Room (fictional)","neighborhood":"Koreatown","location_mode":"customer_comes_to_groomer","species":["dog"],"max_weight_lbs":60,"services":["full_groom","bath_and_brush","haircut_only","nail_trim","de_shedding","custom_request"],"hours_local":["08:00","19:00"],"closed_dates":["2026-09-20"],"buffers_minutes":[0,15],"claims":["routine maintenance","short appointments"],"rating_context":{"stars":4.4,"review_count":211,"dog_reviews":211,"cat_reviews":0},"context":"Budget-oriented, shared salon space; lower overall stars do not make every basic service unsuitable."},
+    {"id":"G07","alias":"Sam / Los Feliz Groom Room (fictional)","neighborhood":"Los Feliz","location_mode":"customer_comes_to_groomer","species":["dog","cat"],"max_weight_lbs":60,"services":["full_groom","bath_and_brush","haircut_only","nail_trim","de_shedding","custom_request"],"hours_local":["08:00","19:00"],"closed_dates":["2026-09-20"],"buffers_minutes":[0,15],"claims":["separate cat appointment blocks","gentle handling"],"rating_context":{"stars":4.9,"review_count":204,"dog_reviews":198,"cat_reviews":6},"context":"High headline rating is mostly dog history, not 204 cat reviews."},
+    {"id":"G08","alias":"Riley / Valley Feline Mobile (fictional)","neighborhood":"Sherman Oaks","location_mode":"groomer_comes_to_customer","service_radius_miles":22,"species":["dog","cat"],"max_weight_lbs":40,"services":["full_groom","bath_and_brush","haircut_only","nail_trim","de_shedding","custom_request"],"hours_local":["08:00","18:00"],"closed_dates":["2026-09-20"],"buffers_minutes":[30,15],"claims":["cat handling","low-stimulation visits"],"rating_context":{"stars":4.8,"review_count":83,"dog_reviews":11,"cat_reviews":72},"context":"No sedation or veterinary treatment offered; may decline a handling situation after clarification."},
+    {"id":"G09","alias":"Morgan / Feline Room (fictional)","neighborhood":"Los Feliz","location_mode":"customer_comes_to_groomer","species":["cat"],"max_weight_lbs":25,"services":["full_groom","bath_and_brush","haircut_only","nail_trim","de_shedding","custom_request"],"hours_local":["08:00","18:00"],"closed_dates":["2026-09-20"],"buffers_minutes":[0,15],"claims":["cat-only room","long-haired cats"],"rating_context":{"stars":4.7,"review_count":75,"dog_reviews":0,"cat_reviews":75},"context":"Smaller, cat-specific review history may be more relevant than G07's higher total stars."},
+    {"id":"G10","alias":"Robin / Burbank Handwork (fictional)","neighborhood":"Burbank","location_mode":"customer_comes_to_groomer","species":["dog","cat"],"max_weight_lbs":110,"services":["full_groom","bath_and_brush","haircut_only","nail_trim","de_shedding","custom_request"],"hours_local":["08:00","19:00"],"closed_dates":["2026-09-20"],"buffers_minutes":[0,15],"claims":["terrier hand-stripping","large-dog equipment","limited cat blocks"],"rating_context":{"stars":4.7,"review_count":101,"dog_reviews":90,"cat_reviews":11},"context":"Custom hand-stripping scope needs confirmation; a general haircut listing is not equivalent."},
+    {"id":"G11","alias":"Jamie / New Chair Hollywood (fictional)","neighborhood":"Hollywood","location_mode":"customer_comes_to_groomer","species":["dog"],"max_weight_lbs":60,"services":["full_groom","bath_and_brush","haircut_only","nail_trim","de_shedding","custom_request"],"hours_local":["08:00","19:00"],"closed_dates":["2026-09-20"],"buffers_minutes":[0,15],"claims":["three years in another salon"],"rating_context":{"stars":null,"review_count":0,"dog_reviews":0,"cat_reviews":0},"context":"New to the platform, not necessarily new to grooming. Claimed experience is not verified review evidence; unknown is not zero stars."},
+    {"id":"G12","alias":"Casey / Eastside Mobile (fictional)","neighborhood":"Echo Park","location_mode":"groomer_comes_to_customer","service_radius_miles":18,"species":["dog","cat"],"max_weight_lbs":60,"services":["full_groom","bath_and_brush","haircut_only","nail_trim","de_shedding","custom_request"],"hours_local":["08:00","18:00"],"closed_dates":["2026-09-20"],"buffers_minutes":[30,15],"claims":["patient introductions","single-pet appointments"],"rating_context":{"stars":4.9,"review_count":9,"dog_reviews":4,"cat_reviews":5},"context":"Sparse recent evidence; 4.9 across nine reviews is not equivalent confidence to a mature profile."}
+  ],
+  "service_size_configurations": {
+    "G01":["XS","S","M","L"],
+    "G02":["XS","S","M","L","XL","XXL"],
+    "G03":["XS","S","M","L","XL"],
+    "G04":["XS","S","M","L","XL","XXL","Giant"],
+    "G05":["XS","S","M","L","XL","XXL","Giant"],
+    "G06":["XS","S","M","L"],
+    "G07":["XS","S","M","L"],
+    "G08":["XS","S","M"],
+    "G09":["XS","S","M"],
+    "G10":["XS","S","M","L","XL","XXL","Giant"],
+    "G11":["XS","S","M","L"],
+    "G12":["XS","S","M","L"]
+  },
+  "default_offer": {"status":"pending","expires_at":"2026-09-14T18:00:00-07:00","expected_selectable":true,"assessment_confirmations":[]},
+  "existing_occupied_slots": [
+    {"id":"B01","groomer_id":"G04","start":"2026-09-17T12:00:00-07:00","end":"2026-09-17T14:00:00-07:00","includes_buffers":true,"source_kind":"synthetic"}
+  ],
+  "requests": [
+    {
+      "id":"R01","customer_id":"C01","source_group":"household-C01","neighborhood":"Culver City","created_at":"2026-09-13T18:20:00-07:00",
+      "pet":{"id":"P01","name":"Mochi","species":"dog","breed":"Toy Poodle","weight_lbs":12,"birthday":"2022-05-11","coat_type":"curly_wavy","matting_confirmed":false,"temperament":"Friendly"},
+      "service_type":"full_groom","location_mode":"customer_comes_to_groomer","travel_radius_miles":10,
+      "window":["2026-09-16T09:00:00-07:00","2026-09-16T16:00:00-07:00"],"budget_preference_cents":[9500,13500],
+      "customer_text":"上次美容是六周前。身体留半英寸，脸圆一点，不剃脚。上午最好，下午也能送。Maya 做过两次，比较了解它，但这次也想看看其他报价。",
+      "soft_preferences":["morning","familiar_groomer_G01","round_face_style"],"coverage":["repeat_customer","price_vs_familiarity","cold_start"],
+      "offers":[
+        {"id":"R01-A","groomer_id":"G01","sent_at":"2026-09-14T08:18:00-07:00","start":"2026-09-16T09:00:00-07:00","duration_minutes":90,"price_estimate_cents":11500,"distance_miles_approx":1.8,"message":"按上次的长度，含洗澡、全身修剪、指甲和耳部外侧清洁，预计十点半结束。"},
+        {"id":"R01-B","groomer_id":"G02","sent_at":"2026-09-14T09:07:00-07:00","start":"2026-09-16T13:00:00-07:00","duration_minutes":105,"price_estimate_cents":13000,"distance_miles_approx":4.9,"message":"可以做圆脸并保留脚毛，先看参考照片；报价含全套基础美容。"},
+        {"id":"R01-C","groomer_id":"G11","sent_at":"2026-09-14T09:32:00-07:00","start":"2026-09-16T10:00:00-07:00","duration_minutes":105,"price_estimate_cents":9900,"distance_miles_approx":8.1,"message":"新工作室首单价，包含相同基础项目，预留一点沟通时间；目前还没有平台评价。"}
+      ]
+    },
+    {
+      "id":"R02","customer_id":"C01","source_group":"household-C01","neighborhood":"Culver City","created_at":"2026-09-13T18:25:00-07:00",
+      "pet":{"id":"P02","name":"Pippa","species":"dog","breed":"Maltese","weight_lbs":9,"birthday":"2020-11-06","coat_type":"drop_coat","matting_confirmed":false,"temperament":"Friendly"},
+      "service_type":"bath_and_brush","location_mode":"customer_comes_to_groomer","travel_radius_miles":10,
+      "window":["2026-09-16T09:00:00-07:00","2026-09-16T16:00:00-07:00"],"budget_preference_cents":[5500,8000],
+      "customer_text":"同一天还想带另一只狗洗澡梳毛，不剪全身。最好和 Mochi 同一家，分开接送也可以。请单独报价，不要合成一只宠物的预约。",
+      "soft_preferences":["same_venue_as_R01","sequential_handoff"],"coverage":["multi_pet_household","shared_groomer_capacity","pending_not_reserved"],
+      "offers":[
+        {"id":"R02-A","groomer_id":"G01","sent_at":"2026-09-14T08:24:00-07:00","start":"2026-09-16T10:00:00-07:00","duration_minutes":60,"price_estimate_cents":6500,"distance_miles_approx":1.8,"message":"单独洗护报价。如果同时选我给 Mochi 的九点档，需要重新给 Pippa 排到十点四十五以后；当前这个十点档只是独立报价。"},
+        {"id":"R02-B","groomer_id":"G02","sent_at":"2026-09-14T09:11:00-07:00","start":"2026-09-16T15:00:00-07:00","duration_minutes":60,"price_estimate_cents":7500,"distance_miles_approx":4.9,"message":"洗护梳毛一小时，能接在另一只狗十三点的项目和清洁缓冲之后。"},
+        {"id":"R02-C","groomer_id":"G06","sent_at":"2026-09-14T09:25:00-07:00","start":"2026-09-16T11:00:00-07:00","duration_minutes":60,"price_estimate_cents":6000,"distance_miles_approx":6.4,"message":"基础洗护，不含造型剪毛，十一点可做；两只宠物仍分别预约。"}
+      ]
+    },
+    {
+      "id":"R03","customer_id":"C02","source_group":"household-C02","neighborhood":"West LA","created_at":"2026-09-12T14:10:00-07:00",
+      "pet":{"id":"P03","name":"Bailey","species":"dog","breed":"Shih Tzu","weight_lbs":16,"birthday":"2013-08-02","coat_type":"drop_coat","matting_confirmed":false,"temperament":"Anxious"},
+      "service_type":"full_groom","location_mode":"groomer_comes_to_customer","travel_radius_miles":null,
+      "window":["2026-09-17T09:00:00-07:00","2026-09-17T16:00:00-07:00"],"budget_preference_cents":[16000,22000],
+      "customer_text":"13 岁，站久了会累，想做短一点的维护造型。希望可以中间休息，不喷香水。门口有可停美容车的位置，护理情况先沟通，做不了的项目不要勉强。",
+      "soft_preferences":["comfort_breaks","no_fragrance","one_pet_at_a_time"],"coverage":["senior","duration_vs_comfort","mobile_premium"],
+      "offers":[
+        {"id":"R03-A","groomer_id":"G03","sent_at":"2026-09-14T08:35:00-07:00","start":"2026-09-17T09:30:00-07:00","duration_minutes":120,"price_estimate_cents":19000,"distance_miles_approx":3.1,"message":"预留两小时含休息，不使用香氛；先确认它最近的耐受情况，护理范围内不追加上门费。"},
+        {"id":"R03-B","groomer_id":"G08","sent_at":"2026-09-14T09:06:00-07:00","start":"2026-09-17T13:00:00-07:00","duration_minutes":120,"price_estimate_cents":21500,"distance_miles_approx":9.8,"message":"能做小型犬维护剪，报价已含上门和休息时间；我的平台历史以猫为主。"},
+        {"id":"R03-C","groomer_id":"G12","sent_at":"2026-09-14T09:48:00-07:00","start":"2026-09-17T10:00:00-07:00","duration_minutes":120,"price_estimate_cents":18000,"distance_miles_approx":12.1,"message":"不喷香水，允许分段休息；若当天状态不适合，会先停下与您沟通。"}
+      ]
+    },
+    {
+      "id":"R04","customer_id":"C03","source_group":"household-C03","neighborhood":"Pasadena","created_at":"2026-09-13T07:50:00-07:00",
+      "pet":{"id":"P04","name":"Cooper","species":"dog","breed":"Golden Retriever","weight_lbs":72,"birthday":"2021-03-16","coat_type":"double_coat","matting_confirmed":false,"temperament":"Friendly"},
+      "service_type":"de_shedding","location_mode":"customer_comes_to_groomer","travel_radius_miles":22,
+      "window":["2026-09-17T09:00:00-07:00","2026-09-17T17:00:00-07:00"],"budget_preference_cents":[10000,15500],
+      "customer_text":"最近家里掉毛多，需要洗护和充分吹梳，不要剃双层毛。能开车送去，最好离 Pasadena 近一点。",
+      "soft_preferences":["no_body_shave","distance"],"coverage":["large_dog","existing_booking_conflict","distance_vs_price"],
+      "offers":[
+        {"id":"R04-A","groomer_id":"G04","sent_at":"2026-09-14T08:02:00-07:00","start":"2026-09-17T09:00:00-07:00","duration_minutes":150,"price_estimate_cents":14500,"distance_miles_approx":2.2,"message":"洗护、吹毛和去浮毛，保留自然被毛；十一点半结束，另留十五分钟清洁。"},
+        {"id":"R04-B","groomer_id":"G10","sent_at":"2026-09-14T08:50:00-07:00","start":"2026-09-17T10:00:00-07:00","duration_minutes":150,"price_estimate_cents":13500,"distance_miles_approx":10.2,"message":"大型犬吹梳两小时半，不做全身剃毛，已包含去浮毛处理。"},
+        {"id":"R04-C","groomer_id":"G02","sent_at":"2026-09-14T09:16:00-07:00","start":"2026-09-17T14:00:00-07:00","duration_minutes":150,"price_estimate_cents":15000,"distance_miles_approx":20.4,"message":"下午有完整时段，项目含充分吹梳；请把往返路程也考虑进去。"}
+      ]
+    },
+    {
+      "id":"R05","customer_id":"C04","source_group":"household-C04","neighborhood":"Burbank","created_at":"2026-09-13T12:10:00-07:00",
+      "pet":{"id":"P05","name":"Luna","species":"dog","breed":"Siberian Husky","weight_lbs":58,"birthday":"2020-02-19","coat_type":"double_coat","matting_confirmed":false,"temperament":"Nervous"},
+      "service_type":"de_shedding","location_mode":"groomer_comes_to_customer","travel_radius_miles":null,
+      "window":["2026-09-18T09:00:00-07:00","2026-09-18T17:00:00-07:00"],"budget_preference_cents":[18000,24500],
+      "customer_text":"洗澡时会叫，吹风需要慢慢来。家里没法运它去店里，只接受美容车上门。照片里没有结团，不剃毛。",
+      "soft_preferences":["slow_dryer_introduction","no_body_shave"],"coverage":["mobile_only","double_coat","sparse_dog_evidence"],
+      "offers":[
+        {"id":"R05-A","groomer_id":"G05","sent_at":"2026-09-14T08:31:00-07:00","start":"2026-09-18T09:00:00-07:00","duration_minutes":165,"price_estimate_cents":22500,"distance_miles_approx":1.9,"message":"包含大型犬去浮毛和加长吹梳时间，不按叫声另外收费；先慢慢适应吹风。"},
+        {"id":"R05-B","groomer_id":"G12","sent_at":"2026-09-14T09:03:00-07:00","start":"2026-09-18T13:00:00-07:00","duration_minutes":180,"price_estimate_cents":24000,"distance_miles_approx":7.8,"message":"重量在车内设备范围内，预留三小时慢慢操作；请先说明之前吹风的反应。"}
+      ]
+    },
+    {
+      "id":"R06","customer_id":"C05","source_group":"household-C05","neighborhood":"Koreatown","created_at":"2026-09-13T20:11:00-07:00",
+      "pet":{"id":"P06","name":"Dumpling","species":"dog","breed":"French Bulldog","weight_lbs":24,"birthday":"2022-04-10","coat_type":"short_smooth","matting_confirmed":false,"temperament":"Friendly"},
+      "service_type":"bath_and_brush","location_mode":"customer_comes_to_groomer","travel_radius_miles":8,
+      "window":["2026-09-15T09:00:00-07:00","2026-09-15T17:00:00-07:00"],"budget_preference_cents":[5500,8000],
+      "customer_text":"普通洗澡梳毛，家里已经修过指甲，不需要加项目。我这次主要看价格，时间在九点到五点之间都可以。",
+      "soft_preferences":["price","no_unrequested_addons"],"coverage":["explicit_price_sort","zero_review_candidate","four_offer_pool"],
+      "offers":[
+        {"id":"R06-A","groomer_id":"G06","sent_at":"2026-09-14T08:05:00-07:00","start":"2026-09-15T11:00:00-07:00","duration_minutes":60,"price_estimate_cents":6000,"distance_miles_approx":0.9,"message":"基础洗护总价六十，不含额外造型或护理套餐。"},
+        {"id":"R06-B","groomer_id":"G11","sent_at":"2026-09-14T08:52:00-07:00","start":"2026-09-15T09:00:00-07:00","duration_minutes":60,"price_estimate_cents":5500,"distance_miles_approx":3.7,"message":"首单洗护五十五，不强制加购，九点可开始。"},
+        {"id":"R06-C","groomer_id":"G07","sent_at":"2026-09-14T09:14:00-07:00","start":"2026-09-15T14:00:00-07:00","duration_minutes":60,"price_estimate_cents":7500,"distance_miles_approx":4.3,"message":"基础洗护七十五，预留一小时，下午两点有空。"},
+        {"id":"R06-D","groomer_id":"G01","sent_at":"2026-09-14T09:43:00-07:00","start":"2026-09-15T10:00:00-07:00","duration_minutes":60,"price_estimate_cents":7500,"distance_miles_approx":6.8,"message":"上午十点独立时段，按您要求只做洗护。"}
+      ]
+    },
+    {
+      "id":"R07","customer_id":"C06","source_group":"household-C06","neighborhood":"Koreatown","created_at":"2026-09-14T07:05:00-07:00",
+      "pet":{"id":"P07","name":"Toast","species":"dog","breed":"Corgi","weight_lbs":29,"birthday":"2021-10-07","coat_type":"double_coat","matting_confirmed":false,"temperament":"Friendly"},
+      "service_type":"nail_trim","location_mode":"customer_comes_to_groomer","travel_radius_miles":7,
+      "window":["2026-09-15T12:00:00-07:00","2026-09-15T14:00:00-07:00"],"budget_preference_cents":[2000,3500],
+      "customer_text":"午休只能出来一会儿，只修指甲。不要因为它毛厚就给我推荐昂贵洗护，希望能准时结束。",
+      "soft_preferences":["short_visit","distance"],"coverage":["service_specific_relevance","narrow_window","equal_price"],
+      "offers":[
+        {"id":"R07-A","groomer_id":"G06","sent_at":"2026-09-14T08:16:00-07:00","start":"2026-09-15T12:15:00-07:00","duration_minutes":20,"price_estimate_cents":2500,"distance_miles_approx":1.1,"message":"只修磨指甲，二十分钟；没有洗护绑定。"},
+        {"id":"R07-B","groomer_id":"G11","sent_at":"2026-09-14T08:59:00-07:00","start":"2026-09-15T12:00:00-07:00","duration_minutes":20,"price_estimate_cents":2500,"distance_miles_approx":3.6,"message":"十二点可做，二十五美元，只做指甲。"},
+        {"id":"R07-C","groomer_id":"G07","sent_at":"2026-09-14T09:18:00-07:00","start":"2026-09-15T13:15:00-07:00","duration_minutes":20,"price_estimate_cents":3000,"distance_miles_approx":4.2,"message":"一点十五有空，修磨三十美元。"}
+      ]
+    },
+    {
+      "id":"R08","customer_id":"C07","source_group":"household-C07","neighborhood":"Los Feliz","created_at":"2026-09-13T09:20:00-07:00",
+      "pet":{"id":"P08","name":"Maple","species":"dog","breed":"Mixed Breed","breed_note":"Owner describes a small poodle mix; not a taxonomy inference.","weight_lbs":14,"birthday":"2026-05-03","coat_type":"curly_wavy","matting_confirmed":false,"temperament":"Shy"},
+      "service_type":"custom_request","location_mode":"customer_comes_to_groomer","travel_radius_miles":8,
+      "window":["2026-09-19T09:00:00-07:00","2026-09-19T14:00:00-07:00"],"budget_preference_cents":[6500,10000],
+      "customer_text":"四个多月，第一次去美容。先适应环境、洗澡和轻微修眼周，能接受再剪指甲，不追求一次做完整套。疫苗记录会提前发给店里核对。",
+      "soft_preferences":["gentle_introduction","limited_first_session"],"coverage":["puppy","custom_scope_confirmation","no_full_groom_upsell"],
+      "offers":[
+        {"id":"R08-A","groomer_id":"G07","sent_at":"2026-09-14T08:40:00-07:00","start":"2026-09-19T09:00:00-07:00","duration_minutes":75,"price_estimate_cents":9000,"distance_miles_approx":0.8,"assessment_confirmations":["custom_service"],"message":"已确认是幼犬适应和轻维护，不是全身造型；预留七十五分钟，不强求完成所有项目。"},
+        {"id":"R08-B","groomer_id":"G11","sent_at":"2026-09-14T09:04:00-07:00","start":"2026-09-19T11:00:00-07:00","duration_minutes":75,"price_estimate_cents":7500,"distance_miles_approx":3.1,"assessment_confirmations":["custom_service"],"message":"确认按适应、洗护、局部轻修的范围报价，先看它对设备的反应；无平台评价供参考。"}
+      ]
+    },
+    {
+      "id":"R09","customer_id":"C08","source_group":"household-C08","neighborhood":"Echo Park","created_at":"2026-09-13T21:18:00-07:00",
+      "pet":{"id":"P09","name":"Scout","species":"dog","breed":"Mixed Breed","weight_lbs":null,"birthday":null,"coat_type":null,"matting_confirmed":null,"temperament":"Shy"},
+      "service_type":"bath_and_brush","location_mode":"groomer_comes_to_customer","travel_radius_miles":null,
+      "window":["2026-09-18T10:00:00-07:00","2026-09-18T17:00:00-07:00"],"budget_preference_cents":[13000,19000],
+      "customer_text":"刚领养，还没称体重，不知道毛型和有没有深层打结。能发几张照片，但别把照片估计当成已经确认的体重。我想先弄清能做什么，再决定。",
+      "soft_preferences":["explain_uncertainty","no_surprise_scope_change"],"coverage":["unknown_pet_facts","assessment_required","not_automatic_rejection"],
+      "offers":[
+        {"id":"R09-A","groomer_id":"G12","sent_at":"2026-09-14T08:33:00-07:00","start":"2026-09-18T10:00:00-07:00","duration_minutes":120,"price_estimate_cents":16500,"distance_miles_approx":0.7,"assessment_confirmations":["pet_size","pet_coat","pet_matting"],"message":"已明确确认这些资料仍未知，不把猜测写回宠物档案。按基础洗护预估；如实际情况改变服务范围，先沟通，不直接加项。"},
+        {"id":"R09-B","groomer_id":"G05","sent_at":"2026-09-14T09:09:00-07:00","start":"2026-09-18T14:00:00-07:00","duration_minutes":120,"price_estimate_cents":18000,"distance_miles_approx":7.4,"assessment_confirmations":["pet_size","pet_coat","pet_matting"],"message":"确认体型、被毛和打结情况待评估；报价含上门基础洗护，不承诺处理任何程度的打结。"}
+      ]
+    },
+    {
+      "id":"R10","customer_id":"C09","source_group":"household-C09","neighborhood":"Glendale","created_at":"2026-09-12T17:08:00-07:00",
+      "pet":{"id":"P10","name":"Coco","species":"dog","breed":"Maltese","weight_lbs":11,"birthday":"2020-06-21","coat_type":"drop_coat","matting_confirmed":true,"temperament":"Anxious"},
+      "service_type":"full_groom","location_mode":"customer_comes_to_groomer","travel_radius_miles":15,
+      "window":["2026-09-18T09:00:00-07:00","2026-09-18T16:00:00-07:00"],"budget_preference_cents":[12000,17500],
+      "customer_text":"耳后和腋下有明显打结，之前忙了快三个月没去。可以剪短，舒适优先，不要求保留长毛；请说明打结处理有没有算进报价。",
+      "soft_preferences":["comfort_over_length","declared_matting_cost"],"coverage":["known_matting","price_scope_comparability"],
+      "offers":[
+        {"id":"R10-A","groomer_id":"G10","sent_at":"2026-09-14T08:01:00-07:00","start":"2026-09-18T09:00:00-07:00","duration_minutes":135,"price_estimate_cents":15000,"distance_miles_approx":4.8,"message":"维护全剪一百二十，另含三十美元打结处理预留，共一百五十；不以拉扯保留长度。"},
+        {"id":"R10-B","groomer_id":"G07","sent_at":"2026-09-14T08:49:00-07:00","start":"2026-09-18T12:00:00-07:00","duration_minutes":150,"price_estimate_cents":16500,"distance_miles_approx":3.6,"message":"总价含目前描述的打结处理和舒适短剪，先确认照片及皮肤外观，不保证保留长毛。"},
+        {"id":"R10-C","groomer_id":"G01","sent_at":"2026-09-14T09:28:00-07:00","start":"2026-09-18T10:00:00-07:00","duration_minutes":150,"price_estimate_cents":16000,"distance_miles_approx":14.2,"message":"接受剪短的维护方案，报价含照片所示部位处理；如现场范围不同，先暂停确认。"}
+      ]
+    },
+    {
+      "id":"R11","customer_id":"C10","source_group":"household-C10","neighborhood":"Burbank","created_at":"2026-09-12T11:35:00-07:00",
+      "pet":{"id":"P11","name":"Otto","species":"dog","breed":"Miniature Schnauzer","weight_lbs":21,"birthday":"2021-09-15","coat_type":"wire","matting_confirmed":false,"temperament":"Friendly"},
+      "service_type":"custom_request","location_mode":"customer_comes_to_groomer","travel_radius_miles":22,
+      "window":["2026-09-19T09:00:00-07:00","2026-09-19T17:00:00-07:00"],"budget_preference_cents":[15000,22000],
+      "customer_text":"之前一直做手拔毛维护，想继续保留硬毛质感，不是普通电推剪。可以分次做，但请报价时说清本次部位和时长。",
+      "soft_preferences":["hand_stripping_not_clipping","scope_detail"],"coverage":["custom_specialty","claims_not_evidence","non_equivalent_low_quote"],
+      "offers":[
+        {"id":"R11-A","groomer_id":"G10","sent_at":"2026-09-14T08:14:00-07:00","start":"2026-09-19T09:00:00-07:00","duration_minutes":150,"price_estimate_cents":18500,"distance_miles_approx":1.5,"assessment_confirmations":["custom_service"],"message":"确认本次做背部和侧身手拔毛维护，面部四肢整理，预留两小时半，不以推剪替代。"},
+        {"id":"R11-B","groomer_id":"G02","sent_at":"2026-09-14T09:24:00-07:00","start":"2026-09-19T13:00:00-07:00","duration_minutes":180,"price_estimate_cents":21500,"distance_miles_approx":15.9,"assessment_confirmations":["custom_service"],"message":"确认手拔毛范围为背部和侧身，含局部整理；本次最多三小时，后续大范围项目另行讨论。"}
+      ]
+    },
+    {
+      "id":"R12","customer_id":"C11","source_group":"household-C11","neighborhood":"Los Feliz","created_at":"2026-09-13T10:22:00-07:00",
+      "pet":{"id":"P12","name":"Winston","species":"cat","breed":"Maine Coon","weight_lbs":18,"birthday":"2021-02-28","coat_type":"long_silky","matting_confirmed":false,"temperament":"Shy"},
+      "service_type":"bath_and_brush","location_mode":"customer_comes_to_groomer","travel_radius_miles":10,
+      "window":["2026-09-16T09:00:00-07:00","2026-09-16T16:00:00-07:00"],"budget_preference_cents":[12000,16500],
+      "customer_text":"长毛猫洗护梳毛，不剃成狮子造型。怕旁边狗叫，优先猫专用环境，但如果能安排安静猫时段也可以。",
+      "soft_preferences":["cat_quiet_environment","cat_specific_history","no_lion_cut"],"coverage":["cross_species_rating","high_stars_low_relevance","multi_pet_household"],
+      "offers":[
+        {"id":"R12-A","groomer_id":"G09","sent_at":"2026-09-14T08:06:00-07:00","start":"2026-09-16T09:00:00-07:00","duration_minutes":90,"price_estimate_cents":14500,"distance_miles_approx":0.8,"message":"猫专用房间，长毛洗护梳毛，不做全身剃毛；预计十点半完成。"},
+        {"id":"R12-B","groomer_id":"G07","sent_at":"2026-09-14T08:56:00-07:00","start":"2026-09-16T13:00:00-07:00","duration_minutes":90,"price_estimate_cents":13500,"distance_miles_approx":1.2,"message":"一点安排独立猫时段，不与本人的犬美容同时进行；店面不是纯猫店。"},
+        {"id":"R12-C","groomer_id":"G10","sent_at":"2026-09-14T09:36:00-07:00","start":"2026-09-16T10:00:00-07:00","duration_minutes":105,"price_estimate_cents":15000,"distance_miles_approx":5.8,"message":"上午预留长毛猫洗护时段，独立操作区，包含仔细梳毛。"}
+      ]
+    },
+    {
+      "id":"R13","customer_id":"C12","source_group":"household-C12","neighborhood":"Sherman Oaks","created_at":"2026-09-13T13:13:00-07:00",
+      "pet":{"id":"P13","name":"Pearl","species":"cat","breed":"Persian","weight_lbs":9,"birthday":"2019-12-12","coat_type":"long_silky","matting_confirmed":true,"temperament":"Shy"},
+      "service_type":"full_groom","location_mode":"groomer_comes_to_customer","travel_radius_miles":null,
+      "window":["2026-09-18T09:00:00-07:00","2026-09-18T17:00:00-07:00"],"budget_preference_cents":[21000,28500],
+      "customer_text":"腹部有打结，想做舒适短剪，能保留头和尾巴最好。坐车非常紧张，只要上门。发照片先讨论，不需要任何镇静服务。",
+      "soft_preferences":["preserve_head_tail_if_comfortable","cat_specific_handling"],"coverage":["cat_mobile_full_groom","matting","small_sample_high_stars"],
+      "offers":[
+        {"id":"R13-A","groomer_id":"G08","sent_at":"2026-09-14T08:20:00-07:00","start":"2026-09-18T09:30:00-07:00","duration_minutes":120,"price_estimate_cents":26000,"distance_miles_approx":1.3,"message":"含上门、洗护与当前描述的短剪和局部打结处理；头尾保留以实际耐受为准，不做镇静。"},
+        {"id":"R13-B","groomer_id":"G12","sent_at":"2026-09-14T09:38:00-07:00","start":"2026-09-18T14:45:00-07:00","duration_minutes":120,"price_estimate_cents":24500,"distance_miles_approx":12.7,"message":"含上门和舒适短剪，先看腹部照片；我在平台的猫评价不多，您可以先了解操作方式。"}
+      ]
+    },
+    {
+      "id":"R14","customer_id":"C13","source_group":"household-C13","neighborhood":"Los Feliz","created_at":"2026-09-14T07:12:00-07:00",
+      "pet":{"id":"P14","name":"Nori","species":"cat","breed":"Domestic Shorthair","weight_lbs":10,"birthday":"2023-06-04","coat_type":"short_smooth","matting_confirmed":false,"temperament":"Friendly"},
+      "service_type":"nail_trim","location_mode":"customer_comes_to_groomer","travel_radius_miles":5,
+      "window":["2026-09-15T09:00:00-07:00","2026-09-15T12:00:00-07:00"],"budget_preference_cents":[2000,3500],
+      "customer_text":"只剪猫指甲，平时比较配合。希望附近、快一点，不需要为长毛猫美容经验支付额外项目费。",
+      "soft_preferences":["distance","quick_service"],"coverage":["species_hard_gate","small_ticket_service"],
+      "offers":[
+        {"id":"R14-A","groomer_id":"G09","sent_at":"2026-09-14T08:26:00-07:00","start":"2026-09-15T09:15:00-07:00","duration_minutes":20,"price_estimate_cents":3000,"distance_miles_approx":0.9,"message":"只修猫指甲，三十美元，九点十五。"},
+        {"id":"R14-B","groomer_id":"G07","sent_at":"2026-09-14T09:13:00-07:00","start":"2026-09-15T10:00:00-07:00","duration_minutes":20,"price_estimate_cents":2800,"distance_miles_approx":1.1,"message":"十点独立短时段，只修指甲二十八美元。"}
+      ]
+    },
+    {
+      "id":"R15","customer_id":"C14","source_group":"household-C14","neighborhood":"Silver Lake","created_at":"2026-09-13T17:43:00-07:00",
+      "pet":{"id":"P15","name":"Miso","species":"cat","breed":"Domestic Longhair","weight_lbs":12,"birthday":"2018-07-07","coat_type":"long_silky","matting_confirmed":true,"temperament":"Reactive"},
+      "service_type":"custom_request","location_mode":"groomer_comes_to_customer","travel_radius_miles":null,
+      "window":["2026-09-19T10:00:00-07:00","2026-09-19T16:00:00-07:00"],"budget_preference_cents":[18000,28000],
+      "customer_text":"上次碰肚子时咬了美容师，这次有局部打结。想先说明情况，找愿意沟通安全处理边界的人，不要求普通美容师提供镇静或医疗操作。",
+      "soft_preferences":["honest_handling_limits"],"coverage":["no_valid_quotes","inquiry_not_offer","safety_not_star_override"],
+      "inquiries":[{"groomer_id":"G08","message":"请先补充上次中止经过和目前状况；现在不承诺接单，也未给预约时段或价格。"}],
+      "offers":[]
+    },
+    {
+      "id":"R16","customer_id":"C15","source_group":"household-C15","neighborhood":"Downtown LA","created_at":"2026-09-13T16:50:00-07:00",
+      "pet":{"id":"P16","name":"Teddy","species":"dog","breed":"Pomeranian","weight_lbs":8,"birthday":"2020-01-20","coat_type":"double_coat","matting_confirmed":false,"temperament":"Friendly"},
+      "service_type":"de_shedding","location_mode":"customer_comes_to_groomer","travel_radius_miles":8,
+      "window":["2026-09-19T10:00:00-07:00","2026-09-19T16:00:00-07:00"],"budget_preference_cents":[8500,12500],
+      "customer_text":"小博美洗护去浮毛，不做剃毛造型。周六可以送，比较在意把毛吹透梳顺，不一定选最便宜的。",
+      "soft_preferences":["thorough_brushing","no_body_shave"],"coverage":["small_double_coat","equal_price_different_time"],
+      "offers":[
+        {"id":"R16-A","groomer_id":"G06","sent_at":"2026-09-14T08:11:00-07:00","start":"2026-09-19T10:00:00-07:00","duration_minutes":90,"price_estimate_cents":9500,"distance_miles_approx":3.6,"message":"包含去浮毛洗护和吹梳，不做造型剪。"},
+        {"id":"R16-B","groomer_id":"G07","sent_at":"2026-09-14T09:01:00-07:00","start":"2026-09-19T11:00:00-07:00","duration_minutes":105,"price_estimate_cents":11000,"distance_miles_approx":5.3,"message":"预留一小时四十五分钟，重点吹透梳顺，不剃毛。"},
+        {"id":"R16-C","groomer_id":"G11","sent_at":"2026-09-14T09:22:00-07:00","start":"2026-09-19T13:00:00-07:00","duration_minutes":105,"price_estimate_cents":9500,"distance_miles_approx":5.9,"message":"下午一点，包含吹梳去浮毛；新平台账号没有历史评分。"}
+      ]
+    },
+    {
+      "id":"R17","customer_id":"C11","source_group":"household-C11","neighborhood":"Los Feliz","created_at":"2026-09-13T10:29:00-07:00",
+      "pet":{"id":"P17","name":"Penny","species":"cat","breed":"Domestic Shorthair","weight_lbs":10,"birthday":"2022-10-01","coat_type":"short_smooth","matting_confirmed":false,"temperament":"Friendly"},
+      "service_type":"bath_and_brush","location_mode":"customer_comes_to_groomer","travel_radius_miles":10,
+      "window":["2026-09-16T09:00:00-07:00","2026-09-16T17:00:00-07:00"],"budget_preference_cents":[8500,12000],
+      "customer_text":"Winston 同一家的另一只短毛猫，也需要洗护。最好接着做，可以分别报价、分别确认，不要因是同一家就假设它们能同时占一个美容师的时间。",
+      "soft_preferences":["same_venue_as_R12","sequential_visits"],"coverage":["multi_pet_household","buffer_boundary","correlated_decisions"],
+      "offers":[
+        {"id":"R17-A","groomer_id":"G09","sent_at":"2026-09-14T08:12:00-07:00","start":"2026-09-16T10:45:00-07:00","duration_minutes":60,"price_estimate_cents":11000,"distance_miles_approx":0.8,"message":"可接在 Winston 九点档结束及十五分钟清洁之后，两单独立预约。"},
+        {"id":"R17-B","groomer_id":"G07","sent_at":"2026-09-14T09:00:00-07:00","start":"2026-09-16T14:45:00-07:00","duration_minutes":60,"price_estimate_cents":10500,"distance_miles_approx":1.2,"message":"接在另一只猫的一点档和清洁之后，基础短毛洗护。"},
+        {"id":"R17-C","groomer_id":"G10","sent_at":"2026-09-14T09:40:00-07:00","start":"2026-09-16T12:00:00-07:00","duration_minutes":60,"price_estimate_cents":11500,"distance_miles_approx":5.8,"message":"中午十二点，能接在 Winston 十点档之后；两只猫分别确认。"}
+      ]
+    },
+    {
+      "id":"R18","customer_id":"C16","source_group":"household-C16","neighborhood":"Pasadena","created_at":"2026-09-13T08:45:00-07:00",
+      "pet":{"id":"P18","name":"Jasper","species":"dog","breed":"Standard Poodle","weight_lbs":52,"birthday":"2021-05-18","coat_type":"curly_wavy","matting_confirmed":false,"temperament":"Friendly"},
+      "service_type":"haircut_only","location_mode":"customer_comes_to_groomer","travel_radius_miles":22,
+      "window":["2026-09-19T09:00:00-07:00","2026-09-19T17:00:00-07:00"],"budget_preference_cents":[9500,15500],
+      "customer_text":"会在前一天洗净、完全吹干并梳开，这次只修造型。想保留长腿和蓬松尾巴，接受美容师到场检查毛况，不要把只剪毛和全套报价混在一起比较。",
+      "soft_preferences":["poodle_style","haircut_only_scope"],"coverage":["scope_specific_price","large_curly_coat"],
+      "offers":[
+        {"id":"R18-A","groomer_id":"G04","sent_at":"2026-09-14T08:28:00-07:00","start":"2026-09-19T09:00:00-07:00","duration_minutes":120,"price_estimate_cents":12000,"distance_miles_approx":2.4,"message":"只做造型剪两小时，前提是到店时已干净、干燥并梳通；需改变范围会先沟通。"},
+        {"id":"R18-B","groomer_id":"G10","sent_at":"2026-09-14T09:08:00-07:00","start":"2026-09-19T12:00:00-07:00","duration_minutes":135,"price_estimate_cents":12500,"distance_miles_approx":10.1,"message":"只剪造型，保留腿部长度，先看参考照片与到店毛况。"},
+        {"id":"R18-C","groomer_id":"G02","sent_at":"2026-09-14T09:34:00-07:00","start":"2026-09-19T09:30:00-07:00","duration_minutes":135,"price_estimate_cents":15000,"distance_miles_approx":20.2,"message":"贵宾精细造型剪，含面部和脚部细节，不含洗澡；两小时十五分钟。"}
+      ]
+    },
+    {
+      "id":"R19","customer_id":"C17","source_group":"household-C17","neighborhood":"Pasadena","created_at":"2026-09-12T19:30:00-07:00",
+      "pet":{"id":"P19","name":"Bear","species":"dog","breed":"Mixed Breed","breed_note":"Owner describes a Newfoundland mix.","weight_lbs":108,"birthday":"2020-04-09","coat_type":"double_coat","matting_confirmed":false,"temperament":"Friendly"},
+      "service_type":"bath_and_brush","location_mode":"customer_comes_to_groomer","travel_radius_miles":15,
+      "window":["2026-09-18T09:00:00-07:00","2026-09-18T17:00:00-07:00"],"budget_preference_cents":[15000,22000],
+      "customer_text":"108 磅的大狗，需要能容纳它的浴缸和台面，基础洗护充分吹干即可。请按这个重量报价，不要按大型犬起步价到场再翻倍。",
+      "soft_preferences":["declared_large_dog_equipment","transparent_weight_price"],"coverage":["extra_large_capacity","weight_hard_gate"],
+      "offers":[
+        {"id":"R19-A","groomer_id":"G04","sent_at":"2026-09-14T08:09:00-07:00","start":"2026-09-18T09:00:00-07:00","duration_minutes":180,"price_estimate_cents":19500,"distance_miles_approx":2.3,"message":"已按一百零八磅和双层毛报价，设备范围内，预留三小时洗护吹干。"},
+        {"id":"R19-B","groomer_id":"G10","sent_at":"2026-09-14T09:19:00-07:00","start":"2026-09-18T12:00:00-07:00","duration_minutes":180,"price_estimate_cents":21000,"distance_miles_approx":10.4,"message":"重量接近设备上限但仍在一百一十磅范围内，基础洗护总价二百一十，现场仍核对实际重量。"}
+      ]
+    },
+    {
+      "id":"R20","customer_id":"C18","source_group":"household-C18","neighborhood":"Santa Monica","created_at":"2026-09-13T14:52:00-07:00",
+      "pet":{"id":"P20","name":"Peanut","species":"dog","breed":"Chihuahua","weight_lbs":6,"birthday":"2017-05-08","coat_type":"short_smooth","matting_confirmed":false,"temperament":"Shy"},
+      "service_type":"nail_trim","location_mode":"groomer_comes_to_customer","travel_radius_miles":null,
+      "window":["2026-09-17T12:00:00-07:00","2026-09-17T16:00:00-07:00"],"budget_preference_cents":[2500,4500],
+      "customer_text":"这周没有车，希望上门只剪指甲。我原来在店里付三十左右，如果上门最低收费更高，请直接告诉我。",
+      "soft_preferences":["price","nails_only"],"coverage":["single_quote","mobile_minimum_charge","budget_not_hard_gate"],
+      "offers":[
+        {"id":"R20-A","groomer_id":"G03","sent_at":"2026-09-14T09:12:00-07:00","start":"2026-09-17T13:00:00-07:00","duration_minutes":20,"price_estimate_cents":9500,"distance_miles_approx":4.2,"message":"指甲三十美元加本次单独出车六十五美元，共九十五。没有必须购买洗护的要求，您可决定是否值得。"}
+      ]
+    },
+    {
+      "id":"R21","customer_id":"C19","source_group":"household-C19","neighborhood":"Mar Vista","created_at":"2026-09-13T19:21:00-07:00",
+      "pet":{"id":"P21","name":"Archie","species":"dog","breed":"Standard Poodle","weight_lbs":64,"birthday":"2022-01-04","coat_type":"curly_wavy","matting_confirmed":false,"temperament":"Friendly"},
+      "service_type":"full_groom","location_mode":"groomer_comes_to_customer","travel_radius_miles":null,
+      "window":["2026-09-21T09:00:00-07:00","2026-09-21T17:00:00-07:00"],"budget_preference_cents":[10000,15000],
+      "customer_text":"大型贵宾想做上门全套短剪，我心里预算一百五十以内。第一次在这里找，不知道预算是否够，可以给真实报价，不要为了符合预算漏掉洗澡或吹毛。",
+      "soft_preferences":["price","complete_scope"],"coverage":["all_quotes_over_budget","realistic_market_mismatch"],
+      "offers":[
+        {"id":"R21-A","groomer_id":"G03","sent_at":"2026-09-14T08:44:00-07:00","start":"2026-09-21T09:00:00-07:00","duration_minutes":180,"price_estimate_cents":28500,"distance_miles_approx":0.8,"message":"按六十四磅贵宾全套和上门报价二百八十五，预计三小时；高于您的预算，不缩减项目来报低价。"},
+        {"id":"R21-B","groomer_id":"G05","sent_at":"2026-09-14T09:29:00-07:00","start":"2026-09-21T13:00:00-07:00","duration_minutes":195,"price_estimate_cents":27500,"distance_miles_approx":17.1,"message":"完整洗护与短剪二百七十五，含这次出车，预留三小时十五分钟。"}
+      ]
+    },
+    {
+      "id":"R22","customer_id":"C20","source_group":"household-C20","neighborhood":"Culver City","created_at":"2026-09-13T15:40:00-07:00",
+      "pet":{"id":"P22","name":"Ruby","species":"dog","breed":"Cavalier King Charles Spaniel","weight_lbs":19,"birthday":"2019-08-24","coat_type":"long_silky","matting_confirmed":false,"temperament":"Anxious"},
+      "service_type":"bath_and_brush","location_mode":"groomer_comes_to_customer","travel_radius_miles":null,
+      "window":["2026-09-16T09:00:00-07:00","2026-09-16T17:00:00-07:00"],"budget_preference_cents":[13500,18000],
+      "customer_text":"洗护、不剪全身，容易紧张。希望没有香水并且一次只做一只，慢一点没关系。小区允许门口停车，我会提前确认当天车位。",
+      "soft_preferences":["no_fragrance","one_pet_at_a_time","gentle_handling"],"coverage":["soft_preferences","sparse_evidence","parking_not_coordinates"],
+      "offers":[
+        {"id":"R22-A","groomer_id":"G03","sent_at":"2026-09-14T08:15:00-07:00","start":"2026-09-16T09:00:00-07:00","duration_minutes":90,"price_estimate_cents":15500,"distance_miles_approx":2.4,"message":"车内一次一只，不喷香水，报价含上门洗护；停车位置出发前确认。"},
+        {"id":"R22-B","groomer_id":"G12","sent_at":"2026-09-14T09:02:00-07:00","start":"2026-09-16T13:00:00-07:00","duration_minutes":105,"price_estimate_cents":14500,"distance_miles_approx":9.5,"message":"按慢节奏预留一小时四十五分钟，不用香氛；请说一下最容易紧张的环节。"},
+        {"id":"R22-C","groomer_id":"G08","sent_at":"2026-09-14T09:26:00-07:00","start":"2026-09-16T11:00:00-07:00","duration_minutes":90,"price_estimate_cents":18000,"distance_miles_approx":11.6,"message":"接受小型犬安静洗护，报价含上门，不喷香水；犬类历史少于猫类。"}
+      ]
+    },
+    {
+      "id":"R23","customer_id":"C21","source_group":"household-C21","neighborhood":"Hollywood","created_at":"2026-09-14T07:15:00-07:00",
+      "pet":{"id":"P23","name":"Finn","species":"dog","breed":"Beagle","weight_lbs":27,"birthday":"2020-05-01","coat_type":"short_smooth","matting_confirmed":false,"temperament":"Friendly"},
+      "service_type":"nail_trim","location_mode":"customer_comes_to_groomer","travel_radius_miles":7,
+      "window":["2026-09-14T14:00:00-07:00","2026-09-14T17:00:00-07:00"],"budget_preference_cents":[2000,3500],
+      "customer_text":"今天下午能去剪指甲，看到过两个便宜报价，但现在一个过期、一个撤回了。只想确认当前还能选的时段。",
+      "soft_preferences":["earliest_valid_slot"],"coverage":["natural_expiry","withdrawal","history_not_candidate"],
+      "offers":[
+        {"id":"R23-A","groomer_id":"G11","sent_at":"2026-09-14T08:10:00-07:00","start":"2026-09-14T14:00:00-07:00","duration_minutes":20,"price_estimate_cents":2200,"distance_miles_approx":0.9,"expires_at":"2026-09-14T09:30:00-07:00","expected_selectable":false,"exclusion_reason":"expired","message":"两点档短时保留到九点半，现在这份报价已过确认期限。"},
+        {"id":"R23-B","groomer_id":"G06","sent_at":"2026-09-14T08:21:00-07:00","start":"2026-09-14T14:30:00-07:00","duration_minutes":20,"price_estimate_cents":2500,"distance_miles_approx":3.8,"status":"withdrawn","withdrawn_at":"2026-09-14T09:20:00-07:00","expected_selectable":false,"exclusion_reason":"withdrawn","message":"排班有调整，这个两点半报价已撤回，不再接受确认。"},
+        {"id":"R23-C","groomer_id":"G07","sent_at":"2026-09-14T09:35:00-07:00","start":"2026-09-14T15:00:00-07:00","duration_minutes":20,"price_estimate_cents":3000,"distance_miles_approx":3.0,"expires_at":"2026-09-14T12:00:00-07:00","message":"三点档可以确认，报价保留到中午十二点。"}
+      ]
+    },
+    {
+      "id":"R24","customer_id":"C22","source_group":"household-C22","neighborhood":"Glendale","created_at":"2026-09-14T07:32:00-07:00",
+      "pet":{"id":"P24","name":"Olive","species":"cat","breed":"Domestic Longhair","weight_lbs":null,"birthday":"2020-09-05","coat_type":null,"matting_confirmed":null,"temperament":"Shy"},
+      "service_type":"custom_request","location_mode":"customer_comes_to_groomer","travel_radius_miles":12,
+      "window":["2026-09-19T10:00:00-07:00","2026-09-19T16:00:00-07:00"],"budget_preference_cents":[6000,11000],
+      "customer_text":"主要想整理尾巴下面的毛和剪指甲，是否需要洗澡还不清楚，体重也待补。希望先沟通范围，不要直接按完整狮子剪给我一个预约。",
+      "soft_preferences":["scope_clarification","limited_service"],"coverage":["new_request_no_response","unknown_custom_scope","empty_not_zero_quality"],
+      "offers":[]
+    }
+  ],
+  "rejected_proposals": [
+    {"id":"X01","request_id":"R03","groomer_id":"G01","start":"2026-09-17T11:00:00-07:00","duration_minutes":90,"price_estimate_cents":11000,"distance_miles_approx":4.8,"expected_issue":"location_mode_mismatch","message":"价格低但只做到店，不能成为这份上门需求的有效报价。"},
+    {"id":"X02","request_id":"R04","groomer_id":"G04","start":"2026-09-17T11:00:00-07:00","duration_minutes":150,"price_estimate_cents":14000,"distance_miles_approx":2.2,"expected_issue":"overlaps_B01","message":"十一点至十三点半加缓冲，与既有占用冲突；不是可用的替代时段。"},
+    {"id":"X03","request_id":"R07","groomer_id":"G06","start":"2026-09-15T13:50:00-07:00","duration_minutes":20,"price_estimate_cents":2000,"distance_miles_approx":1.1,"expected_issue":"service_end_outside_request_window","message":"开始在窗口内但结束晚于十四点，不能只检查开始时间。"},
+    {"id":"X04","request_id":"R09","groomer_id":"G03","start":"2026-09-18T13:00:00-07:00","duration_minutes":90,"price_estimate_cents":13000,"distance_miles_approx":10.4,"assessment_confirmations":[],"expected_issue":"missing_unknown_fact_confirmations","message":"未确认未知体型、毛况、打结就提交低价，不能绕过评估确认。"},
+    {"id":"X05","request_id":"R11","groomer_id":"G06","start":"2026-09-19T10:00:00-07:00","duration_minutes":90,"price_estimate_cents":8500,"distance_miles_approx":8.2,"assessment_confirmations":[],"expected_issue":"custom_scope_unconfirmed_and_substituted","message":"这是推剪价格，不是要求的手拔毛，缺少 custom_service 确认；自由文本的语义替换还需人工核对，不能声称后端理解全部语义。"},
+    {"id":"X06","request_id":"R14","groomer_id":"G11","start":"2026-09-15T10:00:00-07:00","duration_minutes":20,"price_estimate_cents":2000,"distance_miles_approx":3.0,"expected_issue":"species_excluded","message":"只接犬的配置不能因为距离近或价格低而进入猫需求候选。"},
+    {"id":"X07","request_id":"R19","groomer_id":"G02","start":"2026-09-18T13:00:00-07:00","duration_minutes":150,"price_estimate_cents":14500,"distance_miles_approx":20.2,"expected_issue":"size_and_customer_radius_excluded","message":"108 磅对应 Giant，本例服务配置不接受 Giant，且超出顾客 15 英里半径；两项都须记录，不能认作待评估。"},
+    {"id":"X08","request_id":"R21","groomer_id":"G12","start":"2026-09-21T10:00:00-07:00","duration_minutes":150,"price_estimate_cents":19000,"distance_miles_approx":11.1,"expected_issue":"size_excluded","message":"64 磅对应 XL，本例服务配置只到 L；未知数据确认不能覆盖已知体型排除。"}
+  ],
+  "sequence_checks": [
+    {"id":"SEQ01","offers":["R01-A","R02-A"],"expected":"Both are individually available before acceptance; accepting either prevents acceptance of the overlapping other offer. Pending quotes alone reserve neither."},
+    {"id":"SEQ02","offers":["R01-B","R02-B"],"expected":"G02 can accept sequentially: R01-B service ends 14:45, occupied end 15:00, R02-B starts 15:00. Distinct pets, same household; not two independent research participants."},
+    {"id":"SEQ03","offers":["R12-A","R17-A"],"expected":"G09 can accept sequentially at the exact 10:45 occupied boundary, provided no other state changes."},
+    {"id":"SEQ04","offers":["R05-B","R13-B"],"expected":"For G12, R05-B occupies 12:30-16:15 and R13-B occupies 14:15-17:00 on Sep 18; only one can be accepted unchanged."},
+    {"id":"SEQ05","offers":["R23-A","R23-B","R23-C"],"expected":"At as_of only R23-C is selectable; expired/withdrawn cheaper entries must not take Top3 positions. At 12:00 even R23-C is no longer selectable."},
+    {"id":"SEQ06","requests":["R20","R21"],"expected":"Valid quotes remain over-budget options, not automatic matches to customer taste and not automatic hard exclusions. The customer can decline every quote."},
+    {"id":"SEQ07","requests":["R15","R24"],"expected":"Zero valid quotes is an empty decision pool, not a fabricated best match or a zero-score failure of service quality."}
+  ]
+}

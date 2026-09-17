@@ -83,3 +83,23 @@ Allowed local state:
 - Preview/test fixtures outside production execution.
 
 Server-owned profiles, pets after synchronization, requests, offers, bookings, messages, and reviews must be refreshed from the backend rather than maintained as parallel local fact stores.
+
+## Address Confirmation Flow
+
+This section, `../03_backend/RLS_RPC_POLICY.md`, and `../04_ios/ADDRESS_BACKFILL.md` are the current address and matching contract. Completed migration sequencing is historical evidence, not an active implementation source.
+
+```text
+Address Line 1 / Address Line 2 input
+-> shared field-semantics parser
+-> Apple Maps autocomplete or one manual geocode
+-> entered-versus-suggested user confirmation
+-> owner-checked persistence of display fields plus private coordinate metadata
+-> PostGIS distance calculation
+-> Customer travel radius or Groomer service radius eligibility
+```
+
+Localized address text is display data. After strict cutover, coordinates and the controlling radius are the only location-matching authority. Apple Maps confirmation must not be represented as postal deliverability validation.
+
+Customer Profile, Groomer Profile, and Customer Request use this shared editor. Profiles save through owner-scoped v2 persistence; Requests require current confirmation before leaving Time & Location and publish display fields, Line 2, and private coordinate metadata atomically through `create_grooming_request_v2`. Profile autofill retains confirmation only when every address field still matches its metadata, while republished templates always return to address review. Groomer pre-booking Request models do not receive Line 2. Unchanged legacy profile addresses can still save unrelated fields until controlled backfill.
+
+T-299's macOS-only controlled backfill resolves complete legacy snapshots without changing display fields, writes through service-only snapshot-checked atomic batches, and records only redacted support refs/fingerprints. All Groomers and active Requests are coordinate-backed; one Customer Profile ZIP conflict is a reviewed exception and cannot create a coordinate-null Request under the current publication contract.

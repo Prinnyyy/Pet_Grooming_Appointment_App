@@ -28,12 +28,14 @@ Target screen and role:
 Read only:
 
 1. `AGENTS.md`
-2. this task file
+2. the current ledger/worklog task record, or this task file only when explicitly created
 3. targeted `docs/00_memory/CURRENT_STATE.md` sections when current state or risks matter
 4. `docs/01_product/SCREEN_INVENTORY.md`
 5. `docs/01_product/DESIGN_SYSTEM.md`
-6. relevant SwiftUI view file(s)
-7. relevant Store, repository protocol, and model files only when wiring existing behavior
+6. `docs/01_product/ACCESSIBILITY_RULES.md`
+7. `docs/01_product/FORM_INTERACTION_RULES.md` only for a form, editor, text-entry surface, or sheet
+8. relevant SwiftUI view file(s)
+9. relevant Store, repository protocol, and model files only when wiring existing behavior
 
 ## Screenshot Analysis
 
@@ -111,7 +113,7 @@ git diff --check
 Completion launch for implemented UI changes:
 
 - After validation, launch the app in the iOS Simulator for user inspection.
-- Record simulator/device and visible root screen in this task file.
+- Record simulator/device and visible root screen in the ledger/worklog task record, or in this task file only when explicitly created.
 
 Run one validation attempt by mode. If required validation or required simulator launch fails, report the first real error and stop unless the user approves a follow-up. If no Swift/app UI changed, record simulator launch as skipped.
 
@@ -120,8 +122,17 @@ Run one validation attempt by mode. If required validation or required simulator
 - Screenshot modules are implemented only within the approved classification.
 - Existing MVP behavior uses existing Store/repository/model/backend paths.
 - No unapproved new feature, backend, schema, RLS, RPC, Storage, navigation, or role capability is introduced.
-- Completed T-024 through T-035 files remain historical records, not active task files.
+- Completed T-024 through T-035 files remain archived historical records, not active task files.
 - Required validation passes or the first real error is reported under stop rules.
+
+## Per-Slice Accessibility Definition of Done
+
+- [ ] Complete a VoiceOver walkthrough covering labels, grouping, headings, and accessibility actions.
+- [ ] Pass AX3 (`.accessibility3`) Dynamic Type with no clipped, overlapping, or scaled-away informational text.
+- [ ] Use only approved foreground/background token pairs from `../01_product/ACCESSIBILITY_RULES.md`.
+- [ ] Keep every interactive target at least 44x44pt, including icon-only controls and row actions.
+- [ ] Announce meaningful async success, failure, confirmation, and refresh outcomes.
+- [ ] Preserve existing TestOps `accessibilityIdentifier` values while adding human accessibility labels.
 
 ## Closeout
 

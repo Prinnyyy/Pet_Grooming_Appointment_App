@@ -1,29 +1,28 @@
-# Task Ledger
+# Historical Task Ledger
 
-Task numbering and active status live here. This file is not a full history.
+Retired from allocation and daily updates by T-386. Rows below are preserved history, not current task status or execution instructions. Use [Current State](../00_memory/CURRENT_STATE.md) for allocation, pending work and recovery; historical missing completion commits are not retroactively claimed.
 
-## Numbering
+Task ID, status, and next-number source of truth. Keep only planned, active, blocked, and the latest completed rows. Detailed evidence belongs in `docs/00_memory/WORKLOG.md`; older rows live under `docs/09_frozen/task_ledgers/`.
 
-- Last completed task: T-049.
-- Next available task ID: T-050.
-- Historical T-001 through T-048 task files: `docs/09_frozen/task_records_2026-07-06/`.
-- Historical full ledger snapshot: `docs/09_frozen/task_ledgers/TASK_LEDGER_T-000_TO_T-048_2026-07-06.md`.
+Current branch and task-numbering baseline: use `codex/pet-fit-structure-cleanup`; use `T-365` for the next new task. T-364 and T-363 are completed.
 
-## Active And Recent
+Active blocked task: T-157 waits for paid Apple Developer Program access and APNs credentials before dispatcher deployment. Q-104 remains user-deferred and is tracked in `docs/06_tasks/ROADMAP_EXECUTION_QUEUE.md` rather than as an allocated task.
 
-| ID | Task | Status | Mode | Scope | Validation | Notes |
-|---|---|---|---|---|---|---|
-| T-049 | Repair active Markdown information architecture | completed | Quick | AGENTS/workflow/memory/task/design/archive docs | `git diff --check`; `node scripts/context-hygiene-check.mjs` | Archived stale active task records, old brief, old design prompt, external agent reports, and legacy workflow docs; installed indexed L0-L4 rules |
-| T-048 | Customer new request wizard rework | completed | Standard | iOS customer request wizard | build, targeted tests, diff-check, simulator | Historical task record archived |
-| T-047 | Customer request booked card layout and follow-ups | completed | Standard | iOS request cards, Home sync, feedback overlay | build/tests/diff-check/simulator per task | Historical task record archived |
-| T-046 | Customer request handoff card fusion | completed | Standard | iOS request/booked handoff | build/tests/diff-check/simulator | Historical task record archived |
-| T-045 | Customer request booking handoff | completed | Standard | iOS request-to-booking handoff | build/tests/diff-check/simulator | Historical task record archived |
-| T-044 | Customer request cancellation | completed | Deep | Supabase RPC and iOS wiring | Supabase MCP checks, build/tests/diff-check/simulator | Historical task record archived |
+Pre-reset source snapshot: `docs/09_frozen/active_state_snapshots/T-345_2026-07-13/TASK_LEDGER.md`. Removed T-332 through T-339 rows live under `docs/09_frozen/task_ledgers/`.
 
-## Rules
+## Recent and Current Tasks
 
-- Do not create a standalone task file by default for Micro/Quick docs-only work.
-- Create a standalone task file when the user asks, the task is Standard/Deep, or a long-running task needs its own spec/checkpoint.
-- Bugfixes and follow-up iterations get their own task ID when they change app behavior, backend behavior, validation infrastructure, or durable workflow state.
-- A test run alone is not a task unless it changes the test system, records durable validation evidence, or the user requests it as a tracked task.
-- Do not auto-start the next task.
+| ID | Task | Status | Mode | Milestone | Files/Docs | Checks | Notes |
+|---|---|---|---|---|---|---|---|
+| T-364 | Request Wizard post-address white-screen fix | completed | Standard | M15 | Customer Request Wizard step transition/scroll reset; focused test; task memory | Root-cause trace; TDD RED/GREEN; 103 focused tests; strict UI consistency audit; iOS build; diff/context/closeout checks | Step changes clear stale keyboard focus targets and reset the Wizard ScrollView to a stable top anchor after the new content lays out, preventing address-page offsets from presenting later steps as blank. |
+| T-363 | Request page state and visual consistency | completed | Standard | M15 | Customer Home/Requests state presentation, direct creation entry, shared carousel position and retry UI; focused tests; roadmap/task memory | TDD RED/GREEN; 102 focused tests; full iOS tests/build; strict/global UI consistency, copy, diff, context, and closeout checks | Home and Requests distinguish loading, empty, error, and loaded states; Requests exposes New Request; horizontal Request cards report position; stale content remains usable and reviewed legacy copy is removed. |
+| T-362 | Offer confirmation and Booking handoff | completed | Standard | M15 | Customer Offer confirmation/detail; Customer Requests Store; focused tests; feature/roadmap/task memory | TDD RED/GREEN; focused/full iOS tests; iOS build; copy/source/diff/context/closeout checks | Acceptance presents complete decision context, guards duplicate submission, creates a local Booking recovery projection, preserves backend stale-offer validation, and opens Booking Detail directly. |
+| T-361 | Periodic governance meta-review | completed | Quick | G0 | Context hygiene/closeout scripts/tests; active memory/index/roadmap/task docs | 51 governance tests; context/search/source-of-truth/diff/closeout checks | Confirms active governance remains coherent and fixes closeout prechecks so pending structural rotation can reach apply before strict final hygiene. |
+| T-360 | Request photo selection and retry | completed | Standard | M15 | Shared Customer Request photo preview/retry presentation; Wizard/Store/Home/Requests; focused tests; roadmap/task memory | TDD RED/GREEN; focused/full iOS tests; iOS build; source/diff/context/closeout checks | Request-specific photos support multi-selection preview, removal, Review count, and Request-ID-scoped retry after creation; Pet avatars remain separate and Home/Requests share one retry module. |
+| T-359 | Request Wizard input and time semantics | completed | Standard | M15 | Customer Request Wizard/Store; focused and integration tests; roadmap/task memory | TDD RED/GREEN; focused/full iOS tests; iOS build; source/diff/context/closeout checks | New Requests require an explicit service; Custom Request requires useful notes; dates beyond the seven-day quick strip use the system date picker; Continue uses one enabled state while invalid taps reveal field-level errors. |
+| T-358 | Request publish idempotency and recovery | completed | Deep | M15 | Private publish-operation ledger and v3 RPC; Customer Request repository/Store; TestOps v3 publisher; rollback/static/iOS tests; backend/task docs | TDD RED/GREEN; focused/TestOps/migration tests; full iOS tests/build; preflight; linked apply/replay/authorization/advisors; diff/context/closeout | One Customer publish operation creates at most one Request; photo upload or refresh failure remains a recoverable post-create warning and cannot invite a duplicate publish retry. |
+| T-357 | Customer Request Journey remediation design | completed | Quick | M15 | R-042 roadmap and Q-121...Q-125 execution queue; D-036; task memory | Docs governance; diff/context/closeout | Adopts five dependency-ordered packages, with separately authorized publish idempotency first and no app/backend implementation in this task. |
+| T-356 | Manual preference and skill learning review | completed | Standard | G0 | Learning review CLI/core/tests; memory guide; README/task memory | TDD RED/GREEN; focused script tests; context hygiene | Adds a manual review-only script that scans transcript-like text for preference and skill candidates, deduplicates evidence, and writes a promotion checklist report without automatically changing rules or skills. |
+| T-355 | Chat counterpart avatar hydration and access | completed | Deep | M14 | Chat model/repository/avatar loader/view; conversation-scoped profile/Storage RLS; rollback/static tests; UI audit baseline; backend/task indexes | TDD RED/GREEN; focused/full iOS tests; preflight/build; linked apply/rollback authorization/final dry-run/advisors; diff/context/closeout | Both roles render one counterpart avatar field in conversation rows and thread headers; Groomers can read only Customer avatars belonging to an existing participant-pair conversation. |
+| T-354 | Shared Customer/Groomer Messages presentation | completed | Standard | M14 | Shared Chat conversation page/title/card presentation; removed Groomer inbox presentation; focused contract; task indexes | TDD RED/GREEN; 30 focused Chat tests; full iOS tests/build; diff/context/closeout | Both roles use the Customer Messages card layout while retaining role data, semantic accents, shared thread/composer behavior, and existing Store/repository boundaries. |
+| T-157 | Customer APNs push notification foundation | blocked | Deep | M2 | APNs dispatcher and iOS registration foundation | Historical validation in frozen records | Database foundation is applied; deployment waits for Apple Developer access and APNs credentials. |

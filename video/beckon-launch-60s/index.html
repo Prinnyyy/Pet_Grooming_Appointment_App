@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-resolution="landscape">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=1920,height=1080"><title>Beckon / 从你的需求开始</title><link rel="stylesheet" href="styles.css"><script src="node_modules/gsap/dist/gsap.min.js"></script><script src="motion.js"></script></head>
+<body><div data-hf-id="hf-1eec" id="film" class="composition" data-composition-id="film" data-start="0" data-duration="60" data-width="1920" data-height="1080" data-fps="30">
+<div data-hf-id="hf-rb10" id="scene-1" class="clip scene-host" data-composition-id="S01" data-composition-src="compositions/01-brand.html" data-start="0" data-duration="4.3" data-track-index="1"></div>
+<div data-hf-id="hf-8ghj" id="scene-2" class="clip scene-host" data-composition-id="S02" data-composition-src="compositions/02-pet.html" data-start="4" data-duration="5.3" data-track-index="2"></div>
+<div data-hf-id="hf-g7v3" id="scene-3" class="clip scene-host" data-composition-id="S03" data-composition-src="compositions/03-request.html" data-start="9" data-duration="11.3" data-track-index="3"></div>
+<div data-hf-id="hf-e96n" id="scene-4" class="clip scene-host" data-composition-id="S04" data-composition-src="compositions/04-groomer.html" data-start="20" data-duration="7.3" data-track-index="4"></div>
+<div data-hf-id="hf-zc7g" id="scene-5" class="clip scene-host" data-composition-id="S05" data-composition-src="compositions/05-offers.html" data-start="27" data-duration="12.3" data-track-index="5"></div>
+<div data-hf-id="hf-nlyn" id="scene-6" class="clip scene-host" data-composition-id="S06" data-composition-src="compositions/06-confirm.html" data-start="39" data-duration="8.3" data-track-index="6"></div>
+<div data-hf-id="hf-kgzk" id="scene-7" class="clip scene-host" data-composition-id="S07" data-composition-src="compositions/07-followup.html" data-start="47" data-duration="8.3" data-track-index="7"></div>
+<div data-hf-id="hf-79e2" id="scene-8" class="clip scene-host" data-composition-id="S08" data-composition-src="compositions/08-outro.html" data-start="55" data-duration="5" data-track-index="8"></div>
+</div><script>
+window.__timelines=window.__timelines||{};
+const film=gsap.timeline({paused:true});
+for(const [i,t] of [[2,4],[3,9],[4,20],[5,27],[6,39],[7,47],[8,55]]) film.from('#scene-'+i,{opacity:0,duration:.3,ease:'sine.inOut'},t);
+window.__timelines.film=film;
+</script></body></html>

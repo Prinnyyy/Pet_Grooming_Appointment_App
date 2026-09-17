@@ -1,59 +1,202 @@
 # Decision Log
 
-Use this for durable architecture/product decisions.
+Use this for durable architecture/product/workflow decisions. Keep active entries compact; full historical text lives in frozen snapshots.
 
-Do not store minor implementation details here.
+Full pre-T-174 snapshot: `../09_frozen/decisions/DECISION_LOG_2026-07-08_PRE_T174_TRIM.md`.
 
 ## Format
 
 ```text
+Decision ID:
 Date:
 Decision:
 Context:
-Options considered:
-Reason:
 Consequences:
 Linked files:
 ```
 
-## Decisions
+## Active Decisions
 
 ```text
-Date: 2026-06-20
-Decision: Pin Supabase Swift to 2.46.0 and inject only MCP-retrieved modern publishable configuration through an ignored local xcconfig.
-Context: T-005 required a buildable client/session boundary while T-004 remained paused and the repository contained an unread credential-named file.
-Options considered: Hard-code configuration; use the legacy anon key; read the local key file; or retrieve the modern publishable key through MCP and inject it outside tracked source.
-Reason: Exact dependency locking and build-time injection keep client code reproducible, prevent secret/service-role exposure, and let clean checkouts fail visibly at runtime without blocking compilation.
-Consequences: SwiftUI never owns SupabaseClient; AppComposition owns client construction; the session repository exposes only user ID snapshots and auth-state changes, never tokens. T-004 schema remains undeployed and must not be queried.
-Linked files: ios/PetGroomerMarketplace/Config/, Core/Configuration/, Core/Infrastructure/Supabase/, Core/Repositories/AuthSessionRepository.swift, docs/09_frozen/task_records_2026-07-06/T-005_IOS_SUPABASE_CLIENT_SESSION_BOUNDARY.md
+Decision ID: D-056
+Date: 2026-09-15
+Task: T-392 / V-04
+Decision: Use a marketplace-only, short-lived soft-evidence snapshot for new ranked v2 POST reads, under the adopted plan's delegated consistency decision. Preserve the current algorithm and explicit sort priorities. A fresh browse/refresh captures current scores, public rating aggregates and explanations; continuation keeps that same score_as_of for at most five minutes, shortened by existing hard deadlines.
+Context: Recomputing changed professional evidence on every page makes ordinary review arrivals interrupt browsing. Merely omitting soft fields from the revision could silently mix ordering/versions; eager full-list client reads would evade the real paging requirement. Neither is accepted.
+Consequences: Retain stable, single-statement authorized candidate evaluation in a private core. A narrow volatile v2 wrapper persists only candidate score/aggregate data, never credentials, coordinates, request text or individual review/customer details. Every page revalidates live hard facts, membership, role/ownership, mode, algorithm and privacy epoch; hard changes still return list_changed and booking admission remains uncached. Signed cursors bind an opaque snapshot ID. Existing stable endpoints/cursors remain compatible. Private RLS/no-client-grant storage expires after five minutes, caps each entry at256KiB and each viewer at32 entries, and uses bounded scheduled expiry cleanup. Oversized scopes keep all candidates using the legacy strict-consistency path, never truncate the pool. Privacy redaction changes the epoch immediately; expired/evicted/missing snapshots recover through the existing one-refresh path. Validate actual soft/hard/privacy behavior and original performance budgets before claiming deployment or acceptance.
+Linked files: docs/superpowers/plans/2026-09-15-synthetic-multi-simulator-acceptance-plan.md; docs/04_ios/testops/T-392_CLIENT_ACCEPTANCE.md.
 ```
 
 ```text
-Date: 2026-06-19
-Decision: Use Supabase MCP exclusively for every current and future Supabase task in this repository.
-Context: The connected MCP provides project management, migrations, SQL verification, metadata inspection, documentation search, and advisors; the user explicitly rejected a CLI-based workflow.
-Options considered: Install/use the Supabase CLI or npx; mix CLI and MCP; or standardize on MCP.
-Reason: One authenticated execution path avoids local-tool drift and keeps remote target selection and verification explicit.
-Consequences: Do not install or invoke Supabase CLI, npx Supabase, local Supabase containers, or direct database tools. Apply reviewed DDL only with MCP apply_migration after user approval, verify through MCP, and mirror the MCP-reported migration version exactly in the repository. scripts/supabase-check.sh remains a static repository check only.
-Linked files: docs/09_frozen/workflow_history_2026-07-06/obsolete_policy_files/MCP_USAGE_POLICY.md, docs/03_backend/MIGRATION_RULES.md, docs/09_frozen/task_records_2026-07-06/T-004_SUPABASE_PROFILE_FOUNDATION.md, docs/00_memory/CURRENT_STATE.md
+Decision ID: D-055
+Date: 2026-09-10
+Task: T-389
+Decision: Design matching as explicit eligibility, trustworthy contextual evidence, role-specific explicit-preference ranking and authoritative booking admission. Retain request-first distribution and all lawful candidates; raw public ratings remain exact and separate from internal smoothed scores. No implicit customer-value or behavioral-learning model is adopted.
+Context: The user approved the conceptual rules and requested continued discovery of defects or simpler approaches while preparing the detailed design. Review uncovered refinements to decay under repeat-customer caps, partial evidence, custom-service comparability, historical service timestamps and globally ranked pagination.
+Consequences: Publish one detailed spec with counterexamples, tunable parameters and implementation acceptance boundaries. Reuse existing Store/repository/SQL and refresh ownership. This is a design decision, not deployment or implementation approval; source-integrity fixes cannot be rolled back merely to revert ranking. Written refinements remain reviewable before the detailed execution plan.
+Linked files: docs/superpowers/specs/2026-09-10-matching-rating-system-design.md.
 ```
 
 ```text
-Date: 2026-06-19
-Decision: Treat the Supabase project currently visible through MCP as a legacy project and create a separate new project for the fresh rebuild.
-Context: The connected account already contains an older project. The user explicitly requires clean project isolation and placed an API key in the repository root for future authorized setup.
-Options considered: Reuse or branch the legacy project; inspect and clean it; or create a new isolated project.
-Reason: A new project prevents legacy schema, policies, data, migrations, and configuration from contaminating the fresh marketplace architecture.
-Consequences: Ref swdiiyypysyxbnfrxxsv is forbidden as a migration or inspection target for this rebuild. The authorized replacement is `Pet Groomer Marketplace` ref `lqmasbuqzvcvtawonjlb` in `us-west-1`, created after confirmation of the reported US$0/month cost. The local supabase_api_key file remains unread and Git-ignored and must never enter app code or documentation content.
-Linked files: docs/00_memory/CURRENT_STATE.md, docs/03_backend/SUPABASE_CONTRACT.md, docs/09_frozen/task_records_2026-07-06/T-002_INCREMENTAL_BUILD_ROADMAP.md, docs/06_tasks/TASK_LEDGER.md
+Decision ID: D-054
+Date: 2026-09-10
+Task: T-388
+Decision: Text-message notifications target the participant conversation, not one of its bookings. Customer Requests and Bookings share a session-owned Store; acceptance receipts require an exact current Booking read before publication because confirmed receipts do not distinguish first execution from replay after rescheduling. Atomic request replacement retires the locked original before invoking the unchanged quota-checked publication in the same transaction.
+Context: T-387 confirmed three defects. The adopted remediation retains the three-open-request limit, role boundaries, existing repositories and Simulator-only acceptance.
+Consequences: Add a nullable conversation target with no historical guessing; deploy its schema before the client's explicit select. One bounded booking read replaces unsafe quote projection; read failures preserve acceptance recovery identity. Invalidate stale list/exact reads after committed mutations. Migrations and real TestOps acceptance remain separately authorized and are not claimed deployed by this decision.
+Linked files: docs/superpowers/plans/2026-09-10-booking-defect-remediation-plan.md.
 ```
 
 ```text
-Date: 2026-06-19
-Decision: Use the open-request marketplace as the sole product model; allow fixtures only in previews/tests; default user media to private or authenticated-readable access; defer favorites until a complete product contract exists.
-Context: Active product/architecture/backend files were placeholders and still described a runtime demo adapter and an obsolete provider model. The Fresh Brief lists favorites without fields, screens, behavior, or acceptance criteria.
-Options considered: Preserve the templates; add runtime local repositories; expose media publicly by default; invent a favorites schema; or align documents to the implemented baseline and planned verified Supabase boundaries.
-Reason: The aligned model prevents parallel sources of truth, fake production success, unnecessary public media, and unsupported schema design.
-Consequences: Production composition will use real repositories only; fixtures remain preview/test-only; Storage access is least-privilege by default; favorites requires a separately authorized product task.
-Linked files: docs/09_frozen/product_briefs/Fresh_Pet_Groomer_Marketplace_Engineering_Brief.md, docs/01_product/, docs/02_architecture/, docs/03_backend/, docs/09_frozen/task_records_2026-07-06/T-002_INCREMENTAL_BUILD_ROADMAP.md
+Decision ID: D-053
+Date: 2026-09-10
+Task: T-386
+Decision: Adopt the revised lean-governance plan: one on-demand Development Guide and one structured Current State with scoped pending-task recovery. Retire daily ledger/worklog writes, fixed cadence/wording gates, forced session boundaries and automatic closeout rotation.
+Context: User requested lower coordination overhead and approved implementation after four review corrections. Existing dirty originals were preserved before cutover; historical T-365 through T-367 drafting closure is not functional incompletion or a fabricated old Git commit.
+Consequences: Continue adopted objectives with risk-based validation and reusable valid evidence. The read-only checker validates structure, safe paths and active/changed links, including search-hidden current plans. Keep task authorization isolated, user edits and credentials protected, backend freshness verified by relevant evidence, and existing completion-only Git authorization unchanged. No app/backend/signing/store or host-plugin changes.
+Linked files: docs/05_workflow/DEVELOPMENT_GUIDE.md; docs/superpowers/plans/2026-09-10-lean-governance-plan.md.
 ```
+
+```text
+Decision ID: D-036
+Date: 2026-07-28
+Decision: Remediate the Customer Request Journey through five dependency-ordered packages, with publish correctness and idempotency preceding form, media, offer, and presentation changes.
+Context: The journey audit found a duplicate-Request risk when post-create work fails, implicit service selection, a seven-day date ceiling, incomplete Request-photo review, an under-informed Offer acceptance handoff, misleading loading/empty states, and focused UI consistency debt. Combining backend correctness and all visible refinements in one task would be difficult to validate and reverse.
+Consequences: R-042 uses Q-121 through Q-125. Q-121 owns the separately authorized Deep publish contract; later packages own Wizard semantics, Request media, Offer-to-Booking handoff, and page-state/visual corrections. Matching rules, Groomer offer creation, booking lifecycle semantics, dependencies, direct booking, and deferred Groomer Q-104 scope remain unchanged.
+Linked files: docs/06_tasks/ROADMAP.md, docs/06_tasks/ROADMAP_EXECUTION_QUEUE.md, docs/01_product/DESIGN_SYSTEM.md, docs/01_product/FORM_INTERACTION_RULES.md
+```
+
+```text
+Decision ID: D-035
+Date: 2026-07-13
+Decision: Give each Customer/Groomer pair one durable conversation and represent acceptance/cancellation as ordered typed booking events.
+Context: Booking-scoped conversations split the same participants across multiple threads and static chat context could not represent more than one booking or remain current after a status transition.
+Consequences: Existing duplicate threads merge into the earliest participant-pair conversation with messages preserved. Controlled acceptance and first cancellation atomically append a live booking card followed by friendly text from the acting user. Authenticated clients may still insert only self-authored text and cannot forge cards. iOS resolves cards through the Booking repository and routes to the existing role-specific Booking detail with shared state.
+Linked files: supabase/migrations/20260713223400_t351_participant_conversations_booking_events.sql, ios/Beckon/Beckon/Features/Chat/, docs/03_backend/RLS_RPC_POLICY.md, docs/06_tasks/sql_reviews/T-351_PARTICIPANT_CHAT_ROLLBACK_VALIDATION.sql
+```
+
+```text
+Decision ID: D-034
+Date: 2026-07-13
+Decision: Use one guarded task-closeout command for numbered durable closeouts and a metadata-based lifecycle for temporary plans/specs.
+Context: Closeout required several manual steps, so completed artifacts, active backlinks, and rolling windows could drift independently. The unused agent-preflight script also referenced a deleted template and always failed.
+Consequences: task-closeout dry-runs by default. Apply mode first requires aligned completed ledger/current-state/worklog facts, completed task/type metadata, clear active backlinks, a safe rotation preview, and a hygiene precheck; it then moves artifacts verbatim into a dated frozen Superpowers family, applies one rotation batch, and reruns hygiene. Default output is concise and --verbose exposes diagnostics. The broken agent-preflight entrypoint is removed rather than maintained beside the canonical gates.
+Linked files: docs/05_workflow/SINGLE_AGENT_WORKFLOW.md, docs/05_workflow/CONTEXT_AND_RECOVERY.md, docs/superpowers/README.md, scripts/task-closeout.mjs, scripts/context-rotate.mjs, tests/scripts/task-closeout.test.mjs
+```
+
+```text
+Decision ID: D-033
+Date: 2026-07-13
+Decision: Assign each workflow concern to one owner file, enforce compact AGENTS/Claude adapters, and keep one T-### task per session without automatic meta-review chaining.
+Context: Validation, context, Git, stop, Simulator, checkpoint, skill, and meta-review rules had been copied across active files and had drifted into contradictions. The repository also assumed a fixed host context capacity it cannot observe.
+Consequences: SINGLE_AGENT_WORKFLOW owns lifecycle; CONTEXT_AND_RECOVERY owns reads/recovery/compaction/hygiene; TOOLING_POLICY owns validation/tools/credentials/remote authorization; GITHUB_RULES owns Git conventions; STOP_CONDITIONS is a short matrix. AGENTS and CLAUDE have enforced 600/250-word interface ceilings. Development RED is distinct from completion failure; user-deferred Simulator review is valid; host-required skills are not repository-capped; incomplete checkpoint Git needs explicit approval. A due meta-review is reserved and runs only in a fresh user-continued session. Host telemetry replaces fixed token thresholds. This supersedes D-029, the fixed-capacity/checkpoint parts of D-028, and creates an entry-adapter exception to D-024's generic informational word telemetry.
+Linked files: AGENTS.md, CLAUDE.md, docs/05_workflow/SINGLE_AGENT_WORKFLOW.md, docs/05_workflow/CONTEXT_AND_RECOVERY.md, docs/05_workflow/TOOLING_POLICY.md, docs/05_workflow/GITHUB_RULES.md, docs/05_workflow/STOP_CONDITIONS.md, docs/06_tasks/META_REVIEW_TEMPLATE.md, scripts/context-hygiene-check.mjs
+```
+
+```text
+Decision ID: D-032
+Date: 2026-07-12
+Decision: Use layered Xcode/Simulator runtime-log sampling for app behavior validation.
+Context: Full Debug Area output is noisy and expensive to inspect, but ignoring it can miss SwiftUI faults and runtime warnings that are not visible in screenshots or test assertions.
+Consequences: Runtime validation samples recent interaction output and severity/task keywords first, then expands only relevant messages and narrow time windows. Actionable Beckon diagnostics are recorded; Apple/Simulator noise is classified before any code change. Build-only, test-only, docs-only, and static checks do not require runtime-log inspection.
+Linked files: docs/05_workflow/TOOLING_POLICY.md, docs/04_ios/IOS_BUILD_AND_TESTING.md
+```
+
+```text
+Decision ID: D-031
+Date: 2026-07-12
+Decision: Govern Beckon UI consistency through the existing DesignSystem, semantic components, and an all-app source-audit debt ratchet, with the first migration slice limited to Customer Home, Requests, Request creation, and Account.
+Context: Existing tokens and shared primitives are real but incomplete; feature code still mixes platform fonts, fixed sizes, local styles, repeated modifier stacks, and layout repairs. Screenshot review catches rendering failures but cannot reliably enforce fine-grained consistency. Customer reference pages establish useful hierarchy and tone but also contain debt, while Groomer intentionally uses denser workspace patterns.
+Consequences: R-041 evolves DesignTokens in place, adds only reuse-backed semantic components, establishes a tested dependency-free source audit with explicit exceptions, baselines non-slice debt, and blocks new violations. The four Customer surfaces migrate first. Business logic, repositories, navigation, Supabase, dependencies, and deferred Groomer Q-104 scope are unchanged unless separately approved.
+Linked files: docs/01_product/DESIGN_SYSTEM.md, docs/01_product/ACCESSIBILITY_RULES.md, docs/01_product/FORM_INTERACTION_RULES.md, docs/04_ios/UI_CODE_GOVERNANCE.md, docs/04_ios/UI_CONSISTENCY_DEBT.md, docs/06_tasks/ROADMAP.md, docs/00_memory/FEATURE_INDEX.md
+```
+
+```text
+Decision ID: D-030
+Date: 2026-07-11
+Decision: Adopt one shared Apple Maps service-address confirmation system and make private PostGIS coordinates plus the controlling radius the long-term location-matching authority.
+Context: Device-localized city strings can differ across Customer and Groomer records, current city/state matching ignores ZIP and configured radii, and the Request address dropdown performed expensive per-candidate language normalization. The product needs shopping-style field semantics and address confirmation, but grooming service locations do not require a USPS-deliverability claim or a Google dependency.
+Consequences: Address Line 1 excludes Unit/Apt data and Address Line 2 owns it; complete misplaced suffixes auto-move unless a conflict requires user choice. MapKit suggestions display directly, only selections/manual continuation resolve, Place ID is optional, and complete coordinates are mandatory. Exact geo metadata is private; PostGIS applies Customer travel radius for shop visits and Groomer service radius for mobile service. Legacy city/state fallback exists only through controlled backfill and is removed after a zero-gap gate. Remote migration/backfill/TestOps remain separately authorized.
+Linked files: docs/02_architecture/DATA_FLOW.md, docs/03_backend/RLS_RPC_POLICY.md, docs/04_ios/ADDRESS_BACKFILL.md, docs/06_tasks/ROADMAP.md
+```
+
+```text
+Decision ID: D-029
+Date: 2026-07-11
+Status: Superseded by D-033 on 2026-07-13.
+Decision: Automatically chain an immediately due periodic meta-review after the triggering task, then require a conversation-compaction boundary.
+Context: The previous reservation rule prevented a two-task commit deadlock but still required another user turn before the reserved review ran. The user now requires due reviews to execute automatically and every completed meta-review to be followed by context compaction.
+Consequences: The triggering task and meta-review retain separate task IDs, validation, closeouts, commits, and pushes; this is the only automatic exception to one task per session. After meta-review closeout, Codex invokes host compaction when callable. If the host provides no compaction API, Codex emits an explicit /compact handoff, states that compaction is pending, and stops before any implementation task.
+Linked files: AGENTS.md, docs/05_workflow/SINGLE_AGENT_WORKFLOW.md, docs/05_workflow/CONTEXT_AND_RECOVERY.md, docs/06_tasks/META_REVIEW_TEMPLATE.md
+```
+
+```text
+Decision ID: D-028
+Date: 2026-07-10
+Status: Fixed-capacity and automatic checkpoint-Git parts superseded by D-033 on 2026-07-13; task-boundary/evidence rules remain active.
+Decision: Use one T-### task per session, with session end as the default context reset and manual compaction as fallback for one oversized task.
+Context: Per-turn cost scales with conversation size. The T-249 through T-257 mega-session and its unattributed modified files drove context and quota growth, while build scripts were already summary-mode and active Markdown was already minimal.
+Consequences: Standard slices use focused tests plus one build; full ios-test.sh is reserved for package/integration gates, Deep tasks, shared-layer changes, and pre-release. Visual evidence stays under artifacts/evidence/<task-id>/ and is referenced by path rather than re-ingested. Full logs are read only in filtered slices. Session boundaries require a task commit or a WORKLOG-linked checkpoint(<id>) commit; stash is not a boundary mechanism. The 65%/80% thresholds govern only a single oversized in-flight task.
+Linked files: AGENTS.md, docs/05_workflow/SINGLE_AGENT_WORKFLOW.md, docs/05_workflow/CONTEXT_AND_RECOVERY.md, docs/05_workflow/GITHUB_RULES.md, docs/05_workflow/TOOLING_POLICY.md, .gitignore, .rgignore
+```
+
+```text
+Decision ID: D-027
+Date: 2026-07-10
+Decision: Permit an exactly due documentation meta-review to be explicitly reserved as the immediate next task without blocking the preceding task's closeout.
+Context: T-250 became the tenth completed task after T-240. The cadence check correctly required T-251, but it also prevented T-250 from passing its own Git completion gate even though CURRENT_STATE explicitly reserved T-251, creating a two-task commit deadlock.
+Consequences: At a delta of exactly ten, context hygiene passes only when CURRENT_STATE names the numerically immediate next task and explicitly calls it the required periodic meta-review. Missing reservations and deltas above ten still fail. The reserved meta-review must execute next and update the marker.
+Linked files: scripts/context-hygiene-check.mjs, tests/docs/context-hygiene-check.test.mjs, docs/06_tasks/META_REVIEW_TEMPLATE.md, docs/00_memory/CURRENT_STATE.md
+```
+
+```text
+Decision ID: D-026
+Date: 2026-07-10
+Decision: Use one Beckon visual foundation with a schedule/action-oriented Groomer workspace and exactly five direct Groomer tabs.
+Context: Live Simulator inspection showed the Groomer side using six equal tabs, a system-generated More screen, nested Account navigation, duplicate back buttons in Edit Profile, and card-heavy pages without a stable operational priority. The user approved the first T-249 visual direction and its Requests, Account, and Edit Profile extensions.
+Consequences: R-039 targets Home, Requests, Schedule, Messages, and Account. Offers moves into a Requests Matches/Offers segment; Notifications opens from Home; Account is direct; feature editors hide the tab bar. Grouped surfaces and row separators replace per-row floating cards. Existing marketplace/backend contracts remain unchanged, and implementation is split into Q-97 through Q-104.
+Linked files: docs/08_design/GROOMER_UI_REDESIGN.md, docs/06_tasks/ROADMAP.md, docs/06_tasks/ROADMAP_EXECUTION_QUEUE.md, docs/01_product/DESIGN_SYSTEM.md
+```
+
+```text
+Decision ID: D-025
+Date: 2026-07-09
+Decision: Treat Beckon as the only active product and workflow vocabulary while preserving legacy names solely in immutable history and explicit migration evidence.
+Context: Q-94 renamed the local application and source, but the separately governed agent/workflow rules still used the prior product name and old Xcode credential path. Their temporary identity-audit exclusion also allowed future drift.
+Consequences: AGENTS.md, CLAUDE.md, and docs/05_workflow use Beckon terminology and current ios/Beckon paths. The active identity audit now checks those files; only frozen records, applied migrations, the migration contract, and audit fixtures may retain legacy literals. Product behavior and remote state are unchanged.
+Linked files: AGENTS.md, CLAUDE.md, docs/05_workflow/CONTEXT_AND_RECOVERY.md, docs/05_workflow/STOP_CONDITIONS.md, docs/05_workflow/TOOLING_POLICY.md, scripts/beckon-identity-check.mjs
+```
+
+```text
+Decision ID: D-024
+Date: 2026-07-09
+Status: Generic word telemetry remains informational; D-033 adds hard ceilings only for the AGENTS/Claude workflow-entry interfaces.
+Decision: Maintain active Markdown with buffered entry-count windows and treat all word counts as informational telemetry.
+Context: The old trigger and retained counts were identical, so every new closeout rotated one item and left the window full. Separate word limits then caused repeated trimming even when document structure was healthy, while manual compaction guidance started at only 30% of the 353,000-token context.
+Consequences: Ledger uses trigger/retain 18/12; Worklog and active decisions use 14/8; decision archive pointers use 12/6 with one pointer per archive batch. Each completed rotation restores six entries. Word references never warn, fail, stop, compress, or rotate content. Manual compaction uses 65%/80% task-boundary thresholds, and completed task-specific plans/specs move to dated frozen Superpowers archives. This supersedes D-016 and the Markdown-budget parts of D-017; D-017's failed-push rule remains active.
+Linked files: AGENTS.md, docs/05_workflow/CONTEXT_AND_RECOVERY.md, docs/05_workflow/SINGLE_AGENT_WORKFLOW.md, docs/05_workflow/STOP_CONDITIONS.md, scripts/context-hygiene-policy.mjs, scripts/context-hygiene-check.mjs, scripts/context-rotate.mjs
+```
+
+```text
+Decision ID: D-023
+Date: 2026-07-09
+Decision: Replace the complete active legacy brand/project identity with Beckon through a dependency-ordered local, workflow, and remote cutover.
+Context: The user finalized the brand, domain, App Store name, and tagline and explicitly required technical identifiers, files, UI, TestOps seeds, and remote state to follow the same identity.
+Consequences: The canonical identity is Beckon, `com.hellobeckon.beckon`, and `com.hellobeckon.beckon://auth/callback`. R-038 uses Q-94 through Q-96 so product/source work, standalone workflow-rule changes, and authorized remote Supabase/seed-user changes remain separately reviewable. Applied migrations, frozen records, and Git history remain immutable; append-only changes replace live old identifiers.
+Linked files: docs/01_product/BRAND_IDENTITY.md, docs/06_tasks/ROADMAP.md, docs/06_tasks/ROADMAP_EXECUTION_QUEUE.md
+```
+
+
+## Archived Decision Index
+
+Full text for the entries below is preserved in `../09_frozen/decisions/DECISION_LOG_2026-07-08_PRE_T174_TRIM.md`.
+
+| Date | Decision | Current entry point |
+|---|---|---|
+| 2026-07-12 | Archived decisions D-016 to D-022. | `../09_frozen/decisions/DECISION_LOG_D-016_TO_D-022_2026-07-12.md` |
+| 2026-07-09 | Replace the active Markdown 85% cleanup trigger with structural context-budget tooling. | `../09_frozen/decisions/DECISION_LOG_D-015_2026-07-10.md` |
+| 2026-07-09 | Superseded by D-016/D-017: treat the active Markdown 85% waterline as a cleanup trigger. | `../09_frozen/decisions/DECISION_LOG_D-014_2026-07-09.md` |
+| 2026-07-08 | Treat task-completion commit and push as standing user-authorized Git actions. | `../09_frozen/decisions/DECISION_LOG_D-013_2026-07-09.md` |
+| 2026-07-08 | Reduce active Markdown before raising the 32k total budget. | `../09_frozen/decisions/DECISION_LOG_D-012_2026-07-09.md` |
+| 2026-07-08 | Keep branch baseline as a single active fact in CURRENT_STATE. | `../09_frozen/decisions/DECISION_LOG_D-011_2026-07-09.md` |
+| 2026-07-08 | Track meta-review cadence by completed-task distance, not wall-clock age. | `../09_frozen/decisions/DECISION_LOG_D-010_2026-07-09.md` |

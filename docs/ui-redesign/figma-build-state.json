@@ -1,0 +1,161 @@
+{
+  "fileKey": "XhOqumKm670mJTHUc72qga",
+  "fileName": "Pet Grooming App — UI Redesign",
+  "fileUrl": "https://www.figma.com/design/XhOqumKm670mJTHUc72qga",
+  "createdAt": "2026-07-10",
+  "currentPhase": "Phase 3 — foundation components complete",
+  "status": "phase-3-real-screen-calibration-approved",
+  "constraints": {
+    "figmaPlan": "Professional",
+    "seat": "Full",
+    "variableModeLimit": null,
+    "pageLimit": null,
+    "mcpToolCallLimit": null,
+    "implementedTheme": "Light",
+    "darkModeStatus": "required-before-formal-page-approval"
+  },
+  "fileArchitecture": {
+    "strategy": "three-pages-with-numbered-sections",
+    "pages": ["00 Design System", "10 App Architecture", "20 Product Screens"]
+  },
+  "createdPages": [
+    { "name": "00 Design System", "nodeId": "0:1" },
+    { "name": "10 App Architecture", "nodeId": "3:2" },
+    { "name": "20 Product Screens", "nodeId": "3:3" }
+  ],
+  "sections": {
+    "00 Design System": ["00 Cover", "10 Foundations — Color", "20 Foundations — Typography", "30 Foundations — Layout", "40 Foundations — Effects & Motion", "45 Visual Calibration", "46 Real Screen Calibration", "50 Components — Actions", "55 Button Property Tests", "60 Components — Data Display", "70 Components — Forms", "80 Components — Feedback", "85 Layout Patterns", "86 Component Accessibility QA"],
+    "10 App Architecture": ["10 Information Architecture", "20 Navigation Map", "30 Core User Flows", "40 Screen Inventory", "50 Figma ↔ SwiftUI Mapping"],
+    "20 Product Screens": ["10 Appointments", "20 Customers", "30 Pets", "40 Services", "50 Calendar", "60 Settings", "70 Authentication", "90 Archive"]
+  },
+  "variableCollections": [
+    { "name": "Primitives", "id": "VariableCollectionId:2:2", "mode": "Light", "variableCount": 18 },
+    { "name": "Semantic Colors", "id": "VariableCollectionId:2:3", "mode": "Light", "variableCount": 17 },
+    { "name": "Spacing", "id": "VariableCollectionId:2:4", "mode": "Light", "variableCount": 9 },
+    { "name": "Radius", "id": "VariableCollectionId:2:5", "mode": "Light", "variableCount": 5 },
+    { "name": "Sizing", "id": "VariableCollectionId:2:6", "mode": "Light", "variableCount": 8 },
+    { "name": "Motion", "id": "VariableCollectionId:2:7", "mode": "Light", "variableCount": 4 }
+  ],
+  "variables": {
+    "total": 61,
+    "primitiveColors": 18,
+    "semanticColors": 17,
+    "spacing": 9,
+    "radius": 5,
+    "sizing": 8,
+    "motion": 4
+  },
+  "styles": {
+    "typography": ["Large Title", "Title 1", "Title 2", "Title 3", "Headline", "Body", "Callout", "Subheadline", "Footnote", "Caption 1", "Caption 2", "Body Emphasized", "Callout Emphasized"],
+    "effects": ["Card Shadow", "Elevated Surface", "Floating Control"]
+  },
+  "components": [
+    { "name": "Icon Button", "nodeId": "13:7", "decision": "Approved", "validation": "metadata+screenshot+real-screen instance passed" },
+    { "name": "Primary Button", "nodeId": "14:8", "decision": "Approved", "validation": "metadata+screenshot+real-screen instance passed" },
+    { "name": "Secondary Button", "nodeId": "15:8", "decision": "Approved", "validation": "metadata+screenshot+real-screen instance passed" },
+    { "name": "Destructive Button", "nodeId": "15:15", "decision": "Approved", "validation": "metadata+screenshot+real-screen instance passed" },
+    { "name": "Status Badge", "nodeId": "32:148", "decision": "Approved", "validation": "metadata+screenshot+long-text QA passed" },
+    { "name": "Pet Avatar", "nodeId": "32:191", "decision": "Approved", "validation": "metadata+screenshot+long-text QA passed" },
+    { "name": "Section Header", "nodeId": "32:236", "decision": "Approved", "validation": "metadata+screenshot+long-text QA passed" },
+    { "name": "Search Field", "nodeId": "32:291", "decision": "Approved", "validation": "metadata+screenshot+long-text QA passed" },
+    { "name": "Form Field", "nodeId": "32:342", "decision": "Approved", "validation": "metadata+screenshot+long-text QA passed" },
+    { "name": "Date and Time Row", "nodeId": "32:391", "decision": "Approved", "validation": "metadata+screenshot+long-text QA passed" },
+    { "name": "Service Row", "nodeId": "32:440", "decision": "Approved", "validation": "metadata+screenshot+long-text QA passed" },
+    { "name": "Customer Row", "nodeId": "32:483", "decision": "Approved", "validation": "metadata+screenshot+long-text QA passed" },
+    { "name": "Appointment Card", "nodeId": "32:642", "decision": "Approved", "validation": "10 variants+metadata+screenshot+long-text QA passed" },
+    { "name": "Empty State", "nodeId": "32:693", "decision": "Approved", "validation": "metadata+screenshot+long-text QA passed" },
+    { "name": "Error State", "nodeId": "32:744", "decision": "Approved", "validation": "metadata+screenshot+long-text QA passed" },
+    { "name": "Loading State", "nodeId": "32:783", "decision": "Approved", "validation": "metadata+screenshot+long-text QA passed" }
+  ],
+  "keyNodeIds": {
+    "designSystemPage": "0:1",
+    "appArchitecturePage": "3:2",
+    "productScreensPage": "3:3",
+    "foundationColor": "3:11",
+    "foundationTypography": "3:34",
+    "foundationLayout": "3:51",
+    "informationArchitecture": "3:78",
+    "navigationMap": "3:83",
+    "appointmentsSection": "3:102"
+    ,"visualCalibration": "18:2"
+    ,"existingVisualDNA": "18:7"
+    ,"normalizedCustomerSurface": "18:35"
+    ,"normalizedGroomerOperationsSurface": "18:63"
+    ,"cardRadiusVariable": "VariableID:17:2"
+    ,"realScreenCalibration": "21:2"
+    ,"customerHomeExisting": "23:5"
+    ,"customerHomeNormalized": "23:31"
+    ,"customerHomeAccessibilityXL": "23:59"
+    ,"petSelectionExisting": "25:10"
+    ,"petSelectionNormalized": "25:40"
+    ,"petSelectionAccessibilityXL": "25:70"
+    ,"groomerScheduleExisting": "26:19"
+    ,"groomerScheduleNormalized": "26:74"
+    ,"groomerScheduleAccessibilityXL": "26:136"
+    ,"buttonPropertyTests": "31:264"
+    ,"layoutPatternsSection": "32:784"
+    ,"componentAccessibilityQA": "35:177"
+  },
+  "completedValidations": [
+    "Confirmed failed multi-mode attempt left no residue",
+    "Confirmed six single-mode collections are named Light",
+    "Confirmed 60 variables exist and semantic colors alias primitives",
+    "Confirmed semantic color scopes and iOS code syntax were assigned",
+    "Confirmed 13 SF Pro text styles and 3 effect styles exist",
+    "Confirmed revised file has exactly three correctly named pages",
+    "Confirmed all planned numbered sections exist with unique names",
+    "Confirmed all three page metadata responses succeeded",
+    "Confirmed all six Phase 2 local screenshots after canonical text-node repair",
+    "Captured real Simulator screenshots for Auth, Customer Home, Request Wizard, Customer Bookings, Groomer Home, and Groomer Schedule",
+    "Validated Visual Calibration metadata and screenshot",
+    "Validated revised Icon, Primary, Secondary, and Destructive Button metadata and screenshots",
+    "Validated nine 393x852 Real Screen Calibration frames with metadata, variables, text styles, Auto Layout, long text, accessibility composition, safe areas, and local screenshots",
+    "Validated all four existing component sets as nested instances in real-screen calibration fragments",
+    "Applied approved Customer Home, Pet Selection, Groomer Schedule, and nested label patches",
+    "Validated sixteen formal components and five layout patterns with metadata and local screenshots",
+    "Validated twelve new components with default and long-text Accessibility QA instances"
+  ],
+  "pendingItems": [
+    "Add Dark mode to existing collections before any formal page approval",
+    "Build clickable prototypes for key business flows during formal screen design",
+    "Export stable tokens as DTCG JSON and generate SwiftUI token implementation in a later authorized phase",
+    "Begin complete business screen design only after a separate instruction"
+  ],
+  "blocker": null,
+  "visualCalibration": {
+    "direction": "Beckon Warm Utility System",
+    "sectionId": "18:2",
+    "canonicalScreens": ["Auth Landing", "Customer Home", "Customer Request Wizard", "Customer Bookings", "Groomer Home", "Groomer Schedule"],
+    "remainingComponentsPaused": 0,
+    "approvalRequired": false,
+    "approvedAt": "2026-07-10",
+    "realScreenCalibrationSectionId": "21:2",
+    "realScreenFrames": {
+      "customerHome": ["23:5", "23:31", "23:59"],
+      "groomingRequestPetSelection": ["25:10", "25:40", "25:70"],
+      "groomerScheduleAgenda": ["26:19", "26:74", "26:136"]
+    },
+    "componentConclusions": {
+      "Icon Button": "Approved",
+      "Primary Button": "Approved",
+      "Secondary Button": "Approved",
+      "Destructive Button": "Approved"
+    },
+    "fullCapabilityRulesDocumented": true,
+    "patches": {
+      "customerHome": "approved-and-applied",
+      "petSelection": "approved-and-applied",
+      "groomerSchedule": "approved-and-applied",
+      "nestedLabelOverride": "approved-and-applied"
+    },
+    "formalComponentCount": 16,
+    "layoutPatternCount": 5,
+    "layoutPatterns": {
+      "Page Header": "32:815",
+      "Wizard Progress Header": "32:852",
+      "Pet Selection Card": "32:920",
+      "Bottom Action Area": "32:980",
+      "Scroll Content + Bottom Inset": "32:1014"
+    }
+  }
+}

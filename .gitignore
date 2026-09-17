@@ -3,13 +3,24 @@
 
 # Local Supabase credentials; never commit.
 supabase_api_key
-
-# Local iOS Supabase environment; publishable key is injected at build time.
-ios/PetGroomerMarketplace/Config/Supabase.local.xcconfig
-
-# Local Supabase environment exports; never commit.
 supabase_environment_variables
 supabase/.temp/
 
-# Generated agent/build artifacts.
-artifacts/
+# Local provider credentials; never commit.
+CloudFlare API.md
+Resend API.md
+
+# Local iOS Supabase environment; publishable key is injected at build time.
+ios/Beckon/Config/Supabase.local.xcconfig
+
+# Local TestOps run artifacts.
+artifacts/testops/
+artifacts/evidence/
+artifacts/address-backfill/
+artifacts/governance/
+
+# External agent draft reports; archive under docs/09_frozen/external_agent_reports/ when needed.
+APP_STATUS_OVERVIEW.md
+V1.0_RELEASE_TASK_PLAN.md
+UI_DESIGN_RULES_PROPOSAL.md
+CONTEXT_QUOTA_GOVERNANCE_PLAN.md

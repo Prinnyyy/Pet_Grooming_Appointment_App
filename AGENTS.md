@@ -1,78 +1,19 @@
 # AGENTS.md
 
-## Mission
+Maintain Beckon, a request-first iOS SwiftUI marketplace. Preserve user work and complete the adopted objective through validation.
 
-This is an iOS SwiftUI app project. Codex makes small, reversible changes and completes one primary task per run.
+## Priority And Startup
 
-## Active Workflow
+Host/system instructions and explicit user requests take priority. This file is the repository entry; [Development Guide](docs/05_workflow/DEVELOPMENT_GUIDE.md) owns the on-demand workflow. Archived rules are history, not instructions. Subagents remain disabled.
 
-Use these files as the active workflow sources:
+For read-only questions, inspect only the requested facts; do not allocate a task or write memory.
+Before edits, inspect Git status and [Current State](docs/00_memory/CURRENT_STATE.md). It alone owns task IDs and recovery pointers. Use [Feature Index](docs/00_memory/FEATURE_INDEX.md) only when routing is unclear, then read targeted code/contracts. Default searches honor `.rgignore`.
 
-- `docs/05_workflow/SINGLE_AGENT_WORKFLOW.md`: task flow and completion gate.
-- `docs/05_workflow/CONTEXT_AND_RECOVERY.md`: context tiers, recovery, compaction, and hygiene budgets.
-- `docs/05_workflow/TOOLING_POLICY.md`: tools, validation, Supabase, Git, and remote-write rules.
-- `docs/05_workflow/STOP_CONDITIONS.md`: when to stop and report.
+## Boundaries
 
-Do not use archived agent-team or subagent workflows unless the user explicitly re-enables them.
-
-## Minimal Startup
-
-Read only what the task needs:
-
-1. `AGENTS.md`.
-2. Targeted top sections of `docs/00_memory/CURRENT_STATE.md` only when branch, risks, validation state, or current product facts matter.
-3. Targeted top rows of `docs/06_tasks/TASK_LEDGER.md` only when choosing or updating task status.
-4. One L1 index for the task type, when needed.
-5. An active task file only when the user explicitly provides or requests one.
-
-Default searches must honor `.rgignore`. Do not use broad `rg --files -g '*.md'` as a default Markdown inventory because it can re-include ignored seed tables and frozen archives. Use `rg --no-ignore` only for explicitly needed recovery from frozen archives, machine-readable seed profiles, generated artifacts, or full design exports.
-
-## Task Rules
-
-- Preserve user work; run `git status --short` before edits.
-- Use the next available task ID from `docs/06_tasks/TASK_LEDGER.md` for new bugfix or iteration work.
-- One primary task only. Do not start adjacent features, broad refactors, or unrelated cleanup.
-- Make a short plan before non-trivial edits.
-- Keep SwiftUI views thin and route business logic through Store/ViewModel/repository boundaries.
-- Keep backend access behind repository/service boundaries.
-- Do not invent Supabase schema facts or perform destructive database operations.
-- Do not add dependencies, commit, push, create PRs, make remote writes, run seeds, or run cleanup without explicit user approval.
-
-## Groomly UI Work
-
-Implemented Groomly MVP UI work is historical. Detailed T-001 through T-048 records are archived under `docs/09_frozen/task_records_2026-07-06/`.
-
-Future Groomly UI work is screenshot-driven. One uploaded screenshot is one bounded UI rework task unless the user explicitly combines or splits scope. Before SwiftUI edits, map visible modules to existing screens, Stores, repositories, models, or stop for new-feature approval.
-
-Treat `docs/08_design/UI_IMPLEMENTATION_NOTES.md`, `docs/08_design/design_tokens.json`, and visual assets under `docs/08_design/` as visual/interaction reference only. Do not copy HTML/CSS/React into SwiftUI. Ignore any long oval Customer/Groomer toggle above the visible app screen frame as an external prototype control.
-
-If a screenshot implies new persistence, schema, RLS, RPC, Storage, navigation, role capability, or deferred feature, stop and report the decision needed.
-
-## Validation
-
-- Micro: read-only/status/tiny docs; no validation by default.
-- Quick: docs/workflow/small scripts; usually `git diff --check`.
-- Standard: Swift, Xcode, app behavior, or visible UI; `git diff --check` plus one `./scripts/ios-build.sh`.
-- Deep: Supabase, auth, RLS, migrations, storage, major navigation, or high risk; state a validation plan first.
-
-Launch the iOS Simulator only for app/UI behavior changes, screenshot tasks, or explicit inspection requests. Skip simulator launch for docs-only, workflow-only, read-only, and backend-only tasks unless visual inspection is useful.
-
-If a required validation fails, report the first real error and stop unless the user approves a follow-up.
-
-## Completion
-
-Briefly review the diff when files changed. Record closeout in `docs/06_tasks/TASK_LEDGER.md` and `docs/00_memory/WORKLOG.md` when the task changes durable workflow/product state or app behavior. Update `docs/00_memory/CURRENT_STATE.md` only when a future run needs the changed fact.
-
-After durable memory or task-ledger changes, run:
-
-```sh
-node scripts/context-hygiene-check.mjs
-```
-
-Archive old active memory/task rows immediately if thresholds are exceeded.
-
-Before `/compact`, write a concise checkpoint with task ID/status, files changed, validation, risks, and next context. Stop when the requested task is complete.
-
-## Recovery
-
-If interrupted or context is stale, follow `docs/05_workflow/CONTEXT_AND_RECOVERY.md`. Do not reconstruct archived subagent state.
+- Continue within the adopted objective; small steps and task numbers do not require ending a session. Do not start unrelated backlog work.
+- Keep SwiftUI thin and business/backend operations behind Store/ViewModel and repository boundaries.
+- Preserve existing edits, credentials, RLS and applied migration history. No new dependency, destructive operation or non-Git remote write without explicit authorization.
+- Screenshot work must map to existing ownership; new persistence, navigation or role capabilities need an adopted decision.
+- Validate according to affected risk. Do not repeat unchanged valid evidence, weaken safety checks, or claim unperformed verification.
+- Standing Git approval covers validated completion commits and pushes on the current work branch only, not checkpoints, reconciliation or PRs.

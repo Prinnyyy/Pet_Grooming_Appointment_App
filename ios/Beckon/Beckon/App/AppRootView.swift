@@ -1,0 +1,156 @@
+import SwiftUI
+
+struct AppRootView: View {
+    let route: AppEntryRoute
+    let authenticationBootstrapState: AuthenticationBootstrapState
+    let authenticationStore: AuthenticationStore?
+    let profileRepository: (any ProfileRepository)?
+    let customerProfileRepository: (any CustomerProfileRepository)?
+    let customerPetRepository: (any CustomerPetRepository)?
+    let customerRequestRepository: (any CustomerRequestRepository)?
+    let customerNotificationRepository: (any CustomerNotificationRepository)?
+    let bookingRepository: (any BookingRepository)?
+    let chatRepository: (any ChatRepository)?
+    let groomerProfileRepository: (any GroomerProfileRepository)?
+    let groomerRequestRepository: (any GroomerRequestRepository)?
+    let groomerNotificationRepository: (any GroomerNotificationRepository)?
+    let operationalEventRecorder: AppOperationalEventRecorder?
+    let roleOnboardingContent: AnyView?
+
+    init(
+        route: AppEntryRoute,
+        authenticationBootstrapState: AuthenticationBootstrapState = .ready,
+        authenticationStore: AuthenticationStore? = nil,
+        profileRepository: (any ProfileRepository)? = nil,
+        customerProfileRepository: (any CustomerProfileRepository)? = nil,
+        customerPetRepository: (any CustomerPetRepository)? = nil,
+        customerRequestRepository: (any CustomerRequestRepository)? = nil,
+        customerNotificationRepository: (any CustomerNotificationRepository)? = nil,
+        bookingRepository: (any BookingRepository)? = nil,
+        chatRepository: (any ChatRepository)? = nil,
+        groomerProfileRepository: (any GroomerProfileRepository)? = nil,
+        groomerRequestRepository: (any GroomerRequestRepository)? = nil,
+        groomerNotificationRepository: (any GroomerNotificationRepository)? = nil,
+        operationalEventRecorder: AppOperationalEventRecorder? = nil,
+        roleOnboardingContent: AnyView? = nil
+    ) {
+        self.route = route
+        self.authenticationBootstrapState = authenticationBootstrapState
+        self.authenticationStore = authenticationStore
+        self.profileRepository = profileRepository
+        self.customerProfileRepository = customerProfileRepository
+        self.customerPetRepository = customerPetRepository
+        self.customerRequestRepository = customerRequestRepository
+        self.customerNotificationRepository = customerNotificationRepository
+        self.bookingRepository = bookingRepository
+        self.chatRepository = chatRepository
+        self.groomerProfileRepository = groomerProfileRepository
+        self.groomerRequestRepository = groomerRequestRepository
+        self.groomerNotificationRepository = groomerNotificationRepository
+        self.operationalEventRecorder = operationalEventRecorder
+        self.roleOnboardingContent = roleOnboardingContent
+    }
+
+    var body: some View {
+        switch route {
+        case .authentication:
+            if let authenticationStore,
+               let profileRepository,
+               let customerProfileRepository,
+               let customerPetRepository,
+               let customerRequestRepository,
+               let customerNotificationRepository,
+               let bookingRepository,
+               let chatRepository,
+               let groomerProfileRepository,
+               let groomerRequestRepository,
+               let groomerNotificationRepository {
+                AuthenticationGateView(
+                    store: authenticationStore,
+                    profileRepository: profileRepository,
+                    customerProfileRepository: customerProfileRepository,
+                    customerPetRepository: customerPetRepository,
+                    customerRequestRepository: customerRequestRepository,
+                    customerNotificationRepository: customerNotificationRepository,
+                    bookingRepository: bookingRepository,
+                    chatRepository: chatRepository,
+                    groomerProfileRepository: groomerProfileRepository,
+                    groomerRequestRepository: groomerRequestRepository,
+                    groomerNotificationRepository: groomerNotificationRepository,
+                    operationalEventRecorder: operationalEventRecorder
+                )
+            } else {
+                AuthenticationBootstrapView(state: authenticationBootstrapState)
+            }
+        case .roleOnboarding:
+            if let roleOnboardingContent {
+                roleOnboardingContent
+            } else {
+                AuthenticationBootstrapView(
+                    state: .configurationError(
+                        message: "Role onboarding requires an authenticated session."
+                    )
+                )
+            }
+        case .customer:
+            CustomerTabView()
+        case .groomer:
+            GroomerTabView()
+        }
+    }
+}
+
+#Preview("Authentication") {
+    AppRootView(route: .authentication)
+}
+
+#if DEBUG
+#Preview("Role onboarding") {
+    let session = AuthSessionSnapshot(
+        userID: UUID(),
+        email: "owner@example.com"
+    )
+    let store = AuthenticatedEntryStore(
+        repository: AppRootPreviewProfileRepository()
+    )
+
+    AppRootView(
+        route: .roleOnboarding,
+        roleOnboardingContent: AnyView(
+            RoleOnboardingView(
+                session: session,
+                store: store,
+                onSignOut: {}
+            )
+        )
+    )
+}
+#endif
+
+#Preview("Customer") {
+    AppRootView(route: .customer)
+}
+
+#Preview("Groomer") {
+    AppRootView(route: .groomer)
+}
+
+#if DEBUG
+@MainActor
+private final class AppRootPreviewProfileRepository: ProfileRepository {
+    func profile(userID: UUID) async throws -> MarketplaceProfile? {
+        nil
+    }
+
+    func createProfile(
+        role: UserRole,
+        displayName: String
+    ) async throws -> MarketplaceProfile {
+        MarketplaceProfile(
+            userID: UUID(),
+            role: role,
+            displayName: displayName
+        )
+    }
+}
+#endif

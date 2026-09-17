@@ -1,0 +1,971 @@
+import Foundation
+import Supabase
+
+@MainActor
+final class SupabaseBookingRepository: BookingRepository {
+    private static let bookingColumns = """
+        id,request_id,offer_id,customer_id,groomer_id,scheduled_start,scheduled_end,\
+        price_estimate,status,cancelled_by,cancelled_at,completed_at,completed_by,\
+        created_at,updated_at,applied_timing_buffers,service_time_zone_identifier,\
+        schedule_time_zone_identifier,occupied_start,occupied_end,agreement_snapshot
+        """
+    private static let reviewColumns = """
+        id,booking_id,customer_id,groomer_id,rating,content,created_at
+        """
+    private static let reviewPetFitOutcomeColumns = """
+        id,review_id,booking_id,customer_id,groomer_id,trait_type,trait_value,\
+        outcome,created_at
+        """
+    private static let groomerSummaryColumns =
+        "user_id,business_name,base_street_address,base_city,base_state,base_zip_code"
+    private static let requestLocationColumns =
+        "id,service_type,pet_snapshot,location_mode,street_address,city,state,zip_code"
+
+    private let client: SupabaseClient
+    private let participantAvatarLoader: SupabaseParticipantAvatarLoader
+
+    init(
+        client: SupabaseClient,
+        privateImageLoader: (any PrivateImageLoading)? = nil
+    ) {
+        self.client = client
+        participantAvatarLoader = SupabaseParticipantAvatarLoader(
+            client: client,
+            privateImageLoader: privateImageLoader
+        )
+    }
+
+    func nearestBooking(participantID: UUID, role: UserRole, now: Date) async throws -> Booking? {
+        do {
+            let rows: [SupabaseBookingRow] = try await client.from("bookings")
+                .select(Self.bookingColumns + "," + SupabaseBookingRow.fulfillmentColumns)
+                .eq(role == .customer ? "customer_id" : "groomer_id", value: participantID.uuidString.lowercased())
+                .eq("status", value: "confirmed")
+                .gte("scheduled_end", value: GroomingRequestDateFormatting.serverString(from: now))
+                .order("scheduled_start", ascending: true).order("id", ascending: true)
+                .limit(1).execute().value
+            return try await hydrate(rows).first
+        } catch { throw Self.map(error) }
+    }
+
+    func reminderSnapshot(participantID: UUID, role: UserRole) async throws -> AppointmentReminderSnapshot {
+        struct Input: Encodable { let p_participant_id: UUID; let p_role: String }
+        do {
+            return try await client.rpc("get_my_reminder_snapshot",
+                params: Input(p_participant_id: participantID, p_role: role.rawValue)).execute().value
+        } catch { throw Self.map(error) }
+    }
+
+    func bookings(participantID: UUID, role: UserRole, interval: DateInterval,
+        page: ListPageRequest) async throws -> ListPage<Booking> {
+        guard interval.duration > 0, interval.duration <= 31 * 86400 else { throw BookingRepositoryError.invalidInput }
+        do {
+            let rows: [SupabaseBookingRow] = try await client.from("bookings")
+                .select(Self.bookingColumns + "," + SupabaseBookingRow.fulfillmentColumns)
+                .eq(role == .customer ? "customer_id" : "groomer_id", value: participantID.uuidString.lowercased())
+                .in("status", values: ["confirmed", "completed", "unfulfilled"])
+                .lt("scheduled_start", value: GroomingRequestDateFormatting.serverString(from: interval.end))
+                .gt("scheduled_end", value: GroomingRequestDateFormatting.serverString(from: interval.start))
+                .order("scheduled_start", ascending: true).order("id", ascending: true)
+                .range(from: page.offset, to: page.inclusiveRangeEnd).execute().value
+            return try await ListPage(items: hydrate(rows), request: page)
+        } catch { throw Self.map(error) }
+    }
+
+    func bookings(
+        participantID: UUID,
+        role: UserRole
+    ) async throws -> [Booking] {
+        try await bookings(
+            participantID: participantID,
+            role: role,
+            page: .first
+        ).items
+    }
+
+    func bookings(
+        participantID: UUID,
+        role: UserRole,
+        page: ListPageRequest
+    ) async throws -> ListPage<Booking> {
+        do {
+            let participantColumn = switch role {
+            case .customer:
+                "customer_id"
+            case .groomer:
+                "groomer_id"
+            }
+
+            let rows: [SupabaseBookingRow] = try await client
+                .from("bookings")
+                .select(Self.bookingColumns + "," + SupabaseBookingRow.fulfillmentColumns)
+                .eq(participantColumn, value: participantID.uuidString.lowercased())
+                .order("scheduled_start", ascending: false)
+                .order("id", ascending: true)
+                .range(from: page.offset, to: page.inclusiveRangeEnd)
+                .execute()
+                .value
+
+            let bookings = try await hydrate(rows)
+            return ListPage(items: bookings, request: page)
+        } catch {
+            throw Self.map(error)
+        }
+    }
+
+    func bookings(
+        bookingIDs: [UUID]
+    ) async throws -> [Booking] {
+        let ids = uniqueLowercaseStrings(from: bookingIDs)
+        guard !ids.isEmpty else { return [] }
+
+        do {
+            let rows: [SupabaseBookingRow] = try await client
+                .from("bookings")
+                .select(Self.bookingColumns + "," + SupabaseBookingRow.fulfillmentColumns)
+                .in("id", values: ids)
+                .execute()
+                .value
+
+            return try await hydrate(rows)
+        } catch {
+            throw Self.map(error)
+        }
+    }
+
+    func offerAcceptance(offerID: UUID) async throws -> AcceptGroomerOfferResult? {
+        do {
+            let rows: [AcceptGroomerOfferRow] = try await client
+                .rpc("get_offer_acceptance", params: AcceptGroomerOfferParameters(offerID: offerID))
+                .execute().value
+            guard rows.count <= 1 else { throw BookingRepositoryError.unavailable }
+            return rows.first?.result
+        } catch {
+            throw Self.map(error)
+        }
+    }
+
+    func booking(customerID: UUID, requestID: UUID) async throws -> Booking? {
+        do {
+            let rows: [SupabaseBookingRow] = try await client.from("bookings")
+                .select(Self.bookingColumns + "," + SupabaseBookingRow.fulfillmentColumns)
+                .eq("customer_id", value: customerID.uuidString.lowercased())
+                .eq("request_id", value: requestID.uuidString.lowercased())
+                .limit(2)
+                .execute().value
+            guard rows.count <= 1 else { throw BookingRepositoryError.unavailable }
+            return try await hydrate(rows).first
+        } catch {
+            throw Self.map(error)
+        }
+    }
+
+    func acceptOffer(
+        offerID: UUID
+    ) async throws -> AcceptGroomerOfferResult {
+        do {
+            let rows: [AcceptGroomerOfferRow] = try await client
+                .rpc(
+                    "accept_groomer_offer",
+                    params: AcceptGroomerOfferParameters(offerID: offerID)
+                )
+                .execute()
+                .value
+
+            guard rows.count == 1, let result = rows.first?.result else {
+                throw BookingRepositoryError.unavailable
+            }
+
+            return result
+        } catch let error as BookingRepositoryError {
+            throw error
+        } catch {
+            throw Self.map(error)
+        }
+    }
+
+    func acceptOffer(offerID: UUID, expectedQuoteRevision: UUID) async throws -> AcceptGroomerOfferResult {
+        do {
+            let rows: [AcceptGroomerOfferRow] = try await client
+                .rpc("accept_groomer_offer_v2", params: VersionedAcceptanceParameters(
+                    offerID: offerID, expectedQuoteRevision: expectedQuoteRevision))
+                .execute().value
+            guard rows.count == 1, let result = rows.first?.result else { throw BookingRepositoryError.unavailable }
+            return result
+        } catch { throw Self.map(error) }
+    }
+
+    func cancelBooking(
+        bookingID: UUID
+    ) async throws -> CancelBookingResult {
+        do {
+            let rows: [CancelBookingRow] = try await client
+                .rpc(
+                    "cancel_booking",
+                    params: CancelBookingParameters(bookingID: bookingID)
+                )
+                .execute()
+                .value
+
+            guard rows.count == 1, let result = rows.first?.result else {
+                throw BookingRepositoryError.unavailable
+            }
+
+            return result
+        } catch let error as BookingRepositoryError {
+            throw error
+        } catch {
+            throw Self.map(error)
+        }
+    }
+
+    func completeBooking(
+        bookingID: UUID
+    ) async throws -> CompleteBookingResult {
+        do {
+            let rows: [CompleteBookingRow] = try await client
+                .rpc(
+                    "complete_booking",
+                    params: CompleteBookingParameters(bookingID: bookingID)
+                )
+                .execute()
+                .value
+
+            guard rows.count == 1, let result = rows.first?.result else {
+                throw BookingRepositoryError.unavailable
+            }
+
+            return result
+        } catch let error as BookingRepositoryError {
+            throw error
+        } catch {
+            throw Self.map(error)
+        }
+    }
+
+    func reviewContext(bookingID: UUID) async throws -> BookingReviewContext {
+        do {
+            return try await client.rpc("get_booking_review_context", params: ["p_booking_id": bookingID.uuidString.lowercased()])
+                .execute().value
+        } catch { throw Self.map(error) }
+    }
+
+    func createReview(
+        bookingID: UUID,
+        draft: BookingReviewDraft
+    ) async throws -> CreateReviewResult {
+        do {
+            guard draft.contextRevision != nil else { throw BookingRepositoryError.reviewContextChanged }
+            let row: CreateReviewRow = try await client
+                .rpc(
+                    "create_review_v2",
+                    params: CreateReviewParameters(
+                        bookingID: bookingID,
+                        draft: draft
+                    )
+                )
+                .execute()
+                .value
+
+            return row.result
+        } catch let error as BookingRepositoryError {
+            throw error
+        } catch {
+            throw Self.map(error)
+        }
+    }
+
+    func mutateFulfillment(_ operation: BookingFulfillmentOperation) async throws -> BookingFulfillmentResult {
+        do {
+            let row: SupabaseFulfillmentResponse = try await client.rpc("mutate_booking_fulfillment",
+                params: SupabaseFulfillmentParameters(operation: operation)).execute().value
+            return row.result
+        } catch { throw Self.map(error) }
+    }
+
+    func fulfillmentOperation(id: UUID) async throws -> BookingFulfillmentResult? {
+        do {
+            let row: SupabaseFulfillmentResponse? = try await client.rpc("get_booking_fulfillment_operation",
+                params: SupabaseFulfillmentLookup(operationID: id)).execute().value
+            return row?.result
+        } catch { throw Self.map(error) }
+    }
+
+    func fulfillmentEvents(bookingID: UUID) async throws -> [BookingFulfillmentEvent] {
+        do {
+            return try await client.from("booking_fulfillment_events")
+                .select("id,actor_id,action,note,recorded_at")
+                .eq("booking_id", value: bookingID.uuidString.lowercased())
+                .order("recorded_at", ascending: false).limit(50).execute().value
+        } catch { throw Self.map(error) }
+    }
+
+    func reschedule(bookingID: UUID) async throws -> BookingRescheduleResult {
+        do {
+            let response: SupabaseRescheduleResponse = try await client.rpc("get_booking_reschedule",
+                params: SupabaseRescheduleLookup(bookingID: bookingID)).execute().value
+            return response.result
+        } catch { throw Self.map(error) }
+    }
+
+    func mutateReschedule(_ operation: BookingRescheduleOperation) async throws -> BookingRescheduleResult {
+        do {
+            let response: SupabaseRescheduleResponse = try await client.rpc("mutate_booking_reschedule",
+                params: SupabaseRescheduleParameters(operation: operation)).execute().value
+            return response.result
+        } catch { throw Self.map(error) }
+    }
+
+    func rescheduleOperation(id: UUID) async throws -> BookingRescheduleResult? {
+        do {
+            let response: SupabaseRescheduleResponse? = try await client.rpc("get_booking_reschedule_operation",
+                params: SupabaseFulfillmentLookup(operationID: id)).execute().value
+            return response?.result
+        } catch { throw Self.map(error) }
+    }
+
+    private static func map(_ error: any Error) -> BookingRepositoryError {
+        if AppDebugErrorClassifier.isCancellation(error) {
+            return .cancelled
+        }
+
+        if let repositoryError = error as? BookingRepositoryError {
+            return repositoryError
+        }
+
+        if let postgrestError = error as? PostgrestError {
+            let rescheduleMessages = [
+                "booking_not_reschedulable": "Only a confirmed appointment that has not started can change time.",
+                "invalid_reschedule_time": "Choose a different valid appointment time.",
+                "invalid_reschedule_operation": "This time change could not be submitted. Refresh and try again.",
+                "reschedule_agreement_verification_required": "The original agreement needs verification before its time can change.",
+                "reschedule_notice_required": "The proposed time does not meet the current advance-notice requirement.",
+                "reschedule_outside_availability": "The proposed service and its buffers do not fit the current schedule.",
+                "reschedule_resource_conflict": "The proposed time is no longer available. The original appointment is unchanged.",
+                "reschedule_daily_limit": "The groomer has reached the daily limit on that date.",
+                "reschedule_proposal_pending": "An existing time change must be resolved or withdrawn first.",
+                "reschedule_deadline_passed": "This proposal has expired. The original appointment remains unchanged.",
+                "reschedule_proposal_changed": "This proposal or booking changed. Review the current appointment.",
+                "reschedule_other_participant_required": "The other participant must accept or decline this proposal.",
+                "reschedule_operation_intent_changed": "Reconcile the original time-change operation before submitting a different one.",
+            ]
+            if let message = rescheduleMessages[postgrestError.message] { return .rescheduleRejected(message) }
+            if let rejection = BookingFulfillmentRejection(rawValue: postgrestError.message) {
+                return .fulfillmentRejected(rejection)
+            }
+            if ["service_not_startable", "service_not_completable", "use_service_outcome_report",
+                "service_not_reportable", "report_not_withdrawable", "elapsed_closure_not_available",
+                "retrospective_completion_not_available", "objection_requires_terminal_outcome",
+                "invalid_fulfillment_action", "invalid_fulfillment_operation"].contains(postgrestError.message) {
+                return .fulfillmentRejected(.unavailable)
+            }
+            switch postgrestError.code {
+            case "42501", "28000":
+                return .notAllowed
+            case "22023":
+                switch postgrestError.message {
+                case "updated_agreement_client_required", "updated_fulfillment_client_required":
+                    return .clientUpdateRequired
+                case "quote_revision_changed", "quote_terms_invalid", "updated_agreement_offer_required":
+                    return .updatedOfferRequired
+                case "match_constraints_changed":
+                    return .matchConstraintsChanged
+                case "occupied_time_off_conflict", "occupied_outside_weekly_hours":
+                    return .bookingConflict
+                case "invalid_rating",
+                     "invalid_pet_fit_context",
+                     "invalid_review_content",
+                     "invalid_review_outcomes",
+                     "too_many_review_outcomes",
+                     "invalid_review_outcome_trait",
+                     "invalid_review_outcome_value",
+                     "duplicate_review_outcome":
+                    return .invalidReview
+                case "review_context_changed":
+                    return .reviewContextChanged
+                default:
+                    return .invalidInput
+                }
+            case "P0001":
+                switch postgrestError.message {
+                case "updated_timing_offer_required":
+                    return .updatedOfferRequired
+                case "customer_profile_required", "groomer_profile_required":
+                    return .notAllowed
+                case "offer_not_found", "invalid_offer":
+                    return .offerNotFound
+                case "offer_not_pending", "offer_expired":
+                    return .offerNoLongerPending
+                case "match_not_offerable", "request_not_open":
+                    return .requestNoLongerOpen
+                case "booking_already_exists":
+                    return .bookingAlreadyExists
+                case "booking_conflict":
+                    return .bookingConflict
+                case "booking_not_found", "invalid_booking":
+                    return .bookingNotFound
+                case "booking_not_cancellable":
+                    return .bookingNotCancellable
+                case "booking_not_completable":
+                    return .bookingNotCompletable
+                case "booking_not_completed":
+                    return .bookingNotCompleted
+                case "review_already_exists":
+                    return .reviewAlreadyExists
+                default:
+                    return .unavailable
+                }
+            case "23514":
+                return .invalidReview
+            default:
+                return .unavailable
+            }
+        }
+
+        if let urlError = error as? URLError {
+            switch urlError.code {
+            case .notConnectedToInternet,
+                 .networkConnectionLost,
+                 .timedOut,
+                 .cannotConnectToHost,
+                 .cannotFindHost,
+                 .dnsLookupFailed:
+                return .networkUnavailable
+            default:
+                return .unavailable
+            }
+        }
+
+        return .unavailable
+    }
+
+    private func hydrate(_ rows: [SupabaseBookingRow]) async throws -> [Booking] {
+        let reviewMap = try await reviewsByBookingID(
+            bookingIDs: rows.map(\.id)
+        )
+        let groomerSummaries = await groomerSummaries(
+            for: rows.map(\.groomerID)
+        )
+        let groomerAvatars = await participantAvatarLoader.groomerAvatars(
+            for: rows.map(\.groomerID)
+        )
+        let requestLocations = await requestLocations(
+            for: rows.map(\.requestID)
+        )
+
+        return rows.map { row in
+            row.booking(
+                review: reviewMap[row.id],
+                groomerSummary: groomerSummaries[row.groomerID],
+                groomerAvatarPhotoData: groomerAvatars[row.groomerID],
+                requestLocation: requestLocations[row.requestID]
+            )
+        }
+    }
+
+    private func reviewsByBookingID(
+        bookingIDs: [UUID]
+    ) async throws -> [UUID: BookingReview] {
+        let ids = Array(Set(bookingIDs)).map { $0.uuidString.lowercased() }
+        guard !ids.isEmpty else { return [:] }
+
+        let rows: [BookingReviewRow] = try await client
+            .from("reviews")
+            .select(Self.reviewColumns)
+            .in("booking_id", values: ids)
+            .execute()
+            .value
+
+        let outcomesByReviewID = try await reviewPetFitOutcomesByReviewID(
+            reviewIDs: rows.map(\.id)
+        )
+
+        return Dictionary(
+            uniqueKeysWithValues: rows.map {
+                (
+                    $0.bookingID,
+                    $0.review(
+                        petFitOutcomes: outcomesByReviewID[$0.id, default: []]
+                    )
+                )
+            }
+        )
+    }
+
+    private func reviewPetFitOutcomesByReviewID(
+        reviewIDs: [UUID]
+    ) async throws -> [UUID: [BookingReviewPetFitOutcomeRecord]] {
+        let ids = uniqueLowercaseStrings(from: reviewIDs)
+        guard !ids.isEmpty else { return [:] }
+
+        let rows: [BookingReviewPetFitOutcomeRow] = try await client
+            .from("review_pet_fit_outcomes")
+            .select(Self.reviewPetFitOutcomeColumns)
+            .in("review_id", values: ids)
+            .order("created_at")
+            .execute()
+            .value
+
+        var recordsByReviewID: [UUID: [BookingReviewPetFitOutcomeRecord]] = [:]
+        for row in rows {
+            guard let record = row.record else { continue }
+            recordsByReviewID[row.reviewID, default: []].append(record)
+        }
+
+        return recordsByReviewID.mapValues {
+            $0.sorted {
+                if $0.signal.sortOrder == $1.signal.sortOrder {
+                    $0.title < $1.title
+                } else {
+                    $0.signal.sortOrder < $1.signal.sortOrder
+                }
+            }
+        }
+    }
+
+    private func groomerSummaries(
+        for groomerIDs: [UUID]
+    ) async -> [UUID: BookingGroomerSummary] {
+        let ids = uniqueLowercaseStrings(from: groomerIDs)
+        guard !ids.isEmpty else { return [:] }
+
+        do {
+            let rows: [BookingGroomerSummaryRow] = try await client
+                .from("groomer_profiles")
+                .select(Self.groomerSummaryColumns)
+                .in("user_id", values: ids)
+                .execute()
+                .value
+
+            return Dictionary(
+                uniqueKeysWithValues: rows.map { ($0.userID, $0.summary) }
+            )
+        } catch {
+            return [:]
+        }
+    }
+
+    private func requestLocations(
+        for requestIDs: [UUID]
+    ) async -> [UUID: BookingRequestLocation] {
+        let ids = uniqueLowercaseStrings(from: requestIDs)
+        guard !ids.isEmpty else { return [:] }
+
+        do {
+            let rows: [BookingRequestLocationRow] = try await client
+                .from("grooming_requests")
+                .select(Self.requestLocationColumns)
+                .in("id", values: ids)
+                .execute()
+                .value
+
+            return Dictionary(
+                uniqueKeysWithValues: rows.map { ($0.id, $0.location) }
+            )
+        } catch {
+            return [:]
+        }
+    }
+
+    private func uniqueLowercaseStrings(from ids: [UUID]) -> [String] {
+        Array(Set(ids)).map { $0.uuidString.lowercased() }
+    }
+}
+
+private extension SupabaseBookingRow {
+    func booking(
+        review: BookingReview?,
+        groomerSummary: BookingGroomerSummary?,
+        groomerAvatarPhotoData: Data?,
+        requestLocation: BookingRequestLocation?
+    ) -> Booking {
+        Booking(
+            id: id,
+            requestID: requestID,
+            offerID: offerID,
+            customerID: customerID,
+            groomerID: groomerID,
+            scheduledStart: scheduledStart,
+            scheduledEnd: scheduledEnd,
+            priceEstimate: priceEstimate,
+            status: status,
+            cancelledBy: cancelledBy,
+            cancelledAt: cancelledAt,
+            completedAt: completedAt,
+            completedBy: completedBy,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            review: review,
+            serviceType: agreementSnapshot?.serviceType ?? requestLocation?.serviceType,
+            requestPetSnapshot: agreementSnapshot?.petSnapshot ?? requestLocation?.petSnapshot,
+            groomerBusinessName: groomerSummary?.businessName,
+            groomerAvatarPhotoData: groomerAvatarPhotoData,
+            groomerBaseStreetAddress: groomerSummary?.baseStreetAddress,
+            groomerBaseCity: groomerSummary?.baseCity,
+            groomerBaseState: groomerSummary?.baseState,
+            groomerBaseZipCode: groomerSummary?.baseZipCode,
+            locationMode: agreementSnapshot?.locationMode ?? requestLocation?.locationMode,
+            customerStreetAddress: requestLocation?.streetAddress,
+            customerCity: requestLocation?.city,
+            customerState: requestLocation?.state,
+            customerZipCode: requestLocation?.zipCode,
+            appliedTimingBuffers: appliedTimingBuffers,
+            serviceTimeZoneIdentifier: serviceTimeZoneIdentifier,
+            scheduleTimeZoneIdentifier: scheduleTimeZoneIdentifier,
+            occupiedStart: occupiedStart,
+            occupiedEnd: occupiedEnd,
+            agreementSnapshot: agreementSnapshot,
+            fulfillment: fulfillment
+        )
+    }
+}
+
+private struct BookingGroomerSummary: Sendable {
+    let businessName: String?
+    let baseStreetAddress: String?
+    let baseCity: String?
+    let baseState: String?
+    let baseZipCode: String?
+}
+
+private struct BookingGroomerSummaryRow: Decodable {
+    let userID: UUID
+    let businessName: String?
+    let baseStreetAddress: String?
+    let baseCity: String?
+    let baseState: String?
+    let baseZipCode: String?
+
+    var summary: BookingGroomerSummary {
+        BookingGroomerSummary(
+            businessName: businessName,
+            baseStreetAddress: baseStreetAddress,
+            baseCity: baseCity,
+            baseState: baseState,
+            baseZipCode: baseZipCode
+        )
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case userID = "user_id"
+        case businessName = "business_name"
+        case baseStreetAddress = "base_street_address"
+        case baseCity = "base_city"
+        case baseState = "base_state"
+        case baseZipCode = "base_zip_code"
+    }
+}
+
+private struct BookingRequestLocation: Sendable {
+    let serviceType: GroomingServiceType
+    let petSnapshot: GroomingRequestPetSnapshot
+    let locationMode: GroomingLocationMode
+    let streetAddress: String
+    let city: String
+    let state: String
+    let zipCode: String
+}
+
+private struct BookingRequestLocationRow: Decodable {
+    let id: UUID
+    let serviceType: GroomingServiceType
+    let petSnapshot: GroomingRequestPetSnapshot
+    let locationMode: GroomingLocationMode
+    let streetAddress: String
+    let city: String
+    let state: String
+    let zipCode: String
+
+    var location: BookingRequestLocation {
+        BookingRequestLocation(
+            serviceType: serviceType,
+            petSnapshot: petSnapshot,
+            locationMode: locationMode,
+            streetAddress: streetAddress,
+            city: city,
+            state: state,
+            zipCode: zipCode
+        )
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case serviceType = "service_type"
+        case petSnapshot = "pet_snapshot"
+        case locationMode = "location_mode"
+        case streetAddress = "street_address"
+        case city
+        case state
+        case zipCode = "zip_code"
+    }
+}
+
+private struct BookingReviewRow: Decodable {
+    let id: UUID
+    let bookingID: UUID
+    let customerID: UUID
+    let groomerID: UUID
+    let rating: Int
+    let content: String?
+    let createdAt: String
+
+    func review(
+        petFitOutcomes: [BookingReviewPetFitOutcomeRecord] = []
+    ) -> BookingReview {
+        BookingReview(
+            id: id,
+            bookingID: bookingID,
+            customerID: customerID,
+            groomerID: groomerID,
+            rating: rating,
+            content: content,
+            createdAt: createdAt,
+            petFitOutcomes: petFitOutcomes
+        )
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case bookingID = "booking_id"
+        case customerID = "customer_id"
+        case groomerID = "groomer_id"
+        case rating
+        case content
+        case createdAt = "created_at"
+    }
+}
+
+private struct BookingReviewPetFitOutcomeRow: Decodable {
+    let id: UUID
+    let reviewID: UUID
+    let bookingID: UUID
+    let customerID: UUID
+    let groomerID: UUID
+    let traitType: String
+    let traitValue: String
+    let outcomeRawValue: String
+    let createdAt: String
+
+    var record: BookingReviewPetFitOutcomeRecord? {
+        guard let signal = PetFitSignal.stored(
+            traitType: traitType,
+            traitValue: traitValue
+        ),
+              let outcome = BookingReviewPetFitOutcome(rawValue: outcomeRawValue)
+        else {
+            return nil
+        }
+
+        return BookingReviewPetFitOutcomeRecord(
+            id: id,
+            signal: signal,
+            outcome: outcome
+        )
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case reviewID = "review_id"
+        case bookingID = "booking_id"
+        case customerID = "customer_id"
+        case groomerID = "groomer_id"
+        case traitType = "trait_type"
+        case traitValue = "trait_value"
+        case outcomeRawValue = "outcome"
+        case createdAt = "created_at"
+    }
+}
+
+private struct AcceptGroomerOfferRow: Decodable {
+    let bookingID: UUID
+    let conversationID: UUID
+    let requestID: UUID
+    let offerID: UUID
+    let bookingStatus: BookingStatus
+    let offerStatus: GroomerOfferStatus
+    let requestStatus: GroomingRequestStatus
+
+    var result: AcceptGroomerOfferResult {
+        AcceptGroomerOfferResult(
+            bookingID: bookingID,
+            conversationID: conversationID,
+            requestID: requestID,
+            offerID: offerID,
+            bookingStatus: bookingStatus,
+            offerStatus: offerStatus,
+            requestStatus: requestStatus
+        )
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case bookingID = "booking_id"
+        case conversationID = "conversation_id"
+        case requestID = "request_id"
+        case offerID = "offer_id"
+        case bookingStatus = "booking_status"
+        case offerStatus = "offer_status"
+        case requestStatus = "request_status"
+    }
+}
+
+private struct CancelBookingRow: Decodable {
+    let bookingID: UUID
+    let bookingStatus: BookingStatus
+    let cancelledTimestamp: String?
+    let cancelledBy: UUID?
+
+    var result: CancelBookingResult {
+        CancelBookingResult(
+            bookingID: bookingID,
+            bookingStatus: bookingStatus,
+            cancelledTimestamp: cancelledTimestamp,
+            cancelledBy: cancelledBy
+        )
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case bookingID = "booking_id"
+        case bookingStatus = "booking_status"
+        case cancelledTimestamp = "cancelled_timestamp"
+        case cancelledBy = "cancelled_by"
+    }
+}
+
+private struct CompleteBookingRow: Decodable {
+    let bookingID: UUID
+    let bookingStatus: BookingStatus
+    let completedTimestamp: String?
+    let completedBy: UUID?
+
+    var result: CompleteBookingResult {
+        CompleteBookingResult(
+            bookingID: bookingID,
+            bookingStatus: bookingStatus,
+            completedTimestamp: completedTimestamp,
+            completedBy: completedBy
+        )
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case bookingID = "booking_id"
+        case bookingStatus = "booking_status"
+        case completedTimestamp = "completed_timestamp"
+        case completedBy = "completed_by"
+    }
+}
+
+private struct CreateReviewRow: Decodable {
+    let reviewID: UUID
+    let bookingID: UUID
+    let customerID: UUID
+    let groomerID: UUID
+    let rating: Int
+    let content: String?
+    let createdAt: String
+    let groomerRatingAverage: Double
+    let groomerRatingCount: Int
+
+    var result: CreateReviewResult {
+        CreateReviewResult(
+            review: BookingReview(
+                id: reviewID,
+                bookingID: bookingID,
+                customerID: customerID,
+                groomerID: groomerID,
+                rating: rating,
+                content: content,
+                createdAt: createdAt
+            ),
+            groomerRatingAverage: groomerRatingAverage,
+            groomerRatingCount: groomerRatingCount
+        )
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case reviewID = "review_id"
+        case bookingID = "booking_id"
+        case customerID = "customer_id"
+        case groomerID = "groomer_id"
+        case rating
+        case content
+        case createdAt = "created_at"
+        case groomerRatingAverage = "groomer_rating_avg"
+        case groomerRatingCount = "groomer_rating_count"
+    }
+}
+
+private struct VersionedAcceptanceParameters: Encodable {
+    let offerID: UUID
+    let expectedQuoteRevision: UUID
+    private enum CodingKeys: String, CodingKey {
+        case offerID = "p_offer_id"
+        case expectedQuoteRevision = "p_expected_quote_revision"
+    }
+}
+
+private struct AcceptGroomerOfferParameters: Encodable {
+    let offerID: UUID
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(offerID.uuidString.lowercased(), forKey: .offerID)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case offerID = "p_offer_id"
+    }
+}
+
+private struct CancelBookingParameters: Encodable {
+    let bookingID: UUID
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(bookingID.uuidString.lowercased(), forKey: .bookingID)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case bookingID = "p_booking_id"
+    }
+}
+
+private struct CompleteBookingParameters: Encodable {
+    let bookingID: UUID
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(bookingID.uuidString.lowercased(), forKey: .bookingID)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case bookingID = "p_booking_id"
+    }
+}
+
+nonisolated struct CreateReviewParameters: Encodable {
+    let bookingID: UUID
+    let draft: BookingReviewDraft
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(bookingID.uuidString.lowercased(), forKey: .bookingID)
+        try container.encode(draft.rating, forKey: .rating)
+        try container.encode(draft.contextRevision, forKey: .contextRevision)
+
+        if let content = draft.content {
+            try container.encode(content, forKey: .content)
+        } else {
+            try container.encodeNil(forKey: .content)
+        }
+
+        try container.encode(draft.petFitOutcomes, forKey: .petFitOutcomes)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case bookingID = "p_booking_id"
+        case rating = "p_rating"
+        case contextRevision = "p_expected_context_revision"
+        case content = "p_content"
+        case petFitOutcomes = "p_pet_fit_outcomes"
+    }
+}

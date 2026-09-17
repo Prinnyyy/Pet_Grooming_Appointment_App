@@ -45,4 +45,14 @@ Submission controls remain disabled only while that specific operation is in fli
 
 ## Logging and Debug Panel
 
-Allowed diagnostics include environment label, current user ID, profile role, sanitized operation name, safe record ID, and last API error category. Never log or display passwords, refresh tokens, full access tokens, secret keys, or full sensitive payloads.
+Allowed diagnostics include environment label, profile role, sanitized operation name, safe record ID, safe counts, table/RPC name, and last API error category. Never log or display passwords, refresh tokens, full access tokens, secret keys, signed URLs, authorization headers, full email addresses, full UUIDs, or full sensitive payloads.
+
+DEBUG builds use the global Debug Console and structured event recorder described in `docs/04_ios/DEBUG_CONSOLE.md`. When diagnosing a local repro, read the event chain in this order:
+
+```text
+navigation -> store -> repository -> feedback
+```
+
+For toast or persistent prompt bugs, inspect `category=feedback` events for enqueue, presented, dismissed, duplicate/stale suppression, and scope clearing. For load or mutation bugs, inspect the Store event first and then the repository event with the same operation or nearby timestamp.
+
+Cancellations are diagnostic events, not user-facing failures. `CancellationError`, `URLError.cancelled`, and `NSURLErrorDomain -999` should be recorded as cancelled/info or warning and must not set Store `errorMessage` by themselves.

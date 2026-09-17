@@ -1,47 +1,44 @@
 # Screen Inventory
 
-Status values are `baseline`, `groomly adapted`, `planned`, and `deferred`. A planned source path is a placement contract, not an existing file.
+Last verified: 2026-07-13.
 
-## Groomly UI Phase
+Status values: `beckon adapted`, `planned`, `deferred`. Planned paths are placement contracts, not proof that a file exists.
 
-T-023 started the Groomly UI phase with design audit, implementation notes, design tokens, and shared SwiftUI DesignSystem primitives only. T-024 through T-035 completed the implemented MVP screen adaptation, but their data sources, state owners, role ownership, loading/empty/error states, and repository boundaries remain unchanged unless a separate task explicitly authorizes a behavior change.
+Future UI work is screenshot-driven. Map every visible module to this table plus the existing SwiftUI view, Store, repository, and model path before editing. If a screenshot implies new persistence, schema, RLS, RPC, Storage, navigation, role capability, or deferred feature, stop for approval.
 
-The completed Groomly UI phase is archived as historical context. Future UI work is screenshot-driven: each screenshot task must map visible modules to this inventory, existing SwiftUI views, and existing Store/repository/model paths before editing. Visual adaptation must preserve the current Open Request -> Groomer Offer -> Customer Confirmation -> Booking model. If a screenshot or Groomly prototype screen implies a deferred feature, backend change, new navigation model, or new role capability, record it as visual inspiration only and stop before implementing it.
+| Screen | Role | Data/State Owner | Source | Status |
+|---|---|---|---|---|
+| AuthenticationBootstrapView | Shared | App config / View | `Features/Auth/AuthenticationBootstrapView.swift` | beckon adapted |
+| AuthenticationGateView | Shared | Auth session / `AuthenticationStore` | `Features/Auth/AuthenticationGateView.swift` | beckon adapted |
+| AuthenticationView | Shared | Supabase Auth / `AuthenticationStore` | `Features/Auth/AuthenticationView.swift` | beckon adapted |
+| AuthenticatedEntryView | Shared | `profiles` / `AuthenticatedEntryStore` | `Features/Auth/AuthenticatedEntryView.swift` | beckon adapted |
+| RoleOnboardingView | Shared | `create_my_profile` / `AuthenticatedEntryStore` | `Features/Auth/RoleOnboardingView.swift` | beckon adapted |
+| CustomerHomeView | Customer | pets, pet photos, unread notifications / `CustomerPetsStore`, `CustomerNotificationsStore` | `Features/Customer/Pets/CustomerPetsView.swift` | beckon adapted; semantic/AX3 reference |
+| CustomerNotificationsView | Customer | `customer_notifications`, mark-read RPCs / `CustomerNotificationsStore` | `Features/Customer/Notifications/CustomerNotificationsView.swift` | beckon adapted |
+| PetListView / PetEditorView | Customer | `pets`, `pet_photos`, Storage / `CustomerPetsStore` | `Features/Customer/Pets/CustomerPetsView.swift` | beckon adapted |
+| CustomerRequestsView / RequestWizardView | Customer | own requests, pets, request RPC / `CustomerRequestsStore` | `Features/Customer/Requests/CustomerRequestsView.swift`, `Features/Customer/Requests/CustomerRequestWizardView.swift` | beckon adapted; semantic/AX3 reference |
+| CustomerRequestDetailView / CustomerOfferReviewSection | Customer | requests, offers, active groomer summaries, accept RPC / `CustomerRequestsStore` | `Features/Customer/Requests/CustomerRequestsView.swift` | beckon adapted |
+| CustomerBookingListView | Customer | `bookings`, `reviews`, cancel/review RPCs / `BookingsStore` | `Features/Bookings/BookingsView.swift` | beckon adapted |
+| GroomerHomeView | Groomer | Existing profile/request/offer/booking/notification/chat repositories / planned `GroomerHomeStore` | Planned `Features/Groomer/Home/` | planned R-039/Q-97 |
+| GroomerProfileEditorView / PortfolioView | Groomer | profile, services, portfolio metadata, Storage / `GroomerProfileStore` | `Features/Groomer/Profile/GroomerProfileManagementView.swift` | beckon adapted |
+| MatchedRequestFeedView | Groomer | `request_matches`, `grooming_requests` / `GroomerRequestsStore` | `Features/Groomer/Requests/GroomerRequestsView.swift` | beckon adapted |
+| GroomerRequestDetailView / MakeOfferSection | Groomer | match/request reads, offer RPCs / `GroomerRequestsStore` | `Features/Groomer/Requests/GroomerRequestsView.swift` | beckon adapted |
+| GroomerOffersView | Groomer | offers with visible request/booking context / `GroomerOffersStore` | `Features/Groomer/Offers/GroomerOffersView.swift` | beckon adapted |
+| GroomerBookingListView | Groomer | participant bookings, reviews, cancel/complete RPCs / `BookingsStore` | `Features/Bookings/BookingsView.swift` | beckon adapted |
+| BookingDetailView / BookingReviewSection | Shared | booking, review, cancel/complete/review RPCs / `BookingsStore` | `Features/Bookings/BookingsView.swift` | beckon adapted |
+| ConversationListView / ChatView | Shared | participant-pair `conversations`, typed `messages`, live bookings / `ChatStore`, `BookingsStore` | `Features/Chat/ChatView.swift` | beckon adapted; booking-event cards route to role Booking detail |
+| AuthenticatedAccountView | Shared | Auth session and loaded profile / `AuthenticationStore` | `Features/Auth/AuthenticatedAccountView.swift` | beckon adapted |
+| CustomerAccountView | Customer | Customer profile plus Auth session / `CustomerProfileStore`, `AuthenticationStore` | `Features/Customer/Profile/CustomerAccountView.swift` | beckon adapted; semantic/AX3 reference |
+| CustomerTabView | Customer | injected customer repositories / View | `Features/Customer/CustomerTabView.swift` | beckon adapted |
+| GroomerTabView | Groomer | injected groomer repositories / View | `Features/Groomer/GroomerTabView.swift` | beckon adapted |
+| FeaturePlaceholderView | Shared | disconnected fallback / View | `DesignSystem/FeaturePlaceholderView.swift` | beckon adapted |
+| DebugPanel / Debug Console | Developer | sanitized diagnostics and DEBUG event logs / diagnostics helpers | `Features/Debug/`, `Core/Diagnostics/`, `scripts/ios-debug-events.sh` | beckon adapted |
+| Admin Dashboard | Admin | Not defined | No MVP task | deferred |
 
-| Screen | Purpose | Role | Planned Data Source | State Owner | Source / Task | Status |
-|---|---|---|---|---|---|---|
-| AuthenticationBootstrapView | Blocking missing/invalid Supabase configuration state | Shared | App configuration | View | `Features/Auth/AuthenticationBootstrapView.swift` / T-024 | groomly adapted |
-| AuthenticationGateView | Restore/observe Auth session and select signed-out or authenticated entry UI | Shared | Supabase Auth session | `AuthenticationStore` | `Features/Auth/AuthenticationGateView.swift` / T-006–T-007, T-024 | groomly adapted |
-| AuthenticationView | Email/password sign-in and account creation with confirmation notice | Shared | Supabase Auth | `AuthenticationStore` | `Features/Auth/AuthenticationView.swift` / T-006, T-024 | groomly adapted |
-| AuthenticatedEntryView | Load authoritative profile and select onboarding, Customer tabs, Groomer tabs, or retryable failure | Shared | `profiles` | `AuthenticatedEntryStore` | `Features/Auth/AuthenticatedEntryView.swift` / T-007, T-024 | groomly adapted |
-| RoleOnboardingView | Enter display name, select immutable role, and create profile rows | Shared | `create_my_profile` | `AuthenticatedEntryStore` | `Features/Auth/RoleOnboardingView.swift` / T-007, T-024 | groomly adapted |
-| CustomerHomeView | Customer home surface for pet management before requests | Customer | Own pets and pet photos | `CustomerPetsStore` | `Features/Customer/Pets/CustomerPetsView.swift` / T-009, T-025 | groomly adapted |
-| PetListView | List and manage owned pets | Customer | `pets`, `pet_photos` | `CustomerPetsStore` | `Features/Customer/Pets/CustomerPetsView.swift` / T-009, T-025 | groomly adapted |
-| PetEditorView | Create/edit pet and upload photos | Customer | `pets`, `pet_photos`, Storage | `CustomerPetsStore` | `Features/Customer/Pets/CustomerPetsView.swift` / T-009, T-025 | groomly adapted |
-| CustomerRequestsView | Customer requests tab shell, list, request summary rows, and status states | Customer | Own `grooming_requests`, offer summaries where loaded | `CustomerRequestsStore` | `Features/Customer/Requests/CustomerRequestsView.swift` / T-013, T-017, T-019, T-026 | groomly adapted |
-| RequestWizardView | Compose and publish one request | Customer | Pet repository, request RPC | `CustomerRequestsStore` | `Features/Customer/Requests/CustomerRequestsView.swift` / T-013, T-027 | groomly adapted |
-| CustomerRequestDetailView | Show owned request status, frozen pet snapshot, time, location, received offers, and offer acceptance entry point | Customer | `grooming_requests`, `groomer_offers`, active `groomer_profiles` summaries, `accept_groomer_offer` | `CustomerRequestsStore` | `Features/Customer/Requests/CustomerRequestsView.swift` / T-013, T-017, T-019, T-028 | groomly adapted |
-| CustomerOfferReviewSection | Compare pending offers, separate offer history, and open offer details inside owned request detail | Customer | `groomer_offers`, active `groomer_profiles` summaries | `CustomerRequestsStore` | `Features/Customer/Requests/CustomerRequestsView.swift` / T-017, T-028 | groomly adapted |
-| CustomerBookingListView | Show owned bookings with appointment time/price/status context, support references, booking details, and completed-booking review state | Customer | `bookings`, `reviews`, `cancel_booking`, `create_review` | `BookingsStore` | `Features/Bookings/BookingsView.swift` / T-019, T-021, T-033 | groomly adapted |
-| GroomerProfileEditorView | Maintain groomer profile and services | Groomer | `groomer_profiles`, `groomer_services` | `GroomerProfileStore` | `Features/Groomer/Profile/GroomerProfileManagementView.swift` / T-011, T-031 | groomly adapted |
-| GroomerPortfolioView | Manage portfolio image metadata and upload/delete path | Groomer | `groomer_portfolio_photos`, Storage | `GroomerProfileStore` | `Features/Groomer/Profile/GroomerProfileManagementView.swift` / T-011, T-032 | groomly adapted |
-| MatchedRequestFeedView | Browse assigned open requests | Groomer | `request_matches`, `grooming_requests` | `GroomerRequestsStore` | `Features/Groomer/Requests/GroomerRequestsView.swift` / T-014, T-029 | groomly adapted |
-| GroomerRequestDetailView | Review matched request, dismiss, submit an offer, and withdraw a pending offer | Groomer | Match/request reads and offer RPCs | `GroomerRequestsStore` | `Features/Groomer/Requests/GroomerRequestsView.swift` / T-014, T-016, T-029, T-030 | groomly adapted |
-| MakeOfferSection | Validate and submit a groomer offer inside matched request detail | Groomer | `create_groomer_offer`, `withdraw_groomer_offer` | `GroomerRequestsStore` | `Features/Groomer/Requests/GroomerRequestsView.swift` / T-016, T-030 | groomly adapted |
-| GroomerBookingListView | Show groomer participant bookings with appointment time/price/status context, support references, booking details, and completion state | Groomer | `bookings`, `reviews`, `cancel_booking`, `complete_booking` | `BookingsStore` | `Features/Bookings/BookingsView.swift` / T-019, T-021, T-033 | groomly adapted |
-| BookingDetailView | Show shared participant booking details, support references, cancellation state, groomer completion action, and customer review form/display | Shared | `bookings`, `reviews`, `cancel_booking`, `complete_booking`, `create_review` | `BookingsStore` | `Features/Bookings/BookingsView.swift` / T-019, T-021, T-033 | groomly adapted |
-| ConversationListView | Show booking conversations with participant-readable booking context | Shared | `conversations`, `bookings`, active `groomer_profiles` summaries where RLS permits | `ChatStore` | `Features/Chat/ChatView.swift` / T-020, T-034 | groomly adapted |
-| ChatView | Participant-only text booking chat with booking support context | Shared | `messages`, `bookings` | `ChatStore` | `Features/Chat/ChatView.swift` / T-020, T-034 | groomly adapted |
-| BookingReviewSection | Submit or display one review for a completed booking inside booking detail | Customer | `create_review`, `reviews` | `BookingsStore` | `Features/Bookings/BookingsView.swift` / T-021, T-033 | groomly adapted |
-| AuthenticatedAccountView | Show minimal authenticated identity/role and sign out | Shared | Auth session, loaded profile | `AuthenticationStore` | `Features/Auth/AuthenticatedAccountView.swift` / T-007, T-035 | groomly adapted |
-| CustomerTabView | Customer role root tab shell and disconnected placeholder fallback | Customer | Injected customer repositories and account content | View | `Features/Customer/CustomerTabView.swift` / T-001, T-007, T-035 | groomly adapted |
-| GroomerTabView | Groomer role root tab shell and disconnected placeholder fallback | Groomer | Injected groomer repositories and account content | View | `Features/Groomer/GroomerTabView.swift` / T-001, T-007, T-035 | groomly adapted |
-| FeaturePlaceholderView | Honest disconnected placeholder fallback for unavailable injected tab content | Shared | None | View | `DesignSystem/FeaturePlaceholderView.swift` / T-001, T-035 | groomly adapted |
-| DebugPanel | Show safe development diagnostics without tokens, passwords, full keys, or full user identifiers | Developer only | Sanitized app/session/config values | `DebugDiagnostics` | `Features/Debug/` / T-022, T-035 | groomly adapted |
-| Admin Dashboard | Administrative management | Admin | Not defined | Not defined | No MVP task | deferred |
+## Role Tab Summary
 
-The current customer `TabView` renders customer pet management on Home, request wizard/list/detail/offer acceptance on Requests, participant bookings on Bookings, participant text chat on Messages, and authenticated Account content. The current groomer `TabView` renders matched request feed/detail/dismiss/offer creation on Requests, participant bookings on Bookings, participant text chat on Messages, groomer profile/services/portfolio management on Account, and generic placeholder content for Offers.
-
-## Screenshot Rework Mapping Rule
-
-For each uploaded screenshot, classify every visible module as `visual-only`, `existing-feature rewire`, `reusable UI primitive`, or `new feature`. Existing features must use the Planned Data Source and State Owner listed above. New features require a stop report and explicit approval before implementation.
+- Customer tabs: Home, Requests, Bookings, Messages, Account.
+- Current Groomer code exposes Board, Offers, Schedule, Messages, Alerts, and Account; iOS places Alerts/Account under a system More tab.
+- Approved R-039 Groomer target: Home, Requests, Schedule, Messages, Account.
+- R-039 moves submitted-offer tracking into the Requests `Matches` / `Offers` workspace and opens Notifications from Groomer Home. Offer creation and withdrawal behavior remains owned by the existing request/offer features.
+- Visual adaptation must preserve Open Request -> Groomer Offer -> Customer Confirmation -> Booking.

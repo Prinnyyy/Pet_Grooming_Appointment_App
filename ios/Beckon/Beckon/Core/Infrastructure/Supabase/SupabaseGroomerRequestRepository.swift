@@ -1,0 +1,866 @@
+import Foundation
+import Supabase
+
+@MainActor
+final class SupabaseGroomerRequestRepository: GroomerRequestRepository {
+    private static let matchColumns = """
+        id,request_id,groomer_id,customer_id,match_score,match_reason,dismiss_reason,\
+        status,viewed_at,dismissed_at,created_at,updated_at,eligibility_evaluation
+        """
+    private static let requestColumns = """
+        id,customer_id,pet_id,pet_snapshot,photo_snapshot,service_type,service_notes,\
+        preferred_start,preferred_end,preference_time_zone_identifier,location_mode,street_address,city,state,zip_code,\
+        travel_radius_miles,status,expires_at,created_at,updated_at,terms_revision
+        """
+    private static let offerColumns = """
+        id,request_id,match_id,customer_id,groomer_id,proposed_start,proposed_end,\
+        price_estimate,message,status,expires_at,withdrawn_at,created_at,updated_at,\
+        applied_timing_buffers,service_time_zone_identifier,schedule_time_zone_identifier,occupied_start,occupied_end,agreement_snapshot
+        """
+    private static let bookingColumns = """
+        id,request_id,offer_id,customer_id,groomer_id,scheduled_start,scheduled_end,\
+        price_estimate,status,cancelled_by,cancelled_at,completed_at,completed_by,\
+        created_at,updated_at,applied_timing_buffers,service_time_zone_identifier,\
+        schedule_time_zone_identifier,occupied_start,occupied_end,agreement_snapshot
+        """
+    private static let requestPhotoColumns =
+        "id,request_id,customer_id,storage_bucket,storage_path,caption,sort_order,created_at"
+    private static let requestPhotoBucketID = PhotoStorageBucketID.groomingRequest.rawValue
+
+    private let client: SupabaseClient
+    private let privateImageLoader: any PrivateImageLoading
+
+    init(
+        client: SupabaseClient,
+        privateImageLoader: (any PrivateImageLoading)? = nil
+    ) {
+        self.client = client
+        self.privateImageLoader = privateImageLoader ?? PrivateImageLoader(
+            dataSource: SupabasePrivateImageDataSource(client: client)
+        )
+    }
+
+    func matchedRequests(groomerID: UUID) async throws -> [GroomerMatchedRequest] {
+        try await matchedRequests(groomerID: groomerID, page: .first).items
+    }
+
+    func rankedMatches(groomerID: UUID, page: RankedPageRequest<GroomerMatchSort>) async throws -> RankedPage<GroomerMatchedRequest> {
+        do {
+            let row: RankedPageRow<RankedMatchRow> = try await client.rpc("get_ranked_matched_requests_v2",
+                params: RankedMatchParameters(p_sort: page.mode.rawValue, p_limit: page.limit, p_cursor: page.cursor))
+                .execute().value
+            let result = try row.page()
+            guard result.requestedMode == page.mode.rawValue,
+                  result.effectiveMode == page.mode.rawValue || (page.mode == .fit && result.effectiveMode == "time_fallback") else {
+                throw MatchRankingError.unavailable
+            }
+            return try result.mapping { item in
+                guard item.match.groomerID == groomerID, item.match.requestID == item.request.id else {
+                    throw GroomerRequestRepositoryError.notAllowed
+                }
+                return GroomerMatchedRequest(match: item.match.match, request: item.request.request,
+                    offer: nil, matchingEvidence: item.evidence)
+            }
+        } catch let error as MatchRankingError { throw error }
+        catch let error as PostgrestError where error.message == "list_changed" { throw MatchRankingError.listChanged }
+        catch let error as PostgrestError where error.message == "invalid_cursor" { throw MatchRankingError.invalidCursor }
+        catch let error as PostgrestError where error.message == "ranking_unavailable" { throw MatchRankingError.unavailable }
+        catch { throw Self.map(error) }
+    }
+
+    func matchedRequests(
+        groomerID: UUID,
+        page: ListPageRequest
+    ) async throws -> ListPage<GroomerMatchedRequest> {
+        do {
+            let matchRows: [GroomerRequestMatchRow] = try await client
+                .rpc("get_my_matched_requests", params: MatchedRequestParameters(
+                    groomerID: groomerID, limit: page.fetchLimit, offset: page.offset
+                ))
+                .select(Self.matchColumns)
+                .execute()
+                .value
+
+            return ListPage(items: try await hydrateMatches(matchRows, groomerID: groomerID), request: page)
+        } catch { throw Self.map(error) }
+    }
+
+    func matchedRequest(groomerID: UUID, requestID: UUID) async throws -> GroomerMatchedRequest {
+        do {
+            let rows: [GroomerRequestMatchRow] = try await client.rpc("get_my_matched_request", params: [
+                "p_groomer_id": groomerID.uuidString.lowercased(), "p_request_id": requestID.uuidString.lowercased()
+            ]).select(Self.matchColumns).execute().value
+            guard rows.count == 1, let item = try await hydrateMatches(rows, groomerID: groomerID).first else {
+                throw GroomerRequestRepositoryError.matchNotFound
+            }
+            return item
+        } catch { throw Self.map(error) }
+    }
+
+    private func hydrateMatches(_ matchRows: [GroomerRequestMatchRow], groomerID: UUID) async throws -> [GroomerMatchedRequest] {
+            guard !matchRows.isEmpty else { return [] }
+
+            let requestIDs = matchRows.map {
+                $0.requestID.uuidString.lowercased()
+            }
+
+            let requestRows: [GroomerMatchedGroomingRequestRow] = try await client
+                .from("grooming_requests")
+                .select(Self.requestColumns)
+                .in("id", values: requestIDs)
+                .in(
+                    "status",
+                    values: [
+                        GroomingRequestStatus.open.rawValue,
+                        GroomingRequestStatus.hasOffers.rawValue,
+                    ]
+                )
+                .execute()
+                .value
+
+            let requestsByID = Dictionary(
+                uniqueKeysWithValues: requestRows.map { ($0.id, $0.request) }
+            )
+
+            let offerRows: [SupabaseGroomerOfferRow] = try await client
+                .from("groomer_offers")
+                .select(Self.offerColumns)
+                .eq("groomer_id", value: groomerID.uuidString.lowercased())
+                .in("request_id", values: requestIDs)
+                .order("created_at", ascending: false)
+                .execute()
+                .value
+
+            var latestOffersByRequestID: [UUID: GroomerOffer] = [:]
+            for row in offerRows where latestOffersByRequestID[row.requestID] == nil {
+                latestOffersByRequestID[row.requestID] = row.offer
+            }
+            let evaluations = try await quoteEvaluations(for: latestOffersByRequestID.values.map(\.id))
+            for requestID in latestOffersByRequestID.keys {
+                if let offerID = latestOffersByRequestID[requestID]?.id {
+                    latestOffersByRequestID[requestID]?.quoteEvaluation = evaluations[offerID]
+                }
+            }
+
+            let matchedRequests: [GroomerMatchedRequest] = matchRows.compactMap { row in
+                guard let request = requestsByID[row.requestID] else {
+                    return nil
+                }
+
+                return GroomerMatchedRequest(
+                    match: row.match,
+                    request: request,
+                    offer: latestOffersByRequestID[row.requestID]
+                )
+            }
+            return matchedRequests
+    }
+
+    func offers(groomerID: UUID) async throws -> [GroomerOfferListItem] {
+        try await offers(groomerID: groomerID, page: .first).items
+    }
+
+    func offers(
+        groomerID: UUID,
+        page: ListPageRequest
+    ) async throws -> ListPage<GroomerOfferListItem> {
+        do {
+            let offerRows: [SupabaseGroomerOfferRow] = try await client
+                .from("groomer_offers")
+                .select(Self.offerColumns)
+                .eq("groomer_id", value: groomerID.uuidString.lowercased())
+                .order("created_at", ascending: false)
+                .range(from: page.offset, to: page.inclusiveRangeEnd)
+                .execute()
+                .value
+
+            guard !offerRows.isEmpty else {
+                return ListPage(items: [], request: page)
+            }
+
+            let requestsByID = await visibleRequestsByID(
+                requestIDs: offerRows.map(\.requestID)
+            )
+            let evaluations = try await quoteEvaluations(for: offerRows.map(\.id))
+            let bookingsByOfferID = await visibleBookingsByOfferID(
+                groomerID: groomerID,
+                offerIDs: offerRows.map(\.id)
+            )
+
+            let offers = offerRows.map { row in
+                var offer = row.offer
+                offer.quoteEvaluation = evaluations[row.id]
+                return GroomerOfferListItem(
+                    offer: offer,
+                    request: requestsByID[row.requestID],
+                    booking: bookingsByOfferID[row.id]
+                )
+            }
+            return ListPage(items: offers, request: page)
+        } catch {
+            throw Self.map(error)
+        }
+    }
+
+    func requestPhotos(
+        groomerID: UUID,
+        requestIDs: [UUID]
+    ) async throws -> [GroomingRequestPhoto] {
+        let ids = Self.uniqueLowercaseStrings(from: requestIDs)
+        guard !ids.isEmpty else { return [] }
+
+        do {
+            let rows: [GroomingRequestPhotoRow] = try await client
+                .from("request_photos")
+                .select(Self.requestPhotoColumns)
+                .in("request_id", values: ids)
+                .order("sort_order")
+                .order("created_at")
+                .execute()
+                .value
+
+            return rows.map(\.photo)
+        } catch {
+            throw Self.map(error)
+        }
+    }
+
+    func requestPhotoData(_ photo: GroomingRequestPhoto) async throws -> Data {
+        do {
+            return try await privateImageLoader.loadData(
+                bucketID: Self.requestPhotoBucketID,
+                storagePath: photo.storagePath
+            )
+        } catch {
+            throw Self.map(error)
+        }
+    }
+
+    func dismiss(
+        matchID: UUID,
+        reason: String?
+    ) async throws -> DismissRequestMatchResult {
+        do {
+            let rows: [DismissRequestMatchRow] = try await client
+                .rpc(
+                    "dismiss_request_match",
+                    params: DismissRequestMatchParameters(
+                        matchID: matchID,
+                        reason: reason
+                    )
+                )
+                .execute()
+                .value
+
+            guard rows.count == 1, let result = rows.first?.result else {
+                throw GroomerRequestRepositoryError.unavailable
+            }
+
+            return result
+        } catch let error as GroomerRequestRepositoryError {
+            throw error
+        } catch {
+            throw Self.map(error)
+        }
+    }
+
+    func createOffer(
+        draft: GroomerOfferDraft
+    ) async throws -> CreateGroomerOfferResult {
+        do {
+            let rows: [CreateGroomerOfferRow] = try await client
+                .rpc(
+                    "create_groomer_offer_v3",
+                    params: CreateGroomerOfferParameters(draft: draft)
+                )
+                .execute()
+                .value
+
+            guard rows.count == 1, let result = rows.first?.result else {
+                throw GroomerRequestRepositoryError.unavailable
+            }
+
+            return result
+        } catch let error as GroomerRequestRepositoryError {
+            throw error
+        } catch {
+            throw Self.map(error)
+        }
+    }
+
+    func offer(groomerID: UUID, offerID: UUID) async throws -> GroomerOffer? {
+        do {
+            let rows: [SupabaseGroomerOfferRow] = try await client
+                .from("groomer_offers")
+                .select(Self.offerColumns)
+                .eq("groomer_id", value: groomerID.uuidString)
+                .eq("id", value: offerID.uuidString)
+                .limit(1)
+                .execute().value
+            guard var offer = rows.first?.offer else { return nil }
+            offer.quoteEvaluation = try await quoteEvaluations(for: [offer.id])[offer.id]
+            return offer
+        } catch {
+            throw Self.map(error)
+        }
+    }
+
+    private func quoteEvaluations(for ids: [UUID]) async throws -> [UUID: QuoteEvaluation] {
+        guard !ids.isEmpty else { return [:] }
+        let rows: [SupabaseQuoteEvaluationRow] = try await client
+            .rpc("get_quote_evaluations", params: SupabaseQuoteEvaluationParameters(offerIDs: ids))
+            .execute().value
+        return Dictionary(uniqueKeysWithValues: rows.map { ($0.offerID, $0.evaluation) })
+    }
+
+    func withdrawOffer(
+        offerID: UUID
+    ) async throws -> WithdrawGroomerOfferResult {
+        do {
+            let rows: [WithdrawGroomerOfferRow] = try await client
+                .rpc(
+                    "withdraw_groomer_offer",
+                    params: WithdrawGroomerOfferParameters(offerID: offerID)
+                )
+                .execute()
+                .value
+
+            guard rows.count == 1, let result = rows.first?.result else {
+                throw GroomerRequestRepositoryError.unavailable
+            }
+
+            return result
+        } catch let error as GroomerRequestRepositoryError {
+            throw error
+        } catch {
+            throw Self.map(error)
+        }
+    }
+
+    private static func map(_ error: any Error) -> GroomerRequestRepositoryError {
+        if AppDebugErrorClassifier.isCancellation(error) {
+            return .cancelled
+        }
+
+        if let repositoryError = error as? GroomerRequestRepositoryError {
+            return repositoryError
+        }
+
+        if let postgrestError = error as? PostgrestError {
+            switch postgrestError.code {
+            case "42501", "28000":
+                return .notAllowed
+            case "22023":
+                switch postgrestError.message {
+                case "updated_agreement_client_required":
+                    return .clientUpdateRequired
+                case "request_revision_changed":
+                    return .matchNotFound
+                case "match_constraints_changed":
+                    return .matchNotFound
+                case "timing_buffers_confirmation_required":
+                    return .timingBuffersRequired
+                case "schedule_timezone_confirmation_required":
+                    return .scheduleTimeZoneRequired
+                case "service_timezone_confirmation_required":
+                    return .serviceTimeZoneRequired
+                case "service_species_confirmation_required":
+                    return .serviceSpeciesRequired
+                case "assessment_confirmation_required":
+                    return .assessmentConfirmationRequired
+                case "occupied_outside_weekly_hours", "occupied_time_off_conflict":
+                    return .groomerUnavailable
+                default:
+                    return .invalidInput
+                }
+            case "P0001":
+                switch postgrestError.message {
+                case "groomer_profile_required":
+                    return .notAllowed
+                case "match_not_found":
+                    return .matchNotFound
+                case "match_not_dismissible":
+                    return .noLongerDismissible
+                case "request_not_open":
+                    return .requestNoLongerOpen
+                case "match_not_offerable":
+                    return .noLongerOfferable
+                case "active_offer_exists":
+                    return .activeOfferExists
+                case "groomer_unavailable":
+                    return .groomerUnavailable
+                case "offer_not_found", "invalid_offer":
+                    return .offerNotFound
+                case "offer_not_withdrawable":
+                    return .noLongerWithdrawable
+                default:
+                    return .unavailable
+                }
+            default:
+                return .unavailable
+            }
+        }
+
+        if let urlError = error as? URLError {
+            switch urlError.code {
+            case .notConnectedToInternet,
+                 .networkConnectionLost,
+                 .timedOut,
+                 .cannotConnectToHost,
+                 .cannotFindHost,
+                 .dnsLookupFailed:
+                return .networkUnavailable
+            default:
+                return .unavailable
+            }
+        }
+
+        return .unavailable
+    }
+
+    private func visibleRequestsByID(
+        requestIDs: [UUID]
+    ) async -> [UUID: GroomerMatchedGroomingRequest] {
+        let ids = Self.uniqueLowercaseStrings(from: requestIDs)
+        guard !ids.isEmpty else { return [:] }
+
+        do {
+            let rows: [GroomerMatchedGroomingRequestRow] = try await client
+                .from("grooming_requests")
+                .select(Self.requestColumns)
+                .in("id", values: ids)
+                .execute()
+                .value
+
+            return Dictionary(
+                uniqueKeysWithValues: rows.map { ($0.id, $0.request) }
+            )
+        } catch {
+            return [:]
+        }
+    }
+
+    private func visibleBookingsByOfferID(
+        groomerID: UUID,
+        offerIDs: [UUID]
+    ) async -> [UUID: Booking] {
+        let ids = Self.uniqueLowercaseStrings(from: offerIDs)
+        guard !ids.isEmpty else { return [:] }
+
+        do {
+            let rows: [SupabaseBookingRow] = try await client
+                .from("bookings")
+                .select(Self.bookingColumns + "," + SupabaseBookingRow.fulfillmentColumns)
+                .eq("groomer_id", value: groomerID.uuidString.lowercased())
+                .in("offer_id", values: ids)
+                .execute()
+                .value
+
+            return Dictionary(
+                uniqueKeysWithValues: rows.map { ($0.offerID, $0.booking) }
+            )
+        } catch {
+            return [:]
+        }
+    }
+
+    private static func uniqueLowercaseStrings(from ids: [UUID]) -> [String] {
+        Array(Set(ids)).map { $0.uuidString.lowercased() }
+    }
+}
+
+private struct GroomingRequestPhotoRow: Decodable {
+    let id: UUID
+    let requestID: UUID
+    let customerID: UUID
+    let storageBucket: String
+    let storagePath: String
+    let caption: String?
+    let sortOrder: Int
+    let createdAt: String?
+
+    var photo: GroomingRequestPhoto {
+        GroomingRequestPhoto(
+            id: id,
+            requestID: requestID,
+            customerID: customerID,
+            storageBucket: storageBucket,
+            storagePath: storagePath,
+            caption: caption,
+            sortOrder: sortOrder,
+            createdAt: createdAt
+        )
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case requestID = "request_id"
+        case customerID = "customer_id"
+        case storageBucket = "storage_bucket"
+        case storagePath = "storage_path"
+        case caption
+        case sortOrder = "sort_order"
+        case createdAt = "created_at"
+    }
+}
+
+struct SupabaseGroomerOfferRow: Decodable {
+    let id: UUID
+    let requestID: UUID
+    let matchID: UUID
+    let customerID: UUID
+    let groomerID: UUID
+    let proposedStart: String
+    let proposedEnd: String
+    let priceEstimate: Double
+    let message: String?
+    let status: GroomerOfferStatus
+    let expiresAt: String
+    let withdrawnAt: String?
+    let createdAt: String?
+    let updatedAt: String?
+    let appliedTimingBuffers: GroomingTimingBuffers?
+    let serviceTimeZoneIdentifier: String?
+    let scheduleTimeZoneIdentifier: String?
+    let occupiedStart: String?
+    let occupiedEnd: String?
+    let agreementSnapshot: ServiceAgreement?
+
+    var offer: GroomerOffer {
+        GroomerOffer(
+            id: id,
+            requestID: requestID,
+            matchID: matchID,
+            customerID: customerID,
+            groomerID: groomerID,
+            proposedStart: proposedStart,
+            proposedEnd: proposedEnd,
+            priceEstimate: priceEstimate,
+            message: message,
+            status: status,
+            expiresAt: expiresAt,
+            withdrawnAt: withdrawnAt,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            appliedTimingBuffers: appliedTimingBuffers,
+            serviceTimeZoneIdentifier: serviceTimeZoneIdentifier,
+            scheduleTimeZoneIdentifier: scheduleTimeZoneIdentifier,
+            occupiedStart: occupiedStart,
+            occupiedEnd: occupiedEnd,
+            timingSnapshotLoaded: true,
+            agreementSnapshot: agreementSnapshot,
+            agreementSnapshotLoaded: true
+        )
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case requestID = "request_id"
+        case matchID = "match_id"
+        case customerID = "customer_id"
+        case groomerID = "groomer_id"
+        case proposedStart = "proposed_start"
+        case proposedEnd = "proposed_end"
+        case priceEstimate = "price_estimate"
+        case message
+        case status
+        case expiresAt = "expires_at"
+        case withdrawnAt = "withdrawn_at"
+        case createdAt = "created_at"
+        case updatedAt = "updated_at"
+        case appliedTimingBuffers = "applied_timing_buffers"
+        case serviceTimeZoneIdentifier = "service_time_zone_identifier"
+        case scheduleTimeZoneIdentifier = "schedule_time_zone_identifier"
+        case occupiedStart = "occupied_start"
+        case occupiedEnd = "occupied_end"
+        case agreementSnapshot = "agreement_snapshot"
+    }
+}
+
+
+private struct MatchedRequestParameters: Encodable {
+    let groomerID: UUID
+    let limit: Int
+    let offset: Int
+
+    private enum CodingKeys: String, CodingKey {
+        case groomerID = "p_groomer_id"
+        case limit = "p_limit"
+        case offset = "p_offset"
+    }
+}
+
+private struct RankedMatchParameters: Encodable {
+    let p_sort: String
+    let p_limit: Int
+    let p_cursor: String?
+}
+
+nonisolated private struct RankedMatchRow: Decodable, Sendable {
+    let match: GroomerRequestMatchRow
+    let request: GroomerMatchedGroomingRequestRow
+    let evidence: MatchingEvidence
+}
+
+nonisolated private struct GroomerRequestMatchRow: Decodable, Sendable {
+    let id: UUID
+    let requestID: UUID
+    let groomerID: UUID
+    let customerID: UUID
+    let matchScore: Double?
+    let matchReason: String?
+    let dismissReason: String?
+    let status: RequestMatchStatus
+    let viewedAt: String?
+    let dismissedAt: String?
+    let createdAt: String
+    let updatedAt: String
+    let eligibilityEvaluation: MatchEligibilityEvaluation?
+
+    var match: GroomerRequestMatch {
+        GroomerRequestMatch(
+            id: id,
+            requestID: requestID,
+            groomerID: groomerID,
+            customerID: customerID,
+            matchScore: matchScore,
+            matchReason: matchReason,
+            dismissReason: dismissReason,
+            status: status,
+            viewedAt: viewedAt,
+            dismissedAt: dismissedAt,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            eligibilityEvaluation: eligibilityEvaluation
+        )
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case requestID = "request_id"
+        case groomerID = "groomer_id"
+        case customerID = "customer_id"
+        case matchScore = "match_score"
+        case matchReason = "match_reason"
+        case eligibilityEvaluation = "eligibility_evaluation"
+        case dismissReason = "dismiss_reason"
+        case status
+        case viewedAt = "viewed_at"
+        case dismissedAt = "dismissed_at"
+        case createdAt = "created_at"
+        case updatedAt = "updated_at"
+    }
+}
+
+nonisolated private struct GroomerMatchedGroomingRequestRow: Decodable, Sendable {
+    let id: UUID
+    let customerID: UUID
+    let petID: UUID?
+    let petSnapshot: GroomingRequestPetSnapshot
+    let photoSnapshot: [GroomingRequestPhotoSnapshot]
+    let serviceType: GroomingServiceType
+    let serviceNotes: String?
+    let preferredStart: String
+    let preferredEnd: String
+    let preferenceTimeZoneIdentifier: String?
+    let termsRevision: UUID?
+    let locationMode: GroomingLocationMode
+    let streetAddress: String
+    let city: String
+    let state: String
+    let zipCode: String
+    let travelRadiusMiles: Int?
+    let status: GroomingRequestStatus
+    let expiresAt: String
+    let createdAt: String
+    let updatedAt: String
+
+    var request: GroomerMatchedGroomingRequest {
+        GroomerMatchedGroomingRequest(
+            id: id,
+            customerID: customerID,
+            petID: petID,
+            petSnapshot: petSnapshot,
+            photoSnapshot: photoSnapshot,
+            serviceType: serviceType,
+            serviceNotes: serviceNotes,
+            preferredStart: preferredStart,
+            preferredEnd: preferredEnd,
+            locationMode: locationMode,
+            streetAddress: streetAddress,
+            city: city,
+            state: state,
+            zipCode: zipCode,
+            travelRadiusMiles: travelRadiusMiles,
+            status: status,
+            expiresAt: expiresAt,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            preferenceTimeZoneIdentifier: preferenceTimeZoneIdentifier,
+            termsRevision: termsRevision
+        )
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case customerID = "customer_id"
+        case petID = "pet_id"
+        case petSnapshot = "pet_snapshot"
+        case photoSnapshot = "photo_snapshot"
+        case serviceType = "service_type"
+        case serviceNotes = "service_notes"
+        case preferredStart = "preferred_start"
+        case preferredEnd = "preferred_end"
+        case preferenceTimeZoneIdentifier = "preference_time_zone_identifier"
+        case termsRevision = "terms_revision"
+        case locationMode = "location_mode"
+        case streetAddress = "street_address"
+        case city
+        case state
+        case zipCode = "zip_code"
+        case travelRadiusMiles = "travel_radius_miles"
+        case status
+        case expiresAt = "expires_at"
+        case createdAt = "created_at"
+        case updatedAt = "updated_at"
+    }
+}
+
+private struct DismissRequestMatchRow: Decodable {
+    let matchID: UUID
+    let status: RequestMatchStatus
+    let dismissedAt: String
+
+    var result: DismissRequestMatchResult {
+        DismissRequestMatchResult(
+            matchID: matchID,
+            status: status,
+            dismissedAt: dismissedAt
+        )
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case matchID = "match_id"
+        case status
+        case dismissedAt = "dismissed_at"
+    }
+}
+
+private struct DismissRequestMatchParameters: Encodable {
+    let matchID: UUID
+    let reason: String?
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(matchID.uuidString.lowercased(), forKey: .matchID)
+
+        let normalizedReason = reason?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if let normalizedReason, !normalizedReason.isEmpty {
+            try container.encode(normalizedReason, forKey: .reason)
+        } else {
+            try container.encodeNil(forKey: .reason)
+        }
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case matchID = "p_match_id"
+        case reason = "p_reason"
+    }
+}
+
+private struct CreateGroomerOfferRow: Decodable {
+    let offerID: UUID
+    let offerStatus: GroomerOfferStatus
+    let requestStatus: GroomingRequestStatus
+
+    var result: CreateGroomerOfferResult {
+        CreateGroomerOfferResult(
+            offerID: offerID,
+            offerStatus: offerStatus,
+            requestStatus: requestStatus
+        )
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case offerID = "offer_id"
+        case offerStatus = "offer_status"
+        case requestStatus = "request_status"
+    }
+}
+
+private struct WithdrawGroomerOfferRow: Decodable {
+    let offerID: UUID
+    let offerStatus: GroomerOfferStatus
+    let withdrawnTimestamp: String
+    let requestStatus: GroomingRequestStatus
+
+    var result: WithdrawGroomerOfferResult {
+        WithdrawGroomerOfferResult(
+            offerID: offerID,
+            offerStatus: offerStatus,
+            withdrawnTimestamp: withdrawnTimestamp,
+            requestStatus: requestStatus
+        )
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case offerID = "offer_id"
+        case offerStatus = "offer_status"
+        case withdrawnTimestamp = "withdrawn_timestamp"
+        case requestStatus = "request_status"
+    }
+}
+
+private struct CreateGroomerOfferParameters: Encodable {
+    let draft: GroomerOfferDraft
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(draft.expectedRequestRevision, forKey: .expectedRequestRevision)
+        try container.encode(draft.assessmentConfirmations, forKey: .assessmentConfirmations)
+        try container.encode(
+            draft.requestID.uuidString.lowercased(),
+            forKey: .requestID
+        )
+        try container.encode(
+            GroomingRequestDateFormatting.serverString(from: draft.proposedStart),
+            forKey: .proposedStart
+        )
+        try container.encode(
+            GroomingRequestDateFormatting.serverString(from: draft.proposedEnd),
+            forKey: .proposedEnd
+        )
+        try container.encode(draft.priceEstimate, forKey: .priceEstimate)
+
+        if let message = draft.message {
+            try container.encode(message, forKey: .message)
+        } else {
+            try container.encodeNil(forKey: .message)
+        }
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case requestID = "p_request_id"
+        case expectedRequestRevision = "p_expected_request_revision"
+        case assessmentConfirmations = "p_assessment_confirmations"
+        case proposedStart = "p_proposed_start"
+        case proposedEnd = "p_proposed_end"
+        case priceEstimate = "p_price_estimate"
+        case message = "p_message"
+    }
+}
+
+private struct WithdrawGroomerOfferParameters: Encodable {
+    let offerID: UUID
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(offerID.uuidString.lowercased(), forKey: .offerID)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case offerID = "p_offer_id"
+    }
+}

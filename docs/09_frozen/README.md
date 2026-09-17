@@ -1,24 +1,42 @@
-# Frozen Archive
+# Frozen Archives
 
-This directory stores historical evidence that should not be read by default.
+This directory contains historical material that should not be part of the active daily search path.
 
-## Rules
+Use these files only for recovery, comparison, or historical workflow context.
 
-- Do not use this directory as startup context.
-- Search it only with a specific recovery, comparison, or audit reason.
-- Prefer `rg` to locate a narrow section, then read only the needed lines.
+Archived files may contain old TODOs, old paths, old branch/task references, or then-current next-task notes. Do not treat those as current project state. Current branch, task numbering, workflow, product, architecture, and backend facts live in the active `docs/00_memory/`, `docs/01_product/`, `docs/02_architecture/`, `docs/03_backend/`, `docs/05_workflow/`, and `docs/06_tasks/` files.
 
-## Index
+## Archives
 
-- `task_records_2026-07-06/` - detailed T-001 through T-048 task records and old workflow task records.
-- `task_ledgers/` - full historical task ledger snapshots.
-- `worklogs/` - full historical worklog snapshots.
-- `current_state_snapshots/` - pre-trim current-state snapshots.
-- `workflow_history_2026-07-06/` - old subagent workflow, agent reports, and obsolete policy files.
-- `product_briefs/` - archived original Fresh Brief.
-- `design_prompts/` - archived old Groomly task prompt.
-- `external_agent_reports/` - non-canonical external audit/planning drafts.
-- `claude_reference_2026-07-06/` - legacy Claude roadmap reference.
-- `superpowers_legacy_2026-07-06/` - old Superpowers plans/specs.
-- `memory_legacy_2026-07-06/` - old recovery docs superseded by active workflow.
-- `root_legacy_2026-07-06/` - old root-level initialization plans.
+- `pre_groomly_ui_2026-06-21/`: snapshot from before the Groomly UI phase.
+- `groomly_ui_completed_2026-06-22/`: completed Groomly UI phase archive marker.
+- `agent_team_archive_2026-06-24/`: disabled historical `.codex` role cards and agent definitions.
+- `workflow_archive_2026-06-24/`: superseded subagent workflow docs and old agent reports.
+- `task_records_2026-06-26/`: detailed historical T-001 through T-088 and workflow policy task records. Current task state lives in `docs/06_tasks/TASK_LEDGER.md`.
+- `superpowers_*/`: dated, verbatim task plans/specs moved out of the active docs tree by manual historical rotations or the unified closeout gate.
+- `completed_task_plans/`: completed standalone execution and migration plans whose current contracts now live in active domain documents.
+- `roadmaps/`: pre-rotation Roadmap and execution-queue snapshots; active files retain unresolved direction only.
+- `workflow_docs_2026-06-26/`: superseded context, recovery, tool, MCP, Superpowers, and Codex workflow docs consolidated into active workflow entrypoints.
+- `workflow_docs_2026-07-13/`: pre-T-348 snapshots of the seven active workflow/adapter files before single-owner rule consolidation.
+- `workspace_initialization_2026-06-24/`: original workspace initialization prompt.
+- `current_state_snapshots/`: pre-trim snapshots of active `CURRENT_STATE.md` before context-footprint cleanup.
+- `active_state_snapshots/`: coordinated verbatim snapshots of Current State, Worklog, and Task Ledger taken before an active-state reset.
+- `worklogs/`: verbatim archived worklog entries moved out of active `docs/00_memory/WORKLOG.md`.
+- `task_ledgers/`: archived completed task-ledger rows moved out of active `docs/06_tasks/TASK_LEDGER.md`.
+- `decisions/`: verbatim decision-log snapshots moved out of active `docs/07_decisions/DECISION_LOG.md`.
+- `backend_contracts/`: archived long-form `docs/03_backend/SUPABASE_CONTRACT.md` snapshots moved out of the active fast-path backend contract.
+- `backend_policies/`: archived pre-trim backend policy/runbook files such as RLS/RPC, Storage, and migration rules.
+- `feature_indexes/`: archived pre-trim feature index snapshots moved out of the active routing index.
+- `design_prompts/`: archived historical design-task prompts moved out of active design context.
+- `design_notes/`: archived pre-slim design-system/UI audit notes and dated pre-routing snapshots; T-347 preserves source contracts plus the superseded iOS accessibility checklist before heavy-context separation.
+- `product_briefs/`: archived original product/engineering briefs moved out of active root context.
+- `project_structure/`: archived full structure logs moved out of the active reorganization index.
+- `claude_reference_2026-07-08/`: archived old Claude-only reference snapshots moved out of the active root.
+- `memory_pointers/`: removed compatibility pointers that no longer need active paths.
+- `workflow_templates/`: removed low-use workflow templates whose rules now live in active workflow docs.
+- `task_templates/`: removed generic task templates superseded by ledger/worklog rules and the screenshot task template.
+- `external_agent_reports/`: non-canonical agent-generated audits or plans moved out of repo-root active context.
+
+## Rule
+
+Do not search this directory by default. `.rgignore` excludes it from ordinary `rg` searches. Read it only when the current task explicitly needs historical context, using a targeted direct read or `rg --no-ignore`.

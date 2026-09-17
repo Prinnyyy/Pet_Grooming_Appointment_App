@@ -1,15 +1,41 @@
-# Frozen and historical archives are never default search context.
+# Keep default searches focused on active, human-sized project context.
 docs/09_frozen/**
-
-# Generated/local artifacts.
 artifacts/**
-supabase/.temp/**
 
-# Local credential-class files.
-supabase_api_key
-supabase_environment_variables
-ios/PetGroomerMarketplace/Config/Supabase.local.xcconfig
+# Machine-readable seed resources are parsed by scripts, but should not appear in broad context searches.
+docs/02_architecture/test_resources/T-129_*_TEST_PROFILES.md
 
-# Large design exports; use targeted paths only when a UI task needs them.
-docs/08_design/Groomly/**
-docs/08_design/Groomly.html
+# Large design exports. Prefer docs/08_design/UI_IMPLEMENTATION_NOTES.md and screenshots first.
+docs/08_design/Beckon.html
+docs/08_design/Beckon/**
+
+# Heavy UI inventory/Figma evidence. Keep only its routing README in default search context.
+docs/ui-redesign/*
+!docs/ui-redesign/README.md
+
+# External agent draft reports should not be active search context.
+APP_STATUS_OVERVIEW.md
+V1.0_RELEASE_TASK_PLAN.md
+UI_DESIGN_RULES_PROPOSAL.md
+CONTEXT_QUOTA_GOVERNANCE_PLAN.md
+
+# Historical rules, journals and duplicate indexes; current state is never hidden.
+docs/00_memory/PROJECT_MEMORY.md
+docs/00_memory/WORKLOG.md
+docs/06_tasks/TASK_LEDGER.md
+docs/06_tasks/ROADMAP_EXECUTION_QUEUE.md
+docs/06_tasks/META_REVIEW_TEMPLATE.md
+docs/05_workflow/SINGLE_AGENT_WORKFLOW.md
+docs/05_workflow/CONTEXT_AND_RECOVERY.md
+docs/05_workflow/TOOLING_POLICY.md
+docs/05_workflow/GITHUB_RULES.md
+docs/05_workflow/STOP_CONDITIONS.md
+docs/04_ios/testops/TESTOPS_MEMORY.md
+docs/10_project_structure/**
+
+# Plans/evidence remain at stable paths. Hygiene adds the current/changed artifacts explicitly.
+docs/superpowers/**
+!docs/superpowers/README.md
+docs/06_tasks/APP_FUNCTIONAL_DESIGN_FINDINGS.md
+docs/06_tasks/sql_reviews/**
+!docs/06_tasks/sql_reviews/README.md

@@ -1,0 +1,49 @@
+{
+  "fps": 30,
+  "width": 1920,
+  "height": 1080,
+  "totalFrames": 1800,
+  "transitionTailFrames": 9,
+  "scenes": [
+    {
+      "id": "S01",
+      "startFrame": 0,
+      "endFrame": 120
+    },
+    {
+      "id": "S02",
+      "startFrame": 120,
+      "endFrame": 270
+    },
+    {
+      "id": "S03",
+      "startFrame": 270,
+      "endFrame": 600
+    },
+    {
+      "id": "S04",
+      "startFrame": 600,
+      "endFrame": 810
+    },
+    {
+      "id": "S05",
+      "startFrame": 810,
+      "endFrame": 1170
+    },
+    {
+      "id": "S06",
+      "startFrame": 1170,
+      "endFrame": 1410
+    },
+    {
+      "id": "S07",
+      "startFrame": 1410,
+      "endFrame": 1650
+    },
+    {
+      "id": "S08",
+      "startFrame": 1650,
+      "endFrame": 1800
+    }
+  ]
+}

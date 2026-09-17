@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-resolution="landscape">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=1920,height=1080"><title>Beckon / 10-second sample</title><link rel="stylesheet" href="styles.css"><script src="node_modules/gsap/dist/gsap.min.js"></script></head>
+<body>
+<div data-hf-id="hf-elqp" id="sample" class="composition" data-composition-id="sample" data-start="0" data-duration="10" data-width="1920" data-height="1080" data-fps="30">
+  <div data-hf-id="hf-tan6" class="stage">
+    <div data-hf-id="hf-bdx3" class="copy">
+      <div data-hf-id="hf-cm4g" id="sample-offers-copy" class="clip caption" data-start="0" data-duration="4" data-track-index="2"><div data-hf-id="hf-pn2l" class="role">顾客端</div><h1 data-hf-id="hf-m3fm"><span data-hf-id="hf-ljuy" class="line">比较报价，</span><span data-hf-id="hf-975r" class="line accent">由你决定。</span></h1><p data-hf-id="hf-f5co" class="sub">价格 · 时间 · 美容师资料</p></div>
+      <div data-hf-id="hf-dejs" id="sample-confirm-copy" class="clip caption" data-start="4" data-duration="3" data-track-index="2"><div data-hf-id="hf-oym9" class="role">顾客端</div><h2 data-hf-id="hf-u3tj">确认预约。</h2><p data-hf-id="hf-gqc2" class="sub">核对详情，再确认。</p></div>
+      <div data-hf-id="hf-iue9" id="sample-booked-copy" class="clip caption" data-start="7" data-duration="3" data-track-index="2"><div data-hf-id="hf-q5jc" class="role">顾客端</div><h2 data-hf-id="hf-2l5r"><span data-hf-id="hf-2qur" class="line">预约，</span><span data-hf-id="hf-dktp" class="line accent">已确认。</span></h2><p data-hf-id="hf-j2d9" class="sub">Coco 的护理时间，安排好了。</p></div>
+    </div>
+    <div data-hf-id="hf-2x4o" class="screen-stage" data-layout-allow-overflow="">
+      <div data-hf-id="hf-j2z7" id="sample-phone" class="phone"><div data-hf-id="hf-cdmk" class="screen">
+        <img data-hf-id="hf-ufol" id="sample-offers" class="clip" src="assets/stills/offers-list.png" alt="Two genuine offers" data-start="0" data-duration="4" data-track-index="1">
+        <video data-hf-id="hf-9eql" id="sample-confirm" class="clip" src="assets/edited/confirm-sample.mp4" muted playsinline data-start="4" data-duration="3" data-track-index="1"></video>
+        <img data-hf-id="hf-qvjl" id="sample-booked" class="clip" src="assets/stills/booking-confirmed.png" alt="Confirmed appointment" data-start="7" data-duration="3" data-track-index="1">
+      </div></div>
+    </div>
+  </div>
+</div>
+<script>
+window.__timelines=window.__timelines||{};
+const tl=gsap.timeline({paused:true});
+tl.from('#sample-phone',{y:20,opacity:0,duration:.5,ease:'power2.out'},.1);
+for(const [selector,start] of [['#sample-offers-copy',0],['#sample-confirm-copy',4],['#sample-booked-copy',7]]) {
+  tl.from(selector+' .role',{x:-16,opacity:0,duration:.3,ease:'sine.out'},start+.1);
+  tl.from(selector+' h1,'+selector+' h2',{y:24,opacity:0,duration:.4,ease:'power3.out'},start+.15);
+  tl.from(selector+' .sub',{y:16,opacity:0,duration:.4,ease:'power2.out'},start+.3);
+}
+tl.to('#sample-phone',{scale:1.12,y:-25,duration:.5,ease:'power2.inOut'},2);
+tl.to('#sample-phone',{scale:1,y:0,duration:.4,ease:'power2.inOut'},3.6);
+tl.from('#sample-confirm',{opacity:0,duration:.15,ease:'sine.out'},4);
+tl.from('#sample-booked',{opacity:0,duration:.2,ease:'sine.out'},7);
+window.__timelines.sample=tl;
+</script>
+</body></html>
