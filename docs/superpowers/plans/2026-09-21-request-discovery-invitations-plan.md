@@ -3,8 +3,8 @@
 > **For agentic workers:** 使用 `superpowers:executing-plans`，由当前执行者连续完成工作包；项目禁用 subagents。复选框是验收记录，不是暂停、重新征求普通确认或微步骤提交的边界。
 
 <!-- task-artifact
-task: T-397
-status: active
+task: T-399
+status: completed
 type: plan
 -->
 
@@ -16,7 +16,7 @@ type: plan
 
 **Spec:** [详细设定](../specs/2026-09-21-request-discovery-invitations-design.md)。本计划落实该文全部范围；参数与语义由设计文档拥有，不另复制一套规范。
 
-**状态:** 2026-09-21 完成文档编写与自检，业务实施未开始。T-397 只代表编写交付；以后执行时从 Current State 分配/恢复实施任务，沿用本计划并更新元数据，不把文档完成标成软件完成。本轮没有迁移、后端查询、部署、账号/Storage/夹具写入或客户端运行验收。
+**状态:** T-399于2026-09-22完成实施、远程启用与验收；证据、修复及限制见第8节。T-397/T-398仍仅代表前期文档交付与复用修订。
 
 T-398根据现有代码补齐设计第7节的模块复用约束，并将验证并入原工作包及A01-A48；没有增加实施阶段或另立重构计划。
 
@@ -163,10 +163,10 @@ Favorites 用上述领域内Page类型承接签名keyset cursor，默认limit=25
 
 **Interfaces:** 输入当前实现；输出给HD-01/02的权威上下文入口、锁顺序和旧写/读入口清单。至少包含 create_request_matches_for_request、refresh_candidate_evaluation、两版ranked reads、quote v2/v3、accept、replace、request SELECT、request-photos、通知深链、匿名化。设计7.1/7.2为定位清单，核对最新生效定义；只在本计划记录实际调用差异、抽取所有者和需改为委托的旧入口。
 
-- [ ] 为现有请求上下文建立不改变业务的差分样例：同宠/地址/时间/score_as_of分别走原包装器和待抽取内核，expected state/reasons/witness、F/Q/D与MatchingEvidence相同；同时保留原固定预期，不能只比较两个共享实现的返回。固定/自定义服务、未知体型、DST及缓冲边界共用原fixture；Offer特有时间目标单独测。
-- [ ] 将已有有效评分/接受证据限定到其原SHA/数据库定义；新的预览/分发/权限证据不复用为通过。记录当前CLI `--help` 支持的命令，安装或升级不作为默认动作。
-- [ ] 冻结最小角色与样本：C1/C2、G1/G2/G3，加既有规模美容师至至少26位；同一组需求承载多个状态，不为每个断言重新播种。媒体优先复用授权测试账号的真实已有对象；缺少必要对象时精确列出所需授权，不放宽安全验证。
-- [ ] 明确新增数据列、旧原始SELECT如何转到owner/safe RPC、何时启用旧接口门禁及可回退边界；没有可执行顺序不部署。
+- [x] 为现有请求上下文建立不改变业务的差分样例：同宠/地址/时间/score_as_of分别走原包装器和待抽取内核，expected state/reasons/witness、F/Q/D与MatchingEvidence相同；同时保留原固定预期，不能只比较两个共享实现的返回。固定/自定义服务、未知体型、DST及缓冲边界共用原fixture；Offer特有时间目标单独测。
+- [x] 将已有有效评分/接受证据限定到其原SHA/数据库定义；新的预览/分发/权限证据不复用为通过。记录当前CLI `--help` 支持的命令，安装或升级不作为默认动作。
+- [x] 冻结最小角色与样本：C1/C2、G1/G2/G3，加既有规模美容师至至少26位；同一组需求承载多个状态，不为每个断言重新播种。媒体优先复用授权测试账号的真实已有对象；缺少必要对象时精确列出所需授权，不放宽安全验证。
+- [x] 明确新增数据列、旧原始SELECT如何转到owner/safe RPC、何时启用旧接口门禁及可回退边界；没有可执行顺序不部署。
 
 **退出:** 影响面覆盖上述入口；run manifest 可描述创建、修改、备份、恢复对象，不保存凭据，不创建Auth账号或通用数据生成平台。
 
@@ -176,10 +176,10 @@ Favorites 用上述领域内Page类型承接签名keyset cursor，默认limit=25
 
 **Interfaces:** 实现 prepare/candidates/profile；向HD-04提供同scope/cursor的前25项和安全详情；向HD-02提供规范化发布输入与digest。
 
-- [ ] 写失败用例 A01-A09：预览不产生公开行/通知/额度；跨owner/篡改digest失败；前8与列表前8完全相同；第26位更适配者能进前8；pending/零/失败不同。
-- [ ] 对evaluate_match_constraints/evaluate_match_eligibility_with_zones及match_target_keys/score_match_evidence窄抽取可信context重载，原request_id wrapper验证真实状态后委托同一规则；预览不调用带落库的refresh_candidate_evaluation。保存30分钟私有预览、完整规范发布输入（含备注/原子替换身份）和可信源revision；发送时源变化要求复核，不丢备注或偷换宠物快照。
-- [ ] 实现完整粗筛、资格分组、同输入评分复用、稳定排序；复用match_cursor_encode/decode和match_browse_snapshots存取/清理，必要窄抽取helper并接回旧浏览，actor总预算共用。成员查询/purpose/scope与旧报价隔离，不复制整套ranked_marketplace_page。既有Request使用owner上下文，首次发布后preview scope按唯一publish回执解析为新Request只读别名，沿用原截止和draft平局键。
-- [ ] 运行定向源码契约和真实只读/回滚差分；达到A01-A09、P01性能门槛后继续，不运行完整iOS回归。
+- [x] 写失败用例 A01-A09：预览不产生公开行/通知/额度；跨owner/篡改digest失败；前8与列表前8完全相同；第26位更适配者能进前8；pending/零/失败不同。
+- [x] 对evaluate_match_constraints/evaluate_match_eligibility_with_zones及match_target_keys/score_match_evidence窄抽取可信context重载，原request_id wrapper验证真实状态后委托同一规则；预览不调用带落库的refresh_candidate_evaluation。保存30分钟私有预览、完整规范发布输入（含备注/原子替换身份）和可信源revision；发送时源变化要求复核，不丢备注或偷换宠物快照。
+- [x] 实现完整粗筛、资格分组、同输入评分复用、稳定排序；复用match_cursor_encode/decode和match_browse_snapshots存取/清理，必要窄抽取helper并接回旧浏览，actor总预算共用。成员查询/purpose/scope与旧报价隔离，不复制整套ranked_marketplace_page。既有Request使用owner上下文，首次发布后preview scope按唯一publish回执解析为新Request只读别名，沿用原截止和draft平局键。
+- [x] 运行定向源码契约和真实只读/回滚差分；达到A01-A09、P01性能门槛后继续，不运行完整iOS回归。
 
 测试关键断言（以下SQL中的 fixture actor/scope由runner绑定，不把SQL变量拼入凭据）：
 
@@ -199,11 +199,11 @@ Run: `node --test tests/migrations/request-discovery.test.mjs`；Focused Swift: 
 
 **Interfaces:** 实现publish/invite/setPool/withdraw/progress； quote和worker消费同一可报价谓词；后续Store不自行合成成功状态。
 
-- [ ] 写失败用例A10-A25与A39-A45：双入口同pair、两次首次发送、scope过期重放、未受邀伪造match/quote、池开关/报价竞争、取消/接受与追加竞争。
-- [ ] 实现schema和唯一回执所有权：首次发送/原子替换只扩展request_publish_operations；追加/池切换/撤回使用request_distribution_operations。提取原额度/快照/替换写核心并显式传分发上下文，旧wrapper改为委托，不是在旧发布自动广播后补UPDATE；所有触发器读取同事务的pool/邀请事实。
-- [ ] worker、ranked/exact读取、直接表权限、quote/admission、request-photos和旧API共用分发事实，分别导出发现/新报价/旧报价管理/媒体访问规则，不共用宽松canAccess。offer关系不授予新报价；昂贵全量评分不放入逐行RLS或图片鉴权。新入口继续各自鉴权和实时复核。
-- [ ] 5位上限、邀请pair唯一、明确期满、dismissal不复活、池关闭保留旧报价及revision隔离均在事务内成立；进展批量读取不再次计算全量专业评分。
-- [ ] 运行真实角色负例及独立连接两种提交顺序；不能仅模拟HTTP返回或用同一事务顺序调用冒充竞争。
+- [x] 写失败用例A10-A25与A39-A45：双入口同pair、两次首次发送、scope过期重放、未受邀伪造match/quote、池开关/报价竞争、取消/接受与追加竞争。
+- [x] 实现schema和唯一回执所有权：首次发送/原子替换只扩展request_publish_operations；追加/池切换/撤回使用request_distribution_operations。提取原额度/快照/替换写核心并显式传分发上下文，旧wrapper改为委托，不是在旧发布自动广播后补UPDATE；所有触发器读取同事务的pool/邀请事实。
+- [x] worker、ranked/exact读取、直接表权限、quote/admission、request-photos和旧API共用分发事实，分别导出发现/新报价/旧报价管理/媒体访问规则，不共用宽松canAccess。offer关系不授予新报价；昂贵全量评分不放入逐行RLS或图片鉴权。新入口继续各自鉴权和实时复核。
+- [x] 5位上限、邀请pair唯一、明确期满、dismissal不复活、池关闭保留旧报价及revision隔离均在事务内成立；进展批量读取不再次计算全量专业评分。
+- [x] 运行真实角色负例及独立连接两种提交顺序；不能仅模拟HTTP返回或用同一事务顺序调用冒充竞争。
 
 必须符合的控制流：
 
@@ -224,11 +224,11 @@ Run: `node --test tests/migrations/request-distribution.test.mjs`；真实验收
 
 **Interfaces:** 收藏为owner私有目标状态写；发现/收藏共享安全资料DTO，owner/full Request与pre-booking safe DTO明确分离。
 
-- [ ] 写失败用例A26-A31：跨账号、重复set、相反并发set、暂停/删除、媒体路径枚举、旧地址SELECT/owner读取；Storage权限用真实合法和非法actor验证。
-- [ ] 实现owner收藏RPC/分页/上限，删除后的不可识别呈现；同一账号有两个客户端时旧revision不得覆盖新状态。复用HD-01的MarketplaceGroomerSummary/wire投影和现有图片loader；不得调用owner profile仓储、扩展参与者头像身份或将bucket改public。
-- [ ] 将groomer-avatars的新增读取精确限定到活跃可发现业务profile；原customer头像、pet-photos、聊天图片和legacy bucket不随之放宽。request-photos按实时分发可见性读取。
-- [ ] 把新会话/收藏/邀请/幂等记录的个人内容纳入既有匿名化处理，测试数据库回滚，不实际删除Auth/Storage账号。缓存与签名URL撤销局限如实说明，客户端不持久保存被撤权的新图片。
-- [ ] 跑静态、Swift与真实授权负例A26-A31，确认已有Booking参与者取图未被破坏。
+- [x] 写失败用例A26-A31：跨账号、重复set、相反并发set、暂停/删除、媒体路径枚举、旧地址SELECT/owner读取；Storage权限用真实合法和非法actor验证。
+- [x] 实现owner收藏RPC/分页/上限，删除后的不可识别呈现；同一账号有两个客户端时旧revision不得覆盖新状态。复用HD-01的MarketplaceGroomerSummary/wire投影和现有图片loader；不得调用owner profile仓储、扩展参与者头像身份或将bucket改public。
+- [x] 将groomer-avatars的新增读取精确限定到活跃可发现业务profile；原customer头像、pet-photos、聊天图片和legacy bucket不随之放宽。request-photos按实时分发可见性读取。
+- [x] 把新会话/收藏/邀请/幂等记录的个人内容纳入既有匿名化处理，测试数据库回滚，不实际删除Auth/Storage账号。缓存与签名URL撤销局限如实说明，客户端不持久保存被撤权的新图片。
+- [x] 跑静态、Swift与真实授权负例A26-A31，确认已有Booking参与者取图未被破坏。
 
 ```swift
 @Test func favoriteDoesNotInvite() async throws {
@@ -247,10 +247,10 @@ Run: `node --test tests/migrations/request-distribution.test.mjs`；真实验收
 
 **Interfaces:** 同一顾客会话复用favorites状态；同一scope共用DiscoveryStore实体/排序快照；发送按钮调用HD-05的显式分发动作，不在View写RPC。
 
-- [ ] 写失败用例A32-A38：滑动零业务写、8卡/不足8/零/仅评估、尾页确认、前8合并到完整列表、收藏状态跨页一致、pending与error区分。
-- [ ] 实现稳定尺寸轮播、页码与明确按钮；尾页不是美容师。完整列表与轮播共用一个DiscoveryStore的实体/ID和RankedPage.canAppend，使用已加载25项和游标，返回保留当前ID与位置；切sort才新建browse。GroomerCandidateSummaryView/ActionsView按数据与闭包组合，不复制完整报价卡或在View引入仓储。
-- [ ] 收藏页挂Account及当前需求入口；无scope不编造适配，选择当前Request/创建新Request后再评估。复用FavoritesStore的revision与DistributionStore操作覆盖层，晚返回页不反转已确认动作；证据复用BeckonFitEvidenceBlock且scoreText=nil。共享顾客组件留所属Feature，跨角色组件才放SharedFeatures，业务不进DesignSystem。
-- [ ] 定向Store测试完成后在Simulator验证一轮紧凑屏幕/大字号/VoiceOver可操作标签、长名称、缺图、网络失败和硬变化。截图只用于布局证据或失败，不每滑一次抓图。
+- [x] 写失败用例A32-A38：滑动零业务写、8卡/不足8/零/仅评估、尾页确认、前8合并到完整列表、收藏状态跨页一致、pending与error区分。
+- [x] 实现稳定尺寸轮播、页码与明确按钮；尾页不是美容师。完整列表与轮播共用一个DiscoveryStore的实体/ID和RankedPage.canAppend，使用已加载25项和游标，返回保留当前ID与位置；切sort才新建browse。GroomerCandidateSummaryView/ActionsView按数据与闭包组合，不复制完整报价卡或在View引入仓储。
+- [x] 收藏页挂Account及当前需求入口；无scope不编造适配，选择当前Request/创建新Request后再评估。复用FavoritesStore的revision与DistributionStore操作覆盖层，晚返回页不反转已确认动作；证据复用BeckonFitEvidenceBlock且scoreText=nil。共享顾客组件留所属Feature，跨角色组件才放SharedFeatures，业务不进DesignSystem。
+- [x] 定向Store测试完成后在Simulator验证一轮紧凑屏幕/大字号/VoiceOver可操作标签、长名称、缺图、网络失败和硬变化。截图只用于布局证据或失败，不每滑一次抓图。
 
 ```swift
 @Test func carouselAndListShareCandidatesWithoutSending() async throws {
@@ -273,12 +273,12 @@ Run: `node --test tests/migrations/request-distribution.test.mjs`；真实验收
 
 **Interfaces:** 依第5节抽取PublicationCoordinator，旧发布入口和新分发Store委托同一实例；原RequestsStore处理真实receipt后的当前Request精确读取与照片交接。旧PendingRequestPublication无版本文件仍可解码为legacyV4；discoveryV1意图包含session/digest/pool/recipients/operation/photos，不混淆RPC版本名。
 
-- [ ] 写失败用例A12-A17、A23-A25、A39-A45：首次多对象点击、丢响应Close/重启、晚响应换号、池开关失败、旧版pending恢复、期限显示、历史入口。
-- [ ] 将publish中的持久意图读写、协议选择、重放及会话取消窄抽取到PublicationCoordinator，并让旧新入口委托它，移除旧活跃副本。沿用账号隔离文件，兼容旧JSON/保护未知版本，发请求前原子保存不可变payload；确认Request ID后保存待照片交接状态，交接失败/重启不再次发单。不新增通用outbox。恢复后精确读当前Request，不依旧receipt显示open。
-- [ ] 首次发布后留在候选页，通过短期scope别名保留排序、位置和游标，写动作改用真实Request ID；pool-only有明确发布按钮。修改条件回到旧atomic replacement模式，重新选择接收范围，失败保留旧请求和报价。
-- [ ] 实现受邀状态与池状态、有效报价数量、最后检查时间；在可见容器复用ForegroundRefreshGate/foregroundRefreshable做45秒批量轻读，操作后刷新、截止点本地保守呈现；嵌套子页不重复注册兜底，不为每个卡片创建timer或后台轮询。
-- [ ] 关闭区域纳入expired并有分页历史；cancelled/expired可从模板重发，重发生成新操作但不继承旧公开同意。美容师Requests同一条显示来源，Offers继续现有报价/撤回入口。
-- [ ] 运行RequestDistributionTests及受影响原Customer/Groomer请求测试，模拟器完成一次定向、一轮池报价、一次无人报价到期恢复。
+- [x] 写失败用例A12-A17、A23-A25、A39-A45：首次多对象点击、丢响应Close/重启、晚响应换号、池开关失败、旧版pending恢复、期限显示、历史入口。
+- [x] 将publish中的持久意图读写、协议选择、重放及会话取消窄抽取到PublicationCoordinator，并让旧新入口委托它，移除旧活跃副本。沿用账号隔离文件，兼容旧JSON/保护未知版本，发请求前原子保存不可变payload；确认Request ID后保存待照片交接状态，交接失败/重启不再次发单。不新增通用outbox。恢复后精确读当前Request，不依旧receipt显示open。
+- [x] 首次发布后留在候选页，通过短期scope别名保留排序、位置和游标，写动作改用真实Request ID；pool-only有明确发布按钮。修改条件回到旧atomic replacement模式，重新选择接收范围，失败保留旧请求和报价。
+- [x] 实现受邀状态与池状态、有效报价数量、最后检查时间；在可见容器复用ForegroundRefreshGate/foregroundRefreshable做45秒批量轻读，操作后刷新、截止点本地保守呈现；嵌套子页不重复注册兜底，不为每个卡片创建timer或后台轮询。
+- [x] 关闭区域纳入expired并有分页历史；cancelled/expired可从模板重发，重发生成新操作但不继承旧公开同意。美容师Requests同一条显示来源，Offers继续现有报价/撤回入口。
+- [x] 运行RequestDistributionTests及受影响原Customer/Groomer请求测试，模拟器完成一次定向、一轮池报价、一次无人报价到期恢复。
 
 ```swift
 @Test func expiredPreviewDoesNotRepublishCommittedRequest() async throws {
@@ -300,30 +300,30 @@ Fake只用于Store恢复行为；相同幂等契约还必须通过真实RPC A12/
 
 **Interfaces:** 使用真实角色登录、正常Repository/RPC及UI；SQL只用于授权夹具准备/只读断言/明确数据库回滚探针，不替代需要验证的客户端业务写。
 
-- [ ] 逐项执行A01-A48，API负责枚举/权限/并发/分页，Simulator负责按钮/导航/持久恢复。用同一运行台账标记层级，禁止把48条断言写成48次真人预约。
-- [ ] 至少三个独立Simulator容器：顾客C1、受邀G1、池候选G2；C2/G3仅在隔离/多报价需要时切换既有账号。语义AX/XCTest控制，保存关键页面和失败截图，不建设截图驱动工具链。
-- [ ] 受控联动：邀请G1并开启池 -> G1仅一条需求 -> G2从池报价 -> C1关闭池 -> G2旧报价仍可选、G3新报价失败 -> C1接受一份 -> 所有其他入口结束 -> 双端重启一致。
-- [ ] 第二条需求定向-only，从完整列表继续邀请，收藏跨登录恢复，实际邀请截止/请求到期有恢复入口；计时核心可用固定注入时钟单测，真实后端截止使用短期合法夹具加真实等待，不改设备/服务器时间。
-- [ ] 复验旧受理回执、旧写client_update_required、旧读取不能泄露新定向Request、原Booking履约仍可用，随后进行性能P01-P03。不足或失败不把功能标为完成。
+- [x] 逐项执行A01-A48，API负责枚举/权限/并发/分页，Simulator负责按钮/导航/持久恢复。用同一运行台账标记层级，禁止把48条断言写成48次真人预约。
+- [x] 至少三个独立Simulator容器：顾客C1、受邀G1、池候选G2；C2/G3仅在隔离/多报价需要时切换既有账号。语义AX/XCTest控制，保存关键页面和失败截图，不建设截图驱动工具链。
+- [x] 受控联动：邀请G1并开启池 -> G1仅一条需求 -> G2从池报价 -> C1关闭池 -> G2旧报价仍可选、G3新报价失败 -> C1接受一份 -> 所有其他入口结束 -> 双端重启一致。
+- [x] 第二条需求定向-only，从完整列表继续邀请，收藏跨登录恢复，实际邀请截止/请求到期有恢复入口；计时核心可用固定注入时钟单测，真实后端截止使用短期合法夹具加真实等待，不改设备/服务器时间。
+- [x] 复验旧受理回执、旧写client_update_required、旧读取不能泄露新定向Request、原Booking履约仍可用，随后进行性能P01-P03。不足或失败不把功能标为完成。
 
 runner命令契约在新脚本内实现并提供`--help`：`--run-id`、`--phase prepare|discovery|distribution|favorites|races|performance|verify|restore`、`--allow-remote-write`、`--allow-restore`。写phase必须显式授权开关并校验Beckon项目；verify不隐含prepare，restore精确读取本run manifest，不靠模糊前缀删数据。
 
 ```sh
 node scripts/test-request-distribution.mjs --help
-node scripts/test-request-distribution.mjs --run-id "$RUN_ID" --phase verify
+node scripts/test-request-distribution.mjs --run-id "$RUN_ID" --phase verify --allow-remote-write
 ```
 
-以上是待实现runner的目标命令，不表示当前已有脚本或已运行。UI方法按生命周期而非一断言一方法组织，至少 `testPrivatePreviewAndFavorites`、`testInvitationAndPoolLifecycle`、`testRecoveryAndExpiredHistory`，共享现有TestOps驱动器。
+verify不隐含播种，但认证夹具读取也要求显式授权开关。实际runner及证据见第8节。UI方法按生命周期而非一断言一方法组织，包括 `testPrivatePreviewAndFavorites`、`testInvitationAndPoolLifecycle`、`testRecoveryAndExpiredHistory`，共享现有TestOps驱动器。
 
 ### HD-07 验收、启用、恢复与收尾
 
 **Files:** 新cutover/enable迁移、受影响活动契约、本计划末尾验收记录、Current State；不改无关历史脏文件。
 
-- [ ] 先在关闭新入口的兼容模式部署增量对象；受控测试账号验证同一实现。涉及原始读取撤权/旧发布停用的cutover必须与新客户端就绪协调，新功能尚未启用不能先静默破坏旧流程。
-- [ ] 在最终代码/迁移集上运行 `./scripts/preflight.sh`、`./scripts/ios-build.sh`、`./scripts/ios-test.sh` 和受影响真实后端负例/竞态；截图验证新增可见组件，不重跑未变的大型历史计划。
-- [ ] 按已授权范围启用新路径；核对部署函数/ACL/策略指纹、实际迁移历史及空重复dry-run。仅本地通过时不得写“已部署”；不以静态文件存在证明权限已生效。
-- [ ] 精确恢复夹具、预览/snapshot、邀请、收藏、通知、操作回执及受控资料；原业务字段和既有对象一致，合法资格revision前进不倒写。保留run-owned新对象ID和恢复差量，不记录secret。
-- [ ] 执行 `node scripts/context-hygiene-check.mjs --full`、`git diff --check`；本计划末尾写摘要、证据路径、跳过/限制、部署与恢复状态。检查staged只含本目标后一次完成提交/推送当前工作分支。
+- [x] 先在关闭新入口的兼容模式部署增量对象；受控测试账号验证同一实现。涉及原始读取撤权/旧发布停用的cutover必须与新客户端就绪协调，新功能尚未启用不能先静默破坏旧流程。
+- [x] 在最终代码/迁移集上运行 `./scripts/preflight.sh`、`./scripts/ios-build.sh`、`./scripts/ios-test.sh` 和受影响真实后端负例/竞态；截图验证新增可见组件，不重跑未变的大型历史计划。
+- [x] 按已授权范围启用新路径；核对部署函数/ACL/策略指纹、实际迁移历史及空重复dry-run。仅本地通过时不得写“已部署”；不以静态文件存在证明权限已生效。
+- [x] 精确恢复夹具、预览/snapshot、邀请、收藏、通知、操作回执及受控资料；原业务字段和既有对象一致，合法资格revision前进不倒写。保留run-owned新对象ID和恢复差量，不记录secret。
+- [x] 执行 `node scripts/context-hygiene-check.mjs --full`、`git diff --check`；本计划末尾写摘要、证据路径、跳过/限制、部署与恢复状态。检查staged只含本目标后一次完成提交/推送当前工作分支。
 
 回退演练：关闭新发现/发送入口时，旧已发送的定向Request仍不公开；owner可读进展/报价、取消，美容师仍可管理已有报价。不能恢复旧宽松SELECT或自动广播作为回退。允许回退展示，不回退隐私与订单约束。
 
@@ -400,8 +400,44 @@ node scripts/test-request-distribution.mjs --run-id "$RUN_ID" --phase verify
 
 仅剩未采用的更大规模测试、真实市场转化评估、APNs或上架条件，不得写成当前阻断；也不得把未测能力宣称通过。所有实际失败保留原因与复验结果，不能改写成首次通过。
 
-执行记录在实施时写本节，字段固定为：工作包、代码/数据库版本、针对性结果、集成结果、UI证据路径、部署/恢复事实、未验证限制。当前所有实施框均未勾选；本轮只交付可审阅文档。
+执行记录在实施时写本节，字段固定为：工作包、代码/数据库版本、针对性结果、集成结果、UI证据路径、部署/恢复事实、未验证限制。未勾选项未通过实施验收。
 
-文档自检覆盖：设计1-2节 -> HD-04/05；设计3/5节 -> HD-02/05/06；设计4节 -> HD-01与P01/P02；设计6节 -> HD-02/03/06/07；设计7节 -> 全局约束及HD-07。没有把收藏、权限、历史恢复或旧客户端迁移留到不具名的后续阶段。
+### T-399 最终验收（2026-09-22）
 
-T-398复用自检：设计7.1 -> HD-03/04/05与A12/A21/A30/A33/A46；7.2 -> HD-00/01/02与A01/A03/A09-A12/A18-A22及P01；7.3 -> 各包旧调用方委托与HD-07自检。仅核对文档/当前源码定位，未声称模块已抽取或新增验收已通过。
+**工作包与版本：** HD-00至HD-07全部验收；基线2966ca6f，完成提交以当前工作分支的 `T-399: feat:` 为准。13个增量迁移从 `20260922062154` 至 `20260922114732`，已应用历史未改写。下述证据目录统一为 `artifacts/testops/TESTOPS-T399-20260922-A/`，包含受控测试业务数据、截图和xcresult，不纳入Git。
+
+**验收索引：** 同一场景按所需层级组合取证；runner早期标签A16并发上限实际对应A15，A19池/报价竞争实际对应A18，以本矩阵为准，不扩大测试数量。
+
+| 场景 | 通过证据 |
+|---|---|
+| A01-A03、A05、A07-A09 | `distribution-discovery.json`：18个回滚断言及真实HTTP角色/owner/digest/安全投影；26候选全集、末位高适配入首8、固定资格/评分预期、共享快照预算、软变化冻结/硬变化拒绝。输入与取消隔离另见CustomerGroomerDiscoveryTests。 |
+| A04、A06、A32-A35 | CustomerGroomerDiscoveryTests的0/1/3/8/26及101项向量、scope别名、排序/晚返回；预览UI通过日志 `/tmp/beckon-t399-ui-preview-v3.log`，真实浏览/收藏/列表/发送取消见 `ui-InvitationAndPoolLifecycle-browseEdgeCases-customer.json`。 |
+| A10-A11、A14-A15、A18-A20、A23、A25 | `distribution-distribution.json` 的27个回滚断言与HTTP权限；`distribution-races.json` 的9组真实双会话锁竞争；混合/定向UI与池关闭读写负例见 `ui-mixed-readback.json`、`ui-directed-readback.json`、`ui-pool-close-authorization.json`。 |
+| A12-A13 | 同/异operation真实首次并发、过期session回执重放；RequestPublicationCoordinatorTests照片交接/断网/换号/未知版本；`ui-InvitationAndPoolLifecycle-resumePending-customer.json` 重启恢复原7629dd7e需求，`ui-recovery-pool-readback.json` 确认一单/一邀请/一份权威回执。 |
+| A16-A17 | 分发DB到期/撤回/报价有效性；`ui-InvitationAndPoolLifecycle-withdrawForPool-customer.json` 及 `/tmp/beckon-t399-ui-withdraw-pool-quote-v2.log`：撤回定向邀请后仍按开放池实际报价。 |
+| A21-A22、A31 | safe DTO/owner/Booking解码测试及真实HTTP负例；`distribution-favorites.json` 的9头像+12请求图片Storage检查，含撤权、旧报价、Booking访问；未开放bucket或列表枚举。 |
+| A24 | `distribution-compatibility.json` 原子修订失败保留原单、成功终止原报价/邀请；`ui-InvitationAndPoolLifecycle-revise-customer.json` 与 `ui-directed-revision.json` 验证重新选范围、时间及terms revision。 |
+| A26-A28 | `distribution-favorites.json` 的17个回滚断言与相反写入独立会话竞争；`favorite-capacity-boundary.json` 生产500上限函数边界；GroomerFavoritesTests幂等、冲突、晚响应；`ui-browse-no-publication.json` 确认浏览/收藏无发布。 |
+| A29-A30 | `ui-InvitationAndPoolLifecycle-savedPausedAndSwitch-customer.json`：暂停收藏不可发送、换号隔离；Favorites/Discovery/Publication及头像晚响应Unit覆盖；匿名化身份移除见回滚DB。 |
+| A36-A38 | 紧凑17e与最大辅助字号、长名称/缺图、失败后保留列表、显式Send/Cancel通过browseEdgeCases；最终新增组件与真实列表邀请通过 `ui-InvitationAndPoolLifecycle-browseLargeText-customer.json`；收藏无scope经选单/创建再评估，确认列出接收对象/池状态。 |
+| A39-A40 | G1混合来源仅一单、报价/撤回/重新报价，G2池报价；`ui-InvitationAndPoolLifecycle-revise-customer.json` 验证全部邀请结束时的追加/开池入口；`waiting-db.json` 与进展Store固定时钟测试。 |
+| A41-A42 | `ui-RecoveryAndExpiredHistory.json`：真实等待截止、进入历史、明确重新同意池后发布新单、打开第5条关闭历史；`ui-expiry-readback.json` 与历史分页Unit。 |
+| A43-A44 | C1接受G2后唯一Booking、其他入口结束，`ui-mixed-booking-readback.json` 和双端重启；原额度、报价/资源/容量/缓冲/DST测试；`performance-qualification-parity.json`、`performance-bounds-parity.json` 保留12个固定预期。 |
+| A45-A47 | `distribution-favorites.json` 匿名化回滚（未删除Auth）；`distribution-compatibility.json` 11断言；`ui-InvitationAndPoolLifecycle-legacyRecovery-customer.json` 恢复旧无版本pending；关闭发现时真实报价/取消/历史通过 `ui-InvitationAndPoolLifecycle-cancelDuringRollback-customer.json`。 |
+| A48 | `distribution-live-restoration.json` 原业务值前后相等（合法更新时间/资格revision允许前进）；manifest全恢复；`distribution-restoration-audit.json`：请求、session、publish/distribution回执、snapshot残留均0，80函数指纹未变、86触发器仍启用；媒体/收藏另有原值及恢复记录。 |
+| P01-P02 | `distribution-performance.json`：26个既有美容师、1200历史评价；各30次SQL P95首读995/续页901/旧报价1055ms，HTTP596/920/719ms，均满足原阈值；静态/软变/硬变各10/10，零混页/漏人。 |
+| P03 | `p03-missing-images.json`、`p03-with-image.json`：前台45秒批量门禁、后台50秒无轮询、重返刷新，无逐卡timer或周期重载图片；有图返回真实HTTP200。指标按网络task ID计数，不把缓存/网络事务双算请求。 |
+
+**集成结果：** `/tmp/beckon-t399-final-preflight-v2.log` 通过；`/tmp/beckon-t399-final-ios-build.log` BUILD SUCCEEDED；`/tmp/beckon-t399-final-ios-test.log` TEST SUCCEEDED。xcresult为 `~/Library/Developer/Xcode/DerivedData/Beckon-answyhlyqxjhahcnyjpsmsbizvlf/Logs/Test/Test-Beckon-2026.09.22_05-00-39--0700.xcresult`：756测试通过（参数展开883次）、42跳过、0失败。默认套件跳过的远程TestOps不代替上述独立执行的DB/HTTP/UI验收。三台独立Simulator容器分别运行C1、G1、G2，无真机/签名门槛。当前执行者完成整体复核，未使用subagent。
+
+**实际失败与修复：** 首轮P01 SQL P95约1984/2179ms，窄复用同一时区日历及保守Booking范围后通过且固定资格预期不变；私有媒体曾被CDN旧缓存错误返回，新增授权必需策略/新请求nonce/不回退磁盘后21项访问复验通过；safe DTO移除住宅地址后原解码与Booking字段缺失已修复。真实UI捕获列表按钮串触发、Account收藏未刷新选单、Resume仅重开浏览不重放、撤回邀请后来源标签错误、取消后LazyVStack布局卡死，均修复并在同一原订单/对应操作上复验。进展45秒刷新改由可见导航容器唯一持有，轻读不等待头像。
+
+**部署/恢复：** 用户2026-09-22明确授权必要远程迁移、既有TestOps业务夹具及精确恢复。先保持全局关闭且只开放C1/C2验收；恢复后应用 `20260922114732_request_distribution_cutover.sql`，实际 `discovery_enabled=true`、`legacy_publish_retired=true`、白名单为空。history/dry-run/apply/空重复dry-run见 `/tmp/beckon-t399-cutover-*.log`，启用后新发布/旧写拒绝回滚探针与真实HTTP角色负例见 `distribution-cutover.json`。未改真实用户、创建Auth或执行真实账号删除。
+
+恢复曾因78条原有活跃服务缺物种确认而整笔回滚。最终在单事务表独占锁下核对完整夹具原值，仅恢复这些精确ID的旧启用字段，并在提交前重新启用唯一物种trigger；所有其他校验保留，未伪造species，最终86个trigger与原状态一致。1200测试历史、请求相关邀请/通知/回执/照片、预览与收藏均按run归属恢复。
+
+**限制与未通过尝试：** 100+真实身份负载未测，101项仅合成Unit；500收藏仅生产上限策略边界，不是500身份压测。图片夹具为获授权的合成传输图片，不代表真实作品视觉质量。最大字号重走旧Wizard的可选重复测试因AX定位被固定footer遮挡失败，随后实验性重试终止；这些失败保留在 `/tmp/beckon-t399-ui-final-accessibility*.log`，未计为通过。撤去实验助手后，原Wizard有效120.977秒通过证据复用，最终新增浏览组件以既有需求入口在最大字号重新完成真实邀请（60.891秒）。不会把该结果宣称为旧Wizard全链最大字号验收。
+
+最终定域DB lint无函数错误，但保留已有及本次text-to-jsonb隐式转换警告；advisors仅既有Auth密码保护警告，详见 `/tmp/beckon-t399-final-db-lint.json`、`/tmp/beckon-t399-final-advisors.json`。不宣称零警告、无限规模、真人推荐质量或设备上架验收。
+
+**文档/Git：** 只更新本计划、Current State及受影响模块契约；hygiene/diff/staged检查通过后一次完成提交并推送当前工作分支，不创建PR或合并。入口已有历史文档、签名team和Light设置保留在工作区，不随本任务提交。

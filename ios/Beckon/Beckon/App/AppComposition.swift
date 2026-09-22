@@ -9,6 +9,7 @@ struct AppComposition {
     let customerProfileRepository: (any CustomerProfileRepository)?
     let customerPetRepository: (any CustomerPetRepository)?
     let customerRequestRepository: (any CustomerRequestRepository)?
+    let customerMarketplaceServices: CustomerMarketplaceServices?
     let customerNotificationRepository: (any CustomerNotificationRepository)?
     let customerPushNotificationRepository: (any CustomerPushNotificationRepository)?
     let bookingRepository: (any BookingRepository)?
@@ -103,6 +104,12 @@ struct AppComposition {
             self.customerProfileRepository = customerProfileRepository
             self.customerPetRepository = customerPetRepository
             self.customerRequestRepository = customerRequestRepository
+            customerMarketplaceServices = .init(
+                discovery: SupabaseCustomerGroomerDiscoveryRepository(client: client),
+                distribution: SupabaseRequestDistributionRepository(client: client),
+                favorites: SupabaseGroomerFavoritesRepository(client: client),
+                images: PrivateImageLoader(dataSource: SupabasePrivateImageDataSource(client: client,
+                    requiresFreshAuthorization: true), policy: .authorizationRequired))
             self.customerNotificationRepository = customerNotificationRepository
             self.customerPushNotificationRepository = customerPushNotificationRepository
             self.bookingRepository = bookingRepository
@@ -138,6 +145,7 @@ struct AppComposition {
             customerProfileRepository = nil
             customerPetRepository = nil
             customerRequestRepository = nil
+            customerMarketplaceServices = nil
             customerNotificationRepository = nil
             customerPushNotificationRepository = nil
             bookingRepository = nil

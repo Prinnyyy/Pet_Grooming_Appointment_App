@@ -35,6 +35,7 @@ final class GroomerOfferTimingRenderingTests: XCTestCase {
         request.preferenceTimeZoneIdentifier = "America/New_York"
         let matched = GroomerMatchedRequest(match: base.match, request: request, offer: nil)
         let repository = GroomerRequestRepositoryFake(matchedRequestsResult: .success([matched]))
+        repository.exactMatchResult = .success(matched)
         let profiles = GroomerProfileRepositoryFake()
         var pending: CheckedContinuation<Void, Never>?
         var firstReadWasCancelled = false
@@ -149,6 +150,7 @@ final class GroomerOfferTimingRenderingTests: XCTestCase {
         }
         let matched = GroomerMatchedRequest(match: match, request: request, offer: nil)
         let repository = GroomerRequestRepositoryFake(matchedRequestsResult: .success([matched]))
+        repository.exactMatchResult = .success(matched)
         let profiles = GroomerProfileRepositoryFake()
         if destinationFailure { profiles.profileResult = .failure(.networkUnavailable) }
         let store = GroomerRequestsStore(groomerID: owner, repository: repository,
@@ -1213,8 +1215,13 @@ final class GroomerRequestRepositoryFake: GroomerRequestRepository {
             assessmentCount: 0, nextCursor: legacy.nextRequest.map { String($0.offset) })
     }
     var exactMatchResult: Result<GroomerMatchedRequest, GroomerRequestRepositoryError> = .failure(.matchNotFound)
+    var onExactRead: (@MainActor () async -> Void)?
+    private(set) var exactReadCount = 0
     func matchedRequest(groomerID: UUID, requestID: UUID) async throws -> GroomerMatchedRequest {
-        try exactMatchResult.get()
+        exactReadCount += 1
+        let result = exactMatchResult
+        await onExactRead?()
+        return try result.get()
     }
     var offerReadResult: Result<GroomerOffer?, GroomerRequestRepositoryError> = .failure(.networkUnavailable)
     var onOfferRead: (@MainActor () async -> Void)?

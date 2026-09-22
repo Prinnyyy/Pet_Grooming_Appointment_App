@@ -210,15 +210,17 @@ final class CustomerRequestsStore {
     private(set) var pendingRequestPhotos: [PendingGroomingRequestPhoto] = []
     private(set) var requestPhotoUploadRetries: [CustomerRequestPhotoUploadRetry] = []
     private var publishOperationID = UUID()
-    private var pendingPublication: PendingRequestPublication?
-    private var publicationRecoveryError: String?
-    var isRecoveringPublication: Bool { pendingPublication != nil }
-
-    private var publicationStorageURL: URL {
-        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("Beckon/PendingPublications", isDirectory: true)
-            .appendingPathComponent("\(customerID.uuidString).json")
+    let publicationCoordinator: CustomerRequestPublicationCoordinator
+    let marketplace: CustomerMarketplaceSession?
+    var discoveryFlow: CustomerRequestDiscoveryFlow?
+    private(set) var isPreparingDiscovery = false
+    private var pendingPublication: PendingRequestPublication? { publicationCoordinator.pending }
+    private var publicationRecoveryError: String? {
+        publicationCoordinator.recoveryError.map { _ in
+            "Your previous publication could not be recovered. No new request was submitted."
+        }
     }
+    var isRecoveringPublication: Bool { pendingPublication != nil }
     private var supersedingRequestID: UUID?
     private var expectedRequestRevision: UUID?
     var isRevisingRequest: Bool { supersedingRequestID != nil }
@@ -326,7 +328,9 @@ final class CustomerRequestsStore {
         debugRecorder: AppDebugEventRecorder? = nil,
         addressProvider: (any BeckonAddressProviding)? = nil,
         bookingsStore: BookingsStore? = nil,
-        sortPreferences: MatchSortPreferenceStore = MatchSortPreferenceStore()
+        sortPreferences: MatchSortPreferenceStore = MatchSortPreferenceStore(),
+        publicationCoordinator: CustomerRequestPublicationCoordinator? = nil,
+        marketplace: CustomerMarketplaceSession? = nil
     ) {
         let emptyAddress = BeckonAddressInput(
             line1: "",
@@ -341,6 +345,9 @@ final class CustomerRequestsStore {
         self.offerSort = sortPreferences.customerSort(accountID: customerID)
         self.petRepository = petRepository
         self.requestRepository = requestRepository
+        self.marketplace = marketplace
+        self.publicationCoordinator = publicationCoordinator ?? CustomerRequestPublicationCoordinator(
+            customerID: customerID, requestRepository: requestRepository)
         self.bookingRepository = bookingRepository
         self.bookingsStore = bookingsStore
         self.appointmentReminderScheduler = appointmentReminderScheduler
@@ -368,17 +375,9 @@ final class CustomerRequestsStore {
                 unresolvedAcceptances[offerID] = requestID
             }
         }
-        if FileManager.default.fileExists(atPath: publicationStorageURL.path) {
-            do {
-                let pending = try JSONDecoder().decode(PendingRequestPublication.self,
-                    from: Data(contentsOf: publicationStorageURL))
-                guard pending.customerID == customerID else {
-                    throw CustomerRequestRepositoryError.notAllowed
-                }
-                pendingPublication = pending
-            } catch {
-                publicationRecoveryError = "Your previous publication could not be recovered. No new request was submitted."
-            }
+        if let pending = self.publicationCoordinator.pending, let acknowledgement = pending.acknowledgement,
+           !pending.photos.isEmpty {
+            requestPhotoUploadRetries = [.init(requestID: acknowledgement.requestID, photos: pending.photos)]
         }
     }
 
@@ -392,6 +391,7 @@ final class CustomerRequestsStore {
 
     func setAcceptanceSessionValidation(_ validation: @escaping @MainActor () -> Bool) {
         acceptanceSessionIsCurrent = validation
+        publicationCoordinator.setSessionValidation(validation)
     }
 
     func changeOfferSort(to mode: CustomerOfferSort, for request: CustomerGroomingRequest) async {
@@ -469,6 +469,8 @@ final class CustomerRequestsStore {
                 selectedPetID = pets.first?.id
             }
             isLoading = false
+            await refreshDistributionProgress(requestIDs: activeRequests.map(\.id))
+            guard isCurrentRequestLoad(operation) else { return }
             await reconcileUnresolvedAcceptances()
             guard isCurrentRequestLoad(operation) else { return }
             await loadPetPhotosForWizard(startedAt: startedAt)
@@ -736,7 +738,9 @@ final class CustomerRequestsStore {
     }
 
     func cancelWizard(now: Date = Date()) {
-        guard !isSubmitting else { return }
+        guard !isSubmitting, marketplace?.distribution.isPublishing != true else { return }
+        discoveryFlow?.store.invalidateSession()
+        discoveryFlow = nil
         isShowingWizard = false
         guard pendingPublication == nil else { return }
         resetForm(now: now)
@@ -926,6 +930,10 @@ final class CustomerRequestsStore {
             ) {
             case let .uploaded(uploadedPhoto):
                 recordUploadedRequestPhoto(uploadedPhoto, data: photo.data)
+                if publicationCoordinator.pending?.acknowledgement?.requestID == requestID {
+                    do { try publicationCoordinator.acknowledgePhoto(photo.id, requestID: requestID) }
+                    catch { failedPhotos.append(photo) }
+                }
             case .cancelled:
                 failedPhotos.append(contentsOf: retry.photos[index...])
                 wasCancelled = true
@@ -940,7 +948,14 @@ final class CustomerRequestsStore {
             photos: failedPhotos
         )
         if failedPhotos.isEmpty {
-            noticeMessage = "Request photos uploaded."
+            do {
+                if publicationCoordinator.pending?.acknowledgement?.requestID == requestID {
+                    try publicationCoordinator.finishHandoff(requestID: requestID)
+                }
+                noticeMessage = "Request photos uploaded."
+            } catch {
+                errorMessage = "Photos uploaded. Publication recovery could not be saved; try again."
+            }
         }
         if wasCancelled {
             recordStoreCancelled(
@@ -962,6 +977,14 @@ final class CustomerRequestsStore {
 
     func discardRequestPhotoUploadRetry(for requestID: UUID) {
         guard !retryingRequestPhotoIDs.contains(requestID) else { return }
+        do {
+            if publicationCoordinator.pending?.acknowledgement?.requestID == requestID {
+                try publicationCoordinator.discardAcceptedPhotos(requestID: requestID)
+            }
+        } catch {
+            errorMessage = "Unable to discard pending photos. Try again."
+            return
+        }
         setRequestPhotoUploadRetry(requestID: requestID, photos: [])
     }
 
@@ -1230,18 +1253,28 @@ final class CustomerRequestsStore {
         do {
             // Write the immutable intent before sending: a lost response must not become a new operation.
             if pendingPublication == nil {
-                try savePendingPublication(PendingRequestPublication(customerID: customerID,
+                try publicationCoordinator.begin(PendingRequestPublication(customerID: customerID,
                     draft: draft, photos: pendingRequestPhotos))
             }
-            let result = try await requestRepository.createRequest(
-                customerID: customerID,
-                draft: draft
-            )
+            let accepted = try await publicationCoordinator.resume()
             try checkAcceptanceSession()
-            let photosToUpload = pendingRequestPhotos
-            try savePendingPublication(nil)
+            let result: GroomingRequestPublishResult
+            switch accepted.acknowledgement {
+            case let .legacy(value): result = value
+            case let .discovery(value):
+                let current = try await requestRepository.request(customerID: customerID, requestID: value.requestID)
+                try checkAcceptanceSession()
+                guard current.id == value.requestID, current.customerID == customerID else {
+                    throw CustomerRequestRepositoryError.notAllowed
+                }
+                requests.removeAll { $0.id == current.id }
+                requests.insert(current, at: 0)
+                result = .init(requestID: value.requestID, matchCount: 0)
+            case nil: throw CustomerRequestRepositoryError.unavailable
+            }
+            let photosToUpload = accepted.photos
             publishResult = result
-            isShowingWizard = false
+            if accepted.protocolVersion == .legacyV4 { isShowingWizard = false }
             resetForm()
             selectedPetID = pets.first?.id
             wizardInitialStep = .pet
@@ -1267,6 +1300,7 @@ final class CustomerRequestsStore {
                 case let .uploaded(uploadedPhoto):
                     uploadedPhotos.append((uploadedPhoto, photo.data))
                     recordUploadedRequestPhoto(uploadedPhoto, data: photo.data)
+                    try publicationCoordinator.acknowledgePhoto(photo.id, requestID: result.requestID)
                 case .cancelled:
                     failedPhotos.append(contentsOf: photosToUpload[index...])
                     recordStoreCancelled(
@@ -1282,6 +1316,9 @@ final class CustomerRequestsStore {
                 requestID: result.requestID,
                 photos: failedPhotos
             )
+            if failedPhotos.isEmpty {
+                try publicationCoordinator.finishHandoff(requestID: result.requestID)
+            }
 
             var refreshFailed = false
             do {
@@ -1337,6 +1374,9 @@ final class CustomerRequestsStore {
                 failedPhotoCount: failedPhotos.count,
                 refreshFailed: refreshFailed
             )
+            if accepted.protocolVersion == .discoveryV1 {
+                noticeMessage = failedPhotos.isEmpty ? "Request sent." : "Request sent. Some photos still need uploading."
+            }
             recordStoreSuccess(
                 "publish",
                 startedAt: startedAt,
@@ -1352,9 +1392,9 @@ final class CustomerRequestsStore {
             recordStoreCancelled("publish", startedAt: startedAt)
         } catch let error as CustomerRequestRepositoryError {
             switch error {
-            case .requestLimitExceeded, .requestNotFound, .requestNotCancellable, .petNotFound, .invalidInput:
+            case .requestLimitExceeded, .requestNotFound, .requestNotCancellable, .petNotFound, .invalidInput, .clientUpdateRequired:
                 // These are authoritative rejections. Transport/cancellation/auth failures remain unresolved.
-                if (try? savePendingPublication(nil)) != nil { publishOperationID = UUID() }
+                if pendingPublication == nil { publishOperationID = UUID() }
             case .notAllowed, .networkUnavailable, .cancelled, .unavailable:
                 break
             }
@@ -1375,6 +1415,63 @@ final class CustomerRequestsStore {
                 mappedMessage: errorMessage,
                 startedAt: startedAt
             )
+        }
+    }
+
+    func prepareDiscovery() async {
+        guard let marketplace, !isPreparingDiscovery, acceptanceSessionIsCurrent() else { return }
+        isPreparingDiscovery = true; errorMessage = nil
+        defer { isPreparingDiscovery = false }
+        do {
+            if let error = publicationCoordinator.recoveryError { throw error }
+            if publicationCoordinator.pending != nil {
+                // Resume the immutable operation, even when its discovery preview has expired.
+                await publish()
+                if publishResult != nil && errorMessage == nil && acceptanceSessionIsCurrent() {
+                    isShowingWizard = false
+                }
+            } else {
+                let draft = try makeDraft()
+                let session = try await marketplace.discoveryRepository.prepare(draftID: draft.publishOperationID, draft: draft)
+                try checkAcceptanceSession()
+                discoveryFlow = .init(store: .init(scope: session.scope, repository: marketplace.discoveryRepository),
+                    draft: draft, session: session, photos: pendingRequestPhotos)
+            }
+        } catch let error as CustomerRequestFormError { errorMessage = error.message }
+        catch { errorMessage = ((error as? RequestDiscoveryError) ?? .unavailable).message }
+    }
+
+    func browseGroomers(for request: CustomerGroomingRequest) {
+        guard let marketplace, request.customerID == customerID, let revision = request.termsRevision else { return }
+        discoveryFlow = .init(store: .init(scope: .request(id: request.id, termsRevision: revision),
+            repository: marketplace.discoveryRepository))
+    }
+
+    var nextDistributionDeadline: Date? {
+        marketplace?.distribution.nextDeadline(requestIDs: activeRequests.map(\.id))
+    }
+
+    func refreshDistributionProgress(requestIDs: [UUID]) async {
+        guard let distribution = marketplace?.distribution else { return }
+        await distribution.refresh(requestIDs: requestIDs)
+        guard acceptanceSessionIsCurrent(), !Task.isCancelled else { return }
+        requests = requests.map { request in
+            guard let progress = distribution.progressByRequestID[request.id] else { return request }
+            return request.reconciling(progress)
+        }
+    }
+
+    func sendDiscovery(_ flow: CustomerRequestDiscoveryFlow, groomerIDs: [UUID]) async {
+        guard let marketplace, acceptanceSessionIsCurrent() else { return }
+        if case let .request(id, revision) = flow.store.actionScope {
+            _ = await marketplace.distribution.invite(requestID: id, termsRevision: revision, groomerIDs: groomerIDs)
+        } else if let draft = flow.draft, let session = flow.session {
+            let intent = publicationCoordinator.pending ?? PendingRequestPublication(customerID: customerID, draft: draft,
+                photos: flow.photos, session: session, poolEnabled: flow.poolEnabled, groomerIDs: groomerIDs)
+            if let receipt = await marketplace.distribution.publish(intent) {
+                flow.store.publicationConfirmed(requestScope: receipt.scope)
+                await publish()
+            }
         }
     }
 
@@ -1907,22 +2004,6 @@ final class CustomerRequestsStore {
         return .valid
     }
 
-    private func savePendingPublication(_ value: PendingRequestPublication?) throws {
-        let url = publicationStorageURL
-        if let value {
-            var directory = url.deletingLastPathComponent()
-            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-            var resources = URLResourceValues()
-            resources.isExcludedFromBackup = true
-            try directory.setResourceValues(resources)
-            try JSONEncoder().encode(value).write(to: url,
-                options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
-        } else if FileManager.default.fileExists(atPath: url.path) {
-            try FileManager.default.removeItem(at: url)
-        }
-        pendingPublication = value
-    }
-
     private func resumePendingPublication() -> Bool {
         if let publicationRecoveryError {
             errorMessage = publicationRecoveryError
@@ -2444,15 +2525,16 @@ final class CustomerRequestsStore {
         startedAt: Date
     ) async -> CustomerRequestPhotoUploadAttempt {
         do {
-            return .uploaded(
-                try await requestRepository.uploadRequestPhoto(
+            try checkAcceptanceSession()
+            let uploaded = try await requestRepository.uploadRequestPhoto(
                     customerID: customerID,
                     requestID: requestID,
                     data: photo.data,
                     contentType: photo.contentType,
                     caption: nil
                 )
-            )
+            try checkAcceptanceSession()
+            return .uploaded(uploaded)
         } catch CustomerRequestRepositoryError.cancelled {
             return .cancelled
         } catch let error as CustomerRequestRepositoryError {
@@ -2643,6 +2725,8 @@ final class CustomerRequestsStore {
             "This account cannot \(action) grooming requests."
         case .requestLimitExceeded:
             "You can have at most 3 open grooming requests."
+        case .clientUpdateRequired:
+            "This older draft was not sent. Find groomers again to choose who receives your request."
         case .requestNotFound:
             "This request is no longer available."
         case .requestNotCancellable:
@@ -2897,12 +2981,6 @@ struct CustomerRequestActionCardItem: Equatable, Hashable, Identifiable, Sendabl
     var isBookingHandoff: Bool {
         handoff != nil
     }
-}
-
-private struct PendingRequestPublication: Codable {
-    let customerID: UUID
-    let draft: GroomingRequestDraft
-    let photos: [PendingGroomingRequestPhoto]
 }
 
 struct PendingGroomingRequestPhoto: Codable, Equatable, Identifiable, Sendable {

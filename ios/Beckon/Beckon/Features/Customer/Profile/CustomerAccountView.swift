@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct CustomerAccountView: View {
+    @Environment(\.customerMarketplaceSession) private var marketplace
     let session: AuthSessionSnapshot
     let profile: MarketplaceProfile
     @Bindable var authenticationStore: AuthenticationStore
@@ -65,6 +66,14 @@ struct CustomerAccountView: View {
 
                     BeckonSection("Support") {
                         AccountReleaseLinksSection(accent: .customer)
+                    }
+
+                    if let marketplace {
+                        BeckonSettingsNavigationRow(title: "Saved Groomers", summary: nil,
+                            systemImage: "heart", accent: .customer) {
+                            CustomerFavoriteGroomersView(marketplace: marketplace)
+                        }
+                        .accessibilityIdentifier("account.saved-groomers")
                     }
 
                     if let errorMessage = authenticationStore.errorMessage {

@@ -19,6 +19,7 @@ struct CustomerTabView: View {
     @State private var chatStore: ChatStore?
     @State private var requestStore: CustomerRequestsStore?
     @State private var bookingsStore: BookingsStore?
+    @State private var marketplace: CustomerMarketplaceSession?
     @State private var feedbackCenter = BeckonFeedbackCenter()
 
     init(
@@ -31,6 +32,7 @@ struct CustomerTabView: View {
         bookingRepository: (any BookingRepository)? = nil,
         chatRepository: (any ChatRepository)? = nil,
         accountContent: AnyView? = nil,
+        marketplaceServices: CustomerMarketplaceServices? = nil,
         acceptanceSessionIsCurrent: @escaping @MainActor () -> Bool = { true }
     ) {
         self.customerID = customerID
@@ -61,12 +63,18 @@ struct CustomerTabView: View {
                 sessionIsCurrent: acceptanceSessionIsCurrent)
         } else { nil }
         _bookingsStore = State(initialValue: sharedBookingsStore)
+        let marketplace: CustomerMarketplaceSession? = if let customerID, let requestRepository, let marketplaceServices {
+            .init(customerID: customerID, requestRepository: requestRepository, services: marketplaceServices,
+                sessionIsCurrent: acceptanceSessionIsCurrent)
+        } else { nil }
+        _marketplace = State(initialValue: marketplace)
         let sharedRequestsStore = Self.makeRequestStore(
                 customerID: customerID,
                 petRepository: petRepository,
                 requestRepository: requestRepository,
                 bookingRepository: bookingRepository,
-                bookingsStore: sharedBookingsStore
+                bookingsStore: sharedBookingsStore,
+                marketplace: marketplace
             )
         sharedRequestsStore?.setAcceptanceSessionValidation(acceptanceSessionIsCurrent)
         _requestStore = State(initialValue: sharedRequestsStore)
@@ -78,6 +86,21 @@ struct CustomerTabView: View {
                 NavigationStack {
                     destination(for: tab)
                         .background(DesignTokens.Colors.background)
+                }
+                .foregroundRefreshable(
+                    isEnabled: tab == .requests && selection == .requests
+                        && requestStore?.isShowingWizard == false && requestStore?.discoveryFlow == nil,
+                    nextDeadline: tab == .requests ? requestStore?.nextDistributionDeadline : nil,
+                    fallbackAction: {
+                        guard let requestStore else { return }
+                        if requestStore.marketplace != nil {
+                            await requestStore.refreshDistributionProgress(requestIDs: requestStore.activeRequests.map(\.id))
+                        } else {
+                            await requestStore.load()
+                        }
+                    }
+                ) {
+                    await requestStore?.load()
                 }
                 .tabItem {
                     Label(tab.title, systemImage: tab.systemImage)
@@ -97,10 +120,20 @@ struct CustomerTabView: View {
         .toolbarBackground(DesignTokens.Colors.surface, for: .tabBar)
         .toolbarBackground(.visible, for: .tabBar)
         .environment(\.beckonFeedbackCenter, feedbackCenter)
+        .environment(\.customerMarketplaceSession, marketplace)
         .overlay(alignment: .bottom) {
             BeckonGlobalFeedbackOverlay(center: feedbackCenter)
         }
         .onAppear {
+            marketplace?.requestOptions = { [weak requestStore] in requestStore?.activeRequests ?? [] }
+            marketplace?.refreshRequestOptions = { [weak requestStore] in
+                await requestStore?.load()
+                return requestStore?.errorMessage
+            }
+            marketplace?.createRequest = { [weak requestStore] in
+                selection = .requests
+                requestStore?.startCreate()
+            }
             feedbackCenter.setDebugRecorder(debugRecorder)
             chatStore?.setDebugRecorder(debugRecorder)
             requestStore?.setDebugRecorder(debugRecorder)
@@ -113,6 +146,9 @@ struct CustomerTabView: View {
         }
         .task {
             await refreshBadgeSources()
+        }
+        .onDisappear {
+            if !acceptanceSessionIsCurrent() { marketplace?.clearSession() }
         }
         .onChange(of: selection) { oldValue, newValue in
             debugRecorder?.record(
@@ -171,6 +207,7 @@ struct CustomerTabView: View {
                 bookingRepository: bookingRepository,
                 customerProfileRepository: customerProfileRepository,
                 isActiveTab: selection == .requests,
+                managesRefresh: false,
                 debugRecorder: debugRecorder,
                 focusedRequestID: $focusedRequestID,
                 onBookingChatSelected: openBookingChat,
@@ -264,7 +301,8 @@ struct CustomerTabView: View {
         petRepository: (any CustomerPetRepository)?,
         requestRepository: (any CustomerRequestRepository)?,
         bookingRepository: (any BookingRepository)?,
-        bookingsStore: BookingsStore?
+        bookingsStore: BookingsStore?,
+        marketplace: CustomerMarketplaceSession?
     ) -> CustomerRequestsStore? {
         guard let customerID, let petRepository, let requestRepository,
               let bookingRepository else { return nil }
@@ -273,7 +311,9 @@ struct CustomerTabView: View {
             petRepository: petRepository,
             requestRepository: requestRepository,
             bookingRepository: bookingRepository,
-            bookingsStore: bookingsStore
+            bookingsStore: bookingsStore,
+            publicationCoordinator: marketplace?.publication,
+            marketplace: marketplace
         )
     }
 

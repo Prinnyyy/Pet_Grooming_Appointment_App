@@ -366,6 +366,11 @@ struct CustomerRequestsStoreTests {
         store.addPendingPhoto(data: Data([0x01, 0x02]), contentType: .jpeg)
         store.confirmCurrentTestAddress()
 
+        requestRepository.onUploadPhoto = {
+            // A crash during photo handoff must leave the accepted Request recoverable.
+            #expect(store.isRecoveringPublication)
+        }
+
         await store.publish()
 
         #expect(requestRepository.createCallCount == 1)
@@ -423,6 +428,7 @@ struct CustomerRequestsStoreTests {
     @MainActor
     func uncertainPublicationRetainsOriginalIntent(variant: String) async throws {
         let customerID = UUID()
+        let requestID = UUID()
         let pet = Self.pet(customerID: customerID)
         let repository = CustomerRequestRepositoryFake(createResult: .failure(.networkUnavailable))
         func makeStore() -> CustomerRequestsStore {
@@ -446,7 +452,7 @@ struct CustomerRequestsStoreTests {
         store.addPendingPhoto(data: Data([1, 2, 3]), contentType: .jpeg)
         var sessionCurrent = true
         if variant == "signedOut" {
-            repository.createResult = .success(.init(requestID: UUID(), matchCount: 1))
+            repository.createResult = .success(.init(requestID: requestID, matchCount: 1))
             repository.onCreate = { sessionCurrent = false }
             store.setAcceptanceSessionValidation { sessionCurrent }
         }
@@ -479,18 +485,24 @@ struct CustomerRequestsStoreTests {
             #expect(store.pendingRequestPhotos.count == 1)
             #expect(store.wizardInitialStep == .review)
         }
-        let requestID = UUID()
         repository.createResult = .success(.init(requestID: requestID, matchCount: 1))
         await store.publish()
-        #expect(repository.receivedDrafts.count == 2)
+        #expect(repository.receivedDrafts.count == (variant == "signedOut" ? 1 : 2))
         #expect(repository.receivedDrafts.last == original)
         #expect(repository.uploadRequestPhotoCallCount == 1)
         #expect(store.publishResult?.requestID == requestID)
         let fresh = makeStore()
         await fresh.load()
         fresh.startCreate()
-        #expect(fresh.serviceNotes.isEmpty)
-        #expect(fresh.wizardInitialStep == .pet)
+        #expect(fresh.serviceNotes == original.serviceNotes)
+        #expect(fresh.wizardInitialStep == .review)
+        #expect(fresh.requestPhotoUploadRetries.first?.requestID == requestID)
+        repository.uploadRequestPhotoResult = .success(.init(id: UUID(), requestID: requestID,
+            customerID: customerID, storageBucket: "request-photos", storagePath: "fixture/photo.jpg",
+            caption: nil, sortOrder: 0, createdAt: "2026-09-22T00:00:00Z"))
+        await fresh.retryRequestPhotos(for: requestID)
+        #expect(repository.receivedDrafts.count == (variant == "signedOut" ? 1 : 2))
+        #expect(makeStore().isRecoveringPublication == false)
     }
 
     @Test(arguments: [CustomerRequestRepositoryError.invalidInput, .petNotFound, .requestLimitExceeded])

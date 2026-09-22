@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct AuthenticatedEntryView: View {
+    @Environment(\.customerMarketplaceServices) private var marketplaceServices
     let session: AuthSessionSnapshot
     @Bindable var authenticationStore: AuthenticationStore
     private let customerProfileRepository: any CustomerProfileRepository
@@ -74,6 +75,7 @@ struct AuthenticatedEntryView: View {
                     bookingRepository: bookingRepository,
                     chatRepository: chatRepository,
                     accountContent: customerAccountContent(for: profile),
+                    marketplaceServices: marketplaceServices,
                     acceptanceSessionIsCurrent: {
                         guard !authenticationStore.isSubmitting,
                               case let .signedIn(current) = authenticationStore.rootState else { return false }

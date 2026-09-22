@@ -1,5 +1,33 @@
 import Foundation
 
+#if DEBUG && targetEnvironment(simulator)
+enum DebugDiscoveryPublicationFault {
+    static func dropsReceipt(for intent: PendingRequestPublication, arguments: [String]) -> Bool {
+        guard arguments.contains("--beckon-testops-discovery-drop-receipt"),
+              let run = AppTestOpsConfiguration(arguments: arguments).runID,
+              run.range(of: "^TESTOPS-T399-[A-Z0-9-]{1,70}$", options: .regularExpression) != nil,
+              let index = arguments.firstIndex(of: "--beckon-testops-discovery-customer"),
+              index + 1 < arguments.count,
+              UUID(uuidString: arguments[index + 1]) == intent.customerID,
+              intent.draft.serviceNotes == "TESTOPS:\(run)", intent.protocolVersion == .discoveryV1 else { return false }
+        return true
+    }
+}
+
+enum DebugDiscoveryBrowseFault {
+    static func failsReadAfterInitialPage(draft: GroomingRequestDraft, customerID: UUID?, arguments: [String]) -> Bool {
+        guard arguments.contains("--beckon-testops-discovery-fail-read"),
+              let run = AppTestOpsConfiguration(arguments: arguments).runID,
+              run.range(of: "^TESTOPS-T399-[A-Z0-9-]{1,70}$", options: .regularExpression) != nil,
+              let index = arguments.firstIndex(of: "--beckon-testops-discovery-customer"),
+              index + 1 < arguments.count, let customerID,
+              UUID(uuidString: arguments[index + 1]) == customerID,
+              draft.serviceNotes == "TESTOPS:\(run)" else { return false }
+        return true
+    }
+}
+#endif
+
 extension UserRole {
     var appDebugScopePrefix: String {
         switch self {

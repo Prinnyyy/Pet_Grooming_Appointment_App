@@ -3,6 +3,29 @@ import Testing
 @testable import Beckon
 
 struct ForegroundRefreshGateTests {
+    @Test @MainActor func periodicAndDeadlineReadsShareTheGateWithoutReloadingMedia() async {
+        let gate = ForegroundRefreshGate()
+        var full = 0, light = 0
+        for (reason, time): (ForegroundRefreshReason, TimeInterval) in [
+            (.initialLoad, 100), (.realtimeFallback, 144), (.realtimeFallback, 145),
+            (.deadlineReached, 146), (.sceneBecameActive, 152)
+        ] {
+            await gate.refresh(reason: reason, now: Date(timeIntervalSince1970: time),
+                fallbackOperation: { light += 1 }) { full += 1 }
+        }
+        #expect(full == 2)
+        #expect(light == 2)
+    }
+
+    @Test @MainActor func deadlineDoesNotWaitForTheFallbackOrForegroundThrottle() async {
+        let gate = ForegroundRefreshGate()
+        var count = 0
+        await gate.refresh(reason: .initialLoad, now: Date(timeIntervalSince1970: 100)) { count += 1 }
+        await gate.refresh(reason: .deadlineReached, now: Date(timeIntervalSince1970: 101)) { count += 1 }
+        #expect(count == 2)
+        await gate.refresh(reason: .realtimeFallback, now: Date(timeIntervalSince1970: 102)) { count += 1 }
+        #expect(count == 2)
+    }
     @Test @MainActor
     func initialRefreshRunsAndRecordsTimestamp() async {
         let gate = ForegroundRefreshGate(

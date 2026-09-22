@@ -35,6 +35,32 @@ struct PrivateImageCacheKeyTests {
 @MainActor
 struct PrivateImageLoaderTests {
     @Test
+    func discoveryMediaRevalidatesAndNeverPersists() async throws {
+        let key = Self.key(), old = Data([1]), current = Data([2])
+        let cache = PrivateImageCacheFake(dataByKey: [key: old])
+        let source = PrivateImageDataSourceFake(result: .success(current))
+        let loader = PrivateImageLoader(dataSource: source, cache: cache, policy: .authorizationRequired)
+        let data = try await loader.loadData(bucketID: key.bucketID, storagePath: key.storagePath)
+        #expect(data == current)
+        #expect(source.requests == [key])
+        #expect(cache.data(for: key) == nil)
+        loader.saveData(current, bucketID: key.bucketID, storagePath: key.storagePath)
+        #expect(cache.data(for: key) == nil)
+    }
+
+    @Test
+    func revokedDiscoveryMediaNeverFallsBackToOldBytes() async {
+        let key = Self.key()
+        let cache = PrivateImageCacheFake(dataByKey: [key: Data([1])])
+        let loader = PrivateImageLoader(dataSource: PrivateImageDataSourceFake(), cache: cache,
+                                        policy: .authorizationRequired)
+        await #expect(throws: PrivateImageDataSourceFakeError.self) {
+            try await loader.refreshData(bucketID: key.bucketID, storagePath: key.storagePath)
+        }
+        #expect(cache.data(for: key) == nil)
+    }
+
+    @Test
     func loadDataReturnsCachedDataWithoutDownloading() async throws {
         let key = Self.key()
         let cachedData = Data([0x01, 0x02])

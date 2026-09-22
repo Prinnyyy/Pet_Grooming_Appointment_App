@@ -5,6 +5,7 @@ nonisolated enum ForegroundRefreshReason: Equatable, Sendable {
     case initialLoad
     case sceneBecameActive
     case realtimeFallback
+    case deadlineReached
 }
 
 @MainActor
@@ -30,6 +31,7 @@ final class ForegroundRefreshGate {
     func refresh(
         reason: ForegroundRefreshReason,
         now: Date = Date(),
+        fallbackOperation: (@MainActor () async -> Void)? = nil,
         operation: @MainActor () async -> Void
     ) async {
         guard shouldStartRefresh(reason: reason, now: now) else {
@@ -43,7 +45,11 @@ final class ForegroundRefreshGate {
             isRefreshing = false
         }
 
-        await operation()
+        if let fallbackOperation, reason == .realtimeFallback || reason == .deadlineReached {
+            await fallbackOperation()
+        } else {
+            await operation()
+        }
         lastRefreshAt = now
     }
 
@@ -56,6 +62,8 @@ final class ForegroundRefreshGate {
         guard let lastRefreshAt else { return true }
 
         switch reason {
+        case .deadlineReached:
+            return true
         case .initialLoad:
             return false
         case .sceneBecameActive:
@@ -71,14 +79,23 @@ private struct ForegroundRefreshModifier: ViewModifier {
     @State private var gate: ForegroundRefreshGate
 
     private let realtimeFallbackInterval: TimeInterval
+    private let isEnabled: Bool
+    private let nextDeadline: Date?
+    private let fallbackAction: (@MainActor () async -> Void)?
     private let refreshAction: @MainActor () async -> Void
 
     init(
         minimumForegroundRefreshInterval: TimeInterval,
         realtimeFallbackInterval: TimeInterval,
+        isEnabled: Bool,
+        nextDeadline: Date?,
+        fallbackAction: (@MainActor () async -> Void)?,
         refreshAction: @escaping @MainActor () async -> Void
     ) {
         self.realtimeFallbackInterval = realtimeFallbackInterval
+        self.isEnabled = isEnabled
+        self.nextDeadline = nextDeadline
+        self.fallbackAction = fallbackAction
         self.refreshAction = refreshAction
         _gate = State(
             initialValue: ForegroundRefreshGate(
@@ -90,20 +107,27 @@ private struct ForegroundRefreshModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .task {
-                await refresh(reason: .initialLoad)
+            .task(id: isEnabled) {
+                guard isEnabled else { return }
+                await refresh(reason: gate.lastRefreshAt == nil ? .initialLoad : .sceneBecameActive)
             }
             .onChange(of: scenePhase) { _, newPhase in
-                guard newPhase == .active else { return }
+                guard newPhase == .active, isEnabled else { return }
 
                 Task {
                     await refresh(reason: .sceneBecameActive)
                 }
             }
-            .task(id: scenePhase == .active) {
-                guard scenePhase == .active else { return }
+            .task(id: scenePhase == .active && isEnabled) {
+                guard scenePhase == .active, isEnabled else { return }
 
                 await runRealtimeFallbackLoop()
+            }
+            .task(id: scenePhase == .active && isEnabled ? nextDeadline : nil) {
+                guard scenePhase == .active, isEnabled, let nextDeadline else { return }
+                let delay = max(0, nextDeadline.timeIntervalSinceNow)
+                do { try await Task.sleep(for: .seconds(delay)) } catch { return }
+                await refresh(reason: .deadlineReached)
             }
     }
 
@@ -118,7 +142,8 @@ private struct ForegroundRefreshModifier: ViewModifier {
     }
 
     private func refresh(reason: ForegroundRefreshReason) async {
-        await gate.refresh(reason: reason) {
+        guard isEnabled, !Task.isCancelled else { return }
+        await gate.refresh(reason: reason, fallbackOperation: fallbackAction) {
             await refreshAction()
         }
     }
@@ -128,12 +153,18 @@ extension View {
     func foregroundRefreshable(
         minimumForegroundRefreshInterval: TimeInterval = ForegroundRefreshGate.defaultMinimumForegroundRefreshInterval,
         realtimeFallbackInterval: TimeInterval = ForegroundRefreshGate.defaultRealtimeFallbackInterval,
+        isEnabled: Bool = true,
+        nextDeadline: Date? = nil,
+        fallbackAction: (@MainActor () async -> Void)? = nil,
         refreshAction: @escaping @MainActor () async -> Void
     ) -> some View {
         modifier(
             ForegroundRefreshModifier(
                 minimumForegroundRefreshInterval: minimumForegroundRefreshInterval,
                 realtimeFallbackInterval: realtimeFallbackInterval,
+                isEnabled: isEnabled,
+                nextDeadline: nextDeadline,
+                fallbackAction: fallbackAction,
                 refreshAction: refreshAction
             )
         )

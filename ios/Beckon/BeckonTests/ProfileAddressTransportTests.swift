@@ -208,10 +208,8 @@ struct ProfileAddressTransportTests {
         let request = try #require(matches.first?.request)
         #expect(request.preferenceTimeZoneIdentifier == (legacy ? nil : "America/New_York"))
         #expect(request.preferredStart == "2026-11-02T04:00:00Z")
-        let url = try #require(AddressTransportStub.state.urls.first { $0.path == "/rest/v1/grooming_requests" })
-        let selected = try #require(URLComponents(url: url, resolvingAgainstBaseURL: false)?
-            .queryItems?.first { $0.name == "select" }?.value)
-        #expect(selected.split(separator: ",").contains("preference_time_zone_identifier"))
+        #expect(AddressTransportStub.state.paths.contains("/rest/v1/rpc/get_groomer_request_summaries_v1"))
+        #expect(!AddressTransportStub.state.paths.contains("/rest/v1/grooming_requests"))
     }
 
     @Test(arguments: ["pending", "estimated_fit", "assessment_required", "excluded", "future_state"]) @MainActor
@@ -461,7 +459,7 @@ nonisolated private final class AddressTransportStub: URLProtocol, @unchecked Se
                 let evaluationState: String?
                 if case let .matchedEvaluation(value) = mode { evaluationState = value } else { evaluationState = nil }
                 if mode == .matchedRow || mode == .legacyMatchedRow || evaluationState != nil {
-                    guard path.hasSuffix("/get_my_matched_requests") || path.hasSuffix("/grooming_requests") else { return (200, "[]") }
+                    guard path.hasSuffix("/get_my_matched_requests") || path.hasSuffix("/get_groomer_request_summaries_v1") else { return (200, "[]") }
                     let isMatch = path.hasSuffix("/get_my_matched_requests")
                     var row: [String: Any] = [
                         "id": "00000000-0000-0000-0000-000000000002",
@@ -473,7 +471,7 @@ nonisolated private final class AddressTransportStub: URLProtocol, @unchecked Se
                         "expires_at": "2026-11-03T00:00:00Z",
                         "preferred_start": "2026-11-02T04:00:00Z", "preferred_end": "2026-11-02T05:00:00Z",
                         "service_type": "bath_and_brush", "location_mode": "groomer_comes_to_customer",
-                        "street_address": "1 Test Street", "city": "New York", "state": "NY", "zip_code": "10001",
+                        "city": "New York", "state": "NY",
                         "pet_snapshot": ["id": "00000000-0000-0000-0000-000000000006", "name": "Test", "species": "dog"],
                         "photo_snapshot": []
                     ]

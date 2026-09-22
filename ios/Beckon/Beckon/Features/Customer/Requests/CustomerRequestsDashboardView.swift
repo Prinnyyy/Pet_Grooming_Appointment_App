@@ -437,14 +437,20 @@ private struct CustomerRequestProgressCard: View {
                     petAvatarPhotoData: card.petAvatarPhotoData,
                     presentation: presentation
                 )
+                .accessibilityIdentifier(
+                    AppTestOpsAccessibility.identifier(prefix: "customer.requests.row", serviceNotes: request.serviceNotes)
+                        ?? (isBookingHandoff ? "customer.requests.booking-handoff" : "customer.requests.progress-card")
+                )
+                .accessibilityValue(AppTestOpsAccessibility.requestReference(request.id))
 
                 Divider()
                     .overlay(DesignTokens.Colors.borderSoft)
 
-                CustomerRequestTimelineList(
-                    request: request,
-                    density: CustomerRequestProgressCardLayout.timelineDensity
-                )
+                if handoff == nil, let marketplace = store.marketplace {
+                    CustomerRequestProgressView(requestID: request.id, store: marketplace.distribution)
+                } else {
+                    CustomerRequestTimelineList(request: request, density: CustomerRequestProgressCardLayout.timelineDensity)
+                }
 
                 if let handoff {
                     CustomerRequestBookingHandoffAction(
@@ -460,17 +466,6 @@ private struct CustomerRequestProgressCard: View {
                 }
             }
         }
-        .accessibilityIdentifier(
-            AppTestOpsAccessibility.identifier(
-                prefix: "customer.requests.row",
-                serviceNotes: request.serviceNotes
-            ) ?? (isBookingHandoff
-                ? "customer.requests.booking-handoff"
-                : "customer.requests.progress-card")
-        )
-        .accessibilityValue(
-            AppTestOpsAccessibility.requestReference(request.id)
-        )
     }
 
     private var isBookingHandoff: Bool {
@@ -1100,6 +1095,7 @@ private struct CustomerRequestActionRow: View {
         .disabled(!request.status.isOpenForOffers || store.isCancelling(request))
         .accessibilityLabel("Cancel Request")
         .accessibilityIdentifier("customer.requests.cancel")
+        .accessibilityValue(AppTestOpsAccessibility.requestReference(request.id))
     }
 }
 
@@ -1188,12 +1184,10 @@ struct CustomerCancelledRequestsSection: View {
     let requests: [CustomerGroomingRequest]
     let store: CustomerRequestsStore
     let onRepublishRequest: (CustomerGroomingRequest) -> Void
+    var title = "Recent Closed Requests"
 
     var body: some View {
-        BeckonSection(
-            "Recent Closed Requests",
-            subtitle: "Your three most recent cancelled requests can be reviewed or used to start a new request."
-        ) {
+        BeckonSection(title) {
             LazyVStack(spacing: DesignTokens.Spacing.md) {
                 ForEach(requests) { request in
                     NavigationLink {
@@ -1209,6 +1203,8 @@ struct CustomerCancelledRequestsSection: View {
                         )
                     }
                     .buttonStyle(.plain)
+                    .accessibilityIdentifier(AppTestOpsAccessibility.requestIdentifier(
+                        prefix: "customer.requests.history.row", requestID: request.id))
                 }
             }
         }
@@ -1265,8 +1261,8 @@ private struct CustomerCancelledRequestRow: View {
 
     private var cancelledChip: some View {
         BeckonStatusChip(
-            "Cancelled",
-            systemImage: "xmark.circle.fill",
+            request.status.title,
+            systemImage: request.status == .expired ? "clock.badge.exclamationmark" : "xmark.circle.fill",
             tone: .neutral
         )
     }

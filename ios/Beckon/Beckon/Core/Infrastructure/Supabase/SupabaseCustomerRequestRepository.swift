@@ -407,6 +407,9 @@ final class SupabaseCustomerRequestRepository: CustomerRequestRepository {
         }
 
         if let postgrestError = error as? PostgrestError {
+            if postgrestError.code == "PT409", postgrestError.message == "client_update_required" {
+                return .clientUpdateRequired
+            }
             switch postgrestError.code {
             case "42501", "28000":
                 return .notAllowed
@@ -736,14 +739,6 @@ struct CreateGroomingRequestV4Parameters: Encodable {
         case referenceZone = "p_preference_time_zone_identifier"
         case requestID = "p_request_id", expectedRevision = "p_expected_request_revision"
     }
-    private enum RequestKeys: String, CodingKey {
-        case petID = "pet_id", serviceType = "service_type", serviceNotes = "service_notes"
-        case preferredStart = "preferred_start", preferredEnd = "preferred_end", locationMode = "location_mode"
-        case streetAddress = "street_address", addressLine2 = "address_line_2", city, state, zipCode = "zip_code"
-        case travelRadiusMiles = "travel_radius_miles", provider, placeID = "place_id", countryCode = "country_code"
-        case latitude, longitude, resolutionSource = "resolution_source", userConfirmedAt = "user_confirmed_at"
-    }
-
     func encode(to encoder: any Encoder) throws {
         guard let address = draft.confirmedAddress, let zone = address.timeZoneIdentifier else {
             throw CustomerRequestRepositoryError.invalidInput
@@ -757,7 +752,21 @@ struct CreateGroomingRequestV4Parameters: Encodable {
         }
         try outer.encode(draft.publishOperationID.uuidString.lowercased(), forKey: .operationID)
         try outer.encode(zone, forKey: .referenceZone)
-        var container = outer.nestedContainer(keyedBy: RequestKeys.self, forKey: .request)
+        try outer.encode(GroomingRequestInput(draft: draft), forKey: .request)
+    }
+}
+
+// Preview and legacy recovery encode the same demand; only their outer protocol differs.
+struct GroomingRequestInput: Encodable {
+    let draft: GroomingRequestDraft
+    var includesDiscoveryContext = false
+
+    func encode(to encoder: any Encoder) throws {
+        guard let address = draft.confirmedAddress, let zone = address.timeZoneIdentifier else {
+            throw CustomerRequestRepositoryError.invalidInput
+        }
+        _ = try GroomingServiceTiming.locationCalendar(zone)
+        var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(draft.petID.uuidString.lowercased(), forKey: .petID)
         try container.encode(draft.serviceType.rawValue, forKey: .serviceType)
         try container.encode(draft.serviceNotes, forKey: .serviceNotes)
@@ -777,6 +786,24 @@ struct CreateGroomingRequestV4Parameters: Encodable {
         try container.encode(address.coordinate.longitude, forKey: .longitude)
         try container.encode(address.resolutionSource, forKey: .resolutionSource)
         try container.encode(address.confirmedAt.ISO8601Format(), forKey: .userConfirmedAt)
+        if includesDiscoveryContext {
+            guard (draft.supersedingRequestID == nil) == (draft.expectedRequestRevision == nil) else {
+                throw CustomerRequestRepositoryError.invalidInput
+            }
+            try container.encode(zone, forKey: .referenceZone)
+            try container.encode(draft.supersedingRequestID?.uuidString.lowercased(), forKey: .supersedingRequestID)
+            try container.encode(draft.expectedRequestRevision?.uuidString.lowercased(), forKey: .expectedRevision)
+        }
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case petID = "pet_id", serviceType = "service_type", serviceNotes = "service_notes"
+        case preferredStart = "preferred_start", preferredEnd = "preferred_end", locationMode = "location_mode"
+        case streetAddress = "street_address", addressLine2 = "address_line_2", city, state, zipCode = "zip_code"
+        case travelRadiusMiles = "travel_radius_miles", provider, placeID = "place_id", countryCode = "country_code"
+        case latitude, longitude, resolutionSource = "resolution_source", userConfirmedAt = "user_confirmed_at"
+        case referenceZone = "preference_time_zone_identifier", supersedingRequestID = "superseding_request_id"
+        case expectedRevision = "expected_request_revision"
     }
 }
 

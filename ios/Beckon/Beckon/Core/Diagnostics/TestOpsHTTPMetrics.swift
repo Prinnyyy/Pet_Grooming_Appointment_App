@@ -8,7 +8,7 @@ nonisolated final class TestOpsHTTPMetrics: NSObject, URLSessionTaskDelegate, @u
         guard arguments.contains("--beckon-testops-record-http"),
               let index = arguments.firstIndex(of: "--beckon-testops-run-id"),
               arguments.indices.contains(index + 1),
-              arguments[index + 1].range(of: "^TESTOPS-T392-[A-Z0-9-]{1,70}$", options: .regularExpression) != nil,
+              arguments[index + 1].range(of: "^TESTOPS-T(?:392|399)-[A-Z0-9-]{1,70}$", options: .regularExpression) != nil,
               let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
         else { return nil }
         directory = documents.appendingPathComponent("TestOps").appendingPathComponent(arguments[index + 1])
@@ -16,15 +16,22 @@ nonisolated final class TestOpsHTTPMetrics: NSObject, URLSessionTaskDelegate, @u
     }
 
     func urlSession(_ session: URLSession, task: URLSessionTask, didFinishCollecting metrics: URLSessionTaskMetrics) {
-        guard task.originalRequest?.httpMethod == "POST",
-              task.originalRequest?.url?.path == "/rest/v1/rpc/accept_groomer_offer_v2" else { return }
+        guard let request = task.originalRequest, let url = request.url else { return }
+        let endpoint: String
+        if request.httpMethod == "POST", url.path == "/rest/v1/rpc/\(url.lastPathComponent)",
+           ["accept_groomer_offer_v2", "get_customer_request_progress_v1", "get_request_groomer_candidates_v1"].contains(url.lastPathComponent) {
+            endpoint = url.lastPathComponent
+        } else if request.httpMethod == "GET",
+                  url.path.hasPrefix("/storage/v1/object/request-photos/") || url.path.hasPrefix("/storage/v1/object/authenticated/request-photos/") {
+            endpoint = "request-photos"
+        } else { return }
         let transactions = metrics.transactionMetrics.compactMap { transaction -> [String: Any]? in
             guard let start = transaction.requestStartDate, let end = transaction.responseEndDate else { return nil }
             return ["requestStart": start.timeIntervalSince1970, "responseEnd": end.timeIntervalSince1970,
                     "status": (transaction.response as? HTTPURLResponse)?.statusCode ?? 0]
         }
         guard !transactions.isEmpty else { return }
-        let record: [String: Any] = ["endpoint": "accept_groomer_offer_v2", "taskID": task.taskIdentifier,
+        let record: [String: Any] = ["endpoint": endpoint, "taskID": task.taskIdentifier,
                                      "transactions": transactions]
         do {
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)

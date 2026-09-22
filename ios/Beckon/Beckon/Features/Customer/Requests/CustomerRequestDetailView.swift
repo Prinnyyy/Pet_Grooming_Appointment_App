@@ -6,7 +6,7 @@ struct CustomerRequestDetailPresentation: Equatable {
     let showsTimingRecovery: Bool
 
     init(status: GroomingRequestStatus, preferenceTimeZoneIdentifier: String? = nil) {
-        showsRepublish = status == .cancelled
+        showsRepublish = status == .cancelled || status == .expired
         showsTimingRecovery = status.isOpenForOffers && preferenceTimeZoneIdentifier.flatMap {
             try? GroomingServiceTiming.locationCalendar($0)
         } == nil
@@ -40,6 +40,14 @@ struct CustomerRequestDetailView: View {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
                         requestCard(request)
+                        if let marketplace = store.marketplace {
+                            CustomerRequestProgressView(requestID: request.id, store: marketplace.distribution)
+                            if request.status.isOpenForOffers {
+                                Button("Invite Groomers", systemImage: "person.badge.plus") { store.browseGroomers(for: request) }
+                                    .buttonStyle(BeckonSecondaryButtonStyle(accent: .customer))
+                                    .accessibilityIdentifier("customer.requests.invite")
+                            }
+                        }
                         petSnapshotCard(request)
                         requestPhotosCard(request)
                         scheduleLocationCard(request)
@@ -89,6 +97,9 @@ struct CustomerRequestDetailView: View {
             .navigationTitle("Request Details")
             .navigationBarTitleDisplayMode(.inline)
             .accessibilityIdentifier("customer.requests.detail")
+            .task(id: requestID) {
+                await store.refreshDistributionProgress(requestIDs: [requestID])
+            }
             .alert("Cancel this request?", isPresented: $isTimingCancellationPresented) {
                 Button("Keep Request", role: .cancel) {}
                 Button("Cancel Request", role: .destructive) {

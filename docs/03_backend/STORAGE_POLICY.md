@@ -11,11 +11,11 @@ Private image rendering audit and current client gaps: `../04_ios/PRIVATE_IMAGE_
 | Bucket | Purpose | Visibility | Owner Path |
 |---|---|---|---|
 | `avatars` | Legacy/shared profile avatar fallback | Private; owner access plus legacy presentation fallback where implemented | `{user_id}/{file_id}.{jpg,png,heic,heif}` |
-| `groomer-avatars` | Groomer account avatar | Private; owner access plus related Customer reads after an offer or booking | `{groomer_id}/{file_id}.{jpg,png,heic,heif}` |
+| `groomer-avatars` | Groomer account avatar | Private; owner/retained participant access plus exact active marketplace-profile avatar for authenticated customers | `{groomer_id}/{file_id}.{jpg,png,heic,heif}` |
 | `customer-avatars` | Customer account avatar | Private; owner access plus related Groomer reads for an existing conversation | `{customer_id}/{file_id}.{jpg,png,heic,heif}` |
 | `pet-photos` | Customer pet images | Private; owning customer access | `{customer_id}/{pet_id}/{file_id}.{jpg,png,heic,heif}` |
 | `groomer-portfolio` | Groomer work examples | Private bucket; authenticated reads only through active portfolio contract; owner writes | `{groomer_id}/{file_id}.jpg` |
-| `request-photos` | Customer request images | Private; owning customer and matched groomer reads through request metadata/policies | `{customer_id}/{request_id}/{file_id}.{jpg,png,heic,heif}` |
+| `request-photos` | Customer request images | Private; owner and current distribution/retained offer/Booking rights through exact metadata-backed policy | `{customer_id}/{request_id}/{file_id}.{jpg,png,heic,heif}` |
 | `chat-attachments` | Deferred booked-conversation attachments | Deferred; participants only when implemented | `{conversation_id}/{message_id}.jpg` |
 
 Public buckets are not the default. Use signed URLs or authenticated object reads only when a task explicitly defines the access contract.
@@ -31,6 +31,7 @@ Public buckets are not the default. Use signed URLs or authenticated object read
 - Storage failure is a visible production failure; never substitute local fixture images as uploaded content.
 - Account deletion lists only the deleting user's UUID prefix in the six active/legacy image buckets and removes objects through the service-role Storage API before Auth soft deletion. Never delete or mutate `storage.objects` directly with SQL.
 - Logs and Debug Console output may show bucket/environment and sanitized path context, never signed tokens or credentials.
+- T-399 marketplace access does not grant arbitrary avatar paths, bucket listings, customer avatars, pet photos or legacy-bucket access. Paused/deleted marketplace identities lose their new discovery presentation rights. Client session memory drops revoked avatar references; strict marketplace/request reads use a fresh cache nonce and no disk-cache fallback. Previously downloaded bytes or previously issued signed URLs cannot be remotely erased, so access revocation is not a claim of retroactive media deletion.
 
 ## Access Summary
 

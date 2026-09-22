@@ -297,6 +297,7 @@ struct CustomerRequestWizardView: View {
                     isSubmitting: store.isSubmitting,
                     isReplacingRequest: store.isRevisingRequest,
                     isRecoveringPublication: store.isRecoveringPublication,
+                    usesDiscovery: store.marketplace != nil,
                     isPrimaryActionEnabled: primaryActionState.isEnabled,
                     needsAddressConfirmation: flow.currentStep == .time && store.requestCalendar == nil,
                     backAction: flow.back,
@@ -316,8 +317,18 @@ struct CustomerRequestWizardView: View {
             }
             .tint(DesignTokens.Colors.customerAccentStrong)
             .toolbar(.hidden, for: .navigationBar)
+            .navigationDestination(isPresented: Binding(get: { store.discoveryFlow != nil }, set: {
+                if !$0 { store.discoveryFlow = nil }
+            })) {
+                if let flow = store.discoveryFlow, let marketplace = store.marketplace {
+                    CustomerGroomerDiscoveryView(flow: flow, requests: store, marketplace: marketplace)
+                }
+            }
         }
         .presentationDetents([.large])
+        .foregroundRefreshable(nextDeadline: store.marketplace?.distribution.nextDeadline(requestIDs: store.discoveryFlow?.requestID.map { [$0] } ?? [])) {
+            if let id = store.discoveryFlow?.requestID { await store.refreshDistributionProgress(requestIDs: [id]) }
+        }
         .presentationDragIndicator(.hidden)
         .onAppear {
             flow.applyInitialDefaults()
@@ -738,7 +749,8 @@ struct CustomerRequestWizardView: View {
     private func publish() {
         globallyPresentedErrorMessage = nil
         Task {
-            await store.publish()
+            if store.marketplace != nil { await store.prepareDiscovery() }
+            else { await store.publish() }
             guard store.isShowingWizard,
                   let errorMessage = store.errorMessage else { return }
             globallyPresentedErrorMessage = errorMessage
@@ -919,6 +931,7 @@ private struct CustomerRequestWizardBottomBar: View {
     let isSubmitting: Bool
     var isReplacingRequest = false
     var isRecoveringPublication = false
+    var usesDiscovery = false
     let isPrimaryActionEnabled: Bool
     let needsAddressConfirmation: Bool
     let backAction: () -> Void
@@ -983,9 +996,10 @@ private struct CustomerRequestWizardBottomBar: View {
             return "Publishing..."
         }
 
-        if isRecoveringPublication { return "Retry Publish" }
+        if isRecoveringPublication { return "Resume Request" }
 
         if needsAddressConfirmation { return "Confirm Address" }
+        if currentStep == .review && usesDiscovery { return "Find Groomers" }
         return currentStep == .review ? (isReplacingRequest ? "Replace Request" : "Publish Request") : "Continue"
     }
 }

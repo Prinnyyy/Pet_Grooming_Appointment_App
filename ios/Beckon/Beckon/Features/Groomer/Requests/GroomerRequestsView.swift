@@ -431,6 +431,10 @@ private struct GroomerRequestSummaryRow: View {
                     .font(DesignTokens.Typography.caption.weight(.semibold))
                     .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
                     .lineLimit(2)
+                if let source = matchedRequest.request.distributionSourceTitle {
+                    Text(source).font(DesignTokens.Typography.caption).foregroundStyle(.secondary)
+                        .accessibilityIdentifier("groomer.requests.source")
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -499,7 +503,13 @@ struct GroomerRequestDetailView: View {
     }
 
     var body: some View {
-        if let matchedRequest = store.matchedRequest(withID: matchID) {
+        content
+            .task(id: matchID) { await store.openDetail(matchID: matchID) }
+            .onDisappear { store.closeDetail(); form.cancelPendingLoads() }
+    }
+
+    @ViewBuilder private var content: some View {
+        if let matchedRequest = store.authorizedDetail, matchedRequest.id == matchID {
             ZStack {
                 DesignTokens.Colors.background
                     .ignoresSafeArea()
@@ -516,6 +526,7 @@ struct GroomerRequestDetailView: View {
                             offerSection(for: matchedRequest)
                                 .disabled(!form.didInitializeOfferForm)
                             actionsCard(for: matchedRequest)
+                                .disabled(store.isLoadingDetail)
                         }
                         .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
                         .padding(.top, DesignTokens.Spacing.lg)
@@ -548,25 +559,30 @@ struct GroomerRequestDetailView: View {
             .onChange(of: matchedRequest.match.eligibilityEvaluation?.confirmationKeys) { _, _ in
                 form.confirmedAssessmentKeys = []
             }
-            .onDisappear {
-                form.cancelPendingLoads()
-            }
             .beckonStationaryPageAction {
                 if matchedRequest.canCreateOffer {
                     submitOfferBar(for: matchedRequest)
+                        .disabled(store.isLoadingDetail)
                 }
             }
+        } else if store.isLoadingDetail {
+            ProgressView("Checking request...")
         } else {
             ZStack {
                 DesignTokens.Colors.background
                     .ignoresSafeArea()
 
-                BeckonEmptyState(
+                VStack(spacing: DesignTokens.Spacing.md) {
+                  BeckonEmptyState(
                     title: "Request Unavailable",
-                    message: "Refresh matched requests and try again.",
+                    message: store.detailError ?? "Refresh matched requests and try again.",
                     systemImage: "tray",
                     accent: .groomer
-                )
+                  )
+                  Button("Retry", systemImage: "arrow.clockwise") {
+                      Task { await store.openDetail(matchID: matchID) }
+                  }
+                }
                 .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
             }
             .navigationTitle("Request")
@@ -632,6 +648,12 @@ struct GroomerRequestDetailView: View {
     ) -> some View {
         DetailShellCard(title: "Fit Evidence", subtitle: matchedRequest.matchSummary) {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                if let source = matchedRequest.request.distributionSourceTitle {
+                    DetailMetadataRow(title: "Source", value: source, systemImage: "paperplane")
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel(source)
+                        .accessibilityIdentifier("groomer.requests.source")
+                }
                 DetailMetadataRow(
                     title: "Status",
                     value: matchedRequest.match.status.title,

@@ -18,8 +18,6 @@ final class SupabaseBookingRepository: BookingRepository {
         """
     private static let groomerSummaryColumns =
         "user_id,business_name,base_street_address,base_city,base_state,base_zip_code"
-    private static let requestLocationColumns =
-        "id,service_type,pet_snapshot,location_mode,street_address,city,state,zip_code"
 
     private let client: SupabaseClient
     private let participantAvatarLoader: SupabaseParticipantAvatarLoader
@@ -552,12 +550,15 @@ final class SupabaseBookingRepository: BookingRepository {
         guard !ids.isEmpty else { return [:] }
 
         do {
-            let rows: [BookingRequestLocationRow] = try await client
-                .from("grooming_requests")
-                .select(Self.requestLocationColumns)
-                .in("id", values: ids)
-                .execute()
-                .value
+            var rows: [BookingRequestLocationRow] = []
+            for start in stride(from: 0, to: ids.count, by: 50) {
+                let batch = Array(ids[start..<min(start + 50, ids.count)])
+                let page: [BookingRequestLocationRow] = try await client
+                    .rpc("get_booking_request_locations_v1", params: ["p_request_ids": batch]).execute().value
+                guard Set(page.map { $0.id.uuidString.lowercased() }).isSubset(of: Set(batch)),
+                      Set(page.map(\.id)).count == page.count else { return [:] }
+                rows.append(contentsOf: page)
+            }
 
             return Dictionary(
                 uniqueKeysWithValues: rows.map { ($0.id, $0.location) }

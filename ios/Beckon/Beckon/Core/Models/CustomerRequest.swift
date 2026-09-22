@@ -28,6 +28,12 @@ struct CustomerGroomingRequest: Equatable, Hashable, Identifiable, Sendable {
         "\(serviceType.title) for \(petSnapshot.name)"
     }
 
+    func reconciling(_ progress: CustomerRequestProgress) -> Self {
+        guard id == progress.requestID, termsRevision == progress.termsRevision,
+              status.isOpenForOffers, !progress.status.isOpenForOffers else { return self }
+        return replacing(status: progress.status)
+    }
+
     var locationSummary: String {
         let street = [streetAddress, addressLine2]
             .compactMap { value -> String? in
@@ -210,7 +216,7 @@ struct GroomingRequestDraft: Codable, Equatable, Sendable {
     var expectedRequestRevision: UUID? = nil
 }
 
-struct GroomingRequestPublishResult: Equatable, Sendable {
+struct GroomingRequestPublishResult: Codable, Equatable, Sendable {
     let requestID: UUID
     let matchCount: Int
 }

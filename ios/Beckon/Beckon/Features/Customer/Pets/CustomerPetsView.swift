@@ -106,7 +106,8 @@ struct CustomerPetsView: View {
             CustomerNotificationsView(store: notificationStore, requestStore: requestStore,
                 bookingStore: bookingStore, chatStore: chatStore)
         }
-        .foregroundRefreshable {
+        .foregroundRefreshable(isEnabled: isActiveTab && !requestStore.isShowingWizard && requestStore.discoveryFlow == nil,
+            nextDeadline: requestStore.nextDistributionDeadline) {
             await loadHome()
         }
         .accessibilityIdentifier("customer.home")

@@ -174,6 +174,7 @@ final class CustomerRequestRepositoryFake: CustomerRequestRepository {
     private(set) var requestsCallCount = 0
     var onRequestPageRead: (() -> Void)?
     var onCreate: (() -> Void)?
+    var onUploadPhoto: (() -> Void)?
     private(set) var offersCallCount = 0
     private(set) var createCallCount = 0
     private(set) var uploadRequestPhotoCallCount = 0
@@ -332,6 +333,7 @@ final class CustomerRequestRepositoryFake: CustomerRequestRepository {
         caption: String?
     ) async throws -> GroomingRequestPhoto {
         uploadRequestPhotoCallCount += 1
+        onUploadPhoto?()
         lastUploadCustomerID = customerID
         lastUploadRequestID = requestID
         lastUploadData = data

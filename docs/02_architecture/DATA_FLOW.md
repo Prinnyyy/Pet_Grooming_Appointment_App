@@ -58,6 +58,16 @@ User action
 
 The UI must not apply a durable optimistic result for these operations before the backend commits.
 
+## Request Discovery And Publication
+
+The existing draft/address/timing flow prepares an owner-private discovery session before creating a Request. `CustomerGroomerDiscoveryStore` owns the shared carousel/list scope, entities, ordering and cursor; a swipe or favorite does not publish. Domain repositories map safe projections, while server context adapters reuse the existing eligibility and F/Q/D core.
+
+`CustomerRequestPublicationCoordinator` is the sole owner of the account-scoped pending file for both legacy replay and discovery publication. It persists the immutable operation before sending, saves the accepted Request before photo handoff, and replays the same operation after an uncertain response. Unknown file versions remain protected. `CustomerRequestsStore` retains photo upload and current-Request reconciliation; `CustomerRequestDistributionStore` owns invitation/pool actions and progress, not another publication ledger.
+
+The customer session shares `GroomerFavoritesStore`, distribution action overlays and authorized avatar memory across discovery, details and saved groomers. The account entry loads current request options through the existing Requests Store; it does not depend on visiting the Requests tab first. Logout invalidates reads/writes and clears account-specific memory without discarding an unresolved publication file.
+
+The Requests `NavigationStack` owns one foreground refresh gate so pushing a detail does not stop the 45-second fallback. Periodic/deadline reads batch active request progress without reloading media; foreground re-entry reloads authoritative request data. Terminal progress reconciles the active list/history. Discovery views do not create per-card timers or background polls.
+
 ## Upload Flow
 
 ```text

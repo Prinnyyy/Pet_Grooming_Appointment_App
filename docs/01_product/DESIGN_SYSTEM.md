@@ -51,6 +51,10 @@ Reuse implemented primitives such as action styles, `BeckonSection`, `BeckonGrou
 
 ## Screenshot Rework
 
+### Request-Scoped Groomer Browsing
+
+T-399 adopts private request-scoped discovery, not a new public directory or direct-booking flow. The carousel, full list, details and favorites compose `GroomerCandidateSummaryView`/`GroomerCandidateActionsView` within Customer features. Professional-fit evidence reuses `BeckonFitEvidenceBlock` without a numeric match score. Swiping is reversible browsing; invitation, favorite and optional pool consent are separate explicit controls. Multiple controls in a native List row use explicit button styles so one tap cannot invoke another action. Loading/error states must not masquerade as an empty candidate list.
+
 Start with `../06_tasks/SCREENSHOT_UI_REWORK_TASK_TEMPLATE.md`. Map visible modules to current screens, Stores, repositories, and models before editing. Classify each as visual-only, existing-feature rewire, reusable primitive, or new feature. Stop for approval before persistence, schema, backend, navigation, role capability, or deferred product changes.
 
 ## Hard Rules

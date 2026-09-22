@@ -81,21 +81,29 @@ protocol PrivateImageLoading: AnyObject {
 
 @MainActor
 final class PrivateImageLoader: PrivateImageLoading {
+    enum Policy { case cached, authorizationRequired }
     private static let maximumRemoteImageAttempts = 2
 
     private let dataSource: any PrivateImageDataFetching
     private let cache: any PrivateImageCaching
+    private let policy: Policy
 
     init(
         dataSource: any PrivateImageDataFetching,
-        cache: any PrivateImageCaching = FilePrivateImageCache.shared
+        cache: any PrivateImageCaching = FilePrivateImageCache.shared,
+        policy: Policy = .cached
     ) {
         self.dataSource = dataSource
         self.cache = cache
+        self.policy = policy
     }
 
     func loadData(bucketID: String, storagePath: String) async throws -> Data {
         let key = try cacheKey(bucketID: bucketID, storagePath: storagePath)
+        if policy == .authorizationRequired {
+            cache.removeData(for: key)
+            return try await remoteImageData(for: key)
+        }
 
         if let cachedData = cache.data(for: key) {
             return cachedData
@@ -108,6 +116,10 @@ final class PrivateImageLoader: PrivateImageLoading {
 
     func refreshData(bucketID: String, storagePath: String) async throws -> Data {
         let key = try cacheKey(bucketID: bucketID, storagePath: storagePath)
+        if policy == .authorizationRequired {
+            cache.removeData(for: key)
+            return try await remoteImageData(for: key)
+        }
 
         do {
             let data = try await remoteImageData(for: key)
@@ -134,7 +146,8 @@ final class PrivateImageLoader: PrivateImageLoading {
             return
         }
 
-        cache.save(data, for: key)
+        if policy == .authorizationRequired { cache.removeData(for: key) }
+        else { cache.save(data, for: key) }
     }
 
     func removeData(bucketID: String, storagePath: String) {
