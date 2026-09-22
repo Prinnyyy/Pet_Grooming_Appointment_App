@@ -13,6 +13,7 @@ struct GroomerTabView: View {
     let onSignOut: (() -> Void)?
     let sessionIsCurrent: @MainActor () -> Bool
     @State private var selection: GroomerTab = .home
+    @State private var focusedBooking: Booking?
     @State private var focusedConversationBookingID: UUID?
     @State private var requestedProfileRoute: GroomerProfileRoute?
     @State private var requestsRoute: GroomerRequestsRoute = .matches
@@ -128,7 +129,10 @@ struct GroomerTabView: View {
                 chatStore: chatStore,
                 requestsAction: { openRequests(.matches) },
                 offersAction: { openRequests(.offers) },
-                bookingAction: { _ in select(.bookings) },
+                bookingAction: { booking in
+                    focusedBooking = booking
+                    select(.bookings)
+                },
                 messagesAction: { select(.messages) },
                 availabilityAction: openAvailability
             )
@@ -152,6 +156,7 @@ struct GroomerTabView: View {
                 repository: bookingRepository,
                 groomerProfileRepository: profileRepository,
                 debugRecorder: debugRecorder,
+                focusedBooking: $focusedBooking,
                 onOpenChat: openBookingChat
             )
         } else if tab == .messages,

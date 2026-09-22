@@ -18,6 +18,16 @@ Linked files:
 ## Active Decisions
 
 ```text
+Decision ID: D-058
+Date: 2026-09-21
+Task: T-396
+Decision: Separate generic DesignSystem primitives, reusable SharedFeatures business UI, and feature-specific flow state; retain existing Stores/repositories and native navigation.
+Context: Address resolution lived among visual primitives, quote/wizard async state lived in views, fit evidence was duplicated, and Home dropped the selected booking at the tab boundary.
+Consequences: Share display only, preserve role-specific evidence/privacy mapping, pass the selected booking to an exact-read detail destination, and remove non-rendering style flags. No new packages, routing framework, backend changes or broad legacy visual redesign. Source audit passing is a debt ratchet, not proof of complete visual acceptance.
+Linked files: docs/01_product/DESIGN_SYSTEM.md; docs/04_ios/UI_CODE_GOVERNANCE.md.
+```
+
+```text
 Decision ID: D-056
 Date: 2026-09-15
 Task: T-392 / V-04

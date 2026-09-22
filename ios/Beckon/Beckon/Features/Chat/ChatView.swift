@@ -6,18 +6,8 @@ nonisolated struct ChatConversationListPresentation: Equatable, Sendable {
         case groomer
     }
 
-    enum PageStyle: Equatable, Sendable {
-        case messagesCards
-    }
-
-    enum RowStyle: Equatable, Sendable {
-        case participantCard
-    }
-
     let title = "Messages"
     let audience: Audience
-    let pageStyle: PageStyle = .messagesCards
-    let rowStyle: RowStyle = .participantCard
     let avatarSize: CGFloat = 64
     let previewLineLimit = 2
 

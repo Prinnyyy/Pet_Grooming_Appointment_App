@@ -1,10 +1,16 @@
 # UI Consistency Debt
 
-Last generated: 2026-07-13 by T-343.
+Latest source check: 2026-09-21 by T-396.
 
 This is the active inventory of remaining SwiftUI consistency debt. Rule definitions, severities, commands, baseline lifecycle, and exceptions remain authoritative in `UI_CODE_GOVERNANCE.md`; do not duplicate them here.
 
-## Snapshot
+## Current Check
+
+T-396's Feature-source ratchet reports 182 findings (UI001: 8, UI002: 61, UI003: 2, UI004: 4, UI005: 12, UI008: 17, UI101: 66, UI102: 12), with no new errors or stale baseline entries. Four former per-role fit-evidence entries were pruned when their duplicated presentation was consolidated into one shared component; this is centralization, not four independently fixed visual defects. The remaining historical visual migration is not part of T-396.
+
+Acceptance: build, preflight, 13 focused Node checks and full iOS regression passed (699 passed, 39 conditional skips, zero failures; 738 logical cases). Runtime tests cover both booking-tab handoff timings, exact reads beyond the loaded page, cancelled quote initialization, and retained form input. New flow tests cover stale profile reads and DST ambiguity/gaps. Evidence: ignored `artifacts/evidence/T-396/` and `Test-Beckon-2026.09.21_21-44-28--0700.xcresult` in Xcode's test results. The first focused run exposed an over-fulfilled test expectation, corrected before the full run; an old account-link source check was updated to its existing Account owner. No remote fixtures or backend mutations were used.
+
+## Historical Snapshot (T-343)
 
 - Repository check: 203 findings, comprising 195 baselined legacy findings and 8 reviewed unbaselined warnings.
 - Ratchet state: zero new errors and zero stale baseline entries.

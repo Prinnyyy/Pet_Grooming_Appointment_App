@@ -572,68 +572,16 @@ private struct CustomerOfferSummaryRow: View {
                 }
 
                 if let fitEvidence = offerReview.fitEvidencePresentation {
-                    CustomerOfferFitEvidenceBlock(
-                        presentation: fitEvidence,
+                    BeckonFitEvidenceBlock(
+                        scoreText: fitEvidence.scoreText,
+                        summary: fitEvidence.listSummary,
+                        reason: fitEvidence.reason,
+                        accent: .customer,
                         isCompact: true
                     )
                 }
             }
         }
-    }
-}
-
-private struct CustomerOfferFitEvidenceBlock: View {
-    let presentation: CustomerOfferFitPresentation
-    let isCompact: Bool
-
-    var body: some View {
-        HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
-            Image(systemName: "sparkles")
-                .font(DesignTokens.Typography.caption.weight(.semibold))
-                .foregroundStyle(DesignTokens.Colors.customerAccentStrong)
-                .frame(
-                    width: DesignTokens.Spacing.xl,
-                    height: DesignTokens.Spacing.xl
-                )
-                .background(DesignTokens.Colors.customerAccent.opacity(0.14))
-                .clipShape(DesignTokens.Shapes.circular)
-                .accessibilityHidden(true)
-
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
-                    Text("Fit Evidence")
-                        .font(DesignTokens.Typography.caption.weight(.semibold))
-                        .foregroundStyle(DesignTokens.Colors.customerAccentStrong)
-
-                    if let scoreText = presentation.scoreText {
-                        Text(scoreText)
-                            .font(DesignTokens.Typography.caption.weight(.semibold))
-                            .foregroundStyle(DesignTokens.Colors.customerAccentStrong)
-                            .padding(.horizontal, DesignTokens.Spacing.sm)
-                            .padding(.vertical, 3)
-                            .background(DesignTokens.Colors.customerAccent.opacity(0.14))
-                            .clipShape(Capsule())
-                    }
-                }
-
-                Text(isCompact ? presentation.listSummary : presentation.reason)
-                    .font(isCompact ? DesignTokens.Typography.caption : DesignTokens.Typography.body)
-                    .foregroundStyle(DesignTokens.Colors.textSecondary)
-                    .lineLimit(isCompact ? 2 : nil)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .padding(DesignTokens.Spacing.md)
-        .background {
-            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input, style: .continuous)
-                .fill(DesignTokens.Colors.customerAccent.opacity(0.08))
-        }
-        .overlay {
-            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input, style: .continuous)
-                .stroke(DesignTokens.Colors.customerAccent.opacity(0.24), lineWidth: 1)
-        }
-        .accessibilityElement(children: .combine)
     }
 }
 
@@ -847,8 +795,11 @@ struct CustomerOfferDetailView: View {
                 )
 
                 if let fitEvidence = offerReview.fitEvidencePresentation {
-                    CustomerOfferFitEvidenceBlock(
-                        presentation: fitEvidence,
+                    BeckonFitEvidenceBlock(
+                        scoreText: fitEvidence.scoreText,
+                        summary: fitEvidence.listSummary,
+                        reason: fitEvidence.reason,
+                        accent: .customer,
                         isCompact: false
                     )
                 }

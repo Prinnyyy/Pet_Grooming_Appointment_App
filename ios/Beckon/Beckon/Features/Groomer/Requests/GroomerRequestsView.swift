@@ -489,18 +489,14 @@ struct GroomerRequestDetailView: View {
     let matchID: UUID
     let store: GroomerRequestsStore
 
-    @State private var didInitializeOfferForm = false
-    @State private var activeInitializationID: UUID?
-    @State private var serviceTimeZone: TimeZone?
-    @State private var selectedOccurrence: Date?
-    @State private var timeZoneError: String?
-    @State private var activeTimeZoneLoadID: UUID?
-    @State private var proposedStart = Date().addingTimeInterval(24 * 60 * 60)
-    @State private var durationMinutesText = ""
-    @State private var priceEstimateText = ""
-    @State private var message = ""
-    @State private var confirmedAssessmentKeys: Set<String> = []
+    @State private var form: GroomerOfferFormState
     @FocusState private var focusedTarget: GroomerOfferFocusTarget?
+
+    init(matchID: UUID, store: GroomerRequestsStore) {
+        self.matchID = matchID
+        self.store = store
+        _form = State(initialValue: GroomerOfferFormState(store: store))
+    }
 
     var body: some View {
         if let matchedRequest = store.matchedRequest(withID: matchID) {
@@ -518,7 +514,7 @@ struct GroomerRequestDetailView: View {
                             requestPhotosCard(for: matchedRequest)
                             scheduleLocationCard(for: matchedRequest)
                             offerSection(for: matchedRequest)
-                                .disabled(!didInitializeOfferForm)
+                                .disabled(!form.didInitializeOfferForm)
                             actionsCard(for: matchedRequest)
                         }
                         .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
@@ -541,20 +537,19 @@ struct GroomerRequestDetailView: View {
             .navigationBarTitleDisplayMode(.inline)
             .accessibilityIdentifier("groomer.requests.detail")
             .task(id: matchedRequest.request.id) {
-                await initializeOfferFormIfNeeded(for: matchedRequest)
+                await form.initializeOfferFormIfNeeded(for: matchedRequest)
             }
             .onChange(of: matchedRequest.request.termsRevision) { _, _ in
-                confirmedAssessmentKeys = []
+                form.confirmedAssessmentKeys = []
             }
             .onChange(of: matchedRequest.match.eligibilityEvaluation?.sourceRevision) { _, _ in
-                confirmedAssessmentKeys = []
+                form.confirmedAssessmentKeys = []
             }
             .onChange(of: matchedRequest.match.eligibilityEvaluation?.confirmationKeys) { _, _ in
-                confirmedAssessmentKeys = []
+                form.confirmedAssessmentKeys = []
             }
             .onDisappear {
-                activeInitializationID = nil
-                activeTimeZoneLoadID = nil
+                form.cancelPendingLoads()
             }
             .beckonStationaryPageAction {
                 if matchedRequest.canCreateOffer {
@@ -644,8 +639,11 @@ struct GroomerRequestDetailView: View {
                 )
 
                 if let fitEvidence = matchedRequest.fitEvidencePresentation {
-                    GroomerFitEvidenceBlock(
-                        presentation: fitEvidence,
+                    BeckonFitEvidenceBlock(
+                        scoreText: fitEvidence.scoreText,
+                        summary: fitEvidence.listSummary,
+                        reason: fitEvidence.reason,
+                        accent: .groomer,
                         isCompact: false
                     )
                 }
@@ -958,10 +956,10 @@ struct GroomerRequestDetailView: View {
 
                 ForEach((matchedRequest.match.eligibilityEvaluation?.confirmationKeys ?? []).sorted(), id: \.self) { key in
                     Toggle(isOn: Binding(
-                        get: { confirmedAssessmentKeys.contains(key) },
+                        get: { form.confirmedAssessmentKeys.contains(key) },
                         set: { confirmed in
-                            if confirmed { confirmedAssessmentKeys.insert(key) }
-                            else { confirmedAssessmentKeys.remove(key) }
+                            if confirmed { form.confirmedAssessmentKeys.insert(key) }
+                            else { form.confirmedAssessmentKeys.remove(key) }
                         }
                     )) {
                         Text(assessmentConfirmationTitle(key))
@@ -970,12 +968,12 @@ struct GroomerRequestDetailView: View {
                     .accessibilityIdentifier("groomer.offers.confirmation.\(key)")
                 }
 
-                if let serviceTimeZone {
+                if let serviceTimeZone = form.serviceTimeZone {
                     OfferDatePickerField(
                         title: "Proposed Start",
-                        selection: Binding(get: { proposedStart }, set: {
-                            proposedStart = $0
-                            selectedOccurrence = nil
+                        selection: Binding(get: { form.proposedStart }, set: {
+                            form.proposedStart = $0
+                            form.selectedOccurrence = nil
                         })
                     )
                     .environment(\.timeZone, TimeZone(secondsFromGMT: 0)!)
@@ -984,8 +982,8 @@ struct GroomerRequestDetailView: View {
                     DetailMetadataRow(title: "Service Time Zone", value: serviceTimeZone.identifier,
                         systemImage: "globe")
                     .accessibilityIdentifier("groomer.offers.service-time-zone")
-                    if case let .ambiguous(first, last) = proposedStartResolution {
-                        Picker("Start occurrence", selection: $selectedOccurrence) {
+                    if case let .ambiguous(first, last) = form.proposedStartResolution {
+                        Picker("Start occurrence", selection: $form.selectedOccurrence) {
                             Text("Choose occurrence").tag(Optional<Date>.none)
                             ForEach([first, last], id: \.self) { date in
                                 Text(date.formatted(Date.FormatStyle(timeZone: serviceTimeZone)
@@ -995,13 +993,13 @@ struct GroomerRequestDetailView: View {
                         }
                         .accessibilityIdentifier("groomer.offers.start-occurrence")
                     }
-                    if proposedStartResolution == .nonexistent {
+                    if form.proposedStartResolution == .nonexistent {
                         Text("This local time does not exist. Choose another start time.")
                             .font(DesignTokens.Typography.caption)
                             .foregroundStyle(DesignTokens.Colors.textSecondary)
                             .accessibilityIdentifier("groomer.offers.nonexistent-start")
                     }
-                } else if isLoadingTimeZone || !didInitializeOfferForm {
+                } else if form.isLoadingTimeZone || !form.didInitializeOfferForm {
                     ProgressView("Loading service time zone")
                         .accessibilityIdentifier("groomer.offers.time-zone-loading")
                 } else if matchedRequest.request.locationMode == .groomerComesToCustomer {
@@ -1009,24 +1007,24 @@ struct GroomerRequestDetailView: View {
                         .font(DesignTokens.Typography.caption)
                         .accessibilityIdentifier("groomer.offers.request-time-zone-missing")
                 } else {
-                    Text(timeZoneError ?? "Confirm the service address time zone before making an offer.")
+                    Text(form.timeZoneError ?? "Confirm the service address time zone before making an offer.")
                         .font(DesignTokens.Typography.caption)
                     Button("Retry", systemImage: "arrow.clockwise") {
-                        Task { await loadServiceTimeZone(for: matchedRequest) }
+                        Task { await form.loadServiceTimeZone(for: matchedRequest) }
                     }
-                    .disabled(isInitializingOfferForm)
+                    .disabled(form.isInitializingOfferForm)
                     .accessibilityIdentifier("groomer.offers.time-zone-retry")
                 }
 
                 GroomerOfferTextField(
                     title: "Duration (minutes)",
-                    text: $durationMinutesText,
+                    text: $form.durationMinutesText,
                     keyboardType: .numberPad,
                     focusTarget: .duration,
                     focusedTarget: $focusedTarget
                 )
 
-                if let proposedEnd, let serviceTimeZone {
+                if let proposedEnd = form.proposedEnd, let serviceTimeZone = form.serviceTimeZone {
                     DetailMetadataRow(
                         title: "Proposed End",
                         value: GroomingRequestDateFormatting.displayString(
@@ -1039,7 +1037,7 @@ struct GroomerRequestDetailView: View {
 
                 GroomerOfferTextField(
                     title: "Price Estimate",
-                    text: $priceEstimateText,
+                    text: $form.priceEstimateText,
                     keyboardType: .decimalPad,
                     focusTarget: .price,
                     focusedTarget: $focusedTarget
@@ -1047,7 +1045,7 @@ struct GroomerRequestDetailView: View {
 
                 GroomerOfferTextField(
                     title: "Message",
-                    text: $message,
+                    text: $form.message,
                     isMultiline: true,
                     focusTarget: .message,
                     focusedTarget: $focusedTarget
@@ -1071,17 +1069,7 @@ struct GroomerRequestDetailView: View {
         for matchedRequest: GroomerMatchedRequest
     ) -> some View {
         Button {
-            guard let proposedEnd, let start = resolvedProposedStart else { return }
-            Task {
-                await store.submitOffer(
-                    for: matchedRequest,
-                    proposedStart: start,
-                    proposedEnd: proposedEnd,
-                    priceEstimateText: priceEstimateText,
-                    message: message,
-                    confirmedAssessmentKeys: confirmedAssessmentKeys
-                )
-            }
+            Task { await form.submitOffer(for: matchedRequest) }
         } label: {
             if store.isSubmittingOffer {
                 HStack(spacing: DesignTokens.Spacing.sm) {
@@ -1094,8 +1082,8 @@ struct GroomerRequestDetailView: View {
             }
         }
         .buttonStyle(BeckonPrimaryButtonStyle(accent: .groomer))
-        .disabled(store.isSubmittingOffer || !didInitializeOfferForm || proposedEnd == nil || serviceTimeZone == nil
-            || confirmedAssessmentKeys != (matchedRequest.match.eligibilityEvaluation?.confirmationKeys ?? []))
+        .disabled(store.isSubmittingOffer || !form.didInitializeOfferForm || form.proposedEnd == nil || form.serviceTimeZone == nil
+            || form.confirmedAssessmentKeys != (matchedRequest.match.eligibilityEvaluation?.confirmationKeys ?? []))
         .accessibilityIdentifier("groomer.offers.submit")
         .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
         .padding(.top, DesignTokens.Spacing.sm)
@@ -1167,140 +1155,6 @@ struct GroomerRequestDetailView: View {
         }
     }
 
-    private var proposedEnd: Date? {
-        guard let start = resolvedProposedStart else { return nil }
-        return GroomerRequestsStore.proposedEnd(start: start, durationText: durationMinutesText)
-    }
-
-    private var proposedStartResolution: GroomingWallTimeResolution? {
-        guard let serviceTimeZone else { return nil }
-        return try? GroomingServiceTiming.resolveWallInput(proposedStart,
-            timeZoneIdentifier: serviceTimeZone.identifier)
-    }
-
-    private var resolvedProposedStart: Date? {
-        switch proposedStartResolution {
-        case let .unique(date): return date
-        case let .ambiguous(first, last):
-            return selectedOccurrence == first || selectedOccurrence == last ? selectedOccurrence : nil
-        case .nonexistent, nil: return nil
-        }
-    }
-
-    private var isInitializingOfferForm: Bool { activeInitializationID != nil }
-    private var isLoadingTimeZone: Bool { activeTimeZoneLoadID != nil }
-
-    private func loadServiceTimeZone(for matchedRequest: GroomerMatchedRequest) async {
-        let loadID = UUID()
-        activeTimeZoneLoadID = loadID
-        timeZoneError = nil
-        defer {
-            if activeTimeZoneLoadID == loadID { activeTimeZoneLoadID = nil }
-        }
-        do {
-            let zone = try await store.serviceTimeZoneForOffer(for: matchedRequest.request)
-            guard !Task.isCancelled, activeTimeZoneLoadID == loadID else { return }
-            if serviceTimeZone == nil, let zone {
-                proposedStart = try GroomingServiceTiming.wallInput(for: proposedStart,
-                    timeZoneIdentifier: zone.identifier)
-            }
-            serviceTimeZone = zone
-        } catch {
-            guard !Task.isCancelled, activeTimeZoneLoadID == loadID else { return }
-            timeZoneError = "Service time zone could not be loaded. Try again."
-        }
-    }
-
-    private func initializeOfferFormIfNeeded(
-        for matchedRequest: GroomerMatchedRequest
-    ) async {
-        guard !didInitializeOfferForm else { return }
-        let initializationID = UUID()
-        activeInitializationID = initializationID
-        defer {
-            if activeInitializationID == initializationID { activeInitializationID = nil }
-        }
-        guard matchedRequest.canCreateOffer else {
-            didInitializeOfferForm = true
-            return
-        }
-        let service = await store.serviceForOffer(for: matchedRequest.request)
-        guard !Task.isCancelled, activeInitializationID == initializationID else { return }
-        let range = GroomerRequestsStore.defaultOfferRange(
-            for: matchedRequest.request,
-            durationMinutes: service?.durationMinutes
-        )
-        serviceTimeZone = nil
-        selectedOccurrence = nil
-        proposedStart = range?.start ?? max(
-            GroomingRequestDateFormatting.parsedDate(from: matchedRequest.request.preferredStart) ?? Date(),
-            Date().addingTimeInterval(GroomerRequestsStore.minimumProposedStartLeadTime)
-        )
-        await loadServiceTimeZone(for: matchedRequest)
-        guard !Task.isCancelled, activeInitializationID == initializationID else { return }
-        if durationMinutesText.isEmpty, let service {
-            durationMinutesText = String(service.durationMinutes)
-        }
-        if priceEstimateText.isEmpty, let service {
-            priceEstimateText = String(service.basePrice)
-        }
-        didInitializeOfferForm = true
-    }
-}
-
-private struct GroomerFitEvidenceBlock: View {
-    let presentation: GroomerMatchFitPresentation
-    let isCompact: Bool
-
-    var body: some View {
-        HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
-            Image(systemName: "sparkles")
-                .font(DesignTokens.Typography.caption.weight(.semibold))
-                .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
-                .frame(
-                    width: DesignTokens.Spacing.xl,
-                    height: DesignTokens.Spacing.xl
-                )
-                .background(DesignTokens.Colors.groomerAccent.opacity(0.14))
-                .clipShape(DesignTokens.Shapes.circular)
-                .accessibilityHidden(true)
-
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
-                    Text("Fit Evidence")
-                        .font(DesignTokens.Typography.caption.weight(.semibold))
-                        .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
-
-                    if let scoreText = presentation.scoreText {
-                        Text(scoreText)
-                            .font(DesignTokens.Typography.caption.weight(.semibold))
-                            .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
-                            .padding(.horizontal, DesignTokens.Spacing.sm)
-                            .padding(.vertical, 3)
-                            .background(DesignTokens.Colors.groomerAccent.opacity(0.14))
-                            .clipShape(Capsule())
-                    }
-                }
-
-                Text(isCompact ? presentation.listSummary : presentation.reason)
-                    .font(isCompact ? DesignTokens.Typography.caption : DesignTokens.Typography.body)
-                    .foregroundStyle(DesignTokens.Colors.textSecondary)
-                    .lineLimit(isCompact ? 2 : nil)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .padding(DesignTokens.Spacing.md)
-        .background {
-            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input, style: .continuous)
-                .fill(DesignTokens.Colors.groomerAccent.opacity(0.08))
-        }
-        .overlay {
-            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input, style: .continuous)
-                .stroke(DesignTokens.Colors.groomerAccent.opacity(0.24), lineWidth: 1)
-        }
-        .accessibilityElement(children: .combine)
-    }
 }
 
 private struct DetailShellCard<Content: View>: View {

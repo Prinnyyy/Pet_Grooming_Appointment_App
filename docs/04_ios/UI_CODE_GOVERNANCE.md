@@ -68,7 +68,7 @@ Wildcards, missing reasons, alternate wording, detached directives, and exceptio
 
 ## Review Boundary
 
-Feature views own data, business order, actions, and state. `DesignSystem` owns recurring typography, spacing, alignment, color, shape, elevation, control dimensions, and presentation feedback. The audit catches known source patterns; reviewers must still check component reuse, Dynamic Type, VoiceOver, contrast, localization, safe areas, focus, and native control behavior.
+Feature views compose UI and own focus; Stores and flow state own validation, async work and business transitions. `DesignSystem` owns recurring typography, spacing, alignment, color, shape, elevation, control dimensions, and presentation feedback. `SharedFeatures` owns reusable business components, consuming DesignSystem without reversing that dependency. Its existing shared primitives retain their component-level geometry review; moving a feature there is not an exemption for unresolved UI defects. The source ratchet still scans Features, not all UI layers. Reviewers must check shared component reuse, Dynamic Type, VoiceOver, contrast, localization, safe areas, focus, and native control behavior.
 
 ### Keyboard and Focus Review
 

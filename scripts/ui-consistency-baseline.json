@@ -2,7 +2,7 @@
   "version": 1,
   "scope": "ios/Beckon/Beckon/Features",
   "lastChange": {
-    "reason": "T-374 accessibility layout removes summary truncation and replaces raw badge shape with semantic token"
+    "reason": "T-396"
   },
   "findings": [
     {
@@ -472,20 +472,6 @@
       "path": "ios/Beckon/Beckon/Features/Customer/Requests/CustomerRequestDetailView.swift",
       "fingerprint": "652938d296604d73c44e525c3926f48ac35a83ea0cfb20a8562ab167aef3c1c8",
       "expressionHash": "71f06fa6e0a405e2aca5a9b64be3d6aaf9615ce16ac8d43c367a299400a5e1f7",
-      "occurrence": 1
-    },
-    {
-      "ruleID": "UI101",
-      "path": "ios/Beckon/Beckon/Features/Customer/Requests/CustomerRequestDetailView.swift",
-      "fingerprint": "733ffd860a59092b63d41928810d7be33d9474b6ffff37997e3affe3ce958d2c",
-      "expressionHash": "a4dc36b024e2abe97de60d67566f8d21bbe5857b848fc21b5c400f26bf255937",
-      "occurrence": 1
-    },
-    {
-      "ruleID": "UI004",
-      "path": "ios/Beckon/Beckon/Features/Customer/Requests/CustomerRequestDetailView.swift",
-      "fingerprint": "e7920c6fa64ce54daa19f0c462e719e4c7c81e4acbfe07e1d21adbd8acf76947",
-      "expressionHash": "10e4ffc29bc3d0d864531a57df98639792fbe42f0871acf49d6fedafb612004b",
       "occurrence": 1
     },
     {
@@ -1187,20 +1173,6 @@
       "fingerprint": "589b425dd4cbd072ecca8df721a800c079068b530c405f4ca8ee07afadef0355",
       "expressionHash": "a4dc36b024e2abe97de60d67566f8d21bbe5857b848fc21b5c400f26bf255937",
       "occurrence": 2
-    },
-    {
-      "ruleID": "UI004",
-      "path": "ios/Beckon/Beckon/Features/Groomer/Requests/GroomerRequestsView.swift",
-      "fingerprint": "0f809368b5ea56fe528a9ff6d4217440593f52821f0033b2492da730c5877b2a",
-      "expressionHash": "10e4ffc29bc3d0d864531a57df98639792fbe42f0871acf49d6fedafb612004b",
-      "occurrence": 2
-    },
-    {
-      "ruleID": "UI101",
-      "path": "ios/Beckon/Beckon/Features/Groomer/Requests/GroomerRequestsView.swift",
-      "fingerprint": "d7524cdaec7acbe20b62dc5b5d3e6446fe041e2af09c79453d0efee9a222e6ac",
-      "expressionHash": "a4dc36b024e2abe97de60d67566f8d21bbe5857b848fc21b5c400f26bf255937",
-      "occurrence": 3
     },
     {
       "ruleID": "UI101",

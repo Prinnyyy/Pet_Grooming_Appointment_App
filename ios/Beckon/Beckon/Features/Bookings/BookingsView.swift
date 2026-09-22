@@ -8,13 +8,15 @@ struct BookingsView: View {
     @State private var requestStore: CustomerRequestsStore?
     @State private var selectedScope: BookingListScope = .upcoming
     @State private var selectedScheduleDayKey: String?
+    @Binding private var focusedBooking: Booking?
 
-    init(role: UserRole, store: BookingsStore, onOpenChat: @escaping (Booking) -> Void = { _ in }) {
+    init(role: UserRole, store: BookingsStore, focusedBooking: Binding<Booking?> = .constant(nil), onOpenChat: @escaping (Booking) -> Void = { _ in }) {
         self.role = role
         self.customerProfileRepository = nil
         self.onOpenChat = onOpenChat
         _store = State(initialValue: store)
         _requestStore = State(initialValue: nil)
+        _focusedBooking = focusedBooking
     }
 
     init(
@@ -27,11 +29,13 @@ struct BookingsView: View {
         groomerProfileRepository: (any GroomerProfileRepository)? = nil,
         debugRecorder: AppDebugEventRecorder? = nil,
         store: BookingsStore? = nil,
+        focusedBooking: Binding<Booking?> = .constant(nil),
         onOpenChat: @escaping (Booking) -> Void = { _ in }
     ) {
         self.role = role
         self.customerProfileRepository = customerProfileRepository
         self.onOpenChat = onOpenChat
+        _focusedBooking = focusedBooking
         _store = State(
             initialValue: store ?? BookingsStore(
                 participantID: participantID,
@@ -67,6 +71,14 @@ struct BookingsView: View {
         }
         .navigationTitle(role == .groomer ? "Schedule" : "")
         .navigationBarTitleDisplayMode(role == .groomer ? .large : .inline)
+        .navigationDestination(item: $focusedBooking) { booking in
+            BookingDetailView(
+                bookingID: booking.id,
+                role: role,
+                store: store,
+                onOpenChat: onOpenChat
+            )
+        }
         .background {
             BookingsStatusView(
                 store: store,

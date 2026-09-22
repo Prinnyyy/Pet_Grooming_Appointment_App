@@ -11,101 +11,6 @@ enum CustomerRequestPhotoSelectionCopy {
         "Add photos specific to this grooming request. Your pet profile photo stays separate."
 }
 
-enum CustomerRequestTimeWindowOption: String, CaseIterable, Identifiable {
-    case morning
-    case afternoon
-    case evening
-    case detailed
-
-    var id: Self { self }
-
-    var title: String {
-        switch self {
-        case .morning:
-            "Morning"
-        case .afternoon:
-            "Afternoon"
-        case .evening:
-            "Evening"
-        case .detailed:
-            "Detailed Time"
-        }
-    }
-
-    func range(
-        on date: Date,
-        calendar: Calendar = .current
-    ) -> (start: Date, end: Date)? {
-        switch self {
-        case .morning:
-            Self.range(
-                on: date,
-                startHour: 6,
-                startMinute: 0,
-                endHour: 11,
-                endMinute: 59,
-                calendar: calendar
-            )
-        case .afternoon:
-            Self.range(
-                on: date,
-                startHour: 12,
-                startMinute: 0,
-                endHour: 16,
-                endMinute: 59,
-                calendar: calendar
-            )
-        case .evening:
-            Self.range(
-                on: date,
-                startHour: 17,
-                startMinute: 0,
-                endHour: 21,
-                endMinute: 0,
-                calendar: calendar
-            )
-        case .detailed:
-            nil
-        }
-    }
-
-    static func flexibleRange(
-        on date: Date,
-        calendar: Calendar = .current
-    ) -> (start: Date, end: Date) {
-        range(
-            on: date,
-            startHour: 0,
-            startMinute: 0,
-            endHour: 23,
-            endMinute: 59,
-            calendar: calendar
-        )
-    }
-
-    private static func range(
-        on date: Date,
-        startHour: Int,
-        startMinute: Int,
-        endHour: Int,
-        endMinute: Int,
-        calendar: Calendar
-    ) -> (start: Date, end: Date) {
-        let start = calendar.date(
-            bySettingHour: startHour,
-            minute: startMinute,
-            second: 0,
-            of: date
-        ) ?? date
-        let end = calendar.date(
-            bySettingHour: endHour,
-            minute: endMinute,
-            second: 0,
-            of: date
-        ) ?? start.addingTimeInterval(60 * 60)
-        return (start, end)
-    }
-}
 
 enum CustomerRequestTravelRange {
     static let minimumMiles = 5
@@ -285,15 +190,8 @@ struct CustomerRequestWizardView: View {
     @Bindable var store: CustomerRequestsStore
 
     private let onAddPet: (() -> Void)?
-    private let customerProfileRepository: (any CustomerProfileRepository)?
-    @State private var currentStep: CustomerRequestWizardStep
-    @State private var selectedDate: Date
-    @State private var selectedTimeWindow: CustomerRequestTimeWindowOption
-    @State private var isFlexibleWithTime = false
+    @State private var flow: CustomerRequestWizardState
     @State private var selectedRequestPhotoItems: [PhotosPickerItem] = []
-    @State private var invalidFields: Set<CustomerRequestWizardValidationField> = []
-    @State private var isApplyingProfileAddress = false
-    @State private var isContinuingAfterAddressConfirmation = false
     @State private var globallyPresentedErrorMessage: String?
     @State private var bottomBarHeight: CGFloat = 0
     @State private var focusedInputTarget: String?
@@ -308,13 +206,10 @@ struct CustomerRequestWizardView: View {
         onAddPet: (() -> Void)? = nil
     ) {
         self.store = store
-        self.customerProfileRepository = customerProfileRepository
         self.onAddPet = onAddPet
-        _currentStep = State(initialValue: store.wizardInitialStep)
-        _selectedDate = State(initialValue: store.preferredStart)
-        _selectedTimeWindow = State(
-            initialValue: store.wizardInitialStep == .review ? .detailed : .afternoon
-        )
+        _flow = State(initialValue: CustomerRequestWizardState(
+            store: store, profileRepository: customerProfileRepository
+        ))
     }
 
     var body: some View {
@@ -328,17 +223,17 @@ struct CustomerRequestWizardView: View {
                         ScrollView {
                             LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
                                 CustomerRequestWizardHeader(
-                                    currentStep: currentStep
+                                    currentStep: flow.currentStep
                                 )
                                 .id(Self.scrollTopAnchor)
 
                                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                                    Text(currentStep.headline)
+                                    Text(flow.currentStep.headline)
                                         .font(DesignTokens.Typography.pageTitle)
                                         .foregroundStyle(DesignTokens.Colors.textPrimary)
                                         .fixedSize(horizontal: false, vertical: true)
 
-                                    if let subtitle = currentStep.subtitle {
+                                    if let subtitle = flow.currentStep.subtitle {
                                         Text(subtitle)
                                             .font(DesignTokens.Typography.body)
                                             .foregroundStyle(DesignTokens.Colors.textSecondary)
@@ -369,7 +264,7 @@ struct CustomerRequestWizardView: View {
                             additionallyPreventsPresentationDismissal: store.isSubmitting
                                 || !store.addressEditorState.candidates.isEmpty
                         )
-                        .onChange(of: currentStep) { previousStep, currentStep in
+                        .onChange(of: flow.currentStep) { previousStep, currentStep in
                             let transition = CustomerRequestWizardStepTransition(
                                 previousStep: previousStep,
                                 currentStep: currentStep
@@ -398,13 +293,13 @@ struct CustomerRequestWizardView: View {
             }
             .beckonStationaryPageAction {
                 CustomerRequestWizardBottomBar(
-                    currentStep: currentStep,
+                    currentStep: flow.currentStep,
                     isSubmitting: store.isSubmitting,
                     isReplacingRequest: store.isRevisingRequest,
                     isRecoveringPublication: store.isRecoveringPublication,
                     isPrimaryActionEnabled: primaryActionState.isEnabled,
-                    needsAddressConfirmation: currentStep == .time && store.requestCalendar == nil,
-                    backAction: back,
+                    needsAddressConfirmation: flow.currentStep == .time && store.requestCalendar == nil,
+                    backAction: flow.back,
                     continueAction: continueForward
                 )
                 .background {
@@ -425,7 +320,7 @@ struct CustomerRequestWizardView: View {
         .presentationDetents([.large])
         .presentationDragIndicator(.hidden)
         .onAppear {
-            applyInitialDefaults()
+            flow.applyInitialDefaults()
         }
         .onChange(of: selectedRequestPhotoItems) { _, newItems in
             guard !newItems.isEmpty else { return }
@@ -434,27 +329,12 @@ struct CustomerRequestWizardView: View {
             }
         }
         .onChange(of: store.addressEditorState.confirmedAddress) { oldAddress, confirmedAddress in
-            if store.requestCalendar != nil,
-               oldAddress?.timeZoneIdentifier != confirmedAddress?.timeZoneIdentifier {
-                selectedDate = store.preferredStart
-                selectedTimeWindow = .detailed
-                isFlexibleWithTime = false
-            }
-            guard isContinuingAfterAddressConfirmation,
-                  confirmedAddress != nil else { return }
-            isContinuingAfterAddressConfirmation = false
-            let validation = store.validateWizardStep(.time)
-            guard validation.isValid else {
-                invalidFields = validation.fields
-                store.errorMessage = validation.message
-                return
-            }
-            store.errorMessage = nil
+            flow.addressConfirmationChanged(from: oldAddress, to: confirmedAddress)
         }
         .onChange(of: store.addressEditorState.isReviewPresented) { _, isPresented in
             guard !isPresented,
                   store.addressEditorState.confirmedAddress == nil else { return }
-            isContinuingAfterAddressConfirmation = false
+            flow.isContinuingAfterAddressConfirmation = false
         }
         .overlay(alignment: .bottom) {
             if let feedbackCenter {
@@ -464,12 +344,13 @@ struct CustomerRequestWizardView: View {
                 )
             }
         }
+        .onDisappear { flow.cancelPendingLoads() }
         .accessibilityIdentifier("customer.requests.wizard")
     }
 
     @ViewBuilder
     private var stepContent: some View {
-        switch currentStep {
+        switch flow.currentStep {
         case .pet:
             petStep
         case .service:
@@ -490,10 +371,10 @@ struct CustomerRequestWizardView: View {
                     pet: pet,
                     petPhotoData: store.primaryPetPhotoData(for: pet),
                     isSelected: store.selectedPetID == pet.id,
-                    isInvalid: invalidFields.contains(.pet)
+                    isInvalid: flow.invalidFields.contains(.pet)
                 ) {
                     store.selectedPetID = pet.id
-                    clearInvalidField(.pet)
+                    flow.clearInvalidField(.pet)
                 }
             }
 
@@ -519,10 +400,10 @@ struct CustomerRequestWizardView: View {
                 CustomerRequestServiceOptionCard(
                     option: option,
                     isSelected: store.serviceType == option,
-                    isInvalid: invalidFields.contains(.service)
+                    isInvalid: flow.invalidFields.contains(.service)
                 ) {
                     store.serviceType = option
-                    clearInvalidField(.service)
+                    flow.clearInvalidField(.service)
                 }
             }
         }
@@ -543,38 +424,38 @@ struct CustomerRequestWizardView: View {
     private func timeSelection(calendar: Calendar) -> some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
             CustomerRequestDateStrip(
-                selectedDate: selectedDate,
+                selectedDate: flow.selectedDate,
                 calendar: calendar
             ) { date in
-                selectedDate = date
-                clearInvalidField(.timeWindow)
-                applySelectedTimeWindow()
+                flow.selectedDate = date
+                flow.clearInvalidField(.timeWindow)
+                flow.applySelectedTimeWindow()
             }
 
             BeckonFieldGroup("Time Window") {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                     CustomerRequestTimeWindowGrid(
-                        selectedTimeWindow: selectedTimeWindow,
-                        isFlexibleWithTime: isFlexibleWithTime,
-                        isInvalid: invalidFields.contains(.timeWindow)
+                        selectedTimeWindow: flow.selectedTimeWindow,
+                        isFlexibleWithTime: flow.isFlexibleWithTime,
+                        isInvalid: flow.invalidFields.contains(.timeWindow)
                     ) { option in
-                        selectedTimeWindow = option
-                        isFlexibleWithTime = false
-                        clearInvalidField(.timeWindow)
-                        applySelectedTimeWindow()
+                        flow.selectedTimeWindow = option
+                        flow.isFlexibleWithTime = false
+                        flow.clearInvalidField(.timeWindow)
+                        flow.applySelectedTimeWindow()
                     }
 
-                    if selectedTimeWindow == .detailed && !isFlexibleWithTime {
+                    if flow.selectedTimeWindow == .detailed && !flow.isFlexibleWithTime {
                         CustomerRequestDetailedTimeFields(
                             preferredStart: $store.preferredStart,
                             preferredEnd: $store.preferredEnd,
-                            isInvalid: invalidFields.contains(.timeWindow)
+                            isInvalid: flow.invalidFields.contains(.timeWindow)
                         )
                         .onChange(of: store.preferredStart) { _, _ in
-                            clearInvalidField(.timeWindow)
+                            flow.clearInvalidField(.timeWindow)
                         }
                         .onChange(of: store.preferredEnd) { _, _ in
-                            clearInvalidField(.timeWindow)
+                            flow.clearInvalidField(.timeWindow)
                         }
                         .transition(.opacity.combined(with: .move(edge: .top)))
                         occurrencePicker(isStart: true, calendar: calendar)
@@ -583,11 +464,11 @@ struct CustomerRequestWizardView: View {
 
                     CustomerRequestFlexibleTimeToggle(
                         isOn: Binding(
-                            get: { isFlexibleWithTime },
+                            get: { flow.isFlexibleWithTime },
                             set: { newValue in
-                                isFlexibleWithTime = newValue
-                                clearInvalidField(.timeWindow)
-                                applySelectedTimeWindow()
+                                flow.isFlexibleWithTime = newValue
+                                flow.clearInvalidField(.timeWindow)
+                                flow.applySelectedTimeWindow()
                             }
                         )
                     )
@@ -638,12 +519,12 @@ struct CustomerRequestWizardView: View {
         BeckonFieldGroup(CustomerRequestLocationSection.location.title) {
             CustomerRequestAddressFields(
                 addressEditorState: store.addressEditorState,
-                isStateInvalid: invalidFields.contains(.state),
+                isStateInvalid: flow.invalidFields.contains(.state),
                 locationMode: store.locationMode,
                 travelRangeMiles: $store.travelRadiusMiles,
-                isApplyingProfileAddress: isApplyingProfileAddress,
+                isApplyingProfileAddress: flow.isApplyingProfileAddress,
                 useProfileAddress: applyProfileAddress,
-                clearInvalidField: clearInvalidField,
+                clearInvalidField: flow.clearInvalidField,
                 onFieldFocused: { focusedInputTarget = $0 }
             )
         }
@@ -658,14 +539,14 @@ struct CustomerRequestWizardView: View {
                 TextField("Share coat goals, sensitivities, or handling notes.", text: $store.serviceNotes, axis: .vertical)
                     .lineLimit(5...8)
                     .focused($isNotesFocused)
-                    .beckonFormField(isInvalid: invalidFields.contains(.notes))
+                    .beckonFormField(isInvalid: flow.invalidFields.contains(.notes))
                     .accessibilityIdentifier("customer.requests.wizard.notes")
                     .onTapGesture {
-                        clearInvalidField(.notes)
+                        flow.clearInvalidField(.notes)
                         isNotesFocused = true
                     }
                     .onChange(of: store.serviceNotes) { _, _ in
-                        clearInvalidField(.notes)
+                        flow.clearInvalidField(.notes)
                     }
                     .onChange(of: isNotesFocused) { _, isFocused in
                         if isFocused {
@@ -777,7 +658,7 @@ struct CustomerRequestWizardView: View {
     private var primaryActionState: CustomerRequestWizardPrimaryActionState {
         CustomerRequestWizardPrimaryActionState(
             isSubmitting: store.isSubmitting,
-            isAwaitingAddressConfirmation: isContinuingAfterAddressConfirmation
+            isAwaitingAddressConfirmation: flow.isContinuingAfterAddressConfirmation
         )
     }
 
@@ -839,7 +720,7 @@ struct CustomerRequestWizardView: View {
     }
 
     private var notesErrorText: String? {
-        guard invalidFields.contains(.notes) else { return nil }
+        guard flow.invalidFields.contains(.notes) else { return nil }
         if store.serviceType == .customRequest {
             return CustomerRequestWizardStepValidation.customRequestNotesMessage
         }
@@ -847,56 +728,10 @@ struct CustomerRequestWizardView: View {
         return "Service notes must be 2,000 characters or fewer."
     }
 
-    private func back() {
-        guard !store.isSubmitting else { return }
-        if store.isRecoveringPublication {
-            store.cancelWizard()
-            return
-        }
-
-        if let previous = currentStep.previous {
-            currentStep = previous
-        } else {
-            store.cancelWizard()
-        }
-    }
-
     private func continueForward() {
-        if store.isRecoveringPublication {
-            publish()
-            return
-        }
-        let validation = store.validateWizardStep(currentStep)
-        guard validation.isValid else {
-            if currentStep == .time,
-               validation.requiresOnlyAddressConfirmation {
-                invalidFields = []
-                store.errorMessage = nil
-                globallyPresentedErrorMessage = nil
-                isContinuingAfterAddressConfirmation = true
-                Task {
-                    let result = await store.addressEditorState.prepareConfirmation(requiringTimeZone: true)
-                    guard isContinuingAfterAddressConfirmation else { return }
-                    guard result != .needsReview else { return }
-                    isContinuingAfterAddressConfirmation = false
-                    guard result == .confirmed else { return }
-                }
-                return
-            }
-
-            globallyPresentedErrorMessage = nil
-            invalidFields = validation.fields
-            store.errorMessage = validation.message
-            return
-        }
-
-        invalidFields = []
-        store.errorMessage = nil
-
-        if currentStep == .review {
-            publish()
-        } else if let next = currentStep.next {
-            currentStep = next
+        globallyPresentedErrorMessage = nil
+        Task {
+            if await flow.continueForward() { publish() }
         }
     }
 
@@ -953,35 +788,11 @@ struct CustomerRequestWizardView: View {
     }
 
     private func applyProfileAddress() {
-        guard !isApplyingProfileAddress else { return }
-        isContinuingAfterAddressConfirmation = false
-        guard let customerProfileRepository else {
-            showNoProfileAddressPrompt()
-            return
-        }
-
-        isApplyingProfileAddress = true
-        Task { @MainActor in
-            defer { isApplyingProfileAddress = false }
-
-            do {
-                let profile = try await customerProfileRepository.profile(
-                    customerID: store.customerID
-                )
-                guard let autofill = CustomerProfileAddressAutofill.make(from: profile) else {
-                    showNoProfileAddressPrompt()
-                    return
-                }
-
-                store.applyProfileAddressAutofill(autofill)
-                clearInvalidField(.streetAddress)
-                clearInvalidField(.city)
-                clearInvalidField(.state)
-                clearInvalidField(.zipCode)
-            } catch CustomerProfileRepositoryError.cancelled {
-                return
-            } catch {
-                showProfileAddressUnavailablePrompt()
+        Task {
+            switch await flow.applyProfileAddress() {
+            case .applied, .cancelled: break
+            case .missing: showNoProfileAddressPrompt()
+            case .unavailable: showProfileAddressUnavailablePrompt()
             }
         }
     }
@@ -1013,46 +824,6 @@ struct CustomerRequestWizardView: View {
         feedbackCenter?.showError(error)
     }
 
-    private func applyInitialDefaults() {
-        currentStep = store.wizardInitialStep
-        selectedDate = store.preferredStart
-        guard store.wizardInitialStep != .review else {
-            selectedTimeWindow = .detailed
-            isFlexibleWithTime = false
-            return
-        }
-
-        selectedTimeWindow = .afternoon
-        isFlexibleWithTime = false
-        applySelectedTimeWindow()
-    }
-
-    private func applySelectedTimeWindow() {
-        guard let calendar = store.requestCalendar else { return }
-        if isFlexibleWithTime {
-            let range = CustomerRequestTimeWindowOption.flexibleRange(on: selectedDate, calendar: calendar)
-            store.preferredStart = range.start
-            store.preferredEnd = range.end
-            return
-        }
-
-        guard let range = selectedTimeWindow.range(on: selectedDate, calendar: calendar) else {
-            if !store.applyDetailedDate(selectedDate) { selectedDate = store.preferredStart }
-            return
-        }
-
-        store.preferredStart = range.start
-        store.preferredEnd = range.end
-    }
-
-    private func clearInvalidField(_ field: CustomerRequestWizardValidationField) {
-        guard invalidFields.remove(field) != nil else { return }
-
-        if invalidFields.isEmpty,
-           store.errorMessage == CustomerRequestWizardStepValidation.requiredFieldsMessage {
-            store.errorMessage = nil
-        }
-    }
 }
 
 typealias CustomerRequestLocationMode = GroomingLocationMode

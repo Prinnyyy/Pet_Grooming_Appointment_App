@@ -16,8 +16,6 @@ struct ChatStoreTests {
 
         #expect(customer.title == "Messages")
         #expect(groomer.title == customer.title)
-        #expect(groomer.pageStyle == customer.pageStyle)
-        #expect(groomer.rowStyle == customer.rowStyle)
         #expect(groomer.avatarSize == customer.avatarSize)
         #expect(groomer.previewLineLimit == customer.previewLineLimit)
         #expect(customer.audience == .customer)
