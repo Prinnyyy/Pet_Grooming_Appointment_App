@@ -5,7 +5,6 @@ struct CustomerGroomerDiscoveryView: View {
     let requests: CustomerRequestsStore
     let marketplace: CustomerMarketplaceSession
     @Environment(\.dismiss) private var dismiss
-    @State private var confirmsFullList = false
     @State private var detail: DiscoveredGroomer?
 
     var body: some View {
@@ -86,41 +85,28 @@ struct CustomerGroomerDiscoveryView: View {
         .sheet(item: $detail) { candidate in
             NavigationStack { CustomerGroomerDetailView(candidate: candidate, flow: flow, requests: requests, marketplace: marketplace) }
         }
-        .confirmationDialog("Show all eligible groomers?", isPresented: $confirmsFullList, titleVisibility: .visible) {
-            Button("Show All Groomers") { flow.store.showAll() }
-            Button("Keep Browsing", role: .cancel) { flow.store.selectedGroomerID = flow.store.recommended.last?.id }
-        }
         .task { if flow.store.page == nil { await load() } }
         .accessibilityIdentifier("customer.discovery")
     }
 
     private var carousel: some View {
-        VStack(spacing: 10) {
-            TabView(selection: Binding(get: { flow.store.selectedGroomerID }, set: { flow.store.selectedGroomerID = $0 })) {
-                ForEach(flow.store.recommended) { candidate in
-                    ScrollView {
-                        CustomerGroomerCandidateView(candidate: candidate, flow: flow, requests: requests,
-                            marketplace: marketplace, compact: false, onDetails: { detail = candidate })
-                            .padding(.horizontal, DesignTokens.Spacing.xs).padding(.bottom, DesignTokens.Spacing.screenHorizontal)
-                    }
-                    .tag(Optional(candidate.id))
+        GroomerDiscoveryCardDeck(groomerIDs: flow.store.recommended.map(\.id),
+            selection: Binding(get: { flow.store.deckSelection }, set: { flow.store.deckSelection = $0 }),
+            revision: flow.store.deckRevision, isRefreshing: flow.store.isLoading) { position in
+            switch position {
+            case .groomer(let id):
+                if let candidate = flow.store.recommended.first(where: { $0.id == id }) {
+                    CustomerGroomerCandidateView(candidate: candidate, flow: flow, requests: requests,
+                        marketplace: marketplace, compact: false, onDetails: { detail = candidate }, usesCardLayout: true)
                 }
+            case .more:
                 VStack(spacing: 16) {
                     Image(systemName: "person.3").font(DesignTokens.Typography.largeTitle)
-                    Button("Show All Groomers") { confirmsFullList = true }
+                        .foregroundStyle(DesignTokens.Colors.customerAccentStrong)
+                    Button("Show All Groomers", systemImage: "list.bullet") { flow.store.showAll() }
                         .buttonStyle(BeckonPrimaryButtonStyle(accent: .customer)).accessibilityIdentifier("discovery.more")
                 }
-                .tag(Optional<UUID>.none)
             }
-            .tabViewStyle(.page(indexDisplayMode: .never))
-            .frame(height: 510)
-            .onChange(of: flow.store.selectedGroomerID) { _, id in
-                if id == nil && !flow.store.recommended.isEmpty { confirmsFullList = true }
-            }
-            let index = flow.store.recommended.firstIndex { $0.id == flow.store.selectedGroomerID }
-            Text(index.map { "\($0 + 1) of \(flow.store.recommended.count)" } ?? "More Groomers")
-                .font(DesignTokens.Typography.caption).foregroundStyle(DesignTokens.Colors.textTertiary)
-                .accessibilityIdentifier("discovery.page-position")
         }
     }
 
@@ -161,27 +147,40 @@ struct CustomerGroomerCandidateView: View {
     let marketplace: CustomerMarketplaceSession
     let compact: Bool
     let onDetails: () -> Void
+    var usesCardLayout = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Button(action: onDetails) {
-                GroomerCandidateSummaryView(profile: candidate.profile, avatarData: marketplace.avatarData[candidate.id],
-                    candidate: candidate, compact: compact)
-                    .frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("discovery.profile.\(candidate.id.uuidString)")
-            GroomerCandidateActionsView(id: candidate.id,
-                isFavorite: (marketplace.favorites.state(for: candidate.id) ?? candidate.favoriteState).isFavorite,
-                invitation: marketplace.distribution.state(requestID: flow.requestID, groomerID: candidate.id, seed: candidate.invitationState),
-                disabled: marketplace.distribution.isPublishing || requests.isSubmitting
-                    || flow.requestID.map { marketplace.distribution.mutatingIDs.contains($0) } == true
-                    || marketplace.publication.pending?.acknowledgement == nil && marketplace.publication.pending != nil,
-                onFavorite: { Task { await marketplace.favorites.setFavorite(candidate.id,
-                    enabled: !(marketplace.favorites.state(for: candidate.id) ?? candidate.favoriteState).isFavorite) } },
-                onSend: { Task { await requests.sendDiscovery(flow, groomerIDs: [candidate.id]) } },
-                publicationConfirmation: flow.publicationConfirmation(names: [candidate.profile.displayName]))
+            if usesCardLayout {
+                ScrollView { summary }
+                    .scrollIndicators(.hidden)
+                Divider()
+            } else { summary }
+            actions.fixedSize(horizontal: false, vertical: true)
         }
         .task(id: candidate.profile.avatarPath) { await marketplace.loadAvatar(candidate.profile) }
+    }
+
+    private var summary: some View {
+        Button(action: onDetails) {
+            GroomerCandidateSummaryView(profile: candidate.profile, avatarData: marketplace.avatarData[candidate.id],
+                candidate: candidate, compact: compact)
+                .frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("discovery.profile.\(candidate.id.uuidString)")
+    }
+
+    private var actions: some View {
+        GroomerCandidateActionsView(id: candidate.id,
+            isFavorite: (marketplace.favorites.state(for: candidate.id) ?? candidate.favoriteState).isFavorite,
+            invitation: marketplace.distribution.state(requestID: flow.requestID, groomerID: candidate.id, seed: candidate.invitationState),
+            disabled: marketplace.distribution.isPublishing || requests.isSubmitting
+                || flow.requestID.map { marketplace.distribution.mutatingIDs.contains($0) } == true
+                || marketplace.publication.pending?.acknowledgement == nil && marketplace.publication.pending != nil,
+            onFavorite: { Task { await marketplace.favorites.setFavorite(candidate.id,
+                enabled: !(marketplace.favorites.state(for: candidate.id) ?? candidate.favoriteState).isFavorite) } },
+            onSend: { Task { await requests.sendDiscovery(flow, groomerIDs: [candidate.id]) } },
+            publicationConfirmation: flow.publicationConfirmation(names: [candidate.profile.displayName]))
     }
 }

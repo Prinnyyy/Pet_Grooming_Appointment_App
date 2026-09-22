@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct GroomerCandidateActionsView: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let id: UUID
     let isFavorite: Bool
     let invitation: RequestInvitationState
@@ -10,7 +11,7 @@ struct GroomerCandidateActionsView: View {
     var publicationConfirmation: String? = nil
 
     var body: some View {
-        HStack(spacing: DesignTokens.Spacing.md) {
+        actionLayout {
             Button(action: onFavorite) {
                 Image(systemName: isFavorite ? "heart.fill" : "heart").frame(width: 44, height: 44)
             }
@@ -29,6 +30,12 @@ struct GroomerCandidateActionsView: View {
         }
         .tint(DesignTokens.Colors.customerAccentStrong)
         .disabled(disabled)
+    }
+
+    private var actionLayout: AnyLayout {
+        dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.sm))
+            : AnyLayout(HStackLayout(spacing: DesignTokens.Spacing.md))
     }
 }
 

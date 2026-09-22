@@ -4,6 +4,43 @@ import Testing
 
 @MainActor
 struct CustomerGroomerDiscoveryTests {
+    @Test func refreshRetainsIdentityButInvalidatesInFlightMotion() async {
+        let repository = DiscoveryRepositoryFake()
+        let first = candidate(1), second = candidate(2)
+        repository.pages = [.success(page([first, second])), .success(page([second, first])),
+                            .success(page([first])), .success(page([]))]
+        let store = CustomerGroomerDiscoveryStore(scope: scope(), repository: repository)
+        await store.load()
+        store.deckSelection = .groomer(second.id)
+        let revision = store.deckRevision
+        await store.load()
+        #expect(store.deckSelection == .groomer(second.id))
+        #expect(store.deckRevision != revision)
+        await store.load()
+        #expect(store.deckSelection == .groomer(first.id))
+        store.deckSelection = .more
+        await store.load()
+        #expect(store.deckSelection == nil)
+        #expect(store.recommended.isEmpty)
+    }
+
+    @Test func tailRefreshAndSessionInvalidationCannotRestoreOldSelection() async {
+        let repository = DiscoveryRepositoryFake()
+        repository.pages = [.success(page([candidate(1)])), .success(page([candidate(1)]))]
+        let store = CustomerGroomerDiscoveryStore(scope: scope(), repository: repository)
+        await store.load()
+        store.deckSelection = .more
+        await store.load()
+        #expect(store.deckSelection == .more)
+        let revision = store.deckRevision
+        store.invalidateSession()
+        #expect(store.deckSelection == nil)
+        #expect(store.deckRevision != revision)
+        await store.load()
+        #expect(store.deckSelection == nil)
+        #expect(repository.reads.count == 2)
+    }
+
     @Test(arguments: [false, true])
     func resumeRequestReplaysPendingPublicationWithoutAnotherBrowse(_ fails: Bool) async throws {
         let customerID = UUID(), petID = UUID()
@@ -39,16 +76,17 @@ struct CustomerGroomerDiscoveryTests {
         if !fails { #expect(store.publishResult?.requestID == request.id) }
     }
 
-    @Test func returningFromTheTailListRestoresTheLastActualGroomer() async {
+    @Test func returningFromTheTailListPreservesTheTail() async {
         let repository = DiscoveryRepositoryFake()
         let items = (1...8).map { candidate($0) }
         repository.pages = [.success(page(items))]
         let store = CustomerGroomerDiscoveryStore(scope: scope(), repository: repository)
         await store.load()
-        store.selectedGroomerID = nil
+        store.deckSelection = .more
         store.showAll()
         store.showRecommendations()
-        #expect(store.selectedGroomerID == items.last?.id)
+        #expect(store.deckSelection == .more)
+        #expect(repository.reads.count == 1)
     }
 
     @Test func avatarRevocationRejectsAnOlderResponseEvenWhenThePathIsReused() async {
@@ -154,12 +192,12 @@ struct CustomerGroomerDiscoveryTests {
         let store = CustomerGroomerDiscoveryStore(scope: scope(), repository: repository)
         await store.load()
         #expect(store.recommended.map(\.id) == Array(items.prefix(8)).map(\.id))
-        store.selectedGroomerID = items[4].id
+        store.deckSelection = .groomer(items[4].id)
         store.showAll()
         await store.loadNextPage()
         #expect(store.candidates.map(\.id) == items.map(\.id))
         store.showRecommendations()
-        #expect(store.selectedGroomerID == items[4].id)
+        #expect(store.deckSelection == .groomer(items[4].id))
         #expect(repository.reads.count == 2)
     }
 
@@ -247,12 +285,12 @@ struct CustomerGroomerDiscoveryTests {
         let preview = scope()
         let store = CustomerGroomerDiscoveryStore(scope: preview, repository: repository)
         await store.load()
-        store.selectedGroomerID = candidate(1).id
+        store.deckSelection = .groomer(candidate(1).id)
         let requestScope = GroomerDiscoveryScope.request(id: UUID(), termsRevision: UUID())
         store.publicationConfirmed(requestScope: requestScope)
         #expect(store.scope == preview)
         #expect(store.actionScope == requestScope)
-        #expect(store.selectedGroomerID == candidate(1).id)
+        #expect(store.deckSelection == .groomer(candidate(1).id))
         #expect(store.canLoadMore)
         #expect(repository.reads.count == 1)
     }
@@ -276,7 +314,7 @@ struct CustomerGroomerDiscoveryTests {
 }
 
 @MainActor
-private final class DiscoveryImageFake: PrivateImageLoading {
+final class DiscoveryImageFake: PrivateImageLoading {
     var calls = 0
     var onLoad: (() async -> Void)?
     func loadData(bucketID: String, storagePath: String) async throws -> Data {
@@ -293,7 +331,7 @@ private final class DiscoveryImageFake: PrivateImageLoading {
 }
 
 @MainActor
-private final class DiscoveryRepositoryFake: CustomerGroomerDiscoveryRepository {
+final class DiscoveryRepositoryFake: CustomerGroomerDiscoveryRepository {
     var pages: [Result<RankedPage<DiscoveredGroomer>, RequestDiscoveryError>] = []
     var reads: [RankedPageRequest<GroomerDiscoverySort>] = []
     var onRead: (() async -> Void)?

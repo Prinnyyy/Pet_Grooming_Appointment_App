@@ -35,7 +35,7 @@ final class TestOpsRequestDiscoveryTests: XCTestCase {
         if fixture.action == "browseLargeText" {
             arguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
         }
-        driver.launchSignedOut(additionalArguments: arguments)
+        driver.launchSignedOut(disablesAnimations: fixture.action != "browseEdgeCases", additionalArguments: arguments)
         driver.signIn(try TestOpsSeedAccount.fromEnvironment(role: role))
         switch fixture.action {
         case "browseLargeText":
@@ -89,10 +89,17 @@ final class TestOpsRequestDiscoveryTests: XCTestCase {
             }
             let lastID = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'discovery.profile.'")).firstMatch.identifier
             app.buttons.matching(NSPredicate(format: "identifier == %@", lastID)).firstMatch.swipeLeft()
-            tap(app.buttons["Show All Groomers"].firstMatch)
+            XCTAssertTrue(element("discovery.more").waitForExistence(timeout: 5))
+            XCTAssertEqual(position.label, "More Groomers")
+            XCTAssertEqual(app.alerts.count, 0)
+            XCTAssertEqual(app.sheets.count, 0)
+            XCTAssertEqual(app.buttons.matching(identifier: "discovery.more").count, 1)
+            tap(element("discovery.more"))
             XCTAssertTrue(element("customer.discovery.list").waitForExistence(timeout: 10))
             tap(app.buttons["BackButton"].firstMatch)
-            XCTAssertEqual(position.label, "8 of 8")
+            XCTAssertEqual(position.label, "More Groomers")
+            element("discovery.more").swipeRight()
+            XCTAssertTrue(wait { position.label == "8 of 8" })
             XCTAssertTrue(element(lastID).exists)
             tap(element("discovery.favorites"))
             let target = try XCTUnwrap(fixture.presentationGroomerID)
@@ -445,7 +452,8 @@ final class TestOpsRequestDiscoveryTests: XCTestCase {
 
     private func preparePreview(_ fixture: Input) {
         tap(element("customer.home.start-request"))
-        let pet = app.buttons.matching(identifier: "customer.requests.wizard.pet.dog")
+        let pet = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@",
+            "customer.requests.wizard.pet.dog."))
             .matching(NSPredicate(format: "label BEGINSWITH %@", fixture.petName + ",")).firstMatch
         tap(pet)
         tap(element("customer.requests.wizard.continue"))

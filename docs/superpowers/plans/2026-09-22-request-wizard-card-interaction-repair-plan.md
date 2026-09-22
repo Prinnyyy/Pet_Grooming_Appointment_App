@@ -1,10 +1,10 @@
 # 创建需求与美容师卡牌交互修复计划
 
-> **For agentic workers:** 使用 `superpowers:executing-plans`，当前执行者连续完成各包；项目禁用subagents。复选框代表实施验收，不是逐项暂停或提交的边界。本次仅交付计划，用户采用后才执行代码修改。
+> **For agentic workers:** 使用 `superpowers:executing-plans`，当前执行者连续完成各包；项目禁用subagents。复选框代表实施验收，不是逐项暂停或提交的边界。用户已采用本计划，由T-401实施。
 
 <!-- task-artifact
-task: T-400
-status: active
+task: T-401
+status: completed
 type: plan
 -->
 
@@ -16,7 +16,7 @@ type: plan
 
 **Spec:** 本文第1至3节承接2026-09-22用户实测反馈，并细化[原发现与邀请设计](../specs/2026-09-21-request-discovery-invitations-design.md#22-推荐轮播)。采用后，仅替换原“原生分页轮播”的视觉/交互实现；原定显式发送、滑动不pass、不弹尾页模态的规则不变。
 
-**状态:** T-400为计划编写任务；实施未开始，下方验收尚未执行。源码基线 `4a80c0c7`。不将T-399的业务测试通过当成本次布局或动画通过。
+**状态:** T-400编写计划，T-401于2026-09-22完成实施及本地验收。实现基线 `a519c396`；实际证据见第6节，不将T-399的业务测试通过当成本次布局或动画通过。
 
 ## 1. 范围与问题定位
 
@@ -40,7 +40,7 @@ type: plan
 - 填完需求进入私有预览不等于已发布；只有Send Request的明确确认或Publish to Request Pool才发布。卡牌浏览不修改这条边界。
 - 需求池默认关闭、接收人数上限、权限、排序、分页、发布幂等、报价及Booking规则均不改。
 - 保留真实头像及现有缺图占位，不引入虚构作品/评分，不为卡面另建素材接口。
-- 当前只写计划；不得操作远程数据、安装库、改签名或把测试计划执行成真实订单。实施授权另以用户采用本计划为准。
+- 本轮仅本地客户端修复和Simulator验收；不操作远程数据、安装库、改签名或把测试计划执行成真实订单。
 
 ## 2. 交互设定
 
@@ -128,10 +128,10 @@ Sheet安全区
 
 **接口：** Header仅消费 `currentStep: CustomerRequestWizardStep`，不读取Repository；原flow.currentStep和前进/返回逻辑不改。
 
-- [ ] 先记录同一长字段卡选中前后文字/外框几何及进度滚动位置的失败证据。测试数据：长名 `Sir Bartholomew Wellington the Third`、长品种 `Australian Shepherd / Standard Poodle Mix`、重量72.5，以及无breed/无weight、同species的另一只宠物。
-- [ ] 分开breed和weight，稳定选择槽及文字宽度；大字号布局独立于isSelected。给需要比较的元素稳定ID，不用species单独识别多只同种宠物；保留现有driver依赖的入口或同步改定位。
-- [ ] 抽取现有Header并移出ScrollView；为内容设置专用顶部锚点。保留底部动作补偿与键盘逻辑，检查focus滚动不把内容藏到顶栏/底栏后。
-- [ ] 验收R01-R05；针对性运行WizardPresentation/布局测试后继续UI-02，不在此处跑整套后端或另写长报告。
+- [x] 先记录同一长字段卡选中前后文字/外框几何及进度滚动位置的失败证据。测试数据：长名 `Sir Bartholomew Wellington the Third`、长品种 `Australian Shepherd / Standard Poodle Mix`、重量72.5，以及无breed/无weight、同species的另一只宠物。
+- [x] 分开breed和weight，稳定选择槽及文字宽度；大字号布局独立于isSelected。给需要比较的元素稳定ID，不用species单独识别多只同种宠物；保留现有driver依赖的入口或同步改定位。
+- [x] 抽取现有Header并移出ScrollView；为内容设置专用顶部锚点。保留底部动作补偿与键盘逻辑，检查focus滚动不把内容藏到顶栏/底栏后。
+- [x] 验收R01-R05；针对性运行WizardPresentation/布局测试后继续UI-02，不在此处跑整套后端或另写长报告。
 
 布局核心示意（不是本轮产品代码）：
 
@@ -171,11 +171,11 @@ enum GroomerDiscoveryDeckPolicy {
 // Deck输入稳定selection binding、当前候选及原动作；不可自行调用业务仓储。
 ```
 
-- [ ] 先测0/1/3/8候选、取消/快滑、前后边界、more往返、刷新移除当前ID及旧动画回调，确保没有网络/发送副作用。
-- [ ] 用deckSelection替换当前selectedGroomerID的空值复用，更新所有本地调用和测试；删除TabView、confirmsFullList及尾页confirmationDialog，禁止保留两套活跃位置状态。
-- [ ] 完成实体卡面、相邻层、倾斜跟手/回弹/接替，绑定手势到卡面而非整页；按钮和竖滚通过第2.3节规则仲裁。
-- [ ] showAll/showRecommendations只管理导航，不重置deckSelection；普通卡和尾卡进入列表后均有确定返回位置。首次发送后的preview别名继续保留同一位置。
-- [ ] 验收R06-R15，开启真实动画。动画正确且状态稳定后才微调阴影/角度，不以关闭动画“解决卡顿”。
+- [x] 先测0/1/3/8候选、取消/快滑、前后边界、more往返、刷新移除当前ID及旧动画回调，确保没有网络/发送副作用。
+- [x] 用deckSelection替换当前selectedGroomerID的空值复用，更新所有本地调用和测试；删除TabView、confirmsFullList及尾页confirmationDialog，禁止保留两套活跃位置状态。
+- [x] 完成实体卡面、相邻层、倾斜跟手/回弹/接替，绑定手势到卡面而非整页；按钮和竖滚通过第2.3节规则仲裁。
+- [x] showAll/showRecommendations只管理导航，不重置deckSelection；普通卡和尾卡进入列表后均有确定返回位置。首次发送后的preview别名继续保留同一位置。
+- [x] 验收R06-R15，开启真实动画。动画正确且状态稳定后才微调阴影/角度，不以关闭动画“解决卡顿”。
 
 示例断言：
 
@@ -198,14 +198,14 @@ let ids = [UUID(), UUID(), UUID()]
 
 驱动仅增加一个向后兼容参数：`launchSignedOut(disablesAnimations: Bool = true, additionalArguments: [String] = [])`。现有业务测试保留原默认，本次动效测试明确传false；不得全局删除既有快速测试选项，也不能仅追加相反flag却留下原disable参数。
 
-- [ ] 复用本地Fake与UIHostingController覆盖长字段、缺图、0/1/8候选，不为边界造远程账号。Simulator关键交互沿用现有TestOps驱动；若必须准备真实预览夹具，仅限经授权的最小测试账号业务数据并精确恢复，不重新播种26账号/1200评价。未授权远程写时不暗中调用prepare RPC（它也会写私有预览）。
-- [ ] 旧 `firstMatch` 文案选择改为尾卡稳定ID `discovery.more`；明确断言无alert/confirmationDialog。测尾卡反向拖回，不以“成功进入列表”代替尾页交互通过。
-- [ ] 实现上述单参数，确认动效测试的app.launchArguments不含disable-animations，普通动效组系统Reduce Motion关闭；降动效组另测，不把两组证据混用。
-- [ ] 在紧凑17e和较大Pro Max上串行运行：默认字号、最大辅助字号、Reduce Motion、键盘开关及VoiceOver标签/动作。无须真机或上架条件。
-- [ ] 只保留宠物选中前/后、固定Header滚动前/后、卡组静止/中间倾角及尾卡的关键截图；另录一段正常动画连续往返短视频。XCTest语义/手势控制，不以每步截图驱动。
-- [ ] 同一模拟器、同字号/图片状态下测首轮与预热后各20次连续往返；不允许重复业务写、索引跳过、拖动中返回其他卡或单次手势结束后超过0.5秒仍不稳定。目标完成落位约0.30秒；如有可见停顿或达不到门槛，使用一次范围限定的Animation Hitches/Time Profiler定位，不新建性能平台，也不将低采样录像冒充60/120fps证明。
-- [ ] 最终集成节点串行运行 `./scripts/ios-build.sh`、`./scripts/ios-test.sh`、`./scripts/preflight.sh`；一次完整回归即可。此次不改后端规则，不重复未变的权限/成交/26人性能压测。
-- [ ] 执行hygiene/diff检查，记录修复、实际UI证据及限制；全部验收后按已有Git授权一次完成提交/推送当前工作分支。保留历史脏文档、签名和Light设置，不创建PR/合并。
+- [x] 复用本地Fake与UIHostingController覆盖长字段、缺图、0/1/8候选，不为边界造远程账号。Simulator关键交互沿用现有TestOps驱动；若必须准备真实预览夹具，仅限经授权的最小测试账号业务数据并精确恢复，不重新播种26账号/1200评价。未授权远程写时不暗中调用prepare RPC（它也会写私有预览）。
+- [x] 旧 `firstMatch` 文案选择改为尾卡稳定ID `discovery.more`；明确断言无alert/confirmationDialog。测尾卡反向拖回，不以“成功进入列表”代替尾页交互通过。
+- [x] 实现上述单参数，确认动效测试的app.launchArguments不含disable-animations，普通动效组系统Reduce Motion关闭；降动效组另测，不把两组证据混用。
+- [x] 在紧凑17e和较大Pro Max上串行运行：默认字号、最大辅助字号、Reduce Motion、键盘开关及VoiceOver标签/动作。无须真机或上架条件。
+- [x] 只保留宠物选中前/后、固定Header滚动前/后、卡组静止/中间倾角及尾卡的关键截图；另录一段正常动画连续往返短视频。XCTest语义/手势控制，不以每步截图驱动。
+- [x] 同一模拟器、同字号/图片状态下测首轮与预热后各20次连续往返；不允许重复业务写、索引跳过、拖动中返回其他卡或单次手势结束后超过0.5秒仍不稳定。目标完成落位约0.30秒；如有可见停顿或达不到门槛，使用一次范围限定的Animation Hitches/Time Profiler定位，不新建性能平台，也不将低采样录像冒充60/120fps证明。
+- [x] 最终集成节点串行运行 `./scripts/ios-build.sh`、`./scripts/ios-test.sh`、`./scripts/preflight.sh`；一次完整回归即可。此次不改后端规则，不重复未变的权限/成交/26人性能压测。
+- [x] 执行hygiene/diff检查，记录修复、实际UI证据及限制；全部验收后按已有Git授权一次完成提交/推送当前工作分支。保留历史脏文档、签名和Light设置，不创建PR/合并。
 
 ## 5. 验收矩阵
 
@@ -234,4 +234,15 @@ let ids = [UUID(), UUID(), UUID()]
 
 计划自检已将四项反馈映射到UI-01/UI-02和R01-R17；宠物勾选挤压、滚动锚点迁移、尾卡nil身份、纵横手势冲突、异步动画遇到刷新五类风险均有明确验收。Saved Groomers按用户最终决定保持原位。没有新增后端需求或将高规模测试变成本次前置。
 
-本次只有源码核对、官方/GitHub参考和文档检查；**未修改App、未运行本计划的UI验收、未宣称这些问题已修复**。执行时在此追加一份简短结果：实际实现文件、针对性/集成结果、动画/布局证据、未验证限制和Git状态，不逐步追加工作日志。
+### T-401验收记录（2026-09-22）
+
+- RED/GREEN：原生布局测试先复现长字段选中高度变化（紧凑默认约47pt、最大字号约319pt）及Header随滚动移动；修复后通过。尾卡身份及纯规则测试同样先失败后通过。Store增加刷新保留/移除当前ID、空结果、失效会话及旧transition回调覆盖。
+- 使用测试target内的`CustomerDiscoveryInteractionTests`、UIHostingController和既有Fake运行真实生产视图；没有App测试路由、远程夹具或新依赖。语义定位/拖动为主，截图只用于几何和动效关键帧。
+- iPhone 17e：默认和最大辅助字号的name/breed/weight及卡外框选中前后差值不超过1pt；重量在品种下方。长内容和大字号动作可滚动到达。iPhone 17 Pro Max：五个步骤滚动时Header位置不变，备注软件键盘开启前后Header的Y=94pt、高度88pt不变，关闭键盘后底栏恢复。
+- 两种尺寸各完成首轮20次和预热20次往返，覆盖尾卡/反向返回/首张边界/微拖回弹。实测发现15pt短拖会误开详情，已用横向意图期间禁用卡内按钮修复；后续40次及独立微拖检查通过。
+- 最大字号：收藏切换、Send后Cancel、前后按钮、尾卡唯一按钮、列表返回more再返回第8位、Saved Groomers入口均通过实际交互。辅助功能命名动作Next/Previous实际完成第8位与more往返；背卡不暴露可点击元素。系统Reduce Motion实际开启后验证前后切换及无旋转淡出，并恢复原设置。
+- 最终独立计时段：40次完整往返，最长触摸结束至动画完成/身份落位为**0.3415秒**，全部低于0.5秒；发布调用0、旧create调用0、pool关闭。`/tmp/t401-interaction-timed.log`及对应xcresult通过。录像用于观察倾角/跳变，不充当60/120fps测量或真机证据。
+- 验证过程限制如实保留：首次大屏宿主因切换设置后未及时结束而超时；后一次混合场景把辅助功能动作前的闲置时间误计为19.89秒。最终夹具仅对显式`measureMotion`段计时，且不丢弃慢样本，重新40次通过。临时语义脚本的List标识及固定800pt可见边界曾误报；列表返回与实际可见的收藏入口均补做语义交互确认。
+- 本地证据保留在忽略目录`artifacts/testops/T401-ui/`：两尺寸deck序列JSON、宠物前后几何JSON/关键截图、`compact-reversible.mp4`、`reduce-motion.mp4`、`wizard-keyboard.png`、`motion-metrics-final.json`及验收日志。不提交录像或临时驱动，也不把Fake验收描述成远程真实订单通过。
+
+集成收尾：`ios-build.sh`、`ios-test.sh`、`preflight.sh`通过。最终xcresult汇总763通过、0失败、43跳过（参数展开设备记录892次通过）；跳过项为40个专用TestOps UI场景、密码恢复邮件投递、独立进程接受恢复及本次opt-in交互宿主。交互宿主已单独通过；其余远程/专用场景本轮未重跑，不宣称新增远程验证。结果包为`Test-Beckon-2026.09.22_12-33-06--0700.xcresult`，脚本摘要为`/tmp/t401-build-final.log`、`/tmp/t401-tests-final.log`。preflight共218项通过；全量hygiene检查84份文档、0错误/警告。无远程数据修改，无真机/上架要求；已保留原有文档、签名和Light设置改动。按既有授权仅做一次目标文件完成提交与当前分支推送，不创建PR或合并。

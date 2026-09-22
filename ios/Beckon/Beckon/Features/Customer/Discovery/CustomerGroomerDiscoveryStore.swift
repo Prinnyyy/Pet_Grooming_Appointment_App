@@ -12,7 +12,8 @@ final class CustomerGroomerDiscoveryStore {
     private(set) var isLoadingMore = false
     private(set) var error: RequestDiscoveryError?
     private(set) var page: RankedPage<DiscoveredGroomer>?
-    var selectedGroomerID: UUID?
+    var deckSelection: GroomerDiscoveryDeckSelection?
+    private(set) var deckRevision = UUID()
 
     private var entities: [UUID: DiscoveredGroomer] = [:]
     private var orderedIDs: [UUID] = []
@@ -28,7 +29,7 @@ final class CustomerGroomerDiscoveryStore {
     }
 
     var candidates: [DiscoveredGroomer] { orderedIDs.compactMap { entities[$0] } }
-    var recommended: [DiscoveredGroomer] { Array(candidates.prefix(8)) }
+    var recommended: [DiscoveredGroomer] { orderedIDs.prefix(8).compactMap { entities[$0] } }
     var pendingCount: Int { page?.pendingCount ?? 0 }
     var canLoadMore: Bool {
         sessionIsValid && !isLoading && !isLoadingMore && page?.nextCursor != nil
@@ -36,7 +37,6 @@ final class CustomerGroomerDiscoveryStore {
     }
 
     func showAll() {
-        if selectedGroomerID == nil { selectedGroomerID = recommended.last?.id }
         isShowingAll = true
     }
     func showRecommendations() { isShowingAll = false }
@@ -127,8 +127,14 @@ final class CustomerGroomerDiscoveryStore {
             }
             for item in result.items { entities[item.id] = item; orderedIDs.append(item.id) }
             page = result
-            if selectedGroomerID == nil || entities[selectedGroomerID!] == nil {
-                selectedGroomerID = orderedIDs.first
+            if cursor == nil { deckRevision = UUID() }
+            if recommended.isEmpty {
+                deckSelection = nil
+            } else if case .groomer(let id) = deckSelection,
+                      recommended.contains(where: { $0.id == id }) {
+                // A refresh may reorder candidates without changing the visible identity.
+            } else if deckSelection != .more {
+                deckSelection = recommended.first.map { .groomer($0.id) }
             }
         } catch {
             guard sessionIsValid, operation == generation else { return }
@@ -143,6 +149,7 @@ final class CustomerGroomerDiscoveryStore {
         entities = [:]
         orderedIDs = []
         page = nil
-        selectedGroomerID = nil
+        deckSelection = nil
+        deckRevision = UUID()
     }
 }

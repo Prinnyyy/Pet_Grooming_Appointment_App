@@ -177,7 +177,8 @@ final class TestOpsBookingAdversarialTests: XCTestCase {
         for index in 1...2 {
             tap(element("customer.tab.home"))
             tap(element("customer.home.start-request"))
-            tap(element("customer.requests.wizard.pet.dog"))
+            tap(app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@",
+                "customer.requests.wizard.pet.dog.")).firstMatch)
             tap(element("customer.requests.wizard.continue"))
             tap(element("customer.requests.wizard.service.full_groom"))
             tap(element("customer.requests.wizard.continue"))

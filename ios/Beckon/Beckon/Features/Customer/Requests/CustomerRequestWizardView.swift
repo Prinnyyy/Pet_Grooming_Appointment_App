@@ -214,7 +214,9 @@ struct CustomerRequestWizardView: View {
 
     var body: some View {
         NavigationStack {
-            ZStack {
+            VStack(spacing: 0) {
+                CustomerRequestWizardHeader(currentStep: flow.currentStep)
+                Divider()
                 ScrollViewReader { scrollProxy in
                     ZStack {
                         DesignTokens.Colors.background
@@ -222,11 +224,6 @@ struct CustomerRequestWizardView: View {
 
                         ScrollView {
                             LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
-                                CustomerRequestWizardHeader(
-                                    currentStep: flow.currentStep
-                                )
-                                .id(Self.scrollTopAnchor)
-
                                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                                     Text(flow.currentStep.headline)
                                         .font(DesignTokens.Typography.pageTitle)
@@ -240,6 +237,7 @@ struct CustomerRequestWizardView: View {
                                             .fixedSize(horizontal: false, vertical: true)
                                     }
                                 }
+                                .id(Self.scrollTopAnchor)
 
                                 stepContent
 
@@ -865,56 +863,6 @@ private enum CustomerRequestWizardDateFormatting {
 
 }
 
-private struct CustomerRequestWizardHeader: View {
-    let currentStep: CustomerRequestWizardStep
-
-    var body: some View {
-        progressContent
-            .padding(
-                .leading,
-                CustomerRequestWizardHeaderLayout.progressTrackLeadingOffset
-            )
-    }
-
-    private var progressContent: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            Text("Grooming Request")
-                .font(DesignTokens.Typography.fieldLabel)
-                .foregroundStyle(DesignTokens.Colors.textTertiary)
-
-            GeometryReader { proxy in
-                ZStack(alignment: .leading) {
-                    Capsule()
-                        .fill(DesignTokens.Colors.border.opacity(0.8))
-
-                    Capsule()
-                        .fill(DesignTokens.Colors.customerAccent)
-                        .frame(width: proxy.size.width * currentStep.progress)
-                }
-            }
-            // Progress is non-text geometry and remains a stable thin track.
-            .frame(height: DesignTokens.Spacing.sm)
-
-            currentStepLabel
-                .padding(.top, DesignTokens.Spacing.xs)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .layoutPriority(1)
-    }
-
-    private var currentStepLabel: some View {
-        Text("Step \(currentStep.rawValue + 1) of \(CustomerRequestWizardStep.allCases.count): \(currentStep.title)")
-            .font(DesignTokens.Typography.supporting)
-            .foregroundStyle(DesignTokens.Colors.customerAccentStrong)
-            .fixedSize(horizontal: false, vertical: true)
-    }
-
-}
-
-nonisolated enum CustomerRequestWizardHeaderLayout {
-    static let progressTrackLeadingOffset: CGFloat = 0
-}
-
 struct CustomerRequestWizardProgressLayout: Equatable {
     let usesSingleColumnChoices: Bool
 
@@ -1004,7 +952,8 @@ private struct CustomerRequestWizardBottomBar: View {
     }
 }
 
-private struct CustomerRequestPetChoiceCard: View {
+struct CustomerRequestPetChoiceCard: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let pet: CustomerPet
     let petPhotoData: Data?
     let isSelected: Bool
@@ -1018,51 +967,67 @@ private struct CustomerRequestPetChoiceCard: View {
             accent: .customer,
             action: action
         ) {
-            HStack(spacing: DesignTokens.Spacing.lg) {
-                CustomerRequestWizardPetAvatar(
-                    pet: pet,
-                    data: petPhotoData,
-                    size: 84
-                )
-
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                    Text(pet.name)
-                        .font(DesignTokens.Typography.cardTitle)
-                        .foregroundStyle(DesignTokens.Colors.textPrimary)
-                        .fixedSize(horizontal: false, vertical: true)
-
-                    Text(subtitle)
-                        .font(DesignTokens.Typography.body)
-                        .foregroundStyle(DesignTokens.Colors.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-
-                Spacer(minLength: DesignTokens.Spacing.sm)
-
-                if isSelected {
-                    Image(systemName: "checkmark")
-                        .font(DesignTokens.Typography.action)
-                        .foregroundStyle(DesignTokens.Colors.textPrimary)
-                        .frame(width: 42, height: 42)
-                        .background(DesignTokens.Colors.customerAccent.opacity(0.42))
-                        .clipShape(Circle())
+            Group {
+                if dynamicTypeSize.isAccessibilitySize {
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                        HStack { avatar; Spacer(minLength: 8); selectionIndicator }
+                        petLabels
+                    }
+                } else {
+                    HStack(spacing: DesignTokens.Spacing.lg) {
+                        avatar
+                        petLabels
+                        selectionIndicator
+                    }
                 }
             }
             .frame(maxWidth: .infinity, minHeight: 96, alignment: .leading)
         }
         .accessibilityIdentifier(
-            "customer.requests.wizard.pet.\(pet.species.lowercased())"
+            "customer.requests.wizard.pet.\(pet.species.lowercased()).\(pet.id.uuidString)"
         )
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
-    private var subtitle: String {
-        let breed = pet.displayBreed?.trimmingCharacters(in: .whitespacesAndNewlines)
-        let breedText = breed?.isEmpty == false ? breed ?? pet.displaySpecies : pet.displaySpecies
-        if let weight = pet.weightLbs {
-            return "\(breedText) · \(weight.formatted(.number.precision(.fractionLength(0...1)))) lbs"
-        }
+    private var avatar: some View {
+        CustomerRequestWizardPetAvatar(pet: pet, data: petPhotoData, size: 84)
+    }
 
-        return breedText
+    private var selectionIndicator: some View {
+        Image(systemName: "checkmark")
+            .font(DesignTokens.Typography.action)
+            .foregroundStyle(DesignTokens.Colors.textPrimary)
+            .frame(width: 42, height: 42)
+            .background(DesignTokens.Colors.customerAccent.opacity(0.42))
+            .clipShape(Circle())
+            .opacity(isSelected ? 1 : 0)
+            .accessibilityHidden(true)
+    }
+
+    private var petLabels: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+            Text(pet.name)
+                .font(DesignTokens.Typography.cardTitle)
+                .foregroundStyle(DesignTokens.Colors.textPrimary)
+                .accessibilityIdentifier("pet.\(pet.id.uuidString).name")
+            Text(breedText)
+                .font(DesignTokens.Typography.body)
+                .foregroundStyle(DesignTokens.Colors.textSecondary)
+                .accessibilityIdentifier("pet.\(pet.id.uuidString).breed")
+            if let weight = pet.weightLbs {
+                Text("\(weight.formatted(.number.precision(.fractionLength(0...1)))) lbs")
+                    .font(DesignTokens.Typography.body)
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                    .accessibilityIdentifier("pet.\(pet.id.uuidString).weight")
+            }
+        }
+        .fixedSize(horizontal: false, vertical: true)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var breedText: String {
+        let breed = pet.displayBreed?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return breed?.isEmpty == false ? breed ?? pet.displaySpecies : pet.displaySpecies
     }
 }
 
