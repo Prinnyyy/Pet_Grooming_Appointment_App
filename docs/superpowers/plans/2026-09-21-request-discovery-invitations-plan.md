@@ -10,13 +10,15 @@ type: plan
 
 **Goal:** 实现同一 Request 下的推荐轮播、全量候选、定向邀请、可选需求池和私人收藏，补齐无人报价/到期恢复，保持唯一成交和权限安全。
 
-**Architecture:** SwiftUI -> 有界 feature Store/flow state -> Repository -> 受控 RPC；复用现有资格与评分内核、报价/Booking 和分发队列。私有预览先于公开发布，显式邀请与公开池共享 Request，收藏独立于交易。
+**Architecture:** SwiftUI -> 有界 feature Store/flow state -> Repository -> 受控 RPC；复用现有资格与评分内核、报价/Booking 和分发队列。旧新发送共享一个PublicationCoordinator，首次回执仅归既有publish operations所有；独立发现/报价入口委托共用内核，不合并权限。私有预览先于公开发布，显式邀请与公开池共享 Request，收藏独立于交易。
 
 **Tech Stack:** Swift 6 / SwiftUI / 现有 iOS deployment target；既有 Supabase Swift SDK、PostgreSQL/PostGIS、站内通知；Node 内置测试、Swift Testing/XCTest、现有 Simulator/TestOps。无新依赖、独立服务或通用测试框架。
 
 **Spec:** [详细设定](../specs/2026-09-21-request-discovery-invitations-design.md)。本计划落实该文全部范围；参数与语义由设计文档拥有，不另复制一套规范。
 
 **状态:** 2026-09-21 完成文档编写与自检，业务实施未开始。T-397 只代表编写交付；以后执行时从 Current State 分配/恢复实施任务，沿用本计划并更新元数据，不把文档完成标成软件完成。本轮没有迁移、后端查询、部署、账号/Storage/夹具写入或客户端运行验收。
+
+T-398根据现有代码补齐设计第7节的模块复用约束，并将验证并入原工作包及A01-A48；没有增加实施阶段或另立重构计划。
 
 ## 1. 全局约束
 
@@ -66,6 +68,8 @@ type: plan
 |---|---|---|
 | Discovery | `Core/Models/CustomerGroomerDiscovery.swift`；`Core/Repositories/CustomerGroomerDiscoveryRepository.swift`；`Core/Infrastructure/Supabase/SupabaseCustomerGroomerDiscoveryRepository.swift`；`Features/Customer/Discovery/CustomerGroomerDiscoveryStore.swift`、`CustomerGroomerDiscoveryView.swift`、`CustomerGroomerListView.swift`、`CustomerGroomerDetailView.swift` | `Core/Models/MatchRanking.swift`、`MatchingEvidence.swift`；`SharedFeatures/Matching/BeckonFitEvidenceBlock.swift`；`App/AppComposition.swift` |
 | Distribution | `Core/Models/RequestDistribution.swift`；`Core/Repositories/RequestDistributionRepository.swift`；`Core/Infrastructure/Supabase/SupabaseRequestDistributionRepository.swift`；`Features/Customer/Requests/CustomerRequestDistributionStore.swift`、`CustomerRequestProgressView.swift` | CustomerRequestsStore、WizardState/View、RequestsView、DashboardView、DetailView；CustomerRequestRepository/SupabaseCustomerRequestRepository；CustomerTabView |
+| Publication恢复 | 从旧Store窄抽取`Features/Customer/Requests/CustomerRequestPublicationCoordinator.swift`、`PendingRequestPublication.swift`，不新增全局基础设施 | CustomerRequestsStore.publish/持久化/恢复、DistributionStore、CustomerTabView会话装配；旧照片上传与重试路径继续使用 |
+| 安全美容师投影/显示 | `Core/Models/MarketplaceGroomerSummary.swift`；`Core/Infrastructure/Supabase/MarketplaceGroomerSummaryRow.swift`；`Features/Customer/Discovery/GroomerCandidateSummaryView.swift`、`GroomerCandidateActionsView.swift` | Discovery/Favorites仓储和页面；涉及的旧CustomerOfferGroomerProfileRow做安全适配；不改owner GroomerProfile编辑模型，不复制报价卡 |
 | Favorites | `Core/Models/GroomerFavorite.swift`；`Core/Repositories/GroomerFavoritesRepository.swift`；`Core/Infrastructure/Supabase/SupabaseGroomerFavoritesRepository.swift`；`Features/Customer/Favorites/GroomerFavoritesStore.swift`、`GroomerFavoritesView.swift` | `Features/Customer/Profile/CustomerAccountView.swift`；AppComposition；CustomerTabView |
 | Groomer/安全读取 | 在现有模型内增加安全 Request 摘要，不新增通用 router | GroomerRequest、GroomerRequestsStore/View、GroomerRequestRepository/SupabaseGroomerRequestRepository、GroomerOfferFormState、PrivateImageLoader、SupabasePrivateImageDataSource、SupabaseParticipantAvatarLoader |
 | 透传与测试替身 | 新领域 Fake 在所属测试文件 | `Core/Diagnostics/DebugRepositoryWrappers.swift`、既有 Preview/CustomerRequestFeatureTestFakes、CustomerRequest/GroomerRequestFeatureTests |
@@ -74,11 +78,23 @@ type: plan
 | Native Tests | `BeckonTests/CustomerGroomerDiscoveryTests.swift`、`GroomerFavoritesTests.swift`、`RequestDistributionTests.swift`；`BeckonUITests/TestOpsRequestDiscoveryTests.swift` | 保留既有评分、恢复、报价、导航和隐私测试 |
 | 契约文档 | 无新长期规则文件 | 实施完成时精确更新 SUPABASE_CONTRACT、RLS_RPC_POLICY、STORAGE_POLICY、DATA_FLOW、FEATURE_INDEX 与涉及的 DESIGN_SYSTEM 条目 |
 
-不把新 Store 代码堆入已很大的 CustomerRequestsStore。原 Store 继续管理需求/报价/原发布照片恢复，分发 Store 拥有新发送与池动作；接入通过明确结果回调刷新，不互相隐式引用 View。收藏 Store 在顾客会话内共享，退出清理，不创建跨账号全局单例。
+不把新 Store 代码堆入已很大的 CustomerRequestsStore。原Store继续管理需求/报价/照片上传重试；分发Store拥有新发送界面状态与池动作，首次发送和旧未决恢复都委托唯一PublicationCoordinator。协调器持久保存已确认Request ID再通过显式结果交接原照片流程，不重复publish或产生第二份未决文件。收藏Store与协调器在顾客会话内共享，退出清理内存并隔离磁盘身份，不创建跨账号全局单例。
+
+### 4.1 复用接线与非目标
+
+| 消费方 | 共用实现/单一状态 | 保留独立的部分 |
+|---|---|---|
+| Wizard、预览、重发 | 既有Draft/地址/时间校验；PublicationCoordinator持久意图 | Wizard步骤与Discovery浏览不是同一个Store，照片上传仍由既有路径负责 |
+| 轮播、完整列表、资料、收藏 | MarketplaceGroomerSummary；候选摘要/动作组件；FavoritesStore；按ID叠加DistributionStore状态 | 详情布局、favorite keyset分页与ranked候选分页保持各自语义，不造万能页面或分页协议 |
+| 旧Request、预览、Offer后端 | 可信context适配后委托同一资格/评分核心 | 真实Request状态、私有session、Offer目标事实与actor授权分别校验；预览不进入worker |
+| 旧ranked读取与新发现 | cursor签名、快照表/存取清理、每actor共用预算 | 成员查询、scope/purpose和安全输出分离；不强塞进旧Offer RPC |
+| 首次发送、原子替换、重试 | request_publish_operations及提取的发布写核心 | 追加/池切换/撤回才使用request_distribution_operations，不双存首次回执 |
+
+旧代码抽取后同时将受影响入口改为委托，删除被替代的活跃实现；历史迁移不编辑。安全模型不复用私人字段，客户端不复刻服务端F/Q/D。禁止借此全量拆旧Store、造全局事件总线、通用Repository、DTO生成平台或独立复用检测工具。HD-00只记录实际调用差异，不再次设计一套模块体系。
 
 ## 5. 跨包客户端契约
 
-RPC 及其字段由设计第5节定义。Swift 最小接口如下；具体 Decodable wire DTO 只在 Supabase 实现内，业务模型不泄漏数据库原始行。
+RPC 及其字段由设计第5节定义。Swift最小接口如下；新增wire DTO仅在Supabase基础设施层，同一安全资料投影供相关仓储共享；已有RankedPageRow直接复用，不为了调整旧文件位置展开清理。业务模型不泄漏数据库原始行。
 
 ```swift
 enum GroomerDiscoveryScope: Equatable, Sendable {
@@ -129,7 +145,11 @@ struct GroomerFavoritesPage: Sendable {
 }
 ```
 
-HD-01 定义 `DiscoveredGroomer`（设计5.2的候选字段，用既有 MatchEligibility/MatchingEvidence 与安全 Groomer summary），HD-02 定义 `CustomerRequestProgress`（设计5.2进展字段），HD-03 定义 `GroomerFavoriteState`（isFavorite/revision）与 `FavoriteGroomer`（id/favoritedAt、安全profile可空、available/paused/unavailable、可选本次资格）。复用已存在的 `RankedPageRequest<Sort: Sendable>`，不另建发现分页协议。
+HD-01定义`MarketplaceGroomerSummary`白名单（id、businessName、bio、yearsExperience、粗略城市/州、公开评分/评价数、验证状态和授权avatar引用，不含住宅坐标/门牌/联系方式）；`DiscoveredGroomer`组合该summary、既有`MatchEligibilityEvaluation`/`MatchingEvidence`与设计5.2其余字段。HD-02定义`CustomerRequestProgress`；HD-03定义`GroomerFavoriteState`（isFavorite/revision）与`FavoriteGroomer`（id/favoritedAt、相同summary可空、available/paused/unavailable、可选本次资格）。复用已有`RankedPageRequest<Sort: Sendable>`、`RankedPage.canAppend`、`RankedPageRow`和时间解析，不另建发现分页协议或隐式改matching-v1版本。
+
+HD-05的`CustomerRequestPublicationCoordinator`是首次发布意图唯一读写者，通过注入既有CustomerRequestRepository和新RequestDistributionRepository选择协议；只重放旧已受理发布，不新增旧协议发布。`PendingRequestPublication`兼容原customerID/draft/photos无版本文件，并新增有版本的discovery意图及已确认Request/待交接阶段。旧结果不能伪装成含distributionRevision的新回执。RequestsStore与DistributionStore只接收结果，不各自持久化/恢复；原照片处理接收真实Request ID和不可变photos，不得再调用createRequest。
+
+候选页中的favorite/invitation字段仅用于初始化操作覆盖层；后续revision/动作回执优先，晚返回旧页不得覆盖本地已确认状态。可变状态只有上述所属Store一份，View接收数据/动作闭包；换号、scope变化和取消都校验当前会话/读取generation。
 
 Favorites 用上述领域内Page类型承接签名keyset cursor，默认limit=25、服务端最大50，不拿offset仿造稳定页。收藏成员/排序发生变化则旧cursor返回list_changed，安全profile信息与操作状态可刷新；有scope时硬资格仍逐页检查。false最小状态/revision保留30天后清理，已清理的旧revision写不能覆盖新状态。
 
@@ -141,9 +161,9 @@ Favorites 用上述领域内Page类型承接签名keyset cursor，默认limit=25
 
 **Files:** 新 SQL 夹具/runner；受影响当前 migrations、Repository、媒体策略只读定位；本计划末尾仅记录实测差异。
 
-**Interfaces:** 输入当前实现；输出给HD-01/02的权威上下文入口、锁顺序和旧写/读入口清单。至少包含 create_request_matches_for_request、refresh_candidate_evaluation、两版ranked reads、quote v2/v3、accept、replace、request SELECT、request-photos、通知深链、匿名化。
+**Interfaces:** 输入当前实现；输出给HD-01/02的权威上下文入口、锁顺序和旧写/读入口清单。至少包含 create_request_matches_for_request、refresh_candidate_evaluation、两版ranked reads、quote v2/v3、accept、replace、request SELECT、request-photos、通知深链、匿名化。设计7.1/7.2为定位清单，核对最新生效定义；只在本计划记录实际调用差异、抽取所有者和需改为委托的旧入口。
 
-- [ ] 为现有请求上下文建立不改变业务的差分样例：同宠/地址/时间分别走原包装器和待抽取内核，expected state/reasons/witness相同；固定/自定义服务、未知体型、DST及缓冲边界共用原fixture。
+- [ ] 为现有请求上下文建立不改变业务的差分样例：同宠/地址/时间/score_as_of分别走原包装器和待抽取内核，expected state/reasons/witness、F/Q/D与MatchingEvidence相同；同时保留原固定预期，不能只比较两个共享实现的返回。固定/自定义服务、未知体型、DST及缓冲边界共用原fixture；Offer特有时间目标单独测。
 - [ ] 将已有有效评分/接受证据限定到其原SHA/数据库定义；新的预览/分发/权限证据不复用为通过。记录当前CLI `--help` 支持的命令，安装或升级不作为默认动作。
 - [ ] 冻结最小角色与样本：C1/C2、G1/G2/G3，加既有规模美容师至至少26位；同一组需求承载多个状态，不为每个断言重新播种。媒体优先复用授权测试账号的真实已有对象；缺少必要对象时精确列出所需授权，不放宽安全验证。
 - [ ] 明确新增数据列、旧原始SELECT如何转到owner/safe RPC、何时启用旧接口门禁及可回退边界；没有可执行顺序不部署。
@@ -157,8 +177,8 @@ Favorites 用上述领域内Page类型承接签名keyset cursor，默认limit=25
 **Interfaces:** 实现 prepare/candidates/profile；向HD-04提供同scope/cursor的前25项和安全详情；向HD-02提供规范化发布输入与digest。
 
 - [ ] 写失败用例 A01-A09：预览不产生公开行/通知/额度；跨owner/篡改digest失败；前8与列表前8完全相同；第26位更适配者能进前8；pending/零/失败不同。
-- [ ] 以同一 oracle 提取私有 context 重载，原 request_id wrapper 委托它；保存30分钟私有预览、完整规范发布输入（含备注/原子替换身份）和可信源revision。输入变更不复用旧context，内核不得自行写match；发送时源变化要求复核，不丢备注或偷换宠物快照。
-- [ ] 实现完整粗筛、资格分组、同输入评分复用、稳定排序和签名游标；复用软快照存储的有界方式，purpose/scope与旧顾客报价隔离。既有已发布Request使用owner读取上下文，不要求复制成预览；首次发布后preview scope按最小回执关联解析为新Request只读别名，沿用原截止和draft平局键。
+- [ ] 对evaluate_match_constraints/evaluate_match_eligibility_with_zones及match_target_keys/score_match_evidence窄抽取可信context重载，原request_id wrapper验证真实状态后委托同一规则；预览不调用带落库的refresh_candidate_evaluation。保存30分钟私有预览、完整规范发布输入（含备注/原子替换身份）和可信源revision；发送时源变化要求复核，不丢备注或偷换宠物快照。
+- [ ] 实现完整粗筛、资格分组、同输入评分复用、稳定排序；复用match_cursor_encode/decode和match_browse_snapshots存取/清理，必要窄抽取helper并接回旧浏览，actor总预算共用。成员查询/purpose/scope与旧报价隔离，不复制整套ranked_marketplace_page。既有Request使用owner上下文，首次发布后preview scope按唯一publish回执解析为新Request只读别名，沿用原截止和draft平局键。
 - [ ] 运行定向源码契约和真实只读/回滚差分；达到A01-A09、P01性能门槛后继续，不运行完整iOS回归。
 
 测试关键断言（以下SQL中的 fixture actor/scope由runner绑定，不把SQL变量拼入凭据）：
@@ -180,8 +200,8 @@ Run: `node --test tests/migrations/request-discovery.test.mjs`；Focused Swift: 
 **Interfaces:** 实现publish/invite/setPool/withdraw/progress； quote和worker消费同一可报价谓词；后续Store不自行合成成功状态。
 
 - [ ] 写失败用例A10-A25与A39-A45：双入口同pair、两次首次发送、scope过期重放、未受邀伪造match/quote、池开关/报价竞争、取消/接受与追加竞争。
-- [ ] 实现schema、原子首次发布及分发操作回执。绕开旧自动全量匹配副作用的方式是提取私有写核心并显式传分发上下文，不是在旧发布后补UPDATE；所有触发器读取同事务的pool/邀请事实。
-- [ ] 将worker、ranked/exact读取、直接表权限、quote/admission、request-photos元数据、旧API兼容统一到新谓词；offer已有关系只保留必要历史读，不授予任意新报价。
+- [ ] 实现schema和唯一回执所有权：首次发送/原子替换只扩展request_publish_operations；追加/池切换/撤回使用request_distribution_operations。提取原额度/快照/替换写核心并显式传分发上下文，旧wrapper改为委托，不是在旧发布自动广播后补UPDATE；所有触发器读取同事务的pool/邀请事实。
+- [ ] worker、ranked/exact读取、直接表权限、quote/admission、request-photos和旧API共用分发事实，分别导出发现/新报价/旧报价管理/媒体访问规则，不共用宽松canAccess。offer关系不授予新报价；昂贵全量评分不放入逐行RLS或图片鉴权。新入口继续各自鉴权和实时复核。
 - [ ] 5位上限、邀请pair唯一、明确期满、dismissal不复活、池关闭保留旧报价及revision隔离均在事务内成立；进展批量读取不再次计算全量专业评分。
 - [ ] 运行真实角色负例及独立连接两种提交顺序；不能仅模拟HTTP返回或用同一事务顺序调用冒充竞争。
 
@@ -205,7 +225,7 @@ Run: `node --test tests/migrations/request-distribution.test.mjs`；真实验收
 **Interfaces:** 收藏为owner私有目标状态写；发现/收藏共享安全资料DTO，owner/full Request与pre-booking safe DTO明确分离。
 
 - [ ] 写失败用例A26-A31：跨账号、重复set、相反并发set、暂停/删除、媒体路径枚举、旧地址SELECT/owner读取；Storage权限用真实合法和非法actor验证。
-- [ ] 实现owner收藏RPC/分页/上限，删除后的不可识别呈现；同一账号有两个客户端时旧revision不得覆盖新状态。复用现有图片loader，不将bucket改public。
+- [ ] 实现owner收藏RPC/分页/上限，删除后的不可识别呈现；同一账号有两个客户端时旧revision不得覆盖新状态。复用HD-01的MarketplaceGroomerSummary/wire投影和现有图片loader；不得调用owner profile仓储、扩展参与者头像身份或将bucket改public。
 - [ ] 将groomer-avatars的新增读取精确限定到活跃可发现业务profile；原customer头像、pet-photos、聊天图片和legacy bucket不随之放宽。request-photos按实时分发可见性读取。
 - [ ] 把新会话/收藏/邀请/幂等记录的个人内容纳入既有匿名化处理，测试数据库回滚，不实际删除Auth/Storage账号。缓存与签名URL撤销局限如实说明，客户端不持久保存被撤权的新图片。
 - [ ] 跑静态、Swift与真实授权负例A26-A31，确认已有Booking参与者取图未被破坏。
@@ -228,8 +248,8 @@ Run: `node --test tests/migrations/request-distribution.test.mjs`；真实验收
 **Interfaces:** 同一顾客会话复用favorites状态；同一scope共用DiscoveryStore实体/排序快照；发送按钮调用HD-05的显式分发动作，不在View写RPC。
 
 - [ ] 写失败用例A32-A38：滑动零业务写、8卡/不足8/零/仅评估、尾页确认、前8合并到完整列表、收藏状态跨页一致、pending与error区分。
-- [ ] 实现稳定尺寸轮播、页码与明确按钮；尾页不是美容师。完整列表使用已加载25项和游标，返回保留当前ID与位置，不重新排序。列表切换sort才新建browse。
-- [ ] 收藏页挂Account及当前需求入口；无scope不编造适配，选择当前Request/创建新Request后再评估。必要新增UI复用SharedFeatures的业务显示，不把业务逻辑放进DesignSystem。
+- [ ] 实现稳定尺寸轮播、页码与明确按钮；尾页不是美容师。完整列表与轮播共用一个DiscoveryStore的实体/ID和RankedPage.canAppend，使用已加载25项和游标，返回保留当前ID与位置；切sort才新建browse。GroomerCandidateSummaryView/ActionsView按数据与闭包组合，不复制完整报价卡或在View引入仓储。
+- [ ] 收藏页挂Account及当前需求入口；无scope不编造适配，选择当前Request/创建新Request后再评估。复用FavoritesStore的revision与DistributionStore操作覆盖层，晚返回页不反转已确认动作；证据复用BeckonFitEvidenceBlock且scoreText=nil。共享顾客组件留所属Feature，跨角色组件才放SharedFeatures，业务不进DesignSystem。
 - [ ] 定向Store测试完成后在Simulator验证一轮紧凑屏幕/大字号/VoiceOver可操作标签、长名称、缺图、网络失败和硬变化。截图只用于布局证据或失败，不每滑一次抓图。
 
 ```swift
@@ -251,12 +271,12 @@ Run: `node --test tests/migrations/request-distribution.test.mjs`；真实验收
 
 **Files:** CustomerRequestDistributionStore/ProgressView；WizardState/View、CustomerRequestsStore、RequestsView/Detail/Dashboard；GroomerRequestsStore/View、notification routing。
 
-**Interfaces:** 新分发Store向原RequestsStore交付真实receipt和当前Request精确读取；旧PendingRequestPublication仍可解码，v4意图包含session/digest/pool/recipients/operation/photos。
+**Interfaces:** 依第5节抽取PublicationCoordinator，旧发布入口和新分发Store委托同一实例；原RequestsStore处理真实receipt后的当前Request精确读取与照片交接。旧PendingRequestPublication无版本文件仍可解码为legacyV4；discoveryV1意图包含session/digest/pool/recipients/operation/photos，不混淆RPC版本名。
 
 - [ ] 写失败用例A12-A17、A23-A25、A39-A45：首次多对象点击、丢响应Close/重启、晚响应换号、池开关失败、旧版pending恢复、期限显示、历史入口。
-- [ ] 复用既有持久发送意图，发请求前原子保存不可变payload；不新增通用outbox。未决操作恢复成功后读取当前Request，可能已经取消/成交，不能直接依旧receipt显示open。
+- [ ] 将publish中的持久意图读写、协议选择、重放及会话取消窄抽取到PublicationCoordinator，并让旧新入口委托它，移除旧活跃副本。沿用账号隔离文件，兼容旧JSON/保护未知版本，发请求前原子保存不可变payload；确认Request ID后保存待照片交接状态，交接失败/重启不再次发单。不新增通用outbox。恢复后精确读当前Request，不依旧receipt显示open。
 - [ ] 首次发布后留在候选页，通过短期scope别名保留排序、位置和游标，写动作改用真实Request ID；pool-only有明确发布按钮。修改条件回到旧atomic replacement模式，重新选择接收范围，失败保留旧请求和报价。
-- [ ] 实现受邀状态与池状态、有效报价数量、最后检查时间；前台45秒批量轻读、操作后刷新、截止点本地保守呈现；不为每个卡片创建timer或后台轮询。
+- [ ] 实现受邀状态与池状态、有效报价数量、最后检查时间；在可见容器复用ForegroundRefreshGate/foregroundRefreshable做45秒批量轻读，操作后刷新、截止点本地保守呈现；嵌套子页不重复注册兜底，不为每个卡片创建timer或后台轮询。
 - [ ] 关闭区域纳入expired并有分页历史；cancelled/expired可从模板重发，重发生成新操作但不继承旧公开同意。美容师Requests同一条显示来源，Offers继续现有报价/撤回入口。
 - [ ] 运行RequestDistributionTests及受影响原Customer/Groomer请求测试，模拟器完成一次定向、一轮池报价、一次无人报价到期恢复。
 
@@ -315,16 +335,16 @@ node scripts/test-request-distribution.mjs --run-id "$RUN_ID" --phase verify
 |---|---|---|---|
 | A01 | 草稿预览前后公开请求/match/通知/额度差量0 | DB | 01 |
 | A02 | 他人session/request/digest、匿名或错误role拒绝 | DB/HTTP | 01 |
-| A03 | 已改宠物/地址/服务输入不复用旧候选或偷偷发布新快照 | DB/Unit | 01 |
+| A03 | 旧wrapper/新context同输入资格、witness、F/Q/D/证据与固定预期一致；改宠物/地址/服务不复用旧候选或偷偷发布新快照 | DB/Unit | 01 |
 | A04 | 0/1/3/8/26候选，卡牌数量真实；estimated/assessment/pending不混淆 | Unit/UI | 01/04 |
 | A05 | 第26位高适配者进入首8，全部候选无截断 | DB/HTTP | 01 |
 | A06 | 推荐和完整列表同前8、无重复/漏项；首次发布后scope别名保持排序/位置/分页且不重复发送 | DB/Unit/UI | 01/04/05 |
 | A07 | 软评价变化期间合法分页继续，硬资格/隐私变化停止旧游标 | DB/HTTP | 01 |
 | A08 | 候选snapshot超限回退保持全集，不隐藏剩余人 | DB | 01 |
-| A09 | 刷新与跨账号/模式/输入伪造cursor拒绝；每页发送重新鉴权 | DB/HTTP | 01 |
+| A09 | 刷新后及跨账号/模式/输入/发现-报价用途伪造cursor拒绝；快照共用actor预算；逐页及发送重新鉴权 | DB/HTTP | 01 |
 | A10 | 定向-only：受邀者可见可报价，未受邀者所有旧新路径拒绝 | DB/HTTP/UI | 02 |
 | A11 | 池-only及混合：合格者可发现；同一Request/美容师无重复条目/通知 | DB/UI | 02/05 |
-| A12 | 首次提交成功丢响应，重试只一单一邀请；照片失败不重发 | DB/UI | 02/05 |
+| A12 | 首次丢响应只一单一邀请一份权威publish回执；共享协调器在照片上传/交接失败或重启后不重发 | DB/Unit/UI | 02/05 |
 | A13 | session到期后已受理操作仍可恢复；未受理过期操作拒绝 | DB/Unit | 02 |
 | A14 | 同session两operation竞争仅一Request；payload变更不能复用operation | DB | 02 |
 | A15 | 5位边界两设备并发追加不超限；重放/已有pair不重复计数 | DB | 02 |
@@ -333,7 +353,7 @@ node scripts/test-request-distribution.mjs --run-id "$RUN_ID" --phase verify
 | A18 | 池关闭与新报价两种提交顺序，结果按锁内先后正确 | DB | 02/06 |
 | A19 | 旧打开详情、通知、原始表、旧RPC不能绕过池关闭 | DB/HTTP/UI | 02/06 |
 | A20 | 池重复开关不重复通知，不复活本人dismissal | DB | 02 |
-| A21 | 前预约DTO不含结构化精确住宅地址/联系方式，owner仍可读 | DB/HTTP | 02/03 |
+| A21 | 前预约DTO不含结构化精确住宅地址/联系方式；候选/收藏共用安全groomer投影，不暴露owner字段；owner仍可读 | DB/HTTP/Unit | 01/02/03 |
 | A22 | 请求媒体新读在撤权后拒绝，合法已报价最小访问和Booking不误断 | HTTP | 03 |
 | A23 | cancel/accept与邀请竞争无终态新邀请，最多一个Booking | DB | 02/06 |
 | A24 | 原子修订失败保留旧单；成功关闭旧邀请/报价，需重选新接收范围 | DB/UI | 05 |
@@ -345,7 +365,7 @@ node scripts/test-request-distribution.mjs --run-id "$RUN_ID" --phase verify
 | A30 | 退出/换号不回显前账号收藏、候选、未决发送、图片 | Unit/UI | 03/05 |
 | A31 | 头像只能读活跃美容师允许对象，任意bucket/path/listing和私人图拒绝 | HTTP | 03 |
 | A32 | 左右滑无pass、无隐式发送；明确按钮才写入 | Unit/UI | 04 |
-| A33 | 尾页确认进入全量，回轮播保留ID；收藏/发送在两页同步 | UI | 04 |
+| A33 | 尾页确认进入全量、返回保留ID；卡牌/列表/收藏共用操作状态，晚返回旧页不反转已确认收藏/发送 | Unit/UI | 04 |
 | A34 | 网络失败保留安全已有内容，不能显示零候选/假发送成功 | Unit/UI | 04/05 |
 | A35 | 排序更换/输入变更取消旧读取，旧页不能追加到新scope | Unit | 04 |
 | A36 | 长名、大字号、紧凑屏、缺图、辅助按钮均可完成选择 | UI | 04 |
@@ -358,7 +378,7 @@ node scripts/test-request-distribution.mjs --run-id "$RUN_ID" --phase verify
 | A43 | 接受报价后其他入口关闭，双端重启读取同一Booking | DB/UI | 06 |
 | A44 | 原三开放需求额度、同宠/美容师冲突、容量、缓冲、DST不回归 | DB/Unit | 02/06 |
 | A45 | 私有发现/收藏/邀请/回执个人内容匿名化清理，未发生真实Auth删除 | DB回滚 | 03/06 |
-| A46 | 旧pending回执可读；新旧危险写明确升级提示；原Booking履约可用 | DB/UI | 06 |
+| A46 | 旧无版本pending经唯一协调器恢复原协议回执；未知版本不覆盖；危险新写需升级；原Booking履约可用 | DB/Unit/UI | 05/06 |
 | A47 | 回退关闭新功能但定向单不变公开、报价/取消仍能处理 | DB/UI | 07 |
 | A48 | run-owned数据全部清理且既有业务数据恢复，权限触发器保持启用 | DB/HTTP | 07 |
 
@@ -383,3 +403,5 @@ node scripts/test-request-distribution.mjs --run-id "$RUN_ID" --phase verify
 执行记录在实施时写本节，字段固定为：工作包、代码/数据库版本、针对性结果、集成结果、UI证据路径、部署/恢复事实、未验证限制。当前所有实施框均未勾选；本轮只交付可审阅文档。
 
 文档自检覆盖：设计1-2节 -> HD-04/05；设计3/5节 -> HD-02/05/06；设计4节 -> HD-01与P01/P02；设计6节 -> HD-02/03/06/07；设计7节 -> 全局约束及HD-07。没有把收藏、权限、历史恢复或旧客户端迁移留到不具名的后续阶段。
+
+T-398复用自检：设计7.1 -> HD-03/04/05与A12/A21/A30/A33/A46；7.2 -> HD-00/01/02与A01/A03/A09-A12/A18-A22及P01；7.3 -> 各包旧调用方委托与HD-07自检。仅核对文档/当前源码定位，未声称模块已抽取或新增验收已通过。
