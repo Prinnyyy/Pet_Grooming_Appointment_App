@@ -350,6 +350,7 @@ struct GroomerNotificationsStoreTests {
 
 @MainActor
 final class GroomerNotificationRepositoryFake: GroomerNotificationRepository {
+    var persistsReadUpdates = false
     var notificationsResult: Result<[GroomerNotification], GroomerNotificationRepositoryError>
     var notificationPages: [Result<ListPage<GroomerNotification>, GroomerNotificationRepositoryError>]
     var markReadResult: Result<GroomerNotification, GroomerNotificationRepositoryError>
@@ -403,7 +404,11 @@ final class GroomerNotificationRepositoryFake: GroomerNotificationRepository {
     func markRead(notificationID: UUID) async throws -> GroomerNotification {
         markReadCallCount += 1
         lastMarkedNotificationID = notificationID
-        return try markReadResult.get()
+        let result = try markReadResult.get()
+        if persistsReadUpdates, case let .success(items) = notificationsResult {
+            notificationsResult = .success(items.map { $0.id == result.id ? result : $0 })
+        }
+        return result
     }
 
     func markAllRead(groomerID: UUID) async throws -> [GroomerNotification] {

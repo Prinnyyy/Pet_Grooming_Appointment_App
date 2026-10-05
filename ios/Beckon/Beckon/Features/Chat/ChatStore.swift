@@ -22,10 +22,11 @@ final class ChatStore {
     private(set) var loadingConversationIDs: Set<UUID> = []
     private(set) var loadingEarlierMessageConversationIDs: Set<UUID> = []
     private(set) var sendingConversationIDs: Set<UUID> = []
+    private(set) var messageLoadErrors: [UUID: String] = [:]
+    private(set) var interruptedMessageSubscriptions: Set<UUID> = []
     private var readConversationTimestamps: [UUID: String] = [:]
     private var messageSubscriptionTasks: [UUID: Task<Void, Never>] = [:]
     private var messageSubscriptionIDs: [UUID: UUID] = [:]
-    private var startingMessageSubscriptionIDs: Set<UUID> = []
 
     var errorMessage: String?
     var noticeMessage: String?
@@ -78,6 +79,7 @@ final class ChatStore {
 
     func isLoadingMessages(for conversationID: UUID) -> Bool {
         loadingConversationIDs.contains(conversationID)
+            || (messageSubscriptionIDs[conversationID] != nil && messageSubscriptionTasks[conversationID] == nil)
     }
 
     func isSendingMessage(for conversationID: UUID) -> Bool {
@@ -98,7 +100,7 @@ final class ChatStore {
 
     func previewText(for conversation: ChatConversation) -> String {
         if let message = messagesByConversationID[conversation.id]?.last,
-           message.createdAt >= (conversation.latestMessageCreatedAt ?? message.createdAt),
+           Self.messageDate(message.createdAt) >= Self.messageDate(conversation.latestMessageCreatedAt ?? message.createdAt),
            let normalized = Self.normalizedPreview(message.body) {
             return normalized
         }
@@ -190,7 +192,7 @@ final class ChatStore {
             return true
         }
 
-        return latestMessageCreatedAt > readAt
+        return Self.messageDate(latestMessageCreatedAt) > Self.messageDate(readAt)
     }
 
     func reportMissingConversationForBooking() {
@@ -309,6 +311,7 @@ final class ChatStore {
             metadata: ["conversationID": conversation.id.uuidString]
         )
         loadingConversationIDs.insert(conversation.id)
+        messageLoadErrors.removeValue(forKey: conversation.id)
         errorMessage = nil
         defer { loadingConversationIDs.remove(conversation.id) }
 
@@ -317,8 +320,10 @@ final class ChatStore {
                 conversationID: conversation.id,
                 page: .first
             )
+            try Task.checkCancellation()
+            // Messages are immutable; a refresh must retain sends/events received while it was in flight.
             messagesByConversationID[conversation.id] = Self.messagesInDisplayOrder(
-                page.items
+                ListPageMerge.appendingUnique(messages(for: conversation.id), to: page.items)
             )
             reconcileBookingDetailStores(from: page.items)
             nextMessagePageRequestByConversationID[conversation.id] = page.nextRequest
@@ -336,6 +341,7 @@ final class ChatStore {
             recordStoreCancelled("loadMessages", startedAt: startedAt)
         } catch let error as ChatRepositoryError {
             errorMessage = message(for: error, action: "load messages")
+            messageLoadErrors[conversation.id] = errorMessage
             recordStoreFailure(
                 "loadMessages",
                 error: error,
@@ -346,6 +352,7 @@ final class ChatStore {
             recordStoreCancelled("loadMessages", startedAt: startedAt)
         } catch {
             errorMessage = message(for: .unavailable, action: "load messages")
+            messageLoadErrors[conversation.id] = errorMessage
             recordStoreFailure(
                 "loadMessages",
                 error: error,
@@ -380,6 +387,7 @@ final class ChatStore {
                     to: messagesByConversationID[conversation.id, default: []]
                 )
             )
+            reconcileBookingDetailStores(from: page.items)
             nextMessagePageRequestByConversationID[conversation.id] = page.nextRequest
             markConversationRead(conversation.id)
             recordStoreSuccess(
@@ -415,27 +423,28 @@ final class ChatStore {
         }
     }
 
+    @discardableResult
     func sendMessage(
         in conversation: ChatConversation,
         body: String
-    ) async {
-        guard !sendingConversationIDs.contains(conversation.id) else { return }
+    ) async -> Bool {
+        guard !Task.isCancelled, !sendingConversationIDs.contains(conversation.id) else { return false }
 
         guard canSendMessages(in: conversation) else {
             errorMessage = conversation.readOnlyReason
             noticeMessage = nil
-            return
+            return false
         }
 
         let normalizedBody = body.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !normalizedBody.isEmpty else {
             errorMessage = "Enter a message before sending."
-            return
+            return false
         }
 
         guard normalizedBody.count <= 4000 else {
             errorMessage = "Messages must be 4000 characters or fewer."
-            return
+            return false
         }
 
         let startedAt = Date()
@@ -461,6 +470,7 @@ final class ChatStore {
                 startedAt: startedAt,
                 metadata: ["conversationID": conversation.id.uuidString]
             )
+            return true
         } catch ChatRepositoryError.cancelled {
             recordStoreCancelled("sendMessage", startedAt: startedAt)
         } catch let error as ChatRepositoryError {
@@ -482,29 +492,34 @@ final class ChatStore {
                 startedAt: startedAt
             )
         }
+        return false
     }
 
     func startMessageSubscription(for conversation: ChatConversation) async {
-        guard messageSubscriptionTasks[conversation.id] == nil,
-              !startingMessageSubscriptionIDs.contains(conversation.id) else {
+        guard !Task.isCancelled, messageSubscriptionIDs[conversation.id] == nil else {
             return
         }
 
         let startedAt = Date()
         let metadata = ["conversationID": conversation.id.uuidString]
         recordStoreStart("startMessageSubscription", metadata: metadata)
-        startingMessageSubscriptionIDs.insert(conversation.id)
-        defer { startingMessageSubscriptionIDs.remove(conversation.id) }
+        let subscriptionID = UUID()
+        messageSubscriptionIDs[conversation.id] = subscriptionID
+        defer {
+            if messageSubscriptionIDs[conversation.id] == subscriptionID,
+               messageSubscriptionTasks[conversation.id] == nil {
+                messageSubscriptionIDs.removeValue(forKey: conversation.id)
+            }
+        }
 
         do {
             let stream = try await repository.messageEvents(
                 conversationID: conversation.id
             )
-            let subscriptionID = UUID()
-            messageSubscriptionIDs[conversation.id] = subscriptionID
-            messageSubscriptionTasks[conversation.id] = Task { [weak self] in
+            let task = Task { [weak self] in
                 for await message in stream {
-                    guard !Task.isCancelled else { break }
+                    guard !Task.isCancelled,
+                          self?.messageSubscriptionIDs[conversation.id] == subscriptionID else { break }
                     self?.receiveMessageEvent(
                         message,
                         expectedConversationID: conversation.id
@@ -515,6 +530,14 @@ final class ChatStore {
                     subscriptionID: subscriptionID
                 )
             }
+            guard !Task.isCancelled, messageSubscriptionIDs[conversation.id] == subscriptionID else {
+                // Consume cancellation so AsyncStream's termination handler releases its network channel.
+                task.cancel()
+                await task.value
+                return
+            }
+            messageSubscriptionTasks[conversation.id] = task
+            interruptedMessageSubscriptions.remove(conversation.id)
             recordStoreSuccess(
                 "startMessageSubscription",
                 startedAt: startedAt,
@@ -523,6 +546,9 @@ final class ChatStore {
         } catch ChatRepositoryError.cancelled {
             recordStoreCancelled("startMessageSubscription", startedAt: startedAt)
         } catch let error as ChatRepositoryError {
+            if messageSubscriptionIDs[conversation.id] == subscriptionID {
+                interruptedMessageSubscriptions.insert(conversation.id)
+            }
             recordStoreFailure(
                 "startMessageSubscription",
                 error: error,
@@ -532,6 +558,9 @@ final class ChatStore {
         } catch where AppDebugErrorClassifier.isCancellation(error) {
             recordStoreCancelled("startMessageSubscription", startedAt: startedAt)
         } catch {
+            if messageSubscriptionIDs[conversation.id] == subscriptionID {
+                interruptedMessageSubscriptions.insert(conversation.id)
+            }
             recordStoreFailure(
                 "startMessageSubscription",
                 error: error,
@@ -542,11 +571,8 @@ final class ChatStore {
     }
 
     func stopMessageSubscription(for conversationID: UUID) {
-        guard let task = messageSubscriptionTasks.removeValue(forKey: conversationID) else {
-            return
-        }
         messageSubscriptionIDs.removeValue(forKey: conversationID)
-        task.cancel()
+        messageSubscriptionTasks.removeValue(forKey: conversationID)?.cancel()
         recordStoreInfo(
             "stopMessageSubscription",
             message: "stopped",
@@ -555,8 +581,7 @@ final class ChatStore {
     }
 
     func stopAllMessageSubscriptions() {
-        guard !messageSubscriptionTasks.isEmpty else { return }
-        let count = messageSubscriptionTasks.count
+        let count = messageSubscriptionIDs.count
         for task in messageSubscriptionTasks.values {
             task.cancel()
         }
@@ -600,12 +625,16 @@ final class ChatStore {
     private static func messagesInDisplayOrder(
         _ messages: [ChatMessage]
     ) -> [ChatMessage] {
-        messages.sorted {
-            if $0.createdAt == $1.createdAt {
-                return $0.id.uuidString < $1.id.uuidString
+        messages.map { (message: $0, date: messageDate($0.createdAt)) }.sorted {
+            if $0.date == $1.date {
+                return $0.message.id.uuidString < $1.message.id.uuidString
             }
-            return $0.createdAt < $1.createdAt
-        }
+            return $0.date < $1.date
+        }.map(\.message)
+    }
+
+    private static func messageDate(_ raw: String) -> Date {
+        GroomingRequestDateFormatting.parsedDate(from: raw) ?? .distantPast
     }
 
     private func receiveMessageEvent(
@@ -636,6 +665,7 @@ final class ChatStore {
         }
         messageSubscriptionIDs.removeValue(forKey: conversationID)
         messageSubscriptionTasks.removeValue(forKey: conversationID)
+        interruptedMessageSubscriptions.insert(conversationID)
         recordStoreInfo(
             "messageSubscriptionFinished",
             message: "finished",
@@ -652,26 +682,10 @@ final class ChatStore {
     }
 
     private func markConversationRead(_ conversationID: UUID) {
-        let loadedLatest = messagesByConversationID[conversationID]?.last?.createdAt
-        let conversationLatest = conversations.first {
-            $0.id == conversationID
-        }?.latestMessageCreatedAt
-
-        let readAt: String?
-        switch (loadedLatest, conversationLatest) {
-        case let (loaded?, conversation?):
-            readAt = max(loaded, conversation)
-        case let (loaded?, nil):
-            readAt = loaded
-        case let (nil, conversation?):
-            readAt = conversation
-        case (nil, nil):
-            readAt = nil
-        }
-
-        guard let readAt else {
-            return
-        }
+        // A summary can be newer than delivered history; it is not proof that its message was seen.
+        guard let readAt = messagesByConversationID[conversationID]?.last?.createdAt else { return }
+        if let previous = readConversationTimestamps[conversationID],
+           Self.messageDate(previous) >= Self.messageDate(readAt) { return }
 
         readConversationTimestamps[conversationID] = readAt
         readStateCache.save(

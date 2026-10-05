@@ -868,7 +868,7 @@ struct ChatStoreTests {
     }
 }
 
-private final class ChatReadStateCacheFake: ChatReadStateCaching {
+final class ChatReadStateCacheFake: ChatReadStateCaching {
     private var values: [String: [UUID: String]] = [:]
 
     func timestamps(participantID: UUID, role: UserRole) -> [UUID: String] {
@@ -886,10 +886,15 @@ private final class ChatReadStateCacheFake: ChatReadStateCaching {
 
 @MainActor
 final class ChatRepositoryFake: ChatRepository {
+    var exactConversationRead: ((UUID) async throws -> ChatConversation)?
+    var beforeMessageRead: (() async -> Void)?
+    var beforeMessageEvents: (() async -> Void)?
+    var beforeSend: (() async -> Void)?
     private(set) var exactConversationIDs: [UUID] = []
     func conversation(id: UUID, participantID: UUID, role: UserRole) async throws -> ChatConversation {
         exactConversationIDs.append(id)
         exactConversationCallCount += 1
+        if let exactConversationRead { return try await exactConversationRead(id) }
         return try exactConversationResult.get()
     }
 
@@ -920,6 +925,7 @@ final class ChatRepositoryFake: ChatRepository {
     private(set) var lastSenderID: UUID?
     private(set) var lastBody: String?
     private(set) var messageEventsCallCount = 0
+    private(set) var messageEventTerminationCount = 0
     private(set) var lastMessageEventsConversationID: UUID?
     private var messageEventContinuations: [AsyncStream<ChatMessage>.Continuation] = []
 
@@ -986,6 +992,7 @@ final class ChatRepositoryFake: ChatRepository {
         messagesCallCount += 1
         lastConversationID = conversationID
         receivedMessagePages.append(page)
+        await beforeMessageRead?()
         if !messagePages.isEmpty {
             return try messagePages.removeFirst().get()
         }
@@ -1006,6 +1013,7 @@ final class ChatRepositoryFake: ChatRepository {
         lastSentConversationID = conversationID
         lastSenderID = senderID
         lastBody = body
+        await beforeSend?()
         return try sendResult.get()
     }
 
@@ -1014,9 +1022,13 @@ final class ChatRepositoryFake: ChatRepository {
     ) async throws -> AsyncStream<ChatMessage> {
         messageEventsCallCount += 1
         lastMessageEventsConversationID = conversationID
+        await beforeMessageEvents?()
         try messageEventsResult.get()
         return AsyncStream { continuation in
             messageEventContinuations.append(continuation)
+            continuation.onTermination = { [weak self] _ in
+                Task { @MainActor [weak self] in self?.messageEventTerminationCount += 1 }
+            }
         }
     }
 

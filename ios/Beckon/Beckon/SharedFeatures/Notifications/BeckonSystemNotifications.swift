@@ -262,6 +262,7 @@ private struct BeckonSystemNotificationRow: View {
             }
         }
         .accessibilityElement(children: .combine)
+        .accessibilityValue(notification.isRead ? "Read" : "Unread")
     }
 
     private var title: some View {

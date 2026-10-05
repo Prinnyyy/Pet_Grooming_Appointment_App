@@ -204,6 +204,8 @@ private struct ChatConversationRow: View {
         BeckonCard {
             rowContent
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityValue(store.hasUnreadMessages(in: conversation) ? "Unread" : "Read")
     }
 
     private var rowContent: some View {
@@ -312,6 +314,8 @@ struct ChatThreadView: View {
     let conversation: ChatConversation
     let store: ChatStore
     @State private var draft = ""
+    @State private var isVisible = false
+    @FocusState private var isComposing: Bool
 
     var body: some View {
         ZStack {
@@ -324,6 +328,7 @@ struct ChatThreadView: View {
                     subtitle: store.canSendMessages(in: conversation) ? "Active Chat" : "Read Only",
                     role: role,
                     avatarPhotoData: conversation.counterpartAvatarPhotoData,
+                    isComposing: isComposing,
                     dismiss: dismiss
                 )
 
@@ -338,6 +343,7 @@ struct ChatThreadView: View {
         .safeAreaInset(edge: .bottom) {
             ChatComposerView(
                 draft: $draft,
+                isFocused: $isComposing,
                 isSending: store.isSendingMessage(for: conversation.id),
                 isReadOnly: !store.canSendMessages(in: conversation),
                 readOnlyMessage: conversation.readOnlyReason,
@@ -345,33 +351,23 @@ struct ChatThreadView: View {
                 placeholder: "Message \(conversation.shortRecipientName(for: role))...",
                 send: {
                     let body = draft
-                    await store.sendMessage(in: conversation, body: body)
-                    if store.errorMessage == nil {
+                    let sent = await store.sendMessage(in: conversation, body: body)
+                    if sent, draft == body {
                         draft = ""
                     }
                 }
             )
         }
-        .task(id: conversation.id) {
-            await store.loadMessages(for: conversation)
-            await store.startMessageSubscription(for: conversation)
-        }
-        .onChange(of: scenePhase) { _, newPhase in
-            switch newPhase {
-            case .active:
-                Task {
-                    await store.loadMessages(for: conversation)
-                    await store.startMessageSubscription(for: conversation)
-                }
-            case .background:
+        .onAppear { isVisible = true }
+        .task(id: isVisible && scenePhase == .active) {
+            guard isVisible, scenePhase == .active else {
                 store.stopMessageSubscription(for: conversation.id)
-            case .inactive:
-                break
-            @unknown default:
-                break
+                return
             }
+            await refreshThread()
         }
         .onDisappear {
+            isVisible = false
             store.stopMessageSubscription(for: conversation.id)
         }
         .background {
@@ -390,6 +386,12 @@ struct ChatThreadView: View {
                         ChatReadOnlyBanner(message: conversation.readOnlyReason)
                     }
 
+                    if let error = store.messageLoadErrors[conversation.id] {
+                        recoveryBanner(title: "Messages Unavailable", message: error)
+                    } else if store.interruptedMessageSubscriptions.contains(conversation.id) {
+                        recoveryBanner(title: "Live Updates Paused", message: "Refresh to reconnect and check for new messages.")
+                    }
+
                     if store.isLoadingMessages(for: conversation.id),
                        store.messages(for: conversation.id).isEmpty {
                         BeckonLoadingView(
@@ -398,7 +400,8 @@ struct ChatThreadView: View {
                             accent: role.beckonLoadingAccent
                         )
                         .accessibilityIdentifier("chat.messages.loading")
-                    } else if store.messages(for: conversation.id).isEmpty {
+                    } else if store.messages(for: conversation.id).isEmpty,
+                              store.messageLoadErrors[conversation.id] == nil {
                         BeckonEmptyState(
                             title: "No Messages Yet",
                             message: "Send the first message for this booking.",
@@ -451,6 +454,7 @@ struct ChatThreadView: View {
                 .padding(.top, DesignTokens.Spacing.lg)
                 .padding(.bottom, DesignTokens.Spacing.xl * 2)
             }
+            .refreshable { await refreshThread() }
             .onChange(of: store.messages(for: conversation.id).last?.id) {
                 previousLatestMessageID,
                 currentLatestMessageID in
@@ -467,6 +471,26 @@ struct ChatThreadView: View {
             }
         }
     }
+
+    private func refreshThread() async {
+        // Subscribe first, then merge the snapshot so messages cannot fall into the opening gap.
+        await store.startMessageSubscription(for: conversation)
+        guard !Task.isCancelled, isVisible, scenePhase == .active else { return }
+        await store.loadMessages(for: conversation)
+    }
+
+    private func recoveryBanner(title: String, message: String) -> some View {
+        BeckonErrorBanner(title: title, message: message) {
+            Button {
+                Task { await refreshThread() }
+            } label: {
+                Label("Refresh Messages", systemImage: "arrow.clockwise")
+            }
+            .buttonStyle(BeckonSecondaryButtonStyle(accent: role.beckonSecondaryAccent))
+            .disabled(store.isLoadingMessages(for: conversation.id))
+            .accessibilityIdentifier("chat.messages.retry")
+        }
+    }
 }
 
 private struct ChatThreadHeader: View {
@@ -475,6 +499,7 @@ private struct ChatThreadHeader: View {
     let subtitle: String
     let role: UserRole
     let avatarPhotoData: Data?
+    let isComposing: Bool
     let dismiss: DismissAction
 
     var body: some View {
@@ -505,18 +530,21 @@ private struct ChatThreadHeader: View {
                 Text(title)
                     .font(DesignTokens.Typography.headline)
                     .foregroundStyle(DesignTokens.Colors.textPrimary)
+                    .lineLimit(isComposing && dynamicTypeSize.isAccessibilitySize ? 1 : nil)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityAddTraits(.isHeader)
 
-                HStack(spacing: DesignTokens.Spacing.xs) {
-                    Circle()
-                        .fill(role.chatAccentColor)
-                        .frame(width: 9, height: 9)
-                        .accessibilityHidden(true)
+                if !isComposing || !dynamicTypeSize.isAccessibilitySize {
+                    HStack(spacing: DesignTokens.Spacing.xs) {
+                        Circle()
+                            .fill(role.chatAccentColor)
+                            .frame(width: 9, height: 9)
+                            .accessibilityHidden(true)
 
-                    Text(subtitle)
-                        .font(DesignTokens.Typography.supporting.weight(.semibold))
-                        .foregroundStyle(DesignTokens.Colors.textTertiary)
+                        Text(subtitle)
+                            .font(DesignTokens.Typography.supporting.weight(.semibold))
+                            .foregroundStyle(DesignTokens.Colors.textTertiary)
+                    }
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -627,32 +655,38 @@ private struct ChatBookingDetailDestination: View {
 }
 
 private struct ChatBookingMessageCard: View {
+    @Environment(\.dynamicTypeSize) private var typeSize
     let booking: Booking
     let role: UserRole
     let isOutgoing: Bool
 
     var body: some View {
         HStack(alignment: .bottom) {
-            if isOutgoing {
+            if isOutgoing && !typeSize.isAccessibilitySize {
                 Spacer(minLength: 42)
             }
 
             BeckonCard(padding: DesignTokens.Spacing.md) {
-                HStack(spacing: DesignTokens.Spacing.md) {
-                    Image(systemName: booking.status.isCancellation
-                        ? "calendar.badge.exclamationmark"
-                        : "calendar.badge.checkmark")
-                        .font(.title3.weight(.bold))
-                        .foregroundStyle(role.chatAccentColor)
-                        .frame(width: 48, height: 48)
-                        .background(role.chatAccentColor.opacity(0.16))
-                        .clipShape(
-                            RoundedRectangle(
-                                cornerRadius: DesignTokens.CornerRadius.input,
-                                style: .continuous
+                let layout = typeSize.isAccessibilitySize
+                    ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.md))
+                    : AnyLayout(HStackLayout(spacing: DesignTokens.Spacing.md))
+                layout {
+                    if !typeSize.isAccessibilitySize {
+                        Image(systemName: booking.status.isCancellation
+                            ? "calendar.badge.exclamationmark"
+                            : "calendar.badge.checkmark")
+                            .font(.title3.weight(.bold))
+                            .foregroundStyle(role.chatAccentColor)
+                            .frame(width: 48, height: 48)
+                            .background(role.chatAccentColor.opacity(0.16))
+                            .clipShape(
+                                RoundedRectangle(
+                                    cornerRadius: DesignTokens.CornerRadius.input,
+                                    style: .continuous
+                                )
                             )
-                        )
-                        .accessibilityHidden(true)
+                            .accessibilityHidden(true)
+                    }
 
                     VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                         Text(booking.status.title)
@@ -662,7 +696,8 @@ private struct ChatBookingMessageCard: View {
                         Text(booking.scheduledTimeSummary)
                             .font(DesignTokens.Typography.body)
                             .foregroundStyle(DesignTokens.Colors.textSecondary)
-                            .lineLimit(2)
+                            .lineLimit(typeSize.isAccessibilitySize ? nil : 2)
+                            .fixedSize(horizontal: false, vertical: true)
 
                         Text("Booking \(booking.referenceCode) • \(booking.priceSummary)")
                             .font(DesignTokens.Typography.caption.weight(.semibold))
@@ -670,15 +705,17 @@ private struct ChatBookingMessageCard: View {
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
 
-                    Image(systemName: "chevron.right")
-                        .font(DesignTokens.Typography.headline.weight(.semibold))
-                        .foregroundStyle(DesignTokens.Colors.textTertiary)
-                        .accessibilityHidden(true)
+                    if !typeSize.isAccessibilitySize {
+                        Image(systemName: "chevron.right")
+                            .font(DesignTokens.Typography.headline.weight(.semibold))
+                            .foregroundStyle(DesignTokens.Colors.textTertiary)
+                            .accessibilityHidden(true)
+                    }
                 }
             }
             .frame(maxWidth: 360)
 
-            if !isOutgoing {
+            if !isOutgoing && !typeSize.isAccessibilitySize {
                 Spacer(minLength: 42)
             }
         }
@@ -692,6 +729,7 @@ private struct ChatBookingMessageCard: View {
 
 private struct ChatComposerView: View {
     @Binding var draft: String
+    @FocusState.Binding var isFocused: Bool
     let isSending: Bool
     let isReadOnly: Bool
     let readOnlyMessage: String
@@ -725,13 +763,15 @@ private struct ChatComposerView: View {
             } else {
                 HStack(alignment: .bottom, spacing: DesignTokens.Spacing.md) {
                     TextField(placeholder, text: $draft, axis: .vertical)
+                        .focused($isFocused)
                         .font(DesignTokens.Typography.body)
                         .lineLimit(1...4)
                         .padding(.horizontal, DesignTokens.Spacing.lg)
                         .padding(.vertical, DesignTokens.Spacing.md)
                         .background(DesignTokens.Colors.borderSoft.opacity(0.62))
-                        .clipShape(Capsule())
+                        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input, style: .continuous))
                         .accessibilityIdentifier("chat.message.body")
+                        .accessibilityLabel("Message")
 
                     Button {
                         Task {
@@ -763,6 +803,7 @@ private struct ChatComposerView: View {
                             : 0.58
                     )
                     .accessibilityIdentifier("chat.message.send")
+                    .accessibilityLabel(isSending ? "Sending message" : "Send message")
                 }
             }
         }
@@ -831,7 +872,7 @@ private struct ChatStatusView: View {
     }
 }
 
-private extension ChatConversation {
+extension ChatConversation {
     func listTitle(for role: UserRole) -> String {
         switch role {
         case .customer:
@@ -840,7 +881,7 @@ private extension ChatConversation {
                 ? "Assigned Groomer"
                 : title
         case .groomer:
-            return "Booking Customer"
+            return participantSummary(for: role)
         }
     }
 
