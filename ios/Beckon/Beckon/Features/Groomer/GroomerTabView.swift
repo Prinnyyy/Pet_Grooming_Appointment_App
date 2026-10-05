@@ -78,7 +78,7 @@ struct GroomerTabView: View {
                 .tag(tab)
             }
         }
-        .tint(DesignTokens.Colors.groomerAccentDark)
+        .tint(DesignTokens.Colors.groomerOnAccent)
         .background(DesignTokens.Colors.background.ignoresSafeArea())
         .toolbarBackground(DesignTokens.Colors.surface, for: .tabBar)
         .toolbarBackground(.visible, for: .tabBar)

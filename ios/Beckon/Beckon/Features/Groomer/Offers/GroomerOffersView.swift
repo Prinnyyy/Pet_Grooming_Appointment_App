@@ -41,6 +41,7 @@ struct GroomerOffersContentView: View {
                     }
                 }
             }
+            .accessibilityElement(children: .contain)
             .accessibilityIdentifier("groomer.offers.list")
         }
     }
@@ -96,20 +97,21 @@ private struct GroomerOfferSectionView: View {
                 Text(section.status.sectionTitle)
                     .font(DesignTokens.Typography.headline)
                     .foregroundStyle(DesignTokens.Colors.textPrimary)
+                    .accessibilityAddTraits(.isHeader)
 
                 Spacer()
 
                 Text("\(section.offers.count)")
                     .font(DesignTokens.Typography.caption.weight(.semibold))
-                    .foregroundStyle(DesignTokens.Colors.textSecondary)
+                    .foregroundStyle(DesignTokens.Colors.textTertiary)
                     .monospacedDigit()
             }
 
-            GroomerGroupedSurface {
+            BeckonGroupedSurface {
                 VStack(spacing: 0) {
                     ForEach(Array(section.offers.enumerated()), id: \.element.id) { index, item in
                         if index > 0 {
-                            GroomerWorkspaceDivider(leadingInset: DesignTokens.Spacing.lg)
+                            BeckonGroupedDivider(leadingInset: DesignTokens.Spacing.lg)
                         }
 
                         NavigationLink {
@@ -132,13 +134,11 @@ private struct GroomerOfferRow: View {
     var body: some View {
         HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
             VStack(alignment: .leading, spacing: 5) {
-                HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
                     Text(item.title)
                         .font(DesignTokens.Typography.headline)
                         .foregroundStyle(DesignTokens.Colors.textPrimary)
-                        .lineLimit(1)
-
-                    Spacer(minLength: DesignTokens.Spacing.xs)
+                        .fixedSize(horizontal: false, vertical: true)
 
                     BeckonStatusChip(
                         item.offer.evaluatedStatusTitle,
@@ -150,17 +150,17 @@ private struct GroomerOfferRow: View {
                 Text(item.subtitle)
                     .font(DesignTokens.Typography.caption)
                     .foregroundStyle(DesignTokens.Colors.textSecondary)
-                    .lineLimit(1)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 Text(item.timeSummary)
                     .font(DesignTokens.Typography.caption)
                     .foregroundStyle(DesignTokens.Colors.textSecondary)
-                    .lineLimit(1)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 Text("\(item.offer.priceSummary) · \(item.offer.status.offerListDescription)")
                     .font(DesignTokens.Typography.caption.weight(.semibold))
-                    .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
-                    .lineLimit(2)
+                    .foregroundStyle(DesignTokens.Colors.groomerOnAccent)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -253,11 +253,12 @@ struct GroomerOfferDetailView: View {
 }
 
 private struct GroomerOfferHero: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let item: GroomerOfferListItem
 
     var body: some View {
         BeckonCard {
-            HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
+            heroLayout {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     Text(item.title)
                         .font(DesignTokens.Typography.title)
@@ -277,6 +278,12 @@ private struct GroomerOfferHero: View {
                 )
             }
         }
+    }
+
+    private var heroLayout: AnyLayout {
+        dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.sm))
+            : AnyLayout(HStackLayout(alignment: .top, spacing: DesignTokens.Spacing.md))
     }
 }
 
@@ -429,7 +436,7 @@ private struct GroomerOfferFactRow: View {
         HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
             Image(systemName: systemImage)
                 .font(DesignTokens.Typography.caption.weight(.semibold))
-                .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
+                .foregroundStyle(DesignTokens.Colors.groomerOnAccent)
                 .frame(
                     width: DesignTokens.Spacing.xl,
                     height: DesignTokens.Spacing.xl

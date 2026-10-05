@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct BeckonErrorBanner<Action: View>: View {
     private let title: String
@@ -374,6 +375,7 @@ struct BeckonBottomPrompt<Content: View>: View {
 }
 
 struct BeckonBottomPromptStack<Content: View>: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     private let horizontalPadding: CGFloat
     private let topPadding: CGFloat
     private let bottomPadding: CGFloat
@@ -402,7 +404,7 @@ struct BeckonBottomPromptStack<Content: View>: View {
         .padding(.horizontal, horizontalPadding)
         .padding(.top, topPadding)
         .padding(.bottom, bottomPadding)
-        .animation(.easeInOut(duration: 0.24), value: animationValue)
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.24), value: animationValue)
     }
 }
 
@@ -464,6 +466,7 @@ final class BeckonFeedbackCenter {
     private var isWaitingToShowQueuedPrompt = false
     private var queuedPromptAdvanceTask: Task<Void, Never>?
     private var errorDismissTask: Task<Void, Never>?
+    private var hasAnnouncedActivePrompt = false
 
     init(debugRecorder: AppDebugEventRecorder? = nil) {
         self.debugRecorder = debugRecorder
@@ -561,6 +564,18 @@ final class BeckonFeedbackCenter {
         notice != nil || error != nil || progress != nil
     }
 
+    var accessibilityAnnouncement: String? {
+        if let notice { return notice.message }
+        if let error { return [error.title, error.message].compactMap { $0 }.joined(separator: ". ") }
+        return progress?.title
+    }
+
+    func consumeAccessibilityAnnouncement() -> String? {
+        guard !hasAnnouncedActivePrompt, let announcement = accessibilityAnnouncement else { return nil }
+        hasAnnouncedActivePrompt = true
+        return announcement
+    }
+
     var animationKey: String {
         [
             progress?.id.uuidString ?? "no-progress",
@@ -637,6 +652,7 @@ final class BeckonFeedbackCenter {
     }
 
     private func present(_ prompt: QueuedPrompt) {
+        hasAnnouncedActivePrompt = false
         cancelErrorDismissTask()
         notice = nil
         error = nil
@@ -1006,6 +1022,7 @@ struct BeckonGlobalFeedbackForwarder: View {
 }
 
 struct BeckonGlobalFeedbackOverlay: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     static let bottomTabBarClearance = DesignTokens.Spacing.xl * 3 + DesignTokens.Spacing.sm
     static let sheetBottomClearance = DesignTokens.Spacing.xl
 
@@ -1047,8 +1064,13 @@ struct BeckonGlobalFeedbackOverlay: View {
                         }
                 }
             }
-            .transition(.move(edge: .bottom).combined(with: .opacity))
+            .transition(reduceMotion ? .opacity : .move(edge: .bottom).combined(with: .opacity))
             .allowsHitTesting(false)
+            .onChange(of: center.animationKey, initial: true) { _, _ in
+                if let announcement = center.consumeAccessibilityAnnouncement() {
+                    UIAccessibility.post(notification: .announcement, argument: announcement)
+                }
+            }
         }
     }
 
@@ -1059,7 +1081,7 @@ struct BeckonGlobalFeedbackOverlay: View {
         guard !Task.isCancelled else { return }
 
         await MainActor.run {
-            withAnimation(.easeInOut(duration: 0.28)) {
+            withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.28)) {
                 center.clearNotice(id: id)
             }
         }
@@ -1088,14 +1110,12 @@ struct BeckonNoticeToast: View {
                     Text(title)
                         .font(DesignTokens.Typography.body.weight(.bold))
                         .foregroundStyle(DesignTokens.Colors.textPrimary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.82)
+                        .fixedSize(horizontal: false, vertical: true)
 
                     if let detail {
                         Text(detail)
                             .font(DesignTokens.Typography.caption)
                             .foregroundStyle(DesignTokens.Colors.textSecondary)
-                            .lineLimit(2)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
@@ -1167,14 +1187,12 @@ struct BeckonBottomErrorPrompt: View {
                     Text(title)
                         .font(DesignTokens.Typography.body.weight(.bold))
                         .foregroundStyle(DesignTokens.Colors.textPrimary)
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.86)
+                        .fixedSize(horizontal: false, vertical: true)
 
                     if let message {
                         Text(message)
                             .font(DesignTokens.Typography.caption)
                             .foregroundStyle(DesignTokens.Colors.textSecondary)
-                            .lineLimit(3)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
@@ -1202,8 +1220,7 @@ struct BeckonStatusProgressToast: View {
                 Text(title)
                     .font(DesignTokens.Typography.caption.weight(.semibold))
                     .foregroundStyle(DesignTokens.Colors.textSecondary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.82)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             .frame(maxWidth: .infinity)
         }

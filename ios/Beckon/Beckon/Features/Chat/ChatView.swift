@@ -470,6 +470,7 @@ struct ChatThreadView: View {
 }
 
 private struct ChatThreadHeader: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let title: String
     let subtitle: String
     let role: UserRole
@@ -490,19 +491,22 @@ private struct ChatThreadHeader: View {
             .buttonStyle(.plain)
             .accessibilityLabel("Back")
 
-            BeckonProfileAvatar(
+            if !dynamicTypeSize.isAccessibilitySize {
+              BeckonProfileAvatar(
                 data: avatarPhotoData,
                 tone: role == .customer ? .groomer : .customer,
                 size: 64,
                 cornerRadius: 18
             )
+              .accessibilityHidden(true)
+            }
 
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                 Text(title)
-                    .font(.title2.weight(.bold))
+                    .font(DesignTokens.Typography.headline)
                     .foregroundStyle(DesignTokens.Colors.textPrimary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.82)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityAddTraits(.isHeader)
 
                 HStack(spacing: DesignTokens.Spacing.xs) {
                     Circle()
@@ -511,8 +515,8 @@ private struct ChatThreadHeader: View {
                         .accessibilityHidden(true)
 
                     Text(subtitle)
-                        .font(DesignTokens.Typography.body.weight(.semibold))
-                        .foregroundStyle(role.chatAccentColor)
+                        .font(DesignTokens.Typography.supporting.weight(.semibold))
+                        .foregroundStyle(DesignTokens.Colors.textTertiary)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -521,6 +525,7 @@ private struct ChatThreadHeader: View {
         .padding(.top, DesignTokens.Spacing.lg)
         .padding(.bottom, DesignTokens.Spacing.md)
         .background(DesignTokens.Colors.surface.opacity(0.92))
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("chat.thread")
     }
 }
@@ -719,14 +724,6 @@ private struct ChatComposerView: View {
                 .accessibilityIdentifier("chat.message.read-only")
             } else {
                 HStack(alignment: .bottom, spacing: DesignTokens.Spacing.md) {
-                    Image(systemName: "plus")
-                        .font(.title3.weight(.semibold))
-                        .foregroundStyle(DesignTokens.Colors.textSecondary)
-                        .frame(width: 52, height: 52)
-                        .background(DesignTokens.Colors.borderSoft.opacity(0.72))
-                        .clipShape(DesignTokens.Shapes.circular)
-                        .accessibilityLabel("Attachments unavailable")
-
                     TextField(placeholder, text: $draft, axis: .vertical)
                         .font(DesignTokens.Typography.body)
                         .lineLimit(1...4)
@@ -926,7 +923,7 @@ private extension UserRole {
         case .customer:
             DesignTokens.Colors.customerAccentStrong
         case .groomer:
-            DesignTokens.Colors.groomerAccentDark
+            DesignTokens.Colors.groomerOnAccent
         }
     }
 

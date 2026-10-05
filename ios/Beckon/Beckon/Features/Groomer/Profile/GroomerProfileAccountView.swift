@@ -17,7 +17,7 @@ struct GroomerAccountHomeView: View {
             activeServiceCount: store.services.filter(\.isActive).count,
             portfolioPhotoCount: store.portfolioPhotos.count,
             enabledAvailabilityDayCount: store.availabilityWindows.filter(\.isEnabled).count,
-            selectedFitSignalCount: store.selectedFitClaimIDs.count,
+            selectedFitSignalCount: store.fitClaims.filter(\.isActive).count,
             evidenceSignalCount: store.petFitEvidenceSummary.count
         )
 
@@ -166,13 +166,13 @@ private struct GroomerSignOutRowLabel: View {
         HStack(spacing: DesignTokens.Spacing.md) {
             Image(systemName: "rectangle.portrait.and.arrow.right")
                 .font(DesignTokens.Typography.action)
-                .foregroundStyle(DesignTokens.Colors.error)
+                .foregroundStyle(DesignTokens.Colors.errorText)
                 .frame(width: DesignTokens.Metrics.settingsIconSlot)
                 .accessibilityHidden(true)
 
             Text("Sign Out")
                 .font(DesignTokens.Typography.action)
-                .foregroundStyle(DesignTokens.Colors.error)
+                .foregroundStyle(DesignTokens.Colors.errorText)
 
             Spacer(minLength: 0)
         }
@@ -206,11 +206,12 @@ enum GroomerAvatarImageEncoder {
 }
 
 struct ProfileBadges: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let profile: GroomerProfile
 
     var body: some View {
         if profile.ratingCount > 0 || profile.isVerified {
-            HStack(spacing: DesignTokens.Spacing.sm) {
+            badgeLayout {
                 if let average = profile.exactRatingAverage {
                     BeckonStatusChip(
                         "\(average.formatted(.number.precision(.fractionLength(2)))) from \(profile.ratingCount) review\(profile.ratingCount == 1 ? "" : "s")",
@@ -229,5 +230,11 @@ struct ProfileBadges: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+    }
+
+    private var badgeLayout: AnyLayout {
+        dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.sm))
+            : AnyLayout(HStackLayout(spacing: DesignTokens.Spacing.sm))
     }
 }

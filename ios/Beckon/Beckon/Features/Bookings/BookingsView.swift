@@ -638,6 +638,7 @@ private struct BookingScopeControl: View {
 }
 
 private struct GroomerScheduleDayStrip: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let days: [GroomerScheduleDay]
     let calendar: Calendar
     let selectedDayKey: String
@@ -648,7 +649,7 @@ private struct GroomerScheduleDayStrip: View {
             HStack(spacing: DesignTokens.Spacing.sm) {
                 ForEach(days) { day in
                     Button {
-                        withAnimation(.easeInOut(duration: 0.18)) {
+                        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.18)) {
                             onSelect(day)
                         }
                     } label: {
@@ -678,18 +679,20 @@ private struct GroomerScheduleDayChip: View {
     var body: some View {
         VStack(spacing: 3) {
             Text(GroomerScheduleDateFormatting.weekday(from: day.date, calendar: calendar))
-                .font(.caption.weight(.bold))
-                .foregroundStyle(isSelected ? Color.white.opacity(0.86) : DesignTokens.Colors.textTertiary)
+                .font(DesignTokens.Typography.caption.weight(.bold))
+                .foregroundStyle(isSelected ? DesignTokens.Colors.groomerOnAccent : DesignTokens.Colors.textTertiary)
 
             Text(GroomerScheduleDateFormatting.dayNumber(from: day.date, calendar: calendar))
-                .font(.system(size: 24, weight: .bold))
-                .foregroundStyle(isSelected ? Color.white : DesignTokens.Colors.textPrimary)
+                .font(DesignTokens.Typography.sectionTitle)
+                .foregroundStyle(isSelected ? DesignTokens.Colors.groomerOnAccent : DesignTokens.Colors.textPrimary)
 
             Text(day.isToday ? "Today" : GroomerScheduleDateFormatting.month(from: day.date, calendar: calendar))
-                .font(.caption2.weight(.bold))
-                .foregroundStyle(isSelected ? Color.white.opacity(0.8) : DesignTokens.Colors.textTertiary)
+                .font(DesignTokens.Typography.caption.weight(.bold))
+                .foregroundStyle(isSelected ? DesignTokens.Colors.groomerOnAccent : DesignTokens.Colors.textTertiary)
         }
-        .frame(width: chipWidth, height: chipHeight)
+        .fixedSize(horizontal: false, vertical: true)
+        .frame(width: chipWidth)
+        .frame(minHeight: chipHeight)
         .background {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .fill(isSelected ? DesignTokens.Colors.groomerAccent : DesignTokens.Colors.surface)
@@ -712,7 +715,7 @@ private struct GroomerScheduleSummaryBand: View {
     let summary: GroomerScheduleSummary
 
     var body: some View {
-        GroomerGroupedSurface {
+        BeckonGroupedSurface {
             summaryLayout {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     Text(dayTitle)
@@ -728,7 +731,7 @@ private struct GroomerScheduleSummaryBand: View {
 
                 Text("\(summary.bookingCount) \(summary.bookingCount == 1 ? "appointment" : "appointments")")
                     .font(DesignTokens.Typography.caption.weight(.bold))
-                    .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
+                    .foregroundStyle(DesignTokens.Colors.groomerOnAccent)
                     .padding(.horizontal, DesignTokens.Spacing.sm)
                     .padding(.vertical, DesignTokens.Spacing.xs)
                     .background(DesignTokens.Colors.groomerAccent.opacity(0.14))
@@ -774,12 +777,12 @@ private struct GroomerScheduleTimeline: View {
     let onOpenChat: (Booking) -> Void
 
     var body: some View {
-        GroomerWorkspaceSection(title: "Appointments") {
-            GroomerGroupedSurface {
+        BeckonSection("Appointments") {
+            BeckonGroupedSurface {
                 VStack(spacing: 0) {
                     ForEach(Array(bookings.enumerated()), id: \.element.id) { index, booking in
                         if index > 0 {
-                            GroomerWorkspaceDivider(leadingInset: 72)
+                            BeckonGroupedDivider(leadingInset: 72)
                         }
 
                         GroomerScheduleAppointmentRow(
@@ -834,7 +837,7 @@ private struct GroomerScheduleAppointmentRow: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(GroomerScheduleDateFormatting.time(from: booking.scheduledStart, calendar: calendar))
                             .font(DesignTokens.Typography.caption.weight(.bold))
-                            .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
+                            .foregroundStyle(DesignTokens.Colors.groomerOnAccent)
                         Text(GroomerScheduleDateFormatting.offset(from: booking.scheduledStart, calendar: calendar))
                             .font(DesignTokens.Typography.caption)
 
@@ -850,7 +853,7 @@ private struct GroomerScheduleAppointmentRow: View {
                         DesignTokens.Colors.groomerAccent.opacity(0.15)
                         Image(systemName: "pawprint.fill")
                             .font(.body.weight(.bold))
-                            .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
+                            .foregroundStyle(DesignTokens.Colors.groomerOnAccent)
                     }
                     .frame(width: 44, height: 44)
                     .clipShape(
@@ -861,18 +864,17 @@ private struct GroomerScheduleAppointmentRow: View {
                         Text(presentation.petName)
                             .font(DesignTokens.Typography.headline)
                             .foregroundStyle(DesignTokens.Colors.textPrimary)
-                            .lineLimit(1)
+                            .fixedSize(horizontal: false, vertical: true)
 
                         Text(presentation.petDetail)
                             .font(DesignTokens.Typography.caption)
                             .foregroundStyle(DesignTokens.Colors.textSecondary)
-                            .lineLimit(1)
+                            .fixedSize(horizontal: false, vertical: true)
 
                         Text("\(presentation.customerReference) · \(presentation.location)")
                             .font(DesignTokens.Typography.caption)
                             .foregroundStyle(DesignTokens.Colors.textTertiary)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.8)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -1769,7 +1771,7 @@ private extension UserRole {
         case .customer:
             DesignTokens.Colors.customerAccentStrong
         case .groomer:
-            DesignTokens.Colors.groomerAccentDark
+            DesignTokens.Colors.groomerOnAccent
         }
     }
 

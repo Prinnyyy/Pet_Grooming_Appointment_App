@@ -46,6 +46,7 @@ struct GroomerProfileEditorView: View {
                 additionallyPreventsPresentationDismissal: store.isBusy
             )
         }
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("groomer.profile.edit")
         .background(DesignTokens.Colors.background.ignoresSafeArea())
         .navigationTitle("Profile Settings")
@@ -194,7 +195,7 @@ private struct GroomerProfileFormSection: View {
             ) {
                 BeckonGroupedSurface {
                     VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                        BeckonToggleRow(
+                        GroomerProfileToggleRow(
                             title: "Visible to Authenticated Customers",
                             subtitle: "Customers can discover and receive offers from active groomer profiles.",
                             systemImage: "eye",
@@ -309,7 +310,7 @@ private struct GroomerProfileRadiusSlider: View {
 
                 Text(radius >= 50 ? "50+ mi" : "\(radius) mi")
                     .font(DesignTokens.Typography.body.weight(.bold))
-                    .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
+                    .foregroundStyle(DesignTokens.Colors.groomerOnAccent)
             }
 
             Slider(
@@ -387,7 +388,7 @@ private struct GroomerProfileLocationModePicker: View {
     }
 }
 
-struct BeckonToggleRow: View {
+private struct GroomerProfileToggleRow: View {
     let title: String
     let subtitle: String?
     let systemImage: String
@@ -409,7 +410,7 @@ struct BeckonToggleRow: View {
         HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
             Image(systemName: systemImage)
                 .font(DesignTokens.Typography.caption.weight(.semibold))
-                .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
+                .foregroundStyle(DesignTokens.Colors.groomerOnAccent)
                 .frame(
                     width: DesignTokens.Spacing.xl,
                     height: DesignTokens.Spacing.xl

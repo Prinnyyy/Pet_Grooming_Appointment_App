@@ -56,6 +56,20 @@ struct GroomerProfileManagementView: View {
                 )
                 .accessibilityIdentifier("groomer.profile.loading")
                 .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
+            } else if store.profile == nil, let error = store.errorMessage {
+                ScrollView {
+                    BeckonErrorBanner(title: "Account Unavailable", message: error) {
+                        Button("Try Again", systemImage: "arrow.clockwise") { Task { await store.load() } }
+                            .buttonStyle(BeckonSecondaryButtonStyle(accent: .groomer))
+                            .disabled(store.isBusy)
+                        if let onSignOut {
+                            Button("Sign Out", role: .destructive, action: onSignOut)
+                                .buttonStyle(BeckonSecondaryButtonStyle(accent: .groomer))
+                        }
+                    }
+                    .beckonPageInsets()
+                }
+                .accessibilityIdentifier("groomer.account.error")
             } else {
                 ScrollView {
                     if let error = store.optionalLoadError {

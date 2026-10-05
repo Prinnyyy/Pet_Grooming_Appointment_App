@@ -3,9 +3,9 @@
 - Decision: D-026 / R-039
 - Approved: 2026-07-10
 - Implemented packages: Q-97 through Q-103
-- Remaining package: Q-104, user-deferred
+- Q-104: local Simulator acceptance completed under T-402; evidence and limits are recorded below.
 
-This active file retains only the current Groomer visual contract and deferred regression scope. The complete T-249 execution contract is frozen at `../09_frozen/design_notes/T-347_2026-07-13/GROOMER_UI_REDESIGN.md`.
+This active file retains only the current Groomer visual contract and regression scope. The complete T-249 execution contract is frozen at `../09_frozen/design_notes/T-347_2026-07-13/GROOMER_UI_REDESIGN.md`.
 
 ## Read Condition
 
@@ -21,9 +21,9 @@ Read this file only for Q-104, a focused R-039 visual regression, or a Groomer s
 - Current request, offer, booking, chat, notification, profile, repository, and backend behavior remains authoritative.
 - Do not add revenue, payments, ranking, maps, attachments, read receipts, typing state, new push behavior, schema, RLS/RPC, Storage, dependencies, or public assets through visual work.
 
-## Q-104 Deferred Gate
+## Local Acceptance
 
-Q-104 resumes only on explicit user direction. It must cover:
+The user restored Q-104 on 2026-10-04 for local Simulator acceptance. The regression scope covers:
 
 - loading, populated, empty, partial-error, retry, disabled, and busy states;
 - long names and AX3 Dynamic Type without overlap or clipping;
@@ -34,6 +34,8 @@ Q-104 resumes only on explicit user direction. It must cover:
 - preserved TestOps identifiers and updated selector-based automation where semantics change.
 
 Simulator captures are visual evidence, not pixel pass/fail assertions. Behavioral automation remains selector and state based.
+
+[T-402 acceptance](../superpowers/plans/2026-10-04-groomer-ui-accessibility-acceptance.md) owns the module inventory, findings, fixes and validation evidence. Runtime accessibility-tree inspection and announcement-content tests do not certify audible VoiceOver navigation, rotor behavior or speech timing. Physical-device, signing and release work remain outside this local scope.
 
 ## Evidence
 

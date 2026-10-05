@@ -1107,6 +1107,8 @@ struct GroomerRequestsStoreTests {
 
     static func matchedRequest(
         groomerID: UUID,
+        petName: String = "Mochi",
+        expiresAt: String = "2026-06-22T12:00:00Z",
         locationMode: GroomingLocationMode = .groomerComesToCustomer,
         preferredStart: String = "2026-06-22T16:00:00Z",
         preferredEnd: String = "2026-06-22T18:00:00Z",
@@ -1114,7 +1116,8 @@ struct GroomerRequestsStoreTests {
         matchScore: Double? = 100,
         matchReason: String? = "same_city",
         offerID: UUID? = nil,
-        offerStatus: GroomerOfferStatus = .pending
+        offerStatus: GroomerOfferStatus = .pending,
+        preferenceTimeZoneIdentifier: String? = nil
     ) -> GroomerMatchedRequest {
         let requestID = UUID()
         let customerID = UUID()
@@ -1141,7 +1144,7 @@ struct GroomerRequestsStoreTests {
                 petID: petID,
                 petSnapshot: GroomingRequestPetSnapshot(
                     id: petID,
-                    name: "Mochi",
+                    name: petName,
                     species: "Dog",
                     breed: "Corgi",
                     coatType: nil,
@@ -1165,9 +1168,10 @@ struct GroomerRequestsStoreTests {
                 zipCode: "98101",
                 travelRadiusMiles: nil,
                 status: .open,
-                expiresAt: "2026-06-22T12:00:00Z",
+                expiresAt: expiresAt,
                 createdAt: "2026-06-20T12:00:00Z",
-                updatedAt: "2026-06-20T12:00:00Z"
+                updatedAt: "2026-06-20T12:00:00Z",
+                preferenceTimeZoneIdentifier: preferenceTimeZoneIdentifier
             ),
             offer: offerID.map {
                 GroomerOffer(
@@ -1195,6 +1199,12 @@ struct GroomerRequestsStoreTests {
 
 @MainActor
 final class GroomerRequestRepositoryFake: GroomerRequestRepository {
+    var offersResult: Result<[GroomerOfferListItem], GroomerRequestRepositoryError> = .success([])
+
+    func offers(groomerID: UUID) async throws -> [GroomerOfferListItem] {
+        try offersResult.get()
+    }
+
     var rankedPages: [Result<RankedPage<GroomerMatchedRequest>, MatchRankingError>] = []
     var onRankedRead: (@MainActor () async -> Void)?
     private(set) var rankedRequests: [RankedPageRequest<GroomerMatchSort>] = []

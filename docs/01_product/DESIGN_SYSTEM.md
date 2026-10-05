@@ -10,7 +10,7 @@ Pre-routing source snapshot: `../09_frozen/design_notes/T-347_2026-07-13/DESIGN_
 - Add `ACCESSIBILITY_RULES.md` when changing user-visible UI, controls, images, text, status, or async feedback.
 - Add `FORM_INTERACTION_RULES.md` only for text entry, focus, keyboard avoidance, scrolling editors, or sheet gestures.
 - Use `../08_design/UI_IMPLEMENTATION_NOTES.md` to locate current screenshots and design evidence.
-- Use `../08_design/GROOMER_UI_REDESIGN.md` only for deferred Groomer Q-104 or a focused R-039 regression.
+- Use `../08_design/GROOMER_UI_REDESIGN.md` for the Groomer workspace contract or a focused R-039 regression.
 - Use `../ui-redesign/README.md` only when an explicit Figma/inventory task requires the heavy redesign evidence package.
 
 Executable Feature-code rules and audit commands live in `../04_ios/UI_CODE_GOVERNANCE.md`. Product flow, role routing, repositories, Supabase, RLS/RPC, Storage, and deferred features are outside this contract.

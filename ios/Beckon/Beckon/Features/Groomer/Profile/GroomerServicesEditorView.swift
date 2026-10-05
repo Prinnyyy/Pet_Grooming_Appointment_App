@@ -91,7 +91,7 @@ private struct GroomerServicesEmptyState: View {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                 Image(systemName: "scissors")
                     .font(.title2.weight(.semibold))
-                    .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
+                    .foregroundStyle(DesignTokens.Colors.groomerOnAccent)
                     .frame(width: 44, height: 44)
                     .background(DesignTokens.Colors.groomerAccent.opacity(0.14))
                     .clipShape(DesignTokens.Shapes.circular)
@@ -221,7 +221,7 @@ private struct GroomerServiceTypePicker: View {
                                 .font(.body.weight(.semibold))
                                 .foregroundStyle(
                                     selection == type
-                                        ? DesignTokens.Colors.groomerAccentDark
+                                        ? DesignTokens.Colors.groomerOnAccent
                                         : DesignTokens.Colors.textTertiary
                                 )
                                 .accessibilityHidden(true)
@@ -425,6 +425,7 @@ private struct GroomerServiceDetailsSection: View {
 }
 
 private struct GroomerServiceAcceptedPetSizeSection: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Bindable var store: GroomerProfileStore
 
     private let serviceSizes = GroomerServicePetSize.allCases
@@ -460,18 +461,15 @@ private struct GroomerServiceAcceptedPetSizeSection: View {
                     BeckonGroupedDivider()
 
                     VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                        HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.md) {
+                        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
                             Text("Service range")
                                 .font(DesignTokens.Typography.body.weight(.semibold))
                                 .foregroundStyle(DesignTokens.Colors.textPrimary)
 
-                            Spacer(minLength: DesignTokens.Spacing.md)
-
                             Text(store.serviceSizeRangeTitle)
                                 .font(DesignTokens.Typography.caption.weight(.semibold))
-                                .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.72)
+                                .foregroundStyle(DesignTokens.Colors.groomerOnAccent)
+                                .fixedSize(horizontal: false, vertical: true)
                                 .accessibilityIdentifier("groomer.services.size-range-title")
                         }
 
@@ -499,22 +497,13 @@ private struct GroomerServiceAcceptedPetSizeSection: View {
                             accessibilityIdentifier: "groomer.services.size-range-slider"
                         )
 
-                        HStack(spacing: 0) {
-                            ForEach(serviceSizes) { size in
-                                Text(size.title)
-                                    .font(.caption2.weight(.semibold))
-                                    .foregroundStyle(DesignTokens.Colors.textTertiary)
-                                    .lineLimit(1)
-                                    .minimumScaleFactor(0.72)
-                                    .frame(maxWidth: .infinity)
-                            }
-                        }
+                        GroomerSizeRangeLegend(titles: serviceSizes.map(\.title))
                     }
                     .transition(.move(edge: .top).combined(with: .opacity))
                 }
             }
             .padding(DesignTokens.Spacing.lg)
-            .animation(.easeInOut(duration: 0.2), value: store.serviceUsesCustomSizeRange)
+            .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: store.serviceUsesCustomSizeRange)
         }
     }
 

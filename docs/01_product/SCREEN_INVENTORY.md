@@ -1,6 +1,7 @@
 # Screen Inventory
 
 Last verified: 2026-07-13.
+Groomer ownership and navigation rechecked: 2026-10-04 (T-402); other role entries retain their previous verification date.
 
 Status values: `beckon adapted`, `planned`, `deferred`. Planned paths are placement contracts, not proof that a file exists.
 
@@ -19,8 +20,12 @@ Future UI work is screenshot-driven. Map every visible module to this table plus
 | CustomerRequestsView / RequestWizardView | Customer | own requests, pets, request RPC / `CustomerRequestsStore` | `Features/Customer/Requests/CustomerRequestsView.swift`, `Features/Customer/Requests/CustomerRequestWizardView.swift` | beckon adapted; semantic/AX3 reference |
 | CustomerRequestDetailView / CustomerOfferReviewSection | Customer | requests, offers, active groomer summaries, accept RPC / `CustomerRequestsStore` | `Features/Customer/Requests/CustomerRequestsView.swift` | beckon adapted |
 | CustomerBookingListView | Customer | `bookings`, `reviews`, cancel/review RPCs / `BookingsStore` | `Features/Bookings/BookingsView.swift` | beckon adapted |
-| GroomerHomeView | Groomer | Existing profile/request/offer/booking/notification/chat repositories / planned `GroomerHomeStore` | Planned `Features/Groomer/Home/` | planned R-039/Q-97 |
-| GroomerProfileEditorView / PortfolioView | Groomer | profile, services, portfolio metadata, Storage / `GroomerProfileStore` | `Features/Groomer/Profile/GroomerProfileManagementView.swift` | beckon adapted |
+| GroomerHomeView | Groomer | Read-only profile/request/offer/booking summary / `GroomerHomeStore`; shared notification/chat badge sources | `Features/Groomer/Home/GroomerHomeView.swift` | beckon adapted; failed reads are unknown, not zero |
+| GroomerAccountHomeView / profile routes | Groomer | profile, services, availability, fit claims and evidence / `GroomerProfileStore` | `Features/Groomer/Profile/GroomerProfileManagementView.swift`, `GroomerProfileAccountView.swift` | beckon adapted; direct Account tab |
+| Profile / Services / Portfolio editors | Groomer | Existing profile/service/photo mutations / `GroomerProfileStore` | `Features/Groomer/Profile/GroomerProfileFormView.swift`, `GroomerServicesEditorView.swift`, `GroomerPortfolioEditorView.swift` | beckon adapted; one back route per editor |
+| Availability editor | Groomer | Weekly hours, capacity, buffers and time off / `GroomerProfileStore` | `Features/Groomer/Profile/GroomerAvailabilityEditorView.swift` | beckon adapted; Account owns editing, Home is a shortcut |
+| Fit Signals / Evidence | Groomer | Editable claims versus read-only outcome evidence / `GroomerProfileStore` | `Features/Groomer/Profile/GroomerFitSignalsEditorView.swift` | beckon adapted; separate user jobs |
+| GroomerNotificationsView | Groomer | Existing notification inbox and destination stores | `Features/Groomer/Notifications/GroomerNotificationsView.swift` | beckon adapted; opens from Home |
 | MatchedRequestFeedView | Groomer | `request_matches`, `grooming_requests` / `GroomerRequestsStore` | `Features/Groomer/Requests/GroomerRequestsView.swift` | beckon adapted |
 | GroomerRequestDetailView / MakeOfferSection | Groomer | match/request reads, offer RPCs / `GroomerRequestsStore` | `Features/Groomer/Requests/GroomerRequestsView.swift` | beckon adapted |
 | GroomerOffersView | Groomer | offers with visible request/booking context / `GroomerOffersStore` | `Features/Groomer/Offers/GroomerOffersView.swift` | beckon adapted |
@@ -38,7 +43,13 @@ Future UI work is screenshot-driven. Map every visible module to this table plus
 ## Role Tab Summary
 
 - Customer tabs: Home, Requests, Bookings, Messages, Account.
-- Current Groomer code exposes Board, Offers, Schedule, Messages, Alerts, and Account; iOS places Alerts/Account under a system More tab.
-- Approved R-039 Groomer target: Home, Requests, Schedule, Messages, Account.
-- R-039 moves submitted-offer tracking into the Requests `Matches` / `Offers` workspace and opens Notifications from Groomer Home. Offer creation and withdrawal behavior remains owned by the existing request/offer features.
+- Groomer tabs: Home, Requests, Schedule, Messages, Account. No system More tab.
+- Requests owns the `Matches` / `Offers` workspace. Notifications open from Home. Offer creation and withdrawal remain owned by the existing request/offer features.
 - Visual adaptation must preserve Open Request -> Groomer Offer -> Customer Confirmation -> Booking.
+
+## Groomer Module Ownership
+
+- `DesignSystem` owns `BeckonSection`, grouped surfaces/dividers, status/action controls, adaptive section/photo-editor layouts and keyboard handling. Do not reintroduce role-named forwarding wrappers with identical behavior.
+- `SharedFeatures` and the shared Bookings/Chat features retain cross-role domain composition. Groomer views reuse these owners rather than copying booking or messaging flows.
+- `Features/Groomer/Profile/GroomerSizeRangeControl.swift` owns the slider and legend shared by Services and Fit Signals. It remains feature-local because its size-range semantics are not a generic visual primitive.
+- Home summaries route to existing owners; Schedule inspects booked work while Availability edits working rules. Fit Signals are self-declared; Evidence reports outcomes. These distinctions are intentional, not duplicate modules.

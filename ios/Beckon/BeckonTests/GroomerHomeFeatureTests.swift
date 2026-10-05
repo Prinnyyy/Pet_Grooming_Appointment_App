@@ -4,6 +4,49 @@ import Testing
 
 struct GroomerHomeFeatureTests {
     @Test @MainActor
+    func failedAndCancelledCountsAreUnknownRatherThanEmpty() async {
+        for error: GroomerRequestRepositoryError in [.networkUnavailable, .cancelled] {
+            let owner = UUID()
+            let store = GroomerHomeStore(groomerID: owner, displayName: "Taylor",
+                profileRepository: GroomerProfileRepositoryFake(),
+                requestRepository: GroomerHomeRequestRepositoryFake(
+                    matchedRequestsResult: .failure(error), offersResult: .failure(error)),
+                bookingRepository: GroomerHomeBookingRepositoryFake(bookingsResult: .success([])),
+                profileSnapshotCache: GroomerHomeProfileSnapshotCache())
+            #expect(store.newMatchCount == nil)
+            #expect(store.pendingOfferCount == nil)
+            await store.load()
+            #expect(store.newMatchCount == nil)
+            #expect(store.pendingOfferCount == nil)
+        }
+    }
+
+    @Test @MainActor
+    func failedAvailabilityNeverLooksLikeMissingOrVerifiedHours() async {
+        let owner = UUID()
+        let repository = GroomerProfileRepositoryFake(profileResult: .success(makeProfile(groomerID: owner)),
+            availabilityResult: .failure(.networkUnavailable))
+        let store = GroomerHomeStore(groomerID: owner, displayName: "Taylor", profileRepository: repository,
+            requestRepository: GroomerHomeRequestRepositoryFake(),
+            bookingRepository: GroomerHomeBookingRepositoryFake(bookingsResult: .success([])),
+            profileSnapshotCache: GroomerHomeProfileSnapshotCache())
+        await store.load()
+        #expect(store.availabilityState == .unavailable)
+        repository.availabilityResult = .success([GroomerProfileStoreTests.availability(groomerID: owner)])
+        await store.load()
+        #expect(store.availabilityState == .available)
+        repository.availabilityResult = .failure(.networkUnavailable)
+        await store.load()
+        #expect(store.availabilityState == .unavailable)
+        repository.availabilityResult = .success([])
+        await store.load()
+        #expect(store.availabilityState == .needsSchedule)
+        repository.profileResult = .failure(.networkUnavailable)
+        await store.load()
+        #expect(store.availabilityState == .unavailable)
+    }
+
+    @Test @MainActor
     func nearestAppointmentOutsideFirstFiftyIsQueriedDirectly() async throws {
         let groomerID = UUID()
         let now = Date()
