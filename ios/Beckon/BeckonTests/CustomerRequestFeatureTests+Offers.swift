@@ -401,7 +401,7 @@ extension CustomerRequestsStoreTests {
         )
         #expect(
             presentation.cancellation ==
-                "You can cancel from Booking details while the appointment is confirmed. Cancelling will not reopen this request or its other offers."
+            "You can cancel from Booking details before service starts. Cancelling will not reopen this request or its other offers."
         )
         #expect(presentation.confirmActionTitle == "Confirm & Book")
         #expect(presentation.supportingText.localizedCaseInsensitiveContains("backend") == false)

@@ -14,6 +14,7 @@ struct BookingRescheduleSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            if shouldShowChanges {
             BeckonSectionHeader("Appointment Changes")
             TimelineView(.periodic(from: .now, by: 1)) { context in
                 if let proposal = store.rescheduleSnapshots[booking.id]?.proposal {
@@ -21,13 +22,13 @@ struct BookingRescheduleSection: View {
                         .font(DesignTokens.Typography.headline)
                     BookingRescheduleTimes(booking: booking, proposal: proposal)
                     Text(proposal.initiatorID == booking.customerID ? "Proposed by Customer" : "Proposed by Groomer")
-                        .font(DesignTokens.Typography.caption).foregroundStyle(DesignTokens.Colors.textSecondary)
+                        .font(DesignTokens.Typography.caption).foregroundStyle(DesignTokens.Colors.textTertiary)
                     if proposal.currentStatus(for: booking, now: context.date) == .pending {
                         Text("Reply before " + GroomingRequestDateFormatting.displayString(from: proposal.expiresAt,
                             serviceTimeZoneIdentifier: booking.serviceTimeZoneIdentifier))
                             .font(DesignTokens.Typography.supporting)
                         Text("The original appointment remains confirmed. The proposed time is not reserved.")
-                            .font(DesignTokens.Typography.supporting).foregroundStyle(DesignTokens.Colors.textSecondary)
+                            .font(DesignTokens.Typography.supporting).foregroundStyle(DesignTokens.Colors.textTertiary)
                     }
                 }
                 if store.pendingRescheduleOperation(for: booking.id) == nil {
@@ -41,10 +42,10 @@ struct BookingRescheduleSection: View {
                 }
             }
             if let error = store.rescheduleErrors[booking.id] {
-                Text(error).font(DesignTokens.Typography.supporting).foregroundStyle(DesignTokens.Colors.errorText)
+                BeckonErrorBanner(title: "Time Change Unavailable", message: error)
             }
             if let notice = store.appointmentReminderNotice {
-                Text(notice).font(DesignTokens.Typography.supporting).foregroundStyle(DesignTokens.Colors.textSecondary)
+                Text(notice).font(DesignTokens.Typography.supporting).foregroundStyle(DesignTokens.Colors.textTertiary)
             }
             if let pending = store.pendingRescheduleOperation(for: booking.id) {
                 Text("\(pending.action.title): result not yet verified.").font(DesignTokens.Typography.supporting)
@@ -59,7 +60,9 @@ struct BookingRescheduleSection: View {
                     Task { await store.loadReschedule(for: booking.id) }
                 }
             }
+            }
         }
+        .buttonStyle(BeckonSecondaryButtonStyle(accent: .neutral))
         .disabled(store.isMutatingReschedule || store.isMutatingFulfillment)
         .task(id: booking.id) { await store.loadReschedule(for: booking.id) }
         .sheet(item: $review) { selection in
@@ -70,6 +73,13 @@ struct BookingRescheduleSection: View {
                     reviewedProposal: selection.proposal, newStart: newStart) }
             }
         }
+    }
+
+    private var shouldShowChanges: Bool {
+        (booking.status == .confirmed && (booking.fulfillment == nil || booking.fulfillment?.phase == .scheduled))
+            || store.rescheduleSnapshots[booking.id]?.proposal != nil
+            || store.pendingRescheduleOperation(for: booking.id) != nil
+            || store.rescheduleErrors[booking.id] != nil
     }
 }
 

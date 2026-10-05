@@ -370,6 +370,7 @@ private struct RequestPhotoThumbnail: View {
 struct CustomerOfferReviewSection: View {
     let request: CustomerGroomingRequest
     let store: CustomerRequestsStore
+    var showsRefreshAction = true
 
     private var offers: [CustomerOfferReview] {
         store.offers(for: request)
@@ -406,17 +407,7 @@ struct CustomerOfferReviewSection: View {
                     BeckonErrorBanner(
                         title: "We Could Not Load Offers",
                         message: errorMessage
-                    ) {
-                        Button {
-                            Task {
-                                await store.loadOffers(for: request)
-                            }
-                        } label: {
-                            Label("Refresh Offers", systemImage: "arrow.clockwise")
-                        }
-                        .buttonStyle(BeckonSecondaryButtonStyle())
-                        .disabled(store.isLoadingOffers(for: request))
-                    }
+                    )
                         .accessibilityIdentifier("customer.offers.error")
                 } else if offers.isEmpty {
                     BeckonEmptyState(
@@ -435,6 +426,7 @@ struct CustomerOfferReviewSection: View {
                                 isHistorical: false,
                                 now: now
                             )
+                            .accessibilityElement(children: .contain)
                             .accessibilityIdentifier("customer.offers.pending-list")
                         } else {
                             BeckonCard {
@@ -452,6 +444,7 @@ struct CustomerOfferReviewSection: View {
                                 isHistorical: true,
                                 now: now
                             )
+                            .accessibilityElement(children: .contain)
                             .accessibilityIdentifier("customer.offers.history-list")
                         }
 
@@ -478,16 +471,18 @@ struct CustomerOfferReviewSection: View {
                 }
             }
 
-            Button {
-                Task {
-                    await store.loadOffers(for: request)
+            if showsRefreshAction {
+                Button {
+                    Task {
+                        await store.loadOffers(for: request)
+                    }
+                } label: {
+                    Label("Refresh Offers", systemImage: "arrow.clockwise")
                 }
-            } label: {
-                Label("Refresh Offers", systemImage: "arrow.clockwise")
+                .buttonStyle(BeckonSecondaryButtonStyle())
+                .disabled(store.isLoadingOffers(for: request))
+                .accessibilityIdentifier("customer.offers.refresh")
             }
-            .buttonStyle(BeckonSecondaryButtonStyle())
-            .disabled(store.isLoadingOffers(for: request))
-            .accessibilityIdentifier("customer.offers.refresh")
         }
     }
 
@@ -502,6 +497,7 @@ struct CustomerOfferReviewSection: View {
                 .font(DesignTokens.Typography.caption.weight(.semibold))
                 .foregroundStyle(DesignTokens.Colors.textSecondary)
                 .textCase(.uppercase)
+                .accessibilityAddTraits(.isHeader)
 
             LazyVStack(spacing: DesignTokens.Spacing.md) {
                 ForEach(offers) { offerReview in
@@ -531,15 +527,19 @@ struct CustomerOfferReviewSection: View {
     }
 }
 
-private struct CustomerOfferSummaryRow: View {
+struct CustomerOfferSummaryRow: View {
     let offerReview: CustomerOfferReview
     var isHistorical = false
     let now: Date
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
         BeckonCard {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
+                let headerLayout = typeSize.isAccessibilitySize
+                    ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.md))
+                    : AnyLayout(HStackLayout(alignment: .top, spacing: DesignTokens.Spacing.md))
+                headerLayout {
                     BeckonProfileAvatar(
                         data: offerReview.groomerAvatarPhotoData,
                         tone: .groomer,
@@ -559,8 +559,6 @@ private struct CustomerOfferSummaryRow: View {
                             .foregroundStyle(DesignTokens.Colors.textSecondary)
                     }
 
-                    Spacer(minLength: DesignTokens.Spacing.md)
-
                     BeckonStatusChip(
                         offerReview.offer.evaluatedStatusTitle(now: now),
                         systemImage: offerReview.offer.status.detailSystemImage,
@@ -568,17 +566,20 @@ private struct CustomerOfferSummaryRow: View {
                     )
                 }
 
-                HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.md) {
+                let factsLayout = typeSize.isAccessibilitySize
+                    ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.sm))
+                    : AnyLayout(HStackLayout(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.md))
+                factsLayout {
                     Text(offerReview.offer.priceSummary)
                         .font(DesignTokens.Typography.headline)
                         .foregroundStyle(isHistorical ? DesignTokens.Colors.textSecondary : DesignTokens.Colors.textPrimary)
 
-                    Spacer(minLength: DesignTokens.Spacing.md)
+                    if !typeSize.isAccessibilitySize { Spacer(minLength: DesignTokens.Spacing.md) }
 
                     Text(offerReview.proposedTimeSummary)
                         .font(DesignTokens.Typography.caption)
                         .foregroundStyle(DesignTokens.Colors.textSecondary)
-                        .multilineTextAlignment(.trailing)
+                        .multilineTextAlignment(typeSize.isAccessibilitySize ? .leading : .trailing)
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
@@ -598,7 +599,7 @@ private struct CustomerOfferSummaryRow: View {
 
 struct CustomerOfferAcceptancePresentation: Equatable {
     static let cancellationCopy =
-        "You can cancel from Booking details while the appointment is confirmed. Cancelling will not reopen this request or its other offers."
+        "You can cancel from Booking details before service starts. Cancelling will not reopen this request or its other offers."
 
     let title: String
     let supportingText: String
@@ -1128,6 +1129,7 @@ private struct CustomerOfferAcceptanceConfirmationView: View {
                 }
             }
             .interactiveDismissDisabled(isSubmitting)
+            .accessibilityElement(children: .contain)
             .accessibilityIdentifier("customer.offers.confirmation")
         }
     }
@@ -1173,6 +1175,7 @@ private struct CustomerOfferAcceptanceActionBar: View {
 }
 
 private struct DetailCardHeader<Trailing: View>: View {
+    @Environment(\.dynamicTypeSize) private var typeSize
     let title: String
     let subtitle: String
     let systemImage: String
@@ -1197,7 +1200,10 @@ private struct DetailCardHeader<Trailing: View>: View {
     }
 
     var body: some View {
-        HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
+        let layout = typeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.md))
+            : AnyLayout(HStackLayout(alignment: .top, spacing: DesignTokens.Spacing.md))
+        layout {
             if let profileAvatarTone {
                 BeckonProfileAvatar(
                     data: profileAvatarData,
@@ -1254,12 +1260,16 @@ extension DetailCardHeader where Trailing == EmptyView {
 }
 
 private struct DetailMetadataRow: View {
+    @Environment(\.dynamicTypeSize) private var typeSize
     let title: String
     let value: String
     let systemImage: String
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.md) {
+        let layout = typeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.xs))
+            : AnyLayout(HStackLayout(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.md))
+        layout {
             Label {
                 Text(title)
                     .font(DesignTokens.Typography.caption.weight(.semibold))
@@ -1269,12 +1279,12 @@ private struct DetailMetadataRow: View {
             }
             .foregroundStyle(DesignTokens.Colors.textSecondary)
 
-            Spacer(minLength: DesignTokens.Spacing.md)
+            if !typeSize.isAccessibilitySize { Spacer(minLength: DesignTokens.Spacing.md) }
 
             Text(value)
                 .font(DesignTokens.Typography.body.weight(.semibold))
                 .foregroundStyle(DesignTokens.Colors.textPrimary)
-                .multilineTextAlignment(.trailing)
+                .multilineTextAlignment(typeSize.isAccessibilitySize ? .leading : .trailing)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(.vertical, DesignTokens.Spacing.xs)

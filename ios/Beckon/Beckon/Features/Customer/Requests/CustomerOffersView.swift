@@ -13,7 +13,8 @@ struct CustomerRequestOffersView: View {
                 ScrollView {
                     CustomerOfferReviewSection(
                         request: request,
-                        store: store
+                        store: store,
+                        showsRefreshAction: false
                     )
                     .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
                     .padding(.top, DesignTokens.Spacing.lg)
@@ -40,8 +41,10 @@ struct CustomerRequestOffersView: View {
                         Label("Refresh", systemImage: "arrow.clockwise")
                     }
                     .disabled(store.isLoadingOffers(for: request))
+                    .accessibilityIdentifier("customer.offers.refresh")
                 }
             }
+            .accessibilityElement(children: .contain)
             .accessibilityIdentifier("customer.offers.list")
             .task(id: request.id) {
                 await store.loadOffers(for: request)

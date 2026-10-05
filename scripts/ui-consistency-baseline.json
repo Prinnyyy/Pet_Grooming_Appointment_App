@@ -2,7 +2,7 @@
   "version": 1,
   "scope": "ios/Beckon/Beckon/Features",
   "lastChange": {
-    "reason": "T-402"
+    "reason": "T-403"
   },
   "findings": [
     {
@@ -234,20 +234,6 @@
       "path": "ios/Beckon/Beckon/Features/Bookings/BookingsView.swift",
       "fingerprint": "ec6956e8fdb94598708fb501ca4fd4adcd7d53fa1f4fe5f0b4f652a8f06ad038",
       "expressionHash": "710e8322da62912345c23965da8f7a979ac1af3266bedaa3437d6312257ca4e0",
-      "occurrence": 1
-    },
-    {
-      "ruleID": "UI002",
-      "path": "ios/Beckon/Beckon/Features/Bookings/BookingsView.swift",
-      "fingerprint": "a98c5c91168c3006bc5fe08627c154264aa7ced2824a015791e3bf713c745d57",
-      "expressionHash": "4fc8553e33e82a3789872690cff0fdcdb9b5e15b1f7255353a70d4b00fe38c5f",
-      "occurrence": 3
-    },
-    {
-      "ruleID": "UI005",
-      "path": "ios/Beckon/Beckon/Features/Bookings/BookingsView.swift",
-      "fingerprint": "ea1244261dcd81eb11b05bad8a7b0afd06664fe999d29f3e9f05b29a60dfda56",
-      "expressionHash": "71f06fa6e0a405e2aca5a9b64be3d6aaf9615ce16ac8d43c367a299400a5e1f7",
       "occurrence": 1
     },
     {

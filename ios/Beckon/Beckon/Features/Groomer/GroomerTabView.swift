@@ -83,6 +83,7 @@ struct GroomerTabView: View {
         .toolbarBackground(DesignTokens.Colors.surface, for: .tabBar)
         .toolbarBackground(.visible, for: .tabBar)
         .environment(\.beckonFeedbackCenter, feedbackCenter)
+        .environment(\.openBookingChat, openBookingChat)
         .overlay(alignment: .bottom) {
             BeckonGlobalFeedbackOverlay(center: feedbackCenter)
         }

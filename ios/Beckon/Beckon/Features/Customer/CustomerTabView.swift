@@ -120,6 +120,7 @@ struct CustomerTabView: View {
         .toolbarBackground(DesignTokens.Colors.surface, for: .tabBar)
         .toolbarBackground(.visible, for: .tabBar)
         .environment(\.beckonFeedbackCenter, feedbackCenter)
+        .environment(\.openBookingChat, openBookingChat)
         .environment(\.customerMarketplaceSession, marketplace)
         .overlay(alignment: .bottom) {
             BeckonGlobalFeedbackOverlay(center: feedbackCenter)
