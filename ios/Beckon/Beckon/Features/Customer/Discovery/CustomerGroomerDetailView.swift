@@ -21,7 +21,7 @@ struct CustomerGroomerDetailView: View {
                 } else { ProgressView("Loading profile...") }
             }.padding(DesignTokens.Spacing.screenHorizontal)
         }
-        .navigationTitle("Groomer Profile")
+        .navigationTitle("Groomer profile")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
         .task { await load() }

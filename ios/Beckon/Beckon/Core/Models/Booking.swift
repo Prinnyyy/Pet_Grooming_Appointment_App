@@ -121,11 +121,12 @@ struct Booking: Equatable, Hashable, Identifiable, Sendable {
     }
 
     nonisolated var scheduledTimeSummary: String {
-        let start = GroomingRequestDateFormatting.displayString(from: scheduledStart,
-            serviceTimeZoneIdentifier: serviceTimeZoneIdentifier)
-        let end = GroomingRequestDateFormatting.displayString(from: scheduledEnd,
-            serviceTimeZoneIdentifier: serviceTimeZoneIdentifier)
-        return "\(start) – \(end)"
+        scheduledTimePresentation.summary
+    }
+
+    nonisolated var scheduledTimePresentation: BeckonDateTimePresentation {
+        BeckonDateTimeFormatter.interval(from: scheduledStart, to: scheduledEnd,
+            serviceTimeZoneIdentifier: agreementSnapshot?.serviceTimeZoneIdentifier ?? serviceTimeZoneIdentifier)
     }
 
     nonisolated var referenceCode: String {
@@ -177,23 +178,28 @@ struct Booking: Equatable, Hashable, Identifiable, Sendable {
     nonisolated func participantSummary(for role: UserRole) -> String {
         switch role {
         case .customer:
-            "Groomer ref \(participantReferenceCode(for: role))"
+            normalized(groomerBusinessName) ?? "Groomer"
         case .groomer:
-            "Customer ref \(participantReferenceCode(for: role))"
+            "Customer"
         }
     }
 
     nonisolated func partnerDisplayTitle(for role: UserRole) -> String {
         switch role {
         case .customer:
-            normalized(groomerBusinessName) ?? "Groomer Name"
+            normalized(groomerBusinessName) ?? displayTitle
         case .groomer:
-            "Booking Customer"
+            displayTitle
         }
     }
 
     nonisolated var appointmentServiceTitle: String {
-        serviceType?.title ?? "Service Details"
+        (agreementSnapshot?.serviceType ?? serviceType)?.title ?? "Grooming appointment"
+    }
+
+    nonisolated var displayTitle: String {
+        let petName = normalized(agreementSnapshot?.petSnapshot.name ?? requestPetSnapshot?.name)
+        return petName.map { "\($0) · \(appointmentServiceTitle)" } ?? appointmentServiceTitle
     }
 
     nonisolated var reviewableFitSignals: [PetFitSignal] {
@@ -522,7 +528,7 @@ nonisolated enum BookingStatus:
         case .completed:
             "Completed"
         case .unfulfilled:
-            "Service Not Confirmed"
+            "Service not confirmed"
         case .cancelledByCustomer:
             "Cancelled by customer"
         case .cancelledByGroomer:

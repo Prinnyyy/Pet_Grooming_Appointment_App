@@ -43,7 +43,7 @@ struct DecodeToleranceFeatureTests {
         let malformedDate = "not-a-server-date"
 
         #expect(GroomingRequestDateFormatting.parsedDate(from: malformedDate) == nil)
-        #expect(GroomingRequestDateFormatting.displayString(from: malformedDate) == malformedDate)
+        #expect(GroomingRequestDateFormatting.displayString(from: malformedDate) == "Time unavailable")
     }
 
     @Test

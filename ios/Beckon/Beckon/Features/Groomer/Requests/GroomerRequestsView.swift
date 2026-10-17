@@ -261,7 +261,7 @@ private struct GroomerMatchesContentView: View {
     var body: some View {
         if store.isLoading, store.matchedRequests.isEmpty {
             BeckonLoadingView(
-                title: "Loading Matched Requests…",
+                title: "Loading matched requests…",
                 message: "We are checking active customer requests that match your services.",
                 accent: .groomer
             )
@@ -325,7 +325,7 @@ private struct GroomerMatchesContentView: View {
 
                     if let errorMessage = store.errorMessage {
                         BeckonErrorBanner(
-                            title: "More Requests Unavailable",
+                            title: "More requests unavailable",
                             message: errorMessage
                         )
                         .accessibilityIdentifier("groomer.requests.load-more-error")
@@ -356,13 +356,13 @@ private struct GroomerMatchesContentView: View {
 
     private func requestError(message: String) -> some View {
         BeckonErrorBanner(
-            title: "Requests Unavailable",
+            title: "Requests unavailable",
             message: message
         ) {
             Button {
                 Task { await store.load() }
             } label: {
-                Label("Try Again", systemImage: "arrow.clockwise")
+                Label("Try again", systemImage: "arrow.clockwise")
             }
             .buttonStyle(BeckonSecondaryButtonStyle(accent: .groomer))
             .disabled(store.isBusy)
@@ -372,7 +372,7 @@ private struct GroomerMatchesContentView: View {
 
     private var requestEmptyState: some View {
         BeckonEmptyState(
-            title: "No Matched Requests",
+            title: "No matched requests",
             message: "New active customer requests will appear here when they match your profile and services.",
             systemImage: "tray",
             accent: .groomer
@@ -428,6 +428,7 @@ private struct GroomerRequestSummaryRow: View {
                     .fixedSize(horizontal: false, vertical: true)
 
                 Text("\(preferredDate) · \(compactLocation)")
+                    .accessibilityLabel("\(matchedRequest.request.preferredTimePresentation.accessibilityLabel), \(compactLocation)")
                     .font(DesignTokens.Typography.caption)
                     .foregroundStyle(DesignTokens.Colors.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -460,10 +461,7 @@ private struct GroomerRequestSummaryRow: View {
     }
 
     private var preferredDate: String {
-        GroomingRequestDateFormatting.displayString(
-            from: matchedRequest.request.preferredStart,
-            serviceTimeZoneIdentifier: matchedRequest.request.preferenceTimeZoneIdentifier
-        )
+        matchedRequest.request.preferredTimePresentation.summary
     }
 
     private var compactLocation: String {
@@ -563,7 +561,7 @@ struct GroomerRequestDetailView: View {
 
                 VStack(spacing: DesignTokens.Spacing.md) {
                   BeckonEmptyState(
-                    title: "Request Unavailable",
+                    title: "Request unavailable",
                     message: store.detailError ?? "Refresh matched requests and try again.",
                     systemImage: "tray",
                     accent: .groomer
@@ -637,7 +635,7 @@ struct GroomerRequestDetailView: View {
     private func matchCard(
         for matchedRequest: GroomerMatchedRequest
     ) -> some View {
-        DetailShellCard(title: "Fit Evidence", subtitle: matchedRequest.matchSummary) {
+        DetailShellCard(title: "Fit evidence", subtitle: matchedRequest.matchSummary) {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                 if let source = matchedRequest.request.distributionSourceTitle {
                     DetailMetadataRow(title: "Source", value: source, systemImage: "paperplane")
@@ -693,7 +691,7 @@ struct GroomerRequestDetailView: View {
     private func petSnapshotCard(
         for matchedRequest: GroomerMatchedRequest
     ) -> some View {
-        DetailShellCard(title: "Pet Snapshot") {
+        DetailShellCard(title: "Pet snapshot") {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                 DetailMetadataRow(
                     title: "Pet",
@@ -784,7 +782,7 @@ struct GroomerRequestDetailView: View {
                 if matchedRequest.request.locationMode == .customerComesToGroomer,
                    let travelRadiusMiles = matchedRequest.request.travelRadiusMiles {
                     DetailMetadataRow(
-                        title: "Travel Radius",
+                        title: "Travel radius",
                         value: "\(travelRadiusMiles) miles",
                         systemImage: "point.topleft.down.curvedto.point.bottomright.up"
                     )
@@ -800,7 +798,7 @@ struct GroomerRequestDetailView: View {
         let photos = store.requestPhotos(for: matchedRequest)
         if !photos.isEmpty {
             DetailShellCard(
-                title: "Request Photos",
+                title: "Request photos",
                 subtitle: "\(photos.count) photo\(photos.count == 1 ? "" : "s") attached to this request."
             ) {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
@@ -867,7 +865,7 @@ struct GroomerRequestDetailView: View {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                 HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
                     VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                        Text("Your Offer")
+                        Text("Your offer")
                             .font(DesignTokens.Typography.headline)
                             .foregroundStyle(DesignTokens.Colors.textPrimary)
 
@@ -890,7 +888,7 @@ struct GroomerRequestDetailView: View {
                         systemImage: "dollarsign.circle"
                     )
                     DetailMetadataRow(
-                        title: "Proposed Start",
+                        title: "Proposed start",
                         value: GroomingRequestDateFormatting.displayString(
                             from: offer.proposedStart,
                             serviceTimeZoneIdentifier: offer.serviceTimeZoneIdentifier
@@ -898,7 +896,7 @@ struct GroomerRequestDetailView: View {
                         systemImage: "calendar"
                     )
                     DetailMetadataRow(
-                        title: "Proposed End",
+                        title: "Proposed end",
                         value: GroomingRequestDateFormatting.displayString(
                             from: offer.proposedEnd,
                             serviceTimeZoneIdentifier: offer.serviceTimeZoneIdentifier
@@ -914,7 +912,7 @@ struct GroomerRequestDetailView: View {
                 if offer.status == .pending {
                     if offer.requiresTimingUpdate {
                         BeckonErrorBanner(
-                            title: "Updated Offer Required",
+                            title: "Updated offer required",
                             message: "This offer is missing confirmed timing details. Withdraw it and send a new offer."
                         )
                     }
@@ -923,7 +921,7 @@ struct GroomerRequestDetailView: View {
                             await store.withdrawOffer(for: matchedRequest)
                         }
                     } label: {
-                        Label("Withdraw Offer", systemImage: "arrow.uturn.backward.circle")
+                        Label("Withdraw offer", systemImage: "arrow.uturn.backward.circle")
                     }
                     .buttonStyle(BeckonSecondaryButtonStyle(accent: .neutral))
                     .disabled(store.isWithdrawingOffer)
@@ -940,7 +938,7 @@ struct GroomerRequestDetailView: View {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
                 HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
                     VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                        Text("Make an Offer")
+                        Text("Make an offer")
                             .font(DesignTokens.Typography.headline)
                             .foregroundStyle(DesignTokens.Colors.textPrimary)
 
@@ -970,7 +968,7 @@ struct GroomerRequestDetailView: View {
 
                 if let serviceTimeZone = form.serviceTimeZone {
                     OfferDatePickerField(
-                        title: "Proposed Start",
+                        title: "Proposed start",
                         selection: Binding(get: { form.proposedStart }, set: {
                             form.proposedStart = $0
                             form.selectedOccurrence = nil
@@ -979,7 +977,7 @@ struct GroomerRequestDetailView: View {
                     .environment(\.timeZone, TimeZone(secondsFromGMT: 0)!)
                     .environment(\.calendar, Calendar(identifier: .gregorian))
                     .accessibilityIdentifier("groomer.offers.start-input")
-                    DetailMetadataRow(title: "Service Time Zone", value: serviceTimeZone.identifier,
+                    DetailMetadataRow(title: "Service time zone", value: serviceTimeZone.identifier,
                         systemImage: "globe")
                     .accessibilityIdentifier("groomer.offers.service-time-zone")
                     if case let .ambiguous(first, last) = form.proposedStartResolution {
@@ -1026,7 +1024,7 @@ struct GroomerRequestDetailView: View {
 
                 if let proposedEnd = form.proposedEnd, let serviceTimeZone = form.serviceTimeZone {
                     DetailMetadataRow(
-                        title: "Proposed End",
+                        title: "Proposed end",
                         value: GroomingRequestDateFormatting.displayString(
                             from: GroomingRequestDateFormatting.serverString(from: proposedEnd),
                             serviceTimeZoneIdentifier: serviceTimeZone.identifier),
@@ -1036,7 +1034,7 @@ struct GroomerRequestDetailView: View {
                 }
 
                 GroomerOfferTextField(
-                    title: "Price Estimate",
+                    title: "Price estimate",
                     text: $form.priceEstimateText,
                     keyboardType: .decimalPad,
                     focusTarget: .price,
@@ -1075,10 +1073,10 @@ struct GroomerRequestDetailView: View {
                 HStack(spacing: DesignTokens.Spacing.sm) {
                     ProgressView()
                         .tint(DesignTokens.Colors.groomerInk)
-                    Text("Submitting Offer…")
+                    Text("Submitting offer…")
                 }
             } else {
-                Label("Submit Offer", systemImage: "paperplane")
+                Label("Submit offer", systemImage: "paperplane")
             }
         }
         .buttonStyle(BeckonPrimaryButtonStyle(accent: .groomer))
@@ -1137,7 +1135,7 @@ struct GroomerRequestDetailView: View {
                         await store.dismiss(matchedRequest)
                     }
                 } label: {
-                    Label("Dismiss Match", systemImage: "xmark.circle")
+                    Label("Dismiss match", systemImage: "xmark.circle")
                 }
                 .buttonStyle(BeckonSecondaryButtonStyle(accent: .neutral))
                 .disabled(
@@ -1414,7 +1412,7 @@ private struct GroomerRequestsStatusView: View {
         return BeckonGlobalFeedbackError(
             scope: .page("groomer.requests"),
             sourceKey: "groomer.requests.error",
-            title: "Request Update Failed",
+            title: "Request update failed",
             message: errorMessage
         )
     }
@@ -1433,7 +1431,7 @@ private struct GroomerRequestsStatusView: View {
             return BeckonGlobalFeedbackProgress(
                 scope: .operation("groomer.requests.offer"),
                 sourceKey: "groomer.requests.offer-progress",
-                title: "Submitting Offer…",
+                title: "Submitting offer…",
                 tone: .groomer
             )
         }
@@ -1442,7 +1440,7 @@ private struct GroomerRequestsStatusView: View {
             return BeckonGlobalFeedbackProgress(
                 scope: .operation("groomer.requests.withdraw"),
                 sourceKey: "groomer.requests.withdraw-progress",
-                title: "Withdrawing Offer…",
+                title: "Withdrawing offer…",
                 tone: .groomer
             )
         }

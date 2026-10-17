@@ -82,7 +82,7 @@ struct CustomerProfileSettingsView: View {
 
                 if store.shouldShowInitialLoading {
                     BeckonLoadingView(
-                        title: "Loading Profile...",
+                        title: "Loading profile...",
                         message: "Fetching your saved customer details."
                     )
                 }
@@ -97,7 +97,7 @@ struct CustomerProfileSettingsView: View {
             )
         }
         .background(DesignTokens.Colors.appBackground.ignoresSafeArea())
-        .navigationTitle("Profile Settings")
+        .navigationTitle("Profile settings")
         .navigationBarTitleDisplayMode(.inline)
         .scrollDismissesKeyboard(.interactively)
         .onChange(of: focusedField) { _, target in
@@ -164,7 +164,7 @@ private struct CustomerAvatarEditorSection: View {
         let photoActionTitle = hasSavedPhoto ? "Replace Photo" : "Upload Photo"
 
         BeckonPhotoEditorCard(
-            title: "Profile Photo",
+            title: "Profile photo",
             statusText: photoStatusText,
             showsSavedIndicator: hasSavedPhoto,
             savedAccessibilityLabel: "Profile photo saved"
@@ -301,7 +301,7 @@ struct CustomerProfileStatusView: View {
         return BeckonGlobalFeedbackError(
             scope: .page("customer.profile"),
             sourceKey: "customer.profile.error",
-            title: "Profile Update Failed",
+            title: "Profile update failed",
             message: errorMessage
         )
     }

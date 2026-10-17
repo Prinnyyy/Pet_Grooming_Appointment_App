@@ -6,11 +6,10 @@ import UIKit
 typealias CustomerRequestServiceOption = GroomingServiceType
 
 enum CustomerRequestPhotoSelectionCopy {
-    static let title = "Request Photos"
+    static let title = "Request photos"
     static let supportingText =
         "Add photos specific to this grooming request. Your pet profile photo stays separate."
 }
-
 
 enum CustomerRequestTravelRange {
     static let minimumMiles = 5
@@ -73,7 +72,7 @@ enum CustomerRequestLocationSection: CaseIterable {
     var title: String {
         switch self {
         case .groomingSetup:
-            "Service Location"
+            "Service location"
         case .location:
             "Address Details"
         }
@@ -103,11 +102,11 @@ struct CustomerRequestWizardReviewPresentation: Equatable {
         rows = [
             Row(title: "Pet", value: pet),
             Row(title: "Service", value: service),
-            Row(title: "Preferred Time", value: preferredTime),
+            Row(title: "Preferred time", value: preferredTime),
             Row(title: "Location", value: location),
             Row(title: "Notes", value: notes),
             Row(
-                title: "Request Photos",
+                title: "Request photos",
                 value: Self.requestPhotoSummary(count: requestPhotoCount)
             ),
         ]
@@ -244,7 +243,7 @@ struct CustomerRequestWizardView: View {
                                 if let errorMessage = store.errorMessage,
                                    errorMessage != globallyPresentedErrorMessage {
                                     BeckonErrorBanner(
-                                        title: "Check Request Details",
+                                        title: "Check request details",
                                         message: errorMessage
                                     )
                                     .accessibilityIdentifier("customer.requests.form-error")
@@ -579,7 +578,7 @@ struct CustomerRequestWizardView: View {
                         selection: $selectedRequestPhotoItems,
                         matching: .images
                     ) {
-                        Label("Add Request Photos", systemImage: "photo.badge.plus")
+                        Label("Add request photos", systemImage: "photo.badge.plus")
                     }
                     .buttonStyle(BeckonSecondaryButtonStyle(accent: .customer))
                     .accessibilityIdentifier("customer.requests.wizard.add-photos")
@@ -631,7 +630,7 @@ struct CustomerRequestWizardView: View {
             )
 
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                Label("How Matching Works", systemImage: "info.circle")
+                Label("How matching works", systemImage: "info.circle")
                     .font(DesignTokens.Typography.headline)
                     .foregroundStyle(DesignTokens.Colors.customerDeep)
 
@@ -700,8 +699,8 @@ struct CustomerRequestWizardView: View {
     private var reviewPreferredTimeSummary: String {
         guard let calendar = store.requestCalendar,
               let range = store.remainingPreferredRange(now: Date()) else { return "Choose a valid time window" }
-        return CustomerRequestWizardDateFormatting.compactRange(from: range.start, to: range.end,
-            calendar: calendar) + " (\(calendar.timeZone.identifier))"
+        return BeckonDateTimeFormatter.interval(from: range.start, to: range.end,
+            serviceTimeZoneIdentifier: calendar.timeZone.identifier).summary
     }
 
     private var reviewLocationSummary: String {
@@ -752,7 +751,7 @@ struct CustomerRequestWizardView: View {
                 BeckonGlobalFeedbackError(
                     scope: .operation("customer.requests.publish"),
                     sourceKey: "customer.requests.publish.failure",
-                    title: "We Could Not Publish Request",
+                    title: "We could not publish request",
                     message: errorMessage
                 )
             )
@@ -808,7 +807,7 @@ struct CustomerRequestWizardView: View {
             BeckonGlobalFeedbackError(
                 scope: .operation("customer.requests.profile-address"),
                 sourceKey: "customer.requests.profile-address.missing",
-                title: "No Profile Address",
+                title: "No profile address",
                 message: "Add an address in Account Profile Settings first."
             )
         )
@@ -819,7 +818,7 @@ struct CustomerRequestWizardView: View {
             BeckonGlobalFeedbackError(
                 scope: .operation("customer.requests.profile-address"),
                 sourceKey: "customer.requests.profile-address.unavailable",
-                title: "Profile Address Unavailable",
+                title: "Profile address unavailable",
                 message: "We could not load your saved profile address. Please try again."
             )
         )
@@ -841,19 +840,6 @@ private enum CustomerRequestWizardDateFormatting {
         formatter.calendar = calendar
         formatter.timeZone = calendar.timeZone
         formatter.dateFormat = "h:mm a XXX"
-        return formatter.string(from: date)
-    }
-
-    static func compactRange(from start: Date, to end: Date, calendar: Calendar) -> String {
-        "\(compactDateTime(start, calendar: calendar)) - \(compactDateTime(end, calendar: calendar))"
-    }
-
-    static func compactDateTime(_ date: Date, calendar: Calendar) -> String {
-        let formatter = DateFormatter()
-        formatter.calendar = calendar
-        formatter.timeZone = calendar.timeZone
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.dateFormat = "MMM d 'at' h:mm a"
         return formatter.string(from: date)
     }
 
@@ -1036,7 +1022,7 @@ private struct CustomerRequestAddPetButton: View {
                 Image(systemName: "plus")
                     .font(DesignTokens.Typography.cardTitle)
 
-                Text("Add A New Pet")
+                Text("Add a new pet")
                     .font(DesignTokens.Typography.body.weight(.bold))
             }
             .foregroundStyle(DesignTokens.Colors.customerDeep)
@@ -1322,7 +1308,7 @@ private struct CustomerRequestFlexibleTimeToggle: View {
     var body: some View {
         Toggle(isOn: $isOn) {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                Text("I'm Flexible With Time")
+                Text("I'm flexible with time")
                     .font(DesignTokens.Typography.body.weight(.bold))
                     .foregroundStyle(DesignTokens.Colors.textPrimary)
 
@@ -1423,7 +1409,7 @@ private struct CustomerRequestAddressFields: View {
                         in: CustomerRequestTravelRange.minimumMiles...CustomerRequestTravelRange.maximumMiles
                     ) {
                         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                            Text("Travel Range")
+                            Text("Travel range")
                                 .foregroundStyle(DesignTokens.Colors.textPrimary)
                             Text("\(travelRangeMiles) mi")
                                 .foregroundStyle(DesignTokens.Colors.customerDeep)
@@ -1442,7 +1428,7 @@ private struct CustomerRequestAddressFields: View {
                         step: 1
                     )
                     .tint(DesignTokens.Colors.customerDeep)
-                    .accessibilityLabel("Travel Range")
+                    .accessibilityLabel("Travel range")
 
                     Text("Choose how far you can travel to a groomer's location.")
                         .font(DesignTokens.Typography.caption)
@@ -1614,7 +1600,7 @@ private struct CustomerRequestWizardFitInputCard: View {
     var body: some View {
         BeckonCard(padding: DesignTokens.Spacing.lg) {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                Label("Fit Needs", systemImage: "sparkles")
+                Label("Fit needs", systemImage: "sparkles")
                     .font(DesignTokens.Typography.headline)
                     .foregroundStyle(DesignTokens.Colors.customerDeep)
 

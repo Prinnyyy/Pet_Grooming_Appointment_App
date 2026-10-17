@@ -109,7 +109,7 @@ final class ChatStore {
             return normalized
         }
 
-        return "No Messages Yet"
+        return "No messages yet"
     }
 
     func conversation(for booking: Booking) -> ChatConversation? {

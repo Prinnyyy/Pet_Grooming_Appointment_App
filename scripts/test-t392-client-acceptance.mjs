@@ -191,11 +191,12 @@ function quoteReadbackEvidence(request, quote, history) {
     request.service_type,quote.start);
   const related=request.service_type==="custom_request" ? [] : history.filter(h=>h.species===request.pet.species && h.service===request.service_type);
   const fit=related.filter(h=>keys.some(key=>["positive","negative"].includes(h.answers[key])));
-  const titles={full_groom:"Full Groom",bath_and_brush:"Bath & Brush",haircut_only:"Haircut Only",nail_trim:"Nail Trim",
+  const titles={full_groom:"Full groom",bath_and_brush:"Bath & brush",haircut_only:"Haircut only",nail_trim:"Nail trim",
     de_shedding:"De-shedding",curly_wavy:"Curly / Wavy",wire:"Wire / Terrier",double_coat:"Double Coat / Heavy Shedding",
     drop_coat:"Drop Coat",long_silky:"Long Silky / Feathered",short_smooth:"Short Smooth",hairless_low_coat:"Hairless / Very Low Coat",
     anxious:"Anxious",reactive:"Reactive",puppy:"Puppy",senior:"Senior",matted:"Matted Coat"};
-  return {evidenceSummary:fit.length ? `${fit.length} related reviews from ${new Set(fit.map(h=>h.customer)).size} customers`
+  const customers=new Set(fit.map(h=>h.customer)).size;
+  return {evidenceSummary:fit.length ? `${fit.length} related ${fit.length===1 ? "review" : "reviews"} from ${customers} ${customers===1 ? "customer" : "customers"}`
     : "No verified related feedback yet",evidenceLines:fit.length ? keys.map(key=>{
       const [dimension,value]=key.split(":"),title=dimension==="size" ? value : titles[value];assert.ok(title,"Unknown evidence label");
       const completed=related.filter(h=>h.allowed_keys.includes(key)).length,

@@ -8,7 +8,7 @@ struct BookingFulfillmentSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            BeckonSectionHeader("Service Outcome")
+            BeckonSectionHeader("Service outcome")
             Text(booking.fulfillmentTitle).font(DesignTokens.Typography.headline)
             if booking.fulfillment == nil {
                 Text("Service status has not been verified. Changes are unavailable until verification succeeds.")
@@ -32,7 +32,7 @@ struct BookingFulfillmentSection: View {
                 }
             }
             if let message = store.errorMessage {
-                BeckonErrorBanner(title: "Operation Not Completed", message: message)
+                BeckonErrorBanner(title: "Operation not completed", message: message)
             }
             if let message = store.noticeMessage {
                 Text(message).font(DesignTokens.Typography.supporting).foregroundStyle(DesignTokens.Colors.textTertiary)
@@ -42,13 +42,13 @@ struct BookingFulfillmentSection: View {
                 Button {
                     Task { await store.recoverFulfillment(for: booking.id) }
                 } label: {
-                    Label("Check Status", systemImage: "arrow.clockwise")
+                    Label("Check status", systemImage: "arrow.clockwise")
                 }
                 .accessibilityIdentifier("booking.fulfillment.check")
                 Button {
                     Task { await store.recoverFulfillment(for: booking.id, retryIfMissing: true) }
                 } label: {
-                    Label("Retry Original Operation", systemImage: "arrow.triangle.2.circlepath")
+                    Label("Retry original operation", systemImage: "arrow.triangle.2.circlepath")
                 }
                 .accessibilityIdentifier("booking.fulfillment.retry")
             } else {
@@ -71,7 +71,7 @@ struct BookingFulfillmentSection: View {
             }
             .accessibilityIdentifier("booking.fulfillment.refresh")
             Divider()
-            Text("Recent Service Activity").font(DesignTokens.Typography.headline).accessibilityAddTraits(.isHeader)
+            Text("Recent service activity").font(DesignTokens.Typography.headline).accessibilityAddTraits(.isHeader)
             if let error = store.fulfillmentHistoryErrors[booking.id] {
                 Text(error).font(DesignTokens.Typography.supporting).foregroundStyle(DesignTokens.Colors.textTertiary)
                 Button("Retry", systemImage: "arrow.clockwise") {

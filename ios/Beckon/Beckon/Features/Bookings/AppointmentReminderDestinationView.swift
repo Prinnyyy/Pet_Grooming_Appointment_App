@@ -17,7 +17,7 @@ struct AppointmentReminderDestinationView: View {
                     BookingDetailView(bookingID: target.bookingID, role: target.role, store: store)
                 } else if store.bookingReadStates[target.bookingID] == .failed {
                     ContentUnavailableView {
-                        Label("Appointment Unavailable", systemImage: "calendar.badge.exclamationmark")
+                        Label("Appointment unavailable", systemImage: "calendar.badge.exclamationmark")
                     } description: {
                         Text("The current appointment could not be loaded.")
                     } actions: {

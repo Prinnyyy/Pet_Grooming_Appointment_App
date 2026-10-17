@@ -40,7 +40,7 @@ struct GroomerAvailabilityEditorView: View {
 
                 if let errorMessage = store.errorMessage {
                     BeckonErrorBanner(
-                        title: "Availability Needs Attention",
+                        title: "Availability needs attention",
                         message: errorMessage
                     )
                     .accessibilityIdentifier("groomer.availability.error")
@@ -122,7 +122,7 @@ private struct GroomerAvailabilityWeeklyHoursSection: View {
 
     var body: some View {
         BeckonSection(
-            "Weekly Hours",
+            "Weekly hours",
             subtitle: "Set the recurring hours when you can accept appointments."
         ) {
             BeckonGroupedSurface {
@@ -262,7 +262,7 @@ private struct GroomerTimingBuffersSection: View {
     var focusedField: FocusState<String?>.Binding
 
     var body: some View {
-        BeckonSection("Timing Buffers", subtitle: "Minutes") {
+        BeckonSection("Timing buffers", subtitle: "Minutes") {
             VStack(spacing: DesignTokens.Spacing.md) {
                 field("Preparation", id: "preparation", text: $store.preparationMinutesText)
                 field("Cleanup", id: "cleanup", text: $store.cleanupMinutesText)
@@ -316,7 +316,7 @@ private struct GroomerBookingPreferencesSection: View {
 
     var body: some View {
         BeckonSection(
-            "Booking Preferences",
+            "Booking preferences",
             subtitle: "Set capacity and notice rules for your schedule."
         ) {
             BeckonGroupedSurface {
@@ -444,7 +444,7 @@ private struct GroomerTimeOffSection: View {
 
     var body: some View {
         BeckonSection(
-            "Time Off",
+            "Time off",
             subtitle: "Block dates when you are unavailable for appointments."
         ) {
             BeckonGroupedSurface {
@@ -585,7 +585,7 @@ private struct GroomerTimeOffFormView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
                         BeckonSection(
-                            "Time Off",
+                            "Time off",
                             subtitle: "Add the dates you will not accept appointments."
                         ) {
                             BeckonGroupedSurface {
@@ -622,7 +622,7 @@ private struct GroomerTimeOffFormView: View {
 
                         if let errorMessage = store.errorMessage {
                             BeckonErrorBanner(
-                                title: "Time Off Could Not Be Saved",
+                                title: "Time off could not be saved",
                                 message: errorMessage
                             )
                             .accessibilityIdentifier("groomer.availability.time-off.error")
@@ -691,7 +691,7 @@ private struct GroomerTimeOffSaveActionBar: View {
                         Text("Saving...")
                     }
                 } else {
-                    Label("Add Time Off", systemImage: "checkmark.circle")
+                    Label("Add time off", systemImage: "checkmark.circle")
                 }
             }
             .buttonStyle(BeckonPrimaryButtonStyle(accent: .groomer))

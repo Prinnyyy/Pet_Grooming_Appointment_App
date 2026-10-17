@@ -44,7 +44,7 @@ struct CustomerGroomerListView: View {
             if let error = marketplace.favorites.error { BeckonInlineError(error.message) }
         }
         .listStyle(.plain)
-        .navigationTitle("All Eligible Groomers")
+        .navigationTitle("All eligible groomers")
         .navigationBarTitleDisplayMode(.inline)
         .sheet(item: $detail) { candidate in
             NavigationStack { CustomerGroomerDetailView(candidate: candidate, flow: flow, requests: requests, marketplace: marketplace) }

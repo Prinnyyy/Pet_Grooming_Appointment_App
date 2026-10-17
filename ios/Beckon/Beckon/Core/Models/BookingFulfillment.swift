@@ -194,7 +194,7 @@ extension Booking {
         case .outcomeReported: return "Outcome Awaiting Confirmation"
         case .completed: return "Completed"
         case .cancelled: return status.title
-        case .unfulfilled: return "Service Not Confirmed"
+        case .unfulfilled: return "Service not confirmed"
         }
     }
 }

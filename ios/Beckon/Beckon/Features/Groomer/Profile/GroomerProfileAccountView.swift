@@ -44,7 +44,7 @@ struct GroomerAccountHomeView: View {
                 BeckonGroupedSurface {
                     VStack(spacing: 0) {
                         BeckonSettingsNavigationRow(
-                            title: "Profile Settings",
+                            title: "Profile settings",
                             summary: presentation.profileSummary,
                             systemImage: "person.crop.circle",
                             accent: .groomer
@@ -84,7 +84,7 @@ struct GroomerAccountHomeView: View {
                 }
             }
 
-            BeckonSection("Matching & Schedule") {
+            BeckonSection("Matching & schedule") {
                 BeckonGroupedSurface {
                     VStack(spacing: 0) {
                         BeckonSettingsNavigationRow(
@@ -102,7 +102,7 @@ struct GroomerAccountHomeView: View {
                         )
 
                         BeckonSettingsNavigationRow(
-                            title: "Fit Signals",
+                            title: "Fit signals",
                             summary: presentation.fitSignalsSummary,
                             systemImage: "sparkles",
                             accent: .groomer
@@ -132,7 +132,7 @@ struct GroomerAccountHomeView: View {
                 AccountReleaseLinksSection(accent: .groomer)
             }
 
-            BeckonSection("Account Access") {
+            BeckonSection("Account access") {
                 BeckonGroupedSurface {
                     signOutControl
                 }
@@ -170,7 +170,7 @@ private struct GroomerSignOutRowLabel: View {
                 .frame(width: DesignTokens.Metrics.settingsIconSlot)
                 .accessibilityHidden(true)
 
-            Text("Sign Out")
+            Text("Sign out")
                 .font(DesignTokens.Typography.action)
                 .foregroundStyle(DesignTokens.Colors.statusErrorText)
 

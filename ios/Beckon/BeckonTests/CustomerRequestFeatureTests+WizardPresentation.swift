@@ -187,7 +187,7 @@ extension CustomerRequestsStoreTests {
 
         #expect(presentation.shouldShowLoadError == true)
         #expect(presentation.shouldShowEmptyText == false)
-        #expect(presentation.globalErrorPrompt?.title == "Bookings Didn't Load")
+        #expect(presentation.globalErrorPrompt?.title == "Bookings didn't load")
         #expect(
             presentation.globalErrorPrompt?.message ==
                 "We could not load bookings. Please try again."
@@ -208,7 +208,7 @@ extension CustomerRequestsStoreTests {
         #expect(CustomerRequestWizardStep.allCases.map(\.title) == [
             "Pet",
             "Service",
-            "Time & Location",
+            "Time & location",
             "Details",
             "Review",
         ])
@@ -242,7 +242,7 @@ extension CustomerRequestsStoreTests {
     @Test @MainActor
     func requestWizardSeparatesServiceLocationFromAddressDetails() {
         #expect(CustomerRequestLocationSection.allCases.map(\.title) == [
-            "Service Location",
+            "Service location",
             "Address Details",
         ])
         #expect(CustomerRequestLocationSection.groomingSetup.supportingText == nil)
@@ -255,8 +255,8 @@ extension CustomerRequestsStoreTests {
             BeckonGroomingLocationModePresentation(mode: $0, perspective: .groomer)
         }
 
-        #expect(customerPresentations.map(\.title) == ["My Home", "Groomer's Place"])
-        #expect(groomerPresentations.map(\.title) == ["Customer's Home", "My Place"])
+        #expect(customerPresentations.map(\.title) == ["My home", "Groomer's place"])
+        #expect(groomerPresentations.map(\.title) == ["Customer's home", "My place"])
         #expect(customerPresentations.map(\.supportingText) == [
             "A mobile groomer comes to your address.",
             "You bring your pet to the groomer's location.",
@@ -267,13 +267,13 @@ extension CustomerRequestsStoreTests {
         ])
         #expect(
             BeckonGroomingLocationModePresentation.detailSectionTitle ==
-                "Preferred Time and Service Location"
+                "Preferred time and service location"
         )
         #expect(
             BeckonGroomingLocationModePresentation.detailSectionSubtitle ==
                 "Preferred timing and where grooming will take place."
         )
-        #expect(BeckonGroomingLocationModePresentation.detailFieldTitle == "Service Location")
+        #expect(BeckonGroomingLocationModePresentation.detailFieldTitle == "Service location")
         #expect(customerPresentations.allSatisfy { $0.leadingIcon == nil })
         #expect(groomerPresentations.allSatisfy { $0.leadingIcon == nil })
         #expect(
@@ -440,7 +440,7 @@ extension CustomerRequestsStoreTests {
     @Test @MainActor
     func requestWizardServiceOptionsMapToExistingServiceTypeField() {
         #expect(CustomerRequestServiceOption.allCases.count == 6)
-        #expect(CustomerRequestServiceOption.fullGroom.title == "Full Groom")
+        #expect(CustomerRequestServiceOption.fullGroom.title == "Full groom")
         #expect(CustomerRequestServiceOption.fullGroom.rawValue == "full_groom")
         #expect(CustomerRequestServiceOption.bathAndBrush.rawValue == "bath_and_brush")
         #expect(CustomerRequestServiceOption.customRequest.subtitle == "Describe exactly what you need")
@@ -686,7 +686,7 @@ extension CustomerRequestsStoreTests {
     func requestWizardReviewSummaryUsesCurrentRequestFields() {
         let summary = CustomerRequestWizardReviewPresentation(
             pet: "Mochi · Toy Poodle",
-            service: "Full Groom",
+            service: "Full groom",
             preferredTime: "Fri 19 · Afternoon",
             location: "Mobile · Seattle, WA 98101",
             notes: "Mochi needs a teddy-style trim.",
@@ -696,14 +696,14 @@ extension CustomerRequestsStoreTests {
         #expect(summary.rows.map(\.title) == [
             "Pet",
             "Service",
-            "Preferred Time",
+            "Preferred time",
             "Location",
             "Notes",
-            "Request Photos",
+            "Request photos",
         ])
         #expect(summary.rows.map(\.value) == [
             "Mochi · Toy Poodle",
-            "Full Groom",
+            "Full groom",
             "Fri 19 · Afternoon",
             "Mobile · Seattle, WA 98101",
             "Mochi needs a teddy-style trim.",
@@ -713,7 +713,7 @@ extension CustomerRequestsStoreTests {
 
     @Test @MainActor
     func requestPhotoSelectionCopyKeepsRequestPhotosDistinctFromPetAvatar() {
-        #expect(CustomerRequestPhotoSelectionCopy.title == "Request Photos")
+        #expect(CustomerRequestPhotoSelectionCopy.title == "Request photos")
         #expect(
             CustomerRequestPhotoSelectionCopy.supportingText ==
                 "Add photos specific to this grooming request. Your pet profile photo stays separate."
@@ -1109,14 +1109,11 @@ extension CustomerRequestsStoreTests {
         )
 
         #expect(presentation.headline == "Booking\nConfirmed")
-        #expect(presentation.subtitle == "Full Groom for Mochi")
+        #expect(presentation.subtitle == "Full groom for Mochi")
         #expect(presentation.infoLines == [
             CustomerRequestProgressCardPresentation.InfoLine(
                 systemImage: "calendar",
-                text: Self.compactDisplayRange(
-                    from: booking.scheduledStart,
-                    to: booking.scheduledEnd
-                )
+                text: booking.scheduledTimePresentation.summary
             ),
             CustomerRequestProgressCardPresentation.InfoLine(
                 systemImage: "mappin.and.ellipse",
@@ -1126,7 +1123,7 @@ extension CustomerRequestsStoreTests {
     }
 
     @Test @MainActor
-    func openRequestCardPresentationUsesTitleCaseHeadlineAndCompactTimeRange() async throws {
+    func openRequestCardPresentationMakesUnknownTimeZoneExplicit() async throws {
         let customerID = UUID()
         let request = Self.request(
             customerID: customerID,
@@ -1141,13 +1138,10 @@ extension CustomerRequestsStoreTests {
         #expect(presentation.headline == "Open\nRequest")
         #expect(presentation.infoLines.first == CustomerRequestProgressCardPresentation.InfoLine(
             systemImage: "calendar",
-            text: Self.compactDisplayRange(
-                from: request.preferredStart,
-                to: request.preferredEnd
-            )
+            text: "Time unavailable\nTime zone not confirmed"
         ))
         #expect(presentation.infoLines.first?.text.contains("2026") == false)
-        #expect(presentation.infoLines.first?.text.contains("\n") == false)
+        #expect(presentation.infoLines.first?.text.contains(request.preferredStart) == false)
     }
 
     @Test @MainActor

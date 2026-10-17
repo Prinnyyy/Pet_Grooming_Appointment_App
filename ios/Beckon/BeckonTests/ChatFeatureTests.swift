@@ -736,8 +736,8 @@ struct ChatStoreTests {
         #expect(conversation.latestBookingReferenceCode == "11111111")
         #expect(conversation.participantReferenceCode(for: .customer) == "87654321")
         #expect(conversation.participantReferenceCode(for: .groomer) == "12345678")
-        #expect(conversation.participantSummary(for: .customer) == "Groomer ref 87654321")
-        #expect(conversation.participantSummary(for: .groomer) == "Customer ref 12345678")
+        #expect(conversation.participantSummary(for: .customer) == "Groomer")
+        #expect(conversation.participantSummary(for: .groomer) == "Customer")
     }
 
     @Test
@@ -751,7 +751,7 @@ struct ChatStoreTests {
         )
 
         #expect(conversation.participantSummary(for: .customer) == "Fresh Coat Grooming")
-        #expect(conversation.participantSummary(for: .groomer).hasPrefix("Customer ref "))
+        #expect(conversation.participantSummary(for: .groomer) == "Customer")
         #expect(conversation.scheduledTimeSummary != nil)
         #expect(conversation.priceSummary != nil)
         #expect(conversation.bookingContextSummary.contains("Booking ref 11111111"))

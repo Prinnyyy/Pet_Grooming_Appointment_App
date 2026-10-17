@@ -20,7 +20,7 @@ struct GroomerCandidateActionsView: View {
             .accessibilityIdentifier("discovery.favorite.\(id.uuidString)")
             .help(isFavorite ? "Remove favorite" : "Add favorite")
             if invitation == .notSent {
-                CustomerRequestSendButton(title: "Send Request", confirmation: publicationConfirmation, action: onSend)
+                CustomerRequestSendButton(title: "Send request", confirmation: publicationConfirmation, action: onSend)
                     .buttonStyle(BeckonPrimaryButtonStyle(accent: .customer))
                     .accessibilityIdentifier("discovery.send.\(id.uuidString)")
             } else {

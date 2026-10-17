@@ -110,7 +110,7 @@ final class GroomerProfileStore {
     var timeOffEndDate = Date()
 
     var serviceFormTitle: String {
-        editingServiceID == nil ? "Add Service" : "Edit Service"
+        editingServiceID == nil ? "Add service" : "Edit Service"
     }
 
     var isBusy: Bool {
@@ -124,7 +124,7 @@ final class GroomerProfileStore {
     var profileDisplayName: String {
         Self.normalized(profile?.businessName)
             ?? Self.normalized(cachedProfileSnapshot?.displayName)
-            ?? "Groomer Profile"
+            ?? "Groomer profile"
     }
 
     var profileDetailText: String {
@@ -408,7 +408,7 @@ final class GroomerProfileStore {
     ) {
         let displayName = Self.normalized(profile?.businessName)
             ?? Self.normalized(cachedProfileSnapshot?.displayName)
-            ?? "Groomer Profile"
+            ?? "Groomer profile"
         let snapshot = ProfileSnapshot(
             userID: groomerID,
             displayName: displayName,

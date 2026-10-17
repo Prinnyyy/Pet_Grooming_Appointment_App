@@ -35,8 +35,8 @@ struct CustomerRequestsStoreTests {
             "de_shedding",
             "custom_request",
         ])
-        #expect(GroomingServiceType.fullGroom.title == "Full Groom")
-        #expect(GroomingServiceType.bathAndBrush.title == "Bath & Brush")
+        #expect(GroomingServiceType.fullGroom.title == "Full groom")
+        #expect(GroomingServiceType.bathAndBrush.title == "Bath & brush")
         #expect(GroomingServiceType.customRequest.subtitle == "Describe exactly what you need")
     }
 
@@ -885,21 +885,6 @@ struct CustomerRequestsStoreTests {
             createdAt: "2026-06-20T12:00:00Z",
             updatedAt: updatedAt
         )
-    }
-
-    static func compactDisplayRange(from start: String, to end: String) -> String {
-        "\(compactDisplayString(from: start)) - \(compactDisplayString(from: end))"
-    }
-
-    static func compactDisplayString(from value: String) -> String {
-        guard let date = GroomingRequestDateFormatting.parsedDate(from: value) else {
-            return value
-        }
-
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.dateFormat = "MMM d 'at' h:mm a"
-        return formatter.string(from: date)
     }
 
     static func isoDate(_ value: String) -> Date? {

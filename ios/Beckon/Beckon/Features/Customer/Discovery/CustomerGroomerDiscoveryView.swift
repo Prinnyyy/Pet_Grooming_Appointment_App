@@ -49,7 +49,7 @@ struct CustomerGroomerDiscoveryView: View {
                 NavigationLink {
                     CustomerFavoriteGroomersView(marketplace: marketplace, scope: flow.store.actionScope, flow: flow,
                         onSend: { id in await requests.sendDiscovery(flow, groomerIDs: [id]) })
-                } label: { Label("Saved Groomers", systemImage: "heart") }
+                } label: { Label("Saved groomers", systemImage: "heart") }
                 .accessibilityIdentifier("discovery.favorites")
             }
             .padding(DesignTokens.Spacing.screenHorizontal)
@@ -124,7 +124,7 @@ struct CustomerGroomerDiscoveryView: View {
             .disabled(marketplace.distribution.isPublishing)
             .accessibilityIdentifier("discovery.retry-publication")
         } else if flow.requestID == nil && flow.poolEnabled {
-            CustomerRequestSendButton(title: "Publish to Request Pool", confirmation: flow.publicationConfirmation(names: [])) {
+            CustomerRequestSendButton(title: "Publish to request pool", confirmation: flow.publicationConfirmation(names: [])) {
                 Task { await requests.sendDiscovery(flow, groomerIDs: []) }
             }
             .buttonStyle(BeckonPrimaryButtonStyle(accent: .customer))

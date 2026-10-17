@@ -132,7 +132,7 @@ struct RoleOnboardingView: View {
                     .accessibilityIdentifier("profile.submit")
 
                     Button(role: .destructive, action: onSignOut) {
-                        Label("Sign Out", systemImage: "rectangle.portrait.and.arrow.right")
+                        Label("Sign out", systemImage: "rectangle.portrait.and.arrow.right")
                     }
                     .buttonStyle(BeckonSecondaryButtonStyle(accent: .neutral))
                     .disabled(store.isSubmitting)

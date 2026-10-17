@@ -103,7 +103,10 @@ struct GroomerOfferListItem:
             return "\(serviceType.title) for \(petSnapshot.name)"
         }
 
-        return "Offer \(offer.referenceCode)"
+        if let agreement = offer.agreementSnapshot {
+            return "\(agreement.petSnapshot.name) · \(agreement.serviceType.title)"
+        }
+        return "Grooming appointment"
     }
 
     var subtitle: String {
@@ -115,15 +118,16 @@ struct GroomerOfferListItem:
             return booking.appointmentAddressSummary
         }
 
-        return "Request \(offer.requestReferenceCode)"
+        return "Location not confirmed"
     }
 
     var timeSummary: String {
-        let start = GroomingRequestDateFormatting.displayString(from: offer.proposedStart,
-            serviceTimeZoneIdentifier: offer.serviceTimeZoneIdentifier)
-        let end = GroomingRequestDateFormatting.displayString(from: offer.proposedEnd,
-            serviceTimeZoneIdentifier: offer.serviceTimeZoneIdentifier)
-        return "\(start) – \(end)"
+        timePresentation.summary
+    }
+
+    var timePresentation: BeckonDateTimePresentation {
+        BeckonDateTimeFormatter.interval(from: offer.proposedStart, to: offer.proposedEnd,
+            serviceTimeZoneIdentifier: offer.agreementSnapshot?.serviceTimeZoneIdentifier ?? offer.serviceTimeZoneIdentifier)
     }
 
     var createdAtDate: Date {
@@ -222,6 +226,14 @@ struct GroomerMatchedGroomingRequest:
     var termsRevision: UUID? = nil
     var poolEnabled: Bool? = nil
     var invitationState: RequestInvitationState? = nil
+
+    var preferredTimePresentation: BeckonDateTimePresentation {
+        BeckonDateTimeFormatter.interval(
+            from: preferredStart,
+            to: preferredEnd,
+            serviceTimeZoneIdentifier: preferenceTimeZoneIdentifier
+        )
+    }
 
     var distributionSourceTitle: String? {
         guard let poolEnabled, let invitationState else { return nil }
@@ -324,8 +336,8 @@ enum GroomerOfferDisplayStatus: Equatable, Sendable {
         switch self {
         case .status(let status): status.title
         case .checking: "Checking"
-        case .newOfferRequired: "New Offer Required"
-        case .timeUnavailable: "Time Unavailable"
+        case .newOfferRequired: "New offer required"
+        case .timeUnavailable: "Time unavailable"
         }
     }
 }

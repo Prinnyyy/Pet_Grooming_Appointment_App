@@ -35,8 +35,8 @@ struct GroomingServiceTimingTests {
         let last = GroomingRequestDateFormatting.displayString(from: "2026-11-01T06:30:00Z",
             serviceTimeZoneIdentifier: "America/New_York")
         #expect(first != last)
-        #expect(first.contains("-04"))
-        #expect(last.contains("-05"))
+        #expect(first.contains("EDT"))
+        #expect(last.contains("EST"))
     }
 
     @Test
@@ -44,11 +44,12 @@ struct GroomingServiceTimingTests {
         let instant = "2026-11-01T05:30:00Z"
         for identifier in [nil, "Invalid/Zone"] as [String?] {
             #expect(GroomingRequestDateFormatting.displayString(from: instant,
-                serviceTimeZoneIdentifier: identifier) == "\(instant) (service time zone unconfirmed)")
+                serviceTimeZoneIdentifier: identifier) == "Time unavailable\nTime zone not confirmed")
         }
         let known = GroomingRequestDateFormatting.displayString(from: instant,
             serviceTimeZoneIdentifier: "America/New_York")
-        #expect(known.hasSuffix("(America/New_York)"))
+        #expect(!known.contains("America/New_York"))
+        #expect(known.contains("EDT"))
         #expect(!known.contains("unconfirmed"))
     }
 

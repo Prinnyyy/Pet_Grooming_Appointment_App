@@ -85,7 +85,7 @@ final class GroomerOfferTimingRenderingTests: XCTestCase {
         }
         let fields = descendants(host.view, of: UITextField.self)
         let duration = try XCTUnwrap(fields.first { $0.placeholder == "Duration (minutes)" })
-        let price = try XCTUnwrap(fields.first { $0.placeholder == "Price Estimate" })
+        let price = try XCTUnwrap(fields.first { $0.placeholder == "Price estimate" })
         duration.text = "45"
         duration.sendActions(for: .editingChanged)
         price.text = "127"
@@ -204,7 +204,7 @@ final class GroomerOfferTimingRenderingTests: XCTestCase {
         if referenceZone == nil || matchingState == "pending" {
             XCTAssertTrue(datePickers(host.view).isEmpty)
             if matchingState == "pending" {
-                XCTAssertFalse(textFields(host.view).contains { $0.placeholder == "Duration (minutes)" || $0.placeholder == "Price Estimate" })
+                XCTAssertFalse(textFields(host.view).contains { $0.placeholder == "Duration (minutes)" || $0.placeholder == "Price estimate" })
             }
             XCTAssertEqual(repository.createOfferCallCount, 0)
             return
@@ -217,7 +217,7 @@ final class GroomerOfferTimingRenderingTests: XCTestCase {
         if destinationFailure {
             XCTAssertTrue(datePickers(host.view).isEmpty)
             if FileManager.default.fileExists(atPath: "/tmp/beckon-t374-destination-retry") {
-                let price = try XCTUnwrap(textFields(host.view).first { $0.placeholder == "Price Estimate" })
+                let price = try XCTUnwrap(textFields(host.view).first { $0.placeholder == "Price estimate" })
                 price.text = "127"
                 price.sendActions(for: .editingChanged)
                 let input = BeckonAddressInput(line1: "123 Test Street", line2: "", city: "Anaheim",
@@ -289,7 +289,7 @@ final class GroomerOfferTimingRenderingTests: XCTestCase {
         repeatedAttachment.lifetime = .keepAlways
         add(repeatedAttachment)
         if let expectedInteractiveStart {
-            let price = try XCTUnwrap(textFields(host.view).first { $0.placeholder == "Price Estimate" })
+            let price = try XCTUnwrap(textFields(host.view).first { $0.placeholder == "Price estimate" })
             price.text = "100"
             price.sendActions(for: .editingChanged)
             for _ in 0..<180 where repository.createOfferCallCount == 0 {
@@ -471,7 +471,7 @@ struct GroomerRequestsStoreTests {
         let groomerID = UUID()
         let request = Self.matchedRequest(groomerID: groomerID).request
         let service = GroomerService(id: UUID(), groomerID: groomerID, serviceType: .fullGroom,
-            title: "Full Groom", description: nil, basePrice: 85, durationMinutes: 60,
+            title: "Full groom", description: nil, basePrice: 85, durationMinutes: 60,
             acceptedPetSizes: [], isActive: true)
         let profiles = GroomerProfileRepositoryFake(servicesResult: .success([service]))
         let store = GroomerRequestsStore(groomerID: groomerID, repository: GroomerRequestRepositoryFake(),

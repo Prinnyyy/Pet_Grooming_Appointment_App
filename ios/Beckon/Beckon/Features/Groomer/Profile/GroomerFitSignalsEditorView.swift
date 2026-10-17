@@ -41,7 +41,7 @@ struct GroomerFitSignalsEditorView: View {
         }
         .accessibilityIdentifier("groomer.fit-signals.edit")
         .background(DesignTokens.Colors.appBackground.ignoresSafeArea())
-        .navigationTitle("Fit Signals")
+        .navigationTitle("Fit signals")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .tabBar)
         .onAppear {
@@ -77,7 +77,7 @@ private struct GroomerFitSignalsSelectionBalanceSection: View {
 
     var body: some View {
         BeckonSection(
-            "Selection Balance",
+            "Selection balance",
             subtitle: "Keep your strongest matching signals focused and current."
         ) {
             BeckonGroupedSurface {
@@ -190,7 +190,7 @@ struct GroomerEvidenceDashboardView: View {
                     GroomerEvidenceOverviewSection(summaries: summaries)
 
                     BeckonSection(
-                        "Evidence by Signal",
+                        "Evidence by signal",
                         subtitle: "Verified service feedback"
                     ) {
                         BeckonGroupedSurface {
@@ -223,7 +223,7 @@ private struct GroomerEvidenceOverviewSection: View {
 
     var body: some View {
         BeckonSection(
-            "Evidence Overview",
+            "Evidence overview",
             subtitle: "A summary of outcomes connected to your matching signals."
         ) {
             BeckonGroupedSurface {
@@ -277,7 +277,7 @@ private struct GroomerEvidenceMetric: View {
 private struct GroomerEvidenceEmptyState: View {
     var body: some View {
         BeckonSection(
-            "Evidence Overview",
+            "Evidence overview",
             subtitle: "Evidence appears after completed bookings and structured reviews."
         ) {
             BeckonGroupedSurface {

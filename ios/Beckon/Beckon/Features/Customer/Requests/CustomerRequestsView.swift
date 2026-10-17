@@ -88,7 +88,7 @@ struct CustomerRequestsView: View {
                 pendingCancelRequest = nil
             }
 
-            Button("Cancel Request", role: .destructive) {
+            Button("Cancel request", role: .destructive) {
                 guard let request = pendingCancelRequest else { return }
                 pendingCancelRequest = nil
                 Task {
@@ -181,7 +181,7 @@ struct CustomerRequestsView: View {
         switch dashboardPresentation.state {
         case .loading:
             BeckonLoadingView(
-                title: "Loading Requests…",
+                title: "Loading requests…",
                 message: "Fetching your pet's grooming requests.",
                 accent: .customer
             )
@@ -242,7 +242,7 @@ struct CustomerRequestsView: View {
         NavigationLink {
             CustomerRequestHistoryView(store: store)
         } label: {
-            Label("Request History", systemImage: "clock.arrow.circlepath")
+            Label("Request history", systemImage: "clock.arrow.circlepath")
         }
         .accessibilityIdentifier("customer.requests.history")
 
@@ -302,7 +302,7 @@ private struct CustomerRequestHistoryView: View {
                 let closed = store.requests.recentClosedRequests(limit: .max)
                 if !closed.isEmpty {
                     CustomerCancelledRequestsSection(requests: closed, store: store,
-                        onRepublishRequest: { store.startRepublish(from: $0) }, title: "Closed Requests")
+                        onRepublishRequest: { store.startRepublish(from: $0) }, title: "Closed requests")
                 } else if !store.canLoadMoreRequests {
                     ContentUnavailableView("No Closed Requests", systemImage: "clock.arrow.circlepath")
                 }
@@ -316,7 +316,7 @@ private struct CustomerRequestHistoryView: View {
             }
             .padding(DesignTokens.Spacing.screenHorizontal)
         }
-        .navigationTitle("Request History")
+        .navigationTitle("Request history")
         .accessibilityIdentifier("customer.requests.history-list")
     }
 }

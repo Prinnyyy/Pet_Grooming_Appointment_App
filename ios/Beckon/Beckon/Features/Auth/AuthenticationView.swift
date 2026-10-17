@@ -162,7 +162,7 @@ struct AuthenticationView: View {
             Button {
                 openForm(.signUp)
             } label: {
-                Text("Get Started")
+                Text("Get started")
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(BeckonPrimaryButtonStyle(accent: .customer))
@@ -400,7 +400,7 @@ struct AuthenticationView: View {
     #if DEBUG
     private var debugQuickLoginActions: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            Text("Quick Login")
+            Text("Quick login")
                 .font(DesignTokens.Typography.caption.weight(.bold))
                 .foregroundStyle(DesignTokens.Colors.textTertiary)
                 .textCase(.uppercase)
@@ -444,7 +444,7 @@ struct AuthenticationView: View {
 
         if let errorMessage = store.errorMessage {
             BeckonErrorBanner(
-                title: "Authentication Error",
+                title: "Authentication error",
                 message: errorMessage
             )
             .accessibilityIdentifier("auth.error")
@@ -454,7 +454,7 @@ struct AuthenticationView: View {
     private var formTitle: String {
         switch store.mode {
         case .signIn:
-            "Welcome Back"
+            "Welcome back"
         case .signUp:
             "Create Account"
         }

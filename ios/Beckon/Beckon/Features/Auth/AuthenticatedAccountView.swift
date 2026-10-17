@@ -44,7 +44,7 @@ struct AuthenticatedAccountView: View {
                     BeckonSection("Development") {
                         BeckonGroupedSurface {
                             BeckonSettingsNavigationRow(
-                                title: "Debug Console",
+                                title: "Debug console",
                                 summary: "Runtime events and diagnostics",
                                 systemImage: "ladybug",
                                 accent: profile.role.settingsAccent
@@ -61,7 +61,7 @@ struct AuthenticatedAccountView: View {
                     }
                     #endif
 
-                    BeckonSection("Account Access") {
+                    BeckonSection("Account access") {
                         AccountDangerActions(
                             authenticationStore: authenticationStore
                         )
@@ -92,7 +92,7 @@ struct AccountReleaseLinksSection: View {
         BeckonGroupedSurface {
             VStack(spacing: 0) {
                 releaseLinkRow(
-                    title: "Privacy Policy",
+                    title: "Privacy policy",
                     systemImage: "hand.raised",
                     destination: AppReleaseLinks.privacyPolicy,
                     accessibilityIdentifier: "account.privacy-policy"
@@ -197,7 +197,7 @@ struct AccountDangerActions: View {
     private var signOutTitle: String {
         activeAction == .signOut && authenticationStore.isSubmitting
             ? "Signing Out..."
-            : "Sign Out"
+            : "Sign out"
     }
 
     private func accountActionButton(

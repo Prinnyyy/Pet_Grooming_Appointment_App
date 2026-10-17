@@ -78,7 +78,7 @@ struct CustomerPetFormView: View {
                                         }
 
                                         CustomerPetFormChoiceRow(
-                                            title: "Coat Type",
+                                            title: "Coat type",
                                             subtitle: store.formCoatType.title
                                         ) {
                                             ForEach(CustomerPetCoatType.displayOptions) { coatType in
@@ -135,7 +135,7 @@ struct CustomerPetFormView: View {
                                 }
 
                                 Picker("Coat Matting", selection: $store.formMattingConfirmed) {
-                                    Text("Not Sure").tag(Bool?.none)
+                                    Text("Not sure").tag(Bool?.none)
                                     Text("No").tag(Bool?.some(false))
                                     Text("Yes").tag(Bool?.some(true))
                                 }
@@ -143,7 +143,7 @@ struct CustomerPetFormView: View {
 
                                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
                                     CustomerPetFormLabeledTextField(
-                                        title: "Medical Notes",
+                                        title: "Medical notes",
                                         placeholder: "Allergies, medication, injuries",
                                         text: $store.formMedicalNotes,
                                         focusTarget: .medicalNotes,
@@ -151,7 +151,7 @@ struct CustomerPetFormView: View {
                                     )
 
                                     CustomerPetFormLabeledTextField(
-                                        title: "Grooming Notes",
+                                        title: "Grooming notes",
                                         placeholder: "Anxiety, coat needs, handling preferences",
                                         text: $store.formGroomingNotes,
                                         focusTarget: .groomingNotes,
@@ -166,7 +166,7 @@ struct CustomerPetFormView: View {
 
                         if let errorMessage = store.errorMessage {
                             BeckonErrorBanner(
-                                title: "Check Pet Details",
+                                title: "Check pet details",
                                 message: errorMessage
                             )
                             .accessibilityIdentifier("customer.pets.form-error")
@@ -252,7 +252,7 @@ private struct CustomerPetFormPhotoModule: View {
 
     var body: some View {
         BeckonPhotoEditorCard(
-            title: "Pet Photo",
+            title: "Pet photo",
             statusText: store.formAvatarPhotoData == nil
                 ? "Add a photo for this pet."
                 : "Photo saved to this pet profile.",
@@ -572,7 +572,7 @@ struct CustomerPetsStatusView: View {
         return BeckonGlobalFeedbackError(
             scope: .page("customer.pets"),
             sourceKey: "customer.pets.error",
-            title: "We Could Not Update Your Pets",
+            title: "We could not update your pets",
             message: errorMessage
         )
     }

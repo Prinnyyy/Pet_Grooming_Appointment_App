@@ -15,7 +15,7 @@ nonisolated struct MatchingEvidence: Decodable, Equatable, Hashable, Sendable {
         guard algorithmVersion == "matching-v1" else { return "Evidence unavailable" }
         switch state {
         case "available":
-            return "\(relatedReviewCount) related reviews from \(independentCustomers) customers"
+            return "\(relatedReviewCount) related review\(relatedReviewCount == 1 ? "" : "s") from \(independentCustomers) customer\(independentCustomers == 1 ? "" : "s")"
         case "no_evidence": return "No verified related feedback yet"
         default: return "Evidence unavailable"
         }

@@ -253,7 +253,7 @@ final class TestOpsRequestDiscoveryTests: XCTestCase {
             tap(cancel)
             let confirmation = app.alerts["Cancel this request?"]
             XCTAssertTrue(confirmation.waitForExistence(timeout: 5))
-            tap(confirmation.buttons["Cancel Request"])
+            tap(confirmation.buttons["Cancel request"])
             XCTAssertTrue(confirmation.waitForNonExistence(timeout: 10))
             XCTAssertTrue(wait(timeout: 20) { !cancel.exists || !cancel.isEnabled })
             evidence("Customer cancellation completed with discovery disabled")
@@ -323,7 +323,7 @@ final class TestOpsRequestDiscoveryTests: XCTestCase {
                 formatter.dateFormat = "EEEE, MMMM d"
                 let label = formatter.string(from: day)
                 tap(app.buttons.matching(NSPredicate(format: "label == %@ OR label == %@", label, "Today, \(label)")).firstMatch)
-                tap(app.staticTexts["Appointment Date"].firstMatch)
+                tap(app.staticTexts["Appointment date"].firstMatch)
             }
             tap(element("\(role == .customer ? "bookings" : "groomer.booking").row.request.\(reference)"))
             XCTAssertTrue(element("bookings.detail").waitForExistence(timeout: 20))
@@ -463,7 +463,7 @@ final class TestOpsRequestDiscoveryTests: XCTestCase {
     }
 
     private func completeTimeAndReview(_ fixture: Input) {
-        tap(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'My Home,'")).firstMatch)
+        tap(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'My home,'")).firstMatch)
         tap(element("customer.requests.use-profile-address"))
         XCTAssertTrue(wait { self.element("beckon.address.line1").exists
             && self.element("beckon.address.line1").value as? String == "399 TestOps Synthetic Way" })

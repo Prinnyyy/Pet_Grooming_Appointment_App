@@ -28,6 +28,16 @@ struct CustomerGroomingRequest: Equatable, Hashable, Identifiable, Sendable {
         "\(serviceType.title) for \(petSnapshot.name)"
     }
 
+    var displayTitle: String {
+        let petName = petSnapshot.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        return petName.isEmpty ? serviceType.title : "\(serviceType.title) · \(petName)"
+    }
+
+    var preferredTimePresentation: BeckonDateTimePresentation {
+        BeckonDateTimeFormatter.interval(from: preferredStart, to: preferredEnd,
+            serviceTimeZoneIdentifier: preferenceTimeZoneIdentifier)
+    }
+
     func reconciling(_ progress: CustomerRequestProgress) -> Self {
         guard id == progress.requestID, termsRevision == progress.termsRevision,
               status.isOpenForOffers, !progress.status.isOpenForOffers else { return self }
@@ -256,7 +266,8 @@ struct CustomerOfferReview: Equatable, Identifiable, Sendable {
     }
 
     var groomerTitle: String {
-        groomerProfile?.businessName ?? "Groomer"
+        let name = groomerProfile?.businessName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return name.isEmpty ? "Groomer" : name
     }
 
     var groomerLocationSummary: String {
@@ -283,12 +294,17 @@ struct CustomerOfferReview: Equatable, Identifiable, Sendable {
         let average = exactAverage.formatted(
             .number.precision(.fractionLength(1))
         )
-        return "\(average) · \(groomerProfile.ratingCount) reviews"
+        return "\(average) · \(groomerProfile.ratingCount) review\(groomerProfile.ratingCount == 1 ? "" : "s")"
     }
 
     var proposedTimeSummary: String {
+        proposedTimePresentation.summary
+    }
+
+    var proposedTimePresentation: BeckonDateTimePresentation {
         let zone = offer.agreementSnapshot?.serviceTimeZoneIdentifier ?? offer.serviceTimeZoneIdentifier
-        return "\(GroomingRequestDateFormatting.displayString(from: offer.proposedStart, serviceTimeZoneIdentifier: zone)) – \(GroomingRequestDateFormatting.displayString(from: offer.proposedEnd, serviceTimeZoneIdentifier: zone))"
+        return BeckonDateTimeFormatter.interval(from: offer.proposedStart, to: offer.proposedEnd,
+            serviceTimeZoneIdentifier: zone)
     }
 
     var statusSummary: String {
@@ -334,14 +350,7 @@ nonisolated enum GroomingRequestDateFormatting {
     }
 
     static func displayString(from value: String) -> String {
-        guard let date = date(from: value) else {
-            return value
-        }
-
-        return date.formatted(
-            date: .abbreviated,
-            time: .shortened
-        )
+        BeckonDateTimeFormatter.localInstant(from: value)
     }
 
     static func parsedDate(from value: String) -> Date? {
@@ -349,14 +358,7 @@ nonisolated enum GroomingRequestDateFormatting {
     }
 
     static func displayString(from value: String, serviceTimeZoneIdentifier: String?) -> String {
-        guard let date = date(from: value) else { return value }
-        guard let identifier = serviceTimeZoneIdentifier,
-              let calendar = try? GroomingServiceTiming.locationCalendar(identifier) else {
-            return "\(value) (service time zone unconfirmed)"
-        }
-        let formatted = date.formatted(Date.FormatStyle(date: .abbreviated, time: .shortened,
-            calendar: calendar, timeZone: calendar.timeZone).timeZone(.iso8601(.short)))
-        return "\(formatted) (\(identifier))"
+        BeckonDateTimeFormatter.instant(from: value, serviceTimeZoneIdentifier: serviceTimeZoneIdentifier).summary
     }
 
     private static func serverFormatter() -> ISO8601DateFormatter {

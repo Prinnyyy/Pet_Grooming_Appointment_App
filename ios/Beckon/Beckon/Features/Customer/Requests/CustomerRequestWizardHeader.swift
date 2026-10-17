@@ -5,7 +5,7 @@ struct CustomerRequestWizardHeader: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            Text("Grooming Request")
+            Text("Grooming request")
                 .font(DesignTokens.Typography.fieldLabel)
                 .foregroundStyle(DesignTokens.Colors.textTertiary)
             GeometryReader { proxy in

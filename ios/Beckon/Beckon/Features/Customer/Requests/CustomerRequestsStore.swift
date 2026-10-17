@@ -17,7 +17,7 @@ enum CustomerRequestWizardStep: Int, CaseIterable, Identifiable {
         case .service:
             "Service"
         case .time:
-            "Time & Location"
+            "Time & location"
         case .details:
             "Details"
         case .review:
@@ -28,15 +28,15 @@ enum CustomerRequestWizardStep: Int, CaseIterable, Identifiable {
     var headline: String {
         switch self {
         case .pet:
-            "Who Needs Grooming?"
+            "Who needs grooming?"
         case .service:
-            "What Service Do You Need?"
+            "What service do you need?"
         case .time:
-            "When and Where Works Best?"
+            "When and where works best?"
         case .details:
-            "Add Helpful Details"
+            "Add helpful details"
         case .review:
-            "Review Your Request"
+            "Review your request"
         }
     }
 
@@ -1782,7 +1782,7 @@ final class CustomerRequestsStore {
         let streetAddress = try streetAddressValue(self.streetAddress)
         let addressLine2 = try optional(
             self.addressLine2,
-            field: "Address Line 2",
+            field: "Address line 2",
             maximum: 60
         ) ?? ""
         let city = try required(city, field: "City", range: 1...100)

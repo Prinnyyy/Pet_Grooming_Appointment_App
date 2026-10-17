@@ -630,7 +630,7 @@ extension GroomerProfileStoreTests {
 
         #expect(repository.createServiceCallCount == 1)
         #expect(repository.lastServiceDraft?.serviceType == .bathAndBrush)
-        #expect(repository.lastServiceDraft?.title == "Bath & Brush")
+        #expect(repository.lastServiceDraft?.title == "Bath & brush")
         #expect(repository.lastServiceDraft?.description == "Shampoo")
         #expect(repository.lastServiceDraft?.basePrice == 45.50)
         #expect(repository.lastServiceDraft?.durationMinutes == 60)
@@ -701,7 +701,7 @@ extension GroomerProfileStoreTests {
             id: UUID(),
             groomerID: groomerID,
             serviceType: .bathAndBrush,
-            title: "Bath & Brush",
+            title: "Bath & brush",
             description: nil,
             basePrice: 45,
             durationMinutes: 60,

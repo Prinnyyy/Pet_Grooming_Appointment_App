@@ -21,7 +21,7 @@ struct BeckonFitEvidenceBlock: View {
 
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                 HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
-                    Text("Fit Evidence")
+                    Text("Fit evidence")
                         .font(DesignTokens.Typography.caption.weight(.semibold))
                         .foregroundStyle(DesignTokens.Colors.statusInfoText)
 

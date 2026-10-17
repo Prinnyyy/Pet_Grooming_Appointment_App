@@ -194,11 +194,11 @@ struct GroomerOffersStoreTests {
         let groomerID = UUID()
         let item = Self.offerItem(groomerID: groomerID, status: .pending)
 
-        #expect(item.title == "Full Groom for Mochi")
+        #expect(item.title == "Full groom for Mochi")
         #expect(item.subtitle == "Seattle, WA 98101")
         #expect(
             item.timeSummary
-                == "\(item.offer.proposedStart) (service time zone unconfirmed) – \(item.offer.proposedEnd) (service time zone unconfirmed)"
+                == "Time unavailable\nTime zone not confirmed"
         )
     }
 

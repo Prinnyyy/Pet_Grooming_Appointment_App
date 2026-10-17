@@ -31,7 +31,7 @@ struct GroomerServicesEditorView: View {
                 Button(action: startCreateService) {
                     Image(systemName: "plus")
                 }
-                .accessibilityLabel("Add Service")
+                .accessibilityLabel("Add service")
                 .accessibilityIdentifier("groomer.services.add")
                 .disabled(store.isBusy)
             }
@@ -49,7 +49,7 @@ private struct GroomerServicesSection: View {
 
     var body: some View {
         BeckonSection(
-            "Service Menu",
+            "Service menu",
             subtitle: presentation.summary
         ) {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
@@ -107,7 +107,7 @@ private struct GroomerServicesEmptyState: View {
                     .fixedSize(horizontal: false, vertical: true)
 
                 Button(action: action) {
-                    Label("Add Service", systemImage: "plus")
+                    Label("Add service", systemImage: "plus")
                 }
                 .buttonStyle(BeckonSecondaryButtonStyle(accent: .groomer, isFullWidth: false))
             }
@@ -275,7 +275,7 @@ struct GroomerServiceFormView: View {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
                         BeckonSection(
-                            "Service Type",
+                            "Service type",
                             subtitle: "Choose the category customers will see."
                         ) {
                             GroomerServiceTypePicker(selection: $store.serviceType)
@@ -291,7 +291,7 @@ struct GroomerServiceFormView: View {
                             )
                         }
 
-                        BeckonSection("Accepted Species") {
+                        BeckonSection("Accepted species") {
                             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                                 ForEach(GroomerServiceSpecies.allCases) { species in
                                     Toggle(species.title, isOn: Binding(
@@ -309,13 +309,13 @@ struct GroomerServiceFormView: View {
                             }
                         }
 
-                        BeckonSection("Accepted Pet Size") {
+                        BeckonSection("Accepted pet size") {
                             GroomerServiceAcceptedPetSizeSection(store: store)
                         }
 
                         if let errorMessage = store.errorMessage {
                             BeckonErrorBanner(
-                                title: "Service Could Not Be Saved",
+                                title: "Service could not be saved",
                                 message: errorMessage
                             )
                             .accessibilityIdentifier("groomer.services.form-error")
@@ -382,7 +382,7 @@ private struct GroomerServiceDetailsSection: View {
 
                 HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
                     GroomerProfileTextField(
-                        title: "Base Price",
+                        title: "Base price",
                         text: $store.serviceBasePrice,
                         prompt: "Price",
                         focusTarget: GroomerServiceFormFocusTarget.basePrice.rawValue,

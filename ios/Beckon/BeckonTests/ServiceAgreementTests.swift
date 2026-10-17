@@ -33,7 +33,7 @@ struct ServiceAgreementTests {
         offer.quoteEvaluation = try JSONDecoder().decode(QuoteEvaluation.self, from: Data(
             #"{"terms_valid":true,"selectable":false,"reason":"capacity_unavailable"}"#.utf8))
         #expect(CustomerOfferReview(offer: offer, groomerProfile: nil).isCurrentProposal(now: now))
-        #expect(offer.evaluatedStatusTitle(now: now) == "Time Unavailable")
+        #expect(offer.evaluatedStatusTitle(now: now) == "Time unavailable")
         offer.quoteEvaluation = try JSONDecoder().decode(QuoteEvaluation.self, from: Data(
             #"{"terms_valid":false,"selectable":false,"reason":"expired"}"#.utf8))
         #expect(!CustomerOfferReview(offer: offer, groomerProfile: nil).isCurrentProposal(now: now))

@@ -21,17 +21,17 @@ nonisolated enum GroomingServiceType:
     var title: String {
         switch self {
         case .fullGroom:
-            "Full Groom"
+            "Full groom"
         case .bathAndBrush:
-            "Bath & Brush"
+            "Bath & brush"
         case .haircutOnly:
-            "Haircut Only"
+            "Haircut only"
         case .nailTrim:
-            "Nail Trim"
+            "Nail trim"
         case .deShedding:
             "De-shedding"
         case .customRequest:
-            "Custom Request"
+            "Custom request"
         }
     }
 
@@ -340,7 +340,7 @@ nonisolated struct PetFitSignal:
         var title: String {
             switch self {
             case .coatType, .verifiedCoat:
-                "Coat Type"
+                "Coat type"
             case .breedGroup:
                 "Breed Group"
             case .sizeBand, .verifiedSize:
@@ -561,7 +561,7 @@ nonisolated struct PetFitSignal:
         case .mattedCoatHandling:
             "Matted Coat Handling"
         case .nailPawCare:
-            "Nail Trim & Paw Care"
+            "Nail trim & Paw Care"
         case .puppyFirstGroom:
             "Puppy / First Groom"
         case .reactiveLowTolerance:

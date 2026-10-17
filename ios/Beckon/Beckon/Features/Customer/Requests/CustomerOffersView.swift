@@ -55,7 +55,7 @@ struct CustomerRequestOffersView: View {
                     .ignoresSafeArea()
 
                 BeckonEmptyState(
-                    title: "Request Unavailable",
+                    title: "Request unavailable",
                     message: "Refresh requests and try again.",
                     systemImage: "doc.text.magnifyingglass",
                     accent: .customer

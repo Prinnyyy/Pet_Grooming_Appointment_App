@@ -49,7 +49,7 @@ struct GroomerProfileEditorView: View {
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("groomer.profile.edit")
         .background(DesignTokens.Colors.appBackground.ignoresSafeArea())
-        .navigationTitle("Profile Settings")
+        .navigationTitle("Profile settings")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .tabBar)
         .onChange(of: focusedTarget) { _, target in
@@ -71,7 +71,7 @@ private struct GroomerAvatarEditorSection: View {
         let photoActionTitle = hasSavedPhoto ? "Replace Photo" : "Upload Photo"
 
         BeckonPhotoEditorCard(
-            title: "Profile Photo",
+            title: "Profile photo",
             statusText: photoStatusText,
             showsSavedIndicator: hasSavedPhoto,
             savedAccessibilityLabel: "Profile photo saved"
@@ -136,15 +136,15 @@ private struct GroomerProfileFormSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
             BeckonSection(
-                "Business Details",
+                "Business details",
                 subtitle: "Name, biography, and professional experience."
             ) {
                 BeckonGroupedSurface {
                     VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
                         GroomerProfileTextField(
-                            title: "Business Name",
+                            title: "Business name",
                             text: $store.businessName,
-                            prompt: "Business Name",
+                            prompt: "Business name",
                             focusTarget: GroomerProfileFocusTarget.businessName.rawValue,
                             focusedTarget: $focusedTarget
                         )
@@ -167,7 +167,7 @@ private struct GroomerProfileFormSection: View {
             }
 
             BeckonSection(
-                "Service Area",
+                "Service area",
                 subtitle: "Address and travel preferences used for matching."
             ) {
                 BeckonGroupedSurface {
@@ -196,7 +196,7 @@ private struct GroomerProfileFormSection: View {
                 BeckonGroupedSurface {
                     VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
                         GroomerProfileToggleRow(
-                            title: "Visible to Authenticated Customers",
+                            title: "Visible to authenticated customers",
                             subtitle: "Customers can discover and receive offers from active groomer profiles.",
                             systemImage: "eye",
                             isOn: $store.isActive
@@ -264,7 +264,7 @@ private struct GroomerExperiencePicker: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            Text("Years Of Experience")
+            Text("Years of experience")
                 .font(DesignTokens.Typography.caption)
                 .foregroundStyle(DesignTokens.Colors.textSecondary)
 
@@ -302,7 +302,7 @@ private struct GroomerProfileRadiusSlider: View {
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
             HStack(alignment: .firstTextBaseline) {
-                Text("Service Radius")
+                Text("Service radius")
                     .font(DesignTokens.Typography.caption)
                     .foregroundStyle(DesignTokens.Colors.textSecondary)
 
@@ -372,7 +372,7 @@ private struct GroomerProfileLocationModePicker: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            Text("Service Location")
+            Text("Service location")
                 .font(DesignTokens.Typography.caption)
                 .foregroundStyle(DesignTokens.Colors.textSecondary)
 

@@ -136,7 +136,7 @@ struct BeckonSystemNotificationsView: View {
         if isLoading, notifications.isEmpty {
             ScrollView {
                 BeckonLoadingView(
-                    title: "Loading Notifications...",
+                    title: "Loading notifications...",
                     message: "Checking your latest Beckon updates.",
                     accent: loadingAccent
                 )
@@ -153,7 +153,7 @@ struct BeckonSystemNotificationsView: View {
 
                     if let errorMessage {
                         BeckonErrorBanner(
-                            title: "Notifications Unavailable",
+                            title: "Notifications unavailable",
                             message: errorMessage
                         ) {
                             Button {
@@ -161,7 +161,7 @@ struct BeckonSystemNotificationsView: View {
                                     await loadAction()
                                 }
                             } label: {
-                                Label("Try Again", systemImage: "arrow.clockwise")
+                                Label("Try again", systemImage: "arrow.clockwise")
                             }
                             .buttonStyle(BeckonSecondaryButtonStyle(accent: actionAccent))
                             .disabled(isLoading)
@@ -171,7 +171,7 @@ struct BeckonSystemNotificationsView: View {
 
                     if notifications.isEmpty, errorMessage == nil {
                         BeckonEmptyState(
-                            title: "No Notifications",
+                            title: "No notifications",
                             message: presentation.emptyMessage,
                             systemImage: "bell",
                             accent: emptyStateAccent

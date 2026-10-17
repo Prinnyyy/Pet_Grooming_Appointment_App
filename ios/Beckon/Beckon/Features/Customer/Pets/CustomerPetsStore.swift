@@ -79,7 +79,7 @@ final class CustomerPetsStore {
     private var formBaseline: CustomerPetFormSnapshot?
 
     var formTitle: String {
-        editingPetID == nil ? "Add Pet" : "Edit Pet"
+        editingPetID == nil ? "Add pet" : "Edit Pet"
     }
 
     var formActionTitle: String {

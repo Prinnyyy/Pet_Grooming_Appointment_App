@@ -50,7 +50,7 @@ struct GroomerProfileManagementView: View {
 
             if store.shouldShowInitialLoading {
                 BeckonLoadingView(
-                    title: "Loading Groomer Profile…",
+                    title: "Loading groomer profile…",
                     message: "We are preparing your profile, services, and portfolio settings.",
                     accent: .groomer
                 )
@@ -58,12 +58,12 @@ struct GroomerProfileManagementView: View {
                 .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
             } else if store.profile == nil, let error = store.errorMessage {
                 ScrollView {
-                    BeckonErrorBanner(title: "Account Unavailable", message: error) {
-                        Button("Try Again", systemImage: "arrow.clockwise") { Task { await store.load() } }
+                    BeckonErrorBanner(title: "Account unavailable", message: error) {
+                        Button("Try again", systemImage: "arrow.clockwise") { Task { await store.load() } }
                             .buttonStyle(BeckonSecondaryButtonStyle(accent: .groomer))
                             .disabled(store.isBusy)
                         if let onSignOut {
-                            Button("Sign Out", role: .destructive, action: onSignOut)
+                            Button("Sign out", role: .destructive, action: onSignOut)
                                 .buttonStyle(BeckonSecondaryButtonStyle(accent: .groomer))
                         }
                     }

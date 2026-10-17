@@ -6,9 +6,9 @@ enum BeckonGroomingLocationPerspective {
 }
 
 struct BeckonGroomingLocationModePresentation: Equatable {
-    static let detailSectionTitle = "Preferred Time and Service Location"
+    static let detailSectionTitle = "Preferred time and service location"
     static let detailSectionSubtitle = "Preferred timing and where grooming will take place."
-    static let detailFieldTitle = "Service Location"
+    static let detailFieldTitle = "Service location"
 
     let title: String
     let supportingText: String
@@ -22,16 +22,16 @@ struct BeckonGroomingLocationModePresentation: Equatable {
 
         switch (mode, perspective) {
         case (.groomerComesToCustomer, .customer):
-            title = "My Home"
+            title = "My home"
             supportingText = "A mobile groomer comes to your address."
         case (.customerComesToGroomer, .customer):
-            title = "Groomer's Place"
+            title = "Groomer's place"
             supportingText = "You bring your pet to the groomer's location."
         case (.groomerComesToCustomer, .groomer):
-            title = "Customer's Home"
+            title = "Customer's home"
             supportingText = "You travel to the customer's address."
         case (.customerComesToGroomer, .groomer):
-            title = "My Place"
+            title = "My place"
             supportingText = "The customer brings their pet to your location."
         }
     }

@@ -156,7 +156,7 @@ struct AuthenticatedEntryView: View {
                 .ignoresSafeArea()
 
             BeckonLoadingView(
-                title: "Loading Profile…",
+                title: "Loading profile…",
                 message: "Preparing your Beckon workspace."
             )
             .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
@@ -172,7 +172,7 @@ struct AuthenticatedEntryView: View {
 
                 VStack(spacing: DesignTokens.Spacing.standard) {
                     BeckonErrorBanner(
-                        title: "Profile Unavailable",
+                        title: "Profile unavailable",
                         message: message
                     ) {
                         VStack(spacing: DesignTokens.Spacing.md) {
@@ -188,7 +188,7 @@ struct AuthenticatedEntryView: View {
                             Button(role: .destructive) {
                                 signOut()
                             } label: {
-                                Label("Sign Out", systemImage: "rectangle.portrait.and.arrow.right")
+                                Label("Sign out", systemImage: "rectangle.portrait.and.arrow.right")
                             }
                             .buttonStyle(BeckonSecondaryButtonStyle(accent: .neutral))
                             .disabled(authenticationStore.isSubmitting)

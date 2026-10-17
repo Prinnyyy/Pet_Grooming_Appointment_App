@@ -128,7 +128,7 @@ struct CustomerPetsView: View {
 
                 if petStore.hasPendingCreation || petStore.hasCreationRecoveryError {
                     Button { petStore.startCreate() } label: {
-                        Label("Confirm Pending Pet", systemImage: "arrow.clockwise")
+                        Label("Confirm pending pet", systemImage: "arrow.clockwise")
                     }
                     .accessibilityIdentifier("customer.pets.resume-create")
                 }
@@ -316,7 +316,7 @@ struct CustomerHomeNextBookingPresentation: Equatable {
         return BeckonGlobalFeedbackError(
             scope: .page("customer.home"),
             sourceKey: "customer.home.bookings.load",
-            title: "Bookings Didn't Load",
+            title: "Bookings didn't load",
             message: loadErrorMessage
         )
     }
@@ -335,7 +335,7 @@ private struct CustomerHomeHeader: View {
                     .foregroundStyle(DesignTokens.Colors.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
 
-                Text("Welcome Back")
+                Text("Welcome back")
                     .font(DesignTokens.Typography.supporting)
                     .foregroundStyle(DesignTokens.Colors.textSecondary)
             }
@@ -500,7 +500,7 @@ private struct CustomerHomePetsSection: View {
         BeckonSection("Pets") {
             if store.isLoading, store.pets.isEmpty {
                 BeckonLoadingView(
-                    title: "Loading Pets…",
+                    title: "Loading pets…",
                     message: "Fetching your saved pet profiles.",
                     accent: .customer
                 )
@@ -633,7 +633,7 @@ private struct CustomerHomeAddPetTile: View {
                     .background(DesignTokens.Colors.surfaceRaised)
                     .clipShape(DesignTokens.Shapes.circular)
 
-                Text("Add Pet")
+                Text("Add pet")
                     .font(DesignTokens.Typography.action)
                     .foregroundStyle(DesignTokens.Colors.textTertiary)
             }
@@ -658,7 +658,7 @@ private struct CustomerHomeAddPetTile: View {
             )
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Add Pet")
+        .accessibilityLabel("Add pet")
         .accessibilityHint("Opens the pet profile form.")
         .accessibilityIdentifier("customer.pets.add")
     }
@@ -670,7 +670,7 @@ private struct CustomerHomeActiveRequestSection: View {
     let retry: () -> Void
 
     var body: some View {
-        BeckonSection("Active Request") {
+        BeckonSection("Active request") {
             switch presentation.state {
             case .loaded:
                 CustomerRequestActionCardSummaryCarousel(
@@ -681,7 +681,7 @@ private struct CustomerHomeActiveRequestSection: View {
 
             case .loading:
                 BeckonLoadingView(
-                    title: "Loading Requests…",
+                    title: "Loading requests…",
                     message: "Checking your active grooming requests.",
                     accent: .customer
                 )
@@ -710,10 +710,10 @@ private struct CustomerHomeNextBookingSection: View {
     let retry: () -> Void
 
     var body: some View {
-        BeckonSection("Next Booking") {
+        BeckonSection("Next booking") {
             if presentation.shouldShowLoading {
                 BeckonLoadingView(
-                    title: "Loading Booking…",
+                    title: "Loading booking…",
                     message: "Checking confirmed appointments.",
                     accent: .customer
                 )
@@ -721,11 +721,11 @@ private struct CustomerHomeNextBookingSection: View {
             } else if presentation.shouldShowLoadError,
                       let message = presentation.loadErrorMessage {
                 BeckonErrorBanner(
-                    title: "Bookings Didn't Load",
+                    title: "Bookings didn't load",
                     message: message,
                     systemImage: "calendar.badge.exclamationmark"
                 ) {
-                    Button("Try Again", action: retry)
+                    Button("Try again", action: retry)
                         .buttonStyle(
                             BeckonSecondaryButtonStyle(
                                 accent: .customer,

@@ -329,8 +329,8 @@ struct BookingsStoreTests {
         )
 
         #expect(presentation.petName == "Mochi")
-        #expect(presentation.petDetail == "Poodle · Full Groom")
-        #expect(presentation.customerReference == "Customer ref 123E4567")
+        #expect(presentation.petDetail == "Poodle · Full groom")
+        #expect(presentation.customerReference == "Customer")
         #expect(presentation.location == "Mobile")
         #expect(presentation.status == .confirmed)
     }
@@ -547,7 +547,7 @@ struct BookingsStoreTests {
 
         #expect(presentation.persistentLoadError?.title == "We Could Not Load Schedule")
         #expect(presentation.persistentLoadError?.message == "We could not load your schedule. Please try again.")
-        #expect(presentation.persistentLoadError?.actionTitle == "Try Again")
+        #expect(presentation.persistentLoadError?.actionTitle == "Try again")
         #expect(presentation.toastError == nil)
     }
 
@@ -1146,8 +1146,8 @@ struct BookingsStoreTests {
         #expect(booking.offerReferenceCode == "99999999")
         #expect(booking.participantReferenceCode(for: .customer) == "87654321")
         #expect(booking.participantReferenceCode(for: .groomer) == "12345678")
-        #expect(booking.participantSummary(for: .customer) == "Groomer ref 87654321")
-        #expect(booking.participantSummary(for: .groomer) == "Customer ref 12345678")
+        #expect(booking.participantSummary(for: .customer) == "Groomer")
+        #expect(booking.participantSummary(for: .groomer) == "Customer")
     }
 
     @Test @MainActor
@@ -1163,18 +1163,18 @@ struct BookingsStoreTests {
         )
 
         #expect(booking.partnerDisplayTitle(for: .customer) == "Ava Chen")
-        #expect(booking.appointmentServiceTitle == "Bath & Brush")
+        #expect(booking.appointmentServiceTitle == "Bath & brush")
         #expect(
             BeckonGroomingLocationModePresentation(
                 mode: .groomerComesToCustomer,
                 perspective: .customer
-            ).title == "My Home"
+            ).title == "My home"
         )
         #expect(
             BeckonGroomingLocationModePresentation(
                 mode: .groomerComesToCustomer,
                 perspective: .groomer
-            ).title == "Customer's Home"
+            ).title == "Customer's home"
         )
         #expect(booking.appointmentAddressSummary == "Original address unverified. Confirm with the other participant.")
     }
@@ -1190,12 +1190,12 @@ struct BookingsStoreTests {
             locationMode: .customerComesToGroomer
         )
 
-        #expect(booking.partnerDisplayTitle(for: .customer) == "Groomer Name")
+        #expect(booking.partnerDisplayTitle(for: .customer) == "Grooming appointment")
         #expect(
             BeckonGroomingLocationModePresentation(
                 mode: .customerComesToGroomer,
                 perspective: .customer
-            ).title == "Groomer's Place"
+            ).title == "Groomer's place"
         )
         #expect(booking.appointmentAddressSummary == "Original address unverified. Confirm with the other participant.")
     }

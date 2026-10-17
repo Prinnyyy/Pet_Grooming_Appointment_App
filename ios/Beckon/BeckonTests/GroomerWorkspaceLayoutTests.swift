@@ -9,7 +9,7 @@ final class GroomerWorkspaceLayoutTests: XCTestCase {
         var previewFrame = CGRect.zero
         var actionFrame = CGRect.zero
         let host = UIHostingController(rootView: BeckonPhotoEditorCard(
-            title: "Profile Photo", statusText: "Photo saved to your profile.",
+            title: "Profile photo", statusText: "Photo saved to your profile.",
             showsSavedIndicator: true, savedAccessibilityLabel: "Profile photo saved") {
                 Color.clear.frame(width: 96, height: 96)
                     .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { previewFrame = $0 }
@@ -74,7 +74,7 @@ final class GroomerWorkspaceLayoutTests: XCTestCase {
     func testSectionAccessoryReflowsBelowHeadingAtAccessibilitySize() async throws {
         var accessoryFrame = CGRect.zero
         let host = UIHostingController(rootView: BeckonSectionHeading(
-            title: "Weekly Hours", subtitle: "Set the recurring hours when you can accept appointments.") {
+            title: "Weekly hours", subtitle: "Set the recurring hours when you can accept appointments.") {
                 Text("1 day open")
                     .font(DesignTokens.Typography.status)
                     .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { accessoryFrame = $0 }

@@ -32,7 +32,7 @@ struct BeckonAddressEditor: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            labeledField("Address Line 1") {
+            labeledField("Address line 1") {
                 BeckonLimitedTextField(
                     placeholder: "Street address",
                     text: Binding(
@@ -51,7 +51,7 @@ struct BeckonAddressEditor: View {
                         Task { await state.refreshSuggestions() }
                     }
                 )
-                .accessibilityLabel("Address Line 1")
+                .accessibilityLabel("Address line 1")
                 .accessibilityIdentifier(BeckonAddressEditorSelectors.line1)
                 .anchorPreference(
                     key: BeckonAddressLineOneBoundsKey.self,
@@ -62,7 +62,7 @@ struct BeckonAddressEditor: View {
             }
             .beckonKeyboardFocusTarget(BeckonAddressEditorSelectors.line1Container)
 
-            labeledField("Address Line 2", detail: "Optional") {
+            labeledField("Address line 2", detail: "Optional") {
                 BeckonLimitedTextField(
                     placeholder: "Apt, unit, suite, floor",
                     text: Binding(
@@ -79,7 +79,7 @@ struct BeckonAddressEditor: View {
                     },
                     onTextChange: { _ in }
                 )
-                .accessibilityLabel("Address Line 2, optional")
+                .accessibilityLabel("Address line 2, optional")
                 .accessibilityIdentifier(BeckonAddressEditorSelectors.line2)
             }
             .beckonKeyboardFocusTarget(BeckonAddressEditorSelectors.line2Container)
@@ -380,7 +380,7 @@ private struct BeckonAddressReviewSheet: View {
             }
             .scrollIndicators(.hidden)
             .background(DesignTokens.Colors.appBackground)
-            .navigationTitle("Confirm Service Address")
+            .navigationTitle("Confirm service address")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -397,8 +397,8 @@ private struct BeckonAddressReviewSheet: View {
 
     @ViewBuilder
     private func confirmationContent(_ presentation: BeckonAddressConfirmationPresentation) -> some View {
-        addressSection(title: "Entered Address", input: presentation.entered)
-        addressSection(title: "Apple Maps Suggested Address", input: presentation.resolved.suggested)
+        addressSection(title: "Entered address", input: presentation.entered)
+        addressSection(title: "Apple Maps suggested address", input: presentation.resolved.suggested)
 
         Button("Use Suggested Address") {
             state.useSuggestedAddress()

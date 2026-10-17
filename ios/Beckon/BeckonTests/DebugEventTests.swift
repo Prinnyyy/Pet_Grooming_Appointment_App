@@ -69,7 +69,7 @@ struct AppDebugEventTests {
         let error = BeckonGlobalFeedbackError(
             scope: scope,
             sourceKey: "customer.bookings.load",
-            title: "We Could Not Update Requests",
+            title: "We could not update requests",
             message: "We could not load bookings. Please try again."
         )
 
@@ -89,7 +89,7 @@ struct AppDebugEventTests {
         )
         #expect(enqueue.scope == "customer.bookings")
         #expect(enqueue.metadata["sourceKey"] == "customer.bookings.load")
-        #expect(enqueue.metadata["title"] == "We Could Not Update Requests")
+        #expect(enqueue.metadata["title"] == "We could not update requests")
         #expect(enqueue.metadata["message"] == "We could not load bookings. Please try again.")
         #expect(writer.lines.isEmpty == false)
     }

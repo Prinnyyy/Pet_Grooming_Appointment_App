@@ -29,6 +29,8 @@
 
 ## Copy
 
+Use sentence case for headings, field labels, status labels and explanatory copy. Preserve proper names and acronyms; command buttons may retain title case. Format appointment intervals through `BeckonDateTimeFormatter`, keep full time-zone identifiers in details/accessibility labels, and show unknown zones explicitly without raw timestamps. Counts must use correct singular/plural forms.
+
 Preferred terms: Beckon, Find a groomer, Start a grooming request, Publish request, Open requests, Make offer, Review offers, Accept offer, Booking confirmed, Not a fit, Waiting for offers, No offers yet.
 
 Avoid: Task card, Send task, Reject customer, Reject task, Recipient, Submission, Card exchange.

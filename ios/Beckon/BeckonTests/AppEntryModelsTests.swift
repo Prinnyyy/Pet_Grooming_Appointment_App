@@ -241,7 +241,7 @@ struct BeckonFeedbackCenterTests {
     func globalFeedbackCenterQueuesMixedPromptTypesOneAtATime() async throws {
         let center = BeckonFeedbackCenter()
         let error = BeckonGlobalFeedbackError(
-            title: "Booking Update Failed",
+            title: "Booking update failed",
             message: "We could not load bookings. Please try again."
         )
         let progress = BeckonGlobalFeedbackProgress(
@@ -287,7 +287,7 @@ struct BeckonFeedbackCenterTests {
     func errorPromptAutoDismissesAndDoesNotReplayUntilSourceClears() async throws {
         let center = BeckonFeedbackCenter()
         let error = BeckonGlobalFeedbackError(
-            title: "Booking Update Failed",
+            title: "Booking update failed",
             message: "We could not load bookings. Please try again."
         )
 
@@ -314,7 +314,7 @@ struct BeckonFeedbackCenterTests {
         let pageError = BeckonGlobalFeedbackError(
             scope: pageScope,
             sourceKey: "bookings.load",
-            title: "Booking Update Failed",
+            title: "Booking update failed",
             message: "We could not load bookings. Please try again."
         )
         let queuedPageError = BeckonGlobalFeedbackError(
@@ -352,26 +352,26 @@ struct BeckonFeedbackCenterTests {
             sourceKey: "bookings.load",
             title: "We Could Not Load Bookings",
             message: "Check your connection and try again.",
-            actionTitle: "Try Again"
+            actionTitle: "Try again"
         )
         let sameSource = BeckonPersistentFeedbackError(
             scope: .page("customer.bookings"),
             sourceKey: "bookings.load",
             title: "We Could Not Load Bookings",
             message: "Check your connection and try again.",
-            actionTitle: "Try Again"
+            actionTitle: "Try again"
         )
         let otherPage = BeckonPersistentFeedbackError(
             scope: .page("customer.requests"),
             sourceKey: "bookings.load",
             title: "We Could Not Load Bookings",
             message: "Check your connection and try again.",
-            actionTitle: "Try Again"
+            actionTitle: "Try again"
         )
 
         #expect(error.identityKey == sameSource.identityKey)
         #expect(error.identityKey != otherPage.identityKey)
-        #expect(error.actionTitle == "Try Again")
+        #expect(error.actionTitle == "Try again")
     }
 
     @MainActor

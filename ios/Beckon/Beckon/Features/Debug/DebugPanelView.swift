@@ -57,7 +57,7 @@ struct DebugPanelView: View {
                         }
                     }
 
-                    DebugPanelSection(title: "Current Feedback") {
+                    DebugPanelSection(title: "Current feedback") {
                         if let snapshot = feedbackCenter?.debugSnapshot {
                             if let active = snapshot.active {
                                 DebugPanelFeedbackPromptView(
@@ -80,7 +80,7 @@ struct DebugPanelView: View {
                         }
                     }
 
-                    DebugPanelSection(title: "Recent Events") {
+                    DebugPanelSection(title: "Recent events") {
                         if recentEvents.isEmpty {
                             row("Events", "No debug events recorded.")
                         } else {
@@ -90,7 +90,7 @@ struct DebugPanelView: View {
                         }
                     }
 
-                    DebugPanelSection(title: "Errors Only") {
+                    DebugPanelSection(title: "Errors only") {
                         if errorEvents.isEmpty {
                             row("Errors", "No errors or cancellations recorded.")
                         } else {
@@ -104,7 +104,7 @@ struct DebugPanelView: View {
                         Button {
                             exportRecentSnapshot()
                         } label: {
-                            Label("Copy Recent Snapshot", systemImage: "doc.on.doc")
+                            Label("Copy recent snapshot", systemImage: "doc.on.doc")
                         }
                         .buttonStyle(BeckonSecondaryButtonStyle(accent: .neutral))
 
@@ -112,7 +112,7 @@ struct DebugPanelView: View {
                             debugRecorder?.clear()
                             exportNotice = "Logs cleared."
                         } label: {
-                            Label("Clear Logs", systemImage: "trash")
+                            Label("Clear logs", systemImage: "trash")
                         }
                         .buttonStyle(BeckonSecondaryButtonStyle(accent: .neutral))
 
@@ -127,7 +127,7 @@ struct DebugPanelView: View {
                 .padding(.vertical, DesignTokens.Spacing.lg)
             }
         }
-        .navigationTitle("Debug Console")
+        .navigationTitle("Debug console")
         .navigationBarTitleDisplayMode(.inline)
         .accessibilityIdentifier("debug.panel")
     }

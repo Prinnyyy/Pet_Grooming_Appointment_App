@@ -188,7 +188,7 @@ final class GroomerHomeStore {
         } catch let error as GroomerProfileRepositoryError {
             addIssue(
                 .profile,
-                title: "Profile Unavailable",
+                title: "Profile unavailable",
                 message: message(for: error, section: .profile),
                 error: error
             )
@@ -197,7 +197,7 @@ final class GroomerHomeStore {
         } catch {
             addIssue(
                 .profile,
-                title: "Profile Unavailable",
+                title: "Profile unavailable",
                 message: message(for: .unavailable, section: .profile),
                 error: error
             )
@@ -215,7 +215,7 @@ final class GroomerHomeStore {
         } catch let error as GroomerProfileRepositoryError {
             addIssue(
                 .availability,
-                title: "Availability Unavailable",
+                title: "Availability unavailable",
                 message: message(for: error, section: .availability),
                 error: error
             )
@@ -224,7 +224,7 @@ final class GroomerHomeStore {
         } catch {
             addIssue(
                 .availability,
-                title: "Availability Unavailable",
+                title: "Availability unavailable",
                 message: message(for: .unavailable, section: .availability),
                 error: error
             )
@@ -248,7 +248,7 @@ final class GroomerHomeStore {
         } catch let error as GroomerRequestRepositoryError {
             addIssue(
                 .requests,
-                title: "Requests Unavailable",
+                title: "Requests unavailable",
                 message: requestMessage(for: error),
                 error: error
             )
@@ -257,7 +257,7 @@ final class GroomerHomeStore {
         } catch {
             addIssue(
                 .requests,
-                title: "Requests Unavailable",
+                title: "Requests unavailable",
                 message: requestMessage(for: .unavailable),
                 error: error
             )
@@ -277,7 +277,7 @@ final class GroomerHomeStore {
         } catch let error as GroomerRequestRepositoryError {
             addIssue(
                 .offers,
-                title: "Offers Unavailable",
+                title: "Offers unavailable",
                 message: requestMessage(for: error),
                 error: error
             )
@@ -286,7 +286,7 @@ final class GroomerHomeStore {
         } catch {
             addIssue(
                 .offers,
-                title: "Offers Unavailable",
+                title: "Offers unavailable",
                 message: requestMessage(for: .unavailable),
                 error: error
             )
@@ -305,7 +305,7 @@ final class GroomerHomeStore {
         } catch let error as BookingRepositoryError {
             addIssue(
                 .bookings,
-                title: "Schedule Unavailable",
+                title: "Schedule unavailable",
                 message: bookingMessage(for: error),
                 error: error
             )
@@ -314,7 +314,7 @@ final class GroomerHomeStore {
         } catch {
             addIssue(
                 .bookings,
-                title: "Schedule Unavailable",
+                title: "Schedule unavailable",
                 message: bookingMessage(for: .unavailable),
                 error: error
             )

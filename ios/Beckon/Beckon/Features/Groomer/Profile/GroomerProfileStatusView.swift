@@ -21,7 +21,7 @@ struct GroomerProfileStatusView: View {
         return BeckonGlobalFeedbackError(
             scope: .page("groomer.profile"),
             sourceKey: "groomer.profile.error",
-            title: "Profile Needs Attention",
+            title: "Profile needs attention",
             message: errorMessage
         )
     }
@@ -82,7 +82,7 @@ private final class GroomerProfilePreviewRepository: GroomerProfileRepository {
                 id: UUID(),
                 groomerID: groomerID,
                 serviceType: .fullGroom,
-                title: "Full Groom",
+                title: "Full groom",
                 description: "Bath, haircut, nails, and ear cleaning.",
                 basePrice: 95,
                 durationMinutes: 120,

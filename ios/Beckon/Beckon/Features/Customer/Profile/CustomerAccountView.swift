@@ -54,7 +54,7 @@ struct CustomerAccountView: View {
                     BeckonSection("Profile") {
                         BeckonGroupedSurface {
                             BeckonSettingsNavigationRow(
-                                title: "Profile Settings",
+                                title: "Profile settings",
                                 summary: "Photo, nickname, contact, and address",
                                 systemImage: "person.crop.circle",
                                 accent: .customer
@@ -69,7 +69,7 @@ struct CustomerAccountView: View {
                     }
 
                     if let marketplace {
-                        BeckonSettingsNavigationRow(title: "Saved Groomers", summary: nil,
+                        BeckonSettingsNavigationRow(title: "Saved groomers", summary: nil,
                             systemImage: "heart", accent: .customer) {
                             CustomerFavoriteGroomersView(marketplace: marketplace)
                         }
@@ -88,7 +88,7 @@ struct CustomerAccountView: View {
                     BeckonSection("Development") {
                         BeckonGroupedSurface {
                             BeckonSettingsNavigationRow(
-                                title: "Debug Console",
+                                title: "Debug console",
                                 summary: "Runtime events and diagnostics",
                                 systemImage: "ladybug",
                                 accent: .customer
@@ -105,7 +105,7 @@ struct CustomerAccountView: View {
                     }
                     #endif
 
-                    BeckonSection("Account Access") {
+                    BeckonSection("Account access") {
                         AccountDangerActions(
                             authenticationStore: authenticationStore
                         )

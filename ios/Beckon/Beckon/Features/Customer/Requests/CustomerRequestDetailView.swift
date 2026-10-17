@@ -56,7 +56,7 @@ struct CustomerRequestDetailView: View {
                             Button {
                                 store.startRevision(from: request)
                             } label: {
-                                Label("Revise Request", systemImage: "square.and.pencil")
+                                Label("Revise request", systemImage: "square.and.pencil")
                             }
                             .buttonStyle(BeckonSecondaryButtonStyle(accent: .customer))
                             .disabled(store.isSubmitting || request.termsRevision == nil)
@@ -71,7 +71,7 @@ struct CustomerRequestDetailView: View {
                                 Button(role: .destructive) {
                                     isTimingCancellationPresented = true
                                 } label: {
-                                    Label("Cancel Outdated Request", systemImage: "xmark.circle")
+                                    Label("Cancel outdated request", systemImage: "xmark.circle")
                                 }
                                 .disabled(store.cancellingRequestIDs.contains(request.id))
                                 .accessibilityIdentifier("customer.requests.timing-recovery.cancel")
@@ -94,7 +94,7 @@ struct CustomerRequestDetailView: View {
                 }
                 .scrollContentBackground(.hidden)
             }
-            .navigationTitle("Request Details")
+            .navigationTitle("Request details")
             .navigationBarTitleDisplayMode(.inline)
             .accessibilityIdentifier("customer.requests.detail")
             .task(id: requestID) {
@@ -102,7 +102,7 @@ struct CustomerRequestDetailView: View {
             }
             .alert("Cancel this request?", isPresented: $isTimingCancellationPresented) {
                 Button("Keep Request", role: .cancel) {}
-                Button("Cancel Request", role: .destructive) {
+                Button("Cancel request", role: .destructive) {
                     Task { await store.cancel(request) }
                 }
             } message: {
@@ -114,14 +114,14 @@ struct CustomerRequestDetailView: View {
                     .ignoresSafeArea()
 
                 BeckonEmptyState(
-                    title: "Request Unavailable",
+                    title: "Request unavailable",
                     message: "Refresh requests and try again.",
                     systemImage: "doc.text.magnifyingglass",
                     accent: .customer
                 )
                 .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
             }
-            .navigationTitle("Request Details")
+            .navigationTitle("Request details")
         }
     }
 
@@ -155,7 +155,7 @@ struct CustomerRequestDetailView: View {
 
     private func petSnapshotCard(_ request: CustomerGroomingRequest) -> some View {
         BeckonAnnotatedModule(
-            "Pet Snapshot",
+            "Pet snapshot",
             subtitle: "Pet details captured when this request was published."
         ) {
             BeckonCard {
@@ -223,7 +223,7 @@ struct CustomerRequestDetailView: View {
                 if request.locationMode == .customerComesToGroomer,
                    let travelRadiusMiles = request.travelRadiusMiles {
                     DetailMetadataRow(
-                        title: "Travel Radius",
+                        title: "Travel radius",
                         value: "\(travelRadiusMiles) miles",
                         systemImage: "point.topleft.down.curvedto.point.bottomright.up"
                     )
@@ -238,7 +238,7 @@ struct CustomerRequestDetailView: View {
         let photos = store.requestPhotos(for: request)
         if !photos.isEmpty {
             BeckonAnnotatedModule(
-                "Request Photos",
+                "Request photos",
                 subtitle: "\(photos.count) photo\(photos.count == 1 ? "" : "s") attached to this request."
             ) {
                 BeckonCard {
@@ -391,7 +391,7 @@ struct CustomerOfferReviewSection: View {
                 Group {
                 if store.isLoadingOffers(for: request), offers.isEmpty {
                     BeckonLoadingView(
-                        title: "Loading Offers…",
+                        title: "Loading offers…",
                         message: "Checking for groomer responses.",
                         accent: .customer
                     )
@@ -399,13 +399,13 @@ struct CustomerOfferReviewSection: View {
                 } else if offers.isEmpty,
                           let errorMessage = store.offerError(for: request) {
                     BeckonErrorBanner(
-                        title: "We Could Not Load Offers",
+                        title: "We could not load offers",
                         message: errorMessage
                     )
                         .accessibilityIdentifier("customer.offers.error")
                 } else if offers.isEmpty {
                     BeckonEmptyState(
-                        title: "No Offers Yet",
+                        title: "No offers yet",
                         message: "Matched groomers can submit offers while this request is open.",
                         systemImage: "tag",
                         accent: .customer
@@ -415,7 +415,7 @@ struct CustomerOfferReviewSection: View {
                     VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                         if !pendingOffers.isEmpty {
                             offerGroup(
-                                title: "Pending Offers",
+                                title: "Pending offers",
                                 offers: pendingOffers,
                                 isHistorical: false,
                                 now: now
@@ -433,7 +433,7 @@ struct CustomerOfferReviewSection: View {
 
                         if !historicalOffers.isEmpty {
                             offerGroup(
-                                title: "Offer History",
+                                title: "Offer history",
                                 offers: historicalOffers,
                                 isHistorical: true,
                                 now: now
@@ -444,7 +444,7 @@ struct CustomerOfferReviewSection: View {
 
                         if let errorMessage = store.offerError(for: request) {
                             BeckonErrorBanner(
-                                title: "More Offers Unavailable",
+                                title: "More offers unavailable",
                                 message: errorMessage
                             )
                             .accessibilityIdentifier("customer.offers.load-more-error")
@@ -471,7 +471,7 @@ struct CustomerOfferReviewSection: View {
                         await store.loadOffers(for: request)
                     }
                 } label: {
-                    Label("Refresh Offers", systemImage: "arrow.clockwise")
+                    Label("Refresh offers", systemImage: "arrow.clockwise")
                 }
                 .buttonStyle(BeckonSecondaryButtonStyle())
                 .disabled(store.isLoadingOffers(for: request))
@@ -567,6 +567,7 @@ struct CustomerOfferSummaryRow: View {
                     if !typeSize.isAccessibilitySize { Spacer(minLength: DesignTokens.Spacing.md) }
 
                     Text(offerReview.proposedTimeSummary)
+                        .accessibilityLabel(offerReview.proposedTimePresentation.accessibilityLabel)
                         .font(DesignTokens.Typography.caption)
                         .foregroundStyle(DesignTokens.Colors.textSecondary)
                         .multilineTextAlignment(typeSize.isAccessibilitySize ? .leading : .trailing)
@@ -605,7 +606,7 @@ struct CustomerOfferAcceptancePresentation: Equatable {
         request: CustomerGroomingRequest,
         offerReview: CustomerOfferReview
     ) {
-        title = "Confirm Booking"
+        title = "Confirm booking"
         groomer = offerReview.groomerTitle
         supportingText =
             "Review the final appointment details before booking with \(groomer)."
@@ -737,7 +738,7 @@ struct CustomerOfferDetailView: View {
                         .ignoresSafeArea()
 
                     BeckonEmptyState(
-                        title: "Offer Unavailable",
+                        title: "Offer unavailable",
                         message: "Refresh offers and try again.",
                         systemImage: "tag.slash",
                         accent: .customer
@@ -860,7 +861,7 @@ struct CustomerOfferDetailView: View {
                 }
 
                 DetailMetadataRow(
-                    title: "Requested Time",
+                    title: "Requested time",
                     value: requestTimeSummary,
                     systemImage: "calendar"
                 )
@@ -879,7 +880,7 @@ struct CustomerOfferDetailView: View {
 
                 if let errorMessage = store.errorMessage {
                     BeckonErrorBanner(
-                        title: "We Could Not Accept This Offer",
+                        title: "We could not accept this offer",
                         message: errorMessage
                     )
                 }
@@ -890,7 +891,7 @@ struct CustomerOfferDetailView: View {
                         pendingAcceptance = offerReview
                     } label: {
                         Label(
-                            "Review & Accept",
+                            "Review & accept",
                             systemImage: "checkmark.circle"
                         )
                     }
@@ -938,7 +939,7 @@ struct CustomerOfferDetailView: View {
     }
 
     private var requestTimeSummary: String {
-        "\(GroomingRequestDateFormatting.displayString(from: request.preferredStart, serviceTimeZoneIdentifier: request.preferenceTimeZoneIdentifier)) – \(GroomingRequestDateFormatting.displayString(from: request.preferredEnd, serviceTimeZoneIdentifier: request.preferenceTimeZoneIdentifier))"
+        request.preferredTimePresentation.summary
     }
 }
 
@@ -1022,7 +1023,7 @@ private struct CustomerOfferAcceptanceConfirmationView: View {
                                     systemImage: "tag"
                                 )
                                 DetailMetadataRow(
-                                    title: "Service Location",
+                                    title: "Service location",
                                     value: presentation.location,
                                     systemImage: "location"
                                 )
@@ -1044,7 +1045,7 @@ private struct CustomerOfferAcceptanceConfirmationView: View {
                         if hasAttemptedAcceptance,
                            let errorMessage = store.errorMessage {
                             BeckonErrorBanner(
-                                title: "We Could Not Confirm This Booking",
+                                title: "We could not confirm this booking",
                                 message: errorMessage
                             )
                         }
@@ -1053,7 +1054,7 @@ private struct CustomerOfferAcceptanceConfirmationView: View {
                 }
                 .scrollIndicators(.hidden)
             }
-            .navigationTitle("Confirm Booking")
+            .navigationTitle("Confirm booking")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {

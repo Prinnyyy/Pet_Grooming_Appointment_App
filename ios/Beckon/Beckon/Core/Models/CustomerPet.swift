@@ -318,7 +318,7 @@ nonisolated enum CustomerPetCoatType: String, CaseIterable, Identifiable, Sendab
     var title: String {
         switch self {
         case .notSure:
-            "Not Sure"
+            "Not sure"
         case .curlyWavy:
             "Curly / Wavy"
         case .wire:
@@ -507,7 +507,7 @@ nonisolated enum CustomerPetSizeCode: String, CaseIterable, Identifiable, Sendab
 }
 
 nonisolated enum CustomerPetTemperament: String, CaseIterable, Identifiable, Sendable {
-    case notSure = "Not Sure"
+    case notSure = "Not sure"
     case friendly = "Friendly"
     case playful = "Playful"
     case calm = "Calm"

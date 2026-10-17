@@ -101,7 +101,7 @@ struct ChatConversationsView: View {
         if store.isLoadingConversations, store.conversations.isEmpty {
             ScrollView {
                 BeckonLoadingView(
-                    title: "Loading Conversations…",
+                    title: "Loading conversations…",
                     message: "Checking accepted bookings for participant chats.",
                     accent: role.beckonLoadingAccent
                 )
@@ -149,7 +149,7 @@ struct ChatConversationsView: View {
 
     private var emptyConversationsState: some View {
         BeckonEmptyState(
-            title: "No Conversations Yet",
+            title: "No conversations yet",
             message: "Accepted bookings create participant conversations.",
             systemImage: "message",
             accent: role.beckonEmptyAccent
@@ -387,15 +387,15 @@ struct ChatThreadView: View {
                     }
 
                     if let error = store.messageLoadErrors[conversation.id] {
-                        recoveryBanner(title: "Messages Unavailable", message: error)
+                        recoveryBanner(title: "Messages unavailable", message: error)
                     } else if store.interruptedMessageSubscriptions.contains(conversation.id) {
-                        recoveryBanner(title: "Live Updates Paused", message: "Refresh to reconnect and check for new messages.")
+                        recoveryBanner(title: "Live updates paused", message: "Refresh to reconnect and check for new messages.")
                     }
 
                     if store.isLoadingMessages(for: conversation.id),
                        store.messages(for: conversation.id).isEmpty {
                         BeckonLoadingView(
-                            title: "Loading Messages...",
+                            title: "Loading messages...",
                             message: "Opening this booking conversation.",
                             accent: role.beckonLoadingAccent
                         )
@@ -403,7 +403,7 @@ struct ChatThreadView: View {
                     } else if store.messages(for: conversation.id).isEmpty,
                               store.messageLoadErrors[conversation.id] == nil {
                         BeckonEmptyState(
-                            title: "No Messages Yet",
+                            title: "No messages yet",
                             message: "Send the first message for this booking.",
                             systemImage: "bubble.left.and.bubble.right",
                             accent: role.beckonEmptyAccent
@@ -418,7 +418,7 @@ struct ChatThreadView: View {
                                 ),
                                 accent: role.beckonSecondaryAccent,
                                 accessibilityIdentifier: "chat.messages.load-earlier",
-                                title: "Load Earlier Messages",
+                                title: "Load earlier messages",
                                 systemImage: "chevron.up",
                                 loadingAccessibilityLabel: "Loading earlier messages"
                             ) {
@@ -484,7 +484,7 @@ struct ChatThreadView: View {
             Button {
                 Task { await refreshThread() }
             } label: {
-                Label("Refresh Messages", systemImage: "arrow.clockwise")
+                Label("Refresh messages", systemImage: "arrow.clockwise")
             }
             .buttonStyle(BeckonSecondaryButtonStyle(accent: role.beckonSecondaryAccent))
             .disabled(store.isLoadingMessages(for: conversation.id))
@@ -861,7 +861,7 @@ private struct ChatStatusView: View {
         return BeckonGlobalFeedbackError(
             scope: .page("\(role.rawValue).messages"),
             sourceKey: "\(role.rawValue).messages.error",
-            title: "Message Update Failed",
+            title: "Message update failed",
             message: errorMessage
         )
     }
@@ -872,11 +872,9 @@ extension ChatConversation {
         switch role {
         case .customer:
             let title = participantSummary(for: role)
-            return title.localizedCaseInsensitiveContains("groomer ref")
-                ? "Assigned Groomer"
-                : title
+            return title == "Groomer" ? "Groomer · \(participantReferenceCode(for: role))" : title
         case .groomer:
-            return participantSummary(for: role)
+            return "Customer · \(participantReferenceCode(for: role))"
         }
     }
 

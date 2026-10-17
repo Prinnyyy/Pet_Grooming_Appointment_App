@@ -389,12 +389,12 @@ extension CustomerRequestsStoreTests {
             offerReview: offerReview
         )
 
-        #expect(presentation.title == "Confirm Booking")
+        #expect(presentation.title == "Confirm booking")
         #expect(presentation.groomer == "Fresh Paws Grooming")
-        #expect(presentation.service == "Full Groom")
+        #expect(presentation.service == "Full groom")
         #expect(presentation.price == "$125.00")
         #expect(presentation.time == offerReview.proposedTimeSummary)
-        #expect(presentation.location == "My Home")
+        #expect(presentation.location == "My home")
         #expect(
             presentation.address ==
                 "770 S Harbor Blvd, Unit 2410, Fullerton, CA 92832"

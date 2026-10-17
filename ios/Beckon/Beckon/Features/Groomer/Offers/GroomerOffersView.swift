@@ -8,7 +8,7 @@ struct GroomerOffersContentView: View {
     var body: some View {
         if store.isLoading, store.offers.isEmpty {
             BeckonLoadingView(
-                title: "Loading Offers…",
+                title: "Loading offers…",
                 message: "We are collecting your pending and past customer offers.",
                 accent: .groomer
             )
@@ -24,7 +24,7 @@ struct GroomerOffersContentView: View {
 
                     if let errorMessage = store.errorMessage {
                         BeckonErrorBanner(
-                            title: "More Offers Unavailable",
+                            title: "More offers unavailable",
                             message: errorMessage
                         )
                         .accessibilityIdentifier("groomer.offers.load-more-error")
@@ -50,7 +50,7 @@ struct GroomerOffersContentView: View {
     private var emptyOrErrorState: some View {
         if let errorMessage = store.errorMessage {
             BeckonErrorBanner(
-                title: "Offers Unavailable",
+                title: "Offers unavailable",
                 message: errorMessage
             ) {
                 Button {
@@ -58,7 +58,7 @@ struct GroomerOffersContentView: View {
                         await store.load()
                     }
                 } label: {
-                    Label("Try Again", systemImage: "arrow.clockwise")
+                    Label("Try again", systemImage: "arrow.clockwise")
                 }
                 .buttonStyle(BeckonSecondaryButtonStyle(accent: .groomer))
                 .disabled(store.isLoading)
@@ -66,7 +66,7 @@ struct GroomerOffersContentView: View {
             .accessibilityIdentifier("groomer.offers.error")
         } else {
             BeckonEmptyState(
-                title: "No Offers Yet",
+                title: "No offers yet",
                 message: "Offers you submit from matched requests will appear here with their latest customer status.",
                 systemImage: "tag",
                 accent: .groomer
@@ -149,6 +149,7 @@ private struct GroomerOfferRow: View {
                     .fixedSize(horizontal: false, vertical: true)
 
                 Text(item.timeSummary)
+                    .accessibilityLabel(item.timePresentation.accessibilityLabel)
                     .font(DesignTokens.Typography.caption)
                     .foregroundStyle(DesignTokens.Colors.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -192,14 +193,14 @@ struct GroomerOfferDetailView: View {
                         Button {
                             Task { await openRequest() }
                         } label: {
-                            Label("View Request", systemImage: "arrow.right")
+                            Label("View request", systemImage: "arrow.right")
                         }
                         .buttonStyle(BeckonSecondaryButtonStyle(accent: .groomer))
                         .disabled(isOpeningRequest)
                         .accessibilityIdentifier("groomer.offers.view-request")
                     }
                     if let requestError {
-                        BeckonErrorBanner(title: "Request Unavailable", message: requestError)
+                        BeckonErrorBanner(title: "Request unavailable", message: requestError)
                     }
                     GroomerOfferFactsCard(item: item)
 
@@ -285,7 +286,7 @@ private struct GroomerOfferFactsCard: View {
     var body: some View {
         BeckonCard {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                Text("Offer Details")
+                Text("Offer details")
                     .font(DesignTokens.Typography.headline)
                     .foregroundStyle(DesignTokens.Colors.textPrimary)
 
@@ -295,7 +296,7 @@ private struct GroomerOfferFactsCard: View {
                     systemImage: "dollarsign.circle"
                 )
                 GroomerOfferFactRow(
-                    title: "Proposed Start",
+                    title: "Proposed start",
                     value: GroomingRequestDateFormatting.displayString(
                         from: item.offer.proposedStart,
                         serviceTimeZoneIdentifier: item.offer.agreementSnapshot?.serviceTimeZoneIdentifier
@@ -304,7 +305,7 @@ private struct GroomerOfferFactsCard: View {
                     systemImage: "calendar"
                 )
                 GroomerOfferFactRow(
-                    title: "Proposed End",
+                    title: "Proposed end",
                     value: GroomingRequestDateFormatting.displayString(
                         from: item.offer.proposedEnd,
                         serviceTimeZoneIdentifier: item.offer.agreementSnapshot?.serviceTimeZoneIdentifier
@@ -360,7 +361,7 @@ private struct GroomerOfferRequestCard: View {
                     systemImage: "mappin.and.ellipse"
                 )
                 GroomerOfferFactRow(
-                    title: "Request Status",
+                    title: "Request status",
                     value: request.status.title,
                     systemImage: "tray.full"
                 )
@@ -380,7 +381,7 @@ private struct GroomerOfferBookingCard: View {
                     .foregroundStyle(DesignTokens.Colors.textPrimary)
 
                 GroomerOfferFactRow(
-                    title: "Booking Ref",
+                    title: "Booking ref",
                     value: booking.referenceCode,
                     systemImage: "checkmark.seal"
                 )
@@ -390,7 +391,7 @@ private struct GroomerOfferBookingCard: View {
                     systemImage: "calendar"
                 )
                 GroomerOfferFactRow(
-                    title: "Booking Status",
+                    title: "Booking status",
                     value: booking.status.title,
                     systemImage: "clock"
                 )
@@ -465,7 +466,7 @@ struct GroomerOffersStatusView: View {
         return BeckonGlobalFeedbackError(
             scope: .page("groomer.requests.offers"),
             sourceKey: "groomer.requests.offers.error",
-            title: "Offers Unavailable",
+            title: "Offers unavailable",
             message: errorMessage
         )
     }
@@ -488,8 +489,6 @@ private extension GroomerOfferStatus {
             "Unknown"
         }
     }
-
-
 
     var offerListDescription: String {
         switch self {

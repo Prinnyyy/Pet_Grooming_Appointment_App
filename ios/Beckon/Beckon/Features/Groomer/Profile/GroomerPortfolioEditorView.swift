@@ -80,7 +80,7 @@ private struct GroomerPortfolioGallerySection: View {
 
     var body: some View {
         BeckonSection(
-            "Work Gallery",
+            "Work gallery",
             subtitle: "Show customers the grooming work that represents your skills."
         ) {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
@@ -243,7 +243,7 @@ private struct GroomerPortfolioPhotoDetailView: View {
         }
         .accessibilityIdentifier("groomer.portfolio.detail")
         .background(DesignTokens.Colors.appBackground.ignoresSafeArea())
-        .navigationTitle("Portfolio Photo")
+        .navigationTitle("Portfolio photo")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .tabBar)
         .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -400,7 +400,7 @@ private struct GroomerPortfolioFitNotesEditorSection: View {
 
     var body: some View {
         BeckonSection(
-            "Fit Notes",
+            "Fit notes",
             subtitle: "Connect this work sample to the skills it demonstrates."
         ) {
             BeckonGroupedSurface {

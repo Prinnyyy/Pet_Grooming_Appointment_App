@@ -66,7 +66,8 @@ struct ChatConversation: Equatable, Hashable, Identifiable, Sendable {
 
     nonisolated var scheduledTimeSummary: String? {
         guard let scheduledStart, let scheduledEnd else { return nil }
-        return "\(GroomingRequestDateFormatting.displayString(from: scheduledStart, serviceTimeZoneIdentifier: serviceTimeZoneIdentifier)) – \(GroomingRequestDateFormatting.displayString(from: scheduledEnd, serviceTimeZoneIdentifier: serviceTimeZoneIdentifier))"
+        return BeckonDateTimeFormatter.interval(from: scheduledStart, to: scheduledEnd,
+            serviceTimeZoneIdentifier: serviceTimeZoneIdentifier).summary
     }
 
     nonisolated var priceSummary: String? {
@@ -134,9 +135,9 @@ struct ChatConversation: Equatable, Hashable, Identifiable, Sendable {
             if let groomerBusinessName = Self.normalized(groomerBusinessName) {
                 return groomerBusinessName
             }
-            return "Groomer ref \(participantReferenceCode(for: role))"
+            return "Groomer"
         case .groomer:
-            return "Customer ref \(participantReferenceCode(for: role))"
+            return "Customer"
         }
     }
 

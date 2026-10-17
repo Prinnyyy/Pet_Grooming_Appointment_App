@@ -21,7 +21,7 @@ struct CustomerRequestsStatusView: View {
         return BeckonGlobalFeedbackError(
             scope: .page("customer.requests"),
             sourceKey: "customer.requests.error",
-            title: "We Could Not Update Requests",
+            title: "We could not update requests",
             message: errorMessage
         )
     }

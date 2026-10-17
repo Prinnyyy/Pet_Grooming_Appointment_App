@@ -516,7 +516,7 @@ final class TestOpsBookingAdversarialTests: XCTestCase {
         try start(.groomer)
         tap(element("groomer.tab.account"))
         tap(element("groomer.account.services"))
-        tap(app.buttons["Actions for Matching test Full Groom"].firstMatch)
+        tap(app.buttons["Actions for Matching test Full groom"].firstMatch)
         tap(app.buttons["Edit"].firstMatch)
         let dog = element("groomer.services.species.dog")
         XCTAssertTrue(dog.waitForExistence(timeout: 10))

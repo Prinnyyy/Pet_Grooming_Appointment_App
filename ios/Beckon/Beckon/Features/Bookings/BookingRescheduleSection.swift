@@ -15,7 +15,7 @@ struct BookingRescheduleSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
             if shouldShowChanges {
-            BeckonSectionHeader("Appointment Changes")
+            BeckonSectionHeader("Appointment changes")
             TimelineView(.periodic(from: .now, by: 1)) { context in
                 if let proposal = store.rescheduleSnapshots[booking.id]?.proposal {
                     Text(proposal.currentStatus(for: booking, now: context.date).title)
@@ -42,7 +42,7 @@ struct BookingRescheduleSection: View {
                 }
             }
             if let error = store.rescheduleErrors[booking.id] {
-                BeckonErrorBanner(title: "Time Change Unavailable", message: error)
+                BeckonErrorBanner(title: "Time change unavailable", message: error)
             }
             if let notice = store.appointmentReminderNotice {
                 Text(notice).font(DesignTokens.Typography.supporting).foregroundStyle(DesignTokens.Colors.textTertiary)
@@ -88,17 +88,17 @@ private struct BookingRescheduleTimes: View {
     let proposal: BookingRescheduleProposal
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            Text("Original Time").font(DesignTokens.Typography.fieldLabel)
+            Text("Original time").font(DesignTokens.Typography.fieldLabel)
             Text(summary(proposal.previousAgreement.scheduledStart, proposal.previousAgreement.scheduledEnd))
                 .font(DesignTokens.Typography.body)
-            Text("Proposed Time").font(DesignTokens.Typography.fieldLabel)
+            Text("Proposed time").font(DesignTokens.Typography.fieldLabel)
             Text(summary(proposal.proposedStart, proposal.proposedEnd)).font(DesignTokens.Typography.body)
         }
         .fixedSize(horizontal: false, vertical: true)
     }
     private func summary(_ start: String, _ end: String) -> String {
         let zone = booking.serviceTimeZoneIdentifier
-        return "\(GroomingRequestDateFormatting.displayString(from: start, serviceTimeZoneIdentifier: zone)) - \(GroomingRequestDateFormatting.displayString(from: end, serviceTimeZoneIdentifier: zone))"
+        return BeckonDateTimeFormatter.interval(from: start, to: end, serviceTimeZoneIdentifier: zone).summary
     }
 }
 
@@ -134,9 +134,9 @@ struct BookingRescheduleConfirmation: View {
             Form {
                 Section {
                     if action == .propose {
-                        Text("Original Time").font(DesignTokens.Typography.fieldLabel)
+                        Text("Original time").font(DesignTokens.Typography.fieldLabel)
                         Text(booking.scheduledTimeSummary).font(DesignTokens.Typography.body)
-                        DatePicker("Proposed Start", selection: $proposedWallTime, displayedComponents: [.date, .hourAndMinute])
+                        DatePicker("Proposed start", selection: $proposedWallTime, displayedComponents: [.date, .hourAndMinute])
                             .environment(\.timeZone, TimeZone(secondsFromGMT: 0)!)
                             .environment(\.calendar, Calendar(identifier: .gregorian))
                             .onChange(of: proposedWallTime) { _, _ in selectedOccurrence = nil }
@@ -154,7 +154,7 @@ struct BookingRescheduleConfirmation: View {
                             BeckonInlineError("This local time does not exist. Choose another start time.")
                         }
                         if let proposedStart, let duration {
-                            Text("Proposed End").font(DesignTokens.Typography.fieldLabel)
+                            Text("Proposed end").font(DesignTokens.Typography.fieldLabel)
                             Text(GroomingRequestDateFormatting.displayString(
                                 from: GroomingRequestDateFormatting.serverString(from: proposedStart.addingTimeInterval(duration)),
                                 serviceTimeZoneIdentifier: booking.serviceTimeZoneIdentifier))

@@ -9,7 +9,7 @@ struct PasswordRecoveryView: View {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
                     switch store.recoveryState {
                     case let .newPassword(session):
-                        Text("New Password").font(DesignTokens.Typography.featureTitle)
+                        Text("New password").font(DesignTokens.Typography.featureTitle)
                         if let email = session.email { Text(email).foregroundStyle(.secondary) }
                         SecureField("New password", text: $store.recoveryPassword)
                             .textContentType(.newPassword).beckonFormField()
@@ -21,7 +21,7 @@ struct PasswordRecoveryView: View {
                             Task { await store.saveRecoveredPassword() }
                         }.buttonStyle(BeckonPrimaryButtonStyle())
                     case .complete:
-                        Label("Password Changed", systemImage: "checkmark.circle").font(DesignTokens.Typography.sectionTitle)
+                        Label("Password changed", systemImage: "checkmark.circle").font(DesignTokens.Typography.sectionTitle)
                         Text("Use your new password the next time you sign in.")
                         Button("Done", systemImage: "checkmark") { Task { await store.closePasswordRecovery() } }
                             .buttonStyle(BeckonPrimaryButtonStyle())
@@ -48,7 +48,7 @@ struct PasswordRecoveryView: View {
                 .disabled(store.isRecovering)
             }
             .background(DesignTokens.Colors.appBackground)
-            .navigationTitle("Password Recovery")
+            .navigationTitle("Password recovery")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

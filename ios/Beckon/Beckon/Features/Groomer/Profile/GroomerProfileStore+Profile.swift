@@ -100,7 +100,7 @@ extension GroomerProfileStore {
             ),
             baseAddressLine2: try optional(
                 baseAddressLine2,
-                field: "Address Line 2",
+                field: "Address line 2",
                 maximum: 60
             ),
             baseCity: try optional(baseCity, field: "City", maximum: 100),

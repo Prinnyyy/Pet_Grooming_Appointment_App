@@ -127,7 +127,7 @@ struct BookingsView: View {
 
                 if store.isLoading, store.bookings.isEmpty {
                     BeckonLoadingView(
-                        title: "Loading Bookings...",
+                        title: "Loading bookings...",
                         message: "Fetching confirmed appointments for your account.",
                         accent: role.loadingAccent
                     )
@@ -246,8 +246,8 @@ struct BookingsView: View {
                 appointmentReminderNotice
 
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                    Text("Appointment Date").font(DesignTokens.Typography.fieldLabel)
-                    DatePicker("Appointment Date", selection: Binding(
+                    Text("Appointment date").font(DesignTokens.Typography.fieldLabel)
+                    DatePicker("Appointment date", selection: Binding(
                         get: { schedulePresentation.selectedDate },
                         set: { selectedScheduleDayKey = GroomerScheduleDateFormatting.dayKey(from: $0, calendar: calendar) }
                     ), displayedComponents: [.date])
@@ -261,14 +261,15 @@ struct BookingsView: View {
                     selectedDayKey: schedulePresentation.selectedDayKey,
                     onSelect: { selectedScheduleDayKey = $0.id }
                 )
-                Label(calendar.timeZone.identifier, systemImage: "globe")
+                Label(BeckonDateTimeFormatter.zoneLabel(calendar.timeZone, at: schedulePresentation.selectedDate), systemImage: "globe")
+                    .accessibilityLabel(calendar.timeZone.identifier)
                     .font(DesignTokens.Typography.caption)
                     .foregroundStyle(DesignTokens.Colors.textSecondary)
                     .accessibilityIdentifier("groomer.schedule.time-zone")
 
                 if !scopeMatches || store.scheduleReadState == .idle || store.scheduleReadState == .loading {
                     BeckonLoadingView(
-                        title: "Loading Schedule...",
+                        title: "Loading schedule...",
                         message: "Fetching confirmed appointments for your day.",
                         accent: .groomer
                     )
@@ -388,7 +389,7 @@ struct BookingsView: View {
                     await store.load()
                 }
             } label: {
-                Text(error.actionTitle ?? "Try Again")
+                Text(error.actionTitle ?? "Try again")
             }
             .buttonStyle(BeckonPrimaryButtonStyle(accent: role.primaryButtonAccent))
         }
@@ -437,7 +438,7 @@ struct BookingsFeedbackPresentation {
             sourceKey: "\(scopeID).load",
             title: role == .groomer ? "We Could Not Load Schedule" : "We Could Not Load Bookings",
             message: errorMessage,
-            actionTitle: "Try Again"
+            actionTitle: "Try again"
         )
     }
 
@@ -451,7 +452,7 @@ struct BookingsFeedbackPresentation {
         return BeckonGlobalFeedbackError(
             scope: .operation("\(scopeID).operation"),
             sourceKey: "\(scopeID).operation-error",
-            title: "Booking Update Failed",
+            title: "Booking update failed",
             message: errorMessage
         )
     }
@@ -478,7 +479,7 @@ struct BookingSummaryRow: View {
 
                     Spacer(minLength: DesignTokens.Spacing.md)
 
-                    Text(BookingListDateFormatting.day(from: booking.scheduledStart))
+                    Text(booking.priceSummary)
                         .font(DesignTokens.Typography.caption)
                         .foregroundStyle(DesignTokens.Colors.textSecondary)
                 }
@@ -500,7 +501,8 @@ struct BookingSummaryRow: View {
                             .lineLimit(2)
                             .fixedSize(horizontal: false, vertical: true)
 
-                        Text(booking.listContextSummary)
+                        Text(booking.scheduledTimeSummary)
+                            .accessibilityLabel(booking.scheduledTimePresentation.accessibilityLabel)
                             .font(DesignTokens.Typography.body)
                             .foregroundStyle(DesignTokens.Colors.textSecondary)
                             .lineLimit(2)
@@ -756,7 +758,7 @@ private struct GroomerScheduleEmptyDayView: View {
                 .foregroundStyle(DesignTokens.Colors.textPrimary)
 
             BeckonEmptyState(
-                title: "No Appointments",
+                title: "No appointments",
                 message: "Confirmed bookings for this day will appear here.",
                 systemImage: "calendar.badge.clock",
                 accent: .groomer
@@ -928,46 +930,18 @@ private struct GroomerScheduleAppointmentRow: View {
     }
 }
 
-private enum BookingListDateFormatting {
-    static func day(from value: String) -> String {
-        format(value, pattern: "EEE, MMM d")
-    }
-
-    static func time(from value: String) -> String {
-        format(value, pattern: "h:mm a")
-    }
-
-    private static func format(_ value: String, pattern: String) -> String {
-        guard let date = GroomingRequestDateFormatting.parsedDate(from: value) else {
-            return value
-        }
-
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.dateFormat = pattern
-        return formatter.string(from: date)
-    }
-}
-
 private extension Booking {
-    var listContextSummary: String {
-        "\(BookingListDateFormatting.time(from: scheduledStart)) · \(priceSummary)"
-    }
-
-    var timeWindowSummary: String {
-        "\(BookingListDateFormatting.time(from: scheduledStart)) - \(BookingListDateFormatting.time(from: scheduledEnd))"
-    }
 
     var detailTitle: String {
         switch status {
         case .confirmed:
-            "Booking Confirmed"
+            "Booking confirmed"
         case .completed:
-            "Booking Completed"
+            "Booking completed"
         case .unfulfilled:
-            "Service Not Confirmed"
+            "Service not confirmed"
         case .cancelledByCustomer, .cancelledByGroomer:
-            "Booking Cancelled"
+            "Booking cancelled"
         case .unknown:
             "Booking Status Unknown"
         }
@@ -1045,6 +1019,7 @@ struct BookingDetailView: View {
                             ) {
                                 BookingDetailFactRow("Service", value: booking.appointmentServiceTitle)
                                 BookingDetailFactRow("Appointment Time", value: booking.scheduledTimeSummary, stacksValue: true)
+                                    .accessibilityLabel(booking.scheduledTimePresentation.accessibilityLabel)
                                 BookingDetailFactRow(
                                     BeckonGroomingLocationModePresentation.detailFieldTitle,
                                     value: bookingLocationTitle(booking)
@@ -1120,7 +1095,7 @@ struct BookingDetailView: View {
                 } else {
                     VStack(spacing: DesignTokens.Spacing.md) {
                         BeckonEmptyState(
-                            title: "Booking Unavailable",
+                            title: "Booking unavailable",
                             message: "This booking could not be verified.",
                             systemImage: "calendar.badge.exclamationmark",
                             accent: role.emptyStateAccent
@@ -1140,7 +1115,7 @@ struct BookingDetailView: View {
 
     private func bookingLocationTitle(_ booking: Booking) -> String {
         guard let locationMode = booking.locationMode else {
-            return "Location Details"
+            return "Location not confirmed"
         }
 
         let perspective: BeckonGroomingLocationPerspective = switch role {
@@ -1165,7 +1140,6 @@ nonisolated enum BookingReviewKeyboardPresentation {
     static let actionPlacement: BeckonKeyboardActionPlacement = .pageAction
     static let contentFocusTarget = BookingReviewFocusTarget.content.rawValue
 }
-
 
 private struct BookingDetailHeroCard: View {
     @Environment(\.dynamicTypeSize) private var typeSize
@@ -1324,7 +1298,7 @@ private struct BookingPartnerOverviewCard: View {
                 Button {
                     onOpenChat(booking)
                 } label: {
-                    Label("Open Chat", systemImage: "message.fill")
+                    Label("Open chat", systemImage: "message.fill")
                 }
                 .buttonStyle(BeckonPrimaryButtonStyle(accent: role.primaryButtonAccent))
                 .accessibilityIdentifier("bookings.detail.open-chat")
@@ -1400,7 +1374,7 @@ private struct BookingReviewDisplay: View {
                         .overlay(DesignTokens.Colors.divider)
 
                     VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                        Text("Pet Fit Notes")
+                        Text("Pet fit notes")
                             .font(DesignTokens.Typography.body.weight(.bold))
                             .foregroundStyle(DesignTokens.Colors.textPrimary)
 
@@ -1527,7 +1501,7 @@ struct BookingReviewForm: View {
 
                 if !fitOutcomeSelections.isEmpty {
                     VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                        Text("Pet Fit Notes")
+                        Text("Pet fit notes")
                             .font(DesignTokens.Typography.headline)
                             .foregroundStyle(DesignTokens.Colors.textPrimary)
 
@@ -1545,7 +1519,7 @@ struct BookingReviewForm: View {
                         Text(error).font(DesignTokens.Typography.caption)
                         Button {
                             Task { await store.loadReviewContext(for: booking) }
-                        } label: { Label("Retry Service Details", systemImage: "arrow.clockwise") }
+                        } label: { Label("Retry service details", systemImage: "arrow.clockwise") }
                             .buttonStyle(BeckonSecondaryButtonStyle(accent: .neutral))
                             .accessibilityIdentifier("bookings.review.retry-context")
                     }
@@ -1669,7 +1643,7 @@ private struct BookingsStatusView: View {
             return BeckonGlobalFeedbackProgress(
                 scope: .operation("\(presentation.scopeID).review"),
                 sourceKey: "\(presentation.scopeID).review-progress",
-                title: "Submitting Review…",
+                title: "Submitting review…",
                 tone: role.feedbackTone
             )
         }
@@ -1753,7 +1727,6 @@ private extension UserRole {
         }
     }
 
-
     var feedbackTone: BeckonFeedbackTone {
         switch self {
         case .customer:
@@ -1772,7 +1745,6 @@ private extension UserRole {
         }
     }
 }
-
 
 #if DEBUG
 #Preview {

@@ -71,7 +71,7 @@ struct CustomerFavoriteGroomersView: View {
                             let state = marketplace.distribution.state(requestID: requestID, groomerID: favorite.id, seed: favorite.invitationState)
                             if state != .notSent { Text(state.title).font(DesignTokens.Typography.supporting) }
                             else if eligible && favorite.profile != nil {
-                                CustomerRequestSendButton(title: "Send Request",
+                                CustomerRequestSendButton(title: "Send request",
                                     confirmation: flow?.publicationConfirmation(names: [favorite.profile!.displayName])) {
                                     Task { await send(favorite.id) }
                                 }
@@ -94,7 +94,7 @@ struct CustomerFavoriteGroomersView: View {
             if let error = marketplace.distribution.error { BeckonInlineError(error.message) }
         }
         .listStyle(.plain)
-        .navigationTitle("Saved Groomers")
+        .navigationTitle("Saved groomers")
         .navigationBarTitleDisplayMode(.inline)
         .task(id: effectiveScope) { await load() }
         .task { if onSend == nil { await refreshRequests() } }

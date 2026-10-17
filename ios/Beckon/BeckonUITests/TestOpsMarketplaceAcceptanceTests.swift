@@ -426,9 +426,9 @@ final class TestOpsMarketplaceAcceptanceTests: XCTestCase {
     private func assertRequestDetail(_ row: Readback, groomer: Bool = false) throws {
         let detail = element(groomer ? "groomer.requests.detail" : "customer.requests.detail")
         func assertText(_ text: String) { assertVisibleText(text, within: detail) }
-        let services = ["full_groom": "Full Groom", "bath_and_brush": "Bath & Brush",
-            "haircut_only": "Haircut Only", "nail_trim": "Nail Trim", "de_shedding": "De-shedding",
-            "custom_request": "Custom Request"]
+        let services = ["full_groom": "Full groom", "bath_and_brush": "Bath & brush",
+            "haircut_only": "Haircut only", "nail_trim": "Nail trim", "de_shedding": "De-shedding",
+            "custom_request": "Custom request"]
         assertText(try XCTUnwrap(services[row.serviceType]))
         assertText(row.notes)
         assertText(row.petName)
@@ -437,8 +437,8 @@ final class TestOpsMarketplaceAcceptanceTests: XCTestCase {
             assertText(try serviceTimeText(stamp))
         }
         assertText(row.locationMode == "groomer_comes_to_customer"
-            ? (groomer ? "Customer's Home" : "My Home")
-            : (groomer ? "My Place" : "Groomer's Place"))
+            ? (groomer ? "Customer's home" : "My home")
+            : (groomer ? "My place" : "Groomer's place"))
         assertText(row.streetAddress)
         if let city = row.city { assertText(city) }
         if row.locationMode == "customer_comes_to_groomer", let radius = row.travelRadiusMiles {
@@ -540,7 +540,7 @@ final class TestOpsMarketplaceAcceptanceTests: XCTestCase {
             }
             XCTAssertFalse(element("customer.requests.form-error").exists,
                 "Selected service must advance before location controls are queried")
-            let mode = row.locationMode == "groomer_comes_to_customer" ? "My Home," : "Groomer's Place,"
+            let mode = row.locationMode == "groomer_comes_to_customer" ? "My home," : "Groomer's place,"
             tap(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", mode)).firstMatch)
             tap(element("customer.requests.use-profile-address"))
             XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(
@@ -584,7 +584,7 @@ final class TestOpsMarketplaceAcceptanceTests: XCTestCase {
             if input.publicationDoubleTap == true { publish.doubleTap() } else { tap(publish) }
             if let fault = input.publicationFault {
                 XCTAssertEqual(row.id, fault.marker)
-                XCTAssertTrue(app.staticTexts["We Could Not Publish Request"].firstMatch.waitForExistence(timeout: 20))
+                XCTAssertTrue(app.staticTexts["We could not publish request"].firstMatch.waitForExistence(timeout: 20))
                 XCTAssertTrue(element("customer.requests.wizard").exists)
                 XCTAssertTrue(publish.isEnabled)
                 evidence("\(row.id) \(fault.phase) publication failure visible")
@@ -636,8 +636,8 @@ final class TestOpsMarketplaceAcceptanceTests: XCTestCase {
             tap(request)
             XCTAssertFalse(element("groomer.offers.withdraw").exists, "Never silently replace an already committed quote")
             let start = try localDate(row.start), field = element("groomer.offers.start-input")
-            selectDay(start, field: field, dismissLabel: "Proposed Start")
-            selectTime(start, field: field, dismissLabel: "Proposed Start")
+            selectDay(start, field: field, dismissLabel: "Proposed start")
+            selectTime(start, field: field, dismissLabel: "Proposed start")
             fill(element("groomer.offers.duration"), with: String(row.durationMinutes))
             fill(element("groomer.offers.price"), with: row.price)
             fill(element("groomer.offers.message"), with: row.message)
@@ -797,7 +797,7 @@ final class TestOpsMarketplaceAcceptanceTests: XCTestCase {
             tap(cancel)
             let confirmation = app.alerts["Cancel this request?"]
             XCTAssertTrue(confirmation.waitForExistence(timeout: 5))
-            tap(confirmation.buttons["Cancel Request"])
+            tap(confirmation.buttons["Cancel request"])
             XCTAssertTrue(confirmation.waitForNonExistence(timeout: 10))
             let closed = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
                 !cancel.exists || !cancel.isEnabled
@@ -871,7 +871,7 @@ final class TestOpsMarketplaceAcceptanceTests: XCTestCase {
                     reveal(accept)
                     tap(accept)
                     XCTAssertTrue(element("customer.offers.confirmation").waitForExistence(timeout: 10))
-                    assertVisibleText(row.locationMode == "groomer_comes_to_customer" ? "My Home" : "Groomer's Place")
+                    assertVisibleText(row.locationMode == "groomer_comes_to_customer" ? "My home" : "Groomer's place")
                     assertVisibleText(quote.confirmationAddress)
                     evidence("\(quote.id) confirmation location verified without booking")
                     tap(app.buttons["Not Yet"].firstMatch)
@@ -1046,7 +1046,7 @@ final class TestOpsMarketplaceAcceptanceTests: XCTestCase {
         app.launch()
         tap(element("groomer.tab.bookings"))
         XCTAssertTrue(element("groomer.schedule").waitForExistence(timeout: 20))
-        selectDay(day, field: app, dismissLabel: "Appointment Date")
+        selectDay(day, field: app, dismissLabel: "Appointment date")
         XCTAssertTrue(element("groomer.schedule.timeline").waitForExistence(timeout: 20))
         for row in input.rows {
             let booking = element("groomer.booking.row.request.\(row.reference)")
@@ -1140,7 +1140,7 @@ final class TestOpsMarketplaceAcceptanceTests: XCTestCase {
             tap(booking)
             let detail = element("bookings.detail")
             XCTAssertTrue(detail.waitForExistence(timeout: 10))
-            assertVisibleText("Booking Confirmed", within: detail)
+            assertVisibleText("Booking confirmed", within: detail)
             try assertBookingDetails(row, within: detail)
             evidence("\(row.id) customer confirmed booking after restart")
             tap(app.navigationBars.buttons.firstMatch)
@@ -1185,7 +1185,7 @@ final class TestOpsMarketplaceAcceptanceTests: XCTestCase {
                 tap(element("\(role.rawValue).tab.bookings"))
                 if role == .groomer {
                     XCTAssertTrue(element("groomer.schedule").waitForExistence(timeout: 20))
-                    selectDay(try localDate(row.start), field: app, dismissLabel: "Appointment Date")
+                    selectDay(try localDate(row.start), field: app, dismissLabel: "Appointment date")
                 } else if let scope = row.scope {
                     tap(element("bookings.scope.\(scope)"))
                 }
@@ -1254,8 +1254,8 @@ final class TestOpsMarketplaceAcceptanceTests: XCTestCase {
                 reveal(action)
                 tap(action)
                 if let stamp = row.proposedStart {
-                    selectDay(try localDate(stamp), field: app, dismissLabel: "Proposed Start")
-                    selectTime(try localDate(stamp), field: app, dismissLabel: "Proposed Start")
+                    selectDay(try localDate(stamp), field: app, dismissLabel: "Proposed start")
+                    selectTime(try localDate(stamp), field: app, dismissLabel: "Proposed start")
                 }
                 let confirm = element("booking.\(row.kind).confirm")
                 reveal(confirm)

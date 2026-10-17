@@ -95,11 +95,11 @@ struct CustomerRequestLoadFailureView: View {
 
     var body: some View {
         BeckonErrorBanner(
-            title: "Requests Didn't Load",
+            title: "Requests didn't load",
             message: message,
             systemImage: "arrow.clockwise.circle"
         ) {
-            Button("Try Again", action: retry)
+            Button("Try again", action: retry)
                 .buttonStyle(
                     BeckonSecondaryButtonStyle(
                         accent: .customer,
@@ -510,10 +510,7 @@ struct CustomerRequestProgressCardPresentation {
             infoLines = [
                 InfoLine(
                     systemImage: "calendar",
-                    text: Self.compactDisplayRange(
-                        from: handoff.booking.scheduledStart,
-                        to: handoff.booking.scheduledEnd
-                    )
+                    text: handoff.booking.scheduledTimeSummary
                 ),
                 InfoLine(
                     systemImage: "mappin.and.ellipse",
@@ -527,10 +524,7 @@ struct CustomerRequestProgressCardPresentation {
             infoLines = [
                 InfoLine(
                     systemImage: "calendar",
-                    text: Self.compactDisplayRange(
-                        from: request.preferredStart,
-                        to: request.preferredEnd
-                    )
+                    text: request.preferredTimePresentation.summary
                 ),
                 InfoLine(
                     systemImage: "mappin.and.ellipse",
@@ -540,20 +534,6 @@ struct CustomerRequestProgressCardPresentation {
         }
     }
 
-    private static func compactDisplayRange(from start: String, to end: String) -> String {
-        "\(compactDisplayString(from: start)) - \(compactDisplayString(from: end))"
-    }
-
-    private static func compactDisplayString(from value: String) -> String {
-        guard let date = GroomingRequestDateFormatting.parsedDate(from: value) else {
-            return value
-        }
-
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.dateFormat = "MMM d 'at' h:mm a"
-        return formatter.string(from: date)
-    }
 }
 
 private struct CustomerRequestBookingHandoffAction: View {
@@ -565,13 +545,13 @@ private struct CustomerRequestBookingHandoffAction: View {
             onViewBooking(handoff)
         } label: {
             CustomerRequestActionLabel(
-                title: "View Booking",
+                title: "View booking",
                 systemImage: "arrow.right",
                 tone: .primary
             )
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("View Booking")
+        .accessibilityLabel("View booking")
         .accessibilityIdentifier("customer.requests.booking-handoff.view-booking")
     }
 }
@@ -604,35 +584,35 @@ private struct CustomerRequestTimelineList: View {
         case .hasOffers:
             [
                 .published(createdAt: request.createdAt, state: .complete),
-                .matching(title: "Matched Groomers", subtitle: "Groomers can now send offers", state: .complete),
+                .matching(title: "Matched groomers", subtitle: "Groomers can now send offers", state: .complete),
                 .offers(state: .active),
                 .booking(state: .upcoming),
             ]
         case .booked:
             [
                 .published(createdAt: request.createdAt, state: .complete),
-                .matching(title: "Matched Groomers", subtitle: "A groomer offer was selected", state: .complete),
+                .matching(title: "Matched groomers", subtitle: "A groomer offer was selected", state: .complete),
                 .offers(state: .complete),
                 .booking(state: .complete),
             ]
         case .cancelled:
             [
                 .published(createdAt: request.createdAt, state: .complete),
-                .matching(title: "Request Cancelled", subtitle: "This request is closed", state: .stopped),
+                .matching(title: "Request cancelled", subtitle: "This request is closed", state: .stopped),
                 .offers(state: .upcoming),
                 .booking(state: .upcoming),
             ]
         case .expired:
             [
                 .published(createdAt: request.createdAt, state: .complete),
-                .matching(title: "Request Expired", subtitle: "Create a new request to keep looking", state: .stopped),
+                .matching(title: "Request expired", subtitle: "Create a new request to keep looking", state: .stopped),
                 .offers(state: .upcoming),
                 .booking(state: .upcoming),
             ]
         case .unknown:
             [
                 .published(createdAt: request.createdAt, state: .complete),
-                .matching(title: "Request Status Unknown", subtitle: "Refresh to check the latest status", state: .stopped),
+                .matching(title: "Request status unknown", subtitle: "Refresh to check the latest status", state: .stopped),
                 .offers(state: .upcoming),
                 .booking(state: .upcoming),
             ]
@@ -877,7 +857,7 @@ private struct CustomerRequestTimelineStep: Identifiable {
     ) -> CustomerRequestTimelineStep {
         CustomerRequestTimelineStep(
             id: "published",
-            title: "Request Published",
+            title: "Request published",
             subtitle: publishedSubtitle(from: createdAt),
             state: state
         )
@@ -910,7 +890,7 @@ private struct CustomerRequestTimelineStep: Identifiable {
 
         return CustomerRequestTimelineStep(
             id: "offers",
-            title: "Offers Received",
+            title: "Offers received",
             subtitle: subtitle,
             state: state
         )
@@ -919,7 +899,7 @@ private struct CustomerRequestTimelineStep: Identifiable {
     static func booking(state: CustomerRequestTimelineStepState) -> CustomerRequestTimelineStep {
         CustomerRequestTimelineStep(
             id: "booking",
-            title: "Booking Confirmed",
+            title: "Booking confirmed",
             subtitle: state == .complete ? "Your appointment is booked" : "Accept an offer to book",
             state: state
         )
@@ -1032,7 +1012,7 @@ private struct CustomerRequestActionRow: View {
             )
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Request Detail")
+        .accessibilityLabel("Request detail")
         .accessibilityIdentifier(
             AppTestOpsAccessibility.identifier(
                 prefix: "customer.requests.detail",
@@ -1059,7 +1039,7 @@ private struct CustomerRequestActionRow: View {
         }
         .buttonStyle(.plain)
         .disabled(!presentation.isOffersEnabled)
-        .accessibilityLabel("Request Offers")
+        .accessibilityLabel("Request offers")
         .accessibilityIdentifier("customer.requests.offers")
         .accessibilityValue(
             AppTestOpsAccessibility.requestReference(request.id)
@@ -1071,14 +1051,14 @@ private struct CustomerRequestActionRow: View {
             onCancelRequest(request)
         } label: {
             CustomerRequestActionLabel(
-                title: store.isCancelling(request) ? "Cancelling" : "Cancel Request",
+                title: store.isCancelling(request) ? "Cancelling" : "Cancel request",
                 systemImage: store.isCancelling(request) ? "hourglass" : "xmark.circle",
                 tone: .destructiveFilled
             )
         }
         .buttonStyle(.plain)
         .disabled(!request.status.isOpenForOffers || store.isCancelling(request))
-        .accessibilityLabel("Cancel Request")
+        .accessibilityLabel("Cancel request")
         .accessibilityIdentifier("customer.requests.cancel")
         .accessibilityValue(AppTestOpsAccessibility.requestReference(request.id))
     }
@@ -1248,7 +1228,7 @@ private struct CustomerCancelledRequestRow: View {
     }
 
     private var timeSummary: String {
-        "\(GroomingRequestDateFormatting.displayString(from: request.preferredStart)) - \(GroomingRequestDateFormatting.displayString(from: request.preferredEnd))"
+        request.preferredTimePresentation.summary
     }
 }
 
@@ -1285,8 +1265,5 @@ private extension CustomerGroomingRequest {
             "Unknown\nStatus"
         }
     }
-
-
-
 
 }
