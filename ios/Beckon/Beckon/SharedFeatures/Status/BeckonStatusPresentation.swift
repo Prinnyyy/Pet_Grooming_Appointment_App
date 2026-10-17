@@ -18,6 +18,11 @@ extension BeckonStatusPresentation {
     static let petRequired = Self(title: "Add a pet before continuing", systemImage: "pawprint", tone: .warning)
     static let unavailable = Self(title: "Unavailable", systemImage: "xmark.circle", tone: .neutral)
 
+    static func offersToReview(count: Int?) -> Self {
+        let title = count.map { "\($0) offer\($0 == 1 ? "" : "s") to review" } ?? "Offers ready to review"
+        return Self(title: title, systemImage: "tag", tone: .warning)
+    }
+
     static func rating(average: Double, count: Int) -> Self {
         Self(title: "\(average.formatted(.number.precision(.fractionLength(2)))) from \(count) review\(count == 1 ? "" : "s")",
              systemImage: "star.fill", tone: .neutral)

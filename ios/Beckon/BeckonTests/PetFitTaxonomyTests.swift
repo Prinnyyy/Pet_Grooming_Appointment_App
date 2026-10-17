@@ -79,10 +79,10 @@ struct PetFitTaxonomyTests {
 
         #expect(signal.id == "service_fit:gentle_handling")
         #expect(signal.group == .serviceFit)
-        #expect(signal.groupTitle == "Service Fit")
+        #expect(signal.groupTitle == "Service fit")
         #expect(signal.traitType == "service_fit")
         #expect(signal.traitValue == "gentle_handling")
-        #expect(signal.title == "Gentle Handling")
+        #expect(signal.title == "Gentle handling")
         #expect(PetFitSignal.Group.allCases.map(\.sortOrder) == [10, 20, 30, 40, 50, 50, 10, 30, 40])
     }
 

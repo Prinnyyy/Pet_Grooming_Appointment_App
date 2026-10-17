@@ -196,7 +196,7 @@ extension CustomerRequestsStoreTests {
 
     @Test @MainActor
     func requestEmptyCopyIsSharedByHomeAndRequests() {
-        #expect(CustomerRequestEmptyCopy.title == "No Active Request")
+        #expect(CustomerRequestEmptyCopy.title == "No active request")
         #expect(
             CustomerRequestEmptyCopy.message ==
                 "Open requests and newly confirmed bookings will appear here."
@@ -725,9 +725,9 @@ extension CustomerRequestsStoreTests {
         let singular = CustomerRequestPhotoUploadRetryPresentation(photoCount: 1)
         let plural = CustomerRequestPhotoUploadRetryPresentation(photoCount: 3)
 
-        #expect(singular.title == "1 Request Photo Needs Uploading")
+        #expect(singular.title == "1 request photo needs uploading")
         #expect(singular.message == "The request was published, but this photo was not uploaded.")
-        #expect(plural.title == "3 Request Photos Need Uploading")
+        #expect(plural.title == "3 request photos need uploading")
         #expect(plural.message == "The request was published, but these photos were not uploaded.")
         #expect(plural.retryTitle == "Retry Upload")
         #expect(plural.discardTitle == "Remove Photos")
@@ -784,13 +784,13 @@ extension CustomerRequestsStoreTests {
 
         #expect(presentation.chips.map(\.label) == [
             "Breed",
-            "Pet Size",
-            "Service Fit",
+            "Pet size",
+            "Service fit",
         ])
         #expect(presentation.chips.map(\.title) == [
             "Poodle",
             "S",
-            "Curly Coat",
+            "Curly coat",
         ])
     }
 
@@ -1108,7 +1108,7 @@ extension CustomerRequestsStoreTests {
             )
         )
 
-        #expect(presentation.headline == "Booking\nConfirmed")
+        #expect(presentation.headline == "Booking\nconfirmed")
         #expect(presentation.subtitle == "Full groom for Mochi")
         #expect(presentation.infoLines == [
             CustomerRequestProgressCardPresentation.InfoLine(
@@ -1135,7 +1135,7 @@ extension CustomerRequestsStoreTests {
             handoff: nil
         )
 
-        #expect(presentation.headline == "Open\nRequest")
+        #expect(presentation.headline == "Open\nrequest")
         #expect(presentation.infoLines.first == CustomerRequestProgressCardPresentation.InfoLine(
             systemImage: "calendar",
             text: "Time unavailable\nTime zone not confirmed"

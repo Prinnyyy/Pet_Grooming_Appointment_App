@@ -36,13 +36,13 @@ nonisolated struct CustomerRequestProgress: Equatable, Identifiable, Sendable {
     func waitingTitle(at now: Date = Date()) -> String {
         guard status.isOpenForOffers else { return status.title }
         guard expiresAt > now else { return GroomingRequestStatus.expired.title }
-        if validOfferCount > 0 { return "Offers Ready" }
+        if validOfferCount > 0 { return "Offers ready" }
         if poolEnabled {
-            if evaluationPending { return "Checking Availability" }
-            if poolCandidateCount == 0 { return "No Matching Groomers Right Now" }
-            return "Request Pool Open"
+            if evaluationPending { return "Checking availability" }
+            if poolCandidateCount == 0 { return "No matching groomers right now" }
+            return "Request pool open"
         }
         return invitations.contains { $0.state == .awaitingResponse && $0.replyBy > now }
-            ? "Waiting for Replies" : "No Available Offers"
+            ? "Waiting for replies" : "No available offers"
     }
 }

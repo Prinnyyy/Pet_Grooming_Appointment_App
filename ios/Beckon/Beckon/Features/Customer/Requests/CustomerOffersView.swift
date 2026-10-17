@@ -14,7 +14,8 @@ struct CustomerRequestOffersView: View {
                     CustomerOfferReviewSection(
                         request: request,
                         store: store,
-                        showsRefreshAction: false
+                        showsRefreshAction: false,
+                        showsTitle: false
                     )
                     .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
                     .padding(.top, DesignTokens.Spacing.lg)

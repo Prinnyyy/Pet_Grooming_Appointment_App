@@ -342,13 +342,13 @@ nonisolated struct PetFitSignal:
             case .coatType, .verifiedCoat:
                 "Coat type"
             case .breedGroup:
-                "Breed Group"
+                "Breed group"
             case .sizeBand, .verifiedSize:
-                "Size Band"
+                "Size band"
             case .careFlag, .verifiedCare:
-                "Care Flag"
+                "Care flag"
             case .serviceFit, .verifiedService:
-                "Service Fit"
+                "Service fit"
             }
         }
 
@@ -549,27 +549,27 @@ nonisolated struct PetFitSignal:
     private static func title(for value: PetFitTrait) -> String {
         switch value {
         case .curlyCoat:
-            "Curly Coat"
+            "Curly coat"
         case .deSheddingTreatment:
-            "De-shedding Treatment"
+            "De-shedding treatment"
         case .fullHaircutStyling:
-            "Full Haircut & Styling"
+            "Full haircut & styling"
         case .gentleHandling:
-            "Gentle Handling"
+            "Gentle handling"
         case .handStrippingCarding:
-            "Hand Stripping / Carding"
+            "Hand stripping / carding"
         case .mattedCoatHandling:
-            "Matted Coat Handling"
+            "Matted coat handling"
         case .nailPawCare:
-            "Nail trim & Paw Care"
+            "Nail trim & paw care"
         case .puppyFirstGroom:
-            "Puppy / First Groom"
+            "Puppy / first groom"
         case .reactiveLowTolerance:
-            "Reactive / Low-Tolerance Dogs"
+            "Reactive / low-tolerance dogs"
         case .seniorCare:
-            "Senior Care"
+            "Senior care"
         case .terrierCoat:
-            "Terrier Coat"
+            "Terrier coat"
         }
     }
 }

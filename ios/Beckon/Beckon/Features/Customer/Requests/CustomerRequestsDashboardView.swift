@@ -156,10 +156,10 @@ struct CustomerRequestPhotoUploadRetryPresentation: Equatable {
     init(photoCount: Int) {
         let count = max(1, photoCount)
         if count == 1 {
-            title = "1 Request Photo Needs Uploading"
+            title = "1 request photo needs uploading"
             message = "The request was published, but this photo was not uploaded."
         } else {
-            title = "\(count) Request Photos Need Uploading"
+            title = "\(count) request photos need uploading"
             message = "The request was published, but these photos were not uploaded."
         }
     }
@@ -397,22 +397,83 @@ struct CustomerRequestActionCardSummaryCarousel: View {
 
 struct CustomerRequestActionCardSummary: View {
     let card: CustomerRequestActionCardItem
+    @Environment(\.dynamicTypeSize) private var typeSize
+
+    private var presentation: CustomerRequestSummaryPresentation {
+        CustomerRequestSummaryPresentation(card: card)
+    }
 
     var body: some View {
-        BeckonCard(
-            isSelected: card.isBookingHandoff,
-            padding: CustomerRequestProgressCardLayout.padding
-        ) {
-            CustomerRequestBriefHeader(
-                request: card.request,
-                petAvatarPhotoData: card.petAvatarPhotoData,
-                presentation: CustomerRequestProgressCardPresentation(
-                    request: card.request,
-                    handoff: card.handoff
-                )
-            )
+        BeckonCard(padding: DesignTokens.Spacing.lg) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                headerLayout {
+                    BeckonModuleImage(data: card.petAvatarPhotoData) {
+                        Text(presentation.initial)
+                            .font(DesignTokens.Typography.cardTitle)
+                            .dynamicTypeSize(.large)
+                            .foregroundStyle(DesignTokens.Colors.customerDeep)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .background(DesignTokens.Colors.customerTint)
+                    }
+                    .frame(width: DesignTokens.Metrics.minimumTouchTarget, height: DesignTokens.Metrics.minimumTouchTarget)
+                    .clipShape(Circle())
+                    .accessibilityHidden(true)
+
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                        Text(presentation.title)
+                            .font(DesignTokens.Typography.cardTitle)
+                            .foregroundStyle(DesignTokens.Colors.textPrimary)
+                        Text(presentation.time.summary)
+                            .font(DesignTokens.Typography.supporting)
+                            .foregroundStyle(DesignTokens.Colors.textSecondary)
+                    }
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+
+                if let step = presentation.step, let summary = presentation.progressSummary {
+                    CustomerRequestSummaryProgress(step: step, summary: summary)
+                }
+
+                footerLayout {
+                    BeckonStatusChip(presentation.status)
+                    if !typeSize.isAccessibilitySize { Spacer(minLength: DesignTokens.Spacing.sm) }
+                    HStack(spacing: DesignTokens.Spacing.xs) {
+                        Text("Review")
+                        Image(systemName: "chevron.right")
+                    }
+                    .font(DesignTokens.Typography.action)
+                    .foregroundStyle(DesignTokens.Colors.customerDeep)
+                    .frame(minHeight: DesignTokens.Metrics.minimumTouchTarget)
+                }
+            }
         }
+        .multilineTextAlignment(.leading)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(presentation.accessibilityLabel)
         .accessibilityIdentifier("customer.requests.progress-card.summary")
+    }
+
+    private var headerLayout: AnyLayout {
+        typeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.md))
+            : AnyLayout(HStackLayout(alignment: .top, spacing: DesignTokens.Spacing.md))
+    }
+
+    private var footerLayout: AnyLayout {
+        typeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.sm))
+            : AnyLayout(HStackLayout(spacing: DesignTokens.Spacing.sm))
+    }
+}
+
+private struct CustomerRequestSummaryProgress: View {
+    let step: Int
+    let summary: String
+
+    var body: some View {
+        BeckonSegmentedProgress(labels: ["Posted", "Offers", "Booked"], currentStep: step,
+            accent: .customer, accessibilitySummary: summary)
     }
 }
 
@@ -504,7 +565,7 @@ struct CustomerRequestProgressCardPresentation {
         isConfirmedHandoff = handoff != nil
 
         if let handoff {
-            headline = "Booking\nConfirmed"
+            headline = "Booking\nconfirmed"
             subtitle = request.title
             statusPresentation = handoff.booking.status.presentation
             infoLines = [
@@ -864,7 +925,7 @@ private struct CustomerRequestTimelineStep: Identifiable {
     }
 
     static func matching(
-        title: String = "Matching Groomers",
+        title: String = "Matching groomers",
         subtitle: String = "Finding the best fit nearby",
         state: CustomerRequestTimelineStepState
     ) -> CustomerRequestTimelineStep {
@@ -1149,7 +1210,7 @@ struct CustomerCancelledRequestsSection: View {
     let requests: [CustomerGroomingRequest]
     let store: CustomerRequestsStore
     let onRepublishRequest: (CustomerGroomingRequest) -> Void
-    var title = "Recent Closed Requests"
+    var title = "Recent closed requests"
 
     var body: some View {
         BeckonSection(title) {
@@ -1244,7 +1305,7 @@ struct CustomerRequestsEmptyDashboard: View {
 }
 
 enum CustomerRequestEmptyCopy {
-    static let title = "No Active Request"
+    static let title = "No active request"
     static let message = "Open requests and newly confirmed bookings will appear here."
 }
 
@@ -1252,17 +1313,17 @@ private extension CustomerGroomingRequest {
     var progressCardHeadline: String {
         switch status {
         case .open:
-            "Open\nRequest"
+            "Open\nrequest"
         case .hasOffers:
-            "Offers\nReady"
+            "Offers\nready"
         case .booked:
-            "Confirmed\nBooking"
+            "Confirmed\nbooking"
         case .cancelled:
-            "Cancelled\nRequest"
+            "Cancelled\nrequest"
         case .expired:
-            "Expired\nRequest"
+            "Expired\nrequest"
         case .unknown:
-            "Unknown\nStatus"
+            "Unknown\nstatus"
         }
     }
 

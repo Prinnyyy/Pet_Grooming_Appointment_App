@@ -55,7 +55,7 @@ struct CustomerGroomerDiscoveryView: View {
             .padding(DesignTokens.Spacing.screenHorizontal)
         }
         .background(DesignTokens.Colors.appBackground)
-        .navigationTitle(flow.requestID == nil ? "Choose Groomers" : "Invite Groomers")
+        .navigationTitle(flow.requestID == nil ? "Choose groomers" : "Invite groomers")
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(flow.requestID != nil)
         .toolbar(.visible, for: .navigationBar)

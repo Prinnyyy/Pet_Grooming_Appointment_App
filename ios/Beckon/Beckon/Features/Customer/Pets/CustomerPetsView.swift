@@ -559,17 +559,12 @@ private struct CustomerHomePetTile: View {
                         .foregroundStyle(DesignTokens.Colors.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
 
-                    Text(pet.displayAge ?? "Age not set")
+                    Text([pet.displayAge ?? "Age not set", pet.displayWeightAndSize]
+                        .compactMap { $0 }.joined(separator: " · "))
                         .font(DesignTokens.Typography.status)
                         .foregroundStyle(DesignTokens.Colors.textTertiary)
                         .fixedSize(horizontal: false, vertical: true)
 
-                    if let weightAndSize = pet.displayWeightAndSize {
-                        Text(weightAndSize)
-                            .font(DesignTokens.Typography.status)
-                            .foregroundStyle(DesignTokens.Colors.textTertiary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
                 }
             }
             .padding(DesignTokens.Spacing.md)

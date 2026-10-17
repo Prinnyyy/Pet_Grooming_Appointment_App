@@ -305,7 +305,8 @@ final class CustomerRequestsStore {
             CustomerRequestActionCardItem(
                 request: $0,
                 handoff: nil,
-                petAvatarPhotoData: primaryPetPhotoData(petID: $0.petID)
+                petAvatarPhotoData: primaryPetPhotoData(petID: $0.petID),
+                loadedOfferCount: loadedCurrentOfferCount(for: $0)
             )
         } + bookingHandoffs.map {
             CustomerRequestActionCardItem(
@@ -752,6 +753,14 @@ final class CustomerRequestsStore {
 
     func offers(for request: CustomerGroomingRequest) -> [CustomerOfferReview] {
         offerReviewsByRequestID[request.id] ?? []
+    }
+
+    func loadedCurrentOfferCount(for request: CustomerGroomingRequest, now: Date = Date()) -> Int? {
+        guard !isLoadingOffers(for: request), offerError(for: request) == nil,
+              !offerListsNeedingRefresh.contains(request.id),
+              let page = rankedOfferPages[request.id], page.nextCursor == nil,
+              let offers = offerReviewsByRequestID[request.id] else { return nil }
+        return offers.filter { $0.isCurrentProposal(now: now) }.count
     }
 
     func canLoadMoreOffers(for request: CustomerGroomingRequest) -> Bool {
@@ -2965,15 +2974,18 @@ struct CustomerRequestActionCardItem: Equatable, Hashable, Identifiable, Sendabl
     let request: CustomerGroomingRequest
     let handoff: CustomerRequestBookingHandoff?
     let petAvatarPhotoData: Data?
+    let loadedOfferCount: Int?
 
     init(
         request: CustomerGroomingRequest,
         handoff: CustomerRequestBookingHandoff?,
-        petAvatarPhotoData: Data? = nil
+        petAvatarPhotoData: Data? = nil,
+        loadedOfferCount: Int? = nil
     ) {
         self.request = request
         self.handoff = handoff
         self.petAvatarPhotoData = petAvatarPhotoData
+        self.loadedOfferCount = loadedOfferCount
     }
 
     var id: UUID {

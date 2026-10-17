@@ -126,24 +126,29 @@ struct BeckonPetAvatar: View {
 struct BeckonAnnotatedModule<Content: View>: View {
     let title: String
     let subtitle: String
+    let showsTitle: Bool
     private let content: Content
 
     init(
         _ title: String,
         subtitle: String,
+        showsTitle: Bool = true,
         @ViewBuilder content: () -> Content
     ) {
         self.title = title
         self.subtitle = subtitle
+        self.showsTitle = showsTitle
         self.content = content()
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                Text(title)
-                    .font(DesignTokens.Typography.headline)
-                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+                if showsTitle {
+                    Text(title)
+                        .font(DesignTokens.Typography.headline)
+                        .foregroundStyle(DesignTokens.Colors.textPrimary)
+                }
 
                 Text(subtitle)
                     .font(DesignTokens.Typography.caption)

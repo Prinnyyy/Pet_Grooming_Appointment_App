@@ -353,7 +353,7 @@ private struct RequestPhotoThumbnail: View {
         .frame(width: 58, height: 58)
         .clipShape(
             RoundedRectangle(
-                cornerRadius: 8,
+                cornerRadius: DesignTokens.CornerRadius.input,
                 style: .continuous
             )
         )
@@ -365,6 +365,7 @@ struct CustomerOfferReviewSection: View {
     let request: CustomerGroomingRequest
     let store: CustomerRequestsStore
     var showsRefreshAction = true
+    var showsTitle = true
 
     private var offers: [CustomerOfferReview] {
         store.offers(for: request)
@@ -386,7 +387,8 @@ struct CustomerOfferReviewSection: View {
             }
             BeckonAnnotatedModule(
                 "Offers",
-                subtitle: "Compare pending offers and review previous offer activity."
+                subtitle: "Compare pending offers and review previous offer activity.",
+                showsTitle: showsTitle
             ) {
                 Group {
                 if store.isLoadingOffers(for: request), offers.isEmpty {

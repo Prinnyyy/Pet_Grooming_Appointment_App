@@ -160,11 +160,11 @@ struct CustomerRequestWizardFitInputPresentation: Equatable {
         case .breedGroup:
             "Breed"
         case .sizeBand, .verifiedSize:
-            "Pet Size"
+            "Pet size"
         case .careFlag, .verifiedCare:
             "Care Need"
         case .serviceFit, .verifiedService:
-            "Service Fit"
+            "Service fit"
         }
     }
 

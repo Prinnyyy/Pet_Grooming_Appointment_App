@@ -5,6 +5,92 @@ import XCTest
 
 @MainActor
 final class UIColorImplementationSnapshotTests: XCTestCase {
+    func testGroomerAndSharedSurfaces() async throws {
+        let groomer = GroomerUIFixture()
+        for largeText in [false, true] {
+            try await capture(NavigationStack {
+                GroomerRequestsView(groomerID: groomer.owner, repository: groomer.requests,
+                    profileRepository: groomer.profile, route: .constant(.matches))
+            }.tint(DesignTokens.Colors.groomerDeep), name: "groomer-requests", largeText: largeText,
+                captureAllContent: true)
+            try await capture(NavigationStack {
+                GroomerProfileManagementView(groomerID: groomer.owner, repository: groomer.profile, onSignOut: {})
+            }.tint(DesignTokens.Colors.groomerDeep), name: "groomer-account", largeText: largeText,
+                captureAllContent: true)
+            for role in [UserRole.customer, .groomer] {
+                let conversation = try groomer.chat.conversationsResult.get()[0]
+                let participant = role == .customer ? conversation.customerID : conversation.groomerID
+                groomer.chat.messagesResult = .success([
+                    ChatMessage(id: UUID(), conversationID: conversation.id, senderID: conversation.customerID,
+                        kind: .text, body: "Please use the side entrance. Mochi needs a quiet introduction.",
+                        booking: nil, createdAt: conversation.createdAt),
+                    ChatMessage(id: UUID(), conversationID: conversation.id, senderID: conversation.groomerID,
+                        kind: .text, body: "Of course. I will message when I arrive.",
+                        booking: nil, createdAt: conversation.createdAt),
+                ])
+                let store = ChatStore(participantID: participant, role: role, repository: groomer.chat)
+                await store.loadMessages(for: conversation)
+                XCTAssertEqual(store.messages(for: conversation.id).count, 2)
+                try await capture(NavigationStack {
+                    ChatThreadView(participantID: participant, role: role, conversation: conversation, store: store)
+                }.tint(role == .customer ? DesignTokens.Colors.customerDeep : DesignTokens.Colors.groomerDeep),
+                    name: "\(role.rawValue)-messages", largeText: largeText)
+                XCTAssertEqual(store.messages(for: conversation.id).count, 2)
+                store.stopAllMessageSubscriptions()
+            }
+        }
+        XCTAssertEqual(groomer.profile.updateProfileCallCount, 0)
+        XCTAssertEqual(groomer.chat.sendCallCount, 0)
+    }
+
+    func testSummaryAndActionGeometryAtDefaultAndAX3() async throws {
+        let request = CustomerRequestsStoreTests.request(customerID: UUID(), petID: UUID(), status: .hasOffers)
+        for size: DynamicTypeSize in [.large, .accessibility3] {
+            let card = UIHostingController(rootView: Button {} label: {
+                CustomerRequestActionCardSummary(card: .init(request: request, handoff: nil, loadedOfferCount: 3))
+            }.buttonStyle(.plain).environment(\.dynamicTypeSize, size))
+            let measured = card.sizeThatFits(in: CGSize(width: 320, height: 10_000))
+            XCTAssertLessThanOrEqual(measured.width, 320)
+            XCTAssertGreaterThanOrEqual(measured.height, 44)
+            let actions = [AnyView(Button("Manage availability") {}.buttonStyle(BeckonTertiaryButtonStyle(accent: .groomer))),
+                AnyView(Button("Sign out") {}.buttonStyle(BeckonDestructiveButtonStyle()))]
+            for action in actions {
+                let host = UIHostingController(rootView: action.environment(\.dynamicTypeSize, size))
+                let frame = host.sizeThatFits(in: CGSize(width: 320, height: 10_000))
+                XCTAssertGreaterThanOrEqual(frame.height, 44)
+                XCTAssertLessThanOrEqual(frame.width, 320)
+            }
+        }
+    }
+
+    func testCustomerRequestStates() async throws {
+        let fixture = try await CustomerBookingUIFixture(screen: "booking")
+        var cards: [CustomerRequestActionCardItem] = []
+        for status: GroomingRequestStatus in [.open, .hasOffers, .booked, .cancelled, .expired, .unknown] {
+            var request = CustomerRequestsStoreTests.request(customerID: fixture.request.customerID,
+                petID: UUID(), status: status, preferredStart: fixture.request.preferredStart,
+                preferredEnd: fixture.request.preferredEnd)
+            request.preferenceTimeZoneIdentifier = "America/Los_Angeles"
+            cards.append(.init(request: request, handoff: nil))
+            if status == .hasOffers { cards.append(.init(request: request, handoff: nil, loadedOfferCount: 3)) }
+        }
+        cards.append(.init(request: fixture.request, handoff: .init(request: fixture.request, booking: fixture.booking)))
+        for largeText in [false, true] {
+            try await capture(ScrollView {
+                VStack(spacing: DesignTokens.Spacing.lg) {
+                    ForEach(Array(cards.enumerated()), id: \.offset) { _, card in
+                        Button {} label: { CustomerRequestActionCardSummary(card: card) }.buttonStyle(.plain)
+                    }
+                }.beckonPageInsets()
+            }.background(DesignTokens.Colors.appBackground), name: "customer-request-states",
+                largeText: largeText, captureAllContent: true)
+            try await capture(CustomerTabView(customerID: UUID(), customerDisplayName: "Alexandra",
+                petRepository: CustomerRequestPetRepositoryFake(), requestRepository: CustomerRequestRepositoryFake(),
+                notificationRepository: CustomerNotificationRepositoryFake(), bookingRepository: BookingRepositoryFake()),
+                name: "customer-home-empty", largeText: largeText, captureAllContent: true)
+        }
+    }
+
     func testRoleStatusScreens() async throws {
         let customer = try await CustomerBookingUIFixture(screen: "offers")
         let groomer = GroomerUIFixture()
@@ -64,14 +150,14 @@ final class UIColorImplementationSnapshotTests: XCTestCase {
                 requestRepository: customer.requestRepository,
                 notificationRepository: CustomerNotificationRepositoryFake(),
                 bookingRepository: customer.bookingRepository
-            ), name: "customer-home", largeText: largeText)
+            ), name: "customer-home", largeText: largeText, captureAllContent: true)
             let groomer = GroomerUIFixture()
             try await capture(GroomerTabView(
                 groomerID: groomer.owner, groomerDisplayName: "Alexandra Wellington",
                 profileRepository: groomer.profile, requestRepository: groomer.requests,
                 notificationRepository: groomer.notifications, bookingRepository: groomer.bookings,
                 chatRepository: groomer.chat, onSignOut: {}
-            ), name: "groomer-home", largeText: largeText)
+            ), name: "groomer-home", largeText: largeText, captureAllContent: true)
             XCTAssertEqual(groomer.requests.createOfferCallCount, 0)
             XCTAssertEqual(groomer.profile.saveAvailabilityCallCount, 0)
         }

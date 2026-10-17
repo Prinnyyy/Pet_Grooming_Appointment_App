@@ -113,16 +113,16 @@ struct RequestDistributionWireTests {
                   status: status, expiresAt: expiry ?? now.addingTimeInterval(60), checkedAt: now,
                   evaluationPending: pending, validOfferCount: offers, invitations: invitations, poolCandidateCount: count)
         }
-        #expect(progress(pending: true, count: 0).waitingTitle(at: now) == "Checking Availability")
-        #expect(progress(count: 0).waitingTitle(at: now) == "No Matching Groomers Right Now")
-        #expect(progress().waitingTitle(at: now) == "Request Pool Open")
-        #expect(progress(count: 3).waitingTitle(at: now) == "Request Pool Open")
-        #expect(progress(pending: true, count: 0, offers: 1).waitingTitle(at: now) == "Offers Ready")
-        #expect(progress(pool: false).waitingTitle(at: now) == "No Available Offers")
+        #expect(progress(pending: true, count: 0).waitingTitle(at: now) == "Checking availability")
+        #expect(progress(count: 0).waitingTitle(at: now) == "No matching groomers right now")
+        #expect(progress().waitingTitle(at: now) == "Request pool open")
+        #expect(progress(count: 3).waitingTitle(at: now) == "Request pool open")
+        #expect(progress(pending: true, count: 0, offers: 1).waitingTitle(at: now) == "Offers ready")
+        #expect(progress(pool: false).waitingTitle(at: now) == "No available offers")
         let invite = RequestInvitation(groomerID: UUID(), profile: nil, sentAt: now.addingTimeInterval(-60),
                                        replyBy: now.addingTimeInterval(20), state: .awaitingResponse)
-        #expect(progress(pool: false, invitations: [invite]).waitingTitle(at: now) == "Waiting for Replies")
-        #expect(progress(pool: false, invitations: [invite]).waitingTitle(at: now.addingTimeInterval(21)) == "No Available Offers")
+        #expect(progress(pool: false, invitations: [invite]).waitingTitle(at: now) == "Waiting for replies")
+        #expect(progress(pool: false, invitations: [invite]).waitingTitle(at: now.addingTimeInterval(21)) == "No available offers")
         #expect(progress(offers: 2, expiry: now).waitingTitle(at: now) == GroomingRequestStatus.expired.title)
         #expect(progress(offers: 2, status: .cancelled).waitingTitle(at: now) == GroomingRequestStatus.cancelled.title)
     }

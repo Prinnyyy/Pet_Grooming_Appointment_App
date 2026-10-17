@@ -73,7 +73,14 @@ final class CustomerBookingUIAcceptanceTests: XCTestCase {
             NavigationStack {
                 if let fixture {
                     Group {
-                        if screen.hasPrefix("offers") {
+                        if screen == "home" {
+                            CustomerTabView(customerID: fixture.request.customerID, customerDisplayName: "Alexandra",
+                                petRepository: CustomerRequestPetRepositoryFake(petsResult: .success([
+                                    CustomerRequestsStoreTests.pet(customerID: fixture.request.customerID)
+                                ])), requestRepository: fixture.requestRepository,
+                                notificationRepository: CustomerNotificationRepositoryFake(),
+                                bookingRepository: fixture.bookingRepository)
+                        } else if screen.hasPrefix("offers") {
                             CustomerRequestOffersView(requestID: fixture.request.id, store: fixture.requests)
                         } else {
                             BookingDetailView(bookingID: fixture.booking.id, role: .customer, store: fixture.bookings)
