@@ -4,8 +4,21 @@ Only dynamic task and recovery facts. Git owns branch, worktree and completion h
 
 ```json
 {
-  "next_task_id": "T-409",
-  "task": null,
+  "next_task_id": "T-411",
+  "task": {
+    "id": "T-410",
+    "status": "active",
+    "goal": "Continue the adopted UI color handoff with shared primitives and status presentation, then complete all remaining packages",
+    "plan": "docs/superpowers/plans/2026-10-17-ui-color-implementation.md",
+    "next_action": "Implement semantic status presentation and tests, role-aware solid buttons, feedback/selection/placeholders/badges and catalog. Keep aliases until Feature consumers migrate; continue T-411 through final acceptance.",
+    "preserve": [
+      "Keep local project.pbxproj signing changes unchanged and uncommitted.",
+      "Root handoff and audit drafts are user inputs; preserve their text and archive at final acceptance."
+    ],
+    "authorization": [
+      "User adopted UI_COLOR_IMPLEMENTATION_HANDOFF.md; local implementation and Simulator verification only, no backend writes or signing changes."
+    ]
+  },
   "pending_tasks": [
     {
       "id": "T-157",
@@ -19,7 +32,7 @@ Only dynamic task and recovery facts. Git owns branch, worktree and completion h
     }
   ],
   "last_completed": {
-    "id": "T-408"
+    "id": "T-409"
   }
 }
 ```

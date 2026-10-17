@@ -12,7 +12,7 @@ Pre-routing source snapshot: `../09_frozen/design_notes/T-347_2026-07-13/UI_IMPL
 | Form, editor, or sheet interaction | Above | `../01_product/FORM_INTERACTION_RULES.md` |
 | Groomer Q-104/regression | Above | `GROOMER_UI_REDESIGN.md` and named approved captures |
 | Broad Figma inventory/design handoff | `../ui-redesign/README.md` | Only the targeted heavy file(s) named by that index |
-| Exact token comparison | `../01_product/DESIGN_SYSTEM.md` | `design_tokens.json` and Swift `DesignTokens` |
+| Exact token comparison | `../01_product/DESIGN_SYSTEM.md` | Swift `DesignTokens` and `DesignTokenAccessibilityTests`; old JSON is frozen history |
 
 Beckon HTML/export files and the heavy UI redesign body are not default context. Open them only for a named comparison or design task. Never copy HTML, CSS, React, generated JavaScript, or prototype runtime code into SwiftUI.
 

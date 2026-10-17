@@ -18,6 +18,15 @@ Linked files:
 ## Active Decisions
 
 ```text
+Decision ID: D-060
+Date: 2026-10-17
+Decision: Adopt the UI color handoff's D1-D3: retain light mint/ coral role fills and warm backgrounds; use role Ink on Fill, Deep for text/controls and opaque Tint for selection. Domain status uses shared semantic presentation, independent of viewer role. Exact sRGB values and contrast pairs belong to Swift tokens and tests, not duplicate JSON palettes.
+Context: The user requested implementation of the handoff. The earlier white-text solid-button proposal is superseded. The concern in 10-existing-visual-language-audit.md that coral must not become a second brand is satisfied by common components/layout and restricted Fill/Ink/Deep/Tint usage, not by removing the Groomer role color.
+Consequences: No white text on light role fills, accent-opacity surfaces, gradient buttons or colored action shadows. One quiet card elevation; semantic status includes text and symbols. Implementation proceeds through the adopted plan; this decision is not a claim that all Feature consumers have migrated. No backend, navigation, signing or dark-mode work.
+Linked files: docs/superpowers/plans/2026-10-17-ui-color-implementation.md; docs/01_product/DESIGN_SYSTEM.md; docs/01_product/ACCESSIBILITY_RULES.md
+```
+
+```text
 Decision ID: D-059
 Date: 2026-09-21
 Task: T-397

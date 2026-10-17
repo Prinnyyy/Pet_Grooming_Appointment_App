@@ -98,7 +98,7 @@ struct DesignSystemContractTests {
         #expect(BeckonKeyboardDoneAccessoryPolicy.usesInteractiveSystemGlass)
         #expect(
             BeckonKeyboardDoneAccessoryPolicy.symbolColorHex ==
-                DesignTokens.ColorHex.customerPrimaryDark
+                DesignTokens.ColorHex.customerDeep
         )
     }
 

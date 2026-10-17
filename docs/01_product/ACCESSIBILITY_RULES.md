@@ -8,24 +8,20 @@ Normal text requires at least 4.5:1 contrast; large text and meaningful UI graph
 
 | Foreground | Background | Approved use |
 |---|---|---|
-| `textPrimary #333333` | surface or app background | Primary text. |
-| `textPrimary #333333` | Customer accent or accentSoft | Customer primary-action foreground. |
-| `groomerOnAccent #642620` | coral or coralDark | Groomer action foreground. |
-| `groomerOnAccent #642620` | surface, app background or 14% coral on surface | Groomer navigation/emphasis; measured 11.41:1, 10.68:1 and 10.36:1 respectively (T-402). |
-| surface white | `groomerOnAccent #642620` | Groomer compact send icon; 11.41:1. This does not permit white on coral. |
-| `customerHeroText #333333` | Display P3 Hero mint | Customer Hero title and supporting copy. |
-| `customerHeroText #333333` | surface white | Customer Hero action foreground. |
-| `textTertiary #69717A` | surface or app background | Tertiary text. |
-| `textSecondary #6F767E` | surface | Secondary text on a surface only. |
-| `successText #37744E` | surface | Success body text. |
-| `warningText #8F6800` | surface | Warning body text. |
-| `errorText #B4474C` | surface | Error body text. |
+| `textPrimary`, `textSecondary`, `textTertiary` | surface or app background | Warm text hierarchy; tertiary is lighter than secondary. |
+| Role `Ink` | Same role `Fill` or `FillPressed` | Primary-action foreground, at least 4.5:1. |
+| Role `Deep` | surface, app background or same role `Tint` | Links, controls, selection and progress, at least 4.5:1. |
+| Customer `Ink` | Customer Hero Fill/End or surface | Hero title, supporting text and white-capsule foreground. |
+| Status `Text` | surface or matching status `Fill` | Semantic text/icon, at least 4.5:1; include label and symbol. |
+| surface white | `statusSuccessText` | Success-toast checkmark; does not permit white on light fills. |
+
+The exact sRGB values and executable pairing assertions are owned by `DesignTokens.swift` and `DesignTokenAccessibilityTests.swift`; this table describes usage, not a second numeric palette.
 
 Banned pairs:
 
-- White text on mint, mintDark, coral, or coralDark.
-- Success `#6CBF84`, warning `#F2B84B`, or error `#E56B6F` as normal body text on a surface; use the corresponding `*Text` role.
-- `textSecondary #6F767E` as normal-size text directly on `#FAF7F2` app background.
+- White text on either role's light Fill or FillPressed.
+- Light role/status fills or `ratingStar` as text, control tint or meaningful fine lines.
+- `accent.opacity()` or any Feature-local color-token opacity composited over a background; use opaque role Tint, status Fill or named neutral surfaces.
 - Any unmeasured raw foreground/background combination in feature code.
 
 Dark mode remains out of scope. Semantic role names must remain stable so a future palette can change values without rewriting feature layouts.
@@ -34,7 +30,7 @@ Dark mode remains out of scope. Semantic role names must remain stable so a futu
 
 - **A11Y-R1 Dynamic Type:** Use semantic text styles and content-sized containers. Do not fix text heights or truncate informational text to one line unless the full value is available elsewhere. Prefer reflow, stacking, `ViewThatFits`, or `isAccessibilitySize`. `minimumScaleFactor` is not an overflow strategy; values below 0.85 are prohibited. Every UI slice must pass AX3 (`.accessibility3`).
 - **A11Y-R2 Touch targets:** Interactive elements are at least 44x44pt. Icon controls and chips receive the same floor; list rows use full-row hit areas rather than glyph-sized targets.
-- **A11Y-R3 Contrast and status:** Use only the approved pair table. Status fills/icons use dark foregrounds, body copy uses AA `successText`, `warningText`, and `errorText`, and status never relies on color alone.
+- **A11Y-R3 Contrast and status:** Use only the approved pair table. Status uses semantic Text/Fill/Border roles, a symbol and a label, never role color alone. Success includes a checkmark and errors an alert symbol/container.
 - **A11Y-R4 Labels and identifiers:** Every control and informative image has a human, model-derived accessibility label. `accessibilityIdentifier` is TestOps-only and never replaces a VoiceOver label.
 - **A11Y-R5 Grouped reading:** Composite rows/cards read coherently using combined children where appropriate. Secondary controls may become accessibility actions instead of fragmented swipe stops.
 - **A11Y-R6 Headings:** Shared section headers expose the header trait; page titles use native navigation titles so VoiceOver rotor navigation remains useful.

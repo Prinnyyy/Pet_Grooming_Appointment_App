@@ -19,6 +19,10 @@ Executable Feature-code rules and audit commands live in `../04_ios/UI_CODE_GOVE
 
 - Friendly, calm, pet-focused marketplace UI with warm off-white pages and white surfaces.
 - Customer uses mint/teal action roles; Groomer uses coral action roles.
+- Role Fill is a light action surface, Ink is its foreground, Deep is for links, controls, progress and selection outlines, and opaque Tint is for selected/icon surfaces. Exact values and allowed contrast pairs live in `DesignTokens.swift` and `DesignTokenAccessibilityTests.swift`; D-060 supersedes earlier palette proposals.
+- Role color communicates action, selection or role, never domain status or failure. Status uses semantic Text/Fill/Border with a symbol and label; shared screens keep the same status presentation for both roles.
+- No accent-opacity surfaces, gradient buttons or colored action shadows. Only the Customer Hero retains a related-color gradient. Cards share one quiet warm shadow; depth primarily comes from borders. Placeholders and list icon tiles are neutral, with species conveyed by symbols rather than color.
+- Destructive actions use a white surface with semantic error text/border for either role. Errors include an alert symbol and error container; success includes a checkmark. Never use white text on a light role Fill.
 - Clear hierarchy, quiet borders/shadows, content-led imagery, and explicit loading, empty, error, selected, disabled, and success states.
 - Customer remains pet/decision oriented. Groomer remains schedule/action oriented and uses grouped surfaces with row separators rather than card stacks.
 - Native SwiftUI/SF typography and semantic Dynamic Type styles are required.
@@ -30,7 +34,7 @@ Avoid dense dashboards, map-first layouts, oversized calendars, decorative anima
 - Swift tokens: `ios/Beckon/Beckon/DesignSystem/DesignTokens.swift`
 - Shared primitives: `ios/Beckon/Beckon/DesignSystem/`
 - Shared business UI and reusable flow state: `ios/Beckon/Beckon/SharedFeatures/` (Address, Notifications, Matching)
-- Extracted prototype tokens: `../08_design/design_tokens.json` (reference only)
+- Historical prototype palette: `../09_frozen/design_notes/design_tokens_2026-10-17.json` (not an implementation source)
 - Screen ownership: `SCREEN_INVENTORY.md`
 - Remaining source debt: `../04_ios/UI_CONSISTENCY_DEBT.md`
 

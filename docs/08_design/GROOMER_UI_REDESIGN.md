@@ -17,7 +17,7 @@ Read this file only for Q-104, a focused R-039 visual regression, or a Groomer s
 - The five direct Groomer tabs are Home, Requests, Schedule, Messages, and Account. There is no system More tab.
 - Requests owns Matches and Offers segments. Notifications open from Home. Account is direct; feature editors hide the tab bar and expose one back action.
 - Operational queues use one grouped surface with separators. Cards are reserved for standalone or genuinely raised objects.
-- Coral is limited to Groomer actions, selection, unread/current emphasis, and small role accents.
+- Coral is limited to Groomer actions, selection and role accents. D-060 uses Groomer Fill with Ink, Deep for links/controls, and opaque Tint for selected surfaces. Status and unread dots use shared semantic roles, not coral.
 - Current request, offer, booking, chat, notification, profile, repository, and backend behavior remains authoritative.
 - Do not add revenue, payments, ranking, maps, attachments, read receipts, typing state, new push behavior, schema, RLS/RPC, Storage, dependencies, or public assets through visual work.
 
@@ -40,6 +40,8 @@ Simulator captures are visual evidence, not pixel pass/fail assertions. Behavior
 ## Evidence
 
 Approved targets:
+
+These images remain layout references. Their white-on-coral buttons and earlier brown foreground are superseded by D-060's Fill/Ink pairing; links use Deep. Numeric palette values belong only to Swift tokens and tests.
 
 - [Home](groomer_ui_redesign/approved/groomer-home-approved.png)
 - [Requests](groomer_ui_redesign/approved/groomer-requests-approved.png)

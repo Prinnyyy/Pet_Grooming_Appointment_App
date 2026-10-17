@@ -115,7 +115,7 @@ struct CustomerTabView: View {
                 .tag(tab)
             }
         }
-        .tint(DesignTokens.Colors.customerAccentStrong)
+        .tint(DesignTokens.Colors.customerDeep)
         .background(DesignTokens.Colors.background.ignoresSafeArea())
         .toolbarBackground(DesignTokens.Colors.surface, for: .tabBar)
         .toolbarBackground(.visible, for: .tabBar)

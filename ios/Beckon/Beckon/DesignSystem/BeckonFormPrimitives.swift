@@ -22,7 +22,7 @@ nonisolated enum BeckonKeyboardDoneAccessoryPolicy {
     static let keyboardGap: CGFloat = 12
     static let symbolName = "checkmark"
     static let usesInteractiveSystemGlass = true
-    static let symbolColorHex = DesignTokens.DisplayP3Hex.customerAccentStrong
+    static let symbolColorHex = DesignTokens.ColorHex.customerDeep
 }
 
 nonisolated enum BeckonKeyboardRevealPolicy {

@@ -17,4 +17,4 @@ The names preserve the original screenshot date and clock label while removing s
 
 - Historical task records reference these files from `docs/09_frozen/task_records_2026-06-26/`; current task status lives in [Current State](../../00_memory/CURRENT_STATE.md).
 - Beckon prototype source files remain in `docs/08_design/Beckon/`.
-- Design tokens remain in `docs/08_design/design_tokens.json`.
+- Current design tokens are in `ios/Beckon/Beckon/DesignSystem/DesignTokens.swift`, with pairing tests in `BeckonTests/DesignTokenAccessibilityTests.swift`; the old JSON is frozen design history.
