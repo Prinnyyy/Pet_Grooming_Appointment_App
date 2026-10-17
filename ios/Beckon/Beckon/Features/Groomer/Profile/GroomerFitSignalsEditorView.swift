@@ -40,7 +40,7 @@ struct GroomerFitSignalsEditorView: View {
             .beckonPageInsets()
         }
         .accessibilityIdentifier("groomer.fit-signals.edit")
-        .background(DesignTokens.Colors.background.ignoresSafeArea())
+        .background(DesignTokens.Colors.appBackground.ignoresSafeArea())
         .navigationTitle("Fit Signals")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .tabBar)
@@ -98,7 +98,7 @@ private struct GroomerFitSignalsSelectionBalanceSection: View {
 
                             Text(presentation.selectionSummary)
                                 .font(DesignTokens.Typography.caption.weight(.semibold))
-                                .foregroundStyle(DesignTokens.Colors.groomerOnAccent)
+                                .foregroundStyle(DesignTokens.Colors.groomerInk)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
 
@@ -106,7 +106,7 @@ private struct GroomerFitSignalsSelectionBalanceSection: View {
                             value: Double(store.selectedCoreFitClaimCount),
                             total: Double(GroomerFitClaim.maximumActiveClaims)
                         )
-                        .tint(DesignTokens.Colors.groomerAccent)
+                        .tint(DesignTokens.Colors.groomerDeep)
                     }
 
                     BeckonGroupedDivider()
@@ -140,7 +140,7 @@ private struct GroomerSizeExperienceRangeControl: View {
 
                 Text(store.sizeBandFitClaimRangeTitle)
                     .font(DesignTokens.Typography.caption.weight(.semibold))
-                    .foregroundStyle(DesignTokens.Colors.groomerOnAccent)
+                    .foregroundStyle(DesignTokens.Colors.groomerInk)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityIdentifier("groomer.fit-signals.size-range-title")
             }
@@ -210,7 +210,7 @@ struct GroomerEvidenceDashboardView: View {
             .beckonPageInsets()
         }
         .accessibilityIdentifier("groomer.evidence.dashboard")
-        .background(DesignTokens.Colors.background.ignoresSafeArea())
+        .background(DesignTokens.Colors.appBackground.ignoresSafeArea())
         .navigationTitle("Evidence")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .tabBar)
@@ -388,7 +388,7 @@ private struct GroomerFitSignalGroupSection: View {
         } trailing: {
                 Text(statusText)
                     .font(DesignTokens.Typography.status)
-                    .foregroundStyle(DesignTokens.Colors.groomerOnAccent)
+                    .foregroundStyle(DesignTokens.Colors.groomerInk)
                     .lineLimit(1)
         }
     }
@@ -450,7 +450,7 @@ private struct GroomerFitSignalRow: View {
                     .font(.body.weight(.semibold))
                     .foregroundStyle(
                         isSelected
-                            ? DesignTokens.Colors.groomerAccent
+                            ? DesignTokens.Colors.groomerDeep
                             : DesignTokens.Colors.textTertiary
                     )
                     .accessibilityHidden(true)
@@ -493,7 +493,7 @@ private struct GroomerFitSignalsSaveBar: View {
                     if presentation.saveActionTitle == "Saving..." {
                         HStack(spacing: DesignTokens.Spacing.sm) {
                             ProgressView()
-                                .tint(DesignTokens.Colors.surface)
+                                .tint(DesignTokens.Colors.groomerInk)
                             Text(presentation.saveActionTitle)
                         }
                     } else {
@@ -507,7 +507,7 @@ private struct GroomerFitSignalsSaveBar: View {
             .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
             .padding(.vertical, DesignTokens.Spacing.md)
         }
-        .background(DesignTokens.Colors.background)
+        .background(DesignTokens.Colors.appBackground)
     }
 
     private var actionLayout: AnyLayout {

@@ -314,6 +314,22 @@ struct DismissRequestMatchResult: Equatable, Sendable {
     let dismissedAt: String
 }
 
+enum GroomerOfferDisplayStatus: Equatable, Sendable {
+    case status(GroomerOfferStatus)
+    case checking
+    case newOfferRequired
+    case timeUnavailable
+
+    var title: String {
+        switch self {
+        case .status(let status): status.title
+        case .checking: "Checking"
+        case .newOfferRequired: "New Offer Required"
+        case .timeUnavailable: "Time Unavailable"
+        }
+    }
+}
+
 struct GroomerOffer: Equatable, Hashable, Identifiable, Sendable {
     let id: UUID
     let requestID: UUID
@@ -363,13 +379,17 @@ struct GroomerOffer: Equatable, Hashable, Identifiable, Sendable {
     }
 
     func evaluatedStatusTitle(now: Date) -> String {
-        guard status == .pending, agreementSnapshotLoaded else { return status.title }
-        if hasPassedConfirmationDeadline(now: now) { return "Expired" }
-        guard let quoteEvaluation else { return "Checking" }
+        evaluatedDisplayStatus(now: now).title
+    }
+
+    func evaluatedDisplayStatus(now: Date = Date()) -> GroomerOfferDisplayStatus {
+        guard status == .pending, agreementSnapshotLoaded else { return .status(status) }
+        if hasPassedConfirmationDeadline(now: now) { return .status(.expired) }
+        guard let quoteEvaluation else { return .checking }
         if !quoteEvaluation.termsValid {
-            return quoteEvaluation.reason == "expired" ? "Expired" : "New Offer Required"
+            return quoteEvaluation.reason == "expired" ? .status(.expired) : .newOfferRequired
         }
-        return quoteEvaluation.selectable ? status.title : "Time Unavailable"
+        return quoteEvaluation.selectable ? .status(status) : .timeUnavailable
     }
 
     var hasTimingSnapshot: Bool {

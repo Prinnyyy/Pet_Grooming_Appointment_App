@@ -19,7 +19,7 @@ struct AuthenticationGateView: View {
             switch store.rootState {
             case .loading:
                 ZStack {
-                    DesignTokens.Colors.background
+                    DesignTokens.Colors.appBackground
                         .ignoresSafeArea()
 
                     BeckonLoadingView(

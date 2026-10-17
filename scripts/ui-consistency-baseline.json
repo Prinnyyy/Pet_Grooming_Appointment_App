@@ -2,7 +2,7 @@
   "version": 1,
   "scope": "ios/Beckon/Beckon/Features",
   "lastChange": {
-    "reason": "T-403"
+    "reason": "T-411 migrates feature colors, shared status presentations and action styles"
   },
   "findings": [
     {

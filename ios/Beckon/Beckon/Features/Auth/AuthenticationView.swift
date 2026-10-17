@@ -55,8 +55,8 @@ struct AuthenticationView: View {
         LinearGradient(
             colors: [
                 DesignTokens.Colors.appBackground,
-                DesignTokens.Colors.surface.opacity(0.92),
-                DesignTokens.Colors.borderSoft.opacity(0.56)
+                DesignTokens.Colors.surface,
+                DesignTokens.Colors.iconTileFill
             ],
             startPoint: .top,
             endPoint: .bottom
@@ -102,21 +102,21 @@ struct AuthenticationView: View {
         ZStack {
             FloatingBubbleLayer(
                 isFloating: !reduceMotion && bubblesAreFloating,
-                color: DesignTokens.Colors.customerAccent
+                color: DesignTokens.Colors.customerHeroBubble
             )
 
             VStack(spacing: DesignTokens.Spacing.lg) {
                 ZStack {
                     Circle()
-                        .fill(DesignTokens.Colors.customerAccent.opacity(0.78))
+                        .fill(DesignTokens.Colors.customerTint)
 
                     Circle()
-                        .fill(DesignTokens.Colors.surface.opacity(0.22))
+                        .fill(DesignTokens.Colors.surface)
                         .frame(width: 68, height: 68)
                         .offset(x: -34, y: -34)
 
                     Circle()
-                        .stroke(DesignTokens.Colors.customerAccentStrong.opacity(0.3), lineWidth: 1)
+                        .stroke(DesignTokens.Colors.customerDeep, lineWidth: 1)
 
                     Text("🐶")
                         .font(.system(size: 62))
@@ -139,14 +139,14 @@ struct AuthenticationView: View {
                 VStack(spacing: DesignTokens.Spacing.sm) {
                     Text("Beckon")
                         .font(.system(size: 46, weight: .black, design: .rounded))
-                        .foregroundStyle(DesignTokens.Colors.primaryText)
+                        .foregroundStyle(DesignTokens.Colors.textPrimary)
                         .multilineTextAlignment(.center)
                         .lineLimit(1)
                         .minimumScaleFactor(0.82)
 
                     Text("Pet groomers at your beck and call.")
                         .font(DesignTokens.Typography.body.weight(.medium))
-                        .foregroundStyle(DesignTokens.Colors.secondaryText)
+                        .foregroundStyle(DesignTokens.Colors.textSecondary)
                         .multilineTextAlignment(.center)
                         .lineSpacing(3)
                         .frame(maxWidth: 310)
@@ -174,7 +174,7 @@ struct AuthenticationView: View {
             } label: {
                 Text("I already have an account")
                     .font(DesignTokens.Typography.body.weight(.semibold))
-                    .foregroundStyle(DesignTokens.Colors.secondaryText)
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
                     .frame(maxWidth: .infinity, minHeight: 44)
             }
             .buttonStyle(.plain)
@@ -256,7 +256,7 @@ struct AuthenticationView: View {
                     .font(.system(size: 16, weight: .bold))
                     .foregroundStyle(DesignTokens.Colors.textPrimary)
                     .frame(width: 42, height: 42)
-                    .background(DesignTokens.Colors.surface.opacity(0.82))
+                    .background(DesignTokens.Colors.surface)
                     .clipShape(DesignTokens.Shapes.circular)
                     .overlay {
                         Circle()
@@ -275,13 +275,13 @@ struct AuthenticationView: View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
             Text(formTitle)
                 .font(.system(size: 42, weight: .black, design: .rounded))
-                .foregroundStyle(DesignTokens.Colors.primaryText)
+                .foregroundStyle(DesignTokens.Colors.textPrimary)
                 .lineLimit(2)
                 .minimumScaleFactor(0.82)
 
             Text(formSubtitle)
                 .font(.system(size: 19, weight: .medium, design: .rounded))
-                .foregroundStyle(DesignTokens.Colors.secondaryText)
+                .foregroundStyle(DesignTokens.Colors.textSecondary)
                 .lineSpacing(4)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -356,7 +356,7 @@ struct AuthenticationView: View {
             } label: {
                 Text(isPasswordVisible ? "Hide" : "Show")
                     .font(DesignTokens.Typography.body.weight(.bold))
-                    .foregroundStyle(DesignTokens.Colors.customerAccentStrong)
+                    .foregroundStyle(DesignTokens.Colors.customerDeep)
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("auth.password-visibility")
@@ -374,7 +374,7 @@ struct AuthenticationView: View {
                 HStack(spacing: DesignTokens.Spacing.sm) {
                     if store.isSubmitting {
                         ProgressView()
-                            .tint(DesignTokens.Colors.surface)
+                            .tint(DesignTokens.Colors.customerInk)
                     }
                     Text(store.isSubmitting ? "Please wait…" : store.mode.rawValue)
                 }
@@ -432,10 +432,10 @@ struct AuthenticationView: View {
         if let noticeMessage = store.noticeMessage {
             Label(noticeMessage, systemImage: "envelope.badge")
                 .font(DesignTokens.Typography.caption.weight(.semibold))
-                .foregroundStyle(DesignTokens.Colors.customerAccentStrong)
+                .foregroundStyle(DesignTokens.Colors.customerDeep)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(DesignTokens.Spacing.md)
-                .background(DesignTokens.Colors.customerAccent.opacity(0.14))
+                .background(DesignTokens.Colors.customerTint)
                 .clipShape(
                     RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input, style: .continuous)
                 )
@@ -494,7 +494,7 @@ struct AuthenticationView: View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
             Text(title)
                 .font(DesignTokens.Typography.body.weight(.bold))
-                .foregroundStyle(DesignTokens.Colors.secondaryText)
+                .foregroundStyle(DesignTokens.Colors.textSecondary)
 
             content()
         }
@@ -556,7 +556,7 @@ private struct FloatingBubbleLayer: View {
                 y: -54,
                 travel: -30,
                 xTravel: -10,
-                opacity: 0.34,
+
                 delay: 0.08,
                 duration: 3.0
             )
@@ -566,7 +566,7 @@ private struct FloatingBubbleLayer: View {
                 y: -34,
                 travel: 34,
                 xTravel: 12,
-                opacity: 0.24,
+
                 delay: 0.24,
                 duration: 3.4
             )
@@ -576,7 +576,7 @@ private struct FloatingBubbleLayer: View {
                 y: 68,
                 travel: 26,
                 xTravel: 9,
-                opacity: 0.28,
+
                 delay: 0.44,
                 duration: 3.2
             )
@@ -586,7 +586,7 @@ private struct FloatingBubbleLayer: View {
                 y: 82,
                 travel: -32,
                 xTravel: -12,
-                opacity: 0.22,
+
                 delay: 0.14,
                 duration: 3.6
             )
@@ -596,7 +596,7 @@ private struct FloatingBubbleLayer: View {
                 y: -112,
                 travel: 24,
                 xTravel: -8,
-                opacity: 0.3,
+
                 delay: 0.34,
                 duration: 2.8
             )
@@ -606,7 +606,7 @@ private struct FloatingBubbleLayer: View {
                 y: 104,
                 travel: -22,
                 xTravel: 14,
-                opacity: 0.16,
+
                 delay: 0.56,
                 duration: 4.0
             )
@@ -616,7 +616,7 @@ private struct FloatingBubbleLayer: View {
                 y: -136,
                 travel: 18,
                 xTravel: 7,
-                opacity: 0.24,
+
                 delay: 0.18,
                 duration: 3.1
             )
@@ -631,16 +631,16 @@ private struct FloatingBubbleLayer: View {
         y: CGFloat,
         travel: CGFloat,
         xTravel: CGFloat,
-        opacity: Double,
+
         delay: Double,
         duration: Double
     ) -> some View {
         Circle()
-            .fill(color.opacity(opacity))
+            .fill(color)
             .frame(width: size, height: size)
             .overlay {
                 Circle()
-                    .stroke(DesignTokens.Colors.surface.opacity(opacity * 0.9), lineWidth: 1)
+                    .stroke(DesignTokens.Colors.surface, lineWidth: 1)
             }
             .offset(
                 x: x + (isFloating ? xTravel : -xTravel * 0.35),

@@ -50,7 +50,7 @@ struct ChatConversationsView: View {
 
     var body: some View {
         ZStack {
-            DesignTokens.Colors.background
+            DesignTokens.Colors.appBackground
                 .ignoresSafeArea()
 
             conversationsContent
@@ -245,7 +245,7 @@ private struct ChatConversationRow: View {
             ) {
                 if store.hasUnreadMessages(in: conversation) {
                     Circle()
-                        .fill(role.chatAccentColor)
+                        .fill(DesignTokens.Colors.unreadDot)
                         .frame(width: 10, height: 10)
                         .accessibilityHidden(true)
                 }
@@ -262,7 +262,7 @@ private struct ChatConversationRow: View {
                         .padding(.vertical, DesignTokens.Spacing.xs)
                         .background {
                             Capsule()
-                                .fill(DesignTokens.Colors.borderSoft.opacity(0.85))
+                                .fill(DesignTokens.Colors.iconTileFill)
                         }
                 }
             }
@@ -319,7 +319,7 @@ struct ChatThreadView: View {
 
     var body: some View {
         ZStack {
-            DesignTokens.Colors.background
+            DesignTokens.Colors.appBackground
                 .ignoresSafeArea()
 
             VStack(spacing: 0) {
@@ -347,7 +347,7 @@ struct ChatThreadView: View {
                 isSending: store.isSendingMessage(for: conversation.id),
                 isReadOnly: !store.canSendMessages(in: conversation),
                 readOnlyMessage: conversation.readOnlyReason,
-                accentColor: role.chatAccentColor,
+                accent: role == .customer ? .customer : .groomer,
                 placeholder: "Message \(conversation.shortRecipientName(for: role))...",
                 send: {
                     let body = draft
@@ -537,7 +537,7 @@ private struct ChatThreadHeader: View {
                 if !isComposing || !dynamicTypeSize.isAccessibilitySize {
                     HStack(spacing: DesignTokens.Spacing.xs) {
                         Circle()
-                            .fill(role.chatAccentColor)
+                            .fill(DesignTokens.Colors.textTertiary)
                             .frame(width: 9, height: 9)
                             .accessibilityHidden(true)
 
@@ -552,7 +552,7 @@ private struct ChatThreadHeader: View {
         .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
         .padding(.top, DesignTokens.Spacing.lg)
         .padding(.bottom, DesignTokens.Spacing.md)
-        .background(DesignTokens.Colors.surface.opacity(0.92))
+        .background(DesignTokens.Colors.surface)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("chat.thread")
     }
@@ -582,12 +582,12 @@ private struct ChatMessageRow: View {
             VStack(alignment: isOutgoing ? .trailing : .leading, spacing: DesignTokens.Spacing.xs) {
                 Text(message.body ?? "")
                     .font(.body.weight(.medium))
-                    .foregroundStyle(isOutgoing ? DesignTokens.Colors.surface : DesignTokens.Colors.textPrimary)
+                    .foregroundStyle(isOutgoing ? role.chatAccent.ink : DesignTokens.Colors.textPrimary)
                     .padding(.horizontal, DesignTokens.Spacing.lg)
                     .padding(.vertical, DesignTokens.Spacing.md)
                     .background {
                         RoundedRectangle(cornerRadius: 22, style: .continuous)
-                            .fill(isOutgoing ? role.chatAccentColor : DesignTokens.Colors.surfaceRaised)
+                            .fill(isOutgoing ? role.chatAccent.color : DesignTokens.Colors.surfaceRaised)
                     }
                     .overlay {
                         RoundedRectangle(cornerRadius: 22, style: .continuous)
@@ -678,7 +678,7 @@ private struct ChatBookingMessageCard: View {
                             .font(.title3.weight(.bold))
                             .foregroundStyle(role.chatAccentColor)
                             .frame(width: 48, height: 48)
-                            .background(role.chatAccentColor.opacity(0.16))
+                            .background(role == .customer ? DesignTokens.Colors.customerTint : DesignTokens.Colors.groomerTint)
                             .clipShape(
                                 RoundedRectangle(
                                     cornerRadius: DesignTokens.CornerRadius.input,
@@ -733,9 +733,11 @@ private struct ChatComposerView: View {
     let isSending: Bool
     let isReadOnly: Bool
     let readOnlyMessage: String
-    let accentColor: Color
+    let accent: BeckonRoleAccent
     let placeholder: String
     let send: () async -> Void
+
+    private var hasDraft: Bool { !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
 
     var body: some View {
         Group {
@@ -757,7 +759,7 @@ private struct ChatComposerView: View {
                 .padding(.vertical, DesignTokens.Spacing.md)
                 .background {
                     RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input, style: .continuous)
-                        .fill(DesignTokens.Colors.borderSoft.opacity(0.62))
+                        .fill(DesignTokens.Colors.iconTileFill)
                 }
                 .accessibilityIdentifier("chat.message.read-only")
             } else {
@@ -768,7 +770,7 @@ private struct ChatComposerView: View {
                         .lineLimit(1...4)
                         .padding(.horizontal, DesignTokens.Spacing.lg)
                         .padding(.vertical, DesignTokens.Spacing.md)
-                        .background(DesignTokens.Colors.borderSoft.opacity(0.62))
+                        .background(DesignTokens.Colors.iconTileFill)
                         .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input, style: .continuous))
                         .accessibilityIdentifier("chat.message.body")
                         .accessibilityLabel("Message")
@@ -780,27 +782,22 @@ private struct ChatComposerView: View {
                     } label: {
                         ZStack {
                             Circle()
-                                .fill(accentColor)
+                                .fill(hasDraft || isSending ? accent.color : DesignTokens.Colors.iconTileFill)
                                 .frame(width: 56, height: 56)
 
                             if isSending {
                                 ProgressView()
-                                    .tint(DesignTokens.Colors.surface)
+                                    .tint(accent.ink)
                             } else {
                                 Image(systemName: "paperplane.fill")
                                     .font(DesignTokens.Typography.cardTitle)
-                                    .foregroundStyle(DesignTokens.Colors.surface)
+                                    .foregroundStyle(hasDraft ? accent.ink : DesignTokens.Colors.textTertiary)
                                     .offset(x: -1, y: 1)
                             }
                         }
                     }
                     .buttonStyle(.plain)
                     .disabled(isSending || draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                    .opacity(
-                        isSending || !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                            ? 1
-                            : 0.58
-                    )
                     .accessibilityIdentifier("chat.message.send")
                     .accessibilityLabel(isSending ? "Sending message" : "Send message")
                 }
@@ -810,7 +807,6 @@ private struct ChatComposerView: View {
         .padding(.vertical, DesignTokens.Spacing.md)
         .background {
             DesignTokens.Colors.appBackground
-                .opacity(0.96)
                 .ignoresSafeArea(edges: .bottom)
         }
         .overlay(alignment: .top) {
@@ -839,7 +835,7 @@ private struct ChatReadOnlyBanner: View {
         .padding(DesignTokens.Spacing.lg)
         .background {
             RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input, style: .continuous)
-                .fill(DesignTokens.Colors.borderSoft.opacity(0.62))
+                .fill(DesignTokens.Colors.iconTileFill)
         }
         .accessibilityIdentifier("chat.read-only.banner")
     }
@@ -958,23 +954,17 @@ private extension UserRole {
         }
     }
 
+    var chatAccent: BeckonRoleAccent { self == .customer ? .customer : .groomer }
+
     var chatAccentColor: Color {
         switch self {
         case .customer:
-            DesignTokens.Colors.customerAccentStrong
+            DesignTokens.Colors.customerDeep
         case .groomer:
-            DesignTokens.Colors.groomerOnAccent
+            DesignTokens.Colors.groomerDeep
         }
     }
 
-    var chatChipTone: BeckonStatusChip.Tone {
-        switch self {
-        case .customer:
-            .info
-        case .groomer:
-            .info
-        }
-    }
 }
 
 #if DEBUG

@@ -50,7 +50,7 @@ struct GroomerSizeRangeSlider: View {
                     .offset(x: thumbSize / 2)
 
                 Capsule()
-                    .fill(DesignTokens.Colors.groomerAccent)
+                    .fill(DesignTokens.Colors.groomerDeep)
                     .frame(
                         width: max(upperCenterX - lowerCenterX, trackHeight),
                         height: trackHeight
@@ -61,8 +61,8 @@ struct GroomerSizeRangeSlider: View {
                     Circle()
                         .fill(
                             index >= lowerIndex && index <= upperIndex
-                                ? DesignTokens.Colors.groomerAccentDark
-                                : DesignTokens.Colors.textTertiary.opacity(0.45)
+                                ? DesignTokens.Colors.groomerDeep
+                                : DesignTokens.Colors.textTertiary
                         )
                         .frame(width: 6, height: 6)
                         .offset(
@@ -164,11 +164,11 @@ private struct GroomerSizeRangeThumb: View {
                 .beckonShadow(DesignTokens.Shadows.smallCard)
 
             Circle()
-                .stroke(DesignTokens.Colors.groomerAccent, lineWidth: 3)
+                .stroke(DesignTokens.Colors.groomerDeep, lineWidth: 3)
                 .frame(width: 30, height: 30)
 
             Capsule()
-                .fill(DesignTokens.Colors.groomerAccentDark)
+                .fill(DesignTokens.Colors.groomerDeep)
                 .frame(width: 4, height: 14)
         }
         .frame(width: 48, height: 48)

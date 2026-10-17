@@ -85,7 +85,7 @@ struct CustomerTabView: View {
             ForEach(CustomerTab.allCases) { tab in
                 NavigationStack {
                     destination(for: tab)
-                        .background(DesignTokens.Colors.background)
+                        .background(DesignTokens.Colors.appBackground)
                 }
                 .foregroundRefreshable(
                     isEnabled: tab == .requests && selection == .requests
@@ -117,7 +117,7 @@ struct CustomerTabView: View {
             }
         }
         .tint(DesignTokens.Colors.customerDeep)
-        .background(DesignTokens.Colors.background.ignoresSafeArea())
+        .background(DesignTokens.Colors.appBackground.ignoresSafeArea())
         .toolbarBackground(DesignTokens.Colors.surface, for: .tabBar)
         .toolbarBackground(.visible, for: .tabBar)
         .environment(\.beckonFeedbackCenter, feedbackCenter)

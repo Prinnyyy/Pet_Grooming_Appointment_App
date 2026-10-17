@@ -1,6 +1,23 @@
 import SwiftUI
 import UIKit
 
+struct BeckonInlineError: View {
+    let message: String
+
+    init(_ message: String) { self.message = message }
+
+    var body: some View {
+        Label(message, systemImage: "exclamationmark.triangle")
+            .font(DesignTokens.Typography.status)
+            .foregroundStyle(DesignTokens.Colors.statusErrorText)
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(DesignTokens.Spacing.sm)
+            .background(DesignTokens.Colors.statusErrorFill)
+            .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input))
+            .accessibilityElement(children: .combine)
+    }
+}
+
 struct BeckonErrorBanner<Action: View>: View {
     private let title: String
     private let message: String?

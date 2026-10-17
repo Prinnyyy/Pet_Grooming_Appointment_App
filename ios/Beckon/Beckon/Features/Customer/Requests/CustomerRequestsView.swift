@@ -62,7 +62,7 @@ struct CustomerRequestsView: View {
         @Bindable var store = store
 
         ZStack {
-            DesignTokens.Colors.background
+            DesignTokens.Colors.appBackground
                 .ignoresSafeArea()
 
             requestsContent
@@ -306,7 +306,7 @@ private struct CustomerRequestHistoryView: View {
                 } else if !store.canLoadMoreRequests {
                     ContentUnavailableView("No Closed Requests", systemImage: "clock.arrow.circlepath")
                 }
-                if let error = store.errorMessage { Text(error).foregroundStyle(DesignTokens.Colors.error) }
+                if let error = store.errorMessage { BeckonInlineError(error) }
                 if store.canLoadMoreRequests || store.isLoadingMoreRequests {
                     BeckonLoadMoreButton(isLoading: store.isLoadingMoreRequests, accent: .customer,
                         accessibilityIdentifier: "customer.requests.history.load-more") {

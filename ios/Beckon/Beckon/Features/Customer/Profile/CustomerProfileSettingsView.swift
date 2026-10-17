@@ -96,7 +96,7 @@ struct CustomerProfileSettingsView: View {
                 using: scrollProxy
             )
         }
-        .background(DesignTokens.Colors.background.ignoresSafeArea())
+        .background(DesignTokens.Colors.appBackground.ignoresSafeArea())
         .navigationTitle("Profile Settings")
         .navigationBarTitleDisplayMode(.inline)
         .scrollDismissesKeyboard(.interactively)
@@ -126,7 +126,7 @@ struct CustomerAvatarImage: View {
         .clipShape(DesignTokens.Shapes.circular)
         .overlay {
             Circle()
-                .stroke(DesignTokens.Colors.customerAccent.opacity(0.26), lineWidth: 2)
+                .stroke(DesignTokens.Colors.customerDeep, lineWidth: 2)
         }
         .accessibilityHidden(true)
     }

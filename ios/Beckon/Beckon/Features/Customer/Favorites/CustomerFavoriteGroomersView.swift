@@ -91,7 +91,7 @@ struct CustomerFavoriteGroomersView: View {
                 Button("Load More", systemImage: "arrow.down") { Task { await marketplace.favorites.loadMore() } }
                     .accessibilityIdentifier("favorites.load-more")
             }
-            if let error = marketplace.distribution.error { Text(error.message).foregroundStyle(DesignTokens.Colors.errorText) }
+            if let error = marketplace.distribution.error { BeckonInlineError(error.message) }
         }
         .listStyle(.plain)
         .navigationTitle("Saved Groomers")

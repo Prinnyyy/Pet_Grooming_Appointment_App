@@ -152,7 +152,7 @@ struct AuthenticatedEntryView: View {
 
     private var loadingView: some View {
         ZStack {
-            DesignTokens.Colors.background
+            DesignTokens.Colors.appBackground
                 .ignoresSafeArea()
 
             BeckonLoadingView(
@@ -167,7 +167,7 @@ struct AuthenticatedEntryView: View {
     private func loadFailureView(message: String) -> some View {
         NavigationStack {
             ZStack {
-                DesignTokens.Colors.background
+                DesignTokens.Colors.appBackground
                     .ignoresSafeArea()
 
                 VStack(spacing: DesignTokens.Spacing.standard) {

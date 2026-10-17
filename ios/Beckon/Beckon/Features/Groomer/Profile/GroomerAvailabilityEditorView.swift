@@ -53,7 +53,7 @@ struct GroomerAvailabilityEditorView: View {
         }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("groomer.availability.edit")
-        .background(DesignTokens.Colors.background.ignoresSafeArea())
+        .background(DesignTokens.Colors.appBackground.ignoresSafeArea())
         .navigationTitle("Availability")
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden()
@@ -139,7 +139,7 @@ private struct GroomerAvailabilityWeeklyHoursSection: View {
         } trailing: {
                 Text(openDaysSummary)
                     .font(DesignTokens.Typography.status)
-                    .foregroundStyle(DesignTokens.Colors.groomerOnAccent)
+                    .foregroundStyle(DesignTokens.Colors.groomerInk)
         }
     }
 }
@@ -195,7 +195,7 @@ private struct GroomerAvailabilityDayRow: View {
     private var dayToggle: some View {
         Toggle(dayState.weekday.title, isOn: $dayState.isEnabled)
             .labelsHidden()
-            .tint(DesignTokens.Colors.groomerAccent)
+            .tint(DesignTokens.Colors.groomerDeep)
             .accessibilityIdentifier("groomer.availability.day.\(dayState.weekday.rawValue)")
     }
 
@@ -235,7 +235,7 @@ struct GroomerAvailabilityTimeMenu: View {
                 .padding(.horizontal, DesignTokens.Spacing.xs)
                 .padding(.vertical, DesignTokens.Spacing.xs)
                 .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-                .background(DesignTokens.Colors.borderSoft.opacity(0.48))
+                .background(DesignTokens.Colors.iconTileFill)
                 .clipShape(
                     RoundedRectangle(
                         cornerRadius: DesignTokens.CornerRadius.input,
@@ -375,7 +375,7 @@ private struct GroomerBookingPreferencesSection: View {
 
                         Toggle("Auto-ready during open hours", isOn: $autoAcceptBookings)
                             .labelsHidden()
-                            .tint(DesignTokens.Colors.groomerAccent)
+                            .tint(DesignTokens.Colors.groomerDeep)
                     }
                     .padding(.horizontal, DesignTokens.Spacing.lg)
                     .padding(.vertical, DesignTokens.Spacing.md)
@@ -402,7 +402,7 @@ private struct GroomerBookingPreferencesSection: View {
         HStack(spacing: DesignTokens.Spacing.xs) {
             Text(title)
                 .font(DesignTokens.Typography.caption.weight(.semibold))
-                .foregroundStyle(DesignTokens.Colors.groomerOnAccent)
+                .foregroundStyle(DesignTokens.Colors.groomerInk)
                 .fixedSize(horizontal: false, vertical: true)
 
             Image(systemName: "chevron.up.chevron.down")
@@ -412,7 +412,7 @@ private struct GroomerBookingPreferencesSection: View {
         .padding(.horizontal, DesignTokens.Spacing.sm)
         .padding(.vertical, DesignTokens.Spacing.xs)
         .frame(minWidth: 44, minHeight: 44)
-        .background(DesignTokens.Colors.borderSoft.opacity(0.48))
+        .background(DesignTokens.Colors.iconTileFill)
         .clipShape(
             RoundedRectangle(
                 cornerRadius: DesignTokens.CornerRadius.input,
@@ -532,7 +532,7 @@ private struct GroomerTimeOffRow: View {
             Button(action: onDelete) {
                 Image(systemName: "trash")
                     .font(.body.weight(.semibold))
-                    .foregroundStyle(DesignTokens.Colors.error)
+                    .foregroundStyle(DesignTokens.Colors.statusErrorText)
                     .frame(width: 44, height: 44)
                     .contentShape(Rectangle())
             }
@@ -557,7 +557,7 @@ private struct GroomerAvailabilitySaveActionBar: View {
                 if presentation.saveActionTitle == "Saving..." {
                     HStack(spacing: DesignTokens.Spacing.sm) {
                         ProgressView()
-                            .tint(DesignTokens.Colors.surface)
+                            .tint(DesignTokens.Colors.groomerInk)
                         Text(presentation.saveActionTitle)
                     }
                 } else {
@@ -570,7 +570,7 @@ private struct GroomerAvailabilitySaveActionBar: View {
             .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
             .padding(.vertical, DesignTokens.Spacing.md)
         }
-        .background(DesignTokens.Colors.background)
+        .background(DesignTokens.Colors.appBackground)
     }
 }
 
@@ -638,7 +638,7 @@ private struct GroomerTimeOffFormView: View {
                     additionallyPreventsPresentationDismissal: store.isSaving
                 )
             }
-            .background(DesignTokens.Colors.background.ignoresSafeArea())
+            .background(DesignTokens.Colors.appBackground.ignoresSafeArea())
             .navigationTitle("Add time off")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -687,7 +687,7 @@ private struct GroomerTimeOffSaveActionBar: View {
                 if isSaving {
                     HStack(spacing: DesignTokens.Spacing.sm) {
                         ProgressView()
-                            .tint(DesignTokens.Colors.surface)
+                            .tint(DesignTokens.Colors.groomerInk)
                         Text("Saving...")
                     }
                 } else {
@@ -700,6 +700,6 @@ private struct GroomerTimeOffSaveActionBar: View {
             .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
             .padding(.vertical, DesignTokens.Spacing.md)
         }
-        .background(DesignTokens.Colors.background)
+        .background(DesignTokens.Colors.appBackground)
     }
 }

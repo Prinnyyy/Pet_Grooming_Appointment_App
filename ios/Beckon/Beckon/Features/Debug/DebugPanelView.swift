@@ -9,7 +9,7 @@ struct DebugPanelView: View {
 
     var body: some View {
         ZStack {
-            DesignTokens.Colors.background
+            DesignTokens.Colors.appBackground
                 .ignoresSafeArea()
 
             ScrollView {
@@ -285,11 +285,11 @@ private struct DebugPanelEventRow: View {
         case .debug:
             DesignTokens.Colors.textSecondary
         case .info:
-            DesignTokens.Colors.success
+            DesignTokens.Colors.statusSuccessText
         case .warning:
-            DesignTokens.Colors.warning
+            DesignTokens.Colors.statusWarningText
         case .error:
-            DesignTokens.Colors.error
+            DesignTokens.Colors.statusErrorText
         }
     }
 

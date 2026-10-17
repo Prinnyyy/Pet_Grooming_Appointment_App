@@ -41,13 +41,13 @@ struct PasswordRecoveryView: View {
                             Button("Retry Link", systemImage: "arrow.clockwise") { Task { await store.retryRecoveryLink() } }
                         }
                     }
-                    if let error = store.recoveryError { Text(error).foregroundStyle(DesignTokens.Colors.errorText).accessibilityIdentifier("auth.recovery.error") }
+                    if let error = store.recoveryError { BeckonInlineError(error).accessibilityIdentifier("auth.recovery.error") }
                     if store.isRecovering { ProgressView().accessibilityLabel("Processing password recovery") }
                 }
                 .padding(DesignTokens.Spacing.screenHorizontal)
                 .disabled(store.isRecovering)
             }
-            .background(DesignTokens.Colors.background)
+            .background(DesignTokens.Colors.appBackground)
             .navigationTitle("Password Recovery")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

@@ -109,7 +109,7 @@ struct GroomerDiscoveryCardDeck<Content: View>: View {
             Image(systemName: symbol).frame(width: 44, height: 44)
         }
         .buttonStyle(.borderless)
-        .tint(DesignTokens.Colors.customerAccentStrong)
+        .tint(DesignTokens.Colors.customerDeep)
         .accessibilityLabel(label).help(label)
         .accessibilityIdentifier(direction == .next ? "discovery.next" : "discovery.previous")
         .disabled(transition.isActive || selection == nil || selection.map { destination(from: $0, direction: direction) == $0 } == true)

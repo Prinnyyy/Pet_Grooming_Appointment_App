@@ -7,7 +7,7 @@ struct AuthenticatedAccountView: View {
 
     var body: some View {
         ZStack {
-            DesignTokens.Colors.background
+            DesignTokens.Colors.appBackground
                 .ignoresSafeArea()
 
             ScrollView {
@@ -18,7 +18,7 @@ struct AuthenticatedAccountView: View {
                         displayName: profile.displayName,
                         detailText: emailSummary ?? profile.role.accountRoleLabel,
                         roleTitle: profile.role.accountRoleLabel,
-                        roleTone: profile.role.accountChipTone
+                        roleTone: .neutral
                     ) {
                         BeckonDefaultProfileAvatar(
                             tone: profile.role.defaultAvatarTone,
@@ -217,24 +217,24 @@ struct AccountDangerActions: View {
                     )
                 {
                     ProgressView()
-                        .tint(DesignTokens.Colors.error)
+                        .tint(DesignTokens.Colors.statusErrorText)
                 } else {
                     Image(systemName: systemImage)
                         .font(DesignTokens.Typography.action)
-                        .foregroundStyle(DesignTokens.Colors.error)
+                        .foregroundStyle(DesignTokens.Colors.statusErrorText)
                         .accessibilityHidden(true)
                 }
 
                 Text(title)
                     .font(DesignTokens.Typography.headline)
-                    .foregroundStyle(DesignTokens.Colors.error)
+                    .foregroundStyle(DesignTokens.Colors.statusErrorText)
 
                 Spacer(minLength: 0)
             }
             .padding(.vertical, DesignTokens.Spacing.xs)
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(BeckonDestructiveButtonStyle())
         .disabled(authenticationStore.isSubmitting)
         .accessibilityIdentifier(accessibilityIdentifier)
     }
@@ -277,15 +277,6 @@ private extension UserRole {
             "Pet Owner"
         case .groomer:
             "Groomer"
-        }
-    }
-
-    var accountChipTone: BeckonStatusChip.Tone {
-        switch self {
-        case .customer:
-            .info
-        case .groomer:
-            .info
         }
     }
 

@@ -45,7 +45,7 @@ struct GroomerProfileManagementView: View {
         @Bindable var store = store
 
         ZStack {
-            DesignTokens.Colors.background
+            DesignTokens.Colors.appBackground
                 .ignoresSafeArea()
 
             if store.shouldShowInitialLoading {
@@ -75,7 +75,7 @@ struct GroomerProfileManagementView: View {
                     if let error = store.optionalLoadError {
                         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
                             Text(error).font(DesignTokens.Typography.supporting)
-                                .foregroundStyle(DesignTokens.Colors.secondaryText)
+                                .foregroundStyle(DesignTokens.Colors.textSecondary)
                             Button("Retry Details", systemImage: "arrow.clockwise") { Task { await store.load() } }
                                 .disabled(store.isLoadingOptionalMetadata)
                         }

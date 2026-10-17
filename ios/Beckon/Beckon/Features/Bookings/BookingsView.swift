@@ -64,7 +64,7 @@ struct BookingsView: View {
 
     var body: some View {
         ZStack {
-            DesignTokens.Colors.background
+            DesignTokens.Colors.appBackground
                 .ignoresSafeArea()
 
             bookingsContent
@@ -344,7 +344,7 @@ struct BookingsView: View {
             HStack(alignment: .top, spacing: DesignTokens.Spacing.sm) {
                 Image(systemName: "bell.slash")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(role.primaryColor)
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
 
                 Text(message)
                     .font(.footnote)
@@ -474,11 +474,7 @@ struct BookingSummaryRow: View {
         BeckonCard {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                 HStack(alignment: .center) {
-                    BeckonStatusChip(
-                        booking.status.title,
-                        systemImage: booking.status.chipIcon,
-                        tone: booking.status.chipTone(for: role)
-                    )
+                    BeckonStatusChip(booking.status.presentation)
 
                     Spacer(minLength: DesignTokens.Spacing.md)
 
@@ -631,7 +627,7 @@ private struct BookingScopeControl: View {
         .padding(DesignTokens.Spacing.xs)
         .background {
             RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.card, style: .continuous)
-                .fill(DesignTokens.Colors.borderSoft.opacity(0.72))
+                .fill(DesignTokens.Colors.iconTileFill)
         }
         .accessibilityElement(children: .contain)
     }
@@ -680,27 +676,27 @@ private struct GroomerScheduleDayChip: View {
         VStack(spacing: 3) {
             Text(GroomerScheduleDateFormatting.weekday(from: day.date, calendar: calendar))
                 .font(DesignTokens.Typography.caption.weight(.bold))
-                .foregroundStyle(isSelected ? DesignTokens.Colors.groomerOnAccent : DesignTokens.Colors.textTertiary)
+                .foregroundStyle(isSelected ? DesignTokens.Colors.groomerInk : DesignTokens.Colors.textTertiary)
 
             Text(GroomerScheduleDateFormatting.dayNumber(from: day.date, calendar: calendar))
                 .font(DesignTokens.Typography.sectionTitle)
-                .foregroundStyle(isSelected ? DesignTokens.Colors.groomerOnAccent : DesignTokens.Colors.textPrimary)
+                .foregroundStyle(isSelected ? DesignTokens.Colors.groomerInk : DesignTokens.Colors.textPrimary)
 
             Text(day.isToday ? "Today" : GroomerScheduleDateFormatting.month(from: day.date, calendar: calendar))
                 .font(DesignTokens.Typography.caption.weight(.bold))
-                .foregroundStyle(isSelected ? DesignTokens.Colors.groomerOnAccent : DesignTokens.Colors.textTertiary)
+                .foregroundStyle(isSelected ? DesignTokens.Colors.groomerInk : DesignTokens.Colors.textTertiary)
         }
         .fixedSize(horizontal: false, vertical: true)
         .frame(width: chipWidth)
         .frame(minHeight: chipHeight)
         .background {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(isSelected ? DesignTokens.Colors.groomerAccent : DesignTokens.Colors.surface)
+                .fill(isSelected ? DesignTokens.Colors.groomerFill : DesignTokens.Colors.surface)
         }
         .overlay {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .stroke(
-                    isSelected ? DesignTokens.Colors.groomerAccentDark.opacity(0.2) : DesignTokens.Colors.border,
+                    isSelected ? DesignTokens.Colors.groomerDeep : DesignTokens.Colors.border,
                     lineWidth: 1.5
                 )
         }
@@ -731,10 +727,10 @@ private struct GroomerScheduleSummaryBand: View {
 
                 Text("\(summary.bookingCount) \(summary.bookingCount == 1 ? "appointment" : "appointments")")
                     .font(DesignTokens.Typography.caption.weight(.bold))
-                    .foregroundStyle(DesignTokens.Colors.groomerOnAccent)
+                    .foregroundStyle(DesignTokens.Colors.groomerDeep)
                     .padding(.horizontal, DesignTokens.Spacing.sm)
                     .padding(.vertical, DesignTokens.Spacing.xs)
-                    .background(DesignTokens.Colors.groomerAccent.opacity(0.14))
+                    .background(DesignTokens.Colors.groomerTint)
                     .clipShape(DesignTokens.Shapes.chip)
             }
             .padding(DesignTokens.Spacing.md)
@@ -837,7 +833,7 @@ private struct GroomerScheduleAppointmentRow: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(GroomerScheduleDateFormatting.time(from: booking.scheduledStart, calendar: calendar))
                             .font(DesignTokens.Typography.caption.weight(.bold))
-                            .foregroundStyle(DesignTokens.Colors.groomerOnAccent)
+                            .foregroundStyle(DesignTokens.Colors.groomerInk)
                         Text(GroomerScheduleDateFormatting.offset(from: booking.scheduledStart, calendar: calendar))
                             .font(DesignTokens.Typography.caption)
 
@@ -850,10 +846,10 @@ private struct GroomerScheduleAppointmentRow: View {
                     .frame(width: dynamicTypeSize.isAccessibilitySize ? nil : 56, alignment: .leading)
 
                     ZStack {
-                        DesignTokens.Colors.groomerAccent.opacity(0.15)
+                        DesignTokens.Colors.placeholderFill
                         Image(systemName: "pawprint.fill")
                             .font(.body.weight(.bold))
-                            .foregroundStyle(DesignTokens.Colors.groomerOnAccent)
+                            .foregroundStyle(DesignTokens.Colors.textTertiary)
                     }
                     .frame(width: 44, height: 44)
                     .clipShape(
@@ -879,11 +875,7 @@ private struct GroomerScheduleAppointmentRow: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
 
                     VStack(alignment: .trailing, spacing: DesignTokens.Spacing.sm) {
-                        BeckonStatusChip(
-                            presentation.status.title,
-                            systemImage: presentation.status.chipIcon,
-                            tone: presentation.status.chipTone(for: .groomer)
-                        )
+                        BeckonStatusChip(presentation.status.presentation)
 
                         Image(systemName: "chevron.right")
                             .font(DesignTokens.Typography.caption.weight(.bold))
@@ -1035,7 +1027,7 @@ struct BookingDetailView: View {
         if let booking = store.booking(withID: bookingID) {
             ScrollViewReader { scrollProxy in
                 ZStack {
-                    DesignTokens.Colors.background
+                    DesignTokens.Colors.appBackground
                         .ignoresSafeArea()
 
                     ScrollView {
@@ -1120,7 +1112,7 @@ struct BookingDetailView: View {
             .accessibilityIdentifier("bookings.detail")
         } else {
             ZStack {
-                DesignTokens.Colors.background
+                DesignTokens.Colors.appBackground
                     .ignoresSafeArea()
 
                 if store.bookingReadStates[bookingID] == nil || store.bookingReadStates[bookingID] == .loading {
@@ -1187,11 +1179,7 @@ private struct BookingDetailHeroCard: View {
                     ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.md))
                     : AnyLayout(HStackLayout(alignment: .center, spacing: DesignTokens.Spacing.md))
                 layout {
-                    BeckonStatusChip(
-                        booking.status.title,
-                        systemImage: booking.status.chipIcon,
-                        tone: booking.status.chipTone(for: role)
-                    )
+                    BeckonStatusChip(booking.status.presentation)
 
                     if !typeSize.isAccessibilitySize { Spacer(minLength: DesignTokens.Spacing.md) }
 
@@ -1211,9 +1199,9 @@ private struct BookingDetailHeroCard: View {
                     } else {
                         Image(systemName: "pawprint.fill")
                             .font(.title2.weight(.bold))
-                            .foregroundStyle(role.primaryColor)
+                            .foregroundStyle(DesignTokens.Colors.textTertiary)
                             .frame(width: 64, height: 64)
-                            .background(role.primaryColor.opacity(0.24))
+                            .background(DesignTokens.Colors.placeholderFill)
                             .clipShape(
                                 RoundedRectangle(
                                     cornerRadius: 18,
@@ -1279,9 +1267,9 @@ private struct BookingDetailInfoCard<Content: View>: View {
                 HStack(spacing: DesignTokens.Spacing.md) {
                     Image(systemName: systemImage)
                         .font(DesignTokens.Typography.body.weight(.bold))
-                        .foregroundStyle(role.primaryColor)
+                        .foregroundStyle(DesignTokens.Colors.textPrimary)
                         .frame(width: 38, height: 38)
-                        .background(role.primaryColor.opacity(0.15))
+                        .background(DesignTokens.Colors.iconTileFill)
                         .clipShape(DesignTokens.Shapes.circular)
                         .accessibilityHidden(true)
 
@@ -1387,7 +1375,7 @@ private struct BookingReviewDisplay: View {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                 HStack(spacing: DesignTokens.Spacing.sm) {
                     Image(systemName: "star.fill")
-                        .foregroundStyle(DesignTokens.Colors.warning)
+                        .foregroundStyle(DesignTokens.Colors.ratingStar)
                         .accessibilityHidden(true)
 
                     Text(review.ratingSummary)
@@ -1464,9 +1452,9 @@ private struct BookingReviewFitOutcomeDisplay: View {
     private var tint: Color {
         switch outcome.outcome {
         case .positive:
-            DesignTokens.Colors.successText
+            DesignTokens.Colors.statusSuccessText
         case .negative:
-            DesignTokens.Colors.warningText
+            DesignTokens.Colors.statusWarningText
         }
     }
 
@@ -1627,7 +1615,7 @@ private struct BookingReviewFitOutcomePicker: View {
             )
         }
         .padding(DesignTokens.Spacing.sm)
-        .background(DesignTokens.Colors.borderSoft.opacity(0.42))
+        .background(DesignTokens.Colors.iconTileFill)
         .clipShape(
             RoundedRectangle(
                 cornerRadius: DesignTokens.CornerRadius.input,
@@ -1765,14 +1753,6 @@ private extension UserRole {
         }
     }
 
-    var primaryColor: Color {
-        switch self {
-        case .customer:
-            DesignTokens.Colors.customerAccentStrong
-        case .groomer:
-            DesignTokens.Colors.groomerOnAccent
-        }
-    }
 
     var feedbackTone: BeckonFeedbackTone {
         switch self {
@@ -1793,37 +1773,6 @@ private extension UserRole {
     }
 }
 
-private extension BookingStatus {
-    var chipIcon: String {
-        switch self {
-        case .confirmed:
-            "calendar.badge.checkmark"
-        case .completed:
-            "checkmark.circle.fill"
-        case .unfulfilled:
-            "exclamationmark.circle"
-        case .cancelledByCustomer, .cancelledByGroomer:
-            "xmark.circle.fill"
-        case .unknown:
-            "questionmark.circle"
-        }
-    }
-
-    func chipTone(for role: UserRole) -> BeckonStatusChip.Tone {
-        switch self {
-        case .confirmed:
-            .info
-        case .completed:
-            .success
-        case .unfulfilled:
-            .neutral
-        case .cancelledByCustomer, .cancelledByGroomer:
-            .error
-        case .unknown:
-            .neutral
-        }
-    }
-}
 
 #if DEBUG
 #Preview {

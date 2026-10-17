@@ -34,7 +34,7 @@ struct CustomerRequestDetailView: View {
             let presentation = CustomerRequestDetailPresentation(status: request.status,
                 preferenceTimeZoneIdentifier: request.preferenceTimeZoneIdentifier)
             ZStack {
-                DesignTokens.Colors.background
+                DesignTokens.Colors.appBackground
                     .ignoresSafeArea()
 
                 ScrollView {
@@ -110,7 +110,7 @@ struct CustomerRequestDetailView: View {
             }
         } else {
             ZStack {
-                DesignTokens.Colors.background
+                DesignTokens.Colors.appBackground
                     .ignoresSafeArea()
 
                 BeckonEmptyState(
@@ -139,11 +139,7 @@ struct CustomerRequestDetailView: View {
 
                         Spacer(minLength: DesignTokens.Spacing.md)
 
-                        BeckonStatusChip(
-                            request.status.title,
-                            systemImage: request.status.detailSystemImage,
-                            tone: request.status.detailTone
-                        )
+                        BeckonStatusChip(request.status.presentation)
                     }
 
                     if let serviceNotes = request.serviceNotes {
@@ -297,7 +293,6 @@ private struct CustomerRequestPhotoRow: View {
         HStack(spacing: DesignTokens.Spacing.md) {
             RequestPhotoThumbnail(
                 data: data,
-                accentColor: DesignTokens.Colors.customerAccent,
                 systemImage: "photo"
             )
 
@@ -312,7 +307,7 @@ private struct CustomerRequestPhotoRow: View {
                         .font(DesignTokens.Typography.caption)
                         .foregroundStyle(
                             presentation.isUnavailable
-                                ? DesignTokens.Colors.warning
+                                ? DesignTokens.Colors.statusWarningText
                                 : DesignTokens.Colors.textSecondary
                         )
                         .lineLimit(1)
@@ -345,16 +340,15 @@ struct CustomerRequestPhotoRowPresentation: Equatable {
 
 private struct RequestPhotoThumbnail: View {
     let data: Data?
-    let accentColor: Color
     let systemImage: String
 
     var body: some View {
         BeckonModuleImage(data: data) {
             Image(systemName: systemImage)
                 .font(DesignTokens.Typography.caption.weight(.semibold))
-                .foregroundStyle(accentColor)
+                .foregroundStyle(DesignTokens.Colors.textTertiary)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(accentColor.opacity(0.12))
+                .background(DesignTokens.Colors.placeholderFill)
         }
         .frame(width: 58, height: 58)
         .clipShape(
@@ -559,11 +553,7 @@ struct CustomerOfferSummaryRow: View {
                             .foregroundStyle(DesignTokens.Colors.textSecondary)
                     }
 
-                    BeckonStatusChip(
-                        offerReview.offer.evaluatedStatusTitle(now: now),
-                        systemImage: offerReview.offer.status.detailSystemImage,
-                        tone: offerReview.offer.status.detailTone
-                    )
+                    BeckonStatusChip(offerReview.offer.statusPresentation(now: now))
                 }
 
                 let factsLayout = typeSize.isAccessibilitySize
@@ -588,7 +578,6 @@ struct CustomerOfferSummaryRow: View {
                         scoreText: fitEvidence.scoreText,
                         summary: fitEvidence.listSummary,
                         reason: fitEvidence.reason,
-                        accent: .customer,
                         isCompact: true
                     )
                 }
@@ -714,7 +703,7 @@ struct CustomerOfferDetailView: View {
         Group {
             if let offerReview {
                 ZStack {
-                    DesignTokens.Colors.background
+                    DesignTokens.Colors.appBackground
                         .ignoresSafeArea()
 
                     ScrollView {
@@ -744,7 +733,7 @@ struct CustomerOfferDetailView: View {
                 .accessibilityIdentifier("customer.offers.detail")
             } else {
                 ZStack {
-                    DesignTokens.Colors.background
+                    DesignTokens.Colors.appBackground
                         .ignoresSafeArea()
 
                     BeckonEmptyState(
@@ -791,11 +780,7 @@ struct CustomerOfferDetailView: View {
                     profileAvatarTone: .groomer
                 ) {
                     if offerReview.groomerProfile?.isVerified == true {
-                        BeckonStatusChip(
-                            "Verified",
-                            systemImage: "checkmark.seal.fill",
-                            tone: .success
-                        )
+                        BeckonStatusChip(.verified)
                         .accessibilityLabel("Verified groomer")
                     }
                 }
@@ -811,7 +796,6 @@ struct CustomerOfferDetailView: View {
                         scoreText: fitEvidence.scoreText,
                         summary: fitEvidence.listSummary,
                         reason: fitEvidence.reason,
-                        accent: .customer,
                         isCompact: false
                     )
                 }
@@ -834,11 +818,7 @@ struct CustomerOfferDetailView: View {
                     subtitle: offerReview.proposedTimeSummary,
                     systemImage: "tag.fill"
                 ) {
-                    BeckonStatusChip(
-                        offerReview.offer.evaluatedStatusTitle,
-                        systemImage: offerReview.offer.status.detailSystemImage,
-                        tone: offerReview.offer.status.detailTone
-                    )
+                    BeckonStatusChip(offerReview.offer.statusPresentation())
                 }
 
                 DetailMetadataRow(
@@ -876,11 +856,7 @@ struct CustomerOfferDetailView: View {
                     subtitle: request.serviceType.title,
                     systemImage: "pawprint.fill"
                 ) {
-                    BeckonStatusChip(
-                        request.status.title,
-                        systemImage: request.status.detailSystemImage,
-                        tone: request.status.detailTone
-                    )
+                    BeckonStatusChip(request.status.presentation)
                 }
 
                 DetailMetadataRow(
@@ -930,11 +906,7 @@ struct CustomerOfferDetailView: View {
                         .foregroundStyle(DesignTokens.Colors.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                 } else {
-                    BeckonStatusChip(
-                        acceptanceStatusTitle(for: offerReview),
-                        systemImage: acceptanceStatusSystemImage(for: offerReview),
-                        tone: acceptanceStatusTone(for: offerReview)
-                    )
+                    BeckonStatusChip(.acceptance(offer: offerReview.offer.status, request: request.status))
                 }
             }
         }
@@ -965,32 +937,6 @@ struct CustomerOfferDetailView: View {
         }
     }
 
-    private func acceptanceStatusTitle(for offerReview: CustomerOfferReview) -> String {
-        if offerReview.offer.status == .acceptedByCustomer {
-            return "Accepted"
-        } else if request.status == .booked {
-            return "Booked"
-        } else {
-            return "Unavailable"
-        }
-    }
-
-    private func acceptanceStatusSystemImage(for offerReview: CustomerOfferReview) -> String {
-        if offerReview.offer.status == .acceptedByCustomer || request.status == .booked {
-            return "checkmark.circle.fill"
-        }
-
-        return "xmark.circle"
-    }
-
-    private func acceptanceStatusTone(for offerReview: CustomerOfferReview) -> BeckonStatusChip.Tone {
-        if offerReview.offer.status == .acceptedByCustomer || request.status == .booked {
-            return .success
-        }
-
-        return .neutral
-    }
-
     private var requestTimeSummary: String {
         "\(GroomingRequestDateFormatting.displayString(from: request.preferredStart, serviceTimeZoneIdentifier: request.preferenceTimeZoneIdentifier)) – \(GroomingRequestDateFormatting.displayString(from: request.preferredEnd, serviceTimeZoneIdentifier: request.preferenceTimeZoneIdentifier))"
     }
@@ -1016,7 +962,7 @@ private struct CustomerOfferAcceptanceConfirmationView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                DesignTokens.Colors.background
+                DesignTokens.Colors.appBackground
                     .ignoresSafeArea()
 
                 ScrollView {
@@ -1215,12 +1161,12 @@ private struct DetailCardHeader<Trailing: View>: View {
             } else {
                 Image(systemName: systemImage)
                     .font(DesignTokens.Typography.headline)
-                    .foregroundStyle(DesignTokens.Colors.customerAccentStrong)
+                    .foregroundStyle(DesignTokens.Colors.customerDeep)
                     .frame(
                         width: DesignTokens.Spacing.xl + DesignTokens.Spacing.md,
                         height: DesignTokens.Spacing.xl + DesignTokens.Spacing.md
                     )
-                    .background(DesignTokens.Colors.customerAccent.opacity(0.14))
+                    .background(DesignTokens.Colors.customerTint)
                     .clipShape(DesignTokens.Shapes.circular)
                     .accessibilityHidden(true)
             }
@@ -1288,65 +1234,5 @@ private struct DetailMetadataRow: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(.vertical, DesignTokens.Spacing.xs)
-    }
-}
-
-private extension GroomingRequestStatus {
-    var detailTone: BeckonStatusChip.Tone {
-        switch self {
-        case .open, .hasOffers:
-            .info
-        case .booked:
-            .success
-        case .cancelled, .expired, .unknown:
-            .neutral
-        }
-    }
-
-    var detailSystemImage: String {
-        switch self {
-        case .open:
-            "clock"
-        case .hasOffers:
-            "tag"
-        case .booked:
-            "checkmark.circle"
-        case .cancelled:
-            "xmark.circle"
-        case .expired:
-            "hourglass"
-        case .unknown:
-            "questionmark.circle"
-        }
-    }
-}
-
-private extension GroomerOfferStatus {
-    var detailTone: BeckonStatusChip.Tone {
-        switch self {
-        case .pending:
-            .info
-        case .acceptedByCustomer:
-            .success
-        case .declinedByCustomer, .withdrawnByGroomer, .expired, .unknown:
-            .neutral
-        }
-    }
-
-    var detailSystemImage: String {
-        switch self {
-        case .pending:
-            "clock"
-        case .acceptedByCustomer:
-            "checkmark.circle"
-        case .declinedByCustomer:
-            "xmark.circle"
-        case .withdrawnByGroomer:
-            "arrow.uturn.backward"
-        case .expired:
-            "hourglass"
-        case .unknown:
-            "questionmark.circle"
-        }
     }
 }

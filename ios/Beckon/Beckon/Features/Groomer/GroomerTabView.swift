@@ -63,7 +63,7 @@ struct GroomerTabView: View {
             ForEach(GroomerTab.allCases) { tab in
                 NavigationStack {
                     destination(for: tab)
-                        .background(DesignTokens.Colors.background)
+                        .background(DesignTokens.Colors.appBackground)
                 }
                 .tabItem {
                     Label(tab.title, systemImage: tab.systemImage)
@@ -80,7 +80,7 @@ struct GroomerTabView: View {
             }
         }
         .tint(DesignTokens.Colors.groomerDeep)
-        .background(DesignTokens.Colors.background.ignoresSafeArea())
+        .background(DesignTokens.Colors.appBackground.ignoresSafeArea())
         .toolbarBackground(DesignTokens.Colors.surface, for: .tabBar)
         .toolbarBackground(.visible, for: .tabBar)
         .environment(\.beckonFeedbackCenter, feedbackCenter)

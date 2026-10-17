@@ -1,7 +1,32 @@
+import Foundation
 import Testing
 @testable import Beckon
 
 struct BeckonStatusPresentationTests {
+    @MainActor @Test func evaluatedOffersPreserveDeadlineAndCapacityStates() throws {
+        var offer = CustomerRequestsStoreTests.offerReview(customerID: UUID(), requestID: UUID()).offer
+        offer.agreementSnapshotLoaded = true
+        let expiry = try #require(GroomingRequestDateFormatting.parsedDate(from: offer.expiresAt))
+        let start = try #require(GroomingRequestDateFormatting.parsedDate(from: offer.proposedStart))
+        let cutoff = min(expiry, start.addingTimeInterval(-300))
+        let now = cutoff.addingTimeInterval(-1)
+        #expect(offer.statusPresentation(now: now) == .init(title: "Checking", systemImage: "clock", tone: .info))
+        for (json, state) in [
+            (#"{"terms_valid":true,"selectable":false,"reason":"capacity_unavailable"}"#, GroomerOfferDisplayStatus.timeUnavailable),
+            (#"{"terms_valid":false,"selectable":false,"reason":"terms_changed"}"#, .newOfferRequired),
+            (#"{"terms_valid":false,"selectable":false,"reason":"expired"}"#, .status(.expired)),
+            (#"{"terms_valid":true,"selectable":true,"reason":"available"}"#, .status(.pending)),
+        ] {
+            offer.quoteEvaluation = try JSONDecoder().decode(QuoteEvaluation.self, from: Data(json.utf8))
+            #expect(offer.evaluatedDisplayStatus(now: now) == state)
+            #expect(offer.statusPresentation(now: now) == state.presentation)
+            #expect(offer.evaluatedStatusTitle(now: now) == state.presentation.title)
+            #expect(offer.statusPresentation(now: cutoff) == GroomerOfferStatus.expired.presentation)
+        }
+        let accepted = offer.replacing(status: .acceptedByCustomer, withdrawnAt: nil)
+        #expect(accepted.statusPresentation(now: cutoff) == GroomerOfferStatus.acceptedByCustomer.presentation)
+    }
+
     @Test func allGroomingRequestStatusCases() {
         let expected: [GroomingRequestStatus: BeckonStatusPresentation] = [
             .open: .init(title: "Open", systemImage: "clock", tone: .info),

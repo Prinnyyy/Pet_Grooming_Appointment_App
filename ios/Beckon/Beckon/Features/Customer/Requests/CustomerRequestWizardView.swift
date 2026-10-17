@@ -219,7 +219,7 @@ struct CustomerRequestWizardView: View {
                 Divider()
                 ScrollViewReader { scrollProxy in
                     ZStack {
-                        DesignTokens.Colors.background
+                        DesignTokens.Colors.appBackground
                             .ignoresSafeArea()
 
                         ScrollView {
@@ -313,7 +313,7 @@ struct CustomerRequestWizardView: View {
             .onPreferenceChange(CustomerRequestWizardBottomBarHeightKey.self) {
                 bottomBarHeight = $0
             }
-            .tint(DesignTokens.Colors.customerAccentStrong)
+            .tint(DesignTokens.Colors.customerDeep)
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(isPresented: Binding(get: { store.discoveryFlow != nil }, set: {
                 if !$0 { store.discoveryFlow = nil }
@@ -393,11 +393,7 @@ struct CustomerRequestWizardView: View {
             .disabled(onAddPet == nil)
 
             if store.pets.isEmpty {
-                BeckonStatusChip(
-                    "Add a Pet Before Continuing",
-                    systemImage: "pawprint",
-                    tone: .warning
-                )
+                BeckonStatusChip(.petRequired)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
@@ -637,16 +633,16 @@ struct CustomerRequestWizardView: View {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
                 Label("How Matching Works", systemImage: "info.circle")
                     .font(DesignTokens.Typography.headline)
-                    .foregroundStyle(DesignTokens.Colors.customerAccentStrong)
+                    .foregroundStyle(DesignTokens.Colors.customerDeep)
 
                 Text(CustomerRequestMatchingCopy.customerReviewInfo)
                     .font(DesignTokens.Typography.body)
-                    .foregroundStyle(DesignTokens.Colors.customerAccentStrong)
+                    .foregroundStyle(DesignTokens.Colors.customerDeep)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .padding(DesignTokens.Spacing.lg)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(DesignTokens.Colors.customerAccent.opacity(0.12))
+            .background(DesignTokens.Colors.customerTint)
             .clipShape(
                 RoundedRectangle(
                     cornerRadius: DesignTokens.CornerRadius.card,
@@ -902,8 +898,8 @@ private struct CustomerRequestWizardBottomBar: View {
         .background(
             LinearGradient(
                 colors: [
-                    DesignTokens.Colors.background.opacity(0.2),
-                    DesignTokens.Colors.background,
+                    DesignTokens.Colors.appBackground,
+                    DesignTokens.Colors.appBackground,
                 ],
                 startPoint: .top,
                 endPoint: .bottom
@@ -998,7 +994,7 @@ struct CustomerRequestPetChoiceCard: View {
             .font(DesignTokens.Typography.action)
             .foregroundStyle(DesignTokens.Colors.textPrimary)
             .frame(width: 42, height: 42)
-            .background(DesignTokens.Colors.customerAccent.opacity(0.42))
+            .background(DesignTokens.Colors.customerTint)
             .clipShape(Circle())
             .opacity(isSelected ? 1 : 0)
             .accessibilityHidden(true)
@@ -1043,9 +1039,9 @@ private struct CustomerRequestAddPetButton: View {
                 Text("Add A New Pet")
                     .font(DesignTokens.Typography.body.weight(.bold))
             }
-            .foregroundStyle(DesignTokens.Colors.customerAccentStrong)
+            .foregroundStyle(DesignTokens.Colors.customerDeep)
             .frame(maxWidth: .infinity, minHeight: 78)
-            .background(DesignTokens.Colors.surface.opacity(0.5))
+            .background(DesignTokens.Colors.surface)
             .clipShape(
                 RoundedRectangle(
                     cornerRadius: DesignTokens.CornerRadius.card,
@@ -1084,9 +1080,9 @@ private struct CustomerRequestServiceOptionCard: View {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                 Image(systemName: "scissors")
                     .font(DesignTokens.Typography.cardTitle)
-                    .foregroundStyle(DesignTokens.Colors.customerAccentStrong)
+                    .foregroundStyle(DesignTokens.Colors.customerDeep)
                     .frame(width: 64, height: 64)
-                    .background(DesignTokens.Colors.customerAccent.opacity(0.12))
+                    .background(DesignTokens.Colors.customerTint)
                     .clipShape(
                         RoundedRectangle(
                             cornerRadius: DesignTokens.CornerRadius.input,
@@ -1136,14 +1132,14 @@ private struct CustomerRequestDateStrip: View {
                                 Text(dayNumber(date))
                                     .font(DesignTokens.Typography.sectionTitle)
                             }
-                            .foregroundStyle(isSelected(date) ? DesignTokens.Colors.surface : DesignTokens.Colors.textPrimary)
+                            .foregroundStyle(isSelected(date) ? DesignTokens.Colors.customerInk : DesignTokens.Colors.textPrimary)
                             .frame(width: 76, height: 92)
                             .background(
                                 RoundedRectangle(
                                     cornerRadius: DesignTokens.CornerRadius.button,
                                     style: .continuous
                                 )
-                                .fill(isSelected(date) ? DesignTokens.Colors.customerAccent : DesignTokens.Colors.surface)
+                                .fill(isSelected(date) ? DesignTokens.Colors.customerFill : DesignTokens.Colors.surface)
                             )
                             .overlay {
                                 RoundedRectangle(
@@ -1151,7 +1147,7 @@ private struct CustomerRequestDateStrip: View {
                                     style: .continuous
                                 )
                                 .stroke(
-                                    isSelected(date) ? DesignTokens.Colors.customerAccent : DesignTokens.Colors.border,
+                                    isSelected(date) ? DesignTokens.Colors.customerDeep : DesignTokens.Colors.border,
                                     lineWidth: 1.2
                                 )
                             }
@@ -1174,7 +1170,7 @@ private struct CustomerRequestDateStrip: View {
             )
             .font(DesignTokens.Typography.body.weight(.semibold))
             .foregroundStyle(DesignTokens.Colors.textPrimary)
-            .tint(DesignTokens.Colors.customerAccentStrong)
+            .tint(DesignTokens.Colors.customerDeep)
             .padding(.horizontal, DesignTokens.Spacing.lg)
             .frame(minHeight: 56)
             .background(DesignTokens.Colors.surface)
@@ -1244,7 +1240,7 @@ private struct CustomerRequestTimeWindowGrid: View {
                         .font(DesignTokens.Typography.body.weight(.bold))
                         .foregroundStyle(
                             selectedTimeWindow == option && !isFlexibleWithTime
-                                ? DesignTokens.Colors.surface
+                                ? DesignTokens.Colors.customerInk
                                 : DesignTokens.Colors.textSecondary
                         )
                         .multilineTextAlignment(.center)
@@ -1255,7 +1251,7 @@ private struct CustomerRequestTimeWindowGrid: View {
                             Capsule()
                                 .fill(
                                     selectedTimeWindow == option && !isFlexibleWithTime
-                                        ? DesignTokens.Colors.customerAccent
+                                        ? DesignTokens.Colors.customerFill
                                         : DesignTokens.Colors.surface
                                 )
                         )
@@ -1270,7 +1266,6 @@ private struct CustomerRequestTimeWindowGrid: View {
                 .buttonStyle(.plain)
             }
         }
-        .opacity(isFlexibleWithTime ? 0.56 : 1)
     }
 
     private var columns: [GridItem] {
@@ -1286,7 +1281,7 @@ private struct CustomerRequestTimeWindowGrid: View {
 
     private func borderColor(for option: CustomerRequestTimeWindowOption) -> Color {
         if isInvalid, selectedTimeWindow == option, !isFlexibleWithTime {
-            return DesignTokens.Colors.error
+            return DesignTokens.Colors.statusErrorText
         }
 
         return DesignTokens.Colors.border
@@ -1336,7 +1331,7 @@ private struct CustomerRequestFlexibleTimeToggle: View {
                     .foregroundStyle(DesignTokens.Colors.textSecondary)
             }
         }
-        .tint(DesignTokens.Colors.customerAccent)
+        .tint(DesignTokens.Colors.customerDeep)
         .padding(DesignTokens.Spacing.lg)
         .background(DesignTokens.Colors.surface)
         .clipShape(
@@ -1371,7 +1366,7 @@ private struct CustomerRequestAddressFields: View {
                 HStack(spacing: DesignTokens.Spacing.sm) {
                     if isApplyingProfileAddress {
                         ProgressView()
-                            .tint(DesignTokens.Colors.customerAccentStrong)
+                            .tint(DesignTokens.Colors.customerDeep)
                     } else {
                         Image(systemName: "person.crop.circle.badge.checkmark")
                             .font(DesignTokens.Typography.action)
@@ -1383,11 +1378,11 @@ private struct CustomerRequestAddressFields: View {
 
                     Spacer(minLength: 0)
                 }
-                .foregroundStyle(DesignTokens.Colors.customerAccentStrong)
+                .foregroundStyle(DesignTokens.Colors.customerDeep)
                 .padding(.horizontal, DesignTokens.Spacing.md)
                 .padding(.vertical, DesignTokens.Spacing.md)
                 .frame(maxWidth: .infinity, minHeight: 52, alignment: .leading)
-                .background(DesignTokens.Colors.customerAccent.opacity(0.1))
+                .background(DesignTokens.Colors.customerTint)
                 .clipShape(
                     RoundedRectangle(
                         cornerRadius: DesignTokens.CornerRadius.button,
@@ -1399,7 +1394,7 @@ private struct CustomerRequestAddressFields: View {
                         cornerRadius: DesignTokens.CornerRadius.button,
                         style: .continuous
                     )
-                    .stroke(DesignTokens.Colors.customerAccent.opacity(0.2), lineWidth: 1)
+                    .stroke(DesignTokens.Colors.customerDeep, lineWidth: 1)
                 }
             }
             .buttonStyle(.plain)
@@ -1431,7 +1426,7 @@ private struct CustomerRequestAddressFields: View {
                             Text("Travel Range")
                                 .foregroundStyle(DesignTokens.Colors.textPrimary)
                             Text("\(travelRangeMiles) mi")
-                                .foregroundStyle(DesignTokens.Colors.customerAccentStrong)
+                                .foregroundStyle(DesignTokens.Colors.customerDeep)
                         }
                         .font(DesignTokens.Typography.body.weight(.bold))
                     }
@@ -1446,7 +1441,7 @@ private struct CustomerRequestAddressFields: View {
                         in: Double(CustomerRequestTravelRange.minimumMiles)...Double(CustomerRequestTravelRange.maximumMiles),
                         step: 1
                     )
-                    .tint(DesignTokens.Colors.customerAccent)
+                    .tint(DesignTokens.Colors.customerDeep)
                     .accessibilityLabel("Travel Range")
 
                     Text("Choose how far you can travel to a groomer's location.")
@@ -1531,10 +1526,11 @@ private struct CustomerRequestPendingPhotoThumbnail: View {
                 Button(action: onRemove) {
                     Image(systemName: "xmark")
                         .font(DesignTokens.Typography.caption.weight(.bold))
-                        .foregroundStyle(DesignTokens.Colors.surface)
+                        .foregroundStyle(DesignTokens.Colors.statusErrorText)
                         .frame(width: 30, height: 30)
-                        .background(DesignTokens.Colors.error)
+                        .background(DesignTokens.Colors.surface)
                         .clipShape(Circle())
+                        .overlay { Circle().stroke(DesignTokens.Colors.statusErrorBorder, lineWidth: 1) }
                 }
                 .buttonStyle(.plain)
                 .padding(DesignTokens.Spacing.xs)
@@ -1620,7 +1616,7 @@ private struct CustomerRequestWizardFitInputCard: View {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                 Label("Fit Needs", systemImage: "sparkles")
                     .font(DesignTokens.Typography.headline)
-                    .foregroundStyle(DesignTokens.Colors.customerAccentStrong)
+                    .foregroundStyle(DesignTokens.Colors.customerDeep)
 
                 Text("Based on the selected pet and service.")
                     .font(DesignTokens.Typography.body)
@@ -1656,7 +1652,7 @@ private struct CustomerRequestWizardFitInputChip: View {
         HStack(alignment: .center, spacing: DesignTokens.Spacing.sm) {
             Image(systemName: chip.systemImage)
                 .font(DesignTokens.Typography.status)
-                .foregroundStyle(DesignTokens.Colors.customerAccentStrong)
+                .foregroundStyle(DesignTokens.Colors.customerDeep)
                 .frame(width: 18)
 
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
@@ -1676,7 +1672,7 @@ private struct CustomerRequestWizardFitInputChip: View {
         .padding(.horizontal, DesignTokens.Spacing.md)
         .padding(.vertical, DesignTokens.Spacing.sm)
         .frame(maxWidth: .infinity, minHeight: 58, alignment: .leading)
-        .background(DesignTokens.Colors.customerAccent.opacity(0.1))
+        .background(DesignTokens.Colors.customerTint)
         .clipShape(
             RoundedRectangle(
                 cornerRadius: DesignTokens.CornerRadius.button,
@@ -1688,7 +1684,7 @@ private struct CustomerRequestWizardFitInputChip: View {
                 cornerRadius: DesignTokens.CornerRadius.button,
                 style: .continuous
             )
-            .stroke(DesignTokens.Colors.customerAccent.opacity(0.2), lineWidth: 1)
+            .stroke(DesignTokens.Colors.customerDeep, lineWidth: 1)
         )
     }
 }

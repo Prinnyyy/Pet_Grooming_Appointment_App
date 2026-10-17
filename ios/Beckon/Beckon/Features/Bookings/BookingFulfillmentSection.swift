@@ -149,7 +149,7 @@ private struct BookingFulfillmentConfirmation: View {
                                 .accessibilityIdentifier("booking.fulfillment.note")
                                 .beckonKeyboardFocusTarget("booking.fulfillment.note.container")
                             if note.count > 500 {
-                                Text("Use no more than 500 characters.").foregroundStyle(DesignTokens.Colors.errorText)
+                                BeckonInlineError("Use no more than 500 characters.")
                             }
                         }
                     }

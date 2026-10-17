@@ -34,7 +34,7 @@ struct FeaturePlaceholderView: View {
 
     var body: some View {
         ZStack {
-            DesignTokens.Colors.background
+            DesignTokens.Colors.appBackground
                 .ignoresSafeArea()
 
             BeckonEmptyState(

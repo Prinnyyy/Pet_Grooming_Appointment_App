@@ -22,7 +22,7 @@ struct GroomerServicesEditorView: View {
             .beckonPageInsets()
         }
         .accessibilityIdentifier("groomer.services.edit")
-        .background(DesignTokens.Colors.background.ignoresSafeArea())
+        .background(DesignTokens.Colors.appBackground.ignoresSafeArea())
         .navigationTitle("Services")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .tabBar)
@@ -91,9 +91,9 @@ private struct GroomerServicesEmptyState: View {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                 Image(systemName: "scissors")
                     .font(.title2.weight(.semibold))
-                    .foregroundStyle(DesignTokens.Colors.groomerOnAccent)
+                    .foregroundStyle(DesignTokens.Colors.groomerInk)
                     .frame(width: 44, height: 44)
-                    .background(DesignTokens.Colors.groomerAccent.opacity(0.14))
+                    .background(DesignTokens.Colors.groomerTint)
                     .clipShape(DesignTokens.Shapes.circular)
                     .accessibilityHidden(true)
 
@@ -221,7 +221,7 @@ private struct GroomerServiceTypePicker: View {
                                 .font(.body.weight(.semibold))
                                 .foregroundStyle(
                                     selection == type
-                                        ? DesignTokens.Colors.groomerOnAccent
+                                        ? DesignTokens.Colors.groomerInk
                                         : DesignTokens.Colors.textTertiary
                                 )
                                 .accessibilityHidden(true)
@@ -298,7 +298,7 @@ struct GroomerServiceFormView: View {
                                         get: { store.selectedServiceSpecies.contains(species) },
                                         set: { store.setServiceSpecies(species, accepted: $0) }
                                     ))
-                                    .tint(DesignTokens.Colors.groomerAccent)
+                                    .tint(DesignTokens.Colors.groomerDeep)
                                     .accessibilityIdentifier("groomer.services.species.\(species.rawValue)")
                                 }
                                 if !store.serviceSpeciesConfirmed {
@@ -331,7 +331,7 @@ struct GroomerServiceFormView: View {
                     additionallyPreventsPresentationDismissal: store.isSaving
                 )
             }
-            .background(DesignTokens.Colors.background.ignoresSafeArea())
+            .background(DesignTokens.Colors.appBackground.ignoresSafeArea())
             .navigationTitle(store.serviceFormTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -416,7 +416,7 @@ private struct GroomerServiceDetailsSection: View {
 
                     Toggle("Visible to customers", isOn: $store.serviceIsActive)
                         .labelsHidden()
-                        .tint(DesignTokens.Colors.groomerAccent)
+                        .tint(DesignTokens.Colors.groomerDeep)
                 }
             }
             .padding(DesignTokens.Spacing.lg)
@@ -454,7 +454,7 @@ private struct GroomerServiceAcceptedPetSizeSection: View {
                         )
                     )
                     .labelsHidden()
-                    .tint(DesignTokens.Colors.groomerAccent)
+                    .tint(DesignTokens.Colors.groomerDeep)
                 }
 
                 if store.serviceUsesCustomSizeRange {
@@ -468,7 +468,7 @@ private struct GroomerServiceAcceptedPetSizeSection: View {
 
                             Text(store.serviceSizeRangeTitle)
                                 .font(DesignTokens.Typography.caption.weight(.semibold))
-                                .foregroundStyle(DesignTokens.Colors.groomerOnAccent)
+                                .foregroundStyle(DesignTokens.Colors.groomerInk)
                                 .fixedSize(horizontal: false, vertical: true)
                                 .accessibilityIdentifier("groomer.services.size-range-title")
                         }
@@ -528,7 +528,7 @@ private struct GroomerServiceSaveActionBar: View {
                 if presentation.saveActionTitle == "Saving..." {
                     HStack(spacing: DesignTokens.Spacing.sm) {
                         ProgressView()
-                            .tint(DesignTokens.Colors.surface)
+                            .tint(DesignTokens.Colors.groomerInk)
                         Text(presentation.saveActionTitle)
                     }
                 } else {
@@ -541,6 +541,6 @@ private struct GroomerServiceSaveActionBar: View {
             .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
             .padding(.vertical, DesignTokens.Spacing.md)
         }
-        .background(DesignTokens.Colors.background)
+        .background(DesignTokens.Colors.appBackground)
     }
 }

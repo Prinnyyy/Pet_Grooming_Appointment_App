@@ -5,6 +5,31 @@ import XCTest
 
 @MainActor
 final class UIColorImplementationSnapshotTests: XCTestCase {
+    func testRoleStatusScreens() async throws {
+        let customer = try await CustomerBookingUIFixture(screen: "offers")
+        let groomer = GroomerUIFixture()
+        for role in [UserRole.customer, .groomer] {
+            try await capture(NavigationStack {
+                BookingDetailView(bookingID: customer.booking.id, role: role, store: customer.bookings)
+            }.tint(role == .customer ? DesignTokens.Colors.customerDeep : DesignTokens.Colors.groomerDeep),
+                name: "\(role.rawValue)-booking-status", largeText: false)
+        }
+        try await capture(NavigationStack {
+            CustomerRequestOffersView(requestID: customer.request.id, store: customer.requests)
+        }.tint(DesignTokens.Colors.customerDeep), name: "customer-offers-status", largeText: false)
+        try await capture(NavigationStack {
+            CustomerRequestDetailView(requestID: customer.request.id, store: customer.requests)
+        }.tint(DesignTokens.Colors.customerDeep), name: "customer-request-status", largeText: false)
+        try await capture(NavigationStack {
+            GroomerRequestsView(groomerID: groomer.owner, repository: groomer.requests,
+                profileRepository: groomer.profile, route: .constant(.offers))
+        }.tint(DesignTokens.Colors.groomerDeep), name: "groomer-offers-status", largeText: false)
+        try await capture(NavigationStack {
+            GroomerRequestsView(groomerID: groomer.owner, repository: groomer.requests,
+                profileRepository: groomer.profile, route: .constant(.matches))
+        }.tint(DesignTokens.Colors.groomerDeep), name: "groomer-requests-status", largeText: false)
+    }
+
     func testColorCatalog() async throws {
         for largeText in [false, true] {
             try await capture(

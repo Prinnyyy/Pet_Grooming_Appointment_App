@@ -8,9 +8,9 @@ enum BeckonRoleAccent {
     var color: Color {
         switch self {
         case .customer:
-            DesignTokens.Colors.customerAccent
+            DesignTokens.Colors.customerFill
         case .groomer:
-            DesignTokens.Colors.groomerAccent
+            DesignTokens.Colors.groomerFill
         case .neutral:
             DesignTokens.Colors.border
         }
@@ -18,6 +18,14 @@ enum BeckonRoleAccent {
 
     var darkColor: Color {
         deep
+    }
+
+    var ink: Color {
+        switch self {
+        case .customer: DesignTokens.Colors.customerInk
+        case .groomer: DesignTokens.Colors.groomerInk
+        case .neutral: DesignTokens.Colors.textPrimary
+        }
     }
 
     var tint: Color {
@@ -48,6 +56,23 @@ enum BeckonAccountLayoutPolicy {
         DesignTokens.Layout.rowHorizontalInset
         + DesignTokens.Metrics.settingsIconSlot
         + DesignTokens.Spacing.md
+}
+
+struct BeckonCountBadge: View {
+    let count: Int
+    let accent: BeckonRoleAccent
+
+    var body: some View {
+        if let label = BeckonBadgeLabel.text(for: count) {
+            Text(label)
+                .font(DesignTokens.Typography.caption.weight(.semibold))
+                .foregroundStyle(accent.deep)
+                .padding(.horizontal, DesignTokens.Spacing.sm)
+                .padding(.vertical, DesignTokens.Spacing.xs)
+                .background(accent.tint, in: Capsule())
+                .accessibilityLabel("\(count)")
+        }
+    }
 }
 
 extension View {

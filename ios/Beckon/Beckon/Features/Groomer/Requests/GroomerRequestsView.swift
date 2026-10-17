@@ -52,7 +52,7 @@ struct GroomerRequestsView: View {
 
     var body: some View {
         ZStack {
-            DesignTokens.Colors.background
+            DesignTokens.Colors.appBackground
                 .ignoresSafeArea()
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
@@ -204,7 +204,7 @@ private struct GroomerRequestsWorkspaceHeader: View {
                                 .padding(.vertical, 3)
                                 .background(
                                     selectedSegment == segment
-                                        ? DesignTokens.Colors.groomerAccent.opacity(0.2)
+                                        ? DesignTokens.Colors.groomerTint
                                         : DesignTokens.Colors.borderSoft
                                 )
                                 .clipShape(Capsule())
@@ -237,7 +237,7 @@ private struct GroomerRequestsWorkspaceHeader: View {
                 }
             }
             .padding(DesignTokens.Spacing.xs)
-            .background(DesignTokens.Colors.borderSoft.opacity(0.8))
+            .background(DesignTokens.Colors.iconTileFill)
             .clipShape(
                 RoundedRectangle(
                     cornerRadius: DesignTokens.CornerRadius.button,
@@ -399,10 +399,10 @@ private struct GroomerRequestSummaryRow: View {
             if !dynamicTypeSize.isAccessibilitySize {
               BeckonModuleImage(data: photoData) {
                 ZStack {
-                    DesignTokens.Colors.groomerAccent.opacity(0.12)
+                    DesignTokens.Colors.placeholderFill
                     Image(systemName: "pawprint.fill")
                         .font(.title2)
-                        .foregroundStyle(DesignTokens.Colors.groomerOnAccent)
+                        .foregroundStyle(DesignTokens.Colors.textTertiary)
                 }
             }
             .frame(width: 64, height: 72)
@@ -419,11 +419,7 @@ private struct GroomerRequestSummaryRow: View {
                         .foregroundStyle(DesignTokens.Colors.textPrimary)
                         .fixedSize(horizontal: false, vertical: true)
 
-                    BeckonStatusChip(
-                        statusSummary,
-                        systemImage: statusSystemImage,
-                        tone: statusTone
-                    )
+                    BeckonStatusChip(statusPresentation)
                 }
 
                 Text("\(matchedRequest.request.petSnapshot.breed ?? "Unknown breed") · \(matchedRequest.request.serviceType.title)")
@@ -438,7 +434,7 @@ private struct GroomerRequestSummaryRow: View {
 
                 Text(fitSummary)
                     .font(DesignTokens.Typography.caption.weight(.semibold))
-                    .foregroundStyle(DesignTokens.Colors.groomerOnAccent)
+                    .foregroundStyle(DesignTokens.Colors.groomerInk)
                     .fixedSize(horizontal: false, vertical: true)
                 if let source = matchedRequest.request.distributionSourceTitle {
                     Text(source).font(DesignTokens.Typography.caption).foregroundStyle(DesignTokens.Colors.textSecondary)
@@ -457,28 +453,10 @@ private struct GroomerRequestSummaryRow: View {
         .contentShape(Rectangle())
     }
 
-    private var statusSummary: String {
-        if let offer = matchedRequest.offer {
-            return "Offer \(offer.evaluatedStatusTitle.lowercased())"
-        }
-
-        return matchedRequest.matchSummary
-    }
-
-    private var statusTone: BeckonStatusChip.Tone {
-        if matchedRequest.offer?.status == .pending {
-            return .warning
-        }
-
-        return matchedRequest.request.status.isOpenForOffers ? .info : .neutral
-    }
-
-    private var statusSystemImage: String {
-        if matchedRequest.offer?.status == .pending {
-            return "paperplane.fill"
-        }
-
-        return matchedRequest.request.status.isOpenForOffers ? "sparkles" : "checkmark"
+    private var statusPresentation: BeckonStatusPresentation {
+        if let offer = matchedRequest.offer { return offer.statusPresentation() }
+        return matchedRequest.request.status.isOpenForOffers
+            ? matchedRequest.match.status.presentation : matchedRequest.request.status.presentation
     }
 
     private var preferredDate: String {
@@ -522,7 +500,7 @@ struct GroomerRequestDetailView: View {
     @ViewBuilder private var content: some View {
         if let matchedRequest = store.authorizedDetail, matchedRequest.id == matchID {
             ZStack {
-                DesignTokens.Colors.background
+                DesignTokens.Colors.appBackground
                     .ignoresSafeArea()
 
                 ScrollViewReader { scrollProxy in
@@ -580,7 +558,7 @@ struct GroomerRequestDetailView: View {
             ProgressView("Checking request...")
         } else {
             ZStack {
-                DesignTokens.Colors.background
+                DesignTokens.Colors.appBackground
                     .ignoresSafeArea()
 
                 VStack(spacing: DesignTokens.Spacing.md) {
@@ -609,10 +587,10 @@ struct GroomerRequestDetailView: View {
                     data: firstPhotoData(for: matchedRequest)
                 ) {
                     ZStack {
-                        DesignTokens.Colors.groomerAccent.opacity(0.12)
+                        DesignTokens.Colors.placeholderFill
                         Image(systemName: "pawprint.fill")
                             .font(.title)
-                            .foregroundStyle(DesignTokens.Colors.groomerOnAccent)
+                            .foregroundStyle(DesignTokens.Colors.textTertiary)
                     }
                 }
                 .frame(width: 80, height: 92)
@@ -633,11 +611,7 @@ struct GroomerRequestDetailView: View {
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
 
-                    BeckonStatusChip(
-                        matchedRequest.request.status.title,
-                        systemImage: matchedRequest.request.status.groomerSystemImage,
-                        tone: matchedRequest.request.status.groomerTone
-                    )
+                    BeckonStatusChip(matchedRequest.request.status.presentation)
                 }
 
                     Text("\(matchedRequest.request.petSnapshot.species) · \(matchedRequest.request.petSnapshot.breed ?? "Unknown breed")")
@@ -674,7 +648,7 @@ struct GroomerRequestDetailView: View {
                 DetailMetadataRow(
                     title: "Status",
                     value: matchedRequest.match.status.title,
-                    systemImage: matchedRequest.match.status.groomerSystemImage
+                    systemImage: matchedRequest.match.status.presentation.systemImage
                 )
 
                 if let fitEvidence = matchedRequest.fitEvidencePresentation {
@@ -682,7 +656,6 @@ struct GroomerRequestDetailView: View {
                         scoreText: fitEvidence.scoreText,
                         summary: fitEvidence.listSummary,
                         reason: fitEvidence.reason,
-                        accent: .groomer,
                         isCompact: false
                     )
                 }
@@ -704,11 +677,7 @@ struct GroomerRequestDetailView: View {
 
                     Spacer(minLength: DesignTokens.Spacing.sm)
 
-                    BeckonStatusChip(
-                        matchedRequest.request.status.title,
-                        systemImage: matchedRequest.request.status.groomerSystemImage,
-                        tone: matchedRequest.request.status.groomerTone
-                    )
+                    BeckonStatusChip(matchedRequest.request.status.presentation)
                 }
 
                 if let notes = matchedRequest.request.serviceNotes {
@@ -911,11 +880,7 @@ struct GroomerRequestDetailView: View {
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
 
-                    BeckonStatusChip(
-                        offer.evaluatedStatusTitle,
-                        systemImage: offer.status.groomerSystemImage,
-                        tone: offer.status.groomerTone
-                    )
+                    BeckonStatusChip(offer.statusPresentation())
                 }
 
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
@@ -986,11 +951,7 @@ struct GroomerRequestDetailView: View {
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
 
-                    BeckonStatusChip(
-                        "Draft",
-                        systemImage: "pencil",
-                        tone: .info
-                    )
+                    BeckonStatusChip(.draft)
                 }
 
                 ForEach((matchedRequest.match.eligibilityEvaluation?.confirmationKeys ?? []).sorted(), id: \.self) { key in
@@ -1113,7 +1074,7 @@ struct GroomerRequestDetailView: View {
             if store.isSubmittingOffer {
                 HStack(spacing: DesignTokens.Spacing.sm) {
                     ProgressView()
-                        .tint(DesignTokens.Colors.surface)
+                        .tint(DesignTokens.Colors.groomerInk)
                     Text("Submitting Offer…")
                 }
             } else {
@@ -1152,7 +1113,7 @@ struct GroomerRequestDetailView: View {
                         width: DesignTokens.Spacing.xl,
                         height: DesignTokens.Spacing.xl
                     )
-                    .background(DesignTokens.Colors.borderSoft.opacity(0.55))
+                    .background(DesignTokens.Colors.iconTileFill)
                     .clipShape(DesignTokens.Shapes.circular)
                     .accessibilityHidden(true)
 
@@ -1231,12 +1192,12 @@ private struct DetailMetadataRow: View {
         HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
             Image(systemName: systemImage)
                 .font(DesignTokens.Typography.caption.weight(.semibold))
-                .foregroundStyle(DesignTokens.Colors.groomerOnAccent)
+                .foregroundStyle(DesignTokens.Colors.groomerInk)
                 .frame(
                     width: DesignTokens.Spacing.xl,
                     height: DesignTokens.Spacing.xl
                 )
-                .background(DesignTokens.Colors.groomerAccent.opacity(0.14))
+                .background(DesignTokens.Colors.groomerTint)
                 .clipShape(DesignTokens.Shapes.circular)
                 .accessibilityHidden(true)
 
@@ -1290,9 +1251,9 @@ private struct GroomerRequestPhotoThumbnail: View {
         BeckonModuleImage(data: data) {
             Image(systemName: "photo")
                 .font(DesignTokens.Typography.caption.weight(.semibold))
-                .foregroundStyle(DesignTokens.Colors.groomerOnAccent)
+                .foregroundStyle(DesignTokens.Colors.textTertiary)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(DesignTokens.Colors.groomerAccent.opacity(0.14))
+                .background(DesignTokens.Colors.placeholderFill)
         }
         .frame(width: 58, height: 58)
         .clipShape(
@@ -1318,7 +1279,7 @@ private struct OfferDatePickerField: View {
                 displayedComponents: [.date, .hourAndMinute]
             )
             .labelsHidden()
-            .tint(DesignTokens.Colors.groomerAccentDark)
+            .tint(DesignTokens.Colors.groomerDeep)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(.horizontal, DesignTokens.Spacing.lg)
@@ -1358,7 +1319,7 @@ private struct GroomerOfferTextField: View {
             .keyboardType(keyboardType)
             .lineLimit(isMultiline ? 3...6 : 1...1)
             .beckonFormField()
-            .tint(DesignTokens.Colors.groomerAccentDark)
+            .tint(DesignTokens.Colors.groomerDeep)
             .accessibilityIdentifier(accessibilityIdentifier)
         }
         .contentShape(Rectangle())
@@ -1392,7 +1353,7 @@ private struct OfferMessageBlock: View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
             Label("Message", systemImage: "text.bubble")
                 .font(DesignTokens.Typography.caption.weight(.semibold))
-                .foregroundStyle(DesignTokens.Colors.groomerOnAccent)
+                .foregroundStyle(DesignTokens.Colors.groomerInk)
 
             Text(message)
                 .font(DesignTokens.Typography.body)
@@ -1403,7 +1364,7 @@ private struct OfferMessageBlock: View {
         .padding(DesignTokens.Spacing.lg)
         .background {
             RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input, style: .continuous)
-                .fill(DesignTokens.Colors.borderSoft.opacity(0.35))
+                .fill(DesignTokens.Colors.iconTileFill)
         }
         .overlay {
             RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input, style: .continuous)
@@ -1413,52 +1374,7 @@ private struct OfferMessageBlock: View {
     }
 }
 
-private extension GroomingRequestStatus {
-    var groomerTone: BeckonStatusChip.Tone {
-        isOpenForOffers ? .info : .neutral
-    }
-
-    var groomerSystemImage: String {
-        isOpenForOffers ? "clock" : "checkmark"
-    }
-}
-
-private extension RequestMatchStatus {
-    var groomerSystemImage: String {
-        isDismissible ? "sparkles" : "checkmark"
-    }
-}
-
 private extension GroomerOfferStatus {
-    var groomerTone: BeckonStatusChip.Tone {
-        switch self {
-        case .pending:
-            .warning
-        case .acceptedByCustomer:
-            .success
-        case .declinedByCustomer, .expired:
-            .error
-        case .withdrawnByGroomer, .unknown:
-            .neutral
-        }
-    }
-
-    var groomerSystemImage: String {
-        switch self {
-        case .pending:
-            "paperplane.fill"
-        case .acceptedByCustomer:
-            "checkmark.seal.fill"
-        case .declinedByCustomer:
-            "xmark.circle.fill"
-        case .withdrawnByGroomer:
-            "arrow.uturn.backward.circle"
-        case .expired:
-            "clock.badge.exclamationmark"
-        case .unknown:
-            "questionmark.circle"
-        }
-    }
 
     var groomerDescription: String {
         switch self {

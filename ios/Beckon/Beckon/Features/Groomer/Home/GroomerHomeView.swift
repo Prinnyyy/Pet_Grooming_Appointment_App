@@ -110,7 +110,7 @@ struct GroomerHomeView: View {
             .padding(.top, DesignTokens.Spacing.lg)
             .padding(.bottom, DesignTokens.Spacing.xl)
         }
-        .background(DesignTokens.Colors.background.ignoresSafeArea())
+        .background(DesignTokens.Colors.appBackground.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
         .navigationDestination(isPresented: $isShowingNotifications) {
             if let notificationStore {
@@ -228,10 +228,10 @@ private struct GroomerHomeNextBookingCard: View {
                 bookingLayout {
                     BeckonModuleImage(data: photoData) {
                         ZStack {
-                            DesignTokens.Colors.groomerAccent.opacity(0.12)
+                            DesignTokens.Colors.groomerTint
                             Image(systemName: "pawprint.fill")
                                 .font(DesignTokens.Typography.sectionTitle)
-                                .foregroundStyle(DesignTokens.Colors.groomerOnAccent)
+                                .foregroundStyle(DesignTokens.Colors.groomerInk)
                         }
                     }
                     .frame(width: 72, height: 72)
@@ -318,7 +318,7 @@ private struct GroomerHomeAttentionSurface: View {
                         empty: "No new matching requests"
                     ),
                     systemImage: "person.2",
-                    tint: DesignTokens.Colors.successText,
+                    tint: DesignTokens.Colors.statusSuccessText,
                     identifier: "groomer.home.matches",
                     action: requestsAction
                 )
@@ -335,7 +335,7 @@ private struct GroomerHomeAttentionSurface: View {
                         empty: "No offers awaiting a response"
                     ),
                     systemImage: "tag",
-                    tint: DesignTokens.Colors.warningText,
+                    tint: DesignTokens.Colors.statusWarningText,
                     identifier: "groomer.home.offers",
                     action: offersAction
                 )
@@ -392,9 +392,9 @@ private struct GroomerHomeAttentionRow: View {
             HStack(spacing: DesignTokens.Spacing.md) {
                     Image(systemName: systemImage)
                         .font(DesignTokens.Typography.headline)
-                        .foregroundStyle(tint)
+                        .foregroundStyle(DesignTokens.Colors.textPrimary)
                         .frame(width: 48, height: 48)
-                        .background(tint.opacity(0.12))
+                        .background(DesignTokens.Colors.iconTileFill)
                         .clipShape(
                             RoundedRectangle(
                                 cornerRadius: DesignTokens.CornerRadius.input,
@@ -455,7 +455,7 @@ private struct GroomerHomeAvailabilityRow: View {
 
                 Image(systemName: "chevron.right")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(DesignTokens.Colors.groomerOnAccent)
+                    .foregroundStyle(DesignTokens.Colors.groomerInk)
                     .accessibilityHidden(true)
             }
             .padding(DesignTokens.Spacing.lg)
@@ -483,9 +483,9 @@ private struct GroomerHomeAvailabilityRow: View {
     private var indicatorColor: Color {
         switch state {
         case .available:
-            DesignTokens.Colors.success
+            DesignTokens.Colors.statusSuccessText
         case .needsSchedule:
-            DesignTokens.Colors.warning
+            DesignTokens.Colors.statusWarningText
         case .paused, .unavailable:
             DesignTokens.Colors.textTertiary
         }
@@ -527,7 +527,7 @@ private struct GroomerHomeLoadingSurface: View {
     var body: some View {
         HStack(spacing: DesignTokens.Spacing.md) {
             ProgressView()
-                .tint(DesignTokens.Colors.groomerAccentDark)
+                .tint(DesignTokens.Colors.groomerDeep)
             Text(title)
                 .font(.body.weight(.semibold))
                 .foregroundStyle(DesignTokens.Colors.textSecondary)

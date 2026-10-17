@@ -54,7 +54,7 @@ struct CustomerGroomerDiscoveryView: View {
             }
             .padding(DesignTokens.Spacing.screenHorizontal)
         }
-        .background(DesignTokens.Colors.background)
+        .background(DesignTokens.Colors.appBackground)
         .navigationTitle(flow.requestID == nil ? "Choose Groomers" : "Invite Groomers")
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(flow.requestID != nil)
@@ -102,7 +102,7 @@ struct CustomerGroomerDiscoveryView: View {
             case .more:
                 VStack(spacing: 16) {
                     Image(systemName: "person.3").font(DesignTokens.Typography.largeTitle)
-                        .foregroundStyle(DesignTokens.Colors.customerAccentStrong)
+                        .foregroundStyle(DesignTokens.Colors.customerDeep)
                     Button("Show All Groomers", systemImage: "list.bullet") { flow.store.showAll() }
                         .buttonStyle(BeckonPrimaryButtonStyle(accent: .customer)).accessibilityIdentifier("discovery.more")
                 }

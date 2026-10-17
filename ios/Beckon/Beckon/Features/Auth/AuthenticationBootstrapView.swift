@@ -5,7 +5,7 @@ struct AuthenticationBootstrapView: View {
 
     var body: some View {
         ZStack {
-            DesignTokens.Colors.background
+            DesignTokens.Colors.appBackground
                 .ignoresSafeArea()
 
             VStack(spacing: DesignTokens.Spacing.xl) {
@@ -25,12 +25,12 @@ struct AuthenticationBootstrapView: View {
                         Text("Beckon")
                             .font(DesignTokens.Typography.largeTitle.weight(.bold))
                             .multilineTextAlignment(.center)
-                            .foregroundStyle(DesignTokens.Colors.primaryText)
+                            .foregroundStyle(DesignTokens.Colors.textPrimary)
 
                         Text(statusMessage)
                             .font(DesignTokens.Typography.body)
                             .multilineTextAlignment(.center)
-                            .foregroundStyle(DesignTokens.Colors.secondaryText)
+                            .foregroundStyle(DesignTokens.Colors.textSecondary)
                     }
                 }
 
@@ -60,18 +60,18 @@ struct AuthenticationBootstrapView: View {
     private var iconStyle: Color {
         switch state {
         case .ready:
-            DesignTokens.Colors.customerAccentStrong
+            DesignTokens.Colors.customerDeep
         case .configurationError:
-            DesignTokens.Colors.error
+            DesignTokens.Colors.statusErrorText
         }
     }
 
     private var iconBackground: Color {
         switch state {
         case .ready:
-            DesignTokens.Colors.customerAccent.opacity(0.16)
+            DesignTokens.Colors.customerTint
         case .configurationError:
-            DesignTokens.Colors.error.opacity(0.12)
+            DesignTokens.Colors.statusErrorFill
         }
     }
 

@@ -13,7 +13,7 @@ struct RoleOnboardingView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                DesignTokens.Colors.background
+                DesignTokens.Colors.appBackground
                     .ignoresSafeArea()
 
                 ScrollViewReader { scrollProxy in
@@ -42,12 +42,12 @@ struct RoleOnboardingView: View {
         VStack(spacing: DesignTokens.Spacing.lg) {
             Image(systemName: "person.2.circle.fill")
                 .font(DesignTokens.Typography.largeTitle.weight(.semibold))
-                .foregroundStyle(DesignTokens.Colors.customerAccentStrong)
+                .foregroundStyle(DesignTokens.Colors.customerDeep)
                 .frame(
                     width: DesignTokens.Spacing.xl + DesignTokens.Spacing.xl + DesignTokens.Spacing.lg,
                     height: DesignTokens.Spacing.xl + DesignTokens.Spacing.xl + DesignTokens.Spacing.lg
                 )
-                .background(DesignTokens.Colors.customerAccent.opacity(0.16))
+                .background(DesignTokens.Colors.customerTint)
                 .clipShape(DesignTokens.Shapes.circular)
                 .accessibilityHidden(true)
 
@@ -55,21 +55,21 @@ struct RoleOnboardingView: View {
                 Text("Set up Beckon")
                     .font(DesignTokens.Typography.largeTitle.weight(.bold))
                     .multilineTextAlignment(.center)
-                    .foregroundStyle(DesignTokens.Colors.primaryText)
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
 
                 Text("Choose the role that matches how you will use the app.")
                     .font(DesignTokens.Typography.body)
                     .multilineTextAlignment(.center)
-                    .foregroundStyle(DesignTokens.Colors.secondaryText)
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
             }
 
             if let email = session.email {
                 Text(email)
                     .font(DesignTokens.Typography.caption.weight(.semibold))
-                    .foregroundStyle(DesignTokens.Colors.customerAccentStrong)
+                    .foregroundStyle(DesignTokens.Colors.customerDeep)
                     .padding(.horizontal, DesignTokens.Spacing.md)
                     .padding(.vertical, DesignTokens.Spacing.sm)
-                    .background(DesignTokens.Colors.customerAccent.opacity(0.14))
+                    .background(DesignTokens.Colors.customerTint)
                     .clipShape(DesignTokens.Shapes.chip)
             }
         }
@@ -111,7 +111,7 @@ struct RoleOnboardingView: View {
                         systemImage: "lock"
                     )
                     .font(DesignTokens.Typography.caption)
-                    .foregroundStyle(DesignTokens.Colors.secondaryText)
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
                     Button {
@@ -122,7 +122,7 @@ struct RoleOnboardingView: View {
                         HStack(spacing: DesignTokens.Spacing.sm) {
                             if store.isSubmitting {
                                 ProgressView()
-                                    .tint(DesignTokens.Colors.surface)
+                                    .tint(DesignTokens.Colors.customerInk)
                             }
                             Text(store.isSubmitting ? "Creating profile…" : "Continue")
                         }
@@ -190,18 +190,18 @@ struct RoleOnboardingView: View {
     private func roleForeground(_ role: UserRole) -> Color {
         switch role {
         case .customer:
-            store.selectedRole == role ? DesignTokens.Colors.customerAccentStrong : DesignTokens.Colors.textPrimary
+            store.selectedRole == role ? DesignTokens.Colors.customerDeep : DesignTokens.Colors.textPrimary
         case .groomer:
-            store.selectedRole == role ? DesignTokens.Colors.groomerAccentDark : DesignTokens.Colors.textPrimary
+            store.selectedRole == role ? DesignTokens.Colors.groomerDeep : DesignTokens.Colors.textPrimary
         }
     }
 
     private func roleBackground(_ role: UserRole) -> Color {
         switch role {
         case .customer:
-            store.selectedRole == role ? DesignTokens.Colors.customerAccent.opacity(0.14) : DesignTokens.Colors.appBackground
+            store.selectedRole == role ? DesignTokens.Colors.customerTint : DesignTokens.Colors.appBackground
         case .groomer:
-            store.selectedRole == role ? DesignTokens.Colors.groomerAccent.opacity(0.14) : DesignTokens.Colors.appBackground
+            store.selectedRole == role ? DesignTokens.Colors.groomerTint : DesignTokens.Colors.appBackground
         }
     }
 
@@ -212,9 +212,9 @@ struct RoleOnboardingView: View {
 
         switch role {
         case .customer:
-            return DesignTokens.Colors.customerAccent
+            return DesignTokens.Colors.customerDeep
         case .groomer:
-            return DesignTokens.Colors.groomerAccent
+            return DesignTokens.Colors.groomerDeep
         }
     }
 }

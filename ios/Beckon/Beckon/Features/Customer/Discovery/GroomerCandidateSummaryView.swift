@@ -60,8 +60,7 @@ struct GroomerCandidateSummaryView: View {
                     .foregroundStyle(DesignTokens.Colors.textPrimary)
                 if !compact {
                     if let evidence = candidate.matchingEvidence {
-                        BeckonFitEvidenceBlock(scoreText: nil, summary: evidence.summary, reason: evidence.detail,
-                            accent: .customer, isCompact: false)
+                        BeckonFitEvidenceBlock(scoreText: nil, summary: evidence.summary, reason: evidence.detail, isCompact: false)
                     }
                     Text("Reference pricing. Your appointment is confirmed only after you accept an offer.")
                         .font(DesignTokens.Typography.caption).foregroundStyle(DesignTokens.Colors.textTertiary)

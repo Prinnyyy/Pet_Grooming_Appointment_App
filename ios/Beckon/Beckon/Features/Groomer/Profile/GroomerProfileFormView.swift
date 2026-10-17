@@ -48,7 +48,7 @@ struct GroomerProfileEditorView: View {
         }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("groomer.profile.edit")
-        .background(DesignTokens.Colors.background.ignoresSafeArea())
+        .background(DesignTokens.Colors.appBackground.ignoresSafeArea())
         .navigationTitle("Profile Settings")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .tabBar)
@@ -253,7 +253,7 @@ struct GroomerProfileTextField: View {
             TextField(prompt, text: $text, axis: axis)
                 .focused($focusedTarget, equals: focusTarget)
                 .beckonFormField()
-                .tint(DesignTokens.Colors.groomerAccentDark)
+                .tint(DesignTokens.Colors.groomerDeep)
         }
         .beckonKeyboardFocusTarget(focusTarget)
     }
@@ -310,7 +310,7 @@ private struct GroomerProfileRadiusSlider: View {
 
                 Text(radius >= 50 ? "50+ mi" : "\(radius) mi")
                     .font(DesignTokens.Typography.body.weight(.bold))
-                    .foregroundStyle(DesignTokens.Colors.groomerOnAccent)
+                    .foregroundStyle(DesignTokens.Colors.groomerInk)
             }
 
             Slider(
@@ -321,7 +321,7 @@ private struct GroomerProfileRadiusSlider: View {
                 in: 5...50,
                 step: 1
             )
-            .tint(DesignTokens.Colors.groomerAccent)
+            .tint(DesignTokens.Colors.groomerDeep)
 
             Text("Use 50+ when you cover a wider service area.")
                 .font(DesignTokens.Typography.caption)
@@ -410,12 +410,12 @@ private struct GroomerProfileToggleRow: View {
         HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
             Image(systemName: systemImage)
                 .font(DesignTokens.Typography.caption.weight(.semibold))
-                .foregroundStyle(DesignTokens.Colors.groomerOnAccent)
+                .foregroundStyle(DesignTokens.Colors.groomerInk)
                 .frame(
                     width: DesignTokens.Spacing.xl,
                     height: DesignTokens.Spacing.xl
                 )
-                .background(DesignTokens.Colors.groomerAccent.opacity(0.14))
+                .background(DesignTokens.Colors.groomerTint)
                 .clipShape(DesignTokens.Shapes.circular)
                 .accessibilityHidden(true)
 
@@ -435,12 +435,12 @@ private struct GroomerProfileToggleRow: View {
 
             Toggle(title, isOn: $isOn)
                 .labelsHidden()
-                .tint(DesignTokens.Colors.groomerAccent)
+                .tint(DesignTokens.Colors.groomerDeep)
         }
         .padding(DesignTokens.Spacing.md)
         .background {
             RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input, style: .continuous)
-                .fill(DesignTokens.Colors.borderSoft.opacity(0.35))
+                .fill(DesignTokens.Colors.iconTileFill)
         }
         .overlay {
             RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input, style: .continuous)

@@ -140,11 +140,7 @@ private struct GroomerOfferRow: View {
                         .foregroundStyle(DesignTokens.Colors.textPrimary)
                         .fixedSize(horizontal: false, vertical: true)
 
-                    BeckonStatusChip(
-                        item.offer.evaluatedStatusTitle,
-                        systemImage: item.offer.status.offerListSystemImage,
-                        tone: item.offer.status.offerListTone
-                    )
+                    BeckonStatusChip(item.offer.statusPresentation())
                 }
 
                 Text(item.subtitle)
@@ -159,7 +155,7 @@ private struct GroomerOfferRow: View {
 
                 Text("\(item.offer.priceSummary) · \(item.offer.status.offerListDescription)")
                     .font(DesignTokens.Typography.caption.weight(.semibold))
-                    .foregroundStyle(DesignTokens.Colors.groomerOnAccent)
+                    .foregroundStyle(DesignTokens.Colors.groomerInk)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -186,7 +182,7 @@ struct GroomerOfferDetailView: View {
     var body: some View {
         let item = store.offers.first(where: { $0.id == self.item.id }) ?? self.item
         ZStack {
-            DesignTokens.Colors.background
+            DesignTokens.Colors.appBackground
                 .ignoresSafeArea()
 
             ScrollView {
@@ -271,11 +267,7 @@ private struct GroomerOfferHero: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                BeckonStatusChip(
-                    item.offer.evaluatedStatusTitle,
-                    systemImage: item.offer.status.offerListSystemImage,
-                    tone: item.offer.status.offerListTone
-                )
+                BeckonStatusChip(item.offer.statusPresentation())
             }
         }
     }
@@ -323,7 +315,7 @@ private struct GroomerOfferFactsCard: View {
                 GroomerOfferFactRow(
                     title: "Status",
                     value: item.offer.evaluatedStatusTitle,
-                    systemImage: item.offer.status.offerListSystemImage
+                    systemImage: item.offer.statusPresentation().systemImage
                 )
                 if let createdAt = item.offer.createdAt {
                     if let evaluation = item.offer.quoteEvaluation, item.offer.status == .pending {
@@ -436,12 +428,12 @@ private struct GroomerOfferFactRow: View {
         HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
             Image(systemName: systemImage)
                 .font(DesignTokens.Typography.caption.weight(.semibold))
-                .foregroundStyle(DesignTokens.Colors.groomerOnAccent)
+                .foregroundStyle(DesignTokens.Colors.groomerInk)
                 .frame(
                     width: DesignTokens.Spacing.xl,
                     height: DesignTokens.Spacing.xl
                 )
-                .background(DesignTokens.Colors.groomerAccent.opacity(0.14))
+                .background(DesignTokens.Colors.groomerTint)
                 .clipShape(DesignTokens.Shapes.circular)
                 .accessibilityHidden(true)
 
@@ -497,35 +489,7 @@ private extension GroomerOfferStatus {
         }
     }
 
-    var offerListTone: BeckonStatusChip.Tone {
-        switch self {
-        case .pending:
-            .warning
-        case .acceptedByCustomer:
-            .success
-        case .declinedByCustomer, .expired:
-            .error
-        case .withdrawnByGroomer, .unknown:
-            .neutral
-        }
-    }
 
-    var offerListSystemImage: String {
-        switch self {
-        case .pending:
-            "paperplane.fill"
-        case .acceptedByCustomer:
-            "checkmark.seal.fill"
-        case .declinedByCustomer:
-            "xmark.circle.fill"
-        case .withdrawnByGroomer:
-            "arrow.uturn.backward.circle"
-        case .expired:
-            "clock.badge.exclamationmark"
-        case .unknown:
-            "questionmark.circle"
-        }
-    }
 
     var offerListDescription: String {
         switch self {

@@ -89,29 +89,6 @@ enum DesignTokens {
         static let statusNeutralFill = Palette.warmIconTile
         static let statusNeutralBorder = Palette.warmBorder
 
-        // Transitional symbols remain until the existing consumers migrate.
-        static let customerAccent = customerFill
-        static let customerPrimary = customerFill
-        static let customerAccentSoft = customerHeroEnd
-        static let customerAccentSubtle = customerHeroBubble
-        static let customerAccentStrong = customerDeep
-        static let customerPrimaryDark = customerDeep
-        static let customerPrimaryPressed = customerDeep
-        static let customerOnAccent = customerInk
-        static let customerHeroText = customerInk
-        static let customerHeroBackgroundStart = customerFill
-        static let customerHeroBackgroundEnd = customerHeroEnd
-        static let groomerAccent = groomerFill
-        static let groomerOnAccent = groomerInk
-        static let groomerAccentPressed = groomerAccentDark
-        static let successText = statusSuccessText
-        static let warningText = statusWarningText
-        static let errorText = statusErrorText
-        static let groomerAccentDark: UInt = 0xF58575
-        static let success: UInt = 0x6CBF84
-        static let warning: UInt = 0xF2B84B
-        static let error: UInt = 0xE56B6F
-        static let notificationUnread: UInt = 0xFF3B30
     }
 
     enum Colors {
@@ -157,31 +134,6 @@ enum DesignTokens {
         static let surfaceRaised = surface
         static let divider = borderSoft
 
-        static let customerAccent = customerFill
-        static let customerPrimary = customerFill
-        static let customerAccentSoft = customerHeroEnd
-        static let customerAccentSubtle = customerHeroBubble
-        static let customerAccentStrong = customerDeep
-        static let customerPrimaryDark = customerDeep
-        static let customerPrimaryPressed = customerDeep
-        static let customerOnAccent = customerInk
-        static let customerHeroText = customerInk
-        static let customerHeroBackgroundStart = customerFill
-        static let customerHeroBackgroundEnd = customerHeroEnd
-        static let groomerAccent = groomerFill
-        static let groomerOnAccent = groomerInk
-        static let groomerAccentPressed = groomerAccentDark
-        static let successText = statusSuccessText
-        static let warningText = statusWarningText
-        static let errorText = statusErrorText
-        static let groomerAccentDark = Color(hex: ColorHex.groomerAccentDark)
-        static let success = Color(hex: ColorHex.success)
-        static let warning = Color(hex: ColorHex.warning)
-        static let error = Color(hex: ColorHex.error)
-        static let notificationUnread = Color(hex: ColorHex.notificationUnread)
-        static let background = appBackground
-        static let primaryText = textPrimary
-        static let secondaryText = textSecondary
     }
 
     enum Spacing {

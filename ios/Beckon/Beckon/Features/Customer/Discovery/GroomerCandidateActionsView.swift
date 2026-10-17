@@ -28,7 +28,7 @@ struct GroomerCandidateActionsView: View {
                     .font(DesignTokens.Typography.supporting).frame(maxWidth: .infinity, alignment: .trailing)
             }
         }
-        .tint(DesignTokens.Colors.customerAccentStrong)
+        .tint(DesignTokens.Colors.customerDeep)
         .disabled(disabled)
     }
 

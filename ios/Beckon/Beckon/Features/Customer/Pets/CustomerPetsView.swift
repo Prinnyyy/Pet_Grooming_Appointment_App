@@ -77,7 +77,7 @@ struct CustomerPetsView: View {
         @Bindable var requestStore = requestStore
 
         ZStack {
-            DesignTokens.Colors.background
+            DesignTokens.Colors.appBackground
                 .ignoresSafeArea()
 
             screenContent
@@ -363,8 +363,8 @@ private struct CustomerHomeRequestHero: View {
                 .fill(
                     LinearGradient(
                         colors: [
-                            DesignTokens.Colors.customerHeroBackgroundStart,
-                            DesignTokens.Colors.customerHeroBackgroundEnd,
+                            DesignTokens.Colors.customerFill,
+                            DesignTokens.Colors.customerHeroEnd,
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
@@ -398,12 +398,12 @@ private struct CustomerHomeRequestHero: View {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                     Text(CustomerHomeRequestHeroPresentation.title)
                         .font(DesignTokens.Typography.featureTitle)
-                        .foregroundStyle(DesignTokens.Colors.customerHeroText)
+                        .foregroundStyle(DesignTokens.Colors.customerInk)
                         .fixedSize(horizontal: false, vertical: true)
 
                     Text(CustomerHomeRequestHeroPresentation.message)
                         .font(DesignTokens.Typography.body)
-                        .foregroundStyle(DesignTokens.Colors.customerHeroText)
+                        .foregroundStyle(DesignTokens.Colors.customerInk)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -411,11 +411,7 @@ private struct CustomerHomeRequestHero: View {
                 Button(action: action) {
                     HStack(spacing: DesignTokens.Spacing.sm) {
                         Image(systemName: "scissors")
-                            .symbolRenderingMode(.palette)
-                            .foregroundStyle(
-                                DesignTokens.Colors.error,
-                                DesignTokens.Colors.textSecondary
-                            )
+                            .foregroundStyle(DesignTokens.Colors.customerDeep)
 
                         Text(CustomerHomeRequestHeroPresentation.actionTitle)
                     }
@@ -437,7 +433,7 @@ private struct CustomerHomeRequestHero: View {
                         systemImage: "pawprint"
                     )
                     .font(DesignTokens.Typography.status)
-                    .foregroundStyle(DesignTokens.Colors.customerHeroText)
+                    .foregroundStyle(DesignTokens.Colors.customerInk)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityIdentifier("customer.home.start-request.requirement")
                 }
@@ -632,7 +628,7 @@ private struct CustomerHomeAddPetTile: View {
             VStack(spacing: DesignTokens.Spacing.md) {
                 Image(systemName: "plus")
                     .font(DesignTokens.Typography.sectionTitle)
-                    .foregroundStyle(DesignTokens.Colors.customerAccentStrong)
+                    .foregroundStyle(DesignTokens.Colors.customerDeep)
                     .frame(width: 58, height: 58)
                     .background(DesignTokens.Colors.surfaceRaised)
                     .clipShape(DesignTokens.Shapes.circular)
@@ -643,7 +639,7 @@ private struct CustomerHomeAddPetTile: View {
             }
             .frame(width: 172)
             .frame(minHeight: 252)
-            .background(DesignTokens.Colors.surface.opacity(0.34))
+            .background(DesignTokens.Colors.surface)
             .clipShape(
                 RoundedRectangle(
                     cornerRadius: DesignTokens.CornerRadius.card,

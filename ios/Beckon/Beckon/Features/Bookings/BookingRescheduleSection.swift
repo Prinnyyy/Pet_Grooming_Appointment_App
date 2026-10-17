@@ -151,8 +151,7 @@ struct BookingRescheduleConfirmation: View {
                             }
                         }
                         if resolution == .nonexistent {
-                            Text("This local time does not exist. Choose another start time.")
-                                .foregroundStyle(DesignTokens.Colors.errorText)
+                            BeckonInlineError("This local time does not exist. Choose another start time.")
                         }
                         if let proposedStart, let duration {
                             Text("Proposed End").font(DesignTokens.Typography.fieldLabel)

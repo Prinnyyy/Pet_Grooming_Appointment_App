@@ -166,13 +166,13 @@ private struct GroomerSignOutRowLabel: View {
         HStack(spacing: DesignTokens.Spacing.md) {
             Image(systemName: "rectangle.portrait.and.arrow.right")
                 .font(DesignTokens.Typography.action)
-                .foregroundStyle(DesignTokens.Colors.errorText)
+                .foregroundStyle(DesignTokens.Colors.statusErrorText)
                 .frame(width: DesignTokens.Metrics.settingsIconSlot)
                 .accessibilityHidden(true)
 
             Text("Sign Out")
                 .font(DesignTokens.Typography.action)
-                .foregroundStyle(DesignTokens.Colors.errorText)
+                .foregroundStyle(DesignTokens.Colors.statusErrorText)
 
             Spacer(minLength: 0)
         }
@@ -213,19 +213,11 @@ struct ProfileBadges: View {
         if profile.ratingCount > 0 || profile.isVerified {
             badgeLayout {
                 if let average = profile.exactRatingAverage {
-                    BeckonStatusChip(
-                        "\(average.formatted(.number.precision(.fractionLength(2)))) from \(profile.ratingCount) review\(profile.ratingCount == 1 ? "" : "s")",
-                        systemImage: "star.fill",
-                        tone: .warning
-                    )
+                    BeckonStatusChip(.rating(average: average, count: profile.ratingCount))
                 }
 
                 if profile.isVerified {
-                    BeckonStatusChip(
-                        "Verified",
-                        systemImage: "checkmark.seal.fill",
-                        tone: .success
-                    )
+                    BeckonStatusChip(.verified)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)

@@ -12,6 +12,41 @@ extension BeckonStatusChip {
     }
 }
 
+extension BeckonStatusPresentation {
+    static let verified = Self(title: "Verified", systemImage: "checkmark.seal.fill", tone: .success)
+    static let draft = Self(title: "Draft", systemImage: "pencil", tone: .info)
+    static let petRequired = Self(title: "Add a pet before continuing", systemImage: "pawprint", tone: .warning)
+    static let unavailable = Self(title: "Unavailable", systemImage: "xmark.circle", tone: .neutral)
+
+    static func rating(average: Double, count: Int) -> Self {
+        Self(title: "\(average.formatted(.number.precision(.fractionLength(2)))) from \(count) review\(count == 1 ? "" : "s")",
+             systemImage: "star.fill", tone: .neutral)
+    }
+
+    static func acceptance(offer: GroomerOfferStatus, request: GroomingRequestStatus) -> Self {
+        if offer == .acceptedByCustomer { return offer.presentation }
+        if request == .booked { return request.presentation }
+        return .unavailable
+    }
+}
+
+extension GroomerOffer {
+    func statusPresentation(now: Date = Date()) -> BeckonStatusPresentation {
+        evaluatedDisplayStatus(now: now).presentation
+    }
+}
+
+extension GroomerOfferDisplayStatus {
+    var presentation: BeckonStatusPresentation {
+        switch self {
+        case .status(let status): status.presentation
+        case .checking: .init(title: title, systemImage: "clock", tone: .info)
+        case .newOfferRequired: .init(title: title, systemImage: "arrow.clockwise", tone: .warning)
+        case .timeUnavailable: .init(title: title, systemImage: "calendar.badge.exclamationmark", tone: .warning)
+        }
+    }
+}
+
 extension GroomingRequestStatus {
     var presentation: BeckonStatusPresentation {
         switch self {

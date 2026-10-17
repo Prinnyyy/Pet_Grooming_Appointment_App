@@ -23,7 +23,7 @@ struct GroomerPortfolioEditorView: View {
             .beckonPageInsets()
         }
         .accessibilityIdentifier("groomer.portfolio.edit")
-        .background(DesignTokens.Colors.background.ignoresSafeArea())
+        .background(DesignTokens.Colors.appBackground.ignoresSafeArea())
         .navigationTitle("Portfolio")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .tabBar)
@@ -88,7 +88,7 @@ private struct GroomerPortfolioGallerySection: View {
                     BeckonGroupedSurface {
                         HStack(spacing: DesignTokens.Spacing.md) {
                             ProgressView()
-                                .tint(DesignTokens.Colors.groomerAccent)
+                                .tint(DesignTokens.Colors.groomerDeep)
 
                             Text(uploadStatus)
                                 .font(DesignTokens.Typography.supporting)
@@ -129,7 +129,7 @@ private struct GroomerPortfolioGallerySection: View {
         } trailing: {
                 Text(presentation.photoSummary)
                     .font(DesignTokens.Typography.status)
-                    .foregroundStyle(DesignTokens.Colors.groomerOnAccent)
+                    .foregroundStyle(DesignTokens.Colors.groomerInk)
         }
     }
 
@@ -188,7 +188,7 @@ private struct GroomerPortfolioPhotoTile: View {
 
             Label("Edit fit notes", systemImage: "chevron.right")
                 .font(DesignTokens.Typography.caption.weight(.semibold))
-                .foregroundStyle(DesignTokens.Colors.groomerOnAccent)
+                .foregroundStyle(DesignTokens.Colors.groomerInk)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -242,7 +242,7 @@ private struct GroomerPortfolioPhotoDetailView: View {
             .beckonPageInsets()
         }
         .accessibilityIdentifier("groomer.portfolio.detail")
-        .background(DesignTokens.Colors.background.ignoresSafeArea())
+        .background(DesignTokens.Colors.appBackground.ignoresSafeArea())
         .navigationTitle("Portfolio Photo")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .tabBar)
@@ -381,14 +381,14 @@ struct GroomerPortfolioArtworkPresentation: Equatable {
 
     var foregroundColor: Color {
         isUnavailable
-            ? DesignTokens.Colors.warningText
-            : DesignTokens.Colors.groomerOnAccent
+            ? DesignTokens.Colors.statusWarningText
+            : DesignTokens.Colors.groomerInk
     }
 
     var backgroundColor: Color {
         isUnavailable
             ? DesignTokens.Colors.surface
-            : DesignTokens.Colors.groomerAccent.opacity(0.08)
+            : DesignTokens.Colors.groomerTint
     }
 }
 
@@ -415,7 +415,7 @@ private struct GroomerPortfolioFitNotesEditorSection: View {
                     if store.hasLoadedPortfolioTags {
                     Text(presentation.selectionSummary)
                         .font(DesignTokens.Typography.caption.weight(.semibold))
-                        .foregroundStyle(DesignTokens.Colors.groomerOnAccent)
+                        .foregroundStyle(DesignTokens.Colors.groomerInk)
 
                     ForEach(Self.visibleGroups) { group in
                         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
@@ -483,7 +483,7 @@ private struct GroomerPortfolioFitTagChip: View {
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(
                         isSelected
-                            ? DesignTokens.Colors.groomerOnAccent
+                            ? DesignTokens.Colors.groomerInk
                             : DesignTokens.Colors.textTertiary
                     )
                     .accessibilityHidden(true)
@@ -493,8 +493,8 @@ private struct GroomerPortfolioFitTagChip: View {
             .frame(minHeight: 44)
             .background(
                 isSelected
-                    ? DesignTokens.Colors.groomerAccent.opacity(0.14)
-                    : DesignTokens.Colors.background
+                    ? DesignTokens.Colors.groomerTint
+                    : DesignTokens.Colors.appBackground
             )
             .clipShape(
                 RoundedRectangle(
@@ -509,7 +509,7 @@ private struct GroomerPortfolioFitTagChip: View {
                 )
                 .stroke(
                     isSelected
-                        ? DesignTokens.Colors.groomerAccent
+                        ? DesignTokens.Colors.groomerDeep
                         : DesignTokens.Colors.borderSoft,
                     lineWidth: 1
                 )
@@ -547,7 +547,7 @@ private struct GroomerPortfolioFitNotesSaveBar: View {
                     if presentation.saveActionTitle == "Saving..." {
                         HStack(spacing: DesignTokens.Spacing.sm) {
                             ProgressView()
-                                .tint(DesignTokens.Colors.surface)
+                                .tint(DesignTokens.Colors.groomerInk)
                             Text(presentation.saveActionTitle)
                         }
                     } else {
@@ -561,6 +561,6 @@ private struct GroomerPortfolioFitNotesSaveBar: View {
             .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
             .padding(.vertical, DesignTokens.Spacing.md)
         }
-        .background(DesignTokens.Colors.background)
+        .background(DesignTokens.Colors.appBackground)
     }
 }

@@ -40,8 +40,8 @@ struct CustomerGroomerListView: View {
                     }
                 }.accessibilityIdentifier("discovery.load-more")
             }
-            if let error = marketplace.distribution.error { Text(error.message).foregroundStyle(DesignTokens.Colors.errorText) }
-            if let error = marketplace.favorites.error { Text(error.message).foregroundStyle(DesignTokens.Colors.errorText) }
+            if let error = marketplace.distribution.error { BeckonInlineError(error.message) }
+            if let error = marketplace.favorites.error { BeckonInlineError(error.message) }
         }
         .listStyle(.plain)
         .navigationTitle("All Eligible Groomers")

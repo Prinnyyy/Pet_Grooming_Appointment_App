@@ -51,7 +51,7 @@ struct CustomerRequestProgressView: View {
             } else {
                 ProgressView("Checking request status...")
             }
-            if let error = store.error { Text(error.message).font(DesignTokens.Typography.caption).foregroundStyle(DesignTokens.Colors.errorText) }
+            if let error = store.error { BeckonInlineError(error.message) }
             if store.uncertainRequestIDs.contains(requestID) {
                 Button("Retry Update", systemImage: "arrow.clockwise") { Task { _ = await store.retry(requestID: requestID) } }
             }

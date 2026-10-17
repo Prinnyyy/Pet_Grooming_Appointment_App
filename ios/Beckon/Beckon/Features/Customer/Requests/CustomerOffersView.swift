@@ -7,7 +7,7 @@ struct CustomerRequestOffersView: View {
     var body: some View {
         if let request = store.request(withID: requestID) {
             ZStack {
-                DesignTokens.Colors.background
+                DesignTokens.Colors.appBackground
                     .ignoresSafeArea()
 
                 ScrollView {
@@ -51,7 +51,7 @@ struct CustomerRequestOffersView: View {
             }
         } else {
             ZStack {
-                DesignTokens.Colors.background
+                DesignTokens.Colors.appBackground
                     .ignoresSafeArea()
 
                 BeckonEmptyState(

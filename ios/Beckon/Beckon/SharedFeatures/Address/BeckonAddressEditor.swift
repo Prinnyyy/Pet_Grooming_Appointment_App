@@ -85,9 +85,7 @@ struct BeckonAddressEditor: View {
             .beckonKeyboardFocusTarget(BeckonAddressEditorSelectors.line2Container)
 
             if let error = state.inlineError {
-                Text(error)
-                    .font(DesignTokens.Typography.caption)
-                    .foregroundStyle(DesignTokens.Colors.error)
+                BeckonInlineError(error)
                     .accessibilityLabel("Address error: \(error)")
             }
 
@@ -264,9 +262,7 @@ struct BeckonAddressEditor: View {
                 Button("Verify Address") {
                     Task { _ = await state.prepareConfirmation() }
                 }
-                .font(DesignTokens.Typography.caption.weight(.semibold))
-                .foregroundStyle(DesignTokens.Colors.customerAccent)
-                .buttonStyle(.plain)
+                .buttonStyle(BeckonTertiaryButtonStyle(accent: .customer))
                 .accessibilityIdentifier(BeckonAddressEditorSelectors.verify)
             }
         }
@@ -289,8 +285,8 @@ struct BeckonAddressEditor: View {
 
     private var statusColor: Color {
         switch state.status {
-        case .confirmed: DesignTokens.Colors.success
-        case .needsReview: DesignTokens.Colors.warning
+        case .confirmed: DesignTokens.Colors.statusSuccessText
+        case .needsReview: DesignTokens.Colors.statusWarningText
         default: DesignTokens.Colors.textSecondary
         }
     }
@@ -383,7 +379,7 @@ private struct BeckonAddressReviewSheet: View {
                 .padding(DesignTokens.Spacing.screenHorizontal)
             }
             .scrollIndicators(.hidden)
-            .background(DesignTokens.Colors.background)
+            .background(DesignTokens.Colors.appBackground)
             .navigationTitle("Confirm Service Address")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

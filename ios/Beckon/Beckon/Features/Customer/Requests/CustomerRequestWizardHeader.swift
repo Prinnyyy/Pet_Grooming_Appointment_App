@@ -10,8 +10,8 @@ struct CustomerRequestWizardHeader: View {
                 .foregroundStyle(DesignTokens.Colors.textTertiary)
             GeometryReader { proxy in
                 ZStack(alignment: .leading) {
-                    Capsule().fill(DesignTokens.Colors.border.opacity(0.8))
-                    Capsule().fill(DesignTokens.Colors.customerAccent)
+                    Capsule().fill(DesignTokens.Colors.borderSoft)
+                    Capsule().fill(DesignTokens.Colors.customerDeep)
                         .frame(width: proxy.size.width * currentStep.progress)
                 }
             }
@@ -19,7 +19,7 @@ struct CustomerRequestWizardHeader: View {
             .accessibilityHidden(true)
             Text("Step \(currentStep.rawValue + 1) of \(CustomerRequestWizardStep.allCases.count): \(currentStep.title)")
                 .font(DesignTokens.Typography.supporting)
-                .foregroundStyle(DesignTokens.Colors.customerAccentStrong)
+                .foregroundStyle(DesignTokens.Colors.customerDeep)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, DesignTokens.Spacing.xs)
         }
@@ -28,7 +28,7 @@ struct CustomerRequestWizardHeader: View {
         .padding(.vertical, DesignTokens.Spacing.md)
         .frame(maxWidth: .infinity, alignment: .leading)
         .fixedSize(horizontal: false, vertical: true)
-        .background(DesignTokens.Colors.background)
+        .background(DesignTokens.Colors.appBackground)
         .accessibilityElement(children: .combine)
         .accessibilityIdentifier("customer.requests.wizard.header")
     }

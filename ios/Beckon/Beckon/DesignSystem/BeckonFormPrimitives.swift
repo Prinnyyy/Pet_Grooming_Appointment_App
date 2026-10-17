@@ -484,7 +484,7 @@ private struct BeckonKeyboardDoneAccessoryControl: View {
         Button(action: dismissKeyboard) {
             Image(systemName: BeckonKeyboardDoneAccessoryPolicy.symbolName)
                 .font(.system(size: 20, weight: .semibold))
-                .foregroundStyle(DesignTokens.Colors.customerAccentStrong)
+                .foregroundStyle(DesignTokens.Colors.customerDeep)
                 .frame(
                     width: BeckonKeyboardDoneAccessoryPolicy.controlDiameter,
                     height: BeckonKeyboardDoneAccessoryPolicy.controlDiameter
@@ -747,7 +747,7 @@ private struct BeckonLimitedUITextField: UIViewRepresentable {
         textField.autocapitalizationType = autocapitalizationType
         textField.autocorrectionType = .default
         textField.tintColor = UIColor(
-            isInvalid ? DesignTokens.Colors.error : DesignTokens.Colors.customerAccentStrong
+            isInvalid ? DesignTokens.Colors.statusErrorText : DesignTokens.Colors.customerDeep
         )
     }
 
@@ -843,12 +843,7 @@ struct BeckonFieldGroup<Content: View>: View {
             content
 
             if let errorText {
-                Label(errorText, systemImage: "exclamationmark.triangle")
-                    .font(DesignTokens.Typography.status)
-                    .foregroundStyle(DesignTokens.Colors.statusErrorText)
-                    .padding(DesignTokens.Spacing.sm)
-                    .background(DesignTokens.Colors.statusErrorFill)
-                    .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input))
+                BeckonInlineError(errorText)
             } else if let supportingText {
                 Text(supportingText)
                     .font(DesignTokens.Typography.supporting)

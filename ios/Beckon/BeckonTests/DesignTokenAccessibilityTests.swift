@@ -116,18 +116,6 @@ struct DesignTokenAccessibilityTests {
         for index in 0..<3 { #expect(abs(sRGB[index] - current[index]) < 2 / 255.0) }
     }
 
-    @Test
-    func transitionalValuesRemainSafeUntilConsumersMigrate() {
-        #expect(DesignTokens.ColorHex.customerPrimary == DesignTokens.ColorHex.customerFill)
-        #expect(DesignTokens.ColorHex.customerPrimaryDark == DesignTokens.ColorHex.customerDeep)
-        #expect(DesignTokens.ColorHex.customerOnAccent == DesignTokens.ColorHex.customerInk)
-        #expect(DesignTokens.ColorHex.groomerOnAccent == DesignTokens.ColorHex.groomerInk)
-        #expect(DesignTokens.ColorHex.groomerAccentDark == 0xF58575)
-        #expect(DesignTokens.ColorHex.success == 0x6CBF84)
-        #expect(DesignTokens.ColorHex.warning == 0xF2B84B)
-        #expect(DesignTokens.ColorHex.error == 0xE56B6F)
-        #expect(DesignTokens.ColorHex.notificationUnread == 0xFF3B30)
-    }
 
     private static func contrastRatio(_ firstHex: UInt, _ secondHex: UInt) -> Double {
         let first = relativeLuminance(firstHex)

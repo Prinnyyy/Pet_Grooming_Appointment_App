@@ -83,11 +83,7 @@ struct CustomerRequestsRootHeader: View {
     @ViewBuilder
     private var requestCountChip: some View {
         if cardCount > 0 {
-            BeckonStatusChip(
-                "\(cardCount)",
-                systemImage: cardCount == 1 ? "doc.text.fill" : "rectangle.stack.fill",
-                tone: .info
-            )
+            BeckonCountBadge(count: cardCount, accent: .customer)
         }
     }
 }
@@ -497,9 +493,7 @@ struct CustomerRequestProgressCardPresentation {
 
     let headline: String
     let subtitle: String
-    let chipTitle: String
-    let chipSystemImage: String
-    let chipTone: BeckonStatusChip.Tone
+    let statusPresentation: BeckonStatusPresentation
     let infoLines: [InfoLine]
     let isConfirmedHandoff: Bool
 
@@ -512,9 +506,7 @@ struct CustomerRequestProgressCardPresentation {
         if let handoff {
             headline = "Booking\nConfirmed"
             subtitle = request.title
-            chipTitle = "Booking"
-            chipSystemImage = "checkmark.seal.fill"
-            chipTone = .success
+            statusPresentation = handoff.booking.status.presentation
             infoLines = [
                 InfoLine(
                     systemImage: "calendar",
@@ -531,9 +523,7 @@ struct CustomerRequestProgressCardPresentation {
         } else {
             headline = request.progressCardHeadline
             subtitle = request.title
-            chipTitle = request.dashboardChipTitle
-            chipSystemImage = request.dashboardChipSystemImage
-            chipTone = request.dashboardChipTone
+            statusPresentation = request.status.presentation
             infoLines = [
                 InfoLine(
                     systemImage: "calendar",
@@ -715,11 +705,7 @@ private struct CustomerRequestBriefHeader: View {
     }
 
     private var statusChip: some View {
-        BeckonStatusChip(
-            presentation.chipTitle,
-            systemImage: presentation.chipSystemImage,
-            tone: presentation.chipTone
-        )
+        BeckonStatusChip(presentation.statusPresentation)
     }
 }
 
@@ -731,7 +717,7 @@ private struct CustomerRequestBriefInfoLine: View {
         HStack(alignment: .top, spacing: DesignTokens.Spacing.sm) {
             Image(systemName: systemImage)
                 .font(DesignTokens.Typography.caption)
-                .foregroundStyle(DesignTokens.Colors.customerAccentStrong)
+                .foregroundStyle(DesignTokens.Colors.customerDeep)
                 .frame(width: 18)
                 .accessibilityHidden(true)
 
@@ -968,22 +954,22 @@ private extension CustomerRequestTimelineStep {
     var markerColor: Color {
         switch state {
         case .complete:
-            DesignTokens.Colors.success
+            DesignTokens.Colors.statusSuccessText
         case .active:
-            DesignTokens.Colors.customerAccent
+            DesignTokens.Colors.customerDeep
         case .upcoming:
             DesignTokens.Colors.borderSoft
         case .stopped:
-            DesignTokens.Colors.error
+            DesignTokens.Colors.statusErrorText
         }
     }
 
     var connectorColor: Color {
         switch state {
         case .complete:
-            DesignTokens.Colors.success.opacity(0.9)
+            DesignTokens.Colors.statusSuccessFill
         case .active:
-            DesignTokens.Colors.customerAccent.opacity(0.55)
+            DesignTokens.Colors.customerTint
         case .upcoming:
             DesignTokens.Colors.borderSoft
         case .stopped:
@@ -998,7 +984,7 @@ private extension CustomerRequestTimelineStep {
         case .upcoming:
             DesignTokens.Colors.textTertiary
         case .stopped:
-            DesignTokens.Colors.error
+            DesignTokens.Colors.statusErrorText
         }
     }
 
@@ -1116,39 +1102,39 @@ private struct CustomerRequestActionLabel: View {
         var foreground: Color {
             switch self {
             case .primary:
-                DesignTokens.Colors.customerAccentStrong
+                DesignTokens.Colors.customerDeep
             case .neutral:
                 DesignTokens.Colors.textPrimary
             case .offersAvailable:
-                DesignTokens.Colors.textPrimary
+                DesignTokens.Colors.customerInk
             case .destructiveFilled:
-                DesignTokens.Colors.surface
+                DesignTokens.Colors.statusErrorText
             }
         }
 
         var border: Color {
             switch self {
             case .primary:
-                DesignTokens.Colors.customerAccent.opacity(0.46)
+                DesignTokens.Colors.customerTint
             case .neutral:
                 DesignTokens.Colors.border
             case .offersAvailable:
-                DesignTokens.Colors.customerAccentStrong
+                DesignTokens.Colors.customerDeep
             case .destructiveFilled:
-                DesignTokens.Colors.error
+                DesignTokens.Colors.statusErrorBorder
             }
         }
 
         var background: Color {
             switch self {
             case .primary:
-                DesignTokens.Colors.customerAccent.opacity(0.15)
+                DesignTokens.Colors.customerTint
             case .neutral:
                 DesignTokens.Colors.surface
             case .offersAvailable:
-                DesignTokens.Colors.customerAccent
+                DesignTokens.Colors.customerFill
             case .destructiveFilled:
-                DesignTokens.Colors.error
+                DesignTokens.Colors.surface
             }
         }
     }
@@ -1258,11 +1244,7 @@ private struct CustomerCancelledRequestRow: View {
     }
 
     private var cancelledChip: some View {
-        BeckonStatusChip(
-            request.status.title,
-            systemImage: request.status == .expired ? "clock.badge.exclamationmark" : "xmark.circle.fill",
-            tone: .neutral
-        )
+        BeckonStatusChip(request.status.presentation)
     }
 
     private var timeSummary: String {
@@ -1305,65 +1287,6 @@ private extension CustomerGroomingRequest {
     }
 
 
-    var dashboardChipTitle: String {
-        switch status {
-        case .open:
-            "Matching"
-        case .hasOffers:
-            "Offers Ready"
-        case .booked:
-            "Booked"
-        case .cancelled:
-            "Cancelled"
-        case .expired:
-            "Expired"
-        case .unknown:
-            "Unknown"
-        }
-    }
 
-    var dashboardChipSystemImage: String {
-        switch status {
-        case .open:
-            "circle.fill"
-        case .hasOffers:
-            "tag.fill"
-        case .booked:
-            "checkmark.circle.fill"
-        case .cancelled:
-            "xmark.circle.fill"
-        case .expired:
-            "hourglass"
-        case .unknown:
-            "questionmark.circle"
-        }
-    }
 
-    var dashboardChipTone: BeckonStatusChip.Tone {
-        switch status {
-        case .open:
-            .info
-        case .hasOffers:
-            .warning
-        case .booked:
-            .success
-        case .cancelled, .expired, .unknown:
-            .neutral
-        }
-    }
-}
-
-private extension GroomingRequestPetSnapshot {
-    var displayEmoji: String {
-        switch species.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
-        case let value where value.contains("cat"):
-            "🐱"
-        case let value where value.contains("bird"):
-            "🐦"
-        case let value where value.contains("rabbit") || value.contains("bunny"):
-            "🐰"
-        default:
-            "🐶"
-        }
-    }
 }
