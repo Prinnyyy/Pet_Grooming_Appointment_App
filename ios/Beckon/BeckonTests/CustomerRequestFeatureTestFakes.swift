@@ -61,13 +61,15 @@ final class CustomerRequestPetRepositoryFake: CustomerPetRepository {
 
     func createPet(
         customerID: UUID,
+        operationID: UUID,
         draft: CustomerPetDraft
-    ) async throws -> CustomerPet {
+    ) async throws -> CustomerPetSaveResult {
         throw CustomerPetRepositoryError.unavailable
     }
 
     func updatePet(
-        pet: CustomerPet,
+        petID: UUID,
+        expectedRevision: UUID,
         draft: CustomerPetDraft
     ) async throws -> CustomerPet {
         throw CustomerPetRepositoryError.unavailable
@@ -174,6 +176,7 @@ final class CustomerRequestRepositoryFake: CustomerRequestRepository {
     private(set) var requestsCallCount = 0
     var onRequestPageRead: (() -> Void)?
     var onCreate: (() -> Void)?
+    var onUploadPhoto: (() -> Void)?
     private(set) var offersCallCount = 0
     private(set) var createCallCount = 0
     private(set) var uploadRequestPhotoCallCount = 0
@@ -332,6 +335,7 @@ final class CustomerRequestRepositoryFake: CustomerRequestRepository {
         caption: String?
     ) async throws -> GroomingRequestPhoto {
         uploadRequestPhotoCallCount += 1
+        onUploadPhoto?()
         lastUploadCustomerID = customerID
         lastUploadRequestID = requestID
         lastUploadData = data

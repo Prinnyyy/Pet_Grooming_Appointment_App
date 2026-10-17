@@ -32,6 +32,19 @@ final class CustomerPetsStore {
     private let repository: any CustomerPetRepository
     private let photoCache: any CustomerPetPhotoCaching
     private let debugRecorder: AppDebugEventRecorder?
+    private let creationStorage: PendingPetCreationStorage
+    private let sessionIsCurrent: @MainActor () -> Bool
+    private var loadID = UUID()
+    private var mutationRevision = 0
+    private var editingRevision: UUID?
+    private(set) var editNeedsReconciliation = false
+#if DEBUG && targetEnvironment(simulator)
+    private var droppedCreationReceipt = false
+#endif
+
+    var hasPendingCreation: Bool { creationStorage.pending != nil }
+    var hasCreationRecoveryError: Bool { creationStorage.recoveryError != nil }
+    var formIsFrozen: Bool { isSaving || isUploading || (editingPetID == nil && hasPendingCreation) }
 
     private(set) var pets: [CustomerPet] = []
     private(set) var photosByPetID: [UUID: [CustomerPetPhoto]] = [:]
@@ -70,7 +83,7 @@ final class CustomerPetsStore {
     }
 
     var formActionTitle: String {
-        editingPetID == nil ? "Create" : "Save"
+        editingPetID == nil ? (hasPendingCreation ? "Confirm Save" : "Create") : "Save"
     }
 
     var hasFormChanges: Bool {
@@ -79,7 +92,12 @@ final class CustomerPetsStore {
     }
 
     var canSaveForm: Bool {
-        hasFormChanges && formIsValid && !isSaving
+        guard !isSaving, !isUploading, !editNeedsReconciliation, sessionIsCurrent() else { return false }
+        if editingPetID == nil {
+            if hasCreationRecoveryError { return false }
+            if hasPendingCreation { return true }
+        }
+        return hasFormChanges && formIsValid
     }
 
     var formAvatarPhotoData: Data? {
@@ -103,15 +121,24 @@ final class CustomerPetsStore {
         customerID: UUID,
         repository: any CustomerPetRepository,
         photoCache: any CustomerPetPhotoCaching = FileCustomerPetPhotoCache.shared,
-        debugRecorder: AppDebugEventRecorder? = nil
+        debugRecorder: AppDebugEventRecorder? = nil,
+        pendingCreationDirectory: URL? = nil,
+        sessionIsCurrent: @escaping @MainActor () -> Bool = { true }
     ) {
         self.customerID = customerID
         self.repository = repository
         self.photoCache = photoCache
         self.debugRecorder = debugRecorder
+        self.creationStorage = PendingPetCreationStorage(customerID: customerID, directory: pendingCreationDirectory)
+        self.sessionIsCurrent = sessionIsCurrent
     }
 
     func load() async {
+        guard !isSaving, !isUploading, sessionIsCurrent(), !Task.isCancelled else { return }
+        let operation = UUID()
+        loadID = operation
+        let revision = mutationRevision
+        defer { if loadID == operation { isLoading = false } }
         let startedAt = Date()
         recordStoreStart("load")
         isLoading = true
@@ -119,16 +146,22 @@ final class CustomerPetsStore {
 
         do {
             let loadedPets = try await repository.pets(customerID: customerID)
+            guard isCurrentLoad(operation, revision: revision) else { return }
             cachedAvatarDataByPetID = cachedAvatarDataMap(for: loadedPets)
             pets = loadedPets
 
             let photos = try await repository.photos(customerID: customerID)
+            guard isCurrentLoad(operation, revision: revision) else { return }
             photosByPetID = Dictionary(grouping: photos, by: \.petID)
             photoDataByPhotoID = cachedPhotoDataMap(for: photos)
             clearStaleCachedAvatarData()
             isLoading = false
 
             let downloadedPhotoData = await photoDataMap(for: photos)
+            guard isCurrentLoad(operation, revision: revision) else { return }
+            for photo in photos {
+                if let data = downloadedPhotoData[photo.id] { savePhotoCache(photo: photo, data: data) }
+            }
             photoDataByPhotoID.merge(downloadedPhotoData) { _, downloaded in
                 downloaded
             }
@@ -142,9 +175,11 @@ final class CustomerPetsStore {
                 ]
             )
         } catch CustomerPetRepositoryError.cancelled {
+            guard isCurrentLoad(operation, revision: revision) else { return }
             isLoading = false
             recordStoreCancelled("load", startedAt: startedAt)
         } catch let error as CustomerPetRepositoryError {
+            guard isCurrentLoad(operation, revision: revision) else { return }
             isLoading = false
             errorMessage = message(for: error, action: "load")
             recordStoreFailure(
@@ -154,9 +189,11 @@ final class CustomerPetsStore {
                 startedAt: startedAt
             )
         } catch where AppDebugErrorClassifier.isCancellation(error) {
+            guard isCurrentLoad(operation, revision: revision) else { return }
             isLoading = false
             recordStoreCancelled("load", startedAt: startedAt)
         } catch {
+            guard isCurrentLoad(operation, revision: revision) else { return }
             isLoading = false
             errorMessage = message(for: .unavailable, action: "load")
             recordStoreFailure(
@@ -166,6 +203,16 @@ final class CustomerPetsStore {
                 startedAt: startedAt
             )
         }
+    }
+
+    private func isCurrentLoad(_ operation: UUID, revision: Int) -> Bool {
+        sessionIsCurrent() && !Task.isCancelled && operation == loadID && revision == mutationRevision
+    }
+
+    private func beginMutation() {
+        mutationRevision += 1
+        loadID = UUID()
+        isLoading = false
     }
 
     func photos(for pet: CustomerPet) -> [CustomerPetPhoto] {
@@ -196,16 +243,25 @@ final class CustomerPetsStore {
     }
 
     func startCreate() {
+        guard !isSaving, !isUploading, sessionIsCurrent() else { return }
         editingPetID = nil
+        editingRevision = nil
+        editNeedsReconciliation = false
         resetForm()
+        if let pending = creationStorage.pending { applyDraft(pending.draft) }
         captureFormBaseline()
         errorMessage = nil
+        if hasPendingCreation { errorMessage = "Confirm the previous save before creating another pet." }
+        if hasCreationRecoveryError { errorMessage = "The pending pet record could not be opened. It has been kept; a new creation cannot replace it." }
         noticeMessage = nil
         isShowingPetForm = true
     }
 
     func startEdit(_ pet: CustomerPet) {
+        guard !isSaving, !isUploading, sessionIsCurrent() else { return }
         editingPetID = pet.id
+        editingRevision = pet.revision
+        editNeedsReconciliation = pet.revision == nil
         formName = pet.name
         formSpecies = CustomerPetSpecies(storedValue: pet.species) ?? .dog
         let breed = pet.breed.flatMap(CustomerPetBreed.init(storedValue:)) ?? .unspecified
@@ -227,6 +283,7 @@ final class CustomerPetsStore {
         pendingFormPhotos = []
         captureFormBaseline()
         errorMessage = nil
+        if editNeedsReconciliation { errorMessage = "Reload this pet before saving." }
         noticeMessage = nil
         isShowingPetForm = true
     }
@@ -276,7 +333,7 @@ final class CustomerPetsStore {
     }
 
     func savePet() async {
-        guard !isSaving else { return }
+        guard !isSaving, !isUploading, !editNeedsReconciliation, sessionIsCurrent(), !Task.isCancelled else { return }
 
         let startedAt = Date()
         recordStoreStart("savePet")
@@ -285,7 +342,7 @@ final class CustomerPetsStore {
 
         let draft: CustomerPetDraft
         do {
-            draft = try makeDraft()
+            draft = try (editingPetID == nil ? creationStorage.pending?.draft : nil) ?? makeDraft()
         } catch let error as CustomerPetFormError {
             errorMessage = error.message
             recordStoreFailure(
@@ -309,31 +366,60 @@ final class CustomerPetsStore {
         }
 
         isSaving = true
+        beginMutation()
         defer { isSaving = false }
 
         do {
             let savedPet: CustomerPet
             let action: String
-            if let editingPetID,
-               let currentPet = pets.first(where: { $0.id == editingPetID }) {
+            if let editingPetID {
+                guard pets.contains(where: { $0.id == editingPetID }) else { throw CustomerPetRepositoryError.petNotFound }
+                guard let editingRevision else { throw CustomerPetRepositoryError.clientUpdateRequired }
                 let pet = try await repository.updatePet(
-                    pet: currentPet,
+                    petID: editingPetID,
+                    expectedRevision: editingRevision,
                     draft: draft
                 )
+                guard sessionIsCurrent(), !Task.isCancelled else { throw CustomerPetRepositoryError.cancelled }
                 replace(pet)
                 savedPet = pet
                 action = "updated"
             } else {
-                let pet = try await repository.createPet(
+                let intent = creationStorage.pending ?? PendingPetCreation(customerID: customerID, draft: draft)
+                try creationStorage.begin(intent)
+                let result = try await repository.createPet(
                     customerID: customerID,
+                    operationID: intent.operationID,
                     draft: draft
                 )
-                pets.insert(pet, at: 0)
+#if DEBUG && targetEnvironment(simulator)
+                if !droppedCreationReceipt,
+                   ProcessInfo.processInfo.arguments.contains("--beckon-testops-pet-drop-receipt"),
+                   ProcessInfo.processInfo.arguments.contains("--beckon-testops-run-id") {
+                    droppedCreationReceipt = true
+                    throw CustomerPetRepositoryError.networkUnavailable
+                }
+#endif
+                guard sessionIsCurrent(), !Task.isCancelled else { throw CustomerPetRepositoryError.cancelled }
+                if result.state == .unavailable {
+                    pets.removeAll { $0.id == result.petID }
+                    try creationStorage.finish(operationID: intent.operationID)
+                    noticeMessage = "The previous creation was confirmed, but that pet has since been removed."
+                    isShowingPetForm = false
+                    resetForm()
+                    return
+                }
+                guard let pet = result.pet, pet.id == result.petID, pet.customerID == customerID else {
+                    throw CustomerPetRepositoryError.unavailable
+                }
+                replace(pet)
+                try creationStorage.finish(operationID: intent.operationID)
                 savedPet = pet
-                action = "added"
+                action = result.replayed ? "confirmed" : "added"
             }
 
             let uploadedPhotoCount = await uploadPendingFormPhotos(for: savedPet)
+            guard sessionIsCurrent(), !Task.isCancelled else { return }
             if uploadedPhotoCount > 0 {
                 noticeMessage = "\(savedPet.name) was \(action) with a new avatar."
             } else {
@@ -352,9 +438,23 @@ final class CustomerPetsStore {
                 ]
             )
         } catch CustomerPetRepositoryError.cancelled {
+            guard sessionIsCurrent() else { return }
+            markUnresolvedSave()
             recordStoreCancelled("savePet", startedAt: startedAt)
         } catch let error as CustomerPetRepositoryError {
+            guard sessionIsCurrent() else { return }
             errorMessage = message(for: error, action: "save")
+            switch error {
+            case .revisionConflict, .petNotFound, .clientUpdateRequired:
+                if editingPetID != nil { editNeedsReconciliation = true }
+            case .networkUnavailable, .cancelled, .unavailable: markUnresolvedSave()
+            case .invalidInput:
+                if let pending = creationStorage.pending, editingPetID == nil {
+                    do { try creationStorage.finish(operationID: pending.operationID) }
+                    catch { markUnresolvedSave() }
+                }
+            default: break
+            }
             recordStoreFailure(
                 "savePet",
                 error: error,
@@ -362,9 +462,13 @@ final class CustomerPetsStore {
                 startedAt: startedAt
             )
         } catch where AppDebugErrorClassifier.isCancellation(error) {
+            guard sessionIsCurrent() else { return }
+            markUnresolvedSave()
             recordStoreCancelled("savePet", startedAt: startedAt)
         } catch {
+            guard sessionIsCurrent() else { return }
             errorMessage = message(for: .unavailable, action: "save")
+            markUnresolvedSave()
             recordStoreFailure(
                 "savePet",
                 error: error,
@@ -374,8 +478,51 @@ final class CustomerPetsStore {
         }
     }
 
+    private func markUnresolvedSave() {
+        if editingPetID != nil {
+            editNeedsReconciliation = true
+            errorMessage = "We could not confirm the save. Your edits are still here. Reload the saved pet before saving again."
+        } else if hasPendingCreation {
+            errorMessage = "We could not confirm the save. Confirm Save will check the same creation, not create another pet."
+        }
+    }
+
+    func reloadEditedPet() async {
+        guard let id = editingPetID, !isSaving, !isUploading, sessionIsCurrent(), !Task.isCancelled else { return }
+        isSaving = true
+        beginMutation()
+        defer { isSaving = false }
+        do {
+            let pet = try await repository.pet(customerID: customerID, petID: id)
+            guard sessionIsCurrent(), !Task.isCancelled else { return }
+            guard let pet else { throw CustomerPetRepositoryError.petNotFound }
+            replace(pet)
+            isSaving = false
+            startEdit(pet)
+        } catch {
+            guard sessionIsCurrent(), !Task.isCancelled else { return }
+            errorMessage = "Could not reload the saved pet. Your edits are still here."
+        }
+    }
+
+    private func applyDraft(_ draft: CustomerPetDraft) {
+        formName = draft.name
+        formSpecies = CustomerPetSpecies(storedValue: draft.species) ?? .dog
+        formBreed = draft.breed.flatMap(CustomerPetBreed.init(storedValue:)) ?? .unspecified
+        formCoatType = draft.coatType.flatMap(CustomerPetCoatType.init(storedValue:)) ?? .notSure
+        formCoatTypeConfirmed = draft.coatTypeConfirmed
+        formMattingConfirmed = draft.mattingConfirmed
+        formWeightLbs = draft.weightLbs ?? 20
+        formWeightIsKnown = draft.weightLbs != nil
+        formBirthdayDate = draft.birthday.flatMap(Self.date)
+        formTemperament = draft.temperament.flatMap(CustomerPetTemperament.init(storedValue:)) ?? .notSure
+        formMedicalNotes = draft.medicalNotes ?? ""
+        formGroomingNotes = draft.groomingNotes ?? ""
+    }
+
     func softDelete(_ pet: CustomerPet) async {
-        guard !isSaving else { return }
+        guard !isSaving, !isUploading, sessionIsCurrent(), !Task.isCancelled else { return }
+        beginMutation()
 
         let startedAt = Date()
         recordStoreStart("softDelete", metadata: ["petID": pet.id.uuidString])
@@ -386,6 +533,7 @@ final class CustomerPetsStore {
 
         do {
             try await repository.softDeletePet(pet)
+            guard sessionIsCurrent(), !Task.isCancelled else { return }
             pets.removeAll { $0.id == pet.id }
             for photo in photosByPetID[pet.id, default: []] {
                 photoDataByPhotoID[photo.id] = nil
@@ -398,6 +546,7 @@ final class CustomerPetsStore {
         } catch CustomerPetRepositoryError.cancelled {
             recordStoreCancelled("softDelete", startedAt: startedAt)
         } catch let error as CustomerPetRepositoryError {
+            guard sessionIsCurrent(), !Task.isCancelled else { return }
             errorMessage = message(for: error, action: "delete")
             recordStoreFailure(
                 "softDelete",
@@ -408,6 +557,7 @@ final class CustomerPetsStore {
         } catch where AppDebugErrorClassifier.isCancellation(error) {
             recordStoreCancelled("softDelete", startedAt: startedAt)
         } catch {
+            guard sessionIsCurrent(), !Task.isCancelled else { return }
             errorMessage = message(for: .unavailable, action: "delete")
             recordStoreFailure(
                 "softDelete",
@@ -423,7 +573,8 @@ final class CustomerPetsStore {
         data: Data,
         contentType: CustomerPetPhotoContentType
     ) async {
-        guard !isUploading else { return }
+        guard !isUploading, !isSaving, sessionIsCurrent(), !Task.isCancelled else { return }
+        beginMutation()
 
         guard data.count <= Self.maximumPhotoBytes else {
             errorMessage = "Choose a photo smaller than 10 MB."
@@ -443,11 +594,13 @@ final class CustomerPetsStore {
                 data: data,
                 contentType: contentType
             )
+            guard sessionIsCurrent(), !Task.isCancelled else { return }
             noticeMessage = "\(pet.name)'s avatar was updated."
             recordStoreSuccess("uploadPhoto", startedAt: startedAt)
         } catch CustomerPetRepositoryError.cancelled {
             recordStoreCancelled("uploadPhoto", startedAt: startedAt)
         } catch let error as CustomerPetRepositoryError {
+            guard sessionIsCurrent(), !Task.isCancelled else { return }
             errorMessage = message(for: error, action: "upload")
             recordStoreFailure(
                 "uploadPhoto",
@@ -458,6 +611,7 @@ final class CustomerPetsStore {
         } catch where AppDebugErrorClassifier.isCancellation(error) {
             recordStoreCancelled("uploadPhoto", startedAt: startedAt)
         } catch {
+            guard sessionIsCurrent(), !Task.isCancelled else { return }
             errorMessage = message(for: .unavailable, action: "upload")
             recordStoreFailure(
                 "uploadPhoto",
@@ -469,7 +623,8 @@ final class CustomerPetsStore {
     }
 
     func deletePhoto(_ photo: CustomerPetPhoto) async {
-        guard !isUploading else { return }
+        guard !isUploading, !isSaving, sessionIsCurrent(), !Task.isCancelled else { return }
+        beginMutation()
 
         let startedAt = Date()
         recordStoreStart("deletePhoto", metadata: ["photoID": photo.id.uuidString])
@@ -480,6 +635,7 @@ final class CustomerPetsStore {
 
         do {
             try await repository.deletePhoto(photo)
+            guard sessionIsCurrent(), !Task.isCancelled else { return }
             photosByPetID[photo.petID]?.removeAll { $0.id == photo.id }
             photoDataByPhotoID[photo.id] = nil
             photoCache.remove(photoID: photo.id)
@@ -489,6 +645,7 @@ final class CustomerPetsStore {
         } catch CustomerPetRepositoryError.cancelled {
             recordStoreCancelled("deletePhoto", startedAt: startedAt)
         } catch let error as CustomerPetRepositoryError {
+            guard sessionIsCurrent(), !Task.isCancelled else { return }
             errorMessage = message(for: error, action: "delete photo")
             recordStoreFailure(
                 "deletePhoto",
@@ -499,6 +656,7 @@ final class CustomerPetsStore {
         } catch where AppDebugErrorClassifier.isCancellation(error) {
             recordStoreCancelled("deletePhoto", startedAt: startedAt)
         } catch {
+            guard sessionIsCurrent(), !Task.isCancelled else { return }
             errorMessage = message(for: .unavailable, action: "delete photo")
             recordStoreFailure(
                 "deletePhoto",
@@ -526,7 +684,6 @@ final class CustomerPetsStore {
                 continue
             }
             dataByID[photo.id] = data
-            savePhotoCache(photo: photo, data: data)
         }
         return dataByID
     }
@@ -739,6 +896,7 @@ final class CustomerPetsStore {
             failed = true
         }
 
+        guard sessionIsCurrent(), !Task.isCancelled else { return 0 }
         pendingFormPhotos = []
         if failed {
             errorMessage = "Pet was saved, but the avatar could not upload."
@@ -760,12 +918,15 @@ final class CustomerPetsStore {
             caption: nil
         )
 
+        guard sessionIsCurrent(), !Task.isCancelled else { throw CustomerPetRepositoryError.cancelled }
+
         photosByPetID[pet.id] = [photo]
         photoDataByPhotoID[photo.id] = data
         cachedAvatarDataByPetID[pet.id] = data
         savePhotoCache(photo: photo, data: data)
 
         for replacedPhoto in replacedPhotos where replacedPhoto.id != photo.id {
+            guard sessionIsCurrent(), !Task.isCancelled else { break }
             photoDataByPhotoID[replacedPhoto.id] = nil
             photoCache.remove(photoID: replacedPhoto.id)
             try? await repository.deletePhoto(replacedPhoto)
@@ -803,6 +964,16 @@ final class CustomerPetsStore {
             "The pet action was cancelled."
         case .unavailable:
             "We could not \(action) pet information. Please try again."
+        case .revisionConflict:
+            "This pet was changed elsewhere. Your edits are still here. Reload the saved pet before saving again."
+        case .operationIntentChanged:
+            "This creation is already associated with different details. Confirm the original save first."
+        case .petNotFound:
+            "This pet is no longer available. Your edits have not been saved."
+        case .clientUpdateRequired:
+            "Reload the saved pet or update the app before saving."
+        case .invalidInput:
+            "Check the pet details and try again."
         }
     }
 

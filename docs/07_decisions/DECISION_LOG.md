@@ -18,6 +18,27 @@ Linked files:
 ## Active Decisions
 
 ```text
+Decision ID: D-059
+Date: 2026-09-21
+Task: T-397
+Decision: Design one request-first transaction with customer-selected groomer invitations and an explicitly optional eligible-groomer request pool. Use a reversible recommendation carousel, complete candidate list and private account favorites; browsing and saving never send or reject requests.
+Context: The user chose this combined direction after reviewing the limits of passive waiting and a separate alternative-slot model. Existing publication automatically distributes matches, so pre-publication discovery and new access boundaries require explicit design rather than only new cards.
+Consequences: The linked spec and plan define private preview, atomic send/recovery, shared quotes and unique booking, pool-close semantics, safe media/legacy access, and Simulator acceptance. Eight cards, opt-in pool, five outstanding invited counterparts and response/preview lifetimes are proposed first-version defaults for review. This records the design direction and documentation delivery only; implementation, remote writes and deployment are not authorized or claimed complete. Existing matching evidence formulas and booking safety remain; D-055's former exclusion of discovery is superseded only for this adopted design scope.
+Refinement (T-398, 2026-09-21): Reuse existing frontend publication recovery through one feature-owned coordinator and backend rules through trusted-context adapters. First publication has one authoritative publish receipt; later distribution actions have their own ledger. Share safe profile projections, evidence, pagination and scoped state, not private owner models or broad authorization. The linked spec section 7 and original work packages own these constraints; no product implementation is claimed.
+Linked files: docs/superpowers/specs/2026-09-21-request-discovery-invitations-design.md; docs/superpowers/plans/2026-09-21-request-discovery-invitations-plan.md.
+```
+
+```text
+Decision ID: D-058
+Date: 2026-09-21
+Task: T-396
+Decision: Separate generic DesignSystem primitives, reusable SharedFeatures business UI, and feature-specific flow state; retain existing Stores/repositories and native navigation.
+Context: Address resolution lived among visual primitives, quote/wizard async state lived in views, fit evidence was duplicated, and Home dropped the selected booking at the tab boundary.
+Consequences: Share display only, preserve role-specific evidence/privacy mapping, pass the selected booking to an exact-read detail destination, and remove non-rendering style flags. No new packages, routing framework, backend changes or broad legacy visual redesign. Source audit passing is a debt ratchet, not proof of complete visual acceptance.
+Linked files: docs/01_product/DESIGN_SYSTEM.md; docs/04_ios/UI_CODE_GOVERNANCE.md.
+```
+
+```text
 Decision ID: D-056
 Date: 2026-09-15
 Task: T-392 / V-04

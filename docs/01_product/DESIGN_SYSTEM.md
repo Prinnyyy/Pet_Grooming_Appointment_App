@@ -10,7 +10,7 @@ Pre-routing source snapshot: `../09_frozen/design_notes/T-347_2026-07-13/DESIGN_
 - Add `ACCESSIBILITY_RULES.md` when changing user-visible UI, controls, images, text, status, or async feedback.
 - Add `FORM_INTERACTION_RULES.md` only for text entry, focus, keyboard avoidance, scrolling editors, or sheet gestures.
 - Use `../08_design/UI_IMPLEMENTATION_NOTES.md` to locate current screenshots and design evidence.
-- Use `../08_design/GROOMER_UI_REDESIGN.md` only for deferred Groomer Q-104 or a focused R-039 regression.
+- Use `../08_design/GROOMER_UI_REDESIGN.md` for the Groomer workspace contract or a focused R-039 regression.
 - Use `../ui-redesign/README.md` only when an explicit Figma/inventory task requires the heavy redesign evidence package.
 
 Executable Feature-code rules and audit commands live in `../04_ios/UI_CODE_GOVERNANCE.md`. Product flow, role routing, repositories, Supabase, RLS/RPC, Storage, and deferred features are outside this contract.
@@ -29,17 +29,18 @@ Avoid dense dashboards, map-first layouts, oversized calendars, decorative anima
 
 - Swift tokens: `ios/Beckon/Beckon/DesignSystem/DesignTokens.swift`
 - Shared primitives: `ios/Beckon/Beckon/DesignSystem/`
+- Shared business UI and reusable flow state: `ios/Beckon/Beckon/SharedFeatures/` (Address, Notifications, Matching)
 - Extracted prototype tokens: `../08_design/design_tokens.json` (reference only)
 - Screen ownership: `SCREEN_INVENTORY.md`
 - Remaining source debt: `../04_ios/UI_CONSISTENCY_DEBT.md`
 
-Use semantic `DesignTokens` roles before adding a value. New values enter `DesignTokens` first and must serve repeatable semantics. Shared primitives own presentation; feature Stores and repositories retain validation, loading, retry, navigation, and business mutations.
+Use semantic `DesignTokens` roles before adding a value. New values enter `DesignTokens` first and must serve repeatable semantics. DesignSystem owns visual primitives and must not depend on feature flows. SharedFeatures composes those primitives for business UI reused across roles; reusable address state belongs there, separately from its view. Feature Stores/flow states and repositories retain validation, loading, retry and business mutations. Views own layout/focus and hand navigation targets to the owning shell.
 
 Reuse implemented primitives such as action styles, `BeckonSection`, `BeckonGroupedSurface`, selection/card/status/feedback primitives, settings rows, field groups, location-mode presentation, and `.beckonFormField()`. Add a new primitive only when a pattern recurs or a shared contract genuinely removes complexity.
 
 ## UI Design Rules (UI-R1..R8)
 
-- **UI-R1 Component organisms:** A pattern used on two or more screens becomes a named `DesignSystem/` primitive with applicable default, loading, disabled, error, empty, and selected states.
+- **UI-R1 Component ownership:** Extract repeated stable presentation when it removes real duplication. Generic visual primitives belong in `DesignSystem/`; reusable business components belong in `SharedFeatures/`; one-feature helpers stay with that feature. Two call sites alone do not justify a new abstraction. Preserve applicable loading, disabled, error, empty, selected and accessibility behavior; do not add style flags that rendering never consumes.
 - **UI-R2 Semantic typography:** Feature text uses `DesignTokens.Typography`; hierarchy comes from semantic style and weight, never new `Font.system(size:)` sites.
 - **UI-R3 Reserved accents:** A screen has at most one role-accent primary-action pattern. Accent communicates action or selection, not decoration or status.
 - **UI-R4 Semantic color and contrast:** Feature code uses semantic color roles and only approved foreground/background pairs from `ACCESSIBILITY_RULES.md`.
@@ -49,6 +50,14 @@ Reuse implemented primitives such as action styles, `BeckonSection`, `BeckonGrou
 - **UI-R8 Screen archetypes:** Classify screens as List/Feed, Detail, Wizard, Thread, Editor, or Workspace and follow a consistent hierarchy/action/accessibility contract for that archetype.
 
 ## Screenshot Rework
+
+### Request-Scoped Groomer Browsing
+
+T-399 adopts private request-scoped discovery, not a new public directory or direct-booking flow. The carousel, full list, details and favorites compose `GroomerCandidateSummaryView`/`GroomerCandidateActionsView` within Customer features. Professional-fit evidence reuses `BeckonFitEvidenceBlock` without a numeric match score. Swiping is reversible browsing; invitation, favorite and optional pool consent are separate explicit controls. Multiple controls in a native List row use explicit button styles so one tap cannot invoke another action. Loading/error states must not masquerade as an empty candidate list.
+
+T-401 uses the feature-local `GroomerDiscoveryCardDeck`: stable card surfaces, reversible tilt, explicit groomer/more identity, and one tail action opening the existing full list. Only the front card is interactive or accessible; Reduce Motion removes rotation and elastic motion. Previous/next buttons remain available. List navigation preserves the entry card, including the tail. Saved Groomers stays below browsing actions.
+
+The request wizard progress band is a fixed sibling of its scrolling form, separated by a divider. Its height follows Dynamic Type. Pet choice cards keep a permanent selection-indicator slot and separate name, breed and weight rows; selecting a pet changes styling, never text geometry. Accessibility sizes stack the avatar above the full-width text.
 
 Start with `../06_tasks/SCREENSHOT_UI_REWORK_TASK_TEMPLATE.md`. Map visible modules to current screens, Stores, repositories, and models before editing. Classify each as visual-only, existing-feature rewire, reusable primitive, or new feature. Stop for approval before persistence, schema, backend, navigation, role capability, or deferred product changes.
 

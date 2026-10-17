@@ -83,15 +83,17 @@ final class TestOpsUIFlowDriver {
     private let app = XCUIApplication()
     private let environment = ProcessInfo.processInfo.environment
 
-    func launchSignedOut(additionalArguments: [String] = []) {
+    func launchSignedOut(disablesAnimations: Bool = true, additionalArguments: [String] = []) {
         app.launchArguments = [
             "--beckon-testops-run-id",
             environment["TESTOPS_RUN_ID"] ?? environment["TEST_RUNNER_TESTOPS_RUN_ID"] ?? "TESTOPS-UITEST-0001",
             "--beckon-testops-scenario",
             environment["TESTOPS_SCENARIO_ID"] ?? environment["TEST_RUNNER_TESTOPS_SCENARIO_ID"] ?? "marketplace_full_lifecycle",
             "--beckon-testops-clear-session",
-            "--beckon-testops-disable-animations",
-        ] + additionalArguments
+        ] + (disablesAnimations ? ["--beckon-testops-disable-animations"] : []) + additionalArguments
+        if !disablesAnimations {
+            XCTAssertFalse(app.launchArguments.contains("--beckon-testops-disable-animations"))
+        }
         app.launch()
     }
 
@@ -322,7 +324,8 @@ final class TestOpsUIFlowDriver {
         startRequest.tap()
 
         XCTAssertTrue(element("customer.requests.wizard").waitForExistence(timeout: 8))
-        tap(element("customer.requests.wizard.pet.dog"))
+        tap(app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@",
+            "customer.requests.wizard.pet.dog.")).firstMatch)
         tap(element("customer.requests.wizard.continue"))
 
         tap(element("customer.requests.wizard.service.full_groom"))

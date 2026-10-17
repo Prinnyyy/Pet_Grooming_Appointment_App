@@ -21,7 +21,7 @@ struct GroomerProfileStatusView: View {
         return BeckonGlobalFeedbackError(
             scope: .page("groomer.profile"),
             sourceKey: "groomer.profile.error",
-            title: "Profile Update Failed",
+            title: "Profile Needs Attention",
             message: errorMessage
         )
     }

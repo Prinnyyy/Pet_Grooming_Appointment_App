@@ -7,11 +7,6 @@ final class SupabaseGroomerRequestRepository: GroomerRequestRepository {
         id,request_id,groomer_id,customer_id,match_score,match_reason,dismiss_reason,\
         status,viewed_at,dismissed_at,created_at,updated_at,eligibility_evaluation
         """
-    private static let requestColumns = """
-        id,customer_id,pet_id,pet_snapshot,photo_snapshot,service_type,service_notes,\
-        preferred_start,preferred_end,preference_time_zone_identifier,location_mode,street_address,city,state,zip_code,\
-        travel_radius_miles,status,expires_at,created_at,updated_at,terms_revision
-        """
     private static let offerColumns = """
         id,request_id,match_id,customer_id,groomer_id,proposed_start,proposed_end,\
         price_estimate,message,status,expires_at,withdrawn_at,created_at,updated_at,\
@@ -36,7 +31,8 @@ final class SupabaseGroomerRequestRepository: GroomerRequestRepository {
     ) {
         self.client = client
         self.privateImageLoader = privateImageLoader ?? PrivateImageLoader(
-            dataSource: SupabasePrivateImageDataSource(client: client)
+            dataSource: SupabasePrivateImageDataSource(client: client, requiresFreshAuthorization: true),
+            policy: .authorizationRequired
         )
     }
 
@@ -93,7 +89,13 @@ final class SupabaseGroomerRequestRepository: GroomerRequestRepository {
             guard rows.count == 1, let item = try await hydrateMatches(rows, groomerID: groomerID).first else {
                 throw GroomerRequestRepositoryError.matchNotFound
             }
-            return item
+            let detail: GroomerMatchedGroomingRequestRow = try await client
+                .rpc("get_groomer_request_detail_v1", params: ["p_request_id": requestID.uuidString.lowercased()])
+                .execute().value
+            guard detail.id == requestID, detail.customerID == item.match.customerID else {
+                throw GroomerRequestRepositoryError.notAllowed
+            }
+            return GroomerMatchedRequest(match: item.match, request: detail.request, offer: item.offer)
         } catch { throw Self.map(error) }
     }
 
@@ -104,19 +106,7 @@ final class SupabaseGroomerRequestRepository: GroomerRequestRepository {
                 $0.requestID.uuidString.lowercased()
             }
 
-            let requestRows: [GroomerMatchedGroomingRequestRow] = try await client
-                .from("grooming_requests")
-                .select(Self.requestColumns)
-                .in("id", values: requestIDs)
-                .in(
-                    "status",
-                    values: [
-                        GroomingRequestStatus.open.rawValue,
-                        GroomingRequestStatus.hasOffers.rawValue,
-                    ]
-                )
-                .execute()
-                .value
+            let requestRows = try await safeRequestSummaries(ids: requestIDs)
 
             let requestsByID = Dictionary(
                 uniqueKeysWithValues: requestRows.map { ($0.id, $0.request) }
@@ -425,12 +415,7 @@ final class SupabaseGroomerRequestRepository: GroomerRequestRepository {
         guard !ids.isEmpty else { return [:] }
 
         do {
-            let rows: [GroomerMatchedGroomingRequestRow] = try await client
-                .from("grooming_requests")
-                .select(Self.requestColumns)
-                .in("id", values: ids)
-                .execute()
-                .value
+            let rows = try await safeRequestSummaries(ids: ids)
 
             return Dictionary(
                 uniqueKeysWithValues: rows.map { ($0.id, $0.request) }
@@ -438,6 +423,19 @@ final class SupabaseGroomerRequestRepository: GroomerRequestRepository {
         } catch {
             return [:]
         }
+    }
+
+    private func safeRequestSummaries(ids: [String]) async throws -> [GroomerMatchedGroomingRequestRow] {
+        var rows: [GroomerMatchedGroomingRequestRow] = []
+        for start in stride(from: 0, to: ids.count, by: 50) {
+            let batch = Array(ids[start..<min(start + 50, ids.count)])
+            let page: [GroomerMatchedGroomingRequestRow] = try await client
+                .rpc("get_groomer_request_summaries_v1", params: ["p_request_ids": batch]).execute().value
+            guard Set(page.map { $0.id.uuidString.lowercased() }).isSubset(of: Set(batch)),
+                  Set(page.map(\.id)).count == page.count else { throw GroomerRequestRepositoryError.notAllowed }
+            rows.append(contentsOf: page)
+        }
+        return rows
     }
 
     private func visibleBookingsByOfferID(
@@ -652,7 +650,7 @@ nonisolated private struct GroomerRequestMatchRow: Decodable, Sendable {
     }
 }
 
-nonisolated private struct GroomerMatchedGroomingRequestRow: Decodable, Sendable {
+nonisolated struct GroomerMatchedGroomingRequestRow: Decodable, Sendable {
     let id: UUID
     let customerID: UUID
     let petID: UUID?
@@ -664,11 +662,13 @@ nonisolated private struct GroomerMatchedGroomingRequestRow: Decodable, Sendable
     let preferredEnd: String
     let preferenceTimeZoneIdentifier: String?
     let termsRevision: UUID?
+    let poolEnabled: Bool?
+    let invitationState: RequestInvitationState?
     let locationMode: GroomingLocationMode
-    let streetAddress: String
+    let streetAddress: String?
     let city: String
     let state: String
-    let zipCode: String
+    let zipCode: String?
     let travelRadiusMiles: Int?
     let status: GroomingRequestStatus
     let expiresAt: String
@@ -687,17 +687,19 @@ nonisolated private struct GroomerMatchedGroomingRequestRow: Decodable, Sendable
             preferredStart: preferredStart,
             preferredEnd: preferredEnd,
             locationMode: locationMode,
-            streetAddress: streetAddress,
+            streetAddress: streetAddress ?? "",
             city: city,
             state: state,
-            zipCode: zipCode,
+            zipCode: zipCode ?? "",
             travelRadiusMiles: travelRadiusMiles,
             status: status,
             expiresAt: expiresAt,
             createdAt: createdAt,
             updatedAt: updatedAt,
             preferenceTimeZoneIdentifier: preferenceTimeZoneIdentifier,
-            termsRevision: termsRevision
+            termsRevision: termsRevision,
+            poolEnabled: poolEnabled,
+            invitationState: invitationState
         )
     }
 
@@ -713,6 +715,8 @@ nonisolated private struct GroomerMatchedGroomingRequestRow: Decodable, Sendable
         case preferredEnd = "preferred_end"
         case preferenceTimeZoneIdentifier = "preference_time_zone_identifier"
         case termsRevision = "terms_revision"
+        case poolEnabled = "pool_enabled"
+        case invitationState = "invitation_state"
         case locationMode = "location_mode"
         case streetAddress = "street_address"
         case city

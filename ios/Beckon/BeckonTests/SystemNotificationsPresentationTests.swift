@@ -34,15 +34,14 @@ final class SystemNotificationsLifecycleTests: XCTestCase {
 
 struct SystemNotificationsPresentationTests {
     @Test
-    func customerAndGroomerShareNotificationPageAndBellStyles() {
+    func notificationPresentationPreservesRoleCopyAndAccessibility() {
         let customer = BeckonSystemNotificationsPresentation.customer
         let groomer = BeckonSystemNotificationsPresentation.groomer
 
         #expect(customer.sectionTitle == "System Updates")
         #expect(groomer.sectionTitle == customer.sectionTitle)
-        #expect(groomer.pageStyle == customer.pageStyle)
-        #expect(groomer.rowStyle == customer.rowStyle)
-        #expect(groomer.bellStyle == customer.bellStyle)
+        #expect(customer.sectionSubtitle.contains("Request"))
+        #expect(groomer.sectionSubtitle.contains("Match"))
         #expect(customer.accessibilityPrefix == "customer.notifications")
         #expect(groomer.accessibilityPrefix == "groomer.notifications")
         #expect(customer.audience == .customer)

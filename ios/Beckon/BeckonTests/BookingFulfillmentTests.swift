@@ -121,13 +121,14 @@ struct BookingFulfillmentTests {
         let suite = "T377.\(UUID())"
         let defaults = try #require(UserDefaults(suiteName: suite))
         defer { defaults.removePersistentDomain(forName: suite) }
-        var booking = ServiceAgreementTests.booking()
+        var booking = try BookingRescheduleTests.booking()
         booking.fulfillment = state(.scheduled)
         let repository = BookingRepositoryFake()
         let reminders = AppointmentReminderSchedulerFake()
         let store = BookingsStore(participantID: booking.customerID, role: .customer,
             repository: repository, initialBookings: [booking],
             appointmentReminderScheduler: reminders, fulfillmentDefaults: defaults)
+        #expect(store.fulfillmentActions(for: booking).contains(.cancel))
         await store.performFulfillment(.cancel, for: booking)
         let pending = try #require(store.pendingFulfillmentOperation(for: booking.id))
         #expect(repository.fulfillmentOperations.count == 1)

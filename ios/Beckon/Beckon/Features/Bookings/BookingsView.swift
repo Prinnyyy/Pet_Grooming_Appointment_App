@@ -8,13 +8,15 @@ struct BookingsView: View {
     @State private var requestStore: CustomerRequestsStore?
     @State private var selectedScope: BookingListScope = .upcoming
     @State private var selectedScheduleDayKey: String?
+    @Binding private var focusedBooking: Booking?
 
-    init(role: UserRole, store: BookingsStore, onOpenChat: @escaping (Booking) -> Void = { _ in }) {
+    init(role: UserRole, store: BookingsStore, focusedBooking: Binding<Booking?> = .constant(nil), onOpenChat: @escaping (Booking) -> Void = { _ in }) {
         self.role = role
         self.customerProfileRepository = nil
         self.onOpenChat = onOpenChat
         _store = State(initialValue: store)
         _requestStore = State(initialValue: nil)
+        _focusedBooking = focusedBooking
     }
 
     init(
@@ -27,11 +29,13 @@ struct BookingsView: View {
         groomerProfileRepository: (any GroomerProfileRepository)? = nil,
         debugRecorder: AppDebugEventRecorder? = nil,
         store: BookingsStore? = nil,
+        focusedBooking: Binding<Booking?> = .constant(nil),
         onOpenChat: @escaping (Booking) -> Void = { _ in }
     ) {
         self.role = role
         self.customerProfileRepository = customerProfileRepository
         self.onOpenChat = onOpenChat
+        _focusedBooking = focusedBooking
         _store = State(
             initialValue: store ?? BookingsStore(
                 participantID: participantID,
@@ -67,6 +71,14 @@ struct BookingsView: View {
         }
         .navigationTitle(role == .groomer ? "Schedule" : "")
         .navigationBarTitleDisplayMode(role == .groomer ? .large : .inline)
+        .navigationDestination(item: $focusedBooking) { booking in
+            BookingDetailView(
+                bookingID: booking.id,
+                role: role,
+                store: store,
+                onOpenChat: onOpenChat
+            )
+        }
         .background {
             BookingsStatusView(
                 store: store,
@@ -626,6 +638,7 @@ private struct BookingScopeControl: View {
 }
 
 private struct GroomerScheduleDayStrip: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let days: [GroomerScheduleDay]
     let calendar: Calendar
     let selectedDayKey: String
@@ -636,7 +649,7 @@ private struct GroomerScheduleDayStrip: View {
             HStack(spacing: DesignTokens.Spacing.sm) {
                 ForEach(days) { day in
                     Button {
-                        withAnimation(.easeInOut(duration: 0.18)) {
+                        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.18)) {
                             onSelect(day)
                         }
                     } label: {
@@ -666,18 +679,20 @@ private struct GroomerScheduleDayChip: View {
     var body: some View {
         VStack(spacing: 3) {
             Text(GroomerScheduleDateFormatting.weekday(from: day.date, calendar: calendar))
-                .font(.caption.weight(.bold))
-                .foregroundStyle(isSelected ? Color.white.opacity(0.86) : DesignTokens.Colors.textTertiary)
+                .font(DesignTokens.Typography.caption.weight(.bold))
+                .foregroundStyle(isSelected ? DesignTokens.Colors.groomerOnAccent : DesignTokens.Colors.textTertiary)
 
             Text(GroomerScheduleDateFormatting.dayNumber(from: day.date, calendar: calendar))
-                .font(.system(size: 24, weight: .bold))
-                .foregroundStyle(isSelected ? Color.white : DesignTokens.Colors.textPrimary)
+                .font(DesignTokens.Typography.sectionTitle)
+                .foregroundStyle(isSelected ? DesignTokens.Colors.groomerOnAccent : DesignTokens.Colors.textPrimary)
 
             Text(day.isToday ? "Today" : GroomerScheduleDateFormatting.month(from: day.date, calendar: calendar))
-                .font(.caption2.weight(.bold))
-                .foregroundStyle(isSelected ? Color.white.opacity(0.8) : DesignTokens.Colors.textTertiary)
+                .font(DesignTokens.Typography.caption.weight(.bold))
+                .foregroundStyle(isSelected ? DesignTokens.Colors.groomerOnAccent : DesignTokens.Colors.textTertiary)
         }
-        .frame(width: chipWidth, height: chipHeight)
+        .fixedSize(horizontal: false, vertical: true)
+        .frame(width: chipWidth)
+        .frame(minHeight: chipHeight)
         .background {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .fill(isSelected ? DesignTokens.Colors.groomerAccent : DesignTokens.Colors.surface)
@@ -700,7 +715,7 @@ private struct GroomerScheduleSummaryBand: View {
     let summary: GroomerScheduleSummary
 
     var body: some View {
-        GroomerGroupedSurface {
+        BeckonGroupedSurface {
             summaryLayout {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     Text(dayTitle)
@@ -716,7 +731,7 @@ private struct GroomerScheduleSummaryBand: View {
 
                 Text("\(summary.bookingCount) \(summary.bookingCount == 1 ? "appointment" : "appointments")")
                     .font(DesignTokens.Typography.caption.weight(.bold))
-                    .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
+                    .foregroundStyle(DesignTokens.Colors.groomerOnAccent)
                     .padding(.horizontal, DesignTokens.Spacing.sm)
                     .padding(.vertical, DesignTokens.Spacing.xs)
                     .background(DesignTokens.Colors.groomerAccent.opacity(0.14))
@@ -762,12 +777,12 @@ private struct GroomerScheduleTimeline: View {
     let onOpenChat: (Booking) -> Void
 
     var body: some View {
-        GroomerWorkspaceSection(title: "Appointments") {
-            GroomerGroupedSurface {
+        BeckonSection("Appointments") {
+            BeckonGroupedSurface {
                 VStack(spacing: 0) {
                     ForEach(Array(bookings.enumerated()), id: \.element.id) { index, booking in
                         if index > 0 {
-                            GroomerWorkspaceDivider(leadingInset: 72)
+                            BeckonGroupedDivider(leadingInset: 72)
                         }
 
                         GroomerScheduleAppointmentRow(
@@ -822,7 +837,7 @@ private struct GroomerScheduleAppointmentRow: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(GroomerScheduleDateFormatting.time(from: booking.scheduledStart, calendar: calendar))
                             .font(DesignTokens.Typography.caption.weight(.bold))
-                            .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
+                            .foregroundStyle(DesignTokens.Colors.groomerOnAccent)
                         Text(GroomerScheduleDateFormatting.offset(from: booking.scheduledStart, calendar: calendar))
                             .font(DesignTokens.Typography.caption)
 
@@ -838,7 +853,7 @@ private struct GroomerScheduleAppointmentRow: View {
                         DesignTokens.Colors.groomerAccent.opacity(0.15)
                         Image(systemName: "pawprint.fill")
                             .font(.body.weight(.bold))
-                            .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
+                            .foregroundStyle(DesignTokens.Colors.groomerOnAccent)
                     }
                     .frame(width: 44, height: 44)
                     .clipShape(
@@ -849,18 +864,17 @@ private struct GroomerScheduleAppointmentRow: View {
                         Text(presentation.petName)
                             .font(DesignTokens.Typography.headline)
                             .foregroundStyle(DesignTokens.Colors.textPrimary)
-                            .lineLimit(1)
+                            .fixedSize(horizontal: false, vertical: true)
 
                         Text(presentation.petDetail)
                             .font(DesignTokens.Typography.caption)
                             .foregroundStyle(DesignTokens.Colors.textSecondary)
-                            .lineLimit(1)
+                            .fixedSize(horizontal: false, vertical: true)
 
                         Text("\(presentation.customerReference) · \(presentation.location)")
                             .font(DesignTokens.Typography.caption)
                             .foregroundStyle(DesignTokens.Colors.textTertiary)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.8)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -992,7 +1006,8 @@ struct BookingDetailView: View {
     let bookingID: UUID
     let role: UserRole
     let store: BookingsStore
-    let onOpenChat: (Booking) -> Void
+    let onOpenChat: ((Booking) -> Void)?
+    @Environment(\.openBookingChat) private var shellOpenChat
     let onCreateNewRequestFromCancelledBooking: ((Booking) -> Void)?
     @FocusState private var focusedReviewTarget: BookingReviewFocusTarget?
 
@@ -1000,7 +1015,7 @@ struct BookingDetailView: View {
         bookingID: UUID,
         role: UserRole,
         store: BookingsStore,
-        onOpenChat: @escaping (Booking) -> Void = { _ in },
+        onOpenChat: ((Booking) -> Void)? = nil,
         onCreateNewRequestFromCancelledBooking: ((Booking) -> Void)? = nil
     ) {
         self.bookingID = bookingID
@@ -1037,8 +1052,7 @@ struct BookingDetailView: View {
                                 role: role
                             ) {
                                 BookingDetailFactRow("Service", value: booking.appointmentServiceTitle)
-                                BookingDetailFactRow("Date", value: BookingListDateFormatting.day(from: booking.scheduledStart))
-                                BookingDetailFactRow("Time", value: booking.timeWindowSummary)
+                                BookingDetailFactRow("Appointment Time", value: booking.scheduledTimeSummary, stacksValue: true)
                                 BookingDetailFactRow(
                                     BeckonGroomingLocationModePresentation.detailFieldTitle,
                                     value: bookingLocationTitle(booking)
@@ -1065,7 +1079,7 @@ struct BookingDetailView: View {
                             BookingPartnerOverviewCard(
                                 booking: booking,
                                 role: role,
-                                onOpenChat: onOpenChat
+                                onOpenChat: onOpenChat ?? shellOpenChat
                             )
 
                             if booking.status == .completed {
@@ -1102,6 +1116,7 @@ struct BookingDetailView: View {
             }
             .navigationTitle("Booking")
             .navigationBarTitleDisplayMode(.inline)
+            .accessibilityElement(children: .contain)
             .accessibilityIdentifier("bookings.detail")
         } else {
             ZStack {
@@ -1122,6 +1137,8 @@ struct BookingDetailView: View {
                         Button("Retry Booking", systemImage: "arrow.clockwise") {
                             Task { await store.resolveBooking(id: bookingID) }
                         }
+                        .buttonStyle(BeckonSecondaryButtonStyle(accent: .neutral, isFullWidth: false))
+                        .accessibilityIdentifier("bookings.detail.retry")
                     }
                 }
             }
@@ -1159,27 +1176,31 @@ nonisolated enum BookingReviewKeyboardPresentation {
 
 
 private struct BookingDetailHeroCard: View {
+    @Environment(\.dynamicTypeSize) private var typeSize
     let booking: Booking
     let role: UserRole
 
     var body: some View {
         BeckonCard {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
-                HStack(alignment: .center) {
+                let layout = typeSize.isAccessibilitySize
+                    ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.md))
+                    : AnyLayout(HStackLayout(alignment: .center, spacing: DesignTokens.Spacing.md))
+                layout {
                     BeckonStatusChip(
                         booking.status.title,
                         systemImage: booking.status.chipIcon,
                         tone: booking.status.chipTone(for: role)
                     )
 
-                    Spacer(minLength: DesignTokens.Spacing.md)
+                    if !typeSize.isAccessibilitySize { Spacer(minLength: DesignTokens.Spacing.md) }
 
                     Text("Order #\(booking.referenceCode)")
                         .font(DesignTokens.Typography.caption.weight(.bold))
                         .foregroundStyle(DesignTokens.Colors.textSecondary)
                 }
 
-                HStack(alignment: .center, spacing: DesignTokens.Spacing.lg) {
+                layout {
                     if role == .customer {
                         BeckonProfileAvatar(
                             data: booking.groomerAvatarPhotoData,
@@ -1267,6 +1288,7 @@ private struct BookingDetailInfoCard<Content: View>: View {
                     Text(title)
                         .font(DesignTokens.Typography.headline)
                         .foregroundStyle(DesignTokens.Colors.textPrimary)
+                        .accessibilityAddTraits(.isHeader)
                 }
 
                 content
@@ -1278,7 +1300,8 @@ private struct BookingDetailInfoCard<Content: View>: View {
 private struct BookingPartnerOverviewCard: View {
     let booking: Booking
     let role: UserRole
-    let onOpenChat: (Booking) -> Void
+    let onOpenChat: ((Booking) -> Void)?
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
         BookingDetailInfoCard(
@@ -1286,7 +1309,10 @@ private struct BookingPartnerOverviewCard: View {
             systemImage: "person.fill",
             role: role
         ) {
-            HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
+            let layout = typeSize.isAccessibilitySize
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.md))
+                : AnyLayout(HStackLayout(alignment: .center, spacing: DesignTokens.Spacing.md))
+            layout {
                 BeckonProfileAvatar(
                     data: role == .customer
                         ? booking.groomerAvatarPhotoData
@@ -1297,77 +1323,57 @@ private struct BookingPartnerOverviewCard: View {
                     placeholderSize: 22
                 )
 
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                    Text(
-                        role == .groomer
-                            ? booking.participantSummary(for: .groomer)
-                            : booking.partnerDisplayTitle(for: role)
-                    )
-                        .font(.title3.weight(.bold))
-                        .foregroundStyle(DesignTokens.Colors.textPrimary)
-                        .fixedSize(horizontal: false, vertical: true)
+                Text(role == .groomer
+                    ? booking.participantSummary(for: .groomer)
+                    : booking.partnerDisplayTitle(for: role))
+                    .font(DesignTokens.Typography.sectionTitle)
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
 
-                    Text(role == .customer ? "Confirmed grooming provider" : "Booking customer")
-                        .font(DesignTokens.Typography.body)
-                        .foregroundStyle(DesignTokens.Colors.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
+            if let onOpenChat {
+                Button {
+                    onOpenChat(booking)
+                } label: {
+                    Label("Open Chat", systemImage: "message.fill")
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .buttonStyle(BeckonPrimaryButtonStyle(accent: role.primaryButtonAccent))
+                .accessibilityIdentifier("bookings.detail.open-chat")
             }
-
-            HStack(spacing: DesignTokens.Spacing.sm) {
-                BookingMiniChip(title: "Chat Ready", systemImage: "message")
-                BookingMiniChip(title: booking.status.title, systemImage: booking.status.chipIcon)
-            }
-
-            Button {
-                onOpenChat(booking)
-            } label: {
-                Label("Open Chat", systemImage: "message.fill")
-            }
-            .buttonStyle(BeckonPrimaryButtonStyle(accent: role.primaryButtonAccent))
-            .accessibilityIdentifier("bookings.detail.open-chat")
         }
     }
 }
 
-private struct BookingMiniChip: View {
-    let title: String
-    let systemImage: String
-
-    var body: some View {
-        Label(title, systemImage: systemImage)
-            .font(DesignTokens.Typography.caption.weight(.bold))
-            .foregroundStyle(DesignTokens.Colors.textSecondary)
-            .lineLimit(1)
-            .padding(.horizontal, DesignTokens.Spacing.sm)
-            .padding(.vertical, DesignTokens.Spacing.xs)
-            .background(DesignTokens.Colors.borderSoft.opacity(0.72))
-            .clipShape(Capsule())
-    }
-}
-
 private struct BookingDetailFactRow: View {
+    @Environment(\.dynamicTypeSize) private var typeSize
     let title: String
     let value: String
+    let stacksValue: Bool
 
-    init(_ title: String, value: String) {
+    init(_ title: String, value: String, stacksValue: Bool = false) {
         self.title = title
         self.value = value
+        self.stacksValue = stacksValue
     }
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.md) {
+        let stacked = stacksValue || typeSize.isAccessibilitySize
+        let layout = stacked
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.xs))
+            : AnyLayout(HStackLayout(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.md))
+        layout {
             Text(title)
                 .font(DesignTokens.Typography.body)
                 .foregroundStyle(DesignTokens.Colors.textSecondary)
 
-            Spacer(minLength: DesignTokens.Spacing.md)
+            if !stacked { Spacer(minLength: DesignTokens.Spacing.md) }
 
             Text(value)
                 .font(DesignTokens.Typography.body.weight(.bold))
                 .foregroundStyle(DesignTokens.Colors.textPrimary)
-                .multilineTextAlignment(.trailing)
+                .multilineTextAlignment(stacked ? .leading : .trailing)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .accessibilityElement(children: .combine)
     }
@@ -1423,9 +1429,13 @@ private struct BookingReviewDisplay: View {
 
 private struct BookingReviewFitOutcomeDisplay: View {
     let outcome: BookingReviewPetFitOutcomeRecord
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
+        let layout = typeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.sm))
+            : AnyLayout(HStackLayout(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm))
+        layout {
             Image(systemName: systemImage)
                 .font(DesignTokens.Typography.caption.weight(.bold))
                 .foregroundStyle(tint)
@@ -1447,22 +1457,16 @@ private struct BookingReviewFitOutcomeDisplay: View {
                 .foregroundStyle(tint)
         }
         .padding(DesignTokens.Spacing.sm)
-        .background(tint.opacity(0.1))
-        .clipShape(
-            RoundedRectangle(
-                cornerRadius: 8,
-                style: .continuous
-            )
-        )
+        .background(DesignTokens.Colors.surface)
         .accessibilityElement(children: .combine)
     }
 
     private var tint: Color {
         switch outcome.outcome {
         case .positive:
-            DesignTokens.Colors.success
+            DesignTokens.Colors.successText
         case .negative:
-            DesignTokens.Colors.warning
+            DesignTokens.Colors.warningText
         }
     }
 
@@ -1476,7 +1480,7 @@ private struct BookingReviewFitOutcomeDisplay: View {
     }
 }
 
-private struct BookingReviewForm: View {
+struct BookingReviewForm: View {
     let booking: Booking
     let store: BookingsStore
     let accent: BeckonPrimaryButtonStyle.Accent
@@ -1501,13 +1505,19 @@ private struct BookingReviewForm: View {
     var body: some View {
         BeckonCard {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                Picker("Rating", selection: $rating) {
-                    ForEach(1...5, id: \.self) { value in
-                        Text("\(value)").tag(value)
+                Menu {
+                    Picker("Rating", selection: $rating) {
+                        ForEach(1...5, id: \.self) { value in
+                            Text(value == 1 ? "1 star" : "\(value) stars").tag(value)
+                        }
                     }
+                } label: {
+                    Label(rating == 1 ? "1 star" : "\(rating) stars", systemImage: "star")
+                        .frame(maxWidth: .infinity, minHeight: DesignTokens.Metrics.minimumTouchTarget)
                 }
-                .pickerStyle(.segmented)
-                .tint(DesignTokens.Colors.customerAccent)
+                .buttonStyle(BeckonSecondaryButtonStyle(accent: .neutral))
+                .accessibilityLabel("Rating")
+                .accessibilityValue("\(rating) of 5 stars")
                 .accessibilityIdentifier("bookings.review.rating")
 
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
@@ -1516,6 +1526,7 @@ private struct BookingReviewForm: View {
                         .frame(minHeight: 96)
                         .scrollContentBackground(.hidden)
                         .beckonFormField()
+                        .accessibilityLabel("Review text, optional")
                         .accessibilityIdentifier("bookings.review.content")
 
                     Text("Optional review text, up to 2,000 characters.")
@@ -1542,12 +1553,13 @@ private struct BookingReviewForm: View {
                 if store.loadingReviewContexts.contains(booking.id) {
                     ProgressView("Loading service details")
                 } else if let error = store.reviewContextErrors[booking.id] {
-                    HStack {
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
                         Text(error).font(DesignTokens.Typography.caption)
                         Button {
                             Task { await store.loadReviewContext(for: booking) }
-                        } label: { Image(systemName: "arrow.clockwise") }
-                            .accessibilityLabel("Retry service details")
+                        } label: { Label("Retry Service Details", systemImage: "arrow.clockwise") }
+                            .buttonStyle(BeckonSecondaryButtonStyle(accent: .neutral))
+                            .accessibilityIdentifier("bookings.review.retry-context")
                     }
                 }
 
@@ -1561,12 +1573,13 @@ private struct BookingReviewForm: View {
                         )
                     }
                 } label: {
-                    Label("Submit Review", systemImage: "star.bubble")
+                    Label(store.isSubmittingReview ? "Submitting Review..." : "Submit Review", systemImage: "star.bubble")
                 }
                 .buttonStyle(BeckonPrimaryButtonStyle(accent: accent))
                 .disabled(store.isSubmittingReview || store.reviewContexts[booking.id] == nil)
                 .accessibilityIdentifier("bookings.review.submit")
             }
+            .disabled(store.isSubmittingReview)
         }
         .task(id: booking.id) { await store.loadReviewContext(for: booking) }
         .onChange(of: store.reviewContexts[booking.id]) { _, context in
@@ -1585,30 +1598,30 @@ private struct BookingReviewFitOutcomePicker: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-            HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                 Text(selection.title)
                     .font(DesignTokens.Typography.body.weight(.semibold))
                     .foregroundStyle(DesignTokens.Colors.textPrimary)
-
-                Spacer(minLength: DesignTokens.Spacing.sm)
 
                 Text(selection.groupTitle)
                     .font(DesignTokens.Typography.caption.weight(.bold))
                     .foregroundStyle(DesignTokens.Colors.textSecondary)
             }
 
-            Picker(
-                "Pet fit outcome",
-                selection: $selection.outcome
-            ) {
-                Text("Skip").tag(nil as BookingReviewPetFitOutcome?)
-
-                ForEach(BookingReviewPetFitOutcome.allCases) { outcome in
-                    Text(outcome.title).tag(Optional(outcome))
+            Menu {
+                Picker("Pet fit outcome", selection: $selection.outcome) {
+                    Text("Skip").tag(nil as BookingReviewPetFitOutcome?)
+                    ForEach(BookingReviewPetFitOutcome.allCases) { outcome in
+                        Text(outcome.title).tag(Optional(outcome))
+                    }
                 }
+            } label: {
+                Label(selection.outcome?.title ?? "Skip", systemImage: "chevron.up.chevron.down")
+                    .frame(maxWidth: .infinity, minHeight: DesignTokens.Metrics.minimumTouchTarget)
             }
-            .pickerStyle(.segmented)
-            .tint(DesignTokens.Colors.customerAccent)
+            .buttonStyle(BeckonSecondaryButtonStyle(accent: .neutral))
+            .accessibilityLabel("\(selection.title), \(selection.groupTitle)")
+            .accessibilityValue(selection.outcome?.title ?? "Skip")
             .accessibilityIdentifier(
                 "bookings.review.fit.\(selection.signal.id)"
             )
@@ -1757,7 +1770,7 @@ private extension UserRole {
         case .customer:
             DesignTokens.Colors.customerAccentStrong
         case .groomer:
-            DesignTokens.Colors.groomerAccentDark
+            DesignTokens.Colors.groomerOnAccent
         }
     }
 

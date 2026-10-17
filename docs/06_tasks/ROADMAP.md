@@ -6,8 +6,9 @@ This file holds unadopted/deferred product directions, not current tasks. [Curre
 
 | Direction | Condition |
 |---|---|
-| R-039 / Q-104 Groomer Dynamic Type and Accessibility integration | User restores the deferred scope and adopts affected cross-screen validation. |
 | R-033 / Q-93 leaked-password protection | Hosted capability/plan decision and explicit Auth configuration authorization. Not a prerequisite to unrelated local work. |
+
+R-039 / Q-104 is adopted in [T-402 local Groomer UI acceptance](../superpowers/plans/2026-10-04-groomer-ui-accessibility-acceptance.md), not an unadopted direction. Its evidence and accessibility limits are recorded there.
 
 ## Separate Distribution Scope
 

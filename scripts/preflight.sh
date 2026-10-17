@@ -48,6 +48,7 @@ echo "-- Beckon identity --"
 echo "-- UI consistency --"
 node scripts/ui-consistency-audit.mjs check
 run_node_test_dir "Brand identity tests" "tests/brand"
+run_node_test_dir "iOS source contracts" "tests/ios"
 run_node_test_dir "Migration tests" "tests/migrations"
 run_node_test_dir "Edge Function tests" "tests/functions"
 

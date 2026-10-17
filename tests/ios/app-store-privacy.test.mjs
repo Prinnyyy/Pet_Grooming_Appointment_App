@@ -9,7 +9,7 @@ const privacyChecklistPath = "docs/04_ios/APP_STORE_PRIVACY.md";
 const releaseLinksPath =
   "ios/Beckon/Beckon/Core/Configuration/AppReleaseLinks.swift";
 const customerAccountPath =
-  "ios/Beckon/Beckon/Features/Customer/Profile/CustomerProfileSettingsView.swift";
+  "ios/Beckon/Beckon/Features/Customer/Profile/CustomerAccountView.swift";
 const groomerAccountPath =
   "ios/Beckon/Beckon/Features/Groomer/Profile/GroomerProfileAccountView.swift";
 const genericAccountPath =

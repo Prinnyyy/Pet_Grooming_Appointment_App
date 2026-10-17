@@ -26,6 +26,7 @@ struct CustomerRequestsView: View {
     @Binding private var focusedRequestID: UUID?
     private let customerProfileRepository: (any CustomerProfileRepository)?
     private let isActiveTab: Bool
+    private let managesRefresh: Bool
     private let onBookingChatSelected: (Booking) -> Void
 
     init(
@@ -35,6 +36,7 @@ struct CustomerRequestsView: View {
         bookingRepository: any BookingRepository,
         customerProfileRepository: (any CustomerProfileRepository)? = nil,
         isActiveTab: Bool = true,
+        managesRefresh: Bool = true,
         debugRecorder: AppDebugEventRecorder? = nil,
         focusedRequestID: Binding<UUID?> = .constant(nil),
         onBookingChatSelected: @escaping (Booking) -> Void = { _ in },
@@ -43,6 +45,7 @@ struct CustomerRequestsView: View {
         _focusedRequestID = focusedRequestID
         self.customerProfileRepository = customerProfileRepository
         self.isActiveTab = isActiveTab
+        self.managesRefresh = managesRefresh
         self.onBookingChatSelected = onBookingChatSelected
         _store = State(
             initialValue: store ?? CustomerRequestsStore(
@@ -110,8 +113,17 @@ struct CustomerRequestsView: View {
             )
         }
         .toolbar(.hidden, for: .navigationBar)
-        .foregroundRefreshable {
+        .foregroundRefreshable(isEnabled: managesRefresh && isActiveTab && !store.isShowingWizard && store.discoveryFlow == nil,
+            nextDeadline: store.nextDistributionDeadline) {
             await store.load()
+        }
+        .sheet(item: Binding(get: { store.isShowingWizard ? nil : store.discoveryFlow }, set: { store.discoveryFlow = $0 })) { flow in
+            if let marketplace = store.marketplace {
+                NavigationStack { CustomerGroomerDiscoveryView(flow: flow, requests: store, marketplace: marketplace) }
+                    .foregroundRefreshable(nextDeadline: marketplace.distribution.nextDeadline(requestIDs: flow.requestID.map { [$0] } ?? [])) {
+                        if let id = flow.requestID { await store.refreshDistributionProgress(requestIDs: [id]) }
+                    }
+            }
         }
     }
 
@@ -145,7 +157,8 @@ struct CustomerRequestsView: View {
 
     private var requestsContent: some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
+            // These bounded sections include a variable-height horizontal carousel.
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
                 CustomerRequestsRootHeader(
                     cardCount: visibleCardCount,
                     isCreateDisabled: store.pets.isEmpty,
@@ -226,6 +239,13 @@ struct CustomerRequestsView: View {
             .accessibilityIdentifier("customer.requests.cancelled-section")
         }
 
+        NavigationLink {
+            CustomerRequestHistoryView(store: store)
+        } label: {
+            Label("Request History", systemImage: "clock.arrow.circlepath")
+        }
+        .accessibilityIdentifier("customer.requests.history")
+
         if store.canLoadMoreRequests || store.isLoadingMoreRequests {
             BeckonLoadMoreButton(
                 isLoading: store.isLoadingMoreRequests,
@@ -260,7 +280,7 @@ extension Array where Element == CustomerGroomingRequest {
     func recentClosedRequests(limit: Int = 5) -> [CustomerGroomingRequest] {
         guard limit > 0 else { return [] }
 
-        return filter { $0.status == .cancelled }
+        return filter { $0.status == .cancelled || $0.status == .expired }
             .sorted { lhs, rhs in
                 if lhs.updatedAt != rhs.updatedAt {
                     return lhs.updatedAt > rhs.updatedAt
@@ -270,5 +290,33 @@ extension Array where Element == CustomerGroomingRequest {
             }
             .prefix(limit)
             .map { $0 }
+    }
+}
+
+private struct CustomerRequestHistoryView: View {
+    let store: CustomerRequestsStore
+
+    var body: some View {
+        ScrollView {
+            LazyVStack(spacing: DesignTokens.Spacing.lg) {
+                let closed = store.requests.recentClosedRequests(limit: .max)
+                if !closed.isEmpty {
+                    CustomerCancelledRequestsSection(requests: closed, store: store,
+                        onRepublishRequest: { store.startRepublish(from: $0) }, title: "Closed Requests")
+                } else if !store.canLoadMoreRequests {
+                    ContentUnavailableView("No Closed Requests", systemImage: "clock.arrow.circlepath")
+                }
+                if let error = store.errorMessage { Text(error).foregroundStyle(DesignTokens.Colors.error) }
+                if store.canLoadMoreRequests || store.isLoadingMoreRequests {
+                    BeckonLoadMoreButton(isLoading: store.isLoadingMoreRequests, accent: .customer,
+                        accessibilityIdentifier: "customer.requests.history.load-more") {
+                        await store.loadNextRequestsPage()
+                    }
+                }
+            }
+            .padding(DesignTokens.Spacing.screenHorizontal)
+        }
+        .navigationTitle("Request History")
+        .accessibilityIdentifier("customer.requests.history-list")
     }
 }

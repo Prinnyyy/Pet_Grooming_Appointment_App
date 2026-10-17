@@ -8,6 +8,7 @@ struct GroomerAvailabilityEditorView: View {
     @Bindable var store: GroomerProfileStore
     @State private var isConfirmingReload = false
     @State private var isConfirmingLeave = false
+    @FocusState private var focusedBuffer: String?
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -19,8 +20,9 @@ struct GroomerAvailabilityEditorView: View {
             isBusy: store.isBusy
         )
 
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
+        ScrollViewReader { scrollProxy in
+          ScrollView {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
                 GroomerAvailabilityWeeklyHoursSection(
                     dayStates: $store.availabilityDayStates,
                     openDaysSummary: presentation.openDaysSummary
@@ -32,7 +34,7 @@ struct GroomerAvailabilityEditorView: View {
                     autoAcceptBookings: $store.autoAcceptBookings
                 )
 
-                GroomerTimingBuffersSection(store: store)
+                GroomerTimingBuffersSection(store: store, focusedField: $focusedBuffer)
 
                 GroomerTimeOffSection(store: store)
 
@@ -45,8 +47,11 @@ struct GroomerAvailabilityEditorView: View {
                 }
             }
             .disabled(store.isBusy)
-            .beckonPageInsets()
+            .beckonPageInsets(bottom: DesignTokens.Layout.stationaryActionContentClearance)
+          }
+          .beckonKeyboardAvoidance(focusedTarget: focusedBuffer, using: scrollProxy)
         }
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("groomer.availability.edit")
         .background(DesignTokens.Colors.background.ignoresSafeArea())
         .navigationTitle("Availability")
@@ -92,7 +97,7 @@ struct GroomerAvailabilityEditorView: View {
             store.isEditingAvailability = false
             store.discardAvailabilityEdits()
         }
-        .safeAreaInset(edge: .bottom, spacing: 0) {
+        .beckonStationaryPageAction {
             GroomerAvailabilitySaveActionBar(
                 presentation: presentation,
                 save: saveAvailability
@@ -107,48 +112,6 @@ struct GroomerAvailabilityEditorView: View {
     private func saveAvailability() {
         Task {
             await store.saveAvailability()
-        }
-    }
-}
-
-private struct GroomerAvailabilityMatchingSection: View {
-    @Binding var isActive: Bool
-
-    var body: some View {
-        BeckonSection(
-            "Request Matching",
-            subtitle: "Use your saved hours when Beckon finds compatible requests."
-        ) {
-            BeckonGroupedSurface {
-                HStack(spacing: DesignTokens.Spacing.md) {
-                    Image(systemName: "checkmark.circle")
-                        .font(.body.weight(.semibold))
-                        .foregroundStyle(
-                            isActive
-                                ? DesignTokens.Colors.success
-                                : DesignTokens.Colors.textSecondary
-                        )
-                        .frame(width: 28)
-                        .accessibilityHidden(true)
-
-                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                        Text("Available for requests")
-                            .font(DesignTokens.Typography.body.weight(.semibold))
-                            .foregroundStyle(DesignTokens.Colors.textPrimary)
-
-                        Text("Use your enabled hours for request matching.")
-                            .font(DesignTokens.Typography.caption)
-                            .foregroundStyle(DesignTokens.Colors.textSecondary)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                    Toggle("Available for requests", isOn: $isActive)
-                        .labelsHidden()
-                        .tint(DesignTokens.Colors.groomerAccent)
-                }
-                .padding(.horizontal, DesignTokens.Spacing.lg)
-                .padding(.vertical, DesignTokens.Spacing.md)
-            }
         }
     }
 }
@@ -176,16 +139,19 @@ private struct GroomerAvailabilityWeeklyHoursSection: View {
         } trailing: {
                 Text(openDaysSummary)
                     .font(DesignTokens.Typography.status)
-                    .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
+                    .foregroundStyle(DesignTokens.Colors.groomerOnAccent)
         }
     }
 }
 
 private struct GroomerAvailabilityDayRow: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Binding var dayState: GroomerAvailabilityDayState
 
     var body: some View {
-        HStack(spacing: DesignTokens.Spacing.sm) {
+        rowLayout {
+          HStack(spacing: DesignTokens.Spacing.md) {
             Text(dayState.weekday.shortTitle)
                 .font(DesignTokens.Typography.body.weight(.semibold))
                 .foregroundStyle(
@@ -193,17 +159,22 @@ private struct GroomerAvailabilityDayRow: View {
                         ? DesignTokens.Colors.textPrimary
                         : DesignTokens.Colors.textSecondary
                 )
-                .frame(width: 38, alignment: .leading)
+                .frame(minWidth: 38, alignment: .leading)
+                .fixedSize()
+                .accessibilityHidden(true)
+
+            if dynamicTypeSize.isAccessibilitySize {
+                Spacer(minLength: 0)
+                dayToggle
+            }
+          }
 
             if dayState.isEnabled {
-                HStack(spacing: DesignTokens.Spacing.xs) {
-                    GroomerAvailabilityTimeMenu(minutes: $dayState.startMinutes)
-
-                    Text("-")
-                        .font(DesignTokens.Typography.caption.weight(.semibold))
-                        .foregroundStyle(DesignTokens.Colors.textSecondary)
-
-                    GroomerAvailabilityTimeMenu(minutes: $dayState.endMinutes)
+                timeLayout {
+                    GroomerAvailabilityTimeMenu(minutes: $dayState.startMinutes,
+                        title: "Start", day: dayState.weekday.title)
+                    GroomerAvailabilityTimeMenu(minutes: $dayState.endMinutes,
+                        title: "End", day: dayState.weekday.title)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             } else {
@@ -213,18 +184,38 @@ private struct GroomerAvailabilityDayRow: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
 
-            Toggle(dayState.weekday.title, isOn: $dayState.isEnabled)
-                .labelsHidden()
-                .tint(DesignTokens.Colors.groomerAccent)
+            if !dynamicTypeSize.isAccessibilitySize { dayToggle }
         }
         .frame(minHeight: 64)
         .padding(.horizontal, DesignTokens.Spacing.lg)
-        .animation(.easeInOut(duration: 0.18), value: dayState.isEnabled)
+        .padding(.vertical, DesignTokens.Spacing.sm)
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.18), value: dayState.isEnabled)
+    }
+
+    private var dayToggle: some View {
+        Toggle(dayState.weekday.title, isOn: $dayState.isEnabled)
+            .labelsHidden()
+            .tint(DesignTokens.Colors.groomerAccent)
+            .accessibilityIdentifier("groomer.availability.day.\(dayState.weekday.rawValue)")
+    }
+
+    private var rowLayout: AnyLayout {
+        dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.sm))
+            : AnyLayout(HStackLayout(spacing: DesignTokens.Spacing.sm))
+    }
+
+    private var timeLayout: AnyLayout {
+        dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.sm))
+            : AnyLayout(HStackLayout(spacing: DesignTokens.Spacing.xs))
     }
 }
 
-private struct GroomerAvailabilityTimeMenu: View {
+struct GroomerAvailabilityTimeMenu: View {
     @Binding var minutes: Int
+    let title: String
+    let day: String
 
     var body: some View {
         Menu {
@@ -234,13 +225,16 @@ private struct GroomerAvailabilityTimeMenu: View {
                 }
             }
         } label: {
-            Text(GroomerAvailabilityWindow.displayTime(fromMinutes: minutes))
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                Text(title).font(DesignTokens.Typography.caption)
+                Text(GroomerAvailabilityWindow.displayTime(fromMinutes: minutes))
                 .font(DesignTokens.Typography.caption.weight(.semibold))
+            }
                 .foregroundStyle(DesignTokens.Colors.textPrimary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.76)
-                .frame(width: 70)
-                .frame(minHeight: 36)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, DesignTokens.Spacing.xs)
+                .padding(.vertical, DesignTokens.Spacing.xs)
+                .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
                 .background(DesignTokens.Colors.borderSoft.opacity(0.48))
                 .clipShape(
                     RoundedRectangle(
@@ -249,6 +243,9 @@ private struct GroomerAvailabilityTimeMenu: View {
                     )
                 )
         }
+        .accessibilityLabel("\(day), \(title.lowercased()) time")
+        .accessibilityValue(GroomerAvailabilityWindow.displayTime(fromMinutes: minutes))
+        .accessibilityIdentifier("groomer.availability.\(day.lowercased()).\(title.lowercased())")
     }
 
     private static let timeOptions: [Int] = stride(
@@ -260,8 +257,9 @@ private struct GroomerAvailabilityTimeMenu: View {
 }
 
 private struct GroomerTimingBuffersSection: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Bindable var store: GroomerProfileStore
-    @FocusState private var focusedField: String?
+    var focusedField: FocusState<String?>.Binding
 
     var body: some View {
         BeckonSection("Timing Buffers", subtitle: "Minutes") {
@@ -272,35 +270,36 @@ private struct GroomerTimingBuffersSection: View {
                 field("Mobile travel after", id: "outbound", text: $store.outboundTravelMinutesText)
             }
         }
-        .toolbar {
-            ToolbarItemGroup(placement: .keyboard) {
-                Spacer()
-                Button { focusedField = nil } label: { Image(systemName: "checkmark") }
-                    .accessibilityLabel("Done")
-            }
-        }
     }
 
     private func field(_ title: String, id: String, text: Binding<String>) -> some View {
-        HStack(spacing: DesignTokens.Spacing.md) {
+        fieldLayout {
             Text(title)
                 .font(DesignTokens.Typography.body)
                 .foregroundStyle(DesignTokens.Colors.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
-            Spacer(minLength: DesignTokens.Spacing.sm)
+            if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: DesignTokens.Spacing.sm) }
             TextField("Required", text: text)
                 .keyboardType(.numberPad)
                 .multilineTextAlignment(.trailing)
-                .focused($focusedField, equals: id)
+                .focused(focusedField, equals: id)
                 .beckonFormField()
-                .frame(width: 110)
+                .frame(width: dynamicTypeSize.isAccessibilitySize ? nil : 110)
                 .accessibilityLabel(title)
                 .accessibilityIdentifier("groomer.availability.buffers.\(id)")
         }
+        .beckonKeyboardFocusTarget(id)
+    }
+
+    private var fieldLayout: AnyLayout {
+        dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.sm))
+            : AnyLayout(HStackLayout(spacing: DesignTokens.Spacing.md))
     }
 }
 
 private struct GroomerBookingPreferencesSection: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Binding var maxAppointmentsPerDay: Int
     @Binding var minimumAdvanceNoticeDays: Int
     @Binding var autoAcceptBookings: Bool
@@ -322,7 +321,7 @@ private struct GroomerBookingPreferencesSection: View {
         ) {
             BeckonGroupedSurface {
                 VStack(spacing: 0) {
-                    HStack(spacing: DesignTokens.Spacing.md) {
+                    preferenceLayout {
                         preferenceText(
                             title: "Daily capacity",
                             subtitle: presentation.capacitySummary
@@ -337,13 +336,15 @@ private struct GroomerBookingPreferencesSection: View {
                         } label: {
                             preferenceMenuLabel("\(maxAppointmentsPerDay) / day")
                         }
+                        .accessibilityLabel("Daily capacity")
+                        .accessibilityValue(presentation.capacitySummary)
                     }
                     .padding(.horizontal, DesignTokens.Spacing.lg)
                     .padding(.vertical, DesignTokens.Spacing.md)
 
                     BeckonGroupedDivider(leadingInset: DesignTokens.Spacing.lg)
 
-                    HStack(spacing: DesignTokens.Spacing.md) {
+                    preferenceLayout {
                         preferenceText(
                             title: "Advance notice",
                             subtitle: presentation.advanceNoticeSummary
@@ -358,6 +359,8 @@ private struct GroomerBookingPreferencesSection: View {
                         } label: {
                             preferenceMenuLabel(Self.advanceNoticeMenuTitle(for: minimumAdvanceNoticeDays))
                         }
+                        .accessibilityLabel("Advance notice")
+                        .accessibilityValue(presentation.advanceNoticeSummary)
                     }
                     .padding(.horizontal, DesignTokens.Spacing.lg)
                     .padding(.vertical, DesignTokens.Spacing.md)
@@ -390,7 +393,7 @@ private struct GroomerBookingPreferencesSection: View {
             Text(subtitle)
                 .font(DesignTokens.Typography.caption)
                 .foregroundStyle(DesignTokens.Colors.textSecondary)
-                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -399,8 +402,8 @@ private struct GroomerBookingPreferencesSection: View {
         HStack(spacing: DesignTokens.Spacing.xs) {
             Text(title)
                 .font(DesignTokens.Typography.caption.weight(.semibold))
-                .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
-                .lineLimit(1)
+                .foregroundStyle(DesignTokens.Colors.groomerOnAccent)
+                .fixedSize(horizontal: false, vertical: true)
 
             Image(systemName: "chevron.up.chevron.down")
                 .font(.caption2.weight(.bold))
@@ -408,6 +411,7 @@ private struct GroomerBookingPreferencesSection: View {
         }
         .padding(.horizontal, DesignTokens.Spacing.sm)
         .padding(.vertical, DesignTokens.Spacing.xs)
+        .frame(minWidth: 44, minHeight: 44)
         .background(DesignTokens.Colors.borderSoft.opacity(0.48))
         .clipShape(
             RoundedRectangle(
@@ -415,6 +419,12 @@ private struct GroomerBookingPreferencesSection: View {
                 style: .continuous
             )
         )
+    }
+
+    private var preferenceLayout: AnyLayout {
+        dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.sm))
+            : AnyLayout(HStackLayout(spacing: DesignTokens.Spacing.md))
     }
 
     private static func advanceNoticeMenuTitle(for days: Int) -> String {

@@ -523,7 +523,8 @@ final class TestOpsMarketplaceAcceptanceTests: XCTestCase {
             } else {
                 tap(element("customer.tab.home"))
                 tap(element("customer.home.start-request"))
-                let candidates = app.buttons.matching(identifier: "customer.requests.wizard.pet.\(row.species)")
+                let candidates = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@",
+                    "customer.requests.wizard.pet.\(row.species)."))
                 let selected = candidates.matching(NSPredicate(format: "label BEGINSWITH %@", row.petName + ","))
                 let exact = row.petWeight.map { selected.matching(NSPredicate(format: "label CONTAINS %@", String(format: "%g lbs", $0))) }
                     ?? selected.matching(NSPredicate(format: "NOT label CONTAINS ' lbs'"))

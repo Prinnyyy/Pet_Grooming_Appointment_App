@@ -232,7 +232,7 @@ struct CustomerRequestAddressIntegrationTests {
         let draft = GroomingRequestDraft(
             petID: UUID(),
             serviceType: .fullGroom,
-            serviceNotes: nil,
+            serviceNotes: "Please keep the coat long.",
             preferredStart: Date(timeIntervalSince1970: 1_750_000_000),
             preferredEnd: Date(timeIntervalSince1970: 1_750_003_600),
             locationMode: .groomerComesToCustomer,
@@ -267,6 +267,20 @@ struct CustomerRequestAddressIntegrationTests {
             let actual = try #require(payload[field])
             #expect(NSDictionary(dictionary: [field: value]).isEqual(to: [field: actual]))
         }
+        var replacement = draft
+        replacement.supersedingRequestID = UUID()
+        replacement.expectedRequestRevision = UUID()
+        let previewData = try JSONEncoder().encode(PrepareRequestDiscoveryParameters(draftID: UUID(), draft: replacement))
+        let preview = try #require(JSONSerialization.jsonObject(with: previewData) as? [String: Any])
+        let previewInput = try #require(preview["p_input"] as? [String: Any])
+        for (key, value) in payload where key != "service_notes" {
+            #expect(NSDictionary(dictionary: [key: value]).isEqual(to: [key: try #require(previewInput[key])]))
+        }
+        #expect(previewInput["service_notes"] as? String == replacement.serviceNotes)
+        #expect(previewInput["preference_time_zone_identifier"] as? String == "America/Los_Angeles")
+        #expect(previewInput["superseding_request_id"] as? String == replacement.supersedingRequestID?.uuidString.lowercased())
+        #expect(previewInput["expected_request_revision"] as? String == replacement.expectedRequestRevision?.uuidString.lowercased())
+        #expect(previewInput["publish_operation_id"] == nil)
         var missingZone = draft
         missingZone.confirmedAddress?.timeZoneIdentifier = nil
         #expect(throws: (any Error).self) {

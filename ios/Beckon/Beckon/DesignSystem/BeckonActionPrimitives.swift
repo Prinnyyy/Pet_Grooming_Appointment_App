@@ -299,7 +299,7 @@ struct BeckonStatusChip: View {
             case .customer:
                 DesignTokens.Colors.customerAccentStrong
             case .groomer:
-                DesignTokens.Colors.groomerAccentDark
+                DesignTokens.Colors.groomerOnAccent
             case .success:
                 DesignTokens.Colors.successText
             case .warning:
@@ -366,7 +366,7 @@ struct BeckonStatusChip: View {
             }
 
             Text(title)
-                .lineLimit(1)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .font(DesignTokens.Typography.caption.weight(.semibold))
         .foregroundStyle(tone.foreground)

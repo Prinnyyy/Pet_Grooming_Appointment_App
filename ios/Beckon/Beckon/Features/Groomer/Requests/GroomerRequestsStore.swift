@@ -22,6 +22,11 @@ final class GroomerRequestsStore {
     private(set) var rankedPage: RankedPage<GroomerMatchedRequest>?
     private(set) var sort: GroomerMatchSort
     private(set) var listNeedsRefresh = false
+    private(set) var authorizedDetail: GroomerMatchedRequest?
+    private(set) var isLoadingDetail = false
+    private(set) var detailError: String?
+    private var activeDetailID: UUID?
+    private var detailGeneration = UUID()
     private let sortPreferences: MatchSortPreferenceStore
     private var listGeneration = UUID()
     private var sessionIsCurrent: @MainActor () -> Bool = { true }
@@ -74,6 +79,7 @@ final class GroomerRequestsStore {
     }
 
     func invalidateSession() {
+        closeDetail()
         listGeneration = UUID()
         matchedRequests = []
         rankedPage = nil
@@ -95,7 +101,53 @@ final class GroomerRequestsStore {
     }
 
     func matchedRequest(withID id: UUID) -> GroomerMatchedRequest? {
-        matchedRequests.first { $0.id == id }
+        if authorizedDetail?.id == id { return authorizedDetail }
+        return matchedRequests.first { $0.id == id }
+    }
+
+    func openDetail(matchID: UUID) async {
+        guard sessionIsCurrent() else { return }
+        if activeDetailID != matchID { authorizedDetail = nil }
+        activeDetailID = matchID
+        await refreshDetail()
+        if let detail = authorizedDetail { try? await loadAdditionalRequestPhotos(for: [detail]) }
+    }
+
+    func closeDetail() {
+        detailGeneration = UUID()
+        activeDetailID = nil
+        authorizedDetail = nil
+        isLoadingDetail = false
+        detailError = nil
+    }
+
+    private func refreshDetail() async {
+        guard let id = activeDetailID, let summary = matchedRequest(withID: id), sessionIsCurrent() else { return }
+        let operation = UUID()
+        detailGeneration = operation
+        isLoadingDetail = true
+        detailError = nil
+        defer { if detailGeneration == operation { isLoadingDetail = false } }
+        do {
+            let detail = try await repository.matchedRequest(groomerID: groomerID, requestID: summary.request.id)
+            try Task.checkCancellation()
+            guard detailGeneration == operation, sessionIsCurrent() else { return }
+            guard detail.id == id, detail.request.id == summary.request.id, detail.match.groomerID == groomerID else {
+                throw GroomerRequestRepositoryError.notAllowed
+            }
+            authorizedDetail = detail
+        } catch {
+            guard detailGeneration == operation, sessionIsCurrent() else { return }
+            authorizedDetail = nil
+            clearPhotos(requestID: summary.request.id)
+            detailError = message(for: (error as? GroomerRequestRepositoryError) ?? .unavailable, action: "load")
+        }
+    }
+
+    private func clearPhotos(requestID: UUID) {
+        for photo in requestPhotosByRequestID.removeValue(forKey: requestID) ?? [] {
+            requestPhotoDataByID[photo.id] = nil
+        }
     }
 
     func requestPhotos(
@@ -137,6 +189,7 @@ final class GroomerRequestsStore {
             matchedRequests = page.items
             rankedPage = page
             listNeedsRefresh = false
+            await refreshDetail()
             try await loadRequestPhotos(for: matchedRequests)
             recordStoreSuccess(
                 "load",
@@ -636,6 +689,7 @@ final class GroomerRequestsStore {
     }
 
     private func replace(_ matchedRequest: GroomerMatchedRequest) {
+        if authorizedDetail?.id == matchedRequest.id { authorizedDetail = matchedRequest }
         guard let index = matchedRequests.firstIndex(
             where: { $0.id == matchedRequest.id }
         ) else { return }
@@ -669,6 +723,7 @@ final class GroomerRequestsStore {
         let data = await requestPhotoDataMap(for: photos)
         try Task.checkCancellation()
         guard generation == listGeneration, sessionIsCurrent() else { return }
+        for item in matchedRequests { clearPhotos(requestID: item.request.id) }
         for (requestID, requestPhotos) in Dictionary(grouping: photos, by: \.requestID) {
             requestPhotosByRequestID[requestID] = ListPageMerge.appendingUnique(
                 requestPhotos,

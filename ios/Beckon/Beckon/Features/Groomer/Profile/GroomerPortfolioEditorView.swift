@@ -73,6 +73,7 @@ struct GroomerPortfolioEditorView: View {
 }
 
 private struct GroomerPortfolioGallerySection: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let photos: [GroomerPortfolioPhoto]
     @Bindable var store: GroomerProfileStore
     let presentation: GroomerPortfolioWorkspacePresentation
@@ -103,7 +104,7 @@ private struct GroomerPortfolioGallerySection: View {
                         .accessibilityIdentifier("groomer.portfolio.empty")
                 } else {
                     LazyVGrid(
-                        columns: Self.photoGridColumns,
+                        columns: dynamicTypeSize.isAccessibilitySize ? [GridItem(.flexible())] : Self.photoGridColumns,
                         alignment: .leading,
                         spacing: DesignTokens.Spacing.lg
                     ) {
@@ -128,8 +129,7 @@ private struct GroomerPortfolioGallerySection: View {
         } trailing: {
                 Text(presentation.photoSummary)
                     .font(DesignTokens.Typography.status)
-                    .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
-                    .lineLimit(1)
+                    .foregroundStyle(DesignTokens.Colors.groomerOnAccent)
         }
     }
 
@@ -179,18 +179,17 @@ private struct GroomerPortfolioPhotoTile: View {
             Text(captionText ?? "Work photo")
                 .font(DesignTokens.Typography.body.weight(.semibold))
                 .foregroundStyle(DesignTokens.Colors.textPrimary)
-                .lineLimit(2)
-                .minimumScaleFactor(0.82)
+                .fixedSize(horizontal: false, vertical: true)
 
             Text(store.portfolioFitTagSummary(for: photo))
                 .font(DesignTokens.Typography.caption)
                 .foregroundStyle(DesignTokens.Colors.textSecondary)
-                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
 
             Label("Edit fit notes", systemImage: "chevron.right")
                 .font(DesignTokens.Typography.caption.weight(.semibold))
-                .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
-                .lineLimit(1)
+                .foregroundStyle(DesignTokens.Colors.groomerOnAccent)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
@@ -299,12 +298,12 @@ private struct GroomerPortfolioPhotoDetailSummary: View {
             Text(title)
                 .font(DesignTokens.Typography.title)
                 .foregroundStyle(DesignTokens.Colors.textPrimary)
-                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
 
             Text(fitNoteSummary)
                 .font(DesignTokens.Typography.body)
-                .foregroundStyle(DesignTokens.Colors.textSecondary)
-                .lineLimit(2)
+                .foregroundStyle(DesignTokens.Colors.textTertiary)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -337,7 +336,6 @@ private struct GroomerPortfolioPhotoArtwork: View {
                             .foregroundStyle(presentation.foregroundColor)
                             .lineLimit(2)
                             .multilineTextAlignment(.center)
-                            .minimumScaleFactor(0.82)
                             .padding(.horizontal, DesignTokens.Spacing.xs)
                     }
                 }
@@ -383,18 +381,19 @@ struct GroomerPortfolioArtworkPresentation: Equatable {
 
     var foregroundColor: Color {
         isUnavailable
-            ? DesignTokens.Colors.warning
-            : DesignTokens.Colors.groomerAccentDark
+            ? DesignTokens.Colors.warningText
+            : DesignTokens.Colors.groomerOnAccent
     }
 
     var backgroundColor: Color {
         isUnavailable
-            ? DesignTokens.Colors.warning.opacity(0.12)
+            ? DesignTokens.Colors.surface
             : DesignTokens.Colors.groomerAccent.opacity(0.08)
     }
 }
 
 private struct GroomerPortfolioFitNotesEditorSection: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let photo: GroomerPortfolioPhoto
     @Bindable var store: GroomerProfileStore
     let presentation: GroomerPortfolioFitNotesPresentation
@@ -416,7 +415,7 @@ private struct GroomerPortfolioFitNotesEditorSection: View {
                     if store.hasLoadedPortfolioTags {
                     Text(presentation.selectionSummary)
                         .font(DesignTokens.Typography.caption.weight(.semibold))
-                        .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
+                        .foregroundStyle(DesignTokens.Colors.groomerOnAccent)
 
                     ForEach(Self.visibleGroups) { group in
                         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
@@ -425,7 +424,7 @@ private struct GroomerPortfolioFitNotesEditorSection: View {
                                 .foregroundStyle(DesignTokens.Colors.textSecondary)
 
                             LazyVGrid(
-                                columns: [
+                                columns: dynamicTypeSize.isAccessibilitySize ? [GridItem(.flexible())] : [
                                     GridItem(
                                         .adaptive(minimum: 132),
                                         spacing: DesignTokens.Spacing.sm
@@ -477,15 +476,14 @@ private struct GroomerPortfolioFitTagChip: View {
             HStack(spacing: DesignTokens.Spacing.xs) {
                 Text(signal.title)
                     .font(DesignTokens.Typography.caption.weight(.semibold))
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.82)
+                    .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
                 Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(
                         isSelected
-                            ? DesignTokens.Colors.groomerAccentDark
+                            ? DesignTokens.Colors.groomerOnAccent
                             : DesignTokens.Colors.textTertiary
                     )
                     .accessibilityHidden(true)

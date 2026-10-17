@@ -11,6 +11,8 @@ Normal text requires at least 4.5:1 contrast; large text and meaningful UI graph
 | `textPrimary #333333` | surface or app background | Primary text. |
 | `textPrimary #333333` | Customer accent or accentSoft | Customer primary-action foreground. |
 | `groomerOnAccent #642620` | coral or coralDark | Groomer action foreground. |
+| `groomerOnAccent #642620` | surface, app background or 14% coral on surface | Groomer navigation/emphasis; measured 11.41:1, 10.68:1 and 10.36:1 respectively (T-402). |
+| surface white | `groomerOnAccent #642620` | Groomer compact send icon; 11.41:1. This does not permit white on coral. |
 | `customerHeroText #333333` | Display P3 Hero mint | Customer Hero title and supporting copy. |
 | `customerHeroText #333333` | surface white | Customer Hero action foreground. |
 | `textTertiary #69717A` | surface or app background | Tertiary text. |

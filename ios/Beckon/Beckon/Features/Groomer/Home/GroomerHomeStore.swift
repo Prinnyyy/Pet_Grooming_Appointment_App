@@ -47,8 +47,12 @@ final class GroomerHomeStore {
     private(set) var profile: GroomerProfile?
     private(set) var businessName: String
     private(set) var avatarPhotoData: Data?
-    private(set) var newMatchCount = 0
-    private(set) var pendingOfferCount = 0
+    private(set) var newMatchCount: Int?
+    private(set) var pendingOfferCount: Int?
+    private(set) var hasMoreMatches = false
+    private(set) var hasMoreOffers = false
+    private var profileIsCurrent = false
+    private var availabilityIsCurrent = false
     private(set) var bookings: [Booking] = []
     private(set) var bookingsVerifiedAt: Date?
     private(set) var nextBookingPhotoData: Data?
@@ -108,8 +112,9 @@ final class GroomerHomeStore {
     }
 
     var availabilityState: GroomerHomeAvailabilityState {
-        guard let profile else { return .unavailable }
+        guard profileIsCurrent, let profile else { return .unavailable }
         guard profile.isActive else { return .paused }
+        guard availabilityIsCurrent else { return .unavailable }
         return availabilityWindows.contains(where: { $0.isEnabled })
             ? .available
             : .needsSchedule
@@ -121,6 +126,12 @@ final class GroomerHomeStore {
         let startedAt = Date()
         isLoading = true
         issues = []
+        newMatchCount = nil
+        pendingOfferCount = nil
+        hasMoreMatches = false
+        hasMoreOffers = false
+        profileIsCurrent = false
+        availabilityIsCurrent = false
         defer { isLoading = false }
         record("start", startedAt: startedAt)
 
@@ -137,8 +148,8 @@ final class GroomerHomeStore {
             metadata: [
                 "bookingCount": "\(bookings.count)",
                 "issueCount": "\(issues.count)",
-                "newMatchCount": "\(newMatchCount)",
-                "pendingOfferCount": "\(pendingOfferCount)",
+                "newMatchCount": newMatchCount.map(String.init) ?? "unknown",
+                "pendingOfferCount": pendingOfferCount.map(String.init) ?? "unknown",
             ]
         )
     }
@@ -147,6 +158,7 @@ final class GroomerHomeStore {
         do {
             let loadedProfile = try await profileRepository.profile(groomerID: groomerID)
             profile = loadedProfile
+            profileIsCurrent = true
             businessName = Self.normalized(loadedProfile.businessName) ?? businessName
 
             if let avatarPath = Self.normalized(loadedProfile.avatarPath) {
@@ -197,6 +209,7 @@ final class GroomerHomeStore {
             availabilityWindows = try await profileRepository.availabilityWindows(
                 groomerID: groomerID
             )
+            availabilityIsCurrent = true
         } catch GroomerProfileRepositoryError.cancelled {
             return
         } catch let error as GroomerProfileRepositoryError {
@@ -229,6 +242,7 @@ final class GroomerHomeStore {
                     && (matchedRequest.match.status == .visible
                         || matchedRequest.match.status == .viewed)
             }.count
+            hasMoreMatches = page.hasMore
         } catch GroomerRequestRepositoryError.cancelled {
             return
         } catch let error as GroomerRequestRepositoryError {
@@ -257,6 +271,7 @@ final class GroomerHomeStore {
                 page: .first
             )
             pendingOfferCount = page.items.filter { $0.offer.status == .pending }.count
+            hasMoreOffers = page.hasMore
         } catch GroomerRequestRepositoryError.cancelled {
             return
         } catch let error as GroomerRequestRepositoryError {

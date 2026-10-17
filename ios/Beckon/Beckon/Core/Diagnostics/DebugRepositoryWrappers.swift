@@ -1,5 +1,33 @@
 import Foundation
 
+#if DEBUG && targetEnvironment(simulator)
+enum DebugDiscoveryPublicationFault {
+    static func dropsReceipt(for intent: PendingRequestPublication, arguments: [String]) -> Bool {
+        guard arguments.contains("--beckon-testops-discovery-drop-receipt"),
+              let run = AppTestOpsConfiguration(arguments: arguments).runID,
+              run.range(of: "^TESTOPS-T399-[A-Z0-9-]{1,70}$", options: .regularExpression) != nil,
+              let index = arguments.firstIndex(of: "--beckon-testops-discovery-customer"),
+              index + 1 < arguments.count,
+              UUID(uuidString: arguments[index + 1]) == intent.customerID,
+              intent.draft.serviceNotes == "TESTOPS:\(run)", intent.protocolVersion == .discoveryV1 else { return false }
+        return true
+    }
+}
+
+enum DebugDiscoveryBrowseFault {
+    static func failsReadAfterInitialPage(draft: GroomingRequestDraft, customerID: UUID?, arguments: [String]) -> Bool {
+        guard arguments.contains("--beckon-testops-discovery-fail-read"),
+              let run = AppTestOpsConfiguration(arguments: arguments).runID,
+              run.range(of: "^TESTOPS-T399-[A-Z0-9-]{1,70}$", options: .regularExpression) != nil,
+              let index = arguments.firstIndex(of: "--beckon-testops-discovery-customer"),
+              index + 1 < arguments.count, let customerID,
+              UUID(uuidString: arguments[index + 1]) == customerID,
+              draft.serviceNotes == "TESTOPS:\(run)" else { return false }
+        return true
+    }
+}
+#endif
+
 extension UserRole {
     var appDebugScopePrefix: String {
         switch self {
@@ -891,8 +919,9 @@ final class DebugCustomerPetRepository: CustomerPetRepository {
 
     func createPet(
         customerID: UUID,
+        operationID: UUID,
         draft: CustomerPetDraft
-    ) async throws -> CustomerPet {
+    ) async throws -> CustomerPetSaveResult {
         try await debugRepositoryCall(
             recorder: debugRecorder,
             source: "CustomerPetRepository.createPet",
@@ -900,12 +929,13 @@ final class DebugCustomerPetRepository: CustomerPetRepository {
             operation: "createPet",
             metadata: ["customerID": customerID.uuidString, "table": "pets"]
         ) {
-            try await base.createPet(customerID: customerID, draft: draft)
+            try await base.createPet(customerID: customerID, operationID: operationID, draft: draft)
         }
     }
 
     func updatePet(
-        pet: CustomerPet,
+        petID: UUID,
+        expectedRevision: UUID,
         draft: CustomerPetDraft
     ) async throws -> CustomerPet {
         try await debugRepositoryCall(
@@ -913,10 +943,14 @@ final class DebugCustomerPetRepository: CustomerPetRepository {
             source: "CustomerPetRepository.updatePet",
             scope: "customer.pets",
             operation: "updatePet",
-            metadata: ["petID": pet.id.uuidString, "table": "pets"]
+            metadata: ["petID": petID.uuidString, "table": "pets"]
         ) {
-            try await base.updatePet(pet: pet, draft: draft)
+            try await base.updatePet(petID: petID, expectedRevision: expectedRevision, draft: draft)
         }
+    }
+
+    func pet(customerID: UUID, petID: UUID) async throws -> CustomerPet? {
+        try await base.pet(customerID: customerID, petID: petID)
     }
 
     func softDeletePet(_ pet: CustomerPet) async throws {

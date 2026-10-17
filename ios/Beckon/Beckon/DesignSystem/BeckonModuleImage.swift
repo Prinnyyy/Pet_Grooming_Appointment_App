@@ -160,6 +160,7 @@ struct BeckonAnnotatedModule<Content: View>: View {
 }
 
 struct BeckonPhotoEditorCard<Preview: View, Action: View>: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let title: String
     let statusText: String
     let showsSavedIndicator: Bool
@@ -185,7 +186,7 @@ struct BeckonPhotoEditorCard<Preview: View, Action: View>: View {
 
     var body: some View {
         BeckonCard {
-            HStack(alignment: .center, spacing: DesignTokens.Spacing.lg) {
+            contentLayout {
                 ZStack(alignment: .bottomTrailing) {
                     preview
 
@@ -203,6 +204,7 @@ struct BeckonPhotoEditorCard<Preview: View, Action: View>: View {
                         Text(title)
                             .font(DesignTokens.Typography.headline)
                             .foregroundStyle(DesignTokens.Colors.textPrimary)
+                            .fixedSize(horizontal: false, vertical: true)
 
                         Text(statusText)
                             .font(DesignTokens.Typography.caption)
@@ -215,6 +217,12 @@ struct BeckonPhotoEditorCard<Preview: View, Action: View>: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
+    }
+
+    private var contentLayout: AnyLayout {
+        dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.lg))
+            : AnyLayout(HStackLayout(alignment: .center, spacing: DesignTokens.Spacing.lg))
     }
 }
 

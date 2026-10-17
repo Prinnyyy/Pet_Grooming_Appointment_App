@@ -329,6 +329,7 @@ struct CustomerNotificationsStoreTests {
 
 @MainActor
 final class CustomerNotificationRepositoryFake: CustomerNotificationRepository {
+    var persistsReadUpdates = false
     var notificationsResult: Result<[CustomerNotification], CustomerNotificationRepositoryError>
     var notificationPages: [Result<ListPage<CustomerNotification>, CustomerNotificationRepositoryError>]
     var markReadResult: Result<CustomerNotification, CustomerNotificationRepositoryError>
@@ -385,7 +386,11 @@ final class CustomerNotificationRepositoryFake: CustomerNotificationRepository {
         if markReadDelayNanoseconds > 0 {
             try await Task.sleep(nanoseconds: markReadDelayNanoseconds)
         }
-        return try markReadResult.get()
+        let result = try markReadResult.get()
+        if persistsReadUpdates, case let .success(items) = notificationsResult {
+            notificationsResult = .success(items.map { $0.id == result.id ? result : $0 })
+        }
+        return result
     }
 
     func markAllRead(customerID: UUID) async throws -> [CustomerNotification] {

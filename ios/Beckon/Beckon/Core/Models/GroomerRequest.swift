@@ -220,9 +220,21 @@ struct GroomerMatchedGroomingRequest:
 
     var preferenceTimeZoneIdentifier: String? = nil
     var termsRevision: UUID? = nil
+    var poolEnabled: Bool? = nil
+    var invitationState: RequestInvitationState? = nil
+
+    var distributionSourceTitle: String? {
+        guard let poolEnabled, let invitationState else { return nil }
+        switch invitationState {
+        case .awaitingResponse, .offered: return poolEnabled ? "Invited + Request Pool" : "Invited"
+        case .notSent: return poolEnabled ? "Request Pool" : nil
+        case .withdrawn, .expired, .declined, .closed: return poolEnabled ? "Request Pool" : "Previous Invitation"
+        }
+    }
 
     var locationSummary: String {
-        "\(streetAddress), \(city), \(state) \(zipCode)"
+        let region = [state, zipCode].filter { !$0.isEmpty }.joined(separator: " ")
+        return [streetAddress, city, region].filter { !$0.isEmpty }.joined(separator: ", ")
     }
 }
 
@@ -537,7 +549,10 @@ extension GroomerMatchedGroomingRequest {
             expiresAt: expiresAt,
             createdAt: createdAt,
             updatedAt: updatedAt,
-            preferenceTimeZoneIdentifier: preferenceTimeZoneIdentifier
+            preferenceTimeZoneIdentifier: preferenceTimeZoneIdentifier,
+            termsRevision: termsRevision,
+            poolEnabled: poolEnabled,
+            invitationState: invitationState
         )
     }
 }

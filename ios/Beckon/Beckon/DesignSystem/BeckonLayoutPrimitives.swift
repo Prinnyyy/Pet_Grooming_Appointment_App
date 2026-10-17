@@ -287,6 +287,7 @@ struct BeckonSettingsNavigationRow<Destination: View>: View {
 }
 
 struct BeckonSectionHeading<Trailing: View>: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let title: String
     let subtitle: String?
     let trailing: Trailing
@@ -302,7 +303,7 @@ struct BeckonSectionHeading<Trailing: View>: View {
     }
 
     var body: some View {
-        HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
+        headingLayout {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                 Text(title)
                     .font(DesignTokens.Typography.sectionTitle)
@@ -312,7 +313,8 @@ struct BeckonSectionHeading<Trailing: View>: View {
                 if let subtitle {
                     Text(subtitle)
                         .font(DesignTokens.Typography.supporting)
-                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+                        .foregroundStyle(DesignTokens.Colors.textTertiary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -320,5 +322,11 @@ struct BeckonSectionHeading<Trailing: View>: View {
             trailing
         }
         .accessibilityElement(children: .contain)
+    }
+
+    private var headingLayout: AnyLayout {
+        dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.sm))
+            : AnyLayout(HStackLayout(alignment: .top, spacing: DesignTokens.Spacing.md))
     }
 }

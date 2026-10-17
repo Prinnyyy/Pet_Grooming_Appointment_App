@@ -1298,7 +1298,8 @@ struct BookingsStoreTests {
         customerZipCode: String? = nil,
         requestPetSnapshot: GroomingRequestPetSnapshot? = nil,
         scheduledStart: String = "2026-06-22T16:00:00Z",
-        scheduledEnd: String = "2026-06-22T18:00:00Z"
+        scheduledEnd: String = "2026-06-22T18:00:00Z",
+        serviceTimeZoneIdentifier: String? = nil
     ) -> Booking {
         Booking(
             id: id,
@@ -1329,7 +1330,8 @@ struct BookingsStoreTests {
             customerStreetAddress: customerStreetAddress,
             customerCity: customerCity,
             customerState: customerState,
-            customerZipCode: customerZipCode
+            customerZipCode: customerZipCode,
+            serviceTimeZoneIdentifier: serviceTimeZoneIdentifier
         )
     }
 

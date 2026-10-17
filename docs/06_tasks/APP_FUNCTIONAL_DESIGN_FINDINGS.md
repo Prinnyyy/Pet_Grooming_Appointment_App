@@ -6,6 +6,8 @@ Reviewed source baseline: `fc7da7317938500b53100330363f91d4e71ab208` on `codex/p
 
 Status: local functional remediation and acceptance completed through T-385 on 2026-09-10. WP-00...WP-14 account for all 22 items and eight review corrections; [final acceptance and limits](sql_reviews/T-385_RELEASE_CHECKPOINT.md) maps each to specific evidence. Two independent Simulators satisfy the user's scope; physical devices, signing and store distribution are excluded, not deferred blockers. Original review observations below remain historical.
 
+Documentation closeout: T-365 and T-366 closed on 2026-10-17 under T-405 at the user's request; neither remains pending work. This register and its matching addendum first entered Git in T-386 (`2be279f4`). Original authorship and observations are preserved; no separate historical completion commit is asserted. This is documentation reconciliation only, not repeated functional implementation or acceptance.
+
 Register: 15 findings (F-01 through F-15), 3 simplification candidates (C-01 through C-03), and 4 lifecycle policy questions (L-01 through L-04). Policy questions and remaining matching checks are not confirmed implementation defects.
 
 ## Scope And Evidence
@@ -86,7 +88,7 @@ The preceding review inspected the main authentication/role, pet/profile, reques
 
 - Status: resolved by T-381/WP-10 and T-385 actual integration. T-385 discovered and removed the remaining shared-page disappearance bulk-read call, added explicit Mark All Read, and verified old notifications open current Withdrawn/Cancelled states. See [package acceptance](sql_reviews/T-381_NOTIFICATION_ACCEPTANCE.md) and [final integration](sql_reviews/T-385_RELEASE_CHECKPOINT.md). Original evidence below is historical.
 - Trigger and impact: customer notifications contain related request/offer/booking IDs, but their view supplies no selection action. A user reading New Offer must manually locate the request. Leaving the shared page marks loaded notifications read, even when not individually opened.
-- Evidence: [CustomerNotification.swift](../../ios/Beckon/Beckon/Core/Models/CustomerNotification.swift), related IDs; [CustomerNotificationsView.swift](../../ios/Beckon/Beckon/Features/Customer/Notifications/CustomerNotificationsView.swift); [BeckonSystemNotifications.swift](../../ios/Beckon/Beckon/DesignSystem/BeckonSystemNotifications.swift), `selectAction` and `onDisappear`.
+- Evidence: [CustomerNotification.swift](../../ios/Beckon/Beckon/Core/Models/CustomerNotification.swift), related IDs; [CustomerNotificationsView.swift](../../ios/Beckon/Beckon/Features/Customer/Notifications/CustomerNotificationsView.swift); [BeckonSystemNotifications.swift](../../ios/Beckon/Beckon/SharedFeatures/Notifications/BeckonSystemNotifications.swift), `selectAction` and `onDisappear`.
 - Proposed direction: connect related notifications to existing destinations and separately decide whether read marking should depend on visibility, opening, or an explicit action.
 - Follow-up validation: each notification kind, stale/deleted targets, unloaded destination data, and read-state behavior. APNs deployment is not part of this finding.
 

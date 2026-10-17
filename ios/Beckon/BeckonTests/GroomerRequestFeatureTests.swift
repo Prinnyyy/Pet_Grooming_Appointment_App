@@ -35,6 +35,7 @@ final class GroomerOfferTimingRenderingTests: XCTestCase {
         request.preferenceTimeZoneIdentifier = "America/New_York"
         let matched = GroomerMatchedRequest(match: base.match, request: request, offer: nil)
         let repository = GroomerRequestRepositoryFake(matchedRequestsResult: .success([matched]))
+        repository.exactMatchResult = .success(matched)
         let profiles = GroomerProfileRepositoryFake()
         var pending: CheckedContinuation<Void, Never>?
         var firstReadWasCancelled = false
@@ -149,6 +150,7 @@ final class GroomerOfferTimingRenderingTests: XCTestCase {
         }
         let matched = GroomerMatchedRequest(match: match, request: request, offer: nil)
         let repository = GroomerRequestRepositoryFake(matchedRequestsResult: .success([matched]))
+        repository.exactMatchResult = .success(matched)
         let profiles = GroomerProfileRepositoryFake()
         if destinationFailure { profiles.profileResult = .failure(.networkUnavailable) }
         let store = GroomerRequestsStore(groomerID: owner, repository: repository,
@@ -1105,6 +1107,8 @@ struct GroomerRequestsStoreTests {
 
     static func matchedRequest(
         groomerID: UUID,
+        petName: String = "Mochi",
+        expiresAt: String = "2026-06-22T12:00:00Z",
         locationMode: GroomingLocationMode = .groomerComesToCustomer,
         preferredStart: String = "2026-06-22T16:00:00Z",
         preferredEnd: String = "2026-06-22T18:00:00Z",
@@ -1112,7 +1116,8 @@ struct GroomerRequestsStoreTests {
         matchScore: Double? = 100,
         matchReason: String? = "same_city",
         offerID: UUID? = nil,
-        offerStatus: GroomerOfferStatus = .pending
+        offerStatus: GroomerOfferStatus = .pending,
+        preferenceTimeZoneIdentifier: String? = nil
     ) -> GroomerMatchedRequest {
         let requestID = UUID()
         let customerID = UUID()
@@ -1139,7 +1144,7 @@ struct GroomerRequestsStoreTests {
                 petID: petID,
                 petSnapshot: GroomingRequestPetSnapshot(
                     id: petID,
-                    name: "Mochi",
+                    name: petName,
                     species: "Dog",
                     breed: "Corgi",
                     coatType: nil,
@@ -1163,9 +1168,10 @@ struct GroomerRequestsStoreTests {
                 zipCode: "98101",
                 travelRadiusMiles: nil,
                 status: .open,
-                expiresAt: "2026-06-22T12:00:00Z",
+                expiresAt: expiresAt,
                 createdAt: "2026-06-20T12:00:00Z",
-                updatedAt: "2026-06-20T12:00:00Z"
+                updatedAt: "2026-06-20T12:00:00Z",
+                preferenceTimeZoneIdentifier: preferenceTimeZoneIdentifier
             ),
             offer: offerID.map {
                 GroomerOffer(
@@ -1193,6 +1199,12 @@ struct GroomerRequestsStoreTests {
 
 @MainActor
 final class GroomerRequestRepositoryFake: GroomerRequestRepository {
+    var offersResult: Result<[GroomerOfferListItem], GroomerRequestRepositoryError> = .success([])
+
+    func offers(groomerID: UUID) async throws -> [GroomerOfferListItem] {
+        try offersResult.get()
+    }
+
     var rankedPages: [Result<RankedPage<GroomerMatchedRequest>, MatchRankingError>] = []
     var onRankedRead: (@MainActor () async -> Void)?
     private(set) var rankedRequests: [RankedPageRequest<GroomerMatchSort>] = []
@@ -1213,8 +1225,13 @@ final class GroomerRequestRepositoryFake: GroomerRequestRepository {
             assessmentCount: 0, nextCursor: legacy.nextRequest.map { String($0.offset) })
     }
     var exactMatchResult: Result<GroomerMatchedRequest, GroomerRequestRepositoryError> = .failure(.matchNotFound)
+    var onExactRead: (@MainActor () async -> Void)?
+    private(set) var exactReadCount = 0
     func matchedRequest(groomerID: UUID, requestID: UUID) async throws -> GroomerMatchedRequest {
-        try exactMatchResult.get()
+        exactReadCount += 1
+        let result = exactMatchResult
+        await onExactRead?()
+        return try result.get()
     }
     var offerReadResult: Result<GroomerOffer?, GroomerRequestRepositoryError> = .failure(.networkUnavailable)
     var onOfferRead: (@MainActor () async -> Void)?

@@ -6,7 +6,7 @@ import { randomUUID } from "node:crypto";
 import { parseCustomerProfiles, parseGroomerProfiles, SupabaseREST } from "./testops-core.mjs";
 
 export const runID = process.env.TESTOPS_RUN_ID ?? "TESTOPS-T387-20260910-A";
-assert.match(runID, /^TESTOPS-T(?:387|390|391|392)-[A-Z0-9-]{1,70}$/);
+assert.match(runID, /^TESTOPS-T(?:387|390|391|392|399)-[A-Z0-9-]{1,70}$/);
 export const isMatchingRun = id => /^TESTOPS-T(?:390|391|392)-[A-Z0-9-]{1,70}$/.test(id);
 export const directory = `artifacts/testops/${runID}`;
 export const marker = `TESTOPS:${runID}`;

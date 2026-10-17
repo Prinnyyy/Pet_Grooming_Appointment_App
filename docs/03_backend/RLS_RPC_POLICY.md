@@ -21,7 +21,7 @@ Archived pre-trim version: `../09_frozen/backend_policies/RLS_RPC_POLICY_2026-07
 | `profiles`, `customer_profiles`, `groomer_profiles` | Own safe profile/contact/avatar fields; related Groomer avatar path after offer/booking | Own safe profile/business/avatar fields; related Customer avatar path for an existing conversation | Role changes denied after onboarding except future privileged process |
 | `pets`, `pet_photos` | CRUD owned active pets/photos | No general direct access | Ownership reassignment denied |
 | Groomer services, portfolio, availability, preferences, time off | Marketplace-safe active reads where intended | Manage own rows | Availability/preferences enforced by matching/offer/acceptance RPCs |
-| `grooming_requests`, `request_photos` | Read own; create/cancel through controlled path; upload owned open request photos | Read only through active match | Publication, matching, and status transitions controlled |
+| `grooming_requests`, `request_photos` | Read own; create/cancel through controlled path; upload owned open request photos | No raw Request SELECT; safe summary/exact RPC and request-photo policy check current distribution or retained offer/booking rights | Publication, matching, and status transitions controlled |
 | `request_matches` | Read offered match evidence for own requests only | Read/update own allowed match state | Insert/system statuses denied |
 | `groomer_offers` | Read offers on owned requests; accept one through RPC | Create/withdraw own offers through RPC | Offer status transitions controlled |
 | `bookings` | Participant read; allowed cancellation/review path | Participant read; allowed cancellation/completion path | Insert and critical transitions controlled |
@@ -35,6 +35,13 @@ Archived pre-trim version: `../09_frozen/backend_policies/RLS_RPC_POLICY_2026-07
 | `app_private.address_locations` | No direct table access; current-owner profile address through controlled RPC | No direct table access; current-owner profile address through controlled RPC | Exact coordinates/Place IDs remain private; profile/Request writes are atomic; backfill and tagged TestOps cleanup are service-role only |
 | `app_private.request_publish_operations` | No direct table access; retry results through Request publication RPC only | No access | Customer + operation UUID is unique; the original Request ID/match count is replayed under a transaction lock |
 | Evidence summary and fit claims/tags | No owner dashboard contract | Manage own claims/tags; read own aggregate evidence through owner RPC | Claims/tags are low-confidence signals only and do not create eligibility |
+| Private discovery sessions, invitations, distribution operations and favorites | Owner-scoped controlled RPC only; no direct table grants | Invitation/source access only through authorized request projections | Private schema with RLS; system-only rows and immutable operation intent |
+
+### Request Distribution Boundaries
+
+T-399 separates candidate discovery, new-quote eligibility, retained-offer management and media access. A stale match/notification or prior offer is not a blanket new-quote entitlement. Pool closure and admission serialize on the Request lock; current request status, terms, invitation deadlines, qualifications and resources are rechecked by the relevant write. Pool changes cannot resurrect a groomer's dismissal.
+
+Pre-booking Request DTOs omit exact street/unit/coordinates/contact data; the owner retains their full Request and confirmed Booking participants use the existing exact-address contract. Candidate and favorites repositories share a marketplace-safe groomer projection, not owner profile DTOs. New private sessions, favorites, invitations and receipt personal content participate in the existing anonymization path. Exact APIs and rollout semantics are in the [discovery contract](SUPABASE_CONTRACT.md#request-discovery-and-distribution---t-399).
 
 ## Controlled Operations
 

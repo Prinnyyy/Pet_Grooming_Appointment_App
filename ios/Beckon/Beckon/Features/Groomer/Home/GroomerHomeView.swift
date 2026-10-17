@@ -71,14 +71,17 @@ struct GroomerHomeView: View {
                     }
                 )
 
-                GroomerWorkspaceSection(title: "Next appointment") {
+                BeckonSection("Next appointment") {
                     nextAppointmentContent
                 }
 
-                GroomerWorkspaceSection(title: "Needs attention") {
+                BeckonSection("Needs attention") {
                     GroomerHomeAttentionSurface(
                         newMatchCount: store.newMatchCount,
                         pendingOfferCount: store.pendingOfferCount,
+                        hasMoreMatches: store.hasMoreMatches,
+                        hasMoreOffers: store.hasMoreOffers,
+                        isLoading: store.isLoading,
                         unreadMessageCount: unreadMessageCount,
                         requestsAction: requestsAction,
                         offersAction: offersAction,
@@ -86,11 +89,21 @@ struct GroomerHomeView: View {
                     )
                 }
 
-                GroomerWorkspaceSection(title: "Availability") {
+                BeckonSection("Availability") {
                     GroomerHomeAvailabilityRow(
                         state: store.availabilityState,
+                        isLoading: store.isLoading,
                         action: availabilityAction
                     )
+                }
+
+                if !store.issues.isEmpty {
+                    Button("Retry unavailable sections", systemImage: "arrow.clockwise") {
+                        Task { await store.load() }
+                    }
+                    .buttonStyle(BeckonSecondaryButtonStyle(accent: .groomer))
+                    .disabled(store.isLoading)
+                    .accessibilityIdentifier("groomer.home.retry")
                 }
             }
             .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
@@ -129,7 +142,7 @@ struct GroomerHomeView: View {
         if let booking = store.nextBooking {
             if store.isLoading || store.issues.contains(where: { $0.section == .bookings }) {
                 Text(store.isLoading ? "Refreshing appointment..." : "Appointment not refreshed. Pull to retry.")
-                    .font(DesignTokens.Typography.supporting).foregroundStyle(DesignTokens.Colors.textSecondary)
+                    .font(DesignTokens.Typography.supporting).foregroundStyle(DesignTokens.Colors.textTertiary)
             }
             GroomerHomeNextBookingCard(
                 booking: booking,
@@ -166,12 +179,13 @@ private struct GroomerHomeHeader: View {
     let notificationAction: () -> Void
 
     var body: some View {
-        HStack(spacing: DesignTokens.Spacing.md) {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+          HStack(spacing: DesignTokens.Spacing.md) {
             BeckonProfileAvatar(
                 data: avatarPhotoData,
                 tone: .groomer,
-                size: 68,
-                cornerRadius: 34,
+                size: 48,
+                cornerRadius: 24,
                 placeholderSize: 26
             )
             .overlay {
@@ -179,27 +193,11 @@ private struct GroomerHomeHeader: View {
                     .stroke(DesignTokens.Colors.borderSoft, lineWidth: 1)
             }
 
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                 Text("Good \(GroomerHomeDateFormatting.dayPeriod), \(greetingName)")
-                    .font(.body)
-                    .foregroundStyle(DesignTokens.Colors.textSecondary)
-                    .lineLimit(2)
-
-                Text(businessName)
-                    .font(.title2.weight(.bold))
-                    .foregroundStyle(DesignTokens.Colors.textPrimary)
-                    .lineLimit(2)
+                    .font(DesignTokens.Typography.supporting)
+                    .foregroundStyle(DesignTokens.Colors.textTertiary)
                     .fixedSize(horizontal: false, vertical: true)
-
-                Label("Groomer", systemImage: "scissors")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
-                    .padding(.horizontal, DesignTokens.Spacing.sm)
-                    .padding(.vertical, DesignTokens.Spacing.xs)
-                    .background(DesignTokens.Colors.groomerAccent.opacity(0.14))
-                    .clipShape(DesignTokens.Shapes.chip)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
             if showsNotifications {
                 BeckonNotificationBellButton(
@@ -208,11 +206,18 @@ private struct GroomerHomeHeader: View {
                     action: notificationAction
                 )
             }
+          }
+            Text(businessName)
+                .font(DesignTokens.Typography.sectionTitle)
+                .foregroundStyle(DesignTokens.Colors.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityAddTraits(.isHeader)
         }
     }
 }
 
 private struct GroomerHomeNextBookingCard: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let booking: Booking
     let photoData: Data?
     let action: () -> Void
@@ -220,16 +225,17 @@ private struct GroomerHomeNextBookingCard: View {
     var body: some View {
         BeckonCard(padding: DesignTokens.Spacing.lg) {
             VStack(spacing: DesignTokens.Spacing.lg) {
-                HStack(alignment: .top, spacing: DesignTokens.Spacing.lg) {
+                bookingLayout {
                     BeckonModuleImage(data: photoData) {
                         ZStack {
                             DesignTokens.Colors.groomerAccent.opacity(0.12)
                             Image(systemName: "pawprint.fill")
-                                .font(.title.weight(.semibold))
-                                .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
+                                .font(DesignTokens.Typography.sectionTitle)
+                                .foregroundStyle(DesignTokens.Colors.groomerOnAccent)
                         }
                     }
-                    .frame(width: 116, height: 116)
+                    .frame(width: 72, height: 72)
+                    .accessibilityHidden(true)
                     .clipShape(
                         RoundedRectangle(
                             cornerRadius: DesignTokens.CornerRadius.input,
@@ -239,34 +245,29 @@ private struct GroomerHomeNextBookingCard: View {
 
                     VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
                         Text(booking.requestPetSnapshot?.name ?? "Pet appointment")
-                            .font(.title2.weight(.bold))
+                            .font(DesignTokens.Typography.headline)
                             .foregroundStyle(DesignTokens.Colors.textPrimary)
-                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
 
                         Text(booking.appointmentServiceTitle)
-                            .font(.body)
+                            .font(DesignTokens.Typography.body)
                             .foregroundStyle(DesignTokens.Colors.textSecondary)
 
-                        Label(
-                            GroomerHomeDateFormatting.date(from: booking.scheduledStart),
-                            systemImage: "calendar"
-                        )
-                        .font(.subheadline.weight(.semibold))
-
-                        Label(
-                            GroomerHomeDateFormatting.time(from: booking.scheduledStart),
-                            systemImage: "clock"
-                        )
-                        .font(.headline)
-
-                        Label(booking.appointmentAddressSummary, systemImage: "mappin")
-                            .font(.subheadline)
-                            .foregroundStyle(DesignTokens.Colors.textSecondary)
-                            .lineLimit(2)
                     }
                     .foregroundStyle(DesignTokens.Colors.textPrimary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
+
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                    Label(booking.scheduledTimeSummary, systemImage: "calendar")
+                        .font(DesignTokens.Typography.supporting.weight(.semibold))
+                        .foregroundStyle(DesignTokens.Colors.textPrimary)
+                    Label(booking.appointmentAddressSummary, systemImage: "mappin")
+                        .font(DesignTokens.Typography.supporting)
+                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+                }
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
                 Divider()
                     .overlay(DesignTokens.Colors.divider)
@@ -277,69 +278,69 @@ private struct GroomerHomeNextBookingCard: View {
                         Spacer()
                         Image(systemName: "chevron.right")
                     }
-                    .font(.headline)
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.horizontal, DesignTokens.Spacing.lg)
-                    .frame(minHeight: 52)
-                    .background(DesignTokens.Colors.groomerAccentDark)
-                    .clipShape(
-                        RoundedRectangle(
-                            cornerRadius: DesignTokens.CornerRadius.button,
-                            style: .continuous
-                        )
-                    )
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(BeckonPrimaryButtonStyle(accent: .groomer))
                 .accessibilityIdentifier("groomer.home.next-booking.view")
             }
         }
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("groomer.home.next-booking")
+    }
+
+    private var bookingLayout: AnyLayout {
+        dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: DesignTokens.Spacing.md))
+            : AnyLayout(HStackLayout(alignment: .top, spacing: DesignTokens.Spacing.md))
     }
 }
 
 private struct GroomerHomeAttentionSurface: View {
-    let newMatchCount: Int
-    let pendingOfferCount: Int
+    let newMatchCount: Int?
+    let pendingOfferCount: Int?
+    let hasMoreMatches: Bool
+    let hasMoreOffers: Bool
+    let isLoading: Bool
     let unreadMessageCount: Int
     let requestsAction: () -> Void
     let offersAction: () -> Void
     let messagesAction: () -> Void
 
     var body: some View {
-        GroomerGroupedSurface {
+        BeckonGroupedSurface {
             VStack(spacing: 0) {
                 GroomerHomeAttentionRow(
                     title: "New matches",
                     detail: countDetail(
                         newMatchCount,
+                        hasMore: hasMoreMatches,
                         singular: "request matches your services",
                         plural: "requests match your services",
                         empty: "No new matching requests"
                     ),
-                    count: newMatchCount,
                     systemImage: "person.2",
-                    tint: DesignTokens.Colors.success,
+                    tint: DesignTokens.Colors.successText,
+                    identifier: "groomer.home.matches",
                     action: requestsAction
                 )
 
-                GroomerWorkspaceDivider(leadingInset: 76)
+                BeckonGroupedDivider(leadingInset: 76)
 
                 GroomerHomeAttentionRow(
                     title: "Pending offers",
                     detail: countDetail(
                         pendingOfferCount,
+                        hasMore: hasMoreOffers,
                         singular: "offer is awaiting a response",
                         plural: "offers are awaiting responses",
                         empty: "No offers awaiting a response"
                     ),
-                    count: pendingOfferCount,
                     systemImage: "tag",
-                    tint: DesignTokens.Colors.warning,
+                    tint: DesignTokens.Colors.warningText,
+                    identifier: "groomer.home.offers",
                     action: offersAction
                 )
 
-                GroomerWorkspaceDivider(leadingInset: 76)
+                BeckonGroupedDivider(leadingInset: 76)
 
                 GroomerHomeAttentionRow(
                     title: "Unread messages",
@@ -347,25 +348,27 @@ private struct GroomerHomeAttentionSurface: View {
                         unreadMessageCount,
                         singular: "conversation needs attention",
                         plural: "conversations need attention",
-                        empty: "All conversations are read"
+                        empty: "Open messages to check for updates"
                     ),
-                    count: unreadMessageCount,
                     systemImage: "message",
-                    tint: Color.blue,
+                    tint: DesignTokens.Colors.textTertiary,
+                    identifier: "groomer.home.messages",
                     action: messagesAction
                 )
             }
-            .accessibilityIdentifier("groomer.home.attention")
         }
     }
 
     private func countDetail(
-        _ count: Int,
+        _ count: Int?,
+        hasMore: Bool = false,
         singular: String,
         plural: String,
         empty: String
     ) -> String {
-        switch count {
+        guard let count else { return isLoading ? "Checking..." : "Not refreshed. Open to review." }
+        if hasMore { return "Open to review the complete list" }
+        return switch count {
         case 0:
             empty
         case 1:
@@ -379,17 +382,16 @@ private struct GroomerHomeAttentionSurface: View {
 private struct GroomerHomeAttentionRow: View {
     let title: String
     let detail: String
-    let count: Int
     let systemImage: String
     let tint: Color
+    let identifier: String
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             HStack(spacing: DesignTokens.Spacing.md) {
-                ZStack(alignment: .topTrailing) {
                     Image(systemName: systemImage)
-                        .font(.title3.weight(.semibold))
+                        .font(DesignTokens.Typography.headline)
                         .foregroundStyle(tint)
                         .frame(width: 48, height: 48)
                         .background(tint.opacity(0.12))
@@ -400,31 +402,22 @@ private struct GroomerHomeAttentionRow: View {
                             )
                         )
 
-                    if count > 0 {
-                        Text("\(min(count, 99))")
-                            .font(.caption2.weight(.bold))
-                            .foregroundStyle(.white)
-                            .frame(minWidth: 20, minHeight: 20)
-                            .background(tint)
-                            .clipShape(DesignTokens.Shapes.circular)
-                            .offset(x: 4, y: -4)
-                    }
-                }
+                        .accessibilityHidden(true)
 
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     Text(title)
-                        .font(.headline)
+                        .font(DesignTokens.Typography.headline)
                         .foregroundStyle(DesignTokens.Colors.textPrimary)
 
                     Text(detail)
-                        .font(.subheadline)
+                        .font(DesignTokens.Typography.supporting)
                         .foregroundStyle(DesignTokens.Colors.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
                 Image(systemName: "chevron.right")
-                    .font(.subheadline.weight(.semibold))
+                    .font(DesignTokens.Typography.supporting.weight(.semibold))
                     .foregroundStyle(DesignTokens.Colors.textTertiary)
                     .accessibilityHidden(true)
             }
@@ -432,11 +425,14 @@ private struct GroomerHomeAttentionRow: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier(identifier)
     }
 }
 
 private struct GroomerHomeAvailabilityRow: View {
     let state: GroomerHomeAvailabilityState
+    let isLoading: Bool
     let action: () -> Void
 
     var body: some View {
@@ -457,13 +453,9 @@ private struct GroomerHomeAvailabilityRow: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                Text("Manage")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
-
                 Image(systemName: "chevron.right")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(DesignTokens.Colors.groomerAccentDark)
+                    .foregroundStyle(DesignTokens.Colors.groomerOnAccent)
                     .accessibilityHidden(true)
             }
             .padding(DesignTokens.Spacing.lg)
@@ -500,9 +492,10 @@ private struct GroomerHomeAvailabilityRow: View {
     }
 
     private var title: String {
-        switch state {
+        if isLoading { return "Checking availability..." }
+        return switch state {
         case .available:
-            "Available"
+            "Weekly hours set"
         case .paused:
             "Requests paused"
         case .needsSchedule:
@@ -513,15 +506,16 @@ private struct GroomerHomeAvailabilityRow: View {
     }
 
     private var detail: String {
-        switch state {
+        if isLoading { return "Refreshing your saved hours" }
+        return switch state {
         case .available:
-            "Taking new booking requests"
+            "Accepting requests within your saved hours"
         case .paused:
             "Your profile is not accepting new requests"
         case .needsSchedule:
             "Add enabled hours before accepting requests"
         case .unavailable:
-            "Pull to refresh your current status"
+            "Open to review your saved hours"
         }
     }
 }
@@ -606,19 +600,4 @@ private enum GroomerHomeDateFormatting {
         }
     }
 
-    static func date(from value: String) -> String {
-        guard let date = GroomingRequestDateFormatting.parsedDate(from: value) else {
-            return "Date unavailable"
-        }
-        return date.formatted(
-            .dateTime.weekday(.abbreviated).month(.abbreviated).day().year()
-        )
-    }
-
-    static func time(from value: String) -> String {
-        guard let date = GroomingRequestDateFormatting.parsedDate(from: value) else {
-            return "Time unavailable"
-        }
-        return date.formatted(date: .omitted, time: .shortened)
-    }
 }

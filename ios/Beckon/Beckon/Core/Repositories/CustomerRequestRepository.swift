@@ -3,6 +3,7 @@ import Foundation
 enum CustomerRequestRepositoryError: Error, Equatable, Sendable {
     case notAllowed
     case requestLimitExceeded
+    case clientUpdateRequired
     case requestNotFound
     case requestNotCancellable
     case petNotFound

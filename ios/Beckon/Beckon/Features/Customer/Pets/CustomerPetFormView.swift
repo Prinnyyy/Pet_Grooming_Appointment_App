@@ -19,6 +19,7 @@ nonisolated enum CustomerPetFormFocusTarget: String, CaseIterable, Hashable {
 struct CustomerPetFormView: View {
     @Bindable var store: CustomerPetsStore
     @FocusState private var focusedField: CustomerPetFormFocusTarget?
+    @State private var confirmsReload = false
 
     var body: some View {
         NavigationStack {
@@ -94,6 +95,8 @@ struct CustomerPetFormView: View {
                             }
                         }
 
+                        .disabled(store.formIsFrozen)
+
                         BeckonAnnotatedModule(
                             "Details",
                             subtitle: "Size, birthday, temperament, and care notes."
@@ -159,12 +162,21 @@ struct CustomerPetFormView: View {
                             }
                         }
 
+                        .disabled(store.formIsFrozen)
+
                         if let errorMessage = store.errorMessage {
                             BeckonErrorBanner(
                                 title: "Check Pet Details",
                                 message: errorMessage
                             )
                             .accessibilityIdentifier("customer.pets.form-error")
+                        }
+                        if store.editNeedsReconciliation {
+                            Button("Reload Saved Pet", systemImage: "arrow.clockwise") {
+                                confirmsReload = true
+                            }
+                            .disabled(store.isSaving)
+                            .accessibilityIdentifier("customer.pets.reload-saved")
                         }
                         }
                         .padding(.horizontal, DesignTokens.Spacing.screenHorizontal)
@@ -181,6 +193,11 @@ struct CustomerPetFormView: View {
             .tint(DesignTokens.Colors.customerAccentStrong)
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
+            .confirmationDialog("Replace your edits with the saved pet?", isPresented: $confirmsReload,
+                titleVisibility: .visible) {
+                Button("Reload Saved Pet", role: .destructive) { Task { await store.reloadEditedPet() } }
+                Button("Keep Editing", role: .cancel) { }
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {

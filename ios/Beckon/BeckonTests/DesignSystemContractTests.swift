@@ -5,6 +5,26 @@ import Testing
 @MainActor
 struct DesignSystemContractTests {
     @Test
+    func feedbackAnnouncementContainsOnlyTheVisiblePrompt() {
+        let center = BeckonFeedbackCenter()
+        #expect(center.accessibilityAnnouncement == nil)
+        center.showNotice("Availability saved")
+        center.showError(BeckonGlobalFeedbackError(title: "Offline", message: "Try again"))
+        #expect(center.accessibilityAnnouncement == "Availability saved")
+        #expect(center.consumeAccessibilityAnnouncement() == "Availability saved")
+        #expect(center.consumeAccessibilityAnnouncement() == nil,
+            "Root and sheet overlays sharing a center must not announce the same prompt twice")
+
+        let failed = BeckonFeedbackCenter()
+        failed.showError(BeckonGlobalFeedbackError(title: "Offline", message: "Try again"))
+        #expect(failed.accessibilityAnnouncement == "Offline. Try again")
+
+        let progress = BeckonFeedbackCenter()
+        progress.showProgress(BeckonGlobalFeedbackProgress(title: "Saving availability", tone: .groomer))
+        #expect(progress.accessibilityAnnouncement == "Saving availability")
+    }
+
+    @Test
     func semanticLayoutMetricsUseTheApprovedGrid() {
         #expect(DesignTokens.Layout.pageHorizontalInset == 20)
         #expect(DesignTokens.Layout.pageTopInset == 24)

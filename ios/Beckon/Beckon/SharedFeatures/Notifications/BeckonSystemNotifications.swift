@@ -17,26 +17,11 @@ nonisolated struct BeckonSystemNotificationsPresentation: Equatable, Sendable {
         case groomer
     }
 
-    enum PageStyle: Equatable, Sendable {
-        case standard
-    }
-
-    enum RowStyle: Equatable, Sendable {
-        case cardWithLeadingUnreadDot
-    }
-
-    enum BellStyle: Equatable, Sendable {
-        case circularUnreadDot
-    }
-
     let sectionTitle = "System Updates"
     let sectionSubtitle: String
     let emptyMessage: String
     let accessibilityPrefix: String
     let audience: Audience
-    let pageStyle: PageStyle = .standard
-    let rowStyle: RowStyle = .cardWithLeadingUnreadDot
-    let bellStyle: BellStyle = .circularUnreadDot
 
     static let customer = Self(
         sectionSubtitle: "Request, offer, booking, and message activity appears here.",
@@ -277,6 +262,7 @@ private struct BeckonSystemNotificationRow: View {
             }
         }
         .accessibilityElement(children: .combine)
+        .accessibilityValue(notification.isRead ? "Read" : "Unread")
     }
 
     private var title: some View {

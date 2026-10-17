@@ -152,7 +152,7 @@ extension CustomerRequestsStoreTests {
                 let presentation = CustomerRequestDetailPresentation(status: status, preferenceTimeZoneIdentifier: zone)
                 #expect(presentation.showsTimingRecovery ==
                     (status.isOpenForOffers && zone != "America/New_York"))
-                #expect(presentation.showsRepublish == (status == .cancelled))
+                #expect(presentation.showsRepublish == (status == .cancelled || status == .expired))
             }
         }
     }
@@ -176,14 +176,14 @@ extension CustomerRequestsStoreTests {
     }
 
     @Test @MainActor
-    func recentClosedRequestsCanKeepOnlyTheThreeNewestCancelledRecords() {
+    func recentClosedRequestsIncludesExpiredAndKeepsOlderHistoryReachable() {
         let customerID = UUID()
         let petID = UUID()
         let requests = (1...7).map { day in
             Self.request(
                 customerID: customerID,
                 petID: petID,
-                status: .cancelled,
+                status: day.isMultiple(of: 2) ? .cancelled : .expired,
                 updatedAt: String(
                     format: "2026-06-%02dT12:00:00Z",
                     day
@@ -194,6 +194,7 @@ extension CustomerRequestsStoreTests {
         let recent = requests.recentClosedRequests(limit: 3)
 
         #expect(recent.count == 3)
+        #expect(requests.recentClosedRequests(limit: .max).count == 7)
         #expect(recent.map(\.updatedAt) == [
             "2026-06-07T12:00:00Z",
             "2026-06-06T12:00:00Z",
