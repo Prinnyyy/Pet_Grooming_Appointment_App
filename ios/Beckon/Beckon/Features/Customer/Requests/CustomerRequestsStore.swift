@@ -2711,6 +2711,8 @@ final class CustomerRequestsStore {
             "Check your connection and try again."
         case .cancelled:
             "The pet information load was cancelled."
+        case .revisionConflict, .operationIntentChanged, .petNotFound, .clientUpdateRequired, .invalidInput:
+            "Pet information has changed. Reload it before continuing."
         case .unavailable:
             "We could not \(action) pet information. Please try again."
         }

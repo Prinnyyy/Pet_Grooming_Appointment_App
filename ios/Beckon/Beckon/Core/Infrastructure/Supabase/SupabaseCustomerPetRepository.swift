@@ -3,7 +3,7 @@ import Supabase
 
 @MainActor
 final class SupabaseCustomerPetRepository: CustomerPetRepository {
-    private static let petColumns = "id,customer_id,name,species,breed,coat_type,size,weight_lbs,birthday,temperament,medical_notes,grooming_notes,is_active,coat_type_source,matting_confirmed"
+    private static let petColumns = "id,customer_id,name,species,breed,coat_type,size,weight_lbs,birthday,temperament,medical_notes,grooming_notes,is_active,coat_type_source,matting_confirmed,revision"
     private static let photoColumns = "id,pet_id,customer_id,storage_bucket,storage_path,caption,sort_order,is_primary"
     fileprivate static let bucketID = PhotoStorageBucketID.customerPet.rawValue
 
@@ -56,20 +56,20 @@ final class SupabaseCustomerPetRepository: CustomerPetRepository {
 
     func createPet(
         customerID: UUID,
+        operationID: UUID,
         draft: CustomerPetDraft
-    ) async throws -> CustomerPet {
+    ) async throws -> CustomerPetSaveResult {
         do {
-            let rows: [PetRow] = try await client
-                .rpc("save_my_pet_v2", params: SavePetParameters(petID: nil, draft: draft))
-                .select(Self.petColumns)
+            let row: PetSaveRow = try await client
+                .rpc("save_my_pet_v3", params: SavePetParameters(petID: nil, draft: draft,
+                    operationID: operationID, expectedRevision: nil))
                 .execute()
                 .value
 
-            guard rows.count == 1, let pet = rows.first?.pet else {
+            guard row.pet == nil || row.pet?.customerID == customerID else {
                 throw CustomerPetRepositoryError.unavailable
             }
-
-            return pet
+            return try row.result()
         } catch let error as CustomerPetRepositoryError {
             throw error
         } catch {
@@ -78,17 +78,20 @@ final class SupabaseCustomerPetRepository: CustomerPetRepository {
     }
 
     func updatePet(
-        pet: CustomerPet,
+        petID: UUID,
+        expectedRevision: UUID,
         draft: CustomerPetDraft
     ) async throws -> CustomerPet {
         do {
-            let rows: [PetRow] = try await client
-                .rpc("save_my_pet_v2", params: SavePetParameters(petID: pet.id, draft: draft))
-                .select(Self.petColumns)
+            let row: PetSaveRow = try await client
+                .rpc("save_my_pet_v3", params: SavePetParameters(petID: petID, draft: draft,
+                    operationID: nil, expectedRevision: expectedRevision))
                 .execute()
                 .value
 
-            guard rows.count == 1, let updatedPet = rows.first?.pet else {
+            let result = try row.result()
+            guard result.petID == petID, let updatedPet = result.pet,
+                  updatedPet.revision == result.resultRevision, !result.replayed else {
                 throw CustomerPetRepositoryError.unavailable
             }
 
@@ -98,6 +101,16 @@ final class SupabaseCustomerPetRepository: CustomerPetRepository {
         } catch {
             throw Self.map(error)
         }
+    }
+
+    func pet(customerID: UUID, petID: UUID) async throws -> CustomerPet? {
+        do {
+            let rows: [PetRow] = try await client.from("pets").select(Self.petColumns)
+                .eq("customer_id", value: customerID).eq("id", value: petID)
+                .eq("is_active", value: true).execute().value
+            guard rows.count <= 1 else { throw CustomerPetRepositoryError.unavailable }
+            return rows.first?.pet
+        } catch { throw Self.map(error) }
     }
 
     func softDeletePet(_ pet: CustomerPet) async throws {
@@ -231,9 +244,17 @@ final class SupabaseCustomerPetRepository: CustomerPetRepository {
         }
 
         if let postgrestError = error as? PostgrestError {
+            switch postgrestError.message {
+            case "pet_revision_conflict": return .revisionConflict
+            case "pet_operation_intent_changed": return .operationIntentChanged
+            case "pet_not_found": return .petNotFound
+            case "pet_client_update_required": return .clientUpdateRequired
+            default: break
+            }
             switch postgrestError.code {
-            case "42501":
+            case "42501", "28000":
                 return .notAllowed
+            case "22023", "23514", "23502", "22003", "22007": return .invalidInput
             default:
                 return .unavailable
             }
@@ -273,6 +294,7 @@ private struct PetRow: Decodable {
     let isActive: Bool
     let coatTypeSource: String?
     let mattingConfirmed: Bool?
+    let revision: UUID?
 
     var pet: CustomerPet {
         CustomerPet(
@@ -290,12 +312,14 @@ private struct PetRow: Decodable {
             groomingNotes: groomingNotes,
             isActive: isActive,
             coatTypeSource: coatTypeSource ?? "legacy_unverified",
-            mattingConfirmed: mattingConfirmed
+            mattingConfirmed: mattingConfirmed,
+            revision: revision
         )
     }
 
     private enum CodingKeys: String, CodingKey {
         case id
+        case revision
         case customerID = "customer_id"
         case name
         case species
@@ -310,6 +334,30 @@ private struct PetRow: Decodable {
         case medicalNotes = "medical_notes"
         case groomingNotes = "grooming_notes"
         case isActive = "is_active"
+    }
+}
+
+private struct PetSaveRow: Decodable {
+    let petID: UUID
+    let resultRevision: UUID
+    let replayed: Bool
+    let state: CustomerPetSaveResult.State
+    let pet: PetRow?
+
+    func result() throws -> CustomerPetSaveResult {
+        switch state {
+        case .active:
+            guard let pet, pet.id == petID, pet.isActive, pet.revision != nil else {
+                throw CustomerPetRepositoryError.unavailable
+            }
+        case .unavailable:
+            guard pet == nil, replayed else { throw CustomerPetRepositoryError.unavailable }
+        }
+        return .init(petID: petID, resultRevision: resultRevision, replayed: replayed, state: state, pet: pet?.pet)
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case petID = "pet_id", resultRevision = "result_revision", replayed, state, pet
     }
 }
 
@@ -351,18 +399,24 @@ private struct PetPhotoRow: Decodable {
 private struct SavePetParameters: Encodable {
     let petID: UUID?
     let draft: CustomerPetDraft
+    let operationID: UUID?
+    let expectedRevision: UUID?
 
     func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(petID, forKey: .petID)
         try container.encode(PetUpdateRow(draft: draft), forKey: .facts)
         try container.encode(draft.coatTypeConfirmed, forKey: .coatConfirmed)
+        try container.encode(operationID, forKey: .operationID)
+        try container.encode(expectedRevision, forKey: .expectedRevision)
     }
 
     private enum CodingKeys: String, CodingKey {
         case petID = "p_pet_id"
         case facts = "p_facts"
         case coatConfirmed = "p_coat_confirmed"
+        case operationID = "p_operation_id"
+        case expectedRevision = "p_expected_revision"
     }
 }
 

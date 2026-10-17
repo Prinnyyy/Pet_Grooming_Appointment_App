@@ -919,8 +919,9 @@ final class DebugCustomerPetRepository: CustomerPetRepository {
 
     func createPet(
         customerID: UUID,
+        operationID: UUID,
         draft: CustomerPetDraft
-    ) async throws -> CustomerPet {
+    ) async throws -> CustomerPetSaveResult {
         try await debugRepositoryCall(
             recorder: debugRecorder,
             source: "CustomerPetRepository.createPet",
@@ -928,12 +929,13 @@ final class DebugCustomerPetRepository: CustomerPetRepository {
             operation: "createPet",
             metadata: ["customerID": customerID.uuidString, "table": "pets"]
         ) {
-            try await base.createPet(customerID: customerID, draft: draft)
+            try await base.createPet(customerID: customerID, operationID: operationID, draft: draft)
         }
     }
 
     func updatePet(
-        pet: CustomerPet,
+        petID: UUID,
+        expectedRevision: UUID,
         draft: CustomerPetDraft
     ) async throws -> CustomerPet {
         try await debugRepositoryCall(
@@ -941,10 +943,14 @@ final class DebugCustomerPetRepository: CustomerPetRepository {
             source: "CustomerPetRepository.updatePet",
             scope: "customer.pets",
             operation: "updatePet",
-            metadata: ["petID": pet.id.uuidString, "table": "pets"]
+            metadata: ["petID": petID.uuidString, "table": "pets"]
         ) {
-            try await base.updatePet(pet: pet, draft: draft)
+            try await base.updatePet(petID: petID, expectedRevision: expectedRevision, draft: draft)
         }
+    }
+
+    func pet(customerID: UUID, petID: UUID) async throws -> CustomerPet? {
+        try await base.pet(customerID: customerID, petID: petID)
     }
 
     func softDeletePet(_ pet: CustomerPet) async throws {

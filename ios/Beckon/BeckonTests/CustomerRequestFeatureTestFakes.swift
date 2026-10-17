@@ -61,13 +61,15 @@ final class CustomerRequestPetRepositoryFake: CustomerPetRepository {
 
     func createPet(
         customerID: UUID,
+        operationID: UUID,
         draft: CustomerPetDraft
-    ) async throws -> CustomerPet {
+    ) async throws -> CustomerPetSaveResult {
         throw CustomerPetRepositoryError.unavailable
     }
 
     func updatePet(
-        pet: CustomerPet,
+        petID: UUID,
+        expectedRevision: UUID,
         draft: CustomerPetDraft
     ) async throws -> CustomerPet {
         throw CustomerPetRepositoryError.unavailable

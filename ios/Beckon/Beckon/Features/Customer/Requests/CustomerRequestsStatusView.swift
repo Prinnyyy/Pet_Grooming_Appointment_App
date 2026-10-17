@@ -77,13 +77,15 @@ private final class CustomerRequestsPreviewPetRepository: CustomerPetRepository 
 
     func createPet(
         customerID: UUID,
+        operationID: UUID,
         draft: CustomerPetDraft
-    ) async throws -> CustomerPet {
-        pet
+    ) async throws -> CustomerPetSaveResult {
+        .init(petID: pet.id, resultRevision: pet.revision ?? UUID(), replayed: false, state: .active, pet: pet)
     }
 
     func updatePet(
-        pet: CustomerPet,
+        petID: UUID,
+        expectedRevision: UUID,
         draft: CustomerPetDraft
     ) async throws -> CustomerPet {
         pet

@@ -17,6 +17,7 @@ struct CustomerPet: Equatable, Identifiable, Sendable {
     let isActive: Bool
     var coatTypeSource: String = "legacy_unverified"
     var mattingConfirmed: Bool? = nil
+    var revision: UUID? = nil
 
     nonisolated var displaySpecies: String {
         CustomerPetSpecies(storedValue: species)?.title ?? species
@@ -112,7 +113,7 @@ struct CustomerPet: Equatable, Identifiable, Sendable {
     }
 }
 
-struct CustomerPetDraft: Equatable, Sendable {
+struct CustomerPetDraft: Codable, Equatable, Sendable {
     let name: String
     let species: String
     let breed: String?
@@ -125,6 +126,15 @@ struct CustomerPetDraft: Equatable, Sendable {
     let groomingNotes: String?
     var coatTypeConfirmed = false
     var mattingConfirmed: Bool? = nil
+}
+
+struct CustomerPetSaveResult: Equatable, Sendable {
+    enum State: String, Decodable, Sendable { case active, unavailable }
+    let petID: UUID
+    let resultRevision: UUID
+    let replayed: Bool
+    let state: State
+    let pet: CustomerPet?
 }
 
 nonisolated enum CustomerPetSpecies: String, CaseIterable, Identifiable, Sendable {

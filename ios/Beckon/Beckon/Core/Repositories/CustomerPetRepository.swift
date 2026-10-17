@@ -5,20 +5,28 @@ enum CustomerPetRepositoryError: Error, Equatable, Sendable {
     case networkUnavailable
     case cancelled
     case unavailable
+    case revisionConflict
+    case operationIntentChanged
+    case petNotFound
+    case clientUpdateRequired
+    case invalidInput
 }
 
 @MainActor
 protocol CustomerPetRepository: AnyObject {
     func pets(customerID: UUID) async throws -> [CustomerPet]
+    func pet(customerID: UUID, petID: UUID) async throws -> CustomerPet?
     func photos(customerID: UUID) async throws -> [CustomerPetPhoto]
 
     func createPet(
         customerID: UUID,
+        operationID: UUID,
         draft: CustomerPetDraft
-    ) async throws -> CustomerPet
+    ) async throws -> CustomerPetSaveResult
 
     func updatePet(
-        pet: CustomerPet,
+        petID: UUID,
+        expectedRevision: UUID,
         draft: CustomerPetDraft
     ) async throws -> CustomerPet
 
@@ -38,6 +46,10 @@ protocol CustomerPetRepository: AnyObject {
 }
 
 extension CustomerPetRepository {
+    func pet(customerID: UUID, petID: UUID) async throws -> CustomerPet? {
+        try await pets(customerID: customerID).first { $0.id == petID }
+    }
+
     func photoData(_ photo: CustomerPetPhoto) async throws -> Data {
         throw CustomerPetRepositoryError.unavailable
     }

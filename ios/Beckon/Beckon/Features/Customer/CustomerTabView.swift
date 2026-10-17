@@ -194,7 +194,8 @@ struct CustomerTabView: View {
                         selection = .requests
                     }
                 },
-                onBookingChatSelected: openBookingChat
+                onBookingChatSelected: openBookingChat,
+                sessionIsCurrent: acceptanceSessionIsCurrent
             )
         } else if tab == .requests,
                   let customerID,

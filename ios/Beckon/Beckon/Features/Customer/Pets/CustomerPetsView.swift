@@ -27,7 +27,8 @@ struct CustomerPetsView: View {
         requestStore: CustomerRequestsStore? = nil,
         chatStore: ChatStore? = nil,
         onActiveRequestSelected: @escaping (UUID) -> Void = { _ in },
-        onBookingChatSelected: @escaping (Booking) -> Void = { _ in }
+        onBookingChatSelected: @escaping (Booking) -> Void = { _ in },
+        sessionIsCurrent: @escaping @MainActor () -> Bool = { true }
     ) {
         let trimmedName = displayName?.trimmingCharacters(
             in: .whitespacesAndNewlines
@@ -42,7 +43,8 @@ struct CustomerPetsView: View {
             initialValue: CustomerPetsStore(
                 customerID: customerID,
                 repository: repository,
-                debugRecorder: debugRecorder
+                debugRecorder: debugRecorder,
+                sessionIsCurrent: sessionIsCurrent
             )
         )
         _requestStore = State(
@@ -124,6 +126,13 @@ struct CustomerPetsView: View {
                     }
                 )
 
+                if petStore.hasPendingCreation || petStore.hasCreationRecoveryError {
+                    Button { petStore.startCreate() } label: {
+                        Label("Confirm Pending Pet", systemImage: "arrow.clockwise")
+                    }
+                    .accessibilityIdentifier("customer.pets.resume-create")
+                }
+
                 CustomerHomeRequestHero(
                     isDisabled: requestHeroPresentation.isStartRequestDisabled,
                     action: startGroomingRequest
@@ -191,7 +200,7 @@ struct CustomerPetsView: View {
 
     @MainActor
     private func loadHome() async {
-        await petStore.load()
+        if !petStore.isShowingPetForm { await petStore.load() }
         await requestStore.load()
         await bookingStore.loadNearest()
         await notificationStore.load()
@@ -883,8 +892,10 @@ private final class CustomerPetsPreviewRepository: CustomerPetRepository {
 
     func createPet(
         customerID: UUID,
+        operationID: UUID,
         draft: CustomerPetDraft
-    ) async throws -> CustomerPet {
+    ) async throws -> CustomerPetSaveResult {
+        let revision = UUID()
         let pet = CustomerPet(
             id: UUID(),
             customerID: customerID,
@@ -898,17 +909,20 @@ private final class CustomerPetsPreviewRepository: CustomerPetRepository {
             temperament: draft.temperament,
             medicalNotes: draft.medicalNotes,
             groomingNotes: draft.groomingNotes,
-            isActive: true
+            isActive: true,
+            revision: revision
         )
         storedPets.insert(pet, at: 0)
-        return pet
+        return .init(petID: pet.id, resultRevision: revision, replayed: false, state: .active, pet: pet)
     }
 
     func updatePet(
-        pet: CustomerPet,
+        petID: UUID,
+        expectedRevision: UUID,
         draft: CustomerPetDraft
     ) async throws -> CustomerPet {
-        CustomerPet(
+        guard let pet = storedPets.first(where: { $0.id == petID }) else { throw CustomerPetRepositoryError.petNotFound }
+        return CustomerPet(
             id: pet.id,
             customerID: pet.customerID,
             name: draft.name,

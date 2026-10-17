@@ -18,6 +18,16 @@ Full pre-trim contract text is archived at `../09_frozen/backend_contracts/SUPAB
 
 ## Read Order
 
+### Pet Profile Reliability - T-406
+
+Verified 2026-10-17 on the authorized Beckon project; migration `20261017105527_pet_profile_reliability.sql` is applied, linked history aligns and the repeat dry run is empty. This updates only pet saves, not the older domain baselines below. Acceptance and recovery evidence live in the [T-406 plan](../superpowers/plans/2026-10-17-pet-profile-reliability-plan.md#7-执行记录).
+
+- `save_my_pet_v3(p_pet_id, p_facts, p_coat_confirmed, p_operation_id, p_expected_revision)` returns `{pet_id, result_revision, replayed, state, pet}`. Create requires an operation UUID and no expected revision; edit requires the original form revision and no operation UUID. Existing private v2 owns fact validation and coat/weight provenance.
+- `pets.revision` advances on actual row changes. A stale edit returns `PT409/pet_revision_conflict` without writing. Missing/deleted owned targets return `PT404/pet_not_found`, never implicit creation.
+- Private, RLS-enabled `pet_create_operations` binds actor + operation to a server-normalized intent hash and original pet/revision in the same transaction. Same intent replays current owner-safe data; changed intent returns `PT409/pet_operation_intent_changed`. Deleted targets return `unavailable` and cannot be recreated by replay. Receipts survive pet deletion and are redacted with account anonymization; anonymized actors cannot replay.
+- Authenticated direct fact INSERT/UPDATE and private v2 execution are revoked. Public v2 explicitly requires a client update; only owner soft-delete columns retain direct UPDATE. No unsafe client fallback is supported.
+- The client persists one immutable account-scoped creation before sending, retries only that intent on explicit confirmation, and requires confirmed reload after an edit conflict/unknown outcome. Store load identity and mutation revision guard list, photo, cache and error writes. Existing request/booking snapshots and independent photo-upload semantics are unchanged.
+
 ### Request Discovery And Distribution - T-399
 
 The implementation contract below is defined by the T-399 migrations. Rollout, remote verification and fixture-restoration status are recorded in the [implementation plan](../superpowers/plans/2026-09-21-request-discovery-invitations-plan.md#8-完成标准与执行记录); this section is not independent deployment evidence.
