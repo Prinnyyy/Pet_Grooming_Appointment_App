@@ -12,6 +12,9 @@ export const UI_RULES = Object.freeze([
   { id: "UI009", severity: "error", category: "keyboard-safe-area", message: "Keep the native keyboard safe area on Feature form content." },
   { id: "UI010", severity: "error", category: "keyboard-clearance", message: "Do not create Feature-local keyboard padding or offsets." },
   { id: "UI011", severity: "error", category: "keyboard-observation", message: "Keyboard observation belongs to DesignSystem." },
+  { id: "UI012", severity: "error", category: "color-opacity", message: "Use an opaque semantic fill instead of token opacity." },
+  { id: "UI013", severity: "error", category: "color-contrast", message: "Use role Deep or semantic Text colors for foregrounds and tint." },
+  { id: "UI014", severity: "error", category: "status-presentation", message: "Use a shared BeckonStatusPresentation, not a Feature-owned tone." },
   { id: "UI101", severity: "warning", category: "fixed-geometry", message: "Review fixed geometry for dynamic text risk." },
   { id: "UI102", severity: "warning", category: "layout-patch", message: "Review offset or negative spacing as a layout repair." },
   { id: "UI201", severity: "review", category: "duplicate-stack", message: "Review repeated visual modifier stacks for a semantic component." },
@@ -116,6 +119,19 @@ function location(source, index) {
   return { line, column: index - lastNewline };
 }
 
+function directArguments(masked, openIndex) {
+  const end = callEnd(masked, openIndex);
+  let depth = 0;
+  let result = "";
+  for (let index = openIndex + 1; index < end - 1; index += 1) {
+    const character = masked[index];
+    if ("([{".includes(character)) depth += 1;
+    else if (")]}".includes(character)) depth -= 1;
+    else if (depth === 0) result += character;
+  }
+  return result;
+}
+
 function normalizedExpression(expression) {
   return expression.replace(/\s+/g, " ").trim();
 }
@@ -215,6 +231,16 @@ export function auditSwiftSource({ filePath, source }) {
   addMatches(findings, { masked, source, filePath, ruleID: "UI009", pattern: /\.ignoresSafeArea\s*\(\s*\.keyboard\b/g, replacement: "Native keyboard safe-area resizing" });
   addMatches(findings, { masked, source, filePath, ruleID: "UI010", pattern: /\.(?:padding|offset)\s*\([^)]*\bkeyboard\w*/gi, replacement: "Shared Beckon keyboard modifiers" });
   addMatches(findings, { masked, source, filePath, ruleID: "UI011", pattern: /\b(?:keyboardWillChangeFrameNotification|keyboardWillHideNotification|keyboardFrameEndUserInfoKey)\b/g, replacement: "DesignSystem keyboard boundary" });
+  addMatches(findings, { masked, source, filePath, ruleID: "UI012", pattern: /\bColors\s*\.\s*\w+\s*\.\s*opacity\s*\(/g, replacement: "Opaque Tint, status Fill or neutral surface" });
+  addMatches(findings, { masked, source, filePath, ruleID: "UI013", pattern: /\.(?:foregroundStyle|foregroundColor|tint)\s*\(/g, replacement: "Role Deep or status Text",
+    predicate: (_, index) => {
+      const open = masked.indexOf("(", index);
+      const argumentsSource = masked.slice(open + 1, callEnd(masked, open) - 1);
+      return /\bColors\s*\.\s*(?:customerFill|groomerFill|customerAccent|groomerAccent|success|warning|error)\b/.test(argumentsSource)
+        || /(?<![\w.])\.(?:customerFill|groomerFill|customerAccent|groomerAccent)\b/.test(argumentsSource);
+    } });
+  addMatches(findings, { masked, source, filePath, ruleID: "UI014", pattern: /\bBeckonStatusChip\s*\(/g, replacement: "SharedFeatures status presentation",
+    predicate: (_, index) => /(?:^|,)\s*tone\s*:/.test(directArguments(masked, masked.indexOf("(", index))) });
   addMatches(findings, { masked, source, filePath, ruleID: "UI101", pattern: /\.frame\s*\([^)]*\b(?:width|height)\s*:\s*(?:\d+(?:\.\d+)?|DesignTokens\.)/g, replacement: "Content-sized layout", exception: hasFixedGeometryException });
   addMatches(findings, { masked, source, filePath, ruleID: "UI102", pattern: /\.offset\s*\(/g, replacement: "Alignment or layout container" });
   addMatches(findings, { masked, source, filePath, ruleID: "UI102", pattern: /\.(?:padding|spacing)\s*\([^)]*?\b-\d+(?:\.\d+)?\b/g, replacement: "Non-negative semantic spacing" });

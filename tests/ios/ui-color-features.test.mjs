@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
 import test from "node:test";
+import { auditSwiftSource } from "../../scripts/ui-consistency-audit-core.mjs";
 
 const root = new URL("../../ios/Beckon/Beckon/", import.meta.url);
 const files = ["Features", "SharedFeatures"].flatMap(dir =>
@@ -9,17 +10,14 @@ const files = ["Features", "SharedFeatures"].flatMap(dir =>
 const sources = files.map(path => [path, readFileSync(new URL(path, root), "utf8")]);
 
 test("Feature colors use opaque semantic surfaces and readable foregrounds", () => {
-  const violations = sources.flatMap(([path, source]) => {
-    const prohibited = /Colors\.\w+\.opacity\(|(?:foregroundStyle|foregroundColor|tint)\(\s*DesignTokens\.Colors\.(?:customerFill|groomerFill|customerAccent|groomerAccent|success|warning|error)\b/g;
-    return [...source.matchAll(prohibited)].map(match => path + ": " + match[0]);
-  });
+  const violations = sources.flatMap(([path, source]) => auditSwiftSource({ filePath: path, source })
+    .filter(f => ["UI012", "UI013"].includes(f.ruleID)));
   assert.deepEqual(violations, []);
 });
 
 test("domain status chips use shared presentations, not local role mappings", () => {
   const violations = sources.filter(([path]) => path.startsWith("Features/")).flatMap(([path, source]) =>
-    [...source.matchAll(/BeckonStatusChip\([\s\S]*?\)/g)]
-      .filter(match => /\btone:/.test(match[0])).map(() => path));
+    auditSwiftSource({ filePath: path, source }).filter(f => f.ruleID === "UI014"));
   assert.deepEqual(violations, []);
 });
 

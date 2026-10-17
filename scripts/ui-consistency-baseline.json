@@ -2,7 +2,7 @@
   "version": 1,
   "scope": "ios/Beckon/Beckon/Features",
   "lastChange": {
-    "reason": "T-411 migrates feature colors, shared status presentations and action styles"
+    "reason": "T-413/T-414 semantic shapes and shared badge migration"
   },
   "findings": [
     {
@@ -405,13 +405,6 @@
       "occurrence": 1
     },
     {
-      "ruleID": "UI005",
-      "path": "ios/Beckon/Beckon/Features/Customer/Requests/CustomerRequestDetailView.swift",
-      "fingerprint": "652938d296604d73c44e525c3926f48ac35a83ea0cfb20a8562ab167aef3c1c8",
-      "expressionHash": "71f06fa6e0a405e2aca5a9b64be3d6aaf9615ce16ac8d43c367a299400a5e1f7",
-      "occurrence": 1
-    },
-    {
       "ruleID": "UI101",
       "path": "ios/Beckon/Beckon/Features/Customer/Requests/CustomerRequestDetailView.swift",
       "fingerprint": "d6ba388b906fd9dc1f40b7ab1eca2ce474703816c32809f61c57deaeb95865e9",
@@ -493,13 +486,6 @@
       "path": "ios/Beckon/Beckon/Features/Groomer/Home/GroomerHomeView.swift",
       "fingerprint": "0efc58e8787b3dc6a110a9fe67d29ccecc81bc5fb9e8ea030d75cbf04006f8c0",
       "expressionHash": "ea989b58b277e762c2de6cfebda7ce750162d8a08593cd008f08e7467b296a71",
-      "occurrence": 1
-    },
-    {
-      "ruleID": "UI101",
-      "path": "ios/Beckon/Beckon/Features/Groomer/Home/GroomerHomeView.swift",
-      "fingerprint": "be3fc57964ceae268267475a7416316ce8a14146bbd0ba4dc883c899a88ad399",
-      "expressionHash": "9ff6b5cc6f0e232e540e406d2eefab4727f5284a27bddb0a5c255e5c2582c798",
       "occurrence": 1
     },
     {
@@ -711,20 +697,6 @@
       "fingerprint": "c81a6f62118751b70170e72312368856970a9284b829602544b8731c2f45529e",
       "expressionHash": "65158038e24ad44407eb01a986bae98924a20a6fc8589099ecedd0ea1004cef2",
       "occurrence": 3
-    },
-    {
-      "ruleID": "UI004",
-      "path": "ios/Beckon/Beckon/Features/Groomer/Requests/GroomerRequestsView.swift",
-      "fingerprint": "5eeceae8ea3d2191fcc6b18a2ba1c8e33d6b67c302372b14ad6be7037cff2f91",
-      "expressionHash": "4fd4b2dc0418cee883be9768dc47cce29b3ad18cdc836c0db5f0189f6c101802",
-      "occurrence": 1
-    },
-    {
-      "ruleID": "UI004",
-      "path": "ios/Beckon/Beckon/Features/Groomer/Requests/GroomerRequestsView.swift",
-      "fingerprint": "908de3c2d4b42229ff029c3ac4072bdd649eb5adab878d35cf287d290b501988",
-      "expressionHash": "10e4ffc29bc3d0d864531a57df98639792fbe42f0871acf49d6fedafb612004b",
-      "occurrence": 1
     },
     {
       "ruleID": "UI002",

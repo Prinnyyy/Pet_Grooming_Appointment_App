@@ -13,6 +13,45 @@ import {
 const projectRoot = process.cwd();
 const cliPath = path.join(projectRoot, "scripts/ui-consistency-audit.mjs");
 
+test("UI012 rejects token opacity while allowing named opaque surfaces", () => {
+  const source = `Color.clear
+    .background(DesignTokens.Colors.customerTint)
+    .background(DesignTokens . Colors . customerFill /* note */ . opacity(0.2))
+    // Colors.customerFill.opacity(0.2)
+    Text("Colors.groomerFill.opacity(0.4)")
+    .opacity(isHidden ? 0 : 1)`;
+  const findings = auditSwiftSource({ filePath: "Features/Example.swift", source }).filter(f => f.ruleID === "UI012");
+  assert.equal(findings.length, 1);
+  assert.equal(findings[0].severity, "error");
+});
+
+test("UI013 finds fills in multiline and nested foreground expressions without adjacent-call leakage", () => {
+  const source = `Text(title)
+    .foregroundStyle(isSelected ? DesignTokens.Colors.customerFill : DesignTokens.Colors.textPrimary)
+    .foregroundColor(Colors.groomerFill)
+    .tint(resolve(DesignTokens.Colors.error))
+    .tint(.customerFill)
+    .foregroundStyle(DesignTokens.Colors.customerDeep)
+    .background(DesignTokens.Colors.groomerFill)
+    // .tint(Colors.warning)
+    Text(".foregroundStyle(Colors.success)")`;
+  const findings = auditSwiftSource({ filePath: "Features/Example.swift", source }).filter(f => f.ruleID === "UI013");
+  assert.equal(findings.length, 4);
+  assert.ok(findings.every(f => f.severity === "error"));
+});
+
+test("UI014 checks only direct chip tone arguments and ignores strings or adjacent controls", () => {
+  const source = `BeckonStatusChip(label(for: status), systemImage: symbol(), tone: .info)
+    BeckonStatusChip(status.presentation)
+    BeckonStatusChip(sharedPresentation(tone: .info))
+    AnotherControl(tone: .info)
+    // BeckonStatusChip("Sample", tone: .error)
+    Text("BeckonStatusChip(title, tone: .success)")`;
+  const findings = auditSwiftSource({ filePath: "Features/Example.swift", source }).filter(f => f.ruleID === "UI014");
+  assert.equal(findings.length, 1);
+  assert.equal(findings[0].severity, "error");
+});
+
 test("lexer masks comments and strings while preserving positions", () => {
   const source = [
     "Text(\".font(.system(size: 99))\")",

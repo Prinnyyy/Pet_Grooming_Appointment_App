@@ -30,6 +30,12 @@ node scripts/ui-consistency-audit.mjs strict ios/Beckon/Beckon/Features/Customer
 | UI006 | error | Feature-owned shadow | Canonical `beckonShadow` elevation role |
 | UI007 | error | Feature-local reusable presentation style | Shared `DesignSystem` style |
 | UI008 | error | `minimumScaleFactor` below 0.85 | Reflow or content-sized layout |
+| UI009 | error | Feature keyboard safe-area bypass | Native keyboard safe-area resizing |
+| UI010 | error | Keyboard-derived Feature padding/offset | Shared keyboard modifiers |
+| UI011 | error | Feature keyboard notifications/frame reads | DesignSystem keyboard boundary |
+| UI012 | error | `Colors.<token>.opacity(...)` | Opaque Tint, status Fill or neutral surface |
+| UI013 | error | Role Fill or legacy status fill in foreground/tint | Role Deep or semantic Text |
+| UI014 | error | Direct `tone:` argument on a Feature status chip | Shared `BeckonStatusPresentation` |
 | UI101 | warning | Fixed frame with Dynamic Type risk | Content-sized or adaptive layout |
 | UI102 | warning | Offset or negative spacing repair | Alignment or layout container |
 | UI201 | review | Repeated visual modifier stack | Review for a semantic component |
@@ -37,6 +43,8 @@ node scripts/ui-consistency-audit.mjs strict ios/Beckon/Beckon/Features/Customer
 `error` is deterministic and blocks new or migrated code. `warning` marks a high-risk layout site for review. `review` is evidence of possible duplication, not proof that abstraction is correct.
 
 The scanner lexes Swift comments and strings before matching, preserves UTF-16 source positions including content after emoji, and expands balanced modifier calls. It is intentionally narrower than a compiler: a clean audit proves compliance with these rules, not complete SwiftUI correctness or accessibility.
+
+UI012-014 have no baseline debt. Foreground checks include nested and conditional expressions; chip checks inspect the direct argument list, not a neighboring control or a shared presentation's arguments. The scanner does not resolve arbitrary Swift aliases or types. SharedFeatures color contracts reuse this scanner for UI012/013; domain presentation definitions there may own tones. Role and count badges are separate primitives, not semantic status chips.
 
 ## Debt Ratchet
 

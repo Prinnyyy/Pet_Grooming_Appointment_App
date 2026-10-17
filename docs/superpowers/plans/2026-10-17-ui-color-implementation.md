@@ -1,11 +1,11 @@
 <!-- task-artifact
 task: T-409
-status: active
+status: completed
 type: plan
 -->
 # UI Color Implementation
 
-The user adopted [the handoff](../../../UI_COLOR_IMPLEMENTATION_HANDOFF.md) on 2026-10-17. Its sections 1-5 own the complete visual scope and acceptance; the [external audit](../../../UI_UX_AUDIT_AND_OPTIMIZATION_PLAN.md) is supporting evidence, not additional backlog. Baseline: `e8c2d2b5`. Dynamic task state belongs only to [Current State](../../00_memory/CURRENT_STATE.md).
+The user adopted [the handoff](../../09_frozen/external_agent_reports/UI_COLOR_IMPLEMENTATION_HANDOFF-2026-10-17.md) on 2026-10-17. Its sections 1-5 own the complete visual scope and acceptance; the [external audit](../../09_frozen/external_agent_reports/UI_UX_AUDIT_AND_OPTIMIZATION_PLAN-2026-10-17.md) is supporting evidence, not additional backlog. Both drafts are archived verbatim. Baseline: `e8c2d2b5`. Dynamic task state belongs only to [Current State](../../00_memory/CURRENT_STATE.md).
 
 ## Execution Decisions
 
@@ -57,3 +57,22 @@ Evidence images and long logs belong in ignored `artifacts/evidence/<task>/`. No
 - Unified request/offer/booking/wizard/reschedule intervals, explicit unknown-zone handling, full zone identity in accessibility, human-readable empty values, independent singular/plural counts and sentence-case labels. Stored fields and transport values are unchanged. Visible-text TestOps selectors and their source oracle were updated together; 27 fixture tests passed.
 - Nine formatter boundary tests cover same/different zones, noon, midnight, year boundaries, malformed intervals, DST gaps and repeated hours. The broad run passed 36 rendering tests and four UI smoke tests; it exposed a genuine chat-recipient distinction regression plus three outdated presentation expectations. The distinction was restored without new fields, the shared location labels aligned, and all affected suites passed in the follow-up (154 Swift tests including four T-413 tests, five snapshot tests; `/tmp/beckon-t412-t413-tests.log`). Generic Simulator build passed, hygiene passed. Final whole-suite integration remains T-414/T-415.
 - Offers and Groomer Requests time captures inspected in `artifacts/evidence/T-413/captures/manifest.json`. No long IANA IDs appear in the list labels; unknown zones remain explicit rather than guessed.
+
+### T-413
+
+- Customer Home uses the adopted hero colors, neutral pet metadata, request avatar/title/time, shared status and three-step progress. Known complete offer pages provide current counts without extra reads; partial, unloaded, refresh-needed or failed data uses the unknown-count label. Offers has one page heading; Request Detail retains its existing actions.
+- Four Swift tests cover all six request states, confirmed handoff, singular/plural/unknown/expired counts and no-fetch behavior. Default/AX3, populated/empty Home and state-matrix captures are in `artifacts/evidence/T-413/captures/manifest.json` and `artifacts/evidence/T-414/captures/manifest.json`. AX3 initially split the progress label; its labels now stack while the three bars remain horizontal. The corrected capture was inspected.
+- Five migrated Customer paths pass strict audit. The local Simulator audit verified one request-card button with title, complete service zone, progress, status and Review in its accessibility label at default/AX3 sizes, and verified its existing Requests navigation. Geometry tests cover 320pt width and at least 44pt action height. These are runtime accessibility-label and geometry checks, not a claim of human screen-reader usability research.
+
+### T-414
+
+- Groomer Home, Requests/Offers and Account reuse role/count badges, neutral informational surfaces and the shared destructive style. Availability uses a success checkmark plus text instead of color alone. The old duplicate New label is removed; existing eligibility details, sorting, routes and controls remain. Shared message bubbles are neutral for both roles. Destructive booking actions and their confirmations use the same style.
+- Full serial scheme regression with both local audit fixtures enabled passed: 783 Swift tests, 41 XCTest rendering/interaction tests and four UI tests, 43 existing opt-in skips, zero failures (`/tmp/beckon-ui-color-acceptance.log`; `Test-Beckon-2026.10.17_06-53-25--0700.xcresult`). Local semantic taps verified Home availability routing, Requests sorting and Account controls; no remote test data was used.
+- Home/Requests/Account default/AX3 and shared screens were visually reviewed in `artifacts/evidence/T-414/captures/manifest.json`. Review caught an empty chat screenshot fixture: explicitly loading its two messages and asserting their presence fixed the evidence, without production changes. Final populated chat captures for both roles/default+AX3 are in `artifacts/evidence/T-415/final-captures/manifest.json` and were inspected.
+
+### T-415 And Final Acceptance
+
+- UI012-014 now reject token opacity, low-contrast foreground/tint fills and Feature-owned chip tones. Positive/negative tests cover comments, strings, nested calls and adjacent-call boundaries; 30 color/component/audit Node tests passed. The ratchet reports 139 existing findings, 109 baselined, zero new/stale errors and zero UI012-014 debt. Four obsolete baseline entries were pruned through the CLI; no new baseline exceptions were added.
+- Author self-review covered status ownership, display-only boundaries, loaded-count truthfulness, accessibility identifiers, navigation and final captures. It corrected the confirmation style, remaining dynamic sentence-case labels and the chat fixture. The final display-only corrections passed 187 targeted tests, with one existing opt-in skip and zero failures, including the password-recovery UI route and populated chat capture (`~/Library/Developer/XcodeBuildMCP/workspaces/Pet_Grooming_Appointment_App-78bef82efd6d/result-bundles/test_sim_2026-10-17T14-02-42-277Z_pid89742_abde3174.xcresult`). The unchanged business logic retains the full-suite evidence above. Subagents were not used.
+- Final `ios-build.sh` and preflight passed (`/tmp/beckon-ui-color-closeout-build.log`, `/tmp/beckon-ui-color-closeout-preflight.log`). Full hygiene passed with 84 documents and no errors/warnings. All literal accessibility identifiers across 193 tracked app Swift files match baseline `e8c2d2b5`; local signing-file SHA-256 is unchanged. Existing compiler warnings remain non-blocking.
+- Both external drafts were archived byte-for-byte (SHA-256 matched) at the links above. Governance and debt inventory are current. T-409 through T-415 are complete; backend, signing, distribution and unrelated layout debt remain outside this adopted objective.
