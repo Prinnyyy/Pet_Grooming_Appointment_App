@@ -98,21 +98,21 @@ struct BeckonProfileAvatar: View {
 
 struct BeckonPetAvatar: View {
     let data: Data?
-    let fallbackText: String
-    let background: AnyShapeStyle
+    let systemImage: String
     let width: CGFloat
     let height: CGFloat
     let cornerRadius: CGFloat
 
     var body: some View {
         BeckonModuleImage(data: data) {
-            Text(fallbackText)
+            Image(systemName: systemImage)
                 .font(.system(size: min(width, height) * 0.5))
+                .foregroundStyle(DesignTokens.Colors.textTertiary)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(background)
+                .background(DesignTokens.Colors.placeholderFill)
         }
         .frame(width: width, height: height)
-        .background(background)
+        .background(DesignTokens.Colors.placeholderFill)
         .clipShape(
             RoundedRectangle(
                 cornerRadius: cornerRadius,
@@ -193,7 +193,7 @@ struct BeckonPhotoEditorCard<Preview: View, Action: View>: View {
                     if showsSavedIndicator {
                         Image(systemName: "checkmark.circle.fill")
                             .font(.system(size: 22, weight: .bold))
-                            .foregroundStyle(DesignTokens.Colors.success)
+                            .foregroundStyle(DesignTokens.Colors.statusSuccessText)
                             .background(Circle().fill(DesignTokens.Colors.surface))
                             .accessibilityLabel(savedAccessibilityLabel)
                     }
@@ -238,15 +238,11 @@ struct BeckonDefaultProfileAvatar: View {
 
     var body: some View {
         ZStack {
-            background
-
-            Circle()
-                .fill(Color.white.opacity(0.35))
-                .frame(width: symbolSize * 1.55, height: symbolSize * 1.55)
+            DesignTokens.Colors.placeholderFill
 
             Image(systemName: symbolName)
                 .font(.system(size: symbolSize, weight: .semibold))
-                .foregroundStyle(foregroundColor)
+                .foregroundStyle(DesignTokens.Colors.textTertiary)
         }
     }
 
@@ -261,46 +257,4 @@ struct BeckonDefaultProfileAvatar: View {
         }
     }
 
-    private var foregroundColor: Color {
-        switch tone {
-        case .customer:
-            DesignTokens.Colors.customerAccentStrong
-        case .groomer:
-            DesignTokens.Colors.groomerAccentDark
-        case .neutral:
-            DesignTokens.Colors.textSecondary
-        }
-    }
-
-    private var background: LinearGradient {
-        switch tone {
-        case .customer:
-            LinearGradient(
-                colors: [
-                    DesignTokens.Colors.customerAccent.opacity(0.42),
-                    DesignTokens.Colors.groomerAccent.opacity(0.28),
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        case .groomer:
-            LinearGradient(
-                colors: [
-                    DesignTokens.Colors.groomerAccent.opacity(0.4),
-                    DesignTokens.Colors.customerAccent.opacity(0.28),
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        case .neutral:
-            LinearGradient(
-                colors: [
-                    DesignTokens.Colors.surfaceRaised,
-                    DesignTokens.Colors.borderSoft,
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        }
-    }
 }

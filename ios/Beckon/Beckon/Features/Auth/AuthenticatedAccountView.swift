@@ -283,9 +283,9 @@ private extension UserRole {
     var accountChipTone: BeckonStatusChip.Tone {
         switch self {
         case .customer:
-            .customer
+            .info
         case .groomer:
-            .groomer
+            .info
         }
     }
 

@@ -782,7 +782,6 @@ private struct ChatComposerView: View {
                             Circle()
                                 .fill(accentColor)
                                 .frame(width: 56, height: 56)
-                                .beckonShadow(DesignTokens.Shadows.primaryAction)
 
                             if isSending {
                                 ProgressView()
@@ -971,9 +970,9 @@ private extension UserRole {
     var chatChipTone: BeckonStatusChip.Tone {
         switch self {
         case .customer:
-            .customer
+            .info
         case .groomer:
-            .groomer
+            .info
         }
     }
 }

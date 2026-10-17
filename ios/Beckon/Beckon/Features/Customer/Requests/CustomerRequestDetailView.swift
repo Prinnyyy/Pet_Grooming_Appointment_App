@@ -1295,7 +1295,7 @@ private extension GroomingRequestStatus {
     var detailTone: BeckonStatusChip.Tone {
         switch self {
         case .open, .hasOffers:
-            .customer
+            .info
         case .booked:
             .success
         case .cancelled, .expired, .unknown:
@@ -1325,7 +1325,7 @@ private extension GroomerOfferStatus {
     var detailTone: BeckonStatusChip.Tone {
         switch self {
         case .pending:
-            .customer
+            .info
         case .acceptedByCustomer:
             .success
         case .declinedByCustomer, .withdrawnByGroomer, .expired, .unknown:

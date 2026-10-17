@@ -98,9 +98,9 @@ struct BeckonGroomingLocationModeSelector: View {
                         if isSelected {
                             Image(systemName: "checkmark")
                                 .font(DesignTokens.Typography.status)
-                                .foregroundStyle(DesignTokens.Colors.textPrimary)
+                                .foregroundStyle(accent.deep)
                                 .frame(width: 34, height: 34)
-                                .background(accent.color.opacity(0.42))
+                                .background(accent.tint)
                                 .clipShape(Circle())
                         }
                     }

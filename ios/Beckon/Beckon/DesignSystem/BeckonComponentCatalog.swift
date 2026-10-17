@@ -5,6 +5,7 @@ struct BeckonComponentCatalog: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: DesignTokens.Layout.sectionSpacing) {
+                BeckonColorActionCatalog()
                 BeckonSection("Actions", subtitle: "Default, visually unavailable, and disabled states") {
                     VStack(spacing: DesignTokens.Layout.sectionContentSpacing) {
                         Button("Primary action") {}
@@ -127,7 +128,42 @@ struct BeckonComponentCatalog: View {
         BeckonStatusChip("Confirmed", systemImage: "checkmark", tone: .success)
         BeckonStatusChip("Needs review", systemImage: "exclamationmark", tone: .warning)
         BeckonStatusChip("Unavailable", systemImage: "xmark", tone: .error)
+        BeckonStatusChip("Open", systemImage: "clock", tone: .info)
+        BeckonStatusChip("Cancelled", systemImage: "xmark.circle", tone: .neutral)
     }
+}
+
+struct BeckonColorActionCatalog: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+            BeckonSection("Customer") {
+                Button("Primary action") {}.buttonStyle(BeckonPrimaryButtonStyle(accent: .customer))
+                Button("Secondary action") {}.buttonStyle(BeckonSecondaryButtonStyle(accent: .customer))
+                Button("Text action") {}.buttonStyle(BeckonTertiaryButtonStyle(accent: .customer))
+                Button("Destructive action") {}.buttonStyle(BeckonDestructiveButtonStyle())
+            }
+            BeckonSection("Groomer") {
+                Button("Primary action") {}.buttonStyle(BeckonPrimaryButtonStyle(accent: .groomer))
+                Button("Secondary action") {}.buttonStyle(BeckonSecondaryButtonStyle(accent: .groomer))
+                Button("Text action") {}.buttonStyle(BeckonTertiaryButtonStyle(accent: .groomer))
+                Button("Destructive action") {}.buttonStyle(BeckonDestructiveButtonStyle())
+            }
+            BeckonStatusChip("Open", systemImage: "clock", tone: .info)
+            BeckonStatusChip("Has offers", systemImage: "tag", tone: .warning)
+            BeckonStatusChip("Completed", systemImage: "checkmark.circle", tone: .success)
+            BeckonStatusChip("Cancelled", systemImage: "xmark.circle", tone: .neutral)
+            BeckonStatusChip("Could not save", systemImage: "exclamationmark.triangle", tone: .error)
+        }
+    }
+}
+
+#Preview("Color actions") {
+    ScrollView { BeckonColorActionCatalog().beckonPageInsets() }
+}
+
+#Preview("Color actions AX3") {
+    ScrollView { BeckonColorActionCatalog().beckonPageInsets() }
+        .environment(\.dynamicTypeSize, .accessibility3)
 }
 
 #Preview("Default") {

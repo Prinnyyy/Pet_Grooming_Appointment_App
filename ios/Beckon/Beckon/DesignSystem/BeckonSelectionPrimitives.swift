@@ -28,7 +28,7 @@ struct BeckonSelectionCard<Content: View>: View {
                 .padding(DesignTokens.Layout.surfaceInset)
                 .background(
                     isSelected
-                        ? accent.color.opacity(0.22)
+                        ? accent.tint
                         : DesignTokens.Colors.surface
                 )
                 .clipShape(
@@ -44,7 +44,7 @@ struct BeckonSelectionCard<Content: View>: View {
                     )
                     .stroke(
                         isInvalid
-                            ? DesignTokens.Colors.error
+                            ? DesignTokens.Colors.statusErrorText
                             : (isSelected ? accent.darkColor : DesignTokens.Colors.border),
                         lineWidth: isSelected || isInvalid ? 2 : 1
                     )

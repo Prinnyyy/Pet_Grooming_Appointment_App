@@ -86,7 +86,7 @@ struct CustomerRequestsRootHeader: View {
             BeckonStatusChip(
                 "\(cardCount)",
                 systemImage: cardCount == 1 ? "doc.text.fill" : "rectangle.stack.fill",
-                tone: .customer
+                tone: .info
             )
         }
     }
@@ -692,8 +692,7 @@ private struct CustomerRequestBriefHeader: View {
         HStack(alignment: .top, spacing: DesignTokens.Spacing.lg) {
             BeckonPetAvatar(
                 data: petAvatarPhotoData,
-                fallbackText: request.petSnapshot.displayEmoji,
-                background: AnyShapeStyle(request.avatarBackground),
+                systemImage: BeckonPetPresentation.symbol(for: request.petSnapshot.species),
                 width: 68,
                 height: 68,
                 cornerRadius: 34
@@ -1236,8 +1235,7 @@ private struct CustomerCancelledRequestRow: View {
         HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
             BeckonPetAvatar(
                 data: petAvatarPhotoData,
-                fallbackText: request.petSnapshot.displayEmoji,
-                background: AnyShapeStyle(request.avatarBackground),
+                systemImage: BeckonPetPresentation.symbol(for: request.petSnapshot.species),
                 width: 48,
                 height: 48,
                 cornerRadius: 24
@@ -1306,16 +1304,6 @@ private extension CustomerGroomingRequest {
         }
     }
 
-    var avatarBackground: LinearGradient {
-        LinearGradient(
-            colors: [
-                DesignTokens.Colors.customerAccent.opacity(0.28),
-                DesignTokens.Colors.groomerAccent.opacity(0.20),
-            ],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
-    }
 
     var dashboardChipTitle: String {
         switch status {
@@ -1354,7 +1342,7 @@ private extension CustomerGroomingRequest {
     var dashboardChipTone: BeckonStatusChip.Tone {
         switch status {
         case .open:
-            .customer
+            .info
         case .hasOffers:
             .warning
         case .booked:

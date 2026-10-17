@@ -1812,7 +1812,7 @@ private extension BookingStatus {
     func chipTone(for role: UserRole) -> BeckonStatusChip.Tone {
         switch self {
         case .confirmed:
-            role == .groomer ? .groomer : .customer
+            .info
         case .completed:
             .success
         case .unfulfilled:

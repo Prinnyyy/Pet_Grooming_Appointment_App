@@ -69,11 +69,12 @@ struct GroomerTabView: View {
                     Label(tab.title, systemImage: tab.systemImage)
                         .accessibilityIdentifier(tab.accessibilityIdentifier)
                 }
+                .background(BeckonTabBadgeAppearance(accent: .groomer))
                 .badge(
-                    tab.badgeCount(
+                    BeckonBadgeLabel.text(for: tab.badgeCount(
                         unreadNotificationCount: notificationUnreadCount,
                         unreadMessageCount: messageUnreadCount
-                    )
+                    ))
                 )
                 .tag(tab)
             }

@@ -27,12 +27,12 @@ struct BeckonErrorBanner<Action: View>: View {
                 if let systemImage {
                     Image(systemName: systemImage)
                         .font(DesignTokens.Typography.body.weight(.semibold))
-                        .foregroundStyle(DesignTokens.Colors.error)
+                        .foregroundStyle(DesignTokens.Colors.statusErrorText)
                         .frame(
                             width: DesignTokens.Spacing.xl + DesignTokens.Spacing.sm,
                             height: DesignTokens.Spacing.xl + DesignTokens.Spacing.sm
                         )
-                        .background(DesignTokens.Colors.error.opacity(0.12))
+                        .background(DesignTokens.Colors.statusErrorFill)
                         .clipShape(DesignTokens.Shapes.circular)
                         .accessibilityHidden(true)
                 }
@@ -64,7 +64,7 @@ struct BeckonErrorBanner<Action: View>: View {
         }
         .overlay {
             RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.card, style: .continuous)
-                .stroke(DesignTokens.Colors.error.opacity(0.28), lineWidth: 1)
+                .stroke(DesignTokens.Colors.statusErrorBorder, lineWidth: 1)
         }
         .beckonShadow(DesignTokens.Shadows.smallCard)
     }
@@ -124,9 +124,9 @@ enum BeckonFeedbackTone: Equatable, Sendable {
     var tint: Color {
         switch self {
         case .customer:
-            DesignTokens.Colors.customerAccent
+            DesignTokens.Colors.customerDeep
         case .groomer:
-            DesignTokens.Colors.groomerAccent
+            DesignTokens.Colors.groomerDeep
         case .neutral:
             DesignTokens.Colors.textSecondary
         }
@@ -298,9 +298,9 @@ struct BeckonPersistentErrorView<Action: View>: View {
                 HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
                     Image(systemName: systemImage)
                         .font(.title3.weight(.bold))
-                        .foregroundStyle(DesignTokens.Colors.error)
+                        .foregroundStyle(DesignTokens.Colors.statusErrorText)
                         .frame(width: 52, height: 52)
-                        .background(DesignTokens.Colors.error.opacity(0.12))
+                        .background(DesignTokens.Colors.statusErrorFill)
                         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                         .accessibilityHidden(true)
 
@@ -326,7 +326,7 @@ struct BeckonPersistentErrorView<Action: View>: View {
         }
         .overlay {
             RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.card, style: .continuous)
-                .stroke(DesignTokens.Colors.error.opacity(0.24), lineWidth: 1)
+                .stroke(DesignTokens.Colors.statusErrorBorder, lineWidth: 1)
         }
         .accessibilityIdentifier("beckon.persistent-error")
     }
@@ -1096,13 +1096,13 @@ struct BeckonNoticeToast: View {
     }
 
     var body: some View {
-        BeckonBottomPrompt(borderColor: DesignTokens.Colors.success.opacity(0.24)) {
+        BeckonBottomPrompt(borderColor: DesignTokens.Colors.statusSuccessBorder) {
             HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
                 Image(systemName: "checkmark")
                     .font(.footnote.weight(.heavy))
                     .foregroundStyle(DesignTokens.Colors.surface)
                     .frame(width: 32, height: 32)
-                    .background(DesignTokens.Colors.success)
+                    .background(DesignTokens.Colors.statusSuccessText)
                     .clipShape(DesignTokens.Shapes.circular)
                     .accessibilityHidden(true)
 
@@ -1170,16 +1170,16 @@ struct BeckonBottomErrorPrompt: View {
     }
 
     var body: some View {
-        BeckonBottomPrompt(borderColor: DesignTokens.Colors.error.opacity(0.28)) {
+        BeckonBottomPrompt(borderColor: DesignTokens.Colors.statusErrorBorder) {
             HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .font(DesignTokens.Typography.body.weight(.semibold))
-                    .foregroundStyle(DesignTokens.Colors.error)
+                    .foregroundStyle(DesignTokens.Colors.statusErrorText)
                     .frame(
                         width: DesignTokens.Spacing.xl + DesignTokens.Spacing.sm,
                         height: DesignTokens.Spacing.xl + DesignTokens.Spacing.sm
                     )
-                    .background(DesignTokens.Colors.error.opacity(0.12))
+                    .background(DesignTokens.Colors.statusErrorFill)
                     .clipShape(DesignTokens.Shapes.circular)
                     .accessibilityHidden(true)
 
@@ -1235,9 +1235,9 @@ struct BeckonLoadingView: View {
         fileprivate var tint: Color {
             switch self {
             case .customer:
-                DesignTokens.Colors.customerAccent
+                DesignTokens.Colors.customerDeep
             case .groomer:
-                DesignTokens.Colors.groomerAccent
+                DesignTokens.Colors.groomerDeep
             }
         }
     }
@@ -1298,18 +1298,18 @@ struct BeckonEmptyState<Action: View>: View {
         fileprivate var foreground: Color {
             switch self {
             case .customer:
-                DesignTokens.Colors.customerAccentStrong
+                DesignTokens.Colors.customerDeep
             case .groomer:
-                DesignTokens.Colors.groomerAccentDark
+                DesignTokens.Colors.groomerDeep
             }
         }
 
         fileprivate var background: Color {
             switch self {
             case .customer:
-                DesignTokens.Colors.customerAccent.opacity(0.14)
+                DesignTokens.Colors.customerTint
             case .groomer:
-                DesignTokens.Colors.groomerAccent.opacity(0.14)
+                DesignTokens.Colors.groomerTint
             }
         }
     }

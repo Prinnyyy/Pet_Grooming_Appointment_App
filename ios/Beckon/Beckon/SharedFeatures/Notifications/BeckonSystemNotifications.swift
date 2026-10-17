@@ -72,7 +72,7 @@ struct BeckonNotificationBellButton: View {
 
                 if presentation.showsUnreadDot {
                     Circle()
-                        .fill(DesignTokens.Colors.notificationUnread)
+                        .fill(DesignTokens.Colors.unreadDot)
                         .frame(width: 10, height: 10)
                         .padding(.top, DesignTokens.Spacing.sm)
                         .padding(.trailing, DesignTokens.Spacing.sm)
@@ -255,7 +255,7 @@ private struct BeckonSystemNotificationRow: View {
         .overlay(alignment: .leading) {
             if !notification.isRead {
                 Circle()
-                    .fill(DesignTokens.Colors.notificationUnread)
+                    .fill(DesignTokens.Colors.unreadDot)
                     .frame(width: 9, height: 9)
                     .offset(x: -14)
                     .accessibilityHidden(true)

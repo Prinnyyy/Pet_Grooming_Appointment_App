@@ -18,51 +18,25 @@ struct BeckonPrimaryButtonStyle: ButtonStyle {
         case customer
         case groomer
 
-        fileprivate var gradientColors: [Color] {
-            switch self {
-            case .customer:
-                [
-                    DesignTokens.Colors.customerAccent,
-                    DesignTokens.Colors.customerAccentSoft
-                ]
-            case .groomer:
-                [
-                    DesignTokens.Colors.groomerAccent,
-                    DesignTokens.Colors.groomerAccentDark
-                ]
-            }
+        fileprivate var fill: Color {
+            self == .customer ? DesignTokens.Colors.customerFill : DesignTokens.Colors.groomerFill
         }
 
-        fileprivate var shadow: DesignTokens.ShadowStyle {
-            switch self {
-            case .customer:
-                DesignTokens.Shadows.primaryAction
-            case .groomer:
-                DesignTokens.Shadows.groomerAction
-            }
+        fileprivate var fillPressed: Color {
+            self == .customer ? DesignTokens.Colors.customerFillPressed : DesignTokens.Colors.groomerFillPressed
         }
 
         fileprivate var foreground: Color {
-            switch self {
-            case .customer:
-                DesignTokens.Colors.textPrimary
-            case .groomer:
-                DesignTokens.Colors.groomerOnAccent
-            }
+            self == .customer ? DesignTokens.Colors.customerInk : DesignTokens.Colors.groomerInk
         }
     }
 
     @Environment(\.isEnabled) private var isEnabled
-
     private let accent: Accent
     private let isFullWidth: Bool
     private let isVisuallyEnabled: Bool
 
-    init(
-        accent: Accent = .customer,
-        isFullWidth: Bool = true,
-        isVisuallyEnabled: Bool = true
-    ) {
+    init(accent: Accent = .customer, isFullWidth: Bool = true, isVisuallyEnabled: Bool = true) {
         self.accent = accent
         self.isFullWidth = isFullWidth
         self.isVisuallyEnabled = isVisuallyEnabled
@@ -81,38 +55,12 @@ struct BeckonPrimaryButtonStyle: ButtonStyle {
             .padding(.horizontal, DesignTokens.Spacing.lg)
             .background {
                 RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous)
-                    .fill(backgroundGradient(
-                        isPressed: configuration.isPressed,
-                        rendersEnabled: availability.rendersEnabled
-                    ))
+                    .fill(availability.rendersEnabled
+                        ? (configuration.isPressed ? accent.fillPressed : accent.fill)
+                        : DesignTokens.Colors.iconTileFill)
             }
-            .beckonShadow(accent.shadow, isVisible: availability.rendersEnabled)
             .scaleEffect(configuration.isPressed && availability.rendersEnabled ? 0.98 : 1)
-            .opacity(availability.rendersEnabled ? 1 : 0.64)
             .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
-            .animation(.easeOut(duration: 0.12), value: availability.rendersEnabled)
-    }
-
-    private func backgroundGradient(
-        isPressed: Bool,
-        rendersEnabled: Bool
-    ) -> LinearGradient {
-        let colors: [Color]
-
-        if rendersEnabled {
-            colors = isPressed ? Array(accent.gradientColors.reversed()) : accent.gradientColors
-        } else {
-            colors = [
-                DesignTokens.Colors.borderSoft,
-                DesignTokens.Colors.borderSoft
-            ]
-        }
-
-        return LinearGradient(
-            colors: colors,
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
     }
 }
 
@@ -125,43 +73,38 @@ struct BeckonSecondaryButtonStyle: ButtonStyle {
 
         fileprivate var foreground: Color {
             switch self {
-            case .customer:
-                DesignTokens.Colors.customerAccentStrong
-            case .customerHero:
-                DesignTokens.Colors.customerHeroText
-            case .groomer:
-                DesignTokens.Colors.groomerOnAccent
-            case .neutral:
-                DesignTokens.Colors.textPrimary
+            case .customer: DesignTokens.Colors.customerDeep
+            case .customerHero: DesignTokens.Colors.customerInk
+            case .groomer: DesignTokens.Colors.groomerDeep
+            case .neutral: DesignTokens.Colors.textPrimary
             }
         }
 
         fileprivate var pressedBackground: Color {
             switch self {
-            case .customer, .customerHero:
-                DesignTokens.Colors.customerAccent.opacity(0.14)
-            case .groomer:
-                DesignTokens.Colors.groomerAccent.opacity(0.14)
-            case .neutral:
-                DesignTokens.Colors.borderSoft.opacity(0.55)
+            case .customer, .customerHero: DesignTokens.Colors.customerTint
+            case .groomer: DesignTokens.Colors.groomerTint
+            case .neutral: DesignTokens.Colors.iconTileFill
             }
         }
     }
 
     @Environment(\.isEnabled) private var isEnabled
-
     private let accent: Accent
     private let isFullWidth: Bool
     private let font: Font
+    private let isSelected: Bool
 
     init(
         accent: Accent = .customer,
         isFullWidth: Bool = true,
-        font: Font = DesignTokens.Typography.action
+        font: Font = DesignTokens.Typography.action,
+        isSelected: Bool = false
     ) {
         self.accent = accent
         self.isFullWidth = isFullWidth
         self.font = font
+        self.isSelected = isSelected
     }
 
     func makeBody(configuration: Configuration) -> some View {
@@ -172,28 +115,49 @@ struct BeckonSecondaryButtonStyle: ButtonStyle {
             .padding(.horizontal, DesignTokens.Spacing.lg)
             .background {
                 RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous)
-                    .fill(backgroundColor(isPressed: configuration.isPressed))
+                    .fill(isEnabled && configuration.isPressed ? accent.pressedBackground : DesignTokens.Colors.surface)
             }
             .overlay {
                 RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous)
-                    .stroke(borderColor, lineWidth: 1)
+                    .stroke(isSelected && isEnabled ? accent.foreground : DesignTokens.Colors.border, lineWidth: 1)
             }
             .scaleEffect(configuration.isPressed && isEnabled ? 0.98 : 1)
-            .opacity(isEnabled ? 1 : 0.64)
             .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
-            .animation(.easeOut(duration: 0.12), value: isEnabled)
     }
+}
 
-    private var borderColor: Color {
-        isEnabled ? DesignTokens.Colors.border : DesignTokens.Colors.borderSoft
+struct BeckonTertiaryButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+    var accent: BeckonRoleAccent = .customer
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(DesignTokens.Typography.action)
+            .foregroundStyle(isEnabled ? accent.deep : DesignTokens.Colors.textTertiary)
+            .frame(minWidth: DesignTokens.Metrics.minimumTouchTarget, minHeight: DesignTokens.Metrics.minimumTouchTarget)
+            .contentShape(Rectangle())
+            .background(isEnabled && configuration.isPressed ? accent.tint : .clear)
     }
+}
 
-    private func backgroundColor(isPressed: Bool) -> Color {
-        if isEnabled && isPressed {
-            return accent.pressedBackground
-        }
+struct BeckonDestructiveButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+    var isFullWidth = true
 
-        return isEnabled ? DesignTokens.Colors.surface : DesignTokens.Colors.borderSoft.opacity(0.32)
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(DesignTokens.Typography.action)
+            .foregroundStyle(isEnabled ? DesignTokens.Colors.statusErrorText : DesignTokens.Colors.textTertiary)
+            .frame(maxWidth: isFullWidth ? .infinity : nil, minHeight: DesignTokens.Metrics.actionHeight)
+            .padding(.horizontal, DesignTokens.Spacing.lg)
+            .background {
+                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous)
+                    .fill(isEnabled && configuration.isPressed ? DesignTokens.Colors.statusErrorFill : DesignTokens.Colors.surface)
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button, style: .continuous)
+                    .stroke(DesignTokens.Colors.statusErrorBorder, lineWidth: 1)
+            }
     }
 }
 
@@ -279,67 +243,45 @@ struct BeckonCard<Content: View>: View {
     }
 
     private var borderColor: Color {
-        isSelected ? DesignTokens.Colors.customerAccent : DesignTokens.Colors.borderSoft
+        isSelected ? DesignTokens.Colors.customerDeep : DesignTokens.Colors.borderSoft
     }
 }
 
 struct BeckonStatusChip: View {
-    enum Tone {
+    nonisolated enum Tone: String, CaseIterable, Equatable, Sendable {
         case neutral
-        case customer
-        case groomer
         case success
         case warning
         case error
+        case info
 
-        fileprivate var foreground: Color {
+        @MainActor fileprivate var foreground: Color {
             switch self {
-            case .neutral:
-                DesignTokens.Colors.textSecondary
-            case .customer:
-                DesignTokens.Colors.customerAccentStrong
-            case .groomer:
-                DesignTokens.Colors.groomerOnAccent
-            case .success:
-                DesignTokens.Colors.successText
-            case .warning:
-                DesignTokens.Colors.warningText
-            case .error:
-                DesignTokens.Colors.errorText
+            case .neutral: DesignTokens.Colors.statusNeutralText
+            case .success: DesignTokens.Colors.statusSuccessText
+            case .warning: DesignTokens.Colors.statusWarningText
+            case .error: DesignTokens.Colors.statusErrorText
+            case .info: DesignTokens.Colors.statusInfoText
             }
         }
 
-        fileprivate var background: Color {
+        @MainActor fileprivate var background: Color {
             switch self {
-            case .neutral:
-                DesignTokens.Colors.borderSoft.opacity(0.55)
-            case .customer:
-                DesignTokens.Colors.customerAccent.opacity(0.16)
-            case .groomer:
-                DesignTokens.Colors.groomerAccent.opacity(0.16)
-            case .success:
-                DesignTokens.Colors.success.opacity(0.16)
-            case .warning:
-                DesignTokens.Colors.warning.opacity(0.2)
-            case .error:
-                DesignTokens.Colors.error.opacity(0.14)
+            case .neutral: DesignTokens.Colors.statusNeutralFill
+            case .success: DesignTokens.Colors.statusSuccessFill
+            case .warning: DesignTokens.Colors.statusWarningFill
+            case .error: DesignTokens.Colors.statusErrorFill
+            case .info: DesignTokens.Colors.statusInfoFill
             }
         }
 
-        fileprivate var border: Color {
+        @MainActor fileprivate var border: Color {
             switch self {
-            case .neutral:
-                DesignTokens.Colors.borderSoft
-            case .customer:
-                DesignTokens.Colors.customerAccent.opacity(0.34)
-            case .groomer:
-                DesignTokens.Colors.groomerAccent.opacity(0.34)
-            case .success:
-                DesignTokens.Colors.success.opacity(0.32)
-            case .warning:
-                DesignTokens.Colors.warning.opacity(0.34)
-            case .error:
-                DesignTokens.Colors.error.opacity(0.3)
+            case .neutral: DesignTokens.Colors.statusNeutralBorder
+            case .success: DesignTokens.Colors.statusSuccessBorder
+            case .warning: DesignTokens.Colors.statusWarningBorder
+            case .error: DesignTokens.Colors.statusErrorBorder
+            case .info: DesignTokens.Colors.statusInfoBorder
             }
         }
     }
@@ -378,7 +320,7 @@ struct BeckonStatusChip: View {
                 .stroke(tone.border, lineWidth: 1)
         }
         .clipShape(DesignTokens.Shapes.chip)
-        .fixedSize(horizontal: true, vertical: false)
+        .fixedSize(horizontal: false, vertical: true)
         .accessibilityElement(children: .combine)
     }
 }

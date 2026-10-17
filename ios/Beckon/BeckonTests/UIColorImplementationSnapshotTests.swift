@@ -5,6 +5,29 @@ import XCTest
 
 @MainActor
 final class UIColorImplementationSnapshotTests: XCTestCase {
+    func testColorCatalog() async throws {
+        for largeText in [false, true] {
+            try await capture(
+                ScrollView { BeckonColorActionCatalog().beckonPageInsets() }
+                    .background(DesignTokens.Colors.appBackground),
+                name: "color-catalog", largeText: largeText, captureAllContent: true
+            )
+        }
+    }
+
+    func testWizardActions() async throws {
+        let owner = UUID()
+        let store = CustomerRequestsStore(customerID: owner,
+            petRepository: CustomerRequestPetRepositoryFake(petsResult: .success([CustomerRequestsStoreTests.pet(customerID: owner)])),
+            requestRepository: CustomerRequestRepositoryFake(),
+            bookingRepository: CustomerRequestBookingRepositoryFake())
+        await store.load()
+        for largeText in [false, true] {
+            try await capture(NavigationStack { CustomerRequestWizardView(store: store) },
+                name: "wizard-actions", largeText: largeText)
+        }
+    }
+
     func testRoleHomes() async throws {
         let customer = try await CustomerBookingUIFixture(screen: "booking")
         let pet = CustomerRequestsStoreTests.pet(customerID: customer.request.customerID)
@@ -29,7 +52,9 @@ final class UIColorImplementationSnapshotTests: XCTestCase {
         }
     }
 
-    private func capture<Content: View>(_ content: Content, name: String, largeText: Bool) async throws {
+    private func capture<Content: View>(
+        _ content: Content, name: String, largeText: Bool, captureAllContent: Bool = false
+    ) async throws {
         let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
         let previous = scene.windows.first(where: \.isKeyWindow)
         let visible = scene.windows.filter { !$0.isHidden }
@@ -48,12 +73,30 @@ final class UIColorImplementationSnapshotTests: XCTestCase {
         try await Task.sleep(for: .milliseconds(600))
         window.layoutIfNeeded()
         XCTAssertGreaterThan(window.bounds.width, 300)
-        let image = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
-            window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+        func attach(_ suffix: String) {
+            let image = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
+                window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+            }
+            let attachment = XCTAttachment(image: image)
+            attachment.name = "UI-color-\(name)-\(largeText ? "AX3" : "default")\(suffix)"
+            attachment.lifetime = .keepAlways
+            add(attachment)
         }
-        let attachment = XCTAttachment(image: image)
-        attachment.name = "UI-color-\(name)-\(largeText ? "AX3" : "default")"
-        attachment.lifetime = .keepAlways
-        add(attachment)
+        attach("")
+        if captureAllContent {
+            func scrolls(_ view: UIView) -> [UIScrollView] {
+                (view as? UIScrollView).map { [$0] } ?? view.subviews.flatMap(scrolls)
+            }
+            if let scroll = scrolls(window).first(where: { $0.contentSize.height > $0.bounds.height }) {
+                let bottom = scroll.contentSize.height - scroll.bounds.height + scroll.adjustedContentInset.bottom
+                var page = 1
+                while scroll.contentOffset.y < bottom - 1 {
+                    scroll.setContentOffset(CGPoint(x: 0, y: min(bottom, scroll.contentOffset.y + scroll.bounds.height * 0.8)), animated: false)
+                    try await Task.sleep(for: .milliseconds(100))
+                    attach("-page\(page)")
+                    page += 1
+                }
+            }
+        }
     }
 }

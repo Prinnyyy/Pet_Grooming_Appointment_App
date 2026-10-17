@@ -17,11 +17,23 @@ enum BeckonRoleAccent {
     }
 
     var darkColor: Color {
+        deep
+    }
+
+    var tint: Color {
+        switch self {
+        case .customer: DesignTokens.Colors.customerTint
+        case .groomer: DesignTokens.Colors.groomerTint
+        case .neutral: DesignTokens.Colors.iconTileFill
+        }
+    }
+
+    var deep: Color {
         switch self {
         case .customer:
-            DesignTokens.Colors.customerAccentStrong
+            DesignTokens.Colors.customerDeep
         case .groomer:
-            DesignTokens.Colors.groomerAccentDark
+            DesignTokens.Colors.groomerDeep
         case .neutral:
             DesignTokens.Colors.textPrimary
         }

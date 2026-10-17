@@ -42,7 +42,7 @@ struct CustomerAccountView: View {
                         detailText: store.profileDetailText,
                         roleTitle: "Pet Owner",
                         roleSystemImage: "pawprint.fill",
-                        roleTone: .customer
+                        roleTone: .neutral
                     ) {
                         CustomerAvatarImage(
                             data: store.avatarPhotoData,

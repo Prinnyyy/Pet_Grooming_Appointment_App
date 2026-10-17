@@ -29,7 +29,7 @@ struct GroomerAccountHomeView: View {
                 detailText: presentation.identitySubtitle,
                 roleTitle: "Groomer",
                 roleSystemImage: "scissors",
-                roleTone: .groomer
+                roleTone: .neutral
             ) {
                 BeckonProfileAvatar(
                     data: store.avatarPhotoData,

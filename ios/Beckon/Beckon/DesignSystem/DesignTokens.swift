@@ -240,20 +240,6 @@ enum DesignTokens {
         )
         static let smallCard = softCard
         static let carouselCard = softCard
-        static let primaryAction = ShadowStyle(
-            color: Color(hex: ColorHex.customerFill, opacity: 0.55),
-            radius: 28,
-            x: 0,
-            y: 14,
-            spread: -8
-        )
-        static let groomerAction = ShadowStyle(
-            color: Color(hex: 0xFF9A8B, opacity: 0.5),
-            radius: 28,
-            x: 0,
-            y: 14,
-            spread: -8
-        )
     }
 
     enum Typography {

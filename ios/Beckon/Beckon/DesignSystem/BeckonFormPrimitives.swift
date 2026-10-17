@@ -843,9 +843,12 @@ struct BeckonFieldGroup<Content: View>: View {
             content
 
             if let errorText {
-                Text(errorText)
+                Label(errorText, systemImage: "exclamationmark.triangle")
                     .font(DesignTokens.Typography.status)
-                    .foregroundStyle(DesignTokens.Colors.errorText)
+                    .foregroundStyle(DesignTokens.Colors.statusErrorText)
+                    .padding(DesignTokens.Spacing.sm)
+                    .background(DesignTokens.Colors.statusErrorFill)
+                    .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input))
             } else if let supportingText {
                 Text(supportingText)
                     .font(DesignTokens.Typography.supporting)
@@ -864,7 +867,7 @@ private struct BeckonFormFieldModifier: ViewModifier {
         content
             .font(DesignTokens.Typography.body)
             .foregroundStyle(DesignTokens.Colors.textPrimary)
-            .tint(isInvalid ? DesignTokens.Colors.error : DesignTokens.Colors.customerAccentStrong)
+            .tint(isInvalid ? DesignTokens.Colors.statusErrorText : DesignTokens.Colors.customerDeep)
             .padding(.horizontal, DesignTokens.Spacing.lg)
             .padding(.vertical, DesignTokens.Spacing.md)
             .frame(minHeight: 52)
@@ -876,24 +879,17 @@ private struct BeckonFormFieldModifier: ViewModifier {
                 RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.input, style: .continuous)
                     .stroke(borderColor, lineWidth: isInvalid ? 1.6 : 1)
             }
-            .shadow(
-                color: isInvalid ? DesignTokens.Colors.error.opacity(0.28) : .clear,
-                radius: isInvalid ? 9 : 0,
-                x: 0,
-                y: 0
-            )
-            .opacity(isEnabled ? 1 : 0.64)
     }
 
     private var backgroundColor: Color {
-        isEnabled ? DesignTokens.Colors.surface : DesignTokens.Colors.borderSoft.opacity(0.35)
+        isEnabled ? DesignTokens.Colors.surface : DesignTokens.Colors.iconTileFill
     }
 
     private var borderColor: Color {
         if isInvalid {
-            return DesignTokens.Colors.error
+            return DesignTokens.Colors.statusErrorText
         }
 
-        return isEnabled ? DesignTokens.Colors.borderSoft : DesignTokens.Colors.borderSoft.opacity(0.7)
+        return DesignTokens.Colors.borderSoft
     }
 }

@@ -470,7 +470,7 @@ private struct GroomerRequestSummaryRow: View {
             return .warning
         }
 
-        return matchedRequest.request.status.isOpenForOffers ? .groomer : .neutral
+        return matchedRequest.request.status.isOpenForOffers ? .info : .neutral
     }
 
     private var statusSystemImage: String {
@@ -989,7 +989,7 @@ struct GroomerRequestDetailView: View {
                     BeckonStatusChip(
                         "Draft",
                         systemImage: "pencil",
-                        tone: .groomer
+                        tone: .info
                     )
                 }
 
@@ -1415,7 +1415,7 @@ private struct OfferMessageBlock: View {
 
 private extension GroomingRequestStatus {
     var groomerTone: BeckonStatusChip.Tone {
-        isOpenForOffers ? .groomer : .neutral
+        isOpenForOffers ? .info : .neutral
     }
 
     var groomerSystemImage: String {

@@ -545,8 +545,7 @@ private struct CustomerHomePetTile: View {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                 BeckonPetAvatar(
                     data: store.primaryPhotoData(for: pet),
-                    fallbackText: avatar,
-                    background: AnyShapeStyle(avatarBackground),
+                    systemImage: BeckonPetPresentation.symbol(for: pet.displaySpecies),
                     width: 140,
                     height: 116,
                     cornerRadius: DesignTokens.CornerRadius.input
@@ -623,33 +622,6 @@ private struct CustomerHomePetTile: View {
         return pet.displaySpecies
     }
 
-    private var avatar: String {
-        let searchText = "\(pet.displayBreed ?? "") \(pet.displaySpecies)"
-            .lowercased()
-
-        if searchText.contains("poodle") {
-            return "🐩"
-        } else if searchText.contains("cat") {
-            return "🐱"
-        } else if searchText.contains("bird") {
-            return "🐦"
-        } else if searchText.contains("rabbit") {
-            return "🐰"
-        } else if searchText.contains("dog") {
-            return "🐶"
-        }
-
-        return "🐾"
-    }
-
-    private var avatarBackground: Color {
-        let palette = [
-            DesignTokens.Colors.groomerAccent.opacity(0.22),
-            DesignTokens.Colors.customerAccent.opacity(0.22),
-            DesignTokens.Colors.warning.opacity(0.18),
-        ]
-        return palette[abs(pet.name.hashValue) % palette.count]
-    }
 }
 
 private struct CustomerHomeAddPetTile: View {
