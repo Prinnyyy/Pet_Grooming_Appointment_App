@@ -162,7 +162,7 @@ struct BookingRescheduleConfirmation: View {
                     } else if let proposal {
                         BookingRescheduleTimes(booking: booking, proposal: proposal)
                     }
-                    Text("Service Time Zone: \(booking.serviceTimeZoneIdentifier ?? "Unverified")")
+                    Text("Service time zone: \(booking.serviceTimeZoneIdentifier ?? "Unverified")")
                         .font(DesignTokens.Typography.caption)
                 }
                 Section {

@@ -101,10 +101,7 @@ private struct GroomerOfferSectionView: View {
 
                 Spacer()
 
-                Text("\(section.offers.count)")
-                    .font(DesignTokens.Typography.caption.weight(.semibold))
-                    .foregroundStyle(DesignTokens.Colors.textTertiary)
-                    .monospacedDigit()
+                BeckonCountBadge(count: section.offers.count, accent: .groomer)
             }
 
             BeckonGroupedSurface {
@@ -156,7 +153,7 @@ private struct GroomerOfferRow: View {
 
                 Text("\(item.offer.priceSummary) · \(item.offer.status.offerListDescription)")
                     .font(DesignTokens.Typography.caption.weight(.semibold))
-                    .foregroundStyle(DesignTokens.Colors.groomerInk)
+                    .foregroundStyle(DesignTokens.Colors.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -429,12 +426,12 @@ private struct GroomerOfferFactRow: View {
         HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
             Image(systemName: systemImage)
                 .font(DesignTokens.Typography.caption.weight(.semibold))
-                .foregroundStyle(DesignTokens.Colors.groomerInk)
+                .foregroundStyle(DesignTokens.Colors.textSecondary)
                 .frame(
                     width: DesignTokens.Spacing.xl,
                     height: DesignTokens.Spacing.xl
                 )
-                .background(DesignTokens.Colors.groomerTint)
+                .background(DesignTokens.Colors.iconTileFill)
                 .clipShape(DesignTokens.Shapes.circular)
                 .accessibilityHidden(true)
 

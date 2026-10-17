@@ -84,6 +84,7 @@ struct GroomerRequestsView: View {
                             }
                         }
                     } label: { Label("Sort", systemImage: "arrow.up.arrow.down") }
+                    .tint(DesignTokens.Colors.textPrimary)
                     .accessibilityIdentifier("groomer.requests.sort")
                 }
             }
@@ -92,6 +93,7 @@ struct GroomerRequestsView: View {
                     Label("Refresh", systemImage: "arrow.clockwise")
                 }
                 .disabled(isRefreshing)
+                .tint(DesignTokens.Colors.textPrimary)
             }
         }
         .background {
@@ -197,17 +199,7 @@ private struct GroomerRequestsWorkspaceHeader: View {
                         HStack(spacing: DesignTokens.Spacing.sm) {
                             Text(segment.title)
                             if let count = segment == .matches ? matchCount : offerCount {
-                              Text("\(count)")
-                                .font(DesignTokens.Typography.caption)
-                                .monospacedDigit()
-                                .padding(.horizontal, 7)
-                                .padding(.vertical, 3)
-                                .background(
-                                    selectedSegment == segment
-                                        ? DesignTokens.Colors.groomerTint
-                                        : DesignTokens.Colors.borderSoft
-                                )
-                                .clipShape(Capsule())
+                                BeckonCountBadge(count: count, accent: .groomer)
                             }
                         }
                         .font(DesignTokens.Typography.body.weight(.semibold))
@@ -433,10 +425,12 @@ private struct GroomerRequestSummaryRow: View {
                     .foregroundStyle(DesignTokens.Colors.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
 
-                Text(fitSummary)
-                    .font(DesignTokens.Typography.caption.weight(.semibold))
-                    .foregroundStyle(DesignTokens.Colors.groomerInk)
-                    .fixedSize(horizontal: false, vertical: true)
+                if let fitSummary {
+                    Label(fitSummary, systemImage: "info.circle")
+                        .font(DesignTokens.Typography.caption)
+                        .foregroundStyle(DesignTokens.Colors.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                 if let source = matchedRequest.request.distributionSourceTitle {
                     Text(source).font(DesignTokens.Typography.caption).foregroundStyle(DesignTokens.Colors.textSecondary)
                         .accessibilityIdentifier("groomer.requests.source")
@@ -468,9 +462,9 @@ private struct GroomerRequestSummaryRow: View {
         "\(matchedRequest.request.city), \(matchedRequest.request.state)"
     }
 
-    private var fitSummary: String {
-        matchedRequest.fitEvidencePresentation?.listSummary
-            ?? matchedRequest.matchSummary
+    private var fitSummary: String? {
+        let summary = matchedRequest.fitEvidencePresentation?.listSummary ?? matchedRequest.matchSummary
+        return summary == matchedRequest.match.status.title ? nil : summary
     }
 }
 
@@ -1072,7 +1066,7 @@ struct GroomerRequestDetailView: View {
             if store.isSubmittingOffer {
                 HStack(spacing: DesignTokens.Spacing.sm) {
                     ProgressView()
-                        .tint(DesignTokens.Colors.groomerInk)
+                        .tint(DesignTokens.Colors.groomerDeep)
                     Text("Submitting offer…")
                 }
             } else {
@@ -1190,12 +1184,12 @@ private struct DetailMetadataRow: View {
         HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
             Image(systemName: systemImage)
                 .font(DesignTokens.Typography.caption.weight(.semibold))
-                .foregroundStyle(DesignTokens.Colors.groomerInk)
+                .foregroundStyle(DesignTokens.Colors.textSecondary)
                 .frame(
                     width: DesignTokens.Spacing.xl,
                     height: DesignTokens.Spacing.xl
                 )
-                .background(DesignTokens.Colors.groomerTint)
+                .background(DesignTokens.Colors.iconTileFill)
                 .clipShape(DesignTokens.Shapes.circular)
                 .accessibilityHidden(true)
 
@@ -1351,7 +1345,7 @@ private struct OfferMessageBlock: View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
             Label("Message", systemImage: "text.bubble")
                 .font(DesignTokens.Typography.caption.weight(.semibold))
-                .foregroundStyle(DesignTokens.Colors.groomerInk)
+                .foregroundStyle(DesignTokens.Colors.textSecondary)
 
             Text(message)
                 .font(DesignTokens.Typography.body)

@@ -40,9 +40,9 @@ struct CustomerAccountView: View {
                     BeckonAccountIdentityHeader(
                         displayName: store.profileDisplayName,
                         detailText: store.profileDetailText,
-                        roleTitle: "Pet Owner",
+                        roleTitle: "Pet owner",
                         roleSystemImage: "pawprint.fill",
-                        roleTone: .neutral
+                        roleAccent: .customer
                     ) {
                         CustomerAvatarImage(
                             data: store.avatarPhotoData,

@@ -61,17 +61,36 @@ enum BeckonAccountLayoutPolicy {
 struct BeckonCountBadge: View {
     let count: Int
     let accent: BeckonRoleAccent
+    var hasMore = false
 
     var body: some View {
         if let label = BeckonBadgeLabel.text(for: count) {
-            Text(label)
+            Text(hasMore && count < 100 ? "\(label)+" : label)
                 .font(DesignTokens.Typography.caption.weight(.semibold))
                 .foregroundStyle(accent.deep)
                 .padding(.horizontal, DesignTokens.Spacing.sm)
                 .padding(.vertical, DesignTokens.Spacing.xs)
                 .background(accent.tint, in: Capsule())
-                .accessibilityLabel("\(count)")
+                .accessibilityLabel(hasMore ? "At least \(count)" : "\(count)")
         }
+    }
+}
+
+struct BeckonRoleBadge: View {
+    let title: String
+    var systemImage: String? = nil
+    let accent: BeckonRoleAccent
+
+    var body: some View {
+        HStack(spacing: DesignTokens.Spacing.xs) {
+            if let systemImage { Image(systemName: systemImage).accessibilityHidden(true) }
+            Text(title).fixedSize(horizontal: false, vertical: true)
+        }
+        .font(DesignTokens.Typography.status)
+        .foregroundStyle(accent.deep)
+        .padding(.horizontal, DesignTokens.Spacing.sm)
+        .padding(.vertical, DesignTokens.Spacing.xs)
+        .background(accent.tint, in: Capsule())
     }
 }
 
@@ -183,7 +202,7 @@ struct BeckonAccountIdentityHeader<Avatar: View>: View {
     let detailText: String
     let roleTitle: String
     let roleSystemImage: String?
-    let roleTone: BeckonStatusChip.Tone
+    let roleAccent: BeckonRoleAccent
     private let avatar: Avatar
 
     init(
@@ -191,14 +210,14 @@ struct BeckonAccountIdentityHeader<Avatar: View>: View {
         detailText: String,
         roleTitle: String,
         roleSystemImage: String? = nil,
-        roleTone: BeckonStatusChip.Tone,
+        roleAccent: BeckonRoleAccent,
         @ViewBuilder avatar: () -> Avatar
     ) {
         self.displayName = displayName
         self.detailText = detailText
         self.roleTitle = roleTitle
         self.roleSystemImage = roleSystemImage
-        self.roleTone = roleTone
+        self.roleAccent = roleAccent
         self.avatar = avatar()
     }
 
@@ -221,10 +240,10 @@ struct BeckonAccountIdentityHeader<Avatar: View>: View {
                     .foregroundStyle(DesignTokens.Colors.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
 
-                BeckonStatusChip(
-                    roleTitle,
+                BeckonRoleBadge(
+                    title: roleTitle,
                     systemImage: roleSystemImage,
-                    tone: roleTone
+                    accent: roleAccent
                 )
             }
             .frame(maxWidth: .infinity, alignment: .leading)

@@ -26,7 +26,7 @@ struct PasswordRecoveryView: View {
                         Button("Done", systemImage: "checkmark") { Task { await store.closePasswordRecovery() } }
                             .buttonStyle(BeckonPrimaryButtonStyle())
                     default:
-                        Text(store.recoveryState == .emailSent ? "Check Your Email" : "Reset Password").font(DesignTokens.Typography.featureTitle)
+                        Text(store.recoveryState == .emailSent ? "Check your email" : "Reset password").font(DesignTokens.Typography.featureTitle)
                         if store.recoveryState == .emailSent {
                             Text("If an account exists for this email, a reset link will arrive shortly. Open it on this device.")
                         }

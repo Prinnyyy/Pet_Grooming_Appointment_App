@@ -212,6 +212,7 @@ private struct GroomerHomeHeader: View {
                 .foregroundStyle(DesignTokens.Colors.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)
+            BeckonRoleBadge(title: "Groomer", systemImage: "scissors", accent: .groomer)
         }
     }
 }
@@ -228,10 +229,10 @@ private struct GroomerHomeNextBookingCard: View {
                 bookingLayout {
                     BeckonModuleImage(data: photoData) {
                         ZStack {
-                            DesignTokens.Colors.groomerTint
+                            DesignTokens.Colors.placeholderFill
                             Image(systemName: "pawprint.fill")
                                 .font(DesignTokens.Typography.sectionTitle)
-                                .foregroundStyle(DesignTokens.Colors.groomerInk)
+                                .foregroundStyle(DesignTokens.Colors.textTertiary)
                         }
                     }
                     .frame(width: 72, height: 72)
@@ -260,6 +261,7 @@ private struct GroomerHomeNextBookingCard: View {
 
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
                     Label(booking.scheduledTimeSummary, systemImage: "calendar")
+                        .accessibilityLabel(booking.scheduledTimePresentation.accessibilityLabel)
                         .font(DesignTokens.Typography.supporting.weight(.semibold))
                         .foregroundStyle(DesignTokens.Colors.textPrimary)
                     Label(booking.appointmentAddressSummary, systemImage: "mappin")
@@ -318,7 +320,8 @@ private struct GroomerHomeAttentionSurface: View {
                         empty: "No new matching requests"
                     ),
                     systemImage: "person.2",
-                    tint: DesignTokens.Colors.statusSuccessText,
+                    count: newMatchCount,
+                    hasMore: hasMoreMatches,
                     identifier: "groomer.home.matches",
                     action: requestsAction
                 )
@@ -335,7 +338,8 @@ private struct GroomerHomeAttentionSurface: View {
                         empty: "No offers awaiting a response"
                     ),
                     systemImage: "tag",
-                    tint: DesignTokens.Colors.statusWarningText,
+                    count: pendingOfferCount,
+                    hasMore: hasMoreOffers,
                     identifier: "groomer.home.offers",
                     action: offersAction
                 )
@@ -351,7 +355,7 @@ private struct GroomerHomeAttentionSurface: View {
                         empty: "Open messages to check for updates"
                     ),
                     systemImage: "message",
-                    tint: DesignTokens.Colors.textTertiary,
+                    count: unreadMessageCount,
                     identifier: "groomer.home.messages",
                     action: messagesAction
                 )
@@ -383,7 +387,8 @@ private struct GroomerHomeAttentionRow: View {
     let title: String
     let detail: String
     let systemImage: String
-    let tint: Color
+    let count: Int?
+    var hasMore = false
     let identifier: String
     let action: () -> Void
 
@@ -405,9 +410,12 @@ private struct GroomerHomeAttentionRow: View {
                         .accessibilityHidden(true)
 
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                    Text(title)
-                        .font(DesignTokens.Typography.headline)
-                        .foregroundStyle(DesignTokens.Colors.textPrimary)
+                    HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
+                        Text(title)
+                            .font(DesignTokens.Typography.headline)
+                            .foregroundStyle(DesignTokens.Colors.textPrimary)
+                        if let count { BeckonCountBadge(count: count, accent: .groomer, hasMore: hasMore) }
+                    }
 
                     Text(detail)
                         .font(DesignTokens.Typography.supporting)
@@ -438,9 +446,9 @@ private struct GroomerHomeAvailabilityRow: View {
     var body: some View {
         Button(action: action) {
             HStack(spacing: DesignTokens.Spacing.md) {
-                Circle()
-                    .fill(indicatorColor)
-                    .frame(width: 12, height: 12)
+                Image(systemName: indicatorSymbol)
+                    .foregroundStyle(isLoading ? DesignTokens.Colors.textTertiary : indicatorColor)
+                    .accessibilityHidden(true)
 
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                     Text(title)
@@ -450,12 +458,15 @@ private struct GroomerHomeAvailabilityRow: View {
                     Text(detail)
                         .font(.subheadline)
                         .foregroundStyle(DesignTokens.Colors.textSecondary)
+                    Text("Manage availability")
+                        .font(DesignTokens.Typography.action)
+                        .foregroundStyle(DesignTokens.Colors.groomerDeep)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
                 Image(systemName: "chevron.right")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(DesignTokens.Colors.groomerInk)
+                    .foregroundStyle(DesignTokens.Colors.groomerDeep)
                     .accessibilityHidden(true)
             }
             .padding(DesignTokens.Spacing.lg)
@@ -476,8 +487,18 @@ private struct GroomerHomeAvailabilityRow: View {
             }
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(BeckonTertiaryButtonStyle(accent: .groomer))
         .accessibilityIdentifier("groomer.home.availability")
+    }
+
+    private var indicatorSymbol: String {
+        if isLoading { return "clock" }
+        return switch state {
+        case .available: "checkmark.circle.fill"
+        case .needsSchedule: "calendar.badge.exclamationmark"
+        case .paused: "pause.circle"
+        case .unavailable: "questionmark.circle"
+        }
     }
 
     private var indicatorColor: Color {
@@ -495,7 +516,7 @@ private struct GroomerHomeAvailabilityRow: View {
         if isLoading { return "Checking availability..." }
         return switch state {
         case .available:
-            "Weekly hours set"
+            "Available"
         case .paused:
             "Requests paused"
         case .needsSchedule:

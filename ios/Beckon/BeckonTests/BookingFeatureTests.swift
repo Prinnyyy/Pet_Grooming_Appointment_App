@@ -545,7 +545,7 @@ struct BookingsStoreTests {
             errorMessage: store.errorMessage
         )
 
-        #expect(presentation.persistentLoadError?.title == "We Could Not Load Schedule")
+        #expect(presentation.persistentLoadError?.title == "We could not load schedule")
         #expect(presentation.persistentLoadError?.message == "We could not load your schedule. Please try again.")
         #expect(presentation.persistentLoadError?.actionTitle == "Try again")
         #expect(presentation.toastError == nil)
@@ -573,7 +573,7 @@ struct BookingsStoreTests {
             errorMessage: store.errorMessage
         )
 
-        #expect(presentation.persistentLoadError?.title == "We Could Not Load Bookings")
+        #expect(presentation.persistentLoadError?.title == "We could not load bookings")
         #expect(presentation.persistentLoadError?.message == "We could not load your bookings. Please try again.")
         #expect(presentation.toastError == nil)
     }

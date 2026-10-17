@@ -17,12 +17,12 @@ nonisolated enum BookingRescheduleStatus: String, Codable, Sendable {
     case pending, accepted, rejected, withdrawn, expired, invalidated
     var title: String {
         switch self {
-        case .pending: "Awaiting Time Confirmation"
-        case .accepted: "Time Change Accepted"
-        case .rejected: "Time Change Declined"
-        case .withdrawn: "Time Change Withdrawn"
-        case .expired: "Time Change Expired"
-        case .invalidated: "Booking Changed"
+        case .pending: "Awaiting time confirmation"
+        case .accepted: "Time change accepted"
+        case .rejected: "Time change declined"
+        case .withdrawn: "Time change withdrawn"
+        case .expired: "Time change expired"
+        case .invalidated: "Booking changed"
         }
     }
 }

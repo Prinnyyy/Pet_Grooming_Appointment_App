@@ -29,7 +29,7 @@ struct GroomerAccountHomeView: View {
                 detailText: presentation.identitySubtitle,
                 roleTitle: "Groomer",
                 roleSystemImage: "scissors",
-                roleTone: .neutral
+                roleAccent: .groomer
             ) {
                 BeckonProfileAvatar(
                     data: store.avatarPhotoData,
@@ -133,9 +133,7 @@ struct GroomerAccountHomeView: View {
             }
 
             BeckonSection("Account access") {
-                BeckonGroupedSurface {
-                    signOutControl
-                }
+                signOutControl
             }
         }
     }
@@ -148,7 +146,7 @@ struct GroomerAccountHomeView: View {
             } label: {
                 GroomerSignOutRowLabel()
             }
-            .buttonStyle(.plain)
+            .buttonStyle(BeckonDestructiveButtonStyle())
             .accessibilityIdentifier("groomer.account.sign-out")
         } else if let accountContent {
             NavigationLink {
@@ -156,7 +154,7 @@ struct GroomerAccountHomeView: View {
             } label: {
                 GroomerSignOutRowLabel()
             }
-            .buttonStyle(.plain)
+            .buttonStyle(BeckonDestructiveButtonStyle())
         }
     }
 }
@@ -176,8 +174,6 @@ private struct GroomerSignOutRowLabel: View {
 
             Spacer(minLength: 0)
         }
-        .padding(.horizontal, DesignTokens.Layout.rowHorizontalInset)
-        .padding(.vertical, DesignTokens.Layout.rowVerticalInset)
         .frame(minHeight: DesignTokens.Metrics.minimumTouchTarget)
         .contentShape(Rectangle())
     }

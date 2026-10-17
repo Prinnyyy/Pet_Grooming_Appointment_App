@@ -18,7 +18,7 @@ struct AuthenticatedAccountView: View {
                         displayName: profile.displayName,
                         detailText: emailSummary ?? profile.role.accountRoleLabel,
                         roleTitle: profile.role.accountRoleLabel,
-                        roleTone: .neutral
+                        roleAccent: profile.role.settingsAccent
                     ) {
                         BeckonDefaultProfileAvatar(
                             tone: profile.role.defaultAvatarTone,

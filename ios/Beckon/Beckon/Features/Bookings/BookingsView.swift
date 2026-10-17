@@ -436,7 +436,7 @@ struct BookingsFeedbackPresentation {
         return BeckonPersistentFeedbackError(
             scope: .page(scopeID),
             sourceKey: "\(scopeID).load",
-            title: role == .groomer ? "We Could Not Load Schedule" : "We Could Not Load Bookings",
+            title: role == .groomer ? "We could not load schedule" : "We could not load bookings",
             message: errorMessage,
             actionTitle: "Try again"
         )
@@ -1040,7 +1040,7 @@ struct BookingDetailView: View {
                                 )
                             }
 
-                            BookingFulfillmentSection(booking: booking, store: store)
+                            BookingFulfillmentSection(booking: booking, store: store, role: role)
                             BookingRescheduleSection(booking: booking, store: store)
 
                             BookingPartnerOverviewCard(

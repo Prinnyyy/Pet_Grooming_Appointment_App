@@ -64,7 +64,7 @@ struct GroomerProfileManagementView: View {
                             .disabled(store.isBusy)
                         if let onSignOut {
                             Button("Sign out", role: .destructive, action: onSignOut)
-                                .buttonStyle(BeckonSecondaryButtonStyle(accent: .groomer))
+                                .buttonStyle(BeckonDestructiveButtonStyle())
                         }
                     }
                     .beckonPageInsets()

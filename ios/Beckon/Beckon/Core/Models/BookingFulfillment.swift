@@ -190,8 +190,8 @@ extension Booking {
         guard let fulfillment else { return status.title }
         switch fulfillment.phase {
         case .scheduled: return "Confirmed"
-        case .inService: return "In Service"
-        case .outcomeReported: return "Outcome Awaiting Confirmation"
+        case .inService: return "In service"
+        case .outcomeReported: return "Outcome awaiting confirmation"
         case .completed: return "Completed"
         case .cancelled: return status.title
         case .unfulfilled: return "Service not confirmed"

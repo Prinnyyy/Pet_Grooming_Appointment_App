@@ -325,7 +325,7 @@ struct ChatThreadView: View {
             VStack(spacing: 0) {
                 ChatThreadHeader(
                     title: conversation.listTitle(for: role),
-                    subtitle: store.canSendMessages(in: conversation) ? "Active Chat" : "Read Only",
+                    subtitle: store.canSendMessages(in: conversation) ? "Active chat" : "Read-only",
                     role: role,
                     avatarPhotoData: conversation.counterpartAvatarPhotoData,
                     isComposing: isComposing,
@@ -582,12 +582,12 @@ private struct ChatMessageRow: View {
             VStack(alignment: isOutgoing ? .trailing : .leading, spacing: DesignTokens.Spacing.xs) {
                 Text(message.body ?? "")
                     .font(.body.weight(.medium))
-                    .foregroundStyle(isOutgoing ? role.chatAccent.ink : DesignTokens.Colors.textPrimary)
+                    .foregroundStyle(DesignTokens.Colors.textPrimary)
                     .padding(.horizontal, DesignTokens.Spacing.lg)
                     .padding(.vertical, DesignTokens.Spacing.md)
                     .background {
                         RoundedRectangle(cornerRadius: 22, style: .continuous)
-                            .fill(isOutgoing ? role.chatAccent.color : DesignTokens.Colors.surfaceRaised)
+                            .fill(isOutgoing ? DesignTokens.Colors.iconTileFill : DesignTokens.Colors.surfaceRaised)
                     }
                     .overlay {
                         RoundedRectangle(cornerRadius: 22, style: .continuous)
@@ -676,9 +676,9 @@ private struct ChatBookingMessageCard: View {
                             ? "calendar.badge.exclamationmark"
                             : "calendar.badge.checkmark")
                             .font(.title3.weight(.bold))
-                            .foregroundStyle(role.chatAccentColor)
+                            .foregroundStyle(DesignTokens.Colors.textTertiary)
                             .frame(width: 48, height: 48)
-                            .background(role == .customer ? DesignTokens.Colors.customerTint : DesignTokens.Colors.groomerTint)
+                            .background(DesignTokens.Colors.iconTileFill)
                             .clipShape(
                                 RoundedRectangle(
                                     cornerRadius: DesignTokens.CornerRadius.input,
@@ -949,17 +949,6 @@ private extension UserRole {
             .customer
         case .groomer:
             .groomer
-        }
-    }
-
-    var chatAccent: BeckonRoleAccent { self == .customer ? .customer : .groomer }
-
-    var chatAccentColor: Color {
-        switch self {
-        case .customer:
-            DesignTokens.Colors.customerDeep
-        case .groomer:
-            DesignTokens.Colors.groomerDeep
         }
     }
 

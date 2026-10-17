@@ -3,6 +3,7 @@ import SwiftUI
 struct BookingFulfillmentSection: View {
     let booking: Booking
     let store: BookingsStore
+    let role: UserRole
     @State private var selectedAction: BookingFulfillmentAction?
     @Environment(\.dynamicTypeSize) private var typeSize
 
@@ -17,15 +18,15 @@ struct BookingFulfillmentSection: View {
             }
             if let state = booking.fulfillment {
                 if state.phase != .scheduled && state.phase != .cancelled {
-                    timestamp("Service Started", state.actualStartedAt)
-                    timestamp("Service Ended", state.actualEndedAt)
+                    timestamp("Service started", state.actualStartedAt)
+                    timestamp("Service ended", state.actualEndedAt)
                 }
                 if state.basis == "bilateral_retrospective" {
                     Text("Completion confirmed by both participants. Unrecorded service times remain unknown.")
                         .font(DesignTokens.Typography.supporting).foregroundStyle(DesignTokens.Colors.textTertiary)
                 }
                 if let release = state.resourceReleaseAt {
-                    timestamp("Groomer Reserved Until", release)
+                    timestamp("Groomer reserved until", release)
                 }
                 if let report = state.reportNote {
                     Text(report).font(DesignTokens.Typography.body)
@@ -55,13 +56,7 @@ struct BookingFulfillmentSection: View {
                 TimelineView(.periodic(from: .now, by: 1)) { context in
                     VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                         ForEach(store.fulfillmentActions(for: booking, now: context.date)) { action in
-                            Button {
-                                selectedAction = action
-                            } label: {
-                                Label(action.title, systemImage: action.systemImage)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-                            .accessibilityIdentifier("booking.fulfillment.\(action.rawValue)")
+                            actionButton(action)
                         }
                     }
                 }
@@ -94,17 +89,33 @@ struct BookingFulfillmentSection: View {
                     .foregroundStyle(DesignTokens.Colors.textTertiary)
             }
         }
-        .buttonStyle(BeckonSecondaryButtonStyle(accent: .neutral))
+        .buttonStyle(BeckonSecondaryButtonStyle(accent: role == .customer ? .customer : .groomer))
         .disabled(store.isMutatingFulfillment || store.isMutatingReschedule)
         .task(id: booking.id) {
             if booking.fulfillment == nil { await store.refreshFulfillment(for: booking.id) }
             else { await store.loadFulfillmentHistory(for: booking.id) }
         }
         .sheet(item: $selectedAction) { action in
-            BookingFulfillmentConfirmation(action: action) { note in
+            BookingFulfillmentConfirmation(action: action, role: role) { note in
                 selectedAction = nil
                 Task { await store.performFulfillment(action, for: booking, note: note) }
             }
+        }
+    }
+
+    @ViewBuilder
+    private func actionButton(_ action: BookingFulfillmentAction) -> some View {
+        let button = Button {
+            selectedAction = action
+        } label: {
+            Label(action.title, systemImage: action.systemImage)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .accessibilityIdentifier("booking.fulfillment.\(action.rawValue)")
+        if action.isDestructive {
+            button.buttonStyle(BeckonDestructiveButtonStyle())
+        } else {
+            button
         }
     }
 
@@ -130,6 +141,7 @@ struct BookingFulfillmentSection: View {
 
 private struct BookingFulfillmentConfirmation: View {
     let action: BookingFulfillmentAction
+    let role: UserRole
     let onConfirm: (String?) -> Void
     @State private var note = ""
     @FocusState private var focusedNote: Bool
@@ -154,13 +166,7 @@ private struct BookingFulfillmentConfirmation: View {
                         }
                     }
                     Section {
-                        Button(action.title, systemImage: action.systemImage) {
-                            onConfirm(action.requiresNote ? note : nil)
-                        }
-                        .buttonStyle(BeckonSecondaryButtonStyle(accent: .neutral))
-                        .disabled(action.requiresNote &&
-                            (note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || note.count > 500))
-                        .accessibilityIdentifier("booking.fulfillment.confirm")
+                        confirmationButton
                     }
                 }
                 .beckonKeyboardAvoidance(focusedTarget: focusedNote ? "booking.fulfillment.note.container" : nil, using: proxy)
@@ -173,11 +179,28 @@ private struct BookingFulfillmentConfirmation: View {
                 }
             }
         }
+        .tint(role == .customer ? DesignTokens.Colors.customerDeep : DesignTokens.Colors.groomerDeep)
     }
 
+    @ViewBuilder
+    private var confirmationButton: some View {
+        let button = Button(action.title, systemImage: action.systemImage) {
+            onConfirm(action.requiresNote ? note : nil)
+        }
+        .disabled(action.requiresNote &&
+            (note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || note.count > 500))
+        .accessibilityIdentifier("booking.fulfillment.confirm")
+        if action.isDestructive {
+            button.buttonStyle(BeckonDestructiveButtonStyle())
+        } else {
+            button.buttonStyle(BeckonSecondaryButtonStyle(accent: role == .customer ? .customer : .groomer))
+        }
+    }
 }
 
 private extension BookingFulfillmentAction {
+    var isDestructive: Bool { [.cancel, .confirmStop, .closeElapsed].contains(self) }
+
     var confirmationMessage: String {
         switch self {
         case .start: "Record the start of service now."
